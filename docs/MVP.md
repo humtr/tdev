@@ -308,7 +308,7 @@ Case evidence mapping
 Case completed
 ```
 
-The scenario must use the public MCP endpoint and the current client-visible schema.
+The scenario must use the public MCP endpoint, the release-pinned projection, and the current client-visible schema. Optional Resources, Tasks, or elicitation count only when the current client declares and successfully exercises them.
 
 ## 5. MVP public Operation set
 
@@ -338,7 +338,7 @@ validation.run
 process.run
 ```
 
-The fixed control/query surface is defined by the protocol and is also required.
+The twelve canonical semantic capabilities in [MCP.md](MCP.md) and [PROTOCOL.md](PROTOCOL.md) are required. The first-release `tools-v1` projection exposes all twelve as Tools. Optional `resources-v1`, `tasks-v1`, and `elicitation-v1` projections are additive and require current-client capability evidence; they do not reduce the baseline during the MVP.
 
 ## 6. MVP non-goals
 
@@ -437,7 +437,22 @@ Use pure adapters and recorded API fixtures for fast tests, then isolated test d
 - resource creation response loss;
 - deployment discovery conflict.
 
-### 7.8 Reference-host tests
+### 7.8 MCP adapter and current-client tests
+
+Use deterministic projection fixtures and an isolated public endpoint to verify:
+
+- exact protocol revision and projection digest;
+- stable `tools-v1` order, names, annotations, and input/output schemas;
+- all twelve semantic capabilities remain reachable;
+- optional Resources, Tasks, and elicitation activate only under declared client capability;
+- missing optional support selects the baseline or a typed missing-capability result;
+- an MCP Task resolves to the same canonical tdev Task and survives disconnect or Worker restart;
+- Tool schema changes require explicit current-client refresh or republication evidence;
+- client name and capability metadata cannot widen authority.
+
+Do not create one test file per Tool or optional feature. Consolidate this independent Worker/MCP runtime boundary in one table-driven integration suite until a second execution environment requires separation.
+
+### 7.9 Reference-host tests
 
 A clean Termux-on-Android-ARM64 device is required for release qualification. Emulation or a generic Linux environment is supplementary only.
 
@@ -489,8 +504,9 @@ For each boundary verify:
 | push | expected local and remote refs plus post-push remote observation |
 | setup resume | stage receipts and no duplicate Cloudflare resources |
 | active Agent | service observation plus authenticated WebSocket and capability probe |
-| public MCP | endpoint call using deployment token and current catalog digest |
-| client schema | actual client-visible tool schema or explicit refresh-required result |
+| public MCP | endpoint call using deployment token, exact protocol revision, and projection digest |
+| MCP projection | deterministic twelve-Tool baseline plus declared-feature fallback and same-Task projection evidence |
+| client schema | actual frozen client-visible Tool schema, declared extension capabilities, or explicit refresh-required result |
 | rollback | active predecessor release, stored schema, Agent connection, public probe |
 
 ## 10. Documentation and generated-contract gates

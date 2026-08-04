@@ -601,26 +601,15 @@ terminal -> no transition
 
 A Task has at most one Attempt whose status is not terminal.
 
-## 9. Public MCP surface
+## 9. Public semantic surface
 
-The fixed public tools are:
+The public adapter provides the twelve canonical semantic capabilities cataloged in [MCP.md](MCP.md). This document owns their exact tdev inputs, outputs, revisions, transitions, errors, and durable effects. [MCP.md](MCP.md) owns whether a release projects a capability as an MCP Tool, Resource, or negotiated extension method.
 
-| Tool | Creates Native Task | Purpose |
-| --- | ---: | --- |
-| `list_operations` | no | versioned Operation catalog and availability |
-| `list_resources` | no | bounded Agent, Workspace, Project, and Case locators |
-| `submit_operation` | yes | create a Case plus first Task, or add a Task to an existing Case |
-| `get_case` | no | canonical Case snapshot and bounded summaries |
-| `get_task` | no | canonical Task and selected Attempt/Event data |
-| `control_case` | no | pause, resume, checkpoint |
-| `finish_case` | no | completed, failed, rolled_back, unverified terminal transition |
-| `cancel_case` | no | enter cancelling and propagate cancellation intent |
-| `control_task` | no | approve, deny, provide input, authorize or decline retry |
-| `cancel_task` | no | request Task cancellation |
-| `render_task` | no | bounded read-only presentation envelope |
-| `read_artifact` | no | authorized bounded Artifact byte range |
+The first-release `tools-v1` projection exposes every capability as a Tool. Optional Resources, Tasks, and elicitation are additive projections and do not delete the baseline or create a second state owner.
 
-Case and Task control actions are canonical state transitions, not Agent Operations.
+Only `submit_operation` creates a Native Task. Case and Task control actions are canonical CaseDO state transitions, not Agent Operations. An MCP Task handle, when negotiated, resolves to the same canonical `TaskRecord`; it cannot own another status, retry, cancellation, or terminal decision.
+
+The semantic contracts below remain stable across projections. A wire projection change does not implicitly change a Case or Task contract.
 
 ## 10. submit_operation
 

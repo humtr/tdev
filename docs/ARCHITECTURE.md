@@ -1,6 +1,6 @@
 # Terminal Developer Architecture
 
-> Authority: this document owns component boundaries, durable ownership, dependency direction, data placement, concurrency, dispatch topology, and the proposed repository structure. Product scope is owned by [SPEC.md](SPEC.md); data and message schemas are owned by [PROTOCOL.md](PROTOCOL.md).
+> Authority: this document owns component boundaries, durable ownership, dependency direction, data placement, concurrency, dispatch topology, and the proposed repository structure. Product scope is owned by [SPEC.md](SPEC.md); the MCP wire adapter and projection are owned by [MCP.md](MCP.md); canonical tdev data and message schemas are owned by [PROTOCOL.md](PROTOCOL.md).
 
 ## 1. Architectural goal
 
@@ -42,10 +42,10 @@ MCP client
 
 The Worker owns no durable lifecycle state. It is responsible for:
 
-- MCP authentication and request size bounds;
-- public tool routing;
-- Operation catalog presentation;
-- resource locator queries through D1;
+- MCP authentication, request size bounds, and exact revision validation;
+- release-pinned Tool, Resource, and extension projection routing;
+- Operation catalog presentation under the active projection;
+- authorized Resource and locator queries through canonical owners and D1 projections;
 - deterministic routing to `CaseDO(caseId)` and `AgentDO(agentId)`;
 - protocol-version negotiation at the public boundary;
 - response shaping and redaction;
@@ -61,7 +61,9 @@ The Worker MUST NOT own:
 - retry decisions;
 - completion judgments.
 
-A Worker restart cannot invalidate a Case or Agent identity.
+A Worker restart cannot invalidate a Case, Task, negotiated Task handle, or Agent identity.
+
+The MCP adapter is stateless. It may observe client revision and capabilities for response shaping, but it does not persist protocol-session authority or own a second Case, Task, approval, input, cancellation, evidence, or terminal state. Client capability metadata is never an authorization source.
 
 ### 3.2 CaseDO
 

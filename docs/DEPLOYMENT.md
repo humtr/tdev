@@ -166,7 +166,11 @@ type DeploymentDescriptor = {
     version: string;
     manifestDigest: Sha256;
   };
-  protocol: {
+  mcp: {
+    protocolRevision: string;
+    projectionDigest: Sha256;
+  };
+  agentProtocol: {
     minimum: number;
     maximum: number;
   };
@@ -174,6 +178,8 @@ type DeploymentDescriptor = {
 ```
 
 `deploymentId` is immutable. `displayName` and resource labels can change without changing identity when bindings and descriptor remain verified.
+
+The MCP protocol revision and projection digest are release-pinned identities owned by [MCP.md](MCP.md). They are not inferred from a client name, a moving `latest` label, or the currently connected request. Agent protocol compatibility remains a separate range.
 
 ## 8. Deployment discovery and reuse
 
@@ -582,6 +588,7 @@ local CLI installation
 Cloudflare resource bindings
 stored schema and migrations
 active Edge release
+release-pinned MCP projection
 Agent binary and service
 Agent authenticated connection
 Workspace and Project observation
@@ -603,8 +610,9 @@ A release deployment is accepted only when:
 - D1 and Durable Object migrations are from exact expected versions;
 - active Edge probe matches release manifest;
 - Agent service and authenticated connection match the expected Agent release;
-- protocol negotiation succeeds;
-- public read-only Case and Task complete through the endpoint;
+- Agent protocol negotiation succeeds and the public MCP revision and projection digest match the release manifest;
+- public read-only Case and Task complete through the endpoint using the release-pinned projection;
+- the current client-visible Tool snapshot matches the approved projection or reports an explicit refresh/republication requirement;
 - reinstall reuses deployment, endpoint, and credential as specified;
 - uninstall preserves cloud state by default;
 - destroy removes only exact owned resources;

@@ -10,6 +10,7 @@ const requiredFiles = [
   "WORKBOARD.md",
   "docs/SPEC.md",
   "docs/ARCHITECTURE.md",
+  "docs/MCP.md",
   "docs/PROTOCOL.md",
   "docs/OPERATIONS.md",
   "docs/SECURITY.md",
@@ -46,6 +47,7 @@ const checkedFiles = [
   "SDD.md",
   "WORKBOARD.md",
   "docs/SPEC.md",
+  "docs/MCP.md",
   "docs/REPOSITORY_BOOTSTRAP.md",
   "docs/WORKBOARD_GUIDE.md",
   "docs/WORKBOARD_TEMPLATE.md",
@@ -122,10 +124,50 @@ for (const match of workboard.matchAll(activePattern)) {
   }
 }
 
+const mcp = await readFile(path.join(root, "docs/MCP.md"), "utf8");
+const capabilityStart = "<!-- mcp-capabilities:start -->";
+const capabilityEnd = "<!-- mcp-capabilities:end -->";
+const capabilityStartCount = mcp.split(capabilityStart).length - 1;
+const capabilityEndCount = mcp.split(capabilityEnd).length - 1;
+if (capabilityStartCount !== 1 || capabilityEndCount !== 1) {
+  errors.push("docs/MCP.md must contain exactly one canonical capability table marker pair");
+} else {
+  const capabilityBlock = mcp.slice(
+    mcp.indexOf(capabilityStart) + capabilityStart.length,
+    mcp.indexOf(capabilityEnd),
+  );
+  const expectedCapabilities = [
+    "list_operations",
+    "list_resources",
+    "submit_operation",
+    "get_case",
+    "get_task",
+    "control_case",
+    "finish_case",
+    "cancel_case",
+    "control_task",
+    "cancel_task",
+    "render_task",
+    "read_artifact",
+  ];
+  const capabilityRows = [...capabilityBlock.matchAll(/^\|\s*`([a-z_]+)`\s*\|\s*(yes|no)\s*\|[^\n]*\|\s*Tool\s*\|$/gm)]
+    .map((match) => match[1]);
+  const duplicateCapabilities = capabilityRows.filter((value, index) => capabilityRows.indexOf(value) !== index);
+  if (duplicateCapabilities.length > 0) {
+    errors.push(`docs/MCP.md duplicates canonical capability ${duplicateCapabilities[0]}`);
+  }
+  if (capabilityRows.length !== expectedCapabilities.length) {
+    errors.push(`docs/MCP.md has ${capabilityRows.length} tools-v1 capability rows; expected ${expectedCapabilities.length}`);
+  } else if (capabilityRows.some((value, index) => value !== expectedCapabilities[index])) {
+    errors.push("docs/MCP.md canonical capability order or name differs from tools-v1 contract");
+  }
+}
+
 const spec = await readFile(path.join(root, "docs/SPEC.md"), "utf8");
 const requirementCategories = new Set(["FUN", "SEC", "NFR", "LCM", "ACC"]);
 const requirementOwners = new Set([
   "ARCHITECTURE.md",
+  "MCP.md",
   "PROTOCOL.md",
   "OPERATIONS.md",
   "SECURITY.md",

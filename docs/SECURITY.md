@@ -27,6 +27,8 @@ The security boundary is enforced by:
 
 The user authorizes product-level objectives and explicit approvals. The MCP client decides semantic next actions but is not trusted to bypass schema, policy, preconditions, or terminal rules.
 
+Client name, version, protocol revision, and advertised capabilities are observations, not authentication or authorization. A user prompt cannot cause the client host to declare an extension it does not implement, and a claimed client name cannot widen any grant or policy.
+
 ### 2.2 Cloudflare deployment
 
 The user's Worker, CaseDO, AgentDO, D1, R2, and secrets form the durable coordination domain. They are trusted to enforce the deployed protocol but do not receive the user's Cloudflare deployment credential or local Git provider credential.
@@ -38,6 +40,14 @@ The Agent is trusted to perform local effects under the Termux user identity and
 ### 2.4 Remote providers
 
 Git hosting and other external providers own their remote facts. Credentials remain on the terminal host. Provider responses can be ambiguous and must be re-observed before retry.
+
+### 2.5 MCP projections
+
+Tools, Resources, Task handles, and elicitation are presentation and transport projections over canonical tdev owners. They do not grant authority by possession.
+
+Every Resource read and Task extension method rechecks the authenticated principal, current Case authority, and requested identifier. Unauthorized identifiers are not confirmed to exist. Resource URIs contain no credential, absolute local path, secret, or user-controlled authorization fact.
+
+Form elicitation is limited to non-secret typed input and decisions. Cloudflare tokens, MCP bearer tokens, private keys, provider credentials, authorization codes, and secret environment values are never requested through form elicitation or persisted as Case input. A future URL elicitation flow requires a separate accepted threat model and one-use callback contract.
 
 ## 3. Credential and key separation
 

@@ -181,24 +181,11 @@ The detailed ownership and dependency direction are defined in [ARCHITECTURE.md]
 
 ### 6.1 Public MCP control and query surface
 
-The first release exposes these fixed public control/query roles:
+The product defines twelve canonical semantic control/query capabilities. Their exact inputs, outputs, transitions, and errors are owned by [PROTOCOL.md](PROTOCOL.md); the authoritative catalog and MCP wire projection are owned by [MCP.md](MCP.md).
 
-```text
-list_operations
-list_resources
-submit_operation
-get_case
-get_task
-control_case
-finish_case
-cancel_case
-control_task
-cancel_task
-render_task
-read_artifact
-```
+The first-release `tools-v1` projection exposes all twelve capabilities as deterministic MCP Tools. Standard Resources, the Tasks extension, and elicitation MAY be added only as capability-gated projections that preserve the same semantic owner and baseline behavior. They are not assumed supported by ChatGPT until current-client evidence demonstrates support.
 
-Only `submit_operation` creates a Native Task. Case and Task lifecycle control is canonical state control, not an Agent Operation. Exact schemas and transitions are owned by [PROTOCOL.md](PROTOCOL.md).
+Only `submit_operation` creates a Native Task. Case and Task lifecycle control is canonical state control, not an Agent Operation or an MCP-owned lifecycle. A prompt cannot force the client host to declare an unsupported extension.
 
 ### 6.2 Agent Operation surface
 
@@ -249,6 +236,8 @@ Each row below defines one normative product requirement. The detailed owner col
 | TDEV-FUN-027 | The CLI MUST diagnose release, local installation, Cloudflare resources, active Edge, Agent service, authenticated connection, Workspace and Project state, public MCP, client schema, and recovery as separate layers. | [DEPLOYMENT.md](DEPLOYMENT.md) | M9 | layered doctor observations from authoritative readers |
 | TDEV-FUN-028 | Official setup MUST install and activate the expected Termux Agent service before enrollment and MUST verify the running service and authenticated connection. | [DEPLOYMENT.md](DEPLOYMENT.md) | M8 | installed service identity, process, enrollment, and connection evidence |
 | TDEV-FUN-029 | Setup MUST present the stable MCP endpoint, a securely handled deployment-scoped MCP credential, manual supported-client registration instructions, product probe, token rotation, and recovery commands without mutating client settings automatically. | [DEPLOYMENT.md](DEPLOYMENT.md) | M8 | setup output, authentication probe, manual client registration, and rotation/recovery evidence |
+| TDEV-FUN-030 | The public MCP adapter MUST preserve all twelve canonical semantic capabilities through the release-pinned `tools-v1` baseline; any Resource, Task, or elicitation projection MUST remain additive and MUST NOT create a second lifecycle owner. | [MCP.md](MCP.md) | M1 | projection manifest, semantic mapping, and owner-boundary evidence |
+| TDEV-FUN-031 | An optional MCP extension MUST activate only when the release implements and advertises it and the current client declares the required capability; a user prompt MUST NOT substitute for client support, and absence MUST select baseline behavior or a typed missing-capability result. | [MCP.md](MCP.md) | M10 | public request capability, server declaration, fallback, and current-client observations |
 
 ### 7.2 Security and privacy requirements
 
@@ -379,12 +368,12 @@ The first public release is accepted only when every requirement below is demons
 | TDEV-ACC-002 | Setup MUST create or reuse the exact user-owned Cloudflare deployment and MUST resume from every injected stage failure without duplicate resources. | [DEPLOYMENT.md](DEPLOYMENT.md) | Release | setup journal, resource inventory, and failure-injection evidence |
 | TDEV-ACC-003 | An Agent MUST enroll, reconnect, negotiate a compatible protocol, and remain fenced against replayed, revoked, or stale identities. | [SECURITY.md](SECURITY.md) | Release | enrollment and reconnect negative/positive observations |
 | TDEV-ACC-004 | A Workspace and Project MUST register with exact local identity and policy, and invalid traversal, symlink escape, root replacement, or broader authority MUST leave outside state unchanged. | [SECURITY.md](SECURITY.md) | Release | real reference-host containment and authority evidence |
-| TDEV-ACC-005 | A supported MCP client MUST discover resources, create a Case, submit a read-only Operation, and query the same durable Task after client disconnect, Worker restart, and DO hibernation. | [MVP.md](MVP.md) | Release | public MCP, canonical state, and current client-schema evidence |
+| TDEV-ACC-005 | A supported MCP client MUST discover the bounded tdev catalog through the active projection, create a Case, submit a read-only Operation, and query the same durable Task after client disconnect, Worker restart, and DO hibernation. | [MVP.md](MVP.md) | Release | public MCP projection, canonical state, and current client-schema evidence |
 | TDEV-ACC-006 | Lost request, dispatch, and result responses and an Agent disconnect MUST reconcile without duplicate Task or external effect, and a stale epoch result MUST be rejected. | [MVP.md](MVP.md) | Release | fault injection, Task count, receipt, target, and fencing evidence |
 | TDEV-ACC-007 | Exact file observation and mutation MUST enforce path, policy, before-state, expected-after, output, and unrelated-file boundaries. | [OPERATIONS.md](OPERATIONS.md) | Release | file result, digest, and outside-scope observations |
 | TDEV-ACC-008 | Git status, review, staging, commit, fetch, and fast-forward push MUST preserve exact HEAD, index, identity, remote, and unrelated-ref boundaries and reconcile lost responses. | [OPERATIONS.md](OPERATIONS.md) | Release | local repository and authoritative remote-ref evidence |
 | TDEV-ACC-009 | Validation and ProcessProfiles MUST be digest-bound, bounded, approval-aware, and able to distinguish domain verdict, execution failure, cancellation, and unverified termination. | [OPERATIONS.md](OPERATIONS.md) | Release | profile, source, output, process, approval, and uncertainty evidence |
-| TDEV-ACC-010 | One Case MUST complete the public development scenario of discovery, read, exact edit, review, validation, stage, commit, fast-forward push, remote verification, and evidence mapping through the current client-visible schema. | [MVP.md](MVP.md) | Release | complete public end-to-end Case and remote observation |
+| TDEV-ACC-010 | One Case MUST complete the public development scenario of discovery, read, exact edit, review, validation, stage, commit, fast-forward push, remote verification, and evidence mapping through the release-pinned projection and current client-visible schema. | [MVP.md](MVP.md) | Release | complete public end-to-end Case and remote observation |
 | TDEV-ACC-011 | Reinstallation MUST reuse the verified deployment, endpoint, credential, and Agent identity when present and MUST explicitly recover or replace missing local secrets and bindings. | [DEPLOYMENT.md](DEPLOYMENT.md) | Release | reinstall and data-loss recovery drill evidence |
 | TDEV-ACC-012 | Uninstall, destroy, authentication-profile removal, Agent replacement, Agent revocation, upgrade, rollback, and diagnosis MUST have distinct tested effects and preservation boundaries. | [DEPLOYMENT.md](DEPLOYMENT.md) | Release | before/after lifecycle observations and recovery evidence |
 | TDEV-ACC-013 | Security qualification MUST demonstrate credential separation, replay resistance, least authority, local revalidation, path containment, secret redaction, token rotation, and the documented same-UID limitation. | [SECURITY.md](SECURITY.md) | Release | security acceptance suite and persisted-output inspection |
@@ -418,7 +407,10 @@ The following are engineering experiments, not unresolved product-preference que
 - release bootstrap signature or trust mechanism available on a clean supported Termux installation;
 - safe cheap-read parallelism on the reference device;
 - whether demonstrated multi-Case contention justifies a WorkspaceDO or ProjectDO;
-- whether measured client behavior requires stricter public payload or pagination bounds.
+- whether measured client behavior requires stricter public payload or pagination bounds;
+- the exact final MCP revision and projection digest for the first public release;
+- whether the current supported client declares Resources, Tasks, or elicitation capabilities;
+- whether a future reduced Tool projection improves behavior while preserving all twelve semantic capabilities and rollback.
 
 Each decision requires measurements, a named owner update, acceptance evidence, and compatibility/rollback analysis when applicable. Until then it remains explicit unknown or bounded configuration and cannot be represented as a completed guarantee.
 
@@ -428,7 +420,8 @@ Each decision requires measurements, a named owner update, acceptance evidence, 
 | --- | --- |
 | `SPEC.md` | Product definition, first-release scope, terminology, supported environment, product-level functional/security/lifecycle/quality requirements, non-goals, acceptance, and traceability |
 | `ARCHITECTURE.md` | Component ownership, data placement, dependencies, dispatch topology, concurrency, repository shape, and architectural failure boundaries |
-| `PROTOCOL.md` | Canonical schemas, identifiers, digests, Case/Task/Attempt states, MCP control surface, dispatch, results, errors, Events, evidence records, and compatibility |
+| `MCP.md` | MCP wire revision, deterministic projection manifest, Tool/Resource/extension mapping, client capabilities, and current-client compatibility |
+| `PROTOCOL.md` | Canonical tdev schemas, identifiers, digests, semantic inputs/results, Case/Task/Attempt states, dispatch, errors, Events, evidence records, and domain compatibility |
 | `OPERATIONS.md` | Agent Operation catalog, profile contracts, effects, approvals, retry/reconciliation, operation-specific inputs, results, failures, and evidence |
 | `SECURITY.md` | Trust boundaries, credentials, Agent identity and enrollment, Workspace and Project authority, paths, secrets, threat handling, and security acceptance |
 | `DEPLOYMENT.md` | Installer, setup, Cloudflare identity and resources, release cohesion, migrations, upgrade, rollback, lifecycle commands, and recovery |

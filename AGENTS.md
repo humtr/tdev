@@ -25,7 +25,8 @@ Each contract has one owner.
 | --- | --- |
 | Product definition, first-release completeness boundary, terminology, supported environment, product-level functional/security/lifecycle/quality requirements, product non-goals, acceptance, and requirement traceability | `docs/SPEC.md` |
 | Components, durable ownership, dependency direction, data placement, concurrency, repository shape | `docs/ARCHITECTURE.md` |
-| External schemas, identifiers, digests, Case/Task/Attempt states, MCP control surface, protocol compatibility | `docs/PROTOCOL.md` and canonical files under `protocol/schemas/` |
+| MCP wire revision, standard methods, projection manifest, Tool/Resource/extension projection, client capabilities, and current-client compatibility | `docs/MCP.md` |
+| External tdev schemas, identifiers, digests, canonical semantic inputs/results, and Case/Task/Attempt states and transitions | `docs/PROTOCOL.md` and canonical files under `protocol/schemas/` |
 | Agent Operation catalog, effects, profiles, inputs, results, retry and reconciliation | `docs/OPERATIONS.md` |
 | Trust boundaries, Agent identity, Workspace authority, path and secret policy | `docs/SECURITY.md` |
 | Installer, setup, Cloudflare resources, release cohesion, upgrade, rollback and recovery | `docs/DEPLOYMENT.md` |
@@ -70,6 +71,7 @@ Use the change classes and design-record rules in `SDD.md`. Major changes requir
 - The terminal Agent alone performs local operating-system effects.
 - D1 is a locator/projection store; R2 owns bytes, not lifecycle truth.
 - Public effects are versioned typed Operations. Do not add an unrestricted shell surface or a silent typed-to-shell fallback.
+- The MCP adapter is a stateless projection. It does not own Case, Task, Attempt, approval, input, evidence, or terminal state.
 - Unknown external effects remain explicit uncertainty until reconciled.
 - Exact identity, revision, digest, permission, deadline, output, cancellation, and retry boundaries are preserved.
 - Domain packages do not import Cloudflare, Termux, filesystem, Git CLI, network, or process implementations.

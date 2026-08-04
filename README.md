@@ -33,7 +33,7 @@ MCP client
        tdev-agent on Termux
 ```
 
-A **Case** is the durable authority for one outcome-oriented development undertaking. `CaseDO` owns its immutable contract, target grants, Native MCP Tasks, Attempts, approvals, inputs, evidence, and terminal outcome. `AgentDO` owns Agent enrollment, connection, epoch, queue, and fencing. The terminal Agent alone performs local operating-system effects.
+A **Case** is the durable authority for one outcome-oriented development undertaking. `CaseDO` owns its immutable contract, target grants, canonical tdev Tasks, Attempts, approvals, inputs, evidence, and terminal outcome. An optional MCP Task handle is only a projection of that same Task. `AgentDO` owns Agent enrollment, connection, epoch, queue, and fencing. The terminal Agent alone performs local operating-system effects.
 
 ## M0 development commands
 
@@ -56,17 +56,19 @@ Then read the affected normative documents:
 
 1. [Product specification and requirement traceability](docs/SPEC.md)
 2. [Architecture and ownership](docs/ARCHITECTURE.md)
-3. [Protocol and state model](docs/PROTOCOL.md)
-4. [Operation contracts](docs/OPERATIONS.md)
-5. [Security and authority](docs/SECURITY.md)
-6. [Installation, deployment, and lifecycle](docs/DEPLOYMENT.md)
-7. [MVP and verification plan](docs/MVP.md)
+3. [MCP adapter and projection contract](docs/MCP.md)
+4. [Protocol and state model](docs/PROTOCOL.md)
+5. [Operation contracts](docs/OPERATIONS.md)
+6. [Security and authority](docs/SECURITY.md)
+7. [Installation, deployment, and lifecycle](docs/DEPLOYMENT.md)
+8. [MVP and verification plan](docs/MVP.md)
 
 Each document declares the facts it owns. A contract should be defined once and linked elsewhere rather than independently copied.
 
 ## Important boundaries
 
 - No local MCP server or tunnel subsystem.
+- The first-release `tools-v1` projection preserves twelve canonical tdev semantic capabilities; optional MCP projections are additive until current-client evidence supports a separately designed reduction.
 - No unrestricted remote shell Operation.
 - No centralized tdev SaaS account.
 - Cloudflare API Tokens remain in the local CLI profile and are not sent to the Worker or Agent.
@@ -77,4 +79,4 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 ## Next implementation gate
 
-The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md). M0 is the source-level schema and pure-domain foundation. The next implementation gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public control/query, Events, evidence, migration, rollback, raw ingress, and validated union discrimination. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state, active authorization, and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).
+The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md), and the public MCP projection is defined in [MCP.md](docs/MCP.md). M0 is the source-level schema and pure-domain foundation. After the MCP adapter contract is verified, the next implementation gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public semantic control/query, Events, evidence, migration, rollback, raw ingress, and validated union discrimination. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state, active authorization, and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).
