@@ -1,0 +1,1141 @@
+{
+  "schemaCases": [
+    {
+      "name": "relative path plain",
+      "definition": "RelativePath",
+      "valid": true,
+      "value": "src/main.go"
+    },
+    {
+      "name": "relative path dotfile",
+      "definition": "RelativePath",
+      "valid": true,
+      "value": ".config/settings"
+    },
+    {
+      "name": "relative path three dots",
+      "definition": "RelativePath",
+      "valid": true,
+      "value": ".../file"
+    },
+    {
+      "name": "relative path current",
+      "definition": "RelativePath",
+      "valid": false,
+      "value": "."
+    },
+    {
+      "name": "relative path parent",
+      "definition": "RelativePath",
+      "valid": false,
+      "value": ".."
+    },
+    {
+      "name": "relative path nested parent",
+      "definition": "RelativePath",
+      "valid": false,
+      "value": "src/../secret"
+    },
+    {
+      "name": "relative path empty segment",
+      "definition": "RelativePath",
+      "valid": false,
+      "value": "src//file"
+    },
+    {
+      "name": "new contract",
+      "definition": "NewCaseContractInput",
+      "valid": true,
+      "value": {
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "targetGrants": [
+          {
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            }
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "stored contract",
+      "definition": "CaseContract",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetGrants": [
+          {
+            "schemaVersion": 1,
+            "grantId": "grant_abcdefgh",
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            },
+            "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+          }
+        ],
+        "createdBy": {
+          "kind": "mcp_client",
+          "subjectId": "client-1"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "contractDigest": "f18945c230c606fea27ffe5eeb0ddfc0e69945c30a6488233f4beaeba230373d"
+      }
+    },
+    {
+      "name": "stored grant",
+      "definition": "CaseTargetGrant",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "grantId": "grant_abcdefgh",
+        "agentId": "agent_abcdefgh",
+        "target": {
+          "kind": "project",
+          "workspaceId": "workspace_abcdefgh",
+          "projectId": "project_abcdefgh"
+        },
+        "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedSubpaths": [
+          "src"
+        ],
+        "allowedEffects": [
+          "fs.read",
+          "git.read"
+        ],
+        "grantedAgainst": {
+          "workspaceRevision": 1,
+          "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "projectRevision": 1,
+          "baseReference": {
+            "kind": "git_commit",
+            "objectId": "1111111111111111111111111111111111111111"
+          }
+        },
+        "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+      }
+    },
+    {
+      "name": "active case",
+      "definition": "CaseState",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "caseRevision": 1,
+        "eventSequence": 1,
+        "status": {
+          "kind": "active",
+          "enteredAt": "2026-08-04T00:00:00Z"
+        },
+        "updatedAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "task with unicode role length",
+      "definition": "TaskRecord",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "taskId": "task_abcdefgh",
+        "sequence": 1,
+        "operation": {
+          "id": "file.read",
+          "version": 1,
+          "expectedSchemaDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "targets": [
+            {
+              "role": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "grantId": "grant_abcdefgh",
+              "resource": {
+                "kind": "project",
+                "workspaceId": "workspace_abcdefgh",
+                "projectId": "project_abcdefgh"
+              }
+            }
+          ],
+          "arguments": {
+            "path": "src/main.go",
+            "limit": 10
+          },
+          "inputDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "admission": {
+          "requestId": "request_abcdefgh",
+          "admittedAt": "2026-08-04T00:00:00Z",
+          "contractDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operationSchemaDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "inputDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "taskRevision": 1,
+        "status": {
+          "kind": "ready",
+          "readyAt": "2026-08-04T00:00:00Z"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "updatedAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "attempt",
+      "definition": "AttemptRecord",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "taskId": "task_abcdefgh",
+        "attemptId": "attempt_abcdefgh",
+        "ordinal": 1,
+        "agentId": "agent_abcdefgh",
+        "dispatchId": "dispatch_abcdefgh",
+        "operationInputDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedTaskRevision": 1,
+        "deadlineAt": "2026-08-04T00:00:00Z",
+        "attemptRevision": 1,
+        "status": {
+          "kind": "dispatch_pending"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "updatedAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "evidence",
+      "definition": "EvidenceSet",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "evidenceSetId": "evidence_abcdefgh",
+        "caseId": "case_abcdefgh",
+        "mappings": [
+          {
+            "criterionId": "m0",
+            "requirementIds": [
+              "schema"
+            ],
+            "evidenceRefs": [
+              {
+                "kind": "task_result",
+                "taskId": "task_abcdefgh",
+                "resultDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+              }
+            ]
+          }
+        ],
+        "createdAt": "2026-08-04T00:00:00Z",
+        "evidenceSetDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+      }
+    },
+    {
+      "name": "dedupe",
+      "definition": "RequestDedupeRecord",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh",
+        "semanticDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "caseId": "case_abcdefgh",
+        "taskId": "task_abcdefgh",
+        "responseDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "createdAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "typed error",
+      "definition": "ControlError",
+      "valid": true,
+      "value": {
+        "category": "conflict",
+        "code": "REVISION_CONFLICT",
+        "message": "revision changed",
+        "retryable": true,
+        "subject": {
+          "kind": "task",
+          "taskId": "task_abcdefgh"
+        },
+        "details": {
+          "kind": "revision_conflict",
+          "expected": 1,
+          "actual": 2
+        }
+      }
+    },
+    {
+      "name": "event",
+      "definition": "CaseEvent",
+      "valid": true,
+      "value": {
+        "eventId": "event_abcdefgh",
+        "caseId": "case_abcdefgh",
+        "sequence": 1,
+        "entity": {
+          "kind": "case",
+          "caseId": "case_abcdefgh"
+        },
+        "eventType": "case.created",
+        "causationId": "request_abcdefgh",
+        "correlationId": "case_abcdefgh",
+        "actor": {
+          "kind": "system",
+          "component": "case_do"
+        },
+        "committedAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "strict contract",
+      "definition": "CaseContract",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetGrants": [
+          {
+            "schemaVersion": 1,
+            "grantId": "grant_abcdefgh",
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            },
+            "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+          }
+        ],
+        "createdBy": {
+          "kind": "mcp_client",
+          "subjectId": "client-1"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "contractDigest": "f18945c230c606fea27ffe5eeb0ddfc0e69945c30a6488233f4beaeba230373d",
+        "unexpected": true
+      }
+    },
+    {
+      "name": "contract digest mismatch",
+      "definition": "CaseContract",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "objective": "tampered",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetGrants": [
+          {
+            "schemaVersion": 1,
+            "grantId": "grant_abcdefgh",
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            },
+            "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+          }
+        ],
+        "createdBy": {
+          "kind": "mcp_client",
+          "subjectId": "client-1"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "contractDigest": "f18945c230c606fea27ffe5eeb0ddfc0e69945c30a6488233f4beaeba230373d"
+      }
+    },
+    {
+      "name": "grant digest mismatch",
+      "definition": "CaseTargetGrant",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "grantId": "grant_abcdefgh",
+        "agentId": "agent_abcdefgh",
+        "target": {
+          "kind": "project",
+          "workspaceId": "workspace_abcdefgh",
+          "projectId": "project_abcdefgh"
+        },
+        "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedSubpaths": [
+          "src"
+        ],
+        "allowedEffects": [
+          "fs.read"
+        ],
+        "grantedAgainst": {
+          "workspaceRevision": 1,
+          "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "projectRevision": 1,
+          "baseReference": {
+            "kind": "git_commit",
+            "objectId": "1111111111111111111111111111111111111111"
+          }
+        },
+        "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+      }
+    },
+    {
+      "name": "duplicate criterion",
+      "definition": "NewCaseContractInput",
+      "valid": false,
+      "value": {
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          },
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "targetGrants": [
+          {
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            }
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "unknown criterion",
+      "definition": "NewCaseContractInput",
+      "valid": false,
+      "value": {
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "missing"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "targetGrants": [
+          {
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            }
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "duplicate new grant",
+      "definition": "NewCaseContractInput",
+      "valid": false,
+      "value": {
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "targetGrants": [
+          {
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            }
+          },
+          {
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            }
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "duplicate stored grant id",
+      "definition": "CaseContract",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "objective": "Implement the M0 protocol foundation.",
+        "acceptanceCriteria": [
+          {
+            "criterionId": "m0",
+            "statement": "M0 contracts agree across languages.",
+            "mandatory": true
+          }
+        ],
+        "verificationRequirements": [
+          {
+            "requirementId": "schema",
+            "criterionIds": [
+              "m0"
+            ],
+            "layer": "source",
+            "statement": "Validate generated contracts."
+          }
+        ],
+        "nonGoals": [
+          {
+            "clauseId": "no-edge",
+            "statement": "Do not implement Edge runtime behavior."
+          }
+        ],
+        "constraints": [
+          {
+            "clauseId": "pure",
+            "statement": "Keep domain code pure."
+          }
+        ],
+        "policyRef": {
+          "version": 1,
+          "digest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "targetGrants": [
+          {
+            "schemaVersion": 1,
+            "grantId": "grant_abcdefgh",
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            },
+            "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+          },
+          {
+            "schemaVersion": 1,
+            "grantId": "grant_abcdefgh",
+            "agentId": "agent_abcdefgh",
+            "target": {
+              "kind": "project",
+              "workspaceId": "workspace_abcdefgh",
+              "projectId": "project_abcdefgh"
+            },
+            "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "allowedSubpaths": [
+              "src"
+            ],
+            "allowedEffects": [
+              "fs.read",
+              "git.read"
+            ],
+            "grantedAgainst": {
+              "workspaceRevision": 1,
+              "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+              "projectRevision": 1,
+              "baseReference": {
+                "kind": "git_commit",
+                "objectId": "1111111111111111111111111111111111111111"
+              }
+            },
+            "grantDigest": "00857c49a023c46f3ae19ad104fa240130ae311e05ee77e5706dde3ce96ca68d"
+          }
+        ],
+        "createdBy": {
+          "kind": "mcp_client",
+          "subjectId": "client-1"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "contractDigest": "f18945c230c606fea27ffe5eeb0ddfc0e69945c30a6488233f4beaeba230373d"
+      }
+    },
+    {
+      "name": "unsafe subpath",
+      "definition": "NewCaseTargetGrant",
+      "valid": false,
+      "value": {
+        "agentId": "agent_abcdefgh",
+        "target": {
+          "kind": "project",
+          "workspaceId": "workspace_abcdefgh",
+          "projectId": "project_abcdefgh"
+        },
+        "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedSubpaths": [
+          "../secret"
+        ],
+        "allowedEffects": [
+          "fs.read",
+          "git.read"
+        ],
+        "grantedAgainst": {
+          "workspaceRevision": 1,
+          "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "projectRevision": 1,
+          "baseReference": {
+            "kind": "git_commit",
+            "objectId": "1111111111111111111111111111111111111111"
+          }
+        }
+      }
+    },
+    {
+      "name": "workspace project effect",
+      "definition": "NewCaseTargetGrant",
+      "valid": false,
+      "value": {
+        "agentId": "agent_abcdefgh",
+        "target": {
+          "kind": "workspace",
+          "workspaceId": "workspace_abcdefgh"
+        },
+        "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedSubpaths": [
+          "src"
+        ],
+        "allowedEffects": [
+          "fs.read",
+          "git.read"
+        ],
+        "grantedAgainst": {
+          "workspaceRevision": 1,
+          "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "projectRevision": 1,
+          "baseReference": {
+            "kind": "git_commit",
+            "objectId": "1111111111111111111111111111111111111111"
+          }
+        }
+      }
+    },
+    {
+      "name": "project revision missing",
+      "definition": "NewCaseTargetGrant",
+      "valid": false,
+      "value": {
+        "agentId": "agent_abcdefgh",
+        "target": {
+          "kind": "project",
+          "workspaceId": "workspace_abcdefgh",
+          "projectId": "project_abcdefgh"
+        },
+        "rootIdentityDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "allowedSubpaths": [
+          "src"
+        ],
+        "allowedEffects": [
+          "fs.read",
+          "git.read"
+        ],
+        "grantedAgainst": {
+          "workspaceRevision": 1,
+          "workspacePolicyDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "baseReference": {
+            "kind": "git_commit",
+            "objectId": "1111111111111111111111111111111111111111"
+          }
+        }
+      }
+    },
+    {
+      "name": "invalid task id",
+      "definition": "TaskRecord",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "taskId": "bad",
+        "sequence": 1,
+        "operation": {
+          "id": "file.read",
+          "version": 1,
+          "expectedSchemaDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "targets": [
+            {
+              "role": "\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00\ud83d\ude00",
+              "grantId": "grant_abcdefgh",
+              "resource": {
+                "kind": "project",
+                "workspaceId": "workspace_abcdefgh",
+                "projectId": "project_abcdefgh"
+              }
+            }
+          ],
+          "arguments": {
+            "path": "src/main.go",
+            "limit": 10
+          },
+          "inputDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+        },
+        "admission": {
+          "requestId": "request_abcdefgh",
+          "admittedAt": "2026-08-04T00:00:00Z",
+          "contractDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+          "operationSchemaDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "inputDigest": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc"
+        },
+        "taskRevision": 1,
+        "status": {
+          "kind": "ready",
+          "readyAt": "2026-08-04T00:00:00Z"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "updatedAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "short fencing token",
+      "definition": "AttemptRecord",
+      "valid": false,
+      "value": {
+        "schemaVersion": 1,
+        "caseId": "case_abcdefgh",
+        "taskId": "task_abcdefgh",
+        "attemptId": "attempt_abcdefgh",
+        "ordinal": 1,
+        "agentId": "agent_abcdefgh",
+        "dispatchId": "dispatch_abcdefgh",
+        "operationInputDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "expectedTaskRevision": 1,
+        "deadlineAt": "2026-08-04T00:00:00Z",
+        "attemptRevision": 1,
+        "status": {
+          "kind": "running",
+          "agentEpoch": 1,
+          "fencingToken": "short",
+          "startedAt": "2026-08-04T00:00:00Z"
+        },
+        "createdAt": "2026-08-04T00:00:00Z",
+        "updatedAt": "2026-08-04T00:00:00Z"
+      }
+    }
+  ],
+  "canonicalCases": [
+    {
+      "name": "nested object",
+      "domain": "tdev.fixture.v1",
+      "value": {
+        "z": 2,
+        "a": [
+          true,
+          null,
+          "x"
+        ],
+        "m": {
+          "b": 1,
+          "a": 0
+        }
+      },
+      "canonical": "{\"a\":[true,null,\"x\"],\"m\":{\"a\":0,\"b\":1},\"z\":2}",
+      "sha256": "3d57339b67352efc79c7c1bcf1f08a7d48f3519422840576e24702039a816010"
+    },
+    {
+      "name": "unicode and escaping",
+      "domain": "tdev.fixture.v1",
+      "value": {
+        "\u00e9": "caf\u00e9",
+        "a": "line\nbreak",
+        "quote": "\"\\"
+      },
+      "canonical": "{\"a\":\"line\\nbreak\",\"quote\":\"\\\"\\\\\",\"\u00e9\":\"caf\u00e9\"}",
+      "sha256": "5e385e3737a358961d1a4ae945912526ce658e238d28113ba928f45c5ae3771e"
+    },
+    {
+      "name": "utf16 key order",
+      "domain": "tdev.fixture.v1",
+      "value": {
+        "\ufffd": 2,
+        "\ud83d\ude00": 1,
+        "a": 0
+      },
+      "canonical": "{\"a\":0,\"\ud83d\ude00\":1,\"\ufffd\":2}",
+      "sha256": "17326ebda2551dcb7f172e0f2635bfa810c4a3f892baa8b43a624c2d5762debd"
+    }
+  ],
+  "canonicalRejectCases": [
+    {
+      "name": "fraction",
+      "value": 1.5
+    },
+    {
+      "name": "unsafe integer",
+      "value": 9007199254740992
+    },
+    {
+      "name": "unpaired surrogate",
+      "value": "\ud800"
+    }
+  ]
+}

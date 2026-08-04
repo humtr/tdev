@@ -70,6 +70,8 @@ Acceptance:
 - all allowed and forbidden transitions are table-tested;
 - no Cloudflare, filesystem, Git, process, or Termux import exists in domain code.
 
+Test maintenance minimizes test files and duplicated setup, not behavioral coverage. Existing fixture tables and transition matrices are extended for new cases. A new test file is added only for a genuinely separate runtime boundary or when adding the regression to an existing table would obscure the contract. Tests are never weakened, skipped, deleted, or overwritten merely to make an implementation pass.
+
 ### M1 — CaseDO storage and public control core
 
 Deliver:

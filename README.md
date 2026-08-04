@@ -1,6 +1,6 @@
 # Terminal Developer
 
-> Status: architecture and protocol concept on the `concept` branch. No product implementation or release is claimed yet.
+> Status: the M0 schema and pure-domain foundation is implemented on the current development branch. No Cloudflare deployment, Agent runtime, product installation, or release is claimed yet.
 
 **tdev** is a durable development control plane that lets an MCP client coordinate verified development work through Cloudflare while a user-owned terminal Agent performs bounded filesystem, Git, validation, and process effects.
 
@@ -34,6 +34,19 @@ MCP client
 ```
 
 A **Case** is the durable authority for one outcome-oriented development undertaking. `CaseDO` owns its immutable contract, target grants, Native MCP Tasks, Attempts, approvals, inputs, evidence, and terminal outcome. `AgentDO` owns Agent enrollment, connection, epoch, queue, and fencing. The terminal Agent alone performs local operating-system effects.
+
+## M0 development commands
+
+The checked-in M0 foundation uses Go 1.26 or newer and Node.js 26 or newer. It has no third-party runtime dependencies.
+
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run generate
+npm run check:generated
+npm test
+```
+
+`protocol/schemas/tdev.v1.schema.json` is the canonical contract. Generated Go and TypeScript files are derivatives and must not be edited directly. See [protocol/README.md](protocol/README.md) for the implementation boundary.
 
 ## Normative documents
 

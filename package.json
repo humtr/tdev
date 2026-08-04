@@ -1,0 +1,21 @@
+{
+  "name": "@humtr/tdev",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=26.0.0"
+  },
+  "scripts": {
+    "generate": "go run ./tools/generate",
+    "check:generated": "go run ./tools/generate -check",
+    "test:ts": "node --test protocol/contract.test.ts domain/state/state.test.ts",
+    "test:go": "go test ./...",
+    "check:forbidden": "node scripts/check-forbidden.mjs",
+    "test": "npm run verify:sandbox",
+    "portable": "npm test",
+    "portable-test": "npm test",
+    "portable-install": "npm run check:generated",
+    "verify:sandbox": "npm run check:generated && npm run test:ts && npm run test:go && npm run check:forbidden"
+  }
+}

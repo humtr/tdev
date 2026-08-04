@@ -1,0 +1,2318 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://tdev.dev/schemas/tdev.v1.schema.json",
+  "title": "TdevProtocolV1",
+  "$defs": {
+    "Sha256": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{64}$"
+    },
+    "Timestamp": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}(\\.[0-9]{1,9})?Z$"
+    },
+    "CaseId": {
+      "type": "string",
+      "pattern": "^case_[A-Za-z0-9_-]{8,120}$"
+    },
+    "TaskId": {
+      "type": "string",
+      "pattern": "^task_[A-Za-z0-9_-]{8,120}$"
+    },
+    "AttemptId": {
+      "type": "string",
+      "pattern": "^attempt_[A-Za-z0-9_-]{8,120}$"
+    },
+    "GrantId": {
+      "type": "string",
+      "pattern": "^grant_[A-Za-z0-9_-]{8,120}$"
+    },
+    "EventId": {
+      "type": "string",
+      "pattern": "^event_[A-Za-z0-9_-]{8,120}$"
+    },
+    "ArtifactId": {
+      "type": "string",
+      "pattern": "^artifact_[A-Za-z0-9_-]{8,120}$"
+    },
+    "EvidenceSetId": {
+      "type": "string",
+      "pattern": "^evidence_[A-Za-z0-9_-]{8,120}$"
+    },
+    "CheckpointId": {
+      "type": "string",
+      "pattern": "^checkpoint_[A-Za-z0-9_-]{8,120}$"
+    },
+    "ApprovalRequestId": {
+      "type": "string",
+      "pattern": "^approval_[A-Za-z0-9_-]{8,120}$"
+    },
+    "ApprovalDecisionId": {
+      "type": "string",
+      "pattern": "^approval_[A-Za-z0-9_-]{8,120}$"
+    },
+    "InputRequestId": {
+      "type": "string",
+      "pattern": "^input_[A-Za-z0-9_-]{8,120}$"
+    },
+    "RetryDecisionId": {
+      "type": "string",
+      "pattern": "^retry_[A-Za-z0-9_-]{8,120}$"
+    },
+    "CancellationId": {
+      "type": "string",
+      "pattern": "^cancel_[A-Za-z0-9_-]{8,120}$"
+    },
+    "AgentId": {
+      "type": "string",
+      "pattern": "^agent_[A-Za-z0-9_-]{8,120}$"
+    },
+    "WorkspaceId": {
+      "type": "string",
+      "pattern": "^workspace_[A-Za-z0-9_-]{8,120}$"
+    },
+    "ProjectId": {
+      "type": "string",
+      "pattern": "^project_[A-Za-z0-9_-]{8,120}$"
+    },
+    "RequestId": {
+      "type": "string",
+      "pattern": "^request_[A-Za-z0-9_-]{8,120}$"
+    },
+    "DispatchId": {
+      "type": "string",
+      "pattern": "^dispatch_[A-Za-z0-9_-]{8,120}$"
+    },
+    "RelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 4096,
+      "pattern": "^([^./\\\\\u0000][^/\\\\\u0000]*|\\.[^./\\\\\u0000][^/\\\\\u0000]*|\\.\\.[^/\\\\\u0000][^/\\\\\u0000]*)(/([^./\\\\\u0000][^/\\\\\u0000]*|\\.[^./\\\\\u0000][^/\\\\\u0000]*|\\.\\.[^/\\\\\u0000][^/\\\\\u0000]*))*$"
+    },
+    "GitObjectId": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{40,64}$"
+    },
+    "JsonValue": {
+      "oneOf": [
+        {
+          "type": "null"
+        },
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer",
+          "minimum": -9007199254740991,
+          "maximum": 9007199254740991
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": {
+            "$ref": "#/$defs/JsonValue"
+          }
+        }
+      ]
+    },
+    "ActorRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mcp_client"
+            },
+            "subjectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind",
+            "subjectId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "user"
+            },
+            "subjectId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 256
+            }
+          },
+          "required": [
+            "kind",
+            "subjectId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "system"
+            },
+            "component": {
+              "enum": [
+                "worker",
+                "case_do",
+                "agent_do",
+                "agent"
+              ]
+            }
+          },
+          "required": [
+            "kind",
+            "component"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EntityRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "case"
+            },
+            "caseId": {
+              "$ref": "#/$defs/CaseId"
+            }
+          },
+          "required": [
+            "kind",
+            "caseId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "task"
+            },
+            "taskId": {
+              "$ref": "#/$defs/TaskId"
+            }
+          },
+          "required": [
+            "kind",
+            "taskId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "attempt"
+            },
+            "attemptId": {
+              "$ref": "#/$defs/AttemptId"
+            }
+          },
+          "required": [
+            "kind",
+            "attemptId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TargetEffect": {
+      "enum": [
+        "fs.read",
+        "fs.write",
+        "fs.delete",
+        "git.read",
+        "git.write",
+        "remote.read",
+        "remote.write",
+        "validation.execute",
+        "process.execute",
+        "network.use",
+        "package.manage",
+        "service.manage",
+        "runtime.manage"
+      ]
+    },
+    "ContractClause": {
+      "type": "object",
+      "properties": {
+        "clauseId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "clauseId",
+        "statement"
+      ],
+      "additionalProperties": false
+    },
+    "AcceptanceCriterion": {
+      "type": "object",
+      "properties": {
+        "criterionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "mandatory": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "criterionId",
+        "statement",
+        "mandatory"
+      ],
+      "additionalProperties": false
+    },
+    "VerificationLayer": {
+      "enum": [
+        "source",
+        "validation",
+        "package",
+        "installation",
+        "runtime",
+        "ingress",
+        "public_mcp",
+        "client",
+        "rollback"
+      ]
+    },
+    "VerificationRequirement": {
+      "type": "object",
+      "properties": {
+        "requirementId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "criterionIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "layer": {
+          "$ref": "#/$defs/VerificationLayer"
+        },
+        "statement": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "requirementId",
+        "criterionIds",
+        "layer",
+        "statement"
+      ],
+      "additionalProperties": false
+    },
+    "Target": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "workspace"
+            },
+            "workspaceId": {
+              "$ref": "#/$defs/WorkspaceId"
+            }
+          },
+          "required": [
+            "kind",
+            "workspaceId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "project"
+            },
+            "workspaceId": {
+              "$ref": "#/$defs/WorkspaceId"
+            },
+            "projectId": {
+              "$ref": "#/$defs/ProjectId"
+            }
+          },
+          "required": [
+            "kind",
+            "workspaceId",
+            "projectId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "BaseReference": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "git_commit"
+            },
+            "objectId": {
+              "$ref": "#/$defs/GitObjectId"
+            }
+          },
+          "required": [
+            "kind",
+            "objectId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "observation"
+            },
+            "digest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "GrantedAgainst": {
+      "type": "object",
+      "properties": {
+        "workspaceRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "workspacePolicyDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "projectRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "baseReference": {
+          "$ref": "#/$defs/BaseReference"
+        }
+      },
+      "required": [
+        "workspaceRevision",
+        "workspacePolicyDigest"
+      ],
+      "additionalProperties": false
+    },
+    "NewCaseTargetGrant": {
+      "type": "object",
+      "properties": {
+        "agentId": {
+          "$ref": "#/$defs/AgentId"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "rootIdentityDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "allowedSubpaths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RelativePath"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowedEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetEffect"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "grantedAgainst": {
+          "$ref": "#/$defs/GrantedAgainst"
+        }
+      },
+      "required": [
+        "agentId",
+        "target",
+        "rootIdentityDigest",
+        "allowedSubpaths",
+        "allowedEffects",
+        "grantedAgainst"
+      ],
+      "additionalProperties": false
+    },
+    "CaseTargetGrant": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "grantId": {
+          "$ref": "#/$defs/GrantId"
+        },
+        "agentId": {
+          "$ref": "#/$defs/AgentId"
+        },
+        "target": {
+          "$ref": "#/$defs/Target"
+        },
+        "rootIdentityDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "allowedSubpaths": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/RelativePath"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "allowedEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetEffect"
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "grantedAgainst": {
+          "$ref": "#/$defs/GrantedAgainst"
+        },
+        "grantDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "grantId",
+        "agentId",
+        "target",
+        "rootIdentityDigest",
+        "allowedSubpaths",
+        "allowedEffects",
+        "grantedAgainst",
+        "grantDigest"
+      ],
+      "additionalProperties": false
+    },
+    "PolicyRef": {
+      "type": "object",
+      "properties": {
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "digest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "version",
+        "digest"
+      ],
+      "additionalProperties": false
+    },
+    "PredecessorRef": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "checkpointId": {
+          "$ref": "#/$defs/CheckpointId"
+        },
+        "checkpointDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "reason": {
+          "enum": [
+            "objective_changed",
+            "target_scope_changed",
+            "authority_changed",
+            "policy_changed"
+          ]
+        }
+      },
+      "required": [
+        "caseId",
+        "checkpointId",
+        "checkpointDigest",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "NewCaseContractInput": {
+      "type": "object",
+      "properties": {
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "acceptanceCriteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcceptanceCriterion"
+          },
+          "minItems": 1
+        },
+        "verificationRequirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VerificationRequirement"
+          },
+          "minItems": 1
+        },
+        "nonGoals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContractClause"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContractClause"
+          }
+        },
+        "targetGrants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/NewCaseTargetGrant"
+          },
+          "minItems": 1
+        },
+        "policyRef": {
+          "$ref": "#/$defs/PolicyRef"
+        },
+        "predecessor": {
+          "$ref": "#/$defs/PredecessorRef"
+        }
+      },
+      "required": [
+        "objective",
+        "acceptanceCriteria",
+        "verificationRequirements",
+        "nonGoals",
+        "constraints",
+        "targetGrants",
+        "policyRef"
+      ],
+      "additionalProperties": false
+    },
+    "CaseContract": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "objective": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "acceptanceCriteria": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/AcceptanceCriterion"
+          },
+          "minItems": 1
+        },
+        "verificationRequirements": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/VerificationRequirement"
+          },
+          "minItems": 1
+        },
+        "nonGoals": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContractClause"
+          }
+        },
+        "constraints": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ContractClause"
+          }
+        },
+        "targetGrants": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/CaseTargetGrant"
+          },
+          "minItems": 1
+        },
+        "policyRef": {
+          "$ref": "#/$defs/PolicyRef"
+        },
+        "predecessor": {
+          "$ref": "#/$defs/PredecessorRef"
+        },
+        "createdBy": {
+          "$ref": "#/$defs/ActorRef"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "caseId",
+        "objective",
+        "acceptanceCriteria",
+        "verificationRequirements",
+        "nonGoals",
+        "constraints",
+        "targetGrants",
+        "policyRef",
+        "createdBy",
+        "createdAt",
+        "contractDigest"
+      ],
+      "additionalProperties": false
+    },
+    "FailureRecord": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "retryable": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    },
+    "UncertaintyRecord": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "possibleEffects": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetEffect"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "code",
+        "message",
+        "possibleEffects"
+      ],
+      "additionalProperties": false
+    },
+    "CancellationSummary": {
+      "type": "object",
+      "properties": {
+        "cancellationId": {
+          "$ref": "#/$defs/CancellationId"
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "effectsObserved": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetEffect"
+          },
+          "uniqueItems": true
+        }
+      },
+      "required": [
+        "cancellationId",
+        "reason",
+        "effectsObserved"
+      ],
+      "additionalProperties": false
+    },
+    "OperationFailure": {
+      "$ref": "#/$defs/FailureRecord"
+    },
+    "ExecutionFailure": {
+      "$ref": "#/$defs/FailureRecord"
+    },
+    "ExecutionRejection": {
+      "$ref": "#/$defs/FailureRecord"
+    },
+    "InterruptionRecord": {
+      "type": "object",
+      "properties": {
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "code",
+        "message"
+      ],
+      "additionalProperties": false
+    },
+    "ArtifactRef": {
+      "type": "object",
+      "properties": {
+        "artifactId": {
+          "$ref": "#/$defs/ArtifactId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "bytes": {
+          "type": "integer",
+          "minimum": 0
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "artifactId",
+        "caseId",
+        "taskId",
+        "mediaType",
+        "bytes",
+        "sha256",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "OperationResult": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "inline"
+            },
+            "value": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "resultDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "value",
+            "resultDigest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "artifacts"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "minItems": 1
+            },
+            "resultDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "artifacts",
+            "resultDigest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "mixed"
+            },
+            "value": {
+              "$ref": "#/$defs/JsonValue"
+            },
+            "artifacts": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/ArtifactRef"
+              },
+              "minItems": 1
+            },
+            "resultDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "value",
+            "artifacts",
+            "resultDigest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "none"
+            },
+            "resultDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "resultDigest"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CaseTerminal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "completed"
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "evidenceSetId": {
+              "$ref": "#/$defs/EvidenceSetId"
+            },
+            "closedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "summary",
+            "evidenceSetId",
+            "closedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "failed"
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "failure": {
+              "$ref": "#/$defs/FailureRecord"
+            },
+            "closedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "summary",
+            "failure",
+            "closedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "cancelled"
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "cancellation": {
+              "$ref": "#/$defs/CancellationSummary"
+            },
+            "closedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "summary",
+            "cancellation",
+            "closedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "rolled_back"
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "rollbackEvidenceSetId": {
+              "$ref": "#/$defs/EvidenceSetId"
+            },
+            "closedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "summary",
+            "rollbackEvidenceSetId",
+            "closedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "unverified"
+            },
+            "summary": {
+              "type": "string",
+              "minLength": 1
+            },
+            "uncertainty": {
+              "$ref": "#/$defs/UncertaintyRecord"
+            },
+            "closedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "summary",
+            "uncertainty",
+            "closedAt"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CaseStatus": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "active"
+            },
+            "enteredAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "enteredAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "paused"
+            },
+            "reason": {
+              "enum": [
+                "manual",
+                "authority_invalidated",
+                "external_blocker"
+              ]
+            },
+            "detail": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 4096
+            },
+            "pausedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "reason",
+            "pausedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "cancelling"
+            },
+            "cancellationId": {
+              "$ref": "#/$defs/CancellationId"
+            },
+            "requestedBy": {
+              "$ref": "#/$defs/ActorRef"
+            },
+            "requestedAt": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "reason": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "kind",
+            "cancellationId",
+            "requestedBy",
+            "requestedAt",
+            "reason"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "terminal"
+            },
+            "terminal": {
+              "$ref": "#/$defs/CaseTerminal"
+            }
+          },
+          "required": [
+            "kind",
+            "terminal"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "CaseState": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "caseRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "eventSequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "caseId",
+        "caseRevision",
+        "eventSequence",
+        "status",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "TargetBinding": {
+      "type": "object",
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64
+        },
+        "grantId": {
+          "$ref": "#/$defs/GrantId"
+        },
+        "resource": {
+          "$ref": "#/$defs/Target"
+        }
+      },
+      "required": [
+        "role",
+        "grantId",
+        "resource"
+      ],
+      "additionalProperties": false
+    },
+    "OperationInvocation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "version": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "expectedSchemaDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "targets": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/TargetBinding"
+          },
+          "minItems": 1
+        },
+        "arguments": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "inputDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "id",
+        "version",
+        "expectedSchemaDigest",
+        "targets",
+        "arguments",
+        "inputDigest"
+      ],
+      "additionalProperties": false
+    },
+    "TaskWaiting": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "const": "approval"
+            },
+            "approvalRequestId": {
+              "$ref": "#/$defs/ApprovalRequestId"
+            }
+          },
+          "required": [
+            "reason",
+            "approvalRequestId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "const": "input"
+            },
+            "inputRequestId": {
+              "$ref": "#/$defs/InputRequestId"
+            }
+          },
+          "required": [
+            "reason",
+            "inputRequestId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "reason": {
+              "const": "retry_decision"
+            },
+            "retryDecisionId": {
+              "$ref": "#/$defs/RetryDecisionId"
+            }
+          },
+          "required": [
+            "reason",
+            "retryDecisionId"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TaskTerminal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "succeeded"
+            },
+            "result": {
+              "$ref": "#/$defs/OperationResult"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "result",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "failed"
+            },
+            "failure": {
+              "$ref": "#/$defs/OperationFailure"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "failure",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "cancelled"
+            },
+            "cancellation": {
+              "$ref": "#/$defs/CancellationSummary"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "cancellation",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "denied"
+            },
+            "approvalDecisionId": {
+              "$ref": "#/$defs/ApprovalDecisionId"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "approvalDecisionId",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "unverified"
+            },
+            "uncertainty": {
+              "$ref": "#/$defs/UncertaintyRecord"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "uncertainty",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TaskStatus": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "waiting"
+            },
+            "waiting": {
+              "$ref": "#/$defs/TaskWaiting"
+            }
+          },
+          "required": [
+            "kind",
+            "waiting"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "ready"
+            },
+            "readyAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "readyAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "active"
+            },
+            "attemptId": {
+              "$ref": "#/$defs/AttemptId"
+            }
+          },
+          "required": [
+            "kind",
+            "attemptId"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "cancelling"
+            },
+            "cancellationId": {
+              "$ref": "#/$defs/CancellationId"
+            },
+            "attemptId": {
+              "$ref": "#/$defs/AttemptId"
+            },
+            "requestedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "cancellationId",
+            "requestedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "terminal"
+            },
+            "terminal": {
+              "$ref": "#/$defs/TaskTerminal"
+            }
+          },
+          "required": [
+            "kind",
+            "terminal"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "TaskRecord": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "operation": {
+          "$ref": "#/$defs/OperationInvocation"
+        },
+        "admission": {
+          "type": "object",
+          "properties": {
+            "requestId": {
+              "$ref": "#/$defs/RequestId"
+            },
+            "admittedAt": {
+              "$ref": "#/$defs/Timestamp"
+            },
+            "contractDigest": {
+              "$ref": "#/$defs/Sha256"
+            },
+            "operationSchemaDigest": {
+              "$ref": "#/$defs/Sha256"
+            },
+            "inputDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "requestId",
+            "admittedAt",
+            "contractDigest",
+            "operationSchemaDigest",
+            "inputDigest"
+          ],
+          "additionalProperties": false
+        },
+        "taskRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "#/$defs/TaskStatus"
+        },
+        "latestAttemptId": {
+          "$ref": "#/$defs/AttemptId"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "caseId",
+        "taskId",
+        "sequence",
+        "operation",
+        "admission",
+        "taskRevision",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "AttemptTerminal": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "succeeded"
+            },
+            "resultEnvelopeDigest": {
+              "$ref": "#/$defs/Sha256"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "resultEnvelopeDigest",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "failed"
+            },
+            "failure": {
+              "$ref": "#/$defs/ExecutionFailure"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "failure",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "cancelled"
+            },
+            "cancellationReceiptId": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "cancellationReceiptId",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "interrupted"
+            },
+            "interruption": {
+              "$ref": "#/$defs/InterruptionRecord"
+            },
+            "retrySafety": {
+              "enum": [
+                "safe",
+                "unsafe",
+                "requires_reconciliation"
+              ]
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "interruption",
+            "retrySafety",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "rejected"
+            },
+            "rejection": {
+              "$ref": "#/$defs/ExecutionRejection"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "rejection",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "input_required"
+            },
+            "inputRequestId": {
+              "$ref": "#/$defs/InputRequestId"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "inputRequestId",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "outcome": {
+              "const": "unverified"
+            },
+            "uncertainty": {
+              "$ref": "#/$defs/UncertaintyRecord"
+            },
+            "finishedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "outcome",
+            "uncertainty",
+            "finishedAt"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "AttemptStatus": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "dispatch_pending"
+            }
+          },
+          "required": [
+            "kind"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "queued"
+            },
+            "agentEpoch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fencingToken": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 256
+            },
+            "queuedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "agentEpoch",
+            "fencingToken",
+            "queuedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "running"
+            },
+            "agentEpoch": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "fencingToken": {
+              "type": "string",
+              "minLength": 16,
+              "maxLength": 256
+            },
+            "startedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "agentEpoch",
+            "fencingToken",
+            "startedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "reconciling"
+            },
+            "reason": {
+              "enum": [
+                "dispatch_response_lost",
+                "agent_disconnected",
+                "result_response_lost",
+                "deadline_exceeded"
+              ]
+            },
+            "since": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "reason",
+            "since"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "cancel_requested"
+            },
+            "previous": {
+              "enum": [
+                "dispatch_pending",
+                "queued",
+                "running",
+                "reconciling"
+              ]
+            },
+            "requestedAt": {
+              "$ref": "#/$defs/Timestamp"
+            }
+          },
+          "required": [
+            "kind",
+            "previous",
+            "requestedAt"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "terminal"
+            },
+            "terminal": {
+              "$ref": "#/$defs/AttemptTerminal"
+            }
+          },
+          "required": [
+            "kind",
+            "terminal"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "AttemptRecord": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "attemptId": {
+          "$ref": "#/$defs/AttemptId"
+        },
+        "ordinal": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "agentId": {
+          "$ref": "#/$defs/AgentId"
+        },
+        "dispatchId": {
+          "$ref": "#/$defs/DispatchId"
+        },
+        "operationInputDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "expectedTaskRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "deadlineAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "attemptRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "status": {
+          "$ref": "#/$defs/AttemptStatus"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "updatedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "caseId",
+        "taskId",
+        "attemptId",
+        "ordinal",
+        "agentId",
+        "dispatchId",
+        "operationInputDigest",
+        "expectedTaskRevision",
+        "deadlineAt",
+        "attemptRevision",
+        "status",
+        "createdAt",
+        "updatedAt"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceRef": {
+      "oneOf": [
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "task_result"
+            },
+            "taskId": {
+              "$ref": "#/$defs/TaskId"
+            },
+            "resultDigest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "taskId",
+            "resultDigest"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "artifact"
+            },
+            "artifactId": {
+              "$ref": "#/$defs/ArtifactId"
+            },
+            "sha256": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "artifactId",
+            "sha256"
+          ],
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "properties": {
+            "kind": {
+              "const": "observation"
+            },
+            "layer": {
+              "$ref": "#/$defs/VerificationLayer"
+            },
+            "digest": {
+              "$ref": "#/$defs/Sha256"
+            }
+          },
+          "required": [
+            "kind",
+            "layer",
+            "digest"
+          ],
+          "additionalProperties": false
+        }
+      ]
+    },
+    "EvidenceMapping": {
+      "type": "object",
+      "properties": {
+        "criterionId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "requirementIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 128
+          },
+          "minItems": 1,
+          "uniqueItems": true
+        },
+        "evidenceRefs": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceRef"
+          },
+          "minItems": 1
+        }
+      },
+      "required": [
+        "criterionId",
+        "requirementIds",
+        "evidenceRefs"
+      ],
+      "additionalProperties": false
+    },
+    "EvidenceSet": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "evidenceSetId": {
+          "$ref": "#/$defs/EvidenceSetId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "mappings": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/EvidenceMapping"
+          },
+          "minItems": 1
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "evidenceSetDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "evidenceSetId",
+        "caseId",
+        "mappings",
+        "createdAt",
+        "evidenceSetDigest"
+      ],
+      "additionalProperties": false
+    },
+    "RequestDedupeRecord": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "semanticDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "responseDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "requestId",
+        "semanticDigest",
+        "caseId",
+        "responseDigest",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "RevisionConflictDetails": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "revision_conflict"
+        },
+        "expected": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "actual": {
+          "type": "integer",
+          "minimum": 1
+        }
+      },
+      "required": [
+        "kind",
+        "expected",
+        "actual"
+      ],
+      "additionalProperties": false
+    },
+    "SchemaMismatchDetails": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "schema_mismatch"
+        },
+        "expectedDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "actualDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "kind",
+        "expectedDigest",
+        "actualDigest"
+      ],
+      "additionalProperties": false
+    },
+    "MissingEffectDetails": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "const": "missing_effect"
+        },
+        "requiredEffect": {
+          "$ref": "#/$defs/TargetEffect"
+        },
+        "grantId": {
+          "$ref": "#/$defs/GrantId"
+        }
+      },
+      "required": [
+        "kind",
+        "requiredEffect",
+        "grantId"
+      ],
+      "additionalProperties": false
+    },
+    "TypedErrorDetails": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/RevisionConflictDetails"
+        },
+        {
+          "$ref": "#/$defs/SchemaMismatchDetails"
+        },
+        {
+          "$ref": "#/$defs/MissingEffectDetails"
+        }
+      ]
+    },
+    "ControlError": {
+      "type": "object",
+      "properties": {
+        "category": {
+          "enum": [
+            "validation",
+            "authorization",
+            "conflict",
+            "lifecycle",
+            "availability",
+            "transport",
+            "storage",
+            "internal"
+          ]
+        },
+        "code": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "message": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        },
+        "retryable": {
+          "type": "boolean"
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "details": {
+          "$ref": "#/$defs/TypedErrorDetails"
+        }
+      },
+      "required": [
+        "category",
+        "code",
+        "message",
+        "retryable"
+      ],
+      "additionalProperties": false
+    },
+    "CaseEvent": {
+      "type": "object",
+      "properties": {
+        "eventId": {
+          "$ref": "#/$defs/EventId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "sequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "entity": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "eventType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "transition": {
+          "type": "object",
+          "properties": {
+            "from": {
+              "type": "string",
+              "minLength": 1
+            },
+            "to": {
+              "type": "string",
+              "minLength": 1
+            }
+          },
+          "required": [
+            "from",
+            "to"
+          ],
+          "additionalProperties": false
+        },
+        "causationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "correlationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "actor": {
+          "$ref": "#/$defs/ActorRef"
+        },
+        "committedAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "eventId",
+        "caseId",
+        "sequence",
+        "entity",
+        "eventType",
+        "causationId",
+        "correlationId",
+        "actor",
+        "committedAt"
+      ],
+      "additionalProperties": false
+    }
+  }
+}
