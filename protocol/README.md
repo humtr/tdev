@@ -36,9 +36,9 @@ M0 protocol JSON permits null, booleans, strings, arrays, objects, and safe inte
 
 M0 relative-path validation is syntactic and does not claim Unicode NFC normalization or live filesystem containment. Those checks belong to the M3 Agent path boundary together with root identity, symlink and mount policy, and mutation-time re-observation.
 
-The Go M0 raw JSON helper and schema generator reject invalid UTF-8 before ordinary decoding. Parsed-value validators still cannot prove that a raw ingress document was free of duplicate object member names. The M1 public-control decoder in each runtime must perform fatal UTF-8 decoding and reject duplicate names before schema validation, canonicalization, or digest comparison.
+The Go M0 raw JSON helper and schema generator reject invalid UTF-8 before ordinary decoding, but parsed-value validators still cannot prove that a raw ingress document was free of duplicate object member names. [Design 0004](../docs/design/0004-casedo-storage-and-public-control-core.md) assigns M1 public admission to a bounded lossless scanner that performs fatal UTF-8, grammar, duplicate-member, depth/token/container, and exact safe-integer checks before ordinary decoding, schema validation, canonicalization, digesting, or routing.
 
-Generated Go `oneOf` declarations currently use `json.RawMessage` as a wire representation. They are untrusted until canonical schema validation and a domain-specific discriminator succeed; M1 storage must not persist them as trusted state merely because JSON unmarshalling succeeded.
+Generated Go `oneOf` declarations currently use `json.RawMessage` as a wire representation. Design 0004 keeps those aliases wire-only and requires an ephemeral exact schema-branch proof plus generated closed-domain conversion before a value enters a CaseDO transition or repository. The current M0 schema and generated files remain unchanged by the design-only contract; the first M1 implementation slice must introduce the versioned M1 canonical schema, shared raw-byte vectors, branch identities, and proof-consuming converters before Worker or CaseDO code is admitted.
 
 ## Test consolidation
 

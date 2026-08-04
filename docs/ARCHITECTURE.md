@@ -42,11 +42,12 @@ MCP client
 
 The Worker owns no durable lifecycle state. It is responsible for:
 
-- MCP authentication, request size bounds, and exact revision validation;
+- MCP authentication, hard request bounds, fatal UTF-8 validation, and lossless raw JSON scanning before ordinary decoding;
+- canonical schema validation, validated-union proof construction, and generated domain conversion before owner routing;
 - release-pinned Tool, Resource, and extension projection routing;
 - Operation catalog presentation under the active projection;
 - authorized Resource and locator queries through canonical owners and D1 projections;
-- deterministic routing to `CaseDO(caseId)` and `AgentDO(agentId)`;
+- deterministic new-Case routing from deployment identity and request ID, plus explicit routing to `CaseDO(caseId)` and `AgentDO(agentId)`;
 - protocol-version negotiation at the public boundary;
 - response shaping and redaction;
 - bounded Artifact streaming authorization.
@@ -59,7 +60,8 @@ The Worker MUST NOT own:
 - deployment credentials;
 - Git provider credentials;
 - retry decisions;
-- completion judgments.
+- completion judgments;
+- mutation request deduplication or stored replay responses.
 
 A Worker restart cannot invalidate a Case, Task, negotiated Task handle, or Agent identity.
 
@@ -76,7 +78,7 @@ It is the sole canonical owner of:
 - current Case state and terminal outcome;
 - Task records and Task results;
 - Attempt records and accepted Agent results;
-- request-ID deduplication within the Case;
+- immutable mutation receipts containing request identity, semantic digest, and the original committed response;
 - approvals, input requests, retry decisions, and cancellation intent;
 - checkpoints and continuity summaries;
 - Artifact metadata and evidence mappings;
@@ -84,7 +86,9 @@ It is the sole canonical owner of:
 
 CaseDO decides whether an Agent result is accepted. It does not perform operating-system effects and does not own Agent connectivity.
 
-CaseDO storage is SQLite-backed Durable Object storage. Current rows are canonical; Events are append-only audit records committed in the same transaction as the state change. MVP is not event sourced and does not require replay to rebuild current state.
+CaseDO storage is SQLite-backed Durable Object storage. Current rows are canonical; immutable mutation receipts reproduce original committed responses; Events are append-only audit records committed in the same transaction as the state change and receipt. MVP is not event sourced and does not require replay to rebuild current state.
+
+Each mutation executes in one CaseDO serialization turn and one SQLite transaction. The transaction checks an existing receipt first, validates canonical current rows and exact revisions, changes current rows, increments affected revisions once, inserts contiguous typed Events, and inserts the bounded original response receipt before commit. A replay never reconstructs an old response from current mutable state.
 
 ### 3.3 AgentDO
 
@@ -230,9 +234,9 @@ Domain packages MUST NOT import Cloudflare, Termux, Git CLI, filesystem, network
 ### 6.1 Normal flow
 
 ```text
-1. Worker authenticates and routes submit_operation to CaseDO.
-2. CaseDO validates Case state, contract, target grants, Operation schema, input digest, policy requirements, and request dedupe.
-3. CaseDO transactionally commits Task, Attempt(dispatch_pending), dedupe record, and Events.
+1. Worker bounds the body, rejects invalid UTF-8 or duplicate-member JSON, validates the selected canonical schema, converts validated unions, authenticates the request, derives a deterministic new `caseId` when required, and routes to CaseDO.
+2. CaseDO validates Case state, contract, target grants, Operation schema, input digest, policy requirements, and an existing mutation receipt.
+3. CaseDO transactionally commits Task, Attempt(dispatch_pending), the original bounded response receipt, and Events.
 4. CaseDO sends an idempotent dispatch using attemptId to AgentDO.
 5. AgentDO transactionally records queue entry, Agent epoch, and fencing token.
 6. AgentDO sends the dispatch to the current Agent connection.
@@ -324,9 +328,10 @@ Rules:
 
 ### 9.1 CaseDO SQLite
 
-Canonical tables are expected to include:
+M1 CaseDO schema version 1 includes:
 
 ```text
+schema_meta
 case_contract
 case_state
 case_target_grants
@@ -339,12 +344,16 @@ input_responses
 retry_decisions
 checkpoints
 evidence_sets
+evidence_mappings
+evidence_refs
 artifact_refs
-request_dedupe
+mutation_receipts
 events
 ```
 
-The exact schema and revisions are owned by [PROTOCOL.md](PROTOCOL.md).
+The exact schema, canonical JSON and digest columns, revisions, derived selectors, indexes, immutable guards, migration identity, and rollback barrier are owned by [PROTOCOL.md](PROTOCOL.md). Required database constraints include one current Case row, unique Task sequence and Attempt ordinal, at most one nonterminal Attempt per Task, unique request ID per Case, contiguous committed Event sequence, and immutable terminal and audit records.
+
+`schema_meta` owns only the local CaseDO database version and digest. Deployment-wide migration ordering and stage receipts remain owned by [DEPLOYMENT.md](DEPLOYMENT.md). The initial migration is exact empty state to version 1; after data is stored, a predecessor without declared exact compatibility is not a rollback target.
 
 ### 9.2 AgentDO storage
 
@@ -514,7 +523,7 @@ Neither coordinator may be added as a cache or naming convenience.
 | --- | --- |
 | Worker request fails before routing | transport failure; no Case transition inferred |
 | Case admission fails | typed admission error; no Task created |
-| CaseDO commits but response is lost | request dedupe returns the existing Task |
+| CaseDO commits but response is lost | deterministic routing reaches the same CaseDO and the immutable mutation receipt returns the original committed response |
 | AgentDO dispatch response is lost | Attempt reconciliation using same ID |
 | Agent disconnects | new epoch on reconnect; running effect reconciled |
 | Agent process fails to start | durable Task execution failure |
@@ -529,13 +538,18 @@ Neither coordinator may be added as a cache or naming convenience.
 
 The architecture is considered implemented only when tests demonstrate:
 
-- current state survives Worker restart and Durable Object hibernation;
+- invalid UTF-8, duplicate member names including escape-equivalent names, unsafe numbers, and ingress-limit overflow are rejected before ordinary decoding;
+- every public `oneOf` enters domain code only through an exact validation proof and generated branch conversion;
+- deterministic new-Case routing reaches the same CaseDO after Worker restart and response loss without a global request owner;
+- current state, schema identity, and mutation receipts survive Worker restart and Durable Object hibernation;
 - Case admission is atomic with first Task creation;
-- request dedupe survives lost responses;
+- same-digest replay returns the original committed response after current state advances, while a conflicting digest produces no write;
 - dispatch and result redelivery are idempotent;
 - Agent reconnect increments epoch and fences stale messages;
 - a stale D1 locator cannot authorize an Operation;
 - Artifact bytes cannot be read without matching Case metadata and authorization;
 - no Cloudflare API token or Git provider secret appears in Task, Attempt, Event, log, or Artifact fixtures;
 - the Agent rejects a dispatch that Cloud admitted when local policy has since narrowed;
-- the complete first vertical slice uses the final CaseDO and AgentDO boundaries without a compatibility scheduler.
+- the exact empty-to-v1 migration either commits a verified schema or leaves no falsely applied target version;
+- an incompatible stored schema or rollback predecessor fails closed without state mutation;
+- the complete first vertical slice uses the final CaseDO and AgentDO boundaries without a compatibility scheduler, RequestDO, or Event-rebuild owner.

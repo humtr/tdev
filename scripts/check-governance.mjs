@@ -110,8 +110,10 @@ for (const id of registryRows.keys()) {
 }
 
 const activePattern = /\[Design (\d{4})[^\]]*\]\((docs\/design\/[^)]+)\): `(draft|accepted|implementing|verified|blocked|superseded)`/g;
+const activeDesignIds = new Set();
 for (const match of workboard.matchAll(activePattern)) {
   const [, id, target, statusValue] = match;
+  activeDesignIds.add(id);
   const record = registryRows.get(id);
   if (!record) {
     errors.push(`WORKBOARD.md references unregistered design ${id}`);
@@ -121,6 +123,33 @@ for (const match of workboard.matchAll(activePattern)) {
   if (record.status !== statusValue) errors.push(`WORKBOARD.md status for design ${id} disagrees with registry`);
   if (!new Set(["accepted", "implementing", "blocked"]).has(statusValue)) {
     errors.push(`WORKBOARD.md active design ${id} has non-active status ${statusValue}`);
+  }
+}
+
+const design0004 = registryRows.get("0004");
+if (design0004 && new Set(["accepted", "implementing", "blocked"]).has(design0004.status)) {
+  if (!activeDesignIds.has("0004")) errors.push("accepted or active Design 0004 must be routed from WORKBOARD.md");
+  const designContent = await readFile(path.join(root, "docs/design", design0004.target), "utf8");
+  const protocol = await readFile(path.join(root, "docs/PROTOCOL.md"), "utf8");
+  const architecture = await readFile(path.join(root, "docs/ARCHITECTURE.md"), "utf8");
+  const mvp = await readFile(path.join(root, "docs/MVP.md"), "utf8");
+  const protocolGuide = await readFile(path.join(root, "protocol/README.md"), "utf8");
+  const markerChecks = [
+    [designContent, "ValidationProofV1", "Design 0004 validation proof"],
+    [designContent, "MutationReceiptV1", "Design 0004 mutation receipt"],
+    [designContent, "tdev.new-case-route.v1", "Design 0004 deterministic Case route"],
+    [designContent, "INPUT_SCHEMA_INVALID", "Design 0004 ingress error split"],
+    [protocol, "ValidationProofV1", "docs/PROTOCOL.md validation proof"],
+    [protocol, "MutationReceiptV1", "docs/PROTOCOL.md mutation receipt"],
+    [protocol, "tdev.new-case-route.v1", "docs/PROTOCOL.md deterministic Case route"],
+    [protocol, "INPUT_SCHEMA_INVALID", "docs/PROTOCOL.md ingress error split"],
+    [architecture, "mutation receipts", "docs/ARCHITECTURE.md replay owner"],
+    [architecture, "schema_meta", "docs/ARCHITECTURE.md CaseDO schema identity"],
+    [mvp, "Design 0004", "docs/MVP.md M1 design gate"],
+    [protocolGuide, "Design 0004", "protocol/README.md M1 routing"],
+  ];
+  for (const [content, marker, label] of markerChecks) {
+    if (!content.includes(marker)) errors.push(`${label} marker is missing`);
   }
 }
 

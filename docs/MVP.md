@@ -77,24 +77,46 @@ Test maintenance minimizes test files and duplicated setup, not behavioral cover
 
 ### M1 — CaseDO storage and public control core
 
+M1 proceeds only under accepted [Design 0004](design/0004-casedo-storage-and-public-control-core.md). Its ordered slices are contract/schema first, then storage, replay, control/query, Worker integration, and live verification. A later slice cannot compensate for a missing earlier gate.
+
 Deliver:
 
-- CaseDO SQLite schema and migrations;
+- versioned M1 canonical schemas and generated TypeScript/Go domain-conversion boundaries;
+- bounded fatal UTF-8 and lossless JSON ingress that rejects duplicate members before ordinary decoding;
+- exact `oneOf` validation proofs and generated closed-domain discrimination;
+- deterministic new-Case routing from deployment identity and request ID without a global request owner;
+- CaseDO SQLite schema version 1, exact empty-state migration, indexes, immutable guards, and rollback barrier;
 - atomic new-Case plus first-Task admission;
-- request dedupe;
-- Case and Task query tools;
-- Case control, Task control, cancellation, and terminal validation;
-- transactional audit Events;
-- bounded rendering and Artifact metadata stubs.
+- immutable mutation receipts storing the original bounded response for every state-changing semantic capability;
+- Case and Task query tools with bounded stable snapshots and cursors;
+- Case control, Task control, `cancel_case`, `cancel_task`, and terminal validation;
+- transactional current rows, revision increments, audit Events, decisions, checkpoints, and evidence mappings;
+- bounded rendering and Artifact metadata stubs that cannot satisfy evidence without committed byte ownership and digest.
 
 Acceptance:
 
-- commit-then-response-loss returns the original Task;
-- same request ID with different digest is rejected;
-- terminal records are immutable;
-- hibernation and instance restart preserve canonical state;
-- Events and current rows commit atomically;
-- completion without evidence is rejected.
+- invalid UTF-8, malformed/trailing JSON, unsafe numbers, limit overflow, and raw duplicate member names including escape-equivalent names are rejected before ordinary decoding;
+- TypeScript and Go accept the same raw-byte vectors and construct every public union only from one exact schema branch proof;
+- generated Go `json.RawMessage` cannot enter CaseDO domain or storage APIs without validated discrimination;
+- Worker restart and commit-then-response-loss route the same request to the same CaseDO and return the original committed response;
+- a replay after the Task advances still returns the original admission response;
+- the same request ID with a different capability or semantic digest is rejected without another write;
+- terminal records are immutable and one Task has at most one nonterminal Attempt;
+- hibernation and instance restart preserve schema identity, current rows, mutation receipts, and bounded queries;
+- Events, current rows, affected revisions, and the mutation receipt commit atomically;
+- exact empty-to-v1 migration either commits a re-read verified schema or exposes no falsely applied target version;
+- an incompatible stored schema or rollback predecessor fails closed;
+- cancellation remains cooperative and a valid success racing with cancellation is not overwritten;
+- completion without complete owned and digest-valid evidence is rejected.
+
+Ordered implementation slices:
+
+1. **M1 schema and proof foundation:** introduce the M1 schema revision, raw-byte fixtures, validation proof, generated branch identities, domain converters, control inputs, mutation receipt, and parity tests. Do not add Worker or SQLite code before this gate is green.
+2. **CaseDO storage core:** add schema-version-1 DDL and migration, repositories, immutable guards, and the complete transition-to-revision/Event matrix in isolated databases.
+3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection.
+4. **Control and query core:** add all Case/Task controls including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, hibernation, and restart tests.
+5. **Worker semantic boundary:** route the release-pinned twelve-capability `tools-v1` surface through the lossless ingress and final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
+6. **M1 live verification:** exercise actual Durable Object SQLite, migration failure, hibernation, restart, and authenticated public semantics. Only observed layers can be marked complete.
 
 ### M2 — AgentDO connection, enrollment, and queue
 
@@ -375,6 +397,8 @@ Use table-driven tests for every state and transition. Assert public results, ca
 
 Run the same golden vectors through TypeScript and Go:
 
+- raw invalid UTF-8, malformed/trailing JSON, duplicate-member, depth/token/container, and exact safe-integer admission;
+- exact `oneOf` branch proof and generated domain discrimination;
 - schema accept/reject;
 - canonicalization;
 - digest;
@@ -386,12 +410,16 @@ Run the same golden vectors through TypeScript and Go:
 
 Use isolated SQLite databases and migration fixtures. Verify:
 
-- exact predecessor version;
-- transactional state plus Event;
-- dedupe persistence;
+- exact empty-state or predecessor version and schema digest;
+- transactional state, affected revisions, Event, and immutable original-response receipt;
+- replay after current state advances;
+- conflicting request identity creates no write;
+- deterministic Case route and dedupe persistence;
 - terminal immutability;
-- failed migration rollback behavior;
-- compaction without deleting referenced evidence.
+- failed migration rollback behavior and no falsely applied target version;
+- incompatible-reader and rollback-barrier rejection;
+- stable bounded pagination snapshots;
+- compaction without deleting referenced evidence or mutation receipts.
 
 ### 7.4 Controlled concurrency tests
 
@@ -461,7 +489,10 @@ A clean Termux-on-Android-ARM64 device is required for release qualification. Em
 At minimum inject failure after:
 
 ```text
+raw JSON scan after body collection
+schema proof before domain conversion
 CaseContract write before response
+mutation receipt insert before response
 Task write before response
 Attempt dispatch_pending commit
 AgentDO queue commit
@@ -493,9 +524,9 @@ For each boundary verify:
 
 | Acceptance | Required evidence |
 | --- | --- |
-| schema consistency | TypeScript and Go golden-vector results plus generated-diff clean |
-| Case durability | CaseDO state before and after hibernation/restart |
-| no duplicate Task | request dedupe record and Task count |
+| schema consistency | TypeScript and Go raw-byte, union-proof, canonical/digest golden-vector results plus generated-diff clean |
+| Case durability | CaseDO schema identity, current rows, mutation receipts, and query snapshots before and after hibernation/restart |
+| no duplicate Task | deterministic Case route, immutable mutation receipt, original response, and Task count |
 | no duplicate effect | Attempt receipt, target observation, and exact final digest/ref |
 | Agent fencing | old-epoch rejection plus new-epoch accepted result |
 | path containment | public typed failure and unchanged outside target |
@@ -513,9 +544,12 @@ For each boundary verify:
 
 Before implementing a slice:
 
-1. the relevant owner document and canonical schemas are frozen;
-2. acceptance and verification commands are named;
-3. unknowns affecting public behavior are either resolved or hard-stop the slice.
+1. the applicable design is `accepted` or `implementing` and points to the relevant owner documents;
+2. the relevant owner document and canonical schemas are frozen;
+3. acceptance and verification commands are named;
+4. unknowns affecting public behavior are either resolved or hard-stop the slice.
+
+For M1, Design 0004 must be accepted before the M1 schema/proof slice begins. No CaseDO or Worker code may parse public values before the versioned schema, lossless ingress, validation proof, and generated domain-conversion boundary are green.
 
 Before merging a slice:
 
@@ -538,7 +572,8 @@ Every implementation review asks:
 - Can an Operation broaden its targets or effects?
 - Are preconditions exact and refreshed only from authoritative readers?
 - Does cancellation distinguish request, process termination, external effect, and terminal commit?
-- Can a lost response trigger duplicate mutation?
+- Can raw duplicate JSON members or an unproved union reach a digest, route, domain transition, or store?
+- Can a lost response trigger duplicate mutation or return a reconstructed response that differs from the original commit?
 - Are secrets excluded before persistence?
 - Is every validation claim limited to its observed scope?
 - Does the change preserve unrelated files, refs, processes, resources, and routes?

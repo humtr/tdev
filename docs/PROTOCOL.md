@@ -154,6 +154,76 @@ Any other schema-node keyword fails generator and runtime admission. `$ref` and 
 
 Extending the executable subset requires an accepted protocol design, TypeScript and Go parity tests, and generator enforcement before a canonical schema may depend on the new keyword.
 
+### 3.7 M1 lossless public ingress and validated domain conversion
+
+The current `protocol/schemas/tdev.v1.schema.json` remains the M0 source foundation until the accepted M1 implementation slice introduces a versioned M1 canonical schema and regenerates every derivative. No Worker or CaseDO implementation may consume public semantic values before that schema and its generated conversion boundary exist.
+
+The M1 public protocol profile has these hard maxima before semantic routing:
+
+```text
+raw request body                 1,048,576 bytes
+JSON nesting depth               64 containers
+JSON lexical tokens              100,000
+members in one object            4,096
+items in one array               10,000 unless the selected schema is stricter
+canonical mutation response      262,144 bytes
+rendered text envelope            65,536 UTF-8 bytes
+query page size                  default 20, maximum 100
+```
+
+Every public semantic request follows this order:
+
+```text
+bounded body collection
+-> fatal UTF-8 validation
+-> lossless JSON lexical scan
+-> duplicate-member, grammar, depth, token, container, and safe-integer checks
+-> generic JSON value decode
+-> canonical schema validation and canonical value digest
+-> validation proof construction
+-> generated domain conversion
+-> capability-specific semantic digest
+-> authentication, authorization, and deterministic owner routing
+-> CaseDO transaction or bounded read
+```
+
+The lexical scanner keeps a decoded member-name set for each open object. Escape-equivalent names such as `"a"` and `"\u0061"` are duplicates. A duplicate at any nesting depth, including an unknown field, is rejected before ordinary object decoding. Number tokens are parsed losslessly before any floating-point conversion and are accepted only when their exact mathematical value is an integer in the protocol safe-integer range. Equivalent accepted integer spellings canonicalize to the same value; non-integral, non-finite, or out-of-range values are invalid.
+
+A successful schema validation returns an ephemeral proof that cannot be supplied by the client or persisted as authority:
+
+```ts
+type ValidationProofV1 = {
+  schemaDigest: Sha256;
+  rootDefinition: string;
+  canonicalDigest: Sha256;
+  unions: {
+    instancePointer: string;
+    schemaPointer: string;
+    branchIndex: number;
+    branchIdentity: string;
+  }[];
+};
+```
+
+Every `oneOf` must match exactly one branch. `canonicalDigest` is `SHA256("tdev.validation-proof.v1\0" + canonical bytes of the validated root value)` and binds the proof to that exact value. Stable branch identity is derived from the canonical schema pointer and branch index. Generated TypeScript and Go converters consume the matching proof, verify any required `const` discriminator, and construct a closed domain variant. Generated Go `json.RawMessage` union aliases remain wire containers only; CaseDO repositories and transition APIs do not accept an unproved raw union. A stored canonical value is revalidated before domain use, and an invalid stored value is `STORAGE_CORRUPT` rather than a default or empty state.
+
+Required pre-routing errors include:
+
+```text
+PAYLOAD_TOO_LARGE
+INVALID_UTF8
+MALFORMED_JSON
+DUPLICATE_JSON_MEMBER
+JSON_LIMIT_EXCEEDED
+UNSAFE_JSON_NUMBER
+INPUT_SCHEMA_INVALID
+ONE_OF_NO_MATCH
+ONE_OF_MULTIPLE_MATCH
+UNION_DISCRIMINATOR_MISMATCH
+```
+
+TypeScript and Go consume the same raw-byte and union-branch fixtures. A parsed-value test cannot prove duplicate-member rejection, and successful JSON unmarshalling cannot prove union discrimination.
+
 ## 4. CaseContract
 
 ### 4.1 Creation input
@@ -638,23 +708,40 @@ type SubmitOperationInput = {
 };
 ```
 
-The Case revision is not required for ordinary Task admission. CaseDO checks the current Case status, immutable contract, grants, policy, Operation schema, and request dedupe. Control transitions use exact Case or Task revisions.
+The Case revision is not required for ordinary Task admission. CaseDO checks the current Case status, immutable contract, grants, policy, Operation schema, and mutation receipt. Control transitions use exact Case or Task revisions.
 
-### 10.2 New Case atomicity
+### 10.2 Deterministic new-Case routing
+
+For `case.kind = "new"`, the stateless Worker derives the Case identity before routing:
+
+```text
+routeBytes =
+  "tdev.new-case-route.v1" + NUL
+  + deploymentId + NUL
+  + requestId
+
+caseId = "case_" + lowercase_hex(SHA256(routeBytes))
+```
+
+`deploymentId` and `requestId` use their canonical UTF-8 forms. The first release has one authenticated user per deployment. The resulting ID is opaque and is not a bearer capability. The same deployment and request ID route to the same `CaseDO` after Worker restart, response loss, or client reconnect. A different request ID selects a distinct Case even when its semantic content is equal.
+
+No D1 lookup, global request table, RequestDO, session state, or implicit prompt continuity selects the owner. D1 may receive a bounded locator projection after the CaseDO transaction commits. Existing-Case admission still requires the explicit `caseId` and expected contract digest.
+
+### 10.3 New Case atomicity
 
 A new Case request commits in one CaseDO transaction:
 
 - CaseContract;
 - CaseTargetGrant records;
 - active CaseState;
-- request dedupe record;
+- mutation receipt record;
 - first Task;
 - initial Attempt when no approval or input is required;
 - matching Events.
 
 No partially created Case is externally visible.
 
-### 10.3 Result
+### 10.4 Result
 
 ```ts
 type SubmitOperationResult = {
@@ -680,6 +767,7 @@ No implicit continuity lookup creates or selects an existing Case. Continuing a 
 
 ```ts
 type ControlCaseInput = {
+  requestId: RequestId;
   caseId: CaseId;
   expectedCaseRevision: number;
   action:
@@ -699,6 +787,7 @@ type ControlCaseInput = {
 
 ```ts
 type FinishCaseInput = {
+  requestId: RequestId;
   caseId: CaseId;
   expectedCaseRevision: number;
   terminal:
@@ -736,6 +825,7 @@ This transitions to `cancelling`. It does not immediately assert terminal cancel
 
 ```ts
 type ControlTaskInput = {
+  requestId: RequestId;
   caseId: CaseId;
   taskId: TaskId;
   expectedTaskRevision: number;
@@ -769,27 +859,68 @@ type ControlTaskInput = {
 
 Input values are validated against the originating typed input-request schema.
 
-## 12. Request deduplication
+### 11.5 cancel_task
 
 ```ts
-type RequestDedupeRecord = {
+type CancelTaskInput = {
   requestId: RequestId;
+  caseId: CaseId;
+  taskId: TaskId;
+  expectedTaskRevision: number;
+  reason: string;
+};
+```
+
+This records cooperative Task cancellation intent and transitions the current Task or Attempt only through the canonical state machine. It does not create a control Task, create another Attempt, terminate an external effect by assertion, or force a terminal cancelled result. A valid success racing with cancellation remains valid when its identity, fencing, revision, result, and evidence are accepted.
+
+## 12. Mutation request deduplication
+
+Every state-changing CaseDO semantic capability carries a `requestId`:
+
+```text
+submit_operation
+control_case
+finish_case
+cancel_case
+control_task
+cancel_task
+```
+
+The semantic digest covers the capability identifier and version plus every validated canonical input field other than transport-only wait preferences. For `submit_operation`, it includes the Case selector or new contract, Operation identity and schema digest, targets, and validated canonical arguments.
+
+M1 stores the exact original committed response, not only its digest:
+
+```ts
+type MutationReceiptV1 = {
+  schemaVersion: 1;
+  requestId: RequestId;
+  capability: string;
   semanticDigest: Sha256;
   caseId: CaseId;
   taskId?: TaskId;
+  subject?: EntityRef;
+  response: JsonValue;
   responseDigest: Sha256;
+  committedCaseRevision: number;
+  committedTaskRevision?: number;
+  committedEventSequence: number;
   createdAt: Timestamp;
 };
 ```
 
+The response is canonical semantic data, is bounded by the M1 mutation-response limit, passes result-schema and secret-negative validation, and is immutable. It commits in the same SQLite transaction as the current-row change and matching Events.
+
 Rules:
 
 ```text
-same requestId + same semanticDigest -> return original result
-same requestId + different semanticDigest -> REQUEST_ID_CONFLICT
+same requestId + same capability and semanticDigest
+  -> return the original stored response plus transport replay metadata
+
+same requestId + different capability or semanticDigest
+  -> REQUEST_ID_CONFLICT with no other write
 ```
 
-The semantic digest includes Case selector or new contract input, Operation identity and schema digest, targets, and validated canonical arguments.
+A replay never reconstructs an admission response from current mutable rows. A Task that has advanced since admission does not alter the original response. Mutation receipts are retained at least as long as the Case and every referenced recovery state.
 
 ## 13. Target binding
 
@@ -957,15 +1088,23 @@ Case completion verifies existence, ownership, digest, required layer, and unres
 
 ## 19. Error model
 
-### 19.1 Transport errors
+### 19.1 Transport and ingress errors
 
-Transport errors occur before a canonical domain transition can be determined:
+Transport or ingress errors occur before a canonical domain transition can be determined. They include bounded typed forms of:
 
-- invalid JSON;
-- authentication failure;
 - payload too large;
-- unsupported HTTP or MCP transport;
+- invalid UTF-8;
+- malformed or trailing JSON;
+- duplicate JSON object member;
+- depth, token, member, or item limit exceeded;
+- unsafe or unsupported JSON number;
+- no or multiple `oneOf` branch match;
+- generated union discriminator mismatch;
+- authentication failure;
+- unsupported HTTP or MCP transport or revision;
 - route unavailable.
+
+Error details contain only bounded pointers and reasons. They do not echo raw request bodies, secrets, unauthorized identifiers, or unbounded member names.
 
 ### 19.2 Admission errors
 
@@ -984,6 +1123,15 @@ TARGET_NOT_GRANTED
 POLICY_DENIED
 CAPABILITY_UNAVAILABLE
 REVISION_CONFLICT
+LIFECYCLE_CONFLICT
+OUTSTANDING_REQUEST_MISMATCH
+TERMINAL_IMMUTABLE
+COMPLETION_EVIDENCE_INCOMPLETE
+INVALID_CURSOR
+STORAGE_VERSION_MISMATCH
+STORAGE_CORRUPT
+MIGRATION_REQUIRED
+ROLLBACK_BLOCKED
 ```
 
 ### 19.3 Durable Task failure
@@ -1045,7 +1193,100 @@ type CaseEvent = {
 
 Event payloads are typed by event type. Events are an audit log, not a competing current-state owner.
 
-## 21. Protocol version negotiation
+## 21. M1 CaseDO SQLite storage, migration, and query snapshots
+
+### 21.1 Schema identity
+
+Each CaseDO database contains one authoritative schema metadata row:
+
+```text
+schema_meta
+  component = "case_do"
+  schema_version
+  schema_digest
+  release_id
+  applied_at
+```
+
+This row owns local database compatibility only. Deployment-wide migration progress and release ordering remain owned by [DEPLOYMENT.md](DEPLOYMENT.md).
+
+M1 CaseDO schema version 1 contains:
+
+```text
+case_contract
+case_state
+case_target_grants
+tasks
+attempts
+approval_requests
+approval_decisions
+input_requests
+input_responses
+retry_decisions
+checkpoints
+evidence_sets
+evidence_mappings
+evidence_refs
+artifact_refs
+mutation_receipts
+events
+```
+
+Canonical contracts, statuses, requests, decisions, results, failures, uncertainty, evidence references, and Event payloads are stored as validated canonical JSON bytes plus their required digests. Indexed kind, outcome, sequence, revision, and timestamp columns are derived selectors inside the same owner and cannot authorize a transition without the canonical value.
+
+### 21.2 Required storage constraints
+
+The schema enforces or the same transaction rechecks:
+
+- one contract and one current Case row for the addressed Case;
+- foreign keys contained to that Case;
+- unique Task sequence and Attempt ordinal within their owners;
+- at most one nonterminal Attempt per Task through a partial unique index or equivalent database guard;
+- unique mutation request ID per Case;
+- unique and gap-free committed Event sequence within one Case;
+- unique decision IDs and one terminal response for each approval, input, or retry request;
+- unique evidence criterion mapping and evidence reference;
+- immutable contract, grant, mutation receipt, decision, checkpoint, evidence-set, Artifact-metadata, and Event rows;
+- database and application guards against updates from terminal Case, Task, or Attempt state.
+
+Current rows are lifecycle truth. Events cannot reconstruct, replay, or authorize current state.
+
+### 21.3 Atomic mutation template
+
+One CaseDO serialization turn and one SQLite transaction:
+
+1. read an existing mutation receipt by request ID;
+2. return its original response when the semantic digest matches;
+3. reject `REQUEST_ID_CONFLICT` without another write when it differs;
+4. validate canonical current rows, exact revisions, status, outstanding request identity, authorization, and terminal prerequisites;
+5. insert or update current rows under compare-and-update predicates;
+6. increment each affected revision exactly once;
+7. insert the next contiguous typed Events;
+8. insert immutable decisions, checkpoints, evidence, or Artifact metadata as required;
+9. insert the exact canonical response and mutation receipt;
+10. commit before returning a response.
+
+A zero-row compare-and-update is re-read and classified as replay, revision conflict, lifecycle conflict, or storage corruption. The implementation never drops a precondition and retries optimistically.
+
+New-Case admission atomically creates the contract, grants, active Case row, first Task, initial Attempt when immediately dispatchable, Events, and mutation receipt. No partial Case is externally visible.
+
+### 21.4 Migration and rollback barrier
+
+The initial migration is exact empty state to CaseDO schema version 1. It creates all tables, indexes, and guards transactionally, writes `schema_meta` last, then reopens and verifies the observed version and schema digest before serving requests.
+
+A later migration requires an exact predecessor version and digest, release-manifest identity, preflight, a deployment-owned durable stage receipt, post-migration validation, and fault injection. A failed migration cannot expose a falsely applied target version.
+
+After schema version 1 stores state, a predecessor that does not declare exact compatibility is not a rollback target. It fails closed with `ROLLBACK_BLOCKED` or `STORAGE_VERSION_MISMATCH`. A compensating migration or recovery import/export requires a separate accepted design.
+
+### 21.5 Bounded reads and cursors
+
+`get_case` and `get_task` read canonical current rows and bounded related summaries in one SQLite read transaction. Every response identifies the Case revision and snapshot Event sequence; Task responses also identify the Task revision.
+
+A cursor is opaque, untrusted, self-contained, and bound to its schema version, semantic capability, query digest, Case and optional Task identity, snapshot upper bound, and last stable key. Every page revalidates authentication, authorization, cursor shape, query identity, and limits. A cursor owns no state and grants no authority. Pagination uses stable `(sequence, id)` or `(createdAt, id)` ordering and excludes writes after the fixed snapshot bound.
+
+`render_task` derives a bounded presentation from the same snapshot. Truncation is explicit and returns a cursor or authorized Artifact reference when available. An Artifact metadata stub without committed byte ownership and digest cannot satisfy evidence or authorize a read.
+
+## 22. Protocol version negotiation
 
 The Worker, AgentDO, and Agent exchange:
 
@@ -1069,7 +1310,7 @@ Agent release N accepts selected Edge protocol versions listed in its manifest.
 Unknown compatibility is rejection, not optimistic fallback.
 ```
 
-## 22. Schema evolution
+## 23. Schema evolution
 
 - Stored schemas and public schemas have independent version numbers where their compatibility differs.
 - A breaking stored-state change requires a forward migration and a rollback-compatible predecessor or explicit rollback barrier.
@@ -1078,16 +1319,26 @@ Unknown compatibility is rejection, not optimistic fallback.
 - Profile parameter schemas and Operation schemas are identified by digest.
 - Generated TypeScript and Go decoders must reject unknown fields for canonical records.
 
-## 23. Mandatory protocol tests
+## 24. Mandatory protocol tests
 
 The protocol implementation must include table-driven tests for:
 
+- raw invalid UTF-8 and malformed or trailing JSON;
+- duplicate members at every nesting level, including escape-equivalent names;
+- JSON depth, token, member, item, and safe-integer bounds;
+- every `oneOf` no-match, multi-match, and generated discriminator mismatch;
+- compile/API rejection of unproved Go `json.RawMessage` at the domain and storage boundary;
+- fixed deterministic new-Case routing vectors and restart behavior;
+- original mutation-response replay after current Task state advances;
+- every state-changing capability request conflict and response-loss boundary;
+- exact empty-to-v1 migration, schema-digest mismatch, failed migration, and rollback barrier;
+- stable bounded Case, Task, Event, Attempt, and rendering pagination snapshots;
 - every allowed and forbidden Case transition;
 - every allowed and forbidden Task transition;
 - every allowed and forbidden Attempt transition;
 - terminal immutability;
 - one nonterminal Attempt per Task;
-- request dedupe and request-ID conflict;
+- mutation receipt and request-ID conflict;
 - same dispatch redelivery;
 - result redelivery;
 - stale epoch and fencing rejection;
