@@ -65,9 +65,12 @@ Deliver:
 
 Acceptance:
 
-- TypeScript and Go accept and reject the same fixtures;
+- TypeScript and Go accept and reject the same fixtures, safe-integer numeric domain, and executable schema subset;
+- generator and runtime admission reject unsupported schema keywords and ambiguous `$ref` or `oneOf` sibling semantics;
+- TypeScript and Go enforce the same UTC timestamp calendar, time, precision, and `Z`-suffix profile;
 - canonical JSON bytes and digests match exactly;
 - all allowed and forbidden transitions are table-tested;
+- completion evidence rejects duplicate criterion mappings and covers every mandatory criterion and verification requirement;
 - no Cloudflare, filesystem, Git, process, or Termux import exists in domain code.
 
 Test maintenance minimizes test files and duplicated setup, not behavioral coverage. Existing fixture tables and transition matrices are extended for new cases. A new test file is added only for a genuinely separate runtime boundary or when adding the regression to an existing table would obscure the contract. Tests are never weakened, skipped, deleted, or overwritten merely to make an implementation pass.

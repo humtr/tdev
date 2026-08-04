@@ -43,3 +43,31 @@ test("generated artifacts are marked and strict definitions reject unknown field
   const base = fixtures.schemaCases.find((fixture) => fixture.definition === "CaseState" && fixture.valid)?.value as Record<string, unknown>;
   assert.ok(validator.validateDefinition("CaseState", { ...base, extra: true }).length > 0);
 });
+
+test("schema subset fails closed and protocol numbers are safe integers", () => {
+  const invalidSchemas: unknown[] = [
+    { $defs: { Probe: { type: "string", unsupportedKeyword: true } } },
+    { $defs: { Probe: { $ref: "#/$defs/Target", type: "string" }, Target: { type: "string" } } },
+    { $defs: { Probe: { oneOf: [{ type: "string" }], type: "string" } } },
+    { $defs: { Probe: { type: "string" } }, allOf: [{ $ref: "#/$defs/Probe" }] },
+    { $defs: { Probe: { type: "object", properties: {}, required: "x", additionalProperties: false } } },
+    { $defs: { Probe: { type: "integer", minimum: "1" } } },
+    { $defs: { Probe: { enum: "x" } } },
+    { $defs: { Probe: { type: "integer", pattern: "x" } } },
+    { $defs: { Probe: { type: "integer", format: "date-time" } } },
+    { $defs: { Probe: { type: "string", format: "email" } } },
+    { $defs: { Probe: { $ref: "#/$defs/Probe" } } },
+    { $defs: { A: { $ref: "#/$defs/B" }, B: { $ref: "#/$defs/A" } } },
+    { $defs: { Probe: { oneOf: [{ type: "string" }, { $ref: "#/$defs/Probe" }] } } },
+  ];
+  invalidSchemas.forEach((candidate) => assert.throws(() => new SchemaValidator(candidate as SchemaDocument)));
+
+  const numberValidator = new SchemaValidator({
+    $defs: { NumberProbe: { type: "number", minimum: 1, maximum: 3 } },
+  } as SchemaDocument);
+  assert.deepEqual(numberValidator.validateDefinition("NumberProbe", 2), []);
+  assert.ok(numberValidator.validateDefinition("NumberProbe", 0).length > 0);
+  assert.ok(numberValidator.validateDefinition("NumberProbe", 4).length > 0);
+  assert.ok(numberValidator.validateDefinition("NumberProbe", 1.5).length > 0);
+  assert.ok(numberValidator.validateDefinition("NumberProbe", Number.MAX_SAFE_INTEGER + 1).length > 0);
+});

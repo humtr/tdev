@@ -12,10 +12,11 @@
     "test:ts": "node --test protocol/contract.test.ts domain/state/state.test.ts",
     "test:go": "go test ./...",
     "check:forbidden": "node scripts/check-forbidden.mjs",
+    "check:governance": "node scripts/check-governance.mjs",
     "test": "npm run verify:sandbox",
     "portable": "npm test",
     "portable-test": "npm test",
     "portable-install": "npm run check:generated",
-    "verify:sandbox": "npm run check:generated && npm run test:ts && npm run test:go && npm run check:forbidden"
+    "verify:sandbox": "npm run check:generated && npm run test:ts && npm run test:go && npm run check:forbidden && npm run check:governance"
   }
 }

@@ -6,11 +6,14 @@ import (
 	"flag"
 	"fmt"
 	"go/format"
+	"io"
 	"os"
 	"path/filepath"
+	"regexp"
 	"sort"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
 
 const schemaPath = "protocol/schemas/tdev.v1.schema.json"
@@ -18,17 +21,31 @@ const schemaPath = "protocol/schemas/tdev.v1.schema.json"
 var check = flag.Bool("check", false, "fail when generated files differ")
 
 type schemaDocument struct {
-	Defs map[string]any `json:"$defs"`
+	Schema string         `json:"$schema,omitempty"`
+	ID     string         `json:"$id,omitempty"`
+	Title  string         `json:"title,omitempty"`
+	Defs   map[string]any `json:"$defs"`
 }
 
 func main() {
 	flag.Parse()
 	raw, err := os.ReadFile(schemaPath)
 	must(err)
+	if !utf8.Valid(raw) {
+		panic("schema JSON is not valid UTF-8")
+	}
 	dec := json.NewDecoder(bytes.NewReader(raw))
 	dec.UseNumber()
+	dec.DisallowUnknownFields()
 	var doc schemaDocument
 	must(dec.Decode(&doc))
+	var trailing any
+	if err := dec.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			panic("unexpected trailing schema JSON")
+		}
+		panic(fmt.Errorf("invalid trailing schema JSON: %w", err))
+	}
 	if len(doc.Defs) == 0 {
 		panic("schema has no $defs")
 	}
@@ -62,37 +79,309 @@ func writeOrCheck(path string, content []byte) {
 	must(os.WriteFile(path, content, 0o644))
 }
 
+var supportedSchemaKeywords = map[string]bool{
+	"$ref": true, "additionalProperties": true, "const": true, "enum": true,
+	"format": true, "items": true, "maxItems": true, "maxLength": true, "maximum": true,
+	"minItems": true, "minLength": true, "minimum": true, "oneOf": true,
+	"pattern": true, "properties": true, "required": true, "type": true,
+	"uniqueItems": true,
+}
+
+var supportedSchemaTypes = map[string]bool{
+	"null": true, "boolean": true, "integer": true, "number": true,
+	"string": true, "array": true, "object": true,
+}
+
+const generatorMaxSafeInteger int64 = 9_007_199_254_740_991
+
 func validateSchema(defs map[string]any) {
-	var walk func(value any, path string)
-	walk = func(value any, path string) {
-		switch current := value.(type) {
-		case map[string]any:
-			if ref, ok := current["$ref"].(string); ok {
-				const prefix = "#/$defs/"
-				if !strings.HasPrefix(ref, prefix) {
-					panic("unsupported external $ref at " + path + ": " + ref)
+	var visit func(schema map[string]any, path string)
+	visit = func(schema map[string]any, path string) {
+		if schema == nil {
+			panic("definition is not a schema at " + path)
+		}
+		for key := range schema {
+			if !supportedSchemaKeywords[key] {
+				panic("unsupported schema keyword at " + path + ": " + key)
+			}
+		}
+
+		if rawRef, exists := schema["$ref"]; exists {
+			if len(schema) != 1 {
+				panic("$ref siblings are unsupported at " + path)
+			}
+			ref, ok := rawRef.(string)
+			const prefix = "#/$defs/"
+			if !ok || !strings.HasPrefix(ref, prefix) {
+				panic(fmt.Sprintf("unsupported external $ref at %s: %v", path, rawRef))
+			}
+			if _, exists := defs[strings.TrimPrefix(ref, prefix)]; !exists {
+				panic("unresolved $ref at " + path + ": " + ref)
+			}
+			return
+		}
+
+		if rawChoices, exists := schema["oneOf"]; exists {
+			if len(schema) != 1 {
+				panic("oneOf siblings are unsupported at " + path)
+			}
+			choices, ok := rawChoices.([]any)
+			if !ok || len(choices) == 0 {
+				panic("oneOf must contain a branch at " + path)
+			}
+			for index, choice := range choices {
+				branch := asMap(choice)
+				if branch == nil {
+					panic(fmt.Sprintf("oneOf branch is not a schema at %s/%d", path, index))
 				}
-				if _, exists := defs[strings.TrimPrefix(ref, prefix)]; !exists {
-					panic("unresolved $ref at " + path + ": " + ref)
+				visit(branch, fmt.Sprintf("%s/oneOf/%d", path, index))
+			}
+			return
+		}
+
+		typeName := ""
+		if rawType, exists := schema["type"]; exists {
+			value, ok := rawType.(string)
+			if !ok || !supportedSchemaTypes[value] {
+				panic(fmt.Sprintf("unsupported schema type at %s: %v", path, rawType))
+			}
+			typeName = value
+		}
+		_, hasConst := schema["const"]
+		_, hasEnum := schema["enum"]
+		if typeName == "" && !hasConst && !hasEnum {
+			panic("schema has no executable keyword at " + path)
+		}
+
+		if value, exists := schema["const"]; exists {
+			validateGeneratorProtocolValue(value, path+"/const")
+		}
+		if rawEnum, exists := schema["enum"]; exists {
+			values, ok := rawEnum.([]any)
+			if !ok || len(values) == 0 {
+				panic("enum must contain a value at " + path)
+			}
+			seen := map[string]bool{}
+			for index, value := range values {
+				validateGeneratorProtocolValue(value, fmt.Sprintf("%s/enum/%d", path, index))
+				raw, err := json.Marshal(value)
+				must(err)
+				key := string(raw)
+				if seen[key] {
+					panic("enum contains a duplicate value at " + path)
+				}
+				seen[key] = true
+			}
+		}
+
+		rejectGeneratorMisplaced(schema, []string{"minLength", "maxLength", "pattern", "format"}, typeName == "string", path)
+		rejectGeneratorMisplaced(schema, []string{"minimum", "maximum"}, typeName == "integer" || typeName == "number", path)
+		rejectGeneratorMisplaced(schema, []string{"items", "minItems", "maxItems", "uniqueItems"}, typeName == "array", path)
+		rejectGeneratorMisplaced(schema, []string{"properties", "required", "additionalProperties"}, typeName == "object", path)
+
+		if typeName == "string" {
+			minimum, hasMinimum := generatorConstraintInteger(schema, "minLength", path, true)
+			maximum, hasMaximum := generatorConstraintInteger(schema, "maxLength", path, true)
+			if hasMinimum && hasMaximum && minimum > maximum {
+				panic("minLength exceeds maxLength at " + path)
+			}
+			if rawPattern, exists := schema["pattern"]; exists {
+				pattern, ok := rawPattern.(string)
+				if !ok {
+					panic("schema pattern is not a string at " + path)
+				}
+				if _, err := regexp.Compile(pattern); err != nil {
+					panic(fmt.Errorf("invalid schema pattern at %s: %w", path, err))
 				}
 			}
-			if current["type"] == "object" && len(asMap(current["properties"])) > 0 {
-				strict, ok := current["additionalProperties"].(bool)
+			if rawFormat, exists := schema["format"]; exists {
+				format, ok := rawFormat.(string)
+				if !ok || format != "date-time" {
+					panic(fmt.Sprintf("unsupported string format at %s: %v", path, rawFormat))
+				}
+			}
+		}
+
+		if typeName == "integer" || typeName == "number" {
+			minimum, hasMinimum := generatorConstraintInteger(schema, "minimum", path, false)
+			maximum, hasMaximum := generatorConstraintInteger(schema, "maximum", path, false)
+			if hasMinimum && hasMaximum && minimum > maximum {
+				panic("minimum exceeds maximum at " + path)
+			}
+		}
+
+		if typeName == "array" {
+			minimum, hasMinimum := generatorConstraintInteger(schema, "minItems", path, true)
+			maximum, hasMaximum := generatorConstraintInteger(schema, "maxItems", path, true)
+			if hasMinimum && hasMaximum && minimum > maximum {
+				panic("minItems exceeds maxItems at " + path)
+			}
+			if rawUnique, exists := schema["uniqueItems"]; exists {
+				if _, ok := rawUnique.(bool); !ok {
+					panic("uniqueItems is not a boolean at " + path)
+				}
+			}
+			if rawItems, exists := schema["items"]; exists {
+				items := asMap(rawItems)
+				if items == nil {
+					panic("items is not a schema at " + path)
+				}
+				visit(items, path+"/items")
+			}
+		}
+
+		if typeName == "object" {
+			var properties map[string]any
+			if rawProperties, exists := schema["properties"]; exists {
+				properties = asMap(rawProperties)
+				if properties == nil {
+					panic("schema properties are not an object at " + path)
+				}
+				for name, rawProperty := range properties {
+					property := asMap(rawProperty)
+					if property == nil {
+						panic("property is not a schema at " + path + "/properties/" + name)
+					}
+					visit(property, path+"/properties/"+name)
+				}
+			}
+			if rawRequired, exists := schema["required"]; exists {
+				values, ok := rawRequired.([]any)
+				if !ok {
+					panic("required is not an array at " + path)
+				}
+				seen := map[string]bool{}
+				for _, value := range values {
+					property, ok := value.(string)
+					if !ok {
+						panic("required contains a non-string at " + path)
+					}
+					if seen[property] {
+						panic("required contains a duplicate property at " + path + ": " + property)
+					}
+					if properties == nil {
+						panic("required property is not declared at " + path + ": " + property)
+					}
+					if _, exists := properties[property]; !exists {
+						panic("required property is not declared at " + path + ": " + property)
+					}
+					seen[property] = true
+				}
+			}
+			if len(properties) > 0 {
+				strict, ok := schema["additionalProperties"].(bool)
 				if !ok || strict {
 					panic("canonical object is not strict at " + path)
 				}
 			}
-			for key, child := range current {
-				walk(child, path+"/"+key)
-			}
-		case []any:
-			for index, child := range current {
-				walk(child, fmt.Sprintf("%s/%d", path, index))
+			if rawAdditional, exists := schema["additionalProperties"]; exists {
+				switch additional := rawAdditional.(type) {
+				case bool:
+				case map[string]any:
+					visit(additional, path+"/additionalProperties")
+				default:
+					panic("additionalProperties is not boolean or schema at " + path)
+				}
 			}
 		}
 	}
+
 	for _, name := range sortedKeys(defs) {
-		walk(defs[name], "#/$defs/"+name)
+		visit(asMap(defs[name]), "#/$defs/"+name)
+	}
+	visiting := map[string]bool{}
+	visited := map[string]bool{}
+	var visitDefinition func(string)
+	visitDefinition = func(name string) {
+		if visited[name] {
+			return
+		}
+		if visiting[name] {
+			panic("unproductive same-instance $ref cycle: " + name)
+		}
+		definition := asMap(defs[name])
+		if definition == nil {
+			panic("definition is not a schema: " + name)
+		}
+		visiting[name] = true
+		for _, referenced := range generatorSameInstanceReferences(definition) {
+			visitDefinition(referenced)
+		}
+		delete(visiting, name)
+		visited[name] = true
+	}
+	for _, name := range sortedKeys(defs) {
+		visitDefinition(name)
+	}
+}
+
+func generatorSameInstanceReferences(schema map[string]any) []string {
+	if reference, ok := schema["$ref"].(string); ok {
+		return []string{strings.TrimPrefix(reference, "#/$defs/")}
+	}
+	choices, ok := schema["oneOf"].([]any)
+	if !ok {
+		return nil
+	}
+	var references []string
+	for _, choice := range choices {
+		if branch := asMap(choice); branch != nil {
+			references = append(references, generatorSameInstanceReferences(branch)...)
+		}
+	}
+	return references
+}
+
+func rejectGeneratorMisplaced(schema map[string]any, keys []string, allowed bool, path string) {
+	if allowed {
+		return
+	}
+	for _, key := range keys {
+		if _, exists := schema[key]; exists {
+			panic(key + " is not valid for schema type at " + path)
+		}
+	}
+}
+
+func generatorConstraintInteger(schema map[string]any, key, path string, nonNegative bool) (int64, bool) {
+	value, exists := schema[key]
+	if !exists {
+		return 0, false
+	}
+	number, ok := value.(json.Number)
+	if !ok {
+		panic(key + " is not a safe integer at " + path)
+	}
+	integer, err := number.Int64()
+	if err != nil || integer < -generatorMaxSafeInteger || integer > generatorMaxSafeInteger || nonNegative && integer < 0 {
+		qualifier := ""
+		if nonNegative {
+			qualifier = "non-negative "
+		}
+		panic(key + " is not a " + qualifier + "safe integer at " + path)
+	}
+	return integer, true
+}
+
+func validateGeneratorProtocolValue(value any, path string) {
+	switch current := value.(type) {
+	case nil, bool, string:
+		return
+	case json.Number:
+		integer, err := current.Int64()
+		if err != nil || integer < -generatorMaxSafeInteger || integer > generatorMaxSafeInteger {
+			panic("invalid protocol number at " + path)
+		}
+	case []any:
+		for index, item := range current {
+			validateGeneratorProtocolValue(item, fmt.Sprintf("%s/%d", path, index))
+		}
+	case map[string]any:
+		for key, item := range current {
+			validateGeneratorProtocolValue(item, path+"/"+key)
+		}
+	default:
+		panic(fmt.Sprintf("invalid protocol value at %s: %T", path, value))
 	}
 }
 

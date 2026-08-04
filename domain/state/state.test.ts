@@ -104,4 +104,11 @@ test("completion evidence covers every mandatory criterion and requirement", () 
     ]),
     ["empty criterion evidence: build", "missing criterion evidence: publish", "missing requirement evidence: build/validation"],
   );
+  assert.deepEqual(
+    completionEvidenceErrors(["build"], required, [
+      { criterionId: "build", requirementIds: ["source", "validation"], evidenceCount: 1 },
+      { criterionId: "build", requirementIds: ["source", "validation"], evidenceCount: 1 },
+    ]),
+    ["duplicate criterion mapping: build"],
+  );
 });

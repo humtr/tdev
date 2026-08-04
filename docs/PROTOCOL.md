@@ -16,18 +16,21 @@ A generated artifact MUST NOT be edited as an independent contract. CI MUST fail
 
 ## 2. Canonical JSON and digests
 
-Digest-bearing JSON values use:
+Digest-bearing JSON values use the tdev protocol v1 canonical JSON profile:
 
 ```text
-RFC 8785 JSON Canonicalization Scheme
+RFC 8785-compatible string, literal, array, object, and UTF-16 member ordering
++ the protocol v1 safe-integer numeric domain
 + a domain separator
 + SHA-256
 ```
 
+The v1 value domain is `null`, booleans, strings, arrays, objects, and integers from `-9007199254740991` through `9007199254740991`. Fractional values, non-finite values, and out-of-range integers are invalid before digest computation. Raw protocol JSON must be valid UTF-8 and must not contain duplicate object member names. Both conditions are rejected before ordinary JSON decoding; byte replacement and last-member-wins parsing cannot become canonical state or digest input. Expanding the numeric domain is a protocol-version change and requires matching cross-language canonical vectors.
+
 Example:
 
 ```text
-SHA256("tdev.case-contract.v1\0" + JCS(contract_without_digest))
+SHA256("tdev.case-contract.v1\0" + CANONICAL_JSON_V1(contract_without_digest))
 ```
 
 Required digest types include:
@@ -77,7 +80,7 @@ Do not use empty strings, `null`, empty objects, or undocumented defaults to rep
 
 ### 3.3 Time
 
-All public timestamps use RFC 3339 UTC with a `Z` suffix.
+All public timestamps use the tdev RFC 3339 UTC profile: a four-digit proleptic Gregorian year, valid calendar month and day, `T`, hour `00`–`23`, minute and second `00`–`59`, optional fractional seconds of one to nine digits, and an uppercase `Z` suffix. Numeric offsets, lowercase `z`, leap seconds, impossible dates, and `24:00:00` are invalid.
 
 ### 3.4 Identifiers
 
@@ -121,6 +124,35 @@ Revisions have distinct meanings:
 | `projectRevision` | Agent | registered Project metadata or identity change |
 
 Immutable contracts use digests, not mutable revisions.
+
+### 3.6 M0 executable schema subset
+
+The canonical source language is JSON Schema 2020-12, but the M0 generator and runtime validators intentionally execute only this schema-node keyword subset:
+
+```text
+$ref
+additionalProperties
+const
+enum
+format
+items
+maxItems
+maxLength
+maximum
+minItems
+minLength
+minimum
+oneOf
+pattern
+properties
+required
+type
+uniqueItems
+```
+
+Any other schema-node keyword fails generator and runtime admission. `$ref` and `oneOf` nodes have no siblings in this executable subset; sibling semantics must not be silently ignored. The schema root permits only `$schema`, `$id`, `title`, and `$defs`. Keyword value types, bounds, ordering, uniqueness, applicability to the declared type, and strict-object requirements are validated before value validation begins. Direct aliases and `oneOf` branches must not form a same-instance reference cycle; recursive schemas are valid only when an array item, object property, or additional-property boundary consumes instance structure before recursion.
+
+Extending the executable subset requires an accepted protocol design, TypeScript and Go parity tests, and generator enforcement before a canonical schema may depend on the new keyword.
 
 ## 4. CaseContract
 
@@ -929,6 +961,8 @@ type EvidenceSet = {
 ```
 
 Evidence references are typed references to Task results, Artifacts, remote observations, installation observations, runtime probes, public MCP probes, or client-schema observations.
+
+Each `criterionId` appears at most once in an EvidenceSet mapping list. Duplicate criterion mappings are invalid rather than merged or resolved by input order. Every mandatory criterion mapping contains at least one evidence reference and covers every required `requirementId` assigned to that criterion.
 
 Case completion verifies existence, ownership, digest, required layer, and unresolved uncertainty.
 

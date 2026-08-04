@@ -145,10 +145,14 @@ type CompletionMapping struct {
 
 func CompletionEvidenceErrors(mandatoryCriterionIDs []string, requiredRequirementIDs map[string][]string, mappings []CompletionMapping) []string {
 	byCriterion := make(map[string]CompletionMapping, len(mappings))
+	var errors []string
 	for _, mapping := range mappings {
+		if _, exists := byCriterion[mapping.CriterionID]; exists {
+			errors = append(errors, "duplicate criterion mapping: "+mapping.CriterionID)
+			continue
+		}
 		byCriterion[mapping.CriterionID] = mapping
 	}
-	var errors []string
 	for _, criterionID := range mandatoryCriterionIDs {
 		mapping, ok := byCriterion[criterionID]
 		if !ok {

@@ -7,7 +7,7 @@ npm run generate
 npm run check:generated
 ```
 
-The generator rejects unresolved local `$ref` values and canonical objects with declared properties that do not set `additionalProperties: false`.
+The generator rejects trailing schema JSON, unresolved or external local `$ref` values, `$ref` and `oneOf` sibling semantics, unsupported schema-node keywords, types, or string formats, invalid patterns, and canonical objects with declared properties that do not set `additionalProperties: false`. The TypeScript and Go validators enforce the same executable subset before validating values.
 
 ## Runtime boundary
 
@@ -23,6 +23,7 @@ Validation rejects a well-shaped stored contract or grant whose digest does not 
 The TypeScript and Go runtime packages implement the same checked-in fixtures for:
 
 - strict schema and semantic validation;
+- calendar-valid UTC timestamps with optional one-to-nine-digit fractions and an uppercase `Z` suffix;
 - CaseContract and CaseTargetGrant validation;
 - canonical JSON bytes;
 - typed SHA-256 digests using `domain + NUL + canonical JSON`;
@@ -32,6 +33,12 @@ The TypeScript and Go runtime packages implement the same checked-in fixtures fo
 M0 protocol JSON permits null, booleans, strings, arrays, objects, and safe integers. Fractional and out-of-range numeric values are rejected instead of being normalized differently by JavaScript and Go. Expanding the numeric domain requires a versioned schema and matching cross-language golden vectors.
 
 `allowedSubpaths` contains explicit safe relative path prefixes. Empty strings, `.`, `..`, empty segments, backslashes, absolute paths, and implicit wildcards are not accepted. Operation working directories use the separate `target_root | subpath` union defined in `docs/OPERATIONS.md`.
+
+M0 relative-path validation is syntactic and does not claim Unicode NFC normalization or live filesystem containment. Those checks belong to the M3 Agent path boundary together with root identity, symlink and mount policy, and mutation-time re-observation.
+
+The Go M0 raw JSON helper and schema generator reject invalid UTF-8 before ordinary decoding. Parsed-value validators still cannot prove that a raw ingress document was free of duplicate object member names. The M1 public-control decoder in each runtime must perform fatal UTF-8 decoding and reject duplicate names before schema validation, canonicalization, or digest comparison.
+
+Generated Go `oneOf` declarations currently use `json.RawMessage` as a wire representation. They are untrusted until canonical schema validation and a domain-specific discriminator succeed; M1 storage must not persist them as trusted state merely because JSON unmarshalling succeeded.
 
 ## Test consolidation
 

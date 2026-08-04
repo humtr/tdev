@@ -162,7 +162,14 @@ export function completionEvidenceErrors(
   mappings: readonly CompletionMapping[],
 ): readonly string[] {
   const errors: string[] = [];
-  const byCriterion = new Map(mappings.map((mapping) => [mapping.criterionId, mapping]));
+  const byCriterion = new Map<string, CompletionMapping>();
+  for (const mapping of mappings) {
+    if (byCriterion.has(mapping.criterionId)) {
+      errors.push(`duplicate criterion mapping: ${mapping.criterionId}`);
+      continue;
+    }
+    byCriterion.set(mapping.criterionId, mapping);
+  }
   for (const criterionId of mandatoryCriterionIds) {
     const mapping = byCriterion.get(criterionId);
     if (mapping === undefined) {

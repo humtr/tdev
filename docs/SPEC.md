@@ -1,6 +1,6 @@
 # Terminal Developer Product Specification
 
-> Status: frozen concept contract for the `concept` branch.
+> Status: normative product contract. Current implementation stage and active design work are routed through [WORKBOARD.md](../WORKBOARD.md) and [MVP.md](MVP.md).
 >
 > Authority: this document owns the product definition, product scope, canonical terminology, non-goals, and product-level acceptance. Architecture, protocol, operations, security, deployment, and verification details are owned by the linked documents and must not be redefined here.
 
@@ -66,8 +66,6 @@ CaseContract
 CaseTargetGrant
 case.*
 ```
-
-The terms `WorkDO`, `WorkContractDO`, and `workId` are not part of the product model.
 
 ### 4.2 Task
 

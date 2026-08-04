@@ -7,11 +7,16 @@ import (
 	"io"
 	"regexp"
 	"sort"
+	"strconv"
 	"strings"
+	"unicode/utf8"
 )
 
 type SchemaDocument struct {
-	Defs map[string]map[string]any `json:"$defs"`
+	Schema string                    `json:"$schema,omitempty"`
+	ID     string                    `json:"$id,omitempty"`
+	Title  string                    `json:"title,omitempty"`
+	Defs   map[string]map[string]any `json:"$defs"`
 }
 
 type Validator struct {
@@ -19,19 +24,389 @@ type Validator struct {
 }
 
 func ParseSchema(raw []byte) (*Validator, error) {
+	if !utf8.Valid(raw) {
+		return nil, fmt.Errorf("schema JSON is not valid UTF-8")
+	}
 	decoder := json.NewDecoder(bytes.NewReader(raw))
 	decoder.UseNumber()
+	decoder.DisallowUnknownFields()
 	var document SchemaDocument
 	if err := decoder.Decode(&document); err != nil {
 		return nil, err
 	}
-	if len(document.Defs) == 0 {
-		return nil, fmt.Errorf("schema has no $defs")
+	var trailing any
+	if err := decoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			return nil, fmt.Errorf("unexpected trailing schema JSON")
+		}
+		return nil, fmt.Errorf("invalid trailing schema JSON: %w", err)
+	}
+	if err := validateSchemaDocument(document); err != nil {
+		return nil, err
 	}
 	return &Validator{root: document}, nil
 }
 
+var supportedSchemaKeywords = map[string]bool{
+	"$ref": true, "additionalProperties": true, "const": true, "enum": true,
+	"format": true, "items": true, "maxItems": true, "maxLength": true, "maximum": true,
+	"minItems": true, "minLength": true, "minimum": true, "oneOf": true,
+	"pattern": true, "properties": true, "required": true, "type": true,
+	"uniqueItems": true,
+}
+
+var supportedSchemaTypes = map[string]bool{
+	"null": true, "boolean": true, "integer": true, "number": true,
+	"string": true, "array": true, "object": true,
+}
+
+func validateSchemaDocument(document SchemaDocument) error {
+	if len(document.Defs) == 0 {
+		return fmt.Errorf("schema has no $defs")
+	}
+	for name, definition := range document.Defs {
+		if definition == nil {
+			return fmt.Errorf("definition is not a schema: %s", name)
+		}
+		if err := validateSchemaNode(document.Defs, definition, "#/$defs/"+name); err != nil {
+			return err
+		}
+	}
+	visiting := map[string]bool{}
+	visited := map[string]bool{}
+	var visitDefinition func(string) error
+	visitDefinition = func(name string) error {
+		if visited[name] {
+			return nil
+		}
+		if visiting[name] {
+			return fmt.Errorf("unproductive same-instance $ref cycle: %s", name)
+		}
+		definition, found := document.Defs[name]
+		if !found || definition == nil {
+			return fmt.Errorf("definition is not a schema: %s", name)
+		}
+		visiting[name] = true
+		for _, referenced := range sameInstanceSchemaReferences(definition) {
+			if err := visitDefinition(referenced); err != nil {
+				return err
+			}
+		}
+		delete(visiting, name)
+		visited[name] = true
+		return nil
+	}
+	for name := range document.Defs {
+		if err := visitDefinition(name); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func sameInstanceSchemaReferences(schema map[string]any) []string {
+	if reference, ok := schema["$ref"].(string); ok {
+		return []string{strings.TrimPrefix(reference, "#/$defs/")}
+	}
+	choices, ok := schema["oneOf"].([]any)
+	if !ok {
+		return nil
+	}
+	var references []string
+	for _, choice := range choices {
+		if branch, ok := choice.(map[string]any); ok {
+			references = append(references, sameInstanceSchemaReferences(branch)...)
+		}
+	}
+	return references
+}
+
+func validateSchemaNode(defs map[string]map[string]any, schema map[string]any, path string) error {
+	for key := range schema {
+		if !supportedSchemaKeywords[key] {
+			return fmt.Errorf("unsupported schema keyword at %s: %s", path, key)
+		}
+	}
+
+	if rawReference, exists := schema["$ref"]; exists {
+		if len(schema) != 1 {
+			return fmt.Errorf("$ref siblings are unsupported at %s", path)
+		}
+		reference, ok := rawReference.(string)
+		const prefix = "#/$defs/"
+		if !ok || !strings.HasPrefix(reference, prefix) {
+			return fmt.Errorf("unsupported external $ref at %s: %v", path, rawReference)
+		}
+		if _, found := defs[strings.TrimPrefix(reference, prefix)]; !found {
+			return fmt.Errorf("unresolved $ref at %s: %s", path, reference)
+		}
+		return nil
+	}
+
+	if rawChoices, exists := schema["oneOf"]; exists {
+		if len(schema) != 1 {
+			return fmt.Errorf("oneOf siblings are unsupported at %s", path)
+		}
+		choices, ok := rawChoices.([]any)
+		if !ok || len(choices) == 0 {
+			return fmt.Errorf("oneOf must contain a branch at %s", path)
+		}
+		for index, choice := range choices {
+			branch, ok := choice.(map[string]any)
+			if !ok {
+				return fmt.Errorf("oneOf branch is not a schema at %s/%d", path, index)
+			}
+			if err := validateSchemaNode(defs, branch, fmt.Sprintf("%s/oneOf/%d", path, index)); err != nil {
+				return err
+			}
+		}
+		return nil
+	}
+
+	typeName := ""
+	if rawType, exists := schema["type"]; exists {
+		value, ok := rawType.(string)
+		if !ok || !supportedSchemaTypes[value] {
+			return fmt.Errorf("unsupported schema type at %s: %v", path, rawType)
+		}
+		typeName = value
+	}
+	_, hasConst := schema["const"]
+	_, hasEnum := schema["enum"]
+	if typeName == "" && !hasConst && !hasEnum {
+		return fmt.Errorf("schema has no executable keyword at %s", path)
+	}
+
+	if value, exists := schema["const"]; exists {
+		if _, err := Canonicalize(value); err != nil {
+			return fmt.Errorf("invalid protocol value at %s/const: %w", path, err)
+		}
+	}
+	if rawEnum, exists := schema["enum"]; exists {
+		values, ok := rawEnum.([]any)
+		if !ok || len(values) == 0 {
+			return fmt.Errorf("enum must contain a value at %s", path)
+		}
+		seen := map[string]bool{}
+		for index, value := range values {
+			canonical, err := Canonicalize(value)
+			if err != nil {
+				return fmt.Errorf("invalid protocol value at %s/enum/%d: %w", path, index, err)
+			}
+			key := string(canonical)
+			if seen[key] {
+				return fmt.Errorf("enum contains a duplicate value at %s", path)
+			}
+			seen[key] = true
+		}
+	}
+
+	if err := rejectMisplacedSchemaKeywords(schema, []string{"minLength", "maxLength", "pattern", "format"}, typeName == "string", path); err != nil {
+		return err
+	}
+	if err := rejectMisplacedSchemaKeywords(schema, []string{"minimum", "maximum"}, typeName == "integer" || typeName == "number", path); err != nil {
+		return err
+	}
+	if err := rejectMisplacedSchemaKeywords(schema, []string{"items", "minItems", "maxItems", "uniqueItems"}, typeName == "array", path); err != nil {
+		return err
+	}
+	if err := rejectMisplacedSchemaKeywords(schema, []string{"properties", "required", "additionalProperties"}, typeName == "object", path); err != nil {
+		return err
+	}
+
+	if typeName == "string" {
+		minimum, hasMinimum, err := schemaConstraintInteger(schema, "minLength", path, true)
+		if err != nil {
+			return err
+		}
+		maximum, hasMaximum, err := schemaConstraintInteger(schema, "maxLength", path, true)
+		if err != nil {
+			return err
+		}
+		if hasMinimum && hasMaximum && minimum > maximum {
+			return fmt.Errorf("minLength exceeds maxLength at %s", path)
+		}
+		if rawPattern, exists := schema["pattern"]; exists {
+			pattern, ok := rawPattern.(string)
+			if !ok {
+				return fmt.Errorf("schema pattern is not a string at %s", path)
+			}
+			if _, err := regexp.Compile(pattern); err != nil {
+				return fmt.Errorf("invalid schema pattern at %s: %w", path, err)
+			}
+		}
+		if rawFormat, exists := schema["format"]; exists {
+			format, ok := rawFormat.(string)
+			if !ok || format != "date-time" {
+				return fmt.Errorf("unsupported string format at %s: %v", path, rawFormat)
+			}
+		}
+	}
+
+	if typeName == "integer" || typeName == "number" {
+		minimum, hasMinimum, err := schemaConstraintInteger(schema, "minimum", path, false)
+		if err != nil {
+			return err
+		}
+		maximum, hasMaximum, err := schemaConstraintInteger(schema, "maximum", path, false)
+		if err != nil {
+			return err
+		}
+		if hasMinimum && hasMaximum && minimum > maximum {
+			return fmt.Errorf("minimum exceeds maximum at %s", path)
+		}
+	}
+
+	if typeName == "array" {
+		minimum, hasMinimum, err := schemaConstraintInteger(schema, "minItems", path, true)
+		if err != nil {
+			return err
+		}
+		maximum, hasMaximum, err := schemaConstraintInteger(schema, "maxItems", path, true)
+		if err != nil {
+			return err
+		}
+		if hasMinimum && hasMaximum && minimum > maximum {
+			return fmt.Errorf("minItems exceeds maxItems at %s", path)
+		}
+		if rawUnique, exists := schema["uniqueItems"]; exists {
+			if _, ok := rawUnique.(bool); !ok {
+				return fmt.Errorf("uniqueItems is not a boolean at %s", path)
+			}
+		}
+		if rawItems, exists := schema["items"]; exists {
+			items, ok := rawItems.(map[string]any)
+			if !ok {
+				return fmt.Errorf("items is not a schema at %s", path)
+			}
+			if err := validateSchemaNode(defs, items, path+"/items"); err != nil {
+				return err
+			}
+		}
+	}
+
+	if typeName == "object" {
+		var properties map[string]any
+		if rawProperties, exists := schema["properties"]; exists {
+			var ok bool
+			properties, ok = rawProperties.(map[string]any)
+			if !ok {
+				return fmt.Errorf("schema properties are not an object at %s", path)
+			}
+			for name, rawProperty := range properties {
+				property, ok := rawProperty.(map[string]any)
+				if !ok {
+					return fmt.Errorf("property is not a schema at %s/properties/%s", path, name)
+				}
+				if err := validateSchemaNode(defs, property, path+"/properties/"+name); err != nil {
+					return err
+				}
+			}
+		}
+		if rawRequired, exists := schema["required"]; exists {
+			values, ok := rawRequired.([]any)
+			if !ok {
+				return fmt.Errorf("required is not an array at %s", path)
+			}
+			seen := map[string]bool{}
+			for _, value := range values {
+				property, ok := value.(string)
+				if !ok {
+					return fmt.Errorf("required contains a non-string at %s", path)
+				}
+				if seen[property] {
+					return fmt.Errorf("required contains a duplicate property at %s: %s", path, property)
+				}
+				if properties == nil {
+					return fmt.Errorf("required property is not declared at %s: %s", path, property)
+				}
+				if _, found := properties[property]; !found {
+					return fmt.Errorf("required property is not declared at %s: %s", path, property)
+				}
+				seen[property] = true
+			}
+		}
+		if len(properties) > 0 {
+			strict, ok := schema["additionalProperties"].(bool)
+			if !ok || strict {
+				return fmt.Errorf("canonical object is not strict at %s", path)
+			}
+		}
+		if rawAdditional, exists := schema["additionalProperties"]; exists {
+			switch additional := rawAdditional.(type) {
+			case bool:
+			case map[string]any:
+				if err := validateSchemaNode(defs, additional, path+"/additionalProperties"); err != nil {
+					return err
+				}
+			default:
+				return fmt.Errorf("additionalProperties is not boolean or schema at %s", path)
+			}
+		}
+	}
+	return nil
+}
+
+func rejectMisplacedSchemaKeywords(schema map[string]any, keys []string, allowed bool, path string) error {
+	if allowed {
+		return nil
+	}
+	for _, key := range keys {
+		if _, exists := schema[key]; exists {
+			return fmt.Errorf("%s is not valid for schema type at %s", key, path)
+		}
+	}
+	return nil
+}
+
+func schemaConstraintInteger(schema map[string]any, key, path string, nonNegative bool) (int64, bool, error) {
+	value, exists := schema[key]
+	if !exists {
+		return 0, false, nil
+	}
+	integer, ok := schemaNumber(value)
+	if !ok || nonNegative && integer < 0 {
+		qualifier := ""
+		if nonNegative {
+			qualifier = "non-negative "
+		}
+		return 0, false, fmt.Errorf("%s is not a %ssafe integer at %s", key, qualifier, path)
+	}
+	return integer, true, nil
+}
+
+var tdevDateTimePattern = regexp.MustCompile(`^([0-9]{4})-([0-9]{2})-([0-9]{2})T([0-9]{2}):([0-9]{2}):([0-9]{2})(\.[0-9]{1,9})?Z$`)
+
+func isTdevDateTime(value string) bool {
+	matches := tdevDateTimePattern.FindStringSubmatch(value)
+	if matches == nil {
+		return false
+	}
+	parts := make([]int, 6)
+	for index := range parts {
+		parsed, err := strconv.Atoi(matches[index+1])
+		if err != nil {
+			return false
+		}
+		parts[index] = parsed
+	}
+	year, month, day := parts[0], parts[1], parts[2]
+	hour, minute, second := parts[3], parts[4], parts[5]
+	if month < 1 || month > 12 || hour > 23 || minute > 59 || second > 59 {
+		return false
+	}
+	leap := year%4 == 0 && (year%100 != 0 || year%400 == 0)
+	days := [...]int{31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31}
+	if leap {
+		days[1] = 29
+	}
+	return day >= 1 && day <= days[month-1]
+}
+
 func ParseJSON(raw []byte) (any, error) {
+	if !utf8.Valid(raw) {
+		return nil, fmt.Errorf("protocol JSON is not valid UTF-8")
+	}
 	if err := validateJSONUnicodeEscapes(raw); err != nil {
 		return nil, err
 	}
@@ -204,10 +579,17 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 		}
 		return nil
 	case "number":
-		if _, ok := safeInteger(value); ok {
-			return nil
+		integer, ok := safeInteger(value)
+		if !ok {
+			return []string{path + ": expected finite protocol number"}
 		}
-		return []string{path + ": expected finite protocol number"}
+		if minimum, ok := schemaNumber(schema["minimum"]); ok && integer < minimum {
+			return []string{path + ": below minimum"}
+		}
+		if maximum, ok := schemaNumber(schema["maximum"]); ok && integer > maximum {
+			return []string{path + ": above maximum"}
+		}
+		return nil
 	case "string":
 		text, ok := value.(string)
 		if !ok {
@@ -229,6 +611,9 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 			if !compiled.MatchString(text) {
 				return []string{path + ": pattern mismatch"}
 			}
+		}
+		if format, _ := schema["format"].(string); format == "date-time" && !isTdevDateTime(text) {
+			return []string{path + ": invalid date-time"}
 		}
 		return nil
 	case "array":

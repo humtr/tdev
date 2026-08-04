@@ -48,9 +48,11 @@ npm test
 
 `protocol/schemas/tdev.v1.schema.json` is the canonical contract. Generated Go and TypeScript files are derivatives and must not be edited directly. See [protocol/README.md](protocol/README.md) for the implementation boundary.
 
-## Normative documents
+## Repository workflow and normative documents
 
-Read these in order:
+For any repository change, first read [AGENTS.md](AGENTS.md), [RULE.md](RULE.md), [SDD.md](SDD.md), [WORKBOARD.md](WORKBOARD.md), and the active record in the [design registry](docs/design/README.md). These files route work and govern change method; they do not replace product owners.
+
+Then read the affected normative documents:
 
 1. [Product specification](docs/SPEC.md)
 2. [Architecture and ownership](docs/ARCHITECTURE.md)
@@ -75,4 +77,4 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 ## Next implementation gate
 
-The first implementation gate is the schema and pure-domain foundation, followed by a complete `file.read` vertical slice through the final Worker, CaseDO, AgentDO, and Termux Agent path. See [MVP.md](docs/MVP.md) for the ordered acceptance plan.
+M0 is the source-level schema and pure-domain foundation. The next product gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public control/query, Events, evidence, migration, and rollback behavior. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).

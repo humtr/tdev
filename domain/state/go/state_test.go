@@ -107,6 +107,13 @@ func TestStateMatricesAndInvariants(t *testing.T) {
 		if len(errors) != 3 {
 			t.Fatalf("errors=%v", errors)
 		}
+		duplicate := []CompletionMapping{
+			{CriterionID: "build", RequirementIDs: []string{"source", "validation"}, EvidenceCount: 1},
+			{CriterionID: "build", RequirementIDs: []string{"source", "validation"}, EvidenceCount: 1},
+		}
+		if errors := CompletionEvidenceErrors([]string{"build"}, required, duplicate); len(errors) != 1 || errors[0] != "duplicate criterion mapping: build" {
+			t.Fatalf("duplicate errors=%v", errors)
+		}
 	})
 }
 
