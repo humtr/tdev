@@ -1,6 +1,6 @@
 # Terminal Developer
 
-> Status: the M0 schema and pure-domain foundation is implemented on the current development branch. No Cloudflare deployment, Agent runtime, product installation, or release is claimed yet.
+> Status: the M0 schema and pure-domain foundation and the repository governance system are source-verified. The first-release product contract is defined in `docs/SPEC.md`. No Cloudflare deployment, Agent runtime, product installation, or release is claimed yet.
 
 **tdev** is a durable development control plane that lets an MCP client coordinate verified development work through Cloudflare while a user-owned terminal Agent performs bounded filesystem, Git, validation, and process effects.
 
@@ -54,7 +54,7 @@ For any repository change, first read [AGENTS.md](AGENTS.md), [RULE.md](RULE.md)
 
 Then read the affected normative documents:
 
-1. [Product specification](docs/SPEC.md)
+1. [Product specification and requirement traceability](docs/SPEC.md)
 2. [Architecture and ownership](docs/ARCHITECTURE.md)
 3. [Protocol and state model](docs/PROTOCOL.md)
 4. [Operation contracts](docs/OPERATIONS.md)
@@ -77,4 +77,4 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 ## Next implementation gate
 
-M0 is the source-level schema and pure-domain foundation. The next product gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public control/query, Events, evidence, migration, and rollback behavior. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).
+The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md). M0 is the source-level schema and pure-domain foundation. The next implementation gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public control/query, Events, evidence, migration, rollback, raw ingress, and validated union discrimination. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state, active authorization, and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).

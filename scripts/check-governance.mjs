@@ -45,6 +45,7 @@ const checkedFiles = [
   "RULE.md",
   "SDD.md",
   "WORKBOARD.md",
+  "docs/SPEC.md",
   "docs/REPOSITORY_BOOTSTRAP.md",
   "docs/WORKBOARD_GUIDE.md",
   "docs/WORKBOARD_TEMPLATE.md",
@@ -119,6 +120,70 @@ for (const match of workboard.matchAll(activePattern)) {
   if (!new Set(["accepted", "implementing", "blocked"]).has(statusValue)) {
     errors.push(`WORKBOARD.md active design ${id} has non-active status ${statusValue}`);
   }
+}
+
+const spec = await readFile(path.join(root, "docs/SPEC.md"), "utf8");
+const requirementCategories = new Set(["FUN", "SEC", "NFR", "LCM", "ACC"]);
+const requirementOwners = new Set([
+  "ARCHITECTURE.md",
+  "PROTOCOL.md",
+  "OPERATIONS.md",
+  "SECURITY.md",
+  "DEPLOYMENT.md",
+  "MVP.md",
+]);
+const requirementGates = new Set([
+  "M0",
+  "M1",
+  "M2",
+  "M3",
+  "M4",
+  "M5",
+  "M6",
+  "M7",
+  "M8",
+  "M9",
+  "M10",
+  "Release",
+]);
+const requirementRows = new Map();
+const categoryCounts = new Map([...requirementCategories].map((category) => [category, 0]));
+const ownerCounts = new Map([...requirementOwners].map((owner) => [owner, 0]));
+const requirementCandidatePattern = /^\|\s*(TDEV-[^|\s]+)\s*\|/gm;
+const requirementRowPattern = /^\|\s*(TDEV-([A-Z]+)-(\d{3}))\s*\|\s*([^|]+?)\s*\|\s*\[([^\]]+)\]\(([^)]+)\)\s*\|\s*([^|]+?)\s*\|\s*([^|]+?)\s*\|$/gm;
+
+for (const match of spec.matchAll(requirementRowPattern)) {
+  const [, id, category, number, statement, ownerLabel, ownerTarget, gateValue, evidence] = match;
+  if (requirementRows.has(id)) errors.push(`docs/SPEC.md duplicates requirement ID ${id}`);
+  requirementRows.set(id, true);
+  if (!requirementCategories.has(category)) {
+    errors.push(`docs/SPEC.md requirement ${id} has unknown category ${category}`);
+  } else {
+    categoryCounts.set(category, categoryCounts.get(category) + 1);
+  }
+  if (number === "000") errors.push(`docs/SPEC.md requirement ${id} uses reserved number 000`);
+  if (!/\b(MUST|SHOULD|MAY)\b/.test(statement)) {
+    errors.push(`docs/SPEC.md requirement ${id} has no normative keyword`);
+  }
+  if (ownerLabel !== ownerTarget || !requirementOwners.has(ownerTarget)) {
+    errors.push(`docs/SPEC.md requirement ${id} has invalid detailed owner ${ownerLabel} -> ${ownerTarget}`);
+  } else {
+    ownerCounts.set(ownerTarget, ownerCounts.get(ownerTarget) + 1);
+  }
+  const gate = gateValue.trim();
+  if (!requirementGates.has(gate)) errors.push(`docs/SPEC.md requirement ${id} has unsupported gate ${gate}`);
+  if (evidence.trim() === "") errors.push(`docs/SPEC.md requirement ${id} has empty evidence class`);
+}
+
+for (const match of spec.matchAll(requirementCandidatePattern)) {
+  const id = match[1];
+  if (!requirementRows.has(id)) errors.push(`docs/SPEC.md has malformed or untraced requirement row ${id}`);
+}
+for (const [category, count] of categoryCounts) {
+  if (count === 0) errors.push(`docs/SPEC.md has no ${category} requirements`);
+}
+for (const [owner, count] of ownerCounts) {
+  if (count === 0) errors.push(`docs/SPEC.md traceability does not reference detailed owner ${owner}`);
 }
 
 if (errors.length > 0) {

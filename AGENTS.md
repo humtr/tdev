@@ -23,7 +23,7 @@ Each contract has one owner.
 
 | Contract | Owner |
 | --- | --- |
-| Product definition, scope, terminology, product non-goals, product acceptance | `docs/SPEC.md` |
+| Product definition, first-release completeness boundary, terminology, supported environment, product-level functional/security/lifecycle/quality requirements, product non-goals, acceptance, and requirement traceability | `docs/SPEC.md` |
 | Components, durable ownership, dependency direction, data placement, concurrency, repository shape | `docs/ARCHITECTURE.md` |
 | External schemas, identifiers, digests, Case/Task/Attempt states, MCP control surface, protocol compatibility | `docs/PROTOCOL.md` and canonical files under `protocol/schemas/` |
 | Agent Operation catalog, effects, profiles, inputs, results, retry and reconciliation | `docs/OPERATIONS.md` |

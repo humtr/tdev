@@ -3,14 +3,15 @@
 ## Current
 
 - Product/source stage: M0 schema, pure-domain foundation, and repository governance are source-verified; no installation, Cloudflare, Agent, public MCP, client, or release layer is claimed.
-- Current work: no active implementation; the next change must begin with an accepted M1 design.
-- Next product gate: an accepted M1 CaseDO storage and public-control design; M1 implementation is not authorized by this workboard.
+- Current work: complete the first-release product specification and requirement traceability under Design 0002; no runtime milestone is being implemented.
+- Next product gate: verify Design 0002, then accept a separate M1 CaseDO storage and public-control design; M1 implementation is not authorized by this workboard.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 
 ## Active design
 
-- None. [Design 0001 — Repository Governance and M0 Hardening](docs/design/0001-repository-governance-and-m0-hardening.md) is `verified` and remains in the design registry.
+- [Design 0002 — Complete First-Release Product Specification](docs/design/0002-complete-first-release-product-specification.md): `implementing`
+  - Next gate: complete the requirement catalog and traceability, run deterministic verification, review the full diff, and publish the exact commit.
 
 ## Blocking unknowns
 
