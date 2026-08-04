@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: `implementing`
+- Status: `verified`
 - Date: 2026-08-04
 - Acceptance authority: direct maintainer request to complete the tdev specification before further implementation
 - Base source: `a6a184d3d205f3c6ebb0e6fad095c8b54da4d3c8`
@@ -171,7 +171,9 @@ Observed on 2026-08-04 in the isolated `tmcp/tdev-full-spec` worktree at base `a
 - The repository still contains exactly four M0 test files; generated drift, cross-language fixtures, state transition matrices, and forbidden domain imports remain clean.
 - The effective change is limited to seven specification, routing, governance-validation, design-registry, and workboard paths.
 
-Remote task-branch publication, exact commit observation, and `concept` fast-forward remain pending. This record therefore remains `implementing`.
+Implementation commit `aa2638d403cfde505979a94e3a8d5c60b9454eb4` was observed on both the registered GitHub task branch `tmcp/tdev-full-spec` and the long-lived `concept` branch. It is a single child of base `a6a184d3d205f3c6ebb0e6fad095c8b54da4d3c8`, its reviewed tree is `553242e9a2b5e774464771bb86dda168ca9a8e6e`, and both author and committer are `humtr <272709831+humtr@users.noreply.github.com>`. The previous `concept` head `5e5555ae61a354dd9129d852692d9aac21de9956` was independently observed as an ancestor and the remote update completed by exact-lease fast-forward with no merge commit.
+
+GitHub returned the completed `docs/SPEC.md` from `concept`, confirming the normative first-release contract at the integrated ref. Acceptance criterion 10 is therefore satisfied. This record is `verified` for contract/schema, source/checkout, unit/domain, generated-source, static-analysis, and remote-source integration only. Installation, Cloudflare, Agent, public MCP, current client behavior, and runtime rollback remain outside this design's verified scope.
 
 ## Stop gates
 
@@ -186,3 +188,4 @@ Remote task-branch publication, exact commit observation, and `concept` fast-for
 - 2026-08-04: the existing owner map is preserved; `SPEC.md` gains product-level requirement and traceability ownership rather than copying subordinate contracts.
 - 2026-08-04: stable requirement IDs and executable traceability validation are selected as the completion mechanism.
 - 2026-08-04: first-release remote behavior remains provider-neutral ordinary Git transport; no provider-specific API or qualified-provider claim is added.
+- 2026-08-04: reviewed commit `aa2638d403cfde505979a94e3a8d5c60b9454eb4` was published to the task branch and fast-forwarded into `concept`; Design 0002 is verified for the recorded source layers.
