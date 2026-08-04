@@ -113,11 +113,13 @@ Acceptance:
 Ordered implementation slices:
 
 1. **M1 contract and source-correction gate:** freeze the release-profile/configuration boundary, ingress/authentication order, typed ingress reasons, exact-root proof binding, cross-language exact-number limits, table DDL matrix, transition/revision/Event matrix, all twelve semantic capability contracts, cursor integrity, migration metadata, and retention/quota policy. Do not add Worker or SQLite code before this gate is green.
-2. **CaseDO storage core:** add schema-version-1 DDL and migration, repositories, immutable guards, and the complete transition-to-revision/Event matrix in isolated databases.
-3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection.
-4. **Control and query core:** add all Case/Task controls including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, hibernation, and restart tests.
+2. **CaseDO storage substrate:** add schema-version-1 DDL and exact migration, schema identity and reopen verification, canonical stored-row codecs, repositories, immutable/terminal guards, and bounded compare-and-update/Event/receipt transaction primitives in isolated databases.
+3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection; extend the substrate with the admission rows and Events from the frozen transition matrix.
+4. **Control and query core:** add all remaining Case/Task/Attempt transitions including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, hibernation, and restart tests.
 5. **Worker semantic boundary:** route the release-pinned twelve-capability `tools-v1` surface through the lossless ingress and final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
 6. **M1 live verification:** exercise actual Durable Object SQLite, migration failure, hibernation, restart, and authenticated public semantics. Only observed layers can be marked complete.
+
+The complete transition-to-revision/Event matrix is an M1 acceptance condition across slices 2 through 4. A green storage-substrate slice alone does not claim every semantic capability transition, replay behavior, Cloudflare persistence, or public behavior.
 
 ### M2 — AgentDO connection, enrollment, and queue
 

@@ -484,14 +484,24 @@ The same gate fixes exact `ValidationProofV1.rootDefinition` binding, cross-lang
 
 The approved M1 policy defaults are page 20/max 100, cursor TTL 3,600 seconds, 10,000 Tasks per Case, 100 Attempts per Task, 100,000 Events per Case, and 30-day R2 orphan cleanup eligibility. M1 performs no Event compaction, retains mutation receipts with their Case or recovery state, and never cleans referenced Event or Artifact metadata while referenced. Unknown Cloudflare byte limits remain unverified deployment constraints rather than invented guarantees.
 
+## 2026-08-04 implementation amendment: CaseDO storage substrate
+
+The first CaseDO SQLite source boundary is `edge/case-do/`. It introduces the minimal SQL adapter contract, exact schema-version-1 DDL, immutable and terminal triggers, schema and migration digests, atomic empty-to-v1 migration, reopen verification entrypoint, canonical stored-row codecs, and a narrow Case revision/Event/receipt transaction primitive. Production storage files do not import the Node SQLite driver; the Node adapter is deterministic test support only.
+
+The frozen identities are schema digest `847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e`, migration ID `case_do.empty_to_v1.v1`, and migration checksum `10b497ed040ef047a0fd7345cd886bb86462420c5476833fbc7cfdba39525788`. `schema_meta` is inserted last. Every pre-commit fault rolls back all objects; a typed post-commit response-loss result records that commit may already exist, and a newly opened repository independently verifies exact schema SQL and identity before use.
+
+Implementation exposed one omission in the earlier table summary: canonical `MutationReceiptV1` can carry optional `taskId` and `subject`, so `mutation_receipts` also owns nullable `task_id` and a paired nullable `subject_kind`/`subject_id`, with a Task foreign key and reconstruction checks. These columns preserve the already accepted semantic type; they do not add a second receipt owner or a new public field.
+
+This amendment defines a storage substrate, not completion of every semantic transition. The complete transition-to-revision/Event matrix remains an M1 acceptance condition across the storage, atomic-admission/replay, and control/query slices. Local `node:sqlite` tests prove only source and isolated SQLite behavior; Durable Object APIs, hibernation, instance restart, deployment, public MCP, current-client behavior, and runtime rollback remain unverified.
+
 ## Vertical slices
 
 1. **Contract freeze:** accept this record, update the affected owners, register it, and point the Workboard at the accepted design without changing runtime code.
 2. **M1 schema and proof foundation:** add the versioned M1 canonical schemas, ingress byte fixtures, validation-proof model, generated branch identities and domain converters, mutation receipt, control inputs, and exact cross-language vectors. No Worker or database yet.
 3. **Pre-storage contract/source correction:** centralize the release-pinned typed policy profile; fix exact-root proof binding and cross-language number bounds; expose typed ingress/schema/proof reasons; reconcile ingress/auth ordering; and freeze the exact DDL, transition/Event, twelve-capability, cursor, migration, retention, and quota contracts. No Worker or database yet.
-4. **CaseDO storage core:** add schema-version-1 SQLite DDL and migration, repository adapters, transition-to-revision/Event matrix, immutable guards, and isolated storage tests.
-5. **Atomic admission and replay:** implement deterministic new-Case routing, Case-plus-first-Task transaction, receipt replay, request conflict, and commit-then-response-loss fault tests.
-6. **Control and query core:** implement Case/Task controls including `cancel_task`, snapshot reads, cursors, rendering, evidence-gated completion, hibernation, and instance-restart tests.
+4. **CaseDO storage substrate:** add schema-version-1 SQLite DDL and exact migration, schema identity/reopen verification, canonical codecs, repository adapters, immutable guards, and bounded revision/Event/receipt primitives with isolated storage tests.
+5. **Atomic admission and replay:** implement deterministic new-Case routing, Case-plus-first-Task transaction, receipt replay, request conflict, and commit-then-response-loss fault tests; add the corresponding rows and Events from the frozen transition matrix.
+6. **Control and query core:** implement the remaining Case/Task/Attempt transitions including `cancel_task`, snapshot reads, cursors, rendering, evidence-gated completion, hibernation, and instance-restart tests.
 7. **Worker semantic boundary:** route all twelve `tools-v1` semantics through the lossless ingress and canonical owners in one consolidated Worker/CaseDO integration suite. Agent dispatch remains stubbed at the M1 boundary and cannot claim M2.
 8. **M1 verification:** run isolated Cloudflare Durable Object SQLite, hibernation, migration-failure, and public semantic probes required by M1; record only observed layers and mark this design `verified` only when every acceptance criterion below is evidenced.
 
@@ -528,6 +538,7 @@ Each slice uses final owner and dependency boundaries. No compatibility schedule
 | M0 remains unchanged in this design-only change | `npm run check:generated`, `npm test`, `go test ./...`, `go vet ./...` | generators and test processes | generated/unit/source | any changed generated output or skipped check blocks publication |
 | ingress byte semantics | shared raw-byte fixture table in TypeScript and Go | runtime validators | protocol/unit | parsed-object-only tests cannot prove duplicate rejection |
 | union proof | schema branch fixtures and compile/API checks preventing unproved storage input | generated converter and domain APIs | protocol/domain | a successful unmarshal alone is invalid evidence |
+| isolated CaseDO storage substrate | `node --test edge/case-do/*.test.ts` plus exact DDL/digest review | canonical BLOB re-read, `sqlite_schema`, schema metadata, current rows, Events, receipts | storage/source | Node SQLite success does not prove Durable Object APIs, hibernation, restart, deployment, or rollback |
 | deterministic new-Case routing | fixed deployment/request vectors and Worker restart test | Worker route function and CaseDO IDs | Worker integration | mock random IDs or D1 lookup do not satisfy |
 | atomic admission and replay | transaction fault injection before/after commit and Task count | CaseDO SQLite plus semantic response | storage/integration | logs or response status alone do not prove state |
 | transition atomicity | controlled race matrices and current-row/Event reads | CaseDO SQLite | storage/integration | sleep-based outcomes or internal field-only assertions are contaminated |

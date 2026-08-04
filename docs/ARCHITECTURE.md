@@ -240,7 +240,7 @@ Domain packages MUST NOT import Cloudflare, Termux, Git CLI, filesystem, network
 ### 6.1 Normal flow
 
 ```text
-1. Worker bounds the body, rejects invalid UTF-8 or duplicate-member JSON, validates the selected canonical schema, converts validated unions, authenticates the request, derives a deterministic new `caseId` when required, and routes to CaseDO.
+1. Worker bounds the body, rejects invalid UTF-8 or duplicate-member JSON, parses the minimal MCP/JSON-RPC envelope and exact revision, authenticates the request, then validates the capability-specific canonical schema, converts validated unions, derives a deterministic new `caseId` when required, and routes to CaseDO.
 2. CaseDO validates Case state, contract, target grants, Operation schema, input digest, policy requirements, and an existing mutation receipt.
 3. CaseDO transactionally commits Task, Attempt(dispatch_pending), the original bounded response receipt, and Events.
 4. CaseDO sends an idempotent dispatch using attemptId to AgentDO.
@@ -360,6 +360,8 @@ events
 The exact schema, canonical JSON and digest columns, revisions, derived selectors, indexes, immutable guards, migration identity, and rollback barrier are owned by [PROTOCOL.md](PROTOCOL.md). Required database constraints include one current Case row, unique Task sequence and Attempt ordinal, at most one nonterminal Attempt per Task, unique request ID per Case, contiguous committed Event sequence, and immutable terminal and audit records.
 
 `schema_meta` owns only the local CaseDO database version and digest. Deployment-wide migration ordering and stage receipts remain owned by [DEPLOYMENT.md](DEPLOYMENT.md). The initial migration is exact empty state to version 1; after data is stored, a predecessor without declared exact compatibility is not a rollback target.
+
+The source boundary is `edge/case-do/`. Production storage code depends on a minimal synchronous SQL adapter and does not import the Node SQLite test driver. The deterministic local adapter in `node-sqlite.test-support.ts` verifies DDL, migration rollback, canonical-row integrity, revision guards, Event sequencing, and transaction atomicity in isolated SQLite databases. Those tests are source/storage evidence only; they do not establish Cloudflare Durable Object API compatibility, hibernation, instance restart, deployment, or live rollback behavior.
 
 ### 9.2 AgentDO storage
 

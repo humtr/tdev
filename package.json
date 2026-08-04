@@ -9,7 +9,7 @@
   "scripts": {
     "generate": "go run ./tools/generate",
     "check:generated": "go run ./tools/generate -check",
-    "test:ts": "node --test protocol/contract.test.ts domain/state/state.test.ts",
+    "test:ts": "node --test protocol/contract.test.ts domain/state/state.test.ts edge/case-do/*.test.ts",
     "test:go": "go test ./...",
     "check:forbidden": "node scripts/check-forbidden.mjs",
     "check:governance": "node scripts/check-governance.mjs",

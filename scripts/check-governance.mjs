@@ -27,6 +27,14 @@ const requiredFiles = [
   "protocol/runtime/typescript/profile.generated.ts",
   "protocol/runtime/go/profile.go",
   "protocol/runtime/go/profile_generated.go",
+  "edge/case-do/README.md",
+  "edge/case-do/sql.ts",
+  "edge/case-do/schema.ts",
+  "edge/case-do/records.ts",
+  "edge/case-do/repository.ts",
+  "edge/case-do/node-sqlite.test-support.ts",
+  "edge/case-do/schema.test.ts",
+  "edge/case-do/repository.test.ts",
 ];
 const errors = [];
 
@@ -161,6 +169,11 @@ if (design0004 && new Set(["accepted", "implementing", "blocked"]).has(design000
     [protocol, "tdevc1.", "docs/PROTOCOL.md cursor wire format"],
     [protocol, "QUOTA_EXCEEDED", "docs/PROTOCOL.md quota error"],
     [architecture, "release-profile", "docs/ARCHITECTURE.md release-profile boundary"],
+    [designContent, "CaseDO storage substrate", "Design 0004 storage substrate"],
+    [protocol, "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e", "docs/PROTOCOL.md schema digest"],
+    [protocol, "subject_kind", "docs/PROTOCOL.md receipt subject selector"],
+    [architecture, "edge/case-do/", "docs/ARCHITECTURE.md storage source boundary"],
+    [mvp, "CaseDO storage substrate", "docs/MVP.md storage substrate slice"],
   ];
   for (const [content, marker, label] of markerChecks) {
     if (!content.includes(marker)) errors.push(`${label} marker is missing`);
@@ -260,6 +273,41 @@ if (!generatedTypeScript.includes('new IngressError("UNION_DISCRIMINATOR_MISMATC
 }
 if (!generatedGo.includes('&protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH"')) {
   errors.push("generated Go converters do not use typed discriminator errors");
+}
+
+const storageProductionPaths = [
+  "edge/case-do/sql.ts",
+  "edge/case-do/schema.ts",
+  "edge/case-do/records.ts",
+  "edge/case-do/repository.ts",
+];
+const storageProduction = new Map();
+for (const relative of storageProductionPaths) {
+  const content = await readFile(path.join(root, relative), "utf8");
+  storageProduction.set(relative, content);
+  if (content.includes("node:sqlite")) errors.push(`${relative}: production storage code must not import node:sqlite`);
+}
+const storageTestSupport = await readFile(path.join(root, "edge/case-do/node-sqlite.test-support.ts"), "utf8");
+if (!storageTestSupport.includes('from "node:sqlite"')) {
+  errors.push("CaseDO Node SQLite adapter must remain explicit test support");
+}
+const packageJson = JSON.parse(await readFile(path.join(root, "package.json"), "utf8"));
+if (!packageJson.scripts?.["test:ts"]?.includes("edge/case-do/*.test.ts")) {
+  errors.push("test:ts does not include the CaseDO storage test boundary");
+}
+const storageSchema = storageProduction.get("edge/case-do/schema.ts") ?? "";
+if (!storageSchema.includes('CASE_DO_SCHEMA_DIGEST = "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e"')) {
+  errors.push("CaseDO schema digest identity differs from the accepted M1 contract");
+}
+if (!storageSchema.includes('CASE_DO_MIGRATION_CHECKSUM = "10b497ed040ef047a0fd7345cd886bb86462420c5476833fbc7cfdba39525788"')) {
+  errors.push("CaseDO migration checksum differs from the accepted M1 contract");
+}
+const storageRepository = storageProduction.get("edge/case-do/repository.ts") ?? "";
+if (!storageRepository.includes("verifyCaseDoSchema(db)")) {
+  errors.push("CaseDO repository does not fail closed on exact schema identity before use");
+}
+if (!storageSchema.includes("subject_kind TEXT") || !storageSchema.includes("subject_id TEXT")) {
+  errors.push("CaseDO mutation receipt storage cannot reconstruct the canonical subject selector");
 }
 
 const mcp = await readFile(path.join(root, "docs/MCP.md"), "utf8");

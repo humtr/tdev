@@ -554,6 +554,14 @@ A redaction failure that may have persisted a secret is a security incident and 
 - Truncated output is marked incomplete.
 - Diagnostic bundles require explicit user action and a manifest of included paths.
 
+### 17.1 Durable storage integrity
+
+Before a CaseDO repository serves a read or mutation, it verifies foreign-key enforcement, exact table/index/trigger names and SQL, `STRICT` table flags, integrity and foreign-key checks, one immutable `schema_meta` row, schema and migration digests, release-profile identity, and any required release identity. Mismatch fails closed as `STORAGE_VERSION_MISMATCH` or `STORAGE_CORRUPT`; metadata version alone is never trusted.
+
+Every stored canonical JSON BLOB is re-read through the lossless ingress, required to be byte-for-byte canonical, checked against its stored digest, validated against the exact canonical schema root, and compared with its selector columns before domain use. Selector drift, invalid proof binding, digest mismatch, or non-canonical bytes are corruption, not authorization input. Immutable and terminal triggers, exact revision predicates, contiguous Event insertion, and rollback-on-fault prevent partial state from becoming canonical.
+
+The Node SQLite adapter is confined to tests. Passing local SQLite tests does not prove Cloudflare Durable Object behavior, and no storage error may expose raw canonical values, secrets, or unrelated resource existence.
+
 ## 18. MCP authentication
 
 MCP bearer tokens are deployment-scoped secrets. The Worker validates them before routing.
