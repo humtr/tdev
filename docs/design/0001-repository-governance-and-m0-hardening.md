@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: `implementing`
+- Status: `verified`
 - Date: 2026-08-04
 - Acceptance authority: direct maintainer request to establish repository-specific SDD, RULE, AGENTS, WORKBOARD, supporting guidance, and to re-audit the first implementation
 - Base source: `cacda33e5cf04ab6ea7b606ba7ce61038ff98bee`
@@ -207,7 +207,9 @@ Observed on 2026-08-04 from base `cacda33e5cf04ab6ea7b606ba7ce61038ff98bee` in t
 - The canonical `portable-test` and `portable-install` validation profiles completed successfully and changed no paths.
 - The repository retained exactly four test files.
 
-Remote publication and exact remote-commit observation remain pending. This record therefore remains `implementing` until acceptance criterion 12 is observed.
+Implementation commit `e5a1c1b2cffdce63c1890765800fc1e1280b37a7` was observed on the registered GitHub branch `tmcp/tdev-repository-governance` after an absent-branch first push. It is a single child of the exact base, its reviewed tree is `f58f892bb799d03a8e84851a68f5a6b164fe6dcb`, and both author and committer are `humtr <272709831+humtr@users.noreply.github.com>`.
+
+Acceptance criterion 12 is therefore satisfied. This record is `verified` for contract/schema, source/checkout, unit/domain, generated-source, static-analysis, and remote-source layers only. Installation, Cloudflare, Agent, public MCP, client-schema, and runtime rollback remain outside this design's verified scope.
 
 ## Stop gates
 

@@ -2,16 +2,15 @@
 
 ## Current
 
-- Product/source stage: M0 schema and pure-domain foundation is source-verified; no installation, Cloudflare, Agent, public MCP, client, or release layer is claimed.
-- Current work: repository governance adoption and M0 hardening.
+- Product/source stage: M0 schema, pure-domain foundation, and repository governance are source-verified; no installation, Cloudflare, Agent, public MCP, client, or release layer is claimed.
+- Current work: no active implementation; the next change must begin with an accepted M1 design.
 - Next product gate: an accepted M1 CaseDO storage and public-control design; M1 implementation is not authorized by this workboard.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 
 ## Active design
 
-- [Design 0001 — Repository Governance and M0 Hardening](docs/design/0001-repository-governance-and-m0-hardening.md): `implementing`
-  - Next gate: focused and full deterministic verification, complete diff review, and exact branch publication.
+- None. [Design 0001 — Repository Governance and M0 Hardening](docs/design/0001-repository-governance-and-m0-hardening.md) is `verified` and remains in the design registry.
 
 ## Blocking unknowns
 

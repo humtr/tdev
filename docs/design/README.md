@@ -17,7 +17,7 @@ A record marked `verified` can still list future-layer unknowns outside its scop
 
 | ID | Title | Status | Primary owners |
 | --- | --- | --- | --- |
-| [0001](0001-repository-governance-and-m0-hardening.md) | Repository governance and M0 hardening | implementing | repository process, protocol M0, domain M0 |
+| [0001](0001-repository-governance-and-m0-hardening.md) | Repository governance and M0 hardening | verified | repository process, protocol M0, domain M0 |
 
 ## Naming
 
