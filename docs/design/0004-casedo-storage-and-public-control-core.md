@@ -2,13 +2,13 @@
 
 ## Metadata
 
-- Status: `accepted`
+- Status: `implementing`
 - Date: 2026-08-04
 - Acceptance authority: direct maintainer instruction to proceed with Design 0004 in the repository-defined order; acceptance becomes effective only after the owner updates and source verification in this record are coherent
 - Base source: `a51d140e76a7e3abee34511a49821dfbd6385d20`
-- Affected owners: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/MVP.md`
+- Affected owners: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`
 - Subordinate guidance affected: `protocol/README.md`, `WORKBOARD.md`, `docs/design/README.md`
-- Implementation paths: future versioned protocol schemas and generated TypeScript/Go code, `edge/worker/`, `edge/case-do/`, CaseDO SQLite migrations, and one consolidated Worker/CaseDO integration boundary; this record itself changes contracts and guidance only
+- Implementation paths: current protocol profile/runtime/generator/test corrections plus future versioned protocol schemas, `edge/worker/`, `edge/case-do/`, CaseDO SQLite migrations, and one consolidated Worker/CaseDO integration boundary
 
 ## One-line definition
 
@@ -101,7 +101,7 @@ This design does not:
 
 - implement or deploy the Worker, CaseDO, Durable Object migrations, D1, R2, AgentDO, Agent, CLI, or public MCP endpoint;
 - modify the current M0 canonical schema or generated code before this record is accepted;
-- mark M1 `implementing` or `verified`;
+- mark Design 0004 or M1 `verified` before every required source, storage, runtime, public, client, and rollback evidence gate passes;
 - execute a stored-state migration or claim rollback runtime;
 - create a global request owner, RequestDO, scheduler, replay worker, Event-rebuild path, WorkspaceDO, or ProjectDO;
 - change Agent dispatch, queue, connection, epoch, fencing, or result acceptance owned by M2;
@@ -474,6 +474,16 @@ After schema version 1 stores state, rollback to a source-only predecessor that 
 
 This record executes no migration and proves no runtime rollback.
 
+## 2026-08-04 implementation amendment: release policy and pre-storage correction gate
+
+The maintainer approved the recommended cursor, migration, retention, and quota defaults and required all legitimately changeable values to be extracted from business logic for easy future revision. This amendment authorizes the source-level correction gate before CaseDO storage implementation.
+
+The gate establishes one canonical non-secret release profile identified as `tdev.m1.default` version 1, generated TypeScript and Go views, a typed digest, immutable hard ceilings, startup validation, and drift checks. Release policy, deployment secrets, immutable/versioned protocol rules, and test-only overrides remain separate categories. A policy value may narrow behavior within its hard ceiling; a hard-ceiling, algorithm, state, security, compatibility, or persistence-semantics change requires a versioned owner/design change.
+
+The same gate fixes exact `ValidationProofV1.rootDefinition` binding, cross-language digit/exponent limits before expensive integer work, typed ingress reasons, and the canonical public ingress order. It freezes the exact DDL, transition/revision/Event, twelve-capability semantic, cursor, migration metadata, retention, and quota contracts in `docs/PROTOCOL.md`; it does not implement Worker or CaseDO runtime behavior.
+
+The approved M1 policy defaults are page 20/max 100, cursor TTL 3,600 seconds, 10,000 Tasks per Case, 100 Attempts per Task, 100,000 Events per Case, and 30-day R2 orphan cleanup eligibility. M1 performs no Event compaction, retains mutation receipts with their Case or recovery state, and never cleans referenced Event or Artifact metadata while referenced. Unknown Cloudflare byte limits remain unverified deployment constraints rather than invented guarantees.
+
 ## Vertical slices
 
 1. **Contract freeze:** accept this record, update the affected owners, register it, and point the Workboard at the accepted design without changing runtime code.
@@ -547,4 +557,8 @@ Each slice uses final owner and dependency boundaries. No compatibility schedule
 - 2026-08-04: every state-changing CaseDO semantic capability receives a request ID and immutable replayable response receipt.
 - 2026-08-04: current rows remain lifecycle truth, Events remain audit records, and no event-sourced reconstruction path is introduced.
 - 2026-08-04: the first stored CaseDO schema establishes a rollback barrier to predecessors that do not declare exact schema compatibility.
+- 2026-08-04: the maintainer selected a single versioned non-secret release profile for mutable policy values, separate deployment secret injection, immutable compatibility ceilings, and production-inaccessible test overrides.
+- 2026-08-04: cursor v1 uses canonical payload plus deployment-scoped HMAC-SHA256, and M1 keeps one `schema_meta` row with `migration_id` and `migration_checksum`.
+- 2026-08-04: the recommended page, quota, retention, and orphan-grace defaults were approved; changing a hard ceiling or fixed M1 retention meaning requires a versioned design.
+- 2026-08-04: implementation status resumed for the bounded contract/source-correction gate only; Worker, CaseDO runtime, Cloudflare, public MCP, client, and rollback layers remain unimplemented and unverified.
 - 2026-08-04: the affected owner documents and verification matrix were reviewed as one bounded design, and portable source validation `job_mt_d2b3bb0f1e` passed generated parity, eight TypeScript tests, all Go tests, forbidden-import checks, and governance. The maintainer instruction is therefore effective as the explicit acceptance decision. Status moved to `accepted`; no M1 implementation or runtime effect began.

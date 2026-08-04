@@ -4,7 +4,6 @@ package protocol
 
 import (
 	"encoding/json"
-	"fmt"
 	protocolruntime "github.com/humtr/tdev/protocol/runtime/go"
 )
 
@@ -451,10 +450,11 @@ type ActorRefDomain struct {
 	}
 }
 
-func ConvertActorRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*ActorRefDomain, error) {
+func ConvertActorRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*ActorRefDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/ActorRef/oneOf",
 		[]string{
@@ -472,56 +472,56 @@ func ConvertActorRefDomain(rootValue any, proof *protocolruntime.ValidationProof
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "mcp_client" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind      string `json:"kind"`
 			SubjectID string `json:"subjectId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.ActorRefBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "user" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind      string `json:"kind"`
 			SubjectID string `json:"subjectId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.ActorRefBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "system" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Component string `json:"component"`
 			Kind      string `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.ActorRefBranch2 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -560,10 +560,11 @@ type AttemptStatusDomain struct {
 	}
 }
 
-func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*AttemptStatusDomain, error) {
+func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*AttemptStatusDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/AttemptStatus/oneOf",
 		[]string{
@@ -584,27 +585,27 @@ func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.Validation
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "dispatch_pending" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind string `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "queued" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			AgentEpoch   int64     `json:"agentEpoch"`
@@ -613,17 +614,17 @@ func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.Validation
 			QueuedAt     Timestamp `json:"queuedAt"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "running" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			AgentEpoch   int64     `json:"agentEpoch"`
@@ -632,17 +633,17 @@ func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.Validation
 			StartedAt    Timestamp `json:"startedAt"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "reconciling" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind   string    `json:"kind"`
@@ -650,17 +651,17 @@ func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.Validation
 			Since  Timestamp `json:"since"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch3 = &val
 	case 4:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "cancel_requested" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind        string    `json:"kind"`
@@ -668,28 +669,28 @@ func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.Validation
 			RequestedAt Timestamp `json:"requestedAt"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch4 = &val
 	case 5:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "terminal" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind     string          `json:"kind"`
 			Terminal AttemptTerminal `json:"terminal"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptStatusBranch5 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -735,10 +736,11 @@ type AttemptTerminalDomain struct {
 	}
 }
 
-func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*AttemptTerminalDomain, error) {
+func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*AttemptTerminalDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/AttemptTerminal/oneOf",
 		[]string{
@@ -760,11 +762,11 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "succeeded" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt           Timestamp `json:"finishedAt"`
@@ -772,17 +774,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			ResultEnvelopeDigest Sha256    `json:"resultEnvelopeDigest"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "failed" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Failure    ExecutionFailure `json:"failure"`
@@ -790,17 +792,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			Outcome    string           `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "cancelled" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			CancellationReceiptID string    `json:"cancellationReceiptId"`
@@ -808,17 +810,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			Outcome               string    `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "interrupted" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt   Timestamp          `json:"finishedAt"`
@@ -827,17 +829,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			RetrySafety  string             `json:"retrySafety"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch3 = &val
 	case 4:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "rejected" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt Timestamp          `json:"finishedAt"`
@@ -845,17 +847,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			Rejection  ExecutionRejection `json:"rejection"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch4 = &val
 	case 5:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "input_required" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt     Timestamp      `json:"finishedAt"`
@@ -863,17 +865,17 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			Outcome        string         `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch5 = &val
 	case 6:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "unverified" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt  Timestamp         `json:"finishedAt"`
@@ -881,11 +883,11 @@ func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.Validati
 			Uncertainty UncertaintyRecord `json:"uncertainty"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.AttemptTerminalBranch6 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -903,10 +905,11 @@ type BaseReferenceDomain struct {
 	}
 }
 
-func ConvertBaseReferenceDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*BaseReferenceDomain, error) {
+func ConvertBaseReferenceDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*BaseReferenceDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/BaseReference/oneOf",
 		[]string{
@@ -923,39 +926,39 @@ func ConvertBaseReferenceDomain(rootValue any, proof *protocolruntime.Validation
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "git_commit" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind     string      `json:"kind"`
 			ObjectID GitObjectId `json:"objectId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.BaseReferenceBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "observation" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Digest Sha256 `json:"digest"`
 			Kind   string `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.BaseReferenceBranch1 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -986,10 +989,11 @@ type CaseStatusDomain struct {
 	}
 }
 
-func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*CaseStatusDomain, error) {
+func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*CaseStatusDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/CaseStatus/oneOf",
 		[]string{
@@ -1008,28 +1012,28 @@ func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationPro
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "active" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			EnteredAt Timestamp `json:"enteredAt"`
 			Kind      string    `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseStatusBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "paused" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Detail   *string   `json:"detail,omitempty"`
@@ -1038,17 +1042,17 @@ func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationPro
 			Reason   string    `json:"reason"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseStatusBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "cancelling" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			CancellationID CancellationId `json:"cancellationId"`
@@ -1058,28 +1062,28 @@ func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationPro
 			RequestedBy    ActorRef       `json:"requestedBy"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseStatusBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "terminal" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind     string       `json:"kind"`
 			Terminal CaseTerminal `json:"terminal"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseStatusBranch3 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1119,10 +1123,11 @@ type CaseTerminalDomain struct {
 	}
 }
 
-func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*CaseTerminalDomain, error) {
+func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*CaseTerminalDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/CaseTerminal/oneOf",
 		[]string{
@@ -1142,11 +1147,11 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "completed" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ClosedAt      Timestamp     `json:"closedAt"`
@@ -1155,17 +1160,17 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Summary       string        `json:"summary"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseTerminalBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "failed" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ClosedAt Timestamp     `json:"closedAt"`
@@ -1174,17 +1179,17 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Summary  string        `json:"summary"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseTerminalBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "cancelled" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Cancellation CancellationSummary `json:"cancellation"`
@@ -1193,17 +1198,17 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Summary      string              `json:"summary"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseTerminalBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "rolled_back" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ClosedAt              Timestamp     `json:"closedAt"`
@@ -1212,17 +1217,17 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Summary               string        `json:"summary"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseTerminalBranch3 = &val
 	case 4:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "unverified" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ClosedAt    Timestamp         `json:"closedAt"`
@@ -1231,11 +1236,11 @@ func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Uncertainty UncertaintyRecord `json:"uncertainty"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.CaseTerminalBranch4 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1257,10 +1262,11 @@ type EntityRefDomain struct {
 	}
 }
 
-func ConvertEntityRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*EntityRefDomain, error) {
+func ConvertEntityRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*EntityRefDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/EntityRef/oneOf",
 		[]string{
@@ -1278,56 +1284,56 @@ func ConvertEntityRefDomain(rootValue any, proof *protocolruntime.ValidationProo
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "case" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			CaseID CaseId `json:"caseId"`
 			Kind   string `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EntityRefBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "task" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind   string `json:"kind"`
 			TaskID TaskId `json:"taskId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EntityRefBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "attempt" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			AttemptID AttemptId `json:"attemptId"`
 			Kind      string    `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EntityRefBranch2 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1352,10 +1358,11 @@ type EvidenceRefDomain struct {
 	}
 }
 
-func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*EvidenceRefDomain, error) {
+func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*EvidenceRefDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/EvidenceRef/oneOf",
 		[]string{
@@ -1373,11 +1380,11 @@ func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationPr
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "task_result" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind         string `json:"kind"`
@@ -1385,17 +1392,17 @@ func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationPr
 			TaskID       TaskId `json:"taskId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EvidenceRefBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "artifact" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ArtifactID ArtifactId `json:"artifactId"`
@@ -1403,17 +1410,17 @@ func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationPr
 			SHA256     Sha256     `json:"sha256"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EvidenceRefBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "observation" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Digest Sha256            `json:"digest"`
@@ -1421,11 +1428,11 @@ func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationPr
 			Layer  VerificationLayer `json:"layer"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.EvidenceRefBranch2 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1441,10 +1448,11 @@ type JsonValueDomain struct {
 	JsonValueBranch5 *map[string]JsonValue
 }
 
-func ConvertJsonValueDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*JsonValueDomain, error) {
+func ConvertJsonValueDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*JsonValueDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/JsonValue/oneOf",
 		[]string{
@@ -1465,65 +1473,65 @@ func ConvertJsonValueDomain(rootValue any, proof *protocolruntime.ValidationProo
 	case 0:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val any
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch0 = &val
 	case 1:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val bool
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch1 = &val
 	case 2:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val int64
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch2 = &val
 	case 3:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val string
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch3 = &val
 	case 4:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val []JsonValue
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch4 = &val
 	case 5:
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val map[string]JsonValue
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.JsonValueBranch5 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1553,10 +1561,11 @@ type OperationResultDomain struct {
 	}
 }
 
-func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*OperationResultDomain, error) {
+func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*OperationResultDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/OperationResult/oneOf",
 		[]string{
@@ -1575,11 +1584,11 @@ func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.Validati
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "inline" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind         string    `json:"kind"`
@@ -1587,17 +1596,17 @@ func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.Validati
 			Value        JsonValue `json:"value"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.OperationResultBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "artifacts" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Artifacts    []ArtifactRef `json:"artifacts"`
@@ -1605,17 +1614,17 @@ func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.Validati
 			ResultDigest Sha256        `json:"resultDigest"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.OperationResultBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "mixed" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Artifacts    []ArtifactRef `json:"artifacts"`
@@ -1624,28 +1633,28 @@ func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.Validati
 			Value        JsonValue     `json:"value"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.OperationResultBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "none" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind         string `json:"kind"`
 			ResultDigest Sha256 `json:"resultDigest"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.OperationResultBranch3 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1664,10 +1673,11 @@ type TargetDomain struct {
 	}
 }
 
-func ConvertTargetDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TargetDomain, error) {
+func ConvertTargetDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*TargetDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/Target/oneOf",
 		[]string{
@@ -1684,28 +1694,28 @@ func ConvertTargetDomain(rootValue any, proof *protocolruntime.ValidationProofV1
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "workspace" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind        string      `json:"kind"`
 			WorkspaceID WorkspaceId `json:"workspaceId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TargetBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "project" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind        string      `json:"kind"`
@@ -1713,11 +1723,11 @@ func ConvertTargetDomain(rootValue any, proof *protocolruntime.ValidationProofV1
 			WorkspaceID WorkspaceId `json:"workspaceId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TargetBranch1 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1749,10 +1759,11 @@ type TaskStatusDomain struct {
 	}
 }
 
-func ConvertTaskStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskStatusDomain, error) {
+func ConvertTaskStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*TaskStatusDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/TaskStatus/oneOf",
 		[]string{
@@ -1772,62 +1783,62 @@ func ConvertTaskStatusDomain(rootValue any, proof *protocolruntime.ValidationPro
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "waiting" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind    string      `json:"kind"`
 			Waiting TaskWaiting `json:"waiting"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskStatusBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "ready" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind    string    `json:"kind"`
 			ReadyAt Timestamp `json:"readyAt"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskStatusBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "active" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			AttemptID AttemptId `json:"attemptId"`
 			Kind      string    `json:"kind"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskStatusBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "cancelling" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			AttemptID      *AttemptId     `json:"attemptId,omitempty"`
@@ -1836,28 +1847,28 @@ func ConvertTaskStatusDomain(rootValue any, proof *protocolruntime.ValidationPro
 			RequestedAt    Timestamp      `json:"requestedAt"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskStatusBranch3 = &val
 	case 4:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "terminal" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Kind     string       `json:"kind"`
 			Terminal TaskTerminal `json:"terminal"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskStatusBranch4 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -1892,10 +1903,11 @@ type TaskTerminalDomain struct {
 	}
 }
 
-func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskTerminalDomain, error) {
+func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*TaskTerminalDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/TaskTerminal/oneOf",
 		[]string{
@@ -1915,11 +1927,11 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "succeeded" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt Timestamp       `json:"finishedAt"`
@@ -1927,17 +1939,17 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Result     OperationResult `json:"result"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskTerminalBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "failed" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Failure    OperationFailure `json:"failure"`
@@ -1945,17 +1957,17 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Outcome    string           `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskTerminalBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "cancelled" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Cancellation CancellationSummary `json:"cancellation"`
@@ -1963,17 +1975,17 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Outcome      string              `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskTerminalBranch2 = &val
 	case 3:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "denied" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ApprovalDecisionID ApprovalDecisionId `json:"approvalDecisionId"`
@@ -1981,17 +1993,17 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Outcome            string             `json:"outcome"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskTerminalBranch3 = &val
 	case 4:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["outcome"] != "unverified" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			FinishedAt  Timestamp         `json:"finishedAt"`
@@ -1999,11 +2011,11 @@ func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationP
 			Uncertainty UncertaintyRecord `json:"uncertainty"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskTerminalBranch4 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -2025,10 +2037,11 @@ type TaskWaitingDomain struct {
 	}
 }
 
-func ConvertTaskWaitingDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskWaitingDomain, error) {
+func ConvertTaskWaitingDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*TaskWaitingDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/TaskWaiting/oneOf",
 		[]string{
@@ -2046,56 +2059,56 @@ func ConvertTaskWaitingDomain(rootValue any, proof *protocolruntime.ValidationPr
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["reason"] != "approval" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			ApprovalRequestID ApprovalRequestId `json:"approvalRequestId"`
 			Reason            string            `json:"reason"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskWaitingBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["reason"] != "input" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			InputRequestID InputRequestId `json:"inputRequestId"`
 			Reason         string         `json:"reason"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskWaitingBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["reason"] != "retry_decision" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val struct {
 			Reason          string          `json:"reason"`
 			RetryDecisionID RetryDecisionId `json:"retryDecisionId"`
 		}
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TaskWaitingBranch2 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }
@@ -2108,10 +2121,11 @@ type TypedErrorDetailsDomain struct {
 	TypedErrorDetailsBranch2 *MissingEffectDetails
 }
 
-func ConvertTypedErrorDetailsDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TypedErrorDetailsDomain, error) {
+func ConvertTypedErrorDetailsDomain(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*TypedErrorDetailsDomain, error) {
 	extracted, match, err := protocolruntime.VerifyProofAndExtract(
 		rootValue,
 		proof,
+		expectedRootDefinition,
 		instancePointer,
 		"#/$defs/TypedErrorDetails/oneOf",
 		[]string{
@@ -2129,47 +2143,47 @@ func ConvertTypedErrorDetailsDomain(rootValue any, proof *protocolruntime.Valida
 	case 0:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "revision_conflict" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val RevisionConflictDetails
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TypedErrorDetailsBranch0 = &val
 	case 1:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "schema_mismatch" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val SchemaMismatchDetails
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TypedErrorDetailsBranch1 = &val
 	case 2:
 		objMap, ok := extracted.(map[string]any)
 		if !ok || objMap["kind"] != "missing_effect" {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "union const discriminator does not match the proved branch"}
 		}
 		rawBytes, err := json.Marshal(extracted)
 		if err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be encoded for domain conversion"}
 		}
 		var val MissingEffectDetails
 		if err := json.Unmarshal(rawBytes, &val); err != nil {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+			return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "proved union value cannot be decoded into its domain branch"}
 		}
 		domain.TypedErrorDetailsBranch2 = &val
 	default:
-		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, &protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH", Reason: protocolruntime.ReasonUnionDiscriminator, Message: "validation proof branch index is invalid"}
 	}
 	return domain, nil
 }

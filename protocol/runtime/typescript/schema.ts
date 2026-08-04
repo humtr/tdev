@@ -1,4 +1,5 @@
 import { canonicalize, typedDigest } from "./canonical.ts";
+import { IngressError, type ProtocolErrorDetail } from "./ingress.ts";
 
 export type SchemaDocument = Readonly<{
   $schema?: string;
@@ -272,6 +273,17 @@ export type ValidationProofV1 = Readonly<{
   unions: ReadonlyArray<UnionProofBranchV1>;
 }>;
 
+
+function schemaErrorDetail(message: string): ProtocolErrorDetail {
+  if (message.includes(": ONE_OF_NO_MATCH:")) {
+    return { code: "ONE_OF_NO_MATCH", reason: "ONE_OF_NO_MATCH", instancePointer: "$" };
+  }
+  if (message.includes(": ONE_OF_MULTIPLE_MATCH:")) {
+    return { code: "ONE_OF_MULTIPLE_MATCH", reason: "ONE_OF_MULTIPLE_MATCH", instancePointer: "$" };
+  }
+  return { code: "INPUT_SCHEMA_INVALID", reason: "SCHEMA", instancePointer: "$" };
+}
+
 export class SchemaValidator {
   readonly #root: SchemaDocument;
   readonly #schemaDigest: string;
@@ -294,10 +306,14 @@ export class SchemaValidator {
   validateDefinitionWithProof(
     name: string,
     value: unknown,
-  ): { proof: ValidationProofV1 | null; errors: readonly string[] } {
+  ): { proof: ValidationProofV1 | null; errors: readonly string[]; errorDetails: readonly ProtocolErrorDetail[] } {
     const definition = this.#root.$defs[name];
     if (definition === undefined) {
-      return { proof: null, errors: [`unknown definition: ${name}`] };
+      return {
+        proof: null,
+        errors: [`unknown definition: ${name}`],
+        errorDetails: [{ code: "INPUT_SCHEMA_INVALID", reason: "SCHEMA", instancePointer: "$" }],
+      };
     }
 
     const unions: UnionProofBranchV1[] = [];
@@ -311,12 +327,16 @@ export class SchemaValidator {
     );
 
     if (errors.length > 0) {
-      return { proof: null, errors };
+      return { proof: null, errors, errorDetails: errors.map(schemaErrorDetail) };
     }
 
     const semantic = semanticErrors(name, value);
     if (semantic.length > 0) {
-      return { proof: null, errors: semantic };
+      return {
+        proof: null,
+        errors: semantic,
+        errorDetails: semantic.map(() => ({ code: "INPUT_SCHEMA_INVALID", reason: "SCHEMA", instancePointer: "$" })),
+      };
     }
 
     const canonicalDigest = typedDigest("tdev.validation-proof.v1", value);
@@ -326,7 +346,7 @@ export class SchemaValidator {
       canonicalDigest,
       unions,
     };
-    return { proof, errors: [] };
+    return { proof, errors: [], errorDetails: [] };
   }
 
   #resolve(reference: string): SchemaNode | undefined {
@@ -697,26 +717,26 @@ export function extractValueByPointer(rootValue: unknown, instancePointer: strin
       const key = p.slice(pos, end);
       pos = end;
       if (current === null || typeof current !== "object" || Array.isArray(current)) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: pointer path '${instancePointer}' not found in root value`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "proof pointer path is not present in the root value");
       }
       if (!Object.hasOwn(current as object, key)) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: property '${key}' not found at '${instancePointer}'`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "proof pointer property is not present in the root value");
       }
       current = (current as Record<string, unknown>)[key];
     } else if (p[pos] === "[") {
       const closeBracket = p.indexOf("]", pos);
       if (closeBracket === -1) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: malformed pointer bracket at '${instancePointer}'`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "proof pointer bracket is malformed");
       }
       const idxStr = p.slice(pos + 1, closeBracket);
       const idx = parseInt(idxStr, 10);
       pos = closeBracket + 1;
       if (!Array.isArray(current) || idx < 0 || idx >= current.length) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: array index [${idxStr}] out of bounds at '${instancePointer}'`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "proof pointer array index is out of bounds");
       }
       current = current[idx];
     } else {
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: unexpected character in pointer '${instancePointer}'`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "proof pointer contains an unexpected character");
     }
   }
   return current;
@@ -725,37 +745,41 @@ export function extractValueByPointer(rootValue: unknown, instancePointer: strin
 export function verifyProofAndExtract(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
   targetSchemaPointer: string,
   targetBranchIdentities: readonly string[],
   canonicalSchemaDigest: string,
 ): { extractedValue: unknown; match: UnionProofBranchV1 } {
   if (proof === null || proof === undefined || typeof proof !== "object") {
-    throw new Error("UNION_DISCRIMINATOR_MISMATCH: missing validation proof");
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof is missing");
+  }
+  if (proof.rootDefinition !== expectedRootDefinition) {
+    throw new IngressError("ROOT_DEFINITION_MISMATCH", "ROOT_DEFINITION", "validation proof root definition mismatch");
   }
   if (proof.schemaDigest !== canonicalSchemaDigest) {
-    throw new Error("UNION_DISCRIMINATOR_MISMATCH: schema digest mismatch");
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof schema digest mismatch");
   }
   const recomputedDigest = typedDigest("tdev.validation-proof.v1", rootValue);
   if (proof.canonicalDigest !== recomputedDigest) {
-    throw new Error("UNION_DISCRIMINATOR_MISMATCH: canonical digest mismatch for root value");
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof canonical digest mismatch");
   }
   const matches = proof.unions.filter((u) => u.instancePointer === instancePointer);
   if (matches.length === 0) {
-    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: unproved union at ${instancePointer}`);
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union path is not present in the validation proof");
   }
   if (matches.length > 1) {
-    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: duplicate proof entries for path ${instancePointer}`);
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof contains duplicate union entries");
   }
   const match = matches[0];
   if (match.schemaPointer !== targetSchemaPointer) {
-    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: schema pointer mismatch at ${instancePointer}`);
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof schema pointer mismatch");
   }
   if (match.branchIndex < 0 || match.branchIndex >= targetBranchIdentities.length) {
-    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
   if (match.branchIdentity !== targetBranchIdentities[match.branchIndex]) {
-    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch identity mismatch at ${instancePointer}`);
+    throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch identity mismatch");
   }
   const extractedValue = extractValueByPointer(rootValue, instancePointer);
   return { extractedValue, match };

@@ -81,6 +81,7 @@ M1 proceeds only under accepted [Design 0004](design/0004-casedo-storage-and-pub
 
 Deliver:
 
+- one versioned, non-secret, release-pinned M1 policy profile with generated TypeScript/Go views, typed digest, hard ceilings, and fail-closed startup validation;
 - versioned M1 canonical schemas and generated TypeScript/Go domain-conversion boundaries;
 - bounded fatal UTF-8 and lossless JSON ingress that rejects duplicate members before ordinary decoding;
 - exact `oneOf` validation proofs and generated closed-domain discrimination;
@@ -111,7 +112,7 @@ Acceptance:
 
 Ordered implementation slices:
 
-1. **M1 schema and proof foundation:** introduce the M1 schema revision, raw-byte fixtures, validation proof, generated branch identities, domain converters, control inputs, mutation receipt, and parity tests. Do not add Worker or SQLite code before this gate is green.
+1. **M1 contract and source-correction gate:** freeze the release-profile/configuration boundary, ingress/authentication order, typed ingress reasons, exact-root proof binding, cross-language exact-number limits, table DDL matrix, transition/revision/Event matrix, all twelve semantic capability contracts, cursor integrity, migration metadata, and retention/quota policy. Do not add Worker or SQLite code before this gate is green.
 2. **CaseDO storage core:** add schema-version-1 DDL and migration, repositories, immutable guards, and the complete transition-to-revision/Event matrix in isolated databases.
 3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection.
 4. **Control and query core:** add all Case/Task controls including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, hibernation, and restart tests.

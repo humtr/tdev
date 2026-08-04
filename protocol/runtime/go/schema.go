@@ -94,7 +94,30 @@ func (validator *Validator) ValidateDefinition(name string, value any) []string 
 	return errors
 }
 
+func schemaErrorDetail(message string) ProtocolErrorDetail {
+	if strings.Contains(message, ": ONE_OF_NO_MATCH:") {
+		return ProtocolErrorDetail{Code: "ONE_OF_NO_MATCH", Reason: ReasonOneOfNoMatch, InstancePointer: "$"}
+	}
+	if strings.Contains(message, ": ONE_OF_MULTIPLE_MATCH:") {
+		return ProtocolErrorDetail{Code: "ONE_OF_MULTIPLE_MATCH", Reason: ReasonOneOfMultipleMatch, InstancePointer: "$"}
+	}
+	return ProtocolErrorDetail{Code: "INPUT_SCHEMA_INVALID", Reason: ReasonSchema, InstancePointer: "$"}
+}
+
+func (validator *Validator) ValidateDefinitionWithProofDetails(name string, value any) (*ValidationProofV1, []ProtocolErrorDetail) {
+	proof, messages := validator.validateDefinitionWithProofStrings(name, value)
+	details := make([]ProtocolErrorDetail, 0, len(messages))
+	for _, message := range messages {
+		details = append(details, schemaErrorDetail(message))
+	}
+	return proof, details
+}
+
 func (validator *Validator) ValidateDefinitionWithProof(name string, value any) (*ValidationProofV1, []string) {
+	return validator.validateDefinitionWithProofStrings(name, value)
+}
+
+func (validator *Validator) validateDefinitionWithProofStrings(name string, value any) (*ValidationProofV1, []string) {
 	definition, found := validator.root.Defs[name]
 	if !found {
 		return nil, []string{"unknown definition: " + name}
@@ -1014,32 +1037,32 @@ func ExtractValueByPointer(rootValue any, instancePointer string) (any, error) {
 
 			objMap, ok := current.(map[string]any)
 			if !ok {
-				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: pointer path '%s' not found in root value", instancePointer)
+				return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer path is not present in the root value")
 			}
 			val, found := objMap[key]
 			if !found {
-				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: property '%s' not found at '%s'", key, instancePointer)
+				return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer property is not present in the root value")
 			}
 			current = val
 		} else if p[pos] == '[' {
 			closeBracket := strings.IndexByte(p[pos:], ']')
 			if closeBracket == -1 {
-				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: malformed pointer bracket at '%s'", instancePointer)
+				return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer bracket is malformed")
 			}
 			idxStr := p[pos+1 : pos+closeBracket]
 			idx, err := strconv.Atoi(idxStr)
 			if err != nil {
-				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid array index bracket at '%s'", instancePointer)
+				return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer array index is malformed")
 			}
 			pos += closeBracket + 1
 
 			arrSlice, ok := current.([]any)
 			if !ok || idx < 0 || idx >= len(arrSlice) {
-				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: array index [%d] out of bounds at '%s'", idx, instancePointer)
+				return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer array index is out of bounds")
 			}
 			current = arrSlice[idx]
 		} else {
-			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: unexpected character in pointer '%s'", instancePointer)
+			return nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer contains an unexpected character")
 		}
 	}
 	return current, nil
@@ -1048,20 +1071,24 @@ func ExtractValueByPointer(rootValue any, instancePointer string) (any, error) {
 func VerifyProofAndExtract(
 	rootValue any,
 	proof *ValidationProofV1,
+	expectedRootDefinition string,
 	instancePointer string,
 	targetSchemaPointer string,
 	targetBranchIdentities []string,
 	canonicalSchemaDigest string,
 ) (any, *UnionProofBranchV1, error) {
 	if proof == nil {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: missing validation proof")
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof is missing")
+	}
+	if proof.RootDefinition != expectedRootDefinition {
+		return nil, nil, ingressError("ROOT_DEFINITION_MISMATCH", ReasonRootDefinition, "validation proof root definition mismatch")
 	}
 	if proof.SchemaDigest != canonicalSchemaDigest {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: schema digest mismatch")
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof schema digest mismatch")
 	}
 	recomputedDigest, err := TypedDigest("tdev.validation-proof.v1", rootValue)
 	if err != nil || proof.CanonicalDigest != recomputedDigest {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: canonical digest mismatch for root value")
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof canonical digest mismatch")
 	}
 	var matches []UnionProofBranchV1
 	for _, u := range proof.Unions {
@@ -1070,24 +1097,24 @@ func VerifyProofAndExtract(
 		}
 	}
 	if len(matches) == 0 {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: unproved union at %s", instancePointer)
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "union path is not present in the validation proof")
 	}
 	if len(matches) > 1 {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: duplicate proof entries for path %s", instancePointer)
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof contains duplicate union entries")
 	}
 	match := &matches[0]
 	if match.SchemaPointer != targetSchemaPointer {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: schema pointer mismatch at %s", instancePointer)
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof schema pointer mismatch")
 	}
 	if match.BranchIndex < 0 || match.BranchIndex >= len(targetBranchIdentities) {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof branch index is invalid")
 	}
 	if match.BranchIdentity != targetBranchIdentities[match.BranchIndex] {
-		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch identity mismatch at %s", instancePointer)
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "validation proof branch identity mismatch")
 	}
 	extracted, err := ExtractValueByPointer(rootValue, instancePointer)
 	if err != nil {
-		return nil, nil, err
+		return nil, nil, ingressError("UNION_DISCRIMINATOR_MISMATCH", ReasonUnionDiscriminator, "proof pointer cannot be resolved in the root value")
 	}
 	return extracted, match, nil
 }

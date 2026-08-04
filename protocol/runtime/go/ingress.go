@@ -5,58 +5,81 @@ import (
 	"fmt"
 	"math/big"
 	"strconv"
+	"strings"
 	"unicode/utf8"
 )
 
 const (
-	MaxBodyBytes     = 1048576
-	MaxJSONDepth     = 64
-	MaxJSONTokens    = 100000
-	MaxObjectMembers = 4096
-	MaxArrayItems    = 10000
-	MinSafeInteger   = -9007199254740991
-	MaxSafeInteger   = 9007199254740991
+	MinSafeInteger = -9007199254740991
+	MaxSafeInteger = 9007199254740991
 )
+
+type ProtocolErrorReason string
+
+const (
+	ReasonBodyBytes          ProtocolErrorReason = "BODY_BYTES"
+	ReasonUTF8               ProtocolErrorReason = "UTF8"
+	ReasonJSONGrammar        ProtocolErrorReason = "JSON_GRAMMAR"
+	ReasonTrailingValue      ProtocolErrorReason = "TRAILING_VALUE"
+	ReasonDuplicateMember    ProtocolErrorReason = "DUPLICATE_MEMBER"
+	ReasonDepth              ProtocolErrorReason = "DEPTH"
+	ReasonTokenCount         ProtocolErrorReason = "TOKEN_COUNT"
+	ReasonObjectMembers      ProtocolErrorReason = "OBJECT_MEMBERS"
+	ReasonArrayItems         ProtocolErrorReason = "ARRAY_ITEMS"
+	ReasonStringLength       ProtocolErrorReason = "STRING_LENGTH"
+	ReasonNumberDigits       ProtocolErrorReason = "NUMBER_DIGITS"
+	ReasonExponentMagnitude  ProtocolErrorReason = "EXPONENT_MAGNITUDE"
+	ReasonSafeInteger        ProtocolErrorReason = "SAFE_INTEGER"
+	ReasonSchema             ProtocolErrorReason = "SCHEMA"
+	ReasonOneOfNoMatch       ProtocolErrorReason = "ONE_OF_NO_MATCH"
+	ReasonOneOfMultipleMatch ProtocolErrorReason = "ONE_OF_MULTIPLE_MATCH"
+	ReasonRootDefinition     ProtocolErrorReason = "ROOT_DEFINITION"
+	ReasonUnionDiscriminator ProtocolErrorReason = "UNION_DISCRIMINATOR"
+)
+
+type ProtocolErrorDetail struct {
+	Code            string              `json:"code"`
+	Reason          ProtocolErrorReason `json:"reason"`
+	InstancePointer string              `json:"instancePointer,omitempty"`
+	Limit           *int                `json:"limit,omitempty"`
+}
 
 type IngressError struct {
 	Code    string
+	Reason  ProtocolErrorReason
 	Message string
 }
 
 func (e *IngressError) Error() string {
-	return fmt.Sprintf("%s: %s", e.Code, e.Message)
+	return fmt.Sprintf("%s/%s: %s", e.Code, e.Reason, e.Message)
+}
+
+func ingressError(code string, reason ProtocolErrorReason, message string) *IngressError {
+	return &IngressError{Code: code, Reason: reason, Message: message}
 }
 
 func ParseRawIngress(rawBytes []byte) (any, error) {
-	if len(rawBytes) > MaxBodyBytes {
-		return nil, &IngressError{
-			Code:    "PAYLOAD_TOO_LARGE",
-			Message: "payload size exceeds maximum allowed limit",
-		}
-	}
+	return parseRawIngressWithProfile(rawBytes, DefaultM1ReleaseProfile())
+}
 
+func parseRawIngressWithProfile(rawBytes []byte, profile ReleaseProfile) (any, error) {
+	limits := profile.Ingress
+	if len(rawBytes) > limits.MaxBodyBytes {
+		return nil, ingressError("PAYLOAD_TOO_LARGE", ReasonBodyBytes, "request body exceeds the configured release limit")
+	}
 	if !utf8.Valid(rawBytes) {
-		return nil, &IngressError{
-			Code:    "INVALID_UTF8",
-			Message: "raw request body is not valid UTF-8",
-		}
+		return nil, ingressError("INVALID_UTF8", ReasonUTF8, "raw request body is not valid UTF-8")
 	}
 
-	pos := 0
-	tokenCount := 0
+	pos, tokenCount := 0, 0
 	text := string(rawBytes)
-
 	countToken := func() error {
 		tokenCount++
-		if tokenCount > MaxJSONTokens {
-			return &IngressError{
-				Code:    "JSON_LIMIT_EXCEEDED",
-				Message: fmt.Sprintf("token count exceeds maximum %d", MaxJSONTokens),
-			}
+		if tokenCount > limits.MaxJSONTokens {
+			return ingressError("JSON_LIMIT_EXCEEDED", ReasonTokenCount, "JSON token count exceeds the configured release limit")
 		}
 		return nil
 	}
-
 	skipWhitespace := func() {
 		for pos < len(text) {
 			ch := text[pos]
@@ -68,22 +91,22 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 		}
 	}
 
-	var parseValue func(depth int) (any, error)
-	var parseObject func(depth int) (map[string]any, error)
-	var parseArray func(depth int) ([]any, error)
+	var parseValue func(int) (any, error)
+	var parseObject func(int) (map[string]any, error)
+	var parseArray func(int) ([]any, error)
 	var parseString func() (string, error)
 	var parseNumber func() (int64, error)
-	var parseLiteral func(expected string, val any) (any, error)
+	var parseLiteral func(string, any) (any, error)
 
-	parseLiteral = func(expected string, val any) (any, error) {
+	parseLiteral = func(expected string, value any) (any, error) {
 		if err := countToken(); err != nil {
 			return nil, err
 		}
-		if stringsHasPrefix(text[pos:], expected) {
-			pos += len(expected)
-			return val, nil
+		if !strings.HasPrefix(text[pos:], expected) {
+			return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid JSON literal")
 		}
-		return nil, &IngressError{Code: "MALFORMED_JSON", Message: "invalid literal"}
+		pos += len(expected)
+		return value, nil
 	}
 
 	parseString = func() (string, error) {
@@ -91,10 +114,19 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 			return "", err
 		}
 		if pos >= len(text) || text[pos] != '"' {
-			return "", &IngressError{Code: "MALFORMED_JSON", Message: "expected string quote"}
+			return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "expected string quote")
 		}
 		pos++
 		var buf bytes.Buffer
+		codePoints := 0
+		appendRune := func(r rune) error {
+			codePoints++
+			if codePoints > limits.MaxStringCodePoints {
+				return ingressError("JSON_LIMIT_EXCEEDED", ReasonStringLength, "decoded string length exceeds the configured release limit")
+			}
+			buf.WriteRune(r)
+			return nil
+		}
 		for pos < len(text) {
 			ch := text[pos]
 			if ch == '"' {
@@ -104,65 +136,72 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 			if ch == '\\' {
 				pos++
 				if pos >= len(text) {
-					return "", &IngressError{Code: "MALFORMED_JSON", Message: "unterminated escape sequence"}
+					return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unterminated escape sequence")
 				}
 				esc := text[pos]
 				pos++
+				var r rune
 				switch esc {
 				case '"':
-					buf.WriteByte('"')
+					r = '"'
 				case '\\':
-					buf.WriteByte('\\')
+					r = '\\'
 				case '/':
-					buf.WriteByte('/')
+					r = '/'
 				case 'b':
-					buf.WriteByte('\b')
+					r = '\b'
 				case 'f':
-					buf.WriteByte('\f')
+					r = '\f'
 				case 'n':
-					buf.WriteByte('\n')
+					r = '\n'
 				case 'r':
-					buf.WriteByte('\r')
+					r = '\r'
 				case 't':
-					buf.WriteByte('\t')
+					r = '\t'
 				case 'u':
 					if pos+4 > len(text) {
-						return "", &IngressError{Code: "MALFORMED_JSON", Message: "invalid hex escape sequence"}
+						return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid Unicode escape")
 					}
-					hexStr := text[pos : pos+4]
-					codeUnit, err := strconv.ParseUint(hexStr, 16, 16)
+					codeUnit, err := strconv.ParseUint(text[pos:pos+4], 16, 16)
 					if err != nil {
-						return "", &IngressError{Code: "MALFORMED_JSON", Message: "invalid hex code"}
+						return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid Unicode escape")
 					}
 					pos += 4
 					if codeUnit >= 0xd800 && codeUnit <= 0xdbff {
-						if pos+6 <= len(text) && text[pos:pos+2] == "\\u" {
-							lowHex := text[pos+2 : pos+6]
-							lowUnit, err := strconv.ParseUint(lowHex, 16, 16)
-							if err == nil && lowUnit >= 0xdc00 && lowUnit <= 0xdfff {
-								pos += 6
-								r := rune(0x10000 + ((codeUnit - 0xd800) << 10) + (lowUnit - 0xdc00))
-								buf.WriteRune(r)
-								break
-							}
+						if pos+6 > len(text) || text[pos:pos+2] != "\\u" {
+							return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "escaped lone high surrogate")
 						}
-						return "", &IngressError{Code: "MALFORMED_JSON", Message: "escaped lone high surrogate"}
+						lowUnit, err := strconv.ParseUint(text[pos+2:pos+6], 16, 16)
+						if err != nil || lowUnit < 0xdc00 || lowUnit > 0xdfff {
+							return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "escaped lone high surrogate")
+						}
+						pos += 6
+						r = rune(0x10000 + ((codeUnit - 0xd800) << 10) + (lowUnit - 0xdc00))
+					} else if codeUnit >= 0xdc00 && codeUnit <= 0xdfff {
+						return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "escaped lone low surrogate")
+					} else {
+						r = rune(codeUnit)
 					}
-					if codeUnit >= 0xdc00 && codeUnit <= 0xdfff {
-						return "", &IngressError{Code: "MALFORMED_JSON", Message: "escaped lone low surrogate"}
-					}
-					buf.WriteRune(rune(codeUnit))
 				default:
-					return "", &IngressError{Code: "MALFORMED_JSON", Message: "invalid escape character"}
+					return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid escape character")
+				}
+				if err := appendRune(r); err != nil {
+					return "", err
 				}
 			} else if ch < 0x20 {
-				return "", &IngressError{Code: "MALFORMED_JSON", Message: "unescaped control character in string"}
+				return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unescaped control character in string")
 			} else {
-				buf.WriteByte(ch)
-				pos++
+				r, size := utf8.DecodeRuneInString(text[pos:])
+				if r == utf8.RuneError && size == 1 {
+					return "", ingressError("INVALID_UTF8", ReasonUTF8, "raw request body is not valid UTF-8")
+				}
+				if err := appendRune(r); err != nil {
+					return "", err
+				}
+				pos += size
 			}
 		}
-		return "", &IngressError{Code: "MALFORMED_JSON", Message: "unterminated string literal"}
+		return "", ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unterminated string literal")
 	}
 
 	parseNumber = func() (int64, error) {
@@ -175,7 +214,7 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 			pos++
 		}
 		if pos >= len(text) {
-			return 0, &IngressError{Code: "MALFORMED_JSON", Message: "invalid number literal"}
+			return 0, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid number literal")
 		}
 		intStart := pos
 		if text[pos] == '0' {
@@ -185,25 +224,22 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 				pos++
 			}
 		} else {
-			return 0, &IngressError{Code: "MALFORMED_JSON", Message: "invalid number format"}
+			return 0, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid number format")
 		}
 		intDigits := text[intStart:pos]
-
 		fracDigits := ""
 		if pos < len(text) && text[pos] == '.' {
 			pos++
-			fracStart := pos
+			start := pos
 			for pos < len(text) && text[pos] >= '0' && text[pos] <= '9' {
 				pos++
 			}
-			if pos == fracStart {
-				return 0, &IngressError{Code: "MALFORMED_JSON", Message: "invalid number fraction"}
+			if pos == start {
+				return 0, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid number fraction")
 			}
-			fracDigits = text[fracStart:pos]
+			fracDigits = text[start:pos]
 		}
-
-		expSign := int64(1)
-		expDigits := ""
+		expSign, expDigits := 1, ""
 		if pos < len(text) && (text[pos] == 'e' || text[pos] == 'E') {
 			pos++
 			if pos < len(text) && (text[pos] == '+' || text[pos] == '-') {
@@ -212,74 +248,69 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 				}
 				pos++
 			}
-			expStart := pos
+			start := pos
 			for pos < len(text) && text[pos] >= '0' && text[pos] <= '9' {
 				pos++
 			}
-			if pos == expStart {
-				return 0, &IngressError{Code: "MALFORMED_JSON", Message: "invalid number exponent"}
+			if pos == start {
+				return 0, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "invalid number exponent")
 			}
-			expDigits = text[expStart:pos]
+			expDigits = text[start:pos]
 		}
-
-		var expVal int64
-		if expDigits != "" {
-			parsedExp, err := strconv.ParseInt(expDigits, 10, 64)
-			if err != nil {
-				return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "invalid number exponent"}
-			}
-			expVal = parsedExp * expSign
-		}
-
 		digitsStr := intDigits + fracDigits
-		effectiveExp := expVal - int64(len(fracDigits))
-
-		bigInt := new(big.Int)
-		if _, ok := bigInt.SetString(digitsStr, 10); !ok {
-			return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "invalid number digits"}
+		if len(digitsStr) > limits.MaxNumberDigits {
+			return 0, ingressError("JSON_LIMIT_EXCEEDED", ReasonNumberDigits, "number digit count exceeds the configured release limit")
 		}
-
+		expMagnitude := 0
+		if expDigits != "" {
+			significant := strings.TrimLeft(expDigits, "0")
+			if significant == "" {
+				significant = "0"
+			}
+			maxText := strconv.Itoa(limits.MaxExponentMagnitude)
+			if len(significant) > len(maxText) || (len(significant) == len(maxText) && significant > maxText) {
+				return 0, ingressError("JSON_LIMIT_EXCEEDED", ReasonExponentMagnitude, "number exponent exceeds the configured release limit")
+			}
+			expMagnitude, _ = strconv.Atoi(significant)
+		}
+		effectiveExp := expMagnitude*expSign - len(fracDigits)
+		if effectiveExp > limits.MaxExponentMagnitude || effectiveExp < -limits.MaxExponentMagnitude {
+			return 0, ingressError("JSON_LIMIT_EXCEEDED", ReasonExponentMagnitude, "effective number exponent exceeds the configured release limit")
+		}
+		value := new(big.Int)
+		if _, ok := value.SetString(digitsStr, 10); !ok {
+			return 0, ingressError("UNSAFE_JSON_NUMBER", ReasonSafeInteger, "invalid number digits")
+		}
 		if effectiveExp >= 0 {
-			if effectiveExp > 10000 {
-				return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "number exponent too large"}
-			}
-			mul := new(big.Int).Exp(big.NewInt(10), big.NewInt(effectiveExp), nil)
-			bigInt.Mul(bigInt, mul)
+			value.Mul(value, new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(effectiveExp)), nil))
 		} else {
-			k := -effectiveExp
-			if k > 10000 {
-				return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "number exponent too small"}
-			}
-			div := new(big.Int).Exp(big.NewInt(10), big.NewInt(k), nil)
-			rem := new(big.Int)
-			bigInt.DivMod(bigInt, div, rem)
-			if rem.Sign() != 0 {
-				return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "number is not an integer"}
+			divisor := new(big.Int).Exp(big.NewInt(10), big.NewInt(int64(-effectiveExp)), nil)
+			remainder := new(big.Int)
+			value.DivMod(value, divisor, remainder)
+			if remainder.Sign() != 0 {
+				return 0, ingressError("UNSAFE_JSON_NUMBER", ReasonSafeInteger, "number is not an integer")
 			}
 		}
-
 		if isNeg {
-			bigInt.Neg(bigInt)
+			value.Neg(value)
 		}
-
-		if !bigInt.IsInt64() {
-			return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "number is out of safe integer range"}
+		if !value.IsInt64() {
+			return 0, ingressError("UNSAFE_JSON_NUMBER", ReasonSafeInteger, "number exceeds the protocol safe-integer range")
 		}
-
-		val := bigInt.Int64()
-		if val < MinSafeInteger || val > MaxSafeInteger {
-			return 0, &IngressError{Code: "UNSAFE_JSON_NUMBER", Message: "number is out of safe integer range"}
+		result := value.Int64()
+		if result < MinSafeInteger || result > MaxSafeInteger {
+			return 0, ingressError("UNSAFE_JSON_NUMBER", ReasonSafeInteger, "number exceeds the protocol safe-integer range")
 		}
-		return val, nil
+		return result, nil
 	}
 
 	parseValue = func(depth int) (any, error) {
-		if depth > MaxJSONDepth {
-			return nil, &IngressError{Code: "JSON_LIMIT_EXCEEDED", Message: fmt.Sprintf("nesting depth exceeds maximum %d", MaxJSONDepth)}
+		if depth > limits.MaxJSONDepth {
+			return nil, ingressError("JSON_LIMIT_EXCEEDED", ReasonDepth, "JSON nesting depth exceeds the configured release limit")
 		}
 		skipWhitespace()
 		if pos >= len(text) {
-			return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unexpected end of JSON input"}
+			return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unexpected end of JSON input")
 		}
 		ch := text[pos]
 		switch {
@@ -298,7 +329,7 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 		case ch == '-' || (ch >= '0' && ch <= '9'):
 			return parseNumber()
 		default:
-			return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unexpected character"}
+			return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unexpected JSON character")
 		}
 	}
 
@@ -306,11 +337,8 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 		if err := countToken(); err != nil {
 			return nil, err
 		}
-		pos++ // skip {
-		obj := make(map[string]any)
-		keys := make(map[string]bool)
-		memberCount := 0
-
+		pos++
+		obj, keys, count := make(map[string]any), make(map[string]bool), 0
 		skipWhitespace()
 		if pos < len(text) && text[pos] == '}' {
 			if err := countToken(); err != nil {
@@ -319,71 +347,64 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 			pos++
 			return obj, nil
 		}
-
 		for pos < len(text) {
 			skipWhitespace()
-			if text[pos] != '"' {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "expected member name string"}
+			if pos >= len(text) || text[pos] != '"' {
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "expected member name string")
 			}
 			key, err := parseString()
 			if err != nil {
 				return nil, err
 			}
 			if keys[key] {
-				return nil, &IngressError{Code: "DUPLICATE_JSON_MEMBER", Message: "duplicate object member name"}
+				return nil, ingressError("DUPLICATE_JSON_MEMBER", ReasonDuplicateMember, "duplicate object member name")
 			}
 			keys[key] = true
-			memberCount++
-			if memberCount > MaxObjectMembers {
-				return nil, &IngressError{Code: "JSON_LIMIT_EXCEEDED", Message: fmt.Sprintf("object member count exceeds maximum %d", MaxObjectMembers)}
+			count++
+			if count > limits.MaxObjectMembers {
+				return nil, ingressError("JSON_LIMIT_EXCEEDED", ReasonObjectMembers, "object member count exceeds the configured release limit")
 			}
-
 			skipWhitespace()
 			if pos >= len(text) || text[pos] != ':' {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "expected ':' after member name"}
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "expected colon after member name")
 			}
 			if err := countToken(); err != nil {
 				return nil, err
 			}
-			pos++ // skip :
-
-			val, err := parseValue(depth + 1)
+			pos++
+			value, err := parseValue(depth + 1)
 			if err != nil {
 				return nil, err
 			}
-			obj[key] = val
-
+			obj[key] = value
 			skipWhitespace()
 			if pos >= len(text) {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unexpected end of object"}
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unexpected end of object")
 			}
-			nextChar := text[pos]
-			if nextChar == '}' {
+			if text[pos] == '}' {
 				if err := countToken(); err != nil {
 					return nil, err
 				}
 				pos++
 				return obj, nil
 			}
-			if nextChar == ',' {
-				if err := countToken(); err != nil {
-					return nil, err
-				}
-				pos++
-			} else {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "expected ',' or '}'"}
+			if text[pos] != ',' {
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "expected object delimiter")
 			}
+			if err := countToken(); err != nil {
+				return nil, err
+			}
+			pos++
 		}
-		return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unterminated object literal"}
+		return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unterminated object literal")
 	}
 
 	parseArray = func(depth int) ([]any, error) {
 		if err := countToken(); err != nil {
 			return nil, err
 		}
-		pos++ // skip [
-		var arr []any
-
+		pos++
+		arr := []any{}
 		skipWhitespace()
 		if pos < len(text) && text[pos] == ']' {
 			if err := countToken(); err != nil {
@@ -392,39 +413,35 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 			pos++
 			return arr, nil
 		}
-
 		for pos < len(text) {
-			if len(arr) >= MaxArrayItems {
-				return nil, &IngressError{Code: "JSON_LIMIT_EXCEEDED", Message: fmt.Sprintf("array item count exceeds maximum %d", MaxArrayItems)}
+			if len(arr) >= limits.MaxArrayItems {
+				return nil, ingressError("JSON_LIMIT_EXCEEDED", ReasonArrayItems, "array item count exceeds the configured release limit")
 			}
-			val, err := parseValue(depth + 1)
+			value, err := parseValue(depth + 1)
 			if err != nil {
 				return nil, err
 			}
-			arr = append(arr, val)
-
+			arr = append(arr, value)
 			skipWhitespace()
 			if pos >= len(text) {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unexpected end of array"}
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unexpected end of array")
 			}
-			nextChar := text[pos]
-			if nextChar == ']' {
+			if text[pos] == ']' {
 				if err := countToken(); err != nil {
 					return nil, err
 				}
 				pos++
 				return arr, nil
 			}
-			if nextChar == ',' {
-				if err := countToken(); err != nil {
-					return nil, err
-				}
-				pos++
-			} else {
-				return nil, &IngressError{Code: "MALFORMED_JSON", Message: "expected ',' or ']'"}
+			if text[pos] != ',' {
+				return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "expected array delimiter")
 			}
+			if err := countToken(); err != nil {
+				return nil, err
+			}
+			pos++
 		}
-		return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unterminated array literal"}
+		return nil, ingressError("MALFORMED_JSON", ReasonJSONGrammar, "unterminated array literal")
 	}
 
 	rootValue, err := parseValue(1)
@@ -433,11 +450,7 @@ func ParseRawIngress(rawBytes []byte) (any, error) {
 	}
 	skipWhitespace()
 	if pos < len(text) {
-		return nil, &IngressError{Code: "MALFORMED_JSON", Message: "unexpected trailing content"}
+		return nil, ingressError("MALFORMED_JSON", ReasonTrailingValue, "unexpected trailing JSON content")
 	}
 	return rootValue, nil
-}
-
-func stringsHasPrefix(s, prefix string) bool {
-	return len(s) >= len(prefix) && s[:len(prefix)] == prefix
 }

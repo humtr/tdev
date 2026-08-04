@@ -154,11 +154,31 @@ Any other schema-node keyword fails generator and runtime admission. `$ref` and 
 
 Extending the executable subset requires an accepted protocol design, TypeScript and Go parity tests, and generator enforcement before a canonical schema may depend on the new keyword.
 
-### 3.7 M1 lossless public ingress and validated domain conversion
+### 3.7 M1 release profile, lossless public ingress, and validated domain conversion
 
-The current `protocol/schemas/tdev.v1.schema.json` remains the M0 source foundation until the accepted M1 implementation slice introduces a versioned M1 canonical schema and regenerates every derivative. No Worker or CaseDO implementation may consume public semantic values before that schema and its generated conversion boundary exist.
+The current `protocol/schemas/tdev.v1.schema.json` remains the M0 schema source until a versioned M1 schema revision is required. M1 mutable non-secret limits and product-policy defaults have one canonical source at `protocol/profiles/tdev.m1.release-profile.json`; its M1 identity is `tdev.m1.default` with `profileVersion = 1`. The generator validates that source losslessly, rejects unknown, duplicate, missing, trailing, or out-of-range data, computes `TypedDigest("tdev.release-profile.v1", profile)`, and emits immutable TypeScript and Go views. The release manifest pins the exact profile identity and digest. Production paths have no environment override or hot reload.
 
-The M1 public protocol profile has these hard maxima before semantic routing:
+Configuration categories are disjoint:
+
+```text
+immutable/versioned protocol invariant
+  safe-integer range, canonicalization and digest domains, cursor-v1 HMAC-SHA256,
+  state and error meaning, transaction atomicity, terminal immutability,
+  authentication, authorization, and non-enumeration
+
+release product policy
+  request/parser/output limits, page sizes, cursor TTL, quotas, orphan grace period
+
+deployment configuration or secret
+  deployment identity, bearer token, cursor HMAC key generations, Cloudflare bindings
+
+test-only override
+  explicitly constructed invalid or narrowed profiles that no production loader can select
+```
+
+A release policy may narrow behavior only inside its immutable hard ceiling. Raising a ceiling or changing a fixed algorithm, compatibility meaning, retention meaning, or persistence/security invariant requires an accepted versioned design and the appropriate profile, schema, or migration version change.
+
+The M1 selected release defaults are:
 
 ```text
 raw request body                 1,048,576 bytes
@@ -166,28 +186,38 @@ JSON nesting depth               64 containers
 JSON lexical tokens              100,000
 members in one object            4,096
 items in one array               10,000 unless the selected schema is stricter
+decoded string length            262,144 Unicode code points
+number digits                    1,024
+absolute exponent magnitude      10,000
 canonical mutation response      262,144 bytes
 rendered text envelope            65,536 UTF-8 bytes
+Artifact range chunk             262,144 bytes
 query page size                  default 20, maximum 100
+cursor TTL                        3,600 seconds
 ```
 
-Every public semantic request follows this order:
+The hard compatibility ceilings are owned by profile version 1 and enforced in both generated runtimes. Missing profile identity, digest mismatch, invalid enum, or value outside its minimum/ceiling fails closed before serving requests.
+
+Every public semantic request follows this exact order:
 
 ```text
 bounded body collection
 -> fatal UTF-8 validation
--> lossless JSON lexical scan
--> duplicate-member, grammar, depth, token, container, and safe-integer checks
--> generic JSON value decode
--> canonical schema validation and canonical value digest
--> validation proof construction
--> generated domain conversion
+-> lossless JSON lexical scan and grammar validation
+-> duplicate-member, depth, token, container, string, digit, exponent, and exact-number checks
+-> minimal MCP/JSON-RPC envelope validation and exact protocol revision
+-> authentication
+-> client capability parsing
+-> capability-specific canonical schema validation and canonical value digest
+-> ValidationProofV1 construction and exact-root generated domain conversion
 -> capability-specific semantic digest
--> authentication, authorization, and deterministic owner routing
+-> authorization and deterministic owner routing
 -> CaseDO transaction or bounded read
 ```
 
-The lexical scanner keeps a decoded member-name set for each open object. Escape-equivalent names such as `"a"` and `"\u0061"` are duplicates. A duplicate at any nesting depth, including an unknown field, is rejected before ordinary object decoding. Number tokens are parsed losslessly before any floating-point conversion and are accepted only when their exact mathematical value is an integer in the protocol safe-integer range. Equivalent accepted integer spellings canonicalize to the same value; non-integral, non-finite, or out-of-range values are invalid.
+Authentication precedes capability-specific deep validation so unauthenticated input cannot consume owner-specific validation work. Authorization and owner routing follow exact canonical conversion so policy never authorizes an ambiguous wire value. Authentication and authorization errors do not disclose owner existence.
+
+The lexical scanner keeps a decoded member-name set for every open object. Escape-equivalent names such as `"a"` and `"\u0061"` are duplicates. A duplicate at any nesting depth, including an unknown field, is rejected before ordinary object decoding. Number tokens are bounded by digit and exponent magnitude before any `BigInt`, `big.Int`, floating-point conversion, or exponentiation. Accepted numbers must have an exact mathematical integer value in the protocol safe-integer range. Equivalent accepted integer spellings canonicalize to the same value; non-integral, non-finite, oversized, or out-of-range values are invalid.
 
 A successful schema validation returns an ephemeral proof that cannot be supplied by the client or persisted as authority:
 
@@ -205,24 +235,26 @@ type ValidationProofV1 = {
 };
 ```
 
-Every `oneOf` must match exactly one branch. `canonicalDigest` is `SHA256("tdev.validation-proof.v1\0" + canonical bytes of the validated root value)` and binds the proof to that exact value. Stable branch identity is derived from the canonical schema pointer and branch index. Generated TypeScript and Go converters consume the matching proof, verify any required `const` discriminator, and construct a closed domain variant. Generated Go `json.RawMessage` union aliases remain wire containers only; CaseDO repositories and transition APIs do not accept an unproved raw union. A stored canonical value is revalidated before domain use, and an invalid stored value is `STORAGE_CORRUPT` rather than a default or empty state.
+Every generated converter declares one static expected root definition. It rejects a proof whose `rootDefinition` differs before reading a union entry. Every `oneOf` must match exactly one branch. `canonicalDigest` is `SHA256("tdev.validation-proof.v1\0" + canonical bytes of the validated root value)` and binds the proof to that exact value. Stable branch identity is derived from the canonical schema pointer and branch index. Generated TypeScript and Go converters verify root definition, schema digest, canonical digest, instance pointer, schema pointer, branch identity, branch index, and any required `const` discriminator before constructing a closed domain variant. Generated Go `json.RawMessage` union aliases remain wire containers only; CaseDO repositories and transition APIs do not accept an unproved raw union. A stored canonical value is revalidated before domain use, and an invalid stored value is `STORAGE_CORRUPT` rather than a default or empty state.
 
-Required pre-routing errors include:
+Required ingress codes and typed reasons include:
 
 ```text
-PAYLOAD_TOO_LARGE
-INVALID_UTF8
-MALFORMED_JSON
-DUPLICATE_JSON_MEMBER
-JSON_LIMIT_EXCEEDED
-UNSAFE_JSON_NUMBER
-INPUT_SCHEMA_INVALID
-ONE_OF_NO_MATCH
-ONE_OF_MULTIPLE_MATCH
-UNION_DISCRIMINATOR_MISMATCH
+PAYLOAD_TOO_LARGE          BODY_BYTES
+INVALID_UTF8               UTF8
+MALFORMED_JSON             JSON_GRAMMAR | TRAILING_VALUE
+DUPLICATE_JSON_MEMBER      DUPLICATE_MEMBER
+JSON_LIMIT_EXCEEDED        DEPTH | TOKEN_COUNT | OBJECT_MEMBERS | ARRAY_ITEMS |
+                           STRING_LENGTH | NUMBER_DIGITS | EXPONENT_MAGNITUDE
+UNSAFE_JSON_NUMBER         SAFE_INTEGER
+INPUT_SCHEMA_INVALID       SCHEMA
+ONE_OF_NO_MATCH            ONE_OF_NO_MATCH
+ONE_OF_MULTIPLE_MATCH      ONE_OF_MULTIPLE_MATCH
+ROOT_DEFINITION_MISMATCH   ROOT_DEFINITION
+UNION_DISCRIMINATOR_MISMATCH UNION_DISCRIMINATOR
 ```
 
-TypeScript and Go consume the same raw-byte and union-branch fixtures. A parsed-value test cannot prove duplicate-member rejection, and successful JSON unmarshalling cannot prove union discrimination.
+Typed details are bounded and do not include raw request bodies, secrets, unbounded names, or unauthorized identifiers. TypeScript and Go consume the same raw-byte and proof-tamper fixtures. A parsed-value test cannot prove duplicate-member rejection, and successful JSON unmarshalling cannot prove union discrimination or exact-root proof binding.
 
 ## 4. CaseContract
 
@@ -681,6 +713,162 @@ Only `submit_operation` creates a Native Task. Case and Task control actions are
 
 The semantic contracts below remain stable across projections. A wire projection change does not implicitly change a Case or Task contract.
 
+## 9.1 Exact tools-v1 semantic request and result contracts
+
+The twelve canonical capabilities use closed request/result schemas. MCP Tools, Resources, Tasks, or extension envelopes project these values but cannot add authority or another lifecycle owner.
+
+```ts
+type PageRequestV1 = {
+  limit?: number;       // safe integer; default/profile maximum apply
+  cursor?: string;
+};
+
+type SnapshotV1 = {
+  caseRevision?: number;
+  taskRevision?: number;
+  eventSequence: number;
+};
+
+type PageResultV1 = {
+  snapshot: SnapshotV1;
+  nextCursor?: string;
+};
+
+type OperationCatalogEntryV1 = {
+  operationId: string;
+  operationVersion: number;
+  title: string;
+  inputSchemaDigest: Sha256;
+  resultSchemaDigest: Sha256;
+  mutating: boolean;
+  available: boolean;
+};
+
+type ResourceSummaryV1 = {
+  kind: "case" | "task" | "attempt" | "event" | "checkpoint" | "evidence_set" | "artifact";
+  uri: string;
+  caseId: CaseId;
+  taskId?: TaskId;
+  subjectId: string;
+  revision?: number;
+  createdAt?: Timestamp;
+  mediaType?: string;
+  byteLength?: number;
+  sha256?: Sha256;
+};
+```
+
+Read and list requests/results are exact:
+
+```ts
+type ListOperationsInputV1 = { page?: PageRequestV1 };
+type ListOperationsResultV1 = {
+  operations: OperationCatalogEntryV1[];
+  catalogDigest: Sha256;
+  profileDigest: Sha256;
+  page: PageResultV1;
+};
+
+type ListResourcesInputV1 = {
+  caseId?: CaseId;
+  taskId?: TaskId;
+  kinds?: ResourceSummaryV1["kind"][];
+  page?: PageRequestV1;
+};
+type ListResourcesResultV1 = { resources: ResourceSummaryV1[]; page: PageResultV1 };
+
+type GetCaseInputV1 = { caseId: CaseId };
+type GetCaseResultV1 = {
+  contract: CaseContract;
+  state: CaseState;
+  taskCount: number;
+  latestCheckpointId?: CheckpointId;
+  snapshot: SnapshotV1;
+};
+
+type GetTaskInputV1 = { caseId: CaseId; taskId: TaskId };
+type GetTaskResultV1 = {
+  task: TaskRecord;
+  latestAttempt?: AttemptRecord;
+  attemptCount: number;
+  outstandingApprovalRequestId?: ApprovalRequestId;
+  outstandingInputRequestId?: InputRequestId;
+  outstandingRetryDecisionId?: RetryDecisionId;
+  snapshot: SnapshotV1;
+};
+
+type RenderTaskInputV1 = {
+  caseId: CaseId;
+  taskId: TaskId;
+  format?: "text" | "markdown";
+  maxBytes?: number;
+};
+type RenderTaskResultV1 = {
+  caseId: CaseId;
+  taskId: TaskId;
+  taskRevision: number;
+  eventSequence: number;
+  format: "text" | "markdown";
+  text: string;
+  truncated: boolean;
+  renderDigest: Sha256;
+  nextCursor?: string;
+};
+
+type ReadArtifactInputV1 = {
+  caseId: CaseId;
+  artifactId: ArtifactId;
+  offset?: number;
+  length?: number;
+};
+type ReadArtifactResultV1 = {
+  artifact: ArtifactRef;
+  offset: number;
+  dataBase64: string;
+  eof: boolean;
+  rangeDigest: Sha256;
+};
+```
+
+`get_case` and `get_task` deliberately return one bounded current summary, not an unbounded child collection. Related histories use `list_resources` with a fixed snapshot. `read_artifact` returns at most `output.maxArtifactChunkBytes` from the release-pinned profile; byte ownership, digest, range, and authorization are rechecked for every request.
+
+The six mutation inputs are the exact `SubmitOperationInput`, `ControlCaseInput`, `FinishCaseInput`, `CancelCaseInput`, `ControlTaskInput`, and `CancelTaskInput` defined below. Control mutation results use:
+
+```ts
+type ControlMutationResultV1<T> = {
+  accepted: true;
+  deduplicated: boolean;
+  requestId: RequestId;
+  caseId: CaseId;
+  taskId?: TaskId;
+  committedCaseRevision: number;
+  committedTaskRevision?: number;
+  committedEventSequence: number;
+  value: T;
+};
+```
+
+`submit_operation` keeps the more specific `SubmitOperationResult` in section 10.4. `control_case`, `finish_case`, and `cancel_case` return the committed `CaseState` as `value`; `control_task` and `cancel_task` return the committed `TaskRecord` and current `AttemptRecord` when one exists. Stored replay returns the original semantic result with `deduplicated: true` in transport metadata and creates no new revision or Event.
+
+Capability matrix:
+
+| Capability | Authenticated | Mutation | Owner/read source | Result bound and Event rule |
+| --- | --- | --- | --- | --- |
+| `list_operations` | yes | no | release-pinned catalog | fixed snapshot; no Event |
+| `list_resources` | yes | no | authorized CaseDO/D1 locator projections | profile page bound; no Event |
+| `submit_operation` | yes | yes | deterministic new CaseDO or explicit CaseDO | one transaction, receipt, Events |
+| `get_case` | yes | no | explicit CaseDO | one bounded summary; no Event |
+| `get_task` | yes | no | explicit CaseDO | one bounded summary; no Event |
+| `control_case` | yes | yes | explicit CaseDO | one transaction, receipt, Events |
+| `finish_case` | yes | yes | explicit CaseDO | terminal evidence check, receipt, Events |
+| `cancel_case` | yes | yes | explicit CaseDO | cancellation intent, receipt, Events |
+| `control_task` | yes | yes | explicit CaseDO | exact outstanding request/revision, receipt, Events |
+| `cancel_task` | yes | yes | explicit CaseDO | cooperative intent, receipt, Events |
+| `render_task` | yes | no | explicit CaseDO snapshot | rendered byte bound; no Event |
+| `read_artifact` | yes | no | CaseDO metadata plus R2 bytes | range bound; no Event |
+
+All twelve reject unknown fields. A missing or unauthorized subject uses the projection's non-enumerating not-found policy. List/read calls never create mutation receipts, revisions, or audit Events merely because they were observed.
+
 ## 10. submit_operation
 
 ### 10.1 Input
@@ -1106,6 +1294,36 @@ Transport or ingress errors occur before a canonical domain transition can be de
 
 Error details contain only bounded pointers and reasons. They do not echo raw request bodies, secrets, unauthorized identifiers, or unbounded member names.
 
+```ts
+type ProtocolErrorReason =
+  | "BODY_BYTES"
+  | "UTF8"
+  | "JSON_GRAMMAR"
+  | "TRAILING_VALUE"
+  | "DUPLICATE_MEMBER"
+  | "DEPTH"
+  | "TOKEN_COUNT"
+  | "OBJECT_MEMBERS"
+  | "ARRAY_ITEMS"
+  | "STRING_LENGTH"
+  | "NUMBER_DIGITS"
+  | "EXPONENT_MAGNITUDE"
+  | "SAFE_INTEGER"
+  | "SCHEMA"
+  | "ONE_OF_NO_MATCH"
+  | "ONE_OF_MULTIPLE_MATCH"
+  | "ROOT_DEFINITION"
+  | "UNION_DISCRIMINATOR";
+
+type ProtocolErrorDetailsV1 = {
+  reason: ProtocolErrorReason;
+  instancePointer?: string; // bounded canonical pointer only
+  limit?: number;
+};
+```
+
+Consumers branch on `code` and `details.reason`, never on the human message. Public message wording may change without a protocol revision.
+
 ### 19.2 Admission errors
 
 Admission errors create no Task:
@@ -1127,6 +1345,7 @@ LIFECYCLE_CONFLICT
 OUTSTANDING_REQUEST_MISMATCH
 TERMINAL_IMMUTABLE
 COMPLETION_EVIDENCE_INCOMPLETE
+QUOTA_EXCEEDED
 INVALID_CURSOR
 STORAGE_VERSION_MISMATCH
 STORAGE_CORRUPT
@@ -1193,98 +1412,150 @@ type CaseEvent = {
 
 Event payloads are typed by event type. Events are an audit log, not a competing current-state owner.
 
-## 21. M1 CaseDO SQLite storage, migration, and query snapshots
+## 21. M1 CaseDO SQLite storage, migration, query, retention, and quota contract
 
-### 21.1 Schema identity
+### 21.1 Schema identity and common DDL rules
 
-Each CaseDO database contains one authoritative schema metadata row:
+Each CaseDO database contains exactly one authoritative metadata row:
 
 ```text
 schema_meta
-  component = "case_do"
-  schema_version
+  component = "case_do" PRIMARY KEY
+  schema_version = 1
   schema_digest
+  migration_id
+  migration_checksum
   release_id
+  release_profile_id
+  release_profile_digest
   applied_at
 ```
 
-This row owns local database compatibility only. Deployment-wide migration progress and release ordering remain owned by [DEPLOYMENT.md](DEPLOYMENT.md).
+M1 does not add a second `schema_migrations` history table. `migration_id` identifies the exact empty-to-v1 migration and `migration_checksum` is the lowercase SHA-256 of its canonical migration bytes. This row is written last in the migration transaction and is immutable. Deployment-wide stage history and receipts remain owned by [DEPLOYMENT.md](DEPLOYMENT.md).
 
-M1 CaseDO schema version 1 contains:
+All M1 CaseDO tables are SQLite `STRICT` tables. `PRAGMA foreign_keys = ON` is verified before use. IDs and timestamps are `TEXT`; counters, revisions, ordinals, lengths, and booleans are safe-integer `INTEGER`; canonical JSON is `BLOB`; SHA-256 is lowercase 64-character `TEXT` constrained by `length(value)=64 AND value NOT GLOB '*[^0-9a-f]*'`. Canonical JSON columns are paired with a digest and revalidated before domain use. Every foreign key uses `ON UPDATE RESTRICT ON DELETE RESTRICT`. M1 has no canonical-row deletion or Event compaction path.
 
-```text
-case_contract
-case_state
-case_target_grants
-tasks
-attempts
-approval_requests
-approval_decisions
-input_requests
-input_responses
-retry_decisions
-checkpoints
-evidence_sets
-evidence_mappings
-evidence_refs
-artifact_refs
-mutation_receipts
-events
-```
+Tables that are immutable reject `UPDATE` and `DELETE` by trigger. Current-state tables permit only compare-and-update transitions through the repository and reject updates after terminal state. Derived selector columns are checked against the canonical JSON in the same transaction and never authorize independently.
 
-Canonical contracts, statuses, requests, decisions, results, failures, uncertainty, evidence references, and Event payloads are stored as validated canonical JSON bytes plus their required digests. Indexed kind, outcome, sequence, revision, and timestamp columns are derived selectors inside the same owner and cannot authorize a transition without the canonical value.
+### 21.2 Exact table contract matrix
 
-### 21.2 Required storage constraints
+Every column named below is `NOT NULL` unless it is explicitly marked nullable. Every canonical JSON/digest pair is checked together by the repository before use. `created_at`, `updated_at`, `applied_at`, and `committed_at` are canonical UTC timestamps. Status selector values are exactly the `kind` values declared in sections 6 through 8; terminal rows use `status_kind = 'terminal'`. Required index key order is part of this contract even when a later migration chooses a different implementation name.
 
-The schema enforces or the same transaction rechecks:
+| Table | Exact keys and foreign keys | Exact columns beyond the key | Mutability, checks, and required index keys |
+| --- | --- | --- | --- |
+| `schema_meta` | PK `component`; `CHECK(component='case_do')` | `schema_version`, `schema_digest`, `migration_id`, `migration_checksum`, `release_id`, `release_profile_id`, `release_profile_digest`, `applied_at` | `CHECK(schema_version=1)`; exactly one immutable row; update/delete forbidden |
+| `case_contract` | PK `case_id` | `schema_version`, `contract_json`, `contract_digest`, `created_at` | `CHECK(schema_version=1)`; immutable; update/delete forbidden |
+| `case_state` | PK/FK `case_id -> case_contract(case_id)` | `status_kind`, `case_revision`, `event_sequence`, `state_json`, `state_digest`, `updated_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; one current row; terminal update/delete forbidden; index `(status_kind,updated_at,case_id)` |
+| `case_target_grants` | PK `(case_id,grant_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,agent_id,target_kind,target_id)` | `agent_id`, `target_kind`, `target_id`, `grant_json`, `grant_digest`, `created_at` | immutable; update/delete forbidden; indexes `(case_id,agent_id,grant_id)` and `(case_id,target_kind,target_id,grant_id)` |
+| `tasks` | PK `(case_id,task_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,task_sequence)`; nullable composite FK `(case_id,latest_attempt_id) -> attempts(case_id,attempt_id)` deferred until both rows exist | `task_sequence`, `operation_id`, `operation_version`, `status_kind`, `task_revision`, nullable `latest_attempt_id`, `task_json`, `task_digest`, `created_at`, `updated_at` | `CHECK(task_sequence>=1 AND operation_version>=1 AND task_revision>=1)`; current row; terminal update/delete forbidden; indexes `(case_id,task_sequence,task_id)` and `(case_id,status_kind,task_sequence,task_id)` |
+| `attempts` | PK `(case_id,task_id,attempt_id)`; FK `(case_id,task_id) -> tasks`; UNIQUE `(case_id,attempt_id)`; UNIQUE `(case_id,task_id,attempt_ordinal)` | `attempt_ordinal`, `status_kind`, `attempt_revision`, `agent_id`, `dispatch_id`, `operation_input_digest`, `expected_task_revision`, `deadline_at`, `attempt_json`, `attempt_digest`, `created_at`, `updated_at` | `CHECK(attempt_ordinal>=1 AND attempt_revision>=1 AND expected_task_revision>=1)`; terminal update/delete forbidden; partial UNIQUE `(case_id,task_id) WHERE status_kind<>'terminal'`; indexes `(case_id,task_id,attempt_ordinal,attempt_id)` and `(case_id,status_kind,updated_at,attempt_id)` |
+| `approval_requests` | PK `(case_id,approval_request_id)`; FK `(case_id,task_id) -> tasks` | `task_id`, `expected_task_revision`, `request_json`, `request_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; immutable; update/delete forbidden; index `(case_id,task_id,created_at,approval_request_id)` |
+| `approval_decisions` | PK `(case_id,approval_decision_id)`; FK `(case_id,approval_request_id) -> approval_requests`; UNIQUE `(case_id,approval_request_id)` | `approval_request_id`, `expected_task_revision`, `decision_json`, `decision_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; immutable terminal response; update/delete forbidden |
+| `input_requests` | PK `(case_id,input_request_id)`; FK `(case_id,task_id) -> tasks` | `task_id`, `expected_task_revision`, `input_schema_digest`, `request_json`, `request_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; immutable; update/delete forbidden; index `(case_id,task_id,created_at,input_request_id)` |
+| `input_responses` | PK `(case_id,input_response_id)`; FK `(case_id,input_request_id) -> input_requests`; UNIQUE `(case_id,input_request_id)` | `input_request_id`, `expected_task_revision`, `response_json`, `response_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; immutable terminal response; update/delete forbidden |
+| `retry_decisions` | PK `(case_id,retry_decision_id)`; FK `(case_id,task_id) -> tasks`; FK `(case_id,task_id,attempt_id) -> attempts`; UNIQUE `(case_id,task_id,attempt_id)` | `task_id`, `attempt_id`, `expected_task_revision`, `decision_json`, `decision_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; inserted only when decided; immutable; update/delete forbidden |
+| `checkpoints` | PK `(case_id,checkpoint_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,case_revision)` | `case_revision`, `event_sequence`, `checkpoint_json`, `checkpoint_digest`, `created_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; immutable; update/delete forbidden; index `(case_id,case_revision,checkpoint_id)` |
+| `evidence_sets` | PK `(case_id,evidence_set_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,case_revision)` | `case_revision`, `event_sequence`, `evidence_set_json`, `evidence_set_digest`, `created_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; immutable; update/delete forbidden while Case retained |
+| `evidence_mappings` | PK `(case_id,evidence_set_id,criterion_id)`; FK `(case_id,evidence_set_id) -> evidence_sets` | `mapping_json`, `mapping_digest` | immutable; update/delete forbidden |
+| `evidence_refs` | PK `(case_id,evidence_set_id,criterion_id,evidence_ref_id)`; FK `(case_id,evidence_set_id,criterion_id) -> evidence_mappings` | `reference_kind`, `subject_kind`, `subject_id`, nullable `artifact_id`, nullable `event_sequence`, `evidence_json`, `evidence_digest` | exactly one of `artifact_id` or `event_sequence` is present when the reference kind requires it; immutable; update/delete forbidden; referenced Event/Artifact cleanup forbidden; indexes `(case_id,artifact_id,evidence_ref_id)` and `(case_id,event_sequence,evidence_ref_id)` |
+| `artifact_refs` | PK `(case_id,artifact_id)`; FK `case_id -> case_contract`; nullable FK `(case_id,task_id) -> tasks` | nullable `task_id`, `media_type`, `byte_length`, `sha256`, `retention_class`, `r2_generation`, `artifact_json`, `artifact_digest`, `created_at` | `CHECK(byte_length>=0 AND r2_generation>=1)`; inserted only after R2 bytes, length, digest, and generation are observed; immutable; update/delete forbidden while retained or referenced; index `(case_id,task_id,created_at,artifact_id)` |
+| `mutation_receipts` | PK `(case_id,request_id)`; FK `case_id -> case_contract` | `capability`, `semantic_input_digest`, `response_json`, `response_digest`, `committed_case_revision`, nullable `committed_task_revision`, `committed_event_sequence`, `created_at` | `CHECK(committed_case_revision>=1 AND committed_event_sequence>=0 AND (committed_task_revision IS NULL OR committed_task_revision>=1))`; response obeys the release-profile byte bound; immutable; update/delete forbidden while Case/recovery retained; index `(case_id,created_at,request_id)` |
+| `events` | PK `(case_id,event_sequence)`; FK `case_id -> case_contract`; UNIQUE `(case_id,event_id)` | `event_id`, `entity_kind`, `entity_id`, `event_type`, nullable `causation_request_id`, `event_json`, `event_digest`, `committed_at` | `CHECK(event_sequence>=1)`; immutable append-only; next sequence must equal prior maximum plus one; update/delete forbidden; indexes `(case_id,entity_kind,entity_id,event_sequence)` and `(case_id,event_type,event_sequence)` |
 
-- one contract and one current Case row for the addressed Case;
-- foreign keys contained to that Case;
-- unique Task sequence and Attempt ordinal within their owners;
-- at most one nonterminal Attempt per Task through a partial unique index or equivalent database guard;
-- unique mutation request ID per Case;
-- unique and gap-free committed Event sequence within one Case;
-- unique decision IDs and one terminal response for each approval, input, or retry request;
-- unique evidence criterion mapping and evidence reference;
-- immutable contract, grant, mutation receipt, decision, checkpoint, evidence-set, Artifact-metadata, and Event rows;
-- database and application guards against updates from terminal Case, Task, or Attempt state.
+The repository inserts `attempts` before setting `tasks.latest_attempt_id`, and both the composite foreign key and transaction check require the Attempt to belong to the same Case and Task. A nullable foreign key is either wholly null or wholly valid; partial identifiers are invalid. Artifact metadata is never inserted as a speculative stub: an R2 object without matching committed metadata remains an orphan and cannot satisfy evidence.
 
-Current rows are lifecycle truth. Events cannot reconstruct, replay, or authorize current state.
+### 21.3 Atomic mutation and revision/Event matrix
 
-### 21.3 Atomic mutation template
+Every mutation executes in one CaseDO serialization turn and one SQLite transaction:
 
-One CaseDO serialization turn and one SQLite transaction:
+1. check the immutable receipt by `(case_id,request_id)`;
+2. replay its original response when capability and semantic digest match;
+3. reject `REQUEST_ID_CONFLICT` without another write when they differ;
+4. validate canonical current rows, exact revisions, lifecycle, outstanding request, authorization, quota, and terminal prerequisites;
+5. insert/update rows through compare-and-update predicates;
+6. increment each affected current-row revision exactly once;
+7. append contiguous typed Events in the order below;
+8. insert immutable decisions, checkpoints, evidence, or Artifact metadata;
+9. insert the exact bounded canonical response receipt;
+10. commit before returning.
 
-1. read an existing mutation receipt by request ID;
-2. return its original response when the semantic digest matches;
-3. reject `REQUEST_ID_CONFLICT` without another write when it differs;
-4. validate canonical current rows, exact revisions, status, outstanding request identity, authorization, and terminal prerequisites;
-5. insert or update current rows under compare-and-update predicates;
-6. increment each affected revision exactly once;
-7. insert the next contiguous typed Events;
-8. insert immutable decisions, checkpoints, evidence, or Artifact metadata as required;
-9. insert the exact canonical response and mutation receipt;
-10. commit before returning a response.
+| Transition | Rows written and revisions | Event order in the same transaction |
+| --- | --- | --- |
+| new Case plus first Task | contract/grants immutable; Case revision 1; Task revision 1; optional immediately dispatchable Attempt revision 1; receipt | `CaseCreated`, `TaskAdmitted`, optional `AttemptCreated` |
+| existing Case Task admission | Case revision +1; new Task revision 1; optional Attempt revision 1; receipt | `TaskAdmitted`, optional `AttemptCreated`, `CaseProjectionChanged` |
+| Case pause/resume | Case revision +1; receipt | `CasePaused` or `CaseResumed` |
+| Case checkpoint | checkpoint row; Case revision +1; receipt | `CheckpointCreated`, `CaseProjectionChanged` |
+| finish Case | evidence/current rows read and verified; Case revision +1 to terminal; receipt | `CaseFinished` |
+| cancel Case | Case revision +1 to cancellation intent; every affected nonterminal Task revision +1; current nonterminal Attempt revision +1; receipt | `CaseCancellationRequested`, then Task events by task sequence, then Attempt events by attempt ordinal |
+| approve/deny/provide input | immutable decision/response row; Task revision +1; optional new Attempt revision 1; receipt | decision/response event, `TaskTransitioned`, optional `AttemptCreated` |
+| authorize/decline retry | retry decision row; Task revision +1; optional new Attempt revision 1; receipt | `RetryDecisionRecorded`, `TaskTransitioned`, optional `AttemptCreated` |
+| cancel Task | Task revision +1 to cancellation intent; current nonterminal Attempt revision +1 when present; Case revision +1 only when its public summary changes; receipt | `TaskCancellationRequested`, optional `AttemptCancellationRequested`, optional `CaseProjectionChanged` |
+| Attempt progress | Attempt revision +1; Task revision +1 only if its canonical public projection changes | `AttemptTransitioned`, optional `TaskProjectionChanged` |
+| accepted terminal Agent result | Attempt revision +1 terminal; Task revision +1 terminal; Case revision +1 only if summary/evidence/finality changes | `AttemptTerminal`, `TaskTerminal`, optional `CaseProjectionChanged` |
+| evidence-set materialization | evidence set/mapping/ref rows; Case revision +1; receipt when public mutation initiated it | `EvidenceSetCreated`, `CaseProjectionChanged` |
+| read/list/render/artifact range read | no writes, revisions, receipts, or Events | none |
 
-A zero-row compare-and-update is re-read and classified as replay, revision conflict, lifecycle conflict, or storage corruption. The implementation never drops a precondition and retries optimistically.
+A zero-row compare-and-update is re-read and classified as replay, `REVISION_CONFLICT`, lifecycle conflict, terminal immutability, or storage corruption. The implementation never drops a precondition and retries optimistically.
 
-New-Case admission atomically creates the contract, grants, active Case row, first Task, initial Attempt when immediately dispatchable, Events, and mutation receipt. No partial Case is externally visible.
+Race rules are exact:
+
+- Task result versus `finish_case`: CaseDO serialization decides order. `finish_case` rechecks the current Task/evidence set and exact Case revision; stale or incomplete completion loses with no write.
+- cancellation versus valid success: an already committed success is never overwritten. If cancellation intent commits first, a later result may become terminal success only when the Operation contract, identity, fencing, revision, result schema, and evidence still permit it; otherwise it converges to the canonical cancellation outcome.
+- approval, input, or retry decision versus cancellation/terminal transition: both require the exact Task revision and outstanding request identity. One commits; the other receives `REVISION_CONFLICT`, `OUTSTANDING_REQUEST_MISMATCH`, or `TERMINAL_IMMUTABLE` with no partial decision row.
+- duplicate mutation: a matching receipt replays without new revisions or Events. A conflicting semantic digest has no effect.
+- quota check versus insertion: the check and insertion share one transaction. `QUOTA_EXCEEDED` creates no row, revision, Event, or receipt and never deletes canonical data.
 
 ### 21.4 Migration and rollback barrier
 
-The initial migration is exact empty state to CaseDO schema version 1. It creates all tables, indexes, and guards transactionally, writes `schema_meta` last, then reopens and verifies the observed version and schema digest before serving requests.
+The only M1 initial migration is exact empty state to schema version 1. It verifies the database is empty, enables and verifies foreign keys, creates every table/index/trigger in one transaction, computes and compares the schema digest and migration checksum, writes `schema_meta` last, commits, reopens, and re-reads every identity before serving requests.
 
-A later migration requires an exact predecessor version and digest, release-manifest identity, preflight, a deployment-owned durable stage receipt, post-migration validation, and fault injection. A failed migration cannot expose a falsely applied target version.
+A later migration requires exact predecessor version/digest, migration ID/checksum, release and release-profile identity, preflight, deployment-owned durable stage receipt, post-migration validation, fault injection, and an explicit rollback barrier. Failed migration cannot expose a falsely applied target version. After v1 stores state, a predecessor without exact compatibility fails closed with `ROLLBACK_BLOCKED` or `STORAGE_VERSION_MISMATCH`. A local migration-history table is added only by a later accepted design that needs resumable or non-atomic local history; deployment receipts are not silently copied into CaseDO authority.
 
-After schema version 1 stores state, a predecessor that does not declare exact compatibility is not a rollback target. It fails closed with `ROLLBACK_BLOCKED` or `STORAGE_VERSION_MISMATCH`. A compensating migration or recovery import/export requires a separate accepted design.
+### 21.5 Cursor wire and snapshot contract
 
-### 21.5 Bounded reads and cursors
+Cursor v1 wire format is:
 
-`get_case` and `get_task` read canonical current rows and bounded related summaries in one SQLite read transaction. Every response identifies the Case revision and snapshot Event sequence; Task responses also identify the Task revision.
+```text
+tdevc1.<keyGeneration>.<base64url(canonicalPayload)>.<base64url(mac)>
+```
 
-A cursor is opaque, untrusted, self-contained, and bound to its schema version, semantic capability, query digest, Case and optional Task identity, snapshot upper bound, and last stable key. Every page revalidates authentication, authorization, cursor shape, query identity, and limits. A cursor owns no state and grants no authority. Pagination uses stable `(sequence, id)` or `(createdAt, id)` ordering and excludes writes after the fixed snapshot bound.
+Base64url is unpadded and must be in its canonical encoding. `keyGeneration` is a nonzero canonical decimal integer. The canonical payload is:
 
-`render_task` derives a bounded presentation from the same snapshot. Truncation is explicit and returns a cursor or authorized Artifact reference when available. An Artifact metadata stub without committed byte ownership and digest cannot satisfy evidence or authorize a read.
+```ts
+type CursorPayloadV1 = {
+  schemaVersion: 1;
+  capability: "list_operations" | "list_resources" | "render_task";
+  queryDigest: Sha256;
+  principalBindingDigest: Sha256;
+  releaseProfileDigest: Sha256;
+  caseId?: CaseId;
+  taskId?: TaskId;
+  snapshot: SnapshotV1;
+  lastStableKey: [string, string];
+  limit: number;
+  issuedAt: Timestamp;
+  expiresAt: Timestamp;
+};
+```
+
+`mac = HMAC-SHA256(cursorKey[keyGeneration], UTF8("tdev.cursor.v1\0" + keyGeneration + "\0") || canonicalPayloadBytes)`. Verification uses constant-time comparison. Deployment configuration provides the current generation and at most one previous generation for bounded rotation overlap; key bytes never enter Git, logs, Events, canonical input, fixtures, or the cursor. `expiresAt - issuedAt` equals the selected release-profile TTL and never exceeds its hard ceiling.
+
+Malformed encoding, unknown generation, MAC failure, expiry, profile/query/principal/subject mismatch, invalid limit, or snapshot inconsistency returns `INVALID_CURSOR` without existence disclosure. Cursor possession grants no authority: every page reauthenticates, reauthorizes, reloads the current profile identity, and rechecks query semantics. Stable ordering is `(sequence,id)` or `(createdAt,id)` as declared by the capability. The fixed snapshot excludes later writes; deleted canonical rows do not exist in M1.
+
+### 21.6 Retention and quota policy
+
+M1 release-policy defaults are:
+
+```text
+Tasks per Case                 10,000
+Attempts per Task                 100
+Events per Case              100,000
+R2 orphan cleanup eligibility     30 days after last observed unowned generation
+```
+
+The hard ceilings are 100,000 Tasks per Case, 1,000 Attempts per Task, and 1,000,000 Events per Case. Ordinary release policy may select a lower value only. M1 performs no Event compaction and exposes no canonical-row deletion. Mutation receipts remain at least as long as the Case or any recovery state that may replay them. Evidence-referenced Events and Artifact metadata are never cleanup-eligible while referenced. Artifact byte retention follows its canonical retention class; removal requires both canonical eligibility and independently observed R2 deletion.
+
+An R2 object with no matching committed `artifact_refs` row becomes cleanup-eligible only after the selected orphan grace period and an ownership recheck. Cleanup execution, scheduling, and live R2 behavior remain a later runtime gate. Unknown Cloudflare SQLite/R2 byte limits are deployment evidence constraints, not invented protocol guarantees. Reaching a product quota returns typed `QUOTA_EXCEEDED`; the service never silently compacts, evicts, truncates canonical state, or changes policy to admit a write.
 
 ## 22. Protocol version negotiation
 
@@ -1325,14 +1596,17 @@ The protocol implementation must include table-driven tests for:
 
 - raw invalid UTF-8 and malformed or trailing JSON;
 - duplicate members at every nesting level, including escape-equivalent names;
-- JSON depth, token, member, item, and safe-integer bounds;
-- every `oneOf` no-match, multi-match, and generated discriminator mismatch;
+- JSON depth, token, member, item, string, digit, exponent, and safe-integer bounds from the selected release profile;
+- release-profile lossless validation, digest drift, unknown/missing/duplicate/out-of-range data, and TS/Go generated-view parity;
+- every `oneOf` no-match, multi-match, exact-root replay, and generated discriminator mismatch;
 - compile/API rejection of unproved Go `json.RawMessage` at the domain and storage boundary;
 - fixed deterministic new-Case routing vectors and restart behavior;
 - original mutation-response replay after current Task state advances;
 - every state-changing capability request conflict and response-loss boundary;
 - exact empty-to-v1 migration, schema-digest mismatch, failed migration, and rollback barrier;
 - stable bounded Case, Task, Event, Attempt, and rendering pagination snapshots;
+- cursor canonical encoding, HMAC tamper, generation rotation, expiry, query/principal/profile binding, and non-enumerating failure;
+- every DDL key, foreign-key, immutable, terminal, partial-unique, migration-metadata, retention, and quota guard;
 - every allowed and forbidden Case transition;
 - every allowed and forbidden Task transition;
 - every allowed and forbidden Attempt transition;

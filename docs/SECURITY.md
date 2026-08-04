@@ -562,6 +562,8 @@ The initial product supports rotation with a bounded overlap generation. Token r
 
 Authentication failure creates no Task and reveals no resource existence beyond the minimum error.
 
+Pagination cursor integrity uses a deployment-scoped HMAC key that is distinct from the MCP bearer token. Cursor v1 fixes HMAC-SHA256; the release profile may set only the bounded TTL. Deployment configuration provides a current key generation and at most one previous generation for bounded rotation overlap. Key material is never committed, logged, included in a cursor, copied into canonical input, or persisted in an Event. Unknown key generation, malformed encoding, expiry, query mismatch, or failed constant-time MAC verification returns `INVALID_CURSOR` without revealing whether a referenced Case, Task, or Artifact exists. A valid cursor is still not authority: every page authenticates and authorizes again.
+
 ## 19. Threat cases and required behavior
 
 | Threat or failure | Required response |

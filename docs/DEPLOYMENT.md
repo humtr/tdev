@@ -356,11 +356,15 @@ tdev-agent
 edge Worker bundle
 CaseDO and AgentDO implementation
 canonical schema bundle
+M1 release profile identity and digest
 generated TypeScript and Go types
 D1 migrations
 Durable Object migrations
 protocol compatibility metadata
 Operation catalog and profile schema versions
+release-profile identity and digest
+CaseDO migration identity and checksum
+cursor-key generation metadata without key material
 installer assets
 checksums and signatures
 rollback metadata
@@ -405,6 +409,8 @@ protocol version
 canonical schema bundle
 D1 schema
 CaseDO and AgentDO stored schema
+release profile identity and digest
+CaseDO migration identity and checksum
 Operation catalog
 ```
 

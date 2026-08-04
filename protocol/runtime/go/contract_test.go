@@ -27,6 +27,13 @@ type fixtureSet struct {
 		Name  string          `json:"name"`
 		Value json.RawMessage `json:"value"`
 	} `json:"canonicalRejectCases"`
+	RawIngressCases []struct {
+		Name        string `json:"name"`
+		Raw         string `json:"raw"`
+		Valid       bool   `json:"valid"`
+		ErrorCode   string `json:"errorCode"`
+		ErrorReason string `json:"errorReason"`
+	} `json:"rawIngressCases"`
 	ProofVectorCases []struct {
 		Name                    string          `json:"name"`
 		Definition              string          `json:"definition"`
@@ -175,65 +182,88 @@ func TestContractFixturesAndCanonicalVectors(t *testing.T) {
 }
 
 func TestRawIngressValidationAndErrorCodes(t *testing.T) {
+	_, fixtures := loadContractFixtures(t)
+	for _, fixture := range fixtures.RawIngressCases {
+		t.Run("fixture/"+fixture.Name, func(t *testing.T) {
+			_, err := ParseRawIngress([]byte(fixture.Raw))
+			if fixture.Valid {
+				if err != nil {
+					t.Fatalf("expected valid ingress, got %v", err)
+				}
+				return
+			}
+			if err == nil {
+				t.Fatalf("expected %s/%s", fixture.ErrorCode, fixture.ErrorReason)
+			}
+			ingressErr, ok := err.(*IngressError)
+			if !ok || ingressErr.Code != fixture.ErrorCode || string(ingressErr.Reason) != fixture.ErrorReason {
+				t.Fatalf("expected %s/%s, got %v", fixture.ErrorCode, fixture.ErrorReason, err)
+			}
+		})
+	}
+
 	t.Run("invalid utf8", func(t *testing.T) {
 		raw := []byte{'{', '"', 'x', '"', ':', '"', 0xff, '"', '}'}
 		_, err := ParseRawIngress(raw)
-		if err == nil {
-			t.Fatal("expected invalid utf8 error")
-		}
 		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "INVALID_UTF8" {
-			t.Fatalf("expected INVALID_UTF8, got %v", err)
+		if !ok || ingressErr.Code != "INVALID_UTF8" || ingressErr.Reason != ReasonUTF8 {
+			t.Fatalf("expected INVALID_UTF8/UTF8, got %v", err)
 		}
 	})
 
 	t.Run("payload too large", func(t *testing.T) {
-		raw := make([]byte, MaxBodyBytes+1)
+		raw := make([]byte, DefaultM1ReleaseProfile().Ingress.MaxBodyBytes+1)
 		_, err := ParseRawIngress(raw)
-		if err == nil {
-			t.Fatal("expected payload too large error")
-		}
 		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "PAYLOAD_TOO_LARGE" {
-			t.Fatalf("expected PAYLOAD_TOO_LARGE, got %v", err)
+		if !ok || ingressErr.Code != "PAYLOAD_TOO_LARGE" || ingressErr.Reason != ReasonBodyBytes {
+			t.Fatalf("expected PAYLOAD_TOO_LARGE/BODY_BYTES, got %v", err)
 		}
 	})
+}
 
-	t.Run("duplicate key", func(t *testing.T) {
-		raw := []byte(`{"a": 1, "a": 2}`)
-		_, err := ParseRawIngress(raw)
-		if err == nil {
-			t.Fatal("expected duplicate key error")
-		}
-		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "DUPLICATE_JSON_MEMBER" {
-			t.Fatalf("expected DUPLICATE_JSON_MEMBER, got %v", err)
-		}
-	})
+func TestM1ReleaseProfileValidation(t *testing.T) {
+	profile := DefaultM1ReleaseProfile()
+	if err := ValidateReleaseProfile(profile); err != nil {
+		t.Fatalf("default profile invalid: %v", err)
+	}
+	if profile.Output.MaxArtifactChunkBytes != 262144 {
+		t.Fatalf("unexpected artifact chunk bound %d", profile.Output.MaxArtifactChunkBytes)
+	}
+	if profile.Pagination.CursorTTLSeconds != 3600 {
+		t.Fatalf("unexpected cursor TTL %d", profile.Pagination.CursorTTLSeconds)
+	}
+	if len(M1ReleaseProfileDigest) != 64 {
+		t.Fatalf("unexpected profile digest %q", M1ReleaseProfileDigest)
+	}
+	tooLarge := profile
+	tooLarge.Pagination.MaxPageSize = HardMaxPageSize + 1
+	if err := ValidateReleaseProfile(tooLarge); err == nil {
+		t.Fatal("expected oversized page policy to fail")
+	}
+	badRetention := profile
+	badRetention.Retention.EventCompaction = "enabled"
+	if err := ValidateReleaseProfile(badRetention); err == nil {
+		t.Fatal("expected unsupported retention policy to fail")
+	}
+}
 
-	t.Run("duplicate escape key", func(t *testing.T) {
-		raw := []byte(`{"\u0061": 1, "a": 2}`)
-		_, err := ParseRawIngress(raw)
-		if err == nil {
-			t.Fatal("expected duplicate key error")
-		}
-		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "DUPLICATE_JSON_MEMBER" {
-			t.Fatalf("expected DUPLICATE_JSON_MEMBER, got %v", err)
-		}
+func TestTypedSchemaErrorDetails(t *testing.T) {
+	validator, _ := loadContractFixtures(t)
+	_, details := validator.ValidateDefinitionWithProofDetails("ControlCaseInput", map[string]any{
+		"caseId":               "case_demo",
+		"expectedCaseRevision": int64(0),
+		"requestId":            "req_demo",
+		"action":               map[string]any{"kind": "unknown"},
 	})
-
-	t.Run("unsafe number decimal", func(t *testing.T) {
-		raw := []byte(`{"val": 1.5}`)
-		_, err := ParseRawIngress(raw)
-		if err == nil {
-			t.Fatal("expected unsafe number error")
+	foundNoMatch := false
+	for _, detail := range details {
+		if detail.Code == "ONE_OF_NO_MATCH" && detail.Reason == ReasonOneOfNoMatch {
+			foundNoMatch = true
 		}
-		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "UNSAFE_JSON_NUMBER" {
-			t.Fatalf("expected UNSAFE_JSON_NUMBER, got %v", err)
-		}
-	})
+	}
+	if !foundNoMatch {
+		t.Fatalf("missing typed oneOf no-match detail: %#v", details)
+	}
 }
 
 func TestValidationProofAndBranchMatching(t *testing.T) {
@@ -355,6 +385,7 @@ func TestProofBindingAndTamperingRejection(t *testing.T) {
 	extracted, match, err := VerifyProofAndExtract(
 		validInput,
 		proof,
+		"ControlCaseInput",
 		"$.action",
 		"#/$defs/ControlCaseInput/properties/action/oneOf",
 		[]string{"#/$defs/ControlCaseInput/properties/action/oneOf/0", "#/$defs/ControlCaseInput/properties/action/oneOf/1"},
@@ -378,28 +409,37 @@ func TestProofBindingAndTamperingRejection(t *testing.T) {
 			"reason": "manual",
 		},
 	}
-	if _, _, err := VerifyProofAndExtract(tamperedRoot, proof, "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
+	if _, _, err := VerifyProofAndExtract(tamperedRoot, proof, "ControlCaseInput", "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
 		t.Fatal("expected canonical digest mismatch for tampered root value")
 	}
 
 	// Tampered proof canonical digest
 	tamperedProof := *proof
 	tamperedProof.CanonicalDigest = "0000000000000000000000000000000000000000000000000000000000000000"
-	if _, _, err := VerifyProofAndExtract(validInput, &tamperedProof, "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
+	if _, _, err := VerifyProofAndExtract(validInput, &tamperedProof, "ControlCaseInput", "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
 		t.Fatal("expected canonical digest mismatch")
+	}
+
+	// Tampered root definition
+	tamperedRootDefinition := *proof
+	tamperedRootDefinition.RootDefinition = "CaseState"
+	if _, _, err := VerifyProofAndExtract(validInput, &tamperedRootDefinition, "ControlCaseInput", "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
+		t.Fatal("expected root definition mismatch")
+	} else if typed, ok := err.(*IngressError); !ok || typed.Code != "ROOT_DEFINITION_MISMATCH" || typed.Reason != ReasonRootDefinition {
+		t.Fatalf("unexpected typed root error: %v", err)
 	}
 
 	// Tampered schema digest
 	tamperedSchema := *proof
 	tamperedSchema.SchemaDigest = "1111111111111111111111111111111111111111111111111111111111111111"
-	if _, _, err := VerifyProofAndExtract(validInput, &tamperedSchema, "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
+	if _, _, err := VerifyProofAndExtract(validInput, &tamperedSchema, "ControlCaseInput", "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
 		t.Fatal("expected schema digest mismatch")
 	}
 
 	// Duplicate proof entries
 	duplicateProof := *proof
 	duplicateProof.Unions = append(duplicateProof.Unions, proof.Unions[0])
-	if _, _, err := VerifyProofAndExtract(validInput, &duplicateProof, "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
+	if _, _, err := VerifyProofAndExtract(validInput, &duplicateProof, "ControlCaseInput", "$.action", "#/$defs/ControlCaseInput/properties/action/oneOf", []string{"#/$defs/ControlCaseInput/properties/action/oneOf/0"}, validator.schemaDigest); err == nil {
 		t.Fatal("expected duplicate proof entries error")
 	}
 }
@@ -441,11 +481,14 @@ func TestIngressErrorPrivacyAndSurrogates(t *testing.T) {
 }
 
 func TestIngressContainerAndTokenBoundaries(t *testing.T) {
-	// Object member limit: 4096 succeeds, 4097 returns JSON_LIMIT_EXCEEDED
-	t.Run("object 4096 members succeeds", func(t *testing.T) {
+	profile := DefaultM1ReleaseProfile()
+	objectLimit := profile.Ingress.MaxObjectMembers
+	arrayLimit := profile.Ingress.MaxArrayItems
+
+	t.Run("object member limit succeeds", func(t *testing.T) {
 		var buf bytes.Buffer
 		buf.WriteString("{")
-		for i := 0; i < 4096; i++ {
+		for i := 0; i < objectLimit; i++ {
 			if i > 0 {
 				buf.WriteString(",")
 			}
@@ -453,14 +496,14 @@ func TestIngressContainerAndTokenBoundaries(t *testing.T) {
 		}
 		buf.WriteString("}")
 		if _, err := ParseRawIngress(buf.Bytes()); err != nil {
-			t.Fatalf("expected 4096 members to succeed, got %v", err)
+			t.Fatalf("expected configured object member limit to succeed, got %v", err)
 		}
 	})
 
-	t.Run("object 4097 members exceeds limit", func(t *testing.T) {
+	t.Run("object member limit plus one fails", func(t *testing.T) {
 		var buf bytes.Buffer
 		buf.WriteString("{")
-		for i := 0; i < 4097; i++ {
+		for i := 0; i < objectLimit+1; i++ {
 			if i > 0 {
 				buf.WriteString(",")
 			}
@@ -469,19 +512,18 @@ func TestIngressContainerAndTokenBoundaries(t *testing.T) {
 		buf.WriteString("}")
 		_, err := ParseRawIngress(buf.Bytes())
 		if err == nil {
-			t.Fatal("expected 4097 members to fail")
+			t.Fatal("expected configured object member limit plus one to fail")
 		}
 		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "JSON_LIMIT_EXCEEDED" {
-			t.Fatalf("expected JSON_LIMIT_EXCEEDED, got %v", err)
+		if !ok || ingressErr.Code != "JSON_LIMIT_EXCEEDED" || ingressErr.Reason != ReasonObjectMembers {
+			t.Fatalf("expected JSON_LIMIT_EXCEEDED/OBJECT_MEMBERS, got %v", err)
 		}
 	})
 
-	// Array item limit: 10000 succeeds, 10001 returns JSON_LIMIT_EXCEEDED
-	t.Run("array 10000 items succeeds", func(t *testing.T) {
+	t.Run("array item limit succeeds", func(t *testing.T) {
 		var buf bytes.Buffer
 		buf.WriteString("[")
-		for i := 0; i < 10000; i++ {
+		for i := 0; i < arrayLimit; i++ {
 			if i > 0 {
 				buf.WriteString(",")
 			}
@@ -489,14 +531,14 @@ func TestIngressContainerAndTokenBoundaries(t *testing.T) {
 		}
 		buf.WriteString("]")
 		if _, err := ParseRawIngress(buf.Bytes()); err != nil {
-			t.Fatalf("expected 10000 items to succeed, got %v", err)
+			t.Fatalf("expected configured array item limit to succeed, got %v", err)
 		}
 	})
 
-	t.Run("array 10001 items exceeds limit", func(t *testing.T) {
+	t.Run("array item limit plus one fails", func(t *testing.T) {
 		var buf bytes.Buffer
 		buf.WriteString("[")
-		for i := 0; i < 10001; i++ {
+		for i := 0; i < arrayLimit+1; i++ {
 			if i > 0 {
 				buf.WriteString(",")
 			}
@@ -505,11 +547,11 @@ func TestIngressContainerAndTokenBoundaries(t *testing.T) {
 		buf.WriteString("]")
 		_, err := ParseRawIngress(buf.Bytes())
 		if err == nil {
-			t.Fatal("expected 10001 items to fail")
+			t.Fatal("expected configured array item limit plus one to fail")
 		}
 		ingressErr, ok := err.(*IngressError)
-		if !ok || ingressErr.Code != "JSON_LIMIT_EXCEEDED" {
-			t.Fatalf("expected JSON_LIMIT_EXCEEDED, got %v", err)
+		if !ok || ingressErr.Code != "JSON_LIMIT_EXCEEDED" || ingressErr.Reason != ReasonArrayItems {
+			t.Fatalf("expected JSON_LIMIT_EXCEEDED/ARRAY_ITEMS, got %v", err)
 		}
 	})
 

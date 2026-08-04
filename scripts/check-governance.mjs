@@ -21,6 +21,12 @@ const requiredFiles = [
   "docs/WORKBOARD_TEMPLATE.md",
   "docs/design/README.md",
   "docs/design/TEMPLATE.md",
+  "protocol/profiles/README.md",
+  "protocol/profiles/tdev.m1.release-profile.json",
+  "protocol/runtime/typescript/profile.ts",
+  "protocol/runtime/typescript/profile.generated.ts",
+  "protocol/runtime/go/profile.go",
+  "protocol/runtime/go/profile_generated.go",
 ];
 const errors = [];
 
@@ -53,6 +59,8 @@ const checkedFiles = [
   "docs/WORKBOARD_TEMPLATE.md",
   "docs/design/README.md",
   "docs/design/TEMPLATE.md",
+  "protocol/README.md",
+  "protocol/profiles/README.md",
   ...designNames.map((name) => `docs/design/${name}`),
 ];
 
@@ -147,10 +155,111 @@ if (design0004 && new Set(["accepted", "implementing", "blocked"]).has(design000
     [architecture, "schema_meta", "docs/ARCHITECTURE.md CaseDO schema identity"],
     [mvp, "Design 0004", "docs/MVP.md M1 design gate"],
     [protocolGuide, "Design 0004", "protocol/README.md M1 routing"],
+    [designContent, "tdev.m1.default", "Design 0004 release-profile identity"],
+    [protocol, "tdev.m1.default", "docs/PROTOCOL.md release-profile identity"],
+    [protocol, "migration_checksum", "docs/PROTOCOL.md migration checksum"],
+    [protocol, "tdevc1.", "docs/PROTOCOL.md cursor wire format"],
+    [protocol, "QUOTA_EXCEEDED", "docs/PROTOCOL.md quota error"],
+    [architecture, "release-profile", "docs/ARCHITECTURE.md release-profile boundary"],
   ];
   for (const [content, marker, label] of markerChecks) {
     if (!content.includes(marker)) errors.push(`${label} marker is missing`);
   }
+}
+
+
+const releaseProfilePath = "protocol/profiles/tdev.m1.release-profile.json";
+let releaseProfile;
+try {
+  releaseProfile = JSON.parse(await readFile(path.join(root, releaseProfilePath), "utf8"));
+} catch (error) {
+  errors.push(`${releaseProfilePath}: invalid JSON: ${error.message}`);
+}
+
+if (releaseProfile) {
+  const exactKeys = (value, expected, label) => {
+    const actual = Object.keys(value).sort();
+    const wanted = [...expected].sort();
+    if (actual.length !== wanted.length || actual.some((key, index) => key !== wanted[index])) {
+      errors.push(`${releaseProfilePath}: ${label} keys ${actual.join(",")} != ${wanted.join(",")}`);
+    }
+  };
+  exactKeys(releaseProfile, ["profileVersion", "profileId", "ingress", "output", "pagination", "quota", "retention"], "root");
+  if (releaseProfile.profileVersion !== 1 || releaseProfile.profileId !== "tdev.m1.default") {
+    errors.push(`${releaseProfilePath}: unsupported M1 profile identity`);
+  }
+  exactKeys(releaseProfile.ingress ?? {}, ["maxBodyBytes", "maxJsonDepth", "maxJsonTokens", "maxObjectMembers", "maxArrayItems", "maxStringCodePoints", "maxNumberDigits", "maxExponentMagnitude"], "ingress");
+  exactKeys(releaseProfile.output ?? {}, ["maxMutationResponseBytes", "maxRenderedTextBytes", "maxArtifactChunkBytes"], "output");
+  exactKeys(releaseProfile.pagination ?? {}, ["defaultPageSize", "maxPageSize", "cursorTtlSeconds"], "pagination");
+  exactKeys(releaseProfile.quota ?? {}, ["maxTasksPerCase", "maxAttemptsPerTask", "maxEventsPerCase"], "quota");
+  exactKeys(releaseProfile.retention ?? {}, ["r2OrphanGraceDays", "eventCompaction", "mutationReceiptRetention", "referencedEvidenceCleanup"], "retention");
+
+  const visit = (value, trail = []) => {
+    if (value === null || typeof value !== "object") return;
+    for (const [key, child] of Object.entries(value)) {
+      const lower = key.toLowerCase();
+      if (/^(?:secret|token|password|credential|privatekey|keymaterial|bindingid)$/.test(lower)) {
+        errors.push(`${releaseProfilePath}: deployment secret or identity field is forbidden at ${[...trail, key].join(".")}`);
+      }
+      visit(child, [...trail, key]);
+    }
+  };
+  visit(releaseProfile);
+
+  const numericGroups = [releaseProfile.ingress, releaseProfile.output, releaseProfile.pagination, releaseProfile.quota];
+  for (const group of numericGroups) {
+    for (const [key, value] of Object.entries(group ?? {})) {
+      if (!Number.isSafeInteger(value) || value < 1) {
+        errors.push(`${releaseProfilePath}: ${key} must be a positive safe integer`);
+      }
+    }
+  }
+  if (!Number.isSafeInteger(releaseProfile.retention?.r2OrphanGraceDays) || releaseProfile.retention.r2OrphanGraceDays < 1) {
+    errors.push(`${releaseProfilePath}: r2OrphanGraceDays must be a positive safe integer`);
+  }
+}
+
+const tsIngress = await readFile(path.join(root, "protocol/runtime/typescript/ingress.ts"), "utf8");
+const goIngress = await readFile(path.join(root, "protocol/runtime/go/ingress.go"), "utf8");
+const tsProfile = await readFile(path.join(root, "protocol/runtime/typescript/profile.ts"), "utf8");
+const tsGeneratedProfile = await readFile(path.join(root, "protocol/runtime/typescript/profile.generated.ts"), "utf8");
+const goProfile = await readFile(path.join(root, "protocol/runtime/go/profile.go"), "utf8");
+const goGeneratedProfile = await readFile(path.join(root, "protocol/runtime/go/profile_generated.go"), "utf8");
+
+if (!tsIngress.includes("M1_RELEASE_PROFILE")) errors.push("TypeScript ingress does not consume the canonical M1 release profile");
+if (!goIngress.includes("DefaultM1ReleaseProfile()")) errors.push("Go ingress does not consume the canonical M1 release profile");
+if (!tsProfile.includes("validateReleaseProfile(GENERATED_M1_RELEASE_PROFILE)")) errors.push("TypeScript profile is not startup validated");
+if (!goProfile.includes("ValidateReleaseProfile(generatedM1ReleaseProfile)")) errors.push("Go profile is not startup validated");
+
+const tsDigest = tsGeneratedProfile.match(/GENERATED_M1_RELEASE_PROFILE_DIGEST = "([0-9a-f]{64})"/);
+const goDigest = goGeneratedProfile.match(/M1ReleaseProfileDigest = "([0-9a-f]{64})"/);
+if (!tsDigest || !goDigest || tsDigest[1] !== goDigest[1]) {
+  errors.push("generated TypeScript and Go release-profile digests differ or are invalid");
+}
+
+const forbiddenIngressConstants = /\b(?:MAX_BODY_BYTES|MAX_JSON_DEPTH|MAX_JSON_TOKENS|MAX_OBJECT_MEMBERS|MAX_ARRAY_ITEMS|MAX_STRING_CODE_POINTS|MAX_NUMBER_DIGITS|MAX_EXPONENT_MAGNITUDE)\b/;
+if (forbiddenIngressConstants.test(tsIngress) || forbiddenIngressConstants.test(goIngress)) {
+  errors.push("mutable ingress limits were reintroduced as local business-logic constants");
+}
+if (/process\.env|Deno\.env|Bun\.env/.test(tsProfile) || /os\.Getenv|LookupEnv/.test(goProfile)) {
+  errors.push("production release-profile selection must not use environment overrides");
+}
+
+const tsSchemaRuntime = await readFile(path.join(root, "protocol/runtime/typescript/schema.ts"), "utf8");
+const goSchemaRuntime = await readFile(path.join(root, "protocol/runtime/go/schema.go"), "utf8");
+const generatedTypeScript = await readFile(path.join(root, "protocol/generated/typescript/types.ts"), "utf8");
+const generatedGo = await readFile(path.join(root, "protocol/generated/go/types.go"), "utf8");
+if (!tsSchemaRuntime.includes("errorDetails: readonly ProtocolErrorDetail[]")) {
+  errors.push("TypeScript schema validation does not expose typed error details");
+}
+if (!goSchemaRuntime.includes("ValidateDefinitionWithProofDetails")) {
+  errors.push("Go schema validation does not expose typed error details");
+}
+if (!generatedTypeScript.includes('new IngressError("UNION_DISCRIMINATOR_MISMATCH"')) {
+  errors.push("generated TypeScript converters do not use typed discriminator errors");
+}
+if (!generatedGo.includes('&protocolruntime.IngressError{Code: "UNION_DISCRIMINATOR_MISMATCH"')) {
+  errors.push("generated Go converters do not use typed discriminator errors");
 }
 
 const mcp = await readFile(path.join(root, "docs/MCP.md"), "utf8");

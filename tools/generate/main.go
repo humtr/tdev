@@ -19,6 +19,7 @@ import (
 )
 
 const schemaPath = "protocol/schemas/tdev.v1.schema.json"
+const profilePath = "protocol/profiles/tdev.m1.release-profile.json"
 
 var check = flag.Bool("check", false, "fail when generated files differ")
 
@@ -65,8 +66,32 @@ func main() {
 	formatted, err := format.Source([]byte(goSource))
 	must(err)
 
+	profileRaw, err := os.ReadFile(profilePath)
+	must(err)
+	profileValue, err := protocolruntime.ParseRawIngress(profileRaw)
+	must(err)
+	profileDecoder := json.NewDecoder(bytes.NewReader(profileRaw))
+	profileDecoder.DisallowUnknownFields()
+	var profile protocolruntime.ReleaseProfile
+	must(profileDecoder.Decode(&profile))
+	if err := profileDecoder.Decode(&trailing); err != io.EOF {
+		if err == nil {
+			panic("unexpected trailing release profile JSON")
+		}
+		panic(fmt.Errorf("invalid trailing release profile JSON: %w", err))
+	}
+	must(protocolruntime.ValidateReleaseProfile(profile))
+	profileDigest, err := protocolruntime.TypedDigest("tdev.release-profile.v1", profileValue)
+	must(err)
+	profileTS := generateTypeScriptProfile(profile, profileDigest)
+	profileGo := generateGoProfile(profile, profileDigest)
+	formattedProfileGo, err := format.Source([]byte(profileGo))
+	must(err)
+
 	writeOrCheck("protocol/generated/typescript/types.ts", []byte(ts))
 	writeOrCheck("protocol/generated/go/types.go", formatted)
+	writeOrCheck("protocol/runtime/typescript/profile.generated.ts", []byte(profileTS))
+	writeOrCheck("protocol/runtime/go/profile_generated.go", formattedProfileGo)
 }
 
 func must(err error) {
@@ -450,6 +475,7 @@ func getBranchConsts(choice map[string]any, defs map[string]any) map[string]any 
 func generateTypeScript(defs map[string]any, schemaDigest string) string {
 	var out strings.Builder
 	out.WriteString("// Code generated from protocol/schemas/tdev.v1.schema.json by tools/generate. DO NOT EDIT.\n\n")
+	out.WriteString("import { IngressError } from \"../../runtime/typescript/ingress.ts\";\n")
 	out.WriteString("import { verifyProofAndExtract, type ValidationProofV1 } from \"../../runtime/typescript/schema.ts\";\n\n")
 	out.WriteString("export const CANONICAL_SCHEMA_DIGEST = " + jsonLiteral(schemaDigest) + ";\n\n")
 
@@ -478,18 +504,20 @@ func generateTypeScript(defs map[string]any, schemaDigest string) string {
 
 	for _, name := range sortedKeys(defs) {
 		schema := asMap(defs[name])
-		choices := asSlice(schema["oneOf"]);
+		choices := asSlice(schema["oneOf"])
 		if len(choices) == 0 {
 			continue
 		}
 		fmt.Fprintf(&out, "export function convert%sDomain(\n", name)
 		out.WriteString("  rootValue: unknown,\n")
 		out.WriteString("  proof: ValidationProofV1,\n")
+		out.WriteString("  expectedRootDefinition: string,\n")
 		out.WriteString("  instancePointer: string,\n")
 		fmt.Fprintf(&out, "): %s {\n", name)
 		fmt.Fprintf(&out, "  const { extractedValue, match } = verifyProofAndExtract(\n")
 		out.WriteString("    rootValue,\n")
 		out.WriteString("    proof,\n")
+		out.WriteString("    expectedRootDefinition,\n")
 		out.WriteString("    instancePointer,\n")
 		fmt.Fprintf(&out, "    \"#/$defs/%s/oneOf\",\n", name)
 		fmt.Fprintf(&out, "    UNION_BRANCH_IDENTITIES.%s,\n", name)
@@ -510,14 +538,14 @@ func generateTypeScript(defs map[string]any, schemaDigest string) string {
 					fmt.Fprintf(&out, "        || (extractedValue as Record<string, unknown>)[%s] !== %s\n", jsonLiteral(pName), jsonLiteral(cVal))
 				}
 				out.WriteString("      ) {\n")
-				fmt.Fprintf(&out, "        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch %d const discriminator mismatch at ${instancePointer}`);\n", i)
+				out.WriteString("        throw new IngressError(\"UNION_DISCRIMINATOR_MISMATCH\", \"UNION_DISCRIMINATOR\", \"union const discriminator does not match the proved branch\");\n")
 				out.WriteString("      }\n")
 			}
 			fmt.Fprintf(&out, "      return extractedValue as %s;\n", name)
 			out.WriteString("    }\n")
 		}
 		out.WriteString("    default:\n")
-		out.WriteString("      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);\n")
+		out.WriteString("      throw new IngressError(\"UNION_DISCRIMINATOR_MISMATCH\", \"UNION_DISCRIMINATOR\", \"validation proof branch index is invalid\");\n")
 		out.WriteString("  }\n")
 		out.WriteString("}\n\n")
 	}
@@ -604,7 +632,6 @@ func generateGo(defs map[string]any, schemaDigest string) string {
 	out.WriteString("package protocol\n\n")
 	out.WriteString("import (\n")
 	out.WriteString("\t\"encoding/json\"\n")
-	out.WriteString("\t\"fmt\"\n")
 	out.WriteString("\tprotocolruntime \"github.com/humtr/tdev/protocol/runtime/go\"\n")
 	out.WriteString(")\n\n")
 	out.WriteString("const CanonicalSchemaDigest = " + jsonLiteral(schemaDigest) + "\n\n")
@@ -640,10 +667,11 @@ func goUnionDomainHelpers(name string, choices []any, defs map[string]any) strin
 	}
 	out.WriteString("}\n\n")
 
-	out.WriteString(fmt.Sprintf("func Convert%s(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*%s, error) {\n", domainName, domainName))
+	out.WriteString(fmt.Sprintf("func Convert%s(rootValue any, proof *protocolruntime.ValidationProofV1, expectedRootDefinition string, instancePointer string) (*%s, error) {\n", domainName, domainName))
 	out.WriteString("\textracted, match, err := protocolruntime.VerifyProofAndExtract(\n")
 	out.WriteString("\t\trootValue,\n")
 	out.WriteString("\t\tproof,\n")
+	out.WriteString("\t\texpectedRootDefinition,\n")
 	out.WriteString("\t\tinstancePointer,\n")
 	out.WriteString(fmt.Sprintf("\t\t\"#/$defs/%s/oneOf\",\n", name))
 	out.WriteString("\t\t[]string{\n")
@@ -673,22 +701,22 @@ func goUnionDomainHelpers(name string, choices []any, defs map[string]any) strin
 				fmt.Fprintf(&out, " || objMap[%s] != %s", jsonLiteral(pName), jsonLiteral(cVal))
 			}
 			out.WriteString(" {\n")
-			fmt.Fprintf(&out, "\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d const discriminator mismatch at %%s\", instancePointer)\n", i)
+			out.WriteString("\t\t\treturn nil, &protocolruntime.IngressError{Code: \"UNION_DISCRIMINATOR_MISMATCH\", Reason: protocolruntime.ReasonUnionDiscriminator, Message: \"union const discriminator does not match the proved branch\"}\n")
 			out.WriteString("\t\t}\n")
 		}
 		out.WriteString("\t\trawBytes, err := json.Marshal(extracted)\n")
 		out.WriteString("\t\tif err != nil {\n")
-		out.WriteString(fmt.Sprintf("\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d marshal failed: %%w\", err)\n", i))
+		out.WriteString("\t\t\treturn nil, &protocolruntime.IngressError{Code: \"UNION_DISCRIMINATOR_MISMATCH\", Reason: protocolruntime.ReasonUnionDiscriminator, Message: \"proved union value cannot be encoded for domain conversion\"}\n")
 		out.WriteString("\t\t}\n")
 		out.WriteString(fmt.Sprintf("\t\tvar val %s\n", bType))
 		out.WriteString("\t\tif err := json.Unmarshal(rawBytes, &val); err != nil {\n")
-		out.WriteString(fmt.Sprintf("\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d unmarshal failed: %%w\", err)\n", i))
+		out.WriteString("\t\t\treturn nil, &protocolruntime.IngressError{Code: \"UNION_DISCRIMINATOR_MISMATCH\", Reason: protocolruntime.ReasonUnionDiscriminator, Message: \"proved union value cannot be decoded into its domain branch\"}\n")
 		out.WriteString("\t\t}\n")
 		out.WriteString(fmt.Sprintf("\t\tdomain.%s = &val\n", fieldName))
 	}
 
 	out.WriteString("\tdefault:\n")
-	out.WriteString("\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s\", match.BranchIndex, instancePointer)\n")
+	out.WriteString("\t\treturn nil, &protocolruntime.IngressError{Code: \"UNION_DISCRIMINATOR_MISMATCH\", Reason: protocolruntime.ReasonUnionDiscriminator, Message: \"validation proof branch index is invalid\"}\n")
 	out.WriteString("\t}\n")
 	out.WriteString("\treturn domain, nil\n")
 	out.WriteString("}\n")
@@ -903,4 +931,30 @@ func splitIdentifier(value string) []string {
 		parts = append(parts, string(current))
 	}
 	return parts
+}
+
+func generateTypeScriptProfile(profile protocolruntime.ReleaseProfile, digest string) string {
+	raw, err := json.MarshalIndent(profile, "", "  ")
+	must(err)
+	return "// Code generated from protocol/profiles/tdev.m1.release-profile.json by tools/generate. DO NOT EDIT.\n\n" +
+		"import type { ReleaseProfile } from \"./profile.ts\";\n\n" +
+		"export const GENERATED_M1_RELEASE_PROFILE = " + string(raw) + " as const satisfies ReleaseProfile;\n\n" +
+		"export const GENERATED_M1_RELEASE_PROFILE_DIGEST = \"" + digest + "\";\n"
+}
+
+func generateGoProfile(profile protocolruntime.ReleaseProfile, digest string) string {
+	var out strings.Builder
+	out.WriteString("// Code generated from protocol/profiles/tdev.m1.release-profile.json by tools/generate. DO NOT EDIT.\n\n")
+	out.WriteString("package protocolruntime\n\n")
+	fmt.Fprintf(&out, "const M1ReleaseProfileDigest = %s\n\n", jsonLiteral(digest))
+	out.WriteString("var generatedM1ReleaseProfile = ReleaseProfile{\n")
+	fmt.Fprintf(&out, "\tProfileVersion: %d,\n", profile.ProfileVersion)
+	fmt.Fprintf(&out, "\tProfileID: %s,\n", jsonLiteral(profile.ProfileID))
+	fmt.Fprintf(&out, "\tIngress: IngressPolicy{MaxBodyBytes: %d, MaxJSONDepth: %d, MaxJSONTokens: %d, MaxObjectMembers: %d, MaxArrayItems: %d, MaxStringCodePoints: %d, MaxNumberDigits: %d, MaxExponentMagnitude: %d},\n", profile.Ingress.MaxBodyBytes, profile.Ingress.MaxJSONDepth, profile.Ingress.MaxJSONTokens, profile.Ingress.MaxObjectMembers, profile.Ingress.MaxArrayItems, profile.Ingress.MaxStringCodePoints, profile.Ingress.MaxNumberDigits, profile.Ingress.MaxExponentMagnitude)
+	fmt.Fprintf(&out, "\tOutput: OutputPolicy{MaxMutationResponseBytes: %d, MaxRenderedTextBytes: %d, MaxArtifactChunkBytes: %d},\n", profile.Output.MaxMutationResponseBytes, profile.Output.MaxRenderedTextBytes, profile.Output.MaxArtifactChunkBytes)
+	fmt.Fprintf(&out, "\tPagination: PaginationPolicy{DefaultPageSize: %d, MaxPageSize: %d, CursorTTLSeconds: %d},\n", profile.Pagination.DefaultPageSize, profile.Pagination.MaxPageSize, profile.Pagination.CursorTTLSeconds)
+	fmt.Fprintf(&out, "\tQuota: QuotaPolicy{MaxTasksPerCase: %d, MaxAttemptsPerTask: %d, MaxEventsPerCase: %d},\n", profile.Quota.MaxTasksPerCase, profile.Quota.MaxAttemptsPerTask, profile.Quota.MaxEventsPerCase)
+	fmt.Fprintf(&out, "\tRetention: RetentionPolicy{R2OrphanGraceDays: %d, EventCompaction: %s, MutationReceiptRetention: %s, ReferencedEvidenceCleanup: %s},\n", profile.Retention.R2OrphanGraceDays, jsonLiteral(profile.Retention.EventCompaction), jsonLiteral(profile.Retention.MutationReceiptRetention), jsonLiteral(profile.Retention.ReferencedEvidenceCleanup))
+	out.WriteString("}\n")
+	return out.String()
 }

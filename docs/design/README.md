@@ -20,7 +20,7 @@ A record marked `verified` can still list future-layer unknowns outside its scop
 | [0001](0001-repository-governance-and-m0-hardening.md) | Repository governance and M0 hardening | verified | repository process, protocol M0, domain M0 |
 | [0002](0002-complete-first-release-product-specification.md) | Complete first-release product specification | verified | product specification and requirement traceability |
 | [0003](0003-mcp-adapter-and-projection-contract.md) | MCP adapter and projection contract | verified | MCP wire adapter, semantic projection, and current-client compatibility |
-| [0004](0004-casedo-storage-and-public-control-core.md) | CaseDO storage and public control core | accepted | protocol ingress, CaseDO storage, mutation replay, and public semantic control/query |
+| [0004](0004-casedo-storage-and-public-control-core.md) | CaseDO storage and public control core | implementing | protocol ingress, CaseDO storage, mutation replay, and public semantic control/query |
 
 ## Naming
 

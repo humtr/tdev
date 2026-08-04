@@ -35,6 +35,7 @@ MCP client
 8. **Evidence by layer.** Source, validation, package, installation, process, public MCP, client schema, and recovery are verified separately.
 9. **Reference-host honesty.** Termux-specific behavior is isolated in its adapter; a Linux directory is only a boundary placeholder.
 10. **No speculative coordinators.** WorkspaceDO and ProjectDO are added only when an observed invariant requires independent serialization.
+11. **One release-policy source.** Mutable non-secret bounds and product policy come from one release-pinned typed profile; immutable protocol/security rules and deployment secrets remain separate owners.
 
 ## 3. Component ownership
 
@@ -42,8 +43,11 @@ MCP client
 
 The Worker owns no durable lifecycle state. It is responsible for:
 
-- MCP authentication, hard request bounds, fatal UTF-8 validation, and lossless raw JSON scanning before ordinary decoding;
-- canonical schema validation, validated-union proof construction, and generated domain conversion before owner routing;
+- release-profile validation before serving requests;
+- hard request bounds, fatal UTF-8 validation, and lossless raw JSON scanning before ordinary decoding;
+- minimal MCP/JSON-RPC envelope and exact revision validation before authentication;
+- authentication before client-capability parsing and capability-specific deep validation;
+- canonical schema validation, exact-root validation-proof construction, generated domain conversion, and semantic digest before authorization and owner routing;
 - release-pinned Tool, Resource, and extension projection routing;
 - Operation catalog presentation under the active projection;
 - authorized Resource and locator queries through canonical owners and D1 projections;
@@ -66,6 +70,8 @@ The Worker MUST NOT own:
 A Worker restart cannot invalidate a Case, Task, negotiated Task handle, or Agent identity.
 
 The MCP adapter is stateless. It may observe client revision and capabilities for response shaping, but it does not persist protocol-session authority or own a second Case, Task, approval, input, cancellation, evidence, or terminal state. Client capability metadata is never an authorization source.
+
+The canonical non-secret M1 release profile is generated into both Worker language boundaries and pinned by profile identity and digest. Business logic does not repeat mutable policy literals. Deployment identities, bearer tokens, cursor HMAC keys, and Cloudflare bindings are injected by the deployment owner and are never profile values. Test-only narrowed profiles cannot be selected by a production loader.
 
 ### 3.2 CaseDO
 

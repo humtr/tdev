@@ -9,6 +9,12 @@ npm run check:generated
 
 The generator rejects trailing schema JSON, unresolved or external local `$ref` values, `$ref` and `oneOf` sibling semantics, unsupported schema-node keywords, types, or string formats, invalid patterns, and canonical objects with declared properties that do not set `additionalProperties: false`. The TypeScript and Go validators enforce the same executable subset before validating values.
 
+## Release policy profile
+
+M1 mutable non-secret limits and product-policy defaults have one canonical source at [`profiles/tdev.m1.release-profile.json`](profiles/tdev.m1.release-profile.json). [`profiles/README.md`](profiles/README.md) classifies release policy, immutable protocol invariants, deployment secrets, and test-only overrides. The generator emits validated TypeScript and Go views and a typed digest; production code consumes those views rather than repeating mutable literals.
+
+The profile is release-pinned and startup-validated. Missing, unknown, duplicate, trailing, out-of-range, or digest-mismatched data fails closed. Deployment identities, MCP tokens, cursor signing keys, and Cloudflare bindings are not profile fields and never enter Git.
+
 ## Runtime boundary
 
 Stored M0 digests use these exact domains and omit only their own digest field:
@@ -38,7 +44,7 @@ M0 relative-path validation is syntactic and does not claim Unicode NFC normaliz
 
 The TypeScript and Go runtime packages implement lossless raw JSON ingress scanning, fatal UTF-8, duplicate member rejection before ordinary decode, exact safe-integer numeric checking, `ValidationProofV1` construction, stable branch identity derivation, and proof-consuming closed domain conversion helpers authorized by [Design 0004](../docs/design/0004-casedo-storage-and-public-control-core.md).
 
-Generated Go `oneOf` declarations remain wire containers (`json.RawMessage`). Generated domain conversion helpers consume `ValidationProofV1` and prevent unproved wire unions from entering domain state or storage. The schema/proof foundation is source-verified in TypeScript and Go; Edge Worker, CaseDO SQLite storage, Cloudflare deployment, and live verification remain dependent next steps.
+Generated Go `oneOf` declarations remain wire containers (`json.RawMessage`). Generated domain conversion helpers consume `ValidationProofV1`, bind it to the converter's exact root definition, and prevent unproved or root-replayed wire unions from entering domain state or storage. The schema/proof foundation is source-verified in TypeScript and Go; Edge Worker, CaseDO SQLite storage, Cloudflare deployment, and live verification remain dependent next steps.
 
 ## Test consolidation
 

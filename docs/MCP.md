@@ -280,17 +280,18 @@ The adapter enforces, before canonical routing:
 
 ```text
 request byte bound
-UTF-8 validation
-duplicate JSON member rejection
-MCP and JSON-RPC envelope validation
+fatal UTF-8 validation
+lossless JSON grammar, duplicate-member, depth, token, container, string, and exact-number bounds
+minimal MCP and JSON-RPC envelope validation
 exact protocol revision validation
 authentication
 client capability parsing
-typed Tool or Resource schema validation
-authorization and target routing
+capability-specific canonical schema, validation proof, domain conversion, and semantic digest
+authorization and deterministic owner routing
+CaseDO transaction or bounded read
 ```
 
-Header and body routing metadata must agree when required by the selected MCP revision. Secrets and user-controlled authorization data are not moved into extension metadata or Resource URIs.
+Authentication occurs before capability-specific deep validation so unauthenticated input cannot consume owner-specific validation work. Authorization and owner routing occur only after the exact canonical capability value and semantic digest exist. Header and body routing metadata must agree when required by the selected MCP revision. Secrets and user-controlled authorization data are not moved into extension metadata or Resource URIs.
 
 All lists, reads, Tool results, Task projections, and error details are bounded and paginated where applicable.
 

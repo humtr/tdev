@@ -8,13 +8,14 @@ import {
 } from "./generated/typescript/types.ts";
 import { canonicalize, typedDigest } from "./runtime/typescript/canonical.ts";
 import { IngressError, parseRawIngress } from "./runtime/typescript/ingress.ts";
+import { M1_RELEASE_PROFILE, M1_RELEASE_PROFILE_DIGEST, validateReleaseProfile } from "./runtime/typescript/profile.ts";
 import { SchemaValidator, validateContract, type SchemaDocument } from "./runtime/typescript/schema.ts";
 
 type FixtureSet = {
   schemaCases: { name: string; definition: string; valid: boolean; value: unknown }[];
   canonicalCases: { name: string; domain: string; value: unknown; canonical: string; sha256: string }[];
   canonicalRejectCases: { name: string; value: unknown }[];
-  rawIngressCases?: { name: string; raw: string; valid: boolean; errorCode?: string }[];
+  rawIngressCases?: { name: string; raw: string; valid: boolean; errorCode?: string; errorReason?: string }[];
   proofVectorCases?: {
     name: string;
     definition: string;
@@ -97,8 +98,11 @@ test("raw ingress validation and error codes", () => {
     } else {
       assert.throws(
         () => parseRawIngress(raw),
-        (err: unknown) => err instanceof IngressError && err.code === fixture.errorCode,
-        `${fixture.name}: expected ${fixture.errorCode}`,
+        (err: unknown) =>
+          err instanceof IngressError &&
+          err.code === fixture.errorCode &&
+          err.reason === fixture.errorReason,
+        `${fixture.name}: expected ${fixture.errorCode}/${fixture.errorReason}`,
       );
     }
   }
@@ -107,15 +111,39 @@ test("raw ingress validation and error codes", () => {
   const invalidUtf8 = new Uint8Array([0x7b, 0x22, 0x78, 0x22, 0x3a, 0x22, 0xff, 0x22, 0x7d]);
   assert.throws(
     () => parseRawIngress(invalidUtf8),
-    (err: unknown) => err instanceof IngressError && err.code === "INVALID_UTF8",
+    (err: unknown) =>
+      err instanceof IngressError && err.code === "INVALID_UTF8" && err.reason === "UTF8",
   );
 
   // Body size failure
-  const hugeBody = new Uint8Array(1048577);
+  const hugeBody = new Uint8Array(M1_RELEASE_PROFILE.ingress.maxBodyBytes + 1);
   assert.throws(
     () => parseRawIngress(hugeBody),
-    (err: unknown) => err instanceof IngressError && err.code === "PAYLOAD_TOO_LARGE",
+    (err: unknown) =>
+      err instanceof IngressError && err.code === "PAYLOAD_TOO_LARGE" && err.reason === "BODY_BYTES",
   );
+});
+
+
+test("M1 release profile is generated, bounded, and fail-closed", () => {
+  assert.equal(M1_RELEASE_PROFILE.profileVersion, 1);
+  assert.equal(M1_RELEASE_PROFILE.output.maxArtifactChunkBytes, 262144);
+  assert.equal(M1_RELEASE_PROFILE.pagination.defaultPageSize, 20);
+  assert.equal(M1_RELEASE_PROFILE.pagination.maxPageSize, 100);
+  assert.equal(M1_RELEASE_PROFILE.pagination.cursorTtlSeconds, 3600);
+  assert.match(M1_RELEASE_PROFILE_DIGEST, /^[0-9a-f]{64}$/);
+  assert.throws(() =>
+    validateReleaseProfile({
+      ...M1_RELEASE_PROFILE,
+      pagination: { ...M1_RELEASE_PROFILE.pagination, maxPageSize: 501 },
+    }),
+  /INVALID_RELEASE_PROFILE/);
+  assert.throws(() =>
+    validateReleaseProfile({
+      ...M1_RELEASE_PROFILE,
+      retention: { ...M1_RELEASE_PROFILE.retention, eventCompaction: "enabled" as "disabled" },
+    }),
+  /INVALID_RELEASE_PROFILE/);
 });
 
 test("validation proof construction and oneOf branch matching", () => {
@@ -165,6 +193,7 @@ test("validation proof construction and oneOf branch matching", () => {
   const zeroRes = validator.validateDefinitionWithProof("ControlCaseInput", zeroMatchInput);
   assert.ok(zeroRes.proof === null);
   assert.ok(zeroRes.errors.some((e) => e.includes("ONE_OF_NO_MATCH")));
+  assert.deepEqual(zeroRes.errorDetails, [{ code: "ONE_OF_NO_MATCH", reason: "ONE_OF_NO_MATCH", instancePointer: "$" }]);
 
   // Multiple match failure
   const multiMatchValidator = new SchemaValidator({
@@ -180,7 +209,16 @@ test("validation proof construction and oneOf branch matching", () => {
   const multiRes = multiMatchValidator.validateDefinitionWithProof("MultiProbe", { a: 1 });
   assert.ok(multiRes.proof === null);
   assert.ok(multiRes.errors.some((e) => e.includes("ONE_OF_MULTIPLE_MATCH")));
+  assert.deepEqual(multiRes.errorDetails, [{ code: "ONE_OF_MULTIPLE_MATCH", reason: "ONE_OF_MULTIPLE_MATCH", instancePointer: "$" }]);
 });
+
+function isUnionDiscriminatorError(error: unknown): boolean {
+  return (
+    error instanceof IngressError &&
+    error.code === "UNION_DISCRIMINATOR_MISMATCH" &&
+    error.reason === "UNION_DISCRIMINATOR"
+  );
+}
 
 test("proof binding, exact branch binding, discriminator binding, and tampering rejection", () => {
   const validCaseState = {
@@ -196,36 +234,46 @@ test("proof binding, exact branch binding, discriminator binding, and tampering 
   assert.ok(proof !== null);
 
   // Successful conversion using root value, proof, and instance pointer
-  const statusDomain = convertCaseStatusDomain(validCaseState, proof, "$.status");
+  const statusDomain = convertCaseStatusDomain(validCaseState, proof, "CaseState", "$.status");
   assert.deepEqual(statusDomain, { kind: "active", enteredAt: "2026-08-04T00:00:00Z" });
 
   // Tampered root value -> canonical digest mismatch
   const tamperedRoot = JSON.parse(JSON.stringify(validCaseState));
   tamperedRoot.caseId = "case_tampered";
   assert.throws(
-    () => convertCaseStatusDomain(tamperedRoot, proof, "$.status"),
-    /canonical digest mismatch for root value/,
+    () => convertCaseStatusDomain(tamperedRoot, proof, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 
   // Tampered proof canonicalDigest
   const tamperedProofDigest = { ...proof, canonicalDigest: "0".repeat(64) };
   assert.throws(
-    () => convertCaseStatusDomain(validCaseState, tamperedProofDigest, "$.status"),
-    /canonical digest mismatch for root value/,
+    () => convertCaseStatusDomain(validCaseState, tamperedProofDigest, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
+  );
+
+  // Tampered proof rootDefinition cannot be replayed through a converter for another root.
+  const tamperedRootDefinition = { ...proof, rootDefinition: "ControlCaseInput" };
+  assert.throws(
+    () => convertCaseStatusDomain(validCaseState, tamperedRootDefinition, "CaseState", "$.status"),
+    (error: unknown) =>
+      error instanceof IngressError &&
+      error.code === "ROOT_DEFINITION_MISMATCH" &&
+      error.reason === "ROOT_DEFINITION",
   );
 
   // Tampered proof schemaDigest
   const tamperedSchemaDigest = { ...proof, schemaDigest: "1".repeat(64) };
   assert.throws(
-    () => convertCaseStatusDomain(validCaseState, tamperedSchemaDigest, "$.status"),
-    /schema digest mismatch/,
+    () => convertCaseStatusDomain(validCaseState, tamperedSchemaDigest, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 
   // Wire fragment substituted for root value -> canonical digest mismatch
   const wireFragment = { kind: "active", enteredAt: "2026-08-04T00:00:00Z" };
   assert.throws(
-    () => convertCaseStatusDomain(wireFragment, proof, "$.status"),
-    /canonical digest mismatch for root value/,
+    () => convertCaseStatusDomain(wireFragment, proof, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 
   // Tampered branchIdentity
@@ -234,8 +282,8 @@ test("proof binding, exact branch binding, discriminator binding, and tampering 
     unions: proof.unions.map((u) => u.instancePointer === "$.status" ? { ...u, branchIdentity: "#/$defs/CaseStatus/oneOf/1" } : u),
   };
   assert.throws(
-    () => convertCaseStatusDomain(validCaseState, tamperedBranchIdentity, "$.status"),
-    /branch identity mismatch/,
+    () => convertCaseStatusDomain(validCaseState, tamperedBranchIdentity, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 
   // Duplicate proof entries for same instancePointer
@@ -244,8 +292,8 @@ test("proof binding, exact branch binding, discriminator binding, and tampering 
     unions: [...proof.unions, proof.unions[0]],
   };
   assert.throws(
-    () => convertCaseStatusDomain(validCaseState, duplicateProofUnions, "$.status"),
-    /duplicate proof entries for path/,
+    () => convertCaseStatusDomain(validCaseState, duplicateProofUnions, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 
   // Discriminator const mismatch on extracted value
@@ -261,8 +309,8 @@ test("proof binding, exact branch binding, discriminator binding, and tampering 
   const forgedDigest = typedDigest("tdev.validation-proof.v1", constMismatchRoot);
   const forgedValidProof = { ...forgedProof, canonicalDigest: forgedDigest };
   assert.throws(
-    () => convertCaseStatusDomain(constMismatchRoot, forgedValidProof, "$.status"),
-    /const discriminator mismatch/,
+    () => convertCaseStatusDomain(constMismatchRoot, forgedValidProof, "CaseState", "$.status"),
+    isUnionDiscriminatorError,
   );
 });
 

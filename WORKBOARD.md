@@ -3,14 +3,14 @@
 ## Current
 
 - Product/source stage: M0 schema/domain foundation, Design 0004 accepted, and the first M1 schema/proof foundation slice (canonical control schemas, lossless raw JSON ingress, `ValidationProofV1`, branch identities, and proof-consuming closed domain converters) are source-verified and published at `63b3e1948ce2579cd4d781a9854122bac3a65203`; no Worker, CaseDO SQLite, Cloudflare deployment, Agent, public MCP, current-client, or live release layer is claimed.
-- Current work: no active implementation. The first M1 schema/proof foundation slice is complete, and the previously unverified live-layer prerequisites were inspected without mutating Cloudflare, routes, public endpoints, credentials, or client settings.
-- Next product gate: implement the CaseDO SQLite storage core, schema version 1 migration, repository adapters, immutable guards, and transaction/fault tests defined by Design 0004. Worker, deployment, public MCP, and client checks remain downstream gates.
+- Current work: Design 0004 is implementing a bounded pre-storage contract/source-correction gate: one release-pinned typed policy profile, exact-root validation proofs, cross-language ingress limits and typed reasons, ingress/auth ordering, and frozen storage/control/query contracts. No Worker, CaseDO runtime, Cloudflare, public MCP, client, or rollback layer is claimed.
+- Next product gate: after this correction gate is source-verified and published, implement the CaseDO SQLite storage core and exact empty-to-v1 migration against the frozen DDL and transition/Event matrices. Worker, deployment, public MCP, and client checks remain downstream gates.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 
 ## Active design
 
-- [Design 0004 — CaseDO Storage and Public Control Core](docs/design/0004-casedo-storage-and-public-control-core.md): `accepted`
+- [Design 0004 — CaseDO Storage and Public Control Core](docs/design/0004-casedo-storage-and-public-control-core.md): `implementing`
 
 ## Blocking unknowns
 

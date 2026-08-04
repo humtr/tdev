@@ -1145,7 +1145,9 @@
         "capability": "submit_operation",
         "semanticDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
         "caseId": "case_abcdefgh1234",
-        "response": { "accepted": true },
+        "response": {
+          "accepted": true
+        },
         "responseDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
         "committedCaseRevision": 1,
         "committedEventSequence": 1,
@@ -1295,49 +1297,57 @@
       "name": "duplicate key at top level",
       "raw": "{\"a\": 1, \"a\": 2}",
       "valid": false,
-      "errorCode": "DUPLICATE_JSON_MEMBER"
+      "errorCode": "DUPLICATE_JSON_MEMBER",
+      "errorReason": "DUPLICATE_MEMBER"
     },
     {
       "name": "duplicate key with unicode escape equivalence",
       "raw": "{\"\\u0061\": 1, \"a\": 2}",
       "valid": false,
-      "errorCode": "DUPLICATE_JSON_MEMBER"
+      "errorCode": "DUPLICATE_JSON_MEMBER",
+      "errorReason": "DUPLICATE_MEMBER"
     },
     {
       "name": "duplicate key nested",
       "raw": "{\"nested\": {\"key\": 1, \"key\": 2}}",
       "valid": false,
-      "errorCode": "DUPLICATE_JSON_MEMBER"
+      "errorCode": "DUPLICATE_JSON_MEMBER",
+      "errorReason": "DUPLICATE_MEMBER"
     },
     {
       "name": "malformed json syntax",
       "raw": "{\"a\": 1,",
       "valid": false,
-      "errorCode": "MALFORMED_JSON"
+      "errorCode": "MALFORMED_JSON",
+      "errorReason": "JSON_GRAMMAR"
     },
     {
       "name": "trailing non-whitespace content",
       "raw": "{\"a\": 1} trailing",
       "valid": false,
-      "errorCode": "MALFORMED_JSON"
+      "errorCode": "MALFORMED_JSON",
+      "errorReason": "TRAILING_VALUE"
     },
     {
       "name": "non-integer number decimal",
       "raw": "{\"val\": 1.5}",
       "valid": false,
-      "errorCode": "UNSAFE_JSON_NUMBER"
+      "errorCode": "UNSAFE_JSON_NUMBER",
+      "errorReason": "SAFE_INTEGER"
     },
     {
       "name": "unsafe integer number overflow",
       "raw": "{\"val\": 9007199254740992}",
       "valid": false,
-      "errorCode": "UNSAFE_JSON_NUMBER"
+      "errorCode": "UNSAFE_JSON_NUMBER",
+      "errorReason": "SAFE_INTEGER"
     },
     {
       "name": "float rounding adversarial number",
       "raw": "{\"val\": 90071992547409911e-1}",
       "valid": false,
-      "errorCode": "UNSAFE_JSON_NUMBER"
+      "errorCode": "UNSAFE_JSON_NUMBER",
+      "errorReason": "SAFE_INTEGER"
     },
     {
       "name": "equivalent integer 1.0",
@@ -1358,24 +1368,55 @@
       "name": "escaped lone high surrogate",
       "raw": "{\"a\": \"\\uD800\"}",
       "valid": false,
-      "errorCode": "MALFORMED_JSON"
+      "errorCode": "MALFORMED_JSON",
+      "errorReason": "JSON_GRAMMAR"
     },
     {
       "name": "escaped lone low surrogate",
       "raw": "{\"a\": \"\\uDC00\"}",
       "valid": false,
-      "errorCode": "MALFORMED_JSON"
+      "errorCode": "MALFORMED_JSON",
+      "errorReason": "JSON_GRAMMAR"
     },
     {
       "name": "escaped high surrogate followed by non-low surrogate",
       "raw": "{\"a\": \"\\uD800\\u0061\"}",
       "valid": false,
-      "errorCode": "MALFORMED_JSON"
+      "errorCode": "MALFORMED_JSON",
+      "errorReason": "JSON_GRAMMAR"
     },
     {
       "name": "valid surrogate pair",
       "raw": "{\"a\": \"\\uD800\\uDC00\"}",
       "valid": true
+    },
+    {
+      "name": "positive exponent exceeds release profile",
+      "raw": "{\"val\": 1e10001}",
+      "valid": false,
+      "errorCode": "JSON_LIMIT_EXCEEDED",
+      "errorReason": "EXPONENT_MAGNITUDE"
+    },
+    {
+      "name": "negative exponent exceeds release profile",
+      "raw": "{\"val\": 1e-10001}",
+      "valid": false,
+      "errorCode": "JSON_LIMIT_EXCEEDED",
+      "errorReason": "EXPONENT_MAGNITUDE"
+    },
+    {
+      "name": "exponent digit string exceeds release profile",
+      "raw": "{\"val\": 1e999999999999999999999999}",
+      "valid": false,
+      "errorCode": "JSON_LIMIT_EXCEEDED",
+      "errorReason": "EXPONENT_MAGNITUDE"
+    },
+    {
+      "name": "number digits exceed release profile",
+      "raw": "{\"val\": 11111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111}",
+      "valid": false,
+      "errorCode": "JSON_LIMIT_EXCEEDED",
+      "errorReason": "NUMBER_DIGITS"
     }
   ],
   "proofVectorCases": [

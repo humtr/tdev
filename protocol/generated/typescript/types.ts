@@ -1,5 +1,6 @@
 // Code generated from protocol/schemas/tdev.v1.schema.json by tools/generate. DO NOT EDIT.
 
+import { IngressError } from "../../runtime/typescript/ingress.ts";
 import { verifyProofAndExtract, type ValidationProofV1 } from "../../runtime/typescript/schema.ts";
 
 export const CANONICAL_SCHEMA_DIGEST = "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e";
@@ -755,11 +756,13 @@ export const UNION_BRANCH_IDENTITIES = {
 export function convertActorRefDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): ActorRef {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/ActorRef/oneOf",
     UNION_BRANCH_IDENTITIES.ActorRef,
@@ -774,7 +777,7 @@ export function convertActorRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "mcp_client"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as ActorRef;
     }
@@ -785,7 +788,7 @@ export function convertActorRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "user"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as ActorRef;
     }
@@ -796,23 +799,25 @@ export function convertActorRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "system"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as ActorRef;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertAttemptStatusDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): AttemptStatus {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/AttemptStatus/oneOf",
     UNION_BRANCH_IDENTITIES.AttemptStatus,
@@ -827,7 +832,7 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "dispatch_pending"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
@@ -838,7 +843,7 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "queued"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
@@ -849,7 +854,7 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "running"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
@@ -860,7 +865,7 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "reconciling"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
@@ -871,7 +876,7 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "cancel_requested"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
@@ -882,23 +887,25 @@ export function convertAttemptStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "terminal"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptStatus;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertAttemptTerminalDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): AttemptTerminal {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/AttemptTerminal/oneOf",
     UNION_BRANCH_IDENTITIES.AttemptTerminal,
@@ -913,7 +920,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "succeeded"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -924,7 +931,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "failed"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -935,7 +942,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "cancelled"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -946,7 +953,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "interrupted"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -957,7 +964,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "rejected"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -968,7 +975,7 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "input_required"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
@@ -979,23 +986,25 @@ export function convertAttemptTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "unverified"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 6 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as AttemptTerminal;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertBaseReferenceDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): BaseReference {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/BaseReference/oneOf",
     UNION_BRANCH_IDENTITIES.BaseReference,
@@ -1010,7 +1019,7 @@ export function convertBaseReferenceDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "git_commit"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as BaseReference;
     }
@@ -1021,23 +1030,25 @@ export function convertBaseReferenceDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "observation"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as BaseReference;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertCaseStatusDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): CaseStatus {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/CaseStatus/oneOf",
     UNION_BRANCH_IDENTITIES.CaseStatus,
@@ -1052,7 +1063,7 @@ export function convertCaseStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "active"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseStatus;
     }
@@ -1063,7 +1074,7 @@ export function convertCaseStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "paused"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseStatus;
     }
@@ -1074,7 +1085,7 @@ export function convertCaseStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "cancelling"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseStatus;
     }
@@ -1085,23 +1096,25 @@ export function convertCaseStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "terminal"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseStatus;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertCaseTerminalDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): CaseTerminal {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/CaseTerminal/oneOf",
     UNION_BRANCH_IDENTITIES.CaseTerminal,
@@ -1116,7 +1129,7 @@ export function convertCaseTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "completed"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseTerminal;
     }
@@ -1127,7 +1140,7 @@ export function convertCaseTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "failed"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseTerminal;
     }
@@ -1138,7 +1151,7 @@ export function convertCaseTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "cancelled"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseTerminal;
     }
@@ -1149,7 +1162,7 @@ export function convertCaseTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "rolled_back"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseTerminal;
     }
@@ -1160,23 +1173,25 @@ export function convertCaseTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "unverified"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as CaseTerminal;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertEntityRefDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): EntityRef {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/EntityRef/oneOf",
     UNION_BRANCH_IDENTITIES.EntityRef,
@@ -1191,7 +1206,7 @@ export function convertEntityRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "case"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EntityRef;
     }
@@ -1202,7 +1217,7 @@ export function convertEntityRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "task"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EntityRef;
     }
@@ -1213,23 +1228,25 @@ export function convertEntityRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "attempt"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EntityRef;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertEvidenceRefDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): EvidenceRef {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/EvidenceRef/oneOf",
     UNION_BRANCH_IDENTITIES.EvidenceRef,
@@ -1244,7 +1261,7 @@ export function convertEvidenceRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "task_result"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EvidenceRef;
     }
@@ -1255,7 +1272,7 @@ export function convertEvidenceRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "artifact"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EvidenceRef;
     }
@@ -1266,23 +1283,25 @@ export function convertEvidenceRefDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "observation"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as EvidenceRef;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertJsonValueDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): JsonValue {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/JsonValue/oneOf",
     UNION_BRANCH_IDENTITIES.JsonValue,
@@ -1309,18 +1328,20 @@ export function convertJsonValueDomain(
       return extractedValue as JsonValue;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertOperationResultDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): OperationResult {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/OperationResult/oneOf",
     UNION_BRANCH_IDENTITIES.OperationResult,
@@ -1335,7 +1356,7 @@ export function convertOperationResultDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "inline"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as OperationResult;
     }
@@ -1346,7 +1367,7 @@ export function convertOperationResultDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "artifacts"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as OperationResult;
     }
@@ -1357,7 +1378,7 @@ export function convertOperationResultDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "mixed"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as OperationResult;
     }
@@ -1368,23 +1389,25 @@ export function convertOperationResultDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "none"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as OperationResult;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertTargetDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): Target {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/Target/oneOf",
     UNION_BRANCH_IDENTITIES.Target,
@@ -1399,7 +1422,7 @@ export function convertTargetDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "workspace"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as Target;
     }
@@ -1410,23 +1433,25 @@ export function convertTargetDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "project"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as Target;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertTaskStatusDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): TaskStatus {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/TaskStatus/oneOf",
     UNION_BRANCH_IDENTITIES.TaskStatus,
@@ -1441,7 +1466,7 @@ export function convertTaskStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "waiting"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskStatus;
     }
@@ -1452,7 +1477,7 @@ export function convertTaskStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "ready"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskStatus;
     }
@@ -1463,7 +1488,7 @@ export function convertTaskStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "active"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskStatus;
     }
@@ -1474,7 +1499,7 @@ export function convertTaskStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "cancelling"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskStatus;
     }
@@ -1485,23 +1510,25 @@ export function convertTaskStatusDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "terminal"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskStatus;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertTaskTerminalDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): TaskTerminal {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/TaskTerminal/oneOf",
     UNION_BRANCH_IDENTITIES.TaskTerminal,
@@ -1516,7 +1543,7 @@ export function convertTaskTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "succeeded"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskTerminal;
     }
@@ -1527,7 +1554,7 @@ export function convertTaskTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "failed"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskTerminal;
     }
@@ -1538,7 +1565,7 @@ export function convertTaskTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "cancelled"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskTerminal;
     }
@@ -1549,7 +1576,7 @@ export function convertTaskTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "denied"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskTerminal;
     }
@@ -1560,23 +1587,25 @@ export function convertTaskTerminalDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["outcome"] !== "unverified"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskTerminal;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertTaskWaitingDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): TaskWaiting {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/TaskWaiting/oneOf",
     UNION_BRANCH_IDENTITIES.TaskWaiting,
@@ -1591,7 +1620,7 @@ export function convertTaskWaitingDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["reason"] !== "approval"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskWaiting;
     }
@@ -1602,7 +1631,7 @@ export function convertTaskWaitingDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["reason"] !== "input"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskWaiting;
     }
@@ -1613,23 +1642,25 @@ export function convertTaskWaitingDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["reason"] !== "retry_decision"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TaskWaiting;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
 
 export function convertTypedErrorDetailsDomain(
   rootValue: unknown,
   proof: ValidationProofV1,
+  expectedRootDefinition: string,
   instancePointer: string,
 ): TypedErrorDetails {
   const { extractedValue, match } = verifyProofAndExtract(
     rootValue,
     proof,
+    expectedRootDefinition,
     instancePointer,
     "#/$defs/TypedErrorDetails/oneOf",
     UNION_BRANCH_IDENTITIES.TypedErrorDetails,
@@ -1644,7 +1675,7 @@ export function convertTypedErrorDetailsDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "revision_conflict"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TypedErrorDetails;
     }
@@ -1655,7 +1686,7 @@ export function convertTypedErrorDetailsDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "schema_mismatch"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TypedErrorDetails;
     }
@@ -1666,11 +1697,11 @@ export function convertTypedErrorDetailsDomain(
         Array.isArray(extractedValue)
         || (extractedValue as Record<string, unknown>)["kind"] !== "missing_effect"
       ) {
-        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at ${instancePointer}`);
+        throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "union const discriminator does not match the proved branch");
       }
       return extractedValue as TypedErrorDetails;
     }
     default:
-      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+      throw new IngressError("UNION_DISCRIMINATOR_MISMATCH", "UNION_DISCRIMINATOR", "validation proof branch index is invalid");
   }
 }
