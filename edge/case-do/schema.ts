@@ -11,7 +11,8 @@ export type StorageErrorCode =
   | "REVISION_CONFLICT"
   | "TERMINAL_IMMUTABLE"
   | "QUOTA_EXCEEDED"
-  | "REQUEST_ID_CONFLICT";
+  | "REQUEST_ID_CONFLICT"
+  | "RESPONSE_LOST";
 
 export class StorageError extends Error {
   readonly code: StorageErrorCode;

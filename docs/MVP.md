@@ -119,7 +119,7 @@ Ordered implementation slices:
 5. **Worker semantic boundary:** route the release-pinned twelve-capability `tools-v1` surface through the lossless ingress and final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
 6. **M1 live verification:** exercise actual Durable Object SQLite, migration failure, hibernation, restart, and authenticated public semantics. Only observed layers can be marked complete.
 
-The complete transition-to-revision/Event matrix is an M1 acceptance condition across slices 2 through 4. A green storage-substrate slice alone does not claim every semantic capability transition, replay behavior, Cloudflare persistence, or public behavior.
+The complete transition-to-revision/Event matrix is an M1 acceptance condition across slices 2 through 4. A green storage-substrate slice alone does not claim admission replay. A green atomic-admission/replay slice proves only the deterministic route function and isolated CaseDO transaction/recovery semantics; it does not claim Worker restart routing, every semantic capability transition, queries, Cloudflare persistence, or public behavior.
 
 ### M2 — AgentDO connection, enrollment, and queue
 

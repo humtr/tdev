@@ -5,6 +5,7 @@ import {
   type CaseContract,
   type CaseEvent,
   type CaseState,
+  type CaseTargetGrant,
   type EvidenceSet,
   type MutationReceiptV1,
   type TaskRecord,
@@ -110,6 +111,7 @@ export class StoredRecordCodec<T> {
 export type CaseDoRecordCodecs = Readonly<{
   caseContract: StoredRecordCodec<CaseContract>;
   caseState: StoredRecordCodec<CaseState>;
+  caseTargetGrant: StoredRecordCodec<CaseTargetGrant>;
   taskRecord: StoredRecordCodec<TaskRecord>;
   attemptRecord: StoredRecordCodec<AttemptRecord>;
   caseEvent: StoredRecordCodec<CaseEvent>;
@@ -121,6 +123,7 @@ export function createCaseDoRecordCodecs(validator: SchemaValidator): CaseDoReco
   return Object.freeze({
     caseContract: new StoredRecordCodec<CaseContract>(validator, "CaseContract"),
     caseState: new StoredRecordCodec<CaseState>(validator, "CaseState"),
+    caseTargetGrant: new StoredRecordCodec<CaseTargetGrant>(validator, "CaseTargetGrant"),
     taskRecord: new StoredRecordCodec<TaskRecord>(validator, "TaskRecord"),
     attemptRecord: new StoredRecordCodec<AttemptRecord>(validator, "AttemptRecord"),
     caseEvent: new StoredRecordCodec<CaseEvent>(validator, "CaseEvent"),

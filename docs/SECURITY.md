@@ -21,6 +21,8 @@ The security boundary is enforced by:
 - secret separation and redaction;
 - durable uncertainty instead of optimistic replay.
 
+CaseDO mutation replay is allowed only from an immutable receipt whose canonical response bytes still match its stored digest and whose Case, Task, subject, committed revisions, Event sequence, capability, and semantic digest remain exactly bound. A matching request returns the original stored response without a second transition; a mismatch returns `REQUEST_ID_CONFLICT` without mutation. A lost response after commit is durable uncertainty resolved by the same deterministic Case route and receipt, not evidence that the admission failed. Local source tests do not prove Worker authentication, routing, restart, or Cloudflare persistence.
+
 ## 2. Trust domains
 
 ### 2.1 User and MCP client

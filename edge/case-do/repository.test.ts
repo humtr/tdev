@@ -12,7 +12,7 @@ import {
 } from "../../protocol/generated/typescript/types.ts";
 import { SchemaValidator } from "../../protocol/runtime/typescript/schema.ts";
 import { NodeSqliteDatabase } from "./node-sqlite.test-support.ts";
-import { createCaseDoRecordCodecs } from "./records.ts";
+import { canonicalJsonDigest, createCaseDoRecordCodecs, encodeCanonicalJson } from "./records.ts";
 import { CaseDoRepository, type TransactionFaultPoint } from "./repository.ts";
 import { StorageError, migrateEmptyToV1 } from "./schema.ts";
 
@@ -83,13 +83,15 @@ function transition(caseId: string, requestId = "request_transition1234") {
     correlationId: caseId,
     committedAt: "2026-08-04T00:01:00Z",
   };
+  const response = { caseId, caseRevision: 2, eventSequence: 2 } as const;
   const receipt: MutationReceiptV1 = {
     ...fixture<MutationReceiptV1>("MutationReceiptV1"),
     requestId,
     capability: "control_case",
     caseId,
     subject: { kind: "case", caseId },
-    response: { caseId, caseRevision: 2, eventSequence: 2 },
+    response,
+    responseDigest: canonicalJsonDigest(encodeCanonicalJson(response)),
     committedCaseRevision: 2,
     committedEventSequence: 2,
     createdAt: "2026-08-04T00:01:00Z",

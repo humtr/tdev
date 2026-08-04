@@ -31,10 +31,12 @@ const requiredFiles = [
   "edge/case-do/sql.ts",
   "edge/case-do/schema.ts",
   "edge/case-do/records.ts",
+  "edge/case-do/admission.ts",
   "edge/case-do/repository.ts",
   "edge/case-do/node-sqlite.test-support.ts",
   "edge/case-do/schema.test.ts",
   "edge/case-do/repository.test.ts",
+  "edge/case-do/admission.test.ts",
 ];
 const errors = [];
 
@@ -279,6 +281,7 @@ const storageProductionPaths = [
   "edge/case-do/sql.ts",
   "edge/case-do/schema.ts",
   "edge/case-do/records.ts",
+  "edge/case-do/admission.ts",
   "edge/case-do/repository.ts",
 ];
 const storageProduction = new Map();
@@ -296,6 +299,13 @@ if (!packageJson.scripts?.["test:ts"]?.includes("edge/case-do/*.test.ts")) {
   errors.push("test:ts does not include the CaseDO storage test boundary");
 }
 const storageSchema = storageProduction.get("edge/case-do/schema.ts") ?? "";
+const storageAdmission = storageProduction.get("edge/case-do/admission.ts") ?? "";
+if (!storageAdmission.includes('NEW_CASE_ROUTE_DOMAIN = "tdev.new-case-route.v1"')) {
+  errors.push("CaseDO deterministic new-Case route domain is missing");
+}
+if (!storageAdmission.includes("parseStoredSubmitOperationResult")) {
+  errors.push("CaseDO admission replay does not validate the stored submit result shape");
+}
 if (!storageSchema.includes('CASE_DO_SCHEMA_DIGEST = "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e"')) {
   errors.push("CaseDO schema digest identity differs from the accepted M1 contract");
 }
