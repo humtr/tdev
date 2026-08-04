@@ -19,8 +19,23 @@ type SchemaDocument struct {
 	Defs   map[string]map[string]any `json:"$defs"`
 }
 
+type UnionProofBranchV1 struct {
+	InstancePointer string `json:"instancePointer"`
+	SchemaPointer   string `json:"schemaPointer"`
+	BranchIndex     int    `json:"branchIndex"`
+	BranchIdentity  string `json:"branchIdentity"`
+}
+
+type ValidationProofV1 struct {
+	SchemaDigest    string               `json:"schemaDigest"`
+	RootDefinition  string               `json:"rootDefinition"`
+	CanonicalDigest string               `json:"canonicalDigest"`
+	Unions          []UnionProofBranchV1 `json:"unions"`
+}
+
 type Validator struct {
-	root SchemaDocument
+	root         SchemaDocument
+	schemaDigest string
 }
 
 func ParseSchema(raw []byte) (*Validator, error) {
@@ -44,7 +59,17 @@ func ParseSchema(raw []byte) (*Validator, error) {
 	if err := validateSchemaDocument(document); err != nil {
 		return nil, err
 	}
-	return &Validator{root: document}, nil
+	var documentAny any
+	decoderAny := json.NewDecoder(bytes.NewReader(raw))
+	decoderAny.UseNumber()
+	if err := decoderAny.Decode(&documentAny); err != nil {
+		return nil, fmt.Errorf("failed to decode schema JSON for digest: %w", err)
+	}
+	digest, err := TypedDigest("tdev.schema.v1", documentAny)
+	if err != nil {
+		return nil, fmt.Errorf("failed to compute schema digest: %w", err)
+	}
+	return &Validator{root: document, schemaDigest: digest}, nil
 }
 
 var supportedSchemaKeywords = map[string]bool{
@@ -58,6 +83,42 @@ var supportedSchemaKeywords = map[string]bool{
 var supportedSchemaTypes = map[string]bool{
 	"null": true, "boolean": true, "integer": true, "number": true,
 	"string": true, "array": true, "object": true,
+}
+
+func (validator *Validator) SchemaDigest() string {
+	return validator.schemaDigest
+}
+
+func (validator *Validator) ValidateDefinition(name string, value any) []string {
+	_, errors := validator.ValidateDefinitionWithProof(name, value)
+	return errors
+}
+
+func (validator *Validator) ValidateDefinitionWithProof(name string, value any) (*ValidationProofV1, []string) {
+	definition, found := validator.root.Defs[name]
+	if !found {
+		return nil, []string{"unknown definition: " + name}
+	}
+	var unions []UnionProofBranchV1
+	errors := validator.validateWithProof(definition, value, "$", "#/$defs/"+name, map[string]bool{}, &unions)
+	if len(errors) > 0 {
+		return nil, errors
+	}
+	semanticErrs := SemanticErrors(name, value)
+	if len(semanticErrs) > 0 {
+		return nil, semanticErrs
+	}
+	canonicalDigest, err := TypedDigest("tdev.validation-proof.v1", value)
+	if err != nil {
+		return nil, []string{"failed to compute canonical digest for proof: " + err.Error()}
+	}
+	proof := &ValidationProofV1{
+		SchemaDigest:    validator.schemaDigest,
+		RootDefinition:  name,
+		CanonicalDigest: canonicalDigest,
+		Unions:          unions,
+	}
+	return proof, nil
 }
 
 func validateSchemaDocument(document SchemaDocument) error {
@@ -494,14 +555,6 @@ func parseHexCodeUnit(raw []byte, start int) (uint16, error) {
 	return value, nil
 }
 
-func (validator *Validator) ValidateDefinition(name string, value any) []string {
-	definition, ok := validator.root.Defs[name]
-	if !ok {
-		return []string{"unknown definition: " + name}
-	}
-	return validator.validate(definition, value, "$", map[string]bool{})
-}
-
 func (validator *Validator) resolve(reference string) (map[string]any, bool) {
 	const prefix = "#/$defs/"
 	if !strings.HasPrefix(reference, prefix) {
@@ -511,23 +564,23 @@ func (validator *Validator) resolve(reference string) (map[string]any, bool) {
 	return definition, ok
 }
 
-func (validator *Validator) validate(schema map[string]any, value any, path string, stack map[string]bool) []string {
+func (validator *Validator) validateWithProof(schema map[string]any, value any, instancePointer, schemaPointer string, stack map[string]bool, unions *[]UnionProofBranchV1) []string {
 	if reference, ok := schema["$ref"].(string); ok {
 		resolved, found := validator.resolve(reference)
 		if !found {
-			return []string{path + ": unresolved reference " + reference}
+			return []string{instancePointer + ": unresolved reference " + reference}
 		}
-		key := reference + ":" + path
+		key := reference + ":" + instancePointer
 		if stack[key] {
 			return nil
 		}
 		next := cloneSet(stack)
 		next[key] = true
-		return validator.validate(resolved, value, path, next)
+		return validator.validateWithProof(resolved, value, instancePointer, reference, next, unions)
 	}
 
 	if constant, ok := schema["const"]; ok && !equalJSON(constant, value) {
-		return []string{path + ": value does not equal const"}
+		return []string{instancePointer + ": value does not equal const"}
 	}
 	if enumValues := asSlice(schema["enum"]); len(enumValues) > 0 {
 		matched := false
@@ -538,20 +591,42 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 			}
 		}
 		if !matched {
-			return []string{path + ": value is not in enum"}
+			return []string{instancePointer + ": value is not in enum"}
 		}
 	}
 	if choices := asSlice(schema["oneOf"]); len(choices) > 0 {
-		matches := 0
-		for _, choice := range choices {
-			if candidate, ok := choice.(map[string]any); ok && len(validator.validate(candidate, value, path, cloneSet(stack))) == 0 {
-				matches++
+		oneOfPointer := schemaPointer + "/oneOf"
+		var matchingIndices []int
+		var branchUnionsList [][]UnionProofBranchV1
+
+		for index, choice := range choices {
+			if candidate, ok := choice.(map[string]any); ok {
+				var branchUnions []UnionProofBranchV1
+				errs := validator.validateWithProof(candidate, value, instancePointer, fmt.Sprintf("%s/%d", oneOfPointer, index), cloneSet(stack), &branchUnions)
+				if len(errs) == 0 {
+					matchingIndices = append(matchingIndices, index)
+					branchUnionsList = append(branchUnionsList, branchUnions)
+				}
 			}
 		}
-		if matches == 1 {
-			return nil
+
+		if len(matchingIndices) == 0 {
+			return []string{fmt.Sprintf("%s: ONE_OF_NO_MATCH: no oneOf branch matched at %s", instancePointer, instancePointer)}
 		}
-		return []string{fmt.Sprintf("%s: oneOf matched %d branches", path, matches)}
+		if len(matchingIndices) > 1 {
+			return []string{fmt.Sprintf("%s: ONE_OF_MULTIPLE_MATCH: %d oneOf branches matched at %s", instancePointer, len(matchingIndices), instancePointer)}
+		}
+
+		matchIndex := matchingIndices[0]
+		branchIdentity := fmt.Sprintf("%s/%d", oneOfPointer, matchIndex)
+		*unions = append(*unions, UnionProofBranchV1{
+			InstancePointer: instancePointer,
+			SchemaPointer:   oneOfPointer,
+			BranchIndex:     matchIndex,
+			BranchIdentity:  branchIdentity,
+		})
+		*unions = append(*unions, branchUnionsList[0]...)
+		return nil
 	}
 
 	typeName, _ := schema["type"].(string)
@@ -560,100 +635,99 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 		if value == nil {
 			return nil
 		}
-		return []string{path + ": expected null"}
+		return []string{instancePointer + ": expected null"}
 	case "boolean":
 		if _, ok := value.(bool); ok {
 			return nil
 		}
-		return []string{path + ": expected boolean"}
+		return []string{instancePointer + ": expected boolean"}
 	case "integer":
 		integer, ok := safeInteger(value)
 		if !ok {
-			return []string{path + ": expected safe integer"}
+			return []string{instancePointer + ": expected safe integer"}
 		}
 		if minimum, ok := schemaNumber(schema["minimum"]); ok && integer < minimum {
-			return []string{path + ": below minimum"}
+			return []string{instancePointer + ": below minimum"}
 		}
 		if maximum, ok := schemaNumber(schema["maximum"]); ok && integer > maximum {
-			return []string{path + ": above maximum"}
+			return []string{instancePointer + ": above maximum"}
 		}
 		return nil
 	case "number":
 		integer, ok := safeInteger(value)
 		if !ok {
-			return []string{path + ": expected finite protocol number"}
+			return []string{instancePointer + ": expected finite protocol number"}
 		}
 		if minimum, ok := schemaNumber(schema["minimum"]); ok && integer < minimum {
-			return []string{path + ": below minimum"}
+			return []string{instancePointer + ": below minimum"}
 		}
 		if maximum, ok := schemaNumber(schema["maximum"]); ok && integer > maximum {
-			return []string{path + ": above maximum"}
+			return []string{instancePointer + ": above maximum"}
 		}
 		return nil
 	case "string":
 		text, ok := value.(string)
 		if !ok {
-			return []string{path + ": expected string"}
+			return []string{instancePointer + ": expected string"}
 		}
 		if minimum, ok := schemaInt(schema["minLength"]); ok && len([]rune(text)) < minimum {
-			return []string{path + ": shorter than minLength"}
+			return []string{instancePointer + ": shorter than minLength"}
 		}
 		if maximum, ok := schemaInt(schema["maxLength"]); ok && len([]rune(text)) > maximum {
-			return []string{path + ": longer than maxLength"}
+			return []string{instancePointer + ": longer than maxLength"}
 		}
 		if pattern, ok := schema["pattern"].(string); ok {
-			// The checked-in schema intentionally uses a regexp subset shared by
-			// ECMAScript and Go. Compile failure is a contract error.
 			compiled, err := regexp.Compile(pattern)
 			if err != nil {
-				return []string{path + ": invalid schema pattern: " + err.Error()}
+				return []string{instancePointer + ": invalid schema pattern: " + err.Error()}
 			}
 			if !compiled.MatchString(text) {
-				return []string{path + ": pattern mismatch"}
+				return []string{instancePointer + ": pattern mismatch"}
 			}
 		}
 		if format, _ := schema["format"].(string); format == "date-time" && !isTdevDateTime(text) {
-			return []string{path + ": invalid date-time"}
+			return []string{instancePointer + ": invalid date-time"}
 		}
 		return nil
 	case "array":
 		items, ok := value.([]any)
 		if !ok {
-			return []string{path + ": expected array"}
+			return []string{instancePointer + ": expected array"}
 		}
 		var errors []string
 		if minimum, ok := schemaInt(schema["minItems"]); ok && len(items) < minimum {
-			errors = append(errors, path+": fewer than minItems")
+			errors = append(errors, instancePointer+": fewer than minItems")
 		}
 		if maximum, ok := schemaInt(schema["maxItems"]); ok && len(items) > maximum {
-			errors = append(errors, path+": more than maxItems")
+			errors = append(errors, instancePointer+": more than maxItems")
 		}
 		if unique, _ := schema["uniqueItems"].(bool); unique {
 			seen := map[string]bool{}
 			for _, item := range items {
 				canonical, err := Canonicalize(item)
 				if err != nil {
-					errors = append(errors, path+": invalid unique item")
+					errors = append(errors, instancePointer+": invalid unique item")
 					break
 				}
 				key := string(canonical)
 				if seen[key] {
-					errors = append(errors, path+": duplicate array item")
+					errors = append(errors, instancePointer+": duplicate array item")
 					break
 				}
 				seen[key] = true
 			}
 		}
 		if itemSchema, ok := schema["items"].(map[string]any); ok {
+			itemSchemaPointer := schemaPointer + "/items"
 			for index, item := range items {
-				errors = append(errors, validator.validate(itemSchema, item, fmt.Sprintf("%s[%d]", path, index), cloneSet(stack))...)
+				errors = append(errors, validator.validateWithProof(itemSchema, item, fmt.Sprintf("%s[%d]", instancePointer, index), itemSchemaPointer, cloneSet(stack), unions)...)
 			}
 		}
 		return errors
 	case "object":
 		object, ok := value.(map[string]any)
 		if !ok {
-			return []string{path + ": expected object"}
+			return []string{instancePointer + ": expected object"}
 		}
 		var errors []string
 		properties, _ := schema["properties"].(map[string]any)
@@ -665,20 +739,20 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 		}
 		for property := range required {
 			if _, exists := object[property]; !exists {
-				errors = append(errors, path+"."+property+": required property missing")
+				errors = append(errors, instancePointer+"."+property+": required property missing")
 			}
 		}
 		for property, item := range object {
 			if propertySchema, ok := properties[property].(map[string]any); ok {
-				errors = append(errors, validator.validate(propertySchema, item, path+"."+property, cloneSet(stack))...)
+				errors = append(errors, validator.validateWithProof(propertySchema, item, instancePointer+"."+property, schemaPointer+"/properties/"+property, cloneSet(stack), unions)...)
 				continue
 			}
 			if additional, ok := schema["additionalProperties"].(bool); ok && !additional {
-				errors = append(errors, path+"."+property+": additional property rejected")
+				errors = append(errors, instancePointer+"."+property+": additional property rejected")
 				continue
 			}
 			if additionalSchema, ok := schema["additionalProperties"].(map[string]any); ok {
-				errors = append(errors, validator.validate(additionalSchema, item, path+"."+property, cloneSet(stack))...)
+				errors = append(errors, validator.validateWithProof(additionalSchema, item, instancePointer+"."+property, schemaPointer+"/additionalProperties", cloneSet(stack), unions)...)
 			}
 		}
 		sort.Strings(errors)
@@ -686,7 +760,7 @@ func (validator *Validator) validate(schema map[string]any, value any, path stri
 	case "":
 		return nil
 	default:
-		return []string{path + ": unsupported schema type " + typeName}
+		return []string{instancePointer + ": unsupported schema type " + typeName}
 	}
 }
 
@@ -912,4 +986,108 @@ func duplicateValues(values []string) []string {
 	}
 	sort.Strings(result)
 	return result
+}
+
+func ExtractValueByPointer(rootValue any, instancePointer string) (any, error) {
+	if instancePointer == "$" || instancePointer == "" || instancePointer == "/" {
+		return rootValue, nil
+	}
+	p := instancePointer
+	if strings.HasPrefix(p, "$") {
+		p = p[1:]
+	}
+	current := rootValue
+	pos := 0
+	for pos < len(p) {
+		if p[pos] == '.' {
+			pos++
+			nextDot := strings.IndexByte(p[pos:], '.')
+			nextBracket := strings.IndexByte(p[pos:], '[')
+			end := len(p[pos:])
+			if nextDot != -1 && (nextBracket == -1 || nextDot < nextBracket) {
+				end = nextDot
+			} else if nextBracket != -1 {
+				end = nextBracket
+			}
+			key := p[pos : pos+end]
+			pos += end
+
+			objMap, ok := current.(map[string]any)
+			if !ok {
+				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: pointer path '%s' not found in root value", instancePointer)
+			}
+			val, found := objMap[key]
+			if !found {
+				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: property '%s' not found at '%s'", key, instancePointer)
+			}
+			current = val
+		} else if p[pos] == '[' {
+			closeBracket := strings.IndexByte(p[pos:], ']')
+			if closeBracket == -1 {
+				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: malformed pointer bracket at '%s'", instancePointer)
+			}
+			idxStr := p[pos+1 : pos+closeBracket]
+			idx, err := strconv.Atoi(idxStr)
+			if err != nil {
+				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid array index bracket at '%s'", instancePointer)
+			}
+			pos += closeBracket + 1
+
+			arrSlice, ok := current.([]any)
+			if !ok || idx < 0 || idx >= len(arrSlice) {
+				return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: array index [%d] out of bounds at '%s'", idx, instancePointer)
+			}
+			current = arrSlice[idx]
+		} else {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: unexpected character in pointer '%s'", instancePointer)
+		}
+	}
+	return current, nil
+}
+
+func VerifyProofAndExtract(
+	rootValue any,
+	proof *ValidationProofV1,
+	instancePointer string,
+	targetSchemaPointer string,
+	targetBranchIdentities []string,
+	canonicalSchemaDigest string,
+) (any, *UnionProofBranchV1, error) {
+	if proof == nil {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: missing validation proof")
+	}
+	if proof.SchemaDigest != canonicalSchemaDigest {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: schema digest mismatch")
+	}
+	recomputedDigest, err := TypedDigest("tdev.validation-proof.v1", rootValue)
+	if err != nil || proof.CanonicalDigest != recomputedDigest {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: canonical digest mismatch for root value")
+	}
+	var matches []UnionProofBranchV1
+	for _, u := range proof.Unions {
+		if u.InstancePointer == instancePointer {
+			matches = append(matches, u)
+		}
+	}
+	if len(matches) == 0 {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: unproved union at %s", instancePointer)
+	}
+	if len(matches) > 1 {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: duplicate proof entries for path %s", instancePointer)
+	}
+	match := &matches[0]
+	if match.SchemaPointer != targetSchemaPointer {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: schema pointer mismatch at %s", instancePointer)
+	}
+	if match.BranchIndex < 0 || match.BranchIndex >= len(targetBranchIdentities) {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	if match.BranchIdentity != targetBranchIdentities[match.BranchIndex] {
+		return nil, nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch identity mismatch at %s", instancePointer)
+	}
+	extracted, err := ExtractValueByPointer(rootValue, instancePointer)
+	if err != nil {
+		return nil, nil, err
+	}
+	return extracted, match, nil
 }

@@ -2,9 +2,9 @@
 
 ## Current
 
-- Product/source stage: M0 schema, pure-domain foundation, repository governance, and the complete first-release product specification are source-verified; Design 0004 is accepted at the contract/source layer; no M1 implementation, installation, Cloudflare, Agent, public MCP, client, or release layer is claimed.
-- Current work: no active implementation. The accepted M1 contract is ready for a separate implementation Task.
-- Next product gate: implement the M1 versioned schema and validation-proof/domain-conversion foundation defined by Design 0004 before adding Worker or CaseDO runtime code.
+- Product/source stage: M0 schema/domain foundation, Design 0004 accepted, and the first M1 schema/proof foundation slice (canonical control schemas, lossless raw JSON ingress, ValidationProofV1, branch identities, and proof-consuming closed domain converters) are source-verified; no Worker, CaseDO SQLite, Cloudflare deployment, Agent, public MCP, client, or live release layer is claimed.
+- Current work: the first M1 schema/proof foundation slice is complete. CaseDO SQLite storage core is ready for the next slice.
+- Next product gate: implement the CaseDO SQLite storage core, schema version 1 migration, and transaction boundary defined by Design 0004.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 

@@ -2,7 +2,13 @@
 
 package protocol
 
-import "encoding/json"
+import (
+	"encoding/json"
+	"fmt"
+	protocolruntime "github.com/humtr/tdev/protocol/runtime/go"
+)
+
+const CanonicalSchemaDigest = "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e"
 
 type AcceptanceCriterion struct {
 	CriterionID string `json:"criterionId"`
@@ -54,6 +60,21 @@ type AttemptStatus json.RawMessage
 type AttemptTerminal json.RawMessage
 
 type BaseReference json.RawMessage
+
+type CancelCaseInput struct {
+	CaseID               CaseId    `json:"caseId"`
+	ExpectedCaseRevision int64     `json:"expectedCaseRevision"`
+	Reason               string    `json:"reason"`
+	RequestID            RequestId `json:"requestId"`
+}
+
+type CancelTaskInput struct {
+	CaseID               CaseId    `json:"caseId"`
+	ExpectedTaskRevision int64     `json:"expectedTaskRevision"`
+	Reason               string    `json:"reason"`
+	RequestID            RequestId `json:"requestId"`
+	TaskID               TaskId    `json:"taskId"`
+}
 
 type CancellationId string
 
@@ -129,6 +150,13 @@ type ContractClause struct {
 	Statement string `json:"statement"`
 }
 
+type ControlCaseInput struct {
+	Action               json.RawMessage `json:"action"`
+	CaseID               CaseId          `json:"caseId"`
+	ExpectedCaseRevision int64           `json:"expectedCaseRevision"`
+	RequestID            RequestId       `json:"requestId"`
+}
+
 type ControlError struct {
 	Category  string             `json:"category"`
 	Code      string             `json:"code"`
@@ -136,6 +164,14 @@ type ControlError struct {
 	Message   string             `json:"message"`
 	Retryable bool               `json:"retryable"`
 	Subject   *EntityRef         `json:"subject,omitempty"`
+}
+
+type ControlTaskInput struct {
+	Action               json.RawMessage `json:"action"`
+	CaseID               CaseId          `json:"caseId"`
+	ExpectedTaskRevision int64           `json:"expectedTaskRevision"`
+	RequestID            RequestId       `json:"requestId"`
+	TaskID               TaskId          `json:"taskId"`
 }
 
 type DispatchId string
@@ -173,6 +209,13 @@ type FailureRecord struct {
 	Retryable bool   `json:"retryable"`
 }
 
+type FinishCaseInput struct {
+	CaseID               CaseId          `json:"caseId"`
+	ExpectedCaseRevision int64           `json:"expectedCaseRevision"`
+	RequestID            RequestId       `json:"requestId"`
+	Terminal             json.RawMessage `json:"terminal"`
+}
+
 type GitObjectId string
 
 type GrantId string
@@ -197,6 +240,22 @@ type MissingEffectDetails struct {
 	GrantID        GrantId      `json:"grantId"`
 	Kind           string       `json:"kind"`
 	RequiredEffect TargetEffect `json:"requiredEffect"`
+}
+
+type MutationReceiptV1 struct {
+	Capability             string     `json:"capability"`
+	CaseID                 CaseId     `json:"caseId"`
+	CommittedCaseRevision  int64      `json:"committedCaseRevision"`
+	CommittedEventSequence int64      `json:"committedEventSequence"`
+	CommittedTaskRevision  *int64     `json:"committedTaskRevision,omitempty"`
+	CreatedAt              Timestamp  `json:"createdAt"`
+	RequestID              RequestId  `json:"requestId"`
+	Response               JsonValue  `json:"response"`
+	ResponseDigest         Sha256     `json:"responseDigest"`
+	SchemaVersion          int64      `json:"schemaVersion"`
+	SemanticDigest         Sha256     `json:"semanticDigest"`
+	Subject                *EntityRef `json:"subject,omitempty"`
+	TaskID                 *TaskId    `json:"taskId,omitempty"`
 }
 
 type NewCaseContractInput struct {
@@ -274,6 +333,19 @@ type SchemaMismatchDetails struct {
 }
 
 type Sha256 string
+
+type SubmitOperationInput struct {
+	Case      json.RawMessage `json:"case"`
+	Operation struct {
+		Arguments            JsonValue       `json:"arguments"`
+		ExpectedSchemaDigest Sha256          `json:"expectedSchemaDigest"`
+		ID                   string          `json:"id"`
+		Targets              []TargetBinding `json:"targets"`
+		Version              int64           `json:"version"`
+	} `json:"operation"`
+	RequestID RequestId       `json:"requestId"`
+	Wait      json.RawMessage `json:"wait"`
+}
 
 type Target json.RawMessage
 
@@ -361,3 +433,1743 @@ type VerificationRequirement struct {
 }
 
 type WorkspaceId string
+
+type ActorRefDomain struct {
+	BranchIndex     int
+	BranchIdentity  string
+	ActorRefBranch0 *struct {
+		Kind      string `json:"kind"`
+		SubjectID string `json:"subjectId"`
+	}
+	ActorRefBranch1 *struct {
+		Kind      string `json:"kind"`
+		SubjectID string `json:"subjectId"`
+	}
+	ActorRefBranch2 *struct {
+		Component string `json:"component"`
+		Kind      string `json:"kind"`
+	}
+}
+
+func ConvertActorRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*ActorRefDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/ActorRef/oneOf",
+		[]string{
+			"#/$defs/ActorRef/oneOf/0",
+			"#/$defs/ActorRef/oneOf/1",
+			"#/$defs/ActorRef/oneOf/2",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &ActorRefDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "mcp_client" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind      string `json:"kind"`
+			SubjectID string `json:"subjectId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.ActorRefBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "user" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind      string `json:"kind"`
+			SubjectID string `json:"subjectId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.ActorRefBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "system" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Component string `json:"component"`
+			Kind      string `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.ActorRefBranch2 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type AttemptStatusDomain struct {
+	BranchIndex          int
+	BranchIdentity       string
+	AttemptStatusBranch0 *struct {
+		Kind string `json:"kind"`
+	}
+	AttemptStatusBranch1 *struct {
+		AgentEpoch   int64     `json:"agentEpoch"`
+		FencingToken string    `json:"fencingToken"`
+		Kind         string    `json:"kind"`
+		QueuedAt     Timestamp `json:"queuedAt"`
+	}
+	AttemptStatusBranch2 *struct {
+		AgentEpoch   int64     `json:"agentEpoch"`
+		FencingToken string    `json:"fencingToken"`
+		Kind         string    `json:"kind"`
+		StartedAt    Timestamp `json:"startedAt"`
+	}
+	AttemptStatusBranch3 *struct {
+		Kind   string    `json:"kind"`
+		Reason string    `json:"reason"`
+		Since  Timestamp `json:"since"`
+	}
+	AttemptStatusBranch4 *struct {
+		Kind        string    `json:"kind"`
+		Previous    string    `json:"previous"`
+		RequestedAt Timestamp `json:"requestedAt"`
+	}
+	AttemptStatusBranch5 *struct {
+		Kind     string          `json:"kind"`
+		Terminal AttemptTerminal `json:"terminal"`
+	}
+}
+
+func ConvertAttemptStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*AttemptStatusDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/AttemptStatus/oneOf",
+		[]string{
+			"#/$defs/AttemptStatus/oneOf/0",
+			"#/$defs/AttemptStatus/oneOf/1",
+			"#/$defs/AttemptStatus/oneOf/2",
+			"#/$defs/AttemptStatus/oneOf/3",
+			"#/$defs/AttemptStatus/oneOf/4",
+			"#/$defs/AttemptStatus/oneOf/5",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &AttemptStatusDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "dispatch_pending" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind string `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "queued" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			AgentEpoch   int64     `json:"agentEpoch"`
+			FencingToken string    `json:"fencingToken"`
+			Kind         string    `json:"kind"`
+			QueuedAt     Timestamp `json:"queuedAt"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "running" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			AgentEpoch   int64     `json:"agentEpoch"`
+			FencingToken string    `json:"fencingToken"`
+			Kind         string    `json:"kind"`
+			StartedAt    Timestamp `json:"startedAt"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "reconciling" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind   string    `json:"kind"`
+			Reason string    `json:"reason"`
+			Since  Timestamp `json:"since"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch3 = &val
+	case 4:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "cancel_requested" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind        string    `json:"kind"`
+			Previous    string    `json:"previous"`
+			RequestedAt Timestamp `json:"requestedAt"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch4 = &val
+	case 5:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "terminal" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind     string          `json:"kind"`
+			Terminal AttemptTerminal `json:"terminal"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+		}
+		domain.AttemptStatusBranch5 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type AttemptTerminalDomain struct {
+	BranchIndex            int
+	BranchIdentity         string
+	AttemptTerminalBranch0 *struct {
+		FinishedAt           Timestamp `json:"finishedAt"`
+		Outcome              string    `json:"outcome"`
+		ResultEnvelopeDigest Sha256    `json:"resultEnvelopeDigest"`
+	}
+	AttemptTerminalBranch1 *struct {
+		Failure    ExecutionFailure `json:"failure"`
+		FinishedAt Timestamp        `json:"finishedAt"`
+		Outcome    string           `json:"outcome"`
+	}
+	AttemptTerminalBranch2 *struct {
+		CancellationReceiptID string    `json:"cancellationReceiptId"`
+		FinishedAt            Timestamp `json:"finishedAt"`
+		Outcome               string    `json:"outcome"`
+	}
+	AttemptTerminalBranch3 *struct {
+		FinishedAt   Timestamp          `json:"finishedAt"`
+		Interruption InterruptionRecord `json:"interruption"`
+		Outcome      string             `json:"outcome"`
+		RetrySafety  string             `json:"retrySafety"`
+	}
+	AttemptTerminalBranch4 *struct {
+		FinishedAt Timestamp          `json:"finishedAt"`
+		Outcome    string             `json:"outcome"`
+		Rejection  ExecutionRejection `json:"rejection"`
+	}
+	AttemptTerminalBranch5 *struct {
+		FinishedAt     Timestamp      `json:"finishedAt"`
+		InputRequestID InputRequestId `json:"inputRequestId"`
+		Outcome        string         `json:"outcome"`
+	}
+	AttemptTerminalBranch6 *struct {
+		FinishedAt  Timestamp         `json:"finishedAt"`
+		Outcome     string            `json:"outcome"`
+		Uncertainty UncertaintyRecord `json:"uncertainty"`
+	}
+}
+
+func ConvertAttemptTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*AttemptTerminalDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/AttemptTerminal/oneOf",
+		[]string{
+			"#/$defs/AttemptTerminal/oneOf/0",
+			"#/$defs/AttemptTerminal/oneOf/1",
+			"#/$defs/AttemptTerminal/oneOf/2",
+			"#/$defs/AttemptTerminal/oneOf/3",
+			"#/$defs/AttemptTerminal/oneOf/4",
+			"#/$defs/AttemptTerminal/oneOf/5",
+			"#/$defs/AttemptTerminal/oneOf/6",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &AttemptTerminalDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "succeeded" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt           Timestamp `json:"finishedAt"`
+			Outcome              string    `json:"outcome"`
+			ResultEnvelopeDigest Sha256    `json:"resultEnvelopeDigest"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "failed" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Failure    ExecutionFailure `json:"failure"`
+			FinishedAt Timestamp        `json:"finishedAt"`
+			Outcome    string           `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "cancelled" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			CancellationReceiptID string    `json:"cancellationReceiptId"`
+			FinishedAt            Timestamp `json:"finishedAt"`
+			Outcome               string    `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "interrupted" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt   Timestamp          `json:"finishedAt"`
+			Interruption InterruptionRecord `json:"interruption"`
+			Outcome      string             `json:"outcome"`
+			RetrySafety  string             `json:"retrySafety"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch3 = &val
+	case 4:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "rejected" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt Timestamp          `json:"finishedAt"`
+			Outcome    string             `json:"outcome"`
+			Rejection  ExecutionRejection `json:"rejection"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch4 = &val
+	case 5:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "input_required" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt     Timestamp      `json:"finishedAt"`
+			InputRequestID InputRequestId `json:"inputRequestId"`
+			Outcome        string         `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch5 = &val
+	case 6:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "unverified" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt  Timestamp         `json:"finishedAt"`
+			Outcome     string            `json:"outcome"`
+			Uncertainty UncertaintyRecord `json:"uncertainty"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 6 unmarshal failed: %w", err)
+		}
+		domain.AttemptTerminalBranch6 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type BaseReferenceDomain struct {
+	BranchIndex          int
+	BranchIdentity       string
+	BaseReferenceBranch0 *struct {
+		Kind     string      `json:"kind"`
+		ObjectID GitObjectId `json:"objectId"`
+	}
+	BaseReferenceBranch1 *struct {
+		Digest Sha256 `json:"digest"`
+		Kind   string `json:"kind"`
+	}
+}
+
+func ConvertBaseReferenceDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*BaseReferenceDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/BaseReference/oneOf",
+		[]string{
+			"#/$defs/BaseReference/oneOf/0",
+			"#/$defs/BaseReference/oneOf/1",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &BaseReferenceDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "git_commit" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind     string      `json:"kind"`
+			ObjectID GitObjectId `json:"objectId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.BaseReferenceBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "observation" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Digest Sha256 `json:"digest"`
+			Kind   string `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.BaseReferenceBranch1 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type CaseStatusDomain struct {
+	BranchIndex       int
+	BranchIdentity    string
+	CaseStatusBranch0 *struct {
+		EnteredAt Timestamp `json:"enteredAt"`
+		Kind      string    `json:"kind"`
+	}
+	CaseStatusBranch1 *struct {
+		Detail   *string   `json:"detail,omitempty"`
+		Kind     string    `json:"kind"`
+		PausedAt Timestamp `json:"pausedAt"`
+		Reason   string    `json:"reason"`
+	}
+	CaseStatusBranch2 *struct {
+		CancellationID CancellationId `json:"cancellationId"`
+		Kind           string         `json:"kind"`
+		Reason         string         `json:"reason"`
+		RequestedAt    Timestamp      `json:"requestedAt"`
+		RequestedBy    ActorRef       `json:"requestedBy"`
+	}
+	CaseStatusBranch3 *struct {
+		Kind     string       `json:"kind"`
+		Terminal CaseTerminal `json:"terminal"`
+	}
+}
+
+func ConvertCaseStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*CaseStatusDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/CaseStatus/oneOf",
+		[]string{
+			"#/$defs/CaseStatus/oneOf/0",
+			"#/$defs/CaseStatus/oneOf/1",
+			"#/$defs/CaseStatus/oneOf/2",
+			"#/$defs/CaseStatus/oneOf/3",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &CaseStatusDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "active" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			EnteredAt Timestamp `json:"enteredAt"`
+			Kind      string    `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.CaseStatusBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "paused" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Detail   *string   `json:"detail,omitempty"`
+			Kind     string    `json:"kind"`
+			PausedAt Timestamp `json:"pausedAt"`
+			Reason   string    `json:"reason"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.CaseStatusBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "cancelling" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			CancellationID CancellationId `json:"cancellationId"`
+			Kind           string         `json:"kind"`
+			Reason         string         `json:"reason"`
+			RequestedAt    Timestamp      `json:"requestedAt"`
+			RequestedBy    ActorRef       `json:"requestedBy"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.CaseStatusBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "terminal" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind     string       `json:"kind"`
+			Terminal CaseTerminal `json:"terminal"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.CaseStatusBranch3 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type CaseTerminalDomain struct {
+	BranchIndex         int
+	BranchIdentity      string
+	CaseTerminalBranch0 *struct {
+		ClosedAt      Timestamp     `json:"closedAt"`
+		EvidenceSetID EvidenceSetId `json:"evidenceSetId"`
+		Outcome       string        `json:"outcome"`
+		Summary       string        `json:"summary"`
+	}
+	CaseTerminalBranch1 *struct {
+		ClosedAt Timestamp     `json:"closedAt"`
+		Failure  FailureRecord `json:"failure"`
+		Outcome  string        `json:"outcome"`
+		Summary  string        `json:"summary"`
+	}
+	CaseTerminalBranch2 *struct {
+		Cancellation CancellationSummary `json:"cancellation"`
+		ClosedAt     Timestamp           `json:"closedAt"`
+		Outcome      string              `json:"outcome"`
+		Summary      string              `json:"summary"`
+	}
+	CaseTerminalBranch3 *struct {
+		ClosedAt              Timestamp     `json:"closedAt"`
+		Outcome               string        `json:"outcome"`
+		RollbackEvidenceSetID EvidenceSetId `json:"rollbackEvidenceSetId"`
+		Summary               string        `json:"summary"`
+	}
+	CaseTerminalBranch4 *struct {
+		ClosedAt    Timestamp         `json:"closedAt"`
+		Outcome     string            `json:"outcome"`
+		Summary     string            `json:"summary"`
+		Uncertainty UncertaintyRecord `json:"uncertainty"`
+	}
+}
+
+func ConvertCaseTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*CaseTerminalDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/CaseTerminal/oneOf",
+		[]string{
+			"#/$defs/CaseTerminal/oneOf/0",
+			"#/$defs/CaseTerminal/oneOf/1",
+			"#/$defs/CaseTerminal/oneOf/2",
+			"#/$defs/CaseTerminal/oneOf/3",
+			"#/$defs/CaseTerminal/oneOf/4",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &CaseTerminalDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "completed" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			ClosedAt      Timestamp     `json:"closedAt"`
+			EvidenceSetID EvidenceSetId `json:"evidenceSetId"`
+			Outcome       string        `json:"outcome"`
+			Summary       string        `json:"summary"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.CaseTerminalBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "failed" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			ClosedAt Timestamp     `json:"closedAt"`
+			Failure  FailureRecord `json:"failure"`
+			Outcome  string        `json:"outcome"`
+			Summary  string        `json:"summary"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.CaseTerminalBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "cancelled" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Cancellation CancellationSummary `json:"cancellation"`
+			ClosedAt     Timestamp           `json:"closedAt"`
+			Outcome      string              `json:"outcome"`
+			Summary      string              `json:"summary"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.CaseTerminalBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "rolled_back" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			ClosedAt              Timestamp     `json:"closedAt"`
+			Outcome               string        `json:"outcome"`
+			RollbackEvidenceSetID EvidenceSetId `json:"rollbackEvidenceSetId"`
+			Summary               string        `json:"summary"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.CaseTerminalBranch3 = &val
+	case 4:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "unverified" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val struct {
+			ClosedAt    Timestamp         `json:"closedAt"`
+			Outcome     string            `json:"outcome"`
+			Summary     string            `json:"summary"`
+			Uncertainty UncertaintyRecord `json:"uncertainty"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.CaseTerminalBranch4 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type EntityRefDomain struct {
+	BranchIndex      int
+	BranchIdentity   string
+	EntityRefBranch0 *struct {
+		CaseID CaseId `json:"caseId"`
+		Kind   string `json:"kind"`
+	}
+	EntityRefBranch1 *struct {
+		Kind   string `json:"kind"`
+		TaskID TaskId `json:"taskId"`
+	}
+	EntityRefBranch2 *struct {
+		AttemptID AttemptId `json:"attemptId"`
+		Kind      string    `json:"kind"`
+	}
+}
+
+func ConvertEntityRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*EntityRefDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/EntityRef/oneOf",
+		[]string{
+			"#/$defs/EntityRef/oneOf/0",
+			"#/$defs/EntityRef/oneOf/1",
+			"#/$defs/EntityRef/oneOf/2",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &EntityRefDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "case" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			CaseID CaseId `json:"caseId"`
+			Kind   string `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.EntityRefBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "task" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind   string `json:"kind"`
+			TaskID TaskId `json:"taskId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.EntityRefBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "attempt" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			AttemptID AttemptId `json:"attemptId"`
+			Kind      string    `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.EntityRefBranch2 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type EvidenceRefDomain struct {
+	BranchIndex        int
+	BranchIdentity     string
+	EvidenceRefBranch0 *struct {
+		Kind         string `json:"kind"`
+		ResultDigest Sha256 `json:"resultDigest"`
+		TaskID       TaskId `json:"taskId"`
+	}
+	EvidenceRefBranch1 *struct {
+		ArtifactID ArtifactId `json:"artifactId"`
+		Kind       string     `json:"kind"`
+		SHA256     Sha256     `json:"sha256"`
+	}
+	EvidenceRefBranch2 *struct {
+		Digest Sha256            `json:"digest"`
+		Kind   string            `json:"kind"`
+		Layer  VerificationLayer `json:"layer"`
+	}
+}
+
+func ConvertEvidenceRefDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*EvidenceRefDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/EvidenceRef/oneOf",
+		[]string{
+			"#/$defs/EvidenceRef/oneOf/0",
+			"#/$defs/EvidenceRef/oneOf/1",
+			"#/$defs/EvidenceRef/oneOf/2",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &EvidenceRefDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "task_result" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind         string `json:"kind"`
+			ResultDigest Sha256 `json:"resultDigest"`
+			TaskID       TaskId `json:"taskId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.EvidenceRefBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "artifact" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			ArtifactID ArtifactId `json:"artifactId"`
+			Kind       string     `json:"kind"`
+			SHA256     Sha256     `json:"sha256"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.EvidenceRefBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "observation" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Digest Sha256            `json:"digest"`
+			Kind   string            `json:"kind"`
+			Layer  VerificationLayer `json:"layer"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.EvidenceRefBranch2 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type JsonValueDomain struct {
+	BranchIndex      int
+	BranchIdentity   string
+	JsonValueBranch0 *any
+	JsonValueBranch1 *bool
+	JsonValueBranch2 *int64
+	JsonValueBranch3 *string
+	JsonValueBranch4 *[]JsonValue
+	JsonValueBranch5 *map[string]JsonValue
+}
+
+func ConvertJsonValueDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*JsonValueDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/JsonValue/oneOf",
+		[]string{
+			"#/$defs/JsonValue/oneOf/0",
+			"#/$defs/JsonValue/oneOf/1",
+			"#/$defs/JsonValue/oneOf/2",
+			"#/$defs/JsonValue/oneOf/3",
+			"#/$defs/JsonValue/oneOf/4",
+			"#/$defs/JsonValue/oneOf/5",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &JsonValueDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val any
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch0 = &val
+	case 1:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val bool
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch1 = &val
+	case 2:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val int64
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch2 = &val
+	case 3:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val string
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch3 = &val
+	case 4:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val []JsonValue
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch4 = &val
+	case 5:
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 marshal failed: %w", err)
+		}
+		var val map[string]JsonValue
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 5 unmarshal failed: %w", err)
+		}
+		domain.JsonValueBranch5 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type OperationResultDomain struct {
+	BranchIndex            int
+	BranchIdentity         string
+	OperationResultBranch0 *struct {
+		Kind         string    `json:"kind"`
+		ResultDigest Sha256    `json:"resultDigest"`
+		Value        JsonValue `json:"value"`
+	}
+	OperationResultBranch1 *struct {
+		Artifacts    []ArtifactRef `json:"artifacts"`
+		Kind         string        `json:"kind"`
+		ResultDigest Sha256        `json:"resultDigest"`
+	}
+	OperationResultBranch2 *struct {
+		Artifacts    []ArtifactRef `json:"artifacts"`
+		Kind         string        `json:"kind"`
+		ResultDigest Sha256        `json:"resultDigest"`
+		Value        JsonValue     `json:"value"`
+	}
+	OperationResultBranch3 *struct {
+		Kind         string `json:"kind"`
+		ResultDigest Sha256 `json:"resultDigest"`
+	}
+}
+
+func ConvertOperationResultDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*OperationResultDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/OperationResult/oneOf",
+		[]string{
+			"#/$defs/OperationResult/oneOf/0",
+			"#/$defs/OperationResult/oneOf/1",
+			"#/$defs/OperationResult/oneOf/2",
+			"#/$defs/OperationResult/oneOf/3",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &OperationResultDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "inline" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind         string    `json:"kind"`
+			ResultDigest Sha256    `json:"resultDigest"`
+			Value        JsonValue `json:"value"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.OperationResultBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "artifacts" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Artifacts    []ArtifactRef `json:"artifacts"`
+			Kind         string        `json:"kind"`
+			ResultDigest Sha256        `json:"resultDigest"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.OperationResultBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "mixed" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Artifacts    []ArtifactRef `json:"artifacts"`
+			Kind         string        `json:"kind"`
+			ResultDigest Sha256        `json:"resultDigest"`
+			Value        JsonValue     `json:"value"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.OperationResultBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "none" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind         string `json:"kind"`
+			ResultDigest Sha256 `json:"resultDigest"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.OperationResultBranch3 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type TargetDomain struct {
+	BranchIndex    int
+	BranchIdentity string
+	TargetBranch0  *struct {
+		Kind        string      `json:"kind"`
+		WorkspaceID WorkspaceId `json:"workspaceId"`
+	}
+	TargetBranch1 *struct {
+		Kind        string      `json:"kind"`
+		ProjectID   ProjectId   `json:"projectId"`
+		WorkspaceID WorkspaceId `json:"workspaceId"`
+	}
+}
+
+func ConvertTargetDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TargetDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/Target/oneOf",
+		[]string{
+			"#/$defs/Target/oneOf/0",
+			"#/$defs/Target/oneOf/1",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &TargetDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "workspace" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind        string      `json:"kind"`
+			WorkspaceID WorkspaceId `json:"workspaceId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.TargetBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "project" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind        string      `json:"kind"`
+			ProjectID   ProjectId   `json:"projectId"`
+			WorkspaceID WorkspaceId `json:"workspaceId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.TargetBranch1 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type TaskStatusDomain struct {
+	BranchIndex       int
+	BranchIdentity    string
+	TaskStatusBranch0 *struct {
+		Kind    string      `json:"kind"`
+		Waiting TaskWaiting `json:"waiting"`
+	}
+	TaskStatusBranch1 *struct {
+		Kind    string    `json:"kind"`
+		ReadyAt Timestamp `json:"readyAt"`
+	}
+	TaskStatusBranch2 *struct {
+		AttemptID AttemptId `json:"attemptId"`
+		Kind      string    `json:"kind"`
+	}
+	TaskStatusBranch3 *struct {
+		AttemptID      *AttemptId     `json:"attemptId,omitempty"`
+		CancellationID CancellationId `json:"cancellationId"`
+		Kind           string         `json:"kind"`
+		RequestedAt    Timestamp      `json:"requestedAt"`
+	}
+	TaskStatusBranch4 *struct {
+		Kind     string       `json:"kind"`
+		Terminal TaskTerminal `json:"terminal"`
+	}
+}
+
+func ConvertTaskStatusDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskStatusDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/TaskStatus/oneOf",
+		[]string{
+			"#/$defs/TaskStatus/oneOf/0",
+			"#/$defs/TaskStatus/oneOf/1",
+			"#/$defs/TaskStatus/oneOf/2",
+			"#/$defs/TaskStatus/oneOf/3",
+			"#/$defs/TaskStatus/oneOf/4",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &TaskStatusDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "waiting" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind    string      `json:"kind"`
+			Waiting TaskWaiting `json:"waiting"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.TaskStatusBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "ready" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind    string    `json:"kind"`
+			ReadyAt Timestamp `json:"readyAt"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.TaskStatusBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "active" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			AttemptID AttemptId `json:"attemptId"`
+			Kind      string    `json:"kind"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.TaskStatusBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "cancelling" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			AttemptID      *AttemptId     `json:"attemptId,omitempty"`
+			CancellationID CancellationId `json:"cancellationId"`
+			Kind           string         `json:"kind"`
+			RequestedAt    Timestamp      `json:"requestedAt"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.TaskStatusBranch3 = &val
+	case 4:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "terminal" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val struct {
+			Kind     string       `json:"kind"`
+			Terminal TaskTerminal `json:"terminal"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.TaskStatusBranch4 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type TaskTerminalDomain struct {
+	BranchIndex         int
+	BranchIdentity      string
+	TaskTerminalBranch0 *struct {
+		FinishedAt Timestamp       `json:"finishedAt"`
+		Outcome    string          `json:"outcome"`
+		Result     OperationResult `json:"result"`
+	}
+	TaskTerminalBranch1 *struct {
+		Failure    OperationFailure `json:"failure"`
+		FinishedAt Timestamp        `json:"finishedAt"`
+		Outcome    string           `json:"outcome"`
+	}
+	TaskTerminalBranch2 *struct {
+		Cancellation CancellationSummary `json:"cancellation"`
+		FinishedAt   Timestamp           `json:"finishedAt"`
+		Outcome      string              `json:"outcome"`
+	}
+	TaskTerminalBranch3 *struct {
+		ApprovalDecisionID ApprovalDecisionId `json:"approvalDecisionId"`
+		FinishedAt         Timestamp          `json:"finishedAt"`
+		Outcome            string             `json:"outcome"`
+	}
+	TaskTerminalBranch4 *struct {
+		FinishedAt  Timestamp         `json:"finishedAt"`
+		Outcome     string            `json:"outcome"`
+		Uncertainty UncertaintyRecord `json:"uncertainty"`
+	}
+}
+
+func ConvertTaskTerminalDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskTerminalDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/TaskTerminal/oneOf",
+		[]string{
+			"#/$defs/TaskTerminal/oneOf/0",
+			"#/$defs/TaskTerminal/oneOf/1",
+			"#/$defs/TaskTerminal/oneOf/2",
+			"#/$defs/TaskTerminal/oneOf/3",
+			"#/$defs/TaskTerminal/oneOf/4",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &TaskTerminalDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "succeeded" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt Timestamp       `json:"finishedAt"`
+			Outcome    string          `json:"outcome"`
+			Result     OperationResult `json:"result"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.TaskTerminalBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "failed" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			Failure    OperationFailure `json:"failure"`
+			FinishedAt Timestamp        `json:"finishedAt"`
+			Outcome    string           `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.TaskTerminalBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "cancelled" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Cancellation CancellationSummary `json:"cancellation"`
+			FinishedAt   Timestamp           `json:"finishedAt"`
+			Outcome      string              `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.TaskTerminalBranch2 = &val
+	case 3:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "denied" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 marshal failed: %w", err)
+		}
+		var val struct {
+			ApprovalDecisionID ApprovalDecisionId `json:"approvalDecisionId"`
+			FinishedAt         Timestamp          `json:"finishedAt"`
+			Outcome            string             `json:"outcome"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 3 unmarshal failed: %w", err)
+		}
+		domain.TaskTerminalBranch3 = &val
+	case 4:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["outcome"] != "unverified" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 marshal failed: %w", err)
+		}
+		var val struct {
+			FinishedAt  Timestamp         `json:"finishedAt"`
+			Outcome     string            `json:"outcome"`
+			Uncertainty UncertaintyRecord `json:"uncertainty"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 4 unmarshal failed: %w", err)
+		}
+		domain.TaskTerminalBranch4 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type TaskWaitingDomain struct {
+	BranchIndex        int
+	BranchIdentity     string
+	TaskWaitingBranch0 *struct {
+		ApprovalRequestID ApprovalRequestId `json:"approvalRequestId"`
+		Reason            string            `json:"reason"`
+	}
+	TaskWaitingBranch1 *struct {
+		InputRequestID InputRequestId `json:"inputRequestId"`
+		Reason         string         `json:"reason"`
+	}
+	TaskWaitingBranch2 *struct {
+		Reason          string          `json:"reason"`
+		RetryDecisionID RetryDecisionId `json:"retryDecisionId"`
+	}
+}
+
+func ConvertTaskWaitingDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TaskWaitingDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/TaskWaiting/oneOf",
+		[]string{
+			"#/$defs/TaskWaiting/oneOf/0",
+			"#/$defs/TaskWaiting/oneOf/1",
+			"#/$defs/TaskWaiting/oneOf/2",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &TaskWaitingDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["reason"] != "approval" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val struct {
+			ApprovalRequestID ApprovalRequestId `json:"approvalRequestId"`
+			Reason            string            `json:"reason"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.TaskWaitingBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["reason"] != "input" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val struct {
+			InputRequestID InputRequestId `json:"inputRequestId"`
+			Reason         string         `json:"reason"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.TaskWaitingBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["reason"] != "retry_decision" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val struct {
+			Reason          string          `json:"reason"`
+			RetryDecisionID RetryDecisionId `json:"retryDecisionId"`
+		}
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.TaskWaitingBranch2 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}
+
+type TypedErrorDetailsDomain struct {
+	BranchIndex              int
+	BranchIdentity           string
+	TypedErrorDetailsBranch0 *RevisionConflictDetails
+	TypedErrorDetailsBranch1 *SchemaMismatchDetails
+	TypedErrorDetailsBranch2 *MissingEffectDetails
+}
+
+func ConvertTypedErrorDetailsDomain(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*TypedErrorDetailsDomain, error) {
+	extracted, match, err := protocolruntime.VerifyProofAndExtract(
+		rootValue,
+		proof,
+		instancePointer,
+		"#/$defs/TypedErrorDetails/oneOf",
+		[]string{
+			"#/$defs/TypedErrorDetails/oneOf/0",
+			"#/$defs/TypedErrorDetails/oneOf/1",
+			"#/$defs/TypedErrorDetails/oneOf/2",
+		},
+		CanonicalSchemaDigest,
+	)
+	if err != nil {
+		return nil, err
+	}
+	domain := &TypedErrorDetailsDomain{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}
+	switch match.BranchIndex {
+	case 0:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "revision_conflict" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 marshal failed: %w", err)
+		}
+		var val RevisionConflictDetails
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 0 unmarshal failed: %w", err)
+		}
+		domain.TypedErrorDetailsBranch0 = &val
+	case 1:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "schema_mismatch" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 marshal failed: %w", err)
+		}
+		var val SchemaMismatchDetails
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 1 unmarshal failed: %w", err)
+		}
+		domain.TypedErrorDetailsBranch1 = &val
+	case 2:
+		objMap, ok := extracted.(map[string]any)
+		if !ok || objMap["kind"] != "missing_effect" {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 const discriminator mismatch at %s", instancePointer)
+		}
+		rawBytes, err := json.Marshal(extracted)
+		if err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 marshal failed: %w", err)
+		}
+		var val MissingEffectDetails
+		if err := json.Unmarshal(rawBytes, &val); err != nil {
+			return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: branch 2 unmarshal failed: %w", err)
+		}
+		domain.TypedErrorDetailsBranch2 = &val
+	default:
+		return nil, fmt.Errorf("UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s", match.BranchIndex, instancePointer)
+	}
+	return domain, nil
+}

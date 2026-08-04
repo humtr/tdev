@@ -2314,6 +2314,596 @@
         "committedAt"
       ],
       "additionalProperties": false
+    },
+    "MutationReceiptV1": {
+      "type": "object",
+      "properties": {
+        "schemaVersion": {
+          "const": 1
+        },
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "capability": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "semanticDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "subject": {
+          "$ref": "#/$defs/EntityRef"
+        },
+        "response": {
+          "$ref": "#/$defs/JsonValue"
+        },
+        "responseDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "committedCaseRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "committedTaskRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "committedEventSequence": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        }
+      },
+      "required": [
+        "schemaVersion",
+        "requestId",
+        "capability",
+        "semanticDigest",
+        "caseId",
+        "response",
+        "responseDigest",
+        "committedCaseRevision",
+        "committedEventSequence",
+        "createdAt"
+      ],
+      "additionalProperties": false
+    },
+    "ControlCaseInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "expectedCaseRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "pause"
+                },
+                "reason": {
+                  "enum": [
+                    "manual"
+                  ]
+                },
+                "detail": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              },
+              "required": [
+                "kind",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "resume"
+                }
+              },
+              "required": [
+                "kind"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "checkpoint"
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "completedTaskIds": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/TaskId"
+                  }
+                },
+                "pendingDecisionIds": {
+                  "type": "array",
+                  "items": {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 128
+                  }
+                },
+                "evidenceRefs": {
+                  "type": "array",
+                  "items": {
+                    "$ref": "#/$defs/EvidenceRef"
+                  }
+                }
+              },
+              "required": [
+                "kind",
+                "summary",
+                "completedTaskIds",
+                "pendingDecisionIds",
+                "evidenceRefs"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "caseId",
+        "expectedCaseRevision",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "FinishCaseInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "expectedCaseRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "terminal": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "completed"
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "evidenceSetId": {
+                  "$ref": "#/$defs/EvidenceSetId"
+                }
+              },
+              "required": [
+                "outcome",
+                "summary",
+                "evidenceSetId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "failed"
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "failure": {
+                  "$ref": "#/$defs/FailureRecord"
+                }
+              },
+              "required": [
+                "outcome",
+                "summary",
+                "failure"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "rolled_back"
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "rollbackEvidenceSetId": {
+                  "$ref": "#/$defs/EvidenceSetId"
+                }
+              },
+              "required": [
+                "outcome",
+                "summary",
+                "rollbackEvidenceSetId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "outcome": {
+                  "const": "unverified"
+                },
+                "summary": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                "uncertainty": {
+                  "$ref": "#/$defs/UncertaintyRecord"
+                }
+              },
+              "required": [
+                "outcome",
+                "summary",
+                "uncertainty"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "caseId",
+        "expectedCaseRevision",
+        "terminal"
+      ],
+      "additionalProperties": false
+    },
+    "CancelCaseInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "expectedCaseRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "requestId",
+        "caseId",
+        "expectedCaseRevision",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "ControlTaskInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "expectedTaskRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "action": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "approve"
+                },
+                "approvalRequestId": {
+                  "$ref": "#/$defs/ApprovalRequestId"
+                },
+                "evidenceDigest": {
+                  "$ref": "#/$defs/Sha256"
+                }
+              },
+              "required": [
+                "kind",
+                "approvalRequestId",
+                "evidenceDigest"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "deny"
+                },
+                "approvalRequestId": {
+                  "$ref": "#/$defs/ApprovalRequestId"
+                },
+                "reason": {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                }
+              },
+              "required": [
+                "kind",
+                "approvalRequestId",
+                "reason"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "provide_input"
+                },
+                "inputRequestId": {
+                  "$ref": "#/$defs/InputRequestId"
+                },
+                "value": {
+                  "$ref": "#/$defs/JsonValue"
+                }
+              },
+              "required": [
+                "kind",
+                "inputRequestId",
+                "value"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "authorize_retry"
+                },
+                "retryDecisionId": {
+                  "$ref": "#/$defs/RetryDecisionId"
+                }
+              },
+              "required": [
+                "kind",
+                "retryDecisionId"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "decline_retry"
+                },
+                "retryDecisionId": {
+                  "$ref": "#/$defs/RetryDecisionId"
+                },
+                "terminal": {
+                  "enum": [
+                    "cancelled",
+                    "unverified"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "retryDecisionId",
+                "terminal"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "caseId",
+        "taskId",
+        "expectedTaskRevision",
+        "action"
+      ],
+      "additionalProperties": false
+    },
+    "CancelTaskInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "expectedTaskRevision": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "required": [
+        "requestId",
+        "caseId",
+        "taskId",
+        "expectedTaskRevision",
+        "reason"
+      ],
+      "additionalProperties": false
+    },
+    "SubmitOperationInput": {
+      "type": "object",
+      "properties": {
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "case": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "new"
+                },
+                "contract": {
+                  "$ref": "#/$defs/NewCaseContractInput"
+                }
+              },
+              "required": [
+                "kind",
+                "contract"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "const": "existing"
+                },
+                "caseId": {
+                  "$ref": "#/$defs/CaseId"
+                },
+                "expectedContractDigest": {
+                  "$ref": "#/$defs/Sha256"
+                }
+              },
+              "required": [
+                "kind",
+                "caseId",
+                "expectedContractDigest"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        },
+        "operation": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "version": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "expectedSchemaDigest": {
+              "$ref": "#/$defs/Sha256"
+            },
+            "targets": {
+              "type": "array",
+              "items": {
+                "$ref": "#/$defs/TargetBinding"
+              }
+            },
+            "arguments": {
+              "$ref": "#/$defs/JsonValue"
+            }
+          },
+          "required": [
+            "id",
+            "version",
+            "expectedSchemaDigest",
+            "targets",
+            "arguments"
+          ],
+          "additionalProperties": false
+        },
+        "wait": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "const": "none"
+                }
+              },
+              "required": [
+                "mode"
+              ],
+              "additionalProperties": false
+            },
+            {
+              "type": "object",
+              "properties": {
+                "mode": {
+                  "const": "bounded"
+                },
+                "timeoutMs": {
+                  "type": "integer",
+                  "minimum": 1,
+                  "maximum": 600000
+                }
+              },
+              "required": [
+                "mode",
+                "timeoutMs"
+              ],
+              "additionalProperties": false
+            }
+          ]
+        }
+      },
+      "required": [
+        "requestId",
+        "case",
+        "operation",
+        "wait"
+      ],
+      "additionalProperties": false
     }
   }
 }

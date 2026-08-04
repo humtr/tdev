@@ -258,20 +258,75 @@ function assertSupportedSchemaDocument(root: SchemaDocument): void {
   for (const name of Object.keys(definitions)) visitDefinition(name);
 }
 
+export type UnionProofBranchV1 = Readonly<{
+  instancePointer: string;
+  schemaPointer: string;
+  branchIndex: number;
+  branchIdentity: string;
+}>;
+
+export type ValidationProofV1 = Readonly<{
+  schemaDigest: string;
+  rootDefinition: string;
+  canonicalDigest: string;
+  unions: ReadonlyArray<UnionProofBranchV1>;
+}>;
+
 export class SchemaValidator {
   readonly #root: SchemaDocument;
+  readonly #schemaDigest: string;
 
   constructor(root: SchemaDocument) {
     assertSupportedSchemaDocument(root);
     this.#root = root;
+    this.#schemaDigest = typedDigest("tdev.schema.v1", root);
+  }
+
+  get schemaDigest(): string {
+    return this.#schemaDigest;
   }
 
   validateDefinition(name: string, value: unknown): readonly string[] {
+    const { errors } = this.validateDefinitionWithProof(name, value);
+    return errors;
+  }
+
+  validateDefinitionWithProof(
+    name: string,
+    value: unknown,
+  ): { proof: ValidationProofV1 | null; errors: readonly string[] } {
     const definition = this.#root.$defs[name];
     if (definition === undefined) {
-      return [`unknown definition: ${name}`];
+      return { proof: null, errors: [`unknown definition: ${name}`] };
     }
-    return this.#validate(definition, value, "$", new Set());
+
+    const unions: UnionProofBranchV1[] = [];
+    const errors = this.#validate(
+      definition,
+      value,
+      "$",
+      `#/$defs/${name}`,
+      new Set(),
+      unions,
+    );
+
+    if (errors.length > 0) {
+      return { proof: null, errors };
+    }
+
+    const semantic = semanticErrors(name, value);
+    if (semantic.length > 0) {
+      return { proof: null, errors: semantic };
+    }
+
+    const canonicalDigest = typedDigest("tdev.validation-proof.v1", value);
+    const proof: ValidationProofV1 = {
+      schemaDigest: this.#schemaDigest,
+      rootDefinition: name,
+      canonicalDigest,
+      unions,
+    };
+    return { proof, errors: [] };
   }
 
   #resolve(reference: string): SchemaNode | undefined {
@@ -282,102 +337,148 @@ export class SchemaValidator {
     return this.#root.$defs[reference.slice(prefix.length)];
   }
 
-  #validate(schema: SchemaNode, value: unknown, path: string, stack: Set<string>): string[] {
+  #validate(
+    schema: SchemaNode,
+    value: unknown,
+    instancePointer: string,
+    schemaPointer: string,
+    stack: Set<string>,
+    unions: UnionProofBranchV1[],
+  ): string[] {
     const reference = typeof schema.$ref === "string" ? schema.$ref : undefined;
     if (reference !== undefined) {
       const resolved = this.#resolve(reference);
       if (resolved === undefined) {
-        return [`${path}: unresolved reference ${reference}`];
+        return [`${instancePointer}: unresolved reference ${reference}`];
       }
-      const key = `${reference}:${path}`;
+      const key = `${reference}:${instancePointer}`;
       if (stack.has(key)) {
         return [];
       }
       const next = new Set(stack);
       next.add(key);
-      return this.#validate(resolved, value, path, next);
+      return this.#validate(
+        resolved,
+        value,
+        instancePointer,
+        reference,
+        next,
+        unions,
+      );
     }
 
     if (Object.hasOwn(schema, "const") && !equalJson(value, schema.const)) {
-      return [`${path}: value does not equal const`];
+      return [`${instancePointer}: value does not equal const`];
     }
 
     const enumValues = array(schema.enum);
     if (enumValues.length > 0 && !enumValues.some((item) => equalJson(item, value))) {
-      return [`${path}: value is not in enum`];
+      return [`${instancePointer}: value is not in enum`];
     }
 
     const choices = array(schema.oneOf);
     if (choices.length > 0) {
-      let matches = 0;
-      for (const choice of choices) {
-        const choiceRecord = record(choice);
-        if (choiceRecord !== undefined && this.#validate(choiceRecord, value, path, new Set(stack)).length === 0) {
-          matches += 1;
+      const oneOfPointer = `${schemaPointer}/oneOf`;
+      const matchingIndices: number[] = [];
+      const branchUnionsList: UnionProofBranchV1[][] = [];
+
+      for (let index = 0; index < choices.length; index++) {
+        const choiceRecord = record(choices[index]);
+        if (choiceRecord !== undefined) {
+          const branchUnions: UnionProofBranchV1[] = [];
+          const branchErrors = this.#validate(
+            choiceRecord,
+            value,
+            instancePointer,
+            `${oneOfPointer}/${index}`,
+            new Set(stack),
+            branchUnions,
+          );
+          if (branchErrors.length === 0) {
+            matchingIndices.push(index);
+            branchUnionsList.push(branchUnions);
+          }
         }
       }
-      return matches === 1 ? [] : [`${path}: oneOf matched ${matches} branches`];
+
+      if (matchingIndices.length === 0) {
+        return [`${instancePointer}: ONE_OF_NO_MATCH: no oneOf branch matched at ${instancePointer}`];
+      }
+      if (matchingIndices.length > 1) {
+        return [`${instancePointer}: ONE_OF_MULTIPLE_MATCH: ${matchingIndices.length} oneOf branches matched at ${instancePointer}`];
+      }
+
+      const matchIndex = matchingIndices[0];
+      const branchIdentity = `${oneOfPointer}/${matchIndex}`;
+      unions.push({
+        instancePointer,
+        schemaPointer: oneOfPointer,
+        branchIndex: matchIndex,
+        branchIdentity,
+      });
+      unions.push(...branchUnionsList[0]);
+      return [];
     }
 
     const type = typeof schema.type === "string" ? schema.type : undefined;
     switch (type) {
       case "null":
-        return value === null ? [] : [`${path}: expected null`];
+        return value === null ? [] : [`${instancePointer}: expected null`];
       case "boolean":
-        return typeof value === "boolean" ? [] : [`${path}: expected boolean`];
+        return typeof value === "boolean" ? [] : [`${instancePointer}: expected boolean`];
       case "integer":
         if (!Number.isSafeInteger(value)) {
-          return [`${path}: expected safe integer`];
+          return [`${instancePointer}: expected safe integer`];
         }
         if (typeof schema.minimum === "number" && (value as number) < schema.minimum) {
-          return [`${path}: below minimum`];
+          return [`${instancePointer}: below minimum`];
         }
         if (typeof schema.maximum === "number" && (value as number) > schema.maximum) {
-          return [`${path}: above maximum`];
+          return [`${instancePointer}: above maximum`];
         }
         return [];
       case "number": {
-        if (!Number.isSafeInteger(value)) return [`${path}: expected finite protocol number`];
-        if (typeof schema.minimum === "number" && (value as number) < schema.minimum) return [`${path}: below minimum`];
-        if (typeof schema.maximum === "number" && (value as number) > schema.maximum) return [`${path}: above maximum`];
+        if (!Number.isSafeInteger(value)) return [`${instancePointer}: expected finite protocol number`];
+        if (typeof schema.minimum === "number" && (value as number) < schema.minimum) return [`${instancePointer}: below minimum`];
+        if (typeof schema.maximum === "number" && (value as number) > schema.maximum) return [`${instancePointer}: above maximum`];
         return [];
       }
       case "string": {
         if (typeof value !== "string") {
-          return [`${path}: expected string`];
+          return [`${instancePointer}: expected string`];
         }
         const codePointLength = Array.from(value).length;
         if (typeof schema.minLength === "number" && codePointLength < schema.minLength) {
-          return [`${path}: shorter than minLength`];
+          return [`${instancePointer}: shorter than minLength`];
         }
         if (typeof schema.maxLength === "number" && codePointLength > schema.maxLength) {
-          return [`${path}: longer than maxLength`];
+          return [`${instancePointer}: longer than maxLength`];
         }
         if (typeof schema.pattern === "string" && !(new RegExp(schema.pattern).test(value))) {
-          return [`${path}: pattern mismatch`];
+          return [`${instancePointer}: pattern mismatch`];
         }
         if (schema.format === "date-time" && !isTdevDateTime(value)) {
-          return [`${path}: invalid date-time`];
+          return [`${instancePointer}: invalid date-time`];
         }
         return [];
       }
       case "array": {
         if (!Array.isArray(value)) {
-          return [`${path}: expected array`];
+          return [`${instancePointer}: expected array`];
         }
         const errors: string[] = [];
         if (typeof schema.minItems === "number" && value.length < schema.minItems) {
-          errors.push(`${path}: fewer than minItems`);
+          errors.push(`${instancePointer}: fewer than minItems`);
         }
         if (typeof schema.maxItems === "number" && value.length > schema.maxItems) {
-          errors.push(`${path}: more than maxItems`);
+          errors.push(`${instancePointer}: more than maxItems`);
         }
         if (schema.uniqueItems === true) {
           const seen = new Set<string>();
           for (const item of value) {
             const key = canonicalize(item);
             if (seen.has(key)) {
-              errors.push(`${path}: duplicate array item`);
+              errors.push(`${instancePointer}: duplicate array item`);
               break;
             }
             seen.add(key);
@@ -385,36 +486,66 @@ export class SchemaValidator {
         }
         const itemSchema = record(schema.items);
         if (itemSchema !== undefined) {
-          value.forEach((item, index) => errors.push(...this.#validate(itemSchema, item, `${path}[${index}]`, new Set(stack))));
+          const itemSchemaPointer = `${schemaPointer}/items`;
+          value.forEach((item, index) =>
+            errors.push(
+              ...this.#validate(
+                itemSchema,
+                item,
+                `${instancePointer}[${index}]`,
+                itemSchemaPointer,
+                new Set(stack),
+                unions,
+              ),
+            ),
+          );
         }
         return errors;
       }
       case "object": {
         const object = record(value);
         if (object === undefined) {
-          return [`${path}: expected object`];
+          return [`${instancePointer}: expected object`];
         }
         const errors: string[] = [];
         const properties = record(schema.properties) ?? {};
         const required = new Set(array(schema.required).filter((item): item is string => typeof item === "string"));
         for (const property of required) {
           if (!Object.hasOwn(object, property)) {
-            errors.push(`${path}.${property}: required property missing`);
+            errors.push(`${instancePointer}.${property}: required property missing`);
           }
         }
         for (const [property, item] of Object.entries(object)) {
           const propertySchema = record(properties[property]);
           if (propertySchema !== undefined) {
-            errors.push(...this.#validate(propertySchema, item, `${path}.${property}`, new Set(stack)));
+            errors.push(
+              ...this.#validate(
+                propertySchema,
+                item,
+                `${instancePointer}.${property}`,
+                `${schemaPointer}/properties/${property}`,
+                new Set(stack),
+                unions,
+              ),
+            );
             continue;
           }
           if (schema.additionalProperties === false) {
-            errors.push(`${path}.${property}: additional property rejected`);
+            errors.push(`${instancePointer}.${property}: additional property rejected`);
             continue;
           }
           const additional = record(schema.additionalProperties);
           if (additional !== undefined) {
-            errors.push(...this.#validate(additional, item, `${path}.${property}`, new Set(stack)));
+            errors.push(
+              ...this.#validate(
+                additional,
+                item,
+                `${instancePointer}.${property}`,
+                `${schemaPointer}/additionalProperties`,
+                new Set(stack),
+                unions,
+              ),
+            );
           }
         }
         return errors;
@@ -422,7 +553,7 @@ export class SchemaValidator {
       case undefined:
         return [];
       default:
-        return [`${path}: unsupported schema type ${type}`];
+        return [`${instancePointer}: unsupported schema type ${type}`];
     }
   }
 }
@@ -540,4 +671,92 @@ export function semanticErrors(definition: string, value: unknown): readonly str
 
 export function validateContract(validator: SchemaValidator, definition: string, value: unknown): readonly string[] {
   return [...validator.validateDefinition(definition, value), ...semanticErrors(definition, value)];
+}
+
+export function extractValueByPointer(rootValue: unknown, instancePointer: string): unknown {
+  if (instancePointer === "$" || instancePointer === "" || instancePointer === "/") {
+    return rootValue;
+  }
+  let p = instancePointer;
+  if (p.startsWith("$")) {
+    p = p.slice(1);
+  }
+  let current: unknown = rootValue;
+  let pos = 0;
+  while (pos < p.length) {
+    if (p[pos] === ".") {
+      pos++;
+      const nextDot = p.indexOf(".", pos);
+      const nextBracket = p.indexOf("[", pos);
+      let end = p.length;
+      if (nextDot !== -1 && (nextBracket === -1 || nextDot < nextBracket)) {
+        end = nextDot;
+      } else if (nextBracket !== -1) {
+        end = nextBracket;
+      }
+      const key = p.slice(pos, end);
+      pos = end;
+      if (current === null || typeof current !== "object" || Array.isArray(current)) {
+        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: pointer path '${instancePointer}' not found in root value`);
+      }
+      if (!Object.hasOwn(current as object, key)) {
+        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: property '${key}' not found at '${instancePointer}'`);
+      }
+      current = (current as Record<string, unknown>)[key];
+    } else if (p[pos] === "[") {
+      const closeBracket = p.indexOf("]", pos);
+      if (closeBracket === -1) {
+        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: malformed pointer bracket at '${instancePointer}'`);
+      }
+      const idxStr = p.slice(pos + 1, closeBracket);
+      const idx = parseInt(idxStr, 10);
+      pos = closeBracket + 1;
+      if (!Array.isArray(current) || idx < 0 || idx >= current.length) {
+        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: array index [${idxStr}] out of bounds at '${instancePointer}'`);
+      }
+      current = current[idx];
+    } else {
+      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: unexpected character in pointer '${instancePointer}'`);
+    }
+  }
+  return current;
+}
+
+export function verifyProofAndExtract(
+  rootValue: unknown,
+  proof: ValidationProofV1,
+  instancePointer: string,
+  targetSchemaPointer: string,
+  targetBranchIdentities: readonly string[],
+  canonicalSchemaDigest: string,
+): { extractedValue: unknown; match: UnionProofBranchV1 } {
+  if (proof === null || proof === undefined || typeof proof !== "object") {
+    throw new Error("UNION_DISCRIMINATOR_MISMATCH: missing validation proof");
+  }
+  if (proof.schemaDigest !== canonicalSchemaDigest) {
+    throw new Error("UNION_DISCRIMINATOR_MISMATCH: schema digest mismatch");
+  }
+  const recomputedDigest = typedDigest("tdev.validation-proof.v1", rootValue);
+  if (proof.canonicalDigest !== recomputedDigest) {
+    throw new Error("UNION_DISCRIMINATOR_MISMATCH: canonical digest mismatch for root value");
+  }
+  const matches = proof.unions.filter((u) => u.instancePointer === instancePointer);
+  if (matches.length === 0) {
+    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: unproved union at ${instancePointer}`);
+  }
+  if (matches.length > 1) {
+    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: duplicate proof entries for path ${instancePointer}`);
+  }
+  const match = matches[0];
+  if (match.schemaPointer !== targetSchemaPointer) {
+    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: schema pointer mismatch at ${instancePointer}`);
+  }
+  if (match.branchIndex < 0 || match.branchIndex >= targetBranchIdentities.length) {
+    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);
+  }
+  if (match.branchIdentity !== targetBranchIdentities[match.branchIndex]) {
+    throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch identity mismatch at ${instancePointer}`);
+  }
+  const extractedValue = extractValueByPointer(rootValue, instancePointer);
+  return { extractedValue, match };
 }

@@ -1134,6 +1134,269 @@
         "createdAt": "2026-08-04T00:00:00Z",
         "updatedAt": "2026-08-04T00:00:00Z"
       }
+    },
+    {
+      "name": "valid mutation receipt v1",
+      "definition": "MutationReceiptV1",
+      "valid": true,
+      "value": {
+        "schemaVersion": 1,
+        "requestId": "request_abcdefgh1234",
+        "capability": "submit_operation",
+        "semanticDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+        "caseId": "case_abcdefgh1234",
+        "response": { "accepted": true },
+        "responseDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "committedCaseRevision": 1,
+        "committedEventSequence": 1,
+        "createdAt": "2026-08-04T00:00:00Z"
+      }
+    },
+    {
+      "name": "valid control case input pause",
+      "definition": "ControlCaseInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "action": {
+          "kind": "pause",
+          "reason": "manual"
+        }
+      }
+    },
+    {
+      "name": "control case input missing requestId",
+      "definition": "ControlCaseInput",
+      "valid": false,
+      "value": {
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "action": {
+          "kind": "resume"
+        }
+      }
+    },
+    {
+      "name": "valid finish case input completed",
+      "definition": "FinishCaseInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "terminal": {
+          "outcome": "completed",
+          "summary": "all done",
+          "evidenceSetId": "evidence_abcdefgh1234"
+        }
+      }
+    },
+    {
+      "name": "finish case input missing requestId",
+      "definition": "FinishCaseInput",
+      "valid": false,
+      "value": {
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "terminal": {
+          "outcome": "completed",
+          "summary": "all done",
+          "evidenceSetId": "evidence_abcdefgh1234"
+        }
+      }
+    },
+    {
+      "name": "valid cancel case input",
+      "definition": "CancelCaseInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "reason": "user cancelled"
+      }
+    },
+    {
+      "name": "valid control task input approve",
+      "definition": "ControlTaskInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "taskId": "task_abcdefgh1234",
+        "expectedTaskRevision": 1,
+        "action": {
+          "kind": "approve",
+          "approvalRequestId": "approval_abcdefgh1234",
+          "evidenceDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        }
+      }
+    },
+    {
+      "name": "control task input missing requestId",
+      "definition": "ControlTaskInput",
+      "valid": false,
+      "value": {
+        "caseId": "case_abcdefgh1234",
+        "taskId": "task_abcdefgh1234",
+        "expectedTaskRevision": 1,
+        "action": {
+          "kind": "authorize_retry",
+          "retryDecisionId": "retry_abcdefgh1234"
+        }
+      }
+    },
+    {
+      "name": "valid cancel task input",
+      "definition": "CancelTaskInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "taskId": "task_abcdefgh1234",
+        "expectedTaskRevision": 1,
+        "reason": "cancel task"
+      }
+    },
+    {
+      "name": "valid submit operation input new case",
+      "definition": "SubmitOperationInput",
+      "valid": true,
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "case": {
+          "kind": "existing",
+          "caseId": "case_abcdefgh1234",
+          "expectedContractDigest": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+        },
+        "operation": {
+          "id": "fs.read",
+          "version": 1,
+          "expectedSchemaDigest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+          "targets": [],
+          "arguments": {}
+        },
+        "wait": {
+          "mode": "none"
+        }
+      }
+    }
+  ],
+  "rawIngressCases": [
+    {
+      "name": "valid object with safe integers and whitespace",
+      "raw": "{\n  \"a\": 123,\n  \"b\": -9007199254740991,\n  \"c\": \"test\"\n}",
+      "valid": true,
+      "errorCode": ""
+    },
+    {
+      "name": "duplicate key at top level",
+      "raw": "{\"a\": 1, \"a\": 2}",
+      "valid": false,
+      "errorCode": "DUPLICATE_JSON_MEMBER"
+    },
+    {
+      "name": "duplicate key with unicode escape equivalence",
+      "raw": "{\"\\u0061\": 1, \"a\": 2}",
+      "valid": false,
+      "errorCode": "DUPLICATE_JSON_MEMBER"
+    },
+    {
+      "name": "duplicate key nested",
+      "raw": "{\"nested\": {\"key\": 1, \"key\": 2}}",
+      "valid": false,
+      "errorCode": "DUPLICATE_JSON_MEMBER"
+    },
+    {
+      "name": "malformed json syntax",
+      "raw": "{\"a\": 1,",
+      "valid": false,
+      "errorCode": "MALFORMED_JSON"
+    },
+    {
+      "name": "trailing non-whitespace content",
+      "raw": "{\"a\": 1} trailing",
+      "valid": false,
+      "errorCode": "MALFORMED_JSON"
+    },
+    {
+      "name": "non-integer number decimal",
+      "raw": "{\"val\": 1.5}",
+      "valid": false,
+      "errorCode": "UNSAFE_JSON_NUMBER"
+    },
+    {
+      "name": "unsafe integer number overflow",
+      "raw": "{\"val\": 9007199254740992}",
+      "valid": false,
+      "errorCode": "UNSAFE_JSON_NUMBER"
+    },
+    {
+      "name": "float rounding adversarial number",
+      "raw": "{\"val\": 90071992547409911e-1}",
+      "valid": false,
+      "errorCode": "UNSAFE_JSON_NUMBER"
+    },
+    {
+      "name": "equivalent integer 1.0",
+      "raw": "{\"val\": 1.0}",
+      "valid": true
+    },
+    {
+      "name": "equivalent integer 1e3",
+      "raw": "{\"val\": 1e3}",
+      "valid": true
+    },
+    {
+      "name": "equivalent integer 1000e-3",
+      "raw": "{\"val\": 1000e-3}",
+      "valid": true
+    },
+    {
+      "name": "escaped lone high surrogate",
+      "raw": "{\"a\": \"\\uD800\"}",
+      "valid": false,
+      "errorCode": "MALFORMED_JSON"
+    },
+    {
+      "name": "escaped lone low surrogate",
+      "raw": "{\"a\": \"\\uDC00\"}",
+      "valid": false,
+      "errorCode": "MALFORMED_JSON"
+    },
+    {
+      "name": "escaped high surrogate followed by non-low surrogate",
+      "raw": "{\"a\": \"\\uD800\\u0061\"}",
+      "valid": false,
+      "errorCode": "MALFORMED_JSON"
+    },
+    {
+      "name": "valid surrogate pair",
+      "raw": "{\"a\": \"\\uD800\\uDC00\"}",
+      "valid": true
+    }
+  ],
+  "proofVectorCases": [
+    {
+      "name": "control case pause proof vector",
+      "definition": "ControlCaseInput",
+      "value": {
+        "requestId": "request_abcdefgh1234",
+        "caseId": "case_abcdefgh1234",
+        "expectedCaseRevision": 1,
+        "action": {
+          "kind": "pause",
+          "reason": "manual"
+        }
+      },
+      "instancePointer": "$.action",
+      "expectedSchemaPointer": "#/$defs/ControlCaseInput/properties/action/oneOf",
+      "expectedBranchIndex": 0,
+      "expectedBranchIdentity": "#/$defs/ControlCaseInput/properties/action/oneOf/0",
+      "expectedSchemaDigest": "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e",
+      "expectedCanonicalDigest": "45ca16bba91ee76fb1bc27e7fa76a61006298ddc701d55c9505dab224cf2bc88"
     }
   ],
   "canonicalCases": [

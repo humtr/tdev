@@ -14,6 +14,8 @@ import (
 	"strings"
 	"unicode"
 	"unicode/utf8"
+
+	protocolruntime "github.com/humtr/tdev/protocol/runtime/go"
 )
 
 const schemaPath = "protocol/schemas/tdev.v1.schema.json"
@@ -51,8 +53,15 @@ func main() {
 	}
 	validateSchema(doc.Defs)
 
-	ts := generateTypeScript(doc.Defs)
-	goSource := generateGo(doc.Defs)
+	var docAny any
+	decAny := json.NewDecoder(bytes.NewReader(raw))
+	decAny.UseNumber()
+	must(decAny.Decode(&docAny))
+	schemaDigest, err := protocolruntime.TypedDigest("tdev.schema.v1", docAny)
+	must(err)
+
+	ts := generateTypeScript(doc.Defs, schemaDigest)
+	goSource := generateGo(doc.Defs, schemaDigest)
 	formatted, err := format.Source([]byte(goSource))
 	must(err)
 
@@ -415,9 +424,35 @@ func jsonLiteral(value any) string {
 	return string(raw)
 }
 
-func generateTypeScript(defs map[string]any) string {
+func getBranchConsts(choice map[string]any, defs map[string]any) map[string]any {
+	result := map[string]any{}
+	targetSchema := choice
+	if ref, ok := choice["$ref"].(string); ok {
+		const prefix = "#/$defs/"
+		if strings.HasPrefix(ref, prefix) {
+			if refDefMap := asMap(defs[strings.TrimPrefix(ref, prefix)]); refDefMap != nil {
+				targetSchema = refDefMap
+			}
+		}
+	}
+	properties := asMap(targetSchema["properties"])
+	for pName, pSchemaRaw := range properties {
+		pSchema := asMap(pSchemaRaw)
+		if pSchema != nil {
+			if constVal, hasConst := pSchema["const"]; hasConst {
+				result[pName] = constVal
+			}
+		}
+	}
+	return result
+}
+
+func generateTypeScript(defs map[string]any, schemaDigest string) string {
 	var out strings.Builder
 	out.WriteString("// Code generated from protocol/schemas/tdev.v1.schema.json by tools/generate. DO NOT EDIT.\n\n")
+	out.WriteString("import { verifyProofAndExtract, type ValidationProofV1 } from \"../../runtime/typescript/schema.ts\";\n\n")
+	out.WriteString("export const CANONICAL_SCHEMA_DIGEST = " + jsonLiteral(schemaDigest) + ";\n\n")
+
 	for _, name := range sortedKeys(defs) {
 		out.WriteString("export type ")
 		out.WriteString(name)
@@ -425,6 +460,68 @@ func generateTypeScript(defs map[string]any) string {
 		out.WriteString(tsType(asMap(defs[name]), 0))
 		out.WriteString(";\n\n")
 	}
+
+	out.WriteString("export const UNION_BRANCH_IDENTITIES = {\n")
+	for _, name := range sortedKeys(defs) {
+		schema := asMap(defs[name])
+		if choices := asSlice(schema["oneOf"]); len(choices) > 0 {
+			out.WriteString("  ")
+			out.WriteString(name)
+			out.WriteString(": [\n")
+			for index := range choices {
+				fmt.Fprintf(&out, "    \"#/$defs/%s/oneOf/%d\",\n", name, index)
+			}
+			out.WriteString("  ],\n")
+		}
+	}
+	out.WriteString("} as const;\n\n")
+
+	for _, name := range sortedKeys(defs) {
+		schema := asMap(defs[name])
+		choices := asSlice(schema["oneOf"]);
+		if len(choices) == 0 {
+			continue
+		}
+		fmt.Fprintf(&out, "export function convert%sDomain(\n", name)
+		out.WriteString("  rootValue: unknown,\n")
+		out.WriteString("  proof: ValidationProofV1,\n")
+		out.WriteString("  instancePointer: string,\n")
+		fmt.Fprintf(&out, "): %s {\n", name)
+		fmt.Fprintf(&out, "  const { extractedValue, match } = verifyProofAndExtract(\n")
+		out.WriteString("    rootValue,\n")
+		out.WriteString("    proof,\n")
+		out.WriteString("    instancePointer,\n")
+		fmt.Fprintf(&out, "    \"#/$defs/%s/oneOf\",\n", name)
+		fmt.Fprintf(&out, "    UNION_BRANCH_IDENTITIES.%s,\n", name)
+		out.WriteString("    CANONICAL_SCHEMA_DIGEST,\n")
+		out.WriteString("  );\n\n")
+		out.WriteString("  switch (match.branchIndex) {\n")
+		for i, choice := range choices {
+			choiceMap := asMap(choice)
+			consts := getBranchConsts(choiceMap, defs)
+			fmt.Fprintf(&out, "    case %d: {\n", i)
+			if len(consts) > 0 {
+				out.WriteString("      if (\n")
+				out.WriteString("        extractedValue === null ||\n")
+				out.WriteString("        typeof extractedValue !== \"object\" ||\n")
+				out.WriteString("        Array.isArray(extractedValue)\n")
+				for _, pName := range sortedKeys(consts) {
+					cVal := consts[pName]
+					fmt.Fprintf(&out, "        || (extractedValue as Record<string, unknown>)[%s] !== %s\n", jsonLiteral(pName), jsonLiteral(cVal))
+				}
+				out.WriteString("      ) {\n")
+				fmt.Fprintf(&out, "        throw new Error(`UNION_DISCRIMINATOR_MISMATCH: branch %d const discriminator mismatch at ${instancePointer}`);\n", i)
+				out.WriteString("      }\n")
+			}
+			fmt.Fprintf(&out, "      return extractedValue as %s;\n", name)
+			out.WriteString("    }\n")
+		}
+		out.WriteString("    default:\n")
+		out.WriteString("      throw new Error(`UNION_DISCRIMINATOR_MISMATCH: invalid branch index ${match.branchIndex} at ${instancePointer}`);\n")
+		out.WriteString("  }\n")
+		out.WriteString("}\n\n")
+	}
+
 	return strings.TrimSuffix(out.String(), "\n")
 }
 
@@ -501,15 +598,101 @@ func tsType(schema map[string]any, depth int) string {
 	}
 }
 
-func generateGo(defs map[string]any) string {
+func generateGo(defs map[string]any, schemaDigest string) string {
 	var out strings.Builder
 	out.WriteString("// Code generated from protocol/schemas/tdev.v1.schema.json by tools/generate. DO NOT EDIT.\n\n")
 	out.WriteString("package protocol\n\n")
-	out.WriteString("import \"encoding/json\"\n\n")
+	out.WriteString("import (\n")
+	out.WriteString("\t\"encoding/json\"\n")
+	out.WriteString("\t\"fmt\"\n")
+	out.WriteString("\tprotocolruntime \"github.com/humtr/tdev/protocol/runtime/go\"\n")
+	out.WriteString(")\n\n")
+	out.WriteString("const CanonicalSchemaDigest = " + jsonLiteral(schemaDigest) + "\n\n")
+
 	for _, name := range sortedKeys(defs) {
 		out.WriteString(goDecl(name, asMap(defs[name])))
 		out.WriteString("\n")
 	}
+
+	for _, name := range sortedKeys(defs) {
+		schema := asMap(defs[name])
+		if choices := asSlice(schema["oneOf"]); len(choices) > 0 {
+			out.WriteString(goUnionDomainHelpers(name, choices, defs))
+			out.WriteString("\n")
+		}
+	}
+
+	return out.String()
+}
+
+func goUnionDomainHelpers(name string, choices []any, defs map[string]any) string {
+	var out strings.Builder
+	domainName := name + "Domain"
+
+	out.WriteString("type " + domainName + " struct {\n")
+	out.WriteString("\tBranchIndex int\n")
+	out.WriteString("\tBranchIdentity string\n")
+	for i, choice := range choices {
+		branchSchema := asMap(choice)
+		typeName := fmt.Sprintf("%sBranch%d", name, i)
+		fieldName := goFieldName(typeName)
+		out.WriteString(fmt.Sprintf("\t%s *%s\n", fieldName, goType(branchSchema, false)))
+	}
+	out.WriteString("}\n\n")
+
+	out.WriteString(fmt.Sprintf("func Convert%s(rootValue any, proof *protocolruntime.ValidationProofV1, instancePointer string) (*%s, error) {\n", domainName, domainName))
+	out.WriteString("\textracted, match, err := protocolruntime.VerifyProofAndExtract(\n")
+	out.WriteString("\t\trootValue,\n")
+	out.WriteString("\t\tproof,\n")
+	out.WriteString("\t\tinstancePointer,\n")
+	out.WriteString(fmt.Sprintf("\t\t\"#/$defs/%s/oneOf\",\n", name))
+	out.WriteString("\t\t[]string{\n")
+	for i := range choices {
+		fmt.Fprintf(&out, "\t\t\t\"#/$defs/%s/oneOf/%d\",\n", name, i)
+	}
+	out.WriteString("\t\t},\n")
+	out.WriteString("\t\tCanonicalSchemaDigest,\n")
+	out.WriteString("\t)\n")
+	out.WriteString("\tif err != nil {\n")
+	out.WriteString("\t\treturn nil, err\n")
+	out.WriteString("\t}\n")
+	out.WriteString(fmt.Sprintf("\tdomain := &%s{BranchIndex: match.BranchIndex, BranchIdentity: match.BranchIdentity}\n", domainName))
+	out.WriteString("\tswitch match.BranchIndex {\n")
+
+	for i, choice := range choices {
+		choiceMap := asMap(choice)
+		consts := getBranchConsts(choiceMap, defs)
+		bType := goType(choiceMap, false)
+		fieldName := goFieldName(fmt.Sprintf("%sBranch%d", name, i))
+		out.WriteString(fmt.Sprintf("\tcase %d:\n", i))
+		if len(consts) > 0 {
+			out.WriteString("\t\tobjMap, ok := extracted.(map[string]any)\n")
+			out.WriteString("\t\tif !ok")
+			for _, pName := range sortedKeys(consts) {
+				cVal := consts[pName]
+				fmt.Fprintf(&out, " || objMap[%s] != %s", jsonLiteral(pName), jsonLiteral(cVal))
+			}
+			out.WriteString(" {\n")
+			fmt.Fprintf(&out, "\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d const discriminator mismatch at %%s\", instancePointer)\n", i)
+			out.WriteString("\t\t}\n")
+		}
+		out.WriteString("\t\trawBytes, err := json.Marshal(extracted)\n")
+		out.WriteString("\t\tif err != nil {\n")
+		out.WriteString(fmt.Sprintf("\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d marshal failed: %%w\", err)\n", i))
+		out.WriteString("\t\t}\n")
+		out.WriteString(fmt.Sprintf("\t\tvar val %s\n", bType))
+		out.WriteString("\t\tif err := json.Unmarshal(rawBytes, &val); err != nil {\n")
+		out.WriteString(fmt.Sprintf("\t\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: branch %d unmarshal failed: %%w\", err)\n", i))
+		out.WriteString("\t\t}\n")
+		out.WriteString(fmt.Sprintf("\t\tdomain.%s = &val\n", fieldName))
+	}
+
+	out.WriteString("\tdefault:\n")
+	out.WriteString("\t\treturn nil, fmt.Errorf(\"UNION_DISCRIMINATOR_MISMATCH: invalid branch index %d at %s\", match.BranchIndex, instancePointer)\n")
+	out.WriteString("\t}\n")
+	out.WriteString("\treturn domain, nil\n")
+	out.WriteString("}\n")
+
 	return out.String()
 }
 
