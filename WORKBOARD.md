@@ -2,9 +2,9 @@
 
 ## Current
 
-- Product/source stage: M0 schema/domain foundation, Design 0004 accepted, and the first M1 schema/proof foundation slice (canonical control schemas, lossless raw JSON ingress, `ValidationProofV1`, branch identities, and proof-consuming closed domain converters) are source-verified and published at `63b3e1948ce2579cd4d781a9854122bac3a65203`; no Worker, CaseDO SQLite, Cloudflare deployment, Agent, public MCP, current-client, or live release layer is claimed.
-- Current work: Design 0004 is implementing a bounded pre-storage contract/source-correction gate: one release-pinned typed policy profile, exact-root validation proofs, cross-language ingress limits and typed reasons, ingress/auth ordering, and frozen storage/control/query contracts. No Worker, CaseDO runtime, Cloudflare, public MCP, client, or rollback layer is claimed.
-- Next product gate: after this correction gate is source-verified and published, implement the CaseDO SQLite storage core and exact empty-to-v1 migration against the frozen DDL and transition/Event matrices. Worker, deployment, public MCP, and client checks remain downstream gates.
+- Product/source stage: M0 schema/domain foundation, the first M1 schema/proof foundation slice at `63b3e1948ce2579cd4d781a9854122bac3a65203`, and the Design 0004 pre-storage contract/source-correction gate at `e4e0bdf5f32bfd6c1ffbd876e2ce46f8df3b9a4c` are source-verified. The correction gate centralizes the release-pinned typed policy profile, exact-root validation proofs, cross-language ingress limits and typed reasons, ingress/auth ordering, and the frozen DDL, transition/Event, capability, cursor, migration, retention, and quota contracts. No Worker, CaseDO SQLite runtime, Cloudflare deployment, Agent, public MCP, current-client, or live release layer is claimed.
+- Current work: no active source implementation in this observation. Design 0004 remains `implementing` because its CaseDO storage, Worker, Cloudflare, public MCP, client, and rollback evidence layers are not implemented or verified.
+- Next product gate: implement the CaseDO SQLite storage core and exact empty-to-v1 migration against the frozen DDL and transition/Event matrices. Worker, deployment, public MCP, and client checks remain downstream gates.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 

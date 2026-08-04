@@ -488,11 +488,12 @@ The approved M1 policy defaults are page 20/max 100, cursor TTL 3,600 seconds, 1
 
 1. **Contract freeze:** accept this record, update the affected owners, register it, and point the Workboard at the accepted design without changing runtime code.
 2. **M1 schema and proof foundation:** add the versioned M1 canonical schemas, ingress byte fixtures, validation-proof model, generated branch identities and domain converters, mutation receipt, control inputs, and exact cross-language vectors. No Worker or database yet.
-3. **CaseDO storage core:** add schema-version-1 SQLite DDL and migration, repository adapters, transition-to-revision/Event matrix, immutable guards, and isolated storage tests.
-4. **Atomic admission and replay:** implement deterministic new-Case routing, Case-plus-first-Task transaction, receipt replay, request conflict, and commit-then-response-loss fault tests.
-5. **Control and query core:** implement Case/Task controls including `cancel_task`, snapshot reads, cursors, rendering, evidence-gated completion, hibernation, and instance-restart tests.
-6. **Worker semantic boundary:** route all twelve `tools-v1` semantics through the lossless ingress and canonical owners in one consolidated Worker/CaseDO integration suite. Agent dispatch remains stubbed at the M1 boundary and cannot claim M2.
-7. **M1 verification:** run isolated Cloudflare Durable Object SQLite, hibernation, migration-failure, and public semantic probes required by M1; record only observed layers and mark this design `verified` only when every acceptance criterion below is evidenced.
+3. **Pre-storage contract/source correction:** centralize the release-pinned typed policy profile; fix exact-root proof binding and cross-language number bounds; expose typed ingress/schema/proof reasons; reconcile ingress/auth ordering; and freeze the exact DDL, transition/Event, twelve-capability, cursor, migration, retention, and quota contracts. No Worker or database yet.
+4. **CaseDO storage core:** add schema-version-1 SQLite DDL and migration, repository adapters, transition-to-revision/Event matrix, immutable guards, and isolated storage tests.
+5. **Atomic admission and replay:** implement deterministic new-Case routing, Case-plus-first-Task transaction, receipt replay, request conflict, and commit-then-response-loss fault tests.
+6. **Control and query core:** implement Case/Task controls including `cancel_task`, snapshot reads, cursors, rendering, evidence-gated completion, hibernation, and instance-restart tests.
+7. **Worker semantic boundary:** route all twelve `tools-v1` semantics through the lossless ingress and canonical owners in one consolidated Worker/CaseDO integration suite. Agent dispatch remains stubbed at the M1 boundary and cannot claim M2.
+8. **M1 verification:** run isolated Cloudflare Durable Object SQLite, hibernation, migration-failure, and public semantic probes required by M1; record only observed layers and mark this design `verified` only when every acceptance criterion below is evidenced.
 
 Each slice uses final owner and dependency boundaries. No compatibility scheduler, global dedupe owner, mock-only alternate API, or generic shell fallback is permitted.
 
@@ -561,4 +562,5 @@ Each slice uses final owner and dependency boundaries. No compatibility schedule
 - 2026-08-04: cursor v1 uses canonical payload plus deployment-scoped HMAC-SHA256, and M1 keeps one `schema_meta` row with `migration_id` and `migration_checksum`.
 - 2026-08-04: the recommended page, quota, retention, and orphan-grace defaults were approved; changing a hard ceiling or fixed M1 retention meaning requires a versioned design.
 - 2026-08-04: implementation status resumed for the bounded contract/source-correction gate only; Worker, CaseDO runtime, Cloudflare, public MCP, client, and rollback layers remain unimplemented and unverified.
+- 2026-08-04: pre-storage correction source commit `e4e0bdf5f32bfd6c1ffbd876e2ce46f8df3b9a4c` passed `npm run check:generated`, `npm test` including 13 TypeScript tests and all Go tests, `go vet ./...`, `git diff --check`, governance, forbidden-boundary, generated-drift, and complete effective-diff review. This verifies only repository source and contract layers; Design 0004 remains `implementing` and the next product slice is CaseDO storage core.
 - 2026-08-04: the affected owner documents and verification matrix were reviewed as one bounded design, and portable source validation `job_mt_d2b3bb0f1e` passed generated parity, eight TypeScript tests, all Go tests, forbidden-import checks, and governance. The maintainer instruction is therefore effective as the explicit acceptance decision. Status moved to `accepted`; no M1 implementation or runtime effect began.
