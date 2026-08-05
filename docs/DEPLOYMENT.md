@@ -359,7 +359,8 @@ edge Worker bundle
 CaseDO and AgentDO implementation
 canonical schema bundle
 M1 release profile identity and digest
-generated TypeScript and Go types
+generated TypeScript views and Go views for shared CLI/Agent wire contracts
+TypeScript Worker/MCP projection metadata
 D1 migrations
 Durable Object migrations
 protocol compatibility metadata
@@ -425,6 +426,20 @@ Rules:
 - stored-state migrations run only from a verified predecessor schema;
 - additive schema changes are not assumed compatible without declared rules;
 - rollback is allowed only when the predecessor understands the resulting stored state.
+
+### 14.1 CLI or Agent implementation-language transition
+
+The first release selects Go for the CLI and Termux Agent. Replacing either with TypeScript or another runtime is a release transition with an explicit predecessor and rollback plan, not an in-place source refactor.
+
+Before such a release can be selected, its manifest and accepted design must prove:
+
+- a prebuilt standalone artifact for the supported Termux/ARM64 host that requires no Node.js, npm, Go, or source build;
+- exact compatibility with canonical wire schemas, local persisted records, public-key encoding, Agent identity, enrollment, heartbeat, dispatch, result, error, and cancellation contracts;
+- clean-host installation and inactive-side-by-side rehearsal;
+- measured startup, peak memory, artifact size, long-lived WebSocket behavior, Android background behavior, process-tree cancellation, filesystem durability, and cryptography;
+- upgrade from the last verified Go release and rollback to a compatible verified predecessor without silent key, Workspace, Project, queue, or Attempt replacement.
+
+A source benchmark, local TypeScript runtime, generic Linux execution, or bundled artifact without clean-host and lifecycle evidence cannot authorize the transition.
 
 ## 15. Upgrade state machine
 
@@ -618,6 +633,7 @@ A release deployment is accepted only when:
 - D1 and Durable Object migrations are from exact expected versions;
 - active Edge probe matches release manifest;
 - Agent service and authenticated connection match the expected Agent release;
+- any CLI or Agent implementation-language transition has manifest-pinned artifacts, preserved identity and state compatibility, clean-host evidence, an observed upgrade path, and a verified compatible rollback or explicit rollback barrier;
 - Agent protocol negotiation succeeds and the public MCP revision and projection digest match the release manifest;
 - public read-only Case and Task complete through the endpoint using the release-pinned projection;
 - the current client-visible Tool snapshot matches the approved projection or reports an explicit refresh/republication requirement;

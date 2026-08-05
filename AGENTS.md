@@ -76,14 +76,15 @@ Use the change classes and design-record rules in `SDD.md`. Major changes requir
 - Exact identity, revision, digest, permission, deadline, output, cancellation, and retry boundaries are preserved.
 - Domain packages do not import Cloudflare, Termux, filesystem, Git CLI, network, or process implementations.
 - The only claimed host is Termux on Android ARM64 until reference-host evidence changes `docs/SPEC.md` and `docs/MVP.md`.
+- The first-release implementation boundary is TypeScript for Worker, CaseDO, AgentDO, and MCP projection; Go for the CLI, Termux Agent, and shared wire contracts they consume. Changing that boundary requires an accepted design plus compatibility, clean-host, upgrade, rollback, and reference-host evidence.
 
 ## 6. Schema and generated code
 
-`protocol/schemas/tdev.v1.schema.json` is the canonical protocol-v1 external contract. It contains the M0 foundation and the source-implemented M1 records and mutation inputs. Prose contracts do not substitute for a missing executable public input or result root; a public projection may be generated only after every exposed capability has an exact canonical root and cross-language parity evidence.
+`protocol/schemas/tdev.v1.schema.json` is the canonical protocol-v1 external contract. It contains the M0 foundation and the source-implemented M1 records and mutation inputs. Prose contracts do not substitute for a missing executable public input or result root. Every new or changed generated root must declare its language targets before use: shared wire roots consumed by both Edge and CLI/Agent require TypeScript/Go parity, while Worker/MCP projection mappings, annotations, catalog metadata, and other Edge-only derivatives are TypeScript-owned and do not acquire a Go mirror merely for symmetry.
 
 - Edit canonical schema and generator inputs, not generated Go or TypeScript files.
-- Regenerate both languages in the same change.
-- Keep TypeScript and Go validation, canonicalization, and digest behavior equal through shared or equivalent vectors.
+- Regenerate every declared language target in the same change. Shared wire roots generate TypeScript and Go; Edge-only projection metadata generates TypeScript only.
+- Keep TypeScript and Go validation, canonicalization, and digest behavior equal through shared or equivalent vectors for every contract implemented or consumed in both languages.
 - Reject unsupported schema keywords; do not ignore them as successful validation.
 - Treat generated Go `json.RawMessage` unions as untrusted wire values until schema validation and domain discrimination succeed.
 - A public or stored schema change requires compatibility, migration, and rollback analysis in its owner design.

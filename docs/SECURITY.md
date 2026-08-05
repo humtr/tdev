@@ -119,9 +119,9 @@ Owner-key rotation requires:
 
 ### 6.1 Key generation
 
-The Agent generates its own keypair locally. The initial algorithm is Ed25519, subject to implementation verification across the selected Go and Cloudflare runtimes.
+The Agent generates its own keypair locally. The initial algorithm is Ed25519, subject to implementation verification across the selected Agent and Cloudflare runtimes.
 
-The private key never leaves the terminal host.
+The private key never leaves the terminal host. Canonical public-key encoding and `agentId` derivation are implementation-language neutral. A future Agent runtime migration must preserve the key and local identity exactly or execute an explicit replacement, enrollment, Workspace rebinding, and Attempt reconciliation flow; it cannot silently create a new identity because the implementation language changed.
 
 ### 6.2 Agent ID
 

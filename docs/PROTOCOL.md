@@ -10,7 +10,7 @@ The sole owner of external data contracts is:
 JSON Schema 2020-12
 ```
 
-The repository will maintain canonical schemas under `protocol/schemas/`. Generated TypeScript types, Go types, MCP tool schemas, documentation examples, and golden fixtures are derivative outputs.
+The repository will maintain canonical schemas under `protocol/schemas/`. Generated TypeScript views, Go views for canonical wire records consumed by the CLI or Agent, MCP Tool schemas, TypeScript-owned projection metadata, documentation examples, and golden fixtures are derivative outputs.
 
 A generated artifact MUST NOT be edited as an independent contract. CI MUST fail when regeneration produces a diff.
 
@@ -833,7 +833,7 @@ type ReadArtifactResultV1 = {
 
 `get_case` and `get_task` deliberately return one bounded current summary, not an unbounded child collection. Related histories use `list_resources` with a fixed snapshot. A truncated `render_task` result returns `nextCursor`; continuation supplies it as `cursor`, rechecks the exact Task/Event snapshot and full-render digest, and never splits a UTF-8 scalar. `read_artifact` returns at most `output.maxArtifactChunkBytes` from the release-pinned profile; byte ownership, digest, range, and authorization are rechecked for every request.
 
-The TypeScript contracts in this section define the semantic input and result shapes for all twelve capabilities. The checked-in executable schema is not yet complete at that public boundary: it currently has only the six mutation input roots named below. The Worker semantic boundary MUST add strict executable roots for `ListOperationsInput`, `ListResourcesInput`, `GetCaseInput`, `GetTaskInput`, `RenderTaskInput`, and `ReadArtifactInput`, plus one capability-specific result root for each of the twelve capabilities. The generator and shared TypeScript/Go fixtures MUST prove those roots and their stable capability mapping before MCP `inputSchema`, `outputSchema`, a projection digest, or public output validation can be derived. Prose types or internal service return values are not substitutes for those roots.
+The TypeScript contracts in this section define the semantic input and result shapes for all twelve capabilities. The checked-in executable schema is not yet complete at that public boundary: it currently has only the six mutation input roots named below. The Worker semantic boundary MUST add strict executable roots for `ListOperationsInput`, `ListResourcesInput`, `GetCaseInput`, `GetTaskInput`, `RenderTaskInput`, and `ReadArtifactInput`, plus one capability-specific result root for each of the twelve capabilities. Each root MUST declare its generation targets. TypeScript generation and TypeScript-owned stable capability mapping are required for the public Worker/MCP boundary. Go generation and shared TypeScript/Go fixtures are required only when the root is also a wire contract consumed by the Go CLI or Agent. MCP mappings, annotations, catalog metadata, and client-facing adaptation are not canonical wire records and do not require Go output. The declared-target fixtures MUST pass before MCP `inputSchema`, `outputSchema`, a projection digest, or public output validation can be derived. Prose types or internal service return values are not substitutes for those roots.
 
 The six mutation inputs are the exact `SubmitOperationInput`, `ControlCaseInput`, `FinishCaseInput`, `CancelCaseInput`, `ControlTaskInput`, and `CancelTaskInput` defined below. Control mutation results use:
 
@@ -1603,7 +1603,9 @@ Unknown compatibility is rejection, not optimistic fallback.
 - A field is not considered optional merely because an old client omits it; defaults must be normative and versioned.
 - Renaming a state, effect, outcome, or owner is a breaking change.
 - Profile parameter schemas and Operation schemas are identified by digest.
-- Generated TypeScript and Go decoders must reject unknown fields for canonical records.
+- Generated decoders must reject unknown fields for canonical records in every declared language target.
+- A new or changed canonical root declares `typescript` or `typescript+go` generation according to actual consumers. A root consumed or persisted by the Go CLI or Agent requires `typescript+go`; an Edge-only public root may remain `typescript`.
+- MCP capability mappings, Tool annotations, catalog metadata, projection digests, and client adaptation are TypeScript-owned derivatives, not Go wire contracts. Changing a root's declared targets requires owner, compatibility, generator, and migration review.
 
 ## 24. Mandatory protocol tests
 
@@ -1637,6 +1639,6 @@ The protocol implementation must include table-driven tests for:
 - pause versus cancel semantics;
 - cancellation racing with success;
 - field absence versus known absence versus unknown;
-- TypeScript and Go canonical JSON and digest equality.
+- TypeScript and Go canonical JSON and digest equality for every shared wire contract implemented or consumed in both languages.
 
 Tests use fake clocks, controlled queues, barriers, and public state observations. Sleep is not a success condition.

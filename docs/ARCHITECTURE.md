@@ -402,32 +402,38 @@ Local records use atomic replacement and restrictive permissions where applicabl
 
 ### 10.1 TypeScript edge
 
-TypeScript is used for the Worker, CaseDO, and AgentDO because it maps directly to Cloudflare bindings, Durable Object APIs, SQLite storage, and WebSocket hibernation.
+TypeScript is used for the Worker, CaseDO, and AgentDO because it maps directly to Cloudflare bindings, Durable Object APIs, SQLite storage, and WebSocket hibernation. The TypeScript Edge boundary also owns generated MCP Tool schemas, the capability-to-root projection table, annotations, catalog metadata, response shaping, and current-client adaptation.
 
-External JSON is always schema-validated before conversion into internal branded types.
+External JSON is always schema-validated before conversion into internal branded types. Edge-only projection metadata is a derivative of canonical schemas and MCP policy; it is not a canonical wire record and has no Go mirror.
 
 ### 10.2 Go CLI and Agent
 
-Go is used for release-friendly single binaries, HTTP and WebSocket clients, filesystem and process APIs, typed concurrency, and shared CLI/Agent protocol code generation.
+Go is used for release-friendly single binaries, HTTP and WebSocket clients, filesystem and process APIs, typed concurrency, and CLI/Agent wire protocol code generation.
 
 The Agent and CLI may share:
 
-- generated protocol types;
-- canonical JSON and digest implementation;
+- generated types for canonical wire records they consume or persist;
+- canonical JSON and digest implementation for those shared records;
 - release manifest parsing;
 - identifiers and error envelopes;
 - redaction utilities;
 - bounded I/O primitives.
 
-They do not share ownership state merely for code reuse.
+They do not share ownership state merely for code reuse, and they do not mirror Worker/MCP-only projection tables, annotations, catalog metadata, or client-facing response adapters.
 
-### 10.3 JSON Schema
+### 10.3 JSON Schema and generation targets
 
-JSON Schema 2020-12 is the canonical data-contract owner. Generated TypeScript, Go, and MCP schemas are verified derivatives.
+JSON Schema 2020-12 is the canonical data-contract owner. Each new or changed generated root declares its language targets. TypeScript is required for Edge-consumed canonical roots; Go is required only for canonical wire roots consumed by the CLI or Agent. Shared roots require equivalent TypeScript/Go validation, canonicalization, digest, and error behavior. MCP schemas and TypeScript projection metadata remain verified derivatives without becoming a second contract owner.
 
 ### 10.4 POSIX shell bootstrap
 
 `install.sh` is intentionally small and contains no product state machine. It detects, downloads, verifies, installs, and then executes the Go CLI setup path.
+
+### 10.5 Implementation-language migration gate
+
+The first-release boundary remains TypeScript Edge and Go CLI/Termux Agent. Implementation language is not part of an Agent identity or protocol value, but changing the selected CLI or Agent runtime is a Class 2 release and deployment migration, not a source-only refactor.
+
+A future Go-to-TypeScript CLI or Agent migration must preserve canonical JSON Schema contracts, persisted local records, release manifests, public-key encoding and Agent identity, enrollment, heartbeat, dispatch, result, error, and cancellation envelopes. It must also provide a verified prebuilt standalone artifact that requires no Node.js or source toolchain on a clean supported Termux host and independently pass startup, peak-memory, artifact-size, process-tree cancellation, long-lived WebSocket, Android background, atomic-storage, cryptography, upgrade, rollback, and recovery gates. Until that evidence exists, Go remains the selected CLI/Agent implementation and no standalone TypeScript runtime support is claimed.
 
 ## 11. Target repository structure
 

@@ -14,8 +14,9 @@ The only claimed implementation target is **Termux on Android ARM64**. A Linux h
 Cloudflare Worker and Durable Objects   TypeScript
 tdev CLI                                Go
 tdev-agent                              Go
-Canonical protocol schemas              JSON Schema 2020-12
-Generated protocol types                TypeScript and Go
+Canonical external schemas              JSON Schema 2020-12
+Generated shared wire types             TypeScript and Go
+Worker/MCP projection metadata           TypeScript
 Bootstrap installer                     POSIX shell
 ```
 
@@ -46,7 +47,7 @@ npm run check:generated
 npm test
 ```
 
-`protocol/schemas/tdev.v1.schema.json` is the canonical contract. Generated Go and TypeScript files are derivatives and must not be edited directly. See [protocol/README.md](protocol/README.md) for the implementation boundary.
+`protocol/schemas/tdev.v1.schema.json` is the canonical contract. Generated TypeScript views and Go views for wire records consumed by the CLI or Agent are derivatives. Worker/MCP capability mappings, annotations, catalog metadata, and public projection glue are TypeScript-owned derivatives and do not require a Go mirror. Generated files must not be edited directly. See [protocol/README.md](protocol/README.md) for the implementation boundary.
 
 ## Repository workflow and normative documents
 
@@ -69,6 +70,7 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 - No local MCP server or tunnel subsystem.
 - The first-release `tools-v1` projection preserves twelve canonical tdev semantic capabilities; optional MCP projections are additive until current-client evidence supports a separately designed reduction.
+- TypeScript owns the Cloudflare and MCP projection boundary. Go is limited to the CLI, Termux Agent, and canonical wire contracts those components consume.
 - No unrestricted remote shell Operation.
 - No centralized tdev SaaS account.
 - Cloudflare API Tokens remain in the local CLI profile and are not sent to the Worker or Agent.
@@ -79,4 +81,4 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 ## Next implementation gate
 
-The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md), and the public MCP projection is defined in [MCP.md](docs/MCP.md). Design 0004 has source-verified the protocol/proof foundation, CaseDO SQLite substrate, atomic admission/replay, and control/query core. The next implementation gate is the **Worker semantic boundary**: complete executable input and result schema roots for all twelve semantic capabilities, generate and verify the deterministic `tools-v1` mapping, and route the lossless ingress to the existing CaseDO boundary in one table-driven integration suite. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow only after the remaining M1 live gates in [MVP.md](docs/MVP.md). Current implementation state and blocking unknowns are routed by [WORKBOARD.md](WORKBOARD.md).
+The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md), and the public MCP projection is defined in [MCP.md](docs/MCP.md). Design 0004 has source-verified the protocol/proof foundation, CaseDO SQLite substrate, atomic admission/replay, and control/query core. The next implementation gate is the **Worker semantic boundary**: complete executable input and result schema roots for all twelve semantic capabilities, declare each root's language targets, generate TypeScript public validators and the deterministic TypeScript-owned `tools-v1` mapping, generate Go only for wire roots consumed by the CLI or Agent, and route the lossless ingress to the existing CaseDO boundary in one table-driven integration suite. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow only after the remaining M1 live gates in [MVP.md](docs/MVP.md). Current implementation state and blocking unknowns are routed by [WORKBOARD.md](WORKBOARD.md).

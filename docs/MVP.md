@@ -56,7 +56,7 @@ A green result in one layer does not prove another layer.
 Deliver:
 
 - canonical JSON Schema source layout;
-- generated TypeScript and Go types;
+- generated TypeScript and Go types for the shared protocol foundation;
 - canonical JSON and typed digest implementations;
 - CaseContract and CaseTargetGrant validation;
 - pure Case, Task, and Attempt transition functions;
@@ -82,7 +82,7 @@ M1 proceeds only under accepted [Design 0004](design/0004-casedo-storage-and-pub
 Deliver:
 
 - one versioned, non-secret, release-pinned M1 policy profile with generated TypeScript/Go views, typed digest, hard ceilings, and fail-closed startup validation;
-- versioned M1 canonical schemas and generated TypeScript/Go domain-conversion boundaries;
+- versioned M1 canonical schemas, TypeScript domain-conversion boundaries for Edge-consumed roots, and Go views for wire records declared shared with the CLI or Agent;
 - bounded fatal UTF-8 and lossless JSON ingress that rejects duplicate members before ordinary decoding;
 - exact `oneOf` validation proofs and generated closed-domain discrimination;
 - deterministic new-Case routing from deployment identity and request ID without a global request owner;
@@ -97,7 +97,7 @@ Deliver:
 Acceptance:
 
 - invalid UTF-8, malformed/trailing JSON, unsafe numbers, limit overflow, and raw duplicate member names including escape-equivalent names are rejected before ordinary decoding;
-- TypeScript and Go accept the same raw-byte vectors and construct every public union only from one exact schema branch proof;
+- TypeScript rejects invalid raw bytes and constructs every public union only from one exact schema branch proof; every root also consumed by the Go CLI or Agent passes the same raw-byte, proof, canonicalization, digest, and error vectors in Go;
 - generated Go `json.RawMessage` cannot enter CaseDO domain or storage APIs without validated discrimination;
 - Worker restart and commit-then-response-loss route the same request to the same CaseDO and return the original committed response;
 - a replay after the Task advances still returns the original admission response;
@@ -116,7 +116,7 @@ Ordered implementation slices:
 2. **CaseDO storage substrate:** add schema-version-1 DDL and exact migration, schema identity and reopen verification, canonical stored-row codecs, repositories, immutable/terminal guards, and bounded compare-and-update/Event/receipt transaction primitives in isolated databases.
 3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection; extend the substrate with the admission rows and Events from the frozen transition matrix.
 4. **Control and query core:** add all remaining Case/Task/Attempt transitions including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, and file-backed local SQLite close/reopen recovery tests. Actual Durable Object hibernation and instance-restart evidence remains slice 6.
-5. **Worker semantic boundary:** first add strict executable input and result roots for all twelve capabilities, generated TypeScript/Go parity, and a stable capability-to-root projection mapping; then route the release-pinned `tools-v1` surface through lossless authenticated ingress and the final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
+5. **Worker semantic boundary:** first add strict executable input and result roots for all twelve capabilities and declare their generation targets; generate TypeScript public validators and the TypeScript-owned stable capability-to-root projection mapping, while generating Go only for wire roots consumed by the CLI or Agent and proving parity for those shared roots; then route the release-pinned `tools-v1` surface through lossless authenticated ingress and the final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
 6. **M1 live verification:** exercise actual Durable Object SQLite, migration failure, hibernation, restart, and authenticated public semantics. Only observed layers can be marked complete.
 
 The complete transition-to-revision/Event matrix is an M1 acceptance condition across slices 2 through 4. A green storage-substrate slice alone does not claim admission replay. A green atomic-admission/replay slice proves only the deterministic route function and isolated CaseDO transaction/recovery semantics. A green control/query source slice may prove isolated SQLite transitions, receipts, bounded snapshots/cursors/rendering, evidence gates, races, and local close/reopen recovery, but it still does not claim Worker routing, Cloudflare Durable Object persistence or hibernation, public MCP, current-client behavior, Agent dispatch, deployment, or rollback.
@@ -398,7 +398,7 @@ Use table-driven tests for every state and transition. Assert public results, ca
 
 ### 7.2 Cross-language protocol tests
 
-Run the same golden vectors through TypeScript and Go:
+Run the same golden vectors through TypeScript and Go for every canonical wire contract implemented or consumed in both languages. Edge-only MCP projection metadata is verified in the TypeScript Worker/MCP suite instead:
 
 - raw invalid UTF-8, malformed/trailing JSON, duplicate-member, depth/token/container, and exact safe-integer admission;
 - exact `oneOf` branch proof and generated domain discrimination;
@@ -527,7 +527,7 @@ For each boundary verify:
 
 | Acceptance | Required evidence |
 | --- | --- |
-| schema consistency | TypeScript and Go raw-byte, union-proof, canonical/digest golden-vector results plus generated-diff clean |
+| schema consistency | declared language targets, TypeScript public-root and projection fixtures, shared TypeScript/Go raw-byte, union-proof, canonical/digest results, and generated-diff clean |
 | Case durability | CaseDO schema identity, current rows, mutation receipts, and query snapshots before and after hibernation/restart |
 | no duplicate Task | deterministic Case route, immutable mutation receipt, original response, and Task count |
 | no duplicate effect | Attempt receipt, target observation, and exact final digest/ref |
@@ -554,11 +554,11 @@ Before implementing a slice:
 
 For M1, Design 0004 must be accepted before the M1 schema/proof slice begins. No CaseDO or Worker code may parse public values before the versioned schema, lossless ingress, validation proof, and generated domain-conversion boundary are green.
 
-Before the Worker semantic boundary is implemented, every one of the twelve public capabilities must have an exact executable input root and result root, a generated deterministic projection mapping, and TypeScript/Go schema parity fixtures. Prose contracts and internal service types do not satisfy this public-schema gate.
+Before the Worker semantic boundary is implemented, every one of the twelve public capabilities must have an exact executable input root and result root with declared language targets. The deterministic capability-to-root mapping, Tool annotations, catalog metadata, and public projection are generated and verified in TypeScript. Go generation and TypeScript/Go parity fixtures are required only for roots that the Go CLI or Agent consumes as wire contracts. Prose contracts and internal service types do not satisfy this public-schema gate.
 
 Before merging a slice:
 
-- generated TypeScript and Go code matches schemas;
+- generated outputs match the canonical schemas and every declared language target;
 - examples validate;
 - no duplicate owner or generic escape hatch was introduced;
 - complete diff is reviewed;
@@ -609,6 +609,7 @@ The following can be decided without user product preference after measured impl
 - Android wake-lock and foreground notification defaults;
 - release bootstrap signature mechanism;
 - whether cheap read-only Agent Operations can safely use limited parallelism;
-- whether observed multi-Case contention justifies a WorkspaceDO or ProjectDO.
+- whether observed multi-Case contention justifies a WorkspaceDO or ProjectDO;
+- whether a future standalone TypeScript CLI or Agent can satisfy the clean-host, startup, peak-memory, artifact-size, process-tree cancellation, long-lived connection, Android background, storage durability, cryptography, upgrade, rollback, and recovery gates required to replace the selected Go implementation.
 
 These decisions are recorded in their owner documents with measurements and do not silently change product scope.

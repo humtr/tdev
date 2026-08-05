@@ -7,7 +7,9 @@ npm run generate
 npm run check:generated
 ```
 
-The generator rejects trailing schema JSON, unresolved or external local `$ref` values, `$ref` and `oneOf` sibling semantics, unsupported schema-node keywords, types, or string formats, invalid patterns, and canonical objects with declared properties that do not set `additionalProperties: false`. The TypeScript and Go validators enforce the same executable subset before validating values.
+The generator rejects trailing schema JSON, unresolved or external local `$ref` values, `$ref` and `oneOf` sibling semantics, unsupported schema-node keywords, types, or string formats, invalid patterns, and canonical objects with declared properties that do not set `additionalProperties: false`. The TypeScript and Go validators enforce the same executable subset before validating values for contracts implemented or consumed in both languages.
+
+Generation is target-scoped. TypeScript owns every Edge-consumed canonical root and all Worker/MCP projection metadata. Go output is required only for canonical wire roots consumed or persisted by the CLI or Agent. Shared roots require TypeScript/Go parity; capability mappings, Tool annotations, catalog metadata, and client adapters remain TypeScript-only derivatives. The current broad generated foundation is not evidence that every future public root needs a Go mirror; the Worker slice must introduce explicit language-target declarations before adding those roots.
 
 ## Release policy profile
 
@@ -36,7 +38,7 @@ The source-level CaseDO boundary at [`edge/case-do/`](../edge/case-do/) now veri
 
 ## Next public-schema gate
 
-The prose contracts define twelve public semantic inputs and results, but the executable schema currently contains only six mutation input roots. Before the Worker semantic boundary can derive MCP schemas or validate public outputs, it must add strict input roots for the six read/query capabilities and all twelve capability-specific result roots, generate a deterministic capability mapping in TypeScript and Go, and pass shared parity fixtures.
+The prose contracts define twelve public semantic inputs and results, but the executable schema currently contains only six mutation input roots. Before the Worker semantic boundary can derive MCP schemas or validate public outputs, it must add strict input roots for the six read/query capabilities and all twelve capability-specific result roots, declare their language targets, generate the deterministic capability mapping and public projection metadata in TypeScript, and pass TypeScript public-root fixtures. It must generate Go and pass shared parity fixtures only for roots consumed by the CLI or Agent.
 
 The repository still does not claim a Worker route, Cloudflare Durable Object adapter or hibernation, deployment, authenticated public MCP endpoint, current-client behavior, Agent dispatch, R2 byte ownership, installation, or runtime rollback.
 

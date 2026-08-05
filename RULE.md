@@ -46,9 +46,11 @@ An effect is allowed only by the intersection of current Agent capability, curre
 
 External records are validated against a versioned canonical schema before domain use. Unknown fields and unsupported schema keywords are rejected. Digests use the declared canonical domain and exclude only fields explicitly owned by the digest rule. Generated code is derivative and cannot redefine the schema.
 
-## Rule 8 — Cross-language behavior must be equal
+## Rule 8 — Cross-language behavior must be equal where shared
 
-Any protocol behavior implemented in TypeScript and Go needs equivalent accept/reject, canonical bytes, digest, Unicode, bound, and error semantics. A green test in one language does not compensate for a mismatch in the other. Future keyword or numeric support is admitted only with vectors proving parity.
+Any canonical wire behavior implemented or consumed in both TypeScript and Go needs equivalent accept/reject, canonical bytes, digest, Unicode, bound, and error semantics. A green test in one language does not compensate for a mismatch in the other. Future keyword or numeric support is admitted only with vectors proving parity.
+
+Parity does not require a Go copy of TypeScript-only Worker/MCP capability mappings, Tool annotations, catalog metadata, response shaping, or client adaptation. Adding or removing a runtime language, including a future CLI or Agent migration, requires an accepted design with protocol/state compatibility, release transition, clean-host installation, upgrade, rollback, and live reference-host evidence.
 
 ## Rule 9 — Paths are capabilities, not strings
 

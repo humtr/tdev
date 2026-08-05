@@ -148,11 +148,12 @@ Cloudflare Worker and Durable Objects   TypeScript
 CLI                                      Go
 Agent core and Termux adapter            Go
 Canonical external schemas               JSON Schema 2020-12
-Generated protocol types                 TypeScript and Go
+Generated shared wire types              TypeScript and Go
+Worker/MCP projection metadata            TypeScript
 Bootstrap installer                      POSIX shell
 ```
 
-Canonical JSON Schemas are the sole owner of external data contracts. Generated TypeScript, Go, MCP-compatible schemas, examples, and test vectors are derivatives and MUST be checked for drift.
+Canonical JSON Schemas are the sole owner of external data contracts. Generated TypeScript views, Go views for wire records consumed by the CLI or Agent, MCP-compatible schemas, TypeScript-owned projection metadata, examples, and test vectors are derivatives and MUST be checked against their declared language targets for drift.
 
 ## 6. Product topology and interfaces
 
@@ -290,7 +291,7 @@ Each row below defines one normative product requirement. The detailed owner col
 | TDEV-NFR-007 | Every write or effect MUST be fenced by exact target identity and the applicable revision, digest, object ID, permission, deadline, and cancellation boundary. | [PROTOCOL.md](PROTOCOL.md) | M1 | stale-precondition and unauthorized-effect rejection evidence |
 | TDEV-NFR-008 | Canonical Case and Agent delivery state MUST survive Worker restart, Durable Object hibernation, client disconnect, and ordinary Agent reconnect without requiring event replay as the primary current-state source. | [ARCHITECTURE.md](ARCHITECTURE.md) | M2 | restart, hibernation, disconnect, and reconnect observation |
 | TDEV-NFR-009 | The reference Agent MUST serialize high-cost execution with one slot in the first release; additional parallelism requires measured ordering and resource invariants. | [ARCHITECTURE.md](ARCHITECTURE.md) | M2 | controlled queue and device resource evidence |
-| TDEV-NFR-010 | TypeScript and Go MUST accept and reject the same canonical protocol values and MUST produce the same canonical bytes and typed digests. | [PROTOCOL.md](PROTOCOL.md) | M0 | shared cross-language fixtures and generated-diff evidence |
+| TDEV-NFR-010 | Every canonical wire contract implemented or consumed by both TypeScript Edge components and Go CLI/Agent components MUST have equivalent accept/reject behavior and canonical bytes and typed digests. Edge-only MCP projection metadata and capability mappings MUST remain TypeScript-owned and MUST NOT require a Go mirror. | [PROTOCOL.md](PROTOCOL.md) | M0 | declared language targets, shared cross-language fixtures, and generated-diff evidence |
 | TDEV-NFR-011 | A typed Operation MUST NOT silently fall back to arbitrary shell, a broader profile, or an untyped command surface. | [OPERATIONS.md](OPERATIONS.md) | M3 | catalog, dispatch, and forbidden-fallback evidence |
 | TDEV-NFR-012 | Completion MUST be evaluated independently for contract, source, validation, package, installation, cloud resources, active Edge, Agent, public MCP, client schema, and recovery layers when affected. | [MVP.md](MVP.md) | Release | layer-specific authoritative observations |
 | TDEV-NFR-013 | Skipped, unsupported, unavailable, contaminated, truncated, stale, or unexecuted evidence MUST NOT be reported as clean evidence. | [MVP.md](MVP.md) | M0 | negative fixture and completion-gate evidence |
@@ -410,7 +411,8 @@ The following are engineering experiments, not unresolved product-preference que
 - whether measured client behavior requires stricter public payload or pagination bounds;
 - the exact final MCP revision and projection digest for the first public release;
 - whether the current supported client declares Resources, Tasks, or elicitation capabilities;
-- whether a future reduced Tool projection improves behavior while preserving all twelve semantic capabilities and rollback.
+- whether a future reduced Tool projection improves behavior while preserving all twelve semantic capabilities and rollback;
+- whether a future standalone TypeScript CLI or Agent replacement can meet clean-host installation, startup, memory, artifact-size, process-tree cancellation, long-lived connection, Android background, storage durability, cryptography, upgrade, and rollback gates without changing public or persisted contracts.
 
 Each decision requires measurements, a named owner update, acceptance evidence, and compatibility/rollback analysis when applicable. Until then it remains explicit unknown or bounded configuration and cannot be represented as a completed guarantee.
 
