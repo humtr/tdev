@@ -375,6 +375,8 @@ rollback metadata
 
 A release is not a collection of independently selected latest assets.
 
+The CaseDO migration checksum binds the logical migration byte domain owned by [PROTOCOL.md](PROTOCOL.md): schema version, ordered DDL, metadata insert contract, and pre/postconditions. Platform transaction wrappers are adapter behavior and are not part of that checksum. A stored version-1 row carrying a predecessor transcript checksum is incompatible until an accepted release descriptor names the predecessor, migration path, and rollback effect; matching only the schema version or DDL digest is insufficient.
+
 ## 13. Release manifest
 
 The manifest includes at least:
@@ -423,9 +425,10 @@ Rules:
 - the selected protocol is fixed for one Agent connection epoch;
 - an incompatible Agent reports `upgrade_required` and receives no Tasks;
 - Edge upgrade happens before or with a compatible Agent path defined by the manifest;
-- stored-state migrations run only from a verified predecessor schema;
+- stored-state migrations run only from a verified predecessor schema, logical migration identity, and accepted adapter contract;
+- platform-specific transaction wrappers never substitute for the logical migration identity;
 - additive schema changes are not assumed compatible without declared rules;
-- rollback is allowed only when the predecessor understands the resulting stored state.
+- rollback is allowed only when the predecessor understands the resulting stored state and migration checksum semantics.
 
 ### 14.1 CLI or Agent implementation-language transition
 

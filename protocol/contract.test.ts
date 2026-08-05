@@ -45,6 +45,23 @@ test("schema and semantic fixtures", () => {
   assert.equal(stored.schemaVersion, 1);
 });
 
+test("public contract validation runs structural and semantic validation exactly once", () => {
+  const structural = fixtures.schemaCases.find((fixture) => fixture.name === "strict contract");
+  const semantic = fixtures.schemaCases.find((fixture) => fixture.name === "contract digest mismatch");
+  assert.ok(structural);
+  assert.ok(semantic);
+  assert.deepEqual(validateContract(validator, structural.definition, structural.value), [
+    "$.unexpected: additional property rejected",
+  ]);
+  assert.deepEqual(validateContract(validator, semantic.definition, semantic.value), [
+    "$.contractDigest: digest mismatch",
+  ]);
+  assert.deepEqual(
+    validateContract(validator, semantic.definition, semantic.value),
+    validator.validateDefinition(semantic.definition, semantic.value),
+  );
+});
+
 test("canonical JSON and typed digest golden vectors", () => {
   for (const fixture of fixtures.canonicalCases) {
     assert.equal(canonicalize(fixture.value), fixture.canonical, fixture.name);

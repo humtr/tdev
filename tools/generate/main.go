@@ -53,6 +53,14 @@ func main() {
 		panic("schema has no $defs")
 	}
 	validateSchema(doc.Defs)
+	manifest, err := loadTargetManifest(targetManifestPath)
+	must(err)
+	must(validateTargetManifest(manifest, doc.Defs, schemaPath))
+	must(validateConsumerPaths(manifest))
+	typeScriptDefs, err := definitionsForTarget(doc.Defs, manifest, "typescript")
+	must(err)
+	goDefs, err := definitionsForTarget(doc.Defs, manifest, "go")
+	must(err)
 
 	var docAny any
 	decAny := json.NewDecoder(bytes.NewReader(raw))
@@ -61,8 +69,8 @@ func main() {
 	schemaDigest, err := protocolruntime.TypedDigest("tdev.schema.v1", docAny)
 	must(err)
 
-	ts := generateTypeScript(doc.Defs, schemaDigest)
-	goSource := generateGo(doc.Defs, schemaDigest)
+	ts := generateTypeScript(typeScriptDefs, schemaDigest)
+	goSource := generateGo(goDefs, schemaDigest)
 	formatted, err := format.Source([]byte(goSource))
 	must(err)
 
@@ -596,6 +604,9 @@ func tsType(schema map[string]any, depth int) string {
 			if additionalSchema := asMap(additional); additionalSchema != nil {
 				return "Readonly<Record<string, " + tsType(additionalSchema, depth) + ">>"
 			}
+			if open, ok := additional.(bool); ok && open {
+				return "Readonly<Record<string, unknown>>"
+			}
 			return "Readonly<Record<string, never>>"
 		}
 		required := map[string]bool{}
@@ -765,7 +776,10 @@ func goDecl(name string, schema map[string]any) string {
 		if additional := asMap(schema["additionalProperties"]); additional != nil {
 			return "type " + name + " map[string]" + goType(additional, false) + "\n"
 		}
-		return "type " + name + " map[string]never\n"
+		if open, ok := schema["additionalProperties"].(bool); ok && open {
+			return "type " + name + " map[string]any\n"
+		}
+		return "type " + name + " struct{}\n"
 	}
 	required := map[string]bool{}
 	for _, item := range asSlice(schema["required"]) {
@@ -836,8 +850,10 @@ func goType(schema map[string]any, optional bool) string {
 			if len(properties) == 0 {
 				if additional := asMap(schema["additionalProperties"]); additional != nil {
 					base = "map[string]" + goType(additional, false)
-				} else {
+				} else if open, ok := schema["additionalProperties"].(bool); ok && open {
 					base = "map[string]any"
+				} else {
+					base = "struct{}"
 				}
 			} else {
 				base = inlineGoStruct(schema)

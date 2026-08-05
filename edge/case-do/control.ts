@@ -39,7 +39,7 @@ import {
 } from "./records.ts";
 import { CaseDoRepository } from "./repository.ts";
 import { StorageError } from "./schema.ts";
-import type { SqlDatabase, SqlRow } from "./sql.ts";
+import type { SqlRow, SqlStore } from "./sql.ts";
 
 export type ControlMutationKind =
   | "case_pause"
@@ -314,12 +314,12 @@ function requireDigest(value: string, label: string): void {
 }
 
 export class CaseDoControlRepository {
-  readonly db: SqlDatabase;
+  readonly db: SqlStore;
   readonly repository: CaseDoRepository;
   readonly internal: InternalRecordCodecs;
   readonly artifactCodec: StoredRecordCodec<ArtifactRef>;
 
-  constructor(db: SqlDatabase, validator: SchemaValidator) {
+  constructor(db: SqlStore, validator: SchemaValidator) {
     this.db = db;
     this.repository = new CaseDoRepository(db, validator);
     this.internal = new InternalRecordCodecs(validator);
@@ -331,255 +331,247 @@ export class CaseDoControlRepository {
     if (input.requestId.length === 0 || input.caseId.length === 0 || input.events.length === 0) {
       inputInvalid("CONTROL_BINDING", "control mutation identity and Events are required");
     }
-    let committed = false;
-    this.db.exec("BEGIN IMMEDIATE");
     try {
-      const capability = capabilityFor(input.kind);
-      const existing = this.repository.readMutationReceipt(input.caseId, input.requestId);
-      if (existing !== undefined) {
-        if (existing.capability !== capability || existing.semanticDigest !== input.semanticDigest) {
-          throw new StorageError("REQUEST_ID_CONFLICT", "SEMANTIC_MISMATCH", "request ID is already committed with another capability or semantic digest");
+      const transactionResult = this.db.transactionSync(() => {
+        const capability = capabilityFor(input.kind);
+        const existing = this.repository.readMutationReceipt(input.caseId, input.requestId);
+        if (existing !== undefined) {
+          if (existing.capability !== capability || existing.semanticDigest !== input.semanticDigest) {
+            throw new StorageError("REQUEST_ID_CONFLICT", "SEMANTIC_MISMATCH", "request ID is already committed with another capability or semantic digest");
+          }
+          const parsed = parseControlResult(existing.response);
+          if (parsed.requestId !== input.requestId || parsed.caseId !== input.caseId || parsed.taskId !== input.taskId) {
+            throw new StorageError("STORAGE_CORRUPT", "RECEIPT_SELECTOR_MISMATCH", "stored control response selectors do not match the receipt");
+          }
+          return replayResult(parsed);
         }
-        const parsed = parseControlResult(existing.response);
-        if (parsed.requestId !== input.requestId || parsed.caseId !== input.caseId || parsed.taskId !== input.taskId) {
-          throw new StorageError("STORAGE_CORRUPT", "RECEIPT_SELECTOR_MISMATCH", "stored control response selectors do not match the receipt");
+        input.fault?.("after_receipt_check");
+
+        const contract = this.repository.readCaseContract(input.caseId)?.value;
+        const currentCase = this.repository.readCaseState(input.caseId)?.value;
+        if (contract === undefined || currentCase === undefined) {
+          inputInvalid("CASE_NOT_FOUND", "Case was not found");
         }
-        this.db.exec("COMMIT");
-        committed = true;
-        return replayResult(parsed);
-      }
-      input.fault?.("after_receipt_check");
+        const committedAt = input.events[0].committedAt;
+        const taskUpdates = [...(input.taskUpdates ?? [])];
+        const attemptUpdates = [...(input.attemptUpdates ?? [])];
+        const attemptInserts = [...(input.attemptInserts ?? [])];
+        sortedUnique(taskUpdates.map((task) => task.taskId), "taskUpdates");
+        sortedUnique(attemptUpdates.map((attempt) => attempt.attemptId), "attemptUpdates");
+        sortedUnique(attemptInserts.map((attempt) => attempt.attemptId), "attemptInserts");
 
-      const contract = this.repository.readCaseContract(input.caseId)?.value;
-      const currentCase = this.repository.readCaseState(input.caseId)?.value;
-      if (contract === undefined || currentCase === undefined) {
-        inputInvalid("CASE_NOT_FOUND", "Case was not found");
-      }
-      const committedAt = input.events[0].committedAt;
-      const taskUpdates = [...(input.taskUpdates ?? [])];
-      const attemptUpdates = [...(input.attemptUpdates ?? [])];
-      const attemptInserts = [...(input.attemptInserts ?? [])];
-      sortedUnique(taskUpdates.map((task) => task.taskId), "taskUpdates");
-      sortedUnique(attemptUpdates.map((attempt) => attempt.attemptId), "attemptUpdates");
-      sortedUnique(attemptInserts.map((attempt) => attempt.attemptId), "attemptInserts");
+        const currentTasks = new Map<string, TaskRecord>();
+        for (const task of taskUpdates) {
+          const current = this.repository.readTask(input.caseId, task.taskId)?.value;
+          if (current === undefined) inputInvalid("TASK_NOT_FOUND", `Task ${task.taskId} was not found`);
+          currentTasks.set(task.taskId, current);
+        }
+        const currentAttempts = new Map<string, AttemptRecord>();
+        for (const attempt of attemptUpdates) {
+          const current = this.repository.readAttempt(input.caseId, attempt.taskId, attempt.attemptId)?.value;
+          if (current === undefined) inputInvalid("ATTEMPT_NOT_FOUND", `Attempt ${attempt.attemptId} was not found`);
+          currentAttempts.set(attempt.attemptId, current);
+        }
 
-      const currentTasks = new Map<string, TaskRecord>();
-      for (const task of taskUpdates) {
-        const current = this.repository.readTask(input.caseId, task.taskId)?.value;
-        if (current === undefined) inputInvalid("TASK_NOT_FOUND", `Task ${task.taskId} was not found`);
-        currentTasks.set(task.taskId, current);
-      }
-      const currentAttempts = new Map<string, AttemptRecord>();
-      for (const attempt of attemptUpdates) {
-        const current = this.repository.readAttempt(input.caseId, attempt.taskId, attempt.attemptId)?.value;
-        if (current === undefined) inputInvalid("ATTEMPT_NOT_FOUND", `Attempt ${attempt.attemptId} was not found`);
-        currentAttempts.set(attempt.attemptId, current);
-      }
+        const specs = this.validateMutation(
+          input,
+          contract,
+          currentCase,
+          taskUpdates,
+          attemptUpdates,
+          attemptInserts,
+          currentTasks,
+          currentAttempts,
+          committedAt,
+        );
+        this.validateEvents(input, currentCase.eventSequence, committedAt, specs);
+        input.fault?.("after_validation");
 
-      const specs = this.validateMutation(
-        input,
-        contract,
-        currentCase,
-        taskUpdates,
-        attemptUpdates,
-        attemptInserts,
-        currentTasks,
-        currentAttempts,
-        committedAt,
-      );
-      this.validateEvents(input, currentCase.eventSequence, committedAt, specs);
-      input.fault?.("after_validation");
+        const caseRecord = this.repository.codecs.caseState.encode(input.nextCaseState);
+        const taskRecords = taskUpdates.map((task) => ({ task, record: this.repository.codecs.taskRecord.encode(task), current: currentTasks.get(task.taskId)! }));
+        const attemptRecords = attemptUpdates.map((attempt) => ({ attempt, record: this.repository.codecs.attemptRecord.encode(attempt), current: currentAttempts.get(attempt.attemptId)! }));
+        const attemptInsertRecords = attemptInserts.map((attempt) => ({ attempt, record: this.repository.codecs.attemptRecord.encode(attempt) }));
+        const eventRecords = input.events.map((event) => ({ event, record: this.repository.codecs.caseEvent.encode(event) }));
 
-      const caseRecord = this.repository.codecs.caseState.encode(input.nextCaseState);
-      const taskRecords = taskUpdates.map((task) => ({ task, record: this.repository.codecs.taskRecord.encode(task), current: currentTasks.get(task.taskId)! }));
-      const attemptRecords = attemptUpdates.map((attempt) => ({ attempt, record: this.repository.codecs.attemptRecord.encode(attempt), current: currentAttempts.get(attempt.attemptId)! }));
-      const attemptInsertRecords = attemptInserts.map((attempt) => ({ attempt, record: this.repository.codecs.attemptRecord.encode(attempt) }));
-      const eventRecords = input.events.map((event) => ({ event, record: this.repository.codecs.caseEvent.encode(event) }));
+        const committedTaskRevision = input.taskId === undefined
+          ? undefined
+          : taskUpdates.find((task) => task.taskId === input.taskId)?.taskRevision;
+        const originalResult: ControlMutationResultV1 = Object.freeze({
+          accepted: true,
+          deduplicated: false,
+          requestId: input.requestId,
+          caseId: input.caseId,
+          ...(input.taskId === undefined ? {} : { taskId: input.taskId }),
+          committedCaseRevision: input.nextCaseState.caseRevision,
+          ...(committedTaskRevision === undefined ? {} : { committedTaskRevision }),
+          committedEventSequence: input.nextCaseState.eventSequence,
+          value: input.value,
+        });
+        const response = resultJson(originalResult);
+        const responseBytes = encodeCanonicalJson(response);
+        if (responseBytes.byteLength > M1_RELEASE_PROFILE.output.maxMutationResponseBytes) {
+          throw new StorageError("QUOTA_EXCEEDED", "MUTATION_RESPONSE_BYTES", "mutation response exceeds the release-profile byte bound");
+        }
+        const receipt: MutationReceiptV1 = {
+          schemaVersion: 1,
+          requestId: input.requestId,
+          capability,
+          semanticDigest: input.semanticDigest,
+          caseId: input.caseId,
+          ...(input.taskId === undefined ? {} : { taskId: input.taskId }),
+          subject: expectedSubject(input),
+          response,
+          responseDigest: canonicalJsonDigest(responseBytes),
+          committedCaseRevision: input.nextCaseState.caseRevision,
+          ...(committedTaskRevision === undefined ? {} : { committedTaskRevision }),
+          committedEventSequence: input.nextCaseState.eventSequence,
+          createdAt: committedAt,
+        };
+        const receiptRecord = this.repository.codecs.mutationReceipt.encode(receipt);
 
-      const committedTaskRevision = input.taskId === undefined
-        ? undefined
-        : taskUpdates.find((task) => task.taskId === input.taskId)?.taskRevision;
-      const originalResult: ControlMutationResultV1 = Object.freeze({
-        accepted: true,
-        deduplicated: false,
-        requestId: input.requestId,
-        caseId: input.caseId,
-        ...(input.taskId === undefined ? {} : { taskId: input.taskId }),
-        committedCaseRevision: input.nextCaseState.caseRevision,
-        ...(committedTaskRevision === undefined ? {} : { committedTaskRevision }),
-        committedEventSequence: input.nextCaseState.eventSequence,
-        value: input.value,
+        const caseUpdate = this.db.run(
+          `UPDATE case_state
+           SET status_kind=?, case_revision=?, event_sequence=?, state_json=?, state_digest=?, updated_at=?
+           WHERE case_id=? AND case_revision=? AND event_sequence=?`,
+          input.nextCaseState.status.kind,
+          input.nextCaseState.caseRevision,
+          input.nextCaseState.eventSequence,
+          caseRecord.bytes,
+          caseRecord.digest,
+          input.nextCaseState.updatedAt,
+          input.caseId,
+          currentCase.caseRevision,
+          currentCase.eventSequence,
+        );
+        if (caseUpdate.changes !== 1) this.classifyCaseWrite(input.caseId, currentCase);
+        input.fault?.("after_case_update");
+
+        for (const { attempt, record, current } of attemptRecords) {
+          const update = this.db.run(
+            `UPDATE attempts
+             SET status_kind=?, attempt_revision=?, attempt_json=?, attempt_digest=?, updated_at=?
+             WHERE case_id=? AND task_id=? AND attempt_id=? AND attempt_revision=?`,
+            attempt.status.kind,
+            attempt.attemptRevision,
+            record.bytes,
+            record.digest,
+            attempt.updatedAt,
+            input.caseId,
+            attempt.taskId,
+            attempt.attemptId,
+            current.attemptRevision,
+          );
+          if (update.changes !== 1) this.classifyAttemptWrite(input.caseId, attempt.taskId, attempt.attemptId, current.attemptRevision);
+        }
+        input.fault?.("after_attempt_updates");
+
+        for (const { attempt, record } of attemptInsertRecords) {
+          this.db.run(
+            `INSERT INTO attempts(case_id,task_id,attempt_id,attempt_ordinal,status_kind,attempt_revision,agent_id,dispatch_id,operation_input_digest,expected_task_revision,deadline_at,attempt_json,attempt_digest,created_at,updated_at)
+             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            input.caseId,
+            attempt.taskId,
+            attempt.attemptId,
+            attempt.ordinal,
+            attempt.status.kind,
+            attempt.attemptRevision,
+            attempt.agentId ?? null,
+            attempt.dispatchId,
+            attempt.operationInputDigest,
+            attempt.expectedTaskRevision,
+            attempt.deadlineAt,
+            record.bytes,
+            record.digest,
+            attempt.createdAt,
+            attempt.updatedAt,
+          );
+        }
+        input.fault?.("after_attempt_inserts");
+
+        for (const { task, record, current } of taskRecords) {
+          const update = this.db.run(
+            `UPDATE tasks
+             SET status_kind=?, task_revision=?, latest_attempt_id=?, task_json=?, task_digest=?, updated_at=?
+             WHERE case_id=? AND task_id=? AND task_revision=?`,
+            task.status.kind,
+            task.taskRevision,
+            task.latestAttemptId ?? null,
+            record.bytes,
+            record.digest,
+            task.updatedAt,
+            input.caseId,
+            task.taskId,
+            current.taskRevision,
+          );
+          if (update.changes !== 1) this.classifyTaskWrite(input.caseId, task.taskId, current.taskRevision);
+        }
+        input.fault?.("after_task_updates");
+
+        this.insertImmutableRows(input, committedAt);
+        input.fault?.("after_immutable_rows");
+
+        for (const { event, record } of eventRecords) {
+          const selector = event.entity.kind === "case"
+            ? ["case", event.entity.caseId]
+            : event.entity.kind === "task"
+              ? ["task", event.entity.taskId]
+              : ["attempt", event.entity.attemptId];
+          this.db.run(
+            `INSERT INTO events(case_id,event_sequence,event_id,entity_kind,entity_id,event_type,causation_request_id,event_json,event_digest,committed_at)
+             VALUES(?,?,?,?,?,?,?,?,?,?)`,
+            input.caseId,
+            event.sequence,
+            event.eventId,
+            selector[0],
+            selector[1],
+            event.eventType,
+            event.causationId,
+            record.bytes,
+            record.digest,
+            event.committedAt,
+          );
+        }
+        input.fault?.("after_events");
+        input.fault?.("before_receipt");
+        this.db.run(
+          `INSERT INTO mutation_receipts(
+            case_id,request_id,capability,semantic_input_digest,task_id,subject_kind,subject_id,
+            response_json,response_digest,committed_case_revision,committed_task_revision,
+            committed_event_sequence,created_at
+          ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          input.caseId,
+          input.requestId,
+          capability,
+          input.semanticDigest,
+          receipt.taskId ?? null,
+          receipt.subject?.kind ?? null,
+          receipt.subject === undefined
+            ? null
+            : receipt.subject.kind === "case"
+              ? receipt.subject.caseId
+              : receipt.subject.kind === "task"
+                ? receipt.subject.taskId
+                : receipt.subject.attemptId,
+          responseBytes,
+          receipt.responseDigest,
+          receipt.committedCaseRevision,
+          receipt.committedTaskRevision ?? null,
+          receipt.committedEventSequence,
+          receipt.createdAt,
+        );
+        input.fault?.("after_receipt");
+        input.fault?.("before_commit");
+        return originalResult;
       });
-      const response = resultJson(originalResult);
-      const responseBytes = encodeCanonicalJson(response);
-      if (responseBytes.byteLength > M1_RELEASE_PROFILE.output.maxMutationResponseBytes) {
-        throw new StorageError("QUOTA_EXCEEDED", "MUTATION_RESPONSE_BYTES", "mutation response exceeds the release-profile byte bound");
-      }
-      const receipt: MutationReceiptV1 = {
-        schemaVersion: 1,
-        requestId: input.requestId,
-        capability,
-        semanticDigest: input.semanticDigest,
-        caseId: input.caseId,
-        ...(input.taskId === undefined ? {} : { taskId: input.taskId }),
-        subject: expectedSubject(input),
-        response,
-        responseDigest: canonicalJsonDigest(responseBytes),
-        committedCaseRevision: input.nextCaseState.caseRevision,
-        ...(committedTaskRevision === undefined ? {} : { committedTaskRevision }),
-        committedEventSequence: input.nextCaseState.eventSequence,
-        createdAt: committedAt,
-      };
-      const receiptRecord = this.repository.codecs.mutationReceipt.encode(receipt);
-
-      const caseUpdate = this.db.run(
-        `UPDATE case_state
-         SET status_kind=?, case_revision=?, event_sequence=?, state_json=?, state_digest=?, updated_at=?
-         WHERE case_id=? AND case_revision=? AND event_sequence=?`,
-        input.nextCaseState.status.kind,
-        input.nextCaseState.caseRevision,
-        input.nextCaseState.eventSequence,
-        caseRecord.bytes,
-        caseRecord.digest,
-        input.nextCaseState.updatedAt,
-        input.caseId,
-        currentCase.caseRevision,
-        currentCase.eventSequence,
-      );
-      if (caseUpdate.changes !== 1) this.classifyCaseWrite(input.caseId, currentCase);
-      input.fault?.("after_case_update");
-
-      for (const { attempt, record, current } of attemptRecords) {
-        const update = this.db.run(
-          `UPDATE attempts
-           SET status_kind=?, attempt_revision=?, attempt_json=?, attempt_digest=?, updated_at=?
-           WHERE case_id=? AND task_id=? AND attempt_id=? AND attempt_revision=?`,
-          attempt.status.kind,
-          attempt.attemptRevision,
-          record.bytes,
-          record.digest,
-          attempt.updatedAt,
-          input.caseId,
-          attempt.taskId,
-          attempt.attemptId,
-          current.attemptRevision,
-        );
-        if (update.changes !== 1) this.classifyAttemptWrite(input.caseId, attempt.taskId, attempt.attemptId, current.attemptRevision);
-      }
-      input.fault?.("after_attempt_updates");
-
-      for (const { attempt, record } of attemptInsertRecords) {
-        this.db.run(
-          `INSERT INTO attempts(case_id,task_id,attempt_id,attempt_ordinal,status_kind,attempt_revision,agent_id,dispatch_id,operation_input_digest,expected_task_revision,deadline_at,attempt_json,attempt_digest,created_at,updated_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-          input.caseId,
-          attempt.taskId,
-          attempt.attemptId,
-          attempt.ordinal,
-          attempt.status.kind,
-          attempt.attemptRevision,
-          attempt.agentId ?? null,
-          attempt.dispatchId,
-          attempt.operationInputDigest,
-          attempt.expectedTaskRevision,
-          attempt.deadlineAt,
-          record.bytes,
-          record.digest,
-          attempt.createdAt,
-          attempt.updatedAt,
-        );
-      }
-      input.fault?.("after_attempt_inserts");
-
-      for (const { task, record, current } of taskRecords) {
-        const update = this.db.run(
-          `UPDATE tasks
-           SET status_kind=?, task_revision=?, latest_attempt_id=?, task_json=?, task_digest=?, updated_at=?
-           WHERE case_id=? AND task_id=? AND task_revision=?`,
-          task.status.kind,
-          task.taskRevision,
-          task.latestAttemptId ?? null,
-          record.bytes,
-          record.digest,
-          task.updatedAt,
-          input.caseId,
-          task.taskId,
-          current.taskRevision,
-        );
-        if (update.changes !== 1) this.classifyTaskWrite(input.caseId, task.taskId, current.taskRevision);
-      }
-      input.fault?.("after_task_updates");
-
-      this.insertImmutableRows(input, committedAt);
-      input.fault?.("after_immutable_rows");
-
-      for (const { event, record } of eventRecords) {
-        const selector = event.entity.kind === "case"
-          ? ["case", event.entity.caseId]
-          : event.entity.kind === "task"
-            ? ["task", event.entity.taskId]
-            : ["attempt", event.entity.attemptId];
-        this.db.run(
-          `INSERT INTO events(case_id,event_sequence,event_id,entity_kind,entity_id,event_type,causation_request_id,event_json,event_digest,committed_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?)`,
-          input.caseId,
-          event.sequence,
-          event.eventId,
-          selector[0],
-          selector[1],
-          event.eventType,
-          event.causationId,
-          record.bytes,
-          record.digest,
-          event.committedAt,
-        );
-      }
-      input.fault?.("after_events");
-      input.fault?.("before_receipt");
-      this.db.run(
-        `INSERT INTO mutation_receipts(
-          case_id,request_id,capability,semantic_input_digest,task_id,subject_kind,subject_id,
-          response_json,response_digest,committed_case_revision,committed_task_revision,
-          committed_event_sequence,created_at
-        ) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?)`,
-        input.caseId,
-        input.requestId,
-        capability,
-        input.semanticDigest,
-        receipt.taskId ?? null,
-        receipt.subject?.kind ?? null,
-        receipt.subject === undefined
-          ? null
-          : receipt.subject.kind === "case"
-            ? receipt.subject.caseId
-            : receipt.subject.kind === "task"
-              ? receipt.subject.taskId
-              : receipt.subject.attemptId,
-        responseBytes,
-        receipt.responseDigest,
-        receipt.committedCaseRevision,
-        receipt.committedTaskRevision ?? null,
-        receipt.committedEventSequence,
-        receipt.createdAt,
-      );
-      input.fault?.("after_receipt");
-      input.fault?.("before_commit");
-      this.db.exec("COMMIT");
-      committed = true;
-      try {
-        input.fault?.("after_commit");
-      } catch (error) {
-        throw new StorageError("RESPONSE_LOST", "POST_COMMIT_RESPONSE_LOST", "control mutation committed but the response was lost", { committed: true, cause: error });
-      }
-      return originalResult;
-    } catch (error) {
-      if (!committed) {
+      if (!transactionResult.deduplicated) {
         try {
-          this.db.exec("ROLLBACK");
-        } catch {
-          // Preserve the original failure.
+          input.fault?.("after_commit");
+        } catch (error) {
+          throw new StorageError("RESPONSE_LOST", "POST_COMMIT_RESPONSE_LOST", "control mutation committed but the response was lost", { committed: true, cause: error });
         }
       }
+      return transactionResult;
+    } catch (error) {
       throw error;
     }
   }

@@ -6,7 +6,7 @@ import { join } from "node:path";
 import test from "node:test";
 import {
   CASE_DO_MIGRATION_CHECKSUM,
-  CASE_DO_MIGRATION_TEMPLATE,
+  CASE_DO_LOGICAL_MIGRATION_BYTES,
   CASE_DO_SCHEMA_DIGEST,
   CASE_DO_SCHEMA_SQL,
   StorageError,
@@ -22,7 +22,7 @@ const release = { releaseId: "release_m1_storage_test", appliedAt: "2026-08-04T1
 
 test("schema and migration digests bind exact canonical bytes", () => {
   assert.equal(createHash("sha256").update(CASE_DO_SCHEMA_SQL, "utf8").digest("hex"), CASE_DO_SCHEMA_DIGEST);
-  assert.equal(createHash("sha256").update(CASE_DO_MIGRATION_TEMPLATE, "utf8").digest("hex"), CASE_DO_MIGRATION_CHECKSUM);
+  assert.equal(createHash("sha256").update(CASE_DO_LOGICAL_MIGRATION_BYTES, "utf8").digest("hex"), CASE_DO_MIGRATION_CHECKSUM);
 });
 
 test("empty-to-v1 migration creates the exact strict schema and identity", () => {

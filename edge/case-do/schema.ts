@@ -1,5 +1,5 @@
 import { M1_RELEASE_PROFILE, M1_RELEASE_PROFILE_DIGEST } from "../../protocol/runtime/typescript/profile.ts";
-import type { SqlDatabase, SqlRow } from "./sql.ts";
+import { SqlStoreError, type SqlDatabase, type SqlRow, type SqlStore } from "./sql.ts";
 
 export type StorageErrorCode =
   | "MIGRATION_FAILED"
@@ -30,7 +30,7 @@ export class StorageError extends Error {
 
 export const CASE_DO_SCHEMA_VERSION = 1;
 export const CASE_DO_COMPONENT = "case_do";
-export const CASE_DO_MIGRATION_ID = "case_do.empty_to_v1.v1";
+export const CASE_DO_MIGRATION_ID = "case_do.empty_to_v1.logical.v1";
 
 const digestCheck = (column: string): string =>
   `length(${column}) = 64 AND ${column} NOT GLOB '*[^0-9a-f]*'`;
@@ -497,10 +497,25 @@ const schemaMetaInsert = `INSERT INTO schema_meta (
   release_id, release_profile_id, release_profile_digest, applied_at
 ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`;
 
-export const CASE_DO_MIGRATION_TEMPLATE = `PRAGMA foreign_keys = ON;\nBEGIN IMMEDIATE;\n${CASE_DO_SCHEMA_SQL}${schemaMetaInsert};\nCOMMIT;\n`;
+export const CASE_DO_LOGICAL_MIGRATION_BYTES = [
+  "format=tdev.case_do.logical_migration.v1",
+  `schema_version=${CASE_DO_SCHEMA_VERSION}`,
+  "precondition=foreign_keys_enabled",
+  "precondition=user_schema_empty",
+  "schema_sql_begin",
+  CASE_DO_SCHEMA_SQL,
+  "schema_sql_end",
+  "schema_meta_insert_begin",
+  `${schemaMetaInsert};\n`,
+  "schema_meta_bindings=component,schema_version,schema_digest,migration_id,migration_checksum,release_id,release_profile_id,release_profile_digest,applied_at",
+  "schema_meta_insert_end",
+  "postcondition=one_matching_schema_meta_row",
+  "postcondition=verify_exact_schema_objects_and_integrity",
+  "",
+].join("\n");
 
 export const CASE_DO_SCHEMA_DIGEST = "601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86";
-export const CASE_DO_MIGRATION_CHECKSUM = "dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278";
+export const CASE_DO_MIGRATION_CHECKSUM = "e6974b3c3922c99da7386617315261d0ac42842ae1f6715d1b946dffe2995e77";
 
 export type MigrationFaultPoint =
   | "after_begin"
@@ -673,46 +688,39 @@ export function verifyCaseDoSchema(db: SqlDatabase, expected?: { releaseId?: str
   };
 }
 
-export function migrateEmptyToV1(db: SqlDatabase, options: MigrationOptions): SchemaIdentity {
+export function migrateEmptyToV1(db: SqlStore, options: MigrationOptions): SchemaIdentity {
   assertReleaseIdentity(options);
   enableAndVerifyForeignKeys(db);
-  let transactionOpen = false;
   try {
-    db.exec("BEGIN IMMEDIATE");
-    transactionOpen = true;
-    options.fault?.("after_begin");
-    assertEmpty(db);
-    options.fault?.("after_empty_check");
-    for (const object of CASE_DO_SCHEMA_OBJECTS) {
-      db.exec(`${object.sql};`);
-    }
-    options.fault?.("after_schema");
-    options.fault?.("before_schema_meta");
-    db.run(
-      schemaMetaInsert,
-      CASE_DO_COMPONENT,
-      CASE_DO_SCHEMA_VERSION,
-      CASE_DO_SCHEMA_DIGEST,
-      CASE_DO_MIGRATION_ID,
-      CASE_DO_MIGRATION_CHECKSUM,
-      options.releaseId,
-      M1_RELEASE_PROFILE.profileId,
-      M1_RELEASE_PROFILE_DIGEST,
-      options.appliedAt,
-    );
-    options.fault?.("after_schema_meta");
-    options.fault?.("before_commit");
-    db.exec("COMMIT");
-    transactionOpen = false;
-  } catch (error) {
-    if (transactionOpen) {
-      try {
-        db.exec("ROLLBACK");
-      } catch {
-        throw new StorageError("MIGRATION_FAILED", "ROLLBACK_FAILED", "migration failed and rollback also failed", { cause: error });
+    db.transactionSync(() => {
+      options.fault?.("after_begin");
+      assertEmpty(db);
+      options.fault?.("after_empty_check");
+      for (const object of CASE_DO_SCHEMA_OBJECTS) {
+        db.exec(`${object.sql};`);
       }
-    }
+      options.fault?.("after_schema");
+      options.fault?.("before_schema_meta");
+      db.run(
+        schemaMetaInsert,
+        CASE_DO_COMPONENT,
+        CASE_DO_SCHEMA_VERSION,
+        CASE_DO_SCHEMA_DIGEST,
+        CASE_DO_MIGRATION_ID,
+        CASE_DO_MIGRATION_CHECKSUM,
+        options.releaseId,
+        M1_RELEASE_PROFILE.profileId,
+        M1_RELEASE_PROFILE_DIGEST,
+        options.appliedAt,
+      );
+      options.fault?.("after_schema_meta");
+      options.fault?.("before_commit");
+    });
+  } catch (error) {
     if (error instanceof StorageError) throw error;
+    if (error instanceof SqlStoreError && error.code === "ROLLBACK_FAILED") {
+      throw new StorageError("MIGRATION_FAILED", "ROLLBACK_FAILED", "migration failed and rollback also failed", { cause: error });
+    }
     throw new StorageError("MIGRATION_FAILED", "SQLITE_ERROR", "empty-to-v1 migration failed", { cause: error });
   }
   try {

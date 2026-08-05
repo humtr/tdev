@@ -26,7 +26,7 @@ import {
   type StoredCanonicalRecord,
 } from "./records.ts";
 import { StorageError, verifyCaseDoSchema } from "./schema.ts";
-import type { SqlDatabase, SqlRow } from "./sql.ts";
+import type { SqlDatabase, SqlRow, SqlStore } from "./sql.ts";
 
 export type TransactionFaultPoint =
   | "after_state_update"
@@ -233,10 +233,10 @@ function insertReceipt(db: SqlDatabase, receipt: MutationReceiptV1, responseByte
 }
 
 export class CaseDoRepository {
-  readonly db: SqlDatabase;
+  readonly db: SqlStore;
   readonly codecs: CaseDoRecordCodecs;
 
-  constructor(db: SqlDatabase, validator: SchemaValidator) {
+  constructor(db: SqlStore, validator: SchemaValidator) {
     verifyCaseDoSchema(db);
     this.db = db;
     this.codecs = createCaseDoRecordCodecs(validator);
@@ -405,289 +405,282 @@ export class CaseDoRepository {
       throw new StorageError("STORAGE_INPUT_INVALID", "ROUTE_BINDING", "routed Case ID, request ID, and contract Case ID are not exactly bound");
     }
 
-    let transactionOpen = false;
+    let committedNewAdmission = false;
     try {
-      this.db.exec("BEGIN IMMEDIATE");
-      transactionOpen = true;
-      const existing = this.readMutationReceipt(caseId, input.requestId);
-      input.fault?.("after_receipt_check");
-      if (existing !== undefined) {
-        if (existing.capability !== "submit_operation" || existing.semanticDigest !== input.semanticDigest) {
-          throw new StorageError("REQUEST_ID_CONFLICT", "SEMANTIC_MISMATCH", "request ID was already committed with a different capability or semantic digest");
+      const transactionResult = this.db.transactionSync(() => {
+        const existing = this.readMutationReceipt(caseId, input.requestId);
+        input.fault?.("after_receipt_check");
+        if (existing !== undefined) {
+          if (existing.capability !== "submit_operation" || existing.semanticDigest !== input.semanticDigest) {
+            throw new StorageError("REQUEST_ID_CONFLICT", "SEMANTIC_MISMATCH", "request ID was already committed with a different capability or semantic digest");
+          }
+          const stored = parseStoredSubmitOperationResult(existing.response);
+          this.codecs.taskRecord.encode(stored.task);
+          const persistedContract = this.readCaseContract(caseId);
+          this.codecs.caseState.encode({
+            schemaVersion: 1,
+            caseId: stored.case.caseId,
+            caseRevision: stored.case.caseRevision,
+            eventSequence: stored.case.eventSequence,
+            status: stored.case.status,
+            updatedAt: existing.createdAt,
+          });
+          if (
+            persistedContract === undefined ||
+            persistedContract.value.contractDigest !== stored.case.contractDigest ||
+            stored.case.caseId !== caseId ||
+            stored.task.caseId !== caseId ||
+            existing.caseId !== caseId ||
+            existing.taskId !== stored.task.taskId ||
+            existing.subject?.kind !== "task" ||
+            existing.subject.taskId !== stored.task.taskId ||
+            existing.committedCaseRevision !== stored.case.caseRevision ||
+            existing.committedTaskRevision !== stored.task.taskRevision ||
+            existing.committedEventSequence !== stored.case.eventSequence
+          ) {
+            throw new StorageError("STORAGE_CORRUPT", "REPLAY_BINDING", "stored admission response and receipt selectors do not match");
+          }
+          return Object.freeze({
+            result: Object.freeze({ ...stored, deduplicated: true }),
+            receipt: existing,
+            replayed: true,
+          });
         }
-        const stored = parseStoredSubmitOperationResult(existing.response);
-        this.codecs.taskRecord.encode(stored.task);
-        const persistedContract = this.readCaseContract(caseId);
-        this.codecs.caseState.encode({
+
+        if (this.db.get("SELECT case_id FROM case_contract WHERE case_id = ?", caseId) !== undefined) {
+          throw new StorageError("REQUEST_ID_CONFLICT", "CASE_ID_COLLISION", "routed Case ID already exists without the matching receipt");
+        }
+
+        const contractRecord = this.codecs.caseContract.encode(input.contract);
+        const stateRecord = this.codecs.caseState.encode(input.state);
+        const taskRecord = this.codecs.taskRecord.encode(input.task);
+        const attemptRecord = input.attempt === undefined ? undefined : this.codecs.attemptRecord.encode(input.attempt);
+        const grantRecords = input.contract.targetGrants.map((grant) => ({ grant, record: this.codecs.caseTargetGrant.encode(grant) }));
+        const eventRecords = input.events.map((event) => ({ event, record: this.codecs.caseEvent.encode(event) }));
+        const expectedEventTypes = input.attempt === undefined
+          ? ["CaseCreated", "TaskAdmitted"] as const
+          : ["CaseCreated", "TaskAdmitted", "AttemptCreated"] as const;
+        const expectedEntities: readonly EntityRef[] = input.attempt === undefined
+          ? [{ kind: "case", caseId }, { kind: "task", taskId: input.task.taskId }]
+          : [{ kind: "case", caseId }, { kind: "task", taskId: input.task.taskId }, { kind: "attempt", attemptId: input.attempt.attemptId }];
+        const committedAt = input.contract.createdAt;
+
+        if (
+          input.state.caseId !== caseId ||
+          input.state.caseRevision !== 1 ||
+          input.state.status.kind !== "active" ||
+          input.state.status.enteredAt !== committedAt ||
+          input.state.updatedAt !== committedAt ||
+          input.state.eventSequence !== expectedEventTypes.length ||
+          input.task.caseId !== caseId ||
+          input.task.sequence !== 1 ||
+          input.task.taskRevision !== 1 ||
+          input.task.admission.requestId !== input.requestId ||
+          input.task.admission.contractDigest !== input.contract.contractDigest ||
+          input.task.admission.inputDigest !== input.task.operation.inputDigest ||
+          input.task.admission.operationSchemaDigest !== input.task.operation.expectedSchemaDigest ||
+          input.task.admission.admittedAt !== committedAt ||
+          input.task.createdAt !== committedAt ||
+          input.task.updatedAt !== committedAt ||
+          input.events.length !== expectedEventTypes.length
+        ) {
+          throw new StorageError("STORAGE_INPUT_INVALID", "ADMISSION_BINDING", "Case, Task, Event count, request, contract, and initial revisions are not exactly bound");
+        }
+
+        if (input.attempt === undefined) {
+          if (
+            input.task.latestAttemptId !== undefined ||
+            (input.task.status.kind !== "ready" && input.task.status.kind !== "waiting")
+          ) {
+            throw new StorageError("STORAGE_INPUT_INVALID", "ATTEMPT_BINDING", "Task without an initial Attempt must be ready or waiting and cannot reference a latest Attempt");
+          }
+        } else if (
+          input.attempt.caseId !== caseId ||
+          input.attempt.taskId !== input.task.taskId ||
+          input.attempt.ordinal !== 1 ||
+          input.attempt.attemptRevision !== 1 ||
+          input.attempt.expectedTaskRevision !== 1 ||
+          input.attempt.operationInputDigest !== input.task.operation.inputDigest ||
+          input.attempt.status.kind !== "dispatch_pending" ||
+          input.attempt.createdAt !== committedAt ||
+          input.attempt.updatedAt !== committedAt ||
+          input.task.latestAttemptId !== input.attempt.attemptId ||
+          input.task.status.kind !== "active" ||
+          input.task.status.attemptId !== input.attempt.attemptId
+        ) {
+          throw new StorageError("STORAGE_INPUT_INVALID", "ATTEMPT_BINDING", "initial Attempt and active Task are not exactly bound");
+        }
+
+        const grants = new Map(input.contract.targetGrants.map((grant) => [grant.grantId, grant] as const));
+        for (const target of input.task.operation.targets) {
+          const grant = grants.get(target.grantId);
+          if (grant === undefined || !equalCanonical(target.resource, grant.target)) {
+            throw new StorageError("STORAGE_INPUT_INVALID", "GRANT_BINDING", "Task target is not bound to an immutable Case target grant");
+          }
+        }
+        for (let index = 0; index < input.events.length; index += 1) {
+          const event = input.events[index];
+          const expectedEntity = entitySelector(expectedEntities[index]);
+          const actualEntity = entitySelector(event.entity);
+          if (
+            event.caseId !== caseId ||
+            event.sequence !== index + 1 ||
+            event.eventType !== expectedEventTypes[index] ||
+            event.causationId !== input.requestId ||
+            event.correlationId !== caseId ||
+            event.committedAt !== committedAt ||
+            event.actor.kind !== "system" ||
+            event.actor.component !== "case_do" ||
+            actualEntity.kind !== expectedEntity.kind ||
+            actualEntity.id !== expectedEntity.id
+          ) {
+            throw new StorageError("STORAGE_INPUT_INVALID", "EVENT_BINDING", `initial Event ${index + 1} is not exactly bound`);
+          }
+        }
+
+        if (input.events.length > M1_RELEASE_PROFILE.quota.maxEventsPerCase) {
+          throw new StorageError("QUOTA_EXCEEDED", "EVENTS_PER_CASE", "Case Event quota would be exceeded");
+        }
+        if (1 > M1_RELEASE_PROFILE.quota.maxTasksPerCase) {
+          throw new StorageError("QUOTA_EXCEEDED", "TASKS_PER_CASE", "Case Task quota would be exceeded");
+        }
+        if (input.attempt !== undefined && 1 > M1_RELEASE_PROFILE.quota.maxAttemptsPerTask) {
+          throw new StorageError("QUOTA_EXCEEDED", "ATTEMPTS_PER_TASK", "Task Attempt quota would be exceeded");
+        }
+
+        const originalResult = buildSubmitOperationResult(input.contract, input.state, input.task, false);
+        const response = admissionResultJson(originalResult);
+        const responseBytes = encodeCanonicalJson(response);
+        if (responseBytes.byteLength > M1_RELEASE_PROFILE.output.maxMutationResponseBytes) {
+          throw new StorageError("QUOTA_EXCEEDED", "MUTATION_RESPONSE_BYTES", "mutation response exceeds the release-profile byte bound");
+        }
+        const receipt: MutationReceiptV1 = {
           schemaVersion: 1,
-          caseId: stored.case.caseId,
-          caseRevision: stored.case.caseRevision,
-          eventSequence: stored.case.eventSequence,
-          status: stored.case.status,
-          updatedAt: existing.createdAt,
-        });
-        if (
-          persistedContract === undefined ||
-          persistedContract.value.contractDigest !== stored.case.contractDigest ||
-          stored.case.caseId !== caseId ||
-          stored.task.caseId !== caseId ||
-          existing.caseId !== caseId ||
-          existing.taskId !== stored.task.taskId ||
-          existing.subject?.kind !== "task" ||
-          existing.subject.taskId !== stored.task.taskId ||
-          existing.committedCaseRevision !== stored.case.caseRevision ||
-          existing.committedTaskRevision !== stored.task.taskRevision ||
-          existing.committedEventSequence !== stored.case.eventSequence
-        ) {
-          throw new StorageError("STORAGE_CORRUPT", "REPLAY_BINDING", "stored admission response and receipt selectors do not match");
-        }
-        this.db.exec("COMMIT");
-        transactionOpen = false;
-        return Object.freeze({
-          result: Object.freeze({ ...stored, deduplicated: true }),
-          receipt: existing,
-          replayed: true,
-        });
-      }
-
-      if (this.db.get("SELECT case_id FROM case_contract WHERE case_id = ?", caseId) !== undefined) {
-        throw new StorageError("REQUEST_ID_CONFLICT", "CASE_ID_COLLISION", "routed Case ID already exists without the matching receipt");
-      }
-
-      const contractRecord = this.codecs.caseContract.encode(input.contract);
-      const stateRecord = this.codecs.caseState.encode(input.state);
-      const taskRecord = this.codecs.taskRecord.encode(input.task);
-      const attemptRecord = input.attempt === undefined ? undefined : this.codecs.attemptRecord.encode(input.attempt);
-      const grantRecords = input.contract.targetGrants.map((grant) => ({ grant, record: this.codecs.caseTargetGrant.encode(grant) }));
-      const eventRecords = input.events.map((event) => ({ event, record: this.codecs.caseEvent.encode(event) }));
-      const expectedEventTypes = input.attempt === undefined
-        ? ["CaseCreated", "TaskAdmitted"] as const
-        : ["CaseCreated", "TaskAdmitted", "AttemptCreated"] as const;
-      const expectedEntities: readonly EntityRef[] = input.attempt === undefined
-        ? [{ kind: "case", caseId }, { kind: "task", taskId: input.task.taskId }]
-        : [{ kind: "case", caseId }, { kind: "task", taskId: input.task.taskId }, { kind: "attempt", attemptId: input.attempt.attemptId }];
-      const committedAt = input.contract.createdAt;
-
-      if (
-        input.state.caseId !== caseId ||
-        input.state.caseRevision !== 1 ||
-        input.state.status.kind !== "active" ||
-        input.state.status.enteredAt !== committedAt ||
-        input.state.updatedAt !== committedAt ||
-        input.state.eventSequence !== expectedEventTypes.length ||
-        input.task.caseId !== caseId ||
-        input.task.sequence !== 1 ||
-        input.task.taskRevision !== 1 ||
-        input.task.admission.requestId !== input.requestId ||
-        input.task.admission.contractDigest !== input.contract.contractDigest ||
-        input.task.admission.inputDigest !== input.task.operation.inputDigest ||
-        input.task.admission.operationSchemaDigest !== input.task.operation.expectedSchemaDigest ||
-        input.task.admission.admittedAt !== committedAt ||
-        input.task.createdAt !== committedAt ||
-        input.task.updatedAt !== committedAt ||
-        input.events.length !== expectedEventTypes.length
-      ) {
-        throw new StorageError("STORAGE_INPUT_INVALID", "ADMISSION_BINDING", "Case, Task, Event count, request, contract, and initial revisions are not exactly bound");
-      }
-
-      if (input.attempt === undefined) {
-        if (
-          input.task.latestAttemptId !== undefined ||
-          (input.task.status.kind !== "ready" && input.task.status.kind !== "waiting")
-        ) {
-          throw new StorageError("STORAGE_INPUT_INVALID", "ATTEMPT_BINDING", "Task without an initial Attempt must be ready or waiting and cannot reference a latest Attempt");
-        }
-      } else if (
-        input.attempt.caseId !== caseId ||
-        input.attempt.taskId !== input.task.taskId ||
-        input.attempt.ordinal !== 1 ||
-        input.attempt.attemptRevision !== 1 ||
-        input.attempt.expectedTaskRevision !== 1 ||
-        input.attempt.operationInputDigest !== input.task.operation.inputDigest ||
-        input.attempt.status.kind !== "dispatch_pending" ||
-        input.attempt.createdAt !== committedAt ||
-        input.attempt.updatedAt !== committedAt ||
-        input.task.latestAttemptId !== input.attempt.attemptId ||
-        input.task.status.kind !== "active" ||
-        input.task.status.attemptId !== input.attempt.attemptId
-      ) {
-        throw new StorageError("STORAGE_INPUT_INVALID", "ATTEMPT_BINDING", "initial Attempt and active Task are not exactly bound");
-      }
-
-      const grants = new Map(input.contract.targetGrants.map((grant) => [grant.grantId, grant] as const));
-      for (const target of input.task.operation.targets) {
-        const grant = grants.get(target.grantId);
-        if (grant === undefined || !equalCanonical(target.resource, grant.target)) {
-          throw new StorageError("STORAGE_INPUT_INVALID", "GRANT_BINDING", "Task target is not bound to an immutable Case target grant");
-        }
-      }
-      for (let index = 0; index < input.events.length; index += 1) {
-        const event = input.events[index];
-        const expectedEntity = entitySelector(expectedEntities[index]);
-        const actualEntity = entitySelector(event.entity);
-        if (
-          event.caseId !== caseId ||
-          event.sequence !== index + 1 ||
-          event.eventType !== expectedEventTypes[index] ||
-          event.causationId !== input.requestId ||
-          event.correlationId !== caseId ||
-          event.committedAt !== committedAt ||
-          event.actor.kind !== "system" ||
-          event.actor.component !== "case_do" ||
-          actualEntity.kind !== expectedEntity.kind ||
-          actualEntity.id !== expectedEntity.id
-        ) {
-          throw new StorageError("STORAGE_INPUT_INVALID", "EVENT_BINDING", `initial Event ${index + 1} is not exactly bound`);
-        }
-      }
-
-      if (input.events.length > M1_RELEASE_PROFILE.quota.maxEventsPerCase) {
-        throw new StorageError("QUOTA_EXCEEDED", "EVENTS_PER_CASE", "Case Event quota would be exceeded");
-      }
-      if (1 > M1_RELEASE_PROFILE.quota.maxTasksPerCase) {
-        throw new StorageError("QUOTA_EXCEEDED", "TASKS_PER_CASE", "Case Task quota would be exceeded");
-      }
-      if (input.attempt !== undefined && 1 > M1_RELEASE_PROFILE.quota.maxAttemptsPerTask) {
-        throw new StorageError("QUOTA_EXCEEDED", "ATTEMPTS_PER_TASK", "Task Attempt quota would be exceeded");
-      }
-
-      const originalResult = buildSubmitOperationResult(input.contract, input.state, input.task, false);
-      const response = admissionResultJson(originalResult);
-      const responseBytes = encodeCanonicalJson(response);
-      if (responseBytes.byteLength > M1_RELEASE_PROFILE.output.maxMutationResponseBytes) {
-        throw new StorageError("QUOTA_EXCEEDED", "MUTATION_RESPONSE_BYTES", "mutation response exceeds the release-profile byte bound");
-      }
-      const receipt: MutationReceiptV1 = {
-        schemaVersion: 1,
-        requestId: input.requestId,
-        capability: "submit_operation",
-        semanticDigest: input.semanticDigest,
-        caseId,
-        taskId: input.task.taskId,
-        subject: { kind: "task", taskId: input.task.taskId },
-        response,
-        responseDigest: canonicalJsonDigest(responseBytes),
-        committedCaseRevision: 1,
-        committedTaskRevision: 1,
-        committedEventSequence: input.state.eventSequence,
-        createdAt: committedAt,
-      };
-      this.codecs.mutationReceipt.encode(receipt);
-
-      this.db.run(
-        "INSERT INTO case_contract(case_id,schema_version,contract_json,contract_digest,created_at) VALUES(?,?,?,?,?)",
-        caseId,
-        input.contract.schemaVersion,
-        contractRecord.bytes,
-        contractRecord.digest,
-        input.contract.createdAt,
-      );
-      input.fault?.("after_contract_insert");
-      for (const { grant, record } of grantRecords) {
-        const target = targetSelector(grant);
-        this.db.run(
-          `INSERT INTO case_target_grants(case_id,grant_id,agent_id,target_kind,target_id,grant_json,grant_digest,created_at)
-           VALUES(?,?,?,?,?,?,?,?)`,
+          requestId: input.requestId,
+          capability: "submit_operation",
+          semanticDigest: input.semanticDigest,
           caseId,
-          grant.grantId,
-          grant.agentId,
-          target.kind,
-          target.id,
-          record.bytes,
-          record.digest,
-          committedAt,
-        );
-      }
-      input.fault?.("after_grants_insert");
-      this.db.run(
-        `INSERT INTO case_state(case_id,status_kind,case_revision,event_sequence,state_json,state_digest,updated_at)
-         VALUES(?,?,?,?,?,?,?)`,
-        caseId,
-        input.state.status.kind,
-        input.state.caseRevision,
-        input.state.eventSequence,
-        stateRecord.bytes,
-        stateRecord.digest,
-        input.state.updatedAt,
-      );
-      input.fault?.("after_state_insert");
-      this.db.run(
-        `INSERT INTO tasks(case_id,task_id,task_sequence,operation_id,operation_version,status_kind,task_revision,latest_attempt_id,task_json,task_digest,created_at,updated_at)
-         VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
-        caseId,
-        input.task.taskId,
-        input.task.sequence,
-        input.task.operation.id,
-        input.task.operation.version,
-        input.task.status.kind,
-        input.task.taskRevision,
-        input.task.latestAttemptId ?? null,
-        taskRecord.bytes,
-        taskRecord.digest,
-        input.task.createdAt,
-        input.task.updatedAt,
-      );
-      input.fault?.("after_task_insert");
-      if (input.attempt !== undefined && attemptRecord !== undefined) {
+          taskId: input.task.taskId,
+          subject: { kind: "task", taskId: input.task.taskId },
+          response,
+          responseDigest: canonicalJsonDigest(responseBytes),
+          committedCaseRevision: 1,
+          committedTaskRevision: 1,
+          committedEventSequence: input.state.eventSequence,
+          createdAt: committedAt,
+        };
+        this.codecs.mutationReceipt.encode(receipt);
+
         this.db.run(
-          `INSERT INTO attempts(case_id,task_id,attempt_id,attempt_ordinal,status_kind,attempt_revision,agent_id,dispatch_id,operation_input_digest,expected_task_revision,deadline_at,attempt_json,attempt_digest,created_at,updated_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+          "INSERT INTO case_contract(case_id,schema_version,contract_json,contract_digest,created_at) VALUES(?,?,?,?,?)",
+          caseId,
+          input.contract.schemaVersion,
+          contractRecord.bytes,
+          contractRecord.digest,
+          input.contract.createdAt,
+        );
+        input.fault?.("after_contract_insert");
+        for (const { grant, record } of grantRecords) {
+          const target = targetSelector(grant);
+          this.db.run(
+            `INSERT INTO case_target_grants(case_id,grant_id,agent_id,target_kind,target_id,grant_json,grant_digest,created_at)
+             VALUES(?,?,?,?,?,?,?,?)`,
+            caseId,
+            grant.grantId,
+            grant.agentId,
+            target.kind,
+            target.id,
+            record.bytes,
+            record.digest,
+            committedAt,
+          );
+        }
+        input.fault?.("after_grants_insert");
+        this.db.run(
+          `INSERT INTO case_state(case_id,status_kind,case_revision,event_sequence,state_json,state_digest,updated_at)
+           VALUES(?,?,?,?,?,?,?)`,
+          caseId,
+          input.state.status.kind,
+          input.state.caseRevision,
+          input.state.eventSequence,
+          stateRecord.bytes,
+          stateRecord.digest,
+          input.state.updatedAt,
+        );
+        input.fault?.("after_state_insert");
+        this.db.run(
+          `INSERT INTO tasks(case_id,task_id,task_sequence,operation_id,operation_version,status_kind,task_revision,latest_attempt_id,task_json,task_digest,created_at,updated_at)
+           VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
           caseId,
           input.task.taskId,
-          input.attempt.attemptId,
-          input.attempt.ordinal,
-          input.attempt.status.kind,
-          input.attempt.attemptRevision,
-          input.attempt.agentId ?? null,
-          input.attempt.dispatchId,
-          input.attempt.operationInputDigest,
-          input.attempt.expectedTaskRevision,
-          input.attempt.deadlineAt,
-          attemptRecord.bytes,
-          attemptRecord.digest,
-          input.attempt.createdAt,
-          input.attempt.updatedAt,
+          input.task.sequence,
+          input.task.operation.id,
+          input.task.operation.version,
+          input.task.status.kind,
+          input.task.taskRevision,
+          input.task.latestAttemptId ?? null,
+          taskRecord.bytes,
+          taskRecord.digest,
+          input.task.createdAt,
+          input.task.updatedAt,
         );
-      }
-      input.fault?.("after_attempt_insert");
-      for (const { event, record } of eventRecords) {
-        const entity = entitySelector(event.entity);
-        this.db.run(
-          `INSERT INTO events(case_id,event_sequence,event_id,entity_kind,entity_id,event_type,causation_request_id,event_json,event_digest,committed_at)
-           VALUES(?,?,?,?,?,?,?,?,?,?)`,
-          caseId,
-          event.sequence,
-          event.eventId,
-          entity.kind,
-          entity.id,
-          event.eventType,
-          event.causationId,
-          record.bytes,
-          record.digest,
-          event.committedAt,
-        );
-      }
-      input.fault?.("after_events_insert");
-      input.fault?.("before_receipt_insert");
-      insertReceipt(this.db, receipt, responseBytes);
-      input.fault?.("after_receipt_insert");
-      input.fault?.("before_commit");
-      this.db.exec("COMMIT");
-      transactionOpen = false;
-      try {
-        input.fault?.("after_commit");
-      } catch (error) {
-        throw new StorageError("RESPONSE_LOST", "POST_COMMIT_RESPONSE_LOST", "admission committed but the response was lost", { cause: error, committed: true });
-      }
-      return Object.freeze({ result: originalResult, receipt, replayed: false });
-    } catch (error) {
-      if (transactionOpen) {
+        input.fault?.("after_task_insert");
+        if (input.attempt !== undefined && attemptRecord !== undefined) {
+          this.db.run(
+            `INSERT INTO attempts(case_id,task_id,attempt_id,attempt_ordinal,status_kind,attempt_revision,agent_id,dispatch_id,operation_input_digest,expected_task_revision,deadline_at,attempt_json,attempt_digest,created_at,updated_at)
+             VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+            caseId,
+            input.task.taskId,
+            input.attempt.attemptId,
+            input.attempt.ordinal,
+            input.attempt.status.kind,
+            input.attempt.attemptRevision,
+            input.attempt.agentId ?? null,
+            input.attempt.dispatchId,
+            input.attempt.operationInputDigest,
+            input.attempt.expectedTaskRevision,
+            input.attempt.deadlineAt,
+            attemptRecord.bytes,
+            attemptRecord.digest,
+            input.attempt.createdAt,
+            input.attempt.updatedAt,
+          );
+        }
+        input.fault?.("after_attempt_insert");
+        for (const { event, record } of eventRecords) {
+          const entity = entitySelector(event.entity);
+          this.db.run(
+            `INSERT INTO events(case_id,event_sequence,event_id,entity_kind,entity_id,event_type,causation_request_id,event_json,event_digest,committed_at)
+             VALUES(?,?,?,?,?,?,?,?,?,?)`,
+            caseId,
+            event.sequence,
+            event.eventId,
+            entity.kind,
+            entity.id,
+            event.eventType,
+            event.causationId,
+            record.bytes,
+            record.digest,
+            event.committedAt,
+          );
+        }
+        input.fault?.("after_events_insert");
+        input.fault?.("before_receipt_insert");
+        insertReceipt(this.db, receipt, responseBytes);
+        input.fault?.("after_receipt_insert");
+        input.fault?.("before_commit");
+        committedNewAdmission = true;
+        return Object.freeze({ result: originalResult, receipt, replayed: false });
+      });
+      if (committedNewAdmission) {
         try {
-          this.db.exec("ROLLBACK");
-        } catch (rollbackError) {
-          throw new StorageError("STORAGE_CORRUPT", "ROLLBACK_FAILED", "CaseDO admission failed and rollback failed", { cause: rollbackError });
+          input.fault?.("after_commit");
+        } catch (error) {
+          throw new StorageError("RESPONSE_LOST", "POST_COMMIT_RESPONSE_LOST", "admission committed but the response was lost", { cause: error, committed: true });
         }
       }
+      return transactionResult;
+    } catch (error) {
       if (error instanceof StorageError) throw error;
       throw new StorageError("STORAGE_CORRUPT", "SQLITE_ADMISSION", "CaseDO admission transaction failed", { cause: error });
     }
@@ -728,72 +721,62 @@ export class CaseDoRepository {
     }
 
     const entity = entitySelector(input.event.entity);
-    let transactionOpen = false;
     try {
-      this.db.exec("BEGIN IMMEDIATE");
-      transactionOpen = true;
-      const existing = this.db.get("SELECT request_id FROM mutation_receipts WHERE case_id = ? AND request_id = ?", caseId, input.receipt.requestId);
-      if (existing !== undefined) {
-        throw new StorageError("REQUEST_ID_CONFLICT", "RECEIPT_EXISTS", "mutation receipt already exists; replay resolution belongs to the semantic layer");
-      }
-      const update = this.db.run(
-        `UPDATE case_state SET
-          status_kind = ?, case_revision = ?, event_sequence = ?, state_json = ?, state_digest = ?, updated_at = ?
-         WHERE case_id = ? AND case_revision = ? AND status_kind <> 'terminal'`,
-        input.nextState.status.kind,
-        input.nextState.caseRevision,
-        input.nextState.eventSequence,
-        stateRecord.bytes,
-        stateRecord.digest,
-        input.nextState.updatedAt,
-        caseId,
-        input.expectedCaseRevision,
-      );
-      if (update.changes !== 1) {
-        const current = this.db.get<SqlRow & { case_revision: number; status_kind: string }>(
-          "SELECT case_revision, status_kind FROM case_state WHERE case_id = ?",
+      this.db.transactionSync(() => {
+        const existing = this.db.get("SELECT request_id FROM mutation_receipts WHERE case_id = ? AND request_id = ?", caseId, input.receipt.requestId);
+        if (existing !== undefined) {
+          throw new StorageError("REQUEST_ID_CONFLICT", "RECEIPT_EXISTS", "mutation receipt already exists; replay resolution belongs to the semantic layer");
+        }
+        const update = this.db.run(
+          `UPDATE case_state SET
+            status_kind = ?, case_revision = ?, event_sequence = ?, state_json = ?, state_digest = ?, updated_at = ?
+           WHERE case_id = ? AND case_revision = ? AND status_kind <> 'terminal'`,
+          input.nextState.status.kind,
+          input.nextState.caseRevision,
+          input.nextState.eventSequence,
+          stateRecord.bytes,
+          stateRecord.digest,
+          input.nextState.updatedAt,
           caseId,
+          input.expectedCaseRevision,
         );
-        if (current === undefined) {
-          throw new StorageError("STORAGE_CORRUPT", "CASE_STATE_MISSING", "Case current state is missing");
+        if (update.changes !== 1) {
+          const current = this.db.get<SqlRow & { case_revision: number; status_kind: string }>(
+            "SELECT case_revision, status_kind FROM case_state WHERE case_id = ?",
+            caseId,
+          );
+          if (current === undefined) {
+            throw new StorageError("STORAGE_CORRUPT", "CASE_STATE_MISSING", "Case current state is missing");
+          }
+          if (current.status_kind === "terminal") {
+            throw new StorageError("TERMINAL_IMMUTABLE", "CASE_TERMINAL", "terminal Case state cannot transition");
+          }
+          throw new StorageError("REVISION_CONFLICT", "CASE_REVISION", `expected Case revision ${input.expectedCaseRevision}, observed ${current.case_revision}`);
         }
-        if (current.status_kind === "terminal") {
-          throw new StorageError("TERMINAL_IMMUTABLE", "CASE_TERMINAL", "terminal Case state cannot transition");
-        }
-        throw new StorageError("REVISION_CONFLICT", "CASE_REVISION", `expected Case revision ${input.expectedCaseRevision}, observed ${current.case_revision}`);
-      }
-      input.fault?.("after_state_update");
-      this.db.run(
-        `INSERT INTO events (
-          case_id, event_sequence, event_id, entity_kind, entity_id, event_type,
-          causation_request_id, event_json, event_digest, committed_at
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
-        caseId,
-        input.event.sequence,
-        input.event.eventId,
-        entity.kind,
-        entity.id,
-        input.event.eventType,
-        input.event.causationId,
-        eventRecord.bytes,
-        eventRecord.digest,
-        input.event.committedAt,
-      );
-      input.fault?.("after_event_insert");
-      input.fault?.("before_receipt_insert");
-      insertReceipt(this.db, input.receipt, responseBytes);
-      input.fault?.("after_receipt_insert");
-      input.fault?.("before_commit");
-      this.db.exec("COMMIT");
-      transactionOpen = false;
+        input.fault?.("after_state_update");
+        this.db.run(
+          `INSERT INTO events (
+            case_id, event_sequence, event_id, entity_kind, entity_id, event_type,
+            causation_request_id, event_json, event_digest, committed_at
+          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+          caseId,
+          input.event.sequence,
+          input.event.eventId,
+          entity.kind,
+          entity.id,
+          input.event.eventType,
+          input.event.causationId,
+          eventRecord.bytes,
+          eventRecord.digest,
+          input.event.committedAt,
+        );
+        input.fault?.("after_event_insert");
+        input.fault?.("before_receipt_insert");
+        insertReceipt(this.db, input.receipt, responseBytes);
+        input.fault?.("after_receipt_insert");
+        input.fault?.("before_commit");
+      });
     } catch (error) {
-      if (transactionOpen) {
-        try {
-          this.db.exec("ROLLBACK");
-        } catch (rollbackError) {
-          throw new StorageError("STORAGE_CORRUPT", "ROLLBACK_FAILED", "CaseDO transaction failed and rollback failed", { cause: rollbackError });
-        }
-      }
       if (error instanceof StorageError) throw error;
       throw new StorageError("STORAGE_CORRUPT", "SQLITE_TRANSACTION", "CaseDO transition transaction failed", { cause: error });
     }

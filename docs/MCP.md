@@ -17,16 +17,20 @@ The adapter may project one semantic capability as a Tool, Resource, or negotiat
 
 ## 2. Revision policy
 
-A release pins one exact official MCP protocol revision. It MUST NOT advertise an unqualified moving value such as `latest`.
+The native owner baseline for new source is the final MCP specification revision `2026-07-28`. A release pins one exact revision and MUST NOT advertise an unqualified moving value such as `latest`.
 
-Before the first public release:
+The final specification does not by itself prove support in the selected SDK or current client. Before the first public release:
 
-- release-candidate specifications MAY be used as development references;
-- an RC-only behavior MUST NOT become the release requirement until the final specification and supported-client behavior are observed;
+- the actual SDK and current client request revision and capability metadata are observed;
 - one unsupported revision is rejected explicitly rather than interpreted as another revision;
-- no historical tdev MCP session, transport, or wire schema is supported because none has been released.
+- any compatibility profile is named, bounded, independently tested, and carries an explicit retirement gate rather than becoming an implicit permanent fallback;
+- no historical tdev MCP session, transport, or wire schema is supported merely because a previous specification exists.
 
-MCP wire compatibility is separate from CaseDO, AgentDO, D1, and Artifact stored-schema migration.
+Each request is self-contained. Protocol revision and client capabilities are read from the revision-defined request-body `_meta.io.modelcontextprotocol/*` fields; a transport header mirror is checked for exact agreement but is not a competing source of truth. A connection, stream, process, previous request, client name, or cached capability observation never authenticates a principal, selects a durable Case, or widens authorization.
+
+Successful core results use the revision-defined `resultType` forms, including `complete` and `input_required`. The optional Tasks extension uses its negotiated `task` result and methods only when both sides declare support on the current request. A revision-specific MCP Task DTO maps to one authorized canonical tdev Task ID. It creates no MCP-only table, scheduler, retry owner, cancellation owner, status writer, or terminal writer; typed extension data preserves denial, uncertainty, reconciliation, and `unverified` when the public status is coarser.
+
+MCP wire compatibility is separate from CaseDO, AgentDO, D1, and Artifact stored-schema migration. [Design 0005](design/0005-concept-revision-1-transaction-and-contract-boundaries.md) owns the source correction; actual SDK and current-client support remains a deployment/client qualification gate.
 
 ## 3. Canonical semantic capability catalog
 

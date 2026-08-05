@@ -788,10 +788,7 @@ func (validator *Validator) validateWithProof(schema map[string]any, value any, 
 }
 
 func ValidateContract(validator *Validator, definition string, value any) []string {
-	errors := validator.ValidateDefinition(definition, value)
-	errors = append(errors, SemanticErrors(definition, value)...)
-	sort.Strings(errors)
-	return errors
+	return validator.ValidateDefinition(definition, value)
 }
 
 func SemanticErrors(definition string, value any) []string {

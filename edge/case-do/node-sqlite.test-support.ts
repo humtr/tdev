@@ -1,8 +1,15 @@
 import { DatabaseSync } from "node:sqlite";
-import type { SqlDatabase, SqlRow, SqlRunResult, SqlValue } from "./sql.ts";
+import {
+  SqlStoreError,
+  type SqlRow,
+  type SqlRunResult,
+  type SqlStore,
+  type SqlValue,
+} from "./sql.ts";
 
-export class NodeSqliteDatabase implements SqlDatabase {
+export class NodeSqliteDatabase implements SqlStore {
   readonly raw: DatabaseSync;
+  private transactionOpen = false;
 
   constructor(path: string = ":memory:") {
     this.raw = new DatabaseSync(path);
@@ -23,6 +30,32 @@ export class NodeSqliteDatabase implements SqlDatabase {
   run(sql: string, ...bindings: readonly SqlValue[]): SqlRunResult {
     const result = this.raw.prepare(sql).run(...bindings);
     return { changes: Number(result.changes), lastInsertRowid: result.lastInsertRowid };
+  }
+
+  transactionSync<T>(callback: () => T): T {
+    if (this.transactionOpen) {
+      throw new SqlStoreError("NESTED_TRANSACTION", "nested SQLite transactions are not supported");
+    }
+    this.raw.exec("BEGIN IMMEDIATE");
+    this.transactionOpen = true;
+    try {
+      const result = callback();
+      this.raw.exec("COMMIT");
+      return result;
+    } catch (error) {
+      try {
+        this.raw.exec("ROLLBACK");
+      } catch (rollbackError) {
+        throw new SqlStoreError(
+          "ROLLBACK_FAILED",
+          "SQLite transaction failed and rollback also failed",
+          { cause: error, rollbackCause: rollbackError },
+        );
+      }
+      throw error;
+    } finally {
+      this.transactionOpen = false;
+    }
   }
 
   close(): void {

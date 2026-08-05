@@ -1436,13 +1436,15 @@ schema_meta
 
 M1 does not add a second `schema_migrations` history table. `migration_id` identifies the exact empty-to-v1 migration and `migration_checksum` is the lowercase SHA-256 of its canonical migration bytes. This row is written last in the migration transaction and is immutable. Deployment-wide stage history and receipts remain owned by [DEPLOYMENT.md](DEPLOYMENT.md).
 
-For schema version 1, `schema_digest` is SHA-256 over the exact UTF-8 `CASE_DO_SCHEMA_SQL` bytes: every table, index, and trigger in the declared creation order, each terminated by `;` and one final newline. `migration_checksum` is SHA-256 over the exact UTF-8 `CASE_DO_MIGRATION_TEMPLATE` bytes: `PRAGMA foreign_keys = ON`, `BEGIN IMMEDIATE`, those same DDL bytes, the parameterized `schema_meta` insert, and `COMMIT`. Release ID, applied time, and release-profile identity are row values and do not change migration identity. The frozen M1 values are:
+For schema version 1, `schema_digest` is SHA-256 over the exact UTF-8 `CASE_DO_SCHEMA_SQL` bytes: every table, index, and trigger in the declared creation order, each terminated by `;` and one final newline. `migration_checksum` is SHA-256 over the exact UTF-8 `CASE_DO_LOGICAL_MIGRATION_BYTES`: format and schema version, preconditions, those same ordered DDL bytes, the parameterized `schema_meta` insert contract and binding order, and postconditions. Node or Cloudflare `BEGIN`, `COMMIT`, `ROLLBACK`, and callback wrappers are outside the logical byte domain. Release ID, applied time, and release-profile identity are row values and do not change migration identity. The frozen M1 values are:
 
 ```text
 schema_digest       601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86
-migration_id        case_do.empty_to_v1.v1
-migration_checksum  dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278
+migration_id        case_do.empty_to_v1.logical.v1
+migration_checksum  e6974b3c3922c99da7386617315261d0ac42842ae1f6715d1b946dffe2995e77
 ```
+
+A version-1 database carrying the earlier platform-transcript checksum is not silently equivalent to this logical identity. Deployment qualification must classify that predecessor explicitly and either apply an accepted compatibility migration or fail closed.
 
 All M1 CaseDO tables are SQLite `STRICT` tables. `PRAGMA foreign_keys = ON` is verified before use. IDs and timestamps are `TEXT`; counters, revisions, ordinals, lengths, and booleans are safe-integer `INTEGER`; canonical JSON is `BLOB`; SHA-256 is lowercase 64-character `TEXT` constrained by `length(value)=64 AND value NOT GLOB '*[^0-9a-f]*'`. Canonical JSON columns are paired with a digest and revalidated before domain use. Every foreign key uses `ON UPDATE RESTRICT ON DELETE RESTRICT`. M1 has no canonical-row deletion or Event compaction path.
 

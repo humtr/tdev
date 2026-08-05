@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -178,6 +179,38 @@ func TestContractFixturesAndCanonicalVectors(t *testing.T) {
 				t.Fatal("expected parsing or canonicalization failure")
 			}
 		})
+	}
+}
+
+func TestValidateContractRunsStructuralAndSemanticValidationExactlyOnce(t *testing.T) {
+	validator, fixtures := loadContractFixtures(t)
+	wants := map[string][]string{
+		"strict contract":          {"$.unexpected: additional property rejected"},
+		"contract digest mismatch": {"$.contractDigest: digest mismatch"},
+	}
+	for name, want := range wants {
+		found := false
+		for _, fixture := range fixtures.SchemaCases {
+			if fixture.Name != name {
+				continue
+			}
+			found = true
+			value, err := ParseJSON(fixture.Value)
+			if err != nil {
+				t.Fatal(err)
+			}
+			got := ValidateContract(validator, fixture.Definition, value)
+			if strings.Join(got, "\n") != strings.Join(want, "\n") {
+				t.Fatalf("%s errors=%v want=%v", name, got, want)
+			}
+			direct := validator.ValidateDefinition(fixture.Definition, value)
+			if strings.Join(got, "\n") != strings.Join(direct, "\n") {
+				t.Fatalf("%s public=%v direct=%v", name, got, direct)
+			}
+		}
+		if !found {
+			t.Fatalf("fixture not found: %s", name)
+		}
 	}
 }
 

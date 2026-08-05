@@ -389,8 +389,7 @@ test("cancel_case records all Task events before all Attempt events in stable or
     };
     const secondTaskRecord = seed.repository.codecs.taskRecord.encode(secondTask);
     const secondAttemptRecord = seed.repository.codecs.attemptRecord.encode(secondAttempt);
-    seed.db.exec("BEGIN IMMEDIATE");
-    try {
+    seed.db.transactionSync(() => {
       seed.db.run(
         `INSERT INTO tasks(case_id,task_id,task_sequence,operation_id,operation_version,status_kind,task_revision,latest_attempt_id,task_json,task_digest,created_at,updated_at)
          VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,
@@ -406,11 +405,7 @@ test("cancel_case records all Task events before all Attempt events in stable or
         secondAttempt.expectedTaskRevision, secondAttempt.deadlineAt, secondAttemptRecord.bytes, secondAttemptRecord.digest,
         secondAttempt.createdAt, secondAttempt.updatedAt,
       );
-      seed.db.exec("COMMIT");
-    } catch (error) {
-      seed.db.exec("ROLLBACK");
-      throw error;
-    }
+    });
     const at = "2026-08-05T01:30:00Z";
     const requestId = "request_cancel_case01";
     const nextTask: TaskRecord = {

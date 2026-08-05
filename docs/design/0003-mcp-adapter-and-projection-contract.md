@@ -55,6 +55,10 @@ Official references:
 
 These unknowns block deleting baseline tools or claiming an enhanced projection as supported. They do not block defining the adapter contract.
 
+## 2026-08-05 protocol-status amendment
+
+The external observation above is retained as provenance for the 2026-08-04 baseline. The current official MCP `latest` path now resolves to final specification revision `2026-07-28`; therefore that revision, not the earlier RC classification, is the native protocol owner baseline for new source. This does not establish support in the selected SDK or current ChatGPT client. Per-request protocol/capability metadata, core `resultType` handling, and the optional bilateral Tasks extension must be qualified against the actual SDK and client before a public release projection is frozen. [Design 0005](0005-concept-revision-1-transaction-and-contract-boundaries.md) owns the source correction and keeps revision-specific MCP DTOs separate from canonical durable Task records without adding a second lifecycle owner.
+
 ## Current contract
 
 The repository currently calls the following entries fixed public MCP tools:

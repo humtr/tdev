@@ -29,6 +29,7 @@ const requiredFiles = [
   "protocol/runtime/go/profile_generated.go",
   "edge/case-do/README.md",
   "edge/case-do/sql.ts",
+  "edge/case-do/cloudflare-sqlite.ts",
   "edge/case-do/schema.ts",
   "edge/case-do/records.ts",
   "edge/case-do/admission.ts",
@@ -38,6 +39,7 @@ const requiredFiles = [
   "edge/case-do/cursor.ts",
   "edge/case-do/query.ts",
   "edge/case-do/node-sqlite.test-support.ts",
+  "edge/case-do/sql-store.test.ts",
   "edge/case-do/test-fixtures.ts",
   "edge/case-do/schema.test.ts",
   "edge/case-do/repository.test.ts",
@@ -47,6 +49,9 @@ const requiredFiles = [
   "edge/case-do/cursor.test.ts",
   "edge/case-do/query.test.ts",
   "edge/case-do/reopen.test.ts",
+  "protocol/schemas/tdev.v1.targets.json",
+  "tools/generate/main_test.go",
+  "tools/generate/targets.go",
 ];
 const errors = [];
 
@@ -325,8 +330,10 @@ if (!storageAdmission.includes("parseStoredSubmitOperationResult")) {
 if (!storageSchema.includes('CASE_DO_SCHEMA_DIGEST = "601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86"')) {
   errors.push("CaseDO schema digest identity differs from the accepted M1 contract");
 }
-if (!storageSchema.includes('CASE_DO_MIGRATION_CHECKSUM = "dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278"')) {
-  errors.push("CaseDO migration checksum differs from the accepted M1 contract");
+if (!storageSchema.includes('CASE_DO_MIGRATION_ID = "case_do.empty_to_v1.logical.v1"') ||
+    !storageSchema.includes('CASE_DO_MIGRATION_CHECKSUM = "e6974b3c3922c99da7386617315261d0ac42842ae1f6715d1b946dffe2995e77"') ||
+    !storageSchema.includes("CASE_DO_LOGICAL_MIGRATION_BYTES")) {
+  errors.push("CaseDO logical migration identity differs from accepted Design 0005");
 }
 const storageRepository = storageProduction.get("edge/case-do/repository.ts") ?? "";
 const storageControl = storageProduction.get("edge/case-do/control.ts") ?? "";
@@ -335,8 +342,8 @@ const storageQuery = storageProduction.get("edge/case-do/query.ts") ?? "";
 if (!storageRepository.includes("verifyCaseDoSchema(db)")) {
   errors.push("CaseDO repository does not fail closed on exact schema identity before use");
 }
-if (!storageControl.includes("MutationReceiptV1") || !storageControl.includes("BEGIN IMMEDIATE")) {
-  errors.push("CaseDO control core lacks receipt-bound atomic mutation markers");
+if (!storageControl.includes("MutationReceiptV1") || !storageControl.includes("transactionSync")) {
+  errors.push("CaseDO control core lacks receipt-bound callback transaction markers");
 }
 if (!storageCursor.includes("tdev.cursor.v1") || !storageCursor.includes("timingSafeEqual")) {
   errors.push("CaseDO cursor core lacks canonical domain or constant-time verification markers");

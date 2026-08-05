@@ -1,0 +1,1546 @@
+{
+  "schemaVersion": 1,
+  "schema": "protocol/schemas/tdev.v1.schema.json",
+  "roots": [
+    {
+      "name": "AcceptanceCriterion",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ActorRef",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "AgentId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ApprovalDecisionId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ApprovalRequestId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ArtifactId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ArtifactRef",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "AttemptId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "AttemptRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "AttemptStatus",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "AttemptTerminal",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "BaseReference",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "CancelCaseInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CancelTaskInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CancellationId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CancellationSummary",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseContract",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseEvent",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseState",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseStatus",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "CaseTargetGrant",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "CaseTerminal",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "CheckpointId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ContractClause",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ControlCaseInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ControlError",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ControlTaskInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "DispatchId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "EntityRef",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "EventId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "EvidenceMapping",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "EvidenceRef",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "EvidenceSet",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "EvidenceSetId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ExecutionFailure",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ExecutionRejection",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "FailureRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "FinishCaseInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "GitObjectId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "GrantId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "GrantedAgainst",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "InputRequestId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "InterruptionRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "JsonValue",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "MissingEffectDetails",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "MutationReceiptV1",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "NewCaseContractInput",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "NewCaseTargetGrant",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "OperationFailure",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "OperationInvocation",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "OperationResult",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "PolicyRef",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "PredecessorRef",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "ProjectId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "RelativePath",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "RequestDedupeRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "RequestId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "RetryDecisionId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "RevisionConflictDetails",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "SchemaMismatchDetails",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "Sha256",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "SubmitOperationInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "Target",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "TargetBinding",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "TargetEffect",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "TaskId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "TaskRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "TaskStatus",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "TaskTerminal",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "TaskWaiting",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "Timestamp",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "TypedErrorDetails",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "closed_union"
+    },
+    {
+      "name": "UncertaintyRecord",
+      "role": "persisted_external",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "VerificationLayer",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "VerificationRequirement",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    },
+    {
+      "name": "WorkspaceId",
+      "role": "canonical_wire",
+      "targets": [
+        "typescript",
+        "go"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts"
+        ]
+      },
+      "compatibilityExemptions": {
+        "go": {
+          "reason": "Preserve the pre-release generated Go surface until the first accepted CLI/Agent consumer inventory proves the required shared wire closure.",
+          "removalGate": "The first accepted Go CLI/Termux Agent vertical slice publishes a root-to-consumer matrix and compatibility diff."
+        }
+      },
+      "proof": "none"
+    }
+  ]
+}

@@ -77,7 +77,7 @@ Test maintenance minimizes test files and duplicated setup, not behavioral cover
 
 ### M1 — CaseDO storage and public control core
 
-M1 proceeds only under accepted [Design 0004](design/0004-casedo-storage-and-public-control-core.md). Its ordered slices are contract/schema first, then storage, replay, control/query, Worker integration, and live verification. A later slice cannot compensate for a missing earlier gate.
+M1 proceeds under accepted [Design 0004](design/0004-casedo-storage-and-public-control-core.md) and the transaction/contract correction in accepted [Design 0005](design/0005-concept-revision-1-transaction-and-contract-boundaries.md). Its ordered slices are contract/schema first, callback-owned storage transactions, replay, control/query, Worker integration, and live verification. A later slice cannot compensate for a missing earlier gate.
 
 Deliver:
 
@@ -86,7 +86,7 @@ Deliver:
 - bounded fatal UTF-8 and lossless JSON ingress that rejects duplicate members before ordinary decoding;
 - exact `oneOf` validation proofs and generated closed-domain discrimination;
 - deterministic new-Case routing from deployment identity and request ID without a global request owner;
-- CaseDO SQLite schema version 1, exact empty-state migration, indexes, immutable guards, and rollback barrier;
+- CaseDO SQLite schema version 1, callback-owned non-nested transactions, exact logical empty-state migration identity, indexes, immutable guards, and rollback barrier;
 - atomic new-Case plus first-Task admission;
 - immutable mutation receipts storing the original bounded response for every state-changing semantic capability;
 - Case and Task query tools with bounded stable snapshots and cursors;
@@ -112,8 +112,8 @@ Acceptance:
 
 Ordered implementation slices:
 
-1. **M1 contract and source-correction gate:** freeze the release-profile/configuration boundary, ingress/authentication order, typed ingress reasons, exact-root proof binding, cross-language exact-number limits, table DDL matrix, transition/revision/Event matrix, all twelve semantic capability contracts, cursor integrity, migration metadata, and retention/quota policy. Do not add Worker or SQLite code before this gate is green.
-2. **CaseDO storage substrate:** add schema-version-1 DDL and exact migration, schema identity and reopen verification, canonical stored-row codecs, repositories, immutable/terminal guards, and bounded compare-and-update/Event/receipt transaction primitives in isolated databases.
+1. **M1 contract and source-correction gate:** freeze the release-profile/configuration boundary, ingress/authentication order, typed ingress reasons, exact-root proof binding, cross-language exact-number limits, table DDL matrix, transition/revision/Event matrix, all twelve semantic capability contracts, cursor integrity, logical migration metadata, generated-root target manifest, and retention/quota policy. Design 0005 transaction portability and contract-generation gates must be green before Worker integration.
+2. **CaseDO storage substrate:** add schema-version-1 DDL and logical migration identity, callback-owned `SqlStore` transactions with Node and structural Cloudflare adapters, schema identity and reopen verification, canonical stored-row codecs, repositories, immutable/terminal guards, and bounded compare-and-update/Event/receipt transaction primitives in isolated databases.
 3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection; extend the substrate with the admission rows and Events from the frozen transition matrix.
 4. **Control and query core:** add all remaining Case/Task/Attempt transitions including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, and file-backed local SQLite close/reopen recovery tests. Actual Durable Object hibernation and instance-restart evidence remains slice 6.
 5. **Worker semantic boundary:** first add strict executable input and result roots for all twelve capabilities and declare their generation targets; generate TypeScript public validators and the TypeScript-owned stable capability-to-root projection mapping, while generating Go only for wire roots consumed by the CLI or Agent and proving parity for those shared roots; then route the release-pinned `tools-v1` surface through lossless authenticated ingress and the final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.

@@ -690,7 +690,7 @@ export function semanticErrors(definition: string, value: unknown): readonly str
 }
 
 export function validateContract(validator: SchemaValidator, definition: string, value: unknown): readonly string[] {
-  return [...validator.validateDefinition(definition, value), ...semanticErrors(definition, value)];
+  return validator.validateDefinition(definition, value);
 }
 
 export function extractValueByPointer(rootValue: unknown, instancePointer: string): unknown {

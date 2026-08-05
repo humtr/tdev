@@ -3,21 +3,25 @@
 ## Current
 
 - Product/source stage: M0 is source-verified. Design 0004 slices through the M1 CaseDO control/query core are source-verified in protocol, domain, and isolated SQLite source layers.
-- Current source gate: the high-involvement documents have been aligned to the verified language boundary before further implementation: TypeScript owns Edge and public MCP projection; Go owns the CLI, Termux Agent, and shared wire contracts they consume. This documentation gate changed no product source, schema bytes, generated output, or runtime layer.
-- Next product gate: implement the **Worker semantic boundary**. First complete strict executable input and result roots for all twelve `tools-v1` capabilities and declare their language targets; then generate TypeScript public validators plus the TypeScript-owned deterministic projection, generate Go only for shared CLI/Agent wire roots, and route lossless authenticated ingress to the final CaseDO boundary in one table-driven integration suite.
+- Approved architecture direction: `concept-revision-1` implements TypeScript Edge + minimal Go CLI/Termux Agent, consumer-proven target-scoped generation, and MCP revision DTO separation from internal durable records. All twelve semantic capabilities and the Case/Task/Attempt lifecycle remain preserved.
+- Current source gate: publish the source-verified [Design 0005](docs/design/0005-concept-revision-1-transaction-and-contract-boundaries.md) foundation to remote `concept-revision-1`, independently verify the provider commit, then mark the design verified.
+- Next product gate: implement the Worker semantic boundary from the exact verified `concept-revision-1` commit. Agent dispatch remains an M2 successor boundary.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 
-## Active design
+## Active designs
 
+- [Design 0005 — concept-revision-1 Transaction and Contract Boundaries](docs/design/0005-concept-revision-1-transaction-and-contract-boundaries.md): `implementing`
+  - Source implementation and portable verification are complete; exact commit and provider publication remain the current gate.
 - [Design 0004 — CaseDO Storage and Public Control Core](docs/design/0004-casedo-storage-and-public-control-core.md): `implementing`
-  - Next gate: Worker semantic boundary under the TypeScript Edge / Go CLI-Agent split; Agent dispatch remains an M2 boundary.
+  - Its lifecycle, replay, revision, cancellation, evidence, and no-overclaim invariants remain active; Design 0005 corrects the platform transaction and contract-generation boundary before Worker integration.
 
 ## Blocking unknowns
 
-- The executable schema lacks six read/query input roots and all twelve capability-specific result roots. This blocks the TypeScript-owned generated `tools-v1` projection and public output validation. Each new root must declare whether it is Edge-only or a shared CLI/Agent wire contract before generation. Owners: [PROTOCOL.md](docs/PROTOCOL.md), [MCP.md](docs/MCP.md), and Design 0004.
-- Actual Cloudflare Durable Object SQLite transaction, migration, hibernation, restart, and rollback behavior is unverified. Local SQLite evidence is source/storage evidence only. Owners: Design 0004 and [DEPLOYMENT.md](docs/DEPLOYMENT.md).
-- The final MCP revision, authenticated public endpoint behavior, current-client Tool snapshot, and optional Resources, Tasks, or elicitation support are unverified. Owner: [MCP.md](docs/MCP.md).
+- Actual Cloudflare Durable Object SQLite transaction, migration, hibernation, restart, PITR, cost, and rollback behavior is unverified. Structural source conformance does not close the live platform gate. Owners: Design 0005 and [DEPLOYMENT.md](docs/DEPLOYMENT.md).
+- MCP final specification revision is `2026-07-28`, but actual SDK and current-client revision, Tool snapshot, `resultType`, Resources, Tasks, and elicitation behavior is unverified. Owner: [MCP.md](docs/MCP.md).
+- The executable schema still lacks six read/query input roots and all twelve capability-specific result roots. That is the successor Worker Task after Design 0005 is published. Owners: [PROTOCOL.md](docs/PROTOCOL.md), [MCP.md](docs/MCP.md), and Design 0004.
+- Concrete Go CLI/Agent consumers have not yet been implemented. Existing Go generated views remain under explicit compatibility review until the first Agent vertical slice proves the required wire roots.
 - Runtime rollback remains unverified because no compatible active release or installed CaseDO schema exists. Owner: [DEPLOYMENT.md](docs/DEPLOYMENT.md).
 
 ## Routing
