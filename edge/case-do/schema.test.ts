@@ -16,6 +16,7 @@ import {
 } from "./schema.ts";
 import { NodeSqliteDatabase } from "./node-sqlite.test-support.ts";
 import type { SqlRow } from "./sql.ts";
+import { createSeededDatabase } from "./test-fixtures.ts";
 
 const release = { releaseId: "release_m1_storage_test", appliedAt: "2026-08-04T13:00:00Z" } as const;
 
@@ -116,5 +117,56 @@ test("a post-commit response loss leaves a valid reopenable schema", async () =>
     }
   } finally {
     await rm(directory, { recursive: true, force: true });
+  }
+});
+
+
+test("case_state guard permits event-only sequence advance but not same-revision lifecycle change", () => {
+  const { db, repository, admission } = createSeededDatabase();
+  try {
+    const current = repository.readCaseState(admission.contract.caseId)!.value;
+    const eventOnly = repository.codecs.caseState.encode({
+      ...current,
+      eventSequence: current.eventSequence + 1,
+      updatedAt: "2026-08-05T00:10:00Z",
+    });
+    assert.equal(
+      db.run(
+        `UPDATE case_state SET status_kind=?, case_revision=?, event_sequence=?, state_json=?, state_digest=?, updated_at=?
+         WHERE case_id=? AND case_revision=?`,
+        eventOnly.value.status.kind,
+        eventOnly.value.caseRevision,
+        eventOnly.value.eventSequence,
+        eventOnly.bytes,
+        eventOnly.digest,
+        eventOnly.value.updatedAt,
+        current.caseId,
+        current.caseRevision,
+      ).changes,
+      1,
+    );
+    const illegal = repository.codecs.caseState.encode({
+      ...eventOnly.value,
+      status: { kind: "paused", reason: "manual", pausedAt: "2026-08-05T00:11:00Z" },
+      eventSequence: eventOnly.value.eventSequence + 1,
+      updatedAt: "2026-08-05T00:11:00Z",
+    });
+    assert.throws(
+      () => db.run(
+        `UPDATE case_state SET status_kind=?, case_revision=?, event_sequence=?, state_json=?, state_digest=?, updated_at=?
+         WHERE case_id=? AND case_revision=?`,
+        illegal.value.status.kind,
+        illegal.value.caseRevision,
+        illegal.value.eventSequence,
+        illegal.bytes,
+        illegal.digest,
+        illegal.value.updatedAt,
+        current.caseId,
+        current.caseRevision,
+      ),
+      /REVISION_STEP_INVALID/,
+    );
+  } finally {
+    db.close();
   }
 });

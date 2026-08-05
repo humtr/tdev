@@ -215,6 +215,7 @@ test("exact revision and terminal guards fail closed without partial writes", ()
     const stateRecord = createCaseDoRecordCodecs(validator).caseState.encode({
       ...state,
       caseRevision: 2,
+      eventSequence: 2,
       status: {
         kind: "terminal",
         terminal: {
@@ -227,7 +228,7 @@ test("exact revision and terminal guards fail closed without partial writes", ()
       updatedAt: "2026-08-04T00:02:00Z",
     });
     db.run(
-      "UPDATE case_state SET status_kind='terminal',case_revision=2,state_json=?,state_digest=?,updated_at=? WHERE case_id=?",
+      "UPDATE case_state SET status_kind='terminal',case_revision=2,event_sequence=2,state_json=?,state_digest=?,updated_at=? WHERE case_id=?",
       stateRecord.bytes, stateRecord.digest, "2026-08-04T00:02:00Z", state.caseId,
     );
     assert.throws(

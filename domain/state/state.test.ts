@@ -26,11 +26,11 @@ const allowedCase = new Set([
 ]);
 
 const allowedTask = new Set([
-  "waiting:approval>ready", "waiting:approval>terminal:denied",
-  "waiting:input>ready", "waiting:input>terminal:cancelled", "waiting:input>terminal:failed",
-  "waiting:retry_decision>ready", "waiting:retry_decision>terminal:cancelled", "waiting:retry_decision>terminal:unverified",
+  "waiting:approval>ready", "waiting:approval>active", "waiting:approval>terminal:cancelled", "waiting:approval>terminal:denied",
+  "waiting:input>ready", "waiting:input>active", "waiting:input>terminal:cancelled", "waiting:input>terminal:failed",
+  "waiting:retry_decision>ready", "waiting:retry_decision>active", "waiting:retry_decision>terminal:cancelled", "waiting:retry_decision>terminal:unverified",
   "ready>active", "ready>cancelling", "ready>terminal:cancelled",
-  "active>waiting:input", "active>waiting:retry_decision", "active>cancelling",
+  "active>waiting:approval", "active>waiting:input", "active>waiting:retry_decision", "active>cancelling",
   "active>terminal:succeeded", "active>terminal:failed", "active>terminal:cancelled", "active>terminal:denied", "active>terminal:unverified",
   "cancelling>terminal:succeeded", "cancelling>terminal:cancelled", "cancelling>terminal:failed", "cancelling>terminal:unverified",
 ]);

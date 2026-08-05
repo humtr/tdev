@@ -255,6 +255,7 @@ const tables: readonly SchemaObject[] = [
       event_sequence INTEGER NOT NULL CHECK (event_sequence >= 0),
       evidence_set_json BLOB NOT NULL CHECK (${canonicalBlobCheck("evidence_set_json")}),
       evidence_set_digest TEXT NOT NULL CHECK (${digestCheck("evidence_set_digest")}),
+      record_digest TEXT NOT NULL CHECK (${digestCheck("record_digest")}),
       created_at TEXT NOT NULL CHECK (${nonEmpty("created_at")}),
       PRIMARY KEY (case_id, evidence_set_id),
       UNIQUE (case_id, case_revision),
@@ -431,8 +432,10 @@ const currentRowTriggers: readonly SchemaObject[] = [
     sql: `CREATE TRIGGER case_state_update_guard BEFORE UPDATE ON case_state BEGIN
       SELECT CASE WHEN OLD.status_kind = 'terminal' THEN RAISE(ABORT, 'TERMINAL_IMMUTABLE') END;
       SELECT CASE WHEN NEW.case_id <> OLD.case_id THEN RAISE(ABORT, 'IDENTITY_IMMUTABLE') END;
-      SELECT CASE WHEN NEW.case_revision <> OLD.case_revision + 1 THEN RAISE(ABORT, 'REVISION_STEP_INVALID') END;
-      SELECT CASE WHEN NEW.event_sequence < OLD.event_sequence THEN RAISE(ABORT, 'EVENT_SEQUENCE_REGRESSION') END;
+      SELECT CASE WHEN NOT (
+        (NEW.case_revision = OLD.case_revision + 1 AND NEW.event_sequence > OLD.event_sequence) OR
+        (NEW.case_revision = OLD.case_revision AND NEW.status_kind = OLD.status_kind AND NEW.event_sequence > OLD.event_sequence)
+      ) THEN RAISE(ABORT, 'REVISION_STEP_INVALID') END;
     END`,
   },
   {
@@ -496,8 +499,8 @@ const schemaMetaInsert = `INSERT INTO schema_meta (
 
 export const CASE_DO_MIGRATION_TEMPLATE = `PRAGMA foreign_keys = ON;\nBEGIN IMMEDIATE;\n${CASE_DO_SCHEMA_SQL}${schemaMetaInsert};\nCOMMIT;\n`;
 
-export const CASE_DO_SCHEMA_DIGEST = "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e";
-export const CASE_DO_MIGRATION_CHECKSUM = "10b497ed040ef047a0fd7345cd886bb86462420c5476833fbc7cfdba39525788";
+export const CASE_DO_SCHEMA_DIGEST = "601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86";
+export const CASE_DO_MIGRATION_CHECKSUM = "dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278";
 
 export type MigrationFaultPoint =
   | "after_begin"

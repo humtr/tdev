@@ -103,6 +103,7 @@ tdev://projects/{projectId}
 tdev://cases/{caseId}
 tdev://tasks/{taskId}
 tdev://attempts/{attemptId}
+tdev://events/{caseId}/{eventId}
 tdev://checkpoints/{checkpointId}
 tdev://evidence/{evidenceSetId}
 tdev://artifacts/{artifactId}

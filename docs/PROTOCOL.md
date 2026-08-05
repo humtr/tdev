@@ -580,11 +580,11 @@ Admission failures do not create a Task. A false runtime precondition after admi
 ### 7.5 Task transition rules
 
 ```text
-waiting(approval) -> ready | terminal(denied)
-waiting(input) -> ready | terminal(cancelled|failed)
-waiting(retry_decision) -> ready | terminal(cancelled|unverified)
+waiting(approval) -> ready | active | terminal(cancelled|denied)
+waiting(input) -> ready | active | terminal(cancelled|failed)
+waiting(retry_decision) -> ready | active | terminal(cancelled|unverified)
 ready -> active | cancelling | terminal(cancelled)
-active -> waiting(input|retry_decision) | cancelling | terminal
+active -> waiting(approval|input|retry_decision) | cancelling | terminal
 cancelling -> terminal(succeeded|cancelled|failed|unverified)
 terminal -> no transition
 ```
@@ -801,6 +801,7 @@ type RenderTaskInputV1 = {
   caseId: CaseId;
   taskId: TaskId;
   format?: "text" | "markdown";
+  cursor?: string;
   maxBytes?: number;
 };
 type RenderTaskResultV1 = {
@@ -830,7 +831,7 @@ type ReadArtifactResultV1 = {
 };
 ```
 
-`get_case` and `get_task` deliberately return one bounded current summary, not an unbounded child collection. Related histories use `list_resources` with a fixed snapshot. `read_artifact` returns at most `output.maxArtifactChunkBytes` from the release-pinned profile; byte ownership, digest, range, and authorization are rechecked for every request.
+`get_case` and `get_task` deliberately return one bounded current summary, not an unbounded child collection. Related histories use `list_resources` with a fixed snapshot. A truncated `render_task` result returns `nextCursor`; continuation supplies it as `cursor`, rechecks the exact Task/Event snapshot and full-render digest, and never splits a UTF-8 scalar. `read_artifact` returns at most `output.maxArtifactChunkBytes` from the release-pinned profile; byte ownership, digest, range, and authorization are rechecked for every request.
 
 The six mutation inputs are the exact `SubmitOperationInput`, `ControlCaseInput`, `FinishCaseInput`, `CancelCaseInput`, `ControlTaskInput`, and `CancelTaskInput` defined below. Control mutation results use:
 
@@ -1436,9 +1437,9 @@ M1 does not add a second `schema_migrations` history table. `migration_id` ident
 For schema version 1, `schema_digest` is SHA-256 over the exact UTF-8 `CASE_DO_SCHEMA_SQL` bytes: every table, index, and trigger in the declared creation order, each terminated by `;` and one final newline. `migration_checksum` is SHA-256 over the exact UTF-8 `CASE_DO_MIGRATION_TEMPLATE` bytes: `PRAGMA foreign_keys = ON`, `BEGIN IMMEDIATE`, those same DDL bytes, the parameterized `schema_meta` insert, and `COMMIT`. Release ID, applied time, and release-profile identity are row values and do not change migration identity. The frozen M1 values are:
 
 ```text
-schema_digest       847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e
+schema_digest       601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86
 migration_id        case_do.empty_to_v1.v1
-migration_checksum  10b497ed040ef047a0fd7345cd886bb86462420c5476833fbc7cfdba39525788
+migration_checksum  dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278
 ```
 
 All M1 CaseDO tables are SQLite `STRICT` tables. `PRAGMA foreign_keys = ON` is verified before use. IDs and timestamps are `TEXT`; counters, revisions, ordinals, lengths, and booleans are safe-integer `INTEGER`; canonical JSON is `BLOB`; SHA-256 is lowercase 64-character `TEXT` constrained by `length(value)=64 AND value NOT GLOB '*[^0-9a-f]*'`. Canonical JSON columns are paired with a digest and revalidated before domain use. Every foreign key uses `ON UPDATE RESTRICT ON DELETE RESTRICT`. M1 has no canonical-row deletion or Event compaction path.
@@ -1453,7 +1454,7 @@ Every column named below is `NOT NULL` unless it is explicitly marked nullable. 
 | --- | --- | --- | --- |
 | `schema_meta` | PK `component`; `CHECK(component='case_do')` | `schema_version`, `schema_digest`, `migration_id`, `migration_checksum`, `release_id`, `release_profile_id`, `release_profile_digest`, `applied_at` | `CHECK(schema_version=1)`; exactly one immutable row; update/delete forbidden |
 | `case_contract` | PK `case_id` | `schema_version`, `contract_json`, `contract_digest`, `created_at` | `CHECK(schema_version=1)`; immutable; update/delete forbidden |
-| `case_state` | PK/FK `case_id -> case_contract(case_id)` | `status_kind`, `case_revision`, `event_sequence`, `state_json`, `state_digest`, `updated_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; one current row; terminal update/delete forbidden; index `(status_kind,updated_at,case_id)` |
+| `case_state` | PK/FK `case_id -> case_contract(case_id)` | `status_kind`, `case_revision`, `event_sequence`, `state_json`, `state_digest`, `updated_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; one current row; same-revision update is allowed only when status is unchanged and `event_sequence` increases; every semantic Case change increments `case_revision` exactly once; terminal update/delete forbidden; index `(status_kind,updated_at,case_id)` |
 | `case_target_grants` | PK `(case_id,grant_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,agent_id,target_kind,target_id)` | `agent_id`, `target_kind`, `target_id`, `grant_json`, `grant_digest`, `created_at` | immutable; update/delete forbidden; indexes `(case_id,agent_id,grant_id)` and `(case_id,target_kind,target_id,grant_id)` |
 | `tasks` | PK `(case_id,task_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,task_sequence)`; nullable composite FK `(case_id,latest_attempt_id) -> attempts(case_id,attempt_id)` deferred until both rows exist | `task_sequence`, `operation_id`, `operation_version`, `status_kind`, `task_revision`, nullable `latest_attempt_id`, `task_json`, `task_digest`, `created_at`, `updated_at` | `CHECK(task_sequence>=1 AND operation_version>=1 AND task_revision>=1)`; current row; terminal update/delete forbidden; indexes `(case_id,task_sequence,task_id)` and `(case_id,status_kind,task_sequence,task_id)` |
 | `attempts` | PK `(case_id,task_id,attempt_id)`; FK `(case_id,task_id) -> tasks`; UNIQUE `(case_id,attempt_id)`; UNIQUE `(case_id,task_id,attempt_ordinal)` | `attempt_ordinal`, `status_kind`, `attempt_revision`, `agent_id`, `dispatch_id`, `operation_input_digest`, `expected_task_revision`, `deadline_at`, `attempt_json`, `attempt_digest`, `created_at`, `updated_at` | `CHECK(attempt_ordinal>=1 AND attempt_revision>=1 AND expected_task_revision>=1)`; terminal update/delete forbidden; partial UNIQUE `(case_id,task_id) WHERE status_kind<>'terminal'`; indexes `(case_id,task_id,attempt_ordinal,attempt_id)` and `(case_id,status_kind,updated_at,attempt_id)` |
@@ -1463,7 +1464,7 @@ Every column named below is `NOT NULL` unless it is explicitly marked nullable. 
 | `input_responses` | PK `(case_id,input_response_id)`; FK `(case_id,input_request_id) -> input_requests`; UNIQUE `(case_id,input_request_id)` | `input_request_id`, `expected_task_revision`, `response_json`, `response_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; immutable terminal response; update/delete forbidden |
 | `retry_decisions` | PK `(case_id,retry_decision_id)`; FK `(case_id,task_id) -> tasks`; FK `(case_id,task_id,attempt_id) -> attempts`; UNIQUE `(case_id,task_id,attempt_id)` | `task_id`, `attempt_id`, `expected_task_revision`, `decision_json`, `decision_digest`, `created_at` | `CHECK(expected_task_revision>=1)`; inserted only when decided; immutable; update/delete forbidden |
 | `checkpoints` | PK `(case_id,checkpoint_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,case_revision)` | `case_revision`, `event_sequence`, `checkpoint_json`, `checkpoint_digest`, `created_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; immutable; update/delete forbidden; index `(case_id,case_revision,checkpoint_id)` |
-| `evidence_sets` | PK `(case_id,evidence_set_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,case_revision)` | `case_revision`, `event_sequence`, `evidence_set_json`, `evidence_set_digest`, `created_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; immutable; update/delete forbidden while Case retained |
+| `evidence_sets` | PK `(case_id,evidence_set_id)`; FK `case_id -> case_contract`; UNIQUE `(case_id,case_revision)` | `case_revision`, `event_sequence`, `evidence_set_json`, semantic `evidence_set_digest`, canonical-row `record_digest`, `created_at` | `CHECK(case_revision>=1 AND event_sequence>=0)`; `record_digest` binds the exact canonical `EvidenceSet` bytes while `evidence_set_digest` remains the schema-defined semantic selector; immutable; update/delete forbidden while Case retained |
 | `evidence_mappings` | PK `(case_id,evidence_set_id,criterion_id)`; FK `(case_id,evidence_set_id) -> evidence_sets` | `mapping_json`, `mapping_digest` | immutable; update/delete forbidden |
 | `evidence_refs` | PK `(case_id,evidence_set_id,criterion_id,evidence_ref_id)`; FK `(case_id,evidence_set_id,criterion_id) -> evidence_mappings` | `reference_kind`, `subject_kind`, `subject_id`, nullable `artifact_id`, nullable `event_sequence`, `evidence_json`, `evidence_digest` | exactly one of `artifact_id` or `event_sequence` is present when the reference kind requires it; immutable; update/delete forbidden; referenced Event/Artifact cleanup forbidden; indexes `(case_id,artifact_id,evidence_ref_id)` and `(case_id,event_sequence,evidence_ref_id)` |
 | `artifact_refs` | PK `(case_id,artifact_id)`; FK `case_id -> case_contract`; nullable FK `(case_id,task_id) -> tasks` | nullable `task_id`, `media_type`, `byte_length`, `sha256`, `retention_class`, `r2_generation`, `artifact_json`, `artifact_digest`, `created_at` | `CHECK(byte_length>=0 AND r2_generation>=1)`; inserted only after R2 bytes, length, digest, and generation are observed; immutable; update/delete forbidden while retained or referenced; index `(case_id,task_id,created_at,artifact_id)` |
@@ -1472,7 +1473,9 @@ Every column named below is `NOT NULL` unless it is explicitly marked nullable. 
 
 The repository inserts `attempts` before setting `tasks.latest_attempt_id`, and both the composite foreign key and transaction check require the Attempt to belong to the same Case and Task. A nullable foreign key is either wholly null or wholly valid; partial identifiers are invalid. Artifact metadata is never inserted as a speculative stub: an R2 object without matching committed metadata remains an orphan and cannot satisfy evidence.
 
-The source implementation boundary is `edge/case-do/`. `sql.ts` owns only the minimal synchronous SQL adapter contract; `schema.ts` owns the exact DDL, digest identities, empty-to-v1 migration, schema re-verification, indexes, and triggers; `records.ts` owns canonical byte, digest, schema-proof, and selector validation; `admission.ts` owns the fixed `tdev.new-case-route.v1` derivation and the exact internally generated submit-result/replay shape; `repository.ts` owns narrow compare-and-update/Event/receipt transactions and atomic new-Case admission. `node-sqlite.test-support.ts` is test-only and production storage files do not import `node:sqlite`. The source boundary now atomically stores the Case contract and grants, Case revision 1, first Task revision 1, optional first Attempt revision 1, contiguous initial Events, and immutable receipt; it replays the stored original response only when request ID, capability, and semantic digest match, rejects a mismatch without mutation, verifies the stored response digest and selectors before replay, and distinguishes post-commit response loss from pre-commit failure. The submit result is constructed only from already schema-validated records and stored as the bounded receipt `JsonValue`; an independently validated public output root, Worker routing/restart, remaining Task/Attempt transitions, queries, and Cloudflare persistence remain later slices.
+The source implementation boundary is `edge/case-do/`. `sql.ts` owns only the minimal synchronous SQL adapter contract; `schema.ts` owns the exact DDL, digest identities, empty-to-v1 migration, schema re-verification, indexes, and triggers; `records.ts` owns canonical byte, digest, schema-proof, and selector validation; `admission.ts` owns the fixed `tdev.new-case-route.v1` derivation and exact internally generated submit-result/replay shape; `repository.ts` owns narrow SQLite primitives and atomic admission; `internal-records.ts` owns strict internal decision/checkpoint/evidence shapes; `control.ts` owns atomic remaining Case/Task/Attempt transitions and immutable original-response receipts; `cursor.ts` owns canonical HMAC cursor v1; and `query.ts` owns bounded summaries, stable resource pages, and UTF-8-safe render continuation. `node-sqlite.test-support.ts` is test-only and production storage files do not import `node:sqlite`.
+
+The source boundary now proves isolated SQLite admission, remaining control transitions, exact outstanding-request decisions, cooperative cancellation and valid-success race handling, checkpoints, evidence-gated completion, replay/conflict semantics, bounded snapshots/cursors/rendering, and close/reopen recovery across repository instances. It does not prove an independently validated public output root, Worker ingress or routing, Cloudflare Durable Object transaction or hibernation behavior, deployment, public MCP, current-client behavior, Agent dispatch, R2 byte ownership, or runtime rollback.
 
 ### 21.3 Atomic mutation and revision/Event matrix
 
@@ -1550,7 +1553,7 @@ type CursorPayloadV1 = {
 
 `mac = HMAC-SHA256(cursorKey[keyGeneration], UTF8("tdev.cursor.v1\0" + keyGeneration + "\0") || canonicalPayloadBytes)`. Verification uses constant-time comparison. Deployment configuration provides the current generation and at most one previous generation for bounded rotation overlap; key bytes never enter Git, logs, Events, canonical input, fixtures, or the cursor. `expiresAt - issuedAt` equals the selected release-profile TTL and never exceeds its hard ceiling.
 
-Malformed encoding, unknown generation, MAC failure, expiry, profile/query/principal/subject mismatch, invalid limit, or snapshot inconsistency returns `INVALID_CURSOR` without existence disclosure. Cursor possession grants no authority: every page reauthenticates, reauthorizes, reloads the current profile identity, and rechecks query semantics. Stable ordering is `(sequence,id)` or `(createdAt,id)` as declared by the capability. The fixed snapshot excludes later writes; deleted canonical rows do not exist in M1.
+Malformed encoding, unknown generation, MAC failure, expiry, profile/query/principal/subject mismatch, invalid limit, or snapshot inconsistency returns `INVALID_CURSOR` without existence disclosure. Cursor possession grants no authority: every page reauthenticates, reauthorizes, reloads the current profile identity, and rechecks query semantics. Stable ordering is `(sequence,id)` or `(createdAt,id)` as declared by the capability. A continuation never mixes mutable snapshots: when the exact Case/Task/Event snapshot no longer matches, it fails with `INVALID_CURSOR` rather than returning current rows under an older cursor. Deleted canonical rows do not exist in M1.
 
 ### 21.6 Retention and quota policy
 

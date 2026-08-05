@@ -33,10 +33,20 @@ const requiredFiles = [
   "edge/case-do/records.ts",
   "edge/case-do/admission.ts",
   "edge/case-do/repository.ts",
+  "edge/case-do/internal-records.ts",
+  "edge/case-do/control.ts",
+  "edge/case-do/cursor.ts",
+  "edge/case-do/query.ts",
   "edge/case-do/node-sqlite.test-support.ts",
+  "edge/case-do/test-fixtures.ts",
   "edge/case-do/schema.test.ts",
   "edge/case-do/repository.test.ts",
   "edge/case-do/admission.test.ts",
+  "edge/case-do/control.test.ts",
+  "edge/case-do/control-matrix.test.ts",
+  "edge/case-do/cursor.test.ts",
+  "edge/case-do/query.test.ts",
+  "edge/case-do/reopen.test.ts",
 ];
 const errors = [];
 
@@ -172,7 +182,9 @@ if (design0004 && new Set(["accepted", "implementing", "blocked"]).has(design000
     [protocol, "QUOTA_EXCEEDED", "docs/PROTOCOL.md quota error"],
     [architecture, "release-profile", "docs/ARCHITECTURE.md release-profile boundary"],
     [designContent, "CaseDO storage substrate", "Design 0004 storage substrate"],
-    [protocol, "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e", "docs/PROTOCOL.md schema digest"],
+    [protocol, "601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86", "docs/PROTOCOL.md schema digest"],
+    [protocol, "record_digest", "docs/PROTOCOL.md EvidenceSet record digest"],
+    [protocol, "cursor?: string", "docs/PROTOCOL.md render continuation input"],
     [protocol, "subject_kind", "docs/PROTOCOL.md receipt subject selector"],
     [architecture, "edge/case-do/", "docs/ARCHITECTURE.md storage source boundary"],
     [mvp, "CaseDO storage substrate", "docs/MVP.md storage substrate slice"],
@@ -283,6 +295,10 @@ const storageProductionPaths = [
   "edge/case-do/records.ts",
   "edge/case-do/admission.ts",
   "edge/case-do/repository.ts",
+  "edge/case-do/internal-records.ts",
+  "edge/case-do/control.ts",
+  "edge/case-do/cursor.ts",
+  "edge/case-do/query.ts",
 ];
 const storageProduction = new Map();
 for (const relative of storageProductionPaths) {
@@ -306,15 +322,27 @@ if (!storageAdmission.includes('NEW_CASE_ROUTE_DOMAIN = "tdev.new-case-route.v1"
 if (!storageAdmission.includes("parseStoredSubmitOperationResult")) {
   errors.push("CaseDO admission replay does not validate the stored submit result shape");
 }
-if (!storageSchema.includes('CASE_DO_SCHEMA_DIGEST = "847e7a2cb1301b94c7618037a7ae196eebae8a58c3fe4b487f321975089d1c2e"')) {
+if (!storageSchema.includes('CASE_DO_SCHEMA_DIGEST = "601b9c0a2dfbc7d7cb47abb0423cb5014e2ba86a08dd169514c0ab82980f2e86"')) {
   errors.push("CaseDO schema digest identity differs from the accepted M1 contract");
 }
-if (!storageSchema.includes('CASE_DO_MIGRATION_CHECKSUM = "10b497ed040ef047a0fd7345cd886bb86462420c5476833fbc7cfdba39525788"')) {
+if (!storageSchema.includes('CASE_DO_MIGRATION_CHECKSUM = "dd06dd0d6666c900764ca0ba42c9fa245d39337a6ae308a13a53d8a794e96278"')) {
   errors.push("CaseDO migration checksum differs from the accepted M1 contract");
 }
 const storageRepository = storageProduction.get("edge/case-do/repository.ts") ?? "";
+const storageControl = storageProduction.get("edge/case-do/control.ts") ?? "";
+const storageCursor = storageProduction.get("edge/case-do/cursor.ts") ?? "";
+const storageQuery = storageProduction.get("edge/case-do/query.ts") ?? "";
 if (!storageRepository.includes("verifyCaseDoSchema(db)")) {
   errors.push("CaseDO repository does not fail closed on exact schema identity before use");
+}
+if (!storageControl.includes("MutationReceiptV1") || !storageControl.includes("BEGIN IMMEDIATE")) {
+  errors.push("CaseDO control core lacks receipt-bound atomic mutation markers");
+}
+if (!storageCursor.includes("tdev.cursor.v1") || !storageCursor.includes("timingSafeEqual")) {
+  errors.push("CaseDO cursor core lacks canonical domain or constant-time verification markers");
+}
+if (!storageQuery.includes("renderTask") || !storageQuery.includes("listResources")) {
+  errors.push("CaseDO query core lacks bounded resource/render entrypoints");
 }
 if (!storageSchema.includes("subject_kind TEXT") || !storageSchema.includes("subject_id TEXT")) {
   errors.push("CaseDO mutation receipt storage cannot reconstruct the canonical subject selector");
