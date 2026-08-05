@@ -5,6 +5,7 @@
 - Product/source stage: M0 is source-verified. Design 0004 slices through the M1 CaseDO control/query core are source-verified in protocol, domain, and isolated SQLite source layers.
 - Approved architecture direction: `concept-revision-1` implements TypeScript Edge + minimal Go CLI/Termux Agent, consumer-proven target-scoped generation, and MCP revision DTO separation from internal durable records. All twelve semantic capabilities and the Case/Task/Attempt lifecycle remain preserved.
 - Current source gate: implement the Worker semantic boundary from the exact verified `concept-revision-1` foundation commit. The Worker slice must add the missing executable capability roots, deterministic TypeScript projection, bounded authenticated ingress, and one table-driven Worker/CaseDO integration surface without claiming live Cloudflare or current-client completion.
+- Non-normative continuation review and implementer checklist: [docs/CONCEPT_REVISION_1_IMPLEMENTER_HANDOFF.md](docs/CONCEPT_REVISION_1_IMPLEMENTER_HANDOFF.md). Product meaning, acceptance, and verification remain owned by the linked normative owners and accepted designs.
 - Next product gate after Worker source publication: implement the AgentDO + minimal Go Termux Agent `file.read` walking skeleton. Agent dispatch remains M2-owned until that successor gate is independently verified.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
