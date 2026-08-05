@@ -1,6 +1,6 @@
 # Terminal Developer
 
-> Status: the M0 schema and pure-domain foundation and the repository governance system are source-verified. The first-release product contract is defined in `docs/SPEC.md`. No Cloudflare deployment, Agent runtime, product installation, or release is claimed yet.
+> Status: the M0 schema and pure-domain foundation, repository governance, and Design 0004 source slices through the CaseDO control/query core are source-verified. The next product gate is the Worker semantic boundary. No Worker route, Cloudflare Durable Object runtime or hibernation, public MCP endpoint, current-client behavior, Agent runtime, product installation, rollback runtime, or release is claimed yet.
 
 **tdev** is a durable development control plane that lets an MCP client coordinate verified development work through Cloudflare while a user-owned terminal Agent performs bounded filesystem, Git, validation, and process effects.
 
@@ -35,9 +35,9 @@ MCP client
 
 A **Case** is the durable authority for one outcome-oriented development undertaking. `CaseDO` owns its immutable contract, target grants, canonical tdev Tasks, Attempts, approvals, inputs, evidence, and terminal outcome. An optional MCP Task handle is only a projection of that same Task. `AgentDO` owns Agent enrollment, connection, epoch, queue, and fencing. The terminal Agent alone performs local operating-system effects.
 
-## M0 development commands
+## Source development commands
 
-The checked-in M0 foundation uses Go 1.26 or newer and Node.js 26 or newer. It has no third-party runtime dependencies.
+The checked-in protocol, domain, and source-level CaseDO foundation uses Go 1.26 or newer and Node.js 26 or newer. It has no third-party runtime dependencies.
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
@@ -79,4 +79,4 @@ Each document declares the facts it owns. A contract should be defined once and 
 
 ## Next implementation gate
 
-The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md), and the public MCP projection is defined in [MCP.md](docs/MCP.md). M0 is the source-level schema and pure-domain foundation. After the MCP adapter contract is verified, the next implementation gate is an accepted M1 design for CaseDO SQLite storage, transactions, request dedupe, public semantic control/query, Events, evidence, migration, rollback, raw ingress, and validated union discrimination. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow the milestone order in [MVP.md](docs/MVP.md). Current implementation state, active authorization, and blocking unknowns are listed only in [WORKBOARD.md](WORKBOARD.md).
+The complete first-release product requirements and traceability are defined in [SPEC.md](docs/SPEC.md), and the public MCP projection is defined in [MCP.md](docs/MCP.md). Design 0004 has source-verified the protocol/proof foundation, CaseDO SQLite substrate, atomic admission/replay, and control/query core. The next implementation gate is the **Worker semantic boundary**: complete executable input and result schema roots for all twelve semantic capabilities, generate and verify the deterministic `tools-v1` mapping, and route the lossless ingress to the existing CaseDO boundary in one table-driven integration suite. M2 AgentDO connection/queue work and the M3 `file.read` vertical slice follow only after the remaining M1 live gates in [MVP.md](docs/MVP.md). Current implementation state and blocking unknowns are routed by [WORKBOARD.md](WORKBOARD.md).

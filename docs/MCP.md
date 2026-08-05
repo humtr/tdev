@@ -202,6 +202,8 @@ Each Tool definition is derived from canonical tdev schemas and policy metadata.
 - `inputSchema` is derived from the canonical semantic input schema.
 - `outputSchema` is derived from the canonical semantic result schema.
 - `structuredContent` carries bounded machine-readable results.
+
+The derivation claim is a release gate, not a current implementation claim. The protocol prose defines all twelve semantic shapes, but the checked-in executable schema currently provides only six mutation input roots and no capability-specific result roots. Before `tools-v1` is generated or assigned a projection digest, the Worker semantic boundary slice MUST add strict executable input and result roots for every capability, generate a stable capability-to-root mapping, and pass cross-language schema and bounded-result fixtures. Internal TypeScript return types cannot stand in for an MCP `outputSchema`.
 - `content` contains a short readable summary.
 - Resource links MAY accompany a result only when supported and authorized.
 - A large result is referenced through an Artifact rather than duplicated as text.
@@ -301,7 +303,7 @@ All lists, reads, Tool results, Task projections, and error details are bounded 
 The MCP adapter is not complete until evidence exists for each affected layer:
 
 ```text
-contract and generated schemas
+contract plus all twelve executable input/result roots and generated projection mapping
 Worker adapter tests
 isolated Cloudflare MCP endpoint
 release projection digest

@@ -8,11 +8,17 @@
 - Base source: `a51d140e76a7e3abee34511a49821dfbd6385d20`
 - Affected owners: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`
 - Subordinate guidance affected: `protocol/README.md`, `WORKBOARD.md`, `docs/design/README.md`
-- Implementation paths: current protocol profile/runtime/generator/test corrections plus future versioned protocol schemas, `edge/worker/`, `edge/case-do/`, CaseDO SQLite migrations, and one consolidated Worker/CaseDO integration boundary
+- Implementation paths: current protocol profile/runtime/generator/tests and `edge/case-do/`; next `edge/worker/`, a Cloudflare Durable Object adapter, and one consolidated Worker/CaseDO integration boundary
 
 ## One-line definition
 
 M1 admits public semantic requests only through a bounded lossless JSON ingress and validated domain conversion, then lets the uniquely addressed `CaseDO(caseId)` atomically own Case, Task, Attempt, decisions, deduplication, evidence metadata, and audit Events in versioned SQLite storage while every retry returns the original committed mutation response.
+
+## Current implementation status
+
+Slices 1 through 6 are source-verified: contract freeze, M1 schema/proof foundation, pre-storage correction, CaseDO SQLite substrate, atomic admission/replay, and the control/query core. The current repository contains the protocol/runtime/generated boundary, pure domain state, and `edge/case-do/`; it does not contain `edge/worker/`, a Cloudflare Durable Object adapter, a public MCP endpoint, AgentDO, Agent, CLI, deployment, or packaging implementations.
+
+The next ordered gate is slice 7, the Worker semantic boundary. Before routing, the canonical executable schema must add the six read/query input roots and all twelve capability-specific result roots, generated cross-language parity, and a deterministic capability-to-root projection mapping. Slice 8 then owns actual Cloudflare transaction, migration-failure, hibernation, restart, authenticated public semantic, and required release evidence. No current source result proves public output validation, Cloudflare persistence, current-client behavior, Agent dispatch, R2 byte ownership, installation, or runtime rollback.
 
 ## Source classification
 
@@ -25,7 +31,7 @@ M1 admits public semantic requests only through a bounded lossless JSON ingress 
 - `docs/MVP.md` defines the M1 storage, public-control, hibernation, response-loss, transaction, and completion-evidence acceptance gates.
 - `SDD.md` classifies public/stored schema, durable ownership, migration, retry, cancellation, and verification changes as Class 2 work requiring an accepted design before implementation.
 
-### Evidence
+### Baseline evidence at design start
 
 At base source `a51d140e76a7e3abee34511a49821dfbd6385d20`:
 
@@ -46,15 +52,17 @@ At base source `a51d140e76a7e3abee34511a49821dfbd6385d20`:
 - Returning the current mutable Task after a replay is not equivalent to returning the original admission result. The exact committed mutation response must be retained with the dedupe record.
 - Every state-changing public semantic capability needs the same request-identity and replay contract, even when revision preconditions make duplicate effects unlikely.
 
-### Unknowns
+### Baseline unknowns at design start
 
 - Actual Cloudflare Durable Object SQLite transaction, trigger, hibernation, and migration behavior has not been exercised by this design.
 - No Worker, CaseDO, public MCP endpoint, client schema, stored migration, or rollback runtime exists to verify.
 - The exact final public MCP revision remains owned and gated by Design 0003 and `docs/MCP.md`; it does not affect the canonical M1 CaseDO design.
 
-These unknowns block marking M1 implemented or verified. They do not block accepting this source-level design. Measured platform behavior that contradicts a transaction, migration, or hibernation assumption reopens this record before dependent implementation continues.
+These unknowns blocked marking M1 implemented or verified at design start. Later implementation amendments may resolve source-layer items, but measured platform behavior that contradicts a transaction, migration, or hibernation assumption still reopens this record before dependent implementation continues.
 
-## Current contract
+The preceding classification and the next baseline section are historical facts tied to the exact base source. The `Current implementation status`, amendments, active stop gates, and decision log state what is true now.
+
+## Baseline contract at design start
 
 The accepted repository contract already establishes:
 
@@ -99,8 +107,8 @@ This design may:
 
 This design does not:
 
-- implement or deploy the Worker, CaseDO, Durable Object migrations, D1, R2, AgentDO, Agent, CLI, or public MCP endpoint;
-- modify the current M0 canonical schema or generated code before this record is accepted;
+- claim or deploy a Worker, live CaseDO Durable Object adapter or migration, D1, R2, AgentDO, Agent, CLI, or public MCP endpoint merely from source work; source CaseDO and Worker slices remain limited by their stated gates;
+- modify a canonical schema or generated code without accepted owner updates, compatibility analysis, regeneration, and cross-language parity evidence;
 - mark Design 0004 or M1 `verified` before every required source, storage, runtime, public, client, and rollback evidence gate passes;
 - execute a stored-state migration or claim rollback runtime;
 - create a global request owner, RequestDO, scheduler, replay worker, Event-rebuild path, WorkspaceDO, or ProjectDO;
@@ -510,7 +518,7 @@ Local close/reopen tests instantiate a new SQLite connection, repository, contro
 4. **CaseDO storage substrate:** add schema-version-1 SQLite DDL and exact migration, schema identity/reopen verification, canonical codecs, repository adapters, immutable guards, and bounded revision/Event/receipt primitives with isolated storage tests.
 5. **Atomic admission and replay:** implement deterministic new-Case routing, Case-plus-first-Task transaction, receipt replay, request conflict, and commit-then-response-loss fault tests; add the corresponding rows and Events from the frozen transition matrix.
 6. **Control and query core:** implement the remaining Case/Task/Attempt transitions including `cancel_task`, snapshot reads, cursors, rendering, evidence-gated completion, and file-backed local SQLite close/reopen recovery tests. Actual Durable Object hibernation and instance restart remain slice 8 evidence.
-7. **Worker semantic boundary:** route all twelve `tools-v1` semantics through the lossless ingress and canonical owners in one consolidated Worker/CaseDO integration suite. Agent dispatch remains stubbed at the M1 boundary and cannot claim M2.
+7. **Worker semantic boundary:** add strict executable input and result roots for all twelve capabilities, generated cross-language parity, and a deterministic capability-to-root projection mapping; then route all `tools-v1` semantics through lossless authenticated ingress and canonical owners in one consolidated Worker/CaseDO integration suite. Agent dispatch remains stubbed at the M1 boundary and cannot claim M2.
 8. **M1 verification:** run isolated Cloudflare Durable Object SQLite, hibernation, migration-failure, and public semantic probes required by M1; record only observed layers and mark this design `verified` only when every acceptance criterion below is evidenced.
 
 Each slice uses final owner and dependency boundaries. No compatibility scheduler, global dedupe owner, mock-only alternate API, or generic shell fallback is permitted.
@@ -543,7 +551,7 @@ Each slice uses final owner and dependency boundaries. No compatibility schedule
 | Claim | Command or probe | Authoritative reader | Layer | Contamination/skip rule |
 | --- | --- | --- | --- | --- |
 | design and owner coherence | `npm run check:governance` plus complete owner diff review | repository files and Git | contract/schema | missing owner, mismatched status, or unread design is not accepted |
-| M0 remains unchanged in this design-only change | `npm run check:generated`, `npm test`, `go test ./...`, `go vet ./...` | generators and test processes | generated/unit/source | any changed generated output or skipped check blocks publication |
+| generated and deterministic source parity at each documentation or implementation slice | `npm run check:generated`, `npm test`, `go test ./...`, `go vet ./...` | generators and test processes | generated/unit/source | generated drift, a failed test, or a skipped required check blocks publication |
 | ingress byte semantics | shared raw-byte fixture table in TypeScript and Go | runtime validators | protocol/unit | parsed-object-only tests cannot prove duplicate rejection |
 | union proof | schema branch fixtures and compile/API checks preventing unproved storage input | generated converter and domain APIs | protocol/domain | a successful unmarshal alone is invalid evidence |
 | isolated CaseDO storage substrate | `node --test edge/case-do/*.test.ts` plus exact DDL/digest review | canonical BLOB re-read, `sqlite_schema`, schema metadata, current rows, Events, receipts | storage/source | Node SQLite success does not prove Durable Object APIs, hibernation, restart, deployment, or rollback |
@@ -561,12 +569,18 @@ Each slice uses final owner and dependency boundaries. No compatibility schedule
 
 ## Stop gates
 
-- Do not begin M1 schema or runtime implementation until this design is `accepted` and the affected owner documents agree.
-- The first implementation slice must introduce a versioned M1 canonical schema and generated validation-proof/domain-conversion boundary before any CaseDO repository or Worker route consumes public values.
+### Satisfied source gates
+
+- Design 0004 was accepted and the affected owners agreed before M1 source implementation began.
+- The M1 canonical schema, lossless ingress, validation proof, and generated domain-conversion boundary were introduced before CaseDO source consumed public values.
+
+### Active stop gates
+
 - Do not persist generated Go `json.RawMessage` unions or call a parsed-value validator as evidence of duplicate-member rejection.
 - Do not add a global request index, RequestDO, scheduler, Event replay owner, or fallback parser to solve routing or replay.
+- Do not implement or publish the Worker projection until every one of the twelve capabilities has an executable input root and result root, generated parity, and a deterministic projection mapping.
 - If Cloudflare Durable Object SQLite cannot provide the required transaction, uniqueness, trigger/guard, migration, or hibernation behavior, set this record back to `draft` or `blocked` and revise the owning contract before implementation continues.
-- Do not mark M1 `verified` until actual Durable Object, hibernation, response-loss, migration, public semantic, and required source gates pass.
+- Do not mark M1 `verified` until actual Durable Object, hibernation, response-loss, migration, authenticated public semantic, and required source gates pass.
 - Do not claim public ChatGPT client compatibility, optional MCP extension support, installation, Agent, or rollback from M1 source evidence.
 - Do not reduce `tools-v1` or change projection semantics under this record.
 

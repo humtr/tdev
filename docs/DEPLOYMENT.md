@@ -42,6 +42,8 @@ curl -fsSL \
 
 The public asset name is `install.sh`.
 
+This command is the target first-release entry point. No release asset, installer, or clean-host bootstrap has been published or verified yet, so it MUST NOT be represented as a currently usable installation path until the M8 and release-qualification gates pass.
+
 The installer is a bootstrapper, not a second setup implementation.
 
 ## 3. install.sh responsibilities

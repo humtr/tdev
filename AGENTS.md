@@ -79,7 +79,7 @@ Use the change classes and design-record rules in `SDD.md`. Major changes requir
 
 ## 6. Schema and generated code
 
-`protocol/schemas/tdev.v1.schema.json` is the M0 canonical external contract.
+`protocol/schemas/tdev.v1.schema.json` is the canonical protocol-v1 external contract. It contains the M0 foundation and the source-implemented M1 records and mutation inputs. Prose contracts do not substitute for a missing executable public input or result root; a public projection may be generated only after every exposed capability has an exact canonical root and cross-language parity evidence.
 
 - Edit canonical schema and generator inputs, not generated Go or TypeScript files.
 - Regenerate both languages in the same change.
@@ -90,7 +90,7 @@ Use the change classes and design-record rules in `SDD.md`. Major changes requir
 
 ## 7. Testing and evidence
 
-For the M0 foundation, retain the four consolidated test files unless a genuinely separate runtime boundary is introduced. Extend fixture tables and transition matrices rather than duplicating setup.
+For the consolidated protocol and pure-domain foundation, retain the core shared test suites unless a genuinely separate runtime boundary is introduced. Extend fixture tables and transition matrices rather than duplicating setup; separate CaseDO and Worker integration suites are permitted only for their distinct storage or public-runtime boundaries.
 
 Tests must:
 

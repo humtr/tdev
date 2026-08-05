@@ -116,7 +116,7 @@ Ordered implementation slices:
 2. **CaseDO storage substrate:** add schema-version-1 DDL and exact migration, schema identity and reopen verification, canonical stored-row codecs, repositories, immutable/terminal guards, and bounded compare-and-update/Event/receipt transaction primitives in isolated databases.
 3. **Atomic admission and replay:** add deterministic Case routing, new-Case/first-Task transaction, original-response replay, conflict handling, and response-loss fault injection; extend the substrate with the admission rows and Events from the frozen transition matrix.
 4. **Control and query core:** add all remaining Case/Task/Attempt transitions including `cancel_task`, bounded snapshots/cursors/rendering, evidence-gated completion, and file-backed local SQLite close/reopen recovery tests. Actual Durable Object hibernation and instance-restart evidence remains slice 6.
-5. **Worker semantic boundary:** route the release-pinned twelve-capability `tools-v1` surface through the lossless ingress and final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
+5. **Worker semantic boundary:** first add strict executable input and result roots for all twelve capabilities, generated TypeScript/Go parity, and a stable capability-to-root projection mapping; then route the release-pinned `tools-v1` surface through lossless authenticated ingress and the final CaseDO boundary in one table-driven integration suite. Agent dispatch remains an M2 boundary.
 6. **M1 live verification:** exercise actual Durable Object SQLite, migration failure, hibernation, restart, and authenticated public semantics. Only observed layers can be marked complete.
 
 The complete transition-to-revision/Event matrix is an M1 acceptance condition across slices 2 through 4. A green storage-substrate slice alone does not claim admission replay. A green atomic-admission/replay slice proves only the deterministic route function and isolated CaseDO transaction/recovery semantics. A green control/query source slice may prove isolated SQLite transitions, receipts, bounded snapshots/cursors/rendering, evidence gates, races, and local close/reopen recovery, but it still does not claim Worker routing, Cloudflare Durable Object persistence or hibernation, public MCP, current-client behavior, Agent dispatch, deployment, or rollback.
@@ -553,6 +553,8 @@ Before implementing a slice:
 4. unknowns affecting public behavior are either resolved or hard-stop the slice.
 
 For M1, Design 0004 must be accepted before the M1 schema/proof slice begins. No CaseDO or Worker code may parse public values before the versioned schema, lossless ingress, validation proof, and generated domain-conversion boundary are green.
+
+Before the Worker semantic boundary is implemented, every one of the twelve public capabilities must have an exact executable input root and result root, a generated deterministic projection mapping, and TypeScript/Go schema parity fixtures. Prose contracts and internal service types do not satisfy this public-schema gate.
 
 Before merging a slice:
 

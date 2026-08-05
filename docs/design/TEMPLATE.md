@@ -33,9 +33,9 @@
 
 - `<missing, ambiguous, conflicting, stale, unsupported, or unexecuted fact>`
 
-## Current contract
+## Baseline contract at design start
 
-- `<what affected owners say before the change>`
+- `<what affected owners say at the exact base source before the change>`
 
 ## Problem and evidence
 
@@ -86,6 +86,10 @@
 - Compatibility: `<range and old reader/writer behavior or not affected>`
 - Migration: `<preconditions and ordering or not affected>`
 - Rollback: `<compatible predecessor and barriers or not affected>`
+
+## Current implementation status
+
+`<After implementation begins, record completed layers, current source evidence, the next gate, and every unverified runtime/public/client layer. Do not rewrite the baseline sections or use this section as a second owner.>`
 
 ## Vertical slices
 

@@ -115,19 +115,19 @@ Revisions have distinct meanings:
 
 | Field | Owner | Increment condition |
 | --- | --- | --- |
-| `caseRevision` | CaseDO | Case state, checkpoint, evidence, or Case control change |
-| `taskRevision` | CaseDO | one Task state or decision change |
-| `attemptRevision` | CaseDO | one Attempt state change |
-| `eventSequence` | CaseDO | every canonical CaseDO transition |
+| `caseRevision` | CaseDO | one semantic Case or Case-visible projection change named by the transition matrix, including Task admission, checkpoint, evidence, control, summary, or finality; an event-only projection update may leave it unchanged |
+| `taskRevision` | CaseDO | one Task state, decision, result, or public projection change |
+| `attemptRevision` | CaseDO | one Attempt state or progress change |
+| `eventSequence` | CaseDO | every committed canonical Event append; an aborted transaction consumes no visible sequence |
 | `agentEpoch` | AgentDO | accepted live Agent connection replacement |
 | `workspaceRevision` | Agent | Workspace policy or root binding change |
 | `projectRevision` | Agent | registered Project metadata or identity change |
 
 Immutable contracts use digests, not mutable revisions.
 
-### 3.6 M0 executable schema subset
+### 3.6 Protocol-v1 executable schema subset
 
-The canonical source language is JSON Schema 2020-12, but the M0 generator and runtime validators intentionally execute only this schema-node keyword subset:
+The canonical source language is JSON Schema 2020-12. The executable subset was established in M0 and remains the only schema-node keyword subset executed by the current protocol-v1 generator and runtime validators:
 
 ```text
 $ref
@@ -156,7 +156,7 @@ Extending the executable subset requires an accepted protocol design, TypeScript
 
 ### 3.7 M1 release profile, lossless public ingress, and validated domain conversion
 
-The current `protocol/schemas/tdev.v1.schema.json` remains the M0 schema source until a versioned M1 schema revision is required. M1 mutable non-secret limits and product-policy defaults have one canonical source at `protocol/profiles/tdev.m1.release-profile.json`; its M1 identity is `tdev.m1.default` with `profileVersion = 1`. The generator validates that source losslessly, rejects unknown, duplicate, missing, trailing, or out-of-range data, computes `TypedDigest("tdev.release-profile.v1", profile)`, and emits immutable TypeScript and Go views. The release manifest pins the exact profile identity and digest. Production paths have no environment override or hot reload.
+The current `protocol/schemas/tdev.v1.schema.json` is the sole canonical protocol-v1 schema source. It retains the M0 foundation and now also contains the source-implemented M1 records, proof-bound domain inputs, and six mutation input roots. A schema revision is required when compatibility meaning changes; a milestone label alone does not create another schema owner. M1 mutable non-secret limits and product-policy defaults have one canonical source at `protocol/profiles/tdev.m1.release-profile.json`; its M1 identity is `tdev.m1.default` with `profileVersion = 1`. The generator validates that source losslessly, rejects unknown, duplicate, missing, trailing, or out-of-range data, computes `TypedDigest("tdev.release-profile.v1", profile)`, and emits immutable TypeScript and Go views. The release manifest pins the exact profile identity and digest. Production paths have no environment override or hot reload.
 
 Configuration categories are disjoint:
 
@@ -833,6 +833,8 @@ type ReadArtifactResultV1 = {
 
 `get_case` and `get_task` deliberately return one bounded current summary, not an unbounded child collection. Related histories use `list_resources` with a fixed snapshot. A truncated `render_task` result returns `nextCursor`; continuation supplies it as `cursor`, rechecks the exact Task/Event snapshot and full-render digest, and never splits a UTF-8 scalar. `read_artifact` returns at most `output.maxArtifactChunkBytes` from the release-pinned profile; byte ownership, digest, range, and authorization are rechecked for every request.
 
+The TypeScript contracts in this section define the semantic input and result shapes for all twelve capabilities. The checked-in executable schema is not yet complete at that public boundary: it currently has only the six mutation input roots named below. The Worker semantic boundary MUST add strict executable roots for `ListOperationsInput`, `ListResourcesInput`, `GetCaseInput`, `GetTaskInput`, `RenderTaskInput`, and `ReadArtifactInput`, plus one capability-specific result root for each of the twelve capabilities. The generator and shared TypeScript/Go fixtures MUST prove those roots and their stable capability mapping before MCP `inputSchema`, `outputSchema`, a projection digest, or public output validation can be derived. Prose types or internal service return values are not substitutes for those roots.
+
 The six mutation inputs are the exact `SubmitOperationInput`, `ControlCaseInput`, `FinishCaseInput`, `CancelCaseInput`, `ControlTaskInput`, and `CancelTaskInput` defined below. Control mutation results use:
 
 ```ts
@@ -1504,7 +1506,7 @@ Every mutation executes in one CaseDO serialization turn and one SQLite transact
 | authorize/decline retry | retry decision row; Task revision +1; optional new Attempt revision 1; receipt | `RetryDecisionRecorded`, `TaskTransitioned`, optional `AttemptCreated` |
 | cancel Task | Task revision +1 to cancellation intent; current nonterminal Attempt revision +1 when present; Case revision +1 only when its public summary changes; receipt | `TaskCancellationRequested`, optional `AttemptCancellationRequested`, optional `CaseProjectionChanged` |
 | Attempt progress | Attempt revision +1; Task revision +1 only if its canonical public projection changes | `AttemptTransitioned`, optional `TaskProjectionChanged` |
-| accepted terminal Agent result | Attempt revision +1 terminal; Task revision +1 terminal; Case revision +1 only if summary/evidence/finality changes | `AttemptTerminal`, `TaskTerminal`, optional `CaseProjectionChanged` |
+| accepted terminal Agent result | Attempt revision +1 terminal; Task revision +1 to a terminal state or the exact `waiting:approval`, `waiting:input`, or `waiting:retry_decision` state; insert the bound immutable approval/input request when required; Case revision +1 only if summary/evidence/finality changes | `AttemptTerminal`, then `TaskTerminal` or `TaskTransitioned`, then optional `CaseProjectionChanged` |
 | evidence-set materialization | evidence set/mapping/ref rows; Case revision +1; receipt when public mutation initiated it | `EvidenceSetCreated`, `CaseProjectionChanged` |
 | read/list/render/artifact range read | no writes, revisions, receipts, or Events | none |
 

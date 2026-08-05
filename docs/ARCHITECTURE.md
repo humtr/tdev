@@ -429,7 +429,9 @@ JSON Schema 2020-12 is the canonical data-contract owner. Generated TypeScript, 
 
 `install.sh` is intentionally small and contains no product state machine. It detects, downloads, verifies, installs, and then executes the Go CLI setup path.
 
-## 11. Proposed repository structure
+## 11. Target repository structure
+
+This is the intended first-release dependency layout, not a claim that every path exists. A component is implemented only when its repository path and required verification evidence are present; reserved or absent paths carry no completion claim.
 
 ```text
 cmd/

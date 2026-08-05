@@ -1,6 +1,6 @@
-# M0 protocol foundation
+# Protocol v1 source boundary
 
-`protocol/schemas/tdev.v1.schema.json` is the sole canonical external contract for M0. The generated files under `protocol/generated/` are reproducible derivatives:
+`protocol/schemas/tdev.v1.schema.json` is the sole canonical external contract for protocol v1. It retains the M0 schema and pure-domain foundation and also contains the source-implemented M1 records, validation-proof contracts, and six mutation input roots. Generated files under `protocol/generated/` are reproducible derivatives:
 
 ```sh
 npm run generate
@@ -15,37 +15,31 @@ M1 mutable non-secret limits and product-policy defaults have one canonical sour
 
 The profile is release-pinned and startup-validated. Missing, unknown, duplicate, trailing, out-of-range, or digest-mismatched data fails closed. Deployment identities, MCP tokens, cursor signing keys, and Cloudflare bindings are not profile fields and never enter Git.
 
-## Runtime boundary
+## Runtime and domain boundary
 
-Stored M0 digests use these exact domains and omit only their own digest field:
+The foundation digests use these exact domains and omit only their own digest field:
 
 ```text
 CaseTargetGrant  tdev.case-target-grant.v1 + NUL + JCS(grant without grantDigest)
 CaseContract     tdev.case-contract.v1 + NUL + JCS(contract without contractDigest)
 ```
 
-Validation rejects a well-shaped stored contract or grant whose digest does not match its canonical unsigned content.
+Validation rejects a well-shaped stored contract or grant whose digest does not match its canonical unsigned content. The TypeScript and Go runtime packages share fixtures for strict schema and semantic validation, canonical UTC timestamps, canonical JSON bytes, typed SHA-256 digests, Case/Task/Attempt transition matrices, request dedupe, completion evidence, and the one-nonterminal-Attempt invariant.
 
-The TypeScript and Go runtime packages implement the same checked-in fixtures for:
+Protocol v1 JSON permits null, booleans, strings, arrays, objects, and safe integers. Fractional and out-of-range numeric values are rejected instead of being normalized differently by JavaScript and Go. Expanding the numeric domain requires a versioned schema and matching cross-language golden vectors.
 
-- strict schema and semantic validation;
-- calendar-valid UTC timestamps with optional one-to-nine-digit fractions and an uppercase `Z` suffix;
-- CaseContract and CaseTargetGrant validation;
-- canonical JSON bytes;
-- typed SHA-256 digests using `domain + NUL + canonical JSON`;
-- Case, Task, and Attempt transition matrices;
-- request dedupe, completion evidence, and the one-nonterminal-Attempt invariant.
+`allowedSubpaths` contains explicit safe relative path prefixes. Empty strings, `.`, `..`, empty segments, backslashes, absolute paths, and implicit wildcards are not accepted. Operation working directories use the separate `target_root | subpath` union defined in `docs/OPERATIONS.md`. Relative-path validation here is syntactic; Unicode NFC normalization and live filesystem containment remain M3 Agent responsibilities with root identity, symlink/mount policy, and mutation-time re-observation.
 
-M0 protocol JSON permits null, booleans, strings, arrays, objects, and safe integers. Fractional and out-of-range numeric values are rejected instead of being normalized differently by JavaScript and Go. Expanding the numeric domain requires a versioned schema and matching cross-language golden vectors.
+The TypeScript and Go runtimes implement lossless raw JSON ingress scanning, fatal UTF-8, duplicate-member rejection before ordinary decode, exact safe-integer checking, `ValidationProofV1`, stable branch identity, and proof-consuming closed domain conversion authorized by [Design 0004](../docs/design/0004-casedo-storage-and-public-control-core.md). Generated Go `oneOf` declarations remain wire containers (`json.RawMessage`); they cannot enter domain state or storage without a proof bound to the exact root and canonical value.
 
-`allowedSubpaths` contains explicit safe relative path prefixes. Empty strings, `.`, `..`, empty segments, backslashes, absolute paths, and implicit wildcards are not accepted. Operation working directories use the separate `target_root | subpath` union defined in `docs/OPERATIONS.md`.
+The source-level CaseDO boundary at [`edge/case-do/`](../edge/case-do/) now verifies exact schema/migration identity, canonical rows, atomic admission/replay, control transitions, outstanding decisions, cancellation races, evidence-gated completion, bounded queries/cursors/rendering, and local file-backed close/reopen recovery. This is isolated source/storage evidence only.
 
-M0 relative-path validation is syntactic and does not claim Unicode NFC normalization or live filesystem containment. Those checks belong to the M3 Agent path boundary together with root identity, symlink and mount policy, and mutation-time re-observation.
+## Next public-schema gate
 
-The TypeScript and Go runtime packages implement lossless raw JSON ingress scanning, fatal UTF-8, duplicate member rejection before ordinary decode, exact safe-integer numeric checking, `ValidationProofV1` construction, stable branch identity derivation, and proof-consuming closed domain conversion helpers authorized by [Design 0004](../docs/design/0004-casedo-storage-and-public-control-core.md).
+The prose contracts define twelve public semantic inputs and results, but the executable schema currently contains only six mutation input roots. Before the Worker semantic boundary can derive MCP schemas or validate public outputs, it must add strict input roots for the six read/query capabilities and all twelve capability-specific result roots, generate a deterministic capability mapping in TypeScript and Go, and pass shared parity fixtures.
 
-Generated Go `oneOf` declarations remain wire containers (`json.RawMessage`). Generated domain conversion helpers consume `ValidationProofV1`, bind it to the converter's exact root definition, and prevent unproved or root-replayed wire unions from entering domain state or storage. The schema/proof foundation is source-verified in TypeScript and Go; Edge Worker, CaseDO SQLite storage, Cloudflare deployment, and live verification remain dependent next steps.
+The repository still does not claim a Worker route, Cloudflare Durable Object adapter or hibernation, deployment, authenticated public MCP endpoint, current-client behavior, Agent dispatch, R2 byte ownership, installation, or runtime rollback.
 
 ## Test consolidation
 
-The four core protocol and state suites remain consolidated around shared fixture tables and transition matrices. A narrow generated-package digest consistency test is separate because it verifies the generated package boundary; new behavioral cases otherwise extend the existing suites.
+Protocol and pure-domain behavior remains consolidated around shared fixture tables and transition matrices. Separate files are used only for genuinely independent generated, CaseDO storage, or future Worker runtime boundaries; test-file minimization never reduces behavioral coverage.

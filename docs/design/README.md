@@ -13,6 +13,8 @@ Design records authorize and preserve Class 2 changes under root `SDD.md`. They 
 
 A record marked `verified` can still list future-layer unknowns outside its scope.
 
+Sections named `Source classification`, baseline evidence, baseline contract, and problem describe facts at the record's exact base unless they explicitly say otherwise. Once implementation begins, the record keeps those sections as provenance and adds or updates a `Current implementation status` section, implementation amendments, active stop gates, and the decision log. `WORKBOARD.md` routes only the current gate. Historical statements and satisfied stop gates never override a later owner update or current implementation status.
+
 ## Records
 
 | ID | Title | Status | Primary owners |
