@@ -95,11 +95,14 @@ func main() {
 	profileGo := generateGoProfile(profile, profileDigest)
 	formattedProfileGo, err := format.Source([]byte(profileGo))
 	must(err)
+	projectionTS, err := generateProjectionTypeScript(doc, manifest, profile, profileDigest)
+	must(err)
 
 	writeOrCheck("protocol/generated/typescript/types.ts", []byte(ts))
 	writeOrCheck("protocol/generated/go/types.go", formatted)
 	writeOrCheck("protocol/runtime/typescript/profile.generated.ts", []byte(profileTS))
 	writeOrCheck("protocol/runtime/go/profile_generated.go", formattedProfileGo)
+	writeOrCheck(projectionOutputPath, []byte(projectionTS))
 }
 
 func must(err error) {

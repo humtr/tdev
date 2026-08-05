@@ -1541,6 +1541,276 @@
         }
       },
       "proof": "none"
+    },
+    {
+      "name": "CancelCaseResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "CancelTaskResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ControlCaseResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ControlTaskResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "FinishCaseResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "GetCaseInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "GetCaseResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "GetTaskInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "GetTaskResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ListOperationsInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ListOperationsResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ListResourcesInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ListResourcesResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ReadArtifactInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "ReadArtifactResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "RenderTaskInput",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "RenderTaskResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
+    },
+    {
+      "name": "SubmitOperationResult",
+      "role": "public_mcp",
+      "targets": [
+        "typescript"
+      ],
+      "consumers": {
+        "typescript": [
+          "protocol/runtime/typescript/schema.ts",
+          "tools/generate/projection.go"
+        ]
+      },
+      "compatibilityExemptions": {},
+      "proof": "none"
     }
   ]
 }

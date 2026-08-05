@@ -2904,6 +2904,678 @@
         "wait"
       ],
       "additionalProperties": false
+    },
+    "CancelCaseResult": {
+      "$ref": "#/$defs/CaseMutationResultV1"
+    },
+    "CancelTaskResult": {
+      "$ref": "#/$defs/TaskMutationResultV1"
+    },
+    "CapabilityName": {
+      "enum": [
+        "list_operations",
+        "list_resources",
+        "submit_operation",
+        "get_case",
+        "get_task",
+        "control_case",
+        "finish_case",
+        "cancel_case",
+        "control_task",
+        "cancel_task",
+        "render_task",
+        "read_artifact"
+      ]
+    },
+    "CaseMutationResultV1": {
+      "type": "object",
+      "properties": {
+        "accepted": {
+          "const": true
+        },
+        "deduplicated": {
+          "type": "boolean"
+        },
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "committedCaseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "committedEventSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "value": {
+          "$ref": "#/$defs/CaseState"
+        }
+      },
+      "required": [
+        "accepted",
+        "deduplicated",
+        "requestId",
+        "caseId",
+        "committedCaseRevision",
+        "committedEventSequence",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "ControlCaseResult": {
+      "$ref": "#/$defs/CaseMutationResultV1"
+    },
+    "ControlTaskResult": {
+      "$ref": "#/$defs/TaskMutationResultV1"
+    },
+    "FinishCaseResult": {
+      "$ref": "#/$defs/CaseMutationResultV1"
+    },
+    "GetCaseInput": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        }
+      },
+      "required": [
+        "caseId"
+      ],
+      "additionalProperties": false
+    },
+    "GetCaseResult": {
+      "type": "object",
+      "properties": {
+        "contract": {
+          "$ref": "#/$defs/CaseContract"
+        },
+        "state": {
+          "$ref": "#/$defs/CaseState"
+        },
+        "taskCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "latestCheckpointId": {
+          "$ref": "#/$defs/CheckpointId"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotV1"
+        }
+      },
+      "required": [
+        "contract",
+        "state",
+        "taskCount",
+        "snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "GetTaskInput": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        }
+      },
+      "required": [
+        "caseId",
+        "taskId"
+      ],
+      "additionalProperties": false
+    },
+    "GetTaskResult": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/$defs/TaskRecord"
+        },
+        "latestAttempt": {
+          "$ref": "#/$defs/AttemptRecord"
+        },
+        "attemptCount": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "outstandingApprovalRequestId": {
+          "$ref": "#/$defs/ApprovalRequestId"
+        },
+        "outstandingInputRequestId": {
+          "$ref": "#/$defs/InputRequestId"
+        },
+        "outstandingRetryDecisionId": {
+          "$ref": "#/$defs/RetryDecisionId"
+        },
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotV1"
+        }
+      },
+      "required": [
+        "task",
+        "attemptCount",
+        "snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "ListOperationsInput": {
+      "type": "object",
+      "properties": {
+        "page": {
+          "$ref": "#/$defs/PageRequestV1"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ListOperationsResult": {
+      "type": "object",
+      "properties": {
+        "operations": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/OperationCatalogEntryV1"
+          },
+          "maxItems": 100
+        },
+        "catalogDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "profileDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "page": {
+          "$ref": "#/$defs/PageResultV1"
+        }
+      },
+      "required": [
+        "operations",
+        "catalogDigest",
+        "profileDigest",
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "ListResourcesInput": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "kinds": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResourceKindV1"
+          },
+          "maxItems": 7,
+          "uniqueItems": true
+        },
+        "page": {
+          "$ref": "#/$defs/PageRequestV1"
+        }
+      },
+      "additionalProperties": false
+    },
+    "ListResourcesResult": {
+      "type": "object",
+      "properties": {
+        "resources": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/ResourceSummaryV1"
+          },
+          "maxItems": 100
+        },
+        "page": {
+          "$ref": "#/$defs/PageResultV1"
+        }
+      },
+      "required": [
+        "resources",
+        "page"
+      ],
+      "additionalProperties": false
+    },
+    "OperationCatalogEntryV1": {
+      "type": "object",
+      "properties": {
+        "operationId": {
+          "$ref": "#/$defs/CapabilityName"
+        },
+        "operationVersion": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 1
+        },
+        "title": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "inputSchemaDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "resultSchemaDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "mutating": {
+          "type": "boolean"
+        },
+        "available": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "operationId",
+        "operationVersion",
+        "title",
+        "inputSchemaDigest",
+        "resultSchemaDigest",
+        "mutating",
+        "available"
+      ],
+      "additionalProperties": false
+    },
+    "PageRequestV1": {
+      "type": "object",
+      "properties": {
+        "limit": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 100
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "additionalProperties": false
+    },
+    "PageResultV1": {
+      "type": "object",
+      "properties": {
+        "snapshot": {
+          "$ref": "#/$defs/SnapshotV1"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "snapshot"
+      ],
+      "additionalProperties": false
+    },
+    "ReadArtifactInput": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "artifactId": {
+          "$ref": "#/$defs/ArtifactId"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "length": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 262144
+        }
+      },
+      "required": [
+        "caseId",
+        "artifactId"
+      ],
+      "additionalProperties": false
+    },
+    "ReadArtifactResult": {
+      "type": "object",
+      "properties": {
+        "artifact": {
+          "$ref": "#/$defs/ArtifactRef"
+        },
+        "offset": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "dataBase64": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 349528,
+          "pattern": "^[A-Za-z0-9+/]*={0,2}$"
+        },
+        "eof": {
+          "type": "boolean"
+        },
+        "rangeDigest": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "artifact",
+        "offset",
+        "dataBase64",
+        "eof",
+        "rangeDigest"
+      ],
+      "additionalProperties": false
+    },
+    "RenderTaskInput": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "format": {
+          "enum": [
+            "text",
+            "markdown"
+          ]
+        },
+        "cursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 65536
+        }
+      },
+      "required": [
+        "caseId",
+        "taskId"
+      ],
+      "additionalProperties": false
+    },
+    "RenderTaskResult": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "taskRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "eventSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "format": {
+          "enum": [
+            "text",
+            "markdown"
+          ]
+        },
+        "text": {
+          "type": "string",
+          "minLength": 0,
+          "maxLength": 65536
+        },
+        "truncated": {
+          "type": "boolean"
+        },
+        "renderDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "nextCursor": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 8192
+        }
+      },
+      "required": [
+        "caseId",
+        "taskId",
+        "taskRevision",
+        "eventSequence",
+        "format",
+        "text",
+        "truncated",
+        "renderDigest"
+      ],
+      "additionalProperties": false
+    },
+    "ResourceKindV1": {
+      "enum": [
+        "case",
+        "task",
+        "attempt",
+        "event",
+        "checkpoint",
+        "evidence_set",
+        "artifact"
+      ]
+    },
+    "ResourceSummaryV1": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "$ref": "#/$defs/ResourceKindV1"
+        },
+        "uri": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2048
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "subjectId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "revision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "createdAt": {
+          "$ref": "#/$defs/Timestamp"
+        },
+        "mediaType": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256
+        },
+        "byteLength": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "sha256": {
+          "$ref": "#/$defs/Sha256"
+        }
+      },
+      "required": [
+        "kind",
+        "uri",
+        "caseId",
+        "subjectId"
+      ],
+      "additionalProperties": false
+    },
+    "SnapshotV1": {
+      "type": "object",
+      "properties": {
+        "caseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "taskRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "eventSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        }
+      },
+      "required": [
+        "eventSequence"
+      ],
+      "additionalProperties": false
+    },
+    "SubmitOperationCaseSummaryV1": {
+      "type": "object",
+      "properties": {
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "contractDigest": {
+          "$ref": "#/$defs/Sha256"
+        },
+        "caseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "eventSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "status": {
+          "$ref": "#/$defs/CaseStatus"
+        }
+      },
+      "required": [
+        "caseId",
+        "contractDigest",
+        "caseRevision",
+        "eventSequence",
+        "status"
+      ],
+      "additionalProperties": false
+    },
+    "SubmitOperationResult": {
+      "type": "object",
+      "properties": {
+        "accepted": {
+          "const": true
+        },
+        "deduplicated": {
+          "type": "boolean"
+        },
+        "case": {
+          "$ref": "#/$defs/SubmitOperationCaseSummaryV1"
+        },
+        "task": {
+          "$ref": "#/$defs/TaskRecord"
+        },
+        "continuing": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "accepted",
+        "deduplicated",
+        "case",
+        "task",
+        "continuing"
+      ],
+      "additionalProperties": false
+    },
+    "TaskMutationResultV1": {
+      "type": "object",
+      "properties": {
+        "accepted": {
+          "const": true
+        },
+        "deduplicated": {
+          "type": "boolean"
+        },
+        "requestId": {
+          "$ref": "#/$defs/RequestId"
+        },
+        "caseId": {
+          "$ref": "#/$defs/CaseId"
+        },
+        "taskId": {
+          "$ref": "#/$defs/TaskId"
+        },
+        "committedCaseRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "committedTaskRevision": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 9007199254740991
+        },
+        "committedEventSequence": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 9007199254740991
+        },
+        "value": {
+          "$ref": "#/$defs/TaskMutationValueV1"
+        }
+      },
+      "required": [
+        "accepted",
+        "deduplicated",
+        "requestId",
+        "caseId",
+        "taskId",
+        "committedCaseRevision",
+        "committedTaskRevision",
+        "committedEventSequence",
+        "value"
+      ],
+      "additionalProperties": false
+    },
+    "TaskMutationValueV1": {
+      "type": "object",
+      "properties": {
+        "task": {
+          "$ref": "#/$defs/TaskRecord"
+        },
+        "attempt": {
+          "$ref": "#/$defs/AttemptRecord"
+        }
+      },
+      "required": [
+        "task"
+      ],
+      "additionalProperties": false
     }
   }
 }

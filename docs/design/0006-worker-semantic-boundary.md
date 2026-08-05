@@ -246,7 +246,7 @@ Worker retry does not create lifecycle state. Mutation retry and dedupe terminat
 
 ## Current implementation status
 
-Accepted and implementation-authorized at base `4cb1eb889af4069cb83dee6a1aa3184e9135b5bb`. No Worker source, public-root expansion, generated capability projection, live Cloudflare runtime, public MCP endpoint, or current-client evidence is claimed by this record at acceptance time.
+Accepted and implementation-authorized at base `4cb1eb889af4069cb83dee6a1aa3184e9135b5bb`. The current contract/projection slice adds the six missing read/query input roots, all twelve capability-specific result roots, TypeScript-only target declarations for the newly added public roots, deterministic self-contained Tool schemas and digests, and executable strict/bound tests. The stateless Worker adapter, typed CaseDO service wiring, all-twelve integration suite, live Cloudflare runtime, public MCP endpoint, and current-client evidence are not yet claimed.
 
 Durable implementation commits are:
 
@@ -306,3 +306,4 @@ After interruption, resume only from the last local or published commit and Task
 - `2026-08-05`: TypeScript capability metadata is generated; no Go projection is created.
 - `2026-08-05`: Worker remains stateless, ResourceLocatorSource is non-authoritative, and CaseDO owns receipt replay.
 - `2026-08-05`: Source completion is explicitly separated from Cloudflare, public MCP, current-client, install, rollback, and cost qualification.
+- `2026-08-05`: The canonical tools-v1 input/result contract and deterministic TypeScript projection slice were implemented and fully source-validated; Worker service wiring remains the active gate.

@@ -4,7 +4,7 @@
 
 - Product/source stage: M0 and the Design 0005 transaction/contract foundation are source-verified on `concept-revision-1`.
 - Approved architecture: TypeScript Worker/CaseDO/AgentDO, minimal Go CLI/Termux Agent, consumer-proven target-scoped generation, and MCP DTO separation from internal durable records. All twelve semantic capabilities and the Case/Task/Attempt lifecycle remain preserved.
-- Active gate: [Design 0006 — Worker Semantic Boundary](docs/design/0006-worker-semantic-boundary.md). Implement strict public input/result roots, deterministic TypeScript capability projection, bounded authenticated stateless Worker ingress, typed CaseDO routing, exact result/replay/egress integration, and one all-twelve table-driven suite.
+- Active gate: [Design 0006 — Worker Semantic Boundary](docs/design/0006-worker-semantic-boundary.md). The strict twelve-input/twelve-result contract, TypeScript-only target declarations for newly added public roots, deterministic self-contained Tool schemas, catalog/tool-set/projection digests, and executable bound tests are implemented in the current source slice. The remaining gate is bounded authenticated stateless Worker ingress, typed CaseDO routing, exact result/replay/egress integration, and one all-twelve table-driven suite.
 - Queued gate after exact Worker source publication: [Design 0007 — AgentDO and Termux `file.read`](docs/design/0007-agentdo-and-termux-file-read.md).
 - Non-normative continuation review: [docs/CONCEPT_REVISION_1_IMPLEMENTER_HANDOFF.md](docs/CONCEPT_REVISION_1_IMPLEMENTER_HANDOFF.md). Product meaning and acceptance remain owned by normative owners and accepted designs.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
@@ -18,6 +18,7 @@
 
 ## Blocking unknowns
 
+- The executable tools-v1 contract/projection slice is source-verified, but the stateless Worker adapter, typed CaseDO facade, and all-twelve integration suite are not yet implemented. Owner: Design 0006.
 - Live Cloudflare transaction, migration, hibernation, PITR, route, cost, and rollback behavior is unverified. Structural source evidence does not close this gate.
 - MCP final revision is `2026-07-28`; actual SDK/current-client Tool snapshot, `resultType`, Tasks, Resources, elicitation, and refresh behavior is unverified.
 - Concrete Go Agent consumers are authorized by Design 0007 but not implemented until its source gate begins.

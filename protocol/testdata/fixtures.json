@@ -1436,7 +1436,7 @@
       "expectedSchemaPointer": "#/$defs/ControlCaseInput/properties/action/oneOf",
       "expectedBranchIndex": 0,
       "expectedBranchIdentity": "#/$defs/ControlCaseInput/properties/action/oneOf/0",
-      "expectedSchemaDigest": "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e",
+      "expectedSchemaDigest": "c7ed47587e6a5fa1dbe22e0d43a844df7369979682f5a5271799806b8f63178a",
       "expectedCanonicalDigest": "45ca16bba91ee76fb1bc27e7fa76a61006298ddc701d55c9505dab224cf2bc88"
     }
   ],

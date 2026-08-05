@@ -1,0 +1,249 @@
+{
+  "schemaVersion": 1,
+  "protocolRevision": "2026-07-28",
+  "semanticCapabilityVersion": 1,
+  "baseProfile": "tools-v1",
+  "additiveFeatures": [],
+  "capabilities": [
+    {
+      "name": "list_operations",
+      "title": "List Operations",
+      "inputRoot": "ListOperationsInput",
+      "resultRoot": "ListOperationsResult",
+      "description": "List the release-pinned Native Operation catalog and current bounded availability.",
+      "mutation": false,
+      "owner": "release",
+      "routing": "release",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "page",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "list_resources",
+      "title": "List Resources",
+      "inputRoot": "ListResourcesInput",
+      "resultRoot": "ListResourcesResult",
+      "description": "List bounded authorized Case resources from a stable snapshot.",
+      "mutation": false,
+      "owner": "case_do",
+      "routing": "authorized_locator",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "page",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "submit_operation",
+      "title": "Submit Operation",
+      "inputRoot": "SubmitOperationInput",
+      "resultRoot": "SubmitOperationResult",
+      "description": "Create or continue a Case and durably admit one typed Native Operation Task.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "new_or_explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "operation_policy",
+      "riskClass": "external_effect",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": true
+      }
+    },
+    {
+      "name": "get_case",
+      "title": "Get Case",
+      "inputRoot": "GetCaseInput",
+      "resultRoot": "GetCaseResult",
+      "description": "Read one authorized Case contract, state, count, checkpoint pointer, and snapshot.",
+      "mutation": false,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "page",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "get_task",
+      "title": "Get Task",
+      "inputRoot": "GetTaskInput",
+      "resultRoot": "GetTaskResult",
+      "description": "Read one authorized Task, latest Attempt, outstanding request, and stable snapshot.",
+      "mutation": false,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "page",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "control_case",
+      "title": "Control Case",
+      "inputRoot": "ControlCaseInput",
+      "resultRoot": "ControlCaseResult",
+      "description": "Apply one revision-bound pause, resume, or checkpoint Case control mutation.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "policy",
+      "riskClass": "control",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "finish_case",
+      "title": "Finish Case",
+      "inputRoot": "FinishCaseInput",
+      "resultRoot": "FinishCaseResult",
+      "description": "Commit one evidence-gated terminal Case outcome.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "policy",
+      "riskClass": "destructive",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "cancel_case",
+      "title": "Cancel Case",
+      "inputRoot": "CancelCaseInput",
+      "resultRoot": "CancelCaseResult",
+      "description": "Record Case cancellation intent and revision-bound reconciliation state.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "policy",
+      "riskClass": "destructive",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "control_task",
+      "title": "Control Task",
+      "inputRoot": "ControlTaskInput",
+      "resultRoot": "ControlTaskResult",
+      "description": "Resolve one approval, input, or retry decision for an authorized Task.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "policy",
+      "riskClass": "control",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "cancel_task",
+      "title": "Cancel Task",
+      "inputRoot": "CancelTaskInput",
+      "resultRoot": "CancelTaskResult",
+      "description": "Record Task cancellation intent without claiming that an external effect did not occur.",
+      "mutation": true,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "deduplicated",
+      "approvalClass": "policy",
+      "riskClass": "destructive",
+      "resultBound": "mutation",
+      "annotations": {
+        "readOnlyHint": false,
+        "idempotentHint": true,
+        "destructiveHint": true,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "render_task",
+      "title": "Render Task",
+      "inputRoot": "RenderTaskInput",
+      "resultRoot": "RenderTaskResult",
+      "description": "Render a bounded stable Task summary as text or Markdown.",
+      "mutation": false,
+      "owner": "case_do",
+      "routing": "explicit_case",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "render",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    },
+    {
+      "name": "read_artifact",
+      "title": "Read Artifact",
+      "inputRoot": "ReadArtifactInput",
+      "resultRoot": "ReadArtifactResult",
+      "description": "Read one bounded authorized immutable Artifact byte range.",
+      "mutation": false,
+      "owner": "artifact_store",
+      "routing": "case_artifact",
+      "retryClass": "read_only",
+      "approvalClass": "none",
+      "riskClass": "read",
+      "resultBound": "artifact",
+      "annotations": {
+        "readOnlyHint": true,
+        "idempotentHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

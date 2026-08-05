@@ -7,7 +7,7 @@ import (
 	protocolruntime "github.com/humtr/tdev/protocol/runtime/go"
 )
 
-const CanonicalSchemaDigest = "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e"
+const CanonicalSchemaDigest = "c7ed47587e6a5fa1dbe22e0d43a844df7369979682f5a5271799806b8f63178a"
 
 type AcceptanceCriterion struct {
 	CriterionID string `json:"criterionId"`

@@ -3,7 +3,7 @@
 import { IngressError } from "../../runtime/typescript/ingress.ts";
 import { verifyProofAndExtract, type ValidationProofV1 } from "../../runtime/typescript/schema.ts";
 
-export const CANONICAL_SCHEMA_DIGEST = "1d9fa43ed48002c8ada1c089132d86e500e2cfbd4646103dd74e033342eea29e";
+export const CANONICAL_SCHEMA_DIGEST = "c7ed47587e6a5fa1dbe22e0d43a844df7369979682f5a5271799806b8f63178a";
 
 export type AcceptanceCriterion = Readonly<{
   "criterionId": string;
@@ -130,6 +130,8 @@ export type CancelCaseInput = Readonly<{
   "requestId": RequestId;
 }>;
 
+export type CancelCaseResult = CaseMutationResultV1;
+
 export type CancelTaskInput = Readonly<{
   "caseId": CaseId;
   "expectedTaskRevision": number;
@@ -138,6 +140,8 @@ export type CancelTaskInput = Readonly<{
   "taskId": TaskId;
 }>;
 
+export type CancelTaskResult = TaskMutationResultV1;
+
 export type CancellationId = string;
 
 export type CancellationSummary = Readonly<{
@@ -145,6 +149,8 @@ export type CancellationSummary = Readonly<{
   "effectsObserved": ReadonlyArray<TargetEffect>;
   "reason": string;
 }>;
+
+export type CapabilityName = "list_operations" | "list_resources" | "submit_operation" | "get_case" | "get_task" | "control_case" | "finish_case" | "cancel_case" | "control_task" | "cancel_task" | "render_task" | "read_artifact";
 
 export type CaseContract = Readonly<{
   "acceptanceCriteria": ReadonlyArray<AcceptanceCriterion>;
@@ -179,6 +185,16 @@ export type CaseEvent = Readonly<{
 }>;
 
 export type CaseId = string;
+
+export type CaseMutationResultV1 = Readonly<{
+  "accepted": true;
+  "caseId": CaseId;
+  "committedCaseRevision": number;
+  "committedEventSequence": number;
+  "deduplicated": boolean;
+  "requestId": RequestId;
+  "value": CaseState;
+}>;
 
 export type CaseState = Readonly<{
   "caseId": CaseId;
@@ -273,6 +289,8 @@ export type ControlCaseInput = Readonly<{
   "requestId": RequestId;
 }>;
 
+export type ControlCaseResult = CaseMutationResultV1;
+
 export type ControlError = Readonly<{
   "category": "validation" | "authorization" | "conflict" | "lifecycle" | "availability" | "transport" | "storage" | "internal";
   "code": string;
@@ -308,6 +326,8 @@ export type ControlTaskInput = Readonly<{
   "requestId": RequestId;
   "taskId": TaskId;
 }>;
+
+export type ControlTaskResult = TaskMutationResultV1;
 
 export type DispatchId = string;
 
@@ -388,6 +408,35 @@ export type FinishCaseInput = Readonly<{
   }>;
 }>;
 
+export type FinishCaseResult = CaseMutationResultV1;
+
+export type GetCaseInput = Readonly<{
+  "caseId": CaseId;
+}>;
+
+export type GetCaseResult = Readonly<{
+  "contract": CaseContract;
+  "latestCheckpointId"?: CheckpointId;
+  "snapshot": SnapshotV1;
+  "state": CaseState;
+  "taskCount": number;
+}>;
+
+export type GetTaskInput = Readonly<{
+  "caseId": CaseId;
+  "taskId": TaskId;
+}>;
+
+export type GetTaskResult = Readonly<{
+  "attemptCount": number;
+  "latestAttempt"?: AttemptRecord;
+  "outstandingApprovalRequestId"?: ApprovalRequestId;
+  "outstandingInputRequestId"?: InputRequestId;
+  "outstandingRetryDecisionId"?: RetryDecisionId;
+  "snapshot": SnapshotV1;
+  "task": TaskRecord;
+}>;
+
 export type GitObjectId = string;
 
 export type GrantId = string;
@@ -407,6 +456,29 @@ export type InterruptionRecord = Readonly<{
 }>;
 
 export type JsonValue = null | boolean | number | string | ReadonlyArray<JsonValue> | Readonly<Record<string, JsonValue>>;
+
+export type ListOperationsInput = Readonly<{
+  "page"?: PageRequestV1;
+}>;
+
+export type ListOperationsResult = Readonly<{
+  "catalogDigest": Sha256;
+  "operations": ReadonlyArray<OperationCatalogEntryV1>;
+  "page": PageResultV1;
+  "profileDigest": Sha256;
+}>;
+
+export type ListResourcesInput = Readonly<{
+  "caseId"?: CaseId;
+  "kinds"?: ReadonlyArray<ResourceKindV1>;
+  "page"?: PageRequestV1;
+  "taskId"?: TaskId;
+}>;
+
+export type ListResourcesResult = Readonly<{
+  "page": PageResultV1;
+  "resources": ReadonlyArray<ResourceSummaryV1>;
+}>;
 
 export type MissingEffectDetails = Readonly<{
   "grantId": GrantId;
@@ -450,6 +522,16 @@ export type NewCaseTargetGrant = Readonly<{
   "target": Target;
 }>;
 
+export type OperationCatalogEntryV1 = Readonly<{
+  "available": boolean;
+  "inputSchemaDigest": Sha256;
+  "mutating": boolean;
+  "operationId": CapabilityName;
+  "operationVersion": number;
+  "resultSchemaDigest": Sha256;
+  "title": string;
+}>;
+
 export type OperationFailure = FailureRecord;
 
 export type OperationInvocation = Readonly<{
@@ -479,6 +561,16 @@ export type OperationResult = Readonly<{
   "resultDigest": Sha256;
 }>;
 
+export type PageRequestV1 = Readonly<{
+  "cursor"?: string;
+  "limit"?: number;
+}>;
+
+export type PageResultV1 = Readonly<{
+  "nextCursor"?: string;
+  "snapshot": SnapshotV1;
+}>;
+
 export type PolicyRef = Readonly<{
   "digest": Sha256;
   "version": number;
@@ -493,7 +585,42 @@ export type PredecessorRef = Readonly<{
 
 export type ProjectId = string;
 
+export type ReadArtifactInput = Readonly<{
+  "artifactId": ArtifactId;
+  "caseId": CaseId;
+  "length"?: number;
+  "offset"?: number;
+}>;
+
+export type ReadArtifactResult = Readonly<{
+  "artifact": ArtifactRef;
+  "dataBase64": string;
+  "eof": boolean;
+  "offset": number;
+  "rangeDigest": Sha256;
+}>;
+
 export type RelativePath = string;
+
+export type RenderTaskInput = Readonly<{
+  "caseId": CaseId;
+  "cursor"?: string;
+  "format"?: "text" | "markdown";
+  "maxBytes"?: number;
+  "taskId": TaskId;
+}>;
+
+export type RenderTaskResult = Readonly<{
+  "caseId": CaseId;
+  "eventSequence": number;
+  "format": "text" | "markdown";
+  "nextCursor"?: string;
+  "renderDigest": Sha256;
+  "taskId": TaskId;
+  "taskRevision": number;
+  "text": string;
+  "truncated": boolean;
+}>;
 
 export type RequestDedupeRecord = Readonly<{
   "caseId": CaseId;
@@ -505,6 +632,21 @@ export type RequestDedupeRecord = Readonly<{
 }>;
 
 export type RequestId = string;
+
+export type ResourceKindV1 = "case" | "task" | "attempt" | "event" | "checkpoint" | "evidence_set" | "artifact";
+
+export type ResourceSummaryV1 = Readonly<{
+  "byteLength"?: number;
+  "caseId": CaseId;
+  "createdAt"?: Timestamp;
+  "kind": ResourceKindV1;
+  "mediaType"?: string;
+  "revision"?: number;
+  "sha256"?: Sha256;
+  "subjectId": string;
+  "taskId"?: TaskId;
+  "uri": string;
+}>;
 
 export type RetryDecisionId = string;
 
@@ -521,6 +663,20 @@ export type SchemaMismatchDetails = Readonly<{
 }>;
 
 export type Sha256 = string;
+
+export type SnapshotV1 = Readonly<{
+  "caseRevision"?: number;
+  "eventSequence": number;
+  "taskRevision"?: number;
+}>;
+
+export type SubmitOperationCaseSummaryV1 = Readonly<{
+  "caseId": CaseId;
+  "caseRevision": number;
+  "contractDigest": Sha256;
+  "eventSequence": number;
+  "status": CaseStatus;
+}>;
 
 export type SubmitOperationInput = Readonly<{
   "case": Readonly<{
@@ -547,6 +703,14 @@ export type SubmitOperationInput = Readonly<{
   }>;
 }>;
 
+export type SubmitOperationResult = Readonly<{
+  "accepted": true;
+  "case": SubmitOperationCaseSummaryV1;
+  "continuing": boolean;
+  "deduplicated": boolean;
+  "task": TaskRecord;
+}>;
+
 export type Target = Readonly<{
   "kind": "workspace";
   "workspaceId": WorkspaceId;
@@ -565,6 +729,23 @@ export type TargetBinding = Readonly<{
 export type TargetEffect = "fs.read" | "fs.write" | "fs.delete" | "git.read" | "git.write" | "remote.read" | "remote.write" | "validation.execute" | "process.execute" | "network.use" | "package.manage" | "service.manage" | "runtime.manage";
 
 export type TaskId = string;
+
+export type TaskMutationResultV1 = Readonly<{
+  "accepted": true;
+  "caseId": CaseId;
+  "committedCaseRevision": number;
+  "committedEventSequence": number;
+  "committedTaskRevision": number;
+  "deduplicated": boolean;
+  "requestId": RequestId;
+  "taskId": TaskId;
+  "value": TaskMutationValueV1;
+}>;
+
+export type TaskMutationValueV1 = Readonly<{
+  "attempt"?: AttemptRecord;
+  "task": TaskRecord;
+}>;
 
 export type TaskRecord = Readonly<{
   "admission": Readonly<{
