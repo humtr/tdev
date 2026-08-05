@@ -2,7 +2,7 @@
 
 ## Metadata
 
-- Status: `implementing`
+- Status: `verified`
 - Date: 2026-08-05
 - Acceptance authority: direct maintainer approval to create `concept-revision-1` and implement architecture alternatives 2 + selective 3 + 6
 - Exact base source: `79c7196c32ba4e17505068c5084f3f830a2adf53`
@@ -220,7 +220,7 @@ The source implementation is complete and independently re-verified in the Task-
 - `go vet ./...` and `git diff --check` passed;
 - complete effective-diff review found and corrected a missing read-only SQL type import and a test fixture that still opened its own SQL transaction.
 
-The design remains `implementing` until the exact clean commit is published to remote `concept-revision-1` and independently re-read. Live Cloudflare, public MCP, current-client, Agent, installation, and rollback layers remain outside this source evidence.
+The exact clean foundation commit `7a13c4fa43ada6b5c4124c573b3994dfa00105d2` was independently observed on remote `concept-revision-1`; the predecessor branch `concept` remained exactly `79c7196c32ba4e17505068c5084f3f830a2adf53`, and the Task-owned worktree remained clean. The stated source, validation, Git ancestry, and remote-publication layers are therefore verified. Live Cloudflare, public MCP, current-client, Agent, installation, rollback, and recovery layers remain outside this design's verified scope.
 
 ## Current unknowns and stop gates
 
@@ -236,3 +236,4 @@ The design remains `implementing` until the exact clean commit is published to r
 - 2026-08-05: selected callback-owned transactions and logical migration identity; rejected SQL interception and hidden buffering.
 - 2026-08-05: selected final MCP `2026-07-28` as owner baseline while retaining SDK/current-client support as unknown.
 - 2026-08-05: selected manifest-driven per-target closure; deferred removal of existing Go output to an explicit consumer/compatibility review.
+- 2026-08-05: independently observed remote `concept-revision-1` at exact commit `7a13c4fa43ada6b5c4124c573b3994dfa00105d2`, with `concept` unchanged and the local worktree clean; marked the source/publication scope verified.

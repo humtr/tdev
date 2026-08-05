@@ -23,7 +23,7 @@ Sections named `Source classification`, baseline evidence, baseline contract, an
 | [0002](0002-complete-first-release-product-specification.md) | Complete first-release product specification | verified | product specification and requirement traceability |
 | [0003](0003-mcp-adapter-and-projection-contract.md) | MCP adapter and projection contract | verified | MCP wire adapter, semantic projection, and current-client compatibility |
 | [0004](0004-casedo-storage-and-public-control-core.md) | CaseDO storage and public control core | implementing | protocol ingress, CaseDO storage, mutation replay, and public semantic control/query |
-| [0005](0005-concept-revision-1-transaction-and-contract-boundaries.md) | concept-revision-1 transaction and contract boundaries | implementing | transaction portability, logical migration identity, MCP DTO boundary, target-scoped generation |
+| [0005](0005-concept-revision-1-transaction-and-contract-boundaries.md) | concept-revision-1 transaction and contract boundaries | verified | transaction portability, logical migration identity, MCP DTO boundary, target-scoped generation |
 
 ## Naming
 

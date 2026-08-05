@@ -4,15 +4,13 @@
 
 - Product/source stage: M0 is source-verified. Design 0004 slices through the M1 CaseDO control/query core are source-verified in protocol, domain, and isolated SQLite source layers.
 - Approved architecture direction: `concept-revision-1` implements TypeScript Edge + minimal Go CLI/Termux Agent, consumer-proven target-scoped generation, and MCP revision DTO separation from internal durable records. All twelve semantic capabilities and the Case/Task/Attempt lifecycle remain preserved.
-- Current source gate: publish the source-verified [Design 0005](docs/design/0005-concept-revision-1-transaction-and-contract-boundaries.md) foundation to remote `concept-revision-1`, independently verify the provider commit, then mark the design verified.
-- Next product gate: implement the Worker semantic boundary from the exact verified `concept-revision-1` commit. Agent dispatch remains an M2 successor boundary.
+- Current source gate: implement the Worker semantic boundary from the exact verified `concept-revision-1` foundation commit. The Worker slice must add the missing executable capability roots, deterministic TypeScript projection, bounded authenticated ingress, and one table-driven Worker/CaseDO integration surface without claiming live Cloudflare or current-client completion.
+- Next product gate after Worker source publication: implement the AgentDO + minimal Go Termux Agent `file.read` walking skeleton. Agent dispatch remains M2-owned until that successor gate is independently verified.
 - Normative owner map: [AGENTS.md](AGENTS.md#2-normative-authority-map)
 - Design registry: [docs/design/README.md](docs/design/README.md)
 
 ## Active designs
 
-- [Design 0005 — concept-revision-1 Transaction and Contract Boundaries](docs/design/0005-concept-revision-1-transaction-and-contract-boundaries.md): `implementing`
-  - Source implementation and portable verification are complete; exact commit and provider publication remain the current gate.
 - [Design 0004 — CaseDO Storage and Public Control Core](docs/design/0004-casedo-storage-and-public-control-core.md): `implementing`
   - Its lifecycle, replay, revision, cancellation, evidence, and no-overclaim invariants remain active; Design 0005 corrects the platform transaction and contract-generation boundary before Worker integration.
 
