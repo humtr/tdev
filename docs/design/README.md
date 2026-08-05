@@ -24,6 +24,8 @@ Sections named `Source classification`, baseline evidence, baseline contract, an
 | [0003](0003-mcp-adapter-and-projection-contract.md) | MCP adapter and projection contract | verified | MCP wire adapter, semantic projection, and current-client compatibility |
 | [0004](0004-casedo-storage-and-public-control-core.md) | CaseDO storage and public control core | implementing | protocol ingress, CaseDO storage, mutation replay, and public semantic control/query |
 | [0005](0005-concept-revision-1-transaction-and-contract-boundaries.md) | concept-revision-1 transaction and contract boundaries | verified | transaction portability, logical migration identity, MCP DTO boundary, target-scoped generation |
+| [0006](0006-worker-semantic-boundary.md) | Worker semantic boundary | implementing | executable tools-v1 roots, generated projection, stateless Worker, CaseDO integration |
+| [0007](0007-agentdo-and-termux-file-read.md) | AgentDO and Termux `file.read` | accepted | Agent queue/fence, CaseDO reconciliation, Go Agent journal and bounded read |
 
 ## Naming
 
