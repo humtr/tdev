@@ -1,5 +1,5 @@
 import path from 'node:path';
-import { ContractError, clone, digest } from './canonical.mjs';
+import { ContractError, clone, compareText, digest } from './canonical.mjs';
 
 export function validateTree(tree) {
   if (!tree || typeof tree !== 'object' || Array.isArray(tree)) {
@@ -58,7 +58,7 @@ export function normalizeChangeSet(taskId, result, expectedBaseDigest) {
     }
     return { path: filePath, content: write.content };
   });
-  writes.sort((left, right) => left.path.localeCompare(right.path));
+  writes.sort((left, right) => compareText(left.path, right.path));
   return {
     kind: 'changeset',
     baseDigest: expectedBaseDigest,
@@ -75,7 +75,7 @@ export function promote(baseTree, acceptedResults, expectedBaseDigest) {
 
   const normalized = acceptedResults
     .map(({ taskId, result }) => ({ taskId, result: normalizeChangeSet(taskId, result, expectedBaseDigest) }))
-    .sort((left, right) => left.taskId.localeCompare(right.taskId));
+    .sort((left, right) => compareText(left.taskId, right.taskId));
 
   const ownership = new Map();
   const conflicts = [];
@@ -98,14 +98,14 @@ export function promote(baseTree, acceptedResults, expectedBaseDigest) {
 
   if (conflicts.length > 0) {
     conflicts.sort((left, right) =>
-      left.path.localeCompare(right.path) ||
-      left.firstTaskId.localeCompare(right.firstTaskId) ||
-      left.secondTaskId.localeCompare(right.secondTaskId),
+      compareText(left.path, right.path) ||
+      compareText(left.firstTaskId, right.firstTaskId) ||
+      compareText(left.secondTaskId, right.secondTaskId),
     );
     throw new ContractError('promotion_conflict', 'Accepted ChangeSets conflict', { conflicts });
   }
 
-  const orderedWrites = [...ownership.entries()].sort(([left], [right]) => left.localeCompare(right));
+  const orderedWrites = [...ownership.entries()].sort(([left], [right]) => compareText(left, right));
   for (const [filePath, { content }] of orderedWrites) {
     if (content === null) {
       delete candidate[filePath];

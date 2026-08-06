@@ -19,6 +19,16 @@ test('Promotion is independent of accepted-result order', () => {
   assert.deepEqual(left, right);
 });
 
+test('Promotion uses stable code-unit ordering rather than locale collation', () => {
+  const result = promote(
+    baseTree,
+    [change('a', 'a.txt', 'lower'), change('A', 'A.txt', 'upper')],
+    baseDigest,
+  );
+  assert.deepEqual(result.acceptedTaskIds, ['A', 'a']);
+  assert.deepEqual(Object.keys(result.tree).sort(), ['A.txt', 'a.txt', 'base.txt']);
+});
+
 test('identical overlapping writes coalesce', () => {
   const result = promote(baseTree, [change('a', 'same.txt', 'same'), change('b', 'same.txt', 'same')], baseDigest);
   assert.equal(result.tree['same.txt'], 'same');

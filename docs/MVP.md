@@ -14,11 +14,14 @@ The first slice is a local parallel-first reference loop with an immutable plan,
 - overlapping read/write or write/write claims serialize
 - identical duplicate result acceptance is idempotent
 - stale result after cancellation is rejected
+- invalid executor result fails the Task and Case without escaping the runner
+- cancellation wins a concurrent success race and the late result cannot overwrite it
 - interrupted snapshot reopen preserves evidence and permits a fresh result-only Attempt
 - ordinary Tasks cannot claim canonical mutation
 - exact base digest is required
 - ChangeSet path traversal is rejected
 - deterministic Promotion is independent of completion and input order
+- deterministic Promotion ordering does not depend on locale collation
 - conflicting Promotion preserves the previous canonical tree
 - no wall-clock value participates in semantic digests
 

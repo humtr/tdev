@@ -19,6 +19,8 @@ The runner asks the engine for ready Tasks, admits stable Task IDs while capacit
 - same Attempt and different digest: conflict
 - cancelled, interrupted, failed, or unknown Attempt: stale result rejection
 - executor rejection: Attempt and Task fail; dependent work is not admitted
+- result validation failure: the still-running Attempt and Task fail with the contract error
+- executor completion after a terminal Attempt decision: reject the late outcome and preserve the terminal decision
 
 ## Promotion operation
 

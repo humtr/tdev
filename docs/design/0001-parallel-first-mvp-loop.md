@@ -32,7 +32,7 @@ The MVP is platform-neutral ECMAScript with no runtime dependency. Provider and 
 
 ## Failure and recovery
 
-An executor error fails its Attempt and Task. A blocked graph cannot silently succeed. Duplicate identical results are idempotent; contradictory or stale results fail acceptance. Snapshot reopen marks running Attempts interrupted and returns only result-only Tasks to pending. External-effect recovery is not authorized by this design.
+An executor error or invalid result fails its still-running Attempt and Task. A blocked graph cannot silently succeed. Duplicate identical results are idempotent; contradictory or stale results fail acceptance. A late executor outcome cannot overwrite cancellation or another terminal Attempt decision. Snapshot reopen marks running Attempts interrupted and returns only result-only Tasks to pending. External-effect recovery is not authorized by this design.
 
 Promotion constructs a new tree copy and commits it to Case state only after all validation and conflict checks succeed. Failure preserves the previous canonical tree.
 

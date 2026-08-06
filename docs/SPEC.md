@@ -21,6 +21,8 @@ The current MVP is a local, in-memory reference implementation of the work loop.
 - Completion order, executor identity, and wall-clock timing do not affect canonical digest.
 - Conflicts fail Promotion without changing the previous canonical tree.
 - Duplicate identical results are idempotent; stale or contradictory results are rejected.
+- Invalid executor results fail their running Attempt and Task without escaping the orchestration loop.
+- A terminal cancellation decision is not overwritten by a late executor success or failure.
 - Reopening an interrupted in-memory snapshot makes result-only Tasks eligible for a new Attempt and preserves the interrupted Attempt as evidence.
 
 ## Non-goals of this slice

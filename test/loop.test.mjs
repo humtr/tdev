@@ -153,3 +153,54 @@ test('different executor completion orders produce the same promoted tree', asyn
   assert.equal(aLast.snapshot.canonicalDigest, bLast.snapshot.canonicalDigest);
   assert.deepEqual(aLast.snapshot.canonicalTree, bLast.snapshot.canonicalTree);
 });
+
+test('invalid executor result fails the Task without escaping the runner', async () => {
+  const baseTree = { 'base.txt': 'base' };
+  const plan = planWithWork([{ id: 'a' }], baseTree);
+  const result = await runCase(
+    new CaseEngine({ caseId: 'invalid-result-case', plan }),
+    async () => ({
+      kind: 'changeset',
+      baseDigest: 'sha256:stale',
+      writes: [{ path: 'a.txt', content: 'invalid' }],
+    }),
+  );
+
+  assert.equal(result.caseState, 'failed');
+  assert.equal(result.snapshot.taskStates.a.state, 'failed');
+  assert.equal(result.snapshot.taskStates.a.error.code, 'base_digest_mismatch');
+  assert.deepEqual(result.snapshot.canonicalTree, baseTree);
+});
+
+test('cancellation wins a success race and the late result is rejected', async () => {
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'cancel-race-case', plan });
+  let release;
+  let markStarted;
+  const started = new Promise((resolve) => {
+    markStarted = resolve;
+  });
+  const gate = new Promise((resolve) => {
+    release = resolve;
+  });
+
+  const running = runCase(engine, async ({ baseDigest, task }) => {
+    markStarted();
+    await gate;
+    return {
+      kind: 'changeset',
+      baseDigest,
+      writes: [{ path: `${task.id}.txt`, content: task.id }],
+    };
+  });
+
+  await started;
+  engine.cancelTask('a', 'race winner');
+  release();
+  const result = await running;
+
+  assert.equal(result.caseState, 'cancelled');
+  assert.equal(result.snapshot.taskStates.a.state, 'cancelled');
+  assert.equal(result.snapshot.attempts['a.1'].state, 'cancelled');
+  assert.deepEqual(result.snapshot.canonicalTree, {});
+});

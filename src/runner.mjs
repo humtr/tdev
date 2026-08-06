@@ -47,6 +47,32 @@ export async function runCase(engine, executor, options = {}) {
     maxConcurrent = Math.max(maxConcurrent, running.size);
   }
 
+  function settle(outcome) {
+    const attempt = engine.attempts[outcome.attemptId];
+    if (!attempt) {
+      throw new ContractError('unknown_attempt', `Executor returned an unknown Attempt: ${outcome.attemptId}`);
+    }
+
+    if (attempt.state !== 'running') {
+      return;
+    }
+
+    if (!outcome.ok) {
+      engine.failAttempt(outcome.attemptId, outcome.error);
+      return;
+    }
+
+    try {
+      engine.completeAttempt(outcome.attemptId, outcome.result);
+    } catch (error) {
+      if (engine.attempts[outcome.attemptId]?.state === 'running') {
+        engine.failAttempt(outcome.attemptId, error);
+        return;
+      }
+      throw error;
+    }
+  }
+
   while (engine.caseState === 'active' || running.size > 0) {
     let admitted = true;
     while (admitted && running.size < capacity && engine.caseState === 'active') {
@@ -72,11 +98,7 @@ export async function runCase(engine, executor, options = {}) {
 
     const outcome = await Promise.race(running.values());
     running.delete(outcome.attemptId);
-    if (outcome.ok) {
-      engine.completeAttempt(outcome.attemptId, outcome.result);
-    } else {
-      engine.failAttempt(outcome.attemptId, outcome.error);
-    }
+    settle(outcome);
     engine.reconcile();
   }
 

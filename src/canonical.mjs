@@ -13,6 +13,16 @@ export function clone(value) {
   return structuredClone(value);
 }
 
+export function compareText(left, right) {
+  if (left < right) {
+    return -1;
+  }
+  if (left > right) {
+    return 1;
+  }
+  return 0;
+}
+
 export function deepFreeze(value) {
   if (value === null || typeof value !== 'object' || Object.isFrozen(value)) {
     return value;
@@ -38,7 +48,7 @@ function normalize(value, path) {
   }
   if (typeof value === 'object') {
     const result = {};
-    for (const key of Object.keys(value).sort()) {
+    for (const key of Object.keys(value).sort(compareText)) {
       const child = value[key];
       if (child === undefined) {
         throw new ContractError('undefined_value', `Undefined value at ${path}.${key}`);
