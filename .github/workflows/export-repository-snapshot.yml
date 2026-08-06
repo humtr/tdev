@@ -1,0 +1,32 @@
+name: Export repository snapshot
+
+on:
+  push:
+    branches:
+      - audit/parallel-first-snapshot-20260806
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  export:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+      - name: Record exact revision
+        run: |
+          set -eu
+          git rev-parse HEAD > SNAPSHOT_SHA
+          git status --short --branch > SNAPSHOT_STATUS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: tdev-repository-snapshot
+          path: |
+            .
+            !.git/**
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 1
