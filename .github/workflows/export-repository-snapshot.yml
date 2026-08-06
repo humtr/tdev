@@ -1,6 +1,9 @@
 name: Export repository snapshot
 
 on:
+  pull_request:
+    branches:
+      - mvp-parallel
   push:
     branches:
       - audit/parallel-first-snapshot-20260806
