@@ -3,27 +3,27 @@
 - Class: 2
 - Status: verified on 2026-08-06
 - Supersedes: Design 0001 where this record changes the source slice
-- Source base: `mvp-parallel-xh-1@837da18001aa664a5b7665cfb443759e316a4212`
-- Reference line: `mvp-parallel@b9dea35a04a6e385d0a8ebb5e73e6f86b8027e18`
+- Source base: `mvp-1@837da18001aa664a5b7665cfb443759e316a4212`
+- Historical comparison snapshot: `b9dea35a04a6e385d0a8ebb5e73e6f86b8027e18` (not an active development lineage)
 - Runtime gate: Node.js 22 or newer; no third-party runtime dependency
 - Owners affected: SDD, SPEC, ARCHITECTURE, PROTOCOL, OPERATIONS, SECURITY, DEPLOYMENT, MVP, MCP
 - Implementation paths: `src/`, `test/`
 
 ## One-line definition
 
-Keep xh-1's parallel-first Work Graph and single deterministic Promotion, while adding typed result/effect contracts, full fencing, cross-Case lease ownership, authority intersection, self-validating durable state, receipt-backed commands, and checkpoint-before-dispatch persistence without creating a serial fallback, second scheduler, or second canonical writer.
+Keep mvp-1's parallel-first Work Graph and single deterministic Promotion, while adding typed result/effect contracts, full fencing, cross-Case lease ownership, authority intersection, self-validating durable state, receipt-backed commands, and checkpoint-before-dispatch persistence without creating a serial fallback, second scheduler, or second canonical writer.
 
 ## 1. Evidence classification
 
 ### Repository facts
 
-- xh-1 already owned immutable PlanRevision, DAG readiness, in-Case claims, isolated ChangeSets, capacity degeneration, and deterministic Promotion.
+- mvp-1 already owned immutable PlanRevision, DAG readiness, in-Case claims, isolated ChangeSets, capacity degeneration, and deterministic Promotion.
 - The reference branch already documented stronger Case/Agent ownership, delivery and effect uncertainty, typed operations, authority intersection, schema discipline, migration/rollback, and provider boundaries.
 - The branches diverged from a common line; they were not a safe mechanical merge.
 
 ### Measured baseline
 
-- xh-1 baseline passed 23 tests under Node 22.16.0.
+- mvp-1 baseline passed 23 tests under Node 22.16.0.
 - The supplied container exposes Node 22.16.0 and Go 1.23.2.
 - The reference branch declared a Node/Go 26 source gate, so its full generated/provider stack could not be adopted as the executable container gate.
 
@@ -37,7 +37,7 @@ Keep xh-1's parallel-first Work Graph and single deterministic Promotion, while 
 
 ### Inference
 
-The strongest path is not to merge branch files. It is to retain xh-1's ontology and re-own selected reference-branch safety semantics inside one new source design, leaving provider adapters outside the kernel.
+The strongest path is not to merge branch files. It is to retain mvp-1's ontology and re-own selected reference-branch safety semantics inside one new source design, leaving provider adapters outside the kernel.
 
 ### Unknowns retained
 
@@ -182,7 +182,7 @@ Reverse dependencies and stable Task order are compiled. Future dependency count
 
 ## 7. Verification
 
-Observed release gate:
+Observed verification gate:
 
 - syntax check passed under Node 22.16.0;
 - 88/88 tests passed;

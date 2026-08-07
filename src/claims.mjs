@@ -127,9 +127,7 @@ function prefixOf(resource) {
   return resource.endsWith('/**') ? resource.slice(0, -3) : null;
 }
 
-export function resourcesOverlap(left, right) {
-  validateResource(left);
-  validateResource(right);
+function normalizedResourcesOverlap(left, right) {
   if (left === right) return true;
   const leftPrefix = prefixOf(left);
   const rightPrefix = prefixOf(right);
@@ -143,11 +141,25 @@ export function resourcesOverlap(left, right) {
   return false;
 }
 
+export function resourcesOverlap(left, right) {
+  validateResource(left);
+  validateResource(right);
+  return normalizedResourcesOverlap(left, right);
+}
+
 export function claimsConflict(left, right) {
   const normalizedLeft = normalizeClaim(left);
   const normalizedRight = normalizeClaim(right);
-  if (!resourcesOverlap(normalizedLeft.resource, normalizedRight.resource)) return false;
+  if (!normalizedResourcesOverlap(normalizedLeft.resource, normalizedRight.resource)) return false;
   return !(normalizedLeft.mode === 'read' && normalizedRight.mode === 'read');
+}
+
+// Internal fast path for claim sets that were already normalized at a trusted boundary.
+// Callers must not use this to validate untrusted claims.
+export function normalizedClaimSetsConflict(leftClaims, rightClaims) {
+  return leftClaims.some((left) => rightClaims.some((right) =>
+    normalizedResourcesOverlap(left.resource, right.resource) &&
+    !(left.mode === 'read' && right.mode === 'read')));
 }
 
 export function claimSetsConflict(leftClaims, rightClaims) {

@@ -15,7 +15,6 @@ import {
 import {
   claimLeaseToken,
   claimSetDigest,
-  claimSetsConflict,
   normalizeClaims,
 } from './claims.mjs';
 
@@ -50,6 +49,102 @@ function publicLease(record) {
     claims: canonicalClone(record.claims),
     claimsDigest: record.claimsDigest,
   });
+}
+
+
+function claimIndexNode() {
+  return {
+    children: new Map(),
+    exact: { read: new Set(), write: new Set(), execute: new Set() },
+    prefix: { read: new Set(), write: new Set(), execute: new Set() },
+  };
+}
+
+function indexedResource(resource) {
+  const wildcard = resource.endsWith('/**');
+  const exactResource = wildcard ? resource.slice(0, -3) : resource;
+  const separator = exactResource.indexOf(':');
+  return {
+    wildcard,
+    segments: [exactResource.slice(0, separator), ...exactResource.slice(separator + 1).split('/')],
+  };
+}
+
+function conflictingModes(mode) {
+  return mode === 'read' ? ['write', 'execute'] : ['read', 'write', 'execute'];
+}
+
+class ClaimOverlapIndex {
+  constructor() {
+    this.root = claimIndexNode();
+  }
+
+  add(token, claims) {
+    for (const claim of claims) {
+      const { wildcard, segments } = indexedResource(claim.resource);
+      let node = this.root;
+      for (const segment of segments) {
+        let child = node.children.get(segment);
+        if (!child) {
+          child = claimIndexNode();
+          node.children.set(segment, child);
+        }
+        node = child;
+      }
+      node[wildcard ? 'prefix' : 'exact'][claim.mode].add(token);
+    }
+  }
+
+  remove(token, claims) {
+    for (const claim of claims) {
+      const { wildcard, segments } = indexedResource(claim.resource);
+      let node = this.root;
+      let missing = false;
+      for (const segment of segments) {
+        node = node.children.get(segment);
+        if (!node) {
+          missing = true;
+          break;
+        }
+      }
+      if (!missing) node[wildcard ? 'prefix' : 'exact'][claim.mode].delete(token);
+    }
+  }
+
+  conflicts(claims) {
+    const tokens = new Set();
+    for (const claim of claims) this.#collectClaimConflicts(claim, tokens);
+    return tokens;
+  }
+
+  #collectModes(bucket, mode, tokens) {
+    for (const conflictingMode of conflictingModes(mode)) {
+      for (const token of bucket[conflictingMode]) tokens.add(token);
+    }
+  }
+
+  #collectSubtree(node, mode, tokens) {
+    this.#collectModes(node.exact, mode, tokens);
+    this.#collectModes(node.prefix, mode, tokens);
+    for (const child of node.children.values()) this.#collectSubtree(child, mode, tokens);
+  }
+
+  #collectClaimConflicts(claim, tokens) {
+    const { wildcard, segments } = indexedResource(claim.resource);
+    let node = this.root;
+    for (const segment of segments) {
+      node = node.children.get(segment);
+      if (!node) return;
+      // A prefix claim at any ancestor overlaps the queried exact or subtree claim.
+      this.#collectModes(node.prefix, claim.mode, tokens);
+    }
+    if (wildcard) {
+      // A subtree claim overlaps exact and subtree claims rooted at or below its prefix.
+      this.#collectSubtree(node, claim.mode, tokens);
+    } else {
+      this.#collectModes(node.exact, claim.mode, tokens);
+    }
+  }
 }
 
 function normalizeStoredLease(input, maxClaims) {
@@ -95,6 +190,8 @@ export class ClaimLedger {
     this.revision = 0;
     this.leasesByToken = createRecord();
     this.tokenByHolder = createRecord();
+    this.activeLeaseCount = 0;
+    this.claimIndex = new ClaimOverlapIndex();
     this.waiters = new Set();
   }
 
@@ -135,22 +232,23 @@ export class ClaimLedger {
       if (Object.hasOwn(ledger.tokenByHolder, key)) {
         throw new ContractError('duplicate_claim_holder', 'A claim holder has multiple active leases');
       }
-      for (const other of Object.values(ledger.leasesByToken)) {
-        if (claimSetsConflict(lease.claims, other.claims)) {
-          throw new ContractError('claim_ledger_conflict', 'Stored ClaimLedger contains conflicting active leases', {
-            leftToken: other.token,
-            rightToken: lease.token,
-          });
-        }
+      const conflictingTokens = [...ledger.claimIndex.conflicts(lease.claims)];
+      if (conflictingTokens.length > 0) {
+        throw new ContractError('claim_ledger_conflict', 'Stored ClaimLedger contains conflicting active leases', {
+          leftToken: conflictingTokens[0],
+          rightToken: lease.token,
+        });
       }
       ledger.leasesByToken[lease.token] = lease;
       ledger.tokenByHolder[key] = lease.token;
+      ledger.activeLeaseCount += 1;
+      ledger.claimIndex.add(lease.token, lease.claims);
       highestGeneration = Math.max(highestGeneration, lease.generation);
     }
     if (highestGeneration > ledger.generation) {
       throw new ContractError('claim_ledger_generation', 'ClaimLedger generation is behind an active lease');
     }
-    if (Object.keys(ledger.leasesByToken).length > ledger.maxLeases) {
+    if (ledger.activeLeaseCount > ledger.maxLeases) {
       throw new ContractError('claim_ledger_limit', 'ClaimLedger snapshot exceeds the configured lease limit');
     }
     return ledger;
@@ -175,8 +273,9 @@ export class ClaimLedger {
       });
     }
 
-    const conflicts = Object.values(this.leasesByToken)
-      .filter((lease) => claimSetsConflict(claims, lease.claims))
+    const conflicts = [...this.claimIndex.conflicts(claims)]
+      .map((token) => this.leasesByToken[token])
+      .filter(Boolean)
       .map((lease) => ({
         token: lease.token,
         generation: lease.generation,
@@ -191,7 +290,7 @@ export class ClaimLedger {
     if (conflicts.length > 0) {
       return deepFreeze({ acquired: false, revision: this.revision, conflicts });
     }
-    if (Object.keys(this.leasesByToken).length >= this.maxLeases) {
+    if (this.activeLeaseCount >= this.maxLeases) {
       throw new ContractError('claim_ledger_limit', 'ClaimLedger active lease limit exceeded');
     }
 
@@ -206,6 +305,8 @@ export class ClaimLedger {
     });
     this.leasesByToken[token] = record;
     this.tokenByHolder[key] = token;
+    this.activeLeaseCount += 1;
+    this.claimIndex.add(token, record.claims);
     this.#advanceRevision();
     return deepFreeze({
       acquired: true,
@@ -238,8 +339,10 @@ export class ClaimLedger {
     if (typeof token !== 'string') throw new ContractError('invalid_claim_lease', 'Claim lease token is required');
     const record = this.leasesByToken[token];
     if (!record) return false;
+    this.claimIndex.remove(token, record.claims);
     delete this.leasesByToken[token];
     delete this.tokenByHolder[holderKey(record)];
+    this.activeLeaseCount -= 1;
     this.#advanceRevision();
     return true;
   }

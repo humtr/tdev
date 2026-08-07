@@ -9,9 +9,9 @@ The verified source target is:
 - Node.js `>=22`;
 - ECMAScript modules;
 - no third-party runtime dependency;
-- POSIX-like local filesystem only for `FileSnapshotStore` tests and demos.
+- POSIX-like local filesystem only for `FileSnapshotStore` / `JournalSnapshotStore` tests, benchmarks, and demos.
 
-The supplied container reports Node 22.16.0 and Go 1.23.2. The reference branch's Node/Go 26 gate is outside this environment, so xh-1's executable source contract was intentionally kept on Node 22 and made independent of the reference branch's generated Go/provider stack.
+The supplied container reports Node 22.16.0 and Go 1.23.2. The reference branch's Node/Go 26 gate is outside this environment, so mvp-1a-1's executable source contract was intentionally kept on Node 22 and made independent of the reference branch's generated Go/provider stack.
 
 ## 2. Installation and gate
 
@@ -20,9 +20,9 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-The lockfile contains no external package dependency. `npm run check` is the source release gate:
+The lockfile contains no external package dependency. `npm run check` is the source verification gate:
 
-1. syntax-check every source and test module;
+1. syntax-check every source, test, and benchmark module;
 2. run the complete Node test suite;
 3. run the in-memory demo;
 4. run the local file-backed durable demo.
@@ -56,6 +56,20 @@ Use for single-process local persistence and crash-boundary exercises. It provid
 - in-process per-Case serialization.
 
 It does not provide cross-process mutual exclusion or distributed consistency. Atomic rename protects replacement on a compatible local filesystem, but no claim is made for every network filesystem or platform.
+
+### JournalSnapshotStore
+
+Use when local single-process operation needs lower write amplification while retaining the same snapshot/CAS semantics. It provides:
+
+- one complete canonical base snapshot;
+- canonical checksummed delta records for strictly advancing Case revisions;
+- same-directory temporary write, file `fsync`, atomic rename, and directory `fsync` before a delta CAS returns;
+- deterministic replay that verifies revision continuity and the resulting v2 snapshot digest;
+- the same `maxBytes` bound on the materialized candidate before a delta CAS and after restart replay, so an accepted commit cannot become unreadable solely because replay crosses the configured snapshot bound;
+- optional deterministic compaction that durably replaces the base before deleting covered deltas;
+- in-process per-Case serialization.
+
+The journal materialization and delta-count caches are not authoritative. Normal same-process CAS uses them to avoid replay/readdir amplification; an explicit `load` or process restart re-reads the base and journal from disk and validates replay. Missing, malformed, noncanonical, discontinuous, or digest-invalid committed records fail closed. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
 
 ### CaseRepository
 
@@ -132,7 +146,7 @@ Once a Case snapshot is persisted as v2:
 - deploying older code without a data plan is unsafe;
 - a rollback must either retain v2-compatible code or restore a pre-migration store backup under an explicit operational decision.
 
-The local adapters do not implement backup/restore orchestration. Provider point-in-time recovery, namespace migration, and class rename/delete procedures require provider-specific evidence.
+The local adapters do not implement backup/restore orchestration. Journal compaction is storage maintenance, not a schema downgrade or backup. Provider point-in-time recovery, namespace migration, and class rename/delete procedures require provider-specific evidence.
 
 ## 8. Cloudflare target architecture
 
@@ -218,8 +232,7 @@ Before cutting a source artifact:
 npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 node --experimental-test-coverage --test test/*.test.mjs
-git diff --check
-git status --short
+npm run bench
 ```
 
-Confirm documentation still states all provider layers as unverified and that no generated/cache/runtime directory is included in the release archive.
+If Git metadata is present, also run `git diff --check` and inspect `git status --short`. The supplied source archive has no `.git` metadata, so those checks are not an executable gate here. Confirm documentation still states all provider layers as unverified and that no generated/cache/runtime directory is included in the development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.

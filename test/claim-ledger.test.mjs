@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ClaimLedger } from '../src/claim-ledger.mjs';
+import { claimSetsConflict } from '../src/claims.mjs';
 import { typedDigest } from '../src/canonical.mjs';
 import { CaseEngine } from '../src/engine.mjs';
 import { CaseRepository } from '../src/repository.mjs';
@@ -351,4 +352,59 @@ test('Case and ClaimLedger claim bounds remain aligned above the default limit',
 
   assert.equal(result.caseState, 'succeeded');
   assert.equal(observedCount, 129);
+});
+
+
+test('ClaimLedger indexed admission matches the pure claim conflict oracle', () => {
+  const ledger = new ClaimLedger({ maxLeases: 256 });
+  const modes = ['read', 'write', 'execute'];
+  const seeded = [];
+  for (let index = 0; index < 48; index += 1) {
+    const claims = [{
+      mode: modes[index % modes.length],
+      resource: `remote:root-${index}/item${index % 2 === 0 ? '/**' : ''}`,
+    }];
+    const acquired = ledger.tryAcquire({
+      caseId: `seed-${index}`,
+      taskId: 'task',
+      attemptId: 'task.1',
+      claims,
+    });
+    assert.equal(acquired.acquired, true);
+    seeded.push(acquired.lease);
+  }
+
+  let state = 0x5eed1234;
+  const next = () => {
+    state = (Math.imul(state, 1664525) + 1013904223) >>> 0;
+    return state;
+  };
+  const shapes = [
+    (root) => `remote:${root}`,
+    (root) => `remote:${root}/**`,
+    (root) => `remote:${root}/item`,
+    (root) => `remote:${root}/item/**`,
+    (root) => `remote:${root}/item/child`,
+  ];
+
+  for (let iteration = 0; iteration < 300; iteration += 1) {
+    const rootIndex = next() % 64;
+    const claims = [{
+      mode: modes[next() % modes.length],
+      resource: shapes[next() % shapes.length](`root-${rootIndex}`),
+    }];
+    const expected = seeded
+      .filter((lease) => claimSetsConflict(claims, lease.claims))
+      .map((lease) => lease.token)
+      .sort();
+    const result = ledger.tryAcquire({
+      caseId: `probe-${iteration}`,
+      taskId: 'task',
+      attemptId: 'task.1',
+      claims,
+    });
+    const actual = result.acquired ? [] : result.conflicts.map((item) => item.token).sort();
+    assert.deepEqual(actual, expected);
+    if (result.acquired) ledger.release(result.lease);
+  }
 });

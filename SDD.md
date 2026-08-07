@@ -82,6 +82,8 @@ A failed falsifier reopens the design or owner. Do not hide the mismatch in a fa
 
 - Tests use barriers, controlled promises, deterministic identities, and public outcomes. Timeouts are deadlock guards only.
 - A source test proves source behavior, not deployment, provider state, current-client behavior, rollback, or external effect count.
+- A performance claim must name the measured workload and environment, compare equivalent semantics, and separate operation/byte-count evidence from noisy wall-clock observations. No microbenchmark becomes a production SLO by implication.
+- A performance cache/index must be rebuildable from an authoritative owner or be explicitly promoted into a designed durable contract; never let an optimization silently become semantic truth.
 - Skipped, unsupported, unavailable, and unexecuted layers remain `unknown`.
 - An uncertain external effect remains `unverified` or `reconciling`; it is not rewritten as failed or cancelled.
 - Security denials and corruption failures must be tested as no-effect decisions.
@@ -99,4 +101,5 @@ Before closing work, verify:
 - bounds and malformed/corrupt inputs fail closed;
 - migrations are explicit and downgrade assumptions are not hidden;
 - commands in the documented source gate run in the declared minimum runtime;
-- remaining product/provider unknowns are stated without inflating source completion.
+- remaining product/provider unknowns are stated without inflating source completion;
+- performance-only state can be dropped/rebuilt without changing a legal result, and benchmark evidence covers the hot path the change claims to improve.

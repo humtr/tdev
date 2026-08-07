@@ -138,6 +138,10 @@ Exactly-once execution is not promised. Safe handling is limited to:
 
 An effect receipt proves only that the configured adapter returned evidence matching the operation/effect key. The core does not independently contact the external provider. Trust in receipt contents depends on executor/Agent authentication and provider evidence, which remain adapter responsibilities.
 
+## 10.1 Derived performance state
+
+Copy-on-write mutation frames, validation frontiers, CaseEngine claim-holder indexes, ClaimLedger overlap indexes, runner ready-candidate sets, and journal materialization/delta-count caches are non-authoritative acceleration state. They must be rebuildable from validated authoritative records, excluded from security/authorization decisions except as candidate narrowing, and checked by authoritative fencing/CAS before a state-changing commit. Untrusted persisted bytes never inherit the trust of an in-memory cache.
+
 ## 11. ClaimLedger boundary
 
 The ClaimLedger prevents conflicting active leases and fences generations. Lease tokens are deterministic fencing identities, not bearer secrets or authorization credentials. It is not:

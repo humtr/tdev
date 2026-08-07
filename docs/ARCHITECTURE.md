@@ -4,7 +4,7 @@
 
 ## 1. Selected architecture
 
-The architecture preserves xh-1's parallel Work Graph ontology and imports the reference branch's durable ownership, effect uncertainty, fencing, authority, migration, and evidence disciplines without importing its serial Task ontology.
+The architecture preserves mvp-1's parallel Work Graph ontology and imports the reference branch's durable ownership, effect uncertainty, fencing, authority, migration, and evidence disciplines without importing its serial Task ontology.
 
 ```text
                          provider / application boundary
@@ -45,7 +45,7 @@ The architecture preserves xh-1's parallel Work Graph ontology and imports the r
              snapshot bytes and CAS
                          |
        +-----------------v------------------+
-       | MemorySnapshotStore / FileSnapshotStore |
+       | Memory / File / Journal snapshot stores |
        +------------------------------------+
 ```
 
@@ -82,10 +82,10 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | `promotion.mjs` | deterministic result manifest, conflict detection, candidate construction |
 | `state.mjs` | state vocabularies and Attempt transition guard |
 | `engine.mjs` | all authoritative lifecycle state, events, receipts, snapshots, migration, reconciliation |
-| `claim-ledger.mjs` | global lease generation, fencing, validation, release, snapshot, wait notification |
-| `runner.mjs` | capacity loop, claims, executor invocation, settlement, optional checkpoint |
+| `claim-ledger.mjs` | global lease generation, fencing, validation, release, rebuildable overlap index, snapshot, wait notification |
+| `runner.mjs` | capacity loop, rebuildable ready-candidate set, claims, executor invocation, settlement, optional checkpoint |
 | `durable-runner.mjs` | repository-backed checkpoint protocol |
-| `store.mjs` | memory and local-file CAS adapters |
+| `store.mjs` | memory, full-snapshot local-file, and append-delta local-file CAS adapters |
 | `repository.mjs` | domain restore/migration and single-shot CAS transaction |
 | `index.mjs` | supported source API surface |
 | `cli.mjs` | observable source demos only |
@@ -163,15 +163,18 @@ This is a mapping, not an implementation claim. The production target-claim owne
 
 ## 9. Performance posture
 
-The implementation intentionally favors falsifiable correctness:
+Correctness state remains authoritative, but its execution cost is not part of the semantics. The accepted control-plane policy is:
 
-- mutations clone authoritative state to guarantee rollback on rejection;
-- invariants and readiness may scan the graph;
-- claim admission scans current holders;
-- Promotion copies and validates the full text tree;
-- snapshots contain bounded inline canonical data.
+- direct mutations use copy-on-write rollback frames over frozen validated state instead of canonical-serializing the whole Case before every mutation;
+- historical immutable Events, TaskStates, Attempts, and accepted results are validated once and reused through an in-memory validation frontier; untrusted restore still performs full validation;
+- ClaimLedger uses a rebuildable overlap index over authoritative active leases rather than treating the index as lease truth;
+- live snapshot construction may reuse already validated immutable values, while the snapshot digest and defensive output clone remain complete;
+- `JournalSnapshotStore` persists small deterministic deltas between compact full snapshots while preserving the same revision CAS and fsync-before-return durability boundary; its materialized snapshot and delta-count caches are rebuildable only;
+- the runner holds a rebuildable ready-candidate set refreshed through Plan reverse edges, and `CaseEngine` holds a rebuildable claim-holder set; neither is persisted or allowed to authorize a start without `CaseEngine.admissionDecision`;
+- Plan cycle detection uses linear Kahn traversal without repeatedly sorting/shifting the ready list; deterministic Plan identity does not depend on traversal order;
+- Promotion still copies and validates the full text tree in this slice; content-addressed incremental tree construction remains a later repository-adapter gate.
 
-These are not semantic blockers, but they are production optimization work. Safe substitutions include remaining-dependency counters derived from authoritative states, claim prefix indexes, incremental invariant checks, content-addressed ChangeSets/Artifacts, and Merkle/Git-tree candidate construction. None may introduce a second readiness owner or bypass Promotion.
+Context CAS, Task-specific ContextSlice, warm process/toolchain pools, and cache-locality scheduling belong to a concrete repository/executor adapter. The kernel does not invent those substrates merely to expose configuration knobs.
 
 ## 10. Architectural stop gates
 

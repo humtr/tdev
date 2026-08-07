@@ -154,12 +154,13 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 ## 10. Store and runner behavior
 
 - `MemorySnapshotStore` provides deterministic in-process CAS.
-- `FileSnapshotStore` reads strict canonical JSON and performs same-directory temporary write, file sync, atomic rename, directory sync, and in-process per-Case serialization.
+- `FileSnapshotStore` reads strict canonical JSON and performs full-snapshot same-directory temporary write, file sync, atomic rename, directory sync, and in-process per-Case serialization.
+- `JournalSnapshotStore` implements the same CAS contract with one compact full base plus canonical checksummed revision deltas; replay must reconstruct the exact v2 snapshot and compaction must never remove the only durable committed state.
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
-- `runCase` executes the graph in memory and supports an injected checkpoint callback.
+- `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`.
 - `runDurableCase` uses repository CAS checkpoints so Attempt-start persistence succeeds before executor dispatch and settlement persistence precedes claim release.
 
-A CAS conflict does not automatically replay a transaction callback or dispatch an executor.
+A CAS conflict does not automatically replay a transaction callback or dispatch an executor. Store indexes, journal materialization/delta-count caches, validation frontiers, CaseEngine claim-holder indexes, and runner ready-candidate sets are performance-only derived state and may never replace Case/lease authority.
 
 ## 11. Source-slice acceptance
 

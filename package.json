@@ -1,6 +1,5 @@
 {
   "name": "@humtr/tdev",
-  "version": "0.2.0",
   "private": true,
   "type": "module",
   "exports": "./src/index.mjs",
@@ -8,10 +7,11 @@
     "node": ">=22"
   },
   "scripts": {
-    "syntax": "for file in src/*.mjs test/*.mjs; do node --check \"$file\"; done",
+    "syntax": "for file in src/*.mjs test/*.mjs bench/*.mjs; do node --check \"$file\"; done",
     "test": "node --test test/*.test.mjs",
     "demo": "node src/cli.mjs demo",
     "durable-demo": "node src/cli.mjs durable-demo",
-    "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent"
+    "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent",
+    "bench": "node bench/control-plane.mjs"
   }
 }

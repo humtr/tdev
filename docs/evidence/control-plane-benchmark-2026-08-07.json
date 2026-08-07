@@ -1,0 +1,51 @@
+{
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "scheduler": {
+    "wide128": {
+      "capacity1Ms": 156.004,
+      "capacity16Ms": 111.99,
+      "canonicalEquivalent": true
+    },
+    "chain128Capacity16Ms": 105.536,
+    "wide512Capacity16Ms": 984.466,
+    "readyScan2000Ms": 0.488,
+    "readyCount": 2000
+  },
+  "claimLedger": {
+    "disjointAcquisitions2000Ms": 59.577,
+    "disjointAcquisitions10000Ms": 309.348,
+    "disjointQueryAt10000Ms": 0.036
+  },
+  "promotion": {
+    "baseFiles": 20000,
+    "touchedPaths": 1,
+    "elapsedMs": 172.604,
+    "outputDigest": "sha256:cc04c798d44a924cd000f4013616c6b4529af7a8c5e4f337419ad781a0845649"
+  },
+  "persistence": {
+    "tasks": 32,
+    "observationPayloadBytes": 4096,
+    "fileSnapshotStore": {
+      "elapsedMs": 918.167,
+      "writes": 67,
+      "logicalBytes": 6550735,
+      "finalSnapshotBytes": 204339
+    },
+    "journalSnapshotStore": {
+      "elapsedMs": 648.343,
+      "writes": 67,
+      "logicalBytes": 270883,
+      "finalSnapshotBytes": 204342
+    }
+  },
+  "unavailableInThisSourceSlice": {
+    "contextDuplicateBytes": "no repository/context transport adapter exists",
+    "executorColdVsWarmStart": "no process/toolchain executor lifecycle exists in this kernel",
+    "tokenDuplication": "no model transport exists in this kernel"
+  },
+  "totalElapsedMs": 3764.85
+}

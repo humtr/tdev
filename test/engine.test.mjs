@@ -100,3 +100,31 @@ test('event semantics contain no wall-clock timestamp', () => {
   engine.startAttempt('a', 'executor-a');
   assert.equal(engine.snapshot().events.every((event) => !Object.hasOwn(event, 'timestamp')), true);
 });
+
+test('committed mutable records are frozen between transitions', () => {
+  const engine = new CaseEngine({ caseId: 'case-frozen-frontier', plan: planWithWork([{ id: 'a' }]) });
+  assert.equal(Object.isFrozen(engine.taskStates), true);
+  assert.equal(Object.isFrozen(engine.taskStates.a), true);
+  assert.equal(Object.isFrozen(engine.attempts), true);
+
+  const attempt = engine.startAttempt('a', 'executor-a');
+  assert.equal(Object.isFrozen(engine.taskStates), true);
+  assert.equal(Object.isFrozen(engine.taskStates.a), true);
+  assert.equal(Object.isFrozen(engine.attempts), true);
+  assert.equal(Object.isFrozen(engine.attempts[attempt.id]), true);
+  assert.throws(() => {
+    engine.taskStates.a.state = 'succeeded';
+  }, TypeError);
+});
+
+test('incrementally validated live state round-trips through a full restore validation', () => {
+  const engine = new CaseEngine({ caseId: 'case-frontier-roundtrip', plan: planWithWork([{ id: 'a' }, { id: 'b' }]) });
+  const a = engine.startAttempt('a', 'executor-a');
+  engine.completeAttempt(a.id, resultFor(engine.plan.baseDigest, { id: 'a' }, 'A'));
+  const b = engine.startAttempt('b', 'executor-b');
+  engine.completeAttempt(b.id, resultFor(engine.plan.baseDigest, { id: 'b' }, 'B'));
+
+  const liveSnapshot = engine.snapshot();
+  const restored = CaseEngine.restore(liveSnapshot, { reopen: false });
+  assert.deepEqual(restored.snapshot(), liveSnapshot);
+});

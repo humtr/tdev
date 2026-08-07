@@ -103,6 +103,7 @@ export async function runCase(engine, executor, options = {}) {
   }
 
   const running = new Map();
+  const readyTaskIds = new Set();
   let executorOrdinal = 0;
   let maxConcurrent = 0;
   let lastClaimBlock = null;
@@ -123,7 +124,24 @@ export async function runCase(engine, executor, options = {}) {
 
   releaseTerminalLeases(engine, claimLedger);
   engine.reconcile();
+  for (const taskId of engine.readyTaskIds()) readyTaskIds.add(taskId);
   await checkpointState('initial_reconcile');
+
+  function refreshReadyTask(taskId) {
+    const task = engine.plan.tasksById[taskId];
+    const taskState = engine.taskStates[taskId];
+    if (!task || taskState?.state !== 'pending' ||
+        !task.dependencies.every((dependency) => engine.taskStates[dependency].state === 'succeeded')) {
+      readyTaskIds.delete(taskId);
+      return;
+    }
+    readyTaskIds.add(taskId);
+  }
+
+  function refreshReadyAfter(taskId) {
+    refreshReadyTask(taskId);
+    for (const dependent of engine.plan.reverseDependenciesById[taskId] ?? []) refreshReadyTask(dependent);
+  }
 
   function makeExecutorIdentity(taskId) {
     executorOrdinal += 1;
@@ -264,13 +282,14 @@ export async function runCase(engine, executor, options = {}) {
 
     while (running.size < capacity && engine.caseState === 'active') {
       let admittedThisPass = false;
-      for (const taskId of engine.readyTaskIds()) {
+      for (const taskId of readyTaskIds) {
         if (running.size >= capacity || engine.caseState !== 'active') break;
         const identity = makeExecutorIdentity(taskId);
         const decision = engine.admissionDecision(taskId, identity.capabilities);
         if (!decision.admissible) {
           if (decision.reason === 'authority') {
             engine.denyTask(taskId, decision.missingCapabilities);
+            readyTaskIds.delete(taskId);
             await checkpointState('task_denied', { taskId });
             madeProgress = true;
             admittedThisPass = true;
@@ -285,6 +304,7 @@ export async function runCase(engine, executor, options = {}) {
         try {
           const checkpointPromise = start(taskId, identity, claimDecision.lease);
           if (checkpointPromise) await checkpointPromise;
+          readyTaskIds.delete(taskId);
         } catch (error) {
           if (claimDecision.lease) claimLedger.release(claimDecision.lease);
           throw error;
@@ -323,6 +343,8 @@ export async function runCase(engine, executor, options = {}) {
     const entry = running.get(outcome.attemptId);
     running.delete(outcome.attemptId);
     await settle(outcome);
+    const settledTaskId = engine.attempts[outcome.attemptId]?.taskId;
+    if (settledTaskId) refreshReadyAfter(settledTaskId);
     if (entry && engine.attempts[outcome.attemptId]?.state === 'cancelled') {
       entry.abortController.abort(new ContractError('attempt_cancelled', `Attempt ${outcome.attemptId} was cancelled`));
     }

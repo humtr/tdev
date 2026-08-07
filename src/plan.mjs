@@ -106,8 +106,9 @@ function assertAcyclic(tasksById, taskOrder, reverseDependenciesById) {
   const ready = taskOrder.filter((taskId) => indegree[taskId] === 0);
   let visited = 0;
   while (ready.length > 0) {
-    ready.sort(compareText);
-    const taskId = ready.shift();
+    // Kahn traversal order does not affect acyclicity or the deterministic cycle report,
+    // which is derived from sorted taskOrder below. A stack avoids repeated sort/shift.
+    const taskId = ready.pop();
     visited += 1;
     for (const dependent of reverseDependenciesById[taskId]) {
       indegree[dependent] -= 1;

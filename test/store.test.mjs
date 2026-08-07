@@ -188,3 +188,117 @@ test('store and repository option boundaries fail closed', async (t) => {
     (error) => error?.code === 'unexpected_keys',
   );
 });
+
+test('JournalSnapshotStore replays deltas with the same compare-and-swap contract', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const { JournalSnapshotStore } = await import('../src/store.mjs');
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-case', plan });
+  const initial = engine.snapshot();
+  await store.create(initial);
+
+  engine.startAttempt('a', 'executor');
+  const running = engine.snapshot();
+  await store.compareAndSwap('journal-case', initial.caseRevision, running);
+
+  const loaded = await store.load('journal-case');
+  assert.deepEqual(loaded, running);
+  const restartedStore = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  assert.deepEqual(await restartedStore.load('journal-case'), running);
+  assert.deepEqual(
+    await readdir(path.join(directory, 'journal-case')),
+    ['base.json', `delta-${String(running.caseRevision).padStart(16, '0')}.json`],
+  );
+});
+
+test('JournalSnapshotStore admits one CAS winner and ignores orphan temp files', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const { JournalSnapshotStore } = await import('../src/store.mjs');
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const initialEngine = new CaseEngine({ caseId: 'journal-race', plan });
+  const initial = initialEngine.snapshot();
+  await store.create(initial);
+  await writeFile(path.join(directory, 'journal-race', '.orphan.tmp'), 'incomplete');
+
+  const left = CaseEngine.restore(await store.load('journal-race'), { reopen: false });
+  const right = CaseEngine.restore(await store.load('journal-race'), { reopen: false });
+  left.startAttempt('a', 'left');
+  right.startAttempt('a', 'right');
+  const results = await Promise.allSettled([
+    store.compareAndSwap('journal-race', initial.caseRevision, left.snapshot()),
+    store.compareAndSwap('journal-race', initial.caseRevision, right.snapshot()),
+  ]);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+  const rejected = results.find((result) => result.status === 'rejected');
+  assert.equal(rejected.reason.code, 'store_revision_conflict');
+  assert.ok(['left', 'right'].includes((await store.load('journal-race')).attempts['a.1'].executorId));
+});
+
+test('JournalSnapshotStore compaction preserves the exact materialized snapshot', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const { JournalSnapshotStore } = await import('../src/store.mjs');
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 2 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-compact', plan });
+  let prior = engine.snapshot();
+  await store.create(prior);
+
+  engine.startAttempt('a', 'executor', { initialState: 'dispatch_pending' });
+  let current = engine.snapshot();
+  await store.compareAndSwap('journal-compact', prior.caseRevision, current);
+  prior = current;
+  engine.markAttemptQueued('a.1');
+  current = engine.snapshot();
+  await store.compareAndSwap('journal-compact', prior.caseRevision, current);
+
+  assert.deepEqual(await readdir(path.join(directory, 'journal-compact')), ['base.json']);
+  assert.deepEqual(await store.load('journal-compact'), current);
+});
+
+test('JournalSnapshotStore rejects an oversized materialized CAS before committing it', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const { JournalSnapshotStore } = await import('../src/store.mjs');
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-size-bound', plan });
+  const initial = engine.snapshot();
+  engine.startAttempt('a', 'executor');
+  const running = engine.snapshot();
+  const initialBytes = Buffer.byteLength(canonicalJson(initial));
+  const runningBytes = Buffer.byteLength(canonicalJson(running));
+  assert.ok(runningBytes > initialBytes);
+
+  const store = new JournalSnapshotStore(directory, {
+    compactAfterDeltas: 16,
+    maxBytes: initialBytes,
+  });
+  await store.create(initial);
+  await assert.rejects(
+    store.compareAndSwap('journal-size-bound', initial.caseRevision, running),
+    (error) => error?.code === 'store_snapshot_too_large' && error?.details?.size === runningBytes,
+  );
+  assert.deepEqual(await new JournalSnapshotStore(directory, { maxBytes: initialBytes }).load('journal-size-bound'), initial);
+});
+
+test('JournalSnapshotStore fails closed on a noncanonical committed delta', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const { JournalSnapshotStore } = await import('../src/store.mjs');
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-corrupt', plan });
+  const initial = engine.snapshot();
+  await store.create(initial);
+  engine.startAttempt('a', 'executor');
+  const current = engine.snapshot();
+  await store.compareAndSwap('journal-corrupt', initial.caseRevision, current);
+
+  const deltaPath = path.join(
+    directory,
+    'journal-corrupt',
+    `delta-${String(current.caseRevision).padStart(16, '0')}.json`,
+  );
+  const delta = JSON.parse(await readFile(deltaPath, 'utf8'));
+  await writeFile(deltaPath, JSON.stringify(delta, null, 2));
+  await assert.rejects(store.load('journal-corrupt'), (error) => error?.code === 'store_noncanonical');
+});

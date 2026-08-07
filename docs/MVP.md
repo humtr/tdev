@@ -28,12 +28,12 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-Observed in the supplied container on 2026-08-06:
+Observed in the supplied container for lineage `mvp-1a-1` on 2026-08-07:
 
 - Node.js `v22.16.0`;
 - npm `10.9.2`;
 - syntax gate passed;
-- **88/88 tests passed**;
+- **96/96 tests passed**;
 - in-memory demo succeeded;
 - file-backed durable demo succeeded;
 - no third-party runtime packages were required.
@@ -68,7 +68,7 @@ The durable demo reloaded the persisted Case at revision 7 and reproduced the sa
 | legacy migration | Design 0001 succeeded fixture | v2 recomputed and accepted |
 | migration persistence | load v1 through repository | v2 CAS-persisted |
 | command receipts | replay/conflict/revision mismatch | exact response/no effect semantics |
-| store CAS | concurrent/revision-regression writes | one winner; regression rejected |
+| store CAS | concurrent/revision-regression/oversize writes | one winner; regression and pre-commit materialized oversize rejected |
 | canonical file store | noncanonical/duplicate/malformed bytes | load rejected |
 | durable dispatch | inspect store before executor call | running Attempt already persisted |
 | checkpoint conflict | force CAS loss before dispatch | zero executor calls |
@@ -77,7 +77,7 @@ The durable demo reloaded the persisted Case at revision 7 and reproduced the sa
 
 ## 4. Test inventory
 
-The 88 tests are organized as:
+The 96 tests are organized as:
 
 - canonical JSON and canonical data safety;
 - claim overlap and cross-Case ClaimLedger behavior;
@@ -86,7 +86,7 @@ The 88 tests are organized as:
 - graph/Attempt/Promotion invariants;
 - authority and path policy;
 - result algebra and bounds;
-- memory/file stores and repository CAS;
+- memory/file/journal stores and repository CAS;
 - capacity/determinism stress.
 
 Tests use barriers and controlled promises where ordering matters. Timeouts are deadlock guards, not correctness evidence.
@@ -99,17 +99,26 @@ Run:
 node --experimental-test-coverage --test test/*.test.mjs
 ```
 
-Coverage is supporting evidence, not the product contract. Exact final percentages are recorded in `IMPLEMENTATION_REPORT.md` after the release run. More important than aggregate percentage are the explicit falsifiers for stale fencing, uncertain effects, corrupted snapshots, atomic rollback, checkpoint-before-dispatch, and Promotion non-mutation.
+Coverage is supporting evidence, not the product contract. The mvp-1a-1 verification run completed at 91.12% lines, 80.25% branches, and 96.40% functions; exact evidence is recorded in `IMPLEMENTATION_REPORT.md`. More important than aggregate percentage are the explicit falsifiers for stale fencing, uncertain effects, corrupted snapshots, atomic rollback, checkpoint-before-dispatch, and Promotion non-mutation.
 
-## 6. Scale evidence
+## 6. Scale and performance evidence
 
-The stress test uses 64 independent work Tasks plus Promotion and runs the same Plan at capacity 1 and 16. It verifies:
+The semantic stress test uses 64 independent work Tasks plus Promotion and runs the same Plan at capacity 1 and 16. It verifies:
 
 - identical canonical digest;
 - identical deterministic Promotion manifest;
 - actual observed concurrency of 16 in the parallel run.
 
-This proves the core semantic property for that bounded test. It does not prove throughput, memory, or latency suitability for thousands of Tasks or large repositories.
+The checked-in `npm run bench` harness separately measures container-local overhead without imposing wall-clock pass/fail thresholds. On the 2026-08-07 retained run:
+
+- 128 independent observation Tasks: 156.004 ms at capacity 1 and 111.990 ms at capacity 16, with identical canonical digest;
+- 512 independent observation Tasks at capacity 16: 984.466 ms, exposing the remaining large-DAG control-plane growth;
+- one 2,000-Task readiness scan: 0.488 ms;
+- 2,000 disjoint ClaimLedger acquisitions: 59.577 ms (about 106x faster than the retained ~6.319 s pre-change baseline); 10,000 acquisitions: 309.348 ms; one disjoint query at 10,000 active leases: 0.036 ms;
+- Promotion over a 20,000-file base with one touched path: 172.604 ms;
+- 32-Task durable 4 KiB observation workload: 67 writes for both stores, 6,550,735 logical bytes for full snapshots vs 270,883 bytes in the non-compacted journal layout, a 95.86% logical-byte reduction; observed wall-clock 918.167 ms vs 648.343 ms.
+
+The pre-change audit measured the 128-wide observation workload at approximately 2.42 s / 2.64 s and 2,000 disjoint Claim acquisitions at approximately 6.32 s. These comparisons identify fast-path changes, not production SLOs. Context/token duplication and executor cold/warm-start are not measured because no such adapter exists in this source slice. Exact JSON is in `docs/evidence/control-plane-benchmark-2026-08-07.json`.
 
 ## 7. Evidence not claimed
 
@@ -132,11 +141,11 @@ These remain `unknown`, not `passed`.
 
 ## 8. Completion decision
 
-Design 0002 is source-verified when all of the following are true:
+Design 0003 / lineage `mvp-1a-1` is source-verified when all of the following are true:
 
-- the 88-test gate and both demos pass under Node 22;
+- the 96-test gate and both demos pass under Node 22;
 - final coverage completes without test failure;
-- `git diff --check` is clean;
+- source syntax is clean; if Git metadata is present, `git diff --check` is clean;
 - normative documents agree with implemented defaults and boundaries;
-- the release archive excludes `.git` and transient runtime directories;
+- the development archive excludes `.git`, `node_modules`, coverage output, and transient runtime directories;
 - provider layers remain explicitly unverified.

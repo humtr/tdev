@@ -3,7 +3,7 @@
 - Class: 2
 - Status: superseded by Design 0002
 - Base: `main@b86287b84375e2aeb833cf775371a7808a1239cf`
-- Target branch: `mvp-parallel-xh-1`
+- Target lineage: `mvp-1`
 
 ## Problem
 

@@ -9,7 +9,7 @@ The repository exposes two drivers over the same `CaseEngine` protocol:
 - `runCase(engine, executor, options)`: in-memory orchestration, optionally with an injected checkpoint callback;
 - `runDurableCase(repository, caseId, executor, options)`: repository-backed orchestration with mandatory compare-and-swap checkpoints.
 
-Neither driver owns Task lifecycle. Both ask `CaseEngine` for readiness/admission and submit only authoritative state transitions.
+Neither driver owns Task lifecycle. `runCase` may cache rebuildable ready candidates from Plan reverse edges, but every start still uses `CaseEngine` state and `admissionDecision`; only authoritative engine transitions can change lifecycle truth.
 
 ## 2. Runner options
 
@@ -40,9 +40,14 @@ An executor must:
 
 The executor receives dependency outputs as accepted immutable results. It does not receive mutable CaseEngine access.
 
+
+## 3.1 Control-plane acceleration boundary
+
+The runner and engine may use rebuildable in-memory acceleration only when the authoritative decision remains reproducible from the Plan, Task/Attempt state, and active lease records. A validation frontier may reuse already validated frozen history; a CaseEngine claim-holder set and ClaimLedger overlap index may narrow conflict candidates; the runner may maintain a ready-candidate set refreshed from reverse edges. None is durable truth or sufficient to authorize a transition. Full validation remains mandatory for untrusted restore/migration. Resource capacity and future CPU/memory/API budgets remain scheduling policy and are not Claims.
+
 ## 4. Admission and dispatch
 
-For each ready Task, the runner:
+For each ready-candidate Task, the runner:
 
 1. resolves an executor identity and capabilities;
 2. obtains the engine's authority/in-Case-claim admission decision;
@@ -154,6 +159,12 @@ Use `repository.command(caseId, envelope, { claimValidator })` for receipt-backe
 
 It does not provide cross-process exclusion. Do not run multiple independent processes against the same directory as though it were a distributed CAS database.
 
+## 11.1 Journal-store operation
+
+`JournalSnapshotStore` is the lower-write-amplification local option and implements the same `create/load/compareAndSwap` interface. It stores one full `base.json` plus revision-addressed canonical delta files. A successful delta CAS is fsynced and renamed before returning. Compaction first makes the replacement base durable, then removes covered deltas.
+
+The in-memory materialized snapshot and delta count exist only to avoid replaying/relisting the journal on every same-process CAS. An explicit `load` and any process restart reconstruct from durable files and verify every applicable delta. Do not share one journal directory between independent processes as a distributed CAS store.
+
 ## 12. Claim owner operation
 
 A local `ClaimLedger` can be snapshotted and restored, but `runDurableCase` does not atomically persist that ledger with the Case snapshot. This is adequate for deterministic source testing, not for process-loss-safe cross-Case exclusion.
@@ -174,12 +185,15 @@ Recommended operator signals:
 
 - Case and Task state counts;
 - oldest reconciling Attempt;
-- claim conflicts and generations;
+- claim conflicts, generations, active lease count, and indexed-query latency;
+- scheduler candidate/admission counts and idle-capacity episodes;
 - checkpoint CAS conflicts;
 - duplicate/stale result rejection counts;
 - migration count and source schema version;
 - Promotion conflict/topology failure details;
-- store corruption and noncanonical-read failures.
+- store corruption and noncanonical-read failures;
+- full-snapshot vs delta bytes written, delta count, compaction count, and replay latency;
+- Promotion base-tree size, touched-path count, and validation time.
 
 ## 14. Failure handling
 
