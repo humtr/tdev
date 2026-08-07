@@ -24,4 +24,4 @@ export { CaseRepository } from './repository.mjs';
 export { WORK_RESULT_KINDS, normalizeTaskResult, resultIdentity } from './results.mjs';
 export { runCase } from './runner.mjs';
 export { runDurableCase } from './durable-runner.mjs';
-export { FileSnapshotStore, JournalSnapshotStore, MemorySnapshotStore } from './store.mjs';
+export { FileSnapshotStore, ImmutableJournalSnapshotStore, JournalSnapshotStore, MemorySnapshotStore } from './store.mjs';

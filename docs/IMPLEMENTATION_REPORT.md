@@ -1,4 +1,154 @@
-# mvp-1a-2 independent audit, implementation, and verification report
+# mvp-1a-3 independent review, implementation, and verification report
+
+- Date: 2026-08-07
+- Current development identity: `mvp-1a-3`
+- Remote source parent: `humtr/tdev` `mvp-1a-2` at `ee02845c8947b69f810308fd957e3952a8e508b9`
+- Current design: `docs/design/0005-immutable-expected-revision-journal-cas.md`
+- Structured evidence: `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`
+- Verified runtime: Node.js 22.16.0 / npm 10.9.2
+
+## Current conclusion
+
+The comparison did not justify merging B or replacing any A subsystem wholesale. The independently reproduced evidence supports one narrow improvement: an expected-revision immutable publication protocol can add cross-process local-filesystem winner election without weakening the parent corruption envelope **if** every load/CAS still performs strict retained-history replay and the legacy-to-v2 writer cutover is explicit.
+
+Design 0005 therefore adds a separate opt-in `ImmutableJournalSnapshotStore`. It does not replace Design 0004 `JournalSnapshotStore`, does not add checkpoint/cache/compaction/history deletion, and does not claim distributed/provider semantics. The final source suite preserves the parent blocker, scheduler repair, FileSnapshotStore, restore-oracle, and capacity-independent execution barriers.
+
+Compiled-base Promotion remains a follow-on hypothesis. B demonstrated that redundant base validation has measurable local cost, but B's `Object.isFrozen()` trust mechanism is not a provenance proof and the current repository priority remains a real repository adapter before adding a new in-memory Promotion trust capability. No D0006 implementation is claimed here.
+
+## A. Comparison findings
+
+| Finding | Result | Consequence |
+| --- | --- | --- |
+| B independent `FileSnapshotStore` instances at one expected revision | reproduced: 50/50 runs allowed both writers to report success; A was 0/50 both-success | B locking rejected; A process-wide File-store serialization preserved |
+| B warm Journal after retained historical corruption | reproduced: warm writer appended a new commit while a fresh reader rejected the same durable state | proposal/materialization cache rejected for this slice |
+| B compiled-base trust | reproduced: arbitrary frozen base plus inconsistent digest was accepted by the fast path while the public path rejected it | B trust implementation rejected; optimization idea only retained |
+| B checkpoint present/absent semantic corruption | reproduced: checkpoint-present load succeeded while checkpoint-absent replay failed | B checkpoint implementation rejected |
+
+The A/B ZIP SHA-256 values and falsifier-result digests are retained in the structured evidence file. The comparison artifacts were reused only after their source identities were confirmed unchanged.
+
+## B. Preserved correctness barriers
+
+The current source still proves:
+
+- deterministic topological blocker propagation independent of lexical Task ID order;
+- complete blocker evidence after failure/cancellation;
+- authoritative reconcile/rebuild before scheduler deadlock after disposable candidate loss;
+- one same-process `FileSnapshotStore` CAS winner across independent instances;
+- one execution model for capacity 1 and capacity N;
+- canonical output independence from completion order, executor identity, accepted-result order, and retry interleaving within the declared acceptance scope;
+- 100 seeded randomized transition histories checked by full untrusted restore after every transition;
+- Design 0004 warm/cold corruption visibility for its existing journal adapter.
+
+These remain regression evidence, not a declaration that A source is itself normative authority.
+
+## C. J1 aggressive review and resulting contract
+
+### Revision continuity
+
+A Case mutation may emit more than one Event before a repository CAS. Therefore the correct storage invariant is not `toRevision = fromRevision + 1`.
+
+A v2 delta requires:
+
+```text
+toRevision > fromRevision
+appendedEvents.length == toRevision - fromRevision
+eventSequence == toRevision
+sourceSnapshotDigest == predecessor.snapshotDigest
+semantic replay snapshotDigest == targetSnapshotDigest
+```
+
+A focused multi-Event test proves a revision jump greater than one replays exactly.
+
+### Legacy/new coexistence
+
+The accepted ordering is a legacy-v1 prefix followed by an immutable-v2 suffix. A legacy record after the first reachable v2 record fails closed. Two records with one predecessor are a fork even when their formats differ; no precedence rule silently chooses one.
+
+A separate mixed-process falsifier found an important migration boundary: a live legacy writer and a live immutable writer can both publish from one predecessor because their final filenames differ. Consequently the first v2 publication is not a rolling-format transition. The migration owner must quiesce all legacy writers before the first v2 CAS. New-source legacy and immutable adapters share one same-process lock, but this does not substitute for cross-process cutover evidence.
+
+### Publication
+
+For v2 writes the authoritative identity is `delta-from-<expectedRevision>.json`. The writer canonicalizes to a unique dot-temp, fsyncs the file, hard-links it to the final no-replace slot, fsyncs the Case directory, then removes the temporary name best-effort.
+
+The independent-process base-create race and update race each elect exactly one winner on the tested compatible local filesystem. Orphan dot-temporary files do not poison future CAS. A recognized final slot occupied by a non-regular filesystem entry fails closed rather than being ignored.
+
+If final publication may already have happened but directory fsync fails, source code returns `store_commit_ambiguous` and preserves the possible success for reconciliation. That branch was code-reviewed but was not deterministically fault-injected in this container, so power-loss durability is not claimed beyond the observed environment.
+
+### Replay and corruption
+
+Every immutable-journal load/CAS fully re-reads, parses, validates, and semantically replays retained authority. There is no warm proposal state, checkpoint, materialization cache, or authority-changing compaction. Tests cover stale writers, source/target digest binding, semantically modified/re-digested history, noncanonical and unknown records, malformed and unsafe filenames, missing base/predecessor, fork/gap/unreachable records, materialized bounds, restart, and legacy compaction-cleanup crash shape.
+
+## D. Checkpoint/cache authority model
+
+The current recommendation is **hold**.
+
+A correctness-neutral non-authoritative checkpoint is possible in principle only if retained history remains independently verifiable. One conservative model would store a checkpoint snapshot plus an exact content-hash manifest for every covered authoritative record, then still re-read and hash those retained bytes before using the checkpoint. That can skip repeated parse/semantic replay when hashes match, but it cannot eliminate retained-history I/O under the current corruption envelope. Its value therefore needs measurement before adding another optimization state.
+
+Avoiding the retained-byte verification itself requires a stronger authority model: for example a trusted transactional owner, protected authenticated root, or explicitly designed history-GC/root-transition protocol. None exists in the current local adapter contract. B's head/predecessor-only cache is therefore not an acceptable substitute.
+
+## E. Promotion provenance decision
+
+B's fast path showed that initial full-base validation has measurable local cost, but the current implementation's trust boundary is invalid: `Object.isFrozen(baseTree)` proves immutability, not compiler provenance, PlanRevision identity, or digest binding.
+
+If Promotion is reopened later, the simplest credible direction is an exact Plan-produced, process-local, non-serializable proof keyed by object identity, such as a module-private `WeakSet`/`WeakMap` brand on compiled Plan objects. The internal fast path should accept the exact compiled Plan/capability rather than a caller-supplied tree plus claimed digest. It must still perform accepted-result validation, path/conflict checks, final tree validation, and final digesting.
+
+D0006 is not opened in this source state because the current WORKBOARD places real repository/substrate measurement ahead of Promotion specialization and the observed in-memory saving does not yet justify the added trust mechanism at total-system scope.
+
+## F. Design split
+
+Separating Journal and Promotion is correct under `SDD.md` Class 2 rules. Journal changes persistence, migration, rollback, filesystem publication, and CAS ownership. Promotion changes validation elision, provenance/trust, and canonical-tree construction. They have independent rollback and verification boundaries and should not share one acceptance closure.
+
+D0005 is verified. D0006 remains unopened/held.
+
+## G. Final classification
+
+| Candidate | Decision |
+| --- | --- |
+| expected-revision immutable Journal CAS | **modified then adopted** as Design 0005 / `ImmutableJournalSnapshotStore` |
+| checkpoint idea | **hold**; safe form may only skip parse/replay while retained bytes are still verified, unless a new authority transition is designed |
+| B checkpoint implementation | **discard** |
+| proposal/materialization cache | **hold** as a concept; B implementation **discarded** |
+| compiled-base Promotion | **hold**; idea remains plausible, B trust mechanism discarded |
+| B `FileSnapshotStore` locking | **discard** |
+| B blocker changes | **discard** |
+| B runner changes | **discard** |
+
+## Implementation evidence
+
+Implemented paths:
+
+- `src/store.mjs`: `ImmutableJournalSnapshotStore`, v2 record validation/replay/publication, old-adapter downgrade guard, common same-process journal-family serialization;
+- `src/index.mjs`: package export;
+- `test/immutable-journal.test.mjs` and its process-writer fixture: 18 focused tests;
+- Design 0005, affected persistence/architecture/protocol/MVP owners, lineage/workboard, and structured evidence.
+
+Observed gates:
+
+- focused immutable journal: 18/18 passed;
+- immutable plus existing store tests: 39/39 passed;
+- `npm ci --ignore-scripts --no-audit --no-fund`: passed;
+- `npm run check`: passed;
+- complete tests: 128/128 passed;
+- inherited 100-history full-restore oracle: passed after every transition;
+- final coverage invocation: 128/128 passed, 91.73% lines / 81.72% branches / 96.14% functions;
+- `git diff --check`: passed.
+
+No performance acceptance is claimed for D0005. It deliberately trades full retained-history read/replay cost for a stronger local cross-process CAS option. No checkpoint/cache benchmark was run because those features were not implemented.
+
+Remaining unknowns and non-claims:
+
+- cross-process mixed legacy/new writer operation is unsupported during cutover;
+- directory-fsync-after-link failure classification was not deterministically fault-injected;
+- power-loss durability beyond the observed compatible local filesystem is unverified;
+- network filesystems, distributed/provider storage, Durable Objects, deployment, public MCP/client behavior, and provider rollback remain unverified;
+- no automatic v2-to-v1 data downgrade exists, and unmodified `mvp-1a-2` is unsafe after a v2 record is written;
+- checkpoint/cache acceleration and Promotion optimization are not part of this implementation.
+
+---
+
+## Historical `mvp-1a-2` report retained as evidence
+
+The remainder of this document is the prior `mvp-1a-2` report. Its historical identity, measurements, and export statements are retained as evidence and do not override the current `mvp-1a-3` section above.
+
 
 - Date: 2026-08-07
 - Final development identity: `mvp-1a-2`

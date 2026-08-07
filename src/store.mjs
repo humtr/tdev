@@ -1,5 +1,5 @@
-import { createHash } from 'node:crypto';
-import { open, mkdir, readdir, rename, rm } from 'node:fs/promises';
+import { createHash, randomUUID } from 'node:crypto';
+import { link, open, mkdir, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
   ContractError,
@@ -8,6 +8,7 @@ import {
   assertRecordShape,
   assertSafeInteger,
   canonicalJson,
+  compareText,
   createRecord,
   exactKeys,
   isPlainRecord,
@@ -216,7 +217,9 @@ export class FileSnapshotStore {
 }
 
 const JOURNAL_DELTA_SCHEMA_VERSION = 1;
+const IMMUTABLE_JOURNAL_DELTA_SCHEMA_VERSION = 2;
 const JOURNAL_DELTA_FILE = /^delta-(\d{16})\.json$/;
+const IMMUTABLE_JOURNAL_DELTA_FILE = /^delta-from-(\d{16})\.json$/;
 
 function caseSnapshotDigest(snapshot) {
   const { snapshotDigest: ignored, ...withoutDigest } = snapshot;
@@ -511,6 +514,15 @@ export class JournalSnapshotStore {
       if (error?.code === 'ENOENT') return [];
       throw new ContractError('store_read_failed', `Failed to list journal for Case ${caseId}`, { caseId }, { cause: error });
     }
+    for (const entry of entries) {
+      if (entry.name.startsWith('delta-from-')) {
+        throw new ContractError(
+          'store_journal_format_upgrade_required',
+          `Case ${caseId} contains immutable journal records that JournalSnapshotStore cannot read`,
+          { caseId, filename: entry.name },
+        );
+      }
+    }
     return entries
       .filter((entry) => entry.isFile())
       .map((entry) => ({ entry, match: JOURNAL_DELTA_FILE.exec(entry.name) }))
@@ -695,6 +707,466 @@ export class JournalSnapshotStore {
   }
 
   async #withLock(caseId, operation) {
-    return withProcessStoreLock(`journal\0${this.directory}\0${caseId}`, operation);
+    return withProcessStoreLock(`journal-family\0${this.directory}\0${caseId}`, operation);
+  }
+}
+
+function immutableJournalDeltaDigest(deltaWithoutDigest) {
+  return typedDigest('tdev.snapshot-journal-delta.v2', deltaWithoutDigest);
+}
+
+function makeImmutableJournalDelta(previous, next) {
+  if (next.caseRevision <= previous.caseRevision) {
+    throw new ContractError('store_revision_regression', 'Replacement snapshot must advance the Case revision', {
+      caseId: next.caseId,
+      expectedRevision: previous.caseRevision,
+      replacementRevision: next.caseRevision,
+    });
+  }
+  if (next.plan.planDigest !== previous.plan.planDigest ||
+      next.caseContract.contractDigest !== previous.caseContract.contractDigest) {
+    throw new ContractError('store_journal_identity_change', 'Plan and Case contract are immutable within a Case journal');
+  }
+  if (next.events.length < previous.events.length) {
+    throw new ContractError('store_journal_nonmonotonic', 'Case Events cannot be removed from a journal');
+  }
+  assertNoRemovedKeys(previous.taskStates, next.taskStates, 'Task states');
+  assertNoRemovedKeys(previous.attempts, next.attempts, 'Attempts');
+  assertNoRemovedKeys(previous.receipts, next.receipts, 'Receipts');
+
+  const taskStates = createRecord();
+  for (const [taskId, taskState] of Object.entries(next.taskStates)) {
+    const prior = previous.taskStates[taskId];
+    if (!prior || taskStateFingerprint(prior) !== taskStateFingerprint(taskState)) taskStates[taskId] = taskState;
+  }
+  const attempts = createRecord();
+  for (const [attemptId, attempt] of Object.entries(next.attempts)) {
+    const prior = previous.attempts[attemptId];
+    if (!prior || attemptFingerprint(prior) !== attemptFingerprint(attempt)) attempts[attemptId] = attempt;
+  }
+  const receipts = createRecord();
+  for (const [requestId, receipt] of Object.entries(next.receipts)) {
+    if (!Object.hasOwn(previous.receipts, requestId)) receipts[requestId] = receipt;
+  }
+
+  const base = {
+    schemaVersion: IMMUTABLE_JOURNAL_DELTA_SCHEMA_VERSION,
+    caseId: next.caseId,
+    fromRevision: previous.caseRevision,
+    toRevision: next.caseRevision,
+    planDigest: next.plan.planDigest,
+    caseContractDigest: next.caseContract.contractDigest,
+    caseState: next.caseState,
+    eventSequence: next.eventSequence,
+    canonicalDigest: next.canonicalDigest,
+    appendedEvents: next.events.slice(previous.events.length),
+    taskStates,
+    attempts,
+    receipts,
+    canonicalTree: next.canonicalDigest === previous.canonicalDigest ? null : next.canonicalTree,
+    sourceSnapshotDigest: previous.snapshotDigest,
+    targetSnapshotDigest: next.snapshotDigest,
+  };
+  const delta = { ...base, deltaDigest: immutableJournalDeltaDigest(base) };
+  applyImmutableJournalDelta(previous, delta);
+  return delta;
+}
+
+function validateImmutableJournalDelta(delta, expectedCaseId) {
+  if (!isPlainRecord(delta)) throw new ContractError('store_journal_corrupt', 'Immutable journal delta must be a record');
+  exactKeys(delta, [
+    'schemaVersion', 'caseId', 'fromRevision', 'toRevision', 'planDigest', 'caseContractDigest',
+    'caseState', 'eventSequence', 'canonicalDigest', 'appendedEvents', 'taskStates', 'attempts',
+    'receipts', 'canonicalTree', 'sourceSnapshotDigest', 'targetSnapshotDigest', 'deltaDigest',
+  ], 'immutable journal delta');
+  if (delta.schemaVersion !== IMMUTABLE_JOURNAL_DELTA_SCHEMA_VERSION) {
+    throw new ContractError('store_journal_delta_version', `Unsupported immutable journal delta version ${String(delta.schemaVersion)}`);
+  }
+  assertIdentifier(delta.caseId, 'immutable journal delta caseId');
+  if (delta.caseId !== expectedCaseId) throw new ContractError('store_case_mismatch', 'Immutable journal delta Case identity is invalid');
+  assertSafeInteger(delta.fromRevision, 'immutable journal delta fromRevision', { min: 1 });
+  assertSafeInteger(delta.toRevision, 'immutable journal delta toRevision', { min: 1 });
+  assertSafeInteger(delta.eventSequence, 'immutable journal delta eventSequence', { min: 1 });
+  for (const [value, label] of [
+    [delta.planDigest, 'immutable journal delta planDigest'],
+    [delta.caseContractDigest, 'immutable journal delta caseContractDigest'],
+    [delta.canonicalDigest, 'immutable journal delta canonicalDigest'],
+    [delta.sourceSnapshotDigest, 'immutable journal delta sourceSnapshotDigest'],
+    [delta.targetSnapshotDigest, 'immutable journal delta targetSnapshotDigest'],
+    [delta.deltaDigest, 'immutable journal delta deltaDigest'],
+  ]) assertDigest(value, label);
+  if (!Array.isArray(delta.appendedEvents) || !isPlainRecord(delta.taskStates) ||
+      !isPlainRecord(delta.attempts) || !isPlainRecord(delta.receipts) ||
+      (delta.canonicalTree !== null && !isPlainRecord(delta.canonicalTree))) {
+    throw new ContractError('store_journal_delta_shape', 'Immutable journal delta collections are invalid');
+  }
+  const { deltaDigest: ignored, ...withoutDigest } = delta;
+  if (immutableJournalDeltaDigest(withoutDigest) !== delta.deltaDigest) {
+    throw new ContractError('store_journal_delta_digest', 'Immutable journal delta digest is invalid');
+  }
+  return delta;
+}
+
+function applyImmutableJournalDelta(previous, inputDelta) {
+  const delta = validateImmutableJournalDelta(inputDelta, previous.caseId);
+  if (delta.fromRevision !== previous.caseRevision || delta.toRevision <= delta.fromRevision) {
+    throw new ContractError('store_journal_gap', 'Immutable journal delta does not continue the current Case revision', {
+      currentRevision: previous.caseRevision,
+      fromRevision: delta.fromRevision,
+      toRevision: delta.toRevision,
+    });
+  }
+  if (delta.planDigest !== previous.plan.planDigest ||
+      delta.caseContractDigest !== previous.caseContract.contractDigest) {
+    throw new ContractError('store_journal_identity_change', 'Immutable journal delta changes Plan or Case contract identity');
+  }
+  if (delta.sourceSnapshotDigest !== previous.snapshotDigest) {
+    throw new ContractError('store_journal_source_digest', 'Immutable journal source digest does not match its predecessor', {
+      fromRevision: delta.fromRevision,
+      expectedSourceSnapshotDigest: previous.snapshotDigest,
+      actualSourceSnapshotDigest: delta.sourceSnapshotDigest,
+    });
+  }
+  if (delta.eventSequence !== delta.toRevision ||
+      previous.events.length + delta.appendedEvents.length !== delta.eventSequence) {
+    throw new ContractError('store_journal_event_gap', 'Immutable journal Event suffix does not match its target revision');
+  }
+  const result = {
+    ...previous,
+    caseState: delta.caseState,
+    caseRevision: delta.toRevision,
+    eventSequence: delta.eventSequence,
+    events: [...previous.events, ...delta.appendedEvents],
+    canonicalTree: delta.canonicalTree === null ? previous.canonicalTree : delta.canonicalTree,
+    canonicalDigest: delta.canonicalDigest,
+    taskStates: overlayRecord(previous.taskStates, delta.taskStates),
+    attempts: overlayRecord(previous.attempts, delta.attempts),
+    receipts: overlayRecord(previous.receipts, delta.receipts),
+    snapshotDigest: delta.targetSnapshotDigest,
+  };
+  validateJournalSnapshot(result, previous.caseId);
+  return result;
+}
+
+function parseJournalFilenameRevision(filename, digits) {
+  const revision = Number(digits);
+  if (!Number.isSafeInteger(revision) || revision < 1) {
+    throw new ContractError('store_journal_filename', `Journal filename has an unsafe revision: ${filename}`);
+  }
+  return revision;
+}
+
+export class ImmutableJournalSnapshotStore {
+  constructor(directory, options = {}) {
+    assertRecordShape(options, [], ['maxBytes'], 'ImmutableJournalSnapshotStore options');
+    if (typeof directory !== 'string' || directory.length === 0) {
+      throw new ContractError('invalid_store_directory', 'ImmutableJournalSnapshotStore directory must be a non-empty string');
+    }
+    this.directory = path.resolve(directory);
+    this.maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
+    assertSafeInteger(this.maxBytes, 'ImmutableJournalSnapshotStore.maxBytes', { min: 1 });
+  }
+
+  async create(snapshot) {
+    validateJournalSnapshot(snapshot);
+    return this.compareAndSwap(snapshot.caseId, null, snapshot);
+  }
+
+  async load(caseId) {
+    assertIdentifier(caseId, 'caseId');
+    return this.#withLock(caseId, async () => {
+      const snapshot = await this.#readUnlocked(caseId);
+      return snapshot === null ? null : publicJsonClone(snapshot);
+    });
+  }
+
+  async compareAndSwap(caseId, expectedRevision, snapshot) {
+    assertIdentifier(caseId, 'caseId');
+    validateJournalSnapshot(snapshot, caseId, { verifyDigest: expectedRevision === null });
+    if (expectedRevision !== null) {
+      assertSafeInteger(expectedRevision, 'expectedRevision', { min: 1 });
+      const materializedBytes = Buffer.byteLength(canonicalJson(snapshot), 'utf8');
+      if (materializedBytes > this.maxBytes) {
+        throw new ContractError('store_snapshot_too_large', `Materialized Case ${caseId} exceeds the store byte limit`, {
+          size: materializedBytes,
+          limit: this.maxBytes,
+        });
+      }
+    }
+
+    return this.#withLock(caseId, async () => {
+      await mkdir(this.directory, { recursive: true });
+      await mkdir(this.#caseDirectory(caseId), { recursive: true });
+      const current = await this.#readUnlocked(caseId);
+      const actualRevision = current?.caseRevision ?? null;
+      if (actualRevision !== expectedRevision) throw casConflict(caseId, expectedRevision, actualRevision);
+
+      if (expectedRevision === null) {
+        try {
+          await this.#publishNoReplace(caseId, this.#basePath(caseId), snapshot);
+        } catch (error) {
+          if (error?.code !== 'store_publish_conflict') throw error;
+          const winner = await this.#readUnlocked(caseId);
+          throw casConflict(caseId, null, winner?.caseRevision ?? null);
+        }
+        return publicJsonClone(snapshot);
+      }
+
+      if (snapshot.caseRevision <= expectedRevision) {
+        throw new ContractError('store_revision_regression', 'Replacement snapshot must advance the Case revision', {
+          caseId,
+          expectedRevision,
+          replacementRevision: snapshot.caseRevision,
+        });
+      }
+
+      const delta = makeImmutableJournalDelta(current, snapshot);
+      try {
+        await this.#publishNoReplace(caseId, this.#deltaFromPath(caseId, expectedRevision), delta);
+      } catch (error) {
+        if (error?.code !== 'store_publish_conflict') throw error;
+        const winner = await this.#readUnlocked(caseId);
+        throw casConflict(caseId, expectedRevision, winner?.caseRevision ?? null);
+      }
+      return publicJsonClone(snapshot);
+    });
+  }
+
+  #caseDirectory(caseId) {
+    return path.join(this.directory, caseId);
+  }
+
+  #basePath(caseId) {
+    return path.join(this.#caseDirectory(caseId), 'base.json');
+  }
+
+  #deltaFromPath(caseId, fromRevision) {
+    return path.join(this.#caseDirectory(caseId), `delta-from-${String(fromRevision).padStart(16, '0')}.json`);
+  }
+
+  async #listCommittedFiles(caseId) {
+    let entries;
+    try {
+      entries = await readdir(this.#caseDirectory(caseId), { withFileTypes: true });
+    } catch (error) {
+      if (error?.code === 'ENOENT') return [];
+      throw new ContractError('store_read_failed', `Failed to list immutable journal for Case ${caseId}`, { caseId }, { cause: error });
+    }
+    const files = [];
+    for (const entry of entries) {
+      if (entry.name === 'base.json' || entry.name.startsWith('.')) continue;
+      let match = IMMUTABLE_JOURNAL_DELTA_FILE.exec(entry.name);
+      if (match) {
+        if (!entry.isFile()) {
+          throw new ContractError('store_journal_file_type', `Immutable journal commit slot ${entry.name} is not a regular file`);
+        }
+        files.push({
+          kind: 'immutable-from',
+          name: entry.name,
+          filenameRevision: parseJournalFilenameRevision(entry.name, match[1]),
+        });
+        continue;
+      }
+      match = JOURNAL_DELTA_FILE.exec(entry.name);
+      if (match) {
+        if (!entry.isFile()) {
+          throw new ContractError('store_journal_file_type', `Legacy journal commit record ${entry.name} is not a regular file`);
+        }
+        files.push({
+          kind: 'legacy-target',
+          name: entry.name,
+          filenameRevision: parseJournalFilenameRevision(entry.name, match[1]),
+        });
+        continue;
+      }
+      if (entry.name.startsWith('delta-') || entry.name.startsWith('base-')) {
+        throw new ContractError('store_journal_filename', `Malformed committed journal filename ${entry.name}`);
+      }
+    }
+    return files.sort((left, right) => compareText(left.name, right.name));
+  }
+
+  async #readCanonicalFile(filePath, caseId, { missing = false } = {}) {
+    let handle;
+    let bytes;
+    try {
+      handle = await open(filePath, 'r');
+      const metadata = await handle.stat();
+      if (metadata.size > this.maxBytes) {
+        throw new ContractError('store_snapshot_too_large', `Stored Case ${caseId} journal file exceeds the store byte limit`, {
+          size: metadata.size,
+          limit: this.maxBytes,
+        });
+      }
+      bytes = await handle.readFile();
+    } catch (error) {
+      if (missing && error?.code === 'ENOENT') return null;
+      if (error instanceof ContractError) throw error;
+      throw new ContractError('store_read_failed', `Failed to read Case ${caseId} immutable journal`, { caseId }, { cause: error });
+    } finally {
+      if (handle) await handle.close().catch(() => {});
+    }
+    try {
+      const value = strictJsonParse(bytes, { maxBytes: this.maxBytes });
+      if (!bytes.equals(Buffer.from(canonicalJson(value), 'utf8'))) {
+        throw new ContractError('store_noncanonical', `Stored Case ${caseId} journal file is not canonical JSON`);
+      }
+      return value;
+    } catch (error) {
+      if (error instanceof ContractError && error.code.startsWith('store_')) throw error;
+      throw new ContractError('store_corrupt', `Stored Case ${caseId} immutable journal is corrupt`, {
+        caseId,
+        causeCode: error?.code ?? null,
+      }, { cause: error });
+    }
+  }
+
+  async #readUnlocked(caseId) {
+    const base = await this.#readCanonicalFile(this.#basePath(caseId), caseId, { missing: true });
+    const files = await this.#listCommittedFiles(caseId);
+    if (base === null) {
+      if (files.length > 0) {
+        throw new ContractError('store_journal_missing_base', `Case ${caseId} has journal records without a durable base`);
+      }
+      return null;
+    }
+    validateJournalSnapshot(base, caseId);
+
+    const byFromRevision = new Map();
+    for (const item of files) {
+      const filePath = path.join(this.#caseDirectory(caseId), item.name);
+      const raw = await this.#readCanonicalFile(filePath, caseId);
+      const delta = item.kind === 'immutable-from'
+        ? validateImmutableJournalDelta(raw, caseId)
+        : validateJournalDelta(raw, caseId);
+      if (item.kind === 'immutable-from' && delta.fromRevision !== item.filenameRevision) {
+        throw new ContractError('store_journal_filename', 'Immutable journal filename does not match its source revision');
+      }
+      if (item.kind === 'legacy-target' && delta.toRevision !== item.filenameRevision) {
+        throw new ContractError('store_journal_filename', 'Legacy journal filename does not match its target revision');
+      }
+      // Design 0004 compaction may leave a covered legacy delta if the process dies
+      // after replacing base.json but before cleanup. Such a record is no longer
+      // authoritative and remains safely ignorable exactly as in the legacy reader.
+      if (item.kind === 'legacy-target' && delta.toRevision <= base.caseRevision) continue;
+      if (byFromRevision.has(delta.fromRevision)) {
+        throw new ContractError('store_journal_fork', `Multiple journal records continue revision ${delta.fromRevision}`, {
+          fromRevision: delta.fromRevision,
+        });
+      }
+      byFromRevision.set(delta.fromRevision, { item, delta });
+    }
+
+    let current = base;
+    let immutablePhase = false;
+    while (byFromRevision.has(current.caseRevision)) {
+      const entry = byFromRevision.get(current.caseRevision);
+      byFromRevision.delete(current.caseRevision);
+      if (entry.item.kind === 'legacy-target') {
+        if (immutablePhase) {
+          throw new ContractError('store_journal_format_order', 'Legacy journal record follows immutable-v2 migration boundary', {
+            fromRevision: entry.delta.fromRevision,
+          });
+        }
+        current = applyJournalDelta(current, entry.delta);
+      } else {
+        immutablePhase = true;
+        current = applyImmutableJournalDelta(current, entry.delta);
+      }
+    }
+    if (byFromRevision.size > 0) {
+      throw new ContractError('store_journal_gap', 'Journal contains an unreachable record or a missing predecessor', {
+        currentRevision: current.caseRevision,
+        unreachableFromRevisions: [...byFromRevision.keys()].sort((left, right) => left - right),
+      });
+    }
+
+    const materializedBytes = Buffer.byteLength(canonicalJson(current), 'utf8');
+    if (materializedBytes > this.maxBytes) {
+      throw new ContractError('store_snapshot_too_large', `Materialized Case ${caseId} exceeds the store byte limit`, {
+        size: materializedBytes,
+        limit: this.maxBytes,
+      });
+    }
+    return publicJsonClone(current);
+  }
+
+  async #publishNoReplace(caseId, finalPath, value) {
+    const payload = Buffer.from(canonicalJson(value), 'utf8');
+    if (payload.byteLength > this.maxBytes) {
+      throw new ContractError('store_snapshot_too_large', `Case ${caseId} immutable journal write exceeds the store byte limit`, {
+        size: payload.byteLength,
+        limit: this.maxBytes,
+      });
+    }
+
+    let tempPath = null;
+    let handle = null;
+    for (let attempt = 0; attempt < 4 && handle === null; attempt += 1) {
+      tempPath = path.join(
+        this.#caseDirectory(caseId),
+        `.${path.basename(finalPath)}.${process.pid}.${randomUUID()}.tmp`,
+      );
+      try {
+        handle = await open(tempPath, 'wx', 0o600);
+      } catch (error) {
+        if (error?.code === 'EEXIST') continue;
+        throw new ContractError('store_write_failed', `Failed to create temporary journal file for Case ${caseId}`, {
+          caseId,
+        }, { cause: error });
+      }
+    }
+    if (handle === null || tempPath === null) {
+      throw new ContractError('store_write_failed', `Failed to allocate a unique temporary journal file for Case ${caseId}`, { caseId });
+    }
+
+    let finalPublished = false;
+    try {
+      await handle.writeFile(payload);
+      await handle.sync();
+      await handle.close();
+      handle = null;
+      try {
+        await link(tempPath, finalPath);
+        finalPublished = true;
+      } catch (error) {
+        if (error?.code === 'EEXIST') {
+          throw new ContractError('store_publish_conflict', `Immutable journal commit slot already exists for Case ${caseId}`);
+        }
+        throw error;
+      }
+
+      try {
+        await this.#syncCaseDirectory(caseId);
+      } catch (error) {
+        throw new ContractError('store_commit_ambiguous', `Immutable journal publication for Case ${caseId} may already be committed`, {
+          caseId,
+          finalName: path.basename(finalPath),
+        }, { cause: error });
+      }
+
+      // The final slot and its directory entry are already the commit. Temporary
+      // cleanup is acceleration/housekeeping only and cannot change the outcome.
+      await rm(tempPath, { force: true }).catch(() => {});
+      return payload;
+    } catch (error) {
+      if (handle) await handle.close().catch(() => {});
+      if (!finalPublished) await rm(tempPath, { force: true }).catch(() => {});
+      if (error instanceof ContractError) throw error;
+      throw new ContractError('store_write_failed', `Failed to publish Case ${caseId} immutable journal`, { caseId }, { cause: error });
+    }
+  }
+
+  async #syncCaseDirectory(caseId) {
+    const handle = await open(this.#caseDirectory(caseId), 'r');
+    try {
+      await handle.sync();
+    } finally {
+      await handle.close();
+    }
+  }
+
+  async #withLock(caseId, operation) {
+    return withProcessStoreLock(`journal-family\0${this.directory}\0${caseId}`, operation);
   }
 }

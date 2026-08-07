@@ -165,6 +165,14 @@ It does not provide cross-process exclusion. Do not run multiple independent pro
 
 The in-memory materialized snapshot and delta count may avoid repeated parse/replay only after the store has re-read the exact committed base/delta files and matched a cryptographic fingerprint over file name, byte length, and bytes. A changed byte, added/removed delta, new store instance, or process restart forces strict canonical parse, checksum/revision replay, final snapshot-digest verification, and size validation. Durable bytes—not cache metadata—decide revision CAS. Do not share one journal directory between independent processes as a distributed CAS store.
 
+## 11.2 Immutable journal-store operation
+
+`ImmutableJournalSnapshotStore` is the opt-in Design 0005 local-filesystem journal. It implements the same `create/load/compareAndSwap` interface but uses one immutable `delta-from-<expectedRevision>.json` publication slot for each predecessor revision. Candidate bytes are written canonically to an exclusive temporary file, the file is synced, and the final slot is published with a no-replace hard link before the Case directory is synced. Competing immutable-format writers from the same expected revision therefore elect at most one winner on the tested local filesystem.
+
+This cross-process claim has a strict admission boundary: **all legacy `JournalSnapshotStore` writers must be quiesced before the first immutable-format record is published**. Legacy and immutable writers use different slot names, so a rolling mixed-writer cutover is unsupported. Once an immutable-format record exists, unmodified `mvp-1a-2` journal code must not be used to write that Case. New-source legacy and immutable adapters share a same-process journal-family lock, but that does not replace the external cross-process cutover requirement.
+
+Every load/CAS re-reads and semantically replays the retained authoritative base and committed records. There is no checkpoint, materialized/proposal cache, compaction, or retained-history deletion in this adapter. A successful final-slot publication followed by an uncertain directory-sync outcome is reported as `store_commit_ambiguous`; callers must observe durable state before retrying. The verified claim is limited to the tested local filesystem behavior and does not extend to network filesystems, object stores, Durable Objects, or distributed transactions.
+
 ## 12. Claim owner operation
 
 A local `ClaimLedger` can be snapshotted and restored, but `runDurableCase` does not atomically persist that ledger with the Case snapshot. This is adequate for deterministic source testing, not for process-loss-safe cross-Case exclusion.

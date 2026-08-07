@@ -336,7 +336,21 @@ Task-state counters, unsatisfied-dependency counters, ready/claim-holder sets, t
 
 Schema v1 is accepted only through the deterministic migration path. Unknown future versions fail closed. No downgrade is implicit.
 
-## 15. ClaimLedger protocol
+## 15. Immutable journal record protocol
+
+Design 0005 adds an opt-in storage-record format without changing Case snapshot schema v2. The authoritative journal is `base.json` plus every reachable retained committed delta under strict semantic replay.
+
+Legacy delta records use schema `1` and `delta-<toRevision>.json`. New immutable records use schema `2` and `delta-from-<fromRevision>.json`, and additionally bind `sourceSnapshotDigest` and `targetSnapshotDigest`. The v2 `deltaDigest` covers the complete canonical record except itself under domain `tdev.snapshot-journal-delta.v2`.
+
+Revision continuity is predecessor continuity, not `+1`: a record must satisfy `fromRevision == current.caseRevision`, `toRevision > fromRevision`, `eventSequence == toRevision`, and the appended Event count must exactly bridge the revision difference. One repository CAS may therefore advance several semantic Event revisions.
+
+Format migration is one-way inside one retained chain: zero or more legacy records may be followed by zero or more v2 records. The first v2 publication requires all legacy writer processes for the affected Case/directory to be quiesced; rolling cross-process legacy/new writers are unsupported because their distinct final-slot names cannot elect one cross-format winner. A legacy record after the first reachable v2 record, two records for the same predecessor, an unsupported schema, malformed committed filename, missing/gapped predecessor, or unreachable committed record fails closed. No precedence rule chooses between duplicate representations.
+
+A v2 CAS winner is the writer that publishes the one immutable final slot for the expected revision without replacement. Temporary dot-files are non-authoritative. If final-slot publication may have occurred but its required durability observation fails, the outcome is `store_commit_ambiguous` and must be reconciled by re-read before retry.
+
+This protocol does not authenticate against a writer that can replace the complete retained history and recompute all self-digests.
+
+## 16. ClaimLedger protocol
 
 The ledger snapshot contains schema version, monotonically increasing generation, revision, active leases ordered by generation, and snapshot digest.
 

@@ -9,9 +9,9 @@ The verified source target is:
 - Node.js `>=22`;
 - ECMAScript modules;
 - no third-party runtime dependency;
-- POSIX-like local filesystem only for `FileSnapshotStore` / `JournalSnapshotStore` tests, benchmarks, and demos.
+- POSIX-like local filesystem only for `FileSnapshotStore`, `JournalSnapshotStore`, and `ImmutableJournalSnapshotStore` tests, benchmarks, and demos.
 
-The supplied container reports Node 22.16.0 and npm 10.9.2. The `mvp-1a-2` executable source contract remains Node 22 and has no generated Go/provider runtime dependency.
+The supplied container reports Node 22.16.0 and npm 10.9.2. The `mvp-1a-3` executable source contract remains Node 22 and has no generated Go/provider runtime dependency.
 
 ## 2. Installation and gate
 
@@ -70,6 +70,27 @@ Use when local single-process operation needs lower write amplification while re
 - in-process per-Case serialization.
 
 The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Missing base with deltas, malformed, truncated, noncanonical, discontinuous, or digest-invalid records fail closed, including corruption introduced after a warm load. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
+
+### ImmutableJournalSnapshotStore
+
+Use only when a local filesystem supports the tested same-directory exclusive-create, hard-link no-replace publication, file `fsync`, and directory `fsync` behavior. This adapter is opt-in and does not replace `JournalSnapshotStore`.
+
+It provides:
+
+- strict full replay of `base.json` plus every retained committed record on every load/CAS;
+- one immutable `delta-from-<expectedRevision>.json` publication slot per non-create CAS;
+- source/target snapshot-digest binding for new schema-v2 delta records;
+- legacy-v1 prefix read followed by one-way v2 continuation;
+- process-wide same-process serialization plus cross-process winner election that does not depend on that mutex;
+- no checkpoint, materialization/proposal cache, compaction, or history deletion.
+
+A dot-prefixed temporary file is never authority. Publication returns success only after the authoritative final slot has been linked and the Case directory durability step succeeds. If the final link may have succeeded but the directory durability step fails, the adapter reports `store_commit_ambiguous`; callers must re-read/reconcile and must not blindly replay a transaction callback. Temporary cleanup after the commit boundary is best-effort and cannot change success into failure.
+
+Once a directory contains a v2 `delta-from-*` record, unmodified `mvp-1a-2` `JournalSnapshotStore` code is an unsafe downgrade because it does not understand that format. The `mvp-1a-3` old adapter is changed only to fail closed on such a directory. No v2-to-v1 data downgrade is implemented.
+
+The first v2 write is an explicit cutover, not a rolling mixed-writer migration. Before that write, the operator must stop every process that can still write the affected Case/directory with the legacy `JournalSnapshotStore` and independently validate the retained legacy chain using the new source. Only then may the first immutable CAS be admitted. Afterward, only `ImmutableJournalSnapshotStore` writers are supported for that Case/directory. The new-source legacy and immutable adapters share a process-local serialization key, but separate processes running mixed formats can otherwise publish different filename slots from the same predecessor; cross-process mixed-format operation is therefore unsupported rather than silently treated as safe.
+
+The cross-process evidence is limited to the tested compatible local filesystem. Network filesystems, provider object stores, Durable Objects, and distributed transactions remain unverified.
 
 ### CaseRepository
 

@@ -1,6 +1,6 @@
-# tdev mvp-1a-2
+# tdev mvp-1a-3
 
-`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active development identity is `mvp-1a-2`; its direct code parent is `mvp-1a-1`, and `mvp-1` plus the audited candidate's successes and failures are knowledge inputs. Exact lineage is in `LINEAGE.md`.
+`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active development identity is `mvp-1a-3`; its direct code parent is the verified GitHub `mvp-1a-2` state, with independently reproduced comparison counterexamples used as design evidence. Exact lineage is in `LINEAGE.md`.
 
 ```text
 immutable PlanRevision
@@ -28,18 +28,19 @@ The repository provides:
 - authority as the intersection of Case grant, Workspace policy, and executor capability;
 - deterministic Promotion that records every accepted result while allowing only ChangeSets to mutate the candidate tree;
 - snapshot schema v2 with canonical data, Event hash chaining, semantic restore validation, complete blocker evidence, command receipts, and v1→v2 migration;
-- memory, atomic full-snapshot local-file, and append-delta journal compare-and-swap stores;
+- memory, atomic full-snapshot local-file, verified single-process journal, and opt-in immutable expected-revision journal compare-and-swap stores;
 - a `CaseRepository` transaction boundary and `runDurableCase` durable-before-dispatch protocol;
 - entry-level atomic mutation rollback, incremental Task/dependency accounting, deterministic topological blocker propagation, and rebuildable indexes;
 - Claim overlap indexing with release-time path pruning and reference-oracle equivalence tests;
-- a journal materialization cache usable only after the exact durable base/delta bytes match a cryptographic fingerprint;
+- a Design 0004 journal materialization cache usable only after the exact durable base/delta bytes match a cryptographic fingerprint;
+- an opt-in `ImmutableJournalSnapshotStore` with strict full retained-history replay, expected-revision no-replace slots, source/target digest binding, and tested local-filesystem cross-process winner election after an explicit legacy-writer cutover;
 - strict JSON, safe integers, path/topology defenses, and explicit count/byte limits.
 
 This is a correctness-oriented source core. Cloudflare Durable Objects, Agent transport, Termux execution, Git publication, D1/R2, repository/context/model transport, warm executor processes, and MCP endpoints are deliberately **not** claimed as implemented.
 
 ## Development lineage
 
-`mvp-1a-2` is a direct continuation of the `mvp-1a-1` implementation foundation, not a sibling restart or a new architecture generation. The candidate's root-copy scaling, stale journal cache, Claim trie retention, candidate-loss, and blocker-propagation failures were independently reproduced and corrected. See `LINEAGE.md`, Design 0004, and `docs/IMPLEMENTATION_REPORT.md`.
+`mvp-1a-3` is a direct continuation of the verified `mvp-1a-2` foundation. Design 0005 adds an opt-in immutable expected-revision local journal; the existing Design 0004 journal remains available and its correctness barriers remain regression requirements. See `LINEAGE.md`, Designs 0004/0005, and `docs/IMPLEMENTATION_REPORT.md`.
 
 `legacy/mvp-parallel` is historical research lineage only and is not an active implementation identity.
 
@@ -74,7 +75,8 @@ node --experimental-test-coverage --test test/*.test.mjs
 npm run bench:compare -- \
   --state mvp-1=/path/to/tdev-mvp-1 \
   --state mvp-1a-1=/path/to/tdev-mvp-1a-1 \
-  --state mvp-1a-2=. \
+  --state mvp-1a-2=/path/to/tdev-mvp-1a-2 \
+  --state mvp-1a-3=. \
   --samples 3 --warmups 0 --timeout-ms 20000
 ```
 
@@ -144,10 +146,10 @@ For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotSto
 
 ## Exact boundaries
 
-The local file stores serialize a Case only among store instances in the **same Node process**. They are not distributed locks and do not claim cross-process CAS. Journal load/CAS re-reads and hashes the committed base/delta bytes before reusing materialized state; this closes stale-cache and hidden-corruption failures but leaves O(journal bytes) read/hash cost.
+`FileSnapshotStore` and the Design 0004 `JournalSnapshotStore` serialize a Case only among store instances in the **same Node process** and do not claim cross-process CAS. The opt-in Design 0005 `ImmutableJournalSnapshotStore` instead uses one immutable expected-revision publication slot and has tested local-filesystem cross-process single-winner CAS **only after an explicit quiesced cutover from legacy writers**. It still replays every retained authoritative record on load/CAS; it does not use a checkpoint, proposal cache, or history deletion shortcut.
 
 Snapshot self-digests detect accidental corruption and inconsistent rewrites; they do not authenticate against an attacker who can rewrite the complete record and recompute every digest. External effects are not advertised as exactly once: they require stable idempotency or authoritative reconciliation.
 
 Promotion still copies, validates, and hashes the complete in-memory text tree. Context bytes/tokens and executor cold/warm behavior are unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
 
-Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, Design 0004, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`.
+Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, current Design 0005, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Design 0004 remains the inherited verified correctness foundation.

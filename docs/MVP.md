@@ -4,7 +4,7 @@
 
 ## 1. Accepted vertical slice
 
-The verified `mvp-1a-2` slice closes:
+The verified parent `mvp-1a-2` slice closes:
 
 ```text
 immutable PlanRevision
@@ -21,6 +21,8 @@ immutable PlanRevision
 
 It also verifies that performance-only indexes/caches may be discarded and rebuilt without changing legal semantic output. It is not a Cloudflare/Agent/Git/MCP deployment MVP.
 
+Design 0005 is verified for the `mvp-1a-3` source/container slice. It adds an opt-in immutable expected-revision local journal while preserving the verified parent barriers. Cross-process local-filesystem winner evidence applies only to immutable writers after the explicit quiesced migration cutover and does not imply distributed/provider storage.
+
 ## 2. Source gate
 
 ```sh
@@ -28,17 +30,18 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-Observed in the supplied container for development identity `mvp-1a-2` on 2026-08-07:
+Parent baseline `mvp-1a-2` retained its recorded 110/110 source evidence. Final `mvp-1a-3` verification on 2026-08-07 observed:
 
 - Node.js `v22.16.0`;
 - npm `10.9.2`;
+- `npm ci --ignore-scripts --no-audit --no-fund` passed;
 - syntax gate passed;
-- **110/110 tests passed**;
+- **128/128 tests passed**;
 - in-memory demo succeeded;
 - file-backed durable demo succeeded;
 - no third-party runtime packages were required.
 
-The coverage invocation also passed all 110 tests and reported 91.59% lines, 81.31% branches, and 96.36% functions over source and tests. Coverage is supporting evidence, not the semantic contract.
+The final coverage invocation also passed all 128 tests and reported 91.73% lines, 81.72% branches, and 96.14% functions over source and tests. Coverage is supporting evidence, not the semantic contract. Structured D0005 evidence is retained in `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`.
 
 ## 3. Acceptance matrix
 
@@ -73,6 +76,12 @@ The coverage invocation also passed all 110 tests and reported 91.59% lines, 81.
 | File store stale race | independent same-process instances | exactly one CAS winner |
 | Journal stale race | warm stale instance after another instance commits | stale expected revision rejected |
 | Journal concurrent race | independent same-process CAS calls | exactly one winner |
+| Immutable journal create race | independent Node processes / absent base | exactly one base winner observed |
+| Immutable journal same-process race | independent instances / one expected revision | exactly one winner observed |
+| Immutable journal process race | independent Node processes / one expected revision | exactly one winner observed |
+| Immutable journal format migration | legacy prefix -> v2; v2 -> legacy | forward accepted; reverse and duplicate predecessor rejected |
+| Immutable journal cutover | legacy/new adapters at one predecessor | same-process mixed adapters serialize; cross-process mixed-format writers require legacy-writer quiescence before first v2 publication |
+| Immutable journal full replay | historical semantic corruption / restart | warm/cold/reopen integrity result equal; corruption fails closed |
 | warm-cache corruption | mutate durable base after load | next load/CAS fails `store_corrupt` |
 | journal fault shapes | malformed/noncanonical/truncated delta, missing base, orphan temp | fail closed or ignore only uncommitted temp |
 | compaction crash shape | replacement base durable before covered-delta deletion | exact snapshot restored; covered deltas ignored |
@@ -80,7 +89,7 @@ The coverage invocation also passed all 110 tests and reported 91.59% lines, 81.
 
 ## 4. Test inventory
 
-The 110 tests cover:
+The 128 tests cover:
 
 - strict JSON, canonical data, and hash behavior;
 - Claim overlap, generations, fencing, randomized oracle equivalence, and trie lifecycle;
@@ -89,7 +98,8 @@ The 110 tests cover:
 - durable runner checkpoint-before-dispatch and settlement ordering;
 - runner capacity/determinism and candidate rebuild;
 - result algebra, authority, path/tree policy, bounds, and Promotion;
-- memory/full-file/journal CAS, corruption, stale/concurrent writer behavior, compaction, and repository transactions;
+- memory/full-file/Design 0004 journal CAS, corruption, stale/concurrent writer behavior, compaction, and repository transactions;
+- immutable-journal cross-process create/update races, strict replay/digest continuity, migration order/cutover, malformed/fork/gap/path-type rejection, legacy compaction crash recovery, and Memory-store equivalence;
 - capacity stress plus 100 randomized full-restore-oracle histories.
 
 Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence.
@@ -147,7 +157,7 @@ No source test proves:
 - D1/R2 behavior;
 - current MCP client compatibility;
 - Git remote publication/protected-branch behavior;
-- cross-process or distributed File/Journal store CAS;
+- cross-process FileSnapshotStore or Design 0004 JournalSnapshotStore CAS, and distributed/provider ImmutableJournalSnapshotStore CAS;
 - atomic persistence of ClaimLedger and Case snapshots across owners;
 - exactly-once external effects;
 - hostile-storage authenticity;
@@ -159,14 +169,18 @@ These are `unavailable` or `pending`, not passed.
 
 ## 8. Completion decision
 
-Design 0004 / `mvp-1a-2` is source-verified only when:
+Design 0005 / `mvp-1a-3` is source-verified only when:
 
-- all 110 tests, syntax checks, and both demos pass under Node 22;
+- all 128 tests, syntax checks, and both demos pass under Node 22;
 - coverage completes without test failure;
+- inherited `mvp-1a-2` blocker/runner/File-store/full-restore barriers remain green;
+- immutable journal create/update races elect one winner among v2 writers on the tested compatible local filesystem;
+- legacy-prefix migration, reverse-format/fork rejection, full historical replay, source/target digest binding, restart, bounds, orphan-temp, and downgrade-guard falsifiers pass;
 - `git diff --check` is clean;
-- normative documents agree with the implementation and explicit single-process/provider boundaries;
-- the exported repository/archive are named `tdev-mvp-1a-2`;
+- normative documents agree with the explicit quiesced cutover and rollback barrier;
+- the exported repository/archive are named `tdev-mvp-1a-3`;
 - the archive excludes `.git`, `node_modules`, coverage output, caches, and transient runtime state;
 - a clean extraction installs and passes `npm run check`;
-- the archive SHA-256 is generated and independently checked;
-- provider/distributed layers remain explicitly unverified.
+- provider/distributed layers and unexecuted directory-fsync fault injection remain explicitly unverified.
+
+Checkpoint/cache acceleration and compiled-base Promotion are not part of this completion decision.

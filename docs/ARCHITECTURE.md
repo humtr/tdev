@@ -85,7 +85,7 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | `claim-ledger.mjs` | global lease generation, fencing, validation, release, rebuildable overlap index, snapshot, wait notification |
 | `runner.mjs` | capacity loop, rebuildable ready-candidate set, claims, executor invocation, settlement, optional checkpoint |
 | `durable-runner.mjs` | repository-backed checkpoint protocol |
-| `store.mjs` | memory, full-snapshot local-file, and append-delta local-file CAS adapters |
+| `store.mjs` | memory, full-snapshot, verified legacy journal, and immutable expected-revision local-file CAS adapters |
 | `repository.mjs` | domain restore/migration and single-shot CAS transaction |
 | `index.mjs` | supported source API surface |
 | `cli.mjs` | observable source demos only |
@@ -173,6 +173,7 @@ Correctness state remains authoritative; performance policy reduces implementati
 - the runner's ready candidates and the ClaimLedger overlap trie are disposable candidate-narrowing structures; admission and live lease validation remain authoritative;
 - Claim trie release prunes empty path nodes so historical churn does not become retained search state;
 - journal materialization is reused only when a cryptographic fingerprint of exact durable base/delta names, lengths, and bytes matches; this preserves stale-writer/corruption detection but still incurs O(journal bytes) read/hash work;
+- Design 0005 adds a separate opt-in immutable journal: after a quiesced legacy-writer cutover, one no-replace `delta-from-R` slot owns CAS election among v2 writers for expected revision R, while strict full retained-history replay owns materialization/integrity; it has no checkpoint or cache state;
 - Plan compilation remains linear in graph size apart from deterministic output ordering;
 - Promotion still copies, validates, and hashes the complete text tree, so touched-path/content-addressed integration remains a later repository-adapter gate.
 

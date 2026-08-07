@@ -124,9 +124,9 @@ It is **not authenticity**. A party able to rewrite the complete snapshot, recom
 
 ## 9. Local file-store boundary
 
-Files are created through mode `0600` temporary paths and atomic same-directory rename. Reads require byte-for-byte canonical JSON. Case IDs are restricted identifiers and cannot form path traversal names.
+Local adapters use mode `0600` temporary files and byte-for-byte canonical JSON reads. `FileSnapshotStore` and Design 0004 `JournalSnapshotStore` use same-directory rename and process-local per-Case serialization; multiple processes can race and those adapters remain single-process tools. Case IDs are restricted identifiers and cannot form path traversal names.
 
-The per-Case lock is process-local. Multiple processes can race. The adapter should be used for source verification, single-process tools, and demos—not multi-host production coordination.
+Design 0005 `ImmutableJournalSnapshotStore` does not promote its process-local mutex into cross-process authority. After an explicit cutover that quiesces legacy writers, independent v2 writers contend on one hard-link no-replace final slot per expected revision, and strict full retained-history replay validates the winner on the tested compatible local filesystem. This is a local CAS/integrity property, not authentication, a kernel sandbox, a distributed lock, or a multi-host durability guarantee. Cross-process mixed legacy/new writers during cutover are unsupported.
 
 ## 10. External effects
 

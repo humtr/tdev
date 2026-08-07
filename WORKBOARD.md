@@ -2,20 +2,30 @@
 
 ## Current baseline
 
-- Repository: `humtr/tdev` source archive supplied for this task
-- Development identity: `mvp-1a-2`
-- Direct code parent: supplied `mvp-1a-1` archive
-- Knowledge inputs: supplied `mvp-1` and `mvp-1a-1` archives plus independently reproduced tests, profiles, benchmarks, and counterexamples
+- Repository: `humtr/tdev`
+- Development identity / publication ref: `mvp-1a-3`
+- Direct code parent: GitHub `mvp-1a-2` commit `ee02845c8947b69f810308fd957e3952a8e508b9`
+- Knowledge inputs: verified `mvp-1a-2` plus independently reproduced A/B comparison tests and counterexamples
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current design: `docs/design/0004-incremental-transition-core-and-verified-journal-cache.md`
+- Current design: `docs/design/0005-immutable-expected-revision-journal-cas.md`
 
 ## Active work
 
-No Class 2 implementation item remains active in this archive. Provider publication, distributed persistence, and real repository/model executor adapters are explicitly outside the verified source slice.
+No Class 2 implementation item remains active in this source state. Checkpoint/cache acceleration and compiled-base Promotion remain follow-on hypotheses rather than implementation claims.
 
 ## Verified work
+
+### D0005 — immutable expected-revision journal CAS
+
+- Status: `verified` in the declared source/container scope
+- Design: `docs/design/0005-immutable-expected-revision-journal-cas.md`
+- Implementation: opt-in `ImmutableJournalSnapshotStore`, full retained-history replay, immutable expected-revision publication slots, source/target snapshot-digest binding, same-process journal-family serialization, and explicit quiesced legacy-to-v2 cutover
+- Correctness evidence: 18 focused immutable-journal tests; cross-process base/update one-winner races; 128/128 complete source tests; inherited 100-history full-restore oracle and A regression barriers remain green
+- Coverage: 91.73% lines / 81.72% branches / 96.14% functions over source and tests
+- Evidence: `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`
+- Remaining boundary: cross-process mixed legacy/new writers are unsupported during cutover; directory-sync-after-link ambiguity is classified in source but was not deterministically fault-injected
 
 ### D0004 — incremental transition core and verified journal cache
 
@@ -51,14 +61,15 @@ No Class 2 implementation item remains active in this archive. Provider publicat
 - entry-level atomic rollback without root collection copies;
 - incremental Task-state/dependency/ready accounting with full restore as the semantic oracle;
 - disposable indexes that can be deleted and rebuilt without changing legal output;
-- memory, full-snapshot file, and append-delta journal adapters under an explicit single-process local boundary.
+- memory, full-snapshot file, and Design 0004 append-delta journal adapters under an explicit single-process local boundary;
+- opt-in immutable expected-revision journal CAS with full replay and tested cross-process local-filesystem winner election after quiesced migration cutover.
 
 ## Next highest-ROI gates
 
 These are not active implementation claims:
 
 1. profile and implement touched-path/content-addressed Promotion only in the first real repository adapter; current in-memory Promotion still copies/hashes the full tree;
-2. replace full journal-byte reread/fingerprinting with a transaction-capable provider or an independently safe cross-process owner; do not weaken stale/corruption checks;
+2. profile whether an authenticated checkpoint manifest can save meaningful parse/replay cost while still re-reading/hashing retained authority, or move to a transaction-capable provider; do not add a cache that hides historical corruption;
 3. add a real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 4. add Cloudflare CaseDO/AgentDO/D1/R2 adapters with migration, rollback, and provider fault evidence;
 5. add a durable cross-owner Claim service if Cases may execute through multiple processes/owners;

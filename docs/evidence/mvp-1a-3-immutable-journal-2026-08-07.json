@@ -1,0 +1,169 @@
+{
+  "developmentIdentity": "mvp-1a-3",
+  "design": "D0005 Immutable Expected-Revision Journal CAS",
+  "date": "2026-08-07",
+  "authority": {
+    "repository": "humtr/tdev",
+    "remoteParentRef": "mvp-1a-2",
+    "remoteParentCommit": "ee02845c8947b69f810308fd957e3952a8e508b9",
+    "localSourceImplementationCommit": "feca358ac78f58ead5b0ec3e3d47174b1b4a4c29",
+    "runtime": "Node.js v22.16.0",
+    "npm": "10.9.2",
+    "observedFilesystemType": "ext2/ext3 as reported by statfs for /mnt/data",
+    "verifiedSyntheticSourceHead": "54c44d7b2e989e2b8c343d1cd60dddfc18ac93d1"
+  },
+  "comparisonInputs": {
+    "A": {
+      "name": "tdev-mvp-1a-2.zip",
+      "sha256": "e52e0df269a7db34d9b4345710282cb9e565ba483152e655a42ab85f5f88d0d8"
+    },
+    "B": {
+      "name": "tdev-mvp-1a-2-ted.zip",
+      "sha256": "79f5afa3f7fbfac9a666b237f5b6937132f77dabddad2245a1efd9a5a85ffc0e"
+    },
+    "reusedFalsifierDigests": {
+      "A": "27629c80067cd520db3f531d00cb84b6adcc0a9bab0c8cefb91585fd2bc44b0c",
+      "B": "2f914997765887c8363cbc7e1817b42ff4ff84c182b38b74f78cbc39c0cab71c"
+    }
+  },
+  "comparisonFindings": [
+    {
+      "case": "FileSnapshotStore independent-instance CAS",
+      "status": "reproduced",
+      "A": {
+        "iterations": 50,
+        "bothSuccess": 0,
+        "singleWinner": 50
+      },
+      "B": {
+        "iterations": 50,
+        "bothSuccess": 50,
+        "singleWinner": 0
+      },
+      "decision": "Preserve A process-wide FileSnapshotStore serialization; reject B locking."
+    },
+    {
+      "case": "warm Journal state after retained historical corruption",
+      "status": "reproduced",
+      "A": {
+        "warmCas": "store_corrupt",
+        "coldLoad": "store_corrupt"
+      },
+      "B": {
+        "warmCas": "success with a new revision",
+        "coldLoad": "store_corrupt"
+      },
+      "decision": "Reject B proposal/materialization cache for this slice."
+    },
+    {
+      "case": "compiled-base Promotion provenance",
+      "status": "reproduced",
+      "B": {
+        "arbitraryFrozenBaseWithWrongDigest": "accepted by fast path",
+        "publicPath": "base_tree_digest_mismatch"
+      },
+      "decision": "Reject B trust implementation; hold the optimization idea for a separate design."
+    },
+    {
+      "case": "checkpoint present/absent historical semantic corruption",
+      "status": "reproduced",
+      "B": {
+        "checkpointPresent": "load success",
+        "checkpointAbsent": "store_journal_snapshot_digest"
+      },
+      "decision": "Do not port B checkpoint implementation."
+    }
+  ],
+  "additionalFindings": [
+    {
+      "case": "B orphan temporary publication-name poisoning",
+      "status": "reproduced in comparison analysis",
+      "observation": "A stale temporary-name collision could be reported as store_revision_conflict even when the authoritative revision had not advanced.",
+      "D0005Response": "Unique random dot-temporary names with exclusive create; temporary-name EEXIST is not final-slot CAS conflict."
+    },
+    {
+      "case": "B v2 then legacy mixed ordering",
+      "status": "reproduced in comparison analysis",
+      "observation": "The comparison implementation accepted a reachable legacy record after a v2 record.",
+      "D0005Response": "Only legacy-prefix then v2-suffix ordering is legal; reverse ordering fails closed."
+    },
+    {
+      "case": "cross-process mixed legacy/new cutover",
+      "status": "reproduced against the D0005 candidate before cutover contract closure",
+      "observation": "A live JournalSnapshotStore writer and a live ImmutableJournalSnapshotStore writer from the same predecessor both reported success because they publish different filename slots.",
+      "D0005Response": "Cross-format rolling writers are unsupported. The first v2 publication requires externally evidenced legacy-writer quiescence. New-source adapters share a same-process journal-family lock."
+    }
+  ],
+  "implementedContract": {
+    "adapter": "ImmutableJournalSnapshotStore",
+    "authority": "base.json plus strict semantic replay of every retained committed record",
+    "v2CommitIdentity": "one delta-from-<expectedRevision>.json slot",
+    "publication": "canonical temp write, file fsync, no-replace hard link, directory fsync, best-effort temp cleanup",
+    "digestBinding": [
+      "sourceSnapshotDigest",
+      "targetSnapshotDigest",
+      "deltaDigest"
+    ],
+    "revisionContinuity": "toRevision > fromRevision; Event suffix length and eventSequence prove the exact revision jump",
+    "migration": "legacy-v1 prefix then immutable-v2 suffix after a quiesced writer cutover",
+    "acceleration": "none",
+    "checkpoint": "none",
+    "compactionOrHistoryDeletion": "none"
+  },
+  "focusedEvidence": {
+    "immutableJournalTests": {
+      "passed": 18,
+      "failed": 0
+    },
+    "immutablePlusExistingStoreTests": {
+      "passed": 39,
+      "failed": 0
+    },
+    "coveredCases": [
+      "cross-process create one-winner",
+      "same-process immutable one-winner with different successor revisions",
+      "cross-process immutable one-winner",
+      "stale writer",
+      "multi-Event revision jump",
+      "legacy prefix to v2",
+      "v2 to legacy rejection",
+      "duplicate predecessor/fork rejection",
+      "same-process mixed-adapter serialization",
+      "historical semantic corruption on warm CAS and cold load",
+      "source and target digest binding",
+      "unknown schema and malformed/unsafe/noncanonical records",
+      "non-regular authoritative slot rejection",
+      "unreachable/gapped record",
+      "orphan dot-temp neutrality",
+      "missing base",
+      "legacy compaction cleanup crash shape",
+      "materialized size bound",
+      "MemorySnapshotStore semantic equivalence"
+    ]
+  },
+  "completeSourceGate": {
+    "npmCi": "passed",
+    "npmRunCheck": "passed",
+    "tests": {
+      "passed": 128,
+      "failed": 0,
+      "skipped": 0
+    },
+    "randomizedFullRestoreOracle": "100 histories passed after every transition",
+    "coverageInvocation": "passed",
+    "coverage": {
+      "linesPercent": 91.73,
+      "branchesPercent": 81.72,
+      "functionsPercent": 96.14
+    },
+    "gitDiffCheck": "passed"
+  },
+  "remainingUnknowns": [
+    "The directory-fsync failure after successful final hard-link publication is classified in source as store_commit_ambiguous but was not deterministically fault-injected in this container.",
+    "Power-loss durability beyond the observed compatible local filesystem/Node behavior is not claimed.",
+    "Cross-process mixed legacy/new writer operation is unsupported; migration requires external quiescence evidence before the first v2 publication.",
+    "Network filesystems, provider object stores, Durable Objects, and distributed transactions are unverified.",
+    "Rollback to unmodified mvp-1a-2 after any v2 record exists is unsafe; no automatic v2-to-v1 data downgrade exists.",
+    "Checkpoint/cache acceleration and compiled-base Promotion are not implemented by D0005."
+  ]
+}
