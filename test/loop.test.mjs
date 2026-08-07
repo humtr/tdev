@@ -226,3 +226,94 @@ test('cancellation wins a success race and the late result is rejected', async (
   assert.equal(result.snapshot.attempts['a.1'].state, 'cancelled');
   assert.deepEqual(result.snapshot.canonicalTree, {});
 });
+
+
+test('runner rebuilds a discarded local ready candidate set before declaring deadlock', async () => {
+  const engine = new CaseEngine({ caseId: 'ready-candidate-rebuild', plan: planWithWork([{ id: 'a' }]) });
+  const authoritativeReadyTaskIds = engine.readyTaskIds.bind(engine);
+  let calls = 0;
+  engine.readyTaskIds = () => {
+    calls += 1;
+    return calls === 1 ? [] : authoritativeReadyTaskIds();
+  };
+
+  const result = await runCase(
+    engine,
+    async ({ baseDigest, task }) => ({
+      kind: 'changeset',
+      baseDigest,
+      writes: [{ path: `${task.id}.txt`, content: task.id }],
+    }),
+  );
+
+  assert.ok(calls >= 2);
+  assert.equal(result.caseState, 'succeeded');
+});
+
+test('executor identity changes evidence but not the canonical result', async () => {
+  const plan = planWithWork([
+    { id: 'a', input: { path: 'a.txt' } },
+    { id: 'b', input: { path: 'b.txt' } },
+  ]);
+  const execute = async ({ baseDigest, task }) => ({
+    kind: 'changeset',
+    baseDigest,
+    writes: [{ path: task.input.path, content: task.id }],
+  });
+
+  const left = await runCase(
+    new CaseEngine({ caseId: 'executor-identity-left', plan }),
+    execute,
+    { capacity: 2, executorIdentity: ({ ordinal }) => ({ id: `left-${ordinal}`, epoch: 1, capabilities: [] }) },
+  );
+  const right = await runCase(
+    new CaseEngine({ caseId: 'executor-identity-right', plan }),
+    execute,
+    { capacity: 2, executorIdentity: ({ ordinal }) => ({ id: `right-${ordinal}`, epoch: 99, capabilities: [] }) },
+  );
+
+  assert.notEqual(left.snapshot.attempts['a.1'].executorId, right.snapshot.attempts['a.1'].executorId);
+  assert.equal(left.snapshot.canonicalDigest, right.snapshot.canonicalDigest);
+  assert.deepEqual(left.snapshot.canonicalTree, right.snapshot.canonicalTree);
+});
+
+test('retry interleaving does not change the canonical result', async () => {
+  const plan = planWithWork([
+    { id: 'a', input: { path: 'a.txt' } },
+    { id: 'b', input: { path: 'b.txt' } },
+  ]);
+
+  function executor(delayedTaskId) {
+    return async ({ baseDigest, task, attempt }) => {
+      if (task.id === delayedTaskId) await new Promise((resolve) => setImmediate(resolve));
+      if (task.id === 'a' && attempt.ordinal === 1) {
+        const error = new Error('retry once');
+        error.code = 'transient';
+        error.certainty = 'not_applied';
+        error.retryable = true;
+        throw error;
+      }
+      return {
+        kind: 'changeset',
+        baseDigest,
+        writes: [{ path: task.input.path, content: task.id }],
+      };
+    };
+  }
+
+  const aDelayed = await runCase(
+    new CaseEngine({ caseId: 'retry-a-delayed', plan }),
+    executor('a'),
+    { capacity: 2 },
+  );
+  const bDelayed = await runCase(
+    new CaseEngine({ caseId: 'retry-b-delayed', plan }),
+    executor('b'),
+    { capacity: 2 },
+  );
+
+  assert.equal(aDelayed.snapshot.taskStates.a.attemptIds.length, 2);
+  assert.equal(bDelayed.snapshot.taskStates.a.attemptIds.length, 2);
+  assert.equal(aDelayed.snapshot.canonicalDigest, bDelayed.snapshot.canonicalDigest);
+  assert.deepEqual(aDelayed.snapshot.canonicalTree, bDelayed.snapshot.canonicalTree);
+});

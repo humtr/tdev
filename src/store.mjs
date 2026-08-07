@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto';
 import { open, mkdir, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
@@ -14,6 +15,23 @@ import {
   strictJsonParse,
   typedDigest,
 } from './canonical.mjs';
+
+const PROCESS_STORE_LOCKS = new Map();
+
+async function withProcessStoreLock(key, operation) {
+  const previous = PROCESS_STORE_LOCKS.get(key) ?? Promise.resolve();
+  let release;
+  const current = new Promise((resolve) => { release = resolve; });
+  const queued = previous.then(() => current);
+  PROCESS_STORE_LOCKS.set(key, queued);
+  await previous;
+  try {
+    return await operation();
+  } finally {
+    release();
+    if (PROCESS_STORE_LOCKS.get(key) === queued) PROCESS_STORE_LOCKS.delete(key);
+  }
+}
 
 function validateSnapshotIdentity(snapshot, expectedCaseId = undefined) {
   if (!snapshot || typeof snapshot !== 'object' || Array.isArray(snapshot)) {
@@ -80,7 +98,6 @@ export class FileSnapshotStore {
     this.directory = path.resolve(directory);
     this.maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
     assertSafeInteger(this.maxBytes, 'FileSnapshotStore.maxBytes', { min: 1 });
-    this.locks = new Map();
     this.tempSequence = 0;
   }
 
@@ -194,18 +211,7 @@ export class FileSnapshotStore {
   }
 
   async #withLock(caseId, operation) {
-    const previous = this.locks.get(caseId) ?? Promise.resolve();
-    let release;
-    const current = new Promise((resolve) => { release = resolve; });
-    const queued = previous.then(() => current);
-    this.locks.set(caseId, queued);
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-      if (this.locks.get(caseId) === queued) this.locks.delete(caseId);
-    }
+    return withProcessStoreLock(`file\0${this.directory}\0${caseId}`, operation);
   }
 }
 
@@ -413,7 +419,6 @@ export class JournalSnapshotStore {
     this.compactAfterDeltas = options.compactAfterDeltas ?? 64;
     assertSafeInteger(this.maxBytes, 'JournalSnapshotStore.maxBytes', { min: 1 });
     assertSafeInteger(this.compactAfterDeltas, 'JournalSnapshotStore.compactAfterDeltas', { min: 1 });
-    this.locks = new Map();
     this.materialized = new Map();
     this.deltaCounts = new Map();
     this.tempSequence = 0;
@@ -427,10 +432,8 @@ export class JournalSnapshotStore {
   async load(caseId) {
     assertIdentifier(caseId, 'caseId');
     return this.#withLock(caseId, async () => {
-      const snapshot = await this.#readUnlocked(caseId);
-      if (snapshot === null) this.materialized.delete(caseId);
-      else this.materialized.set(caseId, publicJsonClone(snapshot));
-      return snapshot;
+      const { snapshot } = await this.#readValidated(caseId);
+      return snapshot === null ? null : publicJsonClone(snapshot);
     });
   }
 
@@ -450,14 +453,13 @@ export class JournalSnapshotStore {
     return this.#withLock(caseId, async () => {
       await mkdir(this.directory, { recursive: true });
       await mkdir(this.#caseDirectory(caseId), { recursive: true });
-      const cached = this.materialized.get(caseId);
-      const current = cached === undefined ? await this.#readUnlocked(caseId) : cached;
+      const currentRead = await this.#readValidated(caseId);
+      const current = currentRead.snapshot;
       const actualRevision = current?.caseRevision ?? null;
       if (actualRevision !== expectedRevision) throw casConflict(caseId, expectedRevision, actualRevision);
       if (expectedRevision === null) {
-        await this.#writeAtomic(caseId, this.#basePath(caseId), snapshot);
-        this.materialized.set(caseId, publicJsonClone(snapshot));
-        this.deltaCounts.set(caseId, 0);
+        const payload = await this.#writeAtomic(caseId, this.#basePath(caseId), snapshot);
+        this.#cacheMaterialized(caseId, snapshot, [{ name: 'base.json', bytes: payload }], 0);
         return publicJsonClone(snapshot);
       }
       if (snapshot.caseRevision <= expectedRevision) {
@@ -468,15 +470,23 @@ export class JournalSnapshotStore {
         });
       }
       const delta = makeJournalDelta(current, snapshot);
-      await this.#writeAtomic(caseId, this.#deltaPath(caseId, snapshot.caseRevision), delta);
-      const deltaCount = (this.deltaCounts.get(caseId) ?? 0) + 1;
+      const deltaName = path.basename(this.#deltaPath(caseId, snapshot.caseRevision));
+      const deltaPayload = await this.#writeAtomic(caseId, this.#deltaPath(caseId, snapshot.caseRevision), delta);
+      let nextFiles = [
+        ...currentRead.files.filter((file) => file.name !== deltaName),
+        { name: deltaName, revision: snapshot.caseRevision, bytes: deltaPayload },
+      ].sort((left, right) => {
+        if (left.name === 'base.json') return -1;
+        if (right.name === 'base.json') return 1;
+        return left.revision - right.revision;
+      });
+      let deltaCount = currentRead.appliedDeltaCount + 1;
       if (deltaCount >= this.compactAfterDeltas) {
-        await this.#compact(caseId, snapshot, await this.#listDeltaFiles(caseId));
-        this.deltaCounts.set(caseId, 0);
-      } else {
-        this.deltaCounts.set(caseId, deltaCount);
+        const basePayload = await this.#compact(caseId, snapshot, await this.#listDeltaFiles(caseId));
+        nextFiles = [{ name: 'base.json', bytes: basePayload }];
+        deltaCount = 0;
       }
-      this.materialized.set(caseId, publicJsonClone(snapshot));
+      this.#cacheMaterialized(caseId, snapshot, nextFiles, deltaCount);
       return publicJsonClone(snapshot);
     });
   }
@@ -509,9 +519,8 @@ export class JournalSnapshotStore {
       .sort((left, right) => left.revision - right.revision);
   }
 
-  async #readCanonicalFile(filePath, caseId, { missing = false } = {}) {
+  async #readFileBytes(filePath, caseId, { missing = false } = {}) {
     let handle;
-    let bytes;
     try {
       handle = await open(filePath, 'r');
       const metadata = await handle.stat();
@@ -521,7 +530,7 @@ export class JournalSnapshotStore {
           limit: this.maxBytes,
         });
       }
-      bytes = await handle.readFile();
+      return await handle.readFile();
     } catch (error) {
       if (missing && error?.code === 'ENOENT') return null;
       if (error instanceof ContractError) throw error;
@@ -529,6 +538,9 @@ export class JournalSnapshotStore {
     } finally {
       if (handle) await handle.close().catch(() => {});
     }
+  }
+
+  #parseCanonicalBytes(bytes, caseId) {
     try {
       const value = strictJsonParse(bytes, { maxBytes: this.maxBytes });
       if (!bytes.equals(Buffer.from(canonicalJson(value), 'utf8'))) {
@@ -544,30 +556,54 @@ export class JournalSnapshotStore {
     }
   }
 
-  async #readUnlocked(caseId) {
-    const base = await this.#readCanonicalFile(this.#basePath(caseId), caseId, { missing: true });
+  async #readJournalFiles(caseId) {
+    const baseBytes = await this.#readFileBytes(this.#basePath(caseId), caseId, { missing: true });
     const deltaFiles = await this.#listDeltaFiles(caseId);
-    if (base === null) {
+    if (baseBytes === null) {
       if (deltaFiles.length > 0) {
         throw new ContractError('store_journal_missing_base', `Case ${caseId} has journal deltas without a durable base`);
       }
-      this.deltaCounts.set(caseId, 0);
-      return null;
+      return [];
     }
+    const files = [{ name: 'base.json', bytes: baseBytes }];
+    for (const item of deltaFiles) {
+      files.push({
+        name: item.name,
+        revision: item.revision,
+        bytes: await this.#readFileBytes(path.join(this.#caseDirectory(caseId), item.name), caseId),
+      });
+    }
+    return files;
+  }
+
+  #filesFingerprint(files) {
+    const hash = createHash('sha256');
+    for (const file of files) {
+      hash.update(file.name, 'utf8');
+      hash.update('\0', 'utf8');
+      hash.update(String(file.bytes.byteLength), 'utf8');
+      hash.update('\0', 'utf8');
+      hash.update(file.bytes);
+    }
+    return `sha256:${hash.digest('hex')}`;
+  }
+
+  #materializeFiles(caseId, files) {
+    if (files.length === 0) return { snapshot: null, appliedDeltaCount: 0 };
+    const base = this.#parseCanonicalBytes(files[0].bytes, caseId);
     validateJournalSnapshot(base, caseId);
     const baseRevision = base.caseRevision;
     let current = base;
     let appliedDeltaCount = 0;
-    for (const item of deltaFiles) {
-      if (item.revision <= baseRevision) continue;
-      const delta = await this.#readCanonicalFile(path.join(this.#caseDirectory(caseId), item.name), caseId);
+    for (const file of files.slice(1)) {
+      if (file.revision <= baseRevision) continue;
+      const delta = this.#parseCanonicalBytes(file.bytes, caseId);
       current = applyJournalDelta(current, delta);
       appliedDeltaCount += 1;
-      if (current.caseRevision !== item.revision) {
+      if (current.caseRevision !== file.revision) {
         throw new ContractError('store_journal_filename', 'Journal delta filename does not match its target revision');
       }
     }
-    this.deltaCounts.set(caseId, appliedDeltaCount);
     const materializedBytes = Buffer.byteLength(canonicalJson(current), 'utf8');
     if (materializedBytes > this.maxBytes) {
       throw new ContractError('store_snapshot_too_large', `Materialized Case ${caseId} exceeds the store byte limit`, {
@@ -575,7 +611,36 @@ export class JournalSnapshotStore {
         limit: this.maxBytes,
       });
     }
-    return publicJsonClone(current);
+    return { snapshot: publicJsonClone(current), appliedDeltaCount };
+  }
+
+  #cacheMaterialized(caseId, snapshot, files, appliedDeltaCount) {
+    const fingerprint = this.#filesFingerprint(files);
+    const cachedSnapshot = snapshot === null ? null : publicJsonClone(snapshot);
+    this.materialized.set(caseId, { fingerprint, snapshot: cachedSnapshot, appliedDeltaCount });
+    this.deltaCounts.set(caseId, appliedDeltaCount);
+  }
+
+  async #readValidated(caseId) {
+    const files = await this.#readJournalFiles(caseId);
+    const fingerprint = this.#filesFingerprint(files);
+    const cached = this.materialized.get(caseId);
+    if (cached?.fingerprint === fingerprint) {
+      this.deltaCounts.set(caseId, cached.appliedDeltaCount);
+      return {
+        snapshot: cached.snapshot === null ? null : publicJsonClone(cached.snapshot),
+        files,
+        appliedDeltaCount: cached.appliedDeltaCount,
+      };
+    }
+    const materialized = this.#materializeFiles(caseId, files);
+    this.materialized.set(caseId, {
+      fingerprint,
+      snapshot: materialized.snapshot === null ? null : publicJsonClone(materialized.snapshot),
+      appliedDeltaCount: materialized.appliedDeltaCount,
+    });
+    this.deltaCounts.set(caseId, materialized.appliedDeltaCount);
+    return { ...materialized, files };
   }
 
   async #writeAtomic(caseId, finalPath, value) {
@@ -600,6 +665,7 @@ export class JournalSnapshotStore {
       handle = null;
       await rename(tempPath, finalPath);
       await this.#syncCaseDirectory(caseId);
+      return payload;
     } catch (error) {
       if (handle) await handle.close().catch(() => {});
       await rm(tempPath, { force: true }).catch(() => {});
@@ -609,13 +675,14 @@ export class JournalSnapshotStore {
   }
 
   async #compact(caseId, snapshot, deltaFiles) {
-    await this.#writeAtomic(caseId, this.#basePath(caseId), snapshot);
+    const payload = await this.#writeAtomic(caseId, this.#basePath(caseId), snapshot);
     for (const item of deltaFiles) {
       if (item.revision <= snapshot.caseRevision) {
         await rm(path.join(this.#caseDirectory(caseId), item.name), { force: true });
       }
     }
     await this.#syncCaseDirectory(caseId);
+    return payload;
   }
 
   async #syncCaseDirectory(caseId) {
@@ -628,17 +695,6 @@ export class JournalSnapshotStore {
   }
 
   async #withLock(caseId, operation) {
-    const previous = this.locks.get(caseId) ?? Promise.resolve();
-    let release;
-    const current = new Promise((resolve) => { release = resolve; });
-    const queued = previous.then(() => current);
-    this.locks.set(caseId, queued);
-    await previous;
-    try {
-      return await operation();
-    } finally {
-      release();
-      if (this.locks.get(caseId) === queued) this.locks.delete(caseId);
-    }
+    return withProcessStoreLock(`journal\0${this.directory}\0${caseId}`, operation);
   }
 }

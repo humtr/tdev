@@ -1,11 +1,14 @@
 # Design 0003: Efficient Parallel Control Plane
 
 - Class: 2
-- Status: verified on 2026-08-07
+- Status: superseded on 2026-08-07 by Design 0004
 - Builds on: Design 0002
 - Runtime gate: Node.js 22 or newer; no third-party runtime dependency
 - Owners affected: SPEC, ARCHITECTURE, PROTOCOL, OPERATIONS, SECURITY, DEPLOYMENT, MVP, WORKBOARD
 - Implementation paths: `src/`, `test/`, `bench/`
+
+
+> Historical record: this document describes the `mvp-1a-1` candidate and is not the current design. Independent audit found that root collection copying remained O(V), the Claim trie retained released path nodes, the runner needed an explicit candidate-rebuild boundary, blocker propagation could exhaust reserved Events, and the journal materialization cache could accept stale CAS and hide post-warm corruption. Current corrections are normative in `0004-incremental-transition-core-and-verified-journal-cache.md`.
 
 ## One-line definition
 
@@ -204,7 +207,7 @@ The accepted slice is implemented in lineage `mvp-1a-1`:
 - `JournalSnapshotStore` implements the existing snapshot CAS interface with a full base, per-revision deltas, verified replay, crash-safe compaction, pre-commit materialized-size fencing, and non-authoritative hot materialization/delta-count caches.
 - `bench/control-plane.mjs` records only measurements the current source slice can actually make and labels context/token/cold-start metrics unavailable where their adapters do not exist.
 
-On the checked-in 2026-08-07 Node 22.16.0 benchmark run, 128 independent observation Tasks completed in 156.004 ms at capacity 1 and 111.990 ms at capacity 16, versus the pre-change audit baseline of approximately 2.42 s and 2.64 s respectively. A single 2,000-Task readiness scan took 0.488 ms. Two thousand disjoint ClaimLedger acquisitions took 59.577 ms versus the pre-change baseline of approximately 6.319 s (about 106x faster); 10,000 acquisitions took 309.348 ms, and a disjoint query with 10,000 active leases took 0.036 ms. For a 32-Task durable run with 4 KiB observation payloads, both stores made 67 durable writes, but the full-snapshot adapter wrote 6,550,735 logical bytes while the journal layout occupied 270,883 bytes without compaction, a 95.86% reduction; observed wall-clock was 918.167 ms vs 648.343 ms in that run. A 512-wide capacity-16 run remained 984.466 ms, showing that per-transition O(V) Case/root work is still the largest large-DAG source-level growth term. Promotion over a 20,000-file base with one touched path remained 172.604 ms. These are container microbenchmarks, not production SLOs; the exact JSON is retained in `docs/evidence/control-plane-benchmark-2026-08-07.json`.
+On the checked-in 2026-08-07 Node 22.16.0 benchmark run, 128 independent observation Tasks completed in 156.004 ms at capacity 1 and 111.990 ms at capacity 16, versus the pre-change audit baseline of approximately 2.42 s and 2.64 s respectively. A single 2,000-Task readiness scan took 0.488 ms. Two thousand disjoint ClaimLedger acquisitions took 59.577 ms versus the pre-change baseline of approximately 6.319 s (about 106x faster); 10,000 acquisitions took 309.348 ms, and a disjoint query with 10,000 active leases took 0.036 ms. For a 32-Task durable run with 4 KiB observation payloads, both stores made 67 durable writes, but the full-snapshot adapter wrote 6,550,735 logical bytes while the journal layout occupied 270,883 bytes without compaction, a 95.86% reduction; observed wall-clock was 918.167 ms vs 648.343 ms in that run. A 512-wide capacity-16 run remained 984.466 ms, showing that per-transition O(V) Case/root work is still the largest large-DAG source-level growth term. Promotion over a 20,000-file base with one touched path remained 172.604 ms. These are container microbenchmarks, not production SLOs; the exact JSON is retained in `docs/evidence/mvp-1a-1-control-plane-benchmark-2026-08-07.json`.
 
 ## 9. Non-goals and follow-on gates
 

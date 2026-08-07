@@ -96,25 +96,36 @@ async function runGraph(plan, capacity, caseId) {
 }
 
 async function schedulerBench() {
-  const plan = widePlan(128, { resultKind: 'observation' });
-  const serial = await runGraph(plan, 1, 'bench-wide-serial');
-  const parallel = await runGraph(plan, 16, 'bench-wide-parallel');
-  const chain = await runGraph(chainPlan(128), 16, 'bench-chain');
-  const wide512 = await runGraph(widePlan(512, { resultKind: 'observation' }), 16, 'bench-wide-512');
-  const readyEngine = new CaseEngine({ caseId: 'bench-ready-scan', plan: widePlan(2_000, { resultKind: 'observation' }) });
+  const scenarios = [
+    ['wide128Capacity1', widePlan(128, { resultKind: 'observation' }), 1],
+    ['wide128Capacity16', widePlan(128, { resultKind: 'observation' }), 16],
+    ['chain128Capacity16', chainPlan(128), 16],
+    ['wide512Capacity16', widePlan(512, { resultKind: 'observation' }), 16],
+    ['chain512Capacity16', chainPlan(512), 16],
+    ['wide1024Capacity16', widePlan(1_024, { resultKind: 'observation' }), 16],
+    ['chain1024Capacity16', chainPlan(1_024), 16],
+    ['wide2048Capacity16', widePlan(2_048, { resultKind: 'observation' }), 16],
+    ['chain2048Capacity16', chainPlan(2_048), 16],
+  ];
+  const results = {};
+  for (const [id, plan, capacity] of scenarios) {
+    const observation = await runGraph(plan, capacity, `bench-${id}`);
+    results[id] = {
+      elapsedMs: observation.elapsedMs,
+      canonicalDigest: observation.result.snapshot.canonicalDigest,
+    };
+  }
+  results.wide128CanonicalEquivalent =
+    results.wide128Capacity1.canonicalDigest === results.wide128Capacity16.canonicalDigest;
+
+  const readyEngine = new CaseEngine({
+    caseId: 'bench-ready-scan',
+    plan: widePlan(2_000, { resultKind: 'observation' }),
+  });
   const readyStart = performance.now();
   const ready = readyEngine.readyTaskIds();
-  return {
-    wide128: {
-      capacity1Ms: serial.elapsedMs,
-      capacity16Ms: parallel.elapsedMs,
-      canonicalEquivalent: serial.result.snapshot.canonicalDigest === parallel.result.snapshot.canonicalDigest,
-    },
-    chain128Capacity16Ms: chain.elapsedMs,
-    wide512Capacity16Ms: wide512.elapsedMs,
-    readyScan2000Ms: ms(readyStart),
-    readyCount: ready.length,
-  };
+  results.readyScan2000 = { elapsedMs: ms(readyStart), readyCount: ready.length };
+  return results;
 }
 
 function acquireDisjointClaims(count) {
@@ -194,20 +205,19 @@ async function persistenceBench(taskCount = 32, payloadBytes = 4096) {
     const rawStore = kind === 'file'
       ? new FileSnapshotStore(directory)
       : new JournalSnapshotStore(directory, { compactAfterDeltas: 1_000_000 });
-    let writes = 1;
-    let logicalBytes = 0;
+    let successfulCasWrites = 0;
+    let cumulativeCanonicalSnapshotBytes = 0;
     const repository = new CaseRepository(rawStore);
     const caseId = `bench-persistence-${kind}`;
     const start = performance.now();
-    const initialEngine = await repository.create({ caseId, plan });
-    if (kind === 'file') logicalBytes += Buffer.byteLength(canonicalJson(initialEngine.snapshot()));
     const originalCas = rawStore.compareAndSwap.bind(rawStore);
     rawStore.compareAndSwap = async (caseIdArg, expectedRevision, snapshot) => {
       const result = await originalCas(caseIdArg, expectedRevision, snapshot);
-      writes += 1;
-      if (kind === 'file') logicalBytes += Buffer.byteLength(canonicalJson(snapshot));
+      successfulCasWrites += 1;
+      cumulativeCanonicalSnapshotBytes += Buffer.byteLength(canonicalJson(snapshot));
       return result;
     };
+    const initialEngine = await repository.create({ caseId, plan });
     const result = await runDurableCase(repository, caseId, async ({ task }) => ({
       kind: 'observation',
       subject: task.id,
@@ -215,8 +225,17 @@ async function persistenceBench(taskCount = 32, payloadBytes = 4096) {
     }), { capacity: 8 });
     const elapsedMs = ms(start);
     const finalSnapshotBytes = Buffer.byteLength(canonicalJson(result.snapshot));
-    if (kind === 'journal') logicalBytes = await directoryBytes(directory);
-    return { elapsedMs, writes, logicalBytes, finalSnapshotBytes };
+    const retainedFilesystemBytes = await directoryBytes(directory);
+    return {
+      elapsedMs,
+      successfulCasWrites,
+      cumulativeCanonicalSnapshotBytes,
+      retainedFilesystemBytes,
+      finalSnapshotBytes,
+      byteInterpretation: kind === 'file'
+        ? 'cumulativeCanonicalSnapshotBytes approximates full-snapshot payload bytes written; retainedFilesystemBytes is the final replacement file only'
+        : 'retainedFilesystemBytes is base plus committed deltas; with compaction disabled it also equals committed journal payload bytes retained by the run',
+    };
   }
 
   try {
@@ -233,6 +252,7 @@ async function persistenceBench(taskCount = 32, payloadBytes = 4096) {
 
 const start = performance.now();
 const output = {
+  benchmarkKind: 'single-process component observation; repeat externally for p50/range',
   environment: { node: process.version, platform: process.platform, arch: process.arch },
   scheduler: await schedulerBench(),
   claimLedger: claimBench(),
@@ -242,6 +262,7 @@ const output = {
     contextDuplicateBytes: 'no repository/context transport adapter exists',
     executorColdVsWarmStart: 'no process/toolchain executor lifecycle exists in this kernel',
     tokenDuplication: 'no model transport exists in this kernel',
+    actualDeviceWriteAmplification: 'filesystem payload/retained bytes are observable; block-device amplification is not represented',
   },
 };
 output.totalElapsedMs = ms(start);

@@ -163,18 +163,20 @@ This is a mapping, not an implementation claim. The production target-claim owne
 
 ## 9. Performance posture
 
-Correctness state remains authoritative, but its execution cost is not part of the semantics. The accepted control-plane policy is:
+Correctness state remains authoritative; performance policy reduces implementation work without changing semantics. Design 0004 establishes:
 
-- direct mutations use copy-on-write rollback frames over frozen validated state instead of canonical-serializing the whole Case before every mutation;
-- historical immutable Events, TaskStates, Attempts, and accepted results are validated once and reused through an in-memory validation frontier; untrusted restore still performs full validation;
-- ClaimLedger uses a rebuildable overlap index over authoritative active leases rather than treating the index as lease truth;
-- live snapshot construction may reuse already validated immutable values, while the snapshot digest and defensive output clone remain complete;
-- `JournalSnapshotStore` persists small deterministic deltas between compact full snapshots while preserving the same revision CAS and fsync-before-return durability boundary; its materialized snapshot and delta-count caches are rebuildable only;
-- the runner holds a rebuildable ready-candidate set refreshed through Plan reverse edges, and `CaseEngine` holds a rebuildable claim-holder set; neither is persisted or allowed to authorize a start without `CaseEngine.admissionDecision`;
-- Plan cycle detection uses linear Kahn traversal without repeatedly sorting/shifting the ready list; deterministic Plan identity does not depend on traversal order;
-- Promotion still copies and validates the full text tree in this slice; content-addressed incremental tree construction remains a later repository-adapter gate.
+- direct mutations retain stable collection roots and use entry-level undo records plus Event-array truncation, rather than canonical cloning or root-record copying;
+- committed records are frozen and exposed through stable read-only collection views; untrusted restore still performs full validation;
+- incremental commit validation covers appended Events and changed Task/Attempt/receipt records, while full restore remains the semantic oracle;
+- rebuildable Task-state counts, unsatisfied dependency counts, ready IDs, and claim-holder IDs update only changed entries and direct reverse edges; a non-active Case-state candidate is confirmed against authoritative Task records;
+- blocker propagation visits an affected descendant closure once in deterministic topological order, producing bounded complete blocker evidence;
+- the runner's ready candidates and the ClaimLedger overlap trie are disposable candidate-narrowing structures; admission and live lease validation remain authoritative;
+- Claim trie release prunes empty path nodes so historical churn does not become retained search state;
+- journal materialization is reused only when a cryptographic fingerprint of exact durable base/delta names, lengths, and bytes matches; this preserves stale-writer/corruption detection but still incurs O(journal bytes) read/hash work;
+- Plan compilation remains linear in graph size apart from deterministic output ordering;
+- Promotion still copies, validates, and hashes the complete text tree, so touched-path/content-addressed integration remains a later repository-adapter gate.
 
-Context CAS, Task-specific ContextSlice, warm process/toolchain pools, and cache-locality scheduling belong to a concrete repository/executor adapter. The kernel does not invent those substrates merely to expose configuration knobs.
+The architecture deliberately does not implement Context CAS, ContextSlice, warm process/toolchain pools, preflight, cache-locality placement, or token accounting until a real repository/executor/model transport exists. Their metrics are unavailable rather than estimated.
 
 ## 10. Architectural stop gates
 

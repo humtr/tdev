@@ -306,6 +306,25 @@ function terminalDependencyReason(state) {
   }
 }
 
+function buildTopologicalTaskOrder(plan) {
+  const indegree = createRecord();
+  for (const taskId of plan.taskOrder) indegree[taskId] = plan.tasksById[taskId].dependencies.length;
+  const ready = plan.taskOrder.filter((taskId) => indegree[taskId] === 0);
+  const order = [];
+  while (ready.length > 0) {
+    const taskId = ready.pop();
+    order.push(taskId);
+    for (const dependent of plan.reverseDependenciesById[taskId]) {
+      indegree[dependent] -= 1;
+      if (indegree[dependent] === 0) ready.push(dependent);
+    }
+  }
+  if (order.length !== plan.taskOrder.length) {
+    throw new ContractError('cycle', 'Task graph contains a cycle');
+  }
+  return deepFreeze(order);
+}
+
 function deriveCaseState(plan, taskStates) {
   const states = plan.taskOrder.map((taskId) => taskStates[taskId].state);
   if (states.includes('reconciling')) return 'reconciling';
@@ -322,7 +341,280 @@ function deriveCaseState(plan, taskStates) {
   throw new ContractError('invariant_case_state', 'Task states do not derive a valid Case state');
 }
 
+const DEPENDENCY_BOUND_TASK_STATES = new Set([
+  'running', 'reconciling', 'succeeded', 'failed', 'denied', 'unverified',
+]);
+
+function assertEventSuffix(engine) {
+  if (engine._validatedEventSequence > engine._events.length) {
+    throw new ContractError('invariant_event_frontier', 'Validated Event frontier exceeds Event count');
+  }
+  let previousDigest = engine._validatedEventSequence === 0
+    ? null
+    : engine._events[engine._validatedEventSequence - 1]?.eventDigest ?? null;
+  for (let index = engine._validatedEventSequence; index < engine._events.length; index += 1) {
+    const event = engine._events[index];
+    const expectedSequence = index + 1;
+    assertRecordShape(event, ['sequence', 'caseRevision', 'type', 'detail', 'previousDigest', 'eventDigest'], [], `Event ${expectedSequence}`);
+    assertSafeInteger(event.sequence, `Event ${expectedSequence}.sequence`, { min: 1 });
+    assertSafeInteger(event.caseRevision, `Event ${expectedSequence}.caseRevision`, { min: 1 });
+    assertIdentifier(event.type, `Event ${expectedSequence}.type`);
+    if (event.previousDigest !== null) assertDigest(event.previousDigest, `Event ${expectedSequence}.previousDigest`);
+    assertDigest(event.eventDigest, `Event ${expectedSequence}.eventDigest`);
+    canonicalClone(event.detail);
+    if (event.sequence !== expectedSequence || event.caseRevision !== expectedSequence || event.previousDigest !== previousDigest) {
+      throw new ContractError('invariant_event_chain', `Event chain is invalid at sequence ${expectedSequence}`);
+    }
+    const base = {
+      sequence: event.sequence,
+      caseRevision: event.caseRevision,
+      type: event.type,
+      detail: event.detail,
+      previousDigest: event.previousDigest,
+    };
+    if (event.eventDigest !== eventDigest(base)) {
+      throw new ContractError('invariant_event_digest', `Event digest is invalid at sequence ${expectedSequence}`);
+    }
+    previousDigest = event.eventDigest;
+  }
+}
+
+function assertTaskStateInvariant(engine, taskId) {
+  const task = engine.plan.tasksById[taskId];
+  const taskState = engine._taskStates[taskId];
+  if (!taskState) throw new ContractError('invariant_task_missing', `Missing state for Task ${taskId}`);
+  assertRecordShape(
+    taskState,
+    ['state', 'attemptIds', 'acceptedResult', 'acceptedResultDigest', 'error', 'blockedBy'],
+    [],
+    `Task state ${taskId}`,
+  );
+  assertState(taskState.state, TASK_STATES, `Task ${taskId}`);
+  assertIdentifierArray(taskState.attemptIds, `Task ${taskId}.attemptIds`);
+  assertIdentifierArray(taskState.blockedBy, `Task ${taskId}.blockedBy`, { sorted: true });
+  validateStoredError(taskState.error, `Task ${taskId}.error`, engine.caseContract.limits);
+  if (taskState.acceptedResultDigest !== null) {
+    assertDigest(taskState.acceptedResultDigest, `Task ${taskId}.acceptedResultDigest`);
+  }
+
+  const linkedAttempts = taskState.attemptIds.map((attemptId) => {
+    const attempt = engine._attempts[attemptId];
+    if (!attempt) throw new ContractError('invariant_attempt_missing', `Task ${taskId} links missing Attempt ${attemptId}`);
+    if (attempt.taskId !== taskId) {
+      throw new ContractError('invariant_attempt_link', `Task ${taskId} links Attempt ${attemptId} owned by ${attempt.taskId}`);
+    }
+    return attempt;
+  });
+  const nonterminal = linkedAttempts.filter((attempt) => NONTERMINAL_ATTEMPT_STATES.has(attempt.state));
+  if (nonterminal.length > 1) {
+    throw new ContractError('invariant_attempt_count', `Task ${taskId} has multiple nonterminal Attempts`);
+  }
+  if (taskState.state === 'running' &&
+      (nonterminal.length !== 1 || RECONCILIATION_RESULT_STATES.has(nonterminal[0].state))) {
+    throw new ContractError('invariant_task_attempt', `Task ${taskId} running state does not match its Attempt`);
+  }
+  if (taskState.state === 'reconciling' &&
+      (nonterminal.length !== 1 || !RECONCILIATION_RESULT_STATES.has(nonterminal[0].state))) {
+    throw new ContractError('invariant_task_attempt', `Task ${taskId} reconciling state does not match its Attempt`);
+  }
+  if (!['running', 'reconciling'].includes(taskState.state) && nonterminal.length !== 0) {
+    throw new ContractError('invariant_task_attempt', `Task ${taskId} has a nonterminal Attempt while ${taskState.state}`);
+  }
+  if (taskState.attemptIds.length > task.execution.retry.maxAttempts) {
+    throw new ContractError('invariant_attempt_limit', `Task ${taskId} exceeds its Attempt limit`);
+  }
+  if (taskState.state === 'pending' && taskState.attemptIds.length >= task.execution.retry.maxAttempts) {
+    throw new ContractError('invariant_attempt_limit', `Pending Task ${taskId} has exhausted its Attempt limit`);
+  }
+  if (task.execution.effectClass === 'result-only' && taskState.state === 'reconciling') {
+    throw new ContractError('invariant_reconciliation', `Result-only Task ${taskId} cannot be reconciling`);
+  }
+
+  if (taskState.state === 'succeeded') {
+    if (taskState.acceptedResult === null || taskState.acceptedResultDigest !== digest(taskState.acceptedResult)) {
+      throw new ContractError('invariant_result', `Succeeded Task ${taskId} has invalid accepted result`);
+    }
+    const succeededAttempts = linkedAttempts.filter((attempt) => attempt.state === 'succeeded');
+    if (succeededAttempts.length !== 1 || linkedAttempts.at(-1)?.state !== 'succeeded') {
+      throw new ContractError('invariant_result', `Succeeded Task ${taskId} must have one final succeeded Attempt`);
+    }
+  } else if (taskState.acceptedResult !== null || taskState.acceptedResultDigest !== null) {
+    throw new ContractError('invariant_result', `Non-succeeded Task ${taskId} has an accepted result`);
+  }
+
+  if (['running', 'succeeded'].includes(taskState.state) && taskState.error !== null) {
+    throw new ContractError('invariant_task_error', `Task ${taskId} cannot retain an error while ${taskState.state}`);
+  }
+  if (['reconciling', 'failed', 'cancelled', 'denied', 'unverified', 'blocked'].includes(taskState.state) && taskState.error === null) {
+    throw new ContractError('invariant_task_error', `Task ${taskId} requires an error while ${taskState.state}`);
+  }
+
+  const unsatisfiedDependencies = task.dependencies
+    .filter((dependency) => engine._taskStates[dependency]?.state !== 'succeeded');
+  if (DEPENDENCY_BOUND_TASK_STATES.has(taskState.state) && unsatisfiedDependencies.length > 0) {
+    throw new ContractError('invariant_dependency', `Task ${taskId} entered ${taskState.state} before its dependencies succeeded`, {
+      unsatisfiedDependencies,
+    });
+  }
+  const terminalBlockers = task.dependencies
+    .filter((dependency) => terminalDependencyReason(engine._taskStates[dependency]?.state) !== null)
+    .sort(compareText);
+  if (taskState.state === 'pending' && terminalBlockers.length > 0) {
+    throw new ContractError('invariant_dependency', `Pending Task ${taskId} has terminal dependency blockers`);
+  }
+  if (taskState.state === 'blocked') {
+    if (taskState.blockedBy.join('\0') !== terminalBlockers.join('\0')) {
+      throw new ContractError('invariant_dependency', `Blocked Task ${taskId} has invalid blocker evidence`);
+    }
+  } else if (taskState.blockedBy.length !== 0) {
+    throw new ContractError('invariant_dependency', `Non-blocked Task ${taskId} retains blocker evidence`);
+  }
+  deepFreeze(taskState);
+}
+
+function assertAttemptInvariant(engine, attemptId) {
+  const attempt = engine._attempts[attemptId];
+  if (!attempt) throw new ContractError('invariant_attempt_missing', `Missing Attempt ${attemptId}`);
+  assertRecordShape(attempt, [
+    'id', 'taskId', 'ordinal', 'executorId', 'executorEpoch', 'executorCapabilities', 'state',
+    'effectKey', 'fencingToken', 'claimLease', 'resultDigest', 'error', 'reconciliation',
+  ], [], `Attempt ${attemptId}`);
+  assertIdentifier(attemptId, `Attempt key ${attemptId}`);
+  assertIdentifier(attempt.id, `Attempt ${attemptId}.id`);
+  assertIdentifier(attempt.taskId, `Attempt ${attemptId}.taskId`);
+  if (attempt.id !== attemptId) throw new ContractError('invariant_attempt_identity', `Attempt ${attemptId} has a mismatched ID`);
+  if (!engine._taskStates[attempt.taskId]) throw new ContractError('invariant_attempt_task', `Attempt ${attemptId} references an unknown Task`);
+  assertSafeInteger(attempt.ordinal, `Attempt ${attemptId}.ordinal`, { min: 1 });
+  assertIdentifier(attempt.executorId, `Attempt ${attemptId}.executorId`);
+  assertSafeInteger(attempt.executorEpoch, `Attempt ${attemptId}.executorEpoch`, { min: 1 });
+  assertIdentifierArray(attempt.executorCapabilities, `Attempt ${attemptId}.executorCapabilities`, { sorted: true });
+  if (attempt.executorCapabilities.length > 1_000) {
+    throw new ContractError('authority_limit_exceeded', `Attempt ${attemptId} has too many executor capabilities`);
+  }
+  assertState(attempt.state, ATTEMPT_STATES, `Attempt ${attemptId}`);
+  assertDigest(attempt.effectKey, `Attempt ${attemptId}.effectKey`);
+  assertDigest(attempt.fencingToken, `Attempt ${attemptId}.fencingToken`);
+  if (attempt.resultDigest !== null) assertDigest(attempt.resultDigest, `Attempt ${attemptId}.resultDigest`);
+  validateStoredError(attempt.error, `Attempt ${attemptId}.error`, engine.caseContract.limits);
+  validateReconciliationRecord(attempt.reconciliation, `Attempt ${attemptId}.reconciliation`, engine.caseContract.limits);
+
+  const taskState = engine._taskStates[attempt.taskId];
+  const task = engine.plan.tasksById[attempt.taskId];
+  if (!taskState.attemptIds.includes(attemptId)) {
+    throw new ContractError('invariant_attempt_link', `Attempt ${attemptId} is not linked by its Task`);
+  }
+  const expectedOrdinal = taskState.attemptIds.indexOf(attemptId) + 1;
+  if (attempt.ordinal !== expectedOrdinal || attempt.id !== `${attempt.taskId}.${expectedOrdinal}`) {
+    throw new ContractError('invariant_attempt_ordinal', `Attempt ${attemptId} has invalid ordinal`);
+  }
+  if (attempt.claimLease !== null) {
+    const normalizedLease = normalizeClaimLease(attempt.claimLease, {
+      caseId: engine.caseId,
+      taskId: attempt.taskId,
+      attemptId,
+    }, task, engine.caseContract.limits.maxClaimsPerTask);
+    if (canonicalJson(normalizedLease) !== canonicalJson(attempt.claimLease)) {
+      throw new ContractError('invariant_claim_lease', `Attempt ${attemptId} has a noncanonical claim lease`);
+    }
+  }
+  const expectedEffectKey = engine.effectKey(attempt.taskId);
+  if (attempt.effectKey !== expectedEffectKey) {
+    throw new ContractError('invariant_effect_key', `Attempt ${attemptId} has invalid effect key`);
+  }
+  const expectedFence = attemptFence({
+    caseId: engine.caseId,
+    planDigest: engine.plan.planDigest,
+    taskId: attempt.taskId,
+    attemptId: attempt.id,
+    executorId: attempt.executorId,
+    executorEpoch: attempt.executorEpoch,
+    claimLeaseToken: attempt.claimLease?.token ?? null,
+    claimLeaseGeneration: attempt.claimLease?.generation ?? null,
+    claimLeaseClaimsDigest: attempt.claimLease?.claimsDigest ?? null,
+  });
+  if (attempt.fencingToken !== expectedFence) {
+    throw new ContractError('invariant_fencing', `Attempt ${attemptId} has invalid fencing token`);
+  }
+  if (attempt.state === 'succeeded' && attempt.resultDigest !== taskState.acceptedResultDigest) {
+    throw new ContractError('invariant_result', `Attempt ${attemptId} result digest does not match its Task`);
+  }
+  if (attempt.state === 'succeeded' && (taskState.state !== 'succeeded' || attempt.resultDigest === null)) {
+    throw new ContractError('invariant_result', `Succeeded Attempt ${attemptId} requires a succeeded Task and result digest`);
+  }
+  if (attempt.state !== 'succeeded' && attempt.resultDigest !== null) {
+    throw new ContractError('invariant_result', `Non-succeeded Attempt ${attemptId} has a result digest`);
+  }
+  if (['dispatch_pending', 'queued', 'running', 'succeeded'].includes(attempt.state) && attempt.error !== null) {
+    throw new ContractError('invariant_attempt_error', `Attempt ${attemptId} cannot retain an error while ${attempt.state}`);
+  }
+  if (['reconciling', 'cancel_requested', 'failed', 'cancelled', 'interrupted', 'rejected', 'unverified'].includes(attempt.state) && attempt.error === null) {
+    throw new ContractError('invariant_attempt_error', `Attempt ${attemptId} requires an error while ${attempt.state}`);
+  }
+  if (attempt.reconciliation !== null) {
+    if (task.execution.effectClass === 'result-only') {
+      throw new ContractError('invariant_reconciliation', `Result-only Attempt ${attemptId} cannot retain reconciliation evidence`);
+    }
+    const expectedStateByOutcome = {
+      succeeded: 'succeeded',
+      not_applied: 'interrupted',
+      failed: 'failed',
+      cancelled: 'cancelled',
+      unverified: 'unverified',
+    };
+    if (attempt.state !== expectedStateByOutcome[attempt.reconciliation.outcome]) {
+      throw new ContractError('invariant_reconciliation', `Attempt ${attemptId} reconciliation outcome does not match its state`);
+    }
+  }
+  if (task.execution.effectClass === 'result-only' && RECONCILIATION_RESULT_STATES.has(attempt.state)) {
+    throw new ContractError('invariant_reconciliation', `Result-only Attempt ${attemptId} cannot be ${attempt.state}`);
+  }
+  if (!TERMINAL_ATTEMPT_STATES.has(attempt.state) && !NONTERMINAL_ATTEMPT_STATES.has(attempt.state)) {
+    throw new ContractError('invariant_attempt_state', `Attempt ${attemptId} has unknown state`);
+  }
+  deepFreeze(attempt);
+}
+
+function readOnlyCollection(target, label) {
+  return new Proxy(target, {
+    set() {
+      throw new TypeError(`${label} is read-only`);
+    },
+    deleteProperty() {
+      throw new TypeError(`${label} is read-only`);
+    },
+    defineProperty() {
+      throw new TypeError(`${label} is read-only`);
+    },
+    setPrototypeOf() {
+      throw new TypeError(`${label} is read-only`);
+    },
+  });
+}
+
+const ABSENT_ENTRY = Symbol('absent entry');
+
+function installCollections(engine, {
+  events = [],
+  taskStates = createRecord(),
+  attempts = createRecord(),
+  receipts = createRecord(),
+} = {}) {
+  engine._events = events;
+  engine._taskStates = taskStates;
+  engine._attempts = attempts;
+  engine._receipts = receipts;
+  engine._eventsView = readOnlyCollection(events, 'Case Events');
+  engine._taskStatesView = readOnlyCollection(taskStates, 'Case Task states');
+  engine._attemptsView = readOnlyCollection(attempts, 'Case Attempts');
+  engine._receiptsView = readOnlyCollection(receipts, 'Case receipts');
+}
+
 export class CaseEngine {
+  get events() { return this._eventsView; }
+  get taskStates() { return this._taskStatesView; }
+  get attempts() { return this._attemptsView; }
+  get receipts() { return this._receiptsView; }
+
   constructor({ caseId, plan, caseContract = {} }) {
     assertIdentifier(caseId, 'caseId');
     this.caseId = caseId;
@@ -339,17 +631,15 @@ export class CaseEngine {
     } : caseContract);
     const sourcePlan = isCompiledPlan(plan) ? serializePlan(plan) : plan;
     this.plan = definePlan(sourcePlan, { caseContract: this.caseContract });
+    this._topologicalTaskOrder = buildTopologicalTaskOrder(this.plan);
     this.caseState = 'active';
     this.caseRevision = 0;
     this.eventSequence = 0;
-    this.events = [];
+    installCollections(this);
     this.canonicalTree = validateTree(canonicalClone(this.plan.baseTree), this.caseContract);
     this._canonicalDigest = this.plan.baseDigest;
-    this.taskStates = createRecord();
-    this.attempts = createRecord();
-    this.receipts = createRecord();
     for (const taskId of this.plan.taskOrder) {
-      this.taskStates[taskId] = {
+      this._taskStates[taskId] = {
         state: 'pending',
         attemptIds: [],
         acceptedResult: null,
@@ -381,7 +671,7 @@ export class CaseEngine {
   }
 
   nextAttemptId(taskId) {
-    const taskState = this.taskStates[taskId];
+    const taskState = this._taskStates[taskId];
     if (!taskState) throw new ContractError('unknown_task', `Unknown Task: ${taskId}`);
     return nextAttemptId(taskId, taskState);
   }
@@ -392,7 +682,7 @@ export class CaseEngine {
   }
 
   snapshot() {
-    this._assertInvariants();
+    this.#assertCommittedInvariants();
     const base = this.#snapshotWithoutDigest();
     return publicJsonClone({ ...base, snapshotDigest: snapshotDigest(base) });
   }
@@ -406,63 +696,166 @@ export class CaseEngine {
       eventSequence: this.eventSequence,
       plan: this.plan,
       caseContract: this.caseContract,
-      events: this.events,
+      events: this._events,
       canonicalTree: this.canonicalTree,
       canonicalDigest: this._canonicalDigest,
-      taskStates: this.taskStates,
-      attempts: this.attempts,
-      receipts: this.receipts,
+      taskStates: this._taskStates,
+      attempts: this._attempts,
+      receipts: this._receipts,
     };
   }
 
   readyTaskIds() {
     if (this.caseState !== 'active') return [];
-    return this.plan.taskOrder.filter((taskId) => {
-      const taskState = this.taskStates[taskId];
-      if (taskState.state !== 'pending') return false;
-      return this.plan.tasksById[taskId].dependencies.every(
-        (dependency) => this.taskStates[dependency].state === 'succeeded',
-      );
-    });
+    return [...this._readyTaskIdSet].sort(compareText);
+  }
+
+  isTaskReady(taskId) {
+    if (!this.plan.tasksById[taskId]) return false;
+    return this.caseState === 'active' && this._taskStates[taskId].state === 'pending' &&
+      this._unsatisfiedDependencyCounts[taskId] === 0;
   }
 
   runningTaskIds() {
-    return this.plan.taskOrder.filter((taskId) => this.taskStates[taskId].state === 'running');
+    return this.plan.taskOrder.filter((taskId) => this._taskStates[taskId].state === 'running');
   }
 
   #scanClaimHoldingTaskIds() {
     return this.plan.taskOrder.filter((taskId) => {
-      const state = this.taskStates[taskId].state;
+      const state = this._taskStates[taskId].state;
       return state === 'running' || state === 'reconciling';
     });
   }
 
   claimHoldingTaskIds() {
-    if (this._mutationFrame !== null) return this.#scanClaimHoldingTaskIds();
-    return [...this._claimHoldingTaskIdSet].sort(compareText);
+    if (this._mutationFrame === null) return [...this._claimHoldingTaskIdSet].sort(compareText);
+    const live = new Set(this._claimHoldingTaskIdSet);
+    for (const taskId of this._mutationFrame.taskIds) {
+      const state = this._taskStates[taskId]?.state;
+      if (state === 'running' || state === 'reconciling') live.add(taskId);
+      else live.delete(taskId);
+    }
+    return [...live].sort(compareText);
   }
 
   _rebuildPerformanceIndexes() {
     this._claimHoldingTaskIdSet = new Set(this.#scanClaimHoldingTaskIds());
+    this._taskStateCounts = createRecord(TASK_STATES.map((state) => [state, 0]));
+    this._unsatisfiedDependencyCounts = createRecord();
+    this._readyTaskIdSet = new Set();
+    for (const taskId of this.plan.taskOrder) {
+      this._taskStateCounts[this._taskStates[taskId].state] += 1;
+      const unsatisfied = this.plan.tasksById[taskId].dependencies.reduce(
+        (count, dependency) => count + (this._taskStates[dependency].state === 'succeeded' ? 0 : 1),
+        0,
+      );
+      this._unsatisfiedDependencyCounts[taskId] = unsatisfied;
+      if (this._taskStates[taskId].state === 'pending' && unsatisfied === 0) this._readyTaskIdSet.add(taskId);
+    }
   }
 
-  #refreshPerformanceIndexes(taskIds) {
+  #dependencyCountDeltas(frame) {
+    if (frame.dependencyCountDeltas) return frame.dependencyCountDeltas;
+    const deltas = new Map();
+    for (const [taskId, before] of frame.taskBefore) {
+      const after = this._taskStates[taskId];
+      const wasSucceeded = before.state === 'succeeded';
+      const isSucceeded = after.state === 'succeeded';
+      if (wasSucceeded === isSucceeded) continue;
+      const delta = isSucceeded ? -1 : 1;
+      for (const dependent of this.plan.reverseDependenciesById[taskId] ?? []) {
+        deltas.set(dependent, (deltas.get(dependent) ?? 0) + delta);
+      }
+    }
+    frame.dependencyCountDeltas = deltas;
+    return deltas;
+  }
+
+  #isTaskReady(taskId, frame = null) {
+    const taskState = this._taskStates[taskId];
+    const unsatisfied = (this._unsatisfiedDependencyCounts[taskId] ?? 0) +
+      (frame === null ? 0 : (this.#dependencyCountDeltas(frame).get(taskId) ?? 0));
+    return taskState?.state === 'pending' && unsatisfied === 0;
+  }
+
+  #effectiveTaskStateCounts(frame) {
+    const counts = createRecord(TASK_STATES.map((state) => [state, this._taskStateCounts[state] ?? 0]));
+    for (const [taskId, before] of frame.taskBefore) {
+      const after = this._taskStates[taskId];
+      if (before.state === after.state) continue;
+      counts[before.state] -= 1;
+      counts[after.state] += 1;
+    }
+    return counts;
+  }
+
+  #affectedReadyTaskIds(frame) {
+    const affected = new Set(frame.taskIds);
+    for (const taskId of frame.taskIds) {
+      for (const dependent of this.plan.reverseDependenciesById[taskId] ?? []) affected.add(dependent);
+    }
+    return affected;
+  }
+
+  #effectiveReadyCount(frame) {
+    let count = this._readyTaskIdSet.size;
+    const affected = this.#affectedReadyTaskIds(frame);
+    for (const taskId of affected) {
+      const before = this._readyTaskIdSet.has(taskId);
+      const after = this.#isTaskReady(taskId, frame);
+      if (before !== after) count += after ? 1 : -1;
+    }
+    return count;
+  }
+
+  #deriveCaseStateFromFrame(frame) {
+    const counts = this.#effectiveTaskStateCounts(frame);
+    const readyCount = this.#effectiveReadyCount(frame);
+    let candidateState;
+    if (counts.reconciling > 0) candidateState = 'reconciling';
+    else if (counts.running > 0 || readyCount > 0) candidateState = 'active';
+    else if (counts.unverified > 0) candidateState = 'unverified';
+    else if (counts.failed > 0 || counts.denied > 0) candidateState = 'failed';
+    else if (counts.cancelled > 0) candidateState = 'cancelled';
+    else if (counts.blocked > 0) candidateState = 'failed';
+    else if (this._taskStates[this.plan.promotionTaskId].state === 'succeeded') candidateState = 'succeeded';
+    else if (counts.pending > 0) candidateState = 'failed';
+    else throw new ContractError('invariant_case_state', 'Task states do not derive a valid Case state');
+
+    // Acceleration state may keep a Case conservatively active, but it may never
+    // author a terminal/reconciliation outcome. Terminal candidates are checked
+    // against the authoritative Task records before becoming semantic state.
+    const state = candidateState === 'active'
+      ? candidateState
+      : deriveCaseState(this.plan, this._taskStates);
+    return { state, counts, readyCount };
+  }
+
+  #refreshPerformanceIndexes(frame) {
     const nextClaimHolders = new Set(this._claimHoldingTaskIdSet);
-    for (const taskId of taskIds) {
-      const state = this.taskStates[taskId]?.state;
+    for (const taskId of frame.taskIds) {
+      const state = this._taskStates[taskId]?.state;
       if (state === 'running' || state === 'reconciling') nextClaimHolders.add(taskId);
       else nextClaimHolders.delete(taskId);
     }
     this._claimHoldingTaskIdSet = nextClaimHolders;
+    this._taskStateCounts = frame.derivedCounts ?? this.#effectiveTaskStateCounts(frame);
+    for (const [taskId, delta] of this.#dependencyCountDeltas(frame)) {
+      this._unsatisfiedDependencyCounts[taskId] += delta;
+    }
+    for (const taskId of this.#affectedReadyTaskIds(frame)) {
+      if (this.#isTaskReady(taskId)) this._readyTaskIdSet.add(taskId);
+      else this._readyTaskIdSet.delete(taskId);
+    }
   }
 
   admissionDecision(taskId, executorCapabilities = []) {
     const task = this.plan.tasksById[taskId];
-    const taskState = this.taskStates[taskId];
+    const taskState = this._taskStates[taskId];
     if (!task || !taskState) return deepFreeze({ admissible: false, reason: 'unknown_task' });
     if (this.caseState !== 'active') return deepFreeze({ admissible: false, reason: `case_${this.caseState}` });
     if (taskState.state !== 'pending') return deepFreeze({ admissible: false, reason: `task_${taskState.state}` });
-    const unsatisfied = task.dependencies.filter((dependency) => this.taskStates[dependency].state !== 'succeeded');
+    const unsatisfied = task.dependencies.filter((dependency) => this._taskStates[dependency].state !== 'succeeded');
     if (unsatisfied.length > 0) return deepFreeze({ admissible: false, reason: 'dependencies', unsatisfied });
     if (taskState.attemptIds.length >= task.execution.retry.maxAttempts) {
       return deepFreeze({ admissible: false, reason: 'attempt_limit' });
@@ -537,7 +930,7 @@ export class CaseEngine {
       error: null,
       reconciliation: null,
     };
-    this.attempts[attemptId] = attempt;
+    this.#setAttempt(attemptId, attempt);
     taskState.attemptIds.push(attemptId);
     taskState.state = 'running';
     taskState.error = null;
@@ -638,7 +1031,7 @@ export class CaseEngine {
     }
     const acceptedResults = task.dependencies.map((dependency) => {
       const dependencyTask = this.plan.tasksById[dependency];
-      const taskState = this.taskStates[dependency];
+      const taskState = this._taskStates[dependency];
       if (taskState.state !== 'succeeded' || taskState.acceptedResult === null) {
         throw new ContractError('promotion_not_ready', `Dependency ${dependency} has no accepted result`);
       }
@@ -735,7 +1128,7 @@ export class CaseEngine {
 
   recordExecutorFailure(attemptId, error) {
     if (this._eventReservation === null) {
-      const taskId = this.attempts[attemptId]?.taskId;
+      const taskId = this._attempts[attemptId]?.taskId;
       return this.#withEventReservation(3 + this.#descendantCount(taskId), () =>
         this.recordExecutorFailure(attemptId, error));
     }
@@ -778,7 +1171,7 @@ export class CaseEngine {
 
   failAttempt(attemptId, error, options = {}) {
     if (this._eventReservation === null) {
-      const taskId = this.attempts[attemptId]?.taskId;
+      const taskId = this._attempts[attemptId]?.taskId;
       return this.#withEventReservation(3 + this.#descendantCount(taskId), () =>
         this.failAttempt(attemptId, error, options));
     }
@@ -842,7 +1235,7 @@ export class CaseEngine {
     if (!taskState) throw new ContractError('unknown_task', `Unknown Task: ${taskId}`);
     if (taskState.state !== 'pending') return false;
     const unsatisfied = this.plan.tasksById[taskId].dependencies
-      .filter((dependency) => this.taskStates[dependency].state !== 'succeeded');
+      .filter((dependency) => this._taskStates[dependency].state !== 'succeeded');
     if (unsatisfied.length > 0) {
       throw new ContractError('not_admissible', `Task ${taskId} cannot be denied before its dependencies succeed`, { unsatisfied });
     }
@@ -875,7 +1268,7 @@ export class CaseEngine {
     if (!taskState) throw new ContractError('unknown_task', `Unknown Task: ${taskId}`);
     if (TERMINAL_TASK_STATES.has(taskState.state)) return false;
     const task = this.plan.tasksById[taskId];
-    const activeAttempt = activeAttemptFor(taskState, this.attempts);
+    const activeAttempt = activeAttemptFor(taskState, this._attempts);
     const attempt = activeAttempt ? this.#mutableAttempt(activeAttempt.id) : null;
     if (attempt && task.execution.effectClass !== 'result-only') {
       if (attempt.state !== 'cancel_requested') assertAttemptTransition(attempt.state, 'cancel_requested');
@@ -914,7 +1307,7 @@ export class CaseEngine {
 
   resolveReconciliation(attemptId, decision, options = {}) {
     if (this._eventReservation === null) {
-      const taskId = this.attempts[attemptId]?.taskId;
+      const taskId = this._attempts[attemptId]?.taskId;
       return this.#withEventReservation(3 + this.#descendantCount(taskId), () =>
         this.resolveReconciliation(attemptId, decision, options));
     }
@@ -1028,87 +1421,86 @@ export class CaseEngine {
     }
     if (this.caseState === 'succeeded') return this.caseState;
 
-    let changed = true;
-    while (changed) {
-      changed = false;
-      for (const taskId of this.plan.taskOrder) {
-        const currentTaskState = this.taskStates[taskId];
-        if (currentTaskState.state !== 'pending' && currentTaskState.state !== 'blocked') continue;
-        const blockers = this.plan.tasksById[taskId].dependencies
-          .filter((dependency) => terminalDependencyReason(this.taskStates[dependency].state) !== null)
-          .sort(compareText);
-        if (currentTaskState.state === 'pending' && blockers.length > 0) {
-          const taskState = this.#mutableTaskState(taskId);
-          const blockerError = normalizeError({
-            code: 'dependency_blocked',
-            message: `Task is blocked by terminal dependencies: ${blockers.join(', ')}`,
-            certainty: 'not_applied',
-            retryable: false,
-          }, {}, this.caseContract.limits);
-          taskState.state = 'blocked';
-          taskState.blockedBy = blockers;
-          taskState.error = blockerError;
-          this._event('task_blocked', { taskId, blockedBy: blockers });
-          changed = true;
-        } else if (currentTaskState.state === 'blocked' && currentTaskState.blockedBy.join('\0') !== blockers.join('\0')) {
-          const taskState = this.#mutableTaskState(taskId);
-          const blockerError = normalizeError({
-            code: 'dependency_blocked',
-            message: `Task is blocked by terminal dependencies: ${blockers.join(', ')}`,
-            certainty: 'not_applied',
-            retryable: false,
-          }, {}, this.caseContract.limits);
-          taskState.blockedBy = blockers;
-          taskState.error = blockerError;
-          this._event('task_blockers_updated', { taskId, blockedBy: blockers });
-          changed = true;
+    // A top-level reconcile is the deterministic repair boundary for all
+    // disposable scheduler/index state. Nested reconciles retain O(changed-edge)
+    // maintenance and avoid a global traversal on every transition.
+    if (this._mutationFrame.taskIds.size === 0) this._rebuildPerformanceIndexes();
+
+    const affectedTaskIds = new Set();
+    if (this._mutationFrame.taskIds.size === 0) {
+      for (const taskId of this.plan.taskOrder) affectedTaskIds.add(taskId);
+    } else {
+      for (const changedTaskId of [...this._mutationFrame.taskIds].sort(compareText)) {
+        const before = this._mutationFrame.taskBefore.get(changedTaskId);
+        const after = this._taskStates[changedTaskId];
+        if (after.state === 'pending' || after.state === 'blocked') affectedTaskIds.add(changedTaskId);
+        if (terminalDependencyReason(after.state) !== null &&
+            terminalDependencyReason(before?.state) === null) {
+          const pending = [...(this.plan.reverseDependenciesById[changedTaskId] ?? [])];
+          while (pending.length > 0) {
+            const dependent = pending.pop();
+            if (affectedTaskIds.has(dependent)) continue;
+            affectedTaskIds.add(dependent);
+            pending.push(...(this.plan.reverseDependenciesById[dependent] ?? []));
+          }
         }
       }
     }
 
-    const states = Object.values(this.taskStates).map((taskState) => taskState.state);
-    if (states.includes('reconciling')) {
-      this.#setCaseState('reconciling', 'attempt_reconciling');
-      return this.caseState;
+    // Plan order is topological. Processing the affected closure once in that
+    // order lets every join observe all upstream terminal blockers at once,
+    // avoiding duplicate blocker-update Events and preserving reservation bounds.
+    for (const taskId of this._topologicalTaskOrder) {
+      if (!affectedTaskIds.has(taskId)) continue;
+      const currentTaskState = this._taskStates[taskId];
+      if (currentTaskState.state !== 'pending' && currentTaskState.state !== 'blocked') continue;
+      const blockers = this.plan.tasksById[taskId].dependencies
+        .filter((dependency) => terminalDependencyReason(this._taskStates[dependency].state) !== null)
+        .sort(compareText);
+      if (currentTaskState.state === 'pending' && blockers.length > 0) {
+        const taskState = this.#mutableTaskState(taskId);
+        const blockerError = normalizeError({
+          code: 'dependency_blocked',
+          message: `Task is blocked by terminal dependencies: ${blockers.join(', ')}`,
+          certainty: 'not_applied',
+          retryable: false,
+        }, {}, this.caseContract.limits);
+        taskState.state = 'blocked';
+        taskState.blockedBy = blockers;
+        taskState.error = blockerError;
+        this._event('task_blocked', { taskId, blockedBy: blockers });
+      } else if (currentTaskState.state === 'blocked' && currentTaskState.blockedBy.join('\0') !== blockers.join('\0')) {
+        const taskState = this.#mutableTaskState(taskId);
+        const blockerError = normalizeError({
+          code: 'dependency_blocked',
+          message: `Task is blocked by terminal dependencies: ${blockers.join(', ')}`,
+          certainty: 'not_applied',
+          retryable: false,
+        }, {}, this.caseContract.limits);
+        taskState.blockedBy = blockers;
+        taskState.error = blockerError;
+        this._event('task_blockers_updated', { taskId, blockedBy: blockers });
+      }
     }
-    if (states.includes('running') || this.readyTaskIdsIgnoringCase().length > 0) {
-      this.#setCaseState('active', 'work_available');
-      return this.caseState;
-    }
-    if (states.includes('unverified')) {
-      this.#setCaseState('unverified', 'task_unverified');
-      return this.caseState;
-    }
-    if (states.some((state) => state === 'failed' || state === 'denied')) {
-      this.#setCaseState('failed', 'task_failed_or_denied');
-      return this.caseState;
-    }
-    if (states.includes('cancelled')) {
-      this.#setCaseState('cancelled', 'task_cancelled');
-      return this.caseState;
-    }
-    if (states.includes('blocked')) {
-      this.#setCaseState('failed', 'blocked_graph');
-      return this.caseState;
-    }
-    const promotionState = this.taskStates[this.plan.promotionTaskId];
-    if (promotionState.state === 'succeeded') {
-      this.#setCaseState('succeeded', 'promotion_succeeded');
-      return this.caseState;
-    }
-    if (states.some((state) => state === 'pending')) {
-      this.#setCaseState('failed', 'blocked_graph');
-      return this.caseState;
-    }
+
+    const derived = this.#deriveCaseStateFromFrame(this._mutationFrame);
+    const reasonByState = {
+      reconciling: 'attempt_reconciling',
+      active: 'work_available',
+      unverified: 'task_unverified',
+      failed: derived.counts.failed > 0 || derived.counts.denied > 0
+        ? 'task_failed_or_denied'
+        : 'blocked_graph',
+      cancelled: 'task_cancelled',
+      succeeded: 'promotion_succeeded',
+    };
+    this.#setCaseState(derived.state, reasonByState[derived.state]);
     return this.caseState;
   }
 
   readyTaskIdsIgnoringCase() {
-    return this.plan.taskOrder.filter((taskId) => {
-      const state = this.taskStates[taskId];
-      return state.state === 'pending' && this.plan.tasksById[taskId].dependencies.every(
-        (dependency) => this.taskStates[dependency].state === 'succeeded');
-    });
+    if (this._mutationFrame === null) return [...this._readyTaskIdSet].sort(compareText);
+    return this.plan.taskOrder.filter((taskId) => this.#isTaskReady(taskId, this._mutationFrame));
   }
 
   applyCommand(envelope, options = {}) {
@@ -1126,7 +1518,7 @@ export class CaseEngine {
     validateCommand(command);
     const normalizedCommand = canonicalClone(command);
     const commandDigest = receiptDigest(normalizedCommand);
-    const existing = this.receipts[requestId];
+    const existing = this._receipts[requestId];
     if (existing) {
       if (existing.commandDigest !== commandDigest) {
         throw new ContractError('request_conflict', `Request ${requestId} was already used for a different command`);
@@ -1141,7 +1533,7 @@ export class CaseEngine {
         });
       }
     }
-    if (Object.keys(this.receipts).length >= this.caseContract.limits.maxReceipts) {
+    if (Object.keys(this._receipts).length >= this.caseContract.limits.maxReceipts) {
       throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
     }
 
@@ -1149,39 +1541,67 @@ export class CaseEngine {
     const canonicalResponse = canonicalClone(response);
     const responseDigest = digest(canonicalResponse);
     this._event('command_committed', { requestId, commandDigest, responseDigest });
-    this.receipts[requestId] = {
+    this.#setReceipt(requestId, {
       requestId,
       commandDigest,
       response: canonicalResponse,
       responseDigest,
       committedRevision: this.caseRevision,
-    };
+    });
     this._assertInvariants();
     return deepFreeze({ deduplicated: false, response: canonicalClone(canonicalResponse) });
   }
 
   #mutableTaskState(taskId) {
-    const state = this.taskStates[taskId];
+    const state = this._taskStates[taskId];
     if (!state) throw new ContractError('unknown_task', `Unknown Task: ${taskId}`);
     if (this._mutationFrame === null || !Object.isFrozen(state)) return state;
+    if (!this._mutationFrame.taskBefore.has(taskId)) {
+      this._mutationFrame.taskBefore.set(taskId, state);
+    }
     const copy = {
       ...state,
       attemptIds: [...state.attemptIds],
       blockedBy: [...state.blockedBy],
     };
-    this.taskStates[taskId] = copy;
+    this._taskStates[taskId] = copy;
     this._mutationFrame.taskIds.add(taskId);
     return copy;
   }
 
   #mutableAttempt(attemptId) {
-    const attempt = this.attempts[attemptId];
+    const attempt = this._attempts[attemptId];
     if (!attempt) throw new ContractError('unknown_attempt', `Unknown Attempt: ${attemptId}`);
     if (this._mutationFrame === null || !Object.isFrozen(attempt)) return attempt;
+    if (!this._mutationFrame.attemptBefore.has(attemptId)) {
+      this._mutationFrame.attemptBefore.set(attemptId, attempt);
+    }
     const copy = { ...attempt };
-    this.attempts[attemptId] = copy;
+    this._attempts[attemptId] = copy;
     this._mutationFrame.attemptIds.add(attemptId);
     return copy;
+  }
+
+  #setAttempt(attemptId, attempt) {
+    if (this._mutationFrame !== null && !this._mutationFrame.attemptBefore.has(attemptId)) {
+      this._mutationFrame.attemptBefore.set(
+        attemptId,
+        Object.hasOwn(this._attempts, attemptId) ? this._attempts[attemptId] : ABSENT_ENTRY,
+      );
+      this._mutationFrame.attemptIds.add(attemptId);
+    }
+    this._attempts[attemptId] = attempt;
+  }
+
+  #setReceipt(requestId, receipt) {
+    if (this._mutationFrame !== null && !this._mutationFrame.receiptBefore.has(requestId)) {
+      this._mutationFrame.receiptBefore.set(
+        requestId,
+        Object.hasOwn(this._receipts, requestId) ? this._receipts[requestId] : ABSENT_ENTRY,
+      );
+      this._mutationFrame.receiptIds.add(requestId);
+    }
+    this._receipts[requestId] = receipt;
   }
 
   #withEventReservation(count, operation) {
@@ -1190,37 +1610,43 @@ export class CaseEngine {
       caseState: this.caseState,
       caseRevision: this.caseRevision,
       eventSequence: this.eventSequence,
-      events: this.events,
+      eventLength: this._events.length,
       canonicalTree: this.canonicalTree,
       canonicalDigest: this._canonicalDigest,
-      taskStates: this.taskStates,
-      attempts: this.attempts,
-      receipts: this.receipts,
       validatedEventSequence: this._validatedEventSequence,
     };
-    const frame = { taskIds: new Set(), attemptIds: new Set() };
-    this.events = [...this.events];
-    this.taskStates = createRecord(Object.entries(this.taskStates));
-    this.attempts = createRecord(Object.entries(this.attempts));
-    this.receipts = createRecord(Object.entries(this.receipts));
+    const frame = {
+      taskIds: new Set(),
+      attemptIds: new Set(),
+      receiptIds: new Set(),
+      taskBefore: new Map(),
+      attemptBefore: new Map(),
+      receiptBefore: new Map(),
+    };
     this._eventReservation = count;
     this._mutationFrame = frame;
     try {
       const result = operation();
       this._mutationFrame = null;
-      this._assertInvariants();
-      this.#refreshPerformanceIndexes(frame.taskIds);
+      this.#assertIncrementalInvariants(frame);
+      this.#refreshPerformanceIndexes(frame);
       return result;
     } catch (error) {
       this.caseState = before.caseState;
       this.caseRevision = before.caseRevision;
       this.eventSequence = before.eventSequence;
-      this.events = before.events;
+      this._events.length = before.eventLength;
       this.canonicalTree = before.canonicalTree;
       this._canonicalDigest = before.canonicalDigest;
-      this.taskStates = before.taskStates;
-      this.attempts = before.attempts;
-      this.receipts = before.receipts;
+      for (const [taskId, value] of frame.taskBefore) this._taskStates[taskId] = value;
+      for (const [attemptId, value] of frame.attemptBefore) {
+        if (value === ABSENT_ENTRY) delete this._attempts[attemptId];
+        else this._attempts[attemptId] = value;
+      }
+      for (const [requestId, value] of frame.receiptBefore) {
+        if (value === ABSENT_ENTRY) delete this._receipts[requestId];
+        else this._receipts[requestId] = value;
+      }
       this._validatedEventSequence = before.validatedEventSequence;
       throw error;
     } finally {
@@ -1277,7 +1703,7 @@ export class CaseEngine {
   }
 
   _event(type, detail) {
-    if (this.events.length >= this.caseContract.limits.maxEvents) {
+    if (this._events.length >= this.caseContract.limits.maxEvents) {
       throw new ContractError('event_limit_exceeded', 'Case Event limit exceeded');
     }
     if (this._eventReservation !== null) {
@@ -1290,16 +1716,16 @@ export class CaseEngine {
     const normalizedDetail = canonicalClone(detail);
     const sequence = this.eventSequence + 1;
     const caseRevision = this.caseRevision + 1;
-    const previousDigest = this.events.length === 0 ? null : this.events[this.events.length - 1].eventDigest;
+    const previousDigest = this._events.length === 0 ? null : this._events[this._events.length - 1].eventDigest;
     const base = { sequence, caseRevision, type, detail: normalizedDetail, previousDigest };
     const event = deepFreeze({ ...base, eventDigest: eventDigest(base) });
-    this.events.push(event);
+    this._events.push(event);
     this.eventSequence = sequence;
     this.caseRevision = caseRevision;
   }
 
   #requireAttempt(attemptId) {
-    const attempt = this.attempts[attemptId];
+    const attempt = this._attempts[attemptId];
     if (!attempt) throw new ContractError('unknown_attempt', `Unknown Attempt: ${attemptId}`);
     return attempt;
   }
@@ -1330,6 +1756,133 @@ export class CaseEngine {
     }
   }
 
+  #assertCommittedInvariants() {
+    if (this._mutationFrame !== null || this._eventReservation !== null) {
+      throw new ContractError('invariant_mutation_boundary', 'Cannot snapshot a Case during a mutation');
+    }
+    if (!CASE_STATES.includes(this.caseState)) {
+      throw new ContractError('invariant_case_state', `Invalid Case state ${this.caseState}`);
+    }
+    if (!Array.isArray(this._events) || !isPlainRecord(this._taskStates) ||
+        !isPlainRecord(this._attempts) || !isPlainRecord(this._receipts)) {
+      throw new ContractError('invariant_state_shape', 'Task, Attempt, and receipt collections must be records');
+    }
+    if (this.caseRevision !== this.eventSequence || this._events.length !== this.eventSequence ||
+        this._validatedEventSequence !== this.eventSequence) {
+      throw new ContractError('invariant_event_revision', 'Committed Event frontier and Case revision must match');
+    }
+    if (this._canonicalDigest === null || !Object.isFrozen(this.canonicalTree)) {
+      throw new ContractError('invariant_canonical_tree', 'Committed canonical tree must be frozen and digested');
+    }
+  }
+
+  #assertIncrementalInvariants(frame) {
+    assertIdentifier(this.caseId, 'caseId');
+    if (!CASE_STATES.includes(this.caseState)) {
+      throw new ContractError('invariant_case_state', `Invalid Case state ${this.caseState}`);
+    }
+    if (!Array.isArray(this._events) || !isPlainRecord(this._taskStates) ||
+        !isPlainRecord(this._attempts) || !isPlainRecord(this._receipts)) {
+      throw new ContractError('invariant_state_shape', 'Task, Attempt, and receipt collections must be records');
+    }
+    if (this._events.length > this.caseContract.limits.maxEvents) {
+      throw new ContractError('event_limit_exceeded', 'Case Event limit exceeded');
+    }
+    if (this.caseRevision !== this.eventSequence || this._events.length !== this.eventSequence) {
+      throw new ContractError('invariant_event_revision', 'Case revision, Event sequence, and Event count must match');
+    }
+    assertEventSuffix(this);
+
+    for (const taskId of frame.taskIds) assertTaskStateInvariant(this, taskId);
+    for (const attemptId of frame.attemptIds) assertAttemptInvariant(this, attemptId);
+
+    const liveClaimHolders = new Set(this._claimHoldingTaskIdSet);
+    for (const taskId of frame.taskIds) {
+      const state = this._taskStates[taskId]?.state;
+      if (state === 'running' || state === 'reconciling') liveClaimHolders.add(taskId);
+      else liveClaimHolders.delete(taskId);
+    }
+    for (const taskId of frame.taskIds) {
+      if (!liveClaimHolders.has(taskId)) continue;
+      for (const otherTaskId of liveClaimHolders) {
+        if (taskId === otherTaskId) continue;
+        if (normalizedClaimSetsConflict(
+          this.plan.tasksById[taskId].claims,
+          this.plan.tasksById[otherTaskId].claims,
+        )) {
+          throw new ContractError('invariant_claim_conflict', `Concurrent Tasks ${taskId} and ${otherTaskId} have conflicting claims`);
+        }
+      }
+    }
+
+    const derived = this.#deriveCaseStateFromFrame(frame);
+    frame.derivedCounts = derived.counts;
+    const expectedCaseState = derived.state;
+    if (this.caseState !== expectedCaseState) {
+      throw new ContractError('invariant_case_state', `Case state ${this.caseState} does not match derived state ${expectedCaseState}`);
+    }
+
+    let canonicalDigest = this._canonicalDigest;
+    if (!Object.isFrozen(this.canonicalTree) || canonicalDigest === null) {
+      const computedCanonicalDigest = digest(this.canonicalTree);
+      if (canonicalDigest !== null && canonicalDigest !== computedCanonicalDigest) {
+        throw new ContractError('invariant_canonical_tree', 'Cached canonical digest does not match the canonical tree');
+      }
+      canonicalDigest = computedCanonicalDigest;
+    }
+    if (this.caseState === 'succeeded') {
+      const promotionState = this._taskStates[this.plan.promotionTaskId];
+      if (promotionState.state !== 'succeeded' || promotionState.acceptedResult.treeDigest !== canonicalDigest) {
+        throw new ContractError('invariant_promotion', 'Succeeded Case requires canonical tree from succeeded Promotion');
+      }
+    } else if (canonicalDigest !== this.plan.baseDigest) {
+      throw new ContractError('invariant_canonical_tree', 'Canonical tree changed before successful Promotion');
+    }
+
+    if (Object.keys(this._receipts).length > this.caseContract.limits.maxReceipts) {
+      throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
+    }
+    for (const requestId of frame.receiptIds) {
+      const receipt = this._receipts[requestId];
+      assertIdentifier(requestId, `receipt key ${requestId}`);
+      assertRecordShape(
+        receipt,
+        ['requestId', 'commandDigest', 'response', 'responseDigest', 'committedRevision'],
+        [],
+        `Mutation receipt ${requestId}`,
+      );
+      if (receipt.requestId !== requestId) {
+        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has a mismatched request ID`);
+      }
+      assertDigest(receipt.commandDigest, `Mutation receipt ${requestId}.commandDigest`);
+      assertDigest(receipt.responseDigest, `Mutation receipt ${requestId}.responseDigest`);
+      assertSafeInteger(receipt.committedRevision, `Mutation receipt ${requestId}.committedRevision`, { min: 1 });
+      if (receipt.responseDigest !== digest(receipt.response) || receipt.committedRevision > this.caseRevision) {
+        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} is invalid`);
+      }
+      for (const [otherRequestId, otherReceipt] of Object.entries(this._receipts)) {
+        if (otherRequestId !== requestId && otherReceipt.committedRevision === receipt.committedRevision) {
+          throw new ContractError('invariant_receipt', `Multiple mutation receipts claim revision ${receipt.committedRevision}`);
+        }
+      }
+      const commitEvent = this._events[receipt.committedRevision - 1];
+      if (!commitEvent || commitEvent.type !== 'command_committed') {
+        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
+      }
+      assertRecordShape(commitEvent.detail, ['requestId', 'commandDigest', 'responseDigest'], [], `command_committed Event ${receipt.committedRevision}`);
+      if (commitEvent.detail.requestId !== requestId ||
+          commitEvent.detail.commandDigest !== receipt.commandDigest ||
+          commitEvent.detail.responseDigest !== receipt.responseDigest) {
+        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} does not match its commit Event`);
+      }
+      deepFreeze(receipt);
+    }
+
+    this._validatedEventSequence = this._events.length;
+    this._canonicalDigest = canonicalDigest;
+    deepFreeze(this.canonicalTree);
+  }
+
 
   _assertInvariants() {
     if (this._mutationFrame !== null) return;
@@ -1337,24 +1890,24 @@ export class CaseEngine {
     if (!CASE_STATES.includes(this.caseState)) {
       throw new ContractError('invariant_case_state', `Invalid Case state ${this.caseState}`);
     }
-    if (!Array.isArray(this.events) || !isPlainRecord(this.taskStates) || !isPlainRecord(this.attempts) || !isPlainRecord(this.receipts)) {
+    if (!Array.isArray(this._events) || !isPlainRecord(this._taskStates) || !isPlainRecord(this._attempts) || !isPlainRecord(this._receipts)) {
       throw new ContractError('invariant_state_shape', 'Task, Attempt, and receipt collections must be records');
     }
-    if (this.events.length > this.caseContract.limits.maxEvents) {
+    if (this._events.length > this.caseContract.limits.maxEvents) {
       throw new ContractError('event_limit_exceeded', 'Case Event limit exceeded');
     }
-    if (this.caseRevision !== this.eventSequence || this.events.length !== this.eventSequence) {
+    if (this.caseRevision !== this.eventSequence || this._events.length !== this.eventSequence) {
       throw new ContractError('invariant_event_revision', 'Case revision, Event sequence, and Event count must match');
     }
 
-    if (this._validatedEventSequence > this.events.length) {
+    if (this._validatedEventSequence > this._events.length) {
       throw new ContractError('invariant_event_frontier', 'Validated Event frontier exceeds Event count');
     }
     let previousDigest = this._validatedEventSequence === 0
       ? null
-      : this.events[this._validatedEventSequence - 1]?.eventDigest ?? null;
-    for (let index = this._validatedEventSequence; index < this.events.length; index += 1) {
-      const event = this.events[index];
+      : this._events[this._validatedEventSequence - 1]?.eventDigest ?? null;
+    for (let index = this._validatedEventSequence; index < this._events.length; index += 1) {
+      const event = this._events[index];
       const expectedSequence = index + 1;
       assertRecordShape(event, ['sequence', 'caseRevision', 'type', 'detail', 'previousDigest', 'eventDigest'], [], `Event ${expectedSequence}`);
       assertSafeInteger(event.sequence, `Event ${expectedSequence}.sequence`, { min: 1 });
@@ -1382,11 +1935,11 @@ export class CaseEngine {
     const dependencyBoundStates = new Set(['running', 'reconciling', 'succeeded', 'failed', 'denied', 'unverified']);
     for (const taskId of this.plan.taskOrder) {
       const task = this.plan.tasksById[taskId];
-      const taskState = this.taskStates[taskId];
+      const taskState = this._taskStates[taskId];
       if (!taskState) throw new ContractError('invariant_task_missing', `Missing state for Task ${taskId}`);
       if (Object.isFrozen(taskState)) {
         for (const attemptId of taskState.attemptIds) {
-          const attempt = this.attempts[attemptId];
+          const attempt = this._attempts[attemptId];
           if (!attempt) throw new ContractError('invariant_attempt_missing', `Task ${taskId} links missing Attempt ${attemptId}`);
           if (attempt.taskId !== taskId) {
             throw new ContractError('invariant_attempt_link', `Task ${taskId} links Attempt ${attemptId} owned by ${attempt.taskId}`);
@@ -1409,7 +1962,7 @@ export class CaseEngine {
       }
 
       const linkedAttempts = taskState.attemptIds.map((attemptId) => {
-        const attempt = this.attempts[attemptId];
+        const attempt = this._attempts[attemptId];
         if (!attempt) throw new ContractError('invariant_attempt_missing', `Task ${taskId} links missing Attempt ${attemptId}`);
         if (attempt.taskId !== taskId) {
           throw new ContractError('invariant_attempt_link', `Task ${taskId} links Attempt ${attemptId} owned by ${attempt.taskId}`);
@@ -1461,14 +2014,14 @@ export class CaseEngine {
       }
 
       const unsatisfiedDependencies = task.dependencies
-        .filter((dependency) => this.taskStates[dependency]?.state !== 'succeeded');
+        .filter((dependency) => this._taskStates[dependency]?.state !== 'succeeded');
       if (dependencyBoundStates.has(taskState.state) && unsatisfiedDependencies.length > 0) {
         throw new ContractError('invariant_dependency', `Task ${taskId} entered ${taskState.state} before its dependencies succeeded`, {
           unsatisfiedDependencies,
         });
       }
       const terminalBlockers = task.dependencies
-        .filter((dependency) => terminalDependencyReason(this.taskStates[dependency]?.state) !== null)
+        .filter((dependency) => terminalDependencyReason(this._taskStates[dependency]?.state) !== null)
         .sort(compareText);
       if (taskState.state === 'pending' && terminalBlockers.length > 0) {
         throw new ContractError('invariant_dependency', `Pending Task ${taskId} has terminal dependency blockers`);
@@ -1482,11 +2035,11 @@ export class CaseEngine {
       }
       deepFreeze(taskState);
     }
-    if (Object.keys(this.taskStates).sort(compareText).join('\0') !== this.plan.taskOrder.join('\0')) {
+    if (Object.keys(this._taskStates).sort(compareText).join('\0') !== this.plan.taskOrder.join('\0')) {
       throw new ContractError('invariant_task_set', 'Task state set does not match the Plan');
     }
 
-    for (const [attemptId, attempt] of Object.entries(this.attempts)) {
+    for (const [attemptId, attempt] of Object.entries(this._attempts)) {
       if (Object.isFrozen(attempt)) continue;
       assertRecordShape(attempt, [
         'id', 'taskId', 'ordinal', 'executorId', 'executorEpoch', 'executorCapabilities', 'state',
@@ -1496,7 +2049,7 @@ export class CaseEngine {
       assertIdentifier(attempt.id, `Attempt ${attemptId}.id`);
       assertIdentifier(attempt.taskId, `Attempt ${attemptId}.taskId`);
       if (attempt.id !== attemptId) throw new ContractError('invariant_attempt_identity', `Attempt ${attemptId} has a mismatched ID`);
-      if (!this.taskStates[attempt.taskId]) throw new ContractError('invariant_attempt_task', `Attempt ${attemptId} references an unknown Task`);
+      if (!this._taskStates[attempt.taskId]) throw new ContractError('invariant_attempt_task', `Attempt ${attemptId} references an unknown Task`);
       assertSafeInteger(attempt.ordinal, `Attempt ${attemptId}.ordinal`, { min: 1 });
       assertIdentifier(attempt.executorId, `Attempt ${attemptId}.executorId`);
       assertSafeInteger(attempt.executorEpoch, `Attempt ${attemptId}.executorEpoch`, { min: 1 });
@@ -1515,7 +2068,7 @@ export class CaseEngine {
         this.caseContract.limits,
       );
 
-      const taskState = this.taskStates[attempt.taskId];
+      const taskState = this._taskStates[attempt.taskId];
       const task = this.plan.tasksById[attempt.taskId];
       if (!taskState.attemptIds.includes(attemptId)) {
         throw new ContractError('invariant_attempt_link', `Attempt ${attemptId} is not linked by its Task`);
@@ -1603,7 +2156,7 @@ export class CaseEngine {
       }
     }
 
-    const expectedCaseState = deriveCaseState(this.plan, this.taskStates);
+    const expectedCaseState = deriveCaseState(this.plan, this._taskStates);
     if (this.caseState !== expectedCaseState) {
       throw new ContractError('invariant_case_state', `Case state ${this.caseState} does not match derived state ${expectedCaseState}`);
     }
@@ -1617,7 +2170,7 @@ export class CaseEngine {
       canonicalDigest = computedCanonicalDigest;
     }
     if (this.caseState === 'succeeded') {
-      const promotionState = this.taskStates[this.plan.promotionTaskId];
+      const promotionState = this._taskStates[this.plan.promotionTaskId];
       if (promotionState.state !== 'succeeded' || promotionState.acceptedResult.treeDigest !== canonicalDigest) {
         throw new ContractError('invariant_promotion', 'Succeeded Case requires canonical tree from succeeded Promotion');
       }
@@ -1625,11 +2178,11 @@ export class CaseEngine {
       throw new ContractError('invariant_canonical_tree', 'Canonical tree changed before successful Promotion');
     }
 
-    if (Object.keys(this.receipts).length > this.caseContract.limits.maxReceipts) {
+    if (Object.keys(this._receipts).length > this.caseContract.limits.maxReceipts) {
       throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
     }
     const committedRevisions = new Set();
-    for (const [requestId, receipt] of Object.entries(this.receipts)) {
+    for (const [requestId, receipt] of Object.entries(this._receipts)) {
       assertIdentifier(requestId, `receipt key ${requestId}`);
       assertRecordShape(
         receipt,
@@ -1650,7 +2203,7 @@ export class CaseEngine {
         throw new ContractError('invariant_receipt', `Multiple mutation receipts claim revision ${receipt.committedRevision}`);
       }
       committedRevisions.add(receipt.committedRevision);
-      const commitEvent = this.events[receipt.committedRevision - 1];
+      const commitEvent = this._events[receipt.committedRevision - 1];
       if (!commitEvent || commitEvent.type !== 'command_committed') {
         throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
       }
@@ -1663,13 +2216,9 @@ export class CaseEngine {
       deepFreeze(receipt);
     }
 
-    this._validatedEventSequence = this.events.length;
+    this._validatedEventSequence = this._events.length;
     this._canonicalDigest = canonicalDigest;
     deepFreeze(this.canonicalTree);
-    Object.freeze(this.events);
-    Object.freeze(this.taskStates);
-    Object.freeze(this.attempts);
-    Object.freeze(this.receipts);
   }
   _reopenNonterminalAttempts() {
     if (this._eventReservation === null) {
@@ -1678,7 +2227,7 @@ export class CaseEngine {
         return this.reconcile();
       });
     }
-    for (const currentAttempt of Object.values(this.attempts)) {
+    for (const currentAttempt of Object.values(this._attempts)) {
       if (!NONTERMINAL_ATTEMPT_STATES.has(currentAttempt.state)) continue;
       const attempt = this.#mutableAttempt(currentAttempt.id);
       const task = this.plan.tasksById[attempt.taskId];
@@ -1784,13 +2333,12 @@ function migrateV1Snapshot(input) {
   }
   const engine = new CaseEngine({ caseId: input.caseId, plan, caseContract });
 
-  engine.events = [];
+  installCollections(engine);
   engine.eventSequence = 0;
   engine.caseRevision = 0;
   engine._validatedEventSequence = 0;
   for (const legacyEvent of input.events) engine._event(legacyEvent.type, legacyEvent.detail);
 
-  engine.taskStates = createRecord();
   for (const taskId of plan.taskOrder) {
     const legacy = input.taskStates[taskId];
     if (!isPlainRecord(legacy)) throw new ContractError('legacy_task_state', `Legacy Task ${taskId} state is missing`);
@@ -1811,7 +2359,7 @@ function migrateV1Snapshot(input) {
     } else if (legacy.state !== 'succeeded' && (legacy.acceptedResult !== null || legacy.acceptedResultDigest !== null)) {
       throw new ContractError('legacy_task_result', `Non-succeeded Legacy Task ${taskId} has an accepted result`);
     }
-    engine.taskStates[taskId] = {
+    engine._taskStates[taskId] = {
       state: legacy.state,
       attemptIds: [...legacy.attemptIds],
       acceptedResult,
@@ -1824,7 +2372,6 @@ function migrateV1Snapshot(input) {
     throw new ContractError('legacy_task_set', 'Legacy Task state set does not match the Plan');
   }
 
-  engine.attempts = createRecord();
   for (const [attemptId, legacy] of Object.entries(input.attempts)) {
     if (!isPlainRecord(legacy)) throw new ContractError('legacy_attempt', `Legacy Attempt ${attemptId} must be a record`);
     exactKeys(legacy, ['id', 'taskId', 'ordinal', 'executorId', 'state', 'resultDigest', 'error'], `legacy Attempt ${attemptId}`);
@@ -1846,9 +2393,9 @@ function migrateV1Snapshot(input) {
       claimLeaseGeneration: null,
       claimLeaseClaimsDigest: null,
     });
-    const taskState = engine.taskStates[legacy.taskId];
+    const taskState = engine._taskStates[legacy.taskId];
     const resultDigest = legacy.state === 'succeeded' ? taskState.acceptedResultDigest : null;
-    engine.attempts[attemptId] = {
+    engine._attempts[attemptId] = {
       id: attemptId,
       taskId: legacy.taskId,
       ordinal: legacy.ordinal,
@@ -1866,19 +2413,18 @@ function migrateV1Snapshot(input) {
   }
 
   const promotionTaskId = plan.promotionTaskId;
-  const promotionState = engine.taskStates[promotionTaskId];
+  const promotionState = engine._taskStates[promotionTaskId];
   if (promotionState.state === 'succeeded') {
     const promotionResult = engine.createPromotionResult(promotionTaskId);
     promotionState.acceptedResult = promotionResult;
     promotionState.acceptedResultDigest = digest(promotionResult);
     for (const attemptId of promotionState.attemptIds) {
-      if (engine.attempts[attemptId]?.state === 'succeeded') {
-        engine.attempts[attemptId].resultDigest = promotionState.acceptedResultDigest;
+      if (engine._attempts[attemptId]?.state === 'succeeded') {
+        engine._attempts[attemptId].resultDigest = promotionState.acceptedResultDigest;
       }
     }
   }
 
-  engine.receipts = createRecord();
   engine.caseState = input.caseState;
   const legacyCanonical = validateTree(canonicalClone(input.canonicalTree), caseContract);
   if (engine.caseState === 'succeeded') {
@@ -1976,17 +2522,18 @@ function restoreV2Snapshot(snapshot, options) {
   engine.caseState = snapshot.caseState;
   engine.caseRevision = snapshot.caseRevision;
   engine.eventSequence = snapshot.eventSequence;
-  engine.events = canonicalClone(snapshot.events);
+  installCollections(engine, {
+    events: canonicalClone(snapshot.events),
+    taskStates: canonicalClone(snapshot.taskStates),
+    attempts: canonicalClone(snapshot.attempts),
+    receipts: canonicalClone(snapshot.receipts),
+  });
   engine._validatedEventSequence = 0;
   engine.canonicalTree = validateTree(canonicalClone(snapshot.canonicalTree), caseContract);
   if (snapshot.canonicalDigest !== digest(engine.canonicalTree)) {
     throw new ContractError('snapshot_canonical_digest', 'Snapshot canonical tree digest is invalid');
   }
   engine._canonicalDigest = snapshot.canonicalDigest;
-  engine.taskStates = canonicalClone(snapshot.taskStates);
-  engine.attempts = canonicalClone(snapshot.attempts);
-  engine.receipts = canonicalClone(snapshot.receipts);
-
   verifyRestoredResults(engine);
   engine._assertInvariants();
   engine._rebuildPerformanceIndexes();
@@ -2002,7 +2549,7 @@ function restoreV2Snapshot(snapshot, options) {
 function verifyRestoredResults(engine) {
   for (const taskId of engine.plan.taskOrder) {
     const task = engine.plan.tasksById[taskId];
-    const taskState = engine.taskStates[taskId];
+    const taskState = engine._taskStates[taskId];
     if (!taskState || taskState.state !== 'succeeded') continue;
     if (task.kind === 'work') {
       const normalized = normalizeTaskResult(task, taskState.acceptedResult, {

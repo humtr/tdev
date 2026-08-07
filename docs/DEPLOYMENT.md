@@ -11,7 +11,7 @@ The verified source target is:
 - no third-party runtime dependency;
 - POSIX-like local filesystem only for `FileSnapshotStore` / `JournalSnapshotStore` tests, benchmarks, and demos.
 
-The supplied container reports Node 22.16.0 and Go 1.23.2. The reference branch's Node/Go 26 gate is outside this environment, so mvp-1a-1's executable source contract was intentionally kept on Node 22 and made independent of the reference branch's generated Go/provider stack.
+The supplied container reports Node 22.16.0 and npm 10.9.2. The `mvp-1a-2` executable source contract remains Node 22 and has no generated Go/provider runtime dependency.
 
 ## 2. Installation and gate
 
@@ -69,7 +69,7 @@ Use when local single-process operation needs lower write amplification while re
 - optional deterministic compaction that durably replaces the base before deleting covered deltas;
 - in-process per-Case serialization.
 
-The journal materialization and delta-count caches are not authoritative. Normal same-process CAS uses them to avoid replay/readdir amplification; an explicit `load` or process restart re-reads the base and journal from disk and validates replay. Missing, malformed, noncanonical, discontinuous, or digest-invalid committed records fail closed. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
+The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Missing base with deltas, malformed, truncated, noncanonical, discontinuous, or digest-invalid records fail closed, including corruption introduced after a warm load. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
 
 ### CaseRepository
 

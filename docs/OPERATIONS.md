@@ -43,7 +43,7 @@ The executor receives dependency outputs as accepted immutable results. It does 
 
 ## 3.1 Control-plane acceleration boundary
 
-The runner and engine may use rebuildable in-memory acceleration only when the authoritative decision remains reproducible from the Plan, Task/Attempt state, and active lease records. A validation frontier may reuse already validated frozen history; a CaseEngine claim-holder set and ClaimLedger overlap index may narrow conflict candidates; the runner may maintain a ready-candidate set refreshed from reverse edges. None is durable truth or sufficient to authorize a transition. Full validation remains mandatory for untrusted restore/migration. Resource capacity and future CPU/memory/API budgets remain scheduling policy and are not Claims.
+The runner and engine may use rebuildable in-memory acceleration only when the authoritative decision remains reproducible from the Plan, Task/Attempt state, and active lease records. The permitted derived set includes the validated Event frontier, Task-state counters, unsatisfied-dependency counters, engine ready/claim-holder sets, deterministic Plan-derived topological order, ClaimLedger overlap trie, runner ready candidates, and journal fingerprint/materialization metadata. None is durable truth or sufficient to authorize a transition. A terminal/reconciling Case-state candidate is confirmed from authoritative Task records, and a top-level reconcile/restore rebuilds acceleration state. Full validation remains mandatory for untrusted restore/migration. Resource capacity and future CPU/memory/API budgets remain scheduling policy and are not Claims.
 
 ## 4. Admission and dispatch
 
@@ -69,7 +69,7 @@ validate full identity and current claim lease
   -> mutate authoritative Attempt/Task/Case state atomically
   -> durable checkpoint when configured
   -> release terminal claim lease
-  -> derive newly blocked/ready/terminal state
+  -> deterministically propagate blockers and refresh derived readiness/Case accounting
 ```
 
 This ordering prevents a stale lease holder from committing and prevents claim reuse before the terminal Case state is durable in the local durable runner.
@@ -163,7 +163,7 @@ It does not provide cross-process exclusion. Do not run multiple independent pro
 
 `JournalSnapshotStore` is the lower-write-amplification local option and implements the same `create/load/compareAndSwap` interface. It stores one full `base.json` plus revision-addressed canonical delta files. A successful delta CAS is fsynced and renamed before returning. Compaction first makes the replacement base durable, then removes covered deltas.
 
-The in-memory materialized snapshot and delta count exist only to avoid replaying/relisting the journal on every same-process CAS. An explicit `load` and any process restart reconstruct from durable files and verify every applicable delta. Do not share one journal directory between independent processes as a distributed CAS store.
+The in-memory materialized snapshot and delta count may avoid repeated parse/replay only after the store has re-read the exact committed base/delta files and matched a cryptographic fingerprint over file name, byte length, and bytes. A changed byte, added/removed delta, new store instance, or process restart forces strict canonical parse, checksum/revision replay, final snapshot-digest verification, and size validation. Durable bytes—not cache metadata—decide revision CAS. Do not share one journal directory between independent processes as a distributed CAS store.
 
 ## 12. Claim owner operation
 

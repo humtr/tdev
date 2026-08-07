@@ -2,60 +2,68 @@
 
 ## Current baseline
 
-- Repository: `humtr/tdev`
-- Development lineage: `mvp-1a-1`
-- Source baseline: `mvp-1@837da18001aa664a5b7665cfb443759e316a4212`
-- Historical comparison snapshot: `b9dea35a04a6e385d0a8ebb5e73e6f86b8027e18` (not an active development lineage)
+- Repository: `humtr/tdev` source archive supplied for this task
+- Development identity: `mvp-1a-2`
+- Direct code parent: supplied `mvp-1a-1` archive
+- Knowledge inputs: supplied `mvp-1` and `mvp-1a-1` archives plus independently reproduced tests, profiles, benchmarks, and counterexamples
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
+- Current design: `docs/design/0004-incremental-transition-core-and-verified-journal-cache.md`
 
 ## Active work
 
-No Class 2 implementation item is currently active. The next performance gate requires a real repository/executor adapter so ContextSlice/token/cold-start measurements are not fabricated.
+No Class 2 implementation item remains active in this archive. Provider publication, distributed persistence, and real repository/model executor adapters are explicitly outside the verified source slice.
 
 ## Verified work
 
-- Work item: `D0003-efficient-parallel-control-plane`
-- Status: `verified`
-- Design: `docs/design/0003-efficient-parallel-control-plane.md`
-- Evidence: 96 tests, syntax gate, both demos, capacity 1/16 determinism, full-restore equivalence for incremental validation, indexed Claim oracle test, Journal CAS/crash/compaction tests, final coverage, and `docs/evidence/control-plane-benchmark-2026-08-07.json`.
+### D0004 — incremental transition core and verified journal cache
 
-- Work item: `D0002-durable-parallel-control-core`
-- Status: `verified`
-- Design: `docs/design/0002-durable-parallel-control-core.md`
-- Evidence: earlier internal correctness gate; superseded as the current verification gate by D0003 while its correctness invariants remain normative
+- Status: `verified` in the current container
+- Design: `docs/design/0004-incremental-transition-core-and-verified-journal-cache.md`
+- Implementation: entry-level transaction undo, incremental Task/dependency accounting, deterministic topological blocker propagation, rebuildable scheduler indexes, Claim trie pruning, same-process store serialization, durable-byte-fingerprinted journal materialization cache
+- Correctness evidence: 110 tests; randomized full-restore oracle; three-state successful-transition differential; capacity/order/executor/retry determinism; stale/concurrent same-process CAS; fencing; durable-before-dispatch; corruption/truncation/missing-base/compaction-shape recovery; acceleration loss and rebuild equivalence
+- Performance evidence: `docs/evidence/development-state-comparison-2026-08-07.json` and `docs/evidence/mvp-1a-2-control-plane-benchmark-2026-08-07.json`
+- Final clean archive verification is recorded in `docs/IMPLEMENTATION_REPORT.md` after export.
+
+### D0003 — efficient parallel control plane
+
+- Status: `superseded and independently re-audited`
+- Historical design: `docs/design/0003-efficient-parallel-control-plane.md`
+- Preserved value: immutable-record direction, incremental event validation, normalized Claim conflict path, ready candidates, journal delta format, benchmark instrumentation, and explicit substrate stop gates
+- Disproved or corrected claims: root collection copying remained O(V); large graphs remained superlinear; materialized journal cache could accept stale CAS and hide corruption; Claim trie retained released path history; blocker propagation could exhaust reserved Events
+- Historical evidence: `docs/evidence/mvp-1a-1-control-plane-benchmark-2026-08-07.json`
+
+### D0002 — durable parallel control core
+
+- Status: `verified historical foundation`
+- Its correctness invariants remain normative where not replaced by the stronger D0004 transition/rebuild rules.
 
 ## Resulting foundation
 
 - one immutable PlanRevision and DAG;
-- one Case lifecycle owner;
-- one deterministic Promotion/canonical writer;
-- capacity-independent execution semantics;
-- typed isolated result algebra;
-- effect-class-specific recovery and reconciliation;
-- complete Attempt fencing, claim-set-bound leases, and live first-commit validation;
-- narrow cross-Case ClaimLedger;
-- authority intersection;
-- schema v2 restore/migration/receipts;
-- memory/full-snapshot/journal CAS plus durable checkpoint driver;
-- copy-on-write atomic mutation, frozen-history incremental validation, indexed claims, and rebuildable ready candidates;
-- strict input/path/topology/bounds/rollback defenses.
+- one Case lifecycle owner and one Task/Attempt transition path;
+- capacity-independent scheduling semantics;
+- isolated typed results and one deterministic Promotion/canonical writer;
+- complete Attempt identity, fencing, retry/effect-class, Claim, and authority checks;
+- durable running Attempt before external dispatch and durable settlement before lease release;
+- schema-v2 canonical snapshots and deterministic restore/migration;
+- entry-level atomic rollback without root collection copies;
+- incremental Task-state/dependency/ready accounting with full restore as the semantic oracle;
+- disposable indexes that can be deleted and rebuilt without changing legal output;
+- memory, full-snapshot file, and append-delta journal adapters under an explicit single-process local boundary.
 
-## Next Class 2 gates
+## Next highest-ROI gates
 
-These are intentionally not active implementation claims:
+These are not active implementation claims:
 
-1. Cloudflare CaseDO transaction adapter and migration/rollback evidence;
-2. persistent AgentDO delivery/epoch/capacity adapter;
-3. durable target-claim owner and cross-owner recovery protocol;
-4. authenticated Termux Agent operation catalog and reconciliation;
-5. repository/context CAS with deterministic Task ContextSlice and measured token/byte reuse in the first real executor adapter;
-6. content-addressed Artifact and incremental Git-tree Promotion adapter after profiling the remaining full-tree cost;
-7. warm executor/toolchain pool and locality scheduling only after adapter telemetry proves cold-load/transfer cost;
-8. single fenced Git publication lane;
-9. versioned MCP schemas, auth, and client qualification;
-10. incremental Case-state/receipt invariant accounting if large-DAG profiling confirms the remaining O(V)-per-transition cost.
+1. profile and implement touched-path/content-addressed Promotion only in the first real repository adapter; current in-memory Promotion still copies/hashes the full tree;
+2. replace full journal-byte reread/fingerprinting with a transaction-capable provider or an independently safe cross-process owner; do not weaken stale/corruption checks;
+3. add a real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+4. add Cloudflare CaseDO/AgentDO/D1/R2 adapters with migration, rollback, and provider fault evidence;
+5. add a durable cross-owner Claim service if Cases may execute through multiple processes/owners;
+6. add authenticated Termux/Git operation adapters and one fenced publication lane;
+7. qualify versioned MCP schemas, authorization, pagination, reconnect, and current-client behavior.
 
 ## Routing
 
@@ -68,4 +76,5 @@ These are intentionally not active implementation claims:
 - Security/trust/path boundaries: `docs/SECURITY.md`
 - Deployment/migration/rollback: `docs/DEPLOYMENT.md`
 - MCP projection: `docs/MCP.md`
-- Comparative implementation report: `docs/IMPLEMENTATION_REPORT.md`
+- Verification and acceptance: `docs/MVP.md`
+- Independent audit and implementation report: `docs/IMPLEMENTATION_REPORT.md`

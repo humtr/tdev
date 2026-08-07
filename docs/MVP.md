@@ -1,15 +1,15 @@
 # MVP verification and evidence
 
-> Normative owner for executable acceptance. This document distinguishes observed source evidence from unexecuted provider claims.
+> Normative owner for executable acceptance. Observed source evidence is separated from unexecuted provider or distributed-system claims.
 
 ## 1. Accepted vertical slice
 
-The verified MVP is the smallest production-shaped control core that closes:
+The verified `mvp-1a-2` slice closes:
 
 ```text
 immutable PlanRevision
   -> derived DAG readiness
-  -> authority and claim admission
+  -> authority and semantic Claim admission
   -> fenced Attempt
   -> isolated typed result
   -> effect-aware recovery
@@ -19,7 +19,7 @@ immutable PlanRevision
   -> compare-and-swap durable checkpoint
 ```
 
-It is not a Cloudflare/Agent/Git/MCP deployment MVP.
+It also verifies that performance-only indexes/caches may be discarded and rebuilt without changing legal semantic output. It is not a Cloudflare/Agent/Git/MCP deployment MVP.
 
 ## 2. Source gate
 
@@ -28,124 +28,145 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-Observed in the supplied container for lineage `mvp-1a-1` on 2026-08-07:
+Observed in the supplied container for development identity `mvp-1a-2` on 2026-08-07:
 
 - Node.js `v22.16.0`;
 - npm `10.9.2`;
 - syntax gate passed;
-- **96/96 tests passed**;
+- **110/110 tests passed**;
 - in-memory demo succeeded;
 - file-backed durable demo succeeded;
 - no third-party runtime packages were required.
 
-The durable demo reloaded the persisted Case at revision 7 and reproduced the same canonical digest as the in-memory demo.
+The coverage invocation also passed all 110 tests and reported 91.59% lines, 81.31% branches, and 96.36% functions over source and tests. Coverage is supporting evidence, not the semantic contract.
 
 ## 3. Acceptance matrix
 
 | Area | Cheapest falsifier | Observed evidence |
 | --- | --- | --- |
-| immutable graph | mutate Plan / duplicate Task / unknown dependency / cycle | rejected; Plan deep-frozen |
-| one Promotion | zero/multiple Promotion or incomplete dependencies | rejected |
+| immutable graph | mutate Plan / duplicate Task / unknown dependency / cycle | rejected; compiled Plan frozen |
+| one Promotion | zero/multiple Promotion or incomplete full join | rejected |
 | capacity degeneration | same graph at capacity 1 and N | equal canonical digest and manifest |
+| scheduling/completion order | inverse executor timing and accepted-result order | same canonical tree/digest |
+| executor identity | different executor IDs/epochs with valid envelopes | evidence differs; canonical result equal |
+| retry order | alternate retry interleavings | canonical result equal |
 | parallel admission | disjoint claims with barriers | overlap observed |
-| claim exclusion | overlapping write/execute | serialized |
-| read compatibility | overlapping read/read | concurrent |
-| deterministic order | inverse executor completion order / locale-sensitive IDs | same tree digest |
-| Promotion safety | conflicting writes or invalid topology | stable error; base tree preserved |
-| closed result algebra | all five work result kinds | normalized and recorded; only ChangeSet applied |
-| required validation | failed required check | deterministic no-Promotion failure |
-| complete fencing | stale epoch/token/identity/lease or claim-scope substitution | rejected with no state change |
-| result idempotency | exact duplicate vs contradictory duplicate | deduplicated vs conflict |
-| effect recovery | reopen each effect class, invalid external result, exhausted idempotent budget | class-specific retry/reconcile behavior |
-| cancellation race | cancel before late success | cancellation/intent preserved; late result rejected |
-| reconciliation | success/not-applied/failed/cancelled/unverified | state matrix preserved |
-| authority | missing one set in intersection | Task denied |
-| strict JSON | duplicate key, unsafe number, malformed UTF-8, bound overflow | rejected |
-| path safety | traversal/reserved/non-normal/topology collision | rejected |
-| bounded results | evidence/validation/Artifact aggregate overflow | rejected |
-| mutation atomicity | fail after first Event | entire mutation rolled back |
-| snapshot integrity | whole digest/event/result/index/state/bounds/blocker corruption | restore rejected |
-| legacy migration | Design 0001 succeeded fixture | v2 recomputed and accepted |
-| migration persistence | load v1 through repository | v2 CAS-persisted |
-| command receipts | replay/conflict/revision mismatch | exact response/no effect semantics |
-| store CAS | concurrent/revision-regression/oversize writes | one winner; regression and pre-commit materialized oversize rejected |
-| canonical file store | noncanonical/duplicate/malformed bytes | load rejected |
-| durable dispatch | inspect store before executor call | running Attempt already persisted |
-| checkpoint conflict | force CAS loss before dispatch | zero executor calls |
-| durable reopen | persisted running result-only Attempt | interrupted evidence + replacement Attempt |
-| stress | 64 independent work Tasks at capacity 1 and 16 | same canonical output; concurrency 16 observed |
+| Claim correctness | exact/reference oracle over randomized prefix sets | equivalent decisions |
+| Claim lifecycle | acquire/release 2,000 unique paths | overlap trie pruned back to root; restore/rebuild equal |
+| authority | one missing set in the capability intersection | deterministic denial |
+| complete fencing | stale epoch/token/identity/lease/scope | rejected with no state change |
+| durable dispatch | inspect store before executor callback | running Attempt already durable |
+| checkpoint race | forced CAS loss before dispatch | zero executor calls |
+| accepted-result durability | inspect persistence and lease-release ordering | settlement durable before release |
+| effect recovery | reopen each effect class / invalid external result | class-specific retry/reconcile/unverified behavior |
+| cancellation race | cancel before late success | intent/terminal state preserved; late result rejected |
+| blocker propagation | reverse-lexical topological chain and cancellation DAG | one deterministic topological pass; no Event overrun |
+| atomic mutation | fail after first Event / invalid reconciliation | all changed entries/scalars/events restored |
+| full restore oracle | snapshot after every randomized transition | 100 histories accepted exactly by full restore |
+| acceleration loss | delete/corrupt counters, ready set, claim-holder set | top-level reconcile rebuilds exact snapshot/readiness/holders |
+| runner candidate loss | clear local ready candidates | repair/rebuild before deadlock; graph completes |
+| Promotion safety | conflict/topology/path error | stable failure; old canonical tree preserved |
+| strict/canonical data | duplicate key, unsafe number, malformed UTF-8, noncanonical bytes | rejected |
+| bounds | result/evidence/Event/receipt/snapshot overflow | rejected before partial commit |
+| snapshot integrity | digest/Event/result/index/state/blocker corruption | restore rejected |
+| v1 migration | historical succeeded fixture | deterministic v2 recomputation and CAS persistence |
+| File store stale race | independent same-process instances | exactly one CAS winner |
+| Journal stale race | warm stale instance after another instance commits | stale expected revision rejected |
+| Journal concurrent race | independent same-process CAS calls | exactly one winner |
+| warm-cache corruption | mutate durable base after load | next load/CAS fails `store_corrupt` |
+| journal fault shapes | malformed/noncanonical/truncated delta, missing base, orphan temp | fail closed or ignore only uncommitted temp |
+| compaction crash shape | replacement base durable before covered-delta deletion | exact snapshot restored; covered deltas ignored |
+| three-state compatibility | successful transition histories across all three states | 100 seeds / 2,600 transitions exact snapshot equality |
 
 ## 4. Test inventory
 
-The 96 tests are organized as:
+The 110 tests cover:
 
-- canonical JSON and canonical data safety;
-- claim overlap and cross-Case ClaimLedger behavior;
-- durability, fencing, reconciliation, receipts, and snapshot migration;
-- durable runner checkpoint ordering;
-- graph/Attempt/Promotion invariants;
-- authority and path policy;
-- result algebra and bounds;
-- memory/file/journal stores and repository CAS;
-- capacity/determinism stress.
+- strict JSON, canonical data, and hash behavior;
+- Claim overlap, generations, fencing, randomized oracle equivalence, and trie lifecycle;
+- Case/Task/Attempt transitions, entry-level rollback, blocker evidence, receipts, and restore/migration;
+- effect-class retry/reconciliation/cancellation and stale result handling;
+- durable runner checkpoint-before-dispatch and settlement ordering;
+- runner capacity/determinism and candidate rebuild;
+- result algebra, authority, path/tree policy, bounds, and Promotion;
+- memory/full-file/journal CAS, corruption, stale/concurrent writer behavior, compaction, and repository transactions;
+- capacity stress plus 100 randomized full-restore-oracle histories.
 
-Tests use barriers and controlled promises where ordering matters. Timeouts are deadlock guards, not correctness evidence.
+Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence.
 
-## 5. Coverage gate
+## 5. Differential and fault evidence outside the unit suite
 
-Run:
+The retained development-state audit additionally executed:
 
-```sh
-node --experimental-test-coverage --test test/*.test.mjs
-```
+- `mvp-1` versus `mvp-1a-1` randomized engine differential over 100 seeds before final design selection;
+- a three-state all-success differential over 100 seeds and 2,600 transitions with exact snapshots;
+- a cancellation/blocker counterexample where both prior states could fail with `event_reservation_exhausted`, while `mvp-1a-2` completes with bounded deterministic blocker Events;
+- stale journal instance and post-warm corruption reproducers before the implementation fix;
+- wide/deep child-process scaling and GC diagnostic traces.
 
-Coverage is supporting evidence, not the product contract. The mvp-1a-1 verification run completed at 91.12% lines, 80.25% branches, and 96.40% functions; exact evidence is recorded in `IMPLEMENTATION_REPORT.md`. More important than aggregate percentage are the explicit falsifiers for stale fencing, uncertain effects, corrupted snapshots, atomic rollback, checkpoint-before-dispatch, and Promotion non-mutation.
+The first two source archives remain immutable evidence inputs; external helper scripts used during audit are summarized and converted into checked-in JSON evidence rather than shipped as product authority.
 
 ## 6. Scale and performance evidence
 
-The semantic stress test uses 64 independent work Tasks plus Promotion and runs the same Plan at capacity 1 and 16. It verifies:
+The exact three-state measurements are in `docs/evidence/development-state-comparison-2026-08-07.json`. The reusable isolated-child harness is `bench/graph-sample.mjs` plus `bench/compare-development-states.mjs`.
 
-- identical canonical digest;
-- identical deterministic Promotion manifest;
-- actual observed concurrency of 16 in the parallel run.
+Representative p50 values:
 
-The checked-in `npm run bench` harness separately measures container-local overhead without imposing wall-clock pass/fail thresholds. On the 2026-08-07 retained run:
+| Scenario | `mvp-1` | `mvp-1a-1` | `mvp-1a-2` |
+| --- | ---: | ---: | ---: |
+| wide 128, capacity 1 | 2466.573 ms | 134.664 ms | 72.870 ms |
+| wide 128, capacity 16 | 2450.946 ms | 144.764 ms | 79.562 ms |
+| chain 128, capacity 16 | 2524.766 ms | 138.666 ms | 78.199 ms |
+| wide 256, capacity 16 | 10477.996 ms | 350.103 ms | 135.283 ms |
+| wide 512, capacity 16 | >15 s stop gate | 1058.664 ms | 253.646 ms |
+| wide 1024, capacity 16 | not run after stop gate | 3837.581 ms | 473.166 ms |
+| wide 2048, capacity 16 | not run | 15733.856 ms single observation | 970.171 ms |
+| chain 2048, capacity 16 | not run | 17244.632 ms single observation | 908.019 ms |
 
-- 128 independent observation Tasks: 156.004 ms at capacity 1 and 111.990 ms at capacity 16, with identical canonical digest;
-- 512 independent observation Tasks at capacity 16: 984.466 ms, exposing the remaining large-DAG control-plane growth;
-- one 2,000-Task readiness scan: 0.488 ms;
-- 2,000 disjoint ClaimLedger acquisitions: 59.577 ms (about 106x faster than the retained ~6.319 s pre-change baseline); 10,000 acquisitions: 309.348 ms; one disjoint query at 10,000 active leases: 0.036 ms;
-- Promotion over a 20,000-file base with one touched path: 172.604 ms;
-- 32-Task durable 4 KiB observation workload: 67 writes for both stores, 6,550,735 logical bytes for full snapshots vs 270,883 bytes in the non-compacted journal layout, a 95.86% logical-byte reduction; observed wall-clock 918.167 ms vs 648.343 ms.
+Every completed sample produced the same canonical digest. Independent child samples separated Plan compile/validation, Case construction, run time, and retained post-GC memory. Timeouts are retained as timeouts rather than converted to estimated values.
 
-The pre-change audit measured the 128-wide observation workload at approximately 2.42 s / 2.64 s and 2,000 disjoint Claim acquisitions at approximately 6.32 s. These comparisons identify fast-path changes, not production SLOs. Context/token duplication and executor cold/warm-start are not measured because no such adapter exists in this source slice. Exact JSON is in `docs/evidence/control-plane-benchmark-2026-08-07.json`.
+A one-sample GC diagnostic at wide 1024 observed 250 GC events / 153.2 ms total pause for `mvp-1a-1` and 72 / 59.7 ms for `mvp-1a-2`. It supports the root-copy/object-churn diagnosis but is not a p50 SLO.
+
+The repeated component evidence in `docs/evidence/mvp-1a-2-control-plane-benchmark-2026-08-07.json` shows:
+
+- Claim acquisition/query performance remained approximately unchanged while released trie paths are now pruned;
+- Promotion remained approximately unchanged and still exposes full-tree work;
+- the 32-Task/4 KiB persistence workload supplied 6,550,735 cumulative canonical snapshot bytes to 67 CAS writes;
+- the non-compacted journal retained 270,883 base+delta bytes, approximately 95.9% below cumulative full-snapshot payload bytes;
+- safe durable-byte revalidation made journal wall-clock roughly comparable to or slower than full-file replacement in this container, so no blanket “journal is faster” claim remains.
+
+These are microbenchmarks in one runtime/container, not production SLOs.
 
 ## 7. Evidence not claimed
 
 No source test proves:
 
-- Durable Object storage/transaction equivalence;
+- Durable Object transaction/storage equivalence;
 - Worker deployment, bindings, routes, or class migration;
-- Agent WebSocket reconnect/hibernation behavior;
-- Termux filesystem/Git/process/network effects;
-- D1/R2 access or consistency;
+- Agent WebSocket reconnect/hibernation or Termux effects;
+- D1/R2 behavior;
 - current MCP client compatibility;
-- Git remote publication or protected-branch enforcement;
-- cross-process FileSnapshotStore safety;
-- atomic persistence of ClaimLedger and Case snapshots;
+- Git remote publication/protected-branch behavior;
+- cross-process or distributed File/Journal store CAS;
+- atomic persistence of ClaimLedger and Case snapshots across owners;
 - exactly-once external effects;
 - hostile-storage authenticity;
+- repository exploration/context bytes/model-token duplication;
+- process/toolchain executor cold-versus-warm behavior;
 - production load, SLO, cost, or incident recovery.
 
-These remain `unknown`, not `passed`.
+These are `unavailable` or `pending`, not passed.
 
 ## 8. Completion decision
 
-Design 0003 / lineage `mvp-1a-1` is source-verified when all of the following are true:
+Design 0004 / `mvp-1a-2` is source-verified only when:
 
-- the 96-test gate and both demos pass under Node 22;
-- final coverage completes without test failure;
-- source syntax is clean; if Git metadata is present, `git diff --check` is clean;
-- normative documents agree with implemented defaults and boundaries;
-- the development archive excludes `.git`, `node_modules`, coverage output, and transient runtime directories;
-- provider layers remain explicitly unverified.
+- all 110 tests, syntax checks, and both demos pass under Node 22;
+- coverage completes without test failure;
+- `git diff --check` is clean;
+- normative documents agree with the implementation and explicit single-process/provider boundaries;
+- the exported repository/archive are named `tdev-mvp-1a-2`;
+- the archive excludes `.git`, `node_modules`, coverage output, caches, and transient runtime state;
+- a clean extraction installs and passes `npm run check`;
+- the archive SHA-256 is generated and independently checked;
+- provider/distributed layers remain explicitly unverified.

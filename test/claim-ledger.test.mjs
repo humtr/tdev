@@ -408,3 +408,29 @@ test('ClaimLedger indexed admission matches the pure claim conflict oracle', () 
     if (result.acquired) ledger.release(result.lease);
   }
 });
+
+test('ClaimLedger overlap index prunes released path history and rebuilds equivalently', () => {
+  const ledger = new ClaimLedger({ maxLeases: 10 });
+  for (let index = 0; index < 2_000; index += 1) {
+    const acquired = ledger.tryAcquire({
+      caseId: `churn-${index}`,
+      taskId: 'task',
+      attemptId: 'task.1',
+      claims: [{ mode: 'write', resource: `repository:root/path-${index}/leaf` }],
+    });
+    assert.equal(acquired.acquired, true);
+    assert.equal(ledger.release(acquired.lease), true);
+  }
+
+  function countNodes(node) {
+    let count = 1;
+    for (const child of node.children.values()) count += countNodes(child);
+    return count;
+  }
+
+  assert.equal(ledger.activeLeaseCount, 0);
+  assert.equal(countNodes(ledger.claimIndex.root), 1);
+  const restored = ClaimLedger.restore(ledger.snapshot(), { maxLeases: 10 });
+  assert.equal(countNodes(restored.claimIndex.root), 1);
+  assert.deepEqual(restored.snapshot(), ledger.snapshot());
+});

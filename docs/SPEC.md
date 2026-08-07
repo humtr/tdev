@@ -24,6 +24,8 @@ The source slice is **durable-ready**, not provider-complete: its domain and per
 12. Ambiguous external effects remain `reconciling` or `unverified`; uncertainty is not rewritten as failure, cancellation, or safe retry.
 13. A rejected command or direct mutation has no partial in-memory effect.
 14. A durable runner must persist a newly running Attempt before invoking its executor.
+15. Derived counters, ready candidates, claim indexes, validation frontiers, and materialized caches may be deleted and rebuilt from authoritative records; they cannot author admission, fencing, CAS, or a terminal Case result.
+16. Settlement and Promotion remain deterministic across scheduling order, completion order, executor identity, and retry interleaving.
 
 ## 3. PlanRevision contract
 
@@ -155,12 +157,13 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 
 - `MemorySnapshotStore` provides deterministic in-process CAS.
 - `FileSnapshotStore` reads strict canonical JSON and performs full-snapshot same-directory temporary write, file sync, atomic rename, directory sync, and in-process per-Case serialization.
-- `JournalSnapshotStore` implements the same CAS contract with one compact full base plus canonical checksummed revision deltas; replay must reconstruct the exact v2 snapshot and compaction must never remove the only durable committed state.
+- `JournalSnapshotStore` implements the same CAS contract with one compact full base plus canonical checksummed revision deltas; replay must reconstruct the exact v2 snapshot and compaction must never remove the only durable committed state. A materialized cache is reusable only after the exact committed base/delta names, lengths, and bytes match a cryptographic fingerprint. Revision CAS is derived from re-observed durable bytes, never an unchecked cached revision.
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
-- `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`.
+- `CaseEngine` may maintain rebuildable Task-state counts, unsatisfied-dependency counts, ready IDs, claim-holder IDs, and a deterministic Plan-derived topological order. Ordinary transitions update changed entries/direct dependents only; any non-active Case-state candidate is confirmed from authoritative Task records.
+- `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`. Candidate loss invokes the engine repair boundary before deadlock is declared.
 - `runDurableCase` uses repository CAS checkpoints so Attempt-start persistence succeeds before executor dispatch and settlement persistence precedes claim release.
 
-A CAS conflict does not automatically replay a transaction callback or dispatch an executor. Store indexes, journal materialization/delta-count caches, validation frontiers, CaseEngine claim-holder indexes, and runner ready-candidate sets are performance-only derived state and may never replace Case/lease authority.
+A CAS conflict does not automatically replay a transaction callback or dispatch an executor. Store caches, journal fingerprints, validation frontiers, Task/dependency counters, CaseEngine ready/claim-holder sets, ClaimLedger overlap tries, and runner ready candidates are performance-only derived state and may never replace Case/lease authority. A top-level reconcile or restore must be able to rebuild them exactly.
 
 ## 11. Source-slice acceptance
 

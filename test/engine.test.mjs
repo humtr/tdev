@@ -101,19 +101,27 @@ test('event semantics contain no wall-clock timestamp', () => {
   assert.equal(engine.snapshot().events.every((event) => !Object.hasOwn(event, 'timestamp')), true);
 });
 
-test('committed mutable records are frozen between transitions', () => {
+test('committed records stay frozen behind stable read-only collection views', () => {
   const engine = new CaseEngine({ caseId: 'case-frozen-frontier', plan: planWithWork([{ id: 'a' }]) });
-  assert.equal(Object.isFrozen(engine.taskStates), true);
+  const taskStatesView = engine.taskStates;
+  const attemptsView = engine.attempts;
+  const eventsView = engine.events;
   assert.equal(Object.isFrozen(engine.taskStates.a), true);
-  assert.equal(Object.isFrozen(engine.attempts), true);
 
   const attempt = engine.startAttempt('a', 'executor-a');
-  assert.equal(Object.isFrozen(engine.taskStates), true);
+  assert.equal(engine.taskStates, taskStatesView);
+  assert.equal(engine.attempts, attemptsView);
+  assert.equal(engine.events, eventsView);
   assert.equal(Object.isFrozen(engine.taskStates.a), true);
-  assert.equal(Object.isFrozen(engine.attempts), true);
   assert.equal(Object.isFrozen(engine.attempts[attempt.id]), true);
   assert.throws(() => {
     engine.taskStates.a.state = 'succeeded';
+  }, TypeError);
+  assert.throws(() => {
+    engine.taskStates.a = { state: 'succeeded' };
+  }, TypeError);
+  assert.throws(() => {
+    engine.events.push({ type: 'forged' });
   }, TypeError);
 });
 
@@ -127,4 +135,71 @@ test('incrementally validated live state round-trips through a full restore vali
   const liveSnapshot = engine.snapshot();
   const restored = CaseEngine.restore(liveSnapshot, { reopen: false });
   assert.deepEqual(restored.snapshot(), liveSnapshot);
+});
+
+
+test('discarded acceleration indexes rebuild without changing authoritative Case state', () => {
+  const engine = new CaseEngine({
+    caseId: 'case-index-rebuild',
+    plan: planWithWork([
+      { id: 'a' },
+      { id: 'b', dependencies: ['a'] },
+      { id: 'c' },
+    ]),
+  });
+  engine.startAttempt('a', 'executor-a');
+  const authoritativeSnapshot = engine.snapshot();
+  const expectedReady = engine.readyTaskIds();
+  const expectedClaimHolders = engine.claimHoldingTaskIds();
+
+  engine._readyTaskIdSet = new Set(['b']);
+  engine._claimHoldingTaskIdSet = new Set();
+  engine._taskStateCounts = Object.assign(Object.create(null), {
+    pending: 0,
+    running: 0,
+    reconciling: 0,
+    succeeded: 0,
+    failed: 0,
+    cancelled: 0,
+    denied: 0,
+    blocked: 0,
+    unverified: 0,
+  });
+  engine._unsatisfiedDependencyCounts = Object.assign(Object.create(null), {
+    a: 99,
+    b: 0,
+    c: 99,
+    promote: 0,
+  });
+
+  // Admission remains authoritative even while the disposable candidate index is wrong.
+  assert.equal(engine.admissionDecision('b').reason, 'dependencies');
+  engine.reconcile();
+
+  assert.deepEqual(engine.snapshot(), authoritativeSnapshot);
+  assert.deepEqual(engine.readyTaskIds(), expectedReady);
+  assert.deepEqual(engine.claimHoldingTaskIds(), expectedClaimHolders);
+  assert.equal(engine.isTaskReady('b'), false);
+});
+
+
+test('blocked propagation follows graph topology rather than lexical Task order', () => {
+  const engine = new CaseEngine({
+    caseId: 'case-nontopological-ids',
+    plan: planWithWork([
+      { id: 'z-root' },
+      { id: 'y-middle', dependencies: ['z-root'] },
+      { id: 'a-leaf', dependencies: ['y-middle'] },
+    ]),
+  });
+
+  assert.equal(engine.cancelTask('z-root', 'stop root'), true);
+  assert.equal(engine.taskStates['z-root'].state, 'cancelled');
+  assert.equal(engine.taskStates['y-middle'].state, 'blocked');
+  assert.deepEqual(engine.taskStates['y-middle'].blockedBy, ['z-root']);
+  assert.equal(engine.taskStates['a-leaf'].state, 'blocked');
+  assert.deepEqual(engine.taskStates['a-leaf'].blockedBy, ['y-middle']);
+  assert.equal(engine.taskStates.promote.state, 'blocked');
+  assert.equal(engine.caseState, 'cancelled');
+  assert.deepEqual(CaseEngine.restore(engine.snapshot(), { reopen: false }).snapshot(), engine.snapshot());
 });

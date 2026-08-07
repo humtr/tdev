@@ -129,9 +129,7 @@ export async function runCase(engine, executor, options = {}) {
 
   function refreshReadyTask(taskId) {
     const task = engine.plan.tasksById[taskId];
-    const taskState = engine.taskStates[taskId];
-    if (!task || taskState?.state !== 'pending' ||
-        !task.dependencies.every((dependency) => engine.taskStates[dependency].state === 'succeeded')) {
+    if (!task || !engine.isTaskReady(taskId)) {
       readyTaskIds.delete(taskId);
       return;
     }
@@ -317,7 +315,6 @@ export async function runCase(engine, executor, options = {}) {
 
     if (running.size === 0) {
       releaseTerminalLeases(engine, claimLedger);
-      engine.reconcile();
       if (engine.caseState !== 'active') break;
       if (lastClaimBlock) {
         if (!waitForClaims) {
@@ -336,6 +333,13 @@ export async function runCase(engine, executor, options = {}) {
         continue;
       }
       if (madeProgress) continue;
+      // Local ready candidates and engine acceleration state are both disposable.
+      // Reconcile performs an authoritative rebuild before declaring deadlock.
+      engine.reconcile();
+      if (engine.caseState !== 'active') continue;
+      readyTaskIds.clear();
+      for (const taskId of engine.readyTaskIds()) readyTaskIds.add(taskId);
+      if (readyTaskIds.size > 0) continue;
       throw new ContractError('scheduler_deadlock', 'Active Case has no running or admissible Task');
     }
 
@@ -348,8 +352,7 @@ export async function runCase(engine, executor, options = {}) {
     if (entry && engine.attempts[outcome.attemptId]?.state === 'cancelled') {
       entry.abortController.abort(new ContractError('attempt_cancelled', `Attempt ${outcome.attemptId} was cancelled`));
     }
-    engine.reconcile();
-    await checkpointState('post_settlement_reconcile', { attemptId: outcome.attemptId });
+    await checkpointState('post_settlement', { attemptId: outcome.attemptId });
   }
 
   for (const [attemptId, entry] of running) {
@@ -359,7 +362,6 @@ export async function runCase(engine, executor, options = {}) {
     }
   }
   releaseTerminalLeases(engine, claimLedger);
-  engine.reconcile();
   await checkpointState('runner_terminal');
   return {
     caseState: engine.caseState,

@@ -6,7 +6,7 @@ import path from 'node:path';
 import { canonicalJson } from '../src/canonical.mjs';
 import { CaseEngine } from '../src/engine.mjs';
 import { CaseRepository } from '../src/repository.mjs';
-import { FileSnapshotStore, MemorySnapshotStore } from '../src/store.mjs';
+import { FileSnapshotStore, JournalSnapshotStore, MemorySnapshotStore } from '../src/store.mjs';
 import { planWithWork } from './helpers.mjs';
 
 async function temporaryDirectory(t) {
@@ -56,6 +56,31 @@ test('FileSnapshotStore writes canonical JSON atomically and fails closed on non
 
   await writeFile(filePath, JSON.stringify(snapshot, null, 2));
   await assert.rejects(store.load('file-case'), (error) => error?.code === 'store_noncanonical');
+});
+
+
+test('independent FileSnapshotStore instances serialize one same-process CAS winner', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const leftStore = new FileSnapshotStore(directory);
+  const rightStore = new FileSnapshotStore(directory);
+  const plan = planWithWork([{ id: 'a' }]);
+  const initialEngine = new CaseEngine({ caseId: 'file-independent-race', plan });
+  const initial = initialEngine.snapshot();
+  await leftStore.create(initial);
+
+  const left = CaseEngine.restore(await leftStore.load('file-independent-race'), { reopen: false });
+  const right = CaseEngine.restore(await rightStore.load('file-independent-race'), { reopen: false });
+  left.startAttempt('a', 'left');
+  right.startAttempt('a', 'right');
+
+  const results = await Promise.allSettled([
+    leftStore.compareAndSwap('file-independent-race', initial.caseRevision, left.snapshot()),
+    rightStore.compareAndSwap('file-independent-race', initial.caseRevision, right.snapshot()),
+  ]);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+  const rejected = results.find((result) => result.status === 'rejected');
+  assert.equal(rejected.reason.code, 'store_revision_conflict');
+  assert.ok(['left', 'right'].includes((await leftStore.load('file-independent-race')).attempts['a.1'].executorId));
 });
 
 test('FileSnapshotStore rejects malformed and duplicate-member JSON before repository restore', async (t) => {
@@ -191,7 +216,6 @@ test('store and repository option boundaries fail closed', async (t) => {
 
 test('JournalSnapshotStore replays deltas with the same compare-and-swap contract', async (t) => {
   const directory = await temporaryDirectory(t);
-  const { JournalSnapshotStore } = await import('../src/store.mjs');
   const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
   const plan = planWithWork([{ id: 'a' }]);
   const engine = new CaseEngine({ caseId: 'journal-case', plan });
@@ -214,7 +238,6 @@ test('JournalSnapshotStore replays deltas with the same compare-and-swap contrac
 
 test('JournalSnapshotStore admits one CAS winner and ignores orphan temp files', async (t) => {
   const directory = await temporaryDirectory(t);
-  const { JournalSnapshotStore } = await import('../src/store.mjs');
   const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
   const plan = planWithWork([{ id: 'a' }]);
   const initialEngine = new CaseEngine({ caseId: 'journal-race', plan });
@@ -236,9 +259,82 @@ test('JournalSnapshotStore admits one CAS winner and ignores orphan temp files',
   assert.ok(['left', 'right'].includes((await store.load('journal-race')).attempts['a.1'].executorId));
 });
 
+
+test('independent JournalSnapshotStore instance rejects a stale cached revision', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const staleStore = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const writerStore = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const initialEngine = new CaseEngine({ caseId: 'journal-independent-stale', plan });
+  const initial = initialEngine.snapshot();
+  await staleStore.create(initial);
+
+  const staleBase = await staleStore.load('journal-independent-stale');
+  const writer = CaseEngine.restore(await writerStore.load('journal-independent-stale'), { reopen: false });
+  writer.startAttempt('a', 'writer');
+  await writerStore.compareAndSwap('journal-independent-stale', initial.caseRevision, writer.snapshot());
+
+  const stale = CaseEngine.restore(staleBase, { reopen: false });
+  stale.startAttempt('a', 'stale');
+  await assert.rejects(
+    staleStore.compareAndSwap('journal-independent-stale', initial.caseRevision, stale.snapshot()),
+    (error) => error?.code === 'store_revision_conflict' && error?.details?.actualRevision === writer.caseRevision,
+  );
+  assert.equal((await staleStore.load('journal-independent-stale')).attempts['a.1'].executorId, 'writer');
+});
+
+test('independent JournalSnapshotStore instances serialize one same-process CAS winner', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const leftStore = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const rightStore = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const initialEngine = new CaseEngine({ caseId: 'journal-independent-race', plan });
+  const initial = initialEngine.snapshot();
+  await leftStore.create(initial);
+
+  const left = CaseEngine.restore(await leftStore.load('journal-independent-race'), { reopen: false });
+  const right = CaseEngine.restore(await rightStore.load('journal-independent-race'), { reopen: false });
+  left.startAttempt('a', 'left');
+  right.startAttempt('a', 'right');
+
+  const results = await Promise.allSettled([
+    leftStore.compareAndSwap('journal-independent-race', initial.caseRevision, left.snapshot()),
+    rightStore.compareAndSwap('journal-independent-race', initial.caseRevision, right.snapshot()),
+  ]);
+  assert.equal(results.filter((result) => result.status === 'fulfilled').length, 1);
+  const rejected = results.find((result) => result.status === 'rejected');
+  assert.equal(rejected.reason.code, 'store_revision_conflict');
+  assert.ok(['left', 'right'].includes((await leftStore.load('journal-independent-race')).attempts['a.1'].executorId));
+});
+
+test('JournalSnapshotStore revalidates durable bytes before CAS and exposes post-load corruption', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-corruption-after-load', plan });
+  const initial = engine.snapshot();
+  await store.create(initial);
+
+  engine.startAttempt('a', 'executor', { initialState: 'dispatch_pending' });
+  const dispatchPending = engine.snapshot();
+  await store.compareAndSwap('journal-corruption-after-load', initial.caseRevision, dispatchPending);
+  await store.load('journal-corruption-after-load');
+
+  engine.markAttemptQueued('a.1');
+  const queued = engine.snapshot();
+  const caseDirectory = path.join(directory, 'journal-corruption-after-load');
+  const beforeEntries = await readdir(caseDirectory);
+  await writeFile(path.join(caseDirectory, 'base.json'), '{"schemaVersion":2');
+
+  await assert.rejects(
+    store.compareAndSwap('journal-corruption-after-load', dispatchPending.caseRevision, queued),
+    (error) => error?.code === 'store_corrupt',
+  );
+  assert.deepEqual(await readdir(caseDirectory), beforeEntries);
+});
+
 test('JournalSnapshotStore compaction preserves the exact materialized snapshot', async (t) => {
   const directory = await temporaryDirectory(t);
-  const { JournalSnapshotStore } = await import('../src/store.mjs');
   const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 2 });
   const plan = planWithWork([{ id: 'a' }]);
   const engine = new CaseEngine({ caseId: 'journal-compact', plan });
@@ -259,7 +355,6 @@ test('JournalSnapshotStore compaction preserves the exact materialized snapshot'
 
 test('JournalSnapshotStore rejects an oversized materialized CAS before committing it', async (t) => {
   const directory = await temporaryDirectory(t);
-  const { JournalSnapshotStore } = await import('../src/store.mjs');
   const plan = planWithWork([{ id: 'a' }]);
   const engine = new CaseEngine({ caseId: 'journal-size-bound', plan });
   const initial = engine.snapshot();
@@ -283,7 +378,6 @@ test('JournalSnapshotStore rejects an oversized materialized CAS before committi
 
 test('JournalSnapshotStore fails closed on a noncanonical committed delta', async (t) => {
   const directory = await temporaryDirectory(t);
-  const { JournalSnapshotStore } = await import('../src/store.mjs');
   const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
   const plan = planWithWork([{ id: 'a' }]);
   const engine = new CaseEngine({ caseId: 'journal-corrupt', plan });
@@ -301,4 +395,69 @@ test('JournalSnapshotStore fails closed on a noncanonical committed delta', asyn
   const delta = JSON.parse(await readFile(deltaPath, 'utf8'));
   await writeFile(deltaPath, JSON.stringify(delta, null, 2));
   await assert.rejects(store.load('journal-corrupt'), (error) => error?.code === 'store_noncanonical');
+});
+
+test('JournalSnapshotStore fails closed on a truncated committed delta', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-truncated-delta', plan });
+  const initial = engine.snapshot();
+  await store.create(initial);
+  engine.startAttempt('a', 'executor');
+  const running = engine.snapshot();
+  await store.compareAndSwap('journal-truncated-delta', initial.caseRevision, running);
+
+  const deltaPath = path.join(
+    directory,
+    'journal-truncated-delta',
+    `delta-${String(running.caseRevision).padStart(16, '0')}.json`,
+  );
+  await writeFile(deltaPath, '{"schemaVersion":');
+  await assert.rejects(store.load('journal-truncated-delta'), (error) => error?.code === 'store_corrupt');
+});
+
+test('JournalSnapshotStore rejects deltas whose durable base is missing', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 16 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-missing-base', plan });
+  const initial = engine.snapshot();
+  await store.create(initial);
+  engine.startAttempt('a', 'executor');
+  const running = engine.snapshot();
+  await store.compareAndSwap('journal-missing-base', initial.caseRevision, running);
+
+  await rm(path.join(directory, 'journal-missing-base', 'base.json'));
+  await assert.rejects(
+    new JournalSnapshotStore(directory).load('journal-missing-base'),
+    (error) => error?.code === 'store_journal_missing_base',
+  );
+});
+
+test('JournalSnapshotStore recovers when compaction base is durable before covered delta cleanup', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const store = new JournalSnapshotStore(directory, { compactAfterDeltas: 2 });
+  const plan = planWithWork([{ id: 'a' }]);
+  const engine = new CaseEngine({ caseId: 'journal-compaction-cleanup-crash', plan });
+  let previous = engine.snapshot();
+  await store.create(previous);
+
+  engine.startAttempt('a', 'executor', { initialState: 'dispatch_pending' });
+  let current = engine.snapshot();
+  await store.compareAndSwap('journal-compaction-cleanup-crash', previous.caseRevision, current);
+  const coveredDeltaName = `delta-${String(current.caseRevision).padStart(16, '0')}.json`;
+  const coveredDelta = await readFile(path.join(directory, 'journal-compaction-cleanup-crash', coveredDeltaName));
+  previous = current;
+
+  engine.markAttemptQueued('a.1');
+  current = engine.snapshot();
+  await store.compareAndSwap('journal-compaction-cleanup-crash', previous.caseRevision, current);
+  assert.deepEqual(await readdir(path.join(directory, 'journal-compaction-cleanup-crash')), ['base.json']);
+
+  // Simulate process death after the replacement base rename but before all covered
+  // delta removals completed. Covered deltas are no longer authoritative.
+  await writeFile(path.join(directory, 'journal-compaction-cleanup-crash', coveredDeltaName), coveredDelta);
+  const restarted = new JournalSnapshotStore(directory, { compactAfterDeltas: 2 });
+  assert.deepEqual(await restarted.load('journal-compaction-cleanup-crash'), current);
 });

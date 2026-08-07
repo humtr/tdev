@@ -1,0 +1,108 @@
+{
+  "generatedAt": "2026-08-07",
+  "developmentIdentity": "mvp-1a-2",
+  "scope": "independent audit of supplied mvp-1 and mvp-1a-1 source archives plus final source/container verification",
+  "sourceArchives": {
+    "mvp-1": {
+      "sha256": "e51c8fe2addbd9b289847c22e5643188d632a1408de339ab2bd66403f82fabf5"
+    },
+    "mvp-1a-1": {
+      "sha256": "8ddd7b461d73e965e8645e1bf3a0442187f67d678df2d3b2c5d9dec948135ae2"
+    }
+  },
+  "counterexamples": [
+    {
+      "id": "journal-stale-cache-cas",
+      "candidateOutcome": "a JournalSnapshotStore instance that had cached revision R accepted expectedRevision R after another instance committed R+1",
+      "finalOutcome": "re-read durable bytes under a process-wide Case lock; stale expected revision rejected",
+      "regressionTest": "independent JournalSnapshotStore instance rejects a stale cached revision"
+    },
+    {
+      "id": "journal-warm-cache-corruption",
+      "candidateOutcome": "post-load base corruption could be hidden by the materialized cache",
+      "finalOutcome": "exact durable file fingerprint mismatch forces strict parse/replay and store_corrupt",
+      "regressionTest": "JournalSnapshotStore revalidates durable bytes before CAS and exposes post-load corruption"
+    },
+    {
+      "id": "claim-trie-dead-history",
+      "candidateOutcome": "50,000 unique acquire/release paths retained approximately 50,003 trie nodes",
+      "finalOutcome": "release prunes empty nodes bottom-up; 2,000-path test returns to the root and restore rebuilds equivalently",
+      "regressionTest": "ClaimLedger overlap index prunes released path history and rebuilds equivalently"
+    },
+    {
+      "id": "runner-candidate-loss",
+      "candidateOutcome": "loss of the disposable ready candidate set could lead to false deadlock",
+      "finalOutcome": "runner invokes engine reconcile/rebuild and rehydrates candidates before deadlock",
+      "regressionTest": "runner rebuilds a discarded local ready candidate set before declaring deadlock"
+    },
+    {
+      "id": "blocker-event-reservation",
+      "candidateOutcome": "some cancellation/failure DAGs revisited descendants and could emit more blocker Events than reserved",
+      "finalOutcome": "affected closure is processed once in deterministic topological order",
+      "regressionTest": "blocked dependency propagation uses topological order and stays within the Event reservation"
+    },
+    {
+      "id": "root-copy-superlinear-transition",
+      "candidateOutcome": "root records and Event-array state were copied on each transition; 2,048-wide single observation was 15,733.856 ms",
+      "finalOutcome": "entry-level undo plus incremental counters; 2,048-wide p50 970.171 ms",
+      "evidence": "development-state-comparison-2026-08-07.json"
+    }
+  ],
+  "equivalenceAndDeterminism": {
+    "unitAndStressTests": {
+      "tests": 110,
+      "passed": 110,
+      "capacity1AndN": true,
+      "completionOrder": true,
+      "executorIdentity": true,
+      "retryInterleaving": true,
+      "promotionAcceptedResultOrder": true
+    },
+    "randomizedRestoreOracle": {
+      "seeds": 100,
+      "rule": "after every transition, serialize and restore through the full untrusted-state validator",
+      "outcome": "all histories matched"
+    },
+    "successfulThreeStateDifferential": {
+      "seeds": 100,
+      "transitions": 2600,
+      "states": ["mvp-1", "mvp-1a-1", "mvp-1a-2"],
+      "outcome": "exact snapshots matched for successful histories"
+    },
+    "knownIntentionalDifferential": {
+      "scenario": "cancellation/blocker propagation counterexample",
+      "priorOutcome": "event_reservation_exhausted may occur",
+      "finalOutcome": "bounded deterministic blocker propagation",
+      "classification": "correctness fix, not semantic compatibility regression"
+    }
+  },
+  "persistenceFaultCoverage": {
+    "covered": [
+      "durable Attempt before executor dispatch",
+      "CAS conflict prevents dispatch",
+      "accepted settlement before lease release",
+      "same-process stale and concurrent writer",
+      "restart and total materialization cache loss",
+      "corrupted base",
+      "noncanonical, malformed, and truncated delta",
+      "missing base with committed deltas",
+      "orphan temporary file",
+      "compaction base durable before covered-delta cleanup",
+      "materialized maximum-size rejection",
+      "v1 to v2 migration"
+    ],
+    "notClaimed": [
+      "cross-process CAS",
+      "distributed provider transactions",
+      "device/block write amplification",
+      "hostile-storage authenticity"
+    ]
+  },
+  "coverage": {
+    "command": "node --experimental-test-coverage --test test/*.test.mjs",
+    "testsPassed": 110,
+    "linePercent": 91.59,
+    "branchPercent": 81.31,
+    "functionPercent": 96.36
+  }
+}

@@ -140,7 +140,7 @@ An effect receipt proves only that the configured adapter returned evidence matc
 
 ## 10.1 Derived performance state
 
-Copy-on-write mutation frames, validation frontiers, CaseEngine claim-holder indexes, ClaimLedger overlap indexes, runner ready-candidate sets, and journal materialization/delta-count caches are non-authoritative acceleration state. They must be rebuildable from validated authoritative records, excluded from security/authorization decisions except as candidate narrowing, and checked by authoritative fencing/CAS before a state-changing commit. Untrusted persisted bytes never inherit the trust of an in-memory cache.
+Entry-level mutation undo metadata, validation frontiers, Task/dependency counters, CaseEngine ready/claim-holder indexes, Plan-derived topological order, ClaimLedger overlap indexes, runner ready candidates, and journal fingerprint/materialization metadata are non-authoritative acceleration state. They must be rebuildable from validated authoritative records, excluded from security/authorization decisions except as candidate narrowing, and checked by authoritative dependency/authority/fencing/CAS state before a state-changing commit. Journal cache reuse requires a cryptographic match over the exact re-read durable files; untrusted persisted bytes never inherit the trust of an earlier in-memory value.
 
 ## 11. ClaimLedger boundary
 

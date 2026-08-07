@@ -332,6 +332,7 @@ snapshotDigest
 ```
 
 Restore does not trust stored derived fields. It recompiles Plan indexes, re-normalizes contracts and accepted results, verifies digest/linkage/state invariants, and recomputes successful Promotion.
+Task-state counters, unsatisfied-dependency counters, ready/claim-holder sets, topological traversal order, validation frontiers, Claim overlap tries, runner candidates, and journal cache metadata are intentionally absent from the snapshot schema. They are rebuilt from authoritative records and cannot change the snapshot digest or legal transition result.
 
 Schema v1 is accepted only through the deterministic migration path. Unknown future versions fail closed. No downgrade is implicit.
 

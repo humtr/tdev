@@ -74,6 +74,14 @@ function conflictingModes(mode) {
   return mode === 'read' ? ['write', 'execute'] : ['read', 'write', 'execute'];
 }
 
+function emptyClaimIndexNode(node) {
+  if (node.children.size > 0) return false;
+  for (const bucket of [node.exact, node.prefix]) {
+    if (bucket.read.size > 0 || bucket.write.size > 0 || bucket.execute.size > 0) return false;
+  }
+  return true;
+}
+
 class ClaimOverlapIndex {
   constructor() {
     this.root = claimIndexNode();
@@ -99,15 +107,24 @@ class ClaimOverlapIndex {
     for (const claim of claims) {
       const { wildcard, segments } = indexedResource(claim.resource);
       let node = this.root;
+      const path = [];
       let missing = false;
       for (const segment of segments) {
-        node = node.children.get(segment);
-        if (!node) {
+        const child = node.children.get(segment);
+        if (!child) {
           missing = true;
           break;
         }
+        path.push({ parent: node, segment, child });
+        node = child;
       }
-      if (!missing) node[wildcard ? 'prefix' : 'exact'][claim.mode].delete(token);
+      if (missing) continue;
+      node[wildcard ? 'prefix' : 'exact'][claim.mode].delete(token);
+      for (let index = path.length - 1; index >= 0; index -= 1) {
+        const { parent, segment, child } = path[index];
+        if (!emptyClaimIndexNode(child)) break;
+        parent.children.delete(segment);
+      }
     }
   }
 

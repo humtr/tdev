@@ -1,0 +1,327 @@
+{
+  "generatedAt": "2026-08-07",
+  "qualification": "microbenchmark evidence in one container, not a production SLO",
+  "candidate": {
+    "developmentIdentity": "mvp-1a-1",
+    "environment": {
+      "node": "v22.16.0",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "methodology": {
+      "freshProcessRuns": 3,
+      "summary": "p50, nearest-rank p95, min, max; no separate warm-up retained"
+    },
+    "metrics": {
+      "scheduler.wide128.capacity1Ms": {
+        "sampleCount": 3,
+        "p50": 164.986,
+        "p95NearestRank": 179.78,
+        "min": 142.78,
+        "max": 179.78,
+        "samples": [
+          179.78,
+          164.986,
+          142.78
+        ]
+      },
+      "scheduler.wide128.capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 125.122,
+        "p95NearestRank": 147.113,
+        "min": 121.083,
+        "max": 147.113,
+        "samples": [
+          147.113,
+          125.122,
+          121.083
+        ]
+      },
+      "scheduler.chain128Capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 129.256,
+        "p95NearestRank": 130.66,
+        "min": 109.841,
+        "max": 130.66,
+        "samples": [
+          130.66,
+          129.256,
+          109.841
+        ]
+      },
+      "scheduler.wide512Capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 1008.588,
+        "p95NearestRank": 1037.521,
+        "min": 999.71,
+        "max": 1037.521,
+        "samples": [
+          1008.588,
+          1037.521,
+          999.71
+        ]
+      },
+      "scheduler.readyScan2000Ms": {
+        "sampleCount": 3,
+        "p50": 0.402,
+        "p95NearestRank": 0.556,
+        "min": 0.367,
+        "max": 0.556,
+        "samples": [
+          0.402,
+          0.556,
+          0.367
+        ]
+      },
+      "claimLedger.disjointAcquisitions2000Ms": {
+        "sampleCount": 3,
+        "p50": 63.607,
+        "p95NearestRank": 65.346,
+        "min": 61.803,
+        "max": 65.346,
+        "samples": [
+          63.607,
+          65.346,
+          61.803
+        ]
+      },
+      "claimLedger.disjointAcquisitions10000Ms": {
+        "sampleCount": 3,
+        "p50": 263.936,
+        "p95NearestRank": 275.765,
+        "min": 253.154,
+        "max": 275.765,
+        "samples": [
+          253.154,
+          275.765,
+          263.936
+        ]
+      },
+      "claimLedger.disjointQueryAt10000Ms": {
+        "sampleCount": 3,
+        "p50": 0.035,
+        "p95NearestRank": 0.037,
+        "min": 0.035,
+        "max": 0.037,
+        "samples": [
+          0.035,
+          0.035,
+          0.037
+        ]
+      },
+      "promotion.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 172.562,
+        "p95NearestRank": 193.674,
+        "min": 171.774,
+        "max": 193.674,
+        "samples": [
+          171.774,
+          193.674,
+          172.562
+        ]
+      },
+      "persistence.fileSnapshotStore.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 926.373,
+        "p95NearestRank": 959.265,
+        "min": 847.607,
+        "max": 959.265,
+        "samples": [
+          926.373,
+          959.265,
+          847.607
+        ]
+      },
+      "persistence.journalSnapshotStore.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 623.46,
+        "p95NearestRank": 638.997,
+        "min": 603.674,
+        "max": 638.997,
+        "samples": [
+          623.46,
+          638.997,
+          603.674
+        ]
+      }
+    },
+    "persistenceBytes": {
+      "fileSnapshotStoreCumulativeCanonicalSnapshotBytes": 6550735,
+      "journalSnapshotStoreRetainedBaseAndDeltaBytesWithoutCompaction": 270883,
+      "finalFileSnapshotBytes": 204339,
+      "finalJournalMaterializedSnapshotBytes": 204342,
+      "successfulStoreWrites": 67
+    },
+    "canonicalEquivalentCapacity1And16": true,
+    "unavailableInThisSourceSlice": {
+      "contextDuplicateBytes": "no repository/context transport adapter exists",
+      "executorColdVsWarmStart": "no process/toolchain executor lifecycle exists in this kernel",
+      "tokenDuplication": "no model transport exists in this kernel"
+    }
+  },
+  "final": {
+    "developmentIdentity": "mvp-1a-2",
+    "environment": {
+      "node": "v22.16.0",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "methodology": {
+      "freshProcessRuns": 3,
+      "summary": "p50, nearest-rank p95, min, max; no separate warm-up retained"
+    },
+    "metrics": {
+      "scheduler.wide128.capacity1Ms": {
+        "sampleCount": 3,
+        "p50": 77.338,
+        "p95NearestRank": 88.751,
+        "min": 74.812,
+        "max": 88.751,
+        "samples": [
+          74.812,
+          88.751,
+          77.338
+        ]
+      },
+      "scheduler.wide128.capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 64.3,
+        "p95NearestRank": 66.414,
+        "min": 58.992,
+        "max": 66.414,
+        "samples": [
+          66.414,
+          58.992,
+          64.3
+        ]
+      },
+      "scheduler.chain128Capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 53.015,
+        "p95NearestRank": 55.325,
+        "min": 51.866,
+        "max": 55.325,
+        "samples": [
+          53.015,
+          51.866,
+          55.325
+        ]
+      },
+      "scheduler.wide512Capacity16Ms": {
+        "sampleCount": 3,
+        "p50": 210.864,
+        "p95NearestRank": 221.936,
+        "min": 210.811,
+        "max": 221.936,
+        "samples": [
+          221.936,
+          210.811,
+          210.864
+        ]
+      },
+      "scheduler.readyScan2000Ms": {
+        "sampleCount": 3,
+        "p50": 0.086,
+        "p95NearestRank": 0.086,
+        "min": 0.082,
+        "max": 0.086,
+        "samples": [
+          0.086,
+          0.086,
+          0.082
+        ]
+      },
+      "claimLedger.disjointAcquisitions2000Ms": {
+        "sampleCount": 3,
+        "p50": 63.679,
+        "p95NearestRank": 63.961,
+        "min": 58.722,
+        "max": 63.961,
+        "samples": [
+          63.679,
+          58.722,
+          63.961
+        ]
+      },
+      "claimLedger.disjointAcquisitions10000Ms": {
+        "sampleCount": 3,
+        "p50": 253.138,
+        "p95NearestRank": 295.291,
+        "min": 251.086,
+        "max": 295.291,
+        "samples": [
+          253.138,
+          251.086,
+          295.291
+        ]
+      },
+      "claimLedger.disjointQueryAt10000Ms": {
+        "sampleCount": 3,
+        "p50": 0.033,
+        "p95NearestRank": 0.038,
+        "min": 0.033,
+        "max": 0.038,
+        "samples": [
+          0.038,
+          0.033,
+          0.033
+        ]
+      },
+      "promotion.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 159.153,
+        "p95NearestRank": 173.412,
+        "min": 157.794,
+        "max": 173.412,
+        "samples": [
+          159.153,
+          157.794,
+          173.412
+        ]
+      },
+      "persistence.fileSnapshotStore.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 850.732,
+        "p95NearestRank": 871.54,
+        "min": 821.91,
+        "max": 871.54,
+        "samples": [
+          850.732,
+          821.91,
+          871.54
+        ]
+      },
+      "persistence.journalSnapshotStore.elapsedMs": {
+        "sampleCount": 3,
+        "p50": 1025.905,
+        "p95NearestRank": 1039.163,
+        "min": 935.559,
+        "max": 1039.163,
+        "samples": [
+          1039.163,
+          935.559,
+          1025.905
+        ]
+      }
+    },
+    "persistenceBytes": {
+      "fileSnapshotStoreCumulativeCanonicalSnapshotBytes": 6550735,
+      "journalSnapshotStoreRetainedBaseAndDeltaBytesWithoutCompaction": 270883,
+      "finalFileSnapshotBytes": 204339,
+      "finalJournalMaterializedSnapshotBytes": 204342,
+      "successfulStoreWrites": 67
+    },
+    "canonicalEquivalentCapacity1And16": true,
+    "unavailableInThisSourceSlice": {
+      "contextDuplicateBytes": "no repository/context transport adapter exists",
+      "executorColdVsWarmStart": "no process/toolchain executor lifecycle exists in this kernel",
+      "tokenDuplication": "no model transport exists in this kernel"
+    }
+  },
+  "interpretation": {
+    "claimLedger": "no material performance change expected; final change prunes dead trie paths and preserves oracle equivalence",
+    "promotion": "no architecture change; whole-tree copy/hash remains visible",
+    "journal": "final restores durable-byte revalidation and stale-writer rejection; wall time rises while retained bytes remain approximately 95.9% below cumulative full-snapshot serialization in this no-compaction workload"
+  }
+}
