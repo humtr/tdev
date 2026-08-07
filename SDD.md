@@ -1,15 +1,102 @@
-# specification-driven development
+# tdev specification-driven development
 
-This repository treats changes to public contracts, durable state, concurrency, security, ownership, migration, rollback, or deployment as major changes.
+> Authority: this file owns how a repository change is classified, designed, sliced, verified, reopened, and closed. Product and subsystem behavior remain in their named normative owners.
 
-For a major change:
+## 1. Principle
 
-1. route through `AGENTS.md` and `WORKBOARD.md`;
-2. define the problem, current contract, scope, non-goals, acceptance, verification, and hard-stop unknowns;
-3. record ownership and transition decisions in an accepted design record and affected normative owners;
-4. freeze that revision before implementation;
-5. implement the smallest production-shaped vertical slice;
-6. validate from the cheapest falsifier through the required full source gate;
-7. review the complete effective diff and update only owners affected by verified results.
+A change is complete only when its owner contract, implementation, observable acceptance, failure behavior, migration effect, and remaining unknowns agree. Passing code does not silently redefine a contract, and prose does not claim a layer that was not executed.
 
-If new evidence invalidates a frozen design, reopen and amend the owner instead of hiding the mismatch in implementation.
+## 2. Change classes
+
+### Class 0 — editorial
+
+Wording, links, formatting, or examples change without changing behavior, schema, commands, support, or acceptance.
+
+Required: identify the owner, explain why meaning is unchanged, and run relevant documentation checks.
+
+### Class 1 — bounded implementation
+
+A local defect or internal refactor changes no public/durable contract, ownership, state meaning, security boundary, compatibility, deployment, dependency, or verification requirement.
+
+Required temporary contract:
+
+- one-line end state;
+- current owner;
+- scope and non-goals;
+- acceptance and focused regression tests;
+- remaining unknowns.
+
+### Class 2 — designed change
+
+A design record is mandatory before implementation when any of these may change:
+
+- product scope, terminology, support, or non-goal;
+- plan, Task, Attempt, result, event, receipt, state, identifier, digest, or public schema;
+- owner, dependency direction, concurrency, claim, queue, retry, cancellation, reconciliation, or canonical commit;
+- authority, path, secret, identity, fencing, approval, or trust boundary;
+- persistence, migration, rollback, deployment, external dependency, or release asset;
+- acceptance evidence or verification method;
+- a workaround that would survive the current slice.
+
+When uncertain, classify upward.
+
+## 3. Design record
+
+Class 2 work lives in `docs/design/` and must contain:
+
+1. metadata and affected owners;
+2. one-line definition;
+3. repository facts, measured evidence, external engineering evidence, inference, and unknowns separated;
+4. current contract and concrete problem;
+5. decision with ownership and state transitions;
+6. rejected alternatives and tradeoffs;
+7. failure, cancellation, recovery, and cleanup;
+8. compatibility, migration, rollback barrier, and deployment impact;
+9. acceptance matrix and cheapest falsifiers;
+10. non-goals and follow-on gates.
+
+Status vocabulary:
+
+```text
+draft -> accepted -> implementing -> verified
+                    \-> blocked
+verified or accepted -> superseded
+```
+
+Only accepted or implementing records authorize Class 2 code.
+
+## 4. Owner impact order
+
+For a designed change:
+
+1. freeze the design record;
+2. update normative owner contracts that the design changes;
+3. implement the smallest production-shaped vertical slice;
+4. test pure invariants first, then state transitions, persistence/reopen, adapter behavior, and full source gate;
+5. review the effective diff, generated or derived forms, failure paths, and unsupported layers;
+6. mark verified only from observed evidence.
+
+A failed falsifier reopens the design or owner. Do not hide the mismatch in a fallback, flag, cache, or second owner.
+
+## 5. Evidence rules
+
+- Tests use barriers, controlled promises, deterministic identities, and public outcomes. Timeouts are deadlock guards only.
+- A source test proves source behavior, not deployment, provider state, current-client behavior, rollback, or external effect count.
+- Skipped, unsupported, unavailable, and unexecuted layers remain `unknown`.
+- An uncertain external effect remains `unverified` or `reconciling`; it is not rewritten as failed or cancelled.
+- Security denials and corruption failures must be tested as no-effect decisions.
+- Every durable format has a version, predecessor rule, validation, migration owner, and rollback barrier.
+
+## 6. Completion review
+
+Before closing work, verify:
+
+- one canonical owner per fact;
+- no duplicated readiness or lifecycle state;
+- no direct canonical mutation outside Promotion;
+- retries match the effect class;
+- identity and fencing cover stale delivery;
+- bounds and malformed/corrupt inputs fail closed;
+- migrations are explicit and downgrade assumptions are not hidden;
+- commands in the documented source gate run in the declared minimum runtime;
+- remaining product/provider unknowns are stated without inflating source completion.

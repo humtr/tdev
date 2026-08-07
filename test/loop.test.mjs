@@ -172,6 +172,28 @@ test('invalid executor result fails the Task without escaping the runner', async
   assert.deepEqual(result.snapshot.canonicalTree, baseTree);
 });
 
+test('invalid external-effect result preserves uncertainty instead of claiming no effect', async () => {
+  const plan = planWithWork([{
+    id: 'effect',
+    claims: [{ mode: 'execute', resource: 'remote:origin/main' }],
+    execution: {
+      operation: 'remote.apply',
+      resultKind: 'effect-receipt',
+      effectClass: 'idempotent-external',
+      retry: { maxAttempts: 2 },
+    },
+  }]);
+  const result = await runCase(
+    new CaseEngine({ caseId: 'invalid-effect-result', plan }),
+    async () => ({ kind: 'effect-receipt' }),
+  );
+
+  assert.equal(result.caseState, 'reconciling');
+  assert.equal(result.status, 'reconciliation_required');
+  assert.equal(result.snapshot.taskStates.effect.state, 'reconciling');
+  assert.equal(result.snapshot.attempts['effect.1'].error.certainty, 'unknown');
+});
+
 test('cancellation wins a success race and the late result is rejected', async () => {
   const plan = planWithWork([{ id: 'a' }]);
   const engine = new CaseEngine({ caseId: 'cancel-race-case', plan });

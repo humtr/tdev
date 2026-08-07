@@ -1,6 +1,15 @@
 #!/usr/bin/env node
-import { CaseEngine, definePlan } from './engine.mjs';
-import { runCase } from './runner.mjs';
+import { mkdtemp, rm } from 'node:fs/promises';
+import os from 'node:os';
+import path from 'node:path';
+import {
+  CaseEngine,
+  CaseRepository,
+  FileSnapshotStore,
+  definePlan,
+  runCase,
+  runDurableCase,
+} from './index.mjs';
 
 function demoPlan() {
   return definePlan({
@@ -32,32 +41,56 @@ function demoPlan() {
   });
 }
 
-async function main() {
-  const command = process.argv[2];
-  if (command !== 'demo') {
-    console.error('usage: node src/cli.mjs demo');
-    process.exitCode = 2;
-    return;
-  }
+async function demoExecutor({ baseDigest, task }) {
+  return {
+    kind: 'changeset',
+    baseDigest,
+    writes: [{ path: task.input.path, content: task.input.content }],
+    evidence: { taskId: task.id },
+  };
+}
 
-  const engine = new CaseEngine({ caseId: 'demo-case', plan: demoPlan() });
-  const result = await runCase(
-    engine,
-    async ({ baseDigest, task }) => ({
-      kind: 'changeset',
-      baseDigest,
-      writes: [{ path: task.input.path, content: task.input.content }],
-      evidence: { taskId: task.id },
-    }),
-    { capacity: 2 },
-  );
-
+function printResult(result, snapshot = result.snapshot) {
   console.log(JSON.stringify({
     caseState: result.caseState,
     maxConcurrent: result.maxConcurrent,
-    canonicalDigest: result.snapshot.canonicalDigest,
-    canonicalTree: result.snapshot.canonicalTree,
+    persistedRevision: result.persistedRevision ?? null,
+    canonicalDigest: snapshot.canonicalDigest,
+    canonicalTree: snapshot.canonicalTree,
   }, null, 2));
+}
+
+async function runMemoryDemo() {
+  const engine = new CaseEngine({ caseId: 'demo-case', plan: demoPlan() });
+  const result = await runCase(engine, demoExecutor, { capacity: 2 });
+  printResult(result);
+}
+
+async function runFileDurableDemo() {
+  const directory = await mkdtemp(path.join(os.tmpdir(), 'tdev-durable-demo-'));
+  try {
+    const repository = new CaseRepository(new FileSnapshotStore(directory));
+    await repository.create({ caseId: 'durable-demo-case', plan: demoPlan() });
+    const result = await runDurableCase(repository, 'durable-demo-case', demoExecutor, { capacity: 2 });
+    const reloaded = await repository.load('durable-demo-case');
+    printResult(result, reloaded.snapshot());
+  } finally {
+    await rm(directory, { recursive: true, force: true });
+  }
+}
+
+async function main() {
+  const command = process.argv[2];
+  if (command === 'demo') {
+    await runMemoryDemo();
+    return;
+  }
+  if (command === 'durable-demo') {
+    await runFileDurableDemo();
+    return;
+  }
+  console.error('usage: node src/cli.mjs <demo|durable-demo>');
+  process.exitCode = 2;
 }
 
 await main();

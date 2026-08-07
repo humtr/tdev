@@ -49,3 +49,26 @@ test('conflicts are deterministic and path traversal is rejected', () => {
     (error) => error instanceof ContractError && error.code === 'invalid_path',
   );
 });
+
+test('Promotion rejects ambiguous entry shapes and mismatched Task identity', () => {
+  const task = {
+    id: 'a',
+    kind: 'work',
+    execution: {
+      operation: 'legacy.work',
+      resultKind: 'changeset',
+      effectClass: 'result-only',
+      requirePassed: false,
+    },
+  };
+  const result = change('a', 'a.txt', 'A').result;
+
+  assert.throws(
+    () => promote(baseTree, [{ task, taskId: 'b', result }], baseDigest),
+    (error) => error?.code === 'promotion_task_mismatch',
+  );
+  assert.throws(
+    () => promote(baseTree, [{ taskId: 'a', result, ignored: true }], baseDigest),
+    (error) => error?.code === 'unexpected_keys',
+  );
+});

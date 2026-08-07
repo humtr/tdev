@@ -1,7 +1,7 @@
 # Design 0001: Parallel-First Work Graph, Claims, Isolated Results, and Promotion
 
 - Class: 2
-- Status: accepted for implementation by the maintainer request of 2026-08-06
+- Status: superseded by Design 0002
 - Base: `main@b86287b84375e2aeb833cf775371a7808a1239cf`
 - Target branch: `mvp-parallel-xh-1`
 

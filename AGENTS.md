@@ -26,6 +26,7 @@ Do not infer authority from names, conventions, generated output, or passing tes
 | Build, deployment, migration, rollback layers | `docs/DEPLOYMENT.md` |
 | Current source slice and verification gates | `docs/MVP.md` |
 | MCP projection boundary | `docs/MCP.md` |
+| Integration evidence and retained boundaries | `docs/IMPLEMENTATION_REPORT.md` |
 | Current pointers only | `WORKBOARD.md` |
 
 ## Repository invariants
@@ -47,9 +48,9 @@ Minimum source gate:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
-npm test
-npm run demo
+npm run check
+node --experimental-test-coverage --test test/*.test.mjs
 git diff --check
 ```
 
-A source gate does not prove deployment, public behavior, durable storage, or rollback.
+A source gate proves only the declared Node behavior and local adapters. It does not prove distributed/provider storage, deployment, public-client behavior, or provider rollback.

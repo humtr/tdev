@@ -1,14 +1,17 @@
 {
   "name": "@humtr/tdev",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "type": "module",
+  "exports": "./src/index.mjs",
   "engines": {
     "node": ">=22"
   },
   "scripts": {
+    "syntax": "for file in src/*.mjs test/*.mjs; do node --check \"$file\"; done",
     "test": "node --test test/*.test.mjs",
     "demo": "node src/cli.mjs demo",
-    "check": "node --check src/*.mjs && node --check test/*.mjs && npm test"
+    "durable-demo": "node src/cli.mjs durable-demo",
+    "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent"
   }
 }
