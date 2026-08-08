@@ -1,0 +1,126 @@
+{
+  "evidenceKind": "tdev-mvp-1a-4-d0007-materialization-reuse",
+  "date": "2026-08-08",
+  "identity": {
+    "development": "mvp-1a-4",
+    "directParent": {
+      "branch": "mvp-1a-3",
+      "sha": "52e79323f80bccd1123b7a538a6d49d5754cd1ec"
+    }
+  },
+  "environment": {
+    "node": "v22.16.0",
+    "npm": "10.9.2",
+    "platform": "linux",
+    "arch": "x64",
+    "kernel": "6.18.35"
+  },
+  "design": {
+    "id": "D0007",
+    "record": "docs/design/0007-verified-immutable-journal-materialization-cache.md",
+    "authorityChanged": false,
+    "durableFormatChanged": false,
+    "publicationPrimitiveChanged": false
+  },
+  "implementation": {
+    "store": "ImmutableJournalSnapshotStore",
+    "behavior": [
+      "strictly list the committed namespace before materialization reuse",
+      "reread every retained authoritative file byte on every load and non-create CAS",
+      "fingerprint ordered filename, byte length, and raw bytes with SHA-256",
+      "reuse only a previously strictly validated or unambiguously durable local materialization on exact fingerprint equality",
+      "fallback to complete D0005 strict parse/validation/replay on mismatch, restart, or cache loss",
+      "do not promote cache state after publication conflict or commit ambiguity"
+    ],
+    "retainedBaselineComments": true,
+    "addedWarmNamespaceBarriers": 2
+  },
+  "correctness": {
+    "focusedImmutableTests": "20/20 pass",
+    "fullSourceTests": "130/130 pass",
+    "npmCi": "pass",
+    "npmRunCheck": "pass",
+    "coverage": {
+      "lines": 91.84,
+      "branches": 81.82,
+      "functions": 96.19
+    },
+    "gitDiffCheck": "pass"
+  },
+  "benchmark": {
+    "workload": {
+      "tasks": 32,
+      "observationPayloadBytes": 4096,
+      "capacity": 8,
+      "repeats": 3,
+      "storeOrder": "rotated"
+    },
+    "baselineMvp1a3": {
+      "file": {
+        "elapsedMsP50": 781.079205,
+        "coldLoadMsP50": 7.65481500000169,
+        "lastCasMsP50": 14.229507000000012,
+        "retainedFilesystemBytes": 204278,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      },
+      "journal": {
+        "elapsedMsP50": 1023.9306300000007,
+        "coldLoadMsP50": 96.43186200000014,
+        "lastCasMsP50": 22.27382000000034,
+        "retainedFilesystemBytes": 270621,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      },
+      "immutable": {
+        "elapsedMsP50": 3397.5348810000005,
+        "coldLoadMsP50": 97.63423700000021,
+        "lastCasMsP50": 100.46192499999961,
+        "retainedFilesystemBytes": 277023,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      }
+    },
+    "candidateMvp1a4": {
+      "file": {
+        "elapsedMsP50": 746.232559,
+        "coldLoadMsP50": 7.550470000000132,
+        "lastCasMsP50": 14.095847999999933,
+        "retainedFilesystemBytes": 204278,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      },
+      "journal": {
+        "elapsedMsP50": 1014.2978469999998,
+        "coldLoadMsP50": 91.63114399999995,
+        "lastCasMsP50": 21.98975800000062,
+        "retainedFilesystemBytes": 270621,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      },
+      "immutable": {
+        "elapsedMsP50": 1007.2620419999998,
+        "coldLoadMsP50": 97.32377499999984,
+        "lastCasMsP50": 20.94137200000023,
+        "retainedFilesystemBytes": 277023,
+        "finalSnapshotBytes": 204278,
+        "successfulCasWrites": 67
+      }
+    },
+    "derived": {
+      "immutableSpeedupVsD0005": 3.3730397248504684,
+      "immutableToCandidateJournalRatio": 0.9930633738198205,
+      "immutableLastCasSpeedup": 4.797294322454064,
+      "retainedBytesUnchanged": true,
+      "coldLoadRatioCandidateToBaseline": 0.9968201523406142
+    },
+    "interpretation": "D0007 removes repeated warm strict-replay materialization from the hot path while preserving retained-byte observation, retained durable bytes, and fresh-instance strict-replay cost. Values are container evidence, not a production SLO."
+  },
+  "completion": {
+    "sourceGate": "verified",
+    "performanceContinuationTarget": "met",
+    "archiveGate": "verified by clean final source-freeze export/extraction",
+    "remotePublication": "pending publication layer at source freeze",
+    "providerDistributedLayers": "unverified"
+  }
+}

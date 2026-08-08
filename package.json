@@ -13,6 +13,7 @@
     "durable-demo": "node src/cli.mjs durable-demo",
     "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent",
     "bench": "node bench/control-plane.mjs",
+    "bench:persistence": "node bench/persistence-hot-path.mjs",
     "bench:compare": "node bench/compare-development-states.mjs"
   }
 }

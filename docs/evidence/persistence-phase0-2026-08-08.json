@@ -1,0 +1,62 @@
+{
+  "evidenceKind": "tdev-persistence-phase0",
+  "date": "2026-08-08",
+  "baseline": {
+    "branch": "mvp-1a-3",
+    "sha": "52e79323f80bccd1123b7a538a6d49d5754cd1ec"
+  },
+  "environment": {
+    "node": "v22.16.0",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "workload": {
+    "kind": "wide observation DAG",
+    "capacity": 8,
+    "observationPayloadBytes": 4096,
+    "taskCounts": [16, 24, 32],
+    "repeatsPerPoint": 3,
+    "storeOrder": "rotated"
+  },
+  "scalingP50": {
+    "16": {
+      "fileElapsedMs": 290.470123,
+      "journalElapsedMs": 372.252792,
+      "immutableElapsedMs": 792.547585,
+      "immutableRetainedBytes": 141619,
+      "immutableFinalReplayMaterializedBytes": 1656286,
+      "immutableCumulativeReplayWorkAcrossCasBytes": 17743078
+    },
+    "24": {
+      "fileElapsedMs": 523.868477,
+      "journalElapsedMs": 662.462654,
+      "immutableElapsedMs": 1709.229065,
+      "immutableRetainedBytes": 209379,
+      "immutableFinalReplayMaterializedBytes": 3682806,
+      "immutableCumulativeReplayWorkAcrossCasBytes": 60216898
+    },
+    "32": {
+      "fileElapsedMs": 940.149975,
+      "journalElapsedMs": 1205.363649,
+      "immutableElapsedMs": 3553.725249,
+      "journalColdLoadMs": 96.983575,
+      "immutableColdLoadMs": 98.663809,
+      "immutableRetainedBytes": 277139,
+      "immutableAuthoritativeFiles": 67,
+      "immutableReplayedDeltas": 66,
+      "immutableReadMs": 5.12829,
+      "immutableParseCanonicalMs": 8.330903,
+      "immutableFingerprintMs": 0.263151,
+      "immutableReplayMs": 133.277893,
+      "immutableCloneMs": 1.884146,
+      "immutableFinalReplayMaterializedBytes": 6546830,
+      "immutableCumulativeReplayWorkAcrossCasBytes": 144222942
+    }
+  },
+  "decision": {
+    "vGate": "open",
+    "reason": "retained-byte scan and fingerprint are small relative to strict replay, while exact prefix replay byte-work grows about 8x from 16 to 32 tasks",
+    "mAGate": "deferred",
+    "performanceValuesAreProductionSlo": false
+  }
+}

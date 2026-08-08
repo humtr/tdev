@@ -865,6 +865,7 @@ export class ImmutableJournalSnapshotStore {
     this.directory = path.resolve(directory);
     this.maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
     assertSafeInteger(this.maxBytes, 'ImmutableJournalSnapshotStore.maxBytes', { min: 1 });
+    this.materialized = new Map();
   }
 
   async create(snapshot) {
@@ -875,7 +876,7 @@ export class ImmutableJournalSnapshotStore {
   async load(caseId) {
     assertIdentifier(caseId, 'caseId');
     return this.#withLock(caseId, async () => {
-      const snapshot = await this.#readUnlocked(caseId);
+      const { snapshot } = await this.#readValidated(caseId);
       return snapshot === null ? null : publicJsonClone(snapshot);
     });
   }
@@ -897,17 +898,19 @@ export class ImmutableJournalSnapshotStore {
     return this.#withLock(caseId, async () => {
       await mkdir(this.directory, { recursive: true });
       await mkdir(this.#caseDirectory(caseId), { recursive: true });
-      const current = await this.#readUnlocked(caseId);
+      const currentRead = await this.#readValidated(caseId);
+      const current = currentRead.snapshot;
       const actualRevision = current?.caseRevision ?? null;
       if (actualRevision !== expectedRevision) throw casConflict(caseId, expectedRevision, actualRevision);
 
       if (expectedRevision === null) {
         try {
-          await this.#publishNoReplace(caseId, this.#basePath(caseId), snapshot);
+          const payload = await this.#publishNoReplace(caseId, this.#basePath(caseId), snapshot);
+          this.#cacheMaterialized(caseId, snapshot, [{ name: 'base.json', bytes: payload }]);
         } catch (error) {
           if (error?.code !== 'store_publish_conflict') throw error;
-          const winner = await this.#readUnlocked(caseId);
-          throw casConflict(caseId, null, winner?.caseRevision ?? null);
+          const winner = await this.#readValidated(caseId);
+          throw casConflict(caseId, null, winner.snapshot?.caseRevision ?? null);
         }
         return publicJsonClone(snapshot);
       }
@@ -921,12 +924,27 @@ export class ImmutableJournalSnapshotStore {
       }
 
       const delta = makeImmutableJournalDelta(current, snapshot);
+      const deltaName = path.basename(this.#deltaFromPath(caseId, expectedRevision));
       try {
-        await this.#publishNoReplace(caseId, this.#deltaFromPath(caseId, expectedRevision), delta);
+        const payload = await this.#publishNoReplace(caseId, this.#deltaFromPath(caseId, expectedRevision), delta);
+        const nextFiles = [
+          ...currentRead.files,
+          {
+            kind: 'immutable-from',
+            name: deltaName,
+            filenameRevision: expectedRevision,
+            bytes: payload,
+          },
+        ].sort((left, right) => {
+          if (left.name === 'base.json') return -1;
+          if (right.name === 'base.json') return 1;
+          return compareText(left.name, right.name);
+        });
+        this.#cacheMaterialized(caseId, snapshot, nextFiles);
       } catch (error) {
         if (error?.code !== 'store_publish_conflict') throw error;
-        const winner = await this.#readUnlocked(caseId);
-        throw casConflict(caseId, expectedRevision, winner?.caseRevision ?? null);
+        const winner = await this.#readValidated(caseId);
+        throw casConflict(caseId, expectedRevision, winner.snapshot?.caseRevision ?? null);
       }
       return publicJsonClone(snapshot);
     });
@@ -954,7 +972,13 @@ export class ImmutableJournalSnapshotStore {
     }
     const files = [];
     for (const entry of entries) {
-      if (entry.name === 'base.json' || entry.name.startsWith('.')) continue;
+      if (entry.name === 'base.json') {
+        if (!entry.isFile()) {
+          throw new ContractError('store_journal_file_type', 'Immutable journal base.json is not a regular file');
+        }
+        continue;
+      }
+      if (entry.name.startsWith('.')) continue;
       let match = IMMUTABLE_JOURNAL_DELTA_FILE.exec(entry.name);
       if (match) {
         if (!entry.isFile()) {
@@ -986,9 +1010,8 @@ export class ImmutableJournalSnapshotStore {
     return files.sort((left, right) => compareText(left.name, right.name));
   }
 
-  async #readCanonicalFile(filePath, caseId, { missing = false } = {}) {
+  async #readFileBytes(filePath, caseId, { missing = false } = {}) {
     let handle;
-    let bytes;
     try {
       handle = await open(filePath, 'r');
       const metadata = await handle.stat();
@@ -998,7 +1021,7 @@ export class ImmutableJournalSnapshotStore {
           limit: this.maxBytes,
         });
       }
-      bytes = await handle.readFile();
+      return await handle.readFile();
     } catch (error) {
       if (missing && error?.code === 'ENOENT') return null;
       if (error instanceof ContractError) throw error;
@@ -1006,6 +1029,9 @@ export class ImmutableJournalSnapshotStore {
     } finally {
       if (handle) await handle.close().catch(() => {});
     }
+  }
+
+  #parseCanonicalBytes(bytes, caseId) {
     try {
       const value = strictJsonParse(bytes, { maxBytes: this.maxBytes });
       if (!bytes.equals(Buffer.from(canonicalJson(value), 'utf8'))) {
@@ -1021,40 +1047,64 @@ export class ImmutableJournalSnapshotStore {
     }
   }
 
-  async #readUnlocked(caseId) {
-    const base = await this.#readCanonicalFile(this.#basePath(caseId), caseId, { missing: true });
-    const files = await this.#listCommittedFiles(caseId);
-    if (base === null) {
-      if (files.length > 0) {
+  async #readJournalFiles(caseId) {
+    const committedFiles = await this.#listCommittedFiles(caseId);
+    const baseBytes = await this.#readFileBytes(this.#basePath(caseId), caseId, { missing: true });
+    if (baseBytes === null) {
+      if (committedFiles.length > 0) {
         throw new ContractError('store_journal_missing_base', `Case ${caseId} has journal records without a durable base`);
       }
-      return null;
+      return [];
     }
+    const files = [{ name: 'base.json', bytes: baseBytes }];
+    for (const item of committedFiles) {
+      files.push({
+        ...item,
+        bytes: await this.#readFileBytes(path.join(this.#caseDirectory(caseId), item.name), caseId),
+      });
+    }
+    return files;
+  }
+
+  #filesFingerprint(files) {
+    const hash = createHash('sha256');
+    for (const file of files) {
+      hash.update(file.name, 'utf8');
+      hash.update('\0', 'utf8');
+      hash.update(String(file.bytes.byteLength), 'utf8');
+      hash.update('\0', 'utf8');
+      hash.update(file.bytes);
+    }
+    return `sha256:${hash.digest('hex')}`;
+  }
+
+  #materializeFiles(caseId, files) {
+    if (files.length === 0) return null;
+    const base = this.#parseCanonicalBytes(files[0].bytes, caseId);
     validateJournalSnapshot(base, caseId);
 
     const byFromRevision = new Map();
-    for (const item of files) {
-      const filePath = path.join(this.#caseDirectory(caseId), item.name);
-      const raw = await this.#readCanonicalFile(filePath, caseId);
-      const delta = item.kind === 'immutable-from'
+    for (const file of files.slice(1)) {
+      const raw = this.#parseCanonicalBytes(file.bytes, caseId);
+      const delta = file.kind === 'immutable-from'
         ? validateImmutableJournalDelta(raw, caseId)
         : validateJournalDelta(raw, caseId);
-      if (item.kind === 'immutable-from' && delta.fromRevision !== item.filenameRevision) {
+      if (file.kind === 'immutable-from' && delta.fromRevision !== file.filenameRevision) {
         throw new ContractError('store_journal_filename', 'Immutable journal filename does not match its source revision');
       }
-      if (item.kind === 'legacy-target' && delta.toRevision !== item.filenameRevision) {
+      if (file.kind === 'legacy-target' && delta.toRevision !== file.filenameRevision) {
         throw new ContractError('store_journal_filename', 'Legacy journal filename does not match its target revision');
       }
       // Design 0004 compaction may leave a covered legacy delta if the process dies
       // after replacing base.json but before cleanup. Such a record is no longer
       // authoritative and remains safely ignorable exactly as in the legacy reader.
-      if (item.kind === 'legacy-target' && delta.toRevision <= base.caseRevision) continue;
+      if (file.kind === 'legacy-target' && delta.toRevision <= base.caseRevision) continue;
       if (byFromRevision.has(delta.fromRevision)) {
         throw new ContractError('store_journal_fork', `Multiple journal records continue revision ${delta.fromRevision}`, {
           fromRevision: delta.fromRevision,
         });
       }
-      byFromRevision.set(delta.fromRevision, { item, delta });
+      byFromRevision.set(delta.fromRevision, { file, delta });
     }
 
     let current = base;
@@ -1062,7 +1112,7 @@ export class ImmutableJournalSnapshotStore {
     while (byFromRevision.has(current.caseRevision)) {
       const entry = byFromRevision.get(current.caseRevision);
       byFromRevision.delete(current.caseRevision);
-      if (entry.item.kind === 'legacy-target') {
+      if (entry.file.kind === 'legacy-target') {
         if (immutablePhase) {
           throw new ContractError('store_journal_format_order', 'Legacy journal record follows immutable-v2 migration boundary', {
             fromRevision: entry.delta.fromRevision,
@@ -1089,6 +1139,33 @@ export class ImmutableJournalSnapshotStore {
       });
     }
     return publicJsonClone(current);
+  }
+
+  #cacheMaterialized(caseId, snapshot, files) {
+    const fingerprint = this.#filesFingerprint(files);
+    this.materialized.set(caseId, {
+      fingerprint,
+      snapshot: snapshot === null ? null : publicJsonClone(snapshot),
+    });
+  }
+
+  async #readValidated(caseId) {
+    const files = await this.#readJournalFiles(caseId);
+    const fingerprint = this.#filesFingerprint(files);
+    const cached = this.materialized.get(caseId);
+    if (cached?.fingerprint === fingerprint) {
+      return {
+        snapshot: cached.snapshot === null ? null : publicJsonClone(cached.snapshot),
+        files,
+        fingerprint,
+      };
+    }
+    const snapshot = this.#materializeFiles(caseId, files);
+    this.materialized.set(caseId, {
+      fingerprint,
+      snapshot: snapshot === null ? null : publicJsonClone(snapshot),
+    });
+    return { snapshot, files, fingerprint };
   }
 
   async #publishNoReplace(caseId, finalPath, value) {

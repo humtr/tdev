@@ -479,3 +479,27 @@ test('ImmutableJournalSnapshotStore rejects a non-regular authoritative commit s
     (error) => error?.code === 'store_journal_format_upgrade_required',
   );
 });
+
+test('ImmutableJournalSnapshotStore warm materialization rejects malformed committed namespace before reuse', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'immutable-warm-malformed-name';
+  const states = sequence(caseId);
+  const store = new ImmutableJournalSnapshotStore(directory);
+  await store.create(states.initial);
+  assert.deepEqual(await store.load(caseId), states.initial);
+  await writeFile(path.join(directory, caseId, 'delta-not-a-revision.json'), '{}');
+  await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_filename');
+});
+
+test('ImmutableJournalSnapshotStore warm materialization rejects non-regular base authority before reuse', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'immutable-warm-nonregular-base';
+  const states = sequence(caseId);
+  const store = new ImmutableJournalSnapshotStore(directory);
+  await store.create(states.initial);
+  assert.deepEqual(await store.load(caseId), states.initial);
+  const basePath = path.join(directory, caseId, 'base.json');
+  await rm(basePath);
+  await mkdir(basePath);
+  await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_file_type');
+});
