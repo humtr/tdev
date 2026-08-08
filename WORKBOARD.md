@@ -3,51 +3,67 @@
 ## Current baseline
 
 - Repository: `humtr/tdev`
-- Development identity / publication ref: `mvp-1a-3`
-- Direct code parent: GitHub `mvp-1a-2` commit `ee02845c8947b69f810308fd957e3952a8e508b9`
-- Knowledge inputs: verified `mvp-1a-2` plus independently reproduced A/B comparison tests and counterexamples
+- Development identity / publication ref: `mvp-1a-4`
+- Direct code parent: GitHub `mvp-1a-3` commit `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- Knowledge inputs: verified `mvp-1a-3`, Design 0006 phase-zero persistence profiling, and isolated V/S research evidence
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current design: `docs/design/0005-immutable-expected-revision-journal-cas.md`
+- Current design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
 
 ## Active work
 
-No Class 2 implementation item remains active in this source state. Checkpoint/cache acceleration and compiled-base Promotion remain follow-on hypotheses rather than implementation claims.
+No Class 2 implementation item remains active in this source state. Remote publication and provider/runtime work are separate completion layers and do not reopen D0007 source semantics.
 
 ## Verified work
 
-### D0005 — immutable expected-revision journal CAS
+### D0007 — verified immutable-journal materialization reuse
 
 - Status: `verified` in the declared source/container scope
+- Design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
+- Direct parent: exact `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- Implementation: every load/non-create CAS strictly observes the committed namespace and rereads all retained authority bytes; exact ordered filename/length/raw-byte fingerprint equality may reuse only a previously validated instance-local materialization; mismatch/restart/cache loss performs complete D0005 replay
+- Correctness evidence: 20/20 focused immutable-journal tests; 130/130 complete source tests; inherited same/cross-process one-winner, migration, corruption, restart, and stale-CAS barriers remain green
+- Coverage: 91.84% lines / 81.82% branches / 96.19% functions
+- Performance evidence: 32 Tasks / 4 KiB / capacity 8 / three repeats: D0005 Immutable 3397.535 ms p50 -> D0007 Immutable 1007.262 ms p50 (3.373x); candidate Journal 1014.298 ms p50; retained Immutable bytes unchanged at 277,023; fresh-instance load remains about 97 ms
+- Evidence: `docs/evidence/mvp-1a-4-materialization-reuse-2026-08-08.json`
+- Boundaries: no durable checkpoint/head, history deletion, SQLite authority, provider migration, or distributed-CAS claim
+
+### D0006 — persistence hot-path measurement
+
+- Status: `verified` research/evidence gate
+- Design: `docs/design/0006-persistence-hot-path-measurement.md`
+- Baseline: exact `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- Main result: retained-byte read/fingerprint was a small fraction of immutable strict replay; exact cumulative prefix replay byte-work grew about 8x from 16 to 32 tasks in the measured wide observation workload
+- Evidence: `docs/evidence/persistence-phase0-2026-08-08.json`
+- Decision: D0007 V opened; authoritative checkpoint/Merkle remained deferred
+
+### D0005 — immutable expected-revision journal CAS
+
+- Status: `verified` inherited foundation
 - Design: `docs/design/0005-immutable-expected-revision-journal-cas.md`
-- Implementation: opt-in `ImmutableJournalSnapshotStore`, full retained-history replay, immutable expected-revision publication slots, source/target snapshot-digest binding, same-process journal-family serialization, and explicit quiesced legacy-to-v2 cutover
-- Correctness evidence: 18 focused immutable-journal tests; cross-process base/update one-winner races; 128/128 complete source tests; inherited 100-history full-restore oracle and A regression barriers remain green
-- Coverage: 91.73% lines / 81.72% branches / 96.14% functions over source and tests
+- Implementation: opt-in `ImmutableJournalSnapshotStore`, immutable expected-revision publication slots, source/target snapshot-digest binding, same-process journal-family serialization, and explicit quiesced legacy-to-v2 cutover
+- Correctness evidence: inherited focused immutable-journal, cross-process one-winner, migration, corruption, and complete-source barriers remain mandatory for D0007
 - Evidence: `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`
-- Remaining boundary: cross-process mixed legacy/new writers are unsupported during cutover; directory-sync-after-link ambiguity is classified in source but was not deterministically fault-injected
+- Remaining boundary: cross-process mixed legacy/new writers remain unsupported during cutover; provider/distributed CAS remains unverified
 
 ### D0004 — incremental transition core and verified journal cache
 
-- Status: `verified` in the current container
+- Status: `verified` inherited foundation
 - Design: `docs/design/0004-incremental-transition-core-and-verified-journal-cache.md`
 - Implementation: entry-level transaction undo, incremental Task/dependency accounting, deterministic topological blocker propagation, rebuildable scheduler indexes, Claim trie pruning, same-process store serialization, durable-byte-fingerprinted journal materialization cache
-- Correctness evidence: 110 tests; randomized full-restore oracle; three-state successful-transition differential; capacity/order/executor/retry determinism; stale/concurrent same-process CAS; fencing; durable-before-dispatch; corruption/truncation/missing-base/compaction-shape recovery; acceleration loss and rebuild equivalence
-- Performance evidence: `docs/evidence/development-state-comparison-2026-08-07.json` and `docs/evidence/mvp-1a-2-control-plane-benchmark-2026-08-07.json`
-- Final clean archive verification is recorded in `docs/IMPLEMENTATION_REPORT.md` after export.
+- Correctness evidence: randomized full-restore oracle; three-state successful-transition differential; capacity/order/executor/retry determinism; fencing; durable-before-dispatch; corruption/truncation/missing-base/compaction-shape recovery; acceleration loss and rebuild equivalence
 
 ### D0003 — efficient parallel control plane
 
 - Status: `superseded and independently re-audited`
 - Historical design: `docs/design/0003-efficient-parallel-control-plane.md`
 - Preserved value: immutable-record direction, incremental event validation, normalized Claim conflict path, ready candidates, journal delta format, benchmark instrumentation, and explicit substrate stop gates
-- Disproved or corrected claims: root collection copying remained O(V); large graphs remained superlinear; materialized journal cache could accept stale CAS and hide corruption; Claim trie retained released path history; blocker propagation could exhaust reserved Events
-- Historical evidence: `docs/evidence/mvp-1a-1-control-plane-benchmark-2026-08-07.json`
 
 ### D0002 — durable parallel control core
 
 - Status: `verified historical foundation`
-- Its correctness invariants remain normative where not replaced by the stronger D0004 transition/rebuild rules.
+- Its correctness invariants remain normative where not replaced by stronger later designs.
 
 ## Resulting foundation
 
@@ -60,21 +76,22 @@ No Class 2 implementation item remains active in this source state. Checkpoint/c
 - schema-v2 canonical snapshots and deterministic restore/migration;
 - entry-level atomic rollback without root collection copies;
 - incremental Task-state/dependency/ready accounting with full restore as the semantic oracle;
-- disposable indexes that can be deleted and rebuilt without changing legal output;
-- memory, full-snapshot file, and Design 0004 append-delta journal adapters under an explicit single-process local boundary;
-- opt-in immutable expected-revision journal CAS with full replay and tested cross-process local-filesystem winner election after quiesced migration cutover.
+- disposable indexes and caches that can be deleted and rebuilt without changing legal output;
+- memory, full-snapshot file, Design 0004 journal, and D0005 immutable expected-revision journal adapters;
+- D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality.
 
 ## Next highest-ROI gates
 
-These are not active implementation claims:
+These are follow-on hypotheses, not active implementation claims:
 
 1. profile and implement touched-path/content-addressed Promotion only in the first real repository adapter; current in-memory Promotion still copies/hashes the full tree;
-2. profile whether an authenticated checkpoint manifest can save meaningful parse/replay cost while still re-reading/hashing retained authority, or move to a transaction-capable provider; do not add a cache that hides historical corruption;
-3. add a real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
-4. add Cloudflare CaseDO/AgentDO/D1/R2 adapters with migration, rollback, and provider fault evidence;
-5. add a durable cross-owner Claim service if Cases may execute through multiple processes/owners;
-6. add authenticated Termux/Git operation adapters and one fenced publication lane;
-7. qualify versioned MCP schemas, authorization, pagination, reconnect, and current-client behavior.
+2. add a real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+3. add Cloudflare CaseDO/AgentDO/D1/R2 adapters with migration, rollback, provider transaction, and fault evidence;
+4. add a durable cross-owner Claim service if Cases may execute through multiple processes/owners;
+5. add authenticated Termux/Git operation adapters and one fenced publication lane;
+6. qualify versioned MCP schemas, authorization, pagination, reconnect, and current-client behavior.
+
+A transactional persistence-head replacement or authoritative checkpoint remains a separate authority/migration design and is not justified by D0007 local performance evidence alone.
 
 ## Routing
 

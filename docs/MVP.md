@@ -4,7 +4,7 @@
 
 ## 1. Accepted vertical slice
 
-The verified parent `mvp-1a-2` slice closes:
+The verified `mvp-1a-3` parent retains the complete parallel/durable vertical slice:
 
 ```text
 immutable PlanRevision
@@ -21,7 +21,7 @@ immutable PlanRevision
 
 It also verifies that performance-only indexes/caches may be discarded and rebuilt without changing legal semantic output. It is not a Cloudflare/Agent/Git/MCP deployment MVP.
 
-Design 0005 is verified for the `mvp-1a-3` source/container slice. It adds an opt-in immutable expected-revision local journal while preserving the verified parent barriers. Cross-process local-filesystem winner evidence applies only to immutable writers after the explicit quiesced migration cutover and does not imply distributed/provider storage.
+Design 0007 targets `mvp-1a-4`. It preserves D0005 immutable expected-revision journal authority and publication while allowing disposable materialization reuse only after strict committed-namespace observation plus exact current retained-byte fingerprint equality. Every load/CAS still rereads every retained authoritative byte; any byte, name, length, file-type, namespace, cache-loss, or restart mismatch forces complete D0005 validation/replay. Cross-process local-filesystem winner evidence still applies only to immutable writers after the explicit quiesced migration cutover and does not imply distributed/provider storage.
 
 ## 2. Source gate
 
@@ -30,18 +30,19 @@ npm ci --ignore-scripts --no-audit --no-fund
 npm run check
 ```
 
-Parent baseline `mvp-1a-2` retained its recorded 110/110 source evidence. Final `mvp-1a-3` verification on 2026-08-07 observed:
+Parent baseline `mvp-1a-3` retains its recorded 128/128 source evidence and D0005 structured evidence in `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`. Final `mvp-1a-4` verification on 2026-08-08 must observe:
 
-- Node.js `v22.16.0`;
-- npm `10.9.2`;
-- `npm ci --ignore-scripts --no-audit --no-fund` passed;
-- syntax gate passed;
-- **128/128 tests passed**;
-- in-memory demo succeeded;
-- file-backed durable demo succeeded;
-- no third-party runtime packages were required.
+- Node.js `v22.16.0` or another declared Node 22+ runtime;
+- `npm ci --ignore-scripts --no-audit --no-fund` success;
+- syntax gate success;
+- **130/130 tests** including the two D0007 warm-cache namespace/file-type barriers;
+- in-memory demo success;
+- file-backed durable demo success;
+- coverage completion without test failure;
+- no third-party runtime packages;
+- clean diff/archive verification and remote ancestry from exact `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`.
 
-The final coverage invocation also passed all 128 tests and reported 91.73% lines, 81.72% branches, and 96.14% functions over source and tests. Coverage is supporting evidence, not the semantic contract. Structured D0005 evidence is retained in `docs/evidence/mvp-1a-3-immutable-journal-2026-08-07.json`.
+Observed final values and coverage are retained in `docs/evidence/mvp-1a-4-materialization-reuse-2026-08-08.json` once the full gate closes.
 
 ## 3. Acceptance matrix
 
@@ -82,6 +83,8 @@ The final coverage invocation also passed all 128 tests and reported 91.73% line
 | Immutable journal format migration | legacy prefix -> v2; v2 -> legacy | forward accepted; reverse and duplicate predecessor rejected |
 | Immutable journal cutover | legacy/new adapters at one predecessor | same-process mixed adapters serialize; cross-process mixed-format writers require legacy-writer quiescence before first v2 publication |
 | Immutable journal full replay | historical semantic corruption / restart | warm/cold/reopen integrity result equal; corruption fails closed |
+| Immutable warm namespace | warm instance then add malformed committed-looking name | fail closed before materialization reuse |
+| Immutable warm base file type | warm instance then replace `base.json` with non-regular entry | fail closed before materialization reuse |
 | warm-cache corruption | mutate durable base after load | next load/CAS fails `store_corrupt` |
 | journal fault shapes | malformed/noncanonical/truncated delta, missing base, orphan temp | fail closed or ignore only uncommitted temp |
 | compaction crash shape | replacement base durable before covered-delta deletion | exact snapshot restored; covered deltas ignored |
@@ -89,7 +92,7 @@ The final coverage invocation also passed all 128 tests and reported 91.73% line
 
 ## 4. Test inventory
 
-The 128 tests cover:
+The 130 tests cover:
 
 - strict JSON, canonical data, and hash behavior;
 - Claim overlap, generations, fencing, randomized oracle equivalence, and trie lifecycle;
@@ -99,7 +102,7 @@ The 128 tests cover:
 - runner capacity/determinism and candidate rebuild;
 - result algebra, authority, path/tree policy, bounds, and Promotion;
 - memory/full-file/Design 0004 journal CAS, corruption, stale/concurrent writer behavior, compaction, and repository transactions;
-- immutable-journal cross-process create/update races, strict replay/digest continuity, migration order/cutover, malformed/fork/gap/path-type rejection, legacy compaction crash recovery, and Memory-store equivalence;
+- immutable-journal cross-process create/update races, digest continuity, migration order/cutover, malformed/fork/gap/path-type rejection, legacy compaction crash recovery, Memory-store equivalence, and D0007 warm namespace/file-type invalidation before materialization reuse;
 - capacity stress plus 100 randomized full-restore-oracle histories.
 
 Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence.
@@ -145,6 +148,10 @@ The repeated component evidence in `docs/evidence/mvp-1a-2-control-plane-benchma
 - the non-compacted journal retained 270,883 base+delta bytes, approximately 95.9% below cumulative full-snapshot payload bytes;
 - safe durable-byte revalidation made journal wall-clock roughly comparable to or slower than full-file replacement in this container, so no blanket “journal is faster” claim remains.
 
+Design 0006 adds the persistence-specific profiling evidence in `docs/evidence/persistence-phase0-2026-08-08.json`. At 32 tasks / 4 KiB observations / capacity 8, D0005 Immutable measured about 3.55 s p50 while retained-byte read plus exact fingerprint was a small fraction of strict replay. Exact cumulative prefix replay byte-work grew from 17,743,078 bytes at 16 tasks to 144,222,942 bytes at 32 tasks.
+
+The `mvp-1a-4` promotion harness `bench/persistence-hot-path.mjs` compares exact source roots with identical Case IDs and rotated store order. Before final source packaging, three repeats on the same Node 22.16.0/Linux x64 container observed D0005 `mvp-1a-3` Immutable at 3397.535 ms p50 and the D0007 candidate at 1007.262 ms p50; candidate Journal was 1014.298 ms p50. Fresh-instance Immutable load remained about 97 ms in both states, showing that cache loss/restart still pays strict replay. These values are experiment evidence, not a production SLO.
+
 These are microbenchmarks in one runtime/container, not production SLOs.
 
 ## 7. Evidence not claimed
@@ -169,18 +176,22 @@ These are `unavailable` or `pending`, not passed.
 
 ## 8. Completion decision
 
-Design 0005 / `mvp-1a-3` is source-verified only when:
+Design 0007 / `mvp-1a-4` is source-verified only when:
 
-- all 128 tests, syntax checks, and both demos pass under Node 22;
+- all 130 tests, syntax checks, and both demos pass under Node 22;
 - coverage completes without test failure;
-- inherited `mvp-1a-2` blocker/runner/File-store/full-restore barriers remain green;
-- immutable journal create/update races elect one winner among v2 writers on the tested compatible local filesystem;
-- legacy-prefix migration, reverse-format/fork rejection, full historical replay, source/target digest binding, restart, bounds, orphan-temp, and downgrade-guard falsifiers pass;
-- `git diff --check` is clean;
-- normative documents agree with the explicit quiesced cutover and rollback barrier;
-- the exported repository/archive are named `tdev-mvp-1a-3`;
+- inherited D0004/D0005 blocker/runner/File-store/full-restore/cross-process/migration/corruption barriers remain green;
+- warm historical mutation, malformed committed namespace, and non-regular authority slots cannot hit a cached materialization;
+- cache loss/restart returns to complete D0005 replay with identical materialized digest;
+- the 32-task / 4 KiB promotion benchmark meets the D0007 continuation target without changing retained bytes or cold-load semantics;
+- `git diff --check` is clean and the complete effective diff is reviewed from exact `mvp-1a-3`;
+- normative documents agree that every retained authoritative byte is still reread and the cache is disposable/non-authoritative;
+- the exported repository/archive are named `tdev-mvp-1a-4`;
 - the archive excludes `.git`, `node_modules`, coverage output, caches, and transient runtime state;
 - a clean extraction installs and passes `npm run check`;
-- provider/distributed layers and unexecuted directory-fsync fault injection remain explicitly unverified.
+- the remote `mvp-1a-4` publication is a non-force descendant of exact `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`;
+- provider/distributed layers and unexecuted deterministic directory-fsync fault injection remain explicitly unverified.
 
-Checkpoint/cache acceleration and compiled-base Promotion are not part of this completion decision.
+Observed source/container closure for this freeze: 20/20 focused immutable-journal tests, 130/130 complete source tests, 91.84% line / 81.82% branch / 96.19% function coverage, clean `git diff --check`, a 3.373x D0005-to-D0007 Immutable p50 improvement on the declared promotion workload, unchanged 277,023-byte Immutable retained footprint, and a clean provisional archive extraction that reinstalled and passed 130/130 `npm run check`. Remote branch publication is a separate final layer and must be independently read after push.
+
+D0007 exact-byte-gated materialization reuse is part of this completion decision. Durable checkpoint/head authority, history GC, transaction-provider replacement, and compiled-base Promotion remain follow-on work.

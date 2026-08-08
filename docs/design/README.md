@@ -7,5 +7,7 @@
 | 0003 | Efficient Parallel Control Plane | superseded / audited | `mvp-1a-1` COW, indexes, journal delta, and benchmark experiment |
 | 0004 | Incremental Transition Core and Verified Journal Cache | verified | `mvp-1a-2` entry transaction, incremental accounting, deterministic repair, and safe journal cache |
 | 0005 | Immutable Expected-Revision Journal CAS | verified | `mvp-1a-3` opt-in immutable local journal, full replay, and cross-process commit-slot CAS |
+| 0006 | Persistence Hot-Path Measurement Before Acceleration | verified | exact D0005 replay/read/fingerprint profiling and follow-on decision gates |
+| 0007 | Verified Immutable-Journal Materialization Reuse | verified | `mvp-1a-4` exact-byte-gated disposable materialization reuse over unchanged D0005 authority |
 
 `verified` applies only to the source/container evidence declared in each record. Provider adapters, distributed ownership, and current-client behavior require independent evidence.

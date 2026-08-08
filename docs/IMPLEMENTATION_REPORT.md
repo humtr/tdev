@@ -1,3 +1,56 @@
+# mvp-1a-4 D0007 promotion report
+
+- Date: 2026-08-08
+- Current development identity: `mvp-1a-4`
+- Direct code parent: `humtr/tdev` `mvp-1a-3` at `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- Current design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
+- Measurement precursor: `docs/design/0006-persistence-hot-path-measurement.md`
+- Structured evidence: `docs/evidence/mvp-1a-4-materialization-reuse-2026-08-08.json`
+- Verified runtime: Node.js 22.16.0 / npm 10.9.2 / Linux x64
+
+## Independent decision
+
+The D0006 profiling gate reproduced the D0005 immutable-journal performance gap and separated retained-byte observation from strict replay. At 32 Tasks / 4 KiB observations, retained-byte read plus exact fingerprint was small relative to repeated prefix replay/materialization. Cumulative prefix replay byte-work rose from 17,743,078 bytes at 16 Tasks to 144,222,942 bytes at 32 Tasks. This evidence opened D0007 V and did not justify an authority-changing checkpoint/Merkle design.
+
+D0007 therefore keeps D0005 durable authority, durable bytes, migration boundary, and hard-link no-replace publication unchanged. `ImmutableJournalSnapshotStore` still strictly lists the committed namespace and rereads every retained authoritative file byte on every load and non-create CAS. It may reuse an instance-local materialized snapshot only when an ordered SHA-256 fingerprint over filename, length, and raw bytes exactly matches a materialization previously established by strict validation or by an unambiguously durable local commit from such a predecessor. Mismatch, restart, or cache loss performs the complete D0005 strict parse/validation/replay path.
+
+The cache is disposable and non-authoritative. It cannot elect a CAS winner, replace retained history, skip namespace validation, survive as a durable head, or hide a changed retained byte. Publication conflict and `store_commit_ambiguous` do not promote cache state.
+
+## Implementation and owner alignment
+
+The source change is deliberately limited to the immutable-journal read/materialization path. The D0005 delta format and publication slots are unchanged. The promotion also corrects all affected owner text that previously described Immutable as having no materialized cache at all: `SPEC`, `ARCHITECTURE`, `OPERATIONS`, `SECURITY`, `DEPLOYMENT`, `MVP`, `LINEAGE`, and `WORKBOARD` now agree on exact-byte-gated process-local reuse while retaining full retained-byte observation.
+
+Two focused regression barriers supplement the inherited D0005 suite: a warm instance must reject a malformed committed-looking namespace entry before reuse, and it must reject a non-regular `base.json` authority slot before reuse. Existing warm historical corruption, restart, migration, fork/gap, stale-CAS, and same/cross-process one-winner tests remain unchanged.
+
+## Verification evidence
+
+Before archive publication the promotion source passed:
+
+- focused immutable-journal suite: 20/20;
+- complete source suite: 130/130;
+- `npm ci --ignore-scripts --no-audit --no-fund`;
+- `npm run check`, including syntax checks and both demos;
+- coverage run: 91.84% lines, 81.82% branches, 96.19% functions;
+- `git diff --check`.
+
+The checked-in `bench/persistence-hot-path.mjs` harness then compared the exact parent source and promotion candidate with identical Case IDs, 32 Tasks, 4 KiB observations, capacity 8, three rotated-order repeats. D0005 Immutable measured 3397.535 ms p50; D0007 Immutable measured 1007.262 ms p50, a 3.373x improvement. Candidate Journal measured 1014.298 ms p50, so D0007 Immutable was effectively at Journal cost. Immutable retained bytes were identical at 277,023 bytes, and fresh-instance load remained about 97 ms in both states, preserving strict replay on cache loss/restart.
+
+These performance values are evidence for the design decision, not a production SLO.
+
+The final source-freeze `tdev-mvp-1a-4` export excludes `.git`, `node_modules`, coverage/cache output, and transient state. Its archive entries are checked for absolute/traversal paths and symbolic-link entries, then it is extracted into an empty directory, freshly installed, and required to pass 130/130 `npm run check` before delivery.
+
+## Boundaries and next work
+
+D0007 does not claim distributed/provider CAS, hostile-storage authenticity, Cloudflare Durable Object or D1/R2 behavior, cross-owner Claim durability, repository/context/model transport, or production SLOs. It also does not introduce an authoritative checkpoint/head, history GC, compaction, SQLite authority, or migration to a transaction provider.
+
+With the persistence replay bottleneck removed without changing authority, the next highest-ROI gate returns to the first real repository adapter: measure and implement touched-path/content-addressed Promotion so canonical integration no longer copies and hashes the full tree unnecessarily.
+
+---
+
+# Retained mvp-1a-3 report
+
+The remainder of this file is the prior `mvp-1a-3` implementation report retained unchanged as historical evidence.
+
 # mvp-1a-3 independent review, implementation, and verification report
 
 - Date: 2026-08-07

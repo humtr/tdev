@@ -4,44 +4,46 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-3`
+- **Development identity:** `mvp-1a-4`
 - **Architecture generation:** MVP generation 1
-- **Direct code parent / implementation origin:** `mvp-1a-2` at remote commit `ee02845c8947b69f810308fd957e3952a8e508b9`
-- **Baseline knowledge input:** verified `mvp-1a-2` plus independently reproduced comparison evidence from the separate `tdev-mvp-1a-2-ted` implementation
-- **Active design:** Design 0005 — Immutable Expected-Revision Journal CAS
-- **Superseded active identity:** `mvp-1a-2`
+- **Direct code parent / implementation origin:** `mvp-1a-3` at remote commit `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- **Baseline knowledge input:** verified `mvp-1a-3`, Design 0006 persistence profiling, and independently verified Design 0007 V research
+- **Active design:** Design 0007 — Verified Immutable-Journal Materialization Reuse
+- **Superseded active identity:** `mvp-1a-3`
 
-`mvp-1a-3` directly retains the verified `mvp-1a-2` execution, lifecycle, Promotion, snapshot, and same-process persistence behavior. Its narrow designed change adds an opt-in immutable expected-revision journal adapter that can elect one local-filesystem CAS winner across independent Node processes without using cache or checkpoint state as authority.
+`mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
-## Why this is `mvp-1a-3`
+## Why this is `mvp-1a-4`
 
-The deciding fact is architecture and code origin, not change size.
+The deciding fact is architecture and durable-code origin, not benchmark size.
 
-- The implementation starts from the exact GitHub `mvp-1a-2` source state and preserves its correctness barriers.
-- The Work Graph ontology, execution model, Case/Task/Attempt ownership, snapshot schema, Promotion semantics, and existing stores are not restarted.
-- Design 0005 adds one opt-in storage adapter and one-way durable-format migration boundary rather than replacing the architecture foundation.
-- Comparison implementation B contributes counterexamples and a commit-slot idea only; it is not a code parent.
+- The implementation starts from the exact GitHub `mvp-1a-3` source state and preserves all D0005 durable bytes and publication slots.
+- No new durable head, checkpoint, schema, compaction, history deletion, migration path, or canonical owner is added.
+- The optimization is performance-only state. A cache miss, process restart, namespace change, file-type change, or byte change returns to complete D0005 strict validation/replay.
+- Design 0006 measured repeated prefix replay as the dominant local immutable-journal cost; Design 0007 removes only that redundant replay when exact current bytes prove the predecessor is unchanged.
 
-Therefore the next revision stays on lineage `1a` rather than becoming a sibling or architecture-generation restart.
+Therefore the next revision stays on lineage `1a` and advances the direct revision rather than creating a sibling lineage or architecture-generation restart.
 
 ## Relationship to prior and legacy lineages
 
 - `mvp-1` is the current MVP generation's baseline source state.
-- `mvp-1a-2` is the direct code parent and remains the verified regression baseline.
-- `mvp-1a-1` remains earlier historical evidence.
-- `legacy/mvp-parallel` names the earlier TMCP-to-parallel experimental lineage. It is research history only and is not an active naming or implementation parent of `mvp-1a-3`.
-- Historical `xh-*`, `parallel-*`, branch names, and similar strings retained inside supplied evidence do not define the current identity.
+- `mvp-1a-2` remains the verified incremental-transition and verified-journal-cache foundation.
+- `mvp-1a-3` is the direct parent that introduced D0005 immutable expected-revision journal CAS and remains the durable-format regression baseline.
+- `legacy/mvp-parallel` names the earlier TMCP-to-parallel experimental lineage. It is research history only and is not an active naming or implementation parent of `mvp-1a-4`.
+- Historical `xh-*`, `parallel-*`, research branch names, and similar strings retained inside evidence do not define the current identity.
 
 ## Knowledge lineage and code lineage
 
-Code may be replaced while validated knowledge accumulates. For this development state, accumulated knowledge includes:
+Code revisions remain narrow while validated knowledge accumulates. Current accumulated knowledge includes:
 
 - capacity 1 and capacity N as one execution model;
 - isolated ordinary results and one deterministic Promotion/canonical mutation lane;
 - complete Attempt fencing, CAS, durable-before-dispatch, and accepted-result durability;
 - rebuildable derived state that cannot become semantic authority;
-- counterexamples for root-level COW amplification, stale journal caches, Claim trie path retention, candidate-set loss, duplicate blocker propagation, and journal corruption after cache warm-up;
-- wide/deep scaling, persistence-byte, GC, Claim, and Promotion measurements retained under `docs/evidence/`.
+- counterexamples for root-level COW amplification, stale journal caches, Claim trie path retention, candidate-set loss, duplicate blocker propagation, journal corruption after cache warm-up, and unsafe mixed-format cross-process cutover;
+- D0005 no-replace commit-slot winner semantics with strict retained-history validation;
+- D0006 evidence that repeated prefix replay, not retained-byte observation itself, dominated the measured immutable-journal hot path;
+- D0007 evidence that exact-byte-gated materialization reuse removes that replay cost without changing durable authority.
 
 ## Naming rule
 

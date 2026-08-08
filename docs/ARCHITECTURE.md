@@ -173,7 +173,7 @@ Correctness state remains authoritative; performance policy reduces implementati
 - the runner's ready candidates and the ClaimLedger overlap trie are disposable candidate-narrowing structures; admission and live lease validation remain authoritative;
 - Claim trie release prunes empty path nodes so historical churn does not become retained search state;
 - journal materialization is reused only when a cryptographic fingerprint of exact durable base/delta names, lengths, and bytes matches; this preserves stale-writer/corruption detection but still incurs O(journal bytes) read/hash work;
-- Design 0005 adds a separate opt-in immutable journal: after a quiesced legacy-writer cutover, one no-replace `delta-from-R` slot owns CAS election among v2 writers for expected revision R, while strict full retained-history replay owns materialization/integrity; it has no checkpoint or cache state;
+- Design 0005 adds a separate opt-in immutable journal: after a quiesced legacy-writer cutover, one no-replace `delta-from-R` slot owns CAS election among v2 writers for expected revision R; Design 0007 keeps that durable authority but permits disposable materialization reuse only after strict committed-namespace observation and exact reread-byte fingerprint equality, so any retained-byte or authority-surface change returns to full D0005 replay; it has no durable checkpoint/head state;
 - Plan compilation remains linear in graph size apart from deterministic output ordering;
 - Promotion still copies, validates, and hashes the complete text tree, so touched-path/content-addressed integration remains a later repository-adapter gate.
 
