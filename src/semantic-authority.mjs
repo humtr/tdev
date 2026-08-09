@@ -364,6 +364,16 @@ export class SemanticRadixTree {
     return [...this.#pendingRecords.values()].sort((left, right) => compareText(left.digest, right.digest)).map((value) => canonicalClone(value));
   }
 
+  withoutPendingRecords() {
+    if (this.#pendingRecords.size === 0) return this;
+    return new SemanticRadixTree({
+      node: this.node,
+      entryCount: this.entryCount,
+      treeBytes: this.treeBytes,
+      stats: this.stats,
+    });
+  }
+
   reachableDigests() {
     const output = new Set();
     if (this.node !== null) collectReachable(this.node, output);

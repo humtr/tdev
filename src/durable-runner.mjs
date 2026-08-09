@@ -15,11 +15,12 @@ const RUNNER_OPTIONS = [
 function assertRepository(repository) {
   if (!repository ||
       typeof repository.load !== 'function' ||
-      !repository.store ||
-      typeof repository.store.compareAndSwap !== 'function') {
+      typeof repository.checkpoint !== 'function' ||
+      typeof repository.restoreSnapshot !== 'function' ||
+      !repository.store) {
     throw new ContractError(
       'invalid_case_repository',
-      'Durable runner requires a CaseRepository with compare-and-swap storage',
+      'Durable runner requires a repository with load(), checkpoint(), restoreSnapshot(), and store',
     );
   }
 }
@@ -63,7 +64,8 @@ function maximalReconciliationEvidence(engine) {
   return 'x'.repeat(limit - 2);
 }
 
-async function assertExternalEffectCapacity(store, engine, taskId, executorIdentity, claimLease, claimLedger) {
+async function assertExternalEffectCapacity(repository, engine, taskId, executorIdentity, claimLease, claimLedger) {
+  const { store } = repository;
   if (typeof store.assertSnapshotCapacity !== 'function') {
     throw new ContractError(
       'store_capacity_unknown',
@@ -76,7 +78,7 @@ async function assertExternalEffectCapacity(store, engine, taskId, executorIdent
   const errorMessage = 'x'.repeat(engine.caseContract.limits.maxErrorMessageBytes);
 
   async function startPreview() {
-    const preview = CaseEngine.restore(sourceSnapshot, { reopen: false });
+    const preview = repository.restoreSnapshot(sourceSnapshot, { reopen: false });
     const attempt = preview.startAttempt(taskId, executorIdentity, {
       claimLease,
       claimValidator: claimLedger,
@@ -139,7 +141,7 @@ async function assertExternalEffectCapacity(store, engine, taskId, executorIdent
         { outcome: 'unverified', reason: errorMessage, evidence: reconciliationEvidence },
       ];
       for (const decision of decisions) {
-        const reconciled = CaseEngine.restore(reconcilingSnapshot, { reopen: false });
+        const reconciled = repository.restoreSnapshot(reconcilingSnapshot, { reopen: false });
         reconciled.resolveReconciliation(attempt.id, decision, {
           claimValidator: claimLedger,
         });
@@ -175,7 +177,7 @@ export async function runDurableCase(repository, caseId, executor, options = {})
         );
       }
       await assertStoreCapacity(repository.store, snapshot);
-      await repository.store.compareAndSwap(caseId, persistedRevision, snapshot);
+      await repository.checkpoint(engine, persistedRevision, snapshot);
       persistedRevision = snapshot.caseRevision;
     },
   }, {
@@ -188,7 +190,7 @@ export async function runDurableCase(repository, caseId, executor, options = {})
       const task = currentEngine.plan.tasksById[taskId];
       if (task?.kind !== 'work' || task.execution.effectClass === 'result-only') return;
       await assertExternalEffectCapacity(
-        repository.store,
+        repository,
         currentEngine,
         taskId,
         executorIdentity,

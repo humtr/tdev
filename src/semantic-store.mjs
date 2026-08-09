@@ -1,6 +1,7 @@
 import {
   ContractError,
   canonicalJson,
+  digest,
   strictJsonParse,
 } from './canonical.mjs';
 import {
@@ -109,6 +110,17 @@ export class SemanticSqliteStore {
 
   close() {
     this.#db.close();
+  }
+
+  assertSnapshotCapacity(snapshot) {
+    const bytes = Buffer.byteLength(canonicalJson(snapshot), 'utf8');
+    if (bytes > this.#maxBytes) {
+      throw failStore('store_snapshot_too_large', `Semantic snapshot exceeds ${this.#maxBytes} bytes`, {
+        size: bytes,
+        maxBytes: this.#maxBytes,
+      });
+    }
+    return bytes;
   }
 
   #inject(stage, details = {}) {
@@ -302,5 +314,104 @@ export class SemanticSqliteStore {
 
   unpin(pinId) {
     this.#db.prepare('DELETE FROM semantic_pins WHERE pin_id = ?').run(pinId);
+  }
+
+  abandonUnadvancedMigration(caseId, expectedHeadDigest) {
+    this.#db.exec('BEGIN IMMEDIATE');
+    try {
+      const head = this.loadHead(caseId);
+      if (head === null) {
+        this.#db.exec('ROLLBACK');
+        return null;
+      }
+      if (head.headDigest !== expectedHeadDigest) {
+        throw failStore('store_cas_mismatch', 'Semantic migration head changed before rollback');
+      }
+      if (head.generation !== 1) {
+        throw failStore('semantic_downgrade_forbidden', 'A post-migration v3 head exists; automatic downgrade is forbidden', {
+          generation: head.generation,
+        });
+      }
+      const snapshot = this.getSnapshot(head.snapshotDigest);
+      if (snapshot === null || snapshot.semanticAuthority.migrationSource === null) {
+        throw failStore('semantic_downgrade_forbidden', 'Semantic head is not an unadvanced migration head');
+      }
+      this.#db.prepare('DELETE FROM semantic_heads WHERE case_id = ? AND head_digest = ?').run(caseId, expectedHeadDigest);
+      this.#db.exec('COMMIT');
+      return snapshot.semanticAuthority.migrationSource;
+    } catch (error) {
+      try { this.#db.exec('ROLLBACK'); } catch {}
+      throw error;
+    }
+  }
+
+  #collectObjectGraph(objectDigest, reachableObjects) {
+    if (objectDigest === null || reachableObjects.has(objectDigest)) return;
+    const record = this.getObject(objectDigest);
+    if (record === null) throw failStore('store_corrupt', `Reachable semantic object ${objectDigest} is missing`);
+    reachableObjects.add(objectDigest);
+    if (record.kind !== 'node') return;
+    if (record.payload.valueDigest !== null) this.#collectObjectGraph(record.payload.valueDigest, reachableObjects);
+    for (const child of record.payload.children) {
+      if (!Array.isArray(child) || child.length !== 2) throw failStore('store_corrupt', `Semantic node ${objectDigest} has invalid children`);
+      this.#collectObjectGraph(child[1], reachableObjects);
+    }
+  }
+
+  #reachabilityPlan() {
+    const heads = this.#db.prepare('SELECT payload FROM semantic_heads ORDER BY case_id').all()
+      .map((row) => validateSemanticHead(parseCanonical(row.payload, 'semantic head', this.#maxBytes)));
+    const pins = this.#db.prepare('SELECT pin_id, target_kind, digest FROM semantic_pins ORDER BY pin_id').all()
+      .map((row) => ({ pinId: row.pin_id, targetKind: row.target_kind, digest: row.digest }));
+    const authorityDigest = digest({
+      heads: heads.map((head) => head.headDigest),
+      pins,
+    });
+    const reachableSnapshots = new Set(heads.map((head) => head.snapshotDigest));
+    const reachableObjects = new Set();
+    for (const pin of pins) {
+      if (pin.targetKind === 'snapshot') reachableSnapshots.add(pin.digest);
+      else if (pin.targetKind === 'object') this.#collectObjectGraph(pin.digest, reachableObjects);
+      else throw failStore('store_corrupt', `Unknown semantic pin kind ${pin.targetKind}`);
+    }
+    for (const snapshotDigest of reachableSnapshots) {
+      const snapshot = this.getSnapshot(snapshotDigest);
+      if (snapshot === null) throw failStore('store_corrupt', `Reachable semantic snapshot ${snapshotDigest} is missing`);
+      this.#collectObjectGraph(snapshot.semanticAuthority.baseRoot.nodeDigest, reachableObjects);
+      this.#collectObjectGraph(snapshot.semanticAuthority.canonicalRoot.nodeDigest, reachableObjects);
+    }
+    const allSnapshots = this.#db.prepare('SELECT digest FROM semantic_snapshots ORDER BY digest').all().map((row) => row.digest);
+    const allObjects = this.#db.prepare('SELECT digest FROM semantic_objects ORDER BY digest').all().map((row) => row.digest);
+    return {
+      authorityDigest,
+      snapshotCandidates: allSnapshots.filter((candidate) => !reachableSnapshots.has(candidate)),
+      objectCandidates: allObjects.filter((candidate) => !reachableObjects.has(candidate)),
+      reachableSnapshotCount: reachableSnapshots.size,
+      reachableObjectCount: reachableObjects.size,
+    };
+  }
+
+  gc({ apply = false, expectedAuthorityDigest = null } = {}) {
+    if (typeof apply !== 'boolean') throw new ContractError('invalid_gc_option', 'GC apply must be boolean');
+    if (!apply) return this.#reachabilityPlan();
+    if (typeof expectedAuthorityDigest !== 'string') {
+      throw new ContractError('gc_expected_authority_required', 'Applying semantic GC requires expectedAuthorityDigest');
+    }
+    this.#db.exec('BEGIN IMMEDIATE');
+    try {
+      const plan = this.#reachabilityPlan();
+      if (plan.authorityDigest !== expectedAuthorityDigest) {
+        throw failStore('store_cas_mismatch', 'Semantic head/pin authority changed before GC apply');
+      }
+      const deleteSnapshot = this.#db.prepare('DELETE FROM semantic_snapshots WHERE digest = ?');
+      const deleteObject = this.#db.prepare('DELETE FROM semantic_objects WHERE digest = ?');
+      for (const candidate of plan.snapshotCandidates) deleteSnapshot.run(candidate);
+      for (const candidate of plan.objectCandidates) deleteObject.run(candidate);
+      this.#db.exec('COMMIT');
+      return { ...plan, applied: true };
+    } catch (error) {
+      try { this.#db.exec('ROLLBACK'); } catch {}
+      throw error;
+    }
   }
 }

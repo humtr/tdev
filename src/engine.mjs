@@ -780,6 +780,15 @@ export class CaseEngine {
     return [...records.values()].sort((left, right) => compareText(left.digest, right.digest)).map((record) => canonicalClone(record));
   }
 
+  markSemanticObjectsPersisted() {
+    if (this._semanticMode !== true) return;
+    const sameRoot = this._semanticBaseTree.rootDescriptor.rootDigest === this._semanticCanonicalTree.rootDescriptor.rootDigest;
+    this._semanticBaseTree = this._semanticBaseTree.withoutPendingRecords();
+    this._semanticCanonicalTree = sameRoot
+      ? this._semanticBaseTree
+      : this._semanticCanonicalTree.withoutPendingRecords();
+  }
+
   #snapshotWithoutDigest() {
     return {
       schemaVersion: SNAPSHOT_SCHEMA_VERSION,
