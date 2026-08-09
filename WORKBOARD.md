@@ -11,11 +11,12 @@
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Current verified design: `docs/design/0013-real-repository-context-and-model-transport.md`
-- Active Class 2 design: none; the next highest-ROI design gate is Context manifest/CAS plus deterministic ContextSlice over the measured D0013 full-context baseline
+- Active Class 2 design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md` (`accepted`)
+- Root Task: GitHub issue `humtr/tdev#7`; execution record only, not semantic authority
 
 ## Active work
 
-No Class 2 design is active. D0013 is verified on the existing `mvp-1a-7` development direction for its bounded trusted-local immutable-Git full-context plus result-only subprocess transport. D0010 semantic authority and D0011/D0012 derived publication remain unchanged. The checked D0013 baseline reconstructed one 1,757,785-byte context on four Attempts, with 5,273,355 of 7,031,140 requested context bytes duplicated and one retry reconstructing the complete context again. The next highest-ROI Class 2 gate is therefore a Context manifest/CAS plus deterministic ContextSlice contract; token/provider savings, external model transport, warm executors, and locality scheduling are not yet verified.
+D0014 is accepted for implementation on the existing `mvp-1a-7` direction. D0013 remains the verified full-context/process-per-Attempt baseline and D0010 semantic authority plus D0011/D0012 derived publication remain unchanged. For four identical full-context Attempts, the 75% repeated fraction is structurally `(4 - 1) / 4`; it was predictable from the design. The historical evidence remains valuable for its absolute 1,757,785-byte context and measured Git, serialization, process, and retry costs. The D0014 audit found that repeated canonical request construction is larger than local process startup on the current repository, size limits are enforced after blob buffering, duplicate blob OIDs are reread, and model descendants survive direct-child timeout cleanup. The accepted highest-ROI slice is bounded same-base preparation/canonical-encoding reuse with exact identity, early size preflight, cancellable Git preparation, and POSIX process-group cleanup. Persistent CAS, deterministic ContextSlice, external provider transport, warm executors, and locality scheduling remain deferred until their separate contracts are justified.
 
 ## Verified work
 
