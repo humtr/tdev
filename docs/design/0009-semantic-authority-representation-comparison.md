@@ -1,13 +1,13 @@
 # Design 0009 — Semantic-Authority Representation Comparison
 
-- Status: accepted
+- Status: verified
 - Class: 2
 - Date: 2026-08-09
 - Target development identity: `mvp-1a-6`
 - Direct code parent: exact `mvp-1a-5@aaf7ec9258fb776443dd70345a1acea33ed22d78`
 - Owners: `docs/SPEC.md` for current semantics, `docs/ARCHITECTURE.md` for current implementation boundaries, `docs/PROTOCOL.md` for durable/public identities, this record for the bounded comparison gate, and `docs/MVP.md` for verification evidence
 
-> Accepted authority: this record authorizes only non-authoritative representation models, comparison harnesses, tests, checked evidence, and current-state documentation needed to choose whether a later semantic-authority migration design is justified. It does **not** authorize changing `CaseEngine` canonical authority, `treeDigest`, snapshot schema v2, journal formats, durable publication semantics, Git OID status, provider/distributed ownership, migration behavior, or rollback/downgrade behavior.
+> Verified scope: this record verifies only non-authoritative representation models, comparison harnesses, tests, checked evidence, and the resulting structural candidate decision. It does **not** change `CaseEngine` canonical authority, `treeDigest`, snapshot schema v2, journal formats, durable publication semantics, Git OID status, provider/distributed ownership, migration behavior, or rollback/downgrade behavior.
 
 ## 1. One-line decision
 
@@ -236,20 +236,43 @@ D0009 becomes `verified` only when all rows close:
 | Source safety | comparison code changes production `src/` authority behavior or durable formats | effective diff review |
 | Repository gate | syntax/tests/demo/durable-demo or diff check regress | standard source gate on compatible POSIX environment |
 
-## 13. Completion decision
+## 13. Verification evidence and completion decision
 
-At verification time this section must name:
+D0009 is verified for its declared non-authoritative comparison scope on 2026-08-09.
 
-- rejected candidates and their measured falsifier;
-- any structurally surviving candidate;
-- whether evidence justifies opening a **separate migration design**;
-- the exact constraints that migration design must preserve;
-- whether no candidate is yet strong enough, in which case current full-tree authority remains the implementation direction and more research is required.
+### 13.1 Verification layers
 
-Verification never means the selected prototype has become production authority.
+- Final path-key-aware comparison candidate: `7ba03082ac94fe75242c22a7b31ca76d933aeb0c`.
+- Checked raw matrix: `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json`, SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`.
+- Independent Ubuntu/POSIX validation: GitHub Actions run `31306276819`, job `93227063683`.
+- Repository source gate: 152/152 tests passed; coverage was 92.57% lines, 83.10% branches, and 95.99% functions; effective diff check passed.
+- Focused model gate: materialization/current-digest equality, create/update/delete, rebuild-root equality, input/write-order determinism, injected hash-key collision correctness, directory-Merkle wide-fanout falsifier, bounded sparse-update counts, batch-vs-sequential shared-ancestor hashing, and small hypothetical-head separation all passed.
+- Matrix: 12 tree cases × 4 write batches × 3 structural models = 144 model samples; 141 completed and all completed samples reproduced the current Promotion tree and legacy `digest(tree)` exactly. Three 100k broad samples stopped only after candidate-root update, during full compatibility materialization/digest, at the declared RSS gate. Stopped samples are retained rather than extrapolated.
+
+### 13.2 Candidate decisions
+
+**C1 directory Merkle is rejected.** On a 100k-entry wide-flat tree, a one-path update rewrote only one directory node but hashed all 100,000 child references and about 10.2 MB of node metadata. The same failure appears under the deep shape because the wide leaf directory remains. A simple directory-shaped Merkle therefore does not satisfy bounded sparse-update work.
+
+**C2 path-byte radix is a structural survivor.** At 100k entries a one-path update wrote 16 nodes in wide-flat, 32 in deep-path, and 37 in balanced-directory; update hash work remained independent of total entry count in the checked sparse matrix. Its 10k-write 100k broad samples also completed candidate-root update; the balanced sample stopped only later in legacy compatibility materialization/digest. C2 preserves direct normalized-path-byte semantics and prefix locality but incurs greater path-depth/node churn.
+
+**C3 path-hash trie is the preferred structural research candidate.** It remains deterministic, stores complete paths in collision buckets, passed the injected same-key collision test, and retains bounded fanout. At 100k entries a one-path update wrote six nodes for all three shapes. For 128 writes it wrote about 483-487 nodes. In the 100k wide-flat 10k-write sample it wrote 21,756 nodes, performed 31,757 typed node/value hash operations plus 10,000 explicitly counted path-key SHA-256 operations, and hashed about 8.59 MB of typed payload plus 0.50 MB of path-key input. The comparable C2 sample wrote 61,117 nodes, performed 71,118 typed hash operations, and hashed about 15.42 MB. C3 therefore advances as the **preferred candidate to design around**, not as production authority.
+
+**C2 remains the required fallback/reference.** A later migration design must retain it as a comparison point if path-prefix locality, avoidance of path-key hashing, proof construction, repair behavior, or persistent-store/GC constraints materially weaken C3's advantage.
+
+**C4 small transactional head remains orthogonal.** Hypothetical head records stayed about 306-313 bytes. D0009 does not implement or authorize that head; any production persistent root still needs one trusted expected-predecessor CAS/transaction owner with restart and ambiguous-outcome recovery.
+
+### 13.3 Compatibility-tax decision
+
+The checked evidence confirms that a structural root alone does not fix current authority cost. Every completed model still had to materialize the complete text map and compute current `digest(full tree)` to satisfy the present contract. The three stopped 100k broad samples all stopped in this compatibility stage, not in candidate-root derivation. Therefore the current engine must remain full-tree authoritative until an explicit migration design changes identity and persistence rules.
+
+### 13.4 Follow-on authorization boundary
+
+The evidence is strong enough to open a **separate Class 2 semantic-authority migration and transactional-head design**, with C3 as the preferred structural candidate and C2 as fallback/reference. That design must define the versioned production root/profile, type/domain identities, path-key algorithm and collision rules if C3 remains selected, mapping from current normalized text tree, migration epoch/quiescence, mixed-writer exclusion, legacy-digest cutover, rollback/downgrade, root/head fencing and ambiguous-outcome recovery, corruption/scrub/repair, reference-aware GC, provider-independent identity, security bounds, and old-snapshot behavior.
+
+Verification of D0009 never means C2 or C3 has become production authority.
 
 ## 14. Non-goals and follow-on gates
 
 D0009 does not implement semantic-root migration, transactional root/head persistence, node-store durability, snapshot v3, journal v4, Git publication, provider storage, cross-host Claims, hostile-store authentication, production GC, or automatic downgrade.
 
-If one structural family survives, the next gate is a separate Class 2 **semantic-authority migration and transactional-head design**. Only after that design is accepted may production source authority change. A real Git adapter remains a later derived projection/publication gate unless that migration design explicitly changes the contract.
+C2 and C3 survive structurally, with C3 preferred by the checked operation/byte evidence. The next gate is therefore a separate Class 2 **semantic-authority migration and transactional-head design**. Only after that design is accepted may production source authority change. A real Git adapter remains a later derived projection/publication gate unless that migration design explicitly changes the contract.

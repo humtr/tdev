@@ -189,6 +189,18 @@ The checked D0008 authority matrix contains 32 wide-flat/deep-path samples acros
 
 D0008 also closes its bounded local hardening gates: concrete-store durable capacity admission, legacy journal fail-closed namespace/file-type parity, deterministic immutable-publication fault boundaries, and settlement-checkpoint/Claim reopen behavior. It changes no snapshot schema, durable journal format, semantic tree identity, migration/rollback rule, or provider/distributed owner.
 
+## 9.2 Verified semantic-representation comparison
+
+D0009 compares non-authoritative persistent representations under the current Promotion oracle without changing production authority. Every completed model must materialize the exact current `path -> UTF-8 text` map and reproduce the current `digest(tree)` before it can contribute evidence.
+
+The checked 1k/5k/20k/100k × 1/8/128/broad × wide-flat/deep-path/balanced-directory matrix rejects a simple directory-Merkle representation: at 100k wide-flat entries, one write still hashes 100,000 sibling references and roughly 10.2 MB of directory metadata. Directory shape alone therefore does not bound sparse authority-update work.
+
+Two bounded-fanout research models survive structurally. A UTF-8 path-byte radix model keeps direct path-prefix locality and avoids path-key hashing, but its update depth and node churn follow path length. A collision-safe path-hash Patricia/trie model stores complete paths in deterministic collision buckets and has lower checked structural churn: at 100k entries a one-write update writes six structural nodes in all three shapes; at 100k wide-flat with 10k writes it writes 21,756 nodes and performs 31,757 typed hashes plus 10,000 explicitly counted path-key SHA-256 operations, versus 61,117 nodes and 71,118 typed hashes for the radix model. D0009 therefore prefers the hash-trie family for the **next migration design**, while retaining radix as a required fallback/reference.
+
+A small transactional root/head is not an alternative tree representation. Any future persistent semantic root still requires one trusted expected-predecessor CAS/transaction owner with version/profile identity, generation/migration fencing, restart recovery, and explicit ambiguous-outcome reconciliation. D0009 only measured hypothetical head records; it did not install one.
+
+Most importantly, all completed research roots still pay the full current compatibility tax: materialize the complete text map and compute the existing full-tree digest. The three stopped 100k broad samples completed candidate-root update and stopped only during this compatibility materialization/digest stage. Therefore the current engine remains full-tree authoritative. Sparse research-root evidence is sufficient to justify a separate Class 2 migration/transactional-head design, not to change `CaseEngine`, snapshot v2, journal formats, or current `treeDigest` inside D0009.
+
 Current semantic tree identity remains the tdev canonical text-tree digest, not a Git tree OID. Git mode and repository object format affect Git identity but are absent from the current semantic tree contract. Future Git object construction is a derived projection until a separate accepted Class 2 design explicitly changes semantic authority.
 
 ## 10. Architectural stop gates

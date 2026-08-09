@@ -3,20 +3,33 @@
 ## Current baseline
 
 - Repository: `humtr/tdev`
-- Development identity / publication ref: `mvp-1a-5`
-- Direct code parent: GitHub `mvp-1a-4` commit `1ff7c5d321958df725497d4e3a2649e210b029db`
-- Knowledge inputs: verified `mvp-1a-3`, Design 0006 phase-zero persistence profiling, and isolated V/S research evidence
+- Development identity / publication ref: `mvp-1a-6`
+- Direct code parent: GitHub `mvp-1a-5` commit `aaf7ec9258fb776443dd70345a1acea33ed22d78`
+- Knowledge inputs: verified `mvp-1a-5` / Design 0008 plus checked D0009 semantic-representation evidence
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
-- Active Class 2 design: `docs/design/0009-semantic-authority-representation-comparison.md` (`accepted`; non-authoritative comparison/evidence only)
+- Current verified design: `docs/design/0009-semantic-authority-representation-comparison.md`
+- Active Class 2 design: none; the next gate is a separate semantic-authority migration/transactional-head design
 
 ## Active work
 
-D0009 is accepted as a bounded comparison gate targeting `mvp-1a-6`. It may add only non-authoritative representation models, tests, comparison harnesses, checked evidence, and current-state documentation. Current `CaseEngine` authority, `treeDigest = digest(full tree)`, snapshot v2, journal formats, migration/rollback behavior, Git-OID status, and provider/distributed ownership remain unchanged. A structurally surviving candidate can authorize only a **separate later Class 2 migration design**, not production authority changes inside D0009.
+D0009 is closed as `verified` for its non-authoritative comparison scope. Current `CaseEngine` authority, `treeDigest = digest(full tree)`, snapshot v2, journal formats, migration/rollback behavior, Git-OID status, and provider/distributed ownership remain unchanged. The next implementation-affecting step must be a **new Class 2 semantic-authority migration and transactional-head design**; C3 path-hash trie is its preferred structural research candidate and C2 path-byte radix remains the fallback/reference.
 
 ## Verified work
+
+### D0009 — verified semantic-authority representation comparison
+
+- Status: `verified` for non-authoritative model/evidence scope; no production authority migration
+- Design: `docs/design/0009-semantic-authority-representation-comparison.md`
+- Validated candidate: `7ba03082ac94fe75242c22a7b31ca76d933aeb0c`
+- Correctness: focused deterministic/create-delete/collision/batch tests green; independent Ubuntu/POSIX source gate passed 152/152 tests with 92.57% line / 83.10% branch / 95.99% function coverage
+- Matrix: 144 model samples; 141 completed with exact current Promotion tree and legacy digest equality; three 100k broad samples stopped only during full compatibility materialization/digest RSS gating
+- C1: rejected because a one-path update in a 100k wide directory hashed 100,000 sibling references and about 10.2 MB metadata
+- C2: structural survivor; 100k one-path update wrote 16-37 nodes depending on path shape; retained for path-prefix-locality/no-path-hash comparison
+- C3: preferred structural research candidate; 100k one-path update wrote six nodes; 100k wide 10k-write update wrote 21,756 nodes and used 31,757 typed hashes + 10,000 counted path-key hashes versus C2's 61,117 nodes / 71,118 typed hashes
+- Evidence: `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json` (SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`)
+- Decision boundary: C3 preference authorizes only the next migration-design work; current full-tree semantic identity and persistence remain authoritative
 
 ### D0008 — verified authority-boundary and durability admission
 
@@ -91,20 +104,21 @@ D0009 is accepted as a bounded comparison gate targeting `mvp-1a-6`. It may add 
 - disposable indexes and caches that can be deleted and rebuilt without changing legal output;
 - memory, full-snapshot file, Design 0004 journal, and D0005 immutable expected-revision journal adapters;
 - D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality;
-- D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration.
+- D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration;
+- D0009 non-authoritative representation evidence rejecting simple directory Merkle, preserving C2 radix as fallback/reference, and preferring collision-safe C3 hash-trie structure for a later migration design while current full-tree authority remains unchanged.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. close accepted D0009 with falsifying evidence for the current flat baseline, a directory-Merkle reference, bounded path-byte radix CAS, and bounded path-hash trie CAS; report candidate-root work separately from the unavoidable current legacy full-tree digest/materialization compatibility tax, and treat a transactional root/head as an orthogonal publication requirement;
-2. only if D0009 verifies a structural survivor, open a separate Class 2 semantic-authority migration/transactional-head design covering exact new identity/domain separation, migration epoch, rollback/downgrade, mixed writers, corruption/repair, GC, security, and restart/ambiguity recovery before changing production authority;
+1. open a separate Class 2 semantic-authority migration/transactional-head design with C3 collision-safe path-hash trie as the preferred candidate and C2 path-byte radix as fallback/reference; define production identity/domain separation, path-key/collision contract, migration epoch, legacy-digest cutover, rollback/downgrade, mixed-writer exclusion, trusted head CAS/transaction, ambiguous-outcome recovery, corruption/scrub/repair, GC, security bounds, provider independence, and old-snapshot behavior before changing authority;
+2. only after that design is accepted, implement the smallest migration prototype and prove new-root write/restore/restart behavior against the current full-tree oracle without silently changing Git identity or provider ownership;
 3. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
 4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
 6. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies the selected persistence primitives, then add one fenced publication lane and versioned MCP/client qualification.
 
-A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration remains a separate authority/migration design. D0008 may produce evidence for that decision but must not smuggle it in as an optimization.
+A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration still requires that separate migration design. D0009 supplies candidate evidence only and must not be treated as an implicit authority cutover.
 
 ## Routing
 

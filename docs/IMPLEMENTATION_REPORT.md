@@ -1,3 +1,31 @@
+# mvp-1a-6 D0009 semantic-authority representation comparison report
+
+- Date: 2026-08-09
+- Direct code parent: exact `mvp-1a-5@aaf7ec9258fb776443dd70345a1acea33ed22d78`
+- Design: `docs/design/0009-semantic-authority-representation-comparison.md`
+- Status: `verified` for non-authoritative representation comparison only
+- Final path-key-aware source candidate: `7ba03082ac94fe75242c22a7b31ca76d933aeb0c`
+- Checked raw evidence: `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json`
+- Evidence SHA-256: `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`
+- Independent validation: GitHub Actions run `31306276819`, job `93227063683`
+- Production authority change: none
+
+D0009 was opened only after D0008 verified that the current whole-Case authority path remains total-size dependent. The new code is confined to `bench/` comparison models/harnesses, one focused test file, the `bench:semantic` package command, checked evidence, and documentation. No `src/` production authority path, current `treeDigest`, snapshot v2, journal format, migration/rollback rule, Git-OID status, provider/distributed owner, or publication behavior changes in this stage.
+
+The comparison deliberately separates candidate-root structural work from the current compatibility tax. Every completed model must materialize the exact current normalized text map and reproduce the current Promotion `treeDigest`. The final matrix contains 12 tree cases (three shapes × four sizes), four write batches, and three candidate families for 144 model samples. 141 completed with exact Promotion-tree and legacy-digest equality. Three 100k broad samples completed candidate-root update and then stopped only during full compatibility materialization/digest at the declared 768 MiB RSS gate; they are retained as stopped evidence rather than extrapolated.
+
+The simple directory-Merkle model is rejected. On a 100k-entry wide-flat tree, one write hashes 100,000 sibling references and about 10.2 MB of directory metadata. A balanced directory shape reduces that fanout, but a semantic representation cannot rely on repositories avoiding wide directories.
+
+Both bounded candidates survive structurally. The path-byte radix model keeps normalized path-prefix locality and avoids path-key hashing. At 100k entries its one-write update rewrites 16 nodes in wide-flat, 32 in deep-path, and 37 in balanced-directory. The collision-safe path-hash Patricia/trie model rewrites six nodes for a one-write 100k update in every checked shape and keeps deterministic complete-path collision buckets. In the 100k wide-flat 10k-write sample, the hash trie rewrites 21,756 nodes, performs 31,757 typed node/value hashes plus 10,000 explicitly counted path-key SHA-256 operations, and hashes about 8.59 MB typed payload plus 0.50 MB path-key input. The radix model rewrites 61,117 nodes, performs 71,118 typed hashes, and hashes about 15.42 MB. The hash-trie family is therefore the preferred **research candidate for the next migration design**; radix remains a required fallback/reference if prefix locality, path-key policy, proof/repair behavior, or persistent-store/GC properties overturn the measured advantage.
+
+A small transactional root/head remains orthogonal to the structural choice. Hypothetical research heads stayed about 306-313 bytes, but D0009 implements no authoritative head. A future migration needs one trusted expected-predecessor CAS/transaction owner and must define root/profile identity, path-key/collision rules, mapping from the current text tree, migration epoch/quiescence, mixed-writer exclusion, legacy-digest cutover, rollback/downgrade, ambiguous publication recovery, corruption/scrub/repair, reference-aware GC, security bounds, provider-independent identity, and old-snapshot behavior.
+
+Independent Ubuntu/POSIX validation passed 152/152 source tests. Coverage completed at 92.57% line, 83.10% branch, and 95.99% function coverage; the effective diff check and full D0009 matrix also passed. Focused tests additionally prove final-root history independence, write-order determinism, create/update/delete semantics, injected same-key collision preservation, the directory-Merkle wide-fanout falsifier, bounded sparse candidate work, and batch shared-ancestor reuse.
+
+The architectural decision is therefore precise: **reject simple directory Merkle; retain C2 radix and C3 hash trie as structural survivors; prefer C3 for the next Class 2 migration/transactional-head design; keep current full-tree authority until that later design is accepted and verified.** Git remains a derived projection rather than semantic identity.
+
+---
+
 # mvp-1a-5 D0008 verification report
 
 - Date: 2026-08-09

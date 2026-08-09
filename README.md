@@ -1,6 +1,6 @@
-# tdev mvp-1a-5
+# tdev mvp-1a-6
 
-`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active verified development identity is `mvp-1a-5`, descended directly from exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. Design 0008 closes its bounded authority-path/durability gate without changing semantic-tree identity, snapshot schema, or journal format. Exact lineage is in `LINEAGE.md`.
+`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active verified development identity is `mvp-1a-6`, descended directly from exact `mvp-1a-5@aaf7ec9258fb776443dd70345a1acea33ed22d78`. Design 0009 verifies a non-authoritative semantic-representation comparison; it does **not** migrate the current full text-tree authority, snapshot schema, or journal formats. Exact lineage is in `LINEAGE.md`.
 
 ```text
 immutable PlanRevision
@@ -40,9 +40,9 @@ This is a correctness-oriented source core. Cloudflare Durable Objects, Agent tr
 
 ## Development lineage
 
-`mvp-1a-5` is a direct continuation of exact `mvp-1a-4`. Design 0007 still preserves D0005 durable authority/publication and exact-byte-gated disposable materialization reuse. Verified Design 0008 adds only bounded authority-path instrumentation and safety hardening: concrete-store durable admission, legacy committed-namespace fail-closed parity, deterministic immutable-publication fault evidence, and settlement-checkpoint/Claim reopen liveness. Design 0004/0005 correctness barriers remain regression requirements.
+`mvp-1a-6` is a direct continuation of exact `mvp-1a-5`. Designs 0007 and 0008 retain the existing durable authority, publication, materialization reuse, capacity admission, namespace hardening, and settlement/reopen behavior. Verified Design 0009 adds only non-authoritative comparison models, tests, and checked evidence; no production `src/` authority path changes. Design 0004/0005 correctness barriers remain regression requirements.
 
-The D0008 matrix reproduces total-size-dependent authority work under sparse writes: 24 completed 1k/5k/20k samples preserve Promotion and cold-restore equality, while all eight 100k samples hit declared time/RSS stop gates. This evidence opens a **separate** Class 2 semantic-authority representation decision; D0008 does not select a Merkle/HAMT/transactional root or make Git OIDs semantic authority.
+The D0009 matrix rejects a simple directory-Merkle root because one sparse update in a 100k-wide directory still hashes 100,000 sibling references. Bounded path-byte radix and collision-safe path-hash trie models both survive structurally; the hash trie is the preferred candidate for the **next migration design** because it uses materially fewer structural nodes/hashes in the checked broad workloads even after path-key SHA-256 cost is counted. The current engine still materializes and hashes the complete text tree for authoritative `treeDigest`, so none of these research roots is production authority in `mvp-1a-6`.
 
 `legacy/mvp-parallel` is historical research lineage only and is not an active implementation identity.
 
@@ -69,7 +69,8 @@ npm run demo
 npm run durable-demo
 npm run bench
 npm run bench:authority
-npm run bench:persistence -- --source . --label mvp-1a-5 --tasks 32 --payload-bytes 4096 --repeats 3
+npm run bench:semantic
+npm run bench:persistence -- --source . --label mvp-1a-6 --tasks 32 --payload-bytes 4096 --repeats 3
 node --experimental-test-coverage --test test/*.test.mjs
 ```
 
@@ -146,7 +147,7 @@ For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotSto
 | `src/repository.mjs` | restore/migration persistence, transaction, and command boundary |
 | `src/canonical.mjs` | strict JSON, canonical encoding, hashing, safe records |
 | `src/policy.mjs` | authority, path policy, topology, and resource limits |
-| `bench/` | component and isolated three-state benchmark harnesses |
+| `bench/` | component, isolated development-state, authority-boundary, and non-authoritative semantic-representation harnesses |
 | `docs/` | normative contracts, design, verification, audit, and evidence |
 
 ## Exact boundaries
@@ -155,8 +156,8 @@ For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotSto
 
 Snapshot self-digests detect accidental corruption and inconsistent rewrites; they do not authenticate against an attacker who can rewrite the complete record and recompute every digest. External effects are not advertised as exactly once: they require stable idempotency or authoritative reconciliation.
 
-Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. Verified D0008 measures this complete authority-packaging path and retains stopped 100k samples rather than extrapolating them. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
+Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. Verified D0008 measures this complete authority-packaging path. Verified D0009 separately demonstrates that bounded persistent research roots can make candidate-root work sparse, but the current legacy full-tree materialization/digest remains a complete compatibility tax and therefore current production authority is unchanged. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
 
 `ImmutableJournalSnapshotStore` remains conditional on compatible local hard-link/fsync behavior. The connected tmcp/Termux filesystem denied hard-link creation and is not qualified for that adapter; the D0008 candidate passed the complete source/coverage gate on Ubuntu/POSIX with hard-link tests enabled.
 
-Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Designs 0007 and 0008, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004 and 0005 remain inherited verified correctness foundations. The next semantic-authority representation choice requires its own accepted Class 2 design under `SDD.md`.
+Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Designs 0008 and 0009, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004, 0005, and 0007 remain inherited verified foundations. The next production-affecting step requires a separate accepted Class 2 semantic-authority migration and transactional-head design under `SDD.md`; D0009's preferred hash-trie model is evidence for that design, not authority by itself.

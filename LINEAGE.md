@@ -4,17 +4,19 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-5` — verified D0008 authority-boundary/durability lineage in its declared source/compatible-local-filesystem scope
+- **Development identity:** `mvp-1a-6` — verified D0009 non-authoritative semantic-representation comparison lineage
 - **Architecture generation:** MVP generation 1
-- **Direct code parent / implementation origin:** `mvp-1a-4` at remote commit `1ff7c5d321958df725497d4e3a2649e210b029db`
-- **Baseline knowledge input:** verified `mvp-1a-4` / Design 0007 plus the D0008 authority-boundary re-audit and accepted decisions
-- **Latest verified implementation design:** Design 0008 — Authority-Boundary Verification and Durability Admission
-- **Active design:** none; the next semantic-authority representation choice requires a separate Class 2 record
-- **Superseded active identity:** `mvp-1a-4`
+- **Direct code parent / implementation origin:** `mvp-1a-5` at remote commit `aaf7ec9258fb776443dd70345a1acea33ed22d78`
+- **Baseline knowledge input:** verified `mvp-1a-5` / Design 0008 plus the checked D0009 representation matrix
+- **Latest verified design:** Design 0009 — Semantic-Authority Representation Comparison
+- **Active design:** none; the next production-affecting authority change requires a separate Class 2 migration/transactional-head record
+- **Superseded active identity:** `mvp-1a-5`
+
+`mvp-1a-6` keeps the exact `mvp-1a-5` production authority model. Its new executable surface is confined to `bench/` research models/harnesses plus focused tests and checked evidence. Current `CaseEngine` canonical state, full-tree `treeDigest`, snapshot v2, journal formats, migration/rollback rules, Git-OID status, and provider/distributed ownership are unchanged.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
-## Why this is `mvp-1a-4`
+## Historical rationale — why `mvp-1a-4` stayed on lineage 1a
 
 The deciding fact is architecture and durable-code origin, not benchmark size.
 
@@ -46,13 +48,21 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0006 evidence that repeated prefix replay, not retained-byte observation itself, dominated the measured immutable-journal hot path;
 - D0007 evidence that exact-byte-gated materialization reuse removes that replay cost without changing durable authority;
 - D0008 evidence that aggregate durable admission, legacy committed-namespace fail-closed parity, deterministic local publication-fault classification, and settlement-checkpoint/Claim reopen behavior can be closed without changing snapshot schema or semantic tree identity;
-- D0008 authority-path evidence that 24 completed 1k/5k/20k samples preserve Promotion/cold-restore equality while all eight 100k samples hit declared time/RSS stop gates, including sparse writes.
+- D0008 authority-path evidence that 24 completed 1k/5k/20k samples preserve Promotion/cold-restore equality while all eight 100k samples hit declared time/RSS stop gates, including sparse writes;
+- D0009 evidence that simple directory Merkle retains O(N) sibling-metadata work in wide directories, while bounded path-byte radix and collision-safe path-hash trie models can derive sparse roots without changing current semantic output;
+- D0009 evidence preferring the C3 path-hash trie for the next migration design on checked operation/byte counts, with C2 radix retained as fallback/reference and the current full-tree digest tax explicitly preserved until migration.
 
 ## Verified D0008 gate
 
 D0008 is verified on the `mvp-1a-5` lineage in the declared Node 22 source and compatible POSIX-local-filesystem scope. Source candidate `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f` passed the complete Ubuntu/POSIX source gate, coverage command, diff check, and authority-harness smoke; focused local durable/store tests also passed. The checked matrix is `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json`.
 
-Verification does **not** promote Git OIDs, provider storage, distributed Claims, current tmcp/Termux hard-link support, or a new semantic root to authority. The connected Termux filesystem failed the required hard-link primitive and remains unqualified for ImmutableJournal publication. The next architecture decision is a separate Class 2 semantic-authority representation comparison justified by the D0008 size-dependent authority evidence.
+Verification does **not** promote Git OIDs, provider storage, distributed Claims, current tmcp/Termux hard-link support, or a new semantic root to authority. The connected Termux filesystem failed the required hard-link primitive and remains unqualified for ImmutableJournal publication. D0009 subsequently performs the separate representation comparison without altering those boundaries.
+
+## Verified D0009 comparison gate
+
+D0009 is verified on the `mvp-1a-6` lineage as a non-authoritative comparison. Final comparison candidate `7ba03082ac94fe75242c22a7b31ca76d933aeb0c` passed independent Ubuntu/POSIX run `31306276819` / job `93227063683`: 152/152 source tests, 92.57% line / 83.10% branch / 95.99% function coverage, clean effective diff, and the full 144-model matrix. Raw checked evidence is `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json` with SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`.
+
+C1 directory Merkle is rejected by its 100k-wide sparse-update sibling fanout. C2 radix and C3 collision-safe hash trie survive structurally; C3 is preferred for the next migration design because the checked broad-update operation/byte work is materially lower even after path-key hashing is explicitly counted. The three stopped model samples stopped only during current full-tree compatibility materialization/digest after their candidate-root update completed. Consequently `mvp-1a-6` still uses the existing full text-tree semantic identity and persistence.
 
 The managed `tmcp/` scratch branch used by tooling remains transport bookkeeping and does not define tdev development-lineage naming.
 
