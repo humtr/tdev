@@ -96,7 +96,7 @@ Validation and Artifact results are bounded by total canonical bytes, not only m
 
 Limits reduce denial-of-service exposure; they do not replace process memory/cpu quotas in a provider runtime.
 
-Known current gap: the component-level Case limits do not by themselves prove that every combination of individually valid Plan, result, Event, receipt, and tree data will fit the separately configured materialized snapshot limit of a durable store. Until D0008 freezes and implements an aggregate durable-admission rule, source validation must not be described as a proof that every contract-valid Case transition is durably persistable under every configured store bound.
+Component-level Case limits still do not imply universal fit under every configured durable-store bound. D0008 closes the unsafe admission gap by keeping the concrete store as capacity owner: every durable checkpoint candidate is checked against that store's exact materialized-snapshot capacity when exposed. External-effect work additionally fails closed before executor invocation when the store cannot prove capacity for the running and contract-bounded post-effect states. Result-only settlement may still discover an oversized successor after execution, but the previously durable running snapshot remains authoritative rather than committing a partial/oversized successor.
 
 ## 7. Atomic rejection
 
@@ -130,7 +130,9 @@ Local adapters use mode `0600` temporary files and byte-for-byte canonical JSON 
 
 Design 0005 `ImmutableJournalSnapshotStore` does not promote its process-local mutex into cross-process authority. After an explicit cutover that quiesces legacy writers, independent v2 writers contend on one hard-link no-replace final slot per expected revision. Design 0007 does not weaken that integrity boundary: every load/CAS still strictly observes the committed namespace and rereads every retained authoritative byte; materialization reuse is allowed only when an exact current-byte fingerprint matches prior strict validation, and any mismatch forces complete replay. This is a local CAS/integrity property, not authentication, a kernel sandbox, a distributed lock, or a multi-host durability guarantee. Cross-process mixed legacy/new writers during cutover are unsupported.
 
-Known current gap: the legacy `JournalSnapshotStore` validates recognized legacy record contents and rejects an immutable `delta-from-*` namespace, but its enumeration filters to regular files with exactly matching legacy delta names. It does not yet reject every malformed committed-looking legacy `delta-*` name or every recognized-name non-regular entry. The protocol's fail-closed rule remains the target; D0008 requires the implementation and focused security tests to rise to that boundary rather than weakening the rule.
+D0008 brings the legacy `JournalSnapshotStore` committed namespace up to the existing fail-closed protocol: dot-temporary files remain non-authoritative; `delta-from-*` retains the explicit format-upgrade failure; an exact legacy `delta-<16 digits>.json` name on a non-regular entry fails `store_journal_file_type`; other non-temporary committed-looking `delta-*` names fail `store_journal_filename`. Immutable publication fault tests also distinguish pre-publication known failure from post-publication directory-sync ambiguity without weakening the no-replace hard-link CAS primitive.
+
+The no-replace ImmutableJournal claim remains conditional on a compatible local filesystem. On 2026-08-09 the connected tmcp/Termux environment denied hard-link creation on every writable mount probed, so that environment is **not** qualified for `ImmutableJournalSnapshotStore` publication. The same candidate passed the complete source/coverage gates on Ubuntu/POSIX with the hard-link tests enabled. This is a deployment-compatibility boundary, not permission to replace the D0005 publication primitive with a weaker operation.
 
 ## 10. External effects
 

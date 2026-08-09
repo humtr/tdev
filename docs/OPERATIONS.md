@@ -53,11 +53,12 @@ For each ready-candidate Task, the runner:
 2. obtains the engine's authority/in-Case-claim admission decision;
 3. deterministically denies missing authority;
 4. acquires any selected cross-Case claims for the exact next Attempt ID;
-5. starts the Attempt with complete fencing and live lease validation;
-6. persists the Attempt first when a checkpoint is configured;
-7. invokes the executor only after that checkpoint succeeds.
+5. for external-effect work under a durable runner, proves concrete-store capacity for the proposed running Attempt and contract-bounded post-effect successors before mutating the real Case;
+6. starts the Attempt with complete fencing and live lease validation;
+7. checks the exact checkpoint snapshot against concrete-store capacity when supported and persists the Attempt;
+8. invokes the executor only after that checkpoint succeeds.
 
-A checkpoint failure releases an acquired lease and propagates the error. A CAS conflict before dispatch therefore produces zero executor invocations.
+A pre-dispatch capacity/checkpoint failure releases a newly acquired lease and propagates the error. Unknown external-effect capacity fails `store_capacity_unknown`; a known insufficient bound fails `store_snapshot_too_large`. A CAS conflict before dispatch likewise produces zero executor invocations. Result-only work has no future-effect reserve; an oversized settlement leaves its already durable running predecessor authoritative.
 
 ## 5. Settlement ordering
 
@@ -74,7 +75,7 @@ validate full identity and current claim lease
 
 This ordering prevents a stale lease holder from committing and prevents claim reuse before the terminal Case state is durable in the local durable runner.
 
-The pre-dispatch checkpoint path has an explicit failure cleanup: an acquired lease is released when the Attempt-start checkpoint fails, and the executor is not invoked. The settlement path is a different boundary. In the current reference runner, authoritative in-memory settlement occurs before the checkpoint and terminal lease release occurs after it; there is no separate accepted recovery branch specifically for a settlement-checkpoint exception between those steps. D0008 treats that case as an unverified liveness/recovery boundary. An unconditional `finally` release is not assumed safe because the durable Case may still reflect the predecessor state.
+The pre-dispatch path has explicit failure cleanup: if capacity admission or the Attempt-start checkpoint fails, a newly acquired lease is released and the executor is not invoked. The settlement path deliberately differs. If in-memory settlement is computed but its checkpoint throws, the invocation does **not** release the lease because the durable Case still owns the predecessor. A later owner loads through `CaseRepository.load(caseId, { reopen: true })`; any reopen/reconciliation revision is CAS-persisted before the engine is returned. If that durable reopen makes the Attempt terminal, its lease may then be released and eligible work retried under the existing effect-class/budget rules. If reopen yields `reconciling`, the lease remains current until explicit fenced reconciliation reaches a terminal Attempt and that successor is durably checkpointed. No unconditional `finally` release is legal.
 
 ## 6. Effect recovery matrix
 

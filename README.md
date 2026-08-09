@@ -1,6 +1,6 @@
-# tdev mvp-1a-4
+# tdev mvp-1a-5
 
-`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active development identity is `mvp-1a-4`; its direct code parent is exact GitHub `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`, with Design 0006 profiling and isolated V/S research used as evidence. Exact lineage is in `LINEAGE.md`.
+`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active verified development identity is `mvp-1a-5`, descended directly from exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. Design 0008 closes its bounded authority-path/durability gate without changing semantic-tree identity, snapshot schema, or journal format. Exact lineage is in `LINEAGE.md`.
 
 ```text
 immutable PlanRevision
@@ -29,7 +29,7 @@ The repository provides:
 - deterministic Promotion that records every accepted result while allowing only ChangeSets to mutate the candidate tree;
 - snapshot schema v2 with canonical data, Event hash chaining, semantic restore validation, complete blocker evidence, command receipts, and v1→v2 migration;
 - memory, atomic full-snapshot local-file, verified single-process journal, and opt-in immutable expected-revision journal compare-and-swap stores;
-- a `CaseRepository` transaction boundary and `runDurableCase` durable-before-dispatch protocol;
+- a `CaseRepository` transaction boundary and `runDurableCase` durable-before-dispatch protocol, including concrete-store capacity checks, fail-closed pre-dispatch external-effect admission, and durable-predecessor reopen recovery after settlement-checkpoint failure;
 - entry-level atomic mutation rollback, incremental Task/dependency accounting, deterministic topological blocker propagation, and rebuildable indexes;
 - Claim overlap indexing with release-time path pruning and reference-oracle equivalence tests;
 - a Design 0004 journal materialization cache usable only after the exact durable base/delta bytes match a cryptographic fingerprint;
@@ -40,9 +40,9 @@ This is a correctness-oriented source core. Cloudflare Durable Objects, Agent tr
 
 ## Development lineage
 
-`mvp-1a-4` is a direct continuation of exact `mvp-1a-3`. Design 0007 preserves D0005 durable authority and publication while allowing an instance-local materialization only after strict namespace observation plus exact current retained-byte fingerprint equality. Design 0004/0005 correctness barriers remain regression requirements. See `LINEAGE.md`, Designs 0005/0006/0007, and `docs/IMPLEMENTATION_REPORT.md`.
+`mvp-1a-5` is a direct continuation of exact `mvp-1a-4`. Design 0007 still preserves D0005 durable authority/publication and exact-byte-gated disposable materialization reuse. Verified Design 0008 adds only bounded authority-path instrumentation and safety hardening: concrete-store durable admission, legacy committed-namespace fail-closed parity, deterministic immutable-publication fault evidence, and settlement-checkpoint/Claim reopen liveness. Design 0004/0005 correctness barriers remain regression requirements.
 
-Design 0008 — Authority-Boundary Verification and Durability Admission — is the next Class 2 planning record and targets an `mvp-1a-5` candidate, but it is currently `draft`. It therefore does not advance the active development identity, authorize production source changes, or replace D0007 as the latest verified implementation design. Its purpose is to measure the complete authority path and close aggregate durable-admission, legacy committed-namespace, commit-ambiguity, and settlement-checkpoint/Claim liveness gaps before any semantic-tree representation migration is selected.
+The D0008 matrix reproduces total-size-dependent authority work under sparse writes: 24 completed 1k/5k/20k samples preserve Promotion and cold-restore equality, while all eight 100k samples hit declared time/RSS stop gates. This evidence opens a **separate** Class 2 semantic-authority representation decision; D0008 does not select a Merkle/HAMT/transactional root or make Git OIDs semantic authority.
 
 `legacy/mvp-parallel` is historical research lineage only and is not an active implementation identity.
 
@@ -68,7 +68,8 @@ npm test
 npm run demo
 npm run durable-demo
 npm run bench
-npm run bench:persistence -- --source . --label mvp-1a-4 --tasks 32 --payload-bytes 4096 --repeats 3
+npm run bench:authority
+npm run bench:persistence -- --source . --label mvp-1a-5 --tasks 32 --payload-bytes 4096 --repeats 3
 node --experimental-test-coverage --test test/*.test.mjs
 ```
 
@@ -128,7 +129,7 @@ console.log(outcome.caseState);              // succeeded
 console.log(outcome.snapshot.canonicalTree); // deterministic promoted tree
 ```
 
-For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotStore`, `JournalSnapshotStore`, or opt-in `ImmutableJournalSnapshotStore`, wrap it in `CaseRepository`, create the Case, and call `runDurableCase`. A running Attempt is persisted successfully before its executor is invoked, and settlement is persisted before its lease is released.
+For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotStore`, `JournalSnapshotStore`, or opt-in `ImmutableJournalSnapshotStore`, wrap it in `CaseRepository`, create the Case, and call `runDurableCase`. A running Attempt is persisted successfully before its executor is invoked. Every checkpoint uses the concrete store's materialized-capacity assertion when available; external-effect dispatch additionally proves bounded successor fit before the real Attempt/executor boundary. Settlement is persisted before terminal lease release, and a failed settlement checkpoint is recovered from the durable predecessor via `reopen:true` rather than by prematurely releasing the lease.
 
 ## Repository map
 
@@ -154,6 +155,8 @@ For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotSto
 
 Snapshot self-digests detect accidental corruption and inconsistent rewrites; they do not authenticate against an attacker who can rewrite the complete record and recompute every digest. External effects are not advertised as exactly once: they require stable idempotency or authoritative reconciliation.
 
-Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. D0008 treats this complete authority-packaging path, rather than Git candidate construction alone, as the next measurement boundary. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
+Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. Verified D0008 measures this complete authority-packaging path and retains stopped 100k samples rather than extrapolating them. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
 
-Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Design 0007, draft Design 0008, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004 and 0005 remain inherited verified correctness foundations. Draft D0008 is planning authority only until its acceptance questions are closed under `SDD.md`.
+`ImmutableJournalSnapshotStore` remains conditional on compatible local hard-link/fsync behavior. The connected tmcp/Termux filesystem denied hard-link creation and is not qualified for that adapter; the D0008 candidate passed the complete source/coverage gate on Ubuntu/POSIX with hard-link tests enabled.
+
+Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Designs 0007 and 0008, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004 and 0005 remain inherited verified correctness foundations. The next semantic-authority representation choice requires its own accepted Class 2 design under `SDD.md`.

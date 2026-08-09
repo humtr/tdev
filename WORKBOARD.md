@@ -9,16 +9,25 @@
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
-- Active Class 2 design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md` (`accepted`; implementation authorized only for its bounded G1-G5 gate)
+- Current verified design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
+- Active Class 2 design: none; a semantic-authority representation design is the next gate
 
 ## Active work
 
-Design 0008 — Authority-Boundary Verification and Durability Admission is `accepted` on the `mvp-1a-5` lineage descended from exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. Its six acceptance questions are frozen in the design. Implementation is limited to complete authority-path instrumentation, aggregate durable admission, legacy-journal committed-namespace fail-closed parity, deterministic immutable-publication fault evidence, and settlement-checkpoint/Claim liveness recovery evidence.
-
-D0007 remains the latest verified implementation design until D0008's acceptance matrix and full source gate close. D0008 does not authorize semantic-tree/root migration, Git OID authority, provider/distributed durability, history GC, or snapshot-schema change.
+D0008 is closed as `verified` for its declared Node 22 source and compatible local/POSIX filesystem scope. The next work must not extend D0008 implicitly: choose a semantic-authority representation only through a separate Class 2 design with migration, rollback/downgrade, mixed-writer exclusion, corruption/repair, GC, security, and provider-independence rules.
 
 ## Verified work
+
+### D0008 — verified authority-boundary and durability admission
+
+- Status: `verified` in the declared source/compatible-local-filesystem scope
+- Design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
+- Source candidate: `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f`
+- Hardening: store-owned exact materialized capacity checks; zero-effect external-effect capacity admission; legacy committed-namespace fail-closed parity; deterministic immutable publication fault seam; settlement-checkpoint/Claim reopen liveness
+- Correctness evidence: local syntax + 33/33 focused durable/store tests + clean diff check; Ubuntu/POSIX complete `npm run check`, coverage command, diff check, and 16-sample authority smoke all succeeded with hard-link tests enabled
+- Authority-path evidence: 32 configured samples; 24 completed 1k/5k/20k samples with exact Promotion/cold-restore equality; all eight 100k samples retained as declared time/RSS stops, including sparse 1/8-write cases
+- Evidence: `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json` (SHA-256 `57add849efafa93fa74b830ae29001ffc06c783fb70b55c94dcc4052be6ed79c`)
+- Boundaries: no semantic-root/schema/journal-format/Git-OID/provider/distributed-Claim change; connected tmcp/Termux filesystem is unqualified for ImmutableJournal publication because hard-link creation was denied
 
 ### D0007 — verified immutable-journal materialization reuse
 
@@ -81,18 +90,19 @@ D0007 remains the latest verified implementation design until D0008's acceptance
 - incremental Task-state/dependency/ready accounting with full restore as the semantic oracle;
 - disposable indexes and caches that can be deleted and rebuilt without changing legal output;
 - memory, full-snapshot file, Design 0004 journal, and D0005 immutable expected-revision journal adapters;
-- D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality.
+- D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality;
+- D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. implement and verify D0008's accepted bounded hardening/instrumentation gate without changing semantic tree authority;
-2. use verified full-path evidence to decide whether a separate Class 2 semantic-authority design should compare the current full tree with a repo-independent bounded-fanout content-addressed structure, a trusted transactional root/head, or another measured alternative;
+1. open a separate Class 2 semantic-authority representation design comparing the current full-tree authority with repo-independent bounded-fanout content-addressed structures, trusted transactional root/head models, and any simpler measured alternative; require exact identity/domain separation, migration, rollback/downgrade, mixed writers, corruption/repair, GC, security, and recovery rules before implementation;
+2. use the accepted representation decision to measure/implement the smallest safe authority update path and prove sparse snapshot/restore behavior without making a derived cache authoritative;
 3. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
 4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
-6. add authenticated Termux/Git operation adapters, one fenced publication lane, and versioned MCP/client qualification.
+6. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies the selected persistence primitives, then add one fenced publication lane and versioned MCP/client qualification.
 
 A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration remains a separate authority/migration design. D0008 may produce evidence for that decision but must not smuggle it in as an optimization.
 

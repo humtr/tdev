@@ -23,7 +23,7 @@ It also verifies that performance-only indexes/caches may be discarded and rebui
 
 Design 0007 targets `mvp-1a-4`. It preserves D0005 immutable expected-revision journal authority and publication while allowing disposable materialization reuse only after strict committed-namespace observation plus exact current retained-byte fingerprint equality. Every load/CAS still rereads every retained authoritative byte; any byte, name, length, file-type, namespace, cache-loss, or restart mismatch forces complete D0005 validation/replay. Cross-process local-filesystem winner evidence still applies only to immutable writers after the explicit quiesced migration cutover and does not imply distributed/provider storage.
 
-A 2026-08-09 post-freeze source re-audit opens Design 0008 as a `draft` verification/admission gate. It does not invalidate the recorded D0007 source run, but it narrows what that run proves: the 130-test suite does not currently prove aggregate durable-snapshot admission, malformed/non-regular legacy committed-namespace rejection, deterministic post-publication directory-sync ambiguity, or settlement-checkpoint/Claim liveness after a checkpoint exception. Those cases remain unverified until D0008 is accepted, implemented, and independently observed.
+Design 0008 is now `verified` for its declared Node 22 source and compatible local/POSIX filesystem scope. It preserves the D0007 authority model while adding concrete-store durable admission, legacy committed-namespace fail-closed parity, deterministic immutable-publication fault evidence, settlement-checkpoint/Claim reopen recovery, and a checked complete authority-path harness. Provider/distributed layers and environments that do not satisfy the required local filesystem primitives remain outside this verification.
 
 ## 2. Source gate
 
@@ -44,7 +44,9 @@ Parent baseline `mvp-1a-3` retains its recorded 128/128 source evidence and D000
 - no third-party runtime packages;
 - clean diff/archive verification and remote ancestry from exact `mvp-1a-3@52e79323f80bccd1123b7a538a6d49d5754cd1ec`.
 
-Observed final values and coverage are retained in `docs/evidence/mvp-1a-4-materialization-reuse-2026-08-08.json` once the full gate closes.
+Observed final D0007 values and coverage are retained in `docs/evidence/mvp-1a-4-materialization-reuse-2026-08-08.json`.
+
+D0008 source candidate `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f` independently passed on Ubuntu/POSIX: install, `npm run check`, `node --experimental-test-coverage --test test/*.test.mjs`, `git diff --check`, and the 16-sample 1k/5k authority-harness smoke. Local executable barriers also passed syntax, 33/33 focused durable/store tests, and `git diff --check`. The current tmcp/Termux filesystem denied hard-link creation on every writable mount probed, so that environment is not qualified for `ImmutableJournalSnapshotStore` publication and is not counted as a source failure.
 
 ## 3. Acceptance matrix
 
@@ -89,17 +91,17 @@ Observed final values and coverage are retained in `docs/evidence/mvp-1a-4-mater
 | Immutable warm base file type | warm instance then replace `base.json` with non-regular entry | fail closed before materialization reuse |
 | warm-cache corruption | mutate durable base after load | next load/CAS fails `store_corrupt` |
 | Legacy journal record contents | recognized delta with malformed/noncanonical/truncated contents, missing base, replay corruption | covered cases fail closed |
-| Legacy committed namespace | malformed committed-looking `delta-*` name or recognized-name non-regular entry | **current gap**; D0008 requires deterministic fail-closed behavior and focused tests |
+| Legacy committed namespace | malformed committed-looking `delta-*` name or recognized-name non-regular entry | verified fail-closed behavior, including warm materialization; malformed names use `store_journal_filename` and recognized non-regular slots use `store_journal_file_type` |
 | Immutable committed namespace | malformed/unsafe committed-looking name or recognized non-regular authority slot | covered cases fail closed before materialization reuse |
-| Immutable publication ambiguity | injected failure after possible final-slot publication but before required directory durability | **unverified**; source returns `store_commit_ambiguous`, deterministic fault evidence pending D0008 |
-| aggregate durable admission | individually legal Case components whose combined snapshot exceeds configured store bound | **unverified**; D0008 must define a compositional pre-commit rule |
-| settlement checkpoint/Claim liveness | checkpoint exception after in-memory settlement and before terminal lease release | **unverified**; safe recovery algorithm pending D0008 |
+| Immutable publication ambiguity | injected failure before/after the final-slot boundary | pre-publication temporary-write/file-sync/final-publish failures leave no successor; directory-sync failure preserves `store_commit_ambiguous` and authoritative re-read observes the possible successor; cleanup cannot retroactively fail a committed successor |
+| aggregate durable admission | individually legal Case components whose combined snapshot exceeds configured store bound | external-effect capacity failure/unknown capacity rejects before executor invocation and releases a newly acquired Claim; result-only oversized settlement leaves the durable running predecessor authoritative |
+| settlement checkpoint/Claim liveness | checkpoint exception after in-memory settlement and before terminal lease release | idempotent-external reopen durably interrupts the predecessor then retries under budget; reconcilable external work reopens as `reconciling` and retains the lease until fenced terminal reconciliation |
 | compaction crash shape | replacement base durable before covered-delta deletion | exact snapshot restored; covered deltas ignored |
 | three-state compatibility | successful transition histories across all three states | 100 seeds / 2,600 transitions exact snapshot equality |
 
 ## 4. Test inventory
 
-The 130 tests cover:
+The historical D0007 130-test freeze covers:
 
 - strict JSON, canonical data, and hash behavior;
 - Claim overlap, generations, fencing, randomized oracle equivalence, and trie lifecycle;
@@ -112,7 +114,7 @@ The 130 tests cover:
 - immutable-journal cross-process create/update races, digest continuity, migration order/cutover, malformed/fork/gap/path-type rejection, legacy compaction crash recovery, Memory-store equivalence, and D0007 warm namespace/file-type invalidation before materialization reuse;
 - capacity stress plus 100 randomized full-restore-oracle histories.
 
-Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence.
+Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence. D0008 adds focused capacity, namespace, publication-fault, and settlement/reopen barriers; the locally executable durable/store subset passed 33/33 and the complete Ubuntu/POSIX source and coverage gates passed with the hard-link suite enabled.
 
 ## 5. Differential and fault evidence outside the unit suite
 
@@ -161,6 +163,8 @@ The `mvp-1a-4` promotion harness `bench/persistence-hot-path.mjs` compares exact
 
 These are microbenchmarks in one runtime/container, not production SLOs.
 
+D0008 adds `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json` (SHA-256 `57add849efafa93fa74b830ae29001ffc06c783fb70b55c94dcc4052be6ed79c`). Its 32 configured samples cover 1k/5k/20k/100k trees, 1/8/128/broad writes, and wide-flat/deep-path shapes. All 24 completed 1k/5k/20k samples matched the current Promotion oracle and cold restore exactly. All eight 100k samples hit the declared 30 s or 768 MiB stop gate, including sparse 1/8-write cases, and are retained as stopped evidence rather than extrapolated. This is sufficient to open a separate semantic-authority representation design, not to select one.
+
 ## 7. Evidence not claimed
 
 No source test proves:
@@ -178,16 +182,16 @@ No source test proves:
 - repository exploration/context bytes/model-token duplication;
 - process/toolchain executor cold-versus-warm behavior;
 - production load, SLO, cost, or incident recovery;
-- aggregate proof that every component-valid Case transition fits the configured durable-store snapshot bound;
-- legacy `JournalSnapshotStore` fail-closed behavior for every malformed committed-looking namespace/file-type shape;
-- deterministic fault injection of `store_commit_ambiguous` after possible final publication;
-- settlement-checkpoint failure recovery that jointly proves durable Case and cross-Case Claim liveness.
+- universal fit of every component-valid Case under every arbitrarily configured durable-store bound; D0008 instead verifies fail-closed admission/recovery behavior when a concrete bound cannot be satisfied;
+- `ImmutableJournalSnapshotStore` publication on the connected tmcp/Termux filesystem, which does not provide the required hard-link primitive.
 
 These are `unavailable`, `pending`, or explicitly current gaps, not passed.
 
 ## 8. Completion decision
 
-Design 0007 / `mvp-1a-4` is source-verified only when:
+Design 0008 / `mvp-1a-5` is verified in its declared source/compatible-local-filesystem scope because the six accepted design questions are implemented, the section 3 D0008 falsifiers are closed, the checked authority matrix preserves semantic equality for all completed samples, local focused barriers are green, and the complete Ubuntu/POSIX source/coverage/diff/harness gate is green. This completion does not claim provider/distributed durability, Git publication semantics, a new semantic root, or qualification of the current tmcp/Termux filesystem for ImmutableJournal publication.
+
+The following Design 0007 / `mvp-1a-4` completion record remains historical evidence:
 
 - all 130 tests, syntax checks, and both demos pass under Node 22;
 - coverage completes without test failure;
@@ -205,6 +209,6 @@ Design 0007 / `mvp-1a-4` is source-verified only when:
 
 Observed source/container closure for this freeze: 20/20 focused immutable-journal tests, 130/130 complete source tests, 91.84% line / 81.82% branch / 96.19% function coverage, clean `git diff --check`, a 3.373x D0005-to-D0007 Immutable p50 improvement on the declared promotion workload, unchanged 277,023-byte Immutable retained footprint, and a clean provisional archive extraction that reinstalled and passed 130/130 `npm run check`. Remote branch publication is a separate final layer and must be independently read after push.
 
-D0007 exact-byte-gated materialization reuse is part of this historical/source completion decision. The D0008 rows above were isolated after that freeze and are not retroactively counted among the 130 passing tests. They narrow the present acceptance boundary and reorder next work; they do not become verified until new focused and full-source evidence exists.
+D0007 exact-byte-gated materialization reuse remains part of that historical/source completion decision. The later D0008 tests are not retroactively counted among the D0007 130-test freeze; they are independently verified by the D0008 focused and Ubuntu/POSIX gates described above.
 
 Durable checkpoint/head authority, history GC, transaction-provider replacement, semantic-tree representation changes, and Git OID authority remain separate follow-on designs rather than implicit D0008 outcomes.

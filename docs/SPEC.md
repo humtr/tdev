@@ -24,8 +24,11 @@ The source slice is **durable-ready**, not provider-complete: its domain and per
 12. Ambiguous external effects remain `reconciling` or `unverified`; uncertainty is not rewritten as failure, cancellation, or safe retry.
 13. A rejected command or direct mutation has no partial in-memory effect.
 14. A durable runner must persist a newly running Attempt before invoking its executor.
-15. Derived counters, ready candidates, claim indexes, validation frontiers, and materialized caches may be deleted and rebuilt from authoritative records; they cannot author admission, fencing, CAS, or a terminal Case result.
-16. Settlement and Promotion remain deterministic across scheduling order, completion order, executor identity, and retry interleaving.
+15. A concrete durable store owns materialized-snapshot capacity. Capacity is deployment state, not Plan/Case semantic identity, and every durable checkpoint candidate is checked against the store's declared capacity before CAS when that capability exists.
+16. An external-effect Attempt may cross the executor boundary only after the durable runner can prove that the running state and contract-bounded post-effect successor states fit the concrete store; unknown or insufficient capacity fails closed before executor invocation and releases any newly acquired Claim.
+17. A settlement-checkpoint failure leaves the durable predecessor authoritative and does not release the Attempt lease. Recovery reopens from durable state and persists that reopen/reconciliation before any terminal release or retry.
+18. Derived counters, ready candidates, claim indexes, validation frontiers, and materialized caches may be deleted and rebuilt from authoritative records; they cannot author admission, fencing, CAS, or a terminal Case result.
+19. Settlement and Promotion remain deterministic across scheduling order, completion order, executor identity, and retry interleaving.
 
 ## 3. PlanRevision contract
 
@@ -162,7 +165,7 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
 - `CaseEngine` may maintain rebuildable Task-state counts, unsatisfied-dependency counts, ready IDs, claim-holder IDs, and a deterministic Plan-derived topological order. Ordinary transitions update changed entries/direct dependents only; any non-active Case-state candidate is confirmed from authoritative Task records.
 - `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`. Candidate loss invokes the engine repair boundary before deadlock is declared.
-- `runDurableCase` uses repository CAS checkpoints so Attempt-start persistence succeeds before executor dispatch and settlement persistence precedes claim release.
+- `runDurableCase` uses repository CAS checkpoints so Attempt-start persistence succeeds before executor dispatch and settlement persistence precedes claim release. It checks each checkpoint candidate against the concrete store's materialized-snapshot capacity when available. External-effect dispatch additionally fails closed before the real Attempt/executor boundary if the store cannot prove capacity for the running state and contract-bounded post-effect successors. A settlement-checkpoint exception preserves the durable predecessor and lease; a later `reopen:true` load persists recovery before terminal release/retry.
 
 A CAS conflict does not automatically replay a transaction callback or dispatch an executor. Store caches, journal fingerprints, validation frontiers, Task/dependency counters, CaseEngine ready/claim-holder sets, ClaimLedger overlap tries, and runner ready candidates are performance-only derived state and may never replace Case/lease authority. A top-level reconcile or restore must be able to rebuild them exactly.
 

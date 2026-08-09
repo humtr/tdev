@@ -1,13 +1,13 @@
 # Design 0008 — authority-boundary verification and durability admission
 
-- Status: accepted
+- Status: verified
 - Class: 2
-- Target development identity: `mvp-1a-5`; implementation is authorized only for the bounded G1-G5 gate below and remains unverified until its acceptance matrix closes
+- Target development identity: `mvp-1a-5`; verified for the bounded G1-G5 source and compatible-local-filesystem scope declared below
 - Direct code parent: `mvp-1a-4` / `1ff7c5d321958df725497d4e3a2649e210b029db`
 - Evidence date: 2026-08-09
 - Affected owners: `WORKBOARD.md`, `README.md`, `LINEAGE.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `docs/IMPLEMENTATION_REPORT.md`; prospective behavior changes may later require `docs/SPEC.md` and `docs/PROTOCOL.md`
 
-> Accepted authority: this record authorizes only the bounded G1-G5 verification, admission, recovery, namespace-hardening, and test-instrumentation work below. It does **not** authorize a semantic-tree/root migration, snapshot schema change, durable-format rewrite, Git OID authority, provider/distributed claim, history GC, or rollback/downgrade change. `verified` still requires the acceptance matrix in section 9 to close with observed source evidence.
+> Verified scope: the bounded G1-G5 verification, admission, recovery, namespace-hardening, and test-instrumentation work below is implemented and independently observed in the declared source/compatible-local-filesystem scope. This verification does **not** authorize a semantic-tree/root migration, snapshot schema change, durable-format rewrite, Git OID authority, provider/distributed claim, history GC, or rollback/downgrade change.
 
 ## 1. One-line definition
 
@@ -41,7 +41,7 @@ These are source facts in exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029
 
 The immediate architectural risk is broader than `promotion.mjs` copying one flat tree. The current persistence/checkpoint boundary packages full semantic state into one Case snapshot, so a touched-path Git candidate alone cannot establish end-to-end Promotion or persistence scalability. The next gate should measure and harden that complete boundary before choosing a new semantic representation.
 
-### 3.3 Remaining unknowns outside this accepted gate
+### 3.3 Remaining unknowns outside this verified gate
 
 - the best future semantic authority representation: current full tree, repo-independent bounded-fanout persistent structure, trusted transactional root/head, or another model;
 - migration, rollback, mixed-version writer, repair, GC, and anti-rollback contracts for any future authority representation change;
@@ -142,7 +142,7 @@ A Git tree/commit OID must not become Case semantic identity by implication. A f
 
 ## 8. Compatibility, migration, rollback, and deployment
 
-This accepted gate changes no durable schema or record format. It authorizes only the behavioral hardening and non-authoritative instrumentation defined here.
+This verified gate changes no durable schema or record format. It implements only the behavioral hardening and non-authoritative instrumentation defined here.
 
 - D0005 legacy-v1 -> immutable-v2 cutover and downgrade barrier remain unchanged.
 - D0007 cache rollback remains data-compatible with D0005 bytes.
@@ -154,7 +154,7 @@ This accepted gate changes no durable schema or record format. It authorizes onl
 
 Any future semantic root/head migration is a separate Class 2 design and must specify forward migration, mixed-version writer exclusion, rollback/downgrade barriers, corruption/repair, GC, and provider independence.
 
-## 9. Acceptance matrix for making D0008 verified
+## 9. Verification closure matrix
 
 | Area | Cheapest falsifier / required evidence |
 | --- | --- |
@@ -179,7 +179,21 @@ Any future semantic root/head migration is a separate Class 2 design and must sp
 5. **Deterministic publication fault seam.** `ImmutableJournalSnapshotStore` gains an instance-local, non-persistent `faultInjector(stage)` test seam with named stages adjacent to temporary write, file sync, final no-replace publication, case-directory sync, and post-commit cleanup. The default is null and leaves production primitives unchanged. An injected failure before final publication must produce a known write failure with no successor slot. A failure at directory sync after final publication must preserve `store_commit_ambiguous`; tests must re-read the authoritative namespace to determine whether the successor exists before any retry. Cleanup injection remains best-effort after a durably established successor and cannot retroactively turn success into failure.
 6. **Measurements sufficient to open the next design.** A checked authority-boundary harness must separate Plan/base construction, ordinary result acceptance, Promotion construction, candidate validation/digest, Promotion acceptance, full Case snapshot construction/serialization, store preparation/CAS, cold restore, and optional Git projection. It must report operation/byte counts as primary evidence and wall/RSS as secondary evidence over sparse 1/8/128-touch workloads at increasing tree sizes up to the current 100,000-entry policy ceiling, with both wide-flat and deep-path shapes plus a broad-update control, explicit stop gates, and semantic equality to the current oracle. Opening a later semantic-authority representation design requires reproduced evidence that sparse changes still force total-tree/total-snapshot authority work at one or more current semantic/persistence stages across increasing sizes; no numeric speedup threshold and no Git-OID result by itself is sufficient to accept such a migration.
 
-## 11. Rejected shortcuts
+## 11. Verification evidence
+
+The bounded gate closed with independently observed evidence on 2026-08-09:
+
+- implementation/evidence candidate: `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f`, built through small commits `9b54599d3e60759e845477edef3e58ff9fc6816c`, `7be537275f823d415dc9072995be08ebb43b1baa`, `a5eac9842662a0a84af7aa6d449ceda46ae0473f`, `1b16ffd47030a0e3a4637078a298c4f471b29f2c`, and `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f`;
+- local executable barriers: full syntax gate, 33/33 focused durable/store tests, and `git diff --check` passed;
+- independent Ubuntu/POSIX validation run `31302061543`, job `93216333090`: install, repository `npm run check`, coverage command, `git diff --check`, and 16-sample authority-harness smoke all completed successfully with ImmutableJournal hard-link tests enabled;
+- checked authority evidence: `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json`, 52,597 bytes, SHA-256 `57add849efafa93fa74b830ae29001ffc06c783fb70b55c94dcc4052be6ed79c`;
+- authority matrix: 32 configured samples across wide-flat/deep-path, 1/8/128/broad writes, and 1k/5k/20k/100k trees. All 24 completed 1k/5k/20k samples matched the current Promotion oracle and cold restore exactly. All eight 100k samples hit the declared 30 s or 768 MiB stop gate and are retained as stopped evidence rather than extrapolated; sparse 1/8-write samples include Promotion-oracle/result-acceptance stops;
+- the connected tmcp/Termux environment denied hard-link creation on every writable mount probed and is therefore not qualified for `ImmutableJournalSnapshotStore` publication. This environment result does not weaken or replace the D0005 no-replace hard-link publication primitive;
+- provider/distributed persistence, cross-owner Claim durability, Git publication authority, and a new semantic-root representation remain outside the verified scope.
+
+The section 9 requirements are therefore closed for the declared source/compatible-local-filesystem scope. The size-dependent authority evidence is sufficient to open a **separate Class 2 semantic-authority representation comparison**, but it does not choose that representation.
+
+## 12. Rejected shortcuts
 
 - **Implement Git OID as semantic identity now:** rejected; mode and object-format counterexamples show it changes or conflates semantics.
 - **Implement a Merkle/HAMT tree before the gate:** rejected; representation choice is not yet justified across broad-update, snapshot, migration, and recovery costs.
@@ -189,7 +203,7 @@ Any future semantic root/head migration is a separate Class 2 design and must sp
 - **Release Claim lease in an unconditional `finally`:** rejected as a design shortcut because safety depends on whether terminal settlement became durable.
 - **Treat local fsync tests as provider durability:** rejected; local filesystem evidence owns only its declared environment.
 
-## 12. Non-goals and follow-on gates
+## 13. Non-goals and follow-on gates
 
 D0008 does not implement or select:
 
@@ -203,4 +217,4 @@ D0008 does not implement or select:
 - history GC or semantic snapshot compaction;
 - public MCP/client behavior.
 
-After D0008 reaches verified evidence, the next Class 2 decision may compare current full-tree authority, a repo-independent bounded-fanout content-addressed semantic structure, a trusted transactional root/head, and other measured alternatives. A real Git adapter remains valuable as a derived repository/projection layer, but it must not be used to bypass the semantic-authority decision.
+With D0008 verified, the next Class 2 decision may compare current full-tree authority, a repo-independent bounded-fanout content-addressed semantic structure, a trusted transactional root/head, and other measured alternatives. A real Git adapter remains valuable as a derived repository/projection layer, but it must not be used to bypass the semantic-authority decision.

@@ -1,8 +1,30 @@
-# 2026-08-09 post-freeze authority-boundary re-audit addendum
+# mvp-1a-5 D0008 verification report
+
+- Date: 2026-08-09
+- Direct code parent: exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`
+- Design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
+- Status: `verified` in the declared Node 22 source and compatible local/POSIX filesystem scope
+- Independently validated source/evidence candidate: `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f`
+- Authority evidence: `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json`, SHA-256 `57add849efafa93fa74b830ae29001ffc06c783fb70b55c94dcc4052be6ed79c`
+- Historical evidence policy: Designs 0001-0007 and their existing evidence retain their original claims
+
+D0008 closes the bounded authority/durability gate without changing canonical tree identity, snapshot schema, immutable-journal record format, migration/downgrade barriers, Git OID semantics, or provider/distributed ownership. The implementation was deliberately split into small commits: `9b54599d3e60759e845477edef3e58ff9fc6816c` (store capacity/namespace/fault seam), `7be537275f823d415dc9072995be08ebb43b1baa` (durable effect capacity admission), `a5eac9842662a0a84af7aa6d449ceda46ae0473f` (authority-path harness), `1b16ffd47030a0e3a4637078a298c4f471b29f2c` (failure-boundary tests), and `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f` (raw authority evidence).
+
+The six accepted decisions are now executable: SnapshotStore owns materialized capacity; every durable checkpoint uses exact capacity assertion when available; external-effect work proves bounded running/success/failure/reconciliation fit before the real Attempt/executor boundary; legacy committed-looking namespace shapes fail closed; immutable publication has deterministic pre-publication/ambiguity/cleanup fault evidence; and failed settlement checkpoints preserve the durable predecessor and Claim lease until `reopen:true` recovery is durably persisted.
+
+Verification evidence is layered. Locally executable syntax and durable/store focused tests passed 33/33 with clean `git diff --check`. The same source candidate was published only to `research/d0008-posix-validation` for independent Ubuntu/POSIX validation. GitHub Actions run `31302061543`, job `93216333090`, completed install, `npm run check`, `node --experimental-test-coverage --test test/*.test.mjs`, `git diff --check`, and the 16-sample authority-harness smoke successfully with ImmutableJournal hard-link tests enabled. The connected tmcp/Termux filesystem itself denied hard-link creation on every writable mount probed, so it is not qualified for `ImmutableJournalSnapshotStore` publication; this environment limitation did not justify weakening the D0005 hard-link no-replace CAS primitive.
+
+The checked full authority matrix configured 32 samples: 1k/5k/20k/100k trees, 1/8/128/broad writes, and wide-flat/deep-path shapes. All 24 completed 1k/5k/20k samples matched the current Promotion oracle and cold restore exactly. All eight 100k samples hit the declared 30 s or 768 MiB stop gate and are retained as stopped evidence; sparse 1/8-write samples include stops in Promotion oracle/result acceptance. The observed conclusion is therefore stronger than “Git candidate construction is sparse”: current semantic Promotion/snapshot authority remains total-size dependent even when writes are sparse.
+
+The next highest-ROI step is not to smuggle a Git tree OID, Merkle root, HAMT, or transactional head into authority. It is to open a separate Class 2 semantic-authority representation comparison with exact identity/domain separation, migration, rollback/downgrade, mixed-writer exclusion, corruption/repair, GC, security, and recovery rules. Git remains a derived repository/publication projection unless such a design explicitly changes semantic authority.
+
+---
+
+# Historical precursor — 2026-08-09 post-freeze authority-boundary re-audit addendum
 
 - Audited baseline: exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`
 - New planning record: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
-- D0008 status: `draft`; no production implementation authority
+- Historical D0008 status at the time of this precursor: `draft`; this paragraph is superseded by the verified report above
 - Historical evidence policy: Designs 0001-0007 and existing `docs/evidence/*.json` retain their original claims and are not rewritten by this addendum
 
 The D0007 source/container evidence remains valid for its declared scope. A later full-lineage/source re-audit changes the **immediate next-work conclusion**, not the recorded D0007 benchmark result. The previous sentence that the next highest-ROI gate should directly implement touched-path/content-addressed Promotion in the first real repository adapter is therefore superseded as current planning guidance.
@@ -23,7 +45,7 @@ Real-Git research remains useful but is demoted from architecture authority to e
 The revised sequence is:
 
 ```text
-D0008 draft questions
+Historical D0008 draft questions
 -> accepted authority-boundary measurement + durability hardening gate
 -> verified full-path evidence
 -> separate semantic-authority representation decision if justified
@@ -31,7 +53,7 @@ D0008 draft questions
 -> real context/model/provider layers
 ```
 
-Until D0008 becomes accepted, it authorizes no source behavior change. Until a later separate Class 2 migration design is accepted, no Merkle/HAMT/content-addressed root, trusted transactional head, or Git OID becomes semantic authority by implication.
+At the time of this precursor, D0008 authorized no source behavior change while draft. The verified report above supersedes that historical gate state. The second boundary remains current: until a later separate Class 2 migration design is accepted, no Merkle/HAMT/content-addressed root, trusted transactional head, or Git OID becomes semantic authority by implication.
 
 ---
 

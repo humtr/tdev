@@ -11,7 +11,7 @@ The verified source target is:
 - no third-party runtime dependency;
 - POSIX-like local filesystem only for `FileSnapshotStore`, `JournalSnapshotStore`, and `ImmutableJournalSnapshotStore` tests, benchmarks, and demos.
 
-The supplied container reports Node 22.16.0 and npm 10.9.2. The `mvp-1a-4` executable source contract remains Node 22 and has no generated Go/provider runtime dependency.
+The `mvp-1a-5` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below.
 
 ## 2. Installation and gate
 
@@ -69,7 +69,7 @@ Use when local single-process operation needs lower write amplification while re
 - optional deterministic compaction that durably replaces the base before deleting covered deltas;
 - in-process per-Case serialization.
 
-The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Recognized legacy journal records fail closed on missing base, malformed/truncated/noncanonical contents, revision discontinuity, digest failure, and corruption introduced after a warm load. The current legacy committed-namespace enumeration is narrower than the protocol: malformed committed-looking legacy `delta-*` names and recognized-name non-regular entries are not all rejected because enumeration filters to regular files with exactly matching legacy delta names. D0008 tracks this as a source hardening gap; it is not a reason to weaken the fail-closed protocol. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
+The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Recognized legacy journal records fail closed on missing base, malformed/truncated/noncanonical contents, revision discontinuity, digest failure, and corruption introduced after a warm load. D0008 also makes the committed namespace fail closed: an exact legacy delta name on a non-regular entry fails `store_journal_file_type`, any other non-temporary committed-looking `delta-*` name fails `store_journal_filename`, `delta-from-*` remains an explicit format-upgrade failure, and dot-temporary files remain non-authoritative. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
 
 ### ImmutableJournalSnapshotStore
 
@@ -91,7 +91,7 @@ Once a directory contains a v2 `delta-from-*` record, unmodified `mvp-1a-2` `Jou
 
 The first v2 write is an explicit cutover, not a rolling mixed-writer migration. Before that write, the operator must stop every process that can still write the affected Case/directory with the legacy `JournalSnapshotStore` and independently validate the retained legacy chain using the new source. Only then may the first immutable CAS be admitted. Afterward, only `ImmutableJournalSnapshotStore` writers are supported for that Case/directory. The new-source legacy and immutable adapters share a process-local serialization key, but separate processes running mixed formats can otherwise publish different filename slots from the same predecessor; cross-process mixed-format operation is therefore unsupported rather than silently treated as safe.
 
-The cross-process evidence is limited to the tested compatible local filesystem. Network filesystems, provider object stores, Durable Objects, and distributed transactions remain unverified.
+The cross-process evidence is limited to tested compatible local filesystems. On 2026-08-09 the connected tmcp/Termux environment denied hard-link creation on every writable mount probed and is therefore not qualified for `ImmutableJournalSnapshotStore` publication. The D0008 candidate passed the complete source, coverage, diff, and authority-smoke gates on Ubuntu/POSIX with the hard-link suite enabled. Network filesystems, provider object stores, Durable Objects, and distributed transactions remain unverified.
 
 ### CaseRepository
 
@@ -106,7 +106,7 @@ The repository is the semantic persistence boundary:
 
 A raw store validates only Case ID/revision identity and storage syntax. `CaseEngine.restore` owns semantic integrity.
 
-Current durability-admission gap: Case-contract limits bound individual domain structures while store `maxBytes` separately bounds the complete materialized snapshot/file. The current source does not yet prove a compositional invariant that every individually valid Case transition fits the configured durable-store bound. D0008 must freeze the owner, transition boundary, compatibility behavior, and falsifier for aggregate durable admission before code changes claim that guarantee.
+Case-contract limits bound individual domain structures while the concrete store separately owns complete materialized-snapshot capacity. D0008 keeps those concerns separate: built-in stores expose exact capacity assertions over their canonical materialized snapshot, each durable checkpoint is checked before CAS, and external-effect dispatch additionally fails closed before executor invocation unless the store can prove capacity for the proposed running state and contract-bounded post-effect successors. This does not claim that every component-valid Case fits every arbitrary deployment bound; it defines the safe admission behavior when it does not.
 
 ## 4. Durable runner checkpoint protocol
 
@@ -116,15 +116,17 @@ Required ordering:
 
 ```text
 Case snapshot R
+  -> acquire authority / selected Claim
+  -> for external effects: prove running + bounded successor capacity
   -> start Attempt in memory (R+n)
-  -> CAS persist R+n
+  -> exact capacity check + CAS persist R+n
   -> dispatch executor
   -> settle result/failure (R+m)
-  -> CAS persist R+m
-  -> release claim
+  -> exact capacity check + CAS persist R+m
+  -> release terminal claim
 ```
 
-The function rejects a final snapshot whose revision was not persisted. A checkpoint CAS conflict is terminal for that invocation and does not dispatch or replay work.
+A pre-dispatch capacity/checkpoint failure releases a newly acquired Claim and produces zero executor calls. If settlement is computed in memory but its checkpoint fails, the lease remains held and snapshot R+n remains durable authority. A later `reopen:true` repository load CAS-persists the recovery transition before terminal release/retry; reconciling external work retains the lease until fenced reconciliation becomes durably terminal. The function rejects a final snapshot whose revision was not persisted.
 
 ## 5. Snapshot schema
 

@@ -336,6 +336,16 @@ Task-state counters, unsatisfied-dependency counters, ready/claim-holder sets, t
 
 Schema v1 is accepted only through the deterministic migration path. Unknown future versions fail closed. No downgrade is implicit.
 
+### 14.1 Materialized durable-admission protocol
+
+Materialized-snapshot capacity belongs to the concrete SnapshotStore deployment, not to Plan, CaseContract, snapshot schema, or semantic digests. A store that exposes a capacity assertion evaluates the exact canonical materialized snapshot bytes, and `runDurableCase` invokes that assertion immediately before every durable CAS checkpoint.
+
+For result-only work, executor execution may precede a later settlement-capacity rejection because no irreversible external effect is introduced by the executor contract. If that settlement checkpoint cannot fit, the already durable running predecessor remains authoritative and is the state observed on restart.
+
+For external-effect work, dispatch is stricter: before mutating the real Case or invoking the executor, the durable runner must establish that the concrete store can fit the proposed running Attempt and every contract-bounded success/failure/reconciliation successor reachable without another external dispatch. Unknown capacity fails `store_capacity_unknown`; insufficient capacity fails `store_snapshot_too_large`. In either case the executor is not invoked and any newly acquired cross-Case Claim is released.
+
+If in-memory settlement succeeds but its durable checkpoint throws, that in-memory successor is not authority and the Attempt lease is not released. A later owner loads the durable predecessor with `reopen:true`; any reopen/reconciliation revision is CAS-persisted before the engine is returned. A terminally recovered Attempt may then release its lease and retry when the existing effect-class/budget rules allow it. An Attempt reopened as `reconciling` retains the lease until a fenced reconciliation reaches a terminal state and that successor is durably checkpointed.
+
 ## 15. Immutable journal record protocol
 
 Design 0005 adds an opt-in storage-record format without changing Case snapshot schema v2. The authoritative journal is `base.json` plus every reachable retained committed delta under strict semantic replay.
