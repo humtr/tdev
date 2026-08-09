@@ -1,0 +1,67 @@
+name: D0009 POSIX validation
+
+on:
+  pull_request:
+    branches:
+      - mvp-1a-5
+
+permissions:
+  contents: write
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    steps:
+      - name: Check out exact validation head
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Repository source gate
+        run: npm run check
+
+      - name: Coverage gate
+        run: node --experimental-test-coverage --test test/*.test.mjs
+
+      - name: Effective diff whitespace gate
+        run: git diff --check origin/mvp-1a-5...HEAD
+
+      - name: Full D0009 representation matrix
+        env:
+          TDEV_SEMANTIC_SOURCE_REVISION: bc06d68f7dae303f1ae689794818ccb06d599545
+          TDEV_SEMANTIC_EVIDENCE_PATH: docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json
+        run: npm run bench:semantic
+
+      - name: Summarize checked evidence
+        run: |
+          node --input-type=module <<'NODE'
+          import { readFile } from 'node:fs/promises';
+          const path = 'docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json';
+          const value = JSON.parse(await readFile(path, 'utf8'));
+          console.log(JSON.stringify({
+            source: value.source,
+            configuredMatrix: value.configuredMatrix,
+            stopGates: value.stopGates,
+            summary: value.summary,
+          }, null, 2));
+          NODE
+          sha256sum docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json
+
+      - name: Publish research evidence ref
+        run: |
+          git config user.name 'tdev-validation'
+          git config user.email 'tdev-validation@users.noreply.github.com'
+          git add docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json
+          git commit -m 'evidence: D0009 POSIX representation matrix'
+          git push origin HEAD:refs/heads/research/d0009-semantic-authority-evidence-bc06d68
