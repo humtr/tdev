@@ -234,6 +234,14 @@ D0012 adds `GitRemotePublicationAdapter` profile `tdev.git.remote-existing-branc
 
 This remains a derived publication boundary: the D0010 transactional Case head and semantic root remain tdev authority, and D0012 never creates/deletes remote branches or stores credentials. Source tests and an authenticated GitHub push dry-run verify the generic protocol and non-interactive credential negotiation capability. They do **not** promote any provider resource to integration-verified, prove protected-branch policy, provider-specific authorization/rules, multi-host ownership, signing, or hostile-provider authenticity.
 
+## 9.6 Verified repository-context and local model-transport boundary
+
+D0013 adds `GitRepositoryModelExecutor` outside the Case authority boundary. For operation `tdev.model.repository`, it reads one exact immutable local Git commit under profile `tdev.repository-context.git-full-text.v1`, accepts only regular UTF-8 `100644`/`100755` blobs, preserves executable mode as context metadata, rebuilds the existing path-to-text semantic digest, and requires that digest to equal the Attempt invocation `baseDigest`. It reads commit objects directly and never uses the worktree/index as context authority.
+
+The complete supported commit context is reconstructed for every Attempt and sent by canonical JSON to one fresh trusted local subprocess under `tdev.model.subprocess-json.v1`. The request binds repository context plus Case/Plan/Attempt/fencing identity through a request digest; the subprocess must echo that digest and may return only an existing tdev result. The runner and `CaseEngine` remain responsible for result-kind, Plan, lease, fencing and Promotion validation, so model/process output cannot directly elect canonical state. Repository descriptors, request/response bytes and timing observations are non-authoritative evidence.
+
+This is intentionally the pre-optimization baseline. Checked source evidence for one 101-file / 1,757,785-byte commit reconstructed the same context on four Attempts, producing 5,273,355 duplicate context bytes out of 7,031,140 requested context bytes and a full 1,757,785-byte retry reconstruction. That evidence supports a separate Context manifest/CAS plus deterministic ContextSlice design gate; it does not prove tokenizer/token savings, external-model latency, provider authentication/data-egress policy, warm-process benefit or locality scheduling.
+
 ## 10. Architectural stop gates
 
 A new adapter or optimization is rejected when it:

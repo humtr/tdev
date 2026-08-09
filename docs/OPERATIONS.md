@@ -165,6 +165,16 @@ Call `publish(intent, candidate)` for the only forward remote mutation. It reval
 
 `reconcilePublication(intent, candidate)` is restart-safe and read-only and rejects a changed remote identity. `rollback(receipt, intent, candidate)` is a separate candidate-to-predecessor fenced update; provider rejection that keeps the candidate current is safe not-applied, and an intervening OID fences stale rollback. The first profile never creates/deletes remote branches, never stores raw credentials or clear push URLs, and never disables provider branch protection. If rollback is provider-rejected, recover by preparing a new forward semantic/Git candidate instead of weakening provider policy.
 
+### Repository context and local model transport
+
+For D0013, construct `GitRepositoryModelExecutor` from trusted deployment configuration: local repository path, model subprocess executable/argv/environment/cwd and a required timeout. Ordinary work Tasks select operation `tdev.model.repository` and provide only `{ repositoryCommitOid, instruction }`; do not put repository paths, commands or credentials in Task input.
+
+Each Attempt reads the exact commit rather than the mutable worktree/index, reconstructs all supported UTF-8 `100644`/`100755` files, checks current path/tree bounds, and requires the resulting semantic text digest to equal invocation `baseDigest` before starting the subprocess. A mismatch, unsupported mode, invalid UTF-8 or bound violation is an admission failure, not a reason to send partial context.
+
+The first profile starts a fresh subprocess for every Attempt and sends the complete context plus Plan/Attempt/fencing identity in one request-digest-bound canonical JSON request. The subprocess response is valid only when it exits successfully, stays within byte/time bounds, emits one strict response with the exact request digest, and returns the Task's declared result shape. The adapter does not apply returned ChangeSets to the repository; normal runner/engine acceptance and Promotion own canonical state changes.
+
+Do not add a hidden transport retry. Spawn/process/timeout/abort/response failures consume only the existing Task retry policy; any later Attempt rereads and resends the complete context. Treat `contextDigest`, context/request/response byte counts, process-start/reuse counts and timings as evidence only. The verified baseline intentionally has no Context CAS/Slice, context cache, warm process, locality scheduler, tokenizer or external provider API. When optimizing next, preserve exact base binding and result/fencing authority while measuring duplicate bytes against the D0013 baseline.
+
 ### Command mutation
 
 Use `repository.command(caseId, envelope, { claimValidator })` for receipt-backed state commands. Any command that starts an Attempt with a lease, accepts its result, or resolves a successful reconciliation must have access to the live claim owner.

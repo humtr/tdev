@@ -163,6 +163,14 @@ Remote intent/receipt digests are integrity/fencing records, not authentication 
 
 The checked source tests plus GitHub push dry-run prove only the generic boundary and that the current deployment can negotiate authenticated push with interactive prompts disabled. They do not prove provider IAM correctness, protected-branch/ruleset semantics, secret rotation, signed refs/commits, hostile-provider authenticity, or actual D0012 provider-ref integration/restart behavior.
 
+### 9.4 Repository context and model subprocess boundary
+
+D0013 assumes the configured local Git executable/repository and local model subprocess executable are trusted deployment components; it is not a sandbox or hostile-code execution boundary. Repository context is read from one exact immutable commit through hardened read-only Git plumbing, not the mutable index/worktree, and inherited `GIT_*` routing cannot redirect that scan. Only regular UTF-8 text blobs within current tdev path/tree limits are admitted, and the complete path-to-text digest must equal the authoritative Attempt `baseDigest` before the subprocess starts.
+
+Task input cannot choose the repository path, executable, argv, environment or working directory. The subprocess does not inherit caller environment by default, and raw stderr, deployment paths/environment and file contents are excluded from canonical observations/errors. Request-digest echoing prevents a stale/cross-Attempt response from being accepted at the transport boundary, while the returned result remains untrusted and must still pass existing result/Plan/fencing/Claim/Promotion validation.
+
+The verified D0013 security boundary covers only trusted-local full-context transfer. It does not authorize sending repository contents to an external model provider, define credential/secret handling for such a provider, prove data-egress/redaction policy, hostile-model authenticity, provider billing/retry semantics or tokenizer/token accounting. Those require a separate Class 2 provider/security contract.
+
 ## 10. External effects
 
 Exactly-once execution is not promised. Safe handling is limited to:
