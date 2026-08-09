@@ -28,6 +28,8 @@ The implementation is a deliberately narrower safe-integer canonical JSON profil
 | result | canonical result kind plus canonical result digest |
 | mutation command | domain-separated digest of canonical command |
 | snapshot | domain-separated digest of the complete snapshot excluding `snapshotDigest` |
+| v3 semantic root | `tdev.semantic.root.v1` digest over profile, node digest, entry count, and exact `treeBytes` byte-count value |
+| v3 transactional head | `tdev.semantic.head.v1` digest over Case/epoch/generation/revision/snapshot/root/predecessor identity |
 
 An Attempt fence binds:
 
@@ -262,7 +264,7 @@ Promotion returns:
 }
 ```
 
-`accepted` is sorted by Task ID. ChangeSet ownership is evaluated in that order; identical writes coalesce; differing writes to one path produce a stable conflict report. Candidate topology and all bounds are validated before the Case canonical tree changes.
+`accepted` is sorted by Task ID. ChangeSet ownership is evaluated in that order; identical writes coalesce; differing writes to one path produce a stable conflict report. Candidate topology and all bounds are validated before the Case canonical tree changes. This object shape is the legacy/schema-v2 Promotion result. For an opt-in semantic-v3 Case, the accepted Promotion result preserves the same deterministic accepted/applied Task identity but replaces `tree`/`treeDigest` with the final semantic root descriptor; the complete final tree is not persisted in the accepted result.
 
 ## 11. Reconciliation protocol
 
@@ -377,3 +379,19 @@ claimsDigest
 ```
 
 The token is derived from generation, holder identity, and the normalized claim-set digest. Acquisition by the same holder and same claim set deduplicates; the same holder cannot substitute a weaker or different claim scope. Conflicting holders receive a deterministic conflict list. Release is identity-checked and idempotent. A replaced generation never becomes valid again.
+
+## 17. Semantic authority v3 protocol
+
+D0010 adds one opt-in profile, `tdev.semantic.path-byte-radix.v1`. Paths are the existing normalized relative NFC text paths encoded as UTF-8 bytes. Values bind normalized path plus UTF-8 text content. Radix edges are canonical non-empty byte strings in unsigned byte-lexicographic order, maximal single-child nonterminal runs are compressed, and a valid terminal file node has no descendants. Equal final trees produce equal roots independent of input, write, batch, or scheduling history.
+
+A semantic root descriptor contains exactly `profile`, `nodeDigest | null`, `entryCount`, `treeBytes`, and `rootDigest`. `entryCount` and `treeBytes` are maintained incrementally under existing Case limits. `rootDigest` uses domain `tdev.semantic.root.v1`. Semantic values and radix nodes use distinct domains `tdev.semantic.value.v1` and `tdev.semantic.radix-node.v1`.
+
+Schema v3 contains Case identity/state/revision/event sequence, a compact Plan binding, the Case contract, Events, `semanticAuthority`, Task states, Attempts, receipts, and `snapshotDigest`. `semanticAuthority` binds profile, authority epoch, optional v2 migration-source identity, base root, and canonical root. It contains no full `plan.baseTree`, `canonicalTree`, or successful Promotion full tree. Unknown versions fail closed; v1/v2 remain on their legacy restore path.
+
+The local semantic store persists immutable typed objects and immutable v3 snapshots plus one mutable Case head. A head binds `caseId`, `authorityEpoch`, monotonically increasing `generation`, `caseRevision`, `snapshotDigest`, `baseRootDigest`, `canonicalRootDigest`, `previousHeadDigest | null`, and `headDigest`. One SQLite write transaction checks the expected predecessor, inserts immutable objects/snapshot, and updates the head. Same-digest/different-payload storage is corruption.
+
+If a database commit outcome is unknown, the result is `store_commit_ambiguous`. Recovery reopens and compares the durable head with the intended successor and predecessor: successor means committed, predecessor means not committed, and any third head is a conflict/corruption requiring operator reconciliation. Blind retry is forbidden.
+
+Forward migration is limited to a quiesced schema-v2 Case before successful Promotion whose canonical tree still equals the immutable Plan base. Legacy writers and live Claim ownership must be quiesced. The migrator captures and rechecks the source snapshot digest/revision immediately before first v3 head publication. There is no rolling mixed-writer mode. After any post-migration v3 head commits, automatic downgrade to a v2 writer is forbidden.
+
+Reachable object corruption fails closed. Repair may insert only canonical content reproducing the exact already-authoritative expected digest and never moves the head. Reference-aware GC starts from all current heads plus explicit pins; apply requires an exact expected head/pin-set digest and deletes only unreachable immutable objects/snapshots.

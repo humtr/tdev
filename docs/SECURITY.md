@@ -10,6 +10,7 @@ The implementation treats the following as untrusted:
 - executor identities, capabilities, results, errors, and evidence;
 - claim lease values supplied across a boundary;
 - JSON bytes read from the local store;
+- schema-v3 snapshot bytes, semantic object payloads, and transactional-head rows read from the local semantic SQLite store;
 - restored snapshot fields, indexes, accepted results, Events, and receipts;
 - paths and file contents proposed by ChangeSets.
 
@@ -124,6 +125,11 @@ This detects accidental corruption and coherent-state inconsistencies, including
 
 It is **not authenticity**. A party able to rewrite the complete snapshot, recompute every derived value, and replace the trusted store can produce a different internally consistent record. Use provider access control and trusted storage; add an externally protected MAC/signature when the storage layer itself is adversarial.
 
+### 8.1 Semantic-v3 integrity
+
+Schema v3 validates the compact snapshot digest, compact Plan binding, versioned root descriptors, every reachable typed semantic object and its canonical digest/shape, exact entry/byte totals, lifecycle linkage, and successful Promotion root identity. Missing objects, malformed radix edges, cycles, impossible totals, or digest mismatch fail closed. A cached compatibility materialization cannot hide those failures.
+
+As with schema v2, these self-digests are integrity checks rather than hostile-storage authentication. An attacker able to rewrite the SQLite database and recompute all digests can forge a different internally consistent history unless an external trust mechanism protects the authority.
 ## 9. Local file-store boundary
 
 Local adapters use mode `0600` temporary files and byte-for-byte canonical JSON reads. `FileSnapshotStore` and Design 0004 `JournalSnapshotStore` use same-directory rename and process-local per-Case serialization; multiple processes can race and those adapters remain single-process tools. Case IDs are restricted identifiers and cannot form path traversal names.
@@ -134,6 +140,11 @@ D0008 brings the legacy `JournalSnapshotStore` committed namespace up to the exi
 
 The no-replace ImmutableJournal claim remains conditional on a compatible local filesystem. On 2026-08-09 the connected tmcp/Termux environment denied hard-link creation on every writable mount probed, so that environment is **not** qualified for `ImmutableJournalSnapshotStore` publication. The same candidate passed the complete source/coverage gates on Ubuntu/POSIX with the hard-link tests enabled. This is a deployment-compatibility boundary, not permission to replace the D0005 publication primitive with a weaker operation.
 
+### 9.1 Semantic SQLite authority boundary
+
+`SemanticSqliteStore` is a trusted-local, single-transaction authority adapter, not a distributed lock or authentication service. Immutable objects and snapshots do not become current merely because their bytes exist; only the expected-predecessor Case head elects authority. Commit ambiguity is reconciled by rereading the durable head, never by assuming failure or replaying an external-effect callback.
+
+Repair is content-only: it may restore bytes that reproduce an already named exact digest and may not move the head. Reference-aware GC is an explicit expected-state transaction over current heads plus pins. Digests do not authorize callers, and the SQLite profile adds no tenant isolation, secret protection, provider IAM, or hostile-storage authenticity.
 ## 10. External effects
 
 Exactly-once execution is not promised. Safe handling is limited to:

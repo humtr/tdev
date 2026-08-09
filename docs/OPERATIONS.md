@@ -141,6 +141,13 @@ const result = await runDurableCase(repository, caseId, executor, { capacity: 4 
 
 The final `result.persistedRevision` must equal `result.snapshot.caseRevision`.
 
+### Semantic-v3 local operation
+
+For the opt-in D0010 profile, open a local SQLite authority with `await openSemanticSqliteStore(path)`, wrap it in `SemanticCaseRepository`, and pass that repository to the same `runDurableCase` checkpoint driver. Native v3 creation selects the versioned semantic radix profile; legacy `CaseRepository` and all v2 stores remain separate supported paths.
+
+A v3 checkpoint persists new immutable semantic objects, one compact schema-v3 snapshot, and the exact successor Case head in one transaction. CAS mismatch preserves the winner. If the store returns `store_commit_ambiguous`, do not rerun the repository callback or executor. Reopen the database and reconcile the current head against the intended predecessor/successor; any third state requires operator investigation.
+
+Use `migrateV2CaseToSemantic` only after externally quiescing legacy writers and Claim ownership. The source must still be a valid pre-Promotion v2 Case and is rechecked immediately before target publication. `semanticMigrationRollbackStatus` allows only no-head or unadvanced generation-1 migration rollback; a later v3 head forbids automatic downgrade.
 ### Command mutation
 
 Use `repository.command(caseId, envelope, { claimValidator })` for receipt-backed state commands. Any command that starts an Attempt with a lease, accepts its result, or resolves a successful reconciliation must have access to the live claim owner.
@@ -203,6 +210,7 @@ Recommended operator signals:
 - migration count and source schema version;
 - Promotion conflict/topology failure details;
 - store corruption and noncanonical-read failures;
+- semantic-v3 head generation, CAS conflicts/ambiguity, root/object scrub failures, migration source-change rejections, and GC dry-run/apply counts;
 - full-snapshot vs delta bytes written, delta count, compaction count, and replay latency;
 - Promotion base-tree size, touched-path count, and validation time.
 
@@ -217,6 +225,7 @@ Recommended operator signals:
 | Promotion conflict | fail Promotion; preserve old canonical tree |
 | store corruption | refuse restore; do not rewrite automatically |
 | CAS conflict | preserve winner; do not replay external work |
+| semantic SQLite commit ambiguity | reopen and compare durable head with intended predecessor/successor; do not blindly retry |
 | future snapshot version | fail closed |
 | event/receipt/bounds exhaustion | reject entire mutation atomically |
 

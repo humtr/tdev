@@ -18,9 +18,9 @@ The source slice is **durable-ready**, not provider-complete: its domain and per
 6. Every external result is bound to the complete Attempt identity and, when present, a currently valid claim lease.
 7. Ordinary Tasks never mutate the canonical tree.
 8. A Plan contains exactly one Promotion Task. Promotion depends on every work Task exactly once and holds the sole `write canonical:tree` claim.
-9. Promotion deterministically validates and joins the complete accepted-result set before replacing the canonical tree.
+9. Promotion deterministically validates and joins the complete accepted-result set before replacing canonical semantic tree authority; v2 installs a full tree/digest and opt-in v3 installs a semantic root descriptor.
 10. `capacity = 1` and `capacity = N` use the same graph, Attempt, result, claim, and Promotion semantics.
-11. Completion order, executor identity, executor count, locale, and wall-clock timing do not affect the promoted tree digest.
+11. Completion order, executor identity, executor count, locale, and wall-clock timing do not affect the promoted semantic identity: the v2 tree digest or the v3 semantic root digest.
 12. Ambiguous external effects remain `reconciling` or `unverified`; uncertainty is not rewritten as failure, cancellation, or safe retry.
 13. A rejected command or direct mutation has no partial in-memory effect.
 14. A durable runner must persist a newly running Attempt before invoking its executor.
@@ -29,6 +29,7 @@ The source slice is **durable-ready**, not provider-complete: its domain and per
 17. A settlement-checkpoint failure leaves the durable predecessor authoritative and does not release the Attempt lease. Recovery reopens from durable state and persists that reopen/reconciliation before any terminal release or retry.
 18. Derived counters, ready candidates, claim indexes, validation frontiers, and materialized caches may be deleted and rebuilt from authoritative records; they cannot author admission, fencing, CAS, or a terminal Case result.
 19. Settlement and Promotion remain deterministic across scheduling order, completion order, executor identity, and retry interleaving.
+20. Semantic-authority v3 is opt-in. Existing v2 repositories keep full-tree authority and existing store formats; a v3 Case uses profile `tdev.semantic.path-byte-radix.v1`, compact schema-v3 snapshots, and one trusted local transactional Case head.
 
 ## 3. PlanRevision contract
 
@@ -126,7 +127,7 @@ Reconciliation outcomes are `succeeded`, `not_applied`, `failed`, `cancelled`, o
 
 ## 8. Case, events, and commands
 
-`CaseEngine` is the only source owner of Case, Task, Attempt, accepted result, event, receipt, and canonical-tree state.
+`CaseEngine` is the only source owner of Case, Task, Attempt, accepted result, event, receipt, and canonical semantic tree/root state.
 
 State-changing command envelopes contain:
 
@@ -154,6 +155,7 @@ Restore must:
 8. recompute Promotion for a succeeded Case;
 9. reopen nonterminal work according to effect class when requested.
 
+Semantic-authority v3 is a separate opt-in persistence profile. A schema-v3 snapshot keeps current Case/Task/Attempt/Event/receipt semantics but replaces persisted full base/canonical trees with a compact Plan binding and semantic root descriptors. The root profile is `tdev.semantic.path-byte-radix.v1`; a successful v3 Promotion accepted result names the final root and does not persist a complete final tree. Restore validates the v3 snapshot digest, Plan binding, root descriptors, every reachable typed semantic object, lifecycle linkage, and Promotion/result invariants. Compatibility tree materialization is explicit/lazy and is not part of normal v3 checkpoint digesting.
 Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load` persists the migrated snapshot through compare-and-swap when migration advances the Case revision.
 
 ## 10. Store and runner behavior
@@ -162,6 +164,8 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 - `FileSnapshotStore` reads strict canonical JSON and performs full-snapshot same-directory temporary write, file sync, atomic rename, directory sync, and in-process per-Case serialization.
 - `JournalSnapshotStore` implements the same CAS contract with one compact full base plus canonical checksummed revision deltas; replay must reconstruct the exact v2 snapshot and compaction must never remove the only durable committed state. A materialized cache is reusable only after the exact committed base/delta names, lengths, and bytes match a cryptographic fingerprint. Revision CAS is derived from re-observed durable bytes, never an unchecked cached revision.
 - `ImmutableJournalSnapshotStore` is an opt-in local-filesystem CAS adapter. It reads a legacy-v1 journal prefix and writes immutable v2 `delta-from-<expectedRevision>` commit slots with source/target snapshot-digest binding. Every load/CAS strictly observes the committed namespace and rereads every retained authoritative byte. An instance-local materialized snapshot may replace parse/replay only when an exact ordered cryptographic fingerprint over current filenames, lengths, and bytes matches a prior strict validation or a successfully durable local commit from that verified predecessor. Any namespace, file-type, length, or byte change forces complete D0005 validation/replay. The cache is disposable and cannot author CAS. Cross-process winner election is claimed only among immutable-v2 writers on the tested compatible local-filesystem no-replace hard-link publication boundary after an explicit cutover that quiesces legacy writers. Rolling cross-process legacy/new writers are unsupported. It has no durable checkpoint/head, compaction, or history deletion.
+- `SemanticSqliteStore` is an opt-in local v3 authority adapter. It stores immutable typed semantic objects and immutable schema-v3 snapshot objects plus one mutable expected-predecessor Case head in one SQLite transaction. A possibly committed database transaction reports `store_commit_ambiguous`; callers reconcile the durable head and do not blindly replay callbacks. The adapter fails explicitly when the required `node:sqlite` API is unavailable.
+- `SemanticCaseRepository` owns native v3 create/load/checkpoint/command boundaries and the bounded quiesced pre-Promotion v2 -> v3 migration. Migration requires explicit writer and Claim quiescence and rechecks the captured source v2 snapshot digest/revision immediately before publishing the first v3 head.
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
 - `CaseEngine` may maintain rebuildable Task-state counts, unsatisfied-dependency counts, ready IDs, claim-holder IDs, and a deterministic Plan-derived topological order. Ordinary transitions update changed entries/direct dependents only; any non-active Case-state candidate is confirmed from authoritative Task records.
 - `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`. Candidate loss invokes the engine repair boundary before deadlock is declared.

@@ -11,7 +11,7 @@ The verified source target is:
 - no third-party runtime dependency;
 - POSIX-like local filesystem only for `FileSnapshotStore`, `JournalSnapshotStore`, and `ImmutableJournalSnapshotStore` tests, benchmarks, and demos.
 
-The `mvp-1a-5` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below.
+The `mvp-1a-7` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below. The opt-in semantic-v3 SQLite adapter additionally requires the runtime `node:sqlite` API and fails explicitly when it is unavailable; legacy v2 operation does not depend on that API.
 
 ## 2. Installation and gate
 
@@ -93,6 +93,11 @@ The first v2 write is an explicit cutover, not a rolling mixed-writer migration.
 
 The cross-process evidence is limited to tested compatible local filesystems. On 2026-08-09 the connected tmcp/Termux environment denied hard-link creation on every writable mount probed and is therefore not qualified for `ImmutableJournalSnapshotStore` publication. The D0008 candidate passed the complete source, coverage, diff, and authority-smoke gates on Ubuntu/POSIX with the hard-link suite enabled. Network filesystems, provider object stores, Durable Objects, and distributed transactions remain unverified.
 
+### SemanticSqliteStore and SemanticCaseRepository
+
+Use this opt-in local profile only on a Node 22+ runtime that provides `node:sqlite`. `openSemanticSqliteStore(path)` opens the SQLite authority database; `SemanticCaseRepository` uses it for native v3 creation, load/checkpoint/commands, and the bounded v2 -> v3 migration. The database stores immutable typed semantic objects, immutable schema-v3 snapshots, and one mutable per-Case transactional head.
+
+A commit transaction checks the exact predecessor head/revision, inserts objects and snapshot, and updates the head atomically. A possibly committed transaction reports `store_commit_ambiguous`; reopen/reconciliation decides successor versus predecessor versus third-state conflict. The adapter is local source infrastructure, not evidence for network filesystems, Durable Objects, multi-host SQLite, or provider transactions.
 ### CaseRepository
 
 The repository is the semantic persistence boundary:
@@ -130,7 +135,7 @@ A pre-dispatch capacity/checkpoint failure releases a newly acquired Claim and p
 
 ## 5. Snapshot schema
 
-Current Case snapshot schema: `2`.
+The legacy/default Case snapshot schema remains `2`. An explicitly selected semantic-authority repository uses compact schema `3`.
 
 Schema v2 stores:
 
@@ -143,7 +148,7 @@ Schema v2 stores:
 - canonical tree and digest;
 - whole-snapshot digest.
 
-Unknown future schema versions fail closed.
+Schema v3 stores compact Plan/root authority rather than full base/canonical trees and requires its semantic object graph plus transactional head. Unknown future schema versions fail closed.
 
 The `ClaimLedger` has its own independently versioned snapshot schema. It is not embedded in the Case snapshot because it is a separate fact owner.
 
@@ -161,6 +166,13 @@ The source migration accepts the exact Design 0001 snapshot shape only. Migratio
 
 `CaseRepository.load` persists the migrated v2 form via CAS even when ordinary nonterminal reopen is disabled. Direct `CaseEngine.restore` returns the migrated engine but has no store to update.
 
+## 6.1 v2 to semantic-v3 migration
+
+D0010 migration is not a rolling format upgrade. It accepts only a fully valid schema-v2 Case before successful Promotion whose canonical tree still equals the immutable Plan base. Admission requires explicit `writersQuiesced: true` and `claimsQuiesced: true`; after reopen there may be no running, queued, dispatch-pending, cancel-requested, or reconciling Attempt that would preserve uncertain ownership.
+
+The migrator captures the exact source v2 snapshot digest/revision, builds the compact Plan binding and base radix, and rereads the source immediately before the first v3 head transaction. Any source change aborts with `migration_source_changed`. Operators must fence old v2 writers before that transaction; mixed v2/v3 writers for one Case are unsupported.
+
+Rollback has three states. Before the first v3 head commits, ordinary code/config rollback leaves v2 authoritative. If only the generation-1 migration head exists and no later v3 write committed, activation may explicitly abandon the unadvanced v3 target and return to the protected source v2 snapshot. After any post-migration v3 head commits, automatic downgrade is forbidden; recovery must use v3 or a future explicit reverse migrator. The protected v2 source is retained until the migration acceptance window closes.
 ## 7. Rollback barrier
 
 Code rollback and data rollback are separate operations.

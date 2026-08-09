@@ -65,10 +65,12 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | cross-Case claim lease/generation | `ClaimLedger` or future target owner | each Case snapshot |
 | executor capacity and invocation | runner/provider adapter | `CaseEngine` lifecycle model |
 | actual filesystem/Git/process/network effect | executor/Agent adapter | Case coordinator |
-| snapshot bytes and CAS revision | snapshot store | executor |
-| load, source migration persistence, transaction | `CaseRepository` | raw store |
-| deterministic candidate tree and manifest | Promotion | ordinary work Task |
-| canonical tree replacement | successful Promotion transition in `CaseEngine` | executor, Agent, MCP |
+| snapshot bytes and CAS revision | legacy snapshot store | executor |
+| v3 semantic tree/root authority | `CaseEngine` using the versioned semantic radix profile | `SemanticSqliteStore`, Git OID, executor |
+| v3 durable Case-head election | `SemanticSqliteStore` transaction | executor, Git ref, immutable object existence |
+| load, source migration persistence, transaction | legacy `CaseRepository`; v3 `SemanticCaseRepository` | raw store |
+| deterministic candidate tree/root and manifest | Promotion | ordinary work Task |
+| canonical tree/root replacement | successful Promotion transition in `CaseEngine` | executor, Agent, MCP |
 
 ## 3. Component map
 
@@ -86,7 +88,12 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | `runner.mjs` | capacity loop, rebuildable ready-candidate set, claims, executor invocation, settlement, optional checkpoint |
 | `durable-runner.mjs` | repository-backed checkpoint protocol |
 | `store.mjs` | memory, full-snapshot, verified legacy journal, and immutable expected-revision local-file CAS adapters |
-| `repository.mjs` | domain restore/migration and single-shot CAS transaction |
+| `repository.mjs` | legacy domain restore/migration and single-shot CAS transaction |
+| `semantic-authority.mjs` | deterministic compressed UTF-8 path-byte radix, typed semantic values/nodes, root descriptors, sparse updates, explicit compatibility materialization |
+| `semantic-promotion.mjs` | v3 deterministic accepted-result join and sparse semantic-root Promotion |
+| `semantic-snapshot.mjs` | compact schema-v3 snapshot and Plan-binding validation |
+| `semantic-store.mjs` | opt-in local SQLite immutable-object/snapshot storage plus transactional expected-predecessor Case head |
+| `semantic-repository.mjs` | native v3 repository lifecycle, quiesced v2 -> v3 migration, rollback-status boundary |
 | `index.mjs` | supported source API surface |
 | `cli.mjs` | observable source demos only |
 
@@ -203,6 +210,13 @@ Most importantly, all completed research roots still pay the full current compat
 
 Current semantic tree identity remains the tdev canonical text-tree digest, not a Git tree OID. Git mode and repository object format affect Git identity but are absent from the current semantic tree contract. Future Git object construction is a derived projection until a separate accepted Class 2 design explicitly changes semantic authority.
 
+## 9.3 Verified semantic-authority v3 boundary
+
+D0010 closes the bounded local authority migration that D0009 intentionally left open. The production v3 profile selects a compressed UTF-8 path-byte radix rather than the D0009 benchmark-preferred path-hash trie. The reason is semantic ownership, not a reversal of the D0009 measurements: the current tree contract forbids file/descendant collisions, and the path-byte radix can enforce exact, ancestor, and descendant conflicts from the same sparse authority structure. A path-hash-only authority would require an O(N) prefix scan or a second synchronized prefix owner.
+
+For an opt-in v3 Case, `CaseEngine` owns lifecycle and the semantic base/canonical root descriptors. Typed immutable radix objects carry content; a small schema-v3 snapshot binds lifecycle state to those roots; `SemanticSqliteStore` elects the current snapshot/root pair through one expected-predecessor transactional head. Object existence alone is not authority. Existing v2 Cases retain the full-tree schema-v2 and legacy store semantics.
+
+The normal v3 Promotion/checkpoint path no longer materializes or hashes the complete text tree. Compatibility APIs, cold semantic hydration/scrub, and explicit full-tree comparison may still be O(N); D0010 does not claim otherwise. Git tree/commit OIDs, repository publication, provider transactions, distributed Claims, and hostile-storage authentication remain outside this authority boundary.
 ## 10. Architectural stop gates
 
 A new adapter or optimization is rejected when it:
