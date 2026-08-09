@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, readdir, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import { canonicalJson } from '../src/canonical.mjs';
@@ -460,4 +460,46 @@ test('JournalSnapshotStore recovers when compaction base is durable before cover
   await writeFile(path.join(directory, 'journal-compaction-cleanup-crash', coveredDeltaName), coveredDelta);
   const restarted = new JournalSnapshotStore(directory, { compactAfterDeltas: 2 });
   assert.deepEqual(await restarted.load('journal-compaction-cleanup-crash'), current);
+});
+
+test('snapshot stores expose materialized capacity from the store owner', async (t) => {
+  const plan = planWithWork([{ id: 'a' }]);
+  const snapshot = new CaseEngine({ caseId: 'capacity-owner', plan }).snapshot();
+  const size = Buffer.byteLength(canonicalJson(snapshot), 'utf8');
+
+  assert.deepEqual(new MemorySnapshotStore().assertSnapshotCapacity(snapshot), { size, limit: null });
+
+  const directory = await temporaryDirectory(t);
+  const file = new FileSnapshotStore(directory, { maxBytes: size });
+  assert.deepEqual(file.assertSnapshotCapacity(snapshot), { size, limit: size });
+
+  const journal = new JournalSnapshotStore(path.join(directory, 'journal'), { maxBytes: size - 1 });
+  assert.throws(
+    () => journal.assertSnapshotCapacity(snapshot),
+    (error) => error?.code === 'store_snapshot_too_large' && error?.details?.size === size,
+  );
+});
+
+test('JournalSnapshotStore rejects malformed committed-looking legacy names after warm load', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'journal-warm-malformed-name';
+  const store = new JournalSnapshotStore(directory);
+  const snapshot = new CaseEngine({ caseId, plan: planWithWork([{ id: 'a' }]) }).snapshot();
+  await store.create(snapshot);
+  assert.deepEqual(await store.load(caseId), snapshot);
+
+  await writeFile(path.join(directory, caseId, 'delta-not-a-revision.json'), '{}');
+  await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_filename');
+});
+
+test('JournalSnapshotStore rejects a recognized legacy delta name on a non-regular entry', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'journal-nonregular-delta';
+  const store = new JournalSnapshotStore(directory);
+  const snapshot = new CaseEngine({ caseId, plan: planWithWork([{ id: 'a' }]) }).snapshot();
+  await store.create(snapshot);
+  assert.deepEqual(await store.load(caseId), snapshot);
+
+  await mkdir(path.join(directory, caseId, 'delta-0000000000000002.json'));
+  await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_file_type');
 });

@@ -54,9 +54,25 @@ function casConflict(caseId, expectedRevision, actualRevision) {
   });
 }
 
+function assertMaterializedSnapshotCapacity(snapshot, maxBytes) {
+  validateSnapshotIdentity(snapshot);
+  const size = Buffer.byteLength(canonicalJson(snapshot), 'utf8');
+  if (maxBytes !== null && size > maxBytes) {
+    throw new ContractError('store_snapshot_too_large', `Case ${snapshot.caseId} exceeds the store byte limit`, {
+      size,
+      limit: maxBytes,
+    });
+  }
+  return { size, limit: maxBytes };
+}
+
 export class MemorySnapshotStore {
   constructor() {
     this.snapshots = new Map();
+  }
+
+  assertSnapshotCapacity(snapshot) {
+    return assertMaterializedSnapshotCapacity(snapshot, null);
   }
 
   async create(snapshot) {
@@ -100,6 +116,10 @@ export class FileSnapshotStore {
     this.maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
     assertSafeInteger(this.maxBytes, 'FileSnapshotStore.maxBytes', { min: 1 });
     this.tempSequence = 0;
+  }
+
+  assertSnapshotCapacity(snapshot) {
+    return assertMaterializedSnapshotCapacity(snapshot, this.maxBytes);
   }
 
   async create(snapshot) {
@@ -427,6 +447,10 @@ export class JournalSnapshotStore {
     this.tempSequence = 0;
   }
 
+  assertSnapshotCapacity(snapshot) {
+    return assertMaterializedSnapshotCapacity(snapshot, this.maxBytes);
+  }
+
   async create(snapshot) {
     validateJournalSnapshot(snapshot);
     return this.compareAndSwap(snapshot.caseId, null, snapshot);
@@ -514,7 +538,9 @@ export class JournalSnapshotStore {
       if (error?.code === 'ENOENT') return [];
       throw new ContractError('store_read_failed', `Failed to list journal for Case ${caseId}`, { caseId }, { cause: error });
     }
+    const deltas = [];
     for (const entry of entries) {
+      if (entry.name.startsWith('.')) continue;
       if (entry.name.startsWith('delta-from-')) {
         throw new ContractError(
           'store_journal_format_upgrade_required',
@@ -522,13 +548,25 @@ export class JournalSnapshotStore {
           { caseId, filename: entry.name },
         );
       }
+      const match = JOURNAL_DELTA_FILE.exec(entry.name);
+      if (match) {
+        if (!entry.isFile()) {
+          throw new ContractError('store_journal_file_type', `Legacy journal commit record ${entry.name} is not a regular file`, {
+            caseId,
+            filename: entry.name,
+          });
+        }
+        deltas.push({ name: entry.name, revision: parseJournalFilenameRevision(entry.name, match[1]) });
+        continue;
+      }
+      if (entry.name.startsWith('delta-')) {
+        throw new ContractError('store_journal_filename', `Malformed committed journal filename ${entry.name}`, {
+          caseId,
+          filename: entry.name,
+        });
+      }
     }
-    return entries
-      .filter((entry) => entry.isFile())
-      .map((entry) => ({ entry, match: JOURNAL_DELTA_FILE.exec(entry.name) }))
-      .filter(({ match }) => match !== null)
-      .map(({ entry, match }) => ({ name: entry.name, revision: Number(match[1]) }))
-      .sort((left, right) => left.revision - right.revision);
+    return deltas.sort((left, right) => left.revision - right.revision);
   }
 
   async #readFileBytes(filePath, caseId, { missing = false } = {}) {
@@ -858,14 +896,22 @@ function parseJournalFilenameRevision(filename, digits) {
 
 export class ImmutableJournalSnapshotStore {
   constructor(directory, options = {}) {
-    assertRecordShape(options, [], ['maxBytes'], 'ImmutableJournalSnapshotStore options');
+    assertRecordShape(options, [], ['maxBytes', 'faultInjector'], 'ImmutableJournalSnapshotStore options');
     if (typeof directory !== 'string' || directory.length === 0) {
       throw new ContractError('invalid_store_directory', 'ImmutableJournalSnapshotStore directory must be a non-empty string');
     }
     this.directory = path.resolve(directory);
     this.maxBytes = options.maxBytes ?? 64 * 1024 * 1024;
     assertSafeInteger(this.maxBytes, 'ImmutableJournalSnapshotStore.maxBytes', { min: 1 });
+    this.faultInjector = options.faultInjector ?? null;
+    if (this.faultInjector !== null && typeof this.faultInjector !== 'function') {
+      throw new ContractError('invalid_store_fault_injector', 'ImmutableJournalSnapshotStore faultInjector must be a function or null');
+    }
     this.materialized = new Map();
+  }
+
+  assertSnapshotCapacity(snapshot) {
+    return assertMaterializedSnapshotCapacity(snapshot, this.maxBytes);
   }
 
   async create(snapshot) {
@@ -1199,11 +1245,14 @@ export class ImmutableJournalSnapshotStore {
 
     let finalPublished = false;
     try {
+      await this.#injectFault('temporary_write');
       await handle.writeFile(payload);
+      await this.#injectFault('file_sync');
       await handle.sync();
       await handle.close();
       handle = null;
       try {
+        await this.#injectFault('final_publish');
         await link(tempPath, finalPath);
         finalPublished = true;
       } catch (error) {
@@ -1214,6 +1263,7 @@ export class ImmutableJournalSnapshotStore {
       }
 
       try {
+        await this.#injectFault('directory_sync');
         await this.#syncCaseDirectory(caseId);
       } catch (error) {
         throw new ContractError('store_commit_ambiguous', `Immutable journal publication for Case ${caseId} may already be committed`, {
@@ -1224,6 +1274,7 @@ export class ImmutableJournalSnapshotStore {
 
       // The final slot and its directory entry are already the commit. Temporary
       // cleanup is acceleration/housekeeping only and cannot change the outcome.
+      await this.#injectFault('cleanup').catch(() => {});
       await rm(tempPath, { force: true }).catch(() => {});
       return payload;
     } catch (error) {
@@ -1231,6 +1282,17 @@ export class ImmutableJournalSnapshotStore {
       if (!finalPublished) await rm(tempPath, { force: true }).catch(() => {});
       if (error instanceof ContractError) throw error;
       throw new ContractError('store_write_failed', `Failed to publish Case ${caseId} immutable journal`, { caseId }, { cause: error });
+    }
+  }
+
+  async #injectFault(stage) {
+    if (this.faultInjector === null) return;
+    try {
+      await this.faultInjector(stage);
+    } catch (error) {
+      const injected = new Error(`Injected immutable journal fault at ${stage}`);
+      injected.cause = error;
+      throw injected;
     }
   }
 

@@ -503,3 +503,54 @@ test('ImmutableJournalSnapshotStore warm materialization rejects non-regular bas
   await mkdir(basePath);
   await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_file_type');
 });
+
+test('ImmutableJournalSnapshotStore injected pre-publication failure leaves no successor', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'immutable-fault-before-publish';
+  const states = sequence(caseId);
+  await new ImmutableJournalSnapshotStore(directory).create(states.initial);
+  const faulted = new ImmutableJournalSnapshotStore(directory, {
+    faultInjector(stage) {
+      if (stage === 'final_publish') throw new Error('injected final publication failure');
+    },
+  });
+
+  await assert.rejects(
+    faulted.compareAndSwap(caseId, states.initial.caseRevision, states.dispatchPending),
+    (error) => error?.code === 'store_write_failed',
+  );
+  assert.deepEqual(await new ImmutableJournalSnapshotStore(directory).load(caseId), states.initial);
+});
+
+test('ImmutableJournalSnapshotStore preserves ambiguity after injected directory-sync failure', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'immutable-fault-directory-sync';
+  const states = sequence(caseId);
+  await new ImmutableJournalSnapshotStore(directory).create(states.initial);
+  const faulted = new ImmutableJournalSnapshotStore(directory, {
+    faultInjector(stage) {
+      if (stage === 'directory_sync') throw new Error('injected directory sync failure');
+    },
+  });
+
+  await assert.rejects(
+    faulted.compareAndSwap(caseId, states.initial.caseRevision, states.dispatchPending),
+    (error) => error?.code === 'store_commit_ambiguous',
+  );
+  assert.deepEqual(await new ImmutableJournalSnapshotStore(directory).load(caseId), states.dispatchPending);
+});
+
+test('ImmutableJournalSnapshotStore cleanup injection cannot retroactively fail a committed successor', async (t) => {
+  const directory = await temporaryDirectory(t);
+  const caseId = 'immutable-fault-cleanup';
+  const states = sequence(caseId);
+  await new ImmutableJournalSnapshotStore(directory).create(states.initial);
+  const faulted = new ImmutableJournalSnapshotStore(directory, {
+    faultInjector(stage) {
+      if (stage === 'cleanup') throw new Error('injected cleanup failure');
+    },
+  });
+
+  await faulted.compareAndSwap(caseId, states.initial.caseRevision, states.dispatchPending);
+  assert.deepEqual(await new ImmutableJournalSnapshotStore(directory).load(caseId), states.dispatchPending);
+});
