@@ -6,11 +6,11 @@ This repository uses development-lineage identities, not product-style semantic 
 
 - **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 and D0011 are verified on this line
 - **Architecture generation:** MVP generation 1
-- **Direction origin / historical predecessor:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- **Current direction origin from historical revision:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - **Baseline knowledge input:** verified Design 0010 semantic-v3 authority plus verified Design 0011 local real-Git projection evidence on the same development direction
 - **Latest verified design:** Design 0011 — Real Git Projection and Fenced Publication
 - **Active design:** none; the next provider-facing gate is authenticated remote Git publication/protected-branch ownership if pursued
-- **Historical predecessor direction ref:** `mvp-1a-6`
+- **Historical predecessor revision ref:** `mvp-1a-6` (named under the pre-`3048286a88c2687a2206cc3bcb4faab924be88d9` revision/checkpoint policy)
 
 `mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
 
@@ -89,7 +89,9 @@ The managed `tmcp/` scratch branch used by tooling remains transport bookkeeping
 
 ## Naming and branch rule
 
-Existing development-direction refs use names such as:
+This branch-lifecycle rule is **prospective from commit `3048286a88c2687a2206cc3bcb4faab924be88d9`**. Before that commit, contemporaneous repository documents used the numeric `mvp-1a-N` suffix as a development revision/checkpoint inside lineage `1a`, including `mvp-1a-1` through `mvp-1a-6`. The policy transition does not retroactively rename those historical refs as separate development directions; it changes how the active ref is advanced from that point forward.
+
+Current development-direction refs use names such as:
 
 ```text
 mvp-<generation><lineage>-<direction-id>
