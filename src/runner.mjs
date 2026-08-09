@@ -64,10 +64,19 @@ function releaseTerminalLeases(engine, claimLedger) {
 }
 
 export async function runCase(engine, executor, options = {}) {
+  return runCaseWithHooks(engine, executor, options);
+}
+
+export async function runCaseWithHooks(engine, executor, options = {}, internalHooks = {}) {
   assertRecordShape(options, [], [
     'capacity', 'claimLedger', 'waitForClaims', 'globalClaimPredicate', 'executorCapabilities',
     'executorIdentity', 'signal', 'checkpoint',
   ], 'runner options');
+  assertRecordShape(internalHooks, [], ['beforeAttemptStart'], 'runner internal hooks');
+  const beforeAttemptStart = internalHooks.beforeAttemptStart;
+  if (beforeAttemptStart !== undefined && typeof beforeAttemptStart !== 'function') {
+    throw new ContractError('invalid_runner_hook', 'beforeAttemptStart must be a function');
+  }
   const capacity = normalizeCapacity(options.capacity);
   if (typeof executor !== 'function') {
     throw new ContractError('invalid_executor', 'Executor must be a function');
@@ -182,7 +191,15 @@ export async function runCase(engine, executor, options = {}) {
     }
   }
 
-  function start(taskId, executorIdentity, claimLease) {
+  async function start(taskId, executorIdentity, claimLease) {
+    if (beforeAttemptStart) {
+      await beforeAttemptStart({
+        engine,
+        taskId,
+        executorIdentity: deepFreeze(canonicalClone(executorIdentity)),
+        claimLease: clone(claimLease),
+      });
+    }
     const attempt = engine.startAttempt(taskId, executorIdentity, {
       claimLease,
       claimValidator: claimLedger,
@@ -224,11 +241,10 @@ export async function runCase(engine, executor, options = {}) {
       maxConcurrent = Math.max(maxConcurrent, running.size);
     }
 
-    if (!checkpoint) {
-      launch();
-      return null;
+    if (checkpoint) {
+      await checkpointState('attempt_started', { taskId, attemptId: attempt.id });
     }
-    return checkpointState('attempt_started', { taskId, attemptId: attempt.id }).then(launch);
+    launch();
   }
 
   async function settle(outcome) {
@@ -300,8 +316,7 @@ export async function runCase(engine, executor, options = {}) {
           continue;
         }
         try {
-          const checkpointPromise = start(taskId, identity, claimDecision.lease);
-          if (checkpointPromise) await checkpointPromise;
+          await start(taskId, identity, claimDecision.lease);
           readyTaskIds.delete(taskId);
         } catch (error) {
           if (claimDecision.lease) claimLedger.release(claimDecision.lease);
