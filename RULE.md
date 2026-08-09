@@ -10,3 +10,4 @@
 8. Tests use barriers, controlled promises, or public outcomes; timeout is only a deadlock guard.
 9. A check proves only its observed layer. Skipped, unsupported, or unexecuted layers remain `unknown`.
 10. Review the effective diff and mechanize recurring invariants with tests where practical.
+11. Treat the active `mvp-*` branch as a development-direction identity, not a design/checkpoint counter: while direction is unchanged, fast-forward the same branch; create a new `mvp-*` branch only after an explicit user/owner direction-change decision recorded in `LINEAGE.md`.

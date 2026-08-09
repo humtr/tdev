@@ -4,13 +4,15 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-7` — verified D0010 opt-in semantic-authority migration and transactional-head lineage
+- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 is verified on this line
 - **Architecture generation:** MVP generation 1
-- **Direct code parent / implementation origin:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- **Direction origin / historical predecessor:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - **Baseline knowledge input:** verified `mvp-1a-6` / Design 0009 plus verified Design 0010, checked semantic-v3 evidence, and independent Ubuntu/POSIX validation
 - **Latest verified design:** Design 0010 — Semantic-Authority Migration and Transactional Head
 - **Active design:** none; the next production-affecting gate is the real repository/Git projection and fenced publication layer
-- **Superseded active identity:** `mvp-1a-6`
+- **Historical predecessor direction ref:** `mvp-1a-6`
+
+`mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
 
 `mvp-1a-7` directly succeeds `mvp-1a-6` and adds one **opt-in local semantic-v3 profile** without removing the legacy v2 path. The v3 authority is a compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. Sparse Promotion, quiesced pre-Promotion v2 migration, commit-ambiguity reconciliation, exact-content repair, and reference-aware GC are verified in this bounded local profile. Git OIDs remain derived projection identities; real repository publication, provider/distributed ownership, distributed Claims, and hostile-storage authenticity are unchanged future boundaries.
 
@@ -25,7 +27,7 @@ The deciding fact is architecture and durable-code origin, not benchmark size.
 - The optimization is performance-only state. A cache miss, process restart, namespace change, file-type change, or byte change returns to complete D0005 strict validation/replay.
 - Design 0006 measured repeated prefix replay as the dominant local immutable-journal cost; Design 0007 removes only that redundant replay when exact current bytes prove the predecessor is unchanged.
 
-Therefore the next revision stays on lineage `1a` and advances the direct revision rather than creating a sibling lineage or architecture-generation restart.
+That historical decision stayed on lineage `1a` rather than creating a sibling lineage or architecture-generation restart. Under the current branch rule, source/design revision advancement alone no longer implies a new `mvp-*` branch; exact commit ancestry carries ordinary revision history.
 
 ## Relationship to prior and legacy lineages
 
@@ -76,12 +78,14 @@ C1 directory Merkle is rejected by its 100k-wide sparse-update sibling fanout. C
 
 The managed `tmcp/` scratch branch used by tooling remains transport bookkeeping and does not define tdev development-lineage naming.
 
-## Naming rule
+## Naming and branch rule
 
-Use:
+Existing development-direction refs use names such as:
 
 ```text
-mvp-<generation><lineage>-<revision>
+mvp-<generation><lineage>-<direction-id>
 ```
 
-The generation changes only for an intentional architecture-foundation restart. The lineage letter distinguishes sibling implementations in one generation. The revision advances within one direct code line. Exact ancestry belongs here rather than in an ever-growing name.
+The full `mvp-*` name identifies a development direction. Its suffix is an opaque direction label, **not** a counter that advances for every Design, verification checkpoint, release-like milestone, or ordinary commit. Exact source revision belongs to Git commit ancestry.
+
+While direction is unchanged, the active ref named by `WORKBOARD.md` is fast-forwarded in place. A new `mvp-*` ref requires an explicit user/owner direction-change decision and a recorded divergence rationale here, including the retained predecessor. Generation changes remain reserved for an intentional architecture-foundation restart; lineage letters distinguish explicit sibling directions in one generation. Tool-owned `tmcp/*` branches remain scratch transport and never establish development-lineage identity.

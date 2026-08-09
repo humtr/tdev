@@ -14,6 +14,14 @@ Before a change, read:
 
 Do not infer authority from names, conventions, generated output, or passing tests.
 
+## Development branch discipline
+
+- The active `mvp-*` ref named by `WORKBOARD.md` / `LINEAGE.md` is a **development-direction branch**, not a design, release, or verification checkpoint.
+- While the development direction is unchanged, new designs, implementation commits, evidence, and verification updates fast-forward the same active `mvp-*` branch.
+- A Design number change, `accepted`/`verified` transition, milestone completion, or ordinary source revision does **not** by itself authorize a new `mvp-*` branch.
+- Create a new `mvp-*` development branch only after an explicit user/owner decision that the development direction itself changes; record the divergence and retained predecessor in `LINEAGE.md` before or with that branch publication.
+- Previously superseded `mvp-*` direction branches are reference-only and are not modified. Tool-owned `tmcp/*` worktree branches are transport bookkeeping and do not define development direction.
+
 ## Normative owners
 
 | Contract | Owner |

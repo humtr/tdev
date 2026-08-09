@@ -4,7 +4,8 @@
 
 - Repository: `humtr/tdev`
 - Development identity / publication ref: `mvp-1a-7`
-- Direct code parent: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
+- Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - Knowledge inputs: verified `mvp-1a-6` / Design 0009 plus verified D0010 contract, checked v3 evidence, and independent Ubuntu/POSIX validation
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
