@@ -14,6 +14,7 @@
     "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent",
     "bench": "node bench/control-plane.mjs",
     "bench:authority": "node bench/authority-boundary.mjs",
+    "bench:semantic": "node bench/semantic-authority-representation.mjs",
     "bench:persistence": "node bench/persistence-hot-path.mjs",
     "bench:compare": "node bench/compare-development-states.mjs"
   }
