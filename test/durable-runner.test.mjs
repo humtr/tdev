@@ -181,6 +181,31 @@ test('durable runner rejects unknown options and missing Cases before dispatch',
   assert.equal(executorCalls, 0);
 });
 
+test('result-only settlement capacity failure leaves the durable running predecessor authoritative', async () => {
+  const caseId = 'durable-capacity-result-only';
+  const plan = planWithWork([{ id: 'a' }]);
+  const sizingEngine = new CaseEngine({ caseId, plan });
+  sizingEngine.startAttempt('a', 'executor');
+  const runningBytes = Buffer.byteLength(canonicalJson(sizingEngine.snapshot()), 'utf8');
+  const store = new BoundedMemorySnapshotStore(runningBytes + 256);
+  const repository = new CaseRepository(store);
+  await repository.create({ caseId, plan });
+  let executorCalls = 0;
+
+  await assert.rejects(
+    runDurableCase(repository, caseId, async ({ baseDigest, task }) => {
+      executorCalls += 1;
+      return resultFor(baseDigest, task, 'x'.repeat(4_096));
+    }),
+    (error) => error?.code === 'store_snapshot_too_large',
+  );
+
+  assert.equal(executorCalls, 1);
+  const stored = await store.load(caseId);
+  assert.equal(stored.taskStates.a.state, 'running');
+  assert.equal(stored.attempts['a.1'].state, 'running');
+});
+
 test('external-effect capacity admission rejects before dispatch and releases its Claim', async () => {
   const caseId = 'durable-capacity-effect';
   const plan = effectPlan('reconcilable-external', 1);

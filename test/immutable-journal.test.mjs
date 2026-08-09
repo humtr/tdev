@@ -504,22 +504,26 @@ test('ImmutableJournalSnapshotStore warm materialization rejects non-regular bas
   await assert.rejects(store.load(caseId), (error) => error?.code === 'store_journal_file_type');
 });
 
-test('ImmutableJournalSnapshotStore injected pre-publication failure leaves no successor', async (t) => {
-  const directory = await temporaryDirectory(t);
-  const caseId = 'immutable-fault-before-publish';
-  const states = sequence(caseId);
-  await new ImmutableJournalSnapshotStore(directory).create(states.initial);
-  const faulted = new ImmutableJournalSnapshotStore(directory, {
-    faultInjector(stage) {
-      if (stage === 'final_publish') throw new Error('injected final publication failure');
-    },
-  });
+test('ImmutableJournalSnapshotStore injected pre-publication failures leave no successor', async (t) => {
+  for (const faultStage of ['temporary_write', 'file_sync', 'final_publish']) {
+    await t.test(faultStage, async (t) => {
+      const directory = await temporaryDirectory(t);
+      const caseId = `immutable-fault-before-publish-${faultStage}`;
+      const states = sequence(caseId);
+      await new ImmutableJournalSnapshotStore(directory).create(states.initial);
+      const faulted = new ImmutableJournalSnapshotStore(directory, {
+        faultInjector(stage) {
+          if (stage === faultStage) throw new Error(`injected ${faultStage} failure`);
+        },
+      });
 
-  await assert.rejects(
-    faulted.compareAndSwap(caseId, states.initial.caseRevision, states.dispatchPending),
-    (error) => error?.code === 'store_write_failed',
-  );
-  assert.deepEqual(await new ImmutableJournalSnapshotStore(directory).load(caseId), states.initial);
+      await assert.rejects(
+        faulted.compareAndSwap(caseId, states.initial.caseRevision, states.dispatchPending),
+        (error) => error?.code === 'store_write_failed',
+      );
+      assert.deepEqual(await new ImmutableJournalSnapshotStore(directory).load(caseId), states.initial);
+    });
+  }
 });
 
 test('ImmutableJournalSnapshotStore preserves ambiguity after injected directory-sync failure', async (t) => {
