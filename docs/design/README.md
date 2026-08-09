@@ -9,6 +9,6 @@
 | 0005 | Immutable Expected-Revision Journal CAS | verified | `mvp-1a-3` opt-in immutable local journal, full replay, and cross-process commit-slot CAS |
 | 0006 | Persistence Hot-Path Measurement Before Acceleration | verified | exact D0005 replay/read/fingerprint profiling and follow-on decision gates |
 | 0007 | Verified Immutable-Journal Materialization Reuse | verified | `mvp-1a-4` exact-byte-gated disposable materialization reuse over unchanged D0005 authority |
-| 0008 | Authority-Boundary Verification and Durability Admission | draft | `mvp-1a-5` candidate gate for complete authority-path measurement, aggregate durable admission, legacy namespace hardening, commit ambiguity, and checkpoint/Claim liveness |
+| 0008 | Authority-Boundary Verification and Durability Admission | accepted | `mvp-1a-5` bounded gate for complete authority-path measurement, aggregate durable admission, legacy namespace hardening, commit ambiguity, and checkpoint/Claim liveness |
 
-`draft` does not authorize Class 2 production code. `verified` applies only to the source/container evidence declared in each record. Provider adapters, distributed ownership, and current-client behavior require independent evidence.
+`accepted` authorizes only the implementation scope frozen in the design and is not a verification claim. `verified` applies only to the source/container evidence declared in each record. Provider adapters, distributed ownership, and current-client behavior require independent evidence.

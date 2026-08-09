@@ -3,20 +3,20 @@
 ## Current baseline
 
 - Repository: `humtr/tdev`
-- Development identity / publication ref: `mvp-1a-4`
-- Direct code parent: GitHub `mvp-1a-3` commit `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
+- Development identity / publication ref: `mvp-1a-5`
+- Direct code parent: GitHub `mvp-1a-4` commit `1ff7c5d321958df725497d4e3a2649e210b029db`
 - Knowledge inputs: verified `mvp-1a-3`, Design 0006 phase-zero persistence profiling, and isolated V/S research evidence
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Current verified design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
-- Next Class 2 planning record: `docs/design/0008-authority-boundary-verification-and-durability-admission.md` (`draft`; no implementation authority)
+- Active Class 2 design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md` (`accepted`; implementation authorized only for its bounded G1-G5 gate)
 
 ## Active work
 
-Design 0008 — Authority-Boundary Verification and Durability Admission is open as a `draft` Class 2 planning gate on exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. It does not authorize production code while draft. The gate is intended to measure the complete Case authority path and close four current gaps before semantic-representation work: aggregate durable admission, legacy-journal committed-namespace fail-closed parity, deterministic `store_commit_ambiguous` fault evidence, and settlement-checkpoint/Claim liveness.
+Design 0008 — Authority-Boundary Verification and Durability Admission is `accepted` on the `mvp-1a-5` lineage descended from exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. Its six acceptance questions are frozen in the design. Implementation is limited to complete authority-path instrumentation, aggregate durable admission, legacy-journal committed-namespace fail-closed parity, deterministic immutable-publication fault evidence, and settlement-checkpoint/Claim liveness recovery evidence.
 
-D0007 remains the latest verified implementation design. Remote publication and provider/runtime work are separate completion layers and do not turn D0008 planning or research evidence into implemented source semantics.
+D0007 remains the latest verified implementation design until D0008's acceptance matrix and full source gate close. D0008 does not authorize semantic-tree/root migration, Git OID authority, provider/distributed durability, history GC, or snapshot-schema change.
 
 ## Verified work
 
@@ -85,15 +85,14 @@ D0007 remains the latest verified implementation design. Remote publication and 
 
 ## Next highest-ROI gates
 
-These are ordered follow-on gates, not implemented claims. D0008 remains `draft` until its acceptance questions are closed.
+These are ordered follow-on gates, not verified implementation claims.
 
-1. close D0008's design questions for aggregate durable admission, settlement-checkpoint/Claim recovery, legacy committed-namespace compatibility, deterministic publication fault seams, and complete authority-path measurement;
-2. once D0008 is accepted, implement and verify its bounded hardening/instrumentation work without changing semantic tree authority;
-3. use verified full-path evidence to decide whether a separate Class 2 semantic-authority design should compare the current full tree with a repo-independent bounded-fanout content-addressed structure, a trusted transactional root/head, or another measured alternative;
-4. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
-5. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
-6. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
-7. add authenticated Termux/Git operation adapters, one fenced publication lane, and versioned MCP/client qualification.
+1. implement and verify D0008's accepted bounded hardening/instrumentation gate without changing semantic tree authority;
+2. use verified full-path evidence to decide whether a separate Class 2 semantic-authority design should compare the current full tree with a repo-independent bounded-fanout content-addressed structure, a trusted transactional root/head, or another measured alternative;
+3. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
+4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
+6. add authenticated Termux/Git operation adapters, one fenced publication lane, and versioned MCP/client qualification.
 
 A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration remains a separate authority/migration design. D0008 may produce evidence for that decision but must not smuggle it in as an optimization.
 

@@ -1,13 +1,13 @@
 # Design 0008 — authority-boundary verification and durability admission
 
-- Status: draft
+- Status: accepted
 - Class: 2
-- Target development identity: `mvp-1a-5` candidate; no implementation identity is established by this draft
+- Target development identity: `mvp-1a-5`; implementation is authorized only for the bounded G1-G5 gate below and remains unverified until its acceptance matrix closes
 - Direct code parent: `mvp-1a-4` / `1ff7c5d321958df725497d4e3a2649e210b029db`
 - Evidence date: 2026-08-09
 - Affected owners: `WORKBOARD.md`, `README.md`, `LINEAGE.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `docs/IMPLEMENTATION_REPORT.md`; prospective behavior changes may later require `docs/SPEC.md` and `docs/PROTOCOL.md`
 
-> Draft authority: this record identifies the next Class 2 verification/admission gate and its known problems. It does **not** authorize production code or change the current semantic identity, snapshot schema, persistence format, migration rule, rollback rule, or Git publication contract. Under `SDD.md`, code begins only after this record is accepted or replaced by a more precise accepted design.
+> Accepted authority: this record authorizes only the bounded G1-G5 verification, admission, recovery, namespace-hardening, and test-instrumentation work below. It does **not** authorize a semantic-tree/root migration, snapshot schema change, durable-format rewrite, Git OID authority, provider/distributed claim, history GC, or rollback/downgrade change. `verified` still requires the acceptance matrix in section 9 to close with observed source evidence.
 
 ## 1. One-line definition
 
@@ -41,16 +41,14 @@ These are source facts in exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029
 
 The immediate architectural risk is broader than `promotion.mjs` copying one flat tree. The current persistence/checkpoint boundary packages full semantic state into one Case snapshot, so a touched-path Git candidate alone cannot establish end-to-end Promotion or persistence scalability. The next gate should measure and harden that complete boundary before choosing a new semantic representation.
 
-### 3.3 Unknowns that remain open in this draft
+### 3.3 Remaining unknowns outside this accepted gate
 
-- the exact compositional durable-admission rule and which owner must expose a store-specific capacity to admission;
-- the exact recovery rule after settlement state is mutated in memory but its durable checkpoint fails while a cross-Case lease remains held;
-- deterministic result of each file publication fault boundary under controlled injection, including directory-sync ambiguity;
 - the best future semantic authority representation: current full tree, repo-independent bounded-fanout persistent structure, trusted transactional root/head, or another model;
-- migration, rollback, mixed-version writer, repair, GC, and anti-rollback contracts for any authority representation change;
-- real repository/context/model/provider costs outside the current source slice.
+- migration, rollback, mixed-version writer, repair, GC, and anti-rollback contracts for any future authority representation change;
+- real repository/context/model/provider costs outside the current source slice;
+- production/distributed Claim ownership, provider durability, and remote publication behavior.
 
-These unknowns block acceptance of an authority-representation migration. They do not block documenting current gaps or building non-semantic measurement/fault seams after this design is made precise enough for acceptance.
+Those questions remain explicitly outside D0008. The six questions that formerly blocked D0008 acceptance are closed by section 10; they authorize only the bounded implementation and evidence work in this record.
 
 ## 4. Concrete problem
 
@@ -64,9 +62,9 @@ The prior next-step framing treated touched-path/content-addressed Promotion in 
 
 Optimizing representation before those boundaries are measured and admitted risks making a faster structure around an authority model whose durability/recovery contract is still incomplete.
 
-## 5. Draft decision: one verification and durability-admission gate
+## 5. Accepted decision: one verification and durability-admission gate
 
-D0008, if accepted, will own one bounded gate with five independent workstreams. They may be implemented in separate small commits, but none may silently change semantic authority representation.
+D0008 owns one bounded gate with five independent workstreams. They may be implemented in separate small commits, but none may silently change semantic authority representation.
 
 ### G1 — complete authority-path instrumentation
 
@@ -89,9 +87,11 @@ Report operation counts and bytes as primary evidence. Wall-clock and RSS are se
 
 ### G2 — aggregate durable-admission closure
 
-Before acceptance, this design must choose one exact rule proving that a transition accepted by the durable runner cannot create a snapshot that the configured store is structurally unable to persist under its declared capacity. Candidate solutions must keep one owner and must not duplicate store truth in arbitrary scheduler policy.
+The SnapshotStore instance owns physical materialized-snapshot capacity. Built-in stores expose an exact capacity assertion over the same canonical snapshot bytes they persist; unbounded memory storage reports no finite ceiling. The Case/Plan contract, snapshot, and semantic digests do not copy or hash the deployment capacity.
 
-Cheapest falsifier: construct individually legal Plan/result/Event/receipt/tree values whose combined snapshot exceeds a smaller configured durable-store bound, then prove the accepted rule rejects before irreversible dispatch/effect or proves the store can persist the transition.
+Every durable checkpoint candidate is checked exactly before CAS. For an external-effect Task, the durable runner additionally performs a pre-dispatch preview after authority/Claim admission but before the real Attempt mutation: it forks the committed engine, simulates the proposed running Attempt with the same identity/lease, and checks the running snapshot plus maximum contract-bounded success/failure/reconciliation successors against the store owner. Only a passing preview may create/checkpoint the real Attempt and then invoke the executor. Result-only Tasks need no future-effect reserve because a rejected settlement has no irreversible external effect; their exact start/settlement checkpoints still fail before dispatch or leave the durable predecessor authoritative. A durable store that cannot expose capacity may continue result-only operation, but external-effect dispatch fails closed with `store_capacity_unknown`.
+
+Cheapest falsifier: construct individually legal Plan/result/Event/receipt/tree values whose combined running/settlement snapshot exceeds a smaller configured durable-store bound and prove the external executor receives zero calls, any acquired Claim is released, and the durable Case remains at its pre-dispatch revision.
 
 ### G3 — legacy committed-namespace fail-closed parity
 
@@ -142,13 +142,14 @@ A Git tree/commit OID must not become Case semantic identity by implication. A f
 
 ## 8. Compatibility, migration, rollback, and deployment
 
-This draft changes no durable format and authorizes no migration yet.
+This accepted gate changes no durable schema or record format. It authorizes only the behavioral hardening and non-authoritative instrumentation defined here.
 
 - D0005 legacy-v1 -> immutable-v2 cutover and downgrade barrier remain unchanged.
 - D0007 cache rollback remains data-compatible with D0005 bytes.
-- A legacy namespace validation fix should reject states that the protocol already classifies as invalid; exact compatibility impact still requires focused fixtures before acceptance.
-- Aggregate durable admission may change which oversized-yet-component-valid transitions are accepted; the exact compatibility and error contract must be frozen before implementation.
-- Test-only fault seams must have no production state schema.
+- Legacy Journal states that were already invalid under the fail-closed protocol but happened to be ignored by enumeration now fail deterministically: exact legacy delta names on non-regular entries use `store_journal_file_type`; other non-temporary committed-looking `delta-*` names use `store_journal_filename`; `delta-from-*` keeps `store_journal_format_upgrade_required`; dot-temporary files remain non-authoritative.
+- Aggregate durable admission intentionally rejects an external-effect dispatch with `store_snapshot_too_large` when a known finite store cannot fit the maximum supported successor, or `store_capacity_unknown` when the store cannot expose a capacity assertion. Clean in-limit histories and result-only semantics are unchanged.
+- Test-only fault seams have no production state schema and default to no injected fault.
+- Settlement-checkpoint failure does not change snapshot schema or Claim format; recovery uses the existing durable predecessor plus `reopen:true` semantics and current Claim fencing.
 - No Cloudflare, Git publication, MCP, provider, or distributed migration claim is part of D0008.
 
 Any future semantic root/head migration is a separate Class 2 design and must specify forward migration, mixed-version writer exclusion, rollback/downgrade barriers, corruption/repair, GC, and provider independence.
@@ -169,16 +170,14 @@ Any future semantic root/head migration is a separate Class 2 design and must sp
 | historical integrity | Designs 0001-0007 and existing evidence files remain byte-identical |
 | provider boundary | unexecuted provider/distributed layers remain `unknown`, not inferred from local tests |
 
-## 10. Acceptance gate for this draft
+## 10. Accepted design decisions — six acceptance questions closed
 
-Before status may move from `draft` to `accepted`, close these design questions explicitly:
-
-1. Which owner exposes the effective durable snapshot capacity to pre-commit admission, and how is that value bound to the durable runner/store instance without becoming semantic Case identity by accident?
-2. At what exact transition boundary is aggregate snapshot capacity checked so result-only and external-effect paths remain safe?
-3. What exact error and compatibility behavior applies to malformed/non-regular legacy committed namespace entries that older source silently ignored?
-4. What exact state/lease observation and recovery sequence follows a settlement checkpoint exception?
-5. What deterministic fault seam proves `store_commit_ambiguous` without weakening the production publication primitive?
-6. Which full-path measurements are sufficient to decide whether a separate semantic-authority representation design should open next?
+1. **Capacity owner and binding.** The concrete SnapshotStore instance remains the sole owner of materialized-snapshot capacity. Built-in stores implement `assertSnapshotCapacity(snapshot)` using their existing canonical serialization and configured `maxBytes`; `MemorySnapshotStore` is explicitly unbounded. `CaseRepository`/runners may invoke that capability but do not copy `maxBytes` into Plan, CaseContract, snapshot, or any semantic digest. Third-party stores without the capability are treated as capacity-unknown only where external-effect pre-dispatch proof is required.
+2. **Exact admission boundary.** Every durable checkpoint candidate is capacity-checked immediately before store CAS. External-effect dispatch has an earlier zero-effect gate: after authority and Claim acquisition, but before mutating the real Case, the runner previews the proposed running Attempt on a restored clone and checks (a) its running snapshot and (b) the largest contract-valid success, executor-failure/invalid-result, and later reconciliation successor reachable without another external dispatch. The preview uses the actual graph/state transitions with maximum bounded effect-receipt/evidence/error payloads, so blocker/Event growth is included. Failure releases the newly acquired Claim and invokes no executor. Passing preview is followed by the existing real Attempt mutation -> durable running checkpoint -> executor sequence. Result-only Tasks require only exact checkpoint checks because no irreversible external effect precedes a later capacity rejection.
+3. **Legacy namespace compatibility.** Dot-temporary files stay ignored. `delta-from-*` remains an explicit format-upgrade error. A recognized legacy `delta-<16 digits>.json` occupying a non-regular entry fails `store_journal_file_type`. Any other non-temporary committed-looking legacy `delta-*` name fails `store_journal_filename`. Existing recognized record parsing/replay errors are unchanged. No bytes are migrated or rewritten; only previously ignored protocol-invalid namespace states become fail-closed.
+4. **Settlement checkpoint / Claim recovery.** If settlement mutates memory and its checkpoint throws, that invocation must not release the Attempt lease. The durable store still owns the predecessor snapshot. A later owner loads through `CaseRepository.load(...,{reopen:true})`; reopen/reconcile is CAS-persisted before the engine is returned. If that durable reopen makes the prior Attempt terminal (result-only, or retryable idempotent-external under the existing rules), the runner may then release its lease and continue. If uncertainty requires `reconciling`, the lease remains current until an explicit, fenced reconciliation reaches a terminal Attempt and that successor is durably checkpointed; only then may release occur. No unconditional `finally` release is legal.
+5. **Deterministic publication fault seam.** `ImmutableJournalSnapshotStore` gains an instance-local, non-persistent `faultInjector(stage)` test seam with named stages adjacent to temporary write, file sync, final no-replace publication, case-directory sync, and post-commit cleanup. The default is null and leaves production primitives unchanged. An injected failure before final publication must produce a known write failure with no successor slot. A failure at directory sync after final publication must preserve `store_commit_ambiguous`; tests must re-read the authoritative namespace to determine whether the successor exists before any retry. Cleanup injection remains best-effort after a durably established successor and cannot retroactively turn success into failure.
+6. **Measurements sufficient to open the next design.** A checked authority-boundary harness must separate Plan/base construction, ordinary result acceptance, Promotion construction, candidate validation/digest, Promotion acceptance, full Case snapshot construction/serialization, store preparation/CAS, cold restore, and optional Git projection. It must report operation/byte counts as primary evidence and wall/RSS as secondary evidence over sparse 1/8/128-touch workloads at increasing tree sizes up to the current 100,000-entry policy ceiling, with both wide-flat and deep-path shapes plus a broad-update control, explicit stop gates, and semantic equality to the current oracle. Opening a later semantic-authority representation design requires reproduced evidence that sparse changes still force total-tree/total-snapshot authority work at one or more current semantic/persistence stages across increasing sizes; no numeric speedup threshold and no Git-OID result by itself is sufficient to accept such a migration.
 
 ## 11. Rejected shortcuts
 
