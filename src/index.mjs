@@ -18,6 +18,14 @@ export {
   GitProjectionAdapter,
 } from './git-projection.mjs';
 export {
+  GIT_REMOTE_IDENTITY_DOMAIN,
+  GIT_REMOTE_PUBLICATION_INTENT_DOMAIN,
+  GIT_REMOTE_PUBLICATION_PROFILE,
+  GIT_REMOTE_PUBLICATION_RECEIPT_DOMAIN,
+  GitRemotePublicationAdapter,
+  runRemoteGitCommand,
+} from './git-remote-publication.mjs';
+export {
   DEFAULT_LIMITS,
   DEFAULT_PATH_POLICY,
   authorityDecision,

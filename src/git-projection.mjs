@@ -577,6 +577,12 @@ export class GitProjectionAdapter {
     return inspected;
   }
 
+  async validateCandidate(rawCandidate) {
+    const candidate = validateCandidate(rawCandidate);
+    await this.#assertCandidateRepository(candidate);
+    return candidate;
+  }
+
   async reconcilePublication(rawCandidate) {
     const candidate = validateCandidate(rawCandidate);
     await this.#assertCandidateRepository(candidate);
