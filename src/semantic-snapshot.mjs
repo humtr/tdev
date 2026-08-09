@@ -99,8 +99,8 @@ export function createSemanticSnapshot(input) {
   if (typeof input.caseId !== 'string' || input.caseId.length === 0) throw new ContractError('invalid_case_id', 'Semantic snapshot caseId is invalid');
   assertSafeInteger(input.caseRevision, 'semantic snapshot caseRevision');
   assertSafeInteger(input.eventSequence, 'semantic snapshot eventSequence');
-  if (!Array.isArray(input.events) || !Array.isArray(input.taskStates) || !Array.isArray(input.attempts) || !Array.isArray(input.receipts)) {
-    throw new ContractError('invalid_semantic_snapshot', 'Semantic snapshot collections must be arrays');
+  if (!Array.isArray(input.events) || !isPlainRecord(input.taskStates) || !isPlainRecord(input.attempts) || !isPlainRecord(input.receipts)) {
+    throw new ContractError('invalid_semantic_snapshot', 'Semantic snapshot events must be an array and state collections must be records');
   }
   const identity = deepFreeze(snapshotIdentity(input));
   return deepFreeze({ ...identity, snapshotDigest: typedDigest(SEMANTIC_SNAPSHOT_DOMAIN, identity) });

@@ -28,6 +28,20 @@ import { definePlan, isCompiledPlan, serializePlan } from './plan.mjs';
 import { normalizeTaskResult } from './results.mjs';
 import { promote, validateTree } from './promotion.mjs';
 import {
+  SEMANTIC_PROFILE,
+  SemanticRadixTree,
+  buildSemanticTree,
+  hydrateSemanticTree,
+  semanticPlanBinding,
+  validateSemanticPlanBinding,
+} from './semantic-authority.mjs';
+import { promoteSemantic } from './semantic-promotion.mjs';
+import {
+  SEMANTIC_SNAPSHOT_SCHEMA_VERSION,
+  createSemanticSnapshot,
+  validateSemanticSnapshot,
+} from './semantic-snapshot.mjs';
+import {
   ATTEMPT_STATES,
   CASE_STATES,
   NONTERMINAL_ATTEMPT_STATES,
@@ -614,14 +628,35 @@ export class CaseEngine {
   get taskStates() { return this._taskStatesView; }
   get attempts() { return this._attemptsView; }
   get receipts() { return this._receiptsView; }
+  get canonicalTree() {
+    if (this._semanticMode === true) {
+      if (this._canonicalTreeCache === null) {
+        this._canonicalTreeCache = validateTree(this._semanticCanonicalTree.materialize(), this.caseContract);
+      }
+      return this._canonicalTreeCache;
+    }
+    return this._canonicalTreeCache;
+  }
+  set canonicalTree(value) { this._canonicalTreeCache = value; }
+  get semanticAuthority() {
+    return this._semanticMode === true ? deepFreeze(canonicalClone(this._semanticAuthority)) : null;
+  }
+  get semanticRootDigest() { return this._semanticMode === true ? this._semanticCanonicalTree.rootDescriptor.rootDigest : null; }
+  get isSemanticV3() { return this._semanticMode === true; }
 
-  constructor({ caseId, plan, caseContract = {} }) {
+  constructor({ caseId, plan, caseContract = {}, semanticAuthority = null }) {
     assertIdentifier(caseId, 'caseId');
     this.caseId = caseId;
     this._eventReservation = null;
     this._mutationFrame = null;
     this._validatedEventSequence = 0;
     this._canonicalDigest = null;
+    this._canonicalTreeCache = null;
+    this._semanticMode = false;
+    this._semanticBaseTree = null;
+    this._semanticCanonicalTree = null;
+    this._semanticPlanBinding = null;
+    this._semanticAuthority = null;
     this._claimHoldingTaskIdSet = new Set();
     this.caseContract = normalizeCaseContract(caseContract.contractDigest ? {
       caseGrant: caseContract.caseGrant,
@@ -636,8 +671,37 @@ export class CaseEngine {
     this.caseRevision = 0;
     this.eventSequence = 0;
     installCollections(this);
-    this.canonicalTree = validateTree(canonicalClone(this.plan.baseTree), this.caseContract);
-    this._canonicalDigest = this.plan.baseDigest;
+    if (semanticAuthority === null) {
+      this.canonicalTree = validateTree(canonicalClone(this.plan.baseTree), this.caseContract);
+      this._canonicalDigest = this.plan.baseDigest;
+    } else {
+      assertRecordShape(semanticAuthority, ['profile'], ['authorityEpoch', 'migrationSource', 'baseTree'], 'semanticAuthority');
+      if (semanticAuthority.profile !== SEMANTIC_PROFILE) {
+        throw new ContractError('unsupported_semantic_profile', `Unsupported semantic profile ${semanticAuthority.profile}`);
+      }
+      const authorityEpoch = semanticAuthority.authorityEpoch ?? 1;
+      assertSafeInteger(authorityEpoch, 'semanticAuthority.authorityEpoch', { min: 1 });
+      const baseSemantic = semanticAuthority.baseTree instanceof SemanticRadixTree
+        ? semanticAuthority.baseTree
+        : buildSemanticTree(this.plan.baseTree, this.caseContract);
+      const materializedBase = baseSemantic.materialize();
+      if (digest(materializedBase) !== this.plan.baseDigest) {
+        throw new ContractError('semantic_plan_base_mismatch', 'Semantic base root does not match the Plan baseDigest');
+      }
+      this._semanticMode = true;
+      this._semanticBaseTree = baseSemantic;
+      this._semanticCanonicalTree = baseSemantic;
+      this._semanticPlanBinding = semanticPlanBinding(this.plan, baseSemantic.rootDescriptor);
+      this._semanticAuthority = deepFreeze({
+        profile: SEMANTIC_PROFILE,
+        authorityEpoch,
+        migrationSource: semanticAuthority.migrationSource ?? null,
+        baseRoot: baseSemantic.rootDescriptor,
+        canonicalRoot: baseSemantic.rootDescriptor,
+      });
+      this._canonicalTreeCache = null;
+      this._canonicalDigest = baseSemantic.rootDescriptor.rootDigest;
+    }
     for (const taskId of this.plan.taskOrder) {
       this._taskStates[taskId] = {
         state: 'pending',
@@ -660,13 +724,17 @@ export class CaseEngine {
 
   static restore(inputSnapshot, options = {}) {
     if (!isPlainRecord(inputSnapshot)) throw new ContractError('invalid_snapshot', 'Snapshot must be a record');
-    assertRecordShape(options, [], ['reopen'], 'restore options');
+    assertRecordShape(options, [], ['reopen', 'semanticResolver'], 'restore options');
     if (Object.hasOwn(options, 'reopen') && typeof options.reopen !== 'boolean') {
       throw new ContractError('invalid_restore_option', 'restore.reopen must be boolean');
+    }
+    if (Object.hasOwn(options, 'semanticResolver') && options.semanticResolver !== null && typeof options.semanticResolver !== 'function') {
+      throw new ContractError('invalid_restore_option', 'restore.semanticResolver must be a function or null');
     }
     const snapshot = Object.hasOwn(inputSnapshot, 'schemaVersion')
       ? canonicalClone(inputSnapshot)
       : migrateV1Snapshot(inputSnapshot);
+    if (snapshot.schemaVersion === SEMANTIC_SNAPSHOT_SCHEMA_VERSION) return restoreV3Snapshot(snapshot, options);
     return restoreV2Snapshot(snapshot, options);
   }
 
@@ -683,8 +751,33 @@ export class CaseEngine {
 
   snapshot() {
     this.#assertCommittedInvariants();
+    if (this._semanticMode === true) {
+      return publicJsonClone(createSemanticSnapshot({
+        schemaVersion: SEMANTIC_SNAPSHOT_SCHEMA_VERSION,
+        caseId: this.caseId,
+        caseState: this.caseState,
+        caseRevision: this.caseRevision,
+        eventSequence: this.eventSequence,
+        plan: this._semanticPlanBinding,
+        caseContract: this.caseContract,
+        events: this._events,
+        semanticAuthority: this._semanticAuthority,
+        taskStates: this._taskStates,
+        attempts: this._attempts,
+        receipts: this._receipts,
+      }));
+    }
     const base = this.#snapshotWithoutDigest();
     return publicJsonClone({ ...base, snapshotDigest: snapshotDigest(base) });
+  }
+
+  semanticObjectRecords() {
+    if (this._semanticMode !== true) return [];
+    const records = new Map();
+    for (const record of [...this._semanticBaseTree.objectRecords(), ...this._semanticCanonicalTree.objectRecords()]) {
+      records.set(record.digest, record);
+    }
+    return [...records.values()].sort((left, right) => compareText(left.digest, right.digest)).map((record) => canonicalClone(record));
   }
 
   #snapshotWithoutDigest() {
@@ -1024,12 +1117,8 @@ export class CaseEngine {
     }));
   }
 
-  createPromotionResult(taskId = this.plan.promotionTaskId) {
-    const task = this.plan.tasksById[taskId];
-    if (!task || task.kind !== 'promotion') {
-      throw new ContractError('not_promotion', `Task ${taskId} is not the Promotion Task`);
-    }
-    const acceptedResults = task.dependencies.map((dependency) => {
+  #promotionInputs(task) {
+    return task.dependencies.map((dependency) => {
       const dependencyTask = this.plan.tasksById[dependency];
       const taskState = this._taskStates[dependency];
       if (taskState.state !== 'succeeded' || taskState.acceptedResult === null) {
@@ -1042,7 +1131,24 @@ export class CaseEngine {
         effectKey: this.effectKey(dependency),
       };
     });
-    return promote(this.plan.baseTree, acceptedResults, this.plan.baseDigest, this.caseContract);
+  }
+
+  #semanticPromotionCandidate(task) {
+    return promoteSemantic(
+      this._semanticBaseTree,
+      this.#promotionInputs(task),
+      this.plan.baseDigest,
+      this.caseContract,
+    );
+  }
+
+  createPromotionResult(taskId = this.plan.promotionTaskId) {
+    const task = this.plan.tasksById[taskId];
+    if (!task || task.kind !== 'promotion') {
+      throw new ContractError('not_promotion', `Task ${taskId} is not the Promotion Task`);
+    }
+    if (this._semanticMode === true) return this.#semanticPromotionCandidate(task).result;
+    return promote(this.plan.baseTree, this.#promotionInputs(task), this.plan.baseDigest, this.caseContract);
   }
 
   acceptResult(envelope, options = {}) {
@@ -1057,6 +1163,8 @@ export class CaseEngine {
     this.#assertResultEnvelopeIdentity(envelope, attempt);
 
     let acceptedResult;
+    let promotedTree = null;
+    let promotedSemanticTree = null;
     if (task.kind === 'work') {
       acceptedResult = normalizeTaskResult(task, envelope.result, {
         baseDigest: this.plan.baseDigest,
@@ -1068,16 +1176,23 @@ export class CaseEngine {
       if (!isPlainRecord(envelope.result) || envelope.result.kind !== 'promotion' || envelope.result.baseDigest !== this.plan.baseDigest) {
         throw new ContractError('invalid_promotion_result', 'Promotion returned an invalid result');
       }
-      const expected = this.createPromotionResult(task.id);
-      if (digest(expected) !== digest(envelope.result)) {
-        throw new ContractError('promotion_result_mismatch', 'Promotion result does not match deterministic recomputation');
+      if (this._semanticMode === true) {
+        const candidate = this.#semanticPromotionCandidate(task);
+        if (digest(candidate.result) !== digest(envelope.result)) {
+          throw new ContractError('promotion_result_mismatch', 'Promotion result does not match deterministic semantic recomputation');
+        }
+        acceptedResult = canonicalClone(envelope.result);
+        promotedSemanticTree = candidate.semanticTree;
+      } else {
+        const expected = this.createPromotionResult(task.id);
+        if (digest(expected) !== digest(envelope.result)) {
+          throw new ContractError('promotion_result_mismatch', 'Promotion result does not match deterministic recomputation');
+        }
+        acceptedResult = canonicalClone(envelope.result);
+        promotedTree = validateTree(canonicalClone(acceptedResult.tree), this.caseContract);
       }
-      acceptedResult = canonicalClone(envelope.result);
     }
     const acceptedDigest = digest(acceptedResult);
-    const promotedTree = task.kind === 'promotion'
-      ? validateTree(canonicalClone(acceptedResult.tree), this.caseContract)
-      : null;
 
     if (attempt.state === 'succeeded') {
       if (attempt.resultDigest === acceptedDigest) {
@@ -1107,8 +1222,18 @@ export class CaseEngine {
     taskState.error = null;
     taskState.blockedBy = [];
     if (task.kind === 'promotion') {
-      this.canonicalTree = promotedTree;
-      this._canonicalDigest = acceptedResult.treeDigest;
+      if (this._semanticMode === true) {
+        this._semanticCanonicalTree = promotedSemanticTree;
+        this._semanticAuthority = deepFreeze({
+          ...this._semanticAuthority,
+          canonicalRoot: promotedSemanticTree.rootDescriptor,
+        });
+        this._canonicalTreeCache = null;
+        this._canonicalDigest = promotedSemanticTree.rootDescriptor.rootDigest;
+      } else {
+        this.canonicalTree = promotedTree;
+        this._canonicalDigest = acceptedResult.treeDigest;
+      }
       this.caseState = 'succeeded';
     }
     this._event('attempt_succeeded', {
@@ -1611,8 +1736,10 @@ export class CaseEngine {
       caseRevision: this.caseRevision,
       eventSequence: this.eventSequence,
       eventLength: this._events.length,
-      canonicalTree: this.canonicalTree,
+      canonicalTreeCache: this._canonicalTreeCache,
       canonicalDigest: this._canonicalDigest,
+      semanticCanonicalTree: this._semanticCanonicalTree,
+      semanticAuthority: this._semanticAuthority,
       validatedEventSequence: this._validatedEventSequence,
     };
     const frame = {
@@ -1636,8 +1763,10 @@ export class CaseEngine {
       this.caseRevision = before.caseRevision;
       this.eventSequence = before.eventSequence;
       this._events.length = before.eventLength;
-      this.canonicalTree = before.canonicalTree;
+      this._canonicalTreeCache = before.canonicalTreeCache;
       this._canonicalDigest = before.canonicalDigest;
+      this._semanticCanonicalTree = before.semanticCanonicalTree;
+      this._semanticAuthority = before.semanticAuthority;
       for (const [taskId, value] of frame.taskBefore) this._taskStates[taskId] = value;
       for (const [attemptId, value] of frame.attemptBefore) {
         if (value === ABSENT_ENTRY) delete this._attempts[attemptId];
@@ -1756,6 +1885,63 @@ export class CaseEngine {
     }
   }
 
+  #canonicalAuthorityDigest() {
+    if (this._semanticMode === true) {
+      if (!(this._semanticBaseTree instanceof SemanticRadixTree) || !(this._semanticCanonicalTree instanceof SemanticRadixTree)) {
+        throw new ContractError('invariant_semantic_authority', 'Semantic authority requires radix base and canonical roots');
+      }
+      const binding = validateSemanticPlanBinding(this._semanticPlanBinding);
+      if (binding.baseDigest !== this.plan.baseDigest || binding.planDigest !== this.plan.planDigest) {
+        throw new ContractError('invariant_semantic_plan', 'Semantic Plan binding does not match the compiled Plan identity');
+      }
+      const baseRoot = this._semanticBaseTree.rootDescriptor;
+      const canonicalRoot = this._semanticCanonicalTree.rootDescriptor;
+      if (canonicalJson(binding.baseRoot) !== canonicalJson(baseRoot)) {
+        throw new ContractError('invariant_semantic_plan', 'Semantic Plan binding base root is inconsistent');
+      }
+      const authority = this._semanticAuthority;
+      if (!isPlainRecord(authority) || authority.profile !== SEMANTIC_PROFILE ||
+          canonicalJson(authority.baseRoot) !== canonicalJson(baseRoot) ||
+          canonicalJson(authority.canonicalRoot) !== canonicalJson(canonicalRoot)) {
+        throw new ContractError('invariant_semantic_authority', 'Semantic authority record is inconsistent with runtime roots');
+      }
+      const canonicalDigest = canonicalRoot.rootDigest;
+      if (this._canonicalDigest !== null && this._canonicalDigest !== canonicalDigest) {
+        throw new ContractError('invariant_semantic_authority', 'Cached semantic root digest is inconsistent');
+      }
+      if (this.caseState === 'succeeded') {
+        const promotionState = this._taskStates[this.plan.promotionTaskId];
+        const accepted = promotionState?.acceptedResult;
+        if (promotionState?.state !== 'succeeded' || !isPlainRecord(accepted) ||
+            accepted.kind !== 'promotion' || accepted.semanticProfile !== SEMANTIC_PROFILE ||
+            canonicalJson(accepted.semanticRoot) !== canonicalJson(canonicalRoot)) {
+          throw new ContractError('invariant_promotion', 'Succeeded semantic Case requires canonical root from succeeded Promotion');
+        }
+      } else if (canonicalRoot.rootDigest !== baseRoot.rootDigest) {
+        throw new ContractError('invariant_semantic_authority', 'Semantic canonical root changed before successful Promotion');
+      }
+      return canonicalDigest;
+    }
+
+    let canonicalDigest = this._canonicalDigest;
+    if (!Object.isFrozen(this.canonicalTree) || canonicalDigest === null) {
+      const computedCanonicalDigest = digest(this.canonicalTree);
+      if (canonicalDigest !== null && canonicalDigest !== computedCanonicalDigest) {
+        throw new ContractError('invariant_canonical_tree', 'Cached canonical digest does not match the canonical tree');
+      }
+      canonicalDigest = computedCanonicalDigest;
+    }
+    if (this.caseState === 'succeeded') {
+      const promotionState = this._taskStates[this.plan.promotionTaskId];
+      if (promotionState.state !== 'succeeded' || promotionState.acceptedResult.treeDigest !== canonicalDigest) {
+        throw new ContractError('invariant_promotion', 'Succeeded Case requires canonical tree from succeeded Promotion');
+      }
+    } else if (canonicalDigest !== this.plan.baseDigest) {
+      throw new ContractError('invariant_canonical_tree', 'Canonical tree changed before successful Promotion');
+    }
+    return canonicalDigest;
+  }
+
   #assertCommittedInvariants() {
     if (this._mutationFrame !== null || this._eventReservation !== null) {
       throw new ContractError('invariant_mutation_boundary', 'Cannot snapshot a Case during a mutation');
@@ -1771,8 +1957,10 @@ export class CaseEngine {
         this._validatedEventSequence !== this.eventSequence) {
       throw new ContractError('invariant_event_revision', 'Committed Event frontier and Case revision must match');
     }
-    if (this._canonicalDigest === null || !Object.isFrozen(this.canonicalTree)) {
-      throw new ContractError('invariant_canonical_tree', 'Committed canonical tree must be frozen and digested');
+    const canonicalDigest = this.#canonicalAuthorityDigest();
+    if (this._canonicalDigest === null || this._canonicalDigest !== canonicalDigest ||
+        (this._semanticMode !== true && !Object.isFrozen(this.canonicalTree))) {
+      throw new ContractError('invariant_canonical_tree', 'Committed canonical authority must be frozen/rooted and digested');
     }
   }
 
@@ -1822,22 +2010,7 @@ export class CaseEngine {
       throw new ContractError('invariant_case_state', `Case state ${this.caseState} does not match derived state ${expectedCaseState}`);
     }
 
-    let canonicalDigest = this._canonicalDigest;
-    if (!Object.isFrozen(this.canonicalTree) || canonicalDigest === null) {
-      const computedCanonicalDigest = digest(this.canonicalTree);
-      if (canonicalDigest !== null && canonicalDigest !== computedCanonicalDigest) {
-        throw new ContractError('invariant_canonical_tree', 'Cached canonical digest does not match the canonical tree');
-      }
-      canonicalDigest = computedCanonicalDigest;
-    }
-    if (this.caseState === 'succeeded') {
-      const promotionState = this._taskStates[this.plan.promotionTaskId];
-      if (promotionState.state !== 'succeeded' || promotionState.acceptedResult.treeDigest !== canonicalDigest) {
-        throw new ContractError('invariant_promotion', 'Succeeded Case requires canonical tree from succeeded Promotion');
-      }
-    } else if (canonicalDigest !== this.plan.baseDigest) {
-      throw new ContractError('invariant_canonical_tree', 'Canonical tree changed before successful Promotion');
-    }
+    const canonicalDigest = this.#canonicalAuthorityDigest();
 
     if (Object.keys(this._receipts).length > this.caseContract.limits.maxReceipts) {
       throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
@@ -2161,22 +2334,7 @@ export class CaseEngine {
       throw new ContractError('invariant_case_state', `Case state ${this.caseState} does not match derived state ${expectedCaseState}`);
     }
 
-    let canonicalDigest = this._canonicalDigest;
-    if (!Object.isFrozen(this.canonicalTree) || canonicalDigest === null) {
-      const computedCanonicalDigest = digest(this.canonicalTree);
-      if (canonicalDigest !== null && canonicalDigest !== computedCanonicalDigest) {
-        throw new ContractError('invariant_canonical_tree', 'Cached canonical digest does not match the canonical tree');
-      }
-      canonicalDigest = computedCanonicalDigest;
-    }
-    if (this.caseState === 'succeeded') {
-      const promotionState = this._taskStates[this.plan.promotionTaskId];
-      if (promotionState.state !== 'succeeded' || promotionState.acceptedResult.treeDigest !== canonicalDigest) {
-        throw new ContractError('invariant_promotion', 'Succeeded Case requires canonical tree from succeeded Promotion');
-      }
-    } else if (canonicalDigest !== this.plan.baseDigest) {
-      throw new ContractError('invariant_canonical_tree', 'Canonical tree changed before successful Promotion');
-    }
+    const canonicalDigest = this.#canonicalAuthorityDigest();
 
     if (Object.keys(this._receipts).length > this.caseContract.limits.maxReceipts) {
       throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
@@ -2218,7 +2376,7 @@ export class CaseEngine {
 
     this._validatedEventSequence = this._events.length;
     this._canonicalDigest = canonicalDigest;
-    deepFreeze(this.canonicalTree);
+    if (this._semanticMode !== true) deepFreeze(this.canonicalTree);
   }
   _reopenNonterminalAttempts() {
     if (this._eventReservation === null) {
@@ -2443,6 +2601,92 @@ function migrateV1Snapshot(input) {
   engine._assertInvariants();
   engine._rebuildPerformanceIndexes();
   return engine.snapshot();
+}
+
+function restoreV3Snapshot(snapshot, options) {
+  const validated = validateSemanticSnapshot(snapshot);
+  assertIdentifier(validated.caseId, 'snapshot.caseId');
+  if (typeof options.semanticResolver !== 'function') {
+    throw new ContractError('semantic_resolver_required', 'Restoring snapshot v3 requires a semantic object resolver');
+  }
+
+  assertRecordShape(
+    validated.caseContract,
+    ['caseGrant', 'workspacePolicy', 'pathPolicy', 'limits', 'contractDigest'],
+    [],
+    'snapshot.caseContract',
+  );
+  assertDigest(validated.caseContract.contractDigest, 'snapshot.caseContract.contractDigest');
+  const caseContract = normalizeCaseContract({
+    caseGrant: validated.caseContract.caseGrant,
+    workspacePolicy: validated.caseContract.workspacePolicy,
+    pathPolicy: validated.caseContract.pathPolicy,
+    limits: validated.caseContract.limits,
+  });
+  if (caseContract.contractDigest !== validated.caseContract.contractDigest ||
+      canonicalJson(caseContract) !== canonicalJson(validated.caseContract)) {
+    throw new ContractError('snapshot_case_contract', 'Semantic snapshot Case contract is invalid');
+  }
+
+  const binding = validateSemanticPlanBinding(validated.plan);
+  const baseSemantic = hydrateSemanticTree(validated.semanticAuthority.baseRoot, options.semanticResolver, caseContract);
+  const baseTree = baseSemantic.materialize();
+  const plan = definePlan({
+    revisionId: binding.revisionId,
+    baseTree,
+    tasks: binding.tasks,
+  }, { caseContract });
+  if (plan.planDigest !== binding.planDigest || plan.baseDigest !== binding.baseDigest) {
+    throw new ContractError('snapshot_plan_digest', 'Semantic snapshot Plan identity does not match the reconstructed Plan');
+  }
+  const rebuiltBinding = semanticPlanBinding(plan, baseSemantic.rootDescriptor);
+  if (rebuiltBinding.planBindingDigest !== binding.planBindingDigest || canonicalJson(rebuiltBinding) !== canonicalJson(binding)) {
+    throw new ContractError('snapshot_plan_shape', 'Semantic snapshot Plan binding is not canonical');
+  }
+
+  const canonicalSemantic = validated.semanticAuthority.canonicalRoot.rootDigest === validated.semanticAuthority.baseRoot.rootDigest
+    ? baseSemantic
+    : hydrateSemanticTree(validated.semanticAuthority.canonicalRoot, options.semanticResolver, caseContract);
+  const engine = new CaseEngine({
+    caseId: validated.caseId,
+    plan,
+    caseContract,
+    semanticAuthority: {
+      profile: validated.semanticAuthority.profile,
+      authorityEpoch: validated.semanticAuthority.authorityEpoch,
+      migrationSource: validated.semanticAuthority.migrationSource,
+      baseTree: baseSemantic,
+    },
+  });
+  assertState(validated.caseState, CASE_STATES, 'Case');
+  assertSafeInteger(validated.caseRevision, 'caseRevision', { min: 1 });
+  assertSafeInteger(validated.eventSequence, 'eventSequence', { min: 1 });
+  engine.caseState = validated.caseState;
+  engine.caseRevision = validated.caseRevision;
+  engine.eventSequence = validated.eventSequence;
+  installCollections(engine, {
+    events: canonicalClone(validated.events),
+    taskStates: canonicalClone(validated.taskStates),
+    attempts: canonicalClone(validated.attempts),
+    receipts: canonicalClone(validated.receipts),
+  });
+  engine._validatedEventSequence = 0;
+  engine._semanticBaseTree = baseSemantic;
+  engine._semanticCanonicalTree = canonicalSemantic;
+  engine._semanticPlanBinding = binding;
+  engine._semanticAuthority = validated.semanticAuthority;
+  engine._canonicalTreeCache = null;
+  engine._canonicalDigest = canonicalSemantic.rootDescriptor.rootDigest;
+  verifyRestoredResults(engine);
+  engine._assertInvariants();
+  engine._rebuildPerformanceIndexes();
+
+  if (options.reopen !== false && !TERMINAL_CASE_STATES.has(engine.caseState)) {
+    engine._reopenNonterminalAttempts();
+    engine.reconcile();
+    engine._assertInvariants();
+  }
+  return engine;
 }
 
 function restoreV2Snapshot(snapshot, options) {

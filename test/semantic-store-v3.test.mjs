@@ -56,9 +56,9 @@ function fixture({ caseId = 'case-v3', revision = 0, baseTree = { 'a.txt': 'a' }
       baseRoot: baseSemantic.rootDescriptor,
       canonicalRoot: canonicalSemantic.rootDescriptor,
     },
-    taskStates: [],
-    attempts: [],
-    receipts: [],
+    taskStates: {},
+    attempts: {},
+    receipts: {},
   });
   const objects = new Map();
   for (const record of [...baseSemantic.objectRecords(), ...canonicalSemantic.objectRecords()]) objects.set(record.digest, record);
