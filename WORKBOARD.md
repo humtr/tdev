@@ -6,18 +6,32 @@
 - Development identity / publication ref: `mvp-1a-7`
 - Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
 - Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, and D0012 authenticated remote-publication source evidence on the same `mvp-1a-7` development direction
+- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, and D0013 trusted-local repository/model transport evidence on the same `mvp-1a-7` development direction
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0012-authenticated-remote-git-publication.md`
-- Active Class 2 design: none; the next highest-ROI design gate is real repository/context/model transport before ContextSlice/CAS work
+- Current verified design: `docs/design/0013-real-repository-context-and-model-transport.md`
+- Active Class 2 design: none; the next highest-ROI design gate is Context manifest/CAS plus deterministic ContextSlice over the measured D0013 full-context baseline
 
 ## Active work
 
-No Class 2 design is active. D0012 is verified on the existing `mvp-1a-7` development direction for its bounded generic authenticated remote-publication source contract plus current GitHub non-interactive push-negotiation capability. Actual provider-ref integration/restart and protected-branch/provider-policy semantics remain qualification work, not semantic authority. The next highest-ROI design gate returns to real repository/context/model transport before ContextSlice/CAS, token deduplication, warm executors, or locality scheduling.
+No Class 2 design is active. D0013 is verified on the existing `mvp-1a-7` development direction for its bounded trusted-local immutable-Git full-context plus result-only subprocess transport. D0010 semantic authority and D0011/D0012 derived publication remain unchanged. The checked D0013 baseline reconstructed one 1,757,785-byte context on four Attempts, with 5,273,355 of 7,031,140 requested context bytes duplicated and one retry reconstructing the complete context again. The next highest-ROI Class 2 gate is therefore a Context manifest/CAS plus deterministic ContextSlice contract; token/provider savings, external model transport, warm executors, and locality scheduling are not yet verified.
 
 ## Verified work
+
+### D0013 — verified real repository context and trusted-local model transport
+
+- Status: `verified` for the bounded trusted-local repository/context/subprocess profile; `mvp-1a-7` remains the same active development direction
+- Design: `docs/design/0013-real-repository-context-and-model-transport.md`
+- Independently validated source candidate: `3f7c04ad4e343af2968d082bf4ffb559e2580100`
+- Profiles: `tdev.repository-context.git-full-text.v1` and `tdev.model.subprocess-json.v1`; operation `tdev.model.repository`
+- Authority: exact immutable Git commit context is a derived input; D0010 Case head/semantic root remain authority and returned model results still pass existing Plan/Claim/fencing/result/Promotion acceptance
+- Context boundary: read-only Git objects, fatal UTF-8 `100644`/`100755` regular blobs, exact path-to-text `baseDigest` binding, no worktree/index/ref mutation, and request-digest-bound subprocess response
+- Independent Ubuntu/POSIX validation: GitHub Actions run `31331491616`, job `93290347063`; **216/216** complete source tests, **92.86% line / 81.61% branch / 96.34% function** coverage, **16/16** D0013 focused tests, actual source-candidate repository probe, and clean effective diff
+- Independent repository probe: 101 files / 1,757,785 content bytes, SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, executable file `src/cli.mjs`
+- Measured baseline: four Attempts requested 7,031,140 context bytes for one unique 1,757,785-byte context; 5,273,355 bytes were duplicate (75%), one retry reconstructed 1,757,785 bytes, four processes started and none were reused
+- Evidence: `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json` (SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`)
+- Boundaries: no external LLM/provider API, provider authentication/data-egress/billing/retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context cache, warm executor, locality scheduling, or model/provider semantic authority
 
 ### D0012 — verified authenticated remote Git publication source contract
 
@@ -150,18 +164,20 @@ No Class 2 design is active. D0012 is verified on the existing `mvp-1a-7` develo
 - D0009 non-authoritative representation evidence rejecting simple directory Merkle and retaining C2/C3 structural knowledge;
 - D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported;
 - D0011 real local Git projection over that semantic root with bare-repository SHA-1/SHA-256 support, deterministic `100644` text-tree projection, exact local branch-ref CAS/reconciliation/rollback, and no change to semantic authority;
-- D0012 generic authenticated remote-publication source protocol over an existing remote branch, with immutable target intent, exact predecessor fencing, reread/restart reconciliation, fail-safe rollback, external credential ownership, and no change to semantic authority.
+- D0012 generic authenticated remote-publication source protocol over an existing remote branch, with immutable target intent, exact predecessor fencing, reread/restart reconciliation, fail-safe rollback, external credential ownership, and no change to semantic authority;
+- D0013 read-only exact-commit full-text context plus trusted-local request-digest-bound subprocess transport, with existing result/fencing/Promotion authority unchanged and measured full-context/retry duplication.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+1. design a Context manifest/CAS plus deterministic ContextSlice layer against the D0013 measured full-context baseline, preserving exact base binding and treating cache/slice state as rebuildable non-authority;
 2. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
 3. qualify D0012 against an actual provider ref and protected/provider-policy target before promoting it beyond source verification; keep provider refs derived unless a separately accepted direction change says otherwise;
-4. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
+4. separately design any external model/provider API transport with explicit authentication, data-egress, billing/retry, tokenizer and hostile-provider boundaries before claiming provider/token savings;
+5. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
 
-D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes the bounded local real-Git projection/ref-CAS contract, and D0012 closes the bounded generic authenticated remote-publication **source** contract plus current GitHub dry-run authentication capability. Provider transaction ownership, distributed Claims, actual D0012 provider-ref integration/protected-branch qualification, hostile-storage/provider authenticity, and global migration of historical v2 repositories remain future work where applicable.
+D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes the bounded local real-Git projection/ref-CAS contract, D0012 closes the bounded generic authenticated remote-publication **source** contract plus current GitHub dry-run authentication capability, and D0013 closes the bounded trusted-local immutable-repository/full-context/subprocess transport baseline. Context optimization, external model/provider transport, provider transaction ownership, distributed Claims, actual D0012 provider-ref/protected-branch qualification, hostile-storage/provider authenticity, and global migration of historical v2 repositories remain future work where applicable.
 
 ## Routing
 

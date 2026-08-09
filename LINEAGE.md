@@ -4,17 +4,17 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010, D0011, and D0012 are verified on this line
+- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010, D0011, D0012, and D0013 are verified on this line
 - **Architecture generation:** MVP generation 1
 - **Current direction origin from historical revision:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- **Baseline knowledge input:** verified D0010 semantic-v3 authority, D0011 local real-Git projection, and D0012 authenticated remote-publication source evidence on the same development direction
-- **Latest verified design:** Design 0012 — Authenticated Remote Git Publication
-- **Active design:** none; the next highest-ROI design gate is real repository/context/model transport
+- **Baseline knowledge input:** verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, and D0013 trusted-local repository/model transport evidence on the same development direction
+- **Latest verified design:** Design 0013 — Real Repository Context and Model Transport
+- **Active design:** none; the next highest-ROI design gate is Context manifest/CAS plus deterministic ContextSlice
 - **Historical predecessor revision ref:** `mvp-1a-6` (named under the pre-`3048286a88c2687a2206cc3bcb4faab924be88d9` revision/checkpoint policy)
 
 `mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
 
-`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains three verified additive layers without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority. D0012 adds a generic authenticated **remote derived-publication source layer** over an already elected D0011 candidate, with target-bound intent, exact predecessor fencing, reread/restart reconciliation, and fail-safe rollback. Git OIDs and remote refs remain derived identities; actual provider-ref/protected-branch qualification, provider/distributed ownership, distributed Claims, and hostile-provider/storage authenticity remain future boundaries.
+`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains four verified additive layers without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority. D0012 adds a generic authenticated **remote derived-publication source layer** over an already elected D0011 candidate. D0013 adds a read-only exact-commit full-text repository context and trusted-local result-only subprocess transport while leaving result acceptance and Promotion with the existing owners. Git OIDs, remote refs, repository context and model/process state remain derived identities/inputs; Context optimization, external model/provider transport, actual provider-ref/protected-branch qualification, provider/distributed ownership, distributed Claims, and hostile-provider/storage authenticity remain future boundaries.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
@@ -56,7 +56,16 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0010 production evidence selecting C2-like compressed path-byte radix because one authority must enforce exact/ancestor/descendant topology without an O(N) scan or second synchronized prefix owner;
 - D0010 evidence that normal v3 root Promotion/checkpoint work is sparse while explicit compatibility materialization remains an acknowledged O(N) path, and that transactional-head ambiguity/migration/repair/GC boundaries can close locally without changing Git/provider ownership;
 - D0011 evidence that the same semantic root can project deterministically into real SHA-1 or SHA-256 bare Git repositories, that exact local ref CAS/reconciliation/rollback can be fenced without index/worktree authority, and that Git representation identity can remain separate from semantic authority;
-- D0012 evidence that an already elected local candidate can be bound to one existing remote branch through an immutable target intent, exact expected-predecessor fencing, reread/restart reconciliation, and external deployment credentials without promoting provider state to semantic authority.
+- D0012 evidence that an already elected local candidate can be bound to one existing remote branch through an immutable target intent, exact expected-predecessor fencing, reread/restart reconciliation, and external deployment credentials without promoting provider state to semantic authority;
+- D0013 evidence that one exact immutable Git commit can be reconstructed as bounded UTF-8 full context, bound to the authoritative Plan base and Attempt identity, carried through a real trusted-local subprocess, and measured for repeated context/process cost without promoting repository/model/process state to semantic authority.
+
+## Verified D0013 gate
+
+D0013 is verified on the same mutable `mvp-1a-7` development direction for repository profile `tdev.repository-context.git-full-text.v1`, model profile `tdev.model.subprocess-json.v1`, and operation `tdev.model.repository`. Source candidate `3f7c04ad4e343af2968d082bf4ffb559e2580100` passed independent Ubuntu/POSIX GitHub Actions run `31331491616` / job `93290347063`: **216/216** complete source tests, **92.86% line / 81.61% branch / 96.34% function coverage**, clean effective diff, and **16/16** focused D0013 tests. Checked evidence is `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json`, SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`.
+
+The independent real-repository probe bound the exact source candidate to SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`: 101 supported files, 1,757,785 content bytes, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, and `src/cli.mjs` as the retained `100755` file. The adapter reads that immutable commit rather than the mutable index/worktree, requires its path-to-text digest to equal the Attempt `baseDigest`, and transports one request-digest-bound full context to a fresh trusted local subprocess. The response remains only an input to existing result/Claim/fencing/Promotion validation.
+
+The measured baseline reconstructed that same 1,757,785-byte context across four Attempts: 7,031,140 requested context bytes, 5,273,355 duplicate bytes (75%), a full 1,757,785-byte reconstruction on the retry, four process starts and zero reuse. This establishes a measured reason to open Context manifest/CAS plus deterministic ContextSlice next. It does **not** prove token savings, external-model latency, provider authentication/data-egress/billing semantics, tokenizer accounting, warm-executor benefit, locality scheduling, or model/provider authority.
 
 ## Verified D0012 gate
 

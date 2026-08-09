@@ -1,3 +1,33 @@
+# mvp-1a-7 D0013 real repository context and model transport report
+
+- Date: 2026-08-10
+- Development branch: `mvp-1a-7` — same mutable development direction; no new `mvp-*` branch is created for D0013
+- Design: `docs/design/0013-real-repository-context-and-model-transport.md`
+- Status: `verified` for the bounded trusted-local immutable-repository/full-context/subprocess transport profile
+- Independently validated source candidate: `3f7c04ad4e343af2968d082bf4ffb559e2580100`
+- Checked evidence: `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json`
+- Evidence SHA-256: `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`
+- Independent validation: GitHub Actions run `31331491616`, job `93290347063`
+- Repository profile: `tdev.repository-context.git-full-text.v1`
+- Model profile: `tdev.model.subprocess-json.v1`
+- Executor operation: `tdev.model.repository`
+
+D0013 continues the D0010/D0011/D0012 development direction rather than changing authority. The D0010 semantic root and transactional Case head remain tdev current-state authority. D0011/D0012 remain derived Git publication layers. D0013 adds a read-only repository context source and result-only local subprocess transport outside those owners; Git commit/tree/blob identities, context descriptors, request/response identities and measurements remain derived inputs/evidence.
+
+The first repository profile reads one exact immutable local Git commit directly from Git objects, not from the mutable worktree or index. It admits only regular `100644`/`100755` blobs, decodes them as fatal UTF-8 under the existing tdev path/tree bounds, preserves executable mode as context metadata, and rebuilds the normal path-to-text semantic digest. That digest must equal the Attempt invocation `baseDigest` before any model subprocess starts, so a repository commit cannot silently substitute a different Plan base.
+
+The first model profile is a trusted-local process boundary, not a sandbox or external LLM API. The executable/argv/environment/cwd/timeout are deployment configuration; Task input supplies only the immutable repository commit OID and bounded instruction. Every Attempt starts one fresh process and sends a canonical full-context request bound to Case/Plan/Attempt/fencing/Claim identity by `tdev.model.repository-request.v1`. A successful response must echo the exact request digest and return only an existing tdev result. The adapter never writes the repository, and existing runner/CaseEngine result-kind, lease, fencing and Promotion validation remain authoritative.
+
+Failure handling is likewise additive. Base mismatch, unsupported repository entry, invalid UTF-8, spawn failure, nonzero process exit, timeout, AbortSignal cancellation, output overflow, invalid JSON/response or wrong request digest produces no accepted result. There is no hidden transport retry: the existing Task `retry.maxAttempts` budget owns later Attempts, each of which reconstructs the full context and starts another process. Raw stderr, deployment paths/environment and repository contents do not enter canonical observations/errors.
+
+Independent Ubuntu/POSIX validation on Node `v22.23.1` / Git `2.54.0` passed **216/216 complete source tests**, **92.86% line / 81.61% branch / 96.34% function coverage**, **16/16 focused D0013 tests**, a real source-candidate repository context probe, and the effective diff gate. The source-candidate probe observed 101 supported files / 1,757,785 content bytes, SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`, semantic base digest `sha256:c34ee68955f7acadf8c104f1b0077f512138f25215f34f9b1b6383a9a6a7418b`, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, and `src/cli.mjs` as the retained executable text file.
+
+The measured baseline then ran three Cases / four Attempts against the same context, including a first-attempt subprocess failure followed by the existing retry path. The four Attempts requested **7,031,140 context bytes** for **1,757,785 unique bytes**; **5,273,355 bytes (75%) were duplicate**, the retry reconstructed the entire **1,757,785-byte** context, four processes started, and none were reused. This is sufficient to prioritize a separate Context manifest/CAS plus deterministic ContextSlice design against measured duplicate bytes. It is not evidence of token savings or external-model latency because D0013 defines no provider tokenizer or external model API.
+
+The D0013 completion boundary therefore remains deliberately narrow. External model/provider APIs, provider credentials/authentication, data-egress/redaction, billing/provider retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context caching, warm processes/toolchains, locality scheduling, Cloudflare/distributed ownership, and model/provider semantic authority remain separate future Class 2 work.
+
+---
+
 # mvp-1a-7 D0012 authenticated remote Git publication report
 
 - Date: 2026-08-10

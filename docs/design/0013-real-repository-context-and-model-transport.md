@@ -1,6 +1,6 @@
 # Design 0013 - Real Repository Context and Model Transport
 
-- Status: accepted
+- Status: verified
 - Class: 2
 - Development identity: `mvp-1a-7` - same active development direction
 - Direct source predecessor: exact `mvp-1a-7@4b3986917cacd4e9c8db1209c59bcec678ebbaa3`
@@ -9,7 +9,7 @@
 - Model transport profile: `tdev.model.subprocess-json.v1`
 - Executor operation: `tdev.model.repository`
 
-> Accepted direction decision: D0013 adds a read-only repository context source and a result-only local subprocess transport outside the Case authority boundary. The D0010 Case head and semantic root remain tdev current-state authority. Git commit/tree/blob identities, repository context descriptors, model requests, process responses, and transport observations remain derived inputs/evidence. No new `mvp-*` branch is required.
+> Verified direction decision: D0013 adds a read-only repository context source and a result-only local subprocess transport outside the Case authority boundary. The D0010 Case head and semantic root remain tdev current-state authority. Git commit/tree/blob identities, repository context descriptors, model requests, process responses, and transport observations remain derived inputs/evidence. No new `mvp-*` branch is required.
 
 ## 1. Decision
 
@@ -257,3 +257,11 @@ D0013 may be marked `verified` only for the exact local repository/context/subpr
 Actual external model/provider transport, tokenizer/token cost, provider authentication, data-egress policy, warm reuse, ContextSlice/CAS, and distributed Agent delivery remain future Class 2 work.
 
 Because D0013 preserves the existing semantic/current-state owners and only adds an outer executor transport, it continues on `mvp-1a-7`. A future design that moves authority into repository/model/provider state is a genuine direction-change boundary and must not be inferred from D0013.
+
+## 17. Verification record
+
+D0013 became `verified` on 2026-08-10 without changing the active `mvp-1a-7` development direction. The independently validated source candidate is `3f7c04ad4e343af2968d082bf4ffb559e2580100`. GitHub Actions run `31331491616`, job `93290347063`, on Node `v22.23.1` / Git `2.54.0` / Ubuntu-compatible Linux passed **216/216 complete source tests**, **92.86% line / 81.61% branch / 96.34% function coverage**, **16/16 focused D0013 tests**, the exact source-candidate repository context probe, and the effective diff gate. The validation workflow commit changed only its temporary workflow after the exact source candidate.
+
+Checked evidence is `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json`, SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`. The independent repository probe observed SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`, 101 supported files, 1,757,785 content bytes, semantic base digest `sha256:c34ee68955f7acadf8c104f1b0077f512138f25215f34f9b1b6383a9a6a7418b`, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, and `src/cli.mjs` as the retained executable text file.
+
+The measured baseline ran three Cases / four Attempts against that same context, including one failed subprocess followed by the existing Task retry. It requested 7,031,140 context bytes for 1,757,785 unique bytes, so 5,273,355 bytes were duplicate (75%); the retry reconstructed the complete 1,757,785-byte context; four processes started and none were reused. This closes the intended pre-optimization measurement gate and supports a separate Context manifest/CAS plus deterministic ContextSlice design. It does not establish external model/provider transport, token accounting or token savings, provider authentication/data-egress/billing/retry semantics, warm-process benefit, locality scheduling, or model/provider semantic authority.

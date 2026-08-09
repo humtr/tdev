@@ -14,6 +14,6 @@
 | 0010 | Semantic-Authority Migration and Transactional Head | verified | `mvp-1a-7`: compressed path-byte radix v3 authority, compact snapshot, transactional local head, quiesced forward migration, repair/GC barriers; no Git/provider authority |
 | 0011 | Real Git Projection and Fenced Publication | verified | `mvp-1a-7`: local SHA-1/SHA-256 Git projection and exact local ref CAS above unchanged semantic authority |
 | 0012 | Authenticated Remote Git Publication | verified | `mvp-1a-7`: existing-remote-branch authenticated derived publication source contract; provider refs remain non-authoritative |
-| 0013 | Real Repository Context and Model Transport | accepted | `mvp-1a-7`: read-only immutable Git full-text context plus result-only local subprocess transport baseline before ContextSlice/CAS |
+| 0013 | Real Repository Context and Model Transport | verified | `mvp-1a-7`: read-only immutable Git full-text context plus result-only trusted-local subprocess transport baseline before Context manifest/CAS/Slice |
 
 `accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.
