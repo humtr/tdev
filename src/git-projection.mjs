@@ -154,7 +154,22 @@ function gitFailure(args, result) {
   });
 }
 
-export function runGitCommand({ gitExecutable = 'git', repositoryPath, args, input = null, env = {} }) {
+export function runGitCommand({
+  gitExecutable = 'git',
+  repositoryPath,
+  args,
+  input = null,
+  env = {},
+  signal = null,
+}) {
+  if (signal !== null && (
+    typeof signal.aborted !== 'boolean' || typeof signal.addEventListener !== 'function'
+  )) {
+    throw new ContractError('invalid_git_signal', 'Git signal must implement AbortSignal');
+  }
+  if (signal?.aborted) {
+    return Promise.reject(new ContractError('git_process_aborted', 'Git command was aborted before process start'));
+  }
   const controlledEnv = Object.create(null);
   for (const [key, value] of Object.entries(process.env)) {
     if (!key.startsWith('GIT_')) controlledEnv[key] = value;
@@ -185,6 +200,16 @@ export function runGitCommand({ gitExecutable = 'git', repositoryPath, args, inp
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let overflowed = false;
+    let settled = false;
+    let aborted = false;
+
+    const cleanup = () => signal?.removeEventListener('abort', onAbort);
+    const onAbort = () => {
+      aborted = true;
+      try { child.kill('SIGKILL'); } catch {}
+    };
+    signal?.addEventListener('abort', onAbort, { once: true });
+    if (signal?.aborted) onAbort();
 
     const append = (chunks, chunk, kind) => {
       const size = chunk.length;
@@ -200,13 +225,26 @@ export function runGitCommand({ gitExecutable = 'git', repositoryPath, args, inp
 
     child.stdout.on('data', (chunk) => append(stdout, chunk, 'stdout'));
     child.stderr.on('data', (chunk) => append(stderr, chunk, 'stderr'));
-    child.once('error', (error) => reject(new ContractError('git_process_failed', 'Failed to execute Git', {}, { cause: error })));
-    child.once('close', (code, signal) => {
+    child.stdin.on('error', () => {});
+    child.once('error', (error) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      reject(new ContractError('git_process_failed', 'Failed to execute Git', {}, { cause: error }));
+    });
+    child.once('close', (code, processSignal) => {
+      if (settled) return;
+      settled = true;
+      cleanup();
+      if (aborted) {
+        reject(new ContractError('git_process_aborted', 'Git command was aborted'));
+        return;
+      }
       if (overflowed) {
         reject(new ContractError('git_output_limit_exceeded', 'Git command output exceeded the adapter limit'));
         return;
       }
-      resolve({ code, signal, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) });
+      resolve({ code, signal: processSignal, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) });
     });
 
     if (input === null) child.stdin.end();

@@ -17,6 +17,7 @@
     "bench:semantic": "node --expose-gc bench/semantic-authority-representation.mjs",
     "bench:semantic-v3": "node --expose-gc bench/semantic-v3-authority.mjs",
     "bench:persistence": "node bench/persistence-hot-path.mjs",
-    "bench:compare": "node bench/compare-development-states.mjs"
+    "bench:compare": "node bench/compare-development-states.mjs",
+    "bench:repository-model-transport": "node --expose-gc bench/repository-model-transport-efficiency.mjs --scenario all"
   }
 }

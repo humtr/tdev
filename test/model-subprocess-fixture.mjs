@@ -1,3 +1,5 @@
+import { spawn } from 'node:child_process';
+
 const chunks = [];
 for await (const chunk of process.stdin) chunks.push(chunk);
 const requestText = Buffer.concat(chunks).toString('utf8');
@@ -13,6 +15,32 @@ if (behavior === 'nonzero') {
 }
 if (behavior === 'sleep') {
   setTimeout(() => process.stdout.write('{}'), 5_000);
+} else if (behavior === 'spawn-grandchild-timeout') {
+  const marker = process.argv[3];
+  const grandchild = spawn(process.execPath, [
+    '-e',
+    `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'survived'), 300)`,
+  ], { stdio: 'ignore' });
+  grandchild.unref();
+  setTimeout(() => {}, 5_000);
+} else if (behavior === 'spawn-grandchild-return') {
+  const marker = process.argv[3];
+  const grandchild = spawn(process.execPath, [
+    '-e',
+    `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'survived'), 300)`,
+  ], { stdio: 'ignore' });
+  grandchild.unref();
+  const request = JSON.parse(requestText);
+  process.stdout.write(JSON.stringify({
+    schemaVersion: 1,
+    profile: 'tdev.model.subprocess-json.v1',
+    requestDigest: request.requestDigest,
+    result: {
+      kind: 'changeset',
+      baseDigest: request.invocation.baseDigest,
+      writes: [],
+    },
+  }));
 } else if (behavior === 'oversize') {
   process.stdout.write('x'.repeat(16 * 1024));
 } else {

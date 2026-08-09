@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { chmodSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
+import { chmodSync, existsSync, mkdirSync, mkdtempSync, rmSync, symlinkSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -12,6 +12,7 @@ import {
   MODEL_TRANSPORT_PROFILE,
   GitRepositoryModelExecutor,
 } from '../src/repository-model-transport.mjs';
+import { runGitCommand } from '../src/git-projection.mjs';
 import { runCase } from '../src/runner.mjs';
 
 const FIXTURE = fileURLToPath(new URL('./model-subprocess-fixture.mjs', import.meta.url));
@@ -117,6 +118,53 @@ function directInvocation(plan, taskId = 'model') {
       task: engine.plan.tasksById[taskId],
       attempt,
       acceptedResults: [],
+    },
+  };
+}
+
+function successfulModelRunner(capture = null) {
+  return async ({ input }) => {
+    if (capture !== null) capture.push(Buffer.from(input));
+    const request = strictJsonParse(input, {
+      maxBytes: 32 * 1024 * 1024,
+      maxStringCodePoints: 32 * 1024 * 1024,
+    });
+    const stdout = Buffer.from(canonicalJson({
+      schemaVersion: 1,
+      profile: MODEL_TRANSPORT_PROFILE,
+      requestDigest: request.requestDigest,
+      result: {
+        kind: 'changeset',
+        baseDigest: request.invocation.baseDigest,
+        writes: [],
+      },
+    }), 'utf8');
+    return {
+      code: 0,
+      signal: null,
+      stdout,
+      stdoutBytes: stdout.length,
+      stderrBytes: 0,
+      durationMs: 0,
+    };
+  };
+}
+
+function countingGitRunner(options = {}) {
+  const metrics = {
+    calls: [],
+    stdoutBytes: 0,
+    inputBytes: 0,
+  };
+  return {
+    metrics,
+    runner: async (input) => {
+      metrics.calls.push([...input.args]);
+      metrics.inputBytes += input.input?.length ?? 0;
+      if (options.before !== undefined) await options.before(input, metrics);
+      const result = await runGitCommand(input);
+      metrics.stdoutBytes += result.stdout.length;
+      return result;
     },
   };
 }
@@ -366,7 +414,410 @@ test('inherited Git routing and caller environment do not redirect or leak into 
   }
 });
 
-test('existing retry budget reconstructs full context and process instead of hidden transport retry', async (t) => {
+test('pre-aborted invocation performs no Git or model work', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  const direct = directInvocation(plan);
+  const controller = new AbortController();
+  controller.abort();
+  direct.invocation.signal = controller.signal;
+  const counted = countingGitRunner();
+  let modelCalls = 0;
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: counted.runner,
+    modelRunner: async () => { modelCalls += 1; throw new Error('must not run'); },
+  });
+  await assert.rejects(
+    adapter.execute(direct.invocation),
+    (error) => error instanceof ContractError && error.code === 'model_transport_aborted',
+  );
+  assert.equal(counted.metrics.calls.length, 0);
+  assert.equal(modelCalls, 0);
+});
+
+test('same-base concurrent Attempts single-flight one immutable context preparation', async (t) => {
+  const repo = makeRepo(t, Object.fromEntries(
+    Array.from({ length: 32 }, (_, index) => [`file-${index}.txt`, { content: `value-${index}\n` }]),
+  ));
+  const plan = planFor(repo);
+  const observations = [];
+  let batchCalls = 0;
+  const counted = countingGitRunner({
+    before: async ({ args }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') {
+        batchCalls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 40));
+      }
+    },
+  });
+  let modelCalls = 0;
+  const modelRunner = successfulModelRunner();
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: counted.runner,
+    modelRunner: async (input) => {
+      modelCalls += 1;
+      return modelRunner(input);
+    },
+    observation: (entry) => observations.push(entry),
+  });
+  const invocations = Array.from({ length: 8 }, () => directInvocation(plan).invocation);
+  await Promise.all(invocations.map((invocation) => adapter.execute(invocation)));
+
+  assert.equal(batchCalls, 1);
+  assert.equal(counted.metrics.calls.filter((args) => args[0] === 'ls-tree').length, 1);
+  assert.equal(modelCalls, 8);
+  assert.equal(observations.reduce((sum, entry) => sum + entry.contextMaterializations, 0), 1);
+  assert.equal(observations.reduce((sum, entry) => sum + entry.gitCommandCount, 0), 5);
+  assert.equal(observations.filter((entry) => entry.cacheStatus === 'shared').length >= 1, true);
+});
+
+test('different immutable bases prepare concurrently without a global cache lock', async (t) => {
+  const repo = makeRepo(t, { 'a.txt': { content: 'base-one\n' } });
+  const firstPlan = planFor(repo);
+  writeFileSync(path.join(repo.repositoryPath, 'a.txt'), 'base-two\n');
+  git(repo.repositoryPath, ['add', 'a.txt']);
+  git(repo.repositoryPath, ['commit', '-qm', 'second']);
+  const second = {
+    repositoryPath: repo.repositoryPath,
+    commitOid: git(repo.repositoryPath, ['rev-parse', 'HEAD']).toString('utf8').trim(),
+    baseTree: { 'a.txt': 'base-two\n' },
+  };
+  const secondPlan = planFor(second);
+  let active = 0;
+  let maxActive = 0;
+  let batchCalls = 0;
+  const counted = countingGitRunner({
+    before: async ({ args }) => {
+      active += 1;
+      maxActive = Math.max(maxActive, active);
+      if (args[0] === 'cat-file' && args[1] === '--batch') batchCalls += 1;
+      await new Promise((resolve) => setTimeout(resolve, 20));
+      active -= 1;
+    },
+  });
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: counted.runner,
+    modelRunner: successfulModelRunner(),
+  });
+  await Promise.all([
+    adapter.execute(directInvocation(firstPlan).invocation),
+    adapter.execute(directInvocation(secondPlan).invocation),
+  ]);
+  assert.equal(batchCalls, 2);
+  assert.equal(maxActive >= 2, true);
+});
+
+test('producer failure is not cached and the next Attempt rebuilds', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  let failed = false;
+  let treeCalls = 0;
+  const runner = async (input) => {
+    if (input.args[0] === 'ls-tree') {
+      treeCalls += 1;
+      if (!failed) {
+        failed = true;
+        return { code: 1, signal: null, stdout: Buffer.alloc(0), stderr: Buffer.from('injected') };
+      }
+    }
+    return runGitCommand(input);
+  };
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: runner,
+    modelRunner: successfulModelRunner(),
+  });
+  await assert.rejects(
+    adapter.execute(directInvocation(plan).invocation),
+    (error) => error instanceof ContractError && error.code === 'repository_git_command_failed',
+  );
+  await adapter.execute(directInvocation(plan).invocation);
+  assert.equal(treeCalls, 2);
+});
+
+test('one cancelled reader does not poison another same-base reader', async (t) => {
+  const repo = makeRepo(t, { 'a.txt': { content: 'alpha\n' } });
+  const plan = planFor(repo);
+  let releaseBatch;
+  const batchStarted = new Promise((resolve) => { releaseBatch = resolve; });
+  let producerSignal = null;
+  let batchGateResolve;
+  const batchGate = new Promise((resolve) => { batchGateResolve = resolve; });
+  const runner = async (input) => {
+    if (input.args[0] === 'cat-file' && input.args[1] === '--batch') {
+      producerSignal = input.signal;
+      releaseBatch();
+      await batchGate;
+    }
+    return runGitCommand(input);
+  };
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: runner,
+    modelRunner: successfulModelRunner(),
+  });
+  const first = directInvocation(plan);
+  const second = directInvocation(plan);
+  const controller = new AbortController();
+  first.invocation.signal = controller.signal;
+  const firstPending = adapter.execute(first.invocation);
+  await batchStarted;
+  const secondPending = adapter.execute(second.invocation);
+  await new Promise((resolve) => setImmediate(resolve));
+  controller.abort();
+  batchGateResolve();
+  await assert.rejects(
+    firstPending,
+    (error) => error instanceof ContractError && error.code === 'model_transport_aborted',
+  );
+  await secondPending;
+  assert.equal(producerSignal.aborted, false);
+});
+
+test('all cancelled readers abort the shared Git producer', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  let producerSignal = null;
+  let startedResolve;
+  const started = new Promise((resolve) => { startedResolve = resolve; });
+  const runner = async (input) => {
+    producerSignal = input.signal;
+    startedResolve();
+    return new Promise((resolve, reject) => {
+      const onAbort = () => reject(new ContractError('git_process_aborted', 'injected abort'));
+      input.signal.addEventListener('abort', onAbort, { once: true });
+      if (input.signal.aborted) onAbort();
+    });
+  };
+  let modelCalls = 0;
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: runner,
+    modelRunner: async () => { modelCalls += 1; throw new Error('must not run'); },
+  });
+  const first = directInvocation(plan);
+  const second = directInvocation(plan);
+  const firstController = new AbortController();
+  const secondController = new AbortController();
+  first.invocation.signal = firstController.signal;
+  second.invocation.signal = secondController.signal;
+  const firstPending = adapter.execute(first.invocation);
+  const secondPending = adapter.execute(second.invocation);
+  await started;
+  firstController.abort();
+  secondController.abort();
+  await assert.rejects(firstPending, (error) => error?.code === 'model_transport_aborted');
+  await assert.rejects(secondPending, (error) => error?.code === 'model_transport_aborted');
+  assert.equal(producerSignal.aborted, true);
+  assert.equal(modelCalls, 0);
+});
+
+test('cache-disabled cold path and cache-hit path produce identical canonical request bytes', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  const invocation = directInvocation(plan).invocation;
+  const coldInputs = [];
+  const warmInputs = [];
+  const cold = adapterFor(repo.repositoryPath, 'changeset', {
+    contextCache: false,
+    modelRunner: successfulModelRunner(coldInputs),
+  });
+  const warm = adapterFor(repo.repositoryPath, 'changeset', {
+    modelRunner: successfulModelRunner(warmInputs),
+  });
+  await cold.execute(invocation);
+  await warm.execute(invocation);
+  await warm.execute(invocation);
+  assert.equal(coldInputs.length, 1);
+  assert.equal(warmInputs.length, 2);
+  assert.deepEqual(warmInputs[0], coldInputs[0]);
+  assert.deepEqual(warmInputs[1], coldInputs[0]);
+  assert.equal(canonicalJson(strictJsonParse(coldInputs[0])), coldInputs[0].toString('utf8'));
+});
+
+test('a different immutable commit with the same semantic base cannot reuse stale cached context', async (t) => {
+  const repo = makeRepo(t, { 'a.txt': { content: 'same\n' } });
+  const firstPlan = planFor(repo);
+  git(repo.repositoryPath, ['commit', '--allow-empty', '-qm', 'same-tree-new-commit']);
+  const second = {
+    repositoryPath: repo.repositoryPath,
+    commitOid: git(repo.repositoryPath, ['rev-parse', 'HEAD']).toString('utf8').trim(),
+    baseTree: repo.baseTree,
+  };
+  const secondPlan = planFor(second);
+  assert.equal(firstPlan.baseDigest, secondPlan.baseDigest);
+  assert.notEqual(repo.commitOid, second.commitOid);
+  let batchCalls = 0;
+  const counted = countingGitRunner({
+    before: ({ args }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') batchCalls += 1;
+    },
+  });
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: counted.runner,
+    modelRunner: successfulModelRunner(),
+  });
+  await adapter.execute(directInvocation(firstPlan).invocation);
+  await adapter.execute(directInvocation(secondPlan).invocation);
+  assert.equal(batchCalls, 2);
+});
+
+test('bounded LRU eviction rebuilds evicted context without changing semantics', async (t) => {
+  const repo = makeRepo(t, { 'a.txt': { content: 'one\n' } });
+  const firstPlan = planFor(repo);
+  writeFileSync(path.join(repo.repositoryPath, 'a.txt'), 'two\n');
+  git(repo.repositoryPath, ['add', 'a.txt']);
+  git(repo.repositoryPath, ['commit', '-qm', 'two']);
+  const second = {
+    repositoryPath: repo.repositoryPath,
+    commitOid: git(repo.repositoryPath, ['rev-parse', 'HEAD']).toString('utf8').trim(),
+    baseTree: { 'a.txt': 'two\n' },
+  };
+  const secondPlan = planFor(second);
+  let batchCalls = 0;
+  const counted = countingGitRunner({
+    before: ({ args }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') batchCalls += 1;
+    },
+  });
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    contextCache: { maxEntries: 1, maxBytes: 1024 * 1024 },
+    gitRunner: counted.runner,
+    modelRunner: successfulModelRunner(),
+  });
+  await adapter.execute(directInvocation(firstPlan).invocation);
+  await adapter.execute(directInvocation(secondPlan).invocation);
+  await adapter.execute(directInvocation(firstPlan).invocation);
+  assert.equal(batchCalls, 3);
+});
+
+test('oversized preparations single-flight in flight but are not retained across later calls or restart', async (t) => {
+  const repo = makeRepo(t, {
+    'large.txt': { content: 'x'.repeat(64 * 1024) },
+  });
+  const plan = planFor(repo);
+  let batchCalls = 0;
+  const observations = [];
+  const counted = countingGitRunner({
+    before: async ({ args }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') {
+        batchCalls += 1;
+        await new Promise((resolve) => setTimeout(resolve, 30));
+      }
+    },
+  });
+  const options = {
+    contextCache: { maxEntries: 4, maxBytes: 1 },
+    gitRunner: counted.runner,
+    modelRunner: successfulModelRunner(),
+    observation: (entry) => observations.push(entry),
+  };
+  const firstExecutor = adapterFor(repo.repositoryPath, 'changeset', options);
+  await Promise.all([
+    firstExecutor.execute(directInvocation(plan).invocation),
+    firstExecutor.execute(directInvocation(plan).invocation),
+  ]);
+  assert.equal(batchCalls, 1);
+  assert.equal(observations.every((entry) => entry.contextRetained === false), true);
+  assert.equal(observations.some((entry) => entry.cacheStatus === 'shared'), true);
+
+  await firstExecutor.execute(directInvocation(plan).invocation);
+  assert.equal(batchCalls, 2);
+
+  const restartedExecutor = adapterFor(repo.repositoryPath, 'changeset', options);
+  await restartedExecutor.execute(directInvocation(plan).invocation);
+  assert.equal(batchCalls, 3);
+});
+
+test('tree and request size limits fail before blob-body reads', async (t) => {
+  const repo = makeRepo(t, {
+    'a.txt': { content: 'a'.repeat(800) },
+    'b.txt': { content: 'b'.repeat(800) },
+  });
+  let batchCalls = 0;
+  const counted = countingGitRunner({
+    before: ({ args }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') batchCalls += 1;
+    },
+  });
+  const treeLimited = adapterFor(repo.repositoryPath, 'changeset', {
+    limits: { maxTreeBytes: 1024 },
+    gitRunner: counted.runner,
+  });
+  await assert.rejects(
+    treeLimited.materializeContext(repo.commitOid, 'sha256:' + '0'.repeat(64)),
+    (error) => error?.code === 'repository_context_tree_limit_exceeded',
+  );
+  assert.equal(batchCalls, 0);
+
+  const plan = planFor(repo);
+  const requestLimited = adapterFor(repo.repositoryPath, 'changeset', {
+    limits: { maxRequestBytes: 1024 },
+    gitRunner: counted.runner,
+  });
+  await assert.rejects(
+    requestLimited.execute(directInvocation(plan).invocation),
+    (error) => error?.code === 'model_request_limit_exceeded',
+  );
+  assert.equal(batchCalls, 0);
+});
+
+test('duplicate blob OIDs are loaded and decoded once per cold preparation', async (t) => {
+  const content = 'same-content\n';
+  const repo = makeRepo(t, Object.fromEntries(
+    Array.from({ length: 20 }, (_, index) => [`copy-${index}.txt`, { content }]),
+  ));
+  const plan = planFor(repo);
+  let requestedOids = [];
+  const counted = countingGitRunner({
+    before: ({ args, input }) => {
+      if (args[0] === 'cat-file' && args[1] === '--batch') {
+        requestedOids = input.toString('ascii').trim().split('\n');
+      }
+    },
+  });
+  const observations = [];
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    contextCache: false,
+    gitRunner: counted.runner,
+    modelRunner: successfulModelRunner(),
+    observation: (entry) => observations.push(entry),
+  });
+  await adapter.execute(directInvocation(plan).invocation);
+  assert.equal(requestedOids.length, 1);
+  assert.equal(observations[0].logicalBlobCount, 20);
+  assert.equal(observations[0].uniqueBlobCount, 1);
+  assert.equal(observations[0].uniqueBlobBytes, Buffer.byteLength(content));
+});
+
+test('POSIX timeout and successful return clean up model descendants', { skip: process.platform === 'win32' }, async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  const timeoutMarker = path.join(repo.repositoryPath, 'timeout-grandchild');
+  const returnMarker = path.join(repo.repositoryPath, 'return-grandchild');
+  const directTimeout = directInvocation(plan);
+  const timeoutAdapter = new GitRepositoryModelExecutor({
+    repositoryPath: repo.repositoryPath,
+    modelExecutable: process.execPath,
+    modelArgs: [FIXTURE, 'spawn-grandchild-timeout', timeoutMarker],
+    timeoutMs: 50,
+  });
+  await assert.rejects(
+    timeoutAdapter.execute(directTimeout.invocation),
+    (error) => error?.code === 'model_transport_timeout',
+  );
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(existsSync(timeoutMarker), false);
+
+  const returnAdapter = new GitRepositoryModelExecutor({
+    repositoryPath: repo.repositoryPath,
+    modelExecutable: process.execPath,
+    modelArgs: [FIXTURE, 'spawn-grandchild-return', returnMarker],
+    timeoutMs: 2_000,
+  });
+  await returnAdapter.execute(directInvocation(plan).invocation);
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(existsSync(returnMarker), false);
+});
+
+test('existing retry budget reuses verified context but still owns each process/request retry', async (t) => {
   const repo = makeRepo(t);
   const plan = planFor({ ...repo, maxAttempts: 2, instruction: 'after-retry' });
   const engine = new CaseEngine({ caseId: 'case-retry-model', plan });
@@ -402,6 +853,9 @@ test('existing retry budget reconstructs full context and process instead of hid
   assert.equal(observations[0].contextDigest, observations[1].contextDigest);
   assert.equal(observations.reduce((sum, entry) => sum + entry.processStarts, 0), 2);
   assert.equal(observations.reduce((sum, entry) => sum + entry.contextBytes, 0), 2 * observations[0].contextBytes);
+  assert.equal(observations.reduce((sum, entry) => sum + entry.contextMaterializations, 0), 1);
+  assert.equal(observations.reduce((sum, entry) => sum + entry.gitCommandCount, 0), 5);
+  assert.deepEqual(observations.map((entry) => entry.cacheStatus), ['miss', 'hit']);
 });
 
 test('observation callback failure cannot change a successful result', async (t) => {

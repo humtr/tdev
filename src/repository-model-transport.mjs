@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { spawn } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import {
   ContractError,
   DEFAULT_JSON_LIMITS,
@@ -10,7 +11,6 @@ import {
   canonicalJson,
   compareText,
   deepFreeze,
-  digest,
   isPlainRecord,
   strictJsonParse,
   typedDigest,
@@ -26,9 +26,92 @@ export const MODEL_REQUEST_DOMAIN = 'tdev.model.repository-request.v1';
 
 const SUPPORTED_MODES = new Set(['100644', '100755']);
 const fatalDecoder = new TextDecoder('utf-8', { fatal: true });
+const NEVER_ABORTED_SIGNAL = new AbortController().signal;
+const DEFAULT_CONTEXT_CACHE = Object.freeze({
+  maxEntries: 4,
+  maxBytes: 32 * 1024 * 1024,
+});
+const MAX_CONTEXT_CACHE_ENTRIES = 64;
+const MAX_CONTEXT_CACHE_BYTES = 256 * 1024 * 1024;
+const REQUEST_PREFIX = Buffer.from('{"invocation":', 'utf8');
+const REQUEST_PROFILE_AND_CONTEXT = Buffer.from(
+  `,"profile":${JSON.stringify(MODEL_TRANSPORT_PROFILE)},"repositoryContext":`,
+  'utf8',
+);
+const REQUEST_FILES = Buffer.from(',"repositoryFiles":', 'utf8');
+const REQUEST_IDENTITY_SUFFIX = Buffer.from(',"schemaVersion":1}', 'utf8');
+const REQUEST_DIGEST_FIELD = Buffer.from(',"requestDigest":', 'utf8');
+const REQUEST_SUFFIX = Buffer.from(',"schemaVersion":1}', 'utf8');
+const DIGEST_SEPARATOR = Buffer.from([0]);
 
 function freeze(value) {
   return deepFreeze(canonicalClone(value));
+}
+
+function abortError(message = 'Model transport was aborted') {
+  return new ContractError('model_transport_aborted', message);
+}
+
+function assertAbortSignal(signal, label = 'signal') {
+  if (!signal || typeof signal.aborted !== 'boolean' || typeof signal.addEventListener !== 'function') {
+    throw new ContractError('invalid_model_signal', `${label} must implement AbortSignal`);
+  }
+  return signal;
+}
+
+function throwIfAborted(signal, message) {
+  if (signal.aborted) throw abortError(message);
+}
+
+function inferObjectFormat(value, label = 'Git OID') {
+  assertScalarString(value, label);
+  if (/^[0-9a-f]{40}$/.test(value)) return 'sha1';
+  if (/^[0-9a-f]{64}$/.test(value)) return 'sha256';
+  throw new ContractError('invalid_git_oid', `${label} must be a full lowercase SHA-1 or SHA-256 OID`);
+}
+
+function normalizeContextCache(input) {
+  if (input === false) return null;
+  const value = input === undefined ? {} : input;
+  assertRecordShape(value, [], ['maxEntries', 'maxBytes'], 'contextCache');
+  return freeze({
+    maxEntries: value.maxEntries === undefined
+      ? DEFAULT_CONTEXT_CACHE.maxEntries
+      : assertSafeInteger(value.maxEntries, 'contextCache.maxEntries', {
+        min: 1,
+        max: MAX_CONTEXT_CACHE_ENTRIES,
+      }),
+    maxBytes: value.maxBytes === undefined
+      ? DEFAULT_CONTEXT_CACHE.maxBytes
+      : assertSafeInteger(value.maxBytes, 'contextCache.maxBytes', {
+        min: 1,
+        max: MAX_CONTEXT_CACHE_BYTES,
+      }),
+  });
+}
+
+function zeroGitMetrics() {
+  return {
+    commandCount: 0,
+    inputBytes: 0,
+    stdoutBytes: 0,
+    durationMs: 0,
+  };
+}
+
+function estimatePreparationBytes(files, descriptorBytes, filesBytes) {
+  let utf16Bytes = 0;
+  for (const file of files) {
+    utf16Bytes += 2 * (
+      file.path.length + file.mode.length + file.blobOid.length + file.content.length
+    );
+    utf16Bytes += 128;
+  }
+  return descriptorBytes.length + filesBytes.length + utf16Bytes + 2_048;
+}
+
+function digestCanonicalJson(encoded) {
+  return `sha256:${createHash('sha256').update(encoded).digest('hex')}`;
 }
 
 function normalizeRepositoryPath(value) {
@@ -103,6 +186,146 @@ function normalizeLimits(input = {}) {
   });
 }
 
+class ContextPreparationCache {
+  #entries = new Map();
+  #retainedBytes = 0;
+
+  constructor(configuration) {
+    this.configuration = configuration;
+    Object.freeze(this);
+  }
+
+  async acquire(key, signal, producer) {
+    throwIfAborted(signal, 'Model transport was aborted before context preparation');
+    const existing = this.#entries.get(key);
+    if (existing?.state === 'complete') {
+      this.#touch(existing);
+      return {
+        preparation: existing.value,
+        cacheStatus: 'hit',
+        contextMaterializations: 0,
+        contextRetained: true,
+        waitDurationMs: 0,
+      };
+    }
+    if (existing?.state === 'pending') {
+      return this.#wait(existing, signal, 'shared');
+    }
+
+    const entry = {
+      key,
+      state: 'pending',
+      controller: new AbortController(),
+      waiters: 0,
+      value: null,
+      retainedBytes: 0,
+      retained: false,
+      metricsClaimed: false,
+      promise: null,
+    };
+    this.#entries.set(key, entry);
+    entry.promise = Promise.resolve()
+      .then(() => producer(entry.controller.signal))
+      .then((value) => {
+        entry.value = value;
+        entry.retainedBytes = value.retainedBytes;
+        const current = this.#entries.get(key);
+        if (current !== entry) return value;
+        if (value.retainedBytes <= this.configuration.maxBytes) {
+          entry.state = 'complete';
+          entry.retained = true;
+          this.#retainedBytes += value.retainedBytes;
+          this.#touch(entry);
+          this.#evict();
+        } else {
+          this.#entries.delete(key);
+        }
+        return value;
+      }, (error) => {
+        if (this.#entries.get(key) === entry) this.#entries.delete(key);
+        throw error;
+      });
+    entry.promise.catch(() => {});
+    return this.#wait(entry, signal, 'miss');
+  }
+
+  #touch(entry) {
+    if (this.#entries.get(entry.key) !== entry) return;
+    this.#entries.delete(entry.key);
+    this.#entries.set(entry.key, entry);
+  }
+
+  #evict() {
+    const completeCount = () => {
+      let count = 0;
+      for (const entry of this.#entries.values()) {
+        if (entry.state === 'complete') count += 1;
+      }
+      return count;
+    };
+    while (
+      this.#retainedBytes > this.configuration.maxBytes ||
+      completeCount() > this.configuration.maxEntries
+    ) {
+      let victim = null;
+      for (const entry of this.#entries.values()) {
+        if (entry.state === 'complete') {
+          victim = entry;
+          break;
+        }
+      }
+      if (victim === null) return;
+      this.#entries.delete(victim.key);
+      this.#retainedBytes -= victim.retainedBytes;
+    }
+  }
+
+  #wait(entry, signal, cacheStatus) {
+    const started = performance.now();
+    entry.waiters += 1;
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const finish = (callback, value) => {
+        if (settled) return;
+        settled = true;
+        signal.removeEventListener('abort', onAbort);
+        entry.waiters -= 1;
+        if (entry.state === 'pending' && entry.waiters === 0) {
+          entry.controller.abort(abortError('All context preparation readers were aborted'));
+        }
+        callback(value);
+      };
+      const onAbort = () => finish(
+        reject,
+        abortError('Model transport was aborted while waiting for context preparation'),
+      );
+      signal.addEventListener('abort', onAbort, { once: true });
+      if (signal.aborted) {
+        onAbort();
+        return;
+      }
+      entry.promise.then(
+        (preparation) => {
+          if (settled) return;
+          let contextMaterializations = 0;
+          if (!entry.metricsClaimed) {
+            entry.metricsClaimed = true;
+            contextMaterializations = 1;
+          }
+          finish(resolve, {
+            preparation,
+            cacheStatus,
+            contextMaterializations,
+            contextRetained: entry.retained,
+            waitDurationMs: durationMs(started),
+          });
+        },
+        (error) => finish(reject, error),
+      );
+    });
+  }
+}
+
 function oidLength(objectFormat) {
   if (objectFormat === 'sha1') return 40;
   if (objectFormat === 'sha256') return 64;
@@ -126,8 +349,8 @@ function gitFailure(args, result) {
   });
 }
 
-async function runCheckedGit({ gitExecutable, repositoryPath, args, input = null, runner }) {
-  const result = await runner({ gitExecutable, repositoryPath, args, input });
+async function runCheckedGit({ gitExecutable, repositoryPath, args, input = null, signal, runner }) {
+  const result = await runner({ gitExecutable, repositoryPath, args, input, signal });
   if (!result || !Number.isInteger(result.code) || !Buffer.isBuffer(result.stdout) || !Buffer.isBuffer(result.stderr)) {
     throw new ContractError('invalid_git_runner_result', 'Repository Git runner returned an invalid result');
   }
@@ -151,12 +374,13 @@ function parseTreeRows(bytes, objectFormat, limits) {
     throw new ContractError('repository_context_entry_limit_exceeded', `Repository context exceeds ${limits.maxTreeEntries} files`);
   }
   const seen = new Set();
-  return rawRows.map((row) => {
+  let contentBytes = 0;
+  const rows = rawRows.map((row) => {
     const tab = row.indexOf('\t');
     if (tab < 1) throw new ContractError('invalid_repository_tree', 'Git tree entry is malformed');
-    const metadata = row.slice(0, tab).split(' ');
-    if (metadata.length !== 3) throw new ContractError('invalid_repository_tree', 'Git tree entry metadata is malformed');
-    const [mode, type, oid] = metadata;
+    const metadata = row.slice(0, tab).trim().split(/ +/u);
+    if (metadata.length !== 4) throw new ContractError('invalid_repository_tree', 'Git tree entry metadata is malformed');
+    const [mode, type, oid, sizeText] = metadata;
     if (!SUPPORTED_MODES.has(mode) || type !== 'blob') {
       throw new ContractError('unsupported_repository_entry', 'Repository context supports only regular text blobs', {
         mode,
@@ -164,20 +388,44 @@ function parseTreeRows(bytes, objectFormat, limits) {
       });
     }
     assertOid(oid, objectFormat, 'blob OID');
+    if (!/^(0|[1-9][0-9]*)$/u.test(sizeText)) {
+      throw new ContractError('invalid_repository_tree', 'Git tree entry size is malformed');
+    }
+    const byteLength = Number(sizeText);
+    if (!Number.isSafeInteger(byteLength) || byteLength > limits.maxFileBytes) {
+      throw new ContractError('repository_context_file_limit_exceeded', `Repository file exceeds ${limits.maxFileBytes} bytes`, {
+        path: row.slice(tab + 1),
+        size: Number.isSafeInteger(byteLength) ? byteLength : null,
+      });
+    }
+    contentBytes += byteLength;
+    if (contentBytes > limits.maxTreeBytes) {
+      throw new ContractError('repository_context_tree_limit_exceeded', `Repository context exceeds ${limits.maxTreeBytes} bytes`, {
+        size: contentBytes,
+      });
+    }
     const filePath = validateRelativePath(row.slice(tab + 1));
     if (seen.has(filePath)) throw new ContractError('duplicate_repository_path', `Duplicate repository path: ${filePath}`);
     seen.add(filePath);
-    return { path: filePath, mode, blobOid: oid };
+    return { path: filePath, mode, blobOid: oid, byteLength };
   }).sort((left, right) => compareText(left.path, right.path));
+  return { rows, contentBytes };
 }
 
-function parseBatchBlobs(bytes, rows, objectFormat, limits) {
+function parseBatchBlobs(bytes, rows, objectFormat) {
   let offset = 0;
-  let totalBytes = 0;
-  const files = [];
-  const tree = Object.create(null);
+  let uniqueContentBytes = 0;
+  const contentsByOid = new Map();
+  const uniqueRows = [];
+  const seenOids = new Set();
 
   for (const row of rows) {
+    if (seenOids.has(row.blobOid)) continue;
+    seenOids.add(row.blobOid);
+    uniqueRows.push(row);
+  }
+
+  for (const row of uniqueRows) {
     const newline = bytes.indexOf(0x0a, offset);
     if (newline < 0) throw new ContractError('invalid_repository_blob_batch', 'Git blob batch response is truncated');
     const header = bytes.subarray(offset, newline).toString('ascii');
@@ -189,10 +437,11 @@ function parseBatchBlobs(bytes, rows, objectFormat, limits) {
       throw new ContractError('repository_blob_binding_mismatch', 'Git blob batch response does not match tree metadata');
     }
     const size = Number(sizeText);
-    if (!Number.isSafeInteger(size) || size > limits.maxFileBytes) {
-      throw new ContractError('repository_context_file_limit_exceeded', `Repository file exceeds ${limits.maxFileBytes} bytes`, {
+    if (!Number.isSafeInteger(size) || size !== row.byteLength) {
+      throw new ContractError('repository_blob_binding_mismatch', 'Git blob batch size does not match tree metadata', {
         path: row.path,
-        size: Number.isSafeInteger(size) ? size : null,
+        expectedSize: row.byteLength,
+        observedSize: Number.isSafeInteger(size) ? size : null,
       });
     }
     const start = newline + 1;
@@ -202,20 +451,29 @@ function parseBatchBlobs(bytes, rows, objectFormat, limits) {
     }
     const contentBytes = bytes.subarray(start, end);
     const content = decodeUtf8(contentBytes, `Repository file ${row.path}`);
-    totalBytes += size;
-    if (totalBytes > limits.maxTreeBytes) {
-      throw new ContractError('repository_context_tree_limit_exceeded', `Repository context exceeds ${limits.maxTreeBytes} bytes`, {
-        size: totalBytes,
-      });
-    }
-    tree[row.path] = content;
-    files.push({ ...row, byteLength: size, content });
+    uniqueContentBytes += size;
+    contentsByOid.set(row.blobOid, content);
     offset = end + 1;
   }
   if (offset !== bytes.length) {
     throw new ContractError('invalid_repository_blob_batch', 'Git blob batch response has trailing bytes');
   }
-  return { files, tree, contentBytes: totalBytes };
+  const files = [];
+  const tree = Object.create(null);
+  for (const row of rows) {
+    const content = contentsByOid.get(row.blobOid);
+    if (content === undefined) {
+      throw new ContractError('invalid_repository_blob_batch', 'Git blob batch omitted an expected object');
+    }
+    tree[row.path] = content;
+    files.push({ ...row, content });
+  }
+  return {
+    files,
+    tree,
+    uniqueBlobCount: uniqueRows.length,
+    uniqueContentBytes,
+  };
 }
 
 function contextIdentity(input) {
@@ -252,23 +510,68 @@ function requestInvocation(invocation) {
   };
 }
 
-function validateInvocation(invocation, objectFormat) {
+function validateInvocation(invocation) {
   assertRecordShape(invocation, [
     'caseId', 'planRevisionId', 'planDigest', 'baseDigest', 'effectKey', 'fencingToken', 'claimLease',
     'signal', 'task', 'attempt', 'acceptedResults',
   ], [], 'repository model invocation');
-  if (!invocation.signal || typeof invocation.signal.aborted !== 'boolean' || typeof invocation.signal.addEventListener !== 'function') {
-    throw new ContractError('invalid_model_signal', 'Invocation signal must implement AbortSignal');
-  }
+  assertAbortSignal(invocation.signal, 'Invocation signal');
   const task = invocation.task;
   if (!isPlainRecord(task) || task.kind !== 'work' || task.execution?.operation !== MODEL_REPOSITORY_OPERATION ||
       task.execution?.effectClass !== 'result-only') {
     throw new ContractError('unsupported_model_task', 'D0013 supports only result-only tdev.model.repository work Tasks');
   }
   assertRecordShape(task.input, ['repositoryCommitOid', 'instruction'], [], 'model Task input');
+  const objectFormat = inferObjectFormat(task.input.repositoryCommitOid, 'repositoryCommitOid');
   assertOid(task.input.repositoryCommitOid, objectFormat, 'repositoryCommitOid');
   assertScalarString(task.input.instruction, 'model Task instruction');
-  return task;
+  return { task, objectFormat };
+}
+
+function buildRequest(preparation, invocation, maxRequestBytes) {
+  const started = performance.now();
+  throwIfAborted(invocation.signal, 'Model transport was aborted before request construction');
+  const invocationBytes = Buffer.from(canonicalJson(requestInvocation(invocation)), 'utf8');
+  throwIfAborted(invocation.signal, 'Model transport was aborted during request construction');
+  const identityChunks = [
+    REQUEST_PREFIX,
+    invocationBytes,
+    REQUEST_PROFILE_AND_CONTEXT,
+    preparation.descriptorBytes,
+    REQUEST_FILES,
+    preparation.filesBytes,
+    REQUEST_IDENTITY_SUFFIX,
+  ];
+  const requestHash = createHash('sha256')
+    .update(MODEL_REQUEST_DOMAIN, 'utf8')
+    .update(DIGEST_SEPARATOR);
+  for (const chunk of identityChunks) requestHash.update(chunk);
+  const requestDigest = `sha256:${requestHash.digest('hex')}`;
+  const requestDigestBytes = Buffer.from(JSON.stringify(requestDigest), 'utf8');
+  const inputChunks = [
+    REQUEST_PREFIX,
+    invocationBytes,
+    REQUEST_PROFILE_AND_CONTEXT,
+    preparation.descriptorBytes,
+    REQUEST_FILES,
+    preparation.filesBytes,
+    REQUEST_DIGEST_FIELD,
+    requestDigestBytes,
+    REQUEST_SUFFIX,
+  ];
+  const requestBytes = inputChunks.reduce((sum, chunk) => sum + chunk.length, 0);
+  if (requestBytes > maxRequestBytes) {
+    throw new ContractError('model_request_limit_exceeded', `Model request exceeds ${maxRequestBytes} bytes`, {
+      requestBytes,
+    });
+  }
+  throwIfAborted(invocation.signal, 'Model transport was aborted before request allocation');
+  return {
+    input: Buffer.concat(inputChunks, requestBytes),
+    requestDigest,
+    requestBytes,
+    requestBuildDurationMs: durationMs(started),
+  };
 }
 
 async function emitObservation(callback, value) {
@@ -296,16 +599,22 @@ export function runModelSubprocess({
   maxStderrBytes,
 }) {
   if (signal.aborted) {
-    return Promise.reject(new ContractError('model_transport_aborted', 'Model transport was aborted before process start'));
+    return Promise.reject(new ContractError(
+      'model_transport_aborted',
+      'Model transport was aborted before process start',
+      { processStarts: 0 },
+    ));
   }
   return new Promise((resolve, reject) => {
     let child;
+    const useProcessGroup = process.platform !== 'win32';
     try {
       child = spawn(executable, args, {
         cwd: workingDirectory,
         env: environment,
         stdio: ['pipe', 'pipe', 'pipe'],
         shell: false,
+        detached: useProcessGroup,
       });
     } catch (cause) {
       reject(new ContractError('model_process_spawn_failed', 'Failed to start model subprocess', { processStarts: 0 }, { cause }));
@@ -321,10 +630,17 @@ export function runModelSubprocess({
 
     const stop = (reason) => {
       if (terminalReason === null) terminalReason = reason;
+      if (useProcessGroup && Number.isSafeInteger(child.pid) && child.pid > 0) {
+        try {
+          process.kill(-child.pid, 'SIGKILL');
+          return;
+        } catch {}
+      }
       try { child.kill('SIGKILL'); } catch {}
     };
     const onAbort = () => stop('aborted');
     signal.addEventListener('abort', onAbort, { once: true });
+    if (signal.aborted) onAbort();
     const timer = setTimeout(() => stop('timeout'), timeoutMs);
 
     child.stdout.on('data', (chunk) => {
@@ -352,6 +668,9 @@ export function runModelSubprocess({
       settled = true;
       clearTimeout(timer);
       signal.removeEventListener('abort', onAbort);
+      if (useProcessGroup && Number.isSafeInteger(child.pid) && child.pid > 0) {
+        try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+      }
       const result = {
         code,
         signal: processSignal,
@@ -395,6 +714,7 @@ export class GitRepositoryModelExecutor {
   #observation;
   #environment;
   #limits;
+  #contextCache;
 
   constructor({
     repositoryPath,
@@ -408,6 +728,7 @@ export class GitRepositoryModelExecutor {
     modelRunner = runModelSubprocess,
     observation = null,
     limits = {},
+    contextCache = undefined,
   }) {
     this.repositoryPath = normalizeRepositoryPath(repositoryPath);
     this.modelExecutable = normalizeExecutable(modelExecutable);
@@ -425,32 +746,82 @@ export class GitRepositoryModelExecutor {
     this.#observation = observation;
     this.#environment = freeze(normalizeEnvironment(modelEnvironment));
     this.#limits = normalizeLimits(limits);
+    const cacheConfiguration = normalizeContextCache(contextCache);
+    this.#contextCache = cacheConfiguration === null
+      ? null
+      : new ContextPreparationCache(cacheConfiguration);
     Object.freeze(this);
   }
 
-  async #git(args, input = null) {
-    return runCheckedGit({
-      gitExecutable: this.gitExecutable,
-      repositoryPath: this.repositoryPath,
-      args,
-      input,
-      runner: this.#gitRunner,
-    });
+  async #git(args, input, signal, metrics) {
+    const started = performance.now();
+    metrics.commandCount += 1;
+    metrics.inputBytes += input?.length ?? 0;
+    try {
+      const stdout = await runCheckedGit({
+        gitExecutable: this.gitExecutable,
+        repositoryPath: this.repositoryPath,
+        args,
+        input,
+        signal,
+        runner: this.#gitRunner,
+      });
+      metrics.stdoutBytes += stdout.length;
+      return stdout;
+    } finally {
+      metrics.durationMs += durationMs(started);
+    }
   }
 
-  async materializeContext(commitOid, expectedBaseDigest) {
+  async #produceContext(commitOid, expectedBaseDigest, objectFormat, signal, requestLimit = null) {
     const scanStarted = performance.now();
-    const objectFormat = (await this.#git(['rev-parse', '--show-object-format'])).toString('utf8').trim();
+    const gitMetrics = zeroGitMetrics();
+    throwIfAborted(signal, 'Model transport was aborted before repository scan');
+    const observedObjectFormat = (
+      await this.#git(['rev-parse', '--show-object-format'], null, signal, gitMetrics)
+    ).toString('utf8').trim();
+    if (observedObjectFormat !== objectFormat) {
+      throw new ContractError('repository_object_format_mismatch', 'Repository object format does not match the commit OID', {
+        expectedObjectFormat: objectFormat,
+        observedObjectFormat,
+      });
+    }
     assertOid(commitOid, objectFormat, 'repositoryCommitOid');
-    const type = (await this.#git(['cat-file', '-t', commitOid])).toString('utf8').trim();
+    const type = (
+      await this.#git(['cat-file', '-t', commitOid], null, signal, gitMetrics)
+    ).toString('utf8').trim();
     if (type !== 'commit') throw new ContractError('repository_context_not_commit', 'repositoryCommitOid must name a Git commit');
-    const treeOid = (await this.#git(['rev-parse', `${commitOid}^{tree}`])).toString('utf8').trim();
+    const treeOid = (
+      await this.#git(['rev-parse', `${commitOid}^{tree}`], null, signal, gitMetrics)
+    ).toString('utf8').trim();
     assertOid(treeOid, objectFormat, 'tree OID');
-    const rows = parseTreeRows(await this.#git(['ls-tree', '-r', '-z', commitOid]), objectFormat, this.#limits);
-    const batchInput = rows.length === 0 ? Buffer.alloc(0) : Buffer.from(`${rows.map((row) => row.blobOid).join('\n')}\n`, 'ascii');
-    const blobs = rows.length === 0
-      ? { files: [], tree: Object.create(null), contentBytes: 0 }
-      : parseBatchBlobs(await this.#git(['cat-file', '--batch'], batchInput), rows, objectFormat, this.#limits);
+    const listing = parseTreeRows(
+      await this.#git(['ls-tree', '-r', '-z', '-l', commitOid], null, signal, gitMetrics),
+      objectFormat,
+      this.#limits,
+    );
+    if (requestLimit !== null && listing.contentBytes >= requestLimit) {
+      throw new ContractError('model_request_limit_exceeded', `Model request exceeds ${requestLimit} bytes`, {
+        requestBytesLowerBound: listing.contentBytes,
+      });
+    }
+    const uniqueBlobOids = [...new Set(listing.rows.map((row) => row.blobOid))];
+    const batchInput = uniqueBlobOids.length === 0
+      ? Buffer.alloc(0)
+      : Buffer.from(`${uniqueBlobOids.join('\n')}\n`, 'ascii');
+    const blobs = listing.rows.length === 0
+      ? {
+        files: [],
+        tree: Object.create(null),
+        uniqueBlobCount: 0,
+        uniqueContentBytes: 0,
+      }
+      : parseBatchBlobs(
+        await this.#git(['cat-file', '--batch'], batchInput, signal, gitMetrics),
+        listing.rows,
+        objectFormat,
+      );
+    throwIfAborted(signal, 'Model transport was aborted after repository blob loading');
     const normalizedTree = validateTree(blobs.tree, {
       limits: {
         maxTreeEntries: this.#limits.maxTreeEntries,
@@ -458,7 +829,8 @@ export class GitRepositoryModelExecutor {
         maxTreeBytes: this.#limits.maxTreeBytes,
       },
     });
-    const semanticBaseDigest = digest(normalizedTree);
+    const semanticJson = canonicalJson(normalizedTree);
+    const semanticBaseDigest = digestCanonicalJson(semanticJson);
     if (semanticBaseDigest !== expectedBaseDigest) {
       throw new ContractError('repository_context_base_mismatch', 'Repository context does not match the Plan base digest', {
         expectedBaseDigest,
@@ -471,62 +843,160 @@ export class GitRepositoryModelExecutor {
       treeOid,
       semanticBaseDigest,
       fileCount: blobs.files.length,
-      contentBytes: blobs.contentBytes,
+      contentBytes: listing.contentBytes,
       files: blobs.files,
     });
-    const descriptor = freeze({
+    const descriptor = deepFreeze({
       ...identity,
       contextDigest: typedDigest(REPOSITORY_CONTEXT_PROFILE, identity),
     });
+    const files = deepFreeze(blobs.files);
+    throwIfAborted(signal, 'Model transport was aborted before context encoding');
+    const descriptorBytes = Buffer.from(canonicalJson(descriptor), 'utf8');
+    const filesBytes = Buffer.from(canonicalJson(files), 'utf8');
+    throwIfAborted(signal, 'Model transport was aborted after context encoding');
+    const scanDurationMs = durationMs(scanStarted);
     return {
       descriptor,
-      files: freeze(blobs.files),
-      scanDurationMs: durationMs(scanStarted),
+      files,
+      descriptorBytes,
+      filesBytes,
+      retainedBytes: estimatePreparationBytes(files, descriptorBytes, filesBytes),
+      contextEncodingBytes: descriptorBytes.length + filesBytes.length,
+      logicalBlobCount: listing.rows.length,
+      logicalContentBytes: listing.contentBytes,
+      uniqueBlobCount: blobs.uniqueBlobCount,
+      uniqueContentBytes: blobs.uniqueContentBytes,
+      validationOperations: listing.rows.length,
+      hashBytes: Buffer.byteLength(semanticJson, 'utf8'),
+      scanDurationMs,
+      gitMetrics,
+    };
+  }
+
+  async #acquireContext(commitOid, expectedBaseDigest, objectFormat, signal, requestLimit = null) {
+    const started = performance.now();
+    if (this.#contextCache === null) {
+      const preparation = await this.#produceContext(
+        commitOid,
+        expectedBaseDigest,
+        objectFormat,
+        signal,
+        requestLimit,
+      );
+      return {
+        preparation,
+        cacheStatus: 'disabled',
+        contextMaterializations: 1,
+        contextRetained: false,
+        waitDurationMs: durationMs(started),
+      };
+    }
+    const key = `${objectFormat}\0${commitOid}\0${expectedBaseDigest}`;
+    return this.#contextCache.acquire(
+      key,
+      signal,
+      (producerSignal) => this.#produceContext(
+        commitOid,
+        expectedBaseDigest,
+        objectFormat,
+        producerSignal,
+        requestLimit,
+      ),
+    );
+  }
+
+  async materializeContext(commitOid, expectedBaseDigest, options = {}) {
+    assertRecordShape(options, [], ['signal'], 'materializeContext options');
+    const signal = options.signal === undefined
+      ? NEVER_ABORTED_SIGNAL
+      : assertAbortSignal(options.signal, 'materializeContext signal');
+    throwIfAborted(signal, 'Model transport was aborted before context construction');
+    const objectFormat = inferObjectFormat(commitOid, 'repositoryCommitOid');
+    const acquired = await this.#acquireContext(
+      commitOid,
+      expectedBaseDigest,
+      objectFormat,
+      signal,
+    );
+    const metrics = acquired.contextMaterializations === 1
+      ? acquired.preparation.gitMetrics
+      : zeroGitMetrics();
+    return {
+      descriptor: acquired.preparation.descriptor,
+      files: acquired.preparation.files,
+      scanDurationMs: acquired.contextMaterializations === 1
+        ? acquired.preparation.scanDurationMs
+        : 0,
+      preparationDurationMs: acquired.waitDurationMs,
+      cacheStatus: acquired.cacheStatus,
+      contextMaterializations: acquired.contextMaterializations,
+      contextRetained: acquired.contextRetained,
+      gitCommandCount: metrics.commandCount,
+      gitInputBytes: metrics.inputBytes,
+      gitStdoutBytes: metrics.stdoutBytes,
     };
   }
 
   async execute(invocation) {
     const totalStarted = performance.now();
-    const objectFormat = (await this.#git(['rev-parse', '--show-object-format'])).toString('utf8').trim();
-    const task = validateInvocation(invocation, objectFormat);
-    if (invocation.signal.aborted) {
-      throw new ContractError('model_transport_aborted', 'Model transport was aborted before context construction');
-    }
-    const context = await this.materializeContext(task.input.repositoryCommitOid, invocation.baseDigest);
-    const requestIdentity = freeze({
-      schemaVersion: 1,
-      profile: MODEL_TRANSPORT_PROFILE,
-      repositoryContext: context.descriptor,
-      repositoryFiles: context.files,
-      invocation: requestInvocation(invocation),
-    });
-    const request = freeze({
-      ...requestIdentity,
-      requestDigest: typedDigest(MODEL_REQUEST_DOMAIN, requestIdentity),
-    });
-    const input = Buffer.from(canonicalJson(request), 'utf8');
-    if (input.length > this.#limits.maxRequestBytes) {
-      throw new ContractError('model_request_limit_exceeded', `Model request exceeds ${this.#limits.maxRequestBytes} bytes`, {
-        requestBytes: input.length,
-      });
-    }
+    const { task, objectFormat } = validateInvocation(invocation);
+    throwIfAborted(invocation.signal, 'Model transport was aborted before context construction');
+    const acquired = await this.#acquireContext(
+      task.input.repositoryCommitOid,
+      invocation.baseDigest,
+      objectFormat,
+      invocation.signal,
+      this.#limits.maxRequestBytes,
+    );
+    const preparation = acquired.preparation;
+    const request = buildRequest(preparation, invocation, this.#limits.maxRequestBytes);
+    const producerGitMetrics = acquired.contextMaterializations === 1
+      ? preparation.gitMetrics
+      : zeroGitMetrics();
 
     const processStarted = performance.now();
-    const observe = (outcome, responseBytes = 0, processDurationMs = durationMs(processStarted), processStarts = 1) => emitObservation(this.#observation, {
+    const observe = (
+      outcome,
+      responseBytes = 0,
+      processDurationMs = durationMs(processStarted),
+      processStarts = 1,
+      responseParseDurationMs = 0,
+    ) => emitObservation(this.#observation, {
       schemaVersion: 1,
       profile: MODEL_TRANSPORT_PROFILE,
       caseId: invocation.caseId,
       taskId: task.id,
       attemptId: invocation.attempt.id,
       repositoryCommitOid: task.input.repositoryCommitOid,
-      contextDigest: context.descriptor.contextDigest,
-      fileCount: context.descriptor.fileCount,
-      contextBytes: context.descriptor.contentBytes,
-      requestBytes: input.length,
+      contextDigest: preparation.descriptor.contextDigest,
+      fileCount: preparation.descriptor.fileCount,
+      contextBytes: preparation.descriptor.contentBytes,
+      logicalBlobCount: preparation.logicalBlobCount,
+      uniqueBlobCount: preparation.uniqueBlobCount,
+      uniqueBlobBytes: preparation.uniqueContentBytes,
+      contextEncodingBytes: preparation.contextEncodingBytes,
+      cacheStatus: acquired.cacheStatus,
+      contextRetained: acquired.contextRetained,
+      contextMaterializations: acquired.contextMaterializations,
+      contextWaitDurationMs: acquired.waitDurationMs,
+      gitCommandCount: producerGitMetrics.commandCount,
+      gitInputBytes: producerGitMetrics.inputBytes,
+      gitStdoutBytes: producerGitMetrics.stdoutBytes,
+      gitDurationMs: producerGitMetrics.durationMs,
+      validationOperations: acquired.contextMaterializations === 1
+        ? preparation.validationOperations
+        : 0,
+      hashBytes: acquired.contextMaterializations === 1 ? preparation.hashBytes : 0,
+      requestBytes: request.requestBytes,
+      requestBuildDurationMs: request.requestBuildDurationMs,
       responseBytes,
+      responseParseDurationMs,
       processStarts,
       processReuses: 0,
-      scanDurationMs: context.scanDurationMs,
+      scanDurationMs: acquired.contextMaterializations === 1
+        ? preparation.scanDurationMs
+        : 0,
       processDurationMs,
       totalDurationMs: durationMs(totalStarted),
       outcome,
@@ -536,7 +1006,7 @@ export class GitRepositoryModelExecutor {
       processResult = await this.#modelRunner({
         executable: this.modelExecutable,
         args: this.modelArgs,
-        input,
+        input: request.input,
         environment: Object.assign(Object.create(null), this.#environment),
         workingDirectory: this.modelWorkingDirectory,
         timeoutMs: this.timeoutMs,
@@ -575,6 +1045,7 @@ export class GitRepositoryModelExecutor {
 
     const responseBytes = processResult.stdoutBytes ?? processResult.stdout.length;
     const processDurationMs = processResult.durationMs ?? durationMs(processStarted);
+    const responseParseStarted = performance.now();
     let response;
     try {
       response = strictJsonParse(processResult.stdout, { maxBytes: this.#limits.maxResponseBytes });
@@ -586,10 +1057,16 @@ export class GitRepositoryModelExecutor {
         throw new ContractError('model_response_request_mismatch', 'Model response is bound to another request');
       }
     } catch (error) {
-      await observe(error?.code ?? 'invalid_model_response', responseBytes, processDurationMs);
+      await observe(
+        error?.code ?? 'invalid_model_response',
+        responseBytes,
+        processDurationMs,
+        1,
+        durationMs(responseParseStarted),
+      );
       throw error;
     }
-    await observe('returned', responseBytes, processDurationMs);
+    await observe('returned', responseBytes, processDurationMs, 1, durationMs(responseParseStarted));
     return response.result;
   }
 }
