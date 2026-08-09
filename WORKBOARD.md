@@ -10,11 +10,11 @@
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Current verified design: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
-- Active Class 2 design: none; a semantic-authority representation design is the next gate
+- Active Class 2 design: `docs/design/0009-semantic-authority-representation-comparison.md` (`accepted`; non-authoritative comparison/evidence only)
 
 ## Active work
 
-D0008 is closed as `verified` for its declared Node 22 source and compatible local/POSIX filesystem scope. The next work must not extend D0008 implicitly: choose a semantic-authority representation only through a separate Class 2 design with migration, rollback/downgrade, mixed-writer exclusion, corruption/repair, GC, security, and provider-independence rules.
+D0009 is accepted as a bounded comparison gate targeting `mvp-1a-6`. It may add only non-authoritative representation models, tests, comparison harnesses, checked evidence, and current-state documentation. Current `CaseEngine` authority, `treeDigest = digest(full tree)`, snapshot v2, journal formats, migration/rollback behavior, Git-OID status, and provider/distributed ownership remain unchanged. A structurally surviving candidate can authorize only a **separate later Class 2 migration design**, not production authority changes inside D0009.
 
 ## Verified work
 
@@ -97,8 +97,8 @@ D0008 is closed as `verified` for its declared Node 22 source and compatible loc
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. open a separate Class 2 semantic-authority representation design comparing the current full-tree authority with repo-independent bounded-fanout content-addressed structures, trusted transactional root/head models, and any simpler measured alternative; require exact identity/domain separation, migration, rollback/downgrade, mixed writers, corruption/repair, GC, security, and recovery rules before implementation;
-2. use the accepted representation decision to measure/implement the smallest safe authority update path and prove sparse snapshot/restore behavior without making a derived cache authoritative;
+1. close accepted D0009 with falsifying evidence for the current flat baseline, a directory-Merkle reference, bounded path-byte radix CAS, and bounded path-hash trie CAS; report candidate-root work separately from the unavoidable current legacy full-tree digest/materialization compatibility tax, and treat a transactional root/head as an orthogonal publication requirement;
+2. only if D0009 verifies a structural survivor, open a separate Class 2 semantic-authority migration/transactional-head design covering exact new identity/domain separation, migration epoch, rollback/downgrade, mixed writers, corruption/repair, GC, security, and restart/ambiguity recovery before changing production authority;
 3. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
 4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;

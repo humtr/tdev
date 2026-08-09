@@ -10,5 +10,6 @@
 | 0006 | Persistence Hot-Path Measurement Before Acceleration | verified | exact D0005 replay/read/fingerprint profiling and follow-on decision gates |
 | 0007 | Verified Immutable-Journal Materialization Reuse | verified | `mvp-1a-4` exact-byte-gated disposable materialization reuse over unchanged D0005 authority |
 | 0008 | Authority-Boundary Verification and Durability Admission | verified | `mvp-1a-5` complete authority-path evidence plus aggregate durable admission, legacy namespace hardening, deterministic local publication-fault classification, and checkpoint/Claim reopen liveness without semantic-authority migration |
+| 0009 | Semantic-Authority Representation Comparison | accepted | `mvp-1a-6` non-authoritative flat/directory-Merkle/bounded-radix/hash-trie comparison under the current Promotion oracle; no semantic-authority migration |
 
 `accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.
