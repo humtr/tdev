@@ -12,6 +12,12 @@ export {
 export { ClaimLedger } from './claim-ledger.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
+  GIT_PROJECTION_CANDIDATE_DOMAIN,
+  GIT_PROJECTION_PROFILE,
+  GIT_PUBLICATION_RECEIPT_DOMAIN,
+  GitProjectionAdapter,
+} from './git-projection.mjs';
+export {
   DEFAULT_LIMITS,
   DEFAULT_PATH_POLICY,
   authorityDecision,
