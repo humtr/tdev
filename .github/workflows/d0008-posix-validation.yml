@@ -1,0 +1,36 @@
+name: D0008 POSIX Validation
+
+on:
+  pull_request:
+  push:
+    branches:
+      - research/d0008-posix-validation-ci
+
+permissions:
+  contents: read
+
+jobs:
+  source-gate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Source gate
+        run: npm run check
+      - name: Coverage
+        run: node --experimental-test-coverage --test test/*.test.mjs
+      - name: Diff check
+        run: git diff --check
+      - name: Authority harness smoke
+        env:
+          TDEV_AUTHORITY_SIZES: 1000,5000
+          TDEV_AUTHORITY_TOUCHES: 1,8,128,broad
+          TDEV_AUTHORITY_SHAPES: wide-flat,deep-path
+        run: npm run bench:authority
