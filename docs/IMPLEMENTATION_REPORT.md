@@ -1,3 +1,40 @@
+# 2026-08-09 post-freeze authority-boundary re-audit addendum
+
+- Audited baseline: exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`
+- New planning record: `docs/design/0008-authority-boundary-verification-and-durability-admission.md`
+- D0008 status: `draft`; no production implementation authority
+- Historical evidence policy: Designs 0001-0007 and existing `docs/evidence/*.json` retain their original claims and are not rewritten by this addendum
+
+The D0007 source/container evidence remains valid for its declared scope. A later full-lineage/source re-audit changes the **immediate next-work conclusion**, not the recorded D0007 benchmark result. The previous sentence that the next highest-ROI gate should directly implement touched-path/content-addressed Promotion in the first real repository adapter is therefore superseded as current planning guidance.
+
+The re-audit found that the represented bottleneck and correctness boundary are broader than `promotion.mjs` whole-tree copy/hash. The schema-v2 authority path packages the compiled Plan (including full `baseTree`), complete accepted-result state, the canonical tree, Attempts, Events, receipts, and a whole-snapshot digest. A successful Promotion accepted result also retains the complete final tree while `canonicalTree` holds the same semantic result. Storage delta/materialization caches can reduce retained bytes or replay work without eliminating that upstream authority packaging.
+
+The same audit isolated four hardening gaps that must precede semantic-representation migration claims:
+
+| Boundary | Current observation | Planning consequence |
+| --- | --- | --- |
+| aggregate durable admission | component limits and store `maxBytes` are separate; no compositional proof shows every component-valid Case transition fits the configured durable snapshot bound | D0008 must freeze an owner and pre-commit falsifier before code claims durable closure |
+| legacy journal namespace | recognized legacy contents are validated, but malformed committed-looking `delta-*` names and recognized-name non-regular entries are not all rejected by legacy enumeration | raise implementation/tests to the existing fail-closed protocol; do not weaken the protocol |
+| immutable publication ambiguity | source deliberately returns `store_commit_ambiguous` after possible final-slot publication when directory durability fails | add deterministic fault injection and re-read reconciliation evidence; do not infer failure or retry safety |
+| settlement checkpoint / Claim liveness | settlement mutates in-memory terminal state, awaits durable checkpoint, then releases the terminal lease | define and test the checkpoint-exception recovery path without unsafe unconditional release |
+
+Real-Git research remains useful but is demoted from architecture authority to evidence. Sparse Git candidate construction can avoid unchanged blob reads, yet full current semantic materialization/validation/digest and complete Case snapshot work remain size-dependent. Git tree OIDs also depend on representation facts absent from the current tdev semantic tree, including file mode and repository object format. The current tdev semantic tree digest therefore remains distinct from derived Git object identity.
+
+The revised sequence is:
+
+```text
+D0008 draft questions
+-> accepted authority-boundary measurement + durability hardening gate
+-> verified full-path evidence
+-> separate semantic-authority representation decision if justified
+-> real repository/Git projection and fenced publication
+-> real context/model/provider layers
+```
+
+Until D0008 becomes accepted, it authorizes no source behavior change. Until a later separate Class 2 migration design is accepted, no Merkle/HAMT/content-addressed root, trusted transactional head, or Git OID becomes semantic authority by implication.
+
+---
+
 # mvp-1a-4 D0007 promotion report
 
 - Date: 2026-08-08

@@ -96,6 +96,8 @@ Validation and Artifact results are bounded by total canonical bytes, not only m
 
 Limits reduce denial-of-service exposure; they do not replace process memory/cpu quotas in a provider runtime.
 
+Known current gap: the component-level Case limits do not by themselves prove that every combination of individually valid Plan, result, Event, receipt, and tree data will fit the separately configured materialized snapshot limit of a durable store. Until D0008 freezes and implements an aggregate durable-admission rule, source validation must not be described as a proof that every contract-valid Case transition is durably persistable under every configured store bound.
+
 ## 7. Atomic rejection
 
 Every direct `CaseEngine` mutation runs inside an in-memory rollback boundary. If validation, an Event bound, an invariant, or a later step fails, all mutable authoritative fields revert to their prior values.
@@ -127,6 +129,8 @@ It is **not authenticity**. A party able to rewrite the complete snapshot, recom
 Local adapters use mode `0600` temporary files and byte-for-byte canonical JSON reads. `FileSnapshotStore` and Design 0004 `JournalSnapshotStore` use same-directory rename and process-local per-Case serialization; multiple processes can race and those adapters remain single-process tools. Case IDs are restricted identifiers and cannot form path traversal names.
 
 Design 0005 `ImmutableJournalSnapshotStore` does not promote its process-local mutex into cross-process authority. After an explicit cutover that quiesces legacy writers, independent v2 writers contend on one hard-link no-replace final slot per expected revision. Design 0007 does not weaken that integrity boundary: every load/CAS still strictly observes the committed namespace and rereads every retained authoritative byte; materialization reuse is allowed only when an exact current-byte fingerprint matches prior strict validation, and any mismatch forces complete replay. This is a local CAS/integrity property, not authentication, a kernel sandbox, a distributed lock, or a multi-host durability guarantee. Cross-process mixed legacy/new writers during cutover are unsupported.
+
+Known current gap: the legacy `JournalSnapshotStore` validates recognized legacy record contents and rejects an immutable `delta-from-*` namespace, but its enumeration filters to regular files with exactly matching legacy delta names. It does not yet reject every malformed committed-looking legacy `delta-*` name or every recognized-name non-regular entry. The protocol's fail-closed rule remains the target; D0008 requires the implementation and focused security tests to rise to that boundary rather than weakening the rule.
 
 ## 10. External effects
 

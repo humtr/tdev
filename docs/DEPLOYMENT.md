@@ -69,7 +69,7 @@ Use when local single-process operation needs lower write amplification while re
 - optional deterministic compaction that durably replaces the base before deleting covered deltas;
 - in-process per-Case serialization.
 
-The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Missing base with deltas, malformed, truncated, noncanonical, discontinuous, or digest-invalid records fail closed, including corruption introduced after a warm load. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
+The journal materialization and delta-count caches are not authoritative. Every load/CAS re-reads the base and committed delta bytes and fingerprints exact file names, lengths, and contents. Cache reuse is allowed only when that fingerprint matches a previously validated materialization; otherwise strict parse/replay/digest/size validation runs. Recognized legacy journal records fail closed on missing base, malformed/truncated/noncanonical contents, revision discontinuity, digest failure, and corruption introduced after a warm load. The current legacy committed-namespace enumeration is narrower than the protocol: malformed committed-looking legacy `delta-*` names and recognized-name non-regular entries are not all rejected because enumeration filters to regular files with exactly matching legacy delta names. D0008 tracks this as a source hardening gap; it is not a reason to weaken the fail-closed protocol. Like `FileSnapshotStore`, this adapter does not provide cross-process locking or distributed consistency. Its layout is separate from the single-file `FileSnapshotStore` format.
 
 ### ImmutableJournalSnapshotStore
 
@@ -105,6 +105,8 @@ The repository is the semantic persistence boundary:
 - exposes receipt-backed commands with optional live claim validation.
 
 A raw store validates only Case ID/revision identity and storage syntax. `CaseEngine.restore` owns semantic integrity.
+
+Current durability-admission gap: Case-contract limits bound individual domain structures while store `maxBytes` separately bounds the complete materialized snapshot/file. The current source does not yet prove a compositional invariant that every individually valid Case transition fits the configured durable-store bound. D0008 must freeze the owner, transition boundary, compatibility behavior, and falsifier for aggregate durable admission before code changes claim that guarantee.
 
 ## 4. Durable runner checkpoint protocol
 
@@ -220,13 +222,14 @@ Promotion currently produces an in-memory canonical text tree. A Git adapter sho
 
 ```text
 accepted isolated results
-  -> deterministic Promotion tree/OID candidate
+  -> deterministic tdev semantic Promotion tree/digest
+  -> derived Git tree/commit OID candidate under an explicit repository profile
   -> validations
   -> one fenced publication operation
   -> commit/reference receipt
 ```
 
-Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. Git object/tree construction can become content-addressed and incremental, but reference mutation remains a separate external effect with exact preconditions, idempotency/reconciliation, and rollback evidence.
+Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. Git object/tree construction can become content-addressed and incremental, but Git object identity remains a derived projection of the current tdev semantic tree unless a separate accepted Class 2 design changes semantic authority. File mode and repository object format can change Git tree OIDs without changing the current tdev path/text semantic input. Reference mutation remains a separate external effect with exact preconditions, idempotency/reconciliation, and rollback evidence.
 
 ## 11. Environment and configuration
 

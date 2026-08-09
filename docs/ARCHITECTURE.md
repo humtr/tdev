@@ -175,9 +175,19 @@ Correctness state remains authoritative; performance policy reduces implementati
 - journal materialization is reused only when a cryptographic fingerprint of exact durable base/delta names, lengths, and bytes matches; this preserves stale-writer/corruption detection but still incurs O(journal bytes) read/hash work;
 - Design 0005 adds a separate opt-in immutable journal: after a quiesced legacy-writer cutover, one no-replace `delta-from-R` slot owns CAS election among v2 writers for expected revision R; Design 0007 keeps that durable authority but permits disposable materialization reuse only after strict committed-namespace observation and exact reread-byte fingerprint equality, so any retained-byte or authority-surface change returns to full D0005 replay; it has no durable checkpoint/head state;
 - Plan compilation remains linear in graph size apart from deterministic output ordering;
-- Promotion still copies, validates, and hashes the complete text tree, so touched-path/content-addressed integration remains a later repository-adapter gate.
+- Promotion still copies, validates, and hashes the complete text tree. In addition, the current authoritative Case snapshot retains the compiled Plan (including its full base tree), complete accepted-result state, and the canonical tree; a succeeded Promotion accepted result itself contains the complete final tree. Therefore touched-path Git/object construction alone does not remove the complete authority-packaging cost and is downstream of the D0008 authority-boundary gate.
 
 The architecture deliberately does not implement Context CAS, ContextSlice, warm process/toolchain pools, preflight, cache-locality placement, or token accounting until a real repository/executor/model transport exists. Their metrics are unavailable rather than estimated.
+
+## 9.1 Current authority packaging boundary
+
+The current source has one semantic Case owner but a broad materialized snapshot boundary. A schema-v2 snapshot contains the compiled Plan, Case contract, complete Events, canonical tree, Task states with accepted results, Attempts, receipts, and a whole-snapshot digest. The compiled Plan includes the full validated `baseTree`. A successful Promotion result includes the full final `tree`, which is retained inside accepted Task state while the same semantic final tree is also installed as `canonicalTree`.
+
+This is current implementation fact, not a second owner: restore and snapshot validation deliberately treat the complete Case record as one authority. It does mean that storage-level delta/cache optimizations can reduce retained bytes or replay work without eliminating upstream full snapshot construction, digesting, cloning, or duplicated tree representation. D0008 therefore measures the complete authority path before any separate semantic-root or persistent-tree design is selected.
+
+Current semantic tree identity is the tdev canonical text-tree digest, not a Git tree OID. Git mode and repository object format affect Git identity but are absent from the current semantic tree contract. Future Git object construction is a derived projection until a separate accepted Class 2 design explicitly changes semantic authority.
+
+Known current hardening gaps are tracked in D0008: component-level limits do not yet prove aggregate durable-snapshot admission against a configured store bound; legacy journal namespace/file-type validation is weaker than the fail-closed protocol; immutable publication ambiguity lacks deterministic fault injection; and settlement-checkpoint/Claim liveness after a checkpoint exception is not yet closed as an accepted recovery algorithm.
 
 ## 10. Architectural stop gates
 

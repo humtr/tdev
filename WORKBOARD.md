@@ -9,11 +9,14 @@
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
+- Current verified design: `docs/design/0007-verified-immutable-journal-materialization-cache.md`
+- Next Class 2 planning record: `docs/design/0008-authority-boundary-verification-and-durability-admission.md` (`draft`; no implementation authority)
 
 ## Active work
 
-No Class 2 implementation item remains active in this source state. Remote publication and provider/runtime work are separate completion layers and do not reopen D0007 source semantics.
+Design 0008 — Authority-Boundary Verification and Durability Admission is open as a `draft` Class 2 planning gate on exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db`. It does not authorize production code while draft. The gate is intended to measure the complete Case authority path and close four current gaps before semantic-representation work: aggregate durable admission, legacy-journal committed-namespace fail-closed parity, deterministic `store_commit_ambiguous` fault evidence, and settlement-checkpoint/Claim liveness.
+
+D0007 remains the latest verified implementation design. Remote publication and provider/runtime work are separate completion layers and do not turn D0008 planning or research evidence into implemented source semantics.
 
 ## Verified work
 
@@ -82,16 +85,17 @@ No Class 2 implementation item remains active in this source state. Remote publi
 
 ## Next highest-ROI gates
 
-These are follow-on hypotheses, not active implementation claims:
+These are ordered follow-on gates, not implemented claims. D0008 remains `draft` until its acceptance questions are closed.
 
-1. profile and implement touched-path/content-addressed Promotion only in the first real repository adapter; current in-memory Promotion still copies/hashes the full tree;
-2. add a real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
-3. add Cloudflare CaseDO/AgentDO/D1/R2 adapters with migration, rollback, provider transaction, and fault evidence;
-4. add a durable cross-owner Claim service if Cases may execute through multiple processes/owners;
-5. add authenticated Termux/Git operation adapters and one fenced publication lane;
-6. qualify versioned MCP schemas, authorization, pagination, reconnect, and current-client behavior.
+1. close D0008's design questions for aggregate durable admission, settlement-checkpoint/Claim recovery, legacy committed-namespace compatibility, deterministic publication fault seams, and complete authority-path measurement;
+2. once D0008 is accepted, implement and verify its bounded hardening/instrumentation work without changing semantic tree authority;
+3. use verified full-path evidence to decide whether a separate Class 2 semantic-authority design should compare the current full tree with a repo-independent bounded-fanout content-addressed structure, a trusted transactional root/head, or another measured alternative;
+4. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
+5. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+6. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
+7. add authenticated Termux/Git operation adapters, one fenced publication lane, and versioned MCP/client qualification.
 
-A transactional persistence-head replacement or authoritative checkpoint remains a separate authority/migration design and is not justified by D0007 local performance evidence alone.
+A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration remains a separate authority/migration design. D0008 may produce evidence for that decision but must not smuggle it in as an optimization.
 
 ## Routing
 

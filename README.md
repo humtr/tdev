@@ -42,6 +42,8 @@ This is a correctness-oriented source core. Cloudflare Durable Objects, Agent tr
 
 `mvp-1a-4` is a direct continuation of exact `mvp-1a-3`. Design 0007 preserves D0005 durable authority and publication while allowing an instance-local materialization only after strict namespace observation plus exact current retained-byte fingerprint equality. Design 0004/0005 correctness barriers remain regression requirements. See `LINEAGE.md`, Designs 0005/0006/0007, and `docs/IMPLEMENTATION_REPORT.md`.
 
+Design 0008 — Authority-Boundary Verification and Durability Admission — is the next Class 2 planning record and targets an `mvp-1a-5` candidate, but it is currently `draft`. It therefore does not advance the active development identity, authorize production source changes, or replace D0007 as the latest verified implementation design. Its purpose is to measure the complete authority path and close aggregate durable-admission, legacy committed-namespace, commit-ambiguity, and settlement-checkpoint/Claim liveness gaps before any semantic-tree representation migration is selected.
+
 `legacy/mvp-parallel` is historical research lineage only and is not an active implementation identity.
 
 ## Runtime and verification
@@ -152,6 +154,6 @@ For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotSto
 
 Snapshot self-digests detect accidental corruption and inconsistent rewrites; they do not authenticate against an attacker who can rewrite the complete record and recompute every digest. External effects are not advertised as exactly once: they require stable idempotency or authoritative reconciliation.
 
-Promotion still copies, validates, and hashes the complete in-memory text tree. Context bytes/tokens and executor cold/warm behavior are unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
+Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. D0008 treats this complete authority-packaging path, rather than Git candidate construction alone, as the next measurement boundary. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
 
-Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, current Design 0007, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004 and 0005 remain inherited verified correctness foundations.
+Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Design 0007, draft Design 0008, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004 and 0005 remain inherited verified correctness foundations. Draft D0008 is planning authority only until its acceptance questions are closed under `SDD.md`.

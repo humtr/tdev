@@ -74,6 +74,8 @@ validate full identity and current claim lease
 
 This ordering prevents a stale lease holder from committing and prevents claim reuse before the terminal Case state is durable in the local durable runner.
 
+The pre-dispatch checkpoint path has an explicit failure cleanup: an acquired lease is released when the Attempt-start checkpoint fails, and the executor is not invoked. The settlement path is a different boundary. In the current reference runner, authoritative in-memory settlement occurs before the checkpoint and terminal lease release occurs after it; there is no separate accepted recovery branch specifically for a settlement-checkpoint exception between those steps. D0008 treats that case as an unverified liveness/recovery boundary. An unconditional `finally` release is not assumed safe because the durable Case may still reflect the predecessor state.
+
 ## 6. Effect recovery matrix
 
 | Event | result-only | idempotent-external | reconcilable-external |

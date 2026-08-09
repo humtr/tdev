@@ -8,7 +8,8 @@ This repository uses development-lineage identities, not product-style semantic 
 - **Architecture generation:** MVP generation 1
 - **Direct code parent / implementation origin:** `mvp-1a-3` at remote commit `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
 - **Baseline knowledge input:** verified `mvp-1a-3`, Design 0006 persistence profiling, and independently verified Design 0007 V research
-- **Active design:** Design 0007 — Verified Immutable-Journal Materialization Reuse
+- **Latest verified implementation design:** Design 0007 — Verified Immutable-Journal Materialization Reuse
+- **Next planning record:** Design 0008 — Authority-Boundary Verification and Durability Admission (`draft`; `mvp-1a-5` candidate only)
 - **Superseded active identity:** `mvp-1a-3`
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
@@ -44,6 +45,19 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0005 no-replace commit-slot winner semantics with strict retained-history validation;
 - D0006 evidence that repeated prefix replay, not retained-byte observation itself, dominated the measured immutable-journal hot path;
 - D0007 evidence that exact-byte-gated materialization reuse removes that replay cost without changing durable authority.
+
+## Next planning gate
+
+Design 0008 is opened from exact `mvp-1a-4@1ff7c5d321958df725497d4e3a2649e210b029db` as a Class 2 `draft`. While it remains draft:
+
+- `mvp-1a-4` remains the active verified development identity;
+- D0007 remains the latest verified implementation design;
+- `mvp-1a-5` is only the candidate identity named by the planning record, not a published or implemented source state;
+- no semantic tree/root, snapshot schema, migration, rollback, Git OID authority, or provider contract changes are authorized.
+
+The planning gate reorders the next work because new source and real-Git counterexamples show that whole-tree Promotion is only one part of the current boundary. The Case snapshot packages the compiled Plan/full base tree, accepted results, canonical tree, Attempts, Events, and receipts; component limits do not yet prove aggregate durable-store fit; legacy journal committed-namespace validation is weaker than the protocol; `store_commit_ambiguous` lacks deterministic fault injection; and settlement-checkpoint/Claim liveness after a checkpoint exception is not yet closed.
+
+If D0008 is later accepted and implemented, the development identity may advance within lineage `1a` only after the resulting source state and exact ancestry are independently verified. The managed `tmcp/` scratch branch used by tooling is transport bookkeeping and does not define tdev development-lineage naming.
 
 ## Naming rule
 
