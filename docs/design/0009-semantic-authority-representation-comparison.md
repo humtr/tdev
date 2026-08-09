@@ -142,6 +142,7 @@ Operation/byte evidence is primary:
 
 - initial nodes/values built;
 - node/value canonical bytes hashed;
+- path-key hash operations/bytes for candidates that hash normalized paths before structural lookup;
 - update node reads;
 - new immutable nodes/values written;
 - nodes/values reused;

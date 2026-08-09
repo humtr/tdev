@@ -33,6 +33,8 @@ function metrics() {
     bucketEntriesCopied: 0,
     bucketEntriesHashed: 0,
     pathSteps: 0,
+    pathKeyHashOperations: 0,
+    pathKeyBytesHashed: 0,
     maxFanout: 0,
     maxHeight: 0,
     maxBucket: 0,
@@ -317,12 +319,20 @@ function materializeRadix(model) {
 // C3: canonical compressed hash trie (Patricia-like) with collision buckets.
 // ---------------------------------------------------------------------------
 
-function defaultPathKey(filePath) {
+function defaultPathKey(filePath, outputMetrics) {
+  const pathBytes = Buffer.from(filePath, 'utf8');
+  outputMetrics.pathKeyHashOperations += 1;
+  outputMetrics.pathKeyBytesHashed += Buffer.byteLength(PATH_KEY_DOMAIN, 'utf8') + 1 + pathBytes.length;
   return createHash('sha256')
     .update(PATH_KEY_DOMAIN, 'utf8')
     .update(Buffer.from([0]))
-    .update(Buffer.from(filePath, 'utf8'))
+    .update(pathBytes)
     .digest('hex');
+}
+
+function pathKeyFor(filePath, keyFn, outputMetrics) {
+  if (keyFn === defaultPathKey) return defaultPathKey(filePath, outputMetrics);
+  return keyFn(filePath);
 }
 
 function firstDifferentNibble(left, right, start) {
@@ -453,9 +463,9 @@ function finalizeHashNode(node, outputMetrics) {
   return immutableBranch(node.depth, node.prefix, children, outputMetrics);
 }
 
-function hashItems(writes, keyFn) {
+function hashItems(writes, keyFn, outputMetrics) {
   return normalizeWrites(writes).map((item) => {
-    const key = keyFn(item.path);
+    const key = pathKeyFor(item.path, keyFn, outputMetrics);
     if (typeof key !== 'string' || key.length === 0) throw new Error('hash trie key must be a non-empty string');
     return { ...item, key };
   });
@@ -471,7 +481,7 @@ function updateHashRoot(root, items, outputMetrics) {
 function buildHashTrie(tree, options = {}) {
   const outputMetrics = metrics();
   const keyFn = options.keyFn ?? defaultPathKey;
-  const items = treeWrites(tree).map((item) => ({ ...item, key: keyFn(item.path) }));
+  const items = treeWrites(tree).map((item) => ({ ...item, key: pathKeyFor(item.path, keyFn, outputMetrics) }));
   const root = updateHashRoot(null, items, outputMetrics);
   const model = {
     kind: 'hash-trie',
@@ -487,7 +497,7 @@ function buildHashTrie(tree, options = {}) {
 function updateHashTrie(model, writes, options = {}) {
   const outputMetrics = metrics();
   const keyFn = options.keyFn ?? model.keyFn ?? defaultPathKey;
-  const items = hashItems(writes, keyFn);
+  const items = hashItems(writes, keyFn, outputMetrics);
   const root = updateHashRoot(model.root, items, outputMetrics);
   const next = {
     ...model,

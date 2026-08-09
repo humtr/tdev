@@ -183,6 +183,11 @@ test('bounded candidates keep sparse structural writes far below total tree size
     assert.ok(smallUpdate.metrics.nodesWritten < 128, `${name} sparse update should not rewrite the tree`);
     assert.ok(largeUpdate.metrics.nodesWritten < 128, `${name} sparse update should remain bounded at 5k`);
     assert.ok(largeUpdate.metrics.nodesWritten <= smallUpdate.metrics.nodesWritten * 4 + 8, `${name} sparse node work should not scale with N`);
+    if (name === 'hash-trie') {
+      assert.equal(smallUpdate.metrics.pathKeyHashOperations, 1);
+      assert.equal(largeUpdate.metrics.pathKeyHashOperations, 1);
+      assert.ok(largeUpdate.metrics.pathKeyBytesHashed > 0);
+    }
   }
 });
 
