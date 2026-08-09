@@ -218,7 +218,7 @@ D0010 closes the bounded local authority migration that D0009 intentionally left
 
 For an opt-in v3 Case, `CaseEngine` owns lifecycle and the semantic base/canonical root descriptors. Typed immutable radix objects carry content; a small schema-v3 snapshot binds lifecycle state to those roots; `SemanticSqliteStore` elects the current snapshot/root pair through one expected-predecessor transactional head. Object existence alone is not authority. Existing v2 Cases retain the full-tree schema-v2 and legacy store semantics.
 
-The normal v3 Promotion/checkpoint path no longer materializes or hashes the complete text tree. Compatibility APIs, cold semantic hydration/scrub, and explicit full-tree comparison may still be O(N); D0010 does not claim otherwise. D0011 later adds a local derived Git projection outside this semantic-authority boundary; provider/remote publication, provider transactions, distributed Claims, and hostile-storage authentication remain outside the verified semantic owner.
+The normal v3 Promotion/checkpoint path no longer materializes or hashes the complete text tree. Compatibility APIs, cold semantic hydration/scrub, and explicit full-tree comparison may still be O(N); D0010 does not claim otherwise. D0011 adds a local derived Git projection and D0012 adds a derived authenticated remote-publication layer outside this semantic-authority boundary; neither Git layer becomes the semantic owner. Provider transactions, distributed Claims, protected-branch policy ownership, and hostile-storage authentication remain outside the verified semantic owner.
 
 ## 9.4 Verified local Git projection boundary
 
@@ -226,7 +226,13 @@ D0011 implements one local `tdev.git.text-tree.v1` projection over a validated D
 
 Candidate validation rereads the Git tree/blob graph, rebuilds the existing tdev semantic root, and checks raw commit bytes against the bound tree, parent, and explicit author/committer metadata before publication. Lost publication or rollback responses are classified by durable ref reread; a third OID is a conflict and blind replay is forbidden. Rollback is another fenced ref CAS and never rewrites semantic Case authority or deletes Git objects.
 
-This boundary is local-source verification, not a remote/provider claim. Git OIDs remain representation-dependent derived identities, SHA-1 and SHA-256 repositories may project the same semantic root differently, and D0011 does not prove fetch/push, GitHub/GitLab authorization or branch protection, signing, multi-host ownership, provider transactions, or hostile repository authenticity.
+This boundary is local-source verification, not a remote/provider claim. Git OIDs remain representation-dependent derived identities, SHA-1 and SHA-256 repositories may project the same semantic root differently, and D0011 does not prove remote publication, provider authorization or branch protection, signing, multi-host ownership, provider transactions, or hostile repository authenticity.
+
+## 9.5 Verified remote Git publication source boundary
+
+D0012 adds `GitRemotePublicationAdapter` profile `tdev.git.remote-existing-branch.v1` above a locally elected D0011 candidate. An immutable remote intent binds the candidate, exact non-null predecessor, remote name, and digest of the single effective push target without persisting the clear target. Forward publication uses an explicit expected-predecessor remote lease; because the D0011 candidate parent is that predecessor, every accepted forward update is still topologically fast-forward. Uncertain outcomes are classified only by durable remote-ref reread, and restart reconciliation is read-only and bound to the original remote identity.
+
+This remains a derived publication boundary: the D0010 transactional Case head and semantic root remain tdev authority, and D0012 never creates/deletes remote branches or stores credentials. Source tests and an authenticated GitHub push dry-run verify the generic protocol and non-interactive credential negotiation capability. They do **not** promote any provider resource to integration-verified, prove protected-branch policy, provider-specific authorization/rules, multi-host ownership, signing, or hostile-provider authenticity.
 
 ## 10. Architectural stop gates
 

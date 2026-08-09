@@ -155,7 +155,15 @@ For D0011, construct `GitProjectionAdapter` with an existing trusted local Git r
 
 Call `publish(candidate)` for the only forward local-ref mutation. The adapter validates the candidate against the repository, rebuilds the semantic root from the Git tree, validates the raw commit binding, and executes one exact expected-predecessor `update-ref` CAS. Pre-update failure remains not applied; post-update response loss is reconciled by durable ref reread. A third OID is a conflict. Do not blind-retry a failed publish or rebuild a second candidate merely to resolve an unknown outcome.
 
-`reconcilePublication(candidate)` is read-only and classifies predecessor/absence, candidate, or third-state conflict after restart. `rollback(receiptOrCandidate)` performs a separate exact CAS back to the predecessor or deletes only the exact candidate ref created from absence; an intervening publication fences stale rollback. Git object deletion, remote push, authorization, and protected-branch policy are not part of this local operation.
+`reconcilePublication(candidate)` is read-only and classifies predecessor/absence, candidate, or third-state conflict after restart. `rollback(receiptOrCandidate)` performs a separate exact CAS back to the predecessor or deletes only the exact candidate ref created from absence; an intervening publication fences stale rollback. Git object deletion and provider policy are not part of this local operation.
+
+### Authenticated remote Git publication
+
+For D0012, construct `GitRemotePublicationAdapter` from the existing D0011 adapter and a bounded Git remote name. First call `preparePublication(candidate)`: the candidate must already be locally elected, must have a non-null predecessor, and the existing remote branch must still name that exact predecessor. The returned immutable intent binds the candidate and a digest of the single effective push target; do not reconstruct this intent from mutable remote config after a failure.
+
+Call `publish(intent, candidate)` for the only forward remote mutation. It revalidates the local candidate and current local election, requires the same remote identity/predecessor, and performs one explicit expected-predecessor lease update. After success **or error**, it rereads the remote ref. Candidate means applied, predecessor means not applied, third OID means conflict, and unreadable state means ambiguous. Never blind-retry an ambiguous remote push.
+
+`reconcilePublication(intent, candidate)` is restart-safe and read-only and rejects a changed remote identity. `rollback(receipt, intent, candidate)` is a separate candidate-to-predecessor fenced update; provider rejection that keeps the candidate current is safe not-applied, and an intervening OID fences stale rollback. The first profile never creates/deletes remote branches, never stores raw credentials or clear push URLs, and never disables provider branch protection. If rollback is provider-rejected, recover by preparing a new forward semantic/Git candidate instead of weakening provider policy.
 
 ### Command mutation
 
@@ -221,6 +229,7 @@ Recommended operator signals:
 - store corruption and noncanonical-read failures;
 - semantic-v3 head generation, CAS conflicts/ambiguity, root/object scrub failures, migration source-change rejections, and GC dry-run/apply counts;
 - D0011 Git candidate/object-format/ref identity, local ref CAS conflicts, reconciled outcomes, rollback conflicts, and semantic-binding validation failures;
+- D0012 remote intent/target digest/ref identity, exact-predecessor conflicts, reconciled/ambiguous outcomes, rollback rejection/conflicts, and remote identity-change failures;
 - full-snapshot vs delta bytes written, delta count, compaction count, and replay latency;
 - Promotion base-tree size, touched-path count, and validation time.
 
@@ -238,12 +247,14 @@ Recommended operator signals:
 | semantic SQLite commit ambiguity | reopen and compare durable head with intended predecessor/successor; do not blindly retry |
 | local Git publication ambiguity | reread the exact publication ref and classify predecessor/candidate/third state; do not blindly replay `update-ref` |
 | local Git stale publication/rollback | preserve the current ref winner; report conflict |
+| remote Git publication ambiguity | reread the intent-bound remote ref; if unreadable remain ambiguous and do not replay |
+| remote Git stale publication/rollback | preserve the remote winner; never bypass provider policy |
 | future snapshot version | fail closed |
 | event/receipt/bounds exhaustion | reject entire mutation atomically |
 
 ## 15. Provider adapter gate
 
-Before a Cloudflare/Agent/remote-Git provider adapter is accepted, it must prove:
+Before a provider adapter is accepted as owning Cloudflare/Agent state, or before D0012 remote Git is promoted beyond its bounded source contract into provider-specific integration/deployment qualification, the applicable layer must prove:
 
 - authoritative state is persisted in the provider owner's transaction before dispatch;
 - delivery epoch and result fences survive reconnects;

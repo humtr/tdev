@@ -250,13 +250,13 @@ accepted isolated results
   -> commit/reference receipt
 ```
 
-Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. D0011 now verifies local object/tree/commit construction and one local branch-ref CAS/reconciliation/rollback lane, but Git object identity remains a derived projection of the current tdev semantic tree unless a separate accepted Class 2 design changes semantic authority. File mode and repository object format can change Git tree OIDs without changing the current tdev path/text semantic input. Remote reference mutation remains a separate provider/external-effect design with its own authorization, preconditions, reconciliation, and rollback evidence.
+Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. D0011 verifies local object/tree/commit construction and one local branch-ref CAS/reconciliation/rollback lane; D0012 adds the separate `tdev.git.remote-existing-branch.v1` external-effect adapter for an already locally elected candidate and existing remote branch. Git OIDs and remote refs remain derived publication identities. D0012 binds one effective push target into an immutable intent, uses exact predecessor remote fencing, rereads uncertain outcomes, and never creates/deletes a remote branch or bypasses provider policy.
 
 ## 11. Environment and configuration
 
-No environment variable is required by the source core. D0011 explicitly strips inherited `GIT_*` variables before invoking Git and supplies only bounded internal settings plus explicit author/committer metadata. Provider adapters should keep mutable deployment configuration outside Plan/result digests unless it is intentionally part of the immutable Case contract.
+No environment variable is required by the source core. D0011 and D0012 strip inherited `GIT_*` routing before invoking Git. D0012 sets `GIT_TERMINAL_PROMPT=0`, accepts no credential argument, and relies on an already configured deployment credential helper or SSH agent when authentication is required. Mutable deployment configuration remains outside Plan/result/semantic digests; the D0012 intent persists only a digest of the effective push target, not its clear URL.
 
-Secrets must not be stored in Task input, evidence, receipts, or snapshots without a separate encrypted-secret design.
+Secrets must not be stored in Task input, evidence, receipts, snapshots, remote intents, or clear embedded Git URLs without a separate encrypted-secret design.
 
 ## 12. Deployment evidence levels
 
@@ -268,7 +268,7 @@ Secrets must not be stored in Task input, evidence, receipts, or snapshots witho
 | deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
 | production-qualified | measured SLO, load, security, and incident procedures accepted |
 
-This repository remains **source-verified** with independently exercised local real-Git D0011 contract evidence. No remote/provider resource has been promoted to integration-verified or deployment-verified.
+This repository remains **source-verified** for D0011 local Git and the D0012 generic authenticated remote-publication contract. An authenticated GitHub `push --dry-run` additionally confirms non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no remote/provider resource has been promoted to integration-verified or deployment-verified; protected-branch behavior remains unverified.
 
 ## 13. Release checklist
 
@@ -281,4 +281,4 @@ node --experimental-test-coverage --test test/*.test.mjs
 npm run bench
 ```
 
-When validating a Git checkout, also run `git diff --check` and inspect `git status --short`. Archive-only validation may omit `.git`, but that does not waive checkout diff/status gates for publication. Confirm documentation still states remote/provider layers as unverified and that no generated/cache/runtime directory is included in any development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.
+When validating a Git checkout, also run `git diff --check` and inspect `git status --short`. Archive-only validation may omit `.git`, but that does not waive checkout diff/status gates for publication. Confirm documentation distinguishes D0012 source verification/authenticated dry-run capability from still-unverified actual provider-ref integration, protected-branch behavior, and provider-specific policy; also confirm no generated/cache/runtime directory is included in any development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.

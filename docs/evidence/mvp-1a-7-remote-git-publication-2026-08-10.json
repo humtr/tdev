@@ -1,0 +1,91 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.d0012.remote-git-publication.evidence",
+  "date": "2026-08-10",
+  "developmentIdentity": "mvp-1a-7",
+  "design": {
+    "id": "D0012",
+    "acceptedCommit": "7faf7b441e2df264e92786aa577c72320a5aeb00",
+    "profile": "tdev.git.remote-existing-branch.v1",
+    "semanticAuthorityChanged": false,
+    "remoteRole": "derived_publication_projection"
+  },
+  "sourceCandidate": "28ed1912dc61b8d33277f599ada6010a30a7f357",
+  "sourceScope": [
+    "src/git-projection.mjs",
+    "src/git-remote-publication.mjs",
+    "src/index.mjs",
+    "test/git-remote-publication.test.mjs"
+  ],
+  "localValidation": {
+    "jobId": "job_4xs_ff44a07d86",
+    "focusedD0012": { "passed": 9, "failed": 0 },
+    "syntaxCheck": true,
+    "diffCheck": true,
+    "gitVersion": "2.55.0"
+  },
+  "independentValidation": {
+    "provider": "GitHub Actions",
+    "runId": 31328662608,
+    "jobId": 93283174570,
+    "workflowHead": "bcb2a402d95ade1458bfce45ff5ad31112f6088c",
+    "sourceCandidateIsMergeBase": true,
+    "workflowOnlyFilesAfterCandidate": [
+      ".github/workflows/d0012-posix-validation.yml"
+    ],
+    "environment": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "node": "v22.23.1",
+      "git": "2.54.0"
+    },
+    "completeSourceGate": { "passed": 200, "failed": 0 },
+    "coverage": {
+      "linePercent": 92.79,
+      "branchPercent": 81.88,
+      "functionPercent": 96.52
+    },
+    "focusedD0011AndD0012": { "passed": 22, "failed": 0 },
+    "effectiveDiffCheck": true
+  },
+  "authenticatedProviderCapability": {
+    "provider": "GitHub",
+    "repository": "humtr/tdev",
+    "remoteName": "origin",
+    "probeJobId": "job_4wx_702af1db1c",
+    "interactivePromptDisabled": true,
+    "pushDryRunNegotiated": true,
+    "dedicatedProbeRef": "refs/heads/research/d0012-auth-dryrun",
+    "probeRefAbsentBefore": true,
+    "probeRefAbsentAfter": true,
+    "actualProviderRefMutationByD0012": false,
+    "protectedBranchBehaviorVerified": false,
+    "providerPolicyIntrospectionVerified": false
+  },
+  "verifiedSourceSemantics": {
+    "existingRemoteBranchRequired": true,
+    "remoteBranchCreateDeleteSupported": false,
+    "localD0011PublicationRequiredBeforeRemote": true,
+    "immutableRemoteTargetIntent": true,
+    "clearRemoteUrlPersisted": false,
+    "rawCredentialContract": false,
+    "exactExpectedPredecessorLease": true,
+    "acceptedForwardPublicationIsFastForward": true,
+    "ambiguousOutcomeUsesRemoteReread": true,
+    "blindReplayForbidden": true,
+    "restartReconciliationReadOnly": true,
+    "fencedRollback": true,
+    "providerRollbackRejectionFailsSafe": true,
+    "inheritedGitRoutingScrubbed": true,
+    "embeddedHttpCredentialsRejected": true
+  },
+  "boundaries": {
+    "gitOidSemanticAuthority": false,
+    "remoteRefSemanticAuthority": false,
+    "providerTransactionOwnsCaseLifecycle": false,
+    "actualProviderPublicationIntegrationVerified": false,
+    "protectedBranchVerified": false,
+    "signedCommitOrRefVerified": false,
+    "multiHostPublicationOwnershipVerified": false,
+    "hostileProviderAuthenticityVerified": false
+  }
+}

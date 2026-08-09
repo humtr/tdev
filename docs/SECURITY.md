@@ -153,7 +153,15 @@ Repair is content-only: it may restore bytes that reproduce an already named exa
 
 Before publication, reconciliation, or rollback relies on candidate/receipt bindings only after rereading the repository: Git tree/blob bytes must rebuild the expected tdev semantic root and commit bytes must match the bound tree/parent/metadata as applicable. This prevents a recomputed typed digest from hiding a different local Git projection. Candidate/receipt digests remain integrity checks, not credentials or signatures.
 
-The adapter does not authenticate a hostile repository owner, protect an object database from replacement, prove the Git executable itself is trustworthy, authorize a remote, enforce protected-branch policy, or supply signed commits/refs. Remote transport and provider IAM remain separate security designs.
+The adapter does not authenticate a hostile repository owner, protect an object database from replacement, prove the Git executable itself is trustworthy, authorize a remote, enforce protected-branch policy, or supply signed commits/refs. Those remain separate from D0011 local projection.
+
+### 9.3 Remote Git publication boundary
+
+D0012 treats authentication as deployment-owned context rather than semantic data. `GitRemotePublicationAdapter` accepts no raw token/password/key parameter, forces non-interactive Git prompting off, strips inherited `GIT_*` routing overrides, disables hooks, rejects HTTP(S) push URLs containing embedded credentials/query data, and excludes the clear push target and Git stderr from canonical intents/receipts. An immutable digest binds the selected remote target so restart reconciliation cannot silently follow changed Git configuration.
+
+Remote intent/receipt digests are integrity/fencing records, not authentication credentials or signatures. Exact predecessor leases and remote reread prevent a stale publisher from overwriting an observed third winner and prevent blind replay after uncertain transport outcomes. Provider rejection is not bypassed; a protected-branch rollback rejection that leaves the candidate current is safe `not_applied`.
+
+The checked source tests plus GitHub push dry-run prove only the generic boundary and that the current deployment can negotiate authenticated push with interactive prompts disabled. They do not prove provider IAM correctness, protected-branch/ruleset semantics, secret rotation, signed refs/commits, hostile-provider authenticity, or actual D0012 provider-ref integration/restart behavior.
 
 ## 10. External effects
 
@@ -201,7 +209,7 @@ The source gate does not prove:
 - Cloudflare IAM/configuration correctness;
 - secure Termux process sandboxing;
 - symlink-safe filesystem application;
-- Git remote authorization or protected-branch behavior;
+- provider-specific Git authorization/IAM correctness, protected-branch/ruleset behavior, or actual D0012 provider-ref integration qualification;
 - Artifact malware scanning;
 - hostile-storage authenticity;
 - resistance to all resource exhaustion;

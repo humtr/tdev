@@ -168,6 +168,7 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 - `SemanticSqliteStore` is an opt-in local v3 authority adapter. It stores immutable typed semantic objects and immutable schema-v3 snapshot objects plus one mutable expected-predecessor Case head in one SQLite transaction. A possibly committed database transaction reports `store_commit_ambiguous`; callers reconcile the durable head and do not blindly replay callbacks. The adapter fails explicitly when the required `node:sqlite` API is unavailable.
 - `SemanticCaseRepository` owns native v3 create/load/checkpoint/command boundaries and the bounded quiesced pre-Promotion v2 -> v3 migration. Migration requires explicit writer and Claim quiescence and rechecks the captured source v2 snapshot digest/revision immediately before publishing the first v3 head.
 - `GitProjectionAdapter` is an opt-in local post-Promotion projection adapter. It writes derived immutable Git objects without an index/worktree, validates their semantic binding, publishes only one full `refs/heads/...` ref with exact predecessor CAS, reconciles ambiguous outcomes by reread, and performs only fenced rollback. It is not a SnapshotStore, repository authority owner, or ordinary Task executor.
+- `GitRemotePublicationAdapter` is the opt-in D0012 derived remote-publication adapter for profile `tdev.git.remote-existing-branch.v1`. It accepts only an already locally elected D0011 candidate with a non-null predecessor, binds one existing remote branch and deployment-owned push target into an immutable intent, uses exact expected-predecessor remote fencing, and reconciles uncertain push/rollback outcomes by remote-ref reread. It stores no raw credential or clear push URL and never becomes Case or semantic authority.
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
 - `CaseEngine` may maintain rebuildable Task-state counts, unsatisfied-dependency counts, ready IDs, claim-holder IDs, and a deterministic Plan-derived topological order. Ordinary transitions update changed entries/direct dependents only; any non-active Case-state candidate is confirmed from authoritative Task records.
 - `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`. Candidate loss invokes the engine repair boundary before deadlock is declared.
@@ -184,7 +185,7 @@ The source slice is accepted only when the executable matrix in `MVP.md` passes 
 - live Cloudflare Worker or Durable Object deployment;
 - persistent AgentDO delivery queue, WebSocket transport, or hibernation;
 - Termux filesystem/process/network executor or arbitrary Git index/worktree executor;
-- remote Git fetch/push, authorization, protected-branch publication, and provider rollback automation;
+- actual D0012 provider-ref integration/restart qualification, provider-specific authorization/policy introspection, protected-branch behavior, branch creation/deletion, and production rollback automation;
 - D1 projection or R2 Artifact byte storage;
 - public MCP endpoint or current-client qualification;
 - cross-system distributed transaction;
