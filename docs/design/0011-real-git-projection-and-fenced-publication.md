@@ -1,12 +1,12 @@
 # Design 0011 — Real Git Projection and Fenced Publication
 
-- Status: accepted
+- Status: verified
 - Class: 2
 - Development identity: `mvp-1a-7` (same active development direction; this Design does not create a new `mvp-*` branch)
 - Direct source predecessor: exact `mvp-1a-7@3048286a88c2687a2206cc3bcb4faab924be88d9`
 - Semantic authority precursor: verified Design 0010 / `tdev.semantic.path-byte-radix.v1`
 
-> Accepted boundary: D0011 adds a real **local Git object/ref projection adapter** after semantic Promotion. Git blob/tree/commit OIDs and the publication ref are derived projection state. They do not replace the D0010 semantic root or transactional Case head as tdev authority.
+> Verified boundary: D0011 adds a real **local Git object/ref projection adapter** after semantic Promotion. Git blob/tree/commit OIDs and the publication ref are derived projection state. They do not replace the D0010 semantic root or transactional Case head as tdev authority.
 
 ## 1. Decision
 
@@ -258,3 +258,15 @@ Because `mvp-1a-7` remains the same development direction, accepted and verified
 Verification may conclude only that a real **local** Git repository can receive an exact tdev semantic projection and elect/rollback one local branch ref through expected-predecessor fencing with explicit ambiguous-outcome recovery.
 
 The next provider-facing gate, if still desired after D0011, must separately design and prove authenticated remote publication/protected-branch behavior and its ownership/receipt/reconciliation contract. D0011 evidence cannot be promoted into that claim.
+
+## 16. Verification record
+
+D0011 became `verified` on 2026-08-10 without changing the active development-direction branch. The independently validated source candidate is `c321e9079855c87b9df806930b2cd48c61244e9b`; accepted design, implementation, evidence, owner alignment, and verification continue to fast-forward `mvp-1a-7` because no development-direction change was authorized.
+
+Independent Ubuntu/POSIX GitHub Actions run `31325628829`, job `93275404092`, used Ubuntu 24.04.4 LTS, Node `v22.23.1`, and Git `2.54.0`. It passed the complete source gate with **191/191 tests**, **92.80% line / 82.37% branch / 96.34% function coverage**, **13/13 focused D0011 real-Git tests**, SHA-1 and SHA-256 bare-repository capability checks, and the effective diff gate.
+
+Checked evidence is `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json`, SHA-256 `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`. The connected tmcp/Termux runtime independently passes the D0011 focused 13/13 real-Git gate, but its inherited complete source suite is not counted as green because the existing `ImmutableJournalSnapshotStore` hard-link publication primitive still fails with `EACCES` in that job-private filesystem.
+
+The verified rows include exact semantic path/text projection, `100644` mode, deterministic candidate identity, SHA-1/SHA-256 representation separation, bare-repository operation without index/worktree authority, create/update expected-predecessor CAS, pre/post-update ambiguity recovery, restart reconciliation, fenced rollback and stale-rollback rejection, ref/predecessor/metadata safety, read-only reconciliation, recomputed-digest tamper rejection, inherited `GIT_*` routing suppression, and disabled reference-transaction hooks.
+
+This verification closes only the declared local source boundary. It does not authorize a new `mvp-*` branch and does not verify remote fetch/push or remote ref CAS, GitHub/GitLab authorization or protected-branch semantics, signed commits/refs, distributed publication ownership, provider transaction coupling, Git-object GC, or hostile repository authenticity. Git OIDs remain derived projection identities rather than tdev semantic authority.

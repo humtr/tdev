@@ -4,17 +4,17 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 is verified on this line
+- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 and D0011 are verified on this line
 - **Architecture generation:** MVP generation 1
 - **Direction origin / historical predecessor:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- **Baseline knowledge input:** verified `mvp-1a-6` / Design 0009 plus verified Design 0010, checked semantic-v3 evidence, and independent Ubuntu/POSIX validation
-- **Latest verified design:** Design 0010 — Semantic-Authority Migration and Transactional Head
-- **Active design:** Design 0011 — Real Git Projection and Fenced Publication (`accepted`)
+- **Baseline knowledge input:** verified Design 0010 semantic-v3 authority plus verified Design 0011 local real-Git projection evidence on the same development direction
+- **Latest verified design:** Design 0011 — Real Git Projection and Fenced Publication
+- **Active design:** none; the next provider-facing gate is authenticated remote Git publication/protected-branch ownership if pursued
 - **Historical predecessor direction ref:** `mvp-1a-6`
 
 `mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
 
-`mvp-1a-7` directly succeeds `mvp-1a-6` and adds one **opt-in local semantic-v3 profile** without removing the legacy v2 path. The v3 authority is a compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. Sparse Promotion, quiesced pre-Promotion v2 migration, commit-ambiguity reconciliation, exact-content repair, and reference-aware GC are verified in this bounded local profile. Git OIDs remain derived projection identities; real repository publication, provider/distributed ownership, distributed Claims, and hostile-storage authenticity are unchanged future boundaries.
+`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains two verified additive layers without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority: exact UTF-8 `100644` Git tree/commit construction plus one fenced local `refs/heads/...` CAS/reconciliation/rollback lane. Git OIDs remain derived identities; authenticated remote/provider publication, provider/distributed ownership, distributed Claims, and hostile-storage authenticity remain future boundaries.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
@@ -54,7 +54,16 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0009 evidence that simple directory Merkle retains O(N) sibling-metadata work in wide directories, while bounded path-byte radix and collision-safe path-hash trie models can derive sparse roots without changing current semantic output;
 - D0009 evidence preferring the C3 path-hash trie as a research candidate on checked operation/byte counts, with C2 radix retained as fallback/reference;
 - D0010 production evidence selecting C2-like compressed path-byte radix because one authority must enforce exact/ancestor/descendant topology without an O(N) scan or second synchronized prefix owner;
-- D0010 evidence that normal v3 root Promotion/checkpoint work is sparse while explicit compatibility materialization remains an acknowledged O(N) path, and that transactional-head ambiguity/migration/repair/GC boundaries can close locally without changing Git/provider ownership.
+- D0010 evidence that normal v3 root Promotion/checkpoint work is sparse while explicit compatibility materialization remains an acknowledged O(N) path, and that transactional-head ambiguity/migration/repair/GC boundaries can close locally without changing Git/provider ownership;
+- D0011 evidence that the same semantic root can project deterministically into real SHA-1 or SHA-256 bare Git repositories, that exact local ref CAS/reconciliation/rollback can be fenced without index/worktree authority, and that Git representation identity can remain separate from semantic authority.
+
+## Verified D0011 gate
+
+D0011 is verified on the existing mutable `mvp-1a-7` development direction; no new `mvp-*` branch was created for the Design/verification transition. Source candidate `c321e9079855c87b9df806930b2cd48c61244e9b` passed independent Ubuntu/POSIX run `31325628829` / job `93275404092`: **191/191** complete source tests, **92.80% line / 82.37% branch / 96.34% function coverage**, clean effective diff, **13/13** focused real-Git tests, and SHA-1/SHA-256 bare-repository capability checks. Checked evidence is `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json` with SHA-256 `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`.
+
+The verified profile is `tdev.git.text-tree.v1`. A validated D0010 semantic tree is materialized into exact UTF-8 `100644` blobs and Git trees/commits under explicit metadata; immutable objects are candidates only. A direct full `refs/heads/...` ref elects the visible local projection through exact expected-predecessor CAS. Lost responses are reconciled by durable ref reread; rollback is another fenced ref mutation. Candidate validation rereads Git bytes and rebuilds the tdev semantic root, so a recomputed typed candidate digest cannot hide a different tree/commit. Inherited `GIT_*` routing is scrubbed and replacement refs/hooks are disabled for the adapter plumbing.
+
+Verification does **not** make Git OIDs semantic authority and does not prove remote fetch/push, GitHub/GitLab authorization or protected-branch semantics, signed refs/commits, multi-host ownership, provider transactions, Git-object GC, or hostile repository authenticity. The connected tmcp/Termux environment passes the D0011 focused gate but remains unqualified for the complete inherited source suite because the ImmutableJournal hard-link primitive still returns `EACCES` there.
 
 ## Verified D0010 gate
 
@@ -62,7 +71,7 @@ D0010 is verified on the `mvp-1a-7` lineage for the bounded opt-in local semanti
 
 The production v3 profile is `tdev.semantic.path-byte-radix.v1`. This intentionally promotes D0009's radix fallback rather than its lower-count C3 research preference because radix prefix locality lets the same semantic authority enforce current file/descendant topology. The v3 store uses immutable typed objects/snapshots plus one transactional expected-predecessor Case head. Forward migration requires explicit legacy-writer and Claim quiescence plus source recheck; post-migration writes forbid automatic downgrade. Commit ambiguity, corruption/scrub, exact-content repair, and reference-aware GC have explicit fail-closed contracts.
 
-Verification does **not** make Git tree/commit OIDs semantic authority and does not prove a real Git publication adapter, provider/distributed transactions, distributed Claim ownership, hostile-storage authenticity, or universal migration of historical v2 Cases. Existing v2 repositories remain supported.
+D0010 itself did **not** make Git tree/commit OIDs semantic authority or prove a Git projection adapter. D0011 later verifies the bounded local Git projection/ref-CAS layer while preserving that authority separation. Provider/distributed transactions, authenticated remote Git publication, distributed Claim ownership, hostile-storage authenticity, and universal migration of historical v2 Cases remain outside the combined verified boundary. Existing v2 repositories remain supported.
 
 ## Verified D0008 gate
 

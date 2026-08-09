@@ -1,3 +1,30 @@
+# mvp-1a-7 D0011 real Git projection and fenced-publication report
+
+- Date: 2026-08-10
+- Development branch: `mvp-1a-7` — same mutable development direction; no new `mvp-*` branch is created for D0011
+- Direct source predecessor for D0011 design: `mvp-1a-7@3048286a88c2687a2206cc3bcb4faab924be88d9`
+- Design: `docs/design/0011-real-git-projection-and-fenced-publication.md`
+- Status: `verified` for the bounded local real-Git projection/ref-CAS profile
+- Independently validated source candidate: `c321e9079855c87b9df806930b2cd48c61244e9b`
+- Checked evidence: `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json`
+- Evidence SHA-256: `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`
+- Independent validation: GitHub Actions run `31325628829`, job `93275404092`
+- Projection profile: `tdev.git.text-tree.v1`
+
+D0011 implements the next gate after D0010 without changing development direction or semantic authority. A validated D0010 `SemanticRadixTree` is projected into real Git blob/tree/commit objects while the D0010 semantic root and transactional Case head remain tdev authority. Git object format, file mode, commit metadata, and predecessor can change Git OIDs without changing the tdev semantic root, so Git OIDs are recorded only as derived projection identities.
+
+The local adapter is intentionally plumbing-only. It writes exact UTF-8 file contents as `100644` blobs, constructs Git trees and an explicit-metadata commit, and operates successfully in bare SHA-1 and SHA-256 repositories without an index or worktree. `project` may create immutable candidate objects but cannot move the publication ref. Only `publish` may advance one direct full `refs/heads/...` ref, and it uses one exact expected-predecessor `update-ref` CAS.
+
+Publication ambiguity is explicit rather than guessed. A pre-update failure leaves the predecessor or absence current; a lost response after a successful ref update is recovered by rereading the durable ref; a third OID is a conflict. Reconciliation is read-only and does not recreate candidate objects. Rollback is a separate exact ref CAS back to the predecessor, or an exact conditional delete for a ref created from absence. Any intervening publication fences a stale rollback.
+
+The implementation also hardens the trust boundary around a local Git process. It strips inherited `GIT_*` routing/configuration variables, disables replacement refs and repository hooks for its plumbing calls, requires a direct `refs/heads/...` ref, validates predecessor commit type and explicit commit metadata, and rereads candidate Git tree/blob bytes before publication. Those bytes are passed back through the existing tdev semantic-tree policy and must reproduce the candidate semantic root. Raw commit bytes must also match the bound tree, parent, and metadata, so recomputing a typed candidate digest cannot hide a different projection.
+
+Independent Ubuntu/POSIX validation on Ubuntu 24.04.4 LTS / Node `v22.23.1` / Git `2.54.0` passed **191/191 complete source tests**, **92.80% line / 82.37% branch / 96.34% function coverage**, **13/13 focused D0011 real-Git tests**, SHA-1/SHA-256 bare-repository capability checks, and the effective diff gate. The connected tmcp/Termux runtime independently passes the focused D0011 13/13 gate under Git 2.55.0, but its inherited complete source suite is still not promoted as green because the existing ImmutableJournal hard-link publication primitive returns `EACCES` in the job-private filesystem.
+
+The D0011 completion boundary is therefore narrow: **real local Git projection plus one fenced local branch-ref publication/reconciliation/rollback lane**. It does not verify remote fetch/push or remote ref CAS, GitHub/GitLab authorization or protected-branch rules, signed commits/refs, multi-host publication ownership, provider transaction coupling, Git-object GC, or hostile repository authenticity. If remote publication remains the chosen direction, that becomes a separate Class 2 provider-facing design on the same `mvp-1a-7` branch unless the user explicitly changes development direction.
+
+---
+
 # mvp-1a-7 D0010 semantic-authority migration and transactional-head report
 
 - Date: 2026-08-09

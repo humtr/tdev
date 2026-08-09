@@ -6,18 +6,32 @@
 - Development identity / publication ref: `mvp-1a-7`
 - Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
 - Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified `mvp-1a-6` / Design 0009 plus verified D0010 contract, checked v3 evidence, and independent Ubuntu/POSIX validation
+- Knowledge inputs: verified Design 0010 semantic-v3 authority plus verified Design 0011 local real-Git projection evidence on the same `mvp-1a-7` development direction
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md`
-- Active Class 2 design: `docs/design/0011-real-git-projection-and-fenced-publication.md` (`accepted`)
+- Current verified design: `docs/design/0011-real-git-projection-and-fenced-publication.md`
+- Active Class 2 design: none; the next provider-facing gate is authenticated remote Git publication/protected-branch ownership and reconciliation if that remains the chosen direction
 
 ## Active work
 
-D0011 is accepted on the existing `mvp-1a-7` development direction. Implement and falsify the smallest real **local Git** projection plus fenced branch-ref publication lane over verified semantic-v3 roots. Git blob/tree/commit OIDs and the local publication ref remain derived projection state; D0010 semantic root/Case head remain tdev authority. The slice must use actual Git plumbing, no index/worktree mutation, exact expected-predecessor ref CAS, ambiguous-outcome reread, and fenced rollback. Remote push/auth/protected-branch/provider ownership remain outside D0011.
+No Class 2 design is active. D0011 is verified on the existing `mvp-1a-7` development direction. The next highest-ROI gate is a separate authenticated **remote/provider Git** publication contract over the already-verified local candidate/ref semantics; it must define remote ownership, authorization/protected-branch behavior, remote race/ambiguity reconciliation, receipts, and rollback without promoting Git OIDs to semantic authority.
 
 ## Verified work
+
+### D0011 — verified real local Git projection and fenced publication
+
+- Status: `verified` for local Git object/ref projection only; `mvp-1a-7` remains the same active development direction
+- Design: `docs/design/0011-real-git-projection-and-fenced-publication.md`
+- Independently validated source candidate: `c321e9079855c87b9df806930b2cd48c61244e9b`
+- Profile: `tdev.git.text-tree.v1`; semantic authority remains the D0010 semantic root/Case head and Git OIDs remain derived identities
+- Projection: exact UTF-8 semantic path/text map -> `100644` blobs -> Git trees -> explicit-metadata commit, with SHA-1 and SHA-256 repository object formats independently exercised
+- Publication: direct full `refs/heads/...` only, no index/worktree; one exact expected-predecessor `update-ref` CAS, durable reread for ambiguous outcomes, and separate fenced rollback
+- Hardening: Git tree/blob graph is reread and rebuilt through the existing semantic-root policy; commit bytes are rebound to tree/parent/metadata; inherited `GIT_*` routing is scrubbed; replacement refs and hooks are disabled for plumbing
+- Independent Ubuntu/POSIX validation: GitHub Actions run `31325628829`, job `93275404092`; **191/191** complete source tests, **92.80% line / 82.37% branch / 96.34% function** coverage, **13/13** focused real-Git tests, SHA-1/SHA-256 bare-repository capability checks, and clean effective diff
+- Evidence: `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json` (SHA-256 `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`)
+- Connected tmcp/Termux: D0011 focused 13/13 passes, but the complete inherited source suite is still not qualified there because ImmutableJournal hard-link publication hits `EACCES`
+- Boundaries: no remote fetch/push/ref CAS, provider authorization/protected branch, signed refs/commits, distributed publication owner, provider transaction coupling, Git-object GC, or Git OID semantic authority
 
 ### D0010 — verified semantic-authority migration and transactional head
 
@@ -121,18 +135,19 @@ D0011 is accepted on the existing `mvp-1a-7` development direction. Implement an
 - D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality;
 - D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration;
 - D0009 non-authoritative representation evidence rejecting simple directory Merkle and retaining C2/C3 structural knowledge;
-- D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported.
+- D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported;
+- D0011 real local Git projection over that semantic root with bare-repository SHA-1/SHA-256 support, deterministic `100644` text-tree projection, exact local branch-ref CAS/reconciliation/rollback, and no change to semantic authority.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. add a real repository/Git adapter as a derived projection and fenced publication layer over the verified semantic root; preserve the distinction between tdev semantic identity and Git tree/commit OIDs;
+1. if remote publication remains the chosen direction, open a Class 2 authenticated remote/provider Git publication design covering credentials/owner, protected-branch semantics, remote race/ambiguity reconciliation, receipts, rollback, and the exact relation to the verified local candidate/ref contract;
 2. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 3. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
 4. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
 
-D0010 closes only the bounded local semantic-v3 authority/head/migration/repair/GC contract. Provider transaction ownership, distributed Claims, real Git object/ref publication semantics, hostile-storage authenticity, and global migration of historical v2 repositories remain future Class 2 work where applicable.
+D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract and D0011 closes the bounded local real-Git projection/ref-CAS contract. Provider transaction ownership, distributed Claims, authenticated remote Git publication/protected-branch semantics, hostile-storage authenticity, and global migration of historical v2 repositories remain future Class 2 work where applicable.
 
 ## Routing
 
