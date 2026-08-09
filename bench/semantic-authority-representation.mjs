@@ -220,6 +220,11 @@ function buildSingleModel(name, baseTree) {
 const output = {
   schemaVersion: 1,
   benchmarkKind: 'D0009 non-authoritative semantic-authority representation comparison under current Promotion oracle',
+  source: {
+    design: 'docs/design/0009-semantic-authority-representation-comparison.md',
+    baseRevision: 'aaf7ec9258fb776443dd70345a1acea33ed22d78',
+    candidateRevision: process.env.TDEV_SEMANTIC_SOURCE_REVISION ?? null,
+  },
   authorityStatus: {
     currentProductionAuthorityUnchanged: true,
     currentTreeDigest: 'digest(full normalized text tree)',
