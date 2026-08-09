@@ -34,6 +34,14 @@ export {
   validateTreeTopology,
 } from './policy.mjs';
 export { promote, validateTree } from './promotion.mjs';
+export {
+  MODEL_REPOSITORY_OPERATION,
+  MODEL_REQUEST_DOMAIN,
+  MODEL_TRANSPORT_PROFILE,
+  REPOSITORY_CONTEXT_PROFILE,
+  GitRepositoryModelExecutor,
+  runModelSubprocess,
+} from './repository-model-transport.mjs';
 export { CaseRepository } from './repository.mjs';
 export {
   SEMANTIC_PROFILE,
