@@ -21,6 +21,19 @@ export {
 } from './policy.mjs';
 export { promote, validateTree } from './promotion.mjs';
 export { CaseRepository } from './repository.mjs';
+export {
+  SEMANTIC_PROFILE,
+  SemanticRadixTree,
+  buildSemanticTree,
+  hydrateSemanticTree,
+  validateSemanticRoot,
+} from './semantic-authority.mjs';
+export { SemanticSqliteStore, openSemanticSqliteStore } from './semantic-store.mjs';
+export {
+  SemanticCaseRepository,
+  migrateV2CaseToSemantic,
+  semanticMigrationRollbackStatus,
+} from './semantic-repository.mjs';
 export { WORK_RESULT_KINDS, normalizeTaskResult, resultIdentity } from './results.mjs';
 export { runCase } from './runner.mjs';
 export { runDurableCase } from './durable-runner.mjs';

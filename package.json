@@ -15,6 +15,7 @@
     "bench": "node bench/control-plane.mjs",
     "bench:authority": "node bench/authority-boundary.mjs",
     "bench:semantic": "node --expose-gc bench/semantic-authority-representation.mjs",
+    "bench:semantic-v3": "node --expose-gc bench/semantic-v3-authority.mjs",
     "bench:persistence": "node bench/persistence-hot-path.mjs",
     "bench:compare": "node bench/compare-development-states.mjs"
   }
