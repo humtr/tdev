@@ -279,13 +279,13 @@ export function validateSemanticRoot(input) {
 }
 
 export class SemanticRadixTree {
-  #records;
+  #pendingRecords;
 
-  constructor({ node = null, entryCount = 0, treeBytes = 2, records = new Map(), stats = null } = {}) {
+  constructor({ node = null, entryCount = 0, treeBytes = 2, pendingRecords = new Map(), stats = null } = {}) {
     this.node = node;
     this.entryCount = entryCount;
     this.treeBytes = treeBytes;
-    this.#records = new Map(records);
+    this.#pendingRecords = new Map(pendingRecords);
     this.stats = deepFreeze(stats ?? { nodeReads: 0, nodeWrites: 0, valueWrites: 0 });
     this.root = makeRoot(node, entryCount, treeBytes);
     Object.freeze(this);
@@ -305,7 +305,7 @@ export class SemanticRadixTree {
     let node = this.node;
     let entryCount = this.entryCount;
     let treeBytes = this.treeBytes;
-    const records = new Map(this.#records);
+    const records = new Map();
     const stats = { nodeReads: 0, nodeWrites: 0, valueWrites: 0 };
 
     for (const rawWrite of writes) {
@@ -350,7 +350,7 @@ export class SemanticRadixTree {
       }
     }
 
-    return new SemanticRadixTree({ node, entryCount, treeBytes, records, stats });
+    return new SemanticRadixTree({ node, entryCount, treeBytes, pendingRecords: records, stats });
   }
 
   materialize() {
@@ -361,7 +361,7 @@ export class SemanticRadixTree {
   }
 
   objectRecords() {
-    return [...this.#records.values()].sort((left, right) => compareText(left.digest, right.digest)).map((value) => canonicalClone(value));
+    return [...this.#pendingRecords.values()].sort((left, right) => compareText(left.digest, right.digest)).map((value) => canonicalClone(value));
   }
 
   reachableDigests() {
@@ -381,23 +381,36 @@ export function buildSemanticTree(tree, context = {}) {
   return semantic;
 }
 
+export function validateSemanticObjectRecord(recordValue, expectedKind = null) {
+  if (!isPlainRecord(recordValue) || !['value', 'node'].includes(recordValue.kind) || typeof recordValue.digest !== 'string' || !isPlainRecord(recordValue.payload)) {
+    throw new ContractError('invalid_semantic_object', 'Semantic object record is malformed');
+  }
+  if (expectedKind !== null && recordValue.kind !== expectedKind) {
+    throw new ContractError('invalid_semantic_object', `Semantic object kind must be ${expectedKind}`);
+  }
+  const domain = recordValue.kind === 'value' ? SEMANTIC_VALUE_DOMAIN : SEMANTIC_NODE_DOMAIN;
+  if (typedDigest(domain, recordValue.payload) !== recordValue.digest) {
+    throw new ContractError('semantic_object_digest_mismatch', `Semantic ${recordValue.kind} object ${recordValue.digest} failed digest validation`);
+  }
+  return deepFreeze(canonicalClone(recordValue));
+}
+
 function loadRecord(resolver, digest, expectedKind) {
   const recordValue = resolver(digest);
-  if (!isPlainRecord(recordValue) || recordValue.kind !== expectedKind || recordValue.digest !== digest || !isPlainRecord(recordValue.payload)) {
-    throw new ContractError('semantic_object_missing', `Semantic ${expectedKind} object ${digest} is missing or malformed`);
+  if (recordValue === null || recordValue === undefined) {
+    throw new ContractError('semantic_object_missing', `Semantic ${expectedKind} object ${digest} is missing`);
   }
-  const domain = expectedKind === 'value' ? SEMANTIC_VALUE_DOMAIN : SEMANTIC_NODE_DOMAIN;
-  if (typedDigest(domain, recordValue.payload) !== digest) {
-    throw new ContractError('semantic_object_digest_mismatch', `Semantic ${expectedKind} object ${digest} failed digest validation`);
+  const validated = validateSemanticObjectRecord(recordValue, expectedKind);
+  if (validated.digest !== digest) {
+    throw new ContractError('semantic_object_digest_mismatch', `Semantic ${expectedKind} object does not match requested digest ${digest}`);
   }
-  return recordValue;
+  return validated;
 }
 
 export function hydrateSemanticTree(rootInput, resolver, context = {}) {
   if (typeof resolver !== 'function') throw new ContractError('invalid_semantic_resolver', 'Semantic object resolver must be a function');
   const root = validateSemanticRoot(rootInput);
   if (root.nodeDigest === null) return new SemanticRadixTree();
-  const records = new Map();
   const visiting = new Set();
 
   function loadNode(digest) {
@@ -418,7 +431,6 @@ export function hydrateSemanticTree(rootInput, resolver, context = {}) {
         throw new ContractError('invalid_semantic_value', 'Semantic value shape is invalid');
       }
       value = freezeValue(valueRecord.payload.path, valueRecord.payload.content);
-      records.set(value.digest, deepFreeze({ digest: value.digest, kind: 'value', payload: value.payload }));
     }
     const children = [];
     const seenFirstBytes = new Set();
@@ -431,15 +443,14 @@ export function hydrateSemanticTree(rootInput, resolver, context = {}) {
       children.push({ edge: entry[0], child: loadNode(entry[1]) });
     }
     children.sort(compareEdges);
-    const node = makeNode(value, children, records, null);
+    const node = makeNode(value, children, null, null);
     if (node.digest !== digest) throw new ContractError('semantic_object_digest_mismatch', 'Semantic node reconstruction changed its digest');
-    records.set(digest, deepFreeze({ digest, kind: 'node', payload: node.payload }));
     visiting.delete(digest);
     return node;
   }
 
   const node = loadNode(root.nodeDigest);
-  const semantic = new SemanticRadixTree({ node, entryCount: root.entryCount, treeBytes: root.treeBytes, records });
+  const semantic = new SemanticRadixTree({ node, entryCount: root.entryCount, treeBytes: root.treeBytes });
   if (semantic.root.rootDigest !== root.rootDigest) throw new ContractError('semantic_root_digest_mismatch', 'Semantic root reconstruction changed its digest');
   const materialized = semantic.materialize();
   const rebuilt = buildSemanticTree(materialized, context);

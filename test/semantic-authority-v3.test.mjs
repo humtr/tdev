@@ -115,6 +115,7 @@ test('v3 radix sparse update work stays bounded below total tree entries', () =>
   assert.equal(changed.get('dir/02500.txt'), 'changed');
   assert.ok(changed.stats.nodeReads < 100, `nodeReads=${changed.stats.nodeReads}`);
   assert.ok(changed.stats.nodeWrites < 100, `nodeWrites=${changed.stats.nodeWrites}`);
+  assert.ok(changed.objectRecords().length < 100, `objectRecords=${changed.objectRecords().length}`);
   assert.equal(changed.entryCount, 5000);
 });
 
