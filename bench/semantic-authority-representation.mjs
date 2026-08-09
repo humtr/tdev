@@ -198,15 +198,13 @@ function compareModel(name, baseModel, oracle, writes) {
   return result;
 }
 
-function buildModels(baseTree) {
-  const models = Object.create(null);
-  const builds = Object.create(null);
-  for (const name of RESEARCH_MODEL_NAMES) {
-    const start = performance.now();
-    const built = buildResearchModel(name, baseTree);
-    const reason = stopReason(start);
-    models[name] = built.model;
-    builds[name] = {
+function buildSingleModel(name, baseTree) {
+  const start = performance.now();
+  const built = buildResearchModel(name, baseTree);
+  const reason = stopReason(start);
+  return {
+    model: built.model,
+    record: {
       status: reason ? 'stopped' : 'completed',
       elapsedMs: elapsedMs(start),
       rootDigest: built.model.rootDigest,
@@ -215,9 +213,8 @@ function buildModels(baseTree) {
       metrics: built.metrics,
       rssBytes: process.memoryUsage().rss,
       ...(reason ? { stop: reason } : {}),
-    };
-  }
-  return { models, builds };
+    },
+  };
 }
 
 const output = {
@@ -254,61 +251,69 @@ const output = {
   cases: [],
 };
 
+function runComparisonCase(shape, fileCount) {
+  const caseStart = performance.now();
+  const baseStage = measured(() => buildBaseTree(shape, fileCount));
+  const baseTree = baseStage.value;
+  const baseDigestStage = measured(() => digest(baseTree));
+  const oracleSamples = TOUCHES.map((touchSpec) => {
+    const writes = writesFor(shape, fileCount, touchSpec);
+    const oracle = currentOracle(baseTree, baseDigestStage.value, writes);
+    return { touchSpec, writes, oracle };
+  });
+  const caseRecord = {
+    shape,
+    fileCount,
+    setup: {
+      baseTreeMs: baseStage.elapsedMs,
+      baseDigestMs: baseDigestStage.elapsedMs,
+      baseCanonicalBytes: canonicalBytes(baseTree),
+      modelBuilds: Object.create(null),
+    },
+    samples: oracleSamples.map(({ touchSpec, writes, oracle }) => ({
+      touchSpec,
+      touchedPaths: writes.length,
+      currentOracle: {
+        status: oracle.stop ? 'stopped' : 'completed',
+        elapsedMs: oracle.elapsedMs,
+        treeDigest: oracle.promotion.treeDigest,
+        flatBaseline: flatBaseline(fileCount, oracle.promotion),
+        ...(oracle.stop ? { stop: oracle.stop } : {}),
+      },
+      models: Object.create(null),
+    })),
+  };
+
+  const buildStart = performance.now();
+  for (const name of RESEARCH_MODEL_NAMES) {
+    let built = buildSingleModel(name, baseTree);
+    caseRecord.setup.modelBuilds[name] = built.record;
+    for (let index = 0; index < oracleSamples.length; index += 1) {
+      const { writes, oracle } = oracleSamples[index];
+      if (built.record.status === 'stopped') {
+        caseRecord.samples[index].models[name] = {
+          status: 'stopped',
+          name,
+          stage: 'base_model_build',
+          stop: built.record.stop,
+        };
+      } else {
+        caseRecord.samples[index].models[name] = compareModel(name, built.model, oracle.promotion, writes);
+      }
+    }
+    built = null;
+    globalThis.gc?.();
+  }
+  caseRecord.setup.modelBuildTotalMs = elapsedMs(buildStart);
+  caseRecord.totalCaseMs = elapsedMs(caseStart);
+  caseRecord.rssBytes = process.memoryUsage().rss;
+  return caseRecord;
+}
+
 for (const shape of SHAPES) {
   for (const fileCount of SIZES) {
-    const caseStart = performance.now();
-    const baseStage = measured(() => buildBaseTree(shape, fileCount));
-    const baseTree = baseStage.value;
-    const baseDigestStage = measured(() => digest(baseTree));
-    const modelBuildStage = measured(() => buildModels(baseTree));
-    const caseRecord = {
-      shape,
-      fileCount,
-      setup: {
-        baseTreeMs: baseStage.elapsedMs,
-        baseDigestMs: baseDigestStage.elapsedMs,
-        baseCanonicalBytes: canonicalBytes(baseTree),
-        modelBuildTotalMs: modelBuildStage.elapsedMs,
-        modelBuilds: modelBuildStage.value.builds,
-      },
-      samples: [],
-    };
-
-    for (const touchSpec of TOUCHES) {
-      const writes = writesFor(shape, fileCount, touchSpec);
-      const oracle = currentOracle(baseTree, baseDigestStage.value, writes);
-      const sample = {
-        touchSpec,
-        touchedPaths: writes.length,
-        currentOracle: {
-          status: oracle.stop ? 'stopped' : 'completed',
-          elapsedMs: oracle.elapsedMs,
-          treeDigest: oracle.promotion.treeDigest,
-          flatBaseline: flatBaseline(fileCount, oracle.promotion),
-          ...(oracle.stop ? { stop: oracle.stop } : {}),
-        },
-        models: Object.create(null),
-      };
-
-      for (const name of RESEARCH_MODEL_NAMES) {
-        const build = modelBuildStage.value.builds[name];
-        if (build.status === 'stopped') {
-          sample.models[name] = {
-            status: 'stopped',
-            name,
-            stage: 'base_model_build',
-            stop: build.stop,
-          };
-          continue;
-        }
-        sample.models[name] = compareModel(name, modelBuildStage.value.models[name], oracle.promotion, writes);
-      }
-      caseRecord.samples.push(sample);
-    }
-
-    caseRecord.totalCaseMs = elapsedMs(caseStart);
-    caseRecord.rssBytes = process.memoryUsage().rss;
-    output.cases.push(caseRecord);
+    output.cases.push(runComparisonCase(shape, fileCount));
+    globalThis.gc?.();
   }
 }
 
