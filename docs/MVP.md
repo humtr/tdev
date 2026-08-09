@@ -27,6 +27,8 @@ Design 0008 is now `verified` for its declared Node 22 source and compatible loc
 
 Design 0009 is `verified` only as a non-authoritative semantic-representation comparison targeting `mvp-1a-6`. It adds no production semantic-root authority: current `CaseEngine` state, `treeDigest = digest(full tree)`, snapshot v2, journal formats, migration/rollback rules, Git-OID status, and provider/distributed ownership remain those of `mvp-1a-5`. D0009 rejects simple directory Merkle, retains bounded path-byte radix and collision-safe path-hash trie as structural survivors, and prefers the hash-trie family only for the next separate Class 2 migration design.
 
+Design 0010 / `mvp-1a-7` is now `verified` for one opt-in **local semantic-v3** profile. It selects the compressed path-byte radix because current topology must be enforced by the same authority structure, adds sparse semantic-root Promotion, compact schema-v3 snapshots, one expected-predecessor local SQLite Case head, explicit commit-ambiguity recovery, quiesced pre-Promotion v2 migration, exact-content repair, and reference-aware GC. Legacy v2 remains supported; Git OIDs, real repository publication, provider/distributed ownership, and hostile-storage authenticity remain outside this verification.
+
 ## 2. Source gate
 
 ```sh
@@ -51,6 +53,8 @@ Observed final D0007 values and coverage are retained in `docs/evidence/mvp-1a-4
 D0008 source candidate `cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f` independently passed on Ubuntu/POSIX: install, `npm run check`, `node --experimental-test-coverage --test test/*.test.mjs`, `git diff --check`, and the 16-sample 1k/5k authority-harness smoke. Local executable barriers also passed syntax, 33/33 focused durable/store tests, and `git diff --check`. The current tmcp/Termux filesystem denied hard-link creation on every writable mount probed, so that environment is not qualified for `ImmutableJournalSnapshotStore` publication and is not counted as a source failure.
 
 D0009 final path-key-aware candidate `7ba03082ac94fe75242c22a7b31ca76d933aeb0c` independently passed Ubuntu/POSIX run `31306276819`, job `93227063683`: install, `npm run check`, coverage, effective `git diff --check`, and the full semantic-representation matrix. The complete source suite passed **152/152** tests; coverage completed at **92.57% lines / 83.10% branches / 95.99% functions**. Raw checked evidence is `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json` with SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`.
+
+D0010 source candidate `152f88daa7775c5d545ec865cc0a8a470b45697e` independently passed Ubuntu/POSIX run `31311936616`, job `93240950927`: install, `npm run check`, coverage, effective diff check, 67/67 focused semantic-v3 migration/head/recovery tests, and the 12-sample v3 authority matrix. The complete source suite passed **178/178** tests; coverage completed at **92.74% lines / 82.56% branches / 96.26% functions**. Checked evidence is `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json` with SHA-256 `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`.
 
 ## 3. Acceptance matrix
 
@@ -106,6 +110,11 @@ D0009 final path-key-aware candidate `7ba03082ac94fe75242c22a7b31ca76d933aeb0c` 
 | D0009 directory Merkle | one sparse write in a wide directory requires bounded metadata work | falsified: 100k-wide one-write sample hashes 100,000 sibling refs; C1 rejected |
 | D0009 bounded sparse structures | C2/C3 1/8/128 update work scales with total tree entries | checked structural node/hash counts remain sparse; both survive |
 | D0009 compatibility tax | research root removes need for current full-tree materialization/digest without migration | falsified: all models still require complete compatibility materialization/digest; three 100k broad stops occur there |
+| D0010 root/topology | rebuild/order/batch history changes root or prefix conflict needs O(N) materialization | same final valid trees share root; exact/ancestor/descendant conflicts rejected by radix traversal |
+| D0010 sparse authority | 1/8/128 writes or v3 checkpoint secretly materialize/hash the full tree | checked structural reads/writes scale with touched radix paths; compact snapshot excludes full base/canonical/Promotion trees |
+| D0010 head/ambiguity | independent expected-predecessor writers both win or unknown commit triggers blind retry | one transactional head winner; pre/at/post-commit faults reconcile predecessor/successor/third-state explicitly |
+| D0010 migration/downgrade | live/racing legacy source crosses cutover or post-v3 write downgrades automatically | explicit writer/Claim quiescence plus source digest/revision recheck; post-migration v3 write rejects automatic downgrade |
+| D0010 corruption/repair/GC | corrupt reachable object hides behind cache, repair changes authority, or GC deletes live/pinned object | fail closed; repair reproduces exact expected digest without moving head; expected-state GC preserves heads/pins |
 | compaction crash shape | replacement base durable before covered-delta deletion | exact snapshot restored; covered deltas ignored |
 | three-state compatibility | successful transition histories across all three states | 100 seeds / 2,600 transitions exact snapshot equality |
 
@@ -124,7 +133,7 @@ The historical D0007 130-test freeze covers:
 - immutable-journal cross-process create/update races, digest continuity, migration order/cutover, malformed/fork/gap/path-type rejection, legacy compaction crash recovery, Memory-store equivalence, and D0007 warm namespace/file-type invalidation before materialization reuse;
 - capacity stress plus 100 randomized full-restore-oracle histories.
 
-Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence. D0008 adds focused capacity, namespace, publication-fault, and settlement/reopen barriers; the locally executable durable/store subset passed 33/33 and the complete Ubuntu/POSIX source and coverage gates passed with the hard-link suite enabled. D0009 adds eight focused non-authoritative model tests for semantic materialization, create/update/delete, rebuild-root equality, input/write-order determinism, injected path-key collision, directory-Merkle fanout, bounded sparse work, broad batch ancestor reuse, and small-head separation; the complete D0009 candidate is included in the 152/152 POSIX source result above.
+Controlled promises and barriers establish ordering where needed. Timeouts are deadlock guards, never success evidence. D0008 adds focused capacity, namespace, publication-fault, and settlement/reopen barriers; the locally executable durable/store subset passed 33/33 and the complete Ubuntu/POSIX source and coverage gates passed with the hard-link suite enabled. D0009 adds eight focused non-authoritative model tests for semantic materialization, create/update/delete, rebuild-root equality, input/write-order determinism, injected path-key collision, directory-Merkle fanout, bounded sparse work, broad batch ancestor reuse, and small-head separation; the complete D0009 candidate is included in the 152/152 POSIX source result above. D0010 adds semantic-radix determinism/topology/bounds tests, v3 Promotion/snapshot/Engine tests, SQLite CAS/ambiguity/restart/corruption tests, migration source-race and downgrade tests, scrub/exact-repair/GC tests, and large-tree evidence; the independent focused D0010 gate passed 67/67 and the complete POSIX source gate passed 178/178.
 
 ## 5. Differential and fault evidence outside the unit suite
 
@@ -175,7 +184,9 @@ These are microbenchmarks in one runtime/container, not production SLOs.
 
 D0008 adds `docs/evidence/mvp-1a-5-authority-boundary-2026-08-09.json` (SHA-256 `57add849efafa93fa74b830ae29001ffc06c783fb70b55c94dcc4052be6ed79c`). Its 32 configured samples cover 1k/5k/20k/100k trees, 1/8/128/broad writes, and wide-flat/deep-path shapes. All 24 completed 1k/5k/20k samples matched the current Promotion oracle and cold restore exactly. All eight 100k samples hit the declared 30 s or 768 MiB stop gate, including sparse 1/8-write cases, and are retained as stopped evidence rather than extrapolated. This evidence opened D0009.
 
-D0009 adds `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json` (SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`). The matrix covers three shapes, four tree sizes, four write batches, and three structural models: 144 model samples total. 141 completed with exact current Promotion-tree and legacy-digest equality. The three stopped 100k broad samples all completed candidate-root update and stopped only during full compatibility materialization/digest under the declared RSS gate. C1 directory Merkle is rejected by 100k-wide sibling fanout. C2 radix survives. C3 collision-safe hash trie survives and is preferred for the next migration design: at 100k wide-flat / 10k writes it wrote 21,756 structural nodes and performed 31,757 typed hashes plus 10,000 counted path-key hashes, compared with C2's 61,117 structural nodes and 71,118 typed hashes. These are research comparison facts, not production SLOs or an authority migration.
+D0009 adds `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json` (SHA-256 `f8609316970e28f311d83aecb550b7be07d0a1d53938517931f9271e09ad5db4`). The matrix covers three shapes, four tree sizes, four write batches, and three structural models: 144 model samples total. 141 completed with exact current Promotion-tree and legacy-digest equality. The three stopped 100k broad samples all completed candidate-root update and stopped only during full compatibility materialization/digest under the declared RSS gate. C1 directory Merkle is rejected by 100k-wide sibling fanout. C2 radix survives. C3 collision-safe hash trie survives and was preferred as the next migration-design research candidate: at 100k wide-flat / 10k writes it wrote 21,756 structural nodes and performed 31,757 typed hashes plus 10,000 counted path-key hashes, compared with C2's 61,117 structural nodes and 71,118 typed hashes. These are D0009 research comparison facts, not production SLOs or an authority migration.
+
+D0010 adds `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json` (SHA-256 `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`). All 12 size/touch samples preserve semantic equality. At 100k files the v3 snapshot remains 3,396 bytes versus 6,180,415 bytes for v2; one touched path uses 14 semantic-node reads, 7 node writes, and 8 object deltas. Explicit compatibility materialization remains total-tree work and is reported separately rather than counted as sparse authority. D0010 production selection is the path-byte radix for topology-prefix ownership reasons described in the accepted/verified design, not because the D0009 C3 measurements were invalid.
 
 ## 7. Evidence not claimed
 
@@ -186,7 +197,7 @@ No source test proves:
 - Agent WebSocket reconnect/hibernation or Termux effects;
 - D1/R2 behavior;
 - current MCP client compatibility;
-- Git remote publication/protected-branch behavior;
+- real repository/Git object-ref publication adapter and protected-branch behavior;
 - cross-process FileSnapshotStore or Design 0004 JournalSnapshotStore CAS, and distributed/provider ImmutableJournalSnapshotStore CAS;
 - atomic persistence of ClaimLedger and Case snapshots across owners;
 - exactly-once external effects;
@@ -200,6 +211,8 @@ No source test proves:
 These are `unavailable`, `pending`, or explicitly current gaps, not passed.
 
 ## 8. Completion decision
+
+Design 0010 / `mvp-1a-7` is verified for its declared **bounded opt-in local semantic-v3 scope**. The accepted root/profile, compact snapshot, transactional-head CAS and ambiguity recovery, quiesced migration, rollback/downgrade barrier, corruption/scrub, exact repair, reference-aware GC, legacy regression, and environment rows are closed by the source tests and evidence above. The production profile is path-byte radix rather than D0009 C3 because prefix topology belongs to the same semantic authority. Existing v2 operation remains supported. This verification does **not** claim Git OID authority, a real Git publication adapter, provider/distributed transactions, distributed Claims, hostile-storage authenticity, or universal historical migration.
 
 Design 0009 / `mvp-1a-6` is verified for its declared **non-authoritative comparison scope** because the focused structural falsifiers are closed, the final path-key-aware candidate passes the full Ubuntu/POSIX source/coverage/diff gate, and the checked matrix preserves current semantic equality for every completed model sample. C1 directory Merkle is rejected; C2 path-byte radix and C3 collision-safe path-hash trie survive structurally; C3 is preferred for the next migration design on checked operation/byte evidence. This completion explicitly does **not** install a new semantic root, transactional head, snapshot/journal format, migration, Git identity, or provider owner. The current engine still uses full-tree `treeDigest` and persistence.
 
@@ -225,4 +238,4 @@ Observed source/container closure for this freeze: 20/20 focused immutable-journ
 
 D0007 exact-byte-gated materialization reuse remains part of that historical/source completion decision. The later D0008 tests are not retroactively counted among the D0007 130-test freeze; they are independently verified by the D0008 focused and Ubuntu/POSIX gates described above.
 
-Authoritative semantic-root migration, trusted transactional head, history GC, mixed-writer cutover, transaction-provider replacement, rollback/downgrade after new-format authority, and Git OID authority remain separate follow-on design work rather than implicit D0009 outcomes.
+D0010 now verifies a bounded local authoritative semantic root, trusted local transactional head, explicit mixed-writer exclusion, rollback/downgrade barrier, and reference-aware GC for opt-in v3 Cases. Transaction-provider replacement, distributed ownership/Claims, real Git object/ref publication, Git OID authority, hostile-storage authentication, and any broader migration remain separate follow-on work.

@@ -3,20 +3,34 @@
 ## Current baseline
 
 - Repository: `humtr/tdev`
-- Development identity / publication ref: `mvp-1a-6`
-- Direct code parent: GitHub `mvp-1a-5` commit `aaf7ec9258fb776443dd70345a1acea33ed22d78`
-- Knowledge inputs: verified `mvp-1a-5` / Design 0008 plus checked D0009 semantic-representation evidence
+- Development identity / publication ref: `mvp-1a-7`
+- Direct code parent: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- Knowledge inputs: verified `mvp-1a-6` / Design 0009 plus verified D0010 contract, checked v3 evidence, and independent Ubuntu/POSIX validation
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0009-semantic-authority-representation-comparison.md`
-- Active Class 2 design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md` (`accepted`)
+- Current verified design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md`
+- Active Class 2 design: none; the next production-affecting gate is the real repository/Git projection and fenced publication layer
 
 ## Active work
 
-D0010 is accepted as the `mvp-1a-7` implementation gate. Production v3 selects a **compressed UTF-8 path-byte radix** rather than D0009's benchmark-preferred hash trie because the current semantic contract must enforce file/descendant topology from the same authority structure without an O(N) scan or a second synchronized prefix owner. D0010 authorizes only the bounded opt-in local v3 profile: compact Plan/snapshot roots, sparse Promotion, one transactional local SQLite head, quiesced pre-Promotion v2->v3 migration, explicit ambiguity recovery, scrub/repair, and reference-aware GC. Existing v2 repositories and Git/provider/distributed ownership remain unchanged.
+No Class 2 design is active. D0010 is verified for the bounded opt-in local semantic-v3 profile. The next highest-ROI gate is a real repository/Git projection and fenced publication adapter over semantic roots; Git tree/commit OIDs remain derived identities and provider/distributed ownership is still outside the verified boundary.
 
 ## Verified work
+
+### D0010 — verified semantic-authority migration and transactional head
+
+- Status: `verified` for the bounded opt-in local semantic-v3 profile; existing v2 repositories remain supported and unchanged
+- Design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md`
+- Independently validated source candidate: `152f88daa7775c5d545ec865cc0a8a470b45697e`
+- Production choice: compressed UTF-8 path-byte radix profile `tdev.semantic.path-byte-radix.v1`; C3 remains research reference because path-hash-only authority loses topology prefix locality
+- Persistence: compact schema-v3 snapshots plus immutable typed semantic objects and one expected-predecessor local SQLite Case head; object existence alone is not authority
+- Migration: explicit writer/Claim quiescence, pre-Promotion v2 source only, exact source digest/revision recheck immediately before first v3 head; no rolling mixed-writer mode
+- Recovery: ambiguous commit outcomes reconcile the durable head; exact-content repair never moves the head; reference-aware GC preserves current heads and pins under expected-state CAS
+- Independent Ubuntu/POSIX validation: GitHub Actions run `31311936616`, job `93240950927`; 178/178 complete source tests, 92.74% line / 82.56% branch / 96.26% function coverage, clean effective diff, and 67/67 focused D0010 migration/head/recovery tests
+- Evidence: `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json` (SHA-256 `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`); 12/12 semantic-equality samples
+- 100k / one write: 14 semantic-node reads, 7 node writes, 8 object deltas; schema-v3 snapshot 3,396 bytes versus schema-v2 6,180,415 bytes; explicit compatibility materialization remains O(N) and is not hidden in the normal v3 authority path
+- Boundaries: no Git OID authority, real repository publication adapter, provider/distributed transaction owner, distributed Claim migration, hostile-storage authenticity, or universal rewrite of historical v2 Cases
 
 ### D0009 — verified semantic-authority representation comparison
 
@@ -105,20 +119,19 @@ D0010 is accepted as the `mvp-1a-7` implementation gate. Production v3 selects a
 - memory, full-snapshot file, Design 0004 journal, and D0005 immutable expected-revision journal adapters;
 - D0007 immutable-journal materialization reuse only after strict namespace observation plus exact retained-byte fingerprint equality;
 - D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration;
-- D0009 non-authoritative representation evidence rejecting simple directory Merkle, preserving C2 radix as fallback/reference, and preferring collision-safe C3 hash-trie structure for a later migration design while current full-tree authority remains unchanged.
+- D0009 non-authoritative representation evidence rejecting simple directory Merkle and retaining C2/C3 structural knowledge;
+- D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. implement and falsify accepted D0010: compressed path-byte radix authority, compact Plan/snapshot v3, transactional local head, quiesced forward migration, ambiguity recovery, corruption/repair, and reference-aware GC while preserving all legacy v2 behavior;
-2. independently verify the D0010 source/migration/restart/transaction layers and publish `mvp-1a-7` only if every stop gate closes;
-3. after D0010 verification, add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
-4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
-5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
-6. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies the selected persistence primitives, then add one fenced publication lane and versioned MCP/client qualification.
+1. add a real repository/Git adapter as a derived projection and fenced publication layer over the verified semantic root; preserve the distinction between tdev semantic identity and Git tree/commit OIDs;
+2. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+3. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
+4. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
 
-A transactional persistence-head replacement, authoritative semantic root, history GC, or snapshot-schema migration still requires that separate migration design. D0009 supplies candidate evidence only and must not be treated as an implicit authority cutover.
+D0010 closes only the bounded local semantic-v3 authority/head/migration/repair/GC contract. Provider transaction ownership, distributed Claims, real Git object/ref publication semantics, hostile-storage authenticity, and global migration of historical v2 repositories remain future Class 2 work where applicable.
 
 ## Routing
 

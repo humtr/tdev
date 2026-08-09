@@ -4,15 +4,15 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-6` — verified D0009 non-authoritative semantic-representation comparison lineage
+- **Development identity:** `mvp-1a-7` — verified D0010 opt-in semantic-authority migration and transactional-head lineage
 - **Architecture generation:** MVP generation 1
-- **Direct code parent / implementation origin:** `mvp-1a-5` at remote commit `aaf7ec9258fb776443dd70345a1acea33ed22d78`
-- **Baseline knowledge input:** verified `mvp-1a-5` / Design 0008 plus the checked D0009 representation matrix
-- **Latest verified design:** Design 0009 — Semantic-Authority Representation Comparison
-- **Active design:** none; the next production-affecting authority change requires a separate Class 2 migration/transactional-head record
-- **Superseded active identity:** `mvp-1a-5`
+- **Direct code parent / implementation origin:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- **Baseline knowledge input:** verified `mvp-1a-6` / Design 0009 plus verified Design 0010, checked semantic-v3 evidence, and independent Ubuntu/POSIX validation
+- **Latest verified design:** Design 0010 — Semantic-Authority Migration and Transactional Head
+- **Active design:** none; the next production-affecting gate is the real repository/Git projection and fenced publication layer
+- **Superseded active identity:** `mvp-1a-6`
 
-`mvp-1a-6` keeps the exact `mvp-1a-5` production authority model. Its new executable surface is confined to `bench/` research models/harnesses plus focused tests and checked evidence. Current `CaseEngine` canonical state, full-tree `treeDigest`, snapshot v2, journal formats, migration/rollback rules, Git-OID status, and provider/distributed ownership are unchanged.
+`mvp-1a-7` directly succeeds `mvp-1a-6` and adds one **opt-in local semantic-v3 profile** without removing the legacy v2 path. The v3 authority is a compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. Sparse Promotion, quiesced pre-Promotion v2 migration, commit-ambiguity reconciliation, exact-content repair, and reference-aware GC are verified in this bounded local profile. Git OIDs remain derived projection identities; real repository publication, provider/distributed ownership, distributed Claims, and hostile-storage authenticity are unchanged future boundaries.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
@@ -50,7 +50,17 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0008 evidence that aggregate durable admission, legacy committed-namespace fail-closed parity, deterministic local publication-fault classification, and settlement-checkpoint/Claim reopen behavior can be closed without changing snapshot schema or semantic tree identity;
 - D0008 authority-path evidence that 24 completed 1k/5k/20k samples preserve Promotion/cold-restore equality while all eight 100k samples hit declared time/RSS stop gates, including sparse writes;
 - D0009 evidence that simple directory Merkle retains O(N) sibling-metadata work in wide directories, while bounded path-byte radix and collision-safe path-hash trie models can derive sparse roots without changing current semantic output;
-- D0009 evidence preferring the C3 path-hash trie for the next migration design on checked operation/byte counts, with C2 radix retained as fallback/reference and the current full-tree digest tax explicitly preserved until migration.
+- D0009 evidence preferring the C3 path-hash trie as a research candidate on checked operation/byte counts, with C2 radix retained as fallback/reference;
+- D0010 production evidence selecting C2-like compressed path-byte radix because one authority must enforce exact/ancestor/descendant topology without an O(N) scan or second synchronized prefix owner;
+- D0010 evidence that normal v3 root Promotion/checkpoint work is sparse while explicit compatibility materialization remains an acknowledged O(N) path, and that transactional-head ambiguity/migration/repair/GC boundaries can close locally without changing Git/provider ownership.
+
+## Verified D0010 gate
+
+D0010 is verified on the `mvp-1a-7` lineage for the bounded opt-in local semantic-v3 profile. Source candidate `152f88daa7775c5d545ec865cc0a8a470b45697e` passed independent Ubuntu/POSIX run `31311936616` / job `93240950927`: 178/178 complete source tests, 92.74% line / 82.56% branch / 96.26% function coverage, clean effective diff, and 67/67 focused D0010 migration/head/recovery tests. Checked evidence is `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json` with SHA-256 `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`; all 12 configured size/touch samples preserve semantic equality.
+
+The production v3 profile is `tdev.semantic.path-byte-radix.v1`. This intentionally promotes D0009's radix fallback rather than its lower-count C3 research preference because radix prefix locality lets the same semantic authority enforce current file/descendant topology. The v3 store uses immutable typed objects/snapshots plus one transactional expected-predecessor Case head. Forward migration requires explicit legacy-writer and Claim quiescence plus source recheck; post-migration writes forbid automatic downgrade. Commit ambiguity, corruption/scrub, exact-content repair, and reference-aware GC have explicit fail-closed contracts.
+
+Verification does **not** make Git tree/commit OIDs semantic authority and does not prove a real Git publication adapter, provider/distributed transactions, distributed Claim ownership, hostile-storage authenticity, or universal migration of historical v2 Cases. Existing v2 repositories remain supported.
 
 ## Verified D0008 gate
 

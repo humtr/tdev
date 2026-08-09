@@ -1,3 +1,33 @@
+# mvp-1a-7 D0010 semantic-authority migration and transactional-head report
+
+- Date: 2026-08-09
+- Direct code parent: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- Design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md`
+- Status: `verified` for the bounded opt-in local semantic-v3 profile
+- Independently validated source candidate: `152f88daa7775c5d545ec865cc0a8a470b45697e`
+- Checked evidence: `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json`
+- Evidence SHA-256: `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`
+- Independent validation: GitHub Actions run `31311936616`, job `93240950927`
+- Production semantic profile: `tdev.semantic.path-byte-radix.v1`
+
+D0010 closes the separate Class 2 migration/transactional-head gate opened by D0009. It does not retroactively make D0009 wrong: D0009 measured C3 as the lower structural-count research candidate, while D0010 adds a production requirement that the same semantic authority enforce exact/ancestor/descendant file topology without a full scan or second synchronized prefix owner. That requirement promotes the compressed UTF-8 path-byte radix for the opt-in v3 profile. C3 remains a research reference.
+
+The v3 vertical slice keeps existing Task/Attempt/Event/result/Claim semantics and legacy v2 repositories. It replaces full-tree authority packaging only for explicitly selected v3 Cases: typed immutable semantic values/radix nodes produce versioned root descriptors; successful Promotion persists a semantic root instead of a complete final tree; schema-v3 snapshots bind a compact Plan identity and base/canonical roots without full `plan.baseTree`, `canonicalTree`, or Promotion tree copies. Compatibility materialization remains explicit and may be O(N).
+
+Durable election is one expected-predecessor Case head in a trusted local SQLite transaction. Immutable objects and snapshots are not current merely because they exist. One transaction checks the predecessor, inserts immutable objects/snapshot, and advances the head. A possibly committed transaction returns `store_commit_ambiguous`; recovery reopens and classifies the durable head as intended successor, unchanged predecessor, or a conflicting third state rather than blindly retrying a callback or external effect.
+
+Forward v2->v3 migration is deliberately not rolling. It accepts only a fully valid pre-Promotion v2 Case, requires explicit writer and Claim quiescence, captures the source snapshot digest/revision, and rereads that source immediately before publishing the first v3 head. A source race aborts. Before the first head, v2 remains authoritative; an unadvanced generation-1 migration target may be abandoned explicitly; after any later v3 write, automatic downgrade is forbidden. The protected source v2 store remains a rollback source through the migration acceptance window.
+
+Corruption handling is fail closed. Scrub revalidates every reachable typed object/root/snapshot. Repair may restore only canonical bytes that reproduce an exact digest already named by authority and never moves the Case head. GC is explicit and reference-aware: reachability starts from all current heads plus protected pins, dry-run reports candidates, and apply requires the exact expected head/pin-set state before deleting only unreachable immutable objects/snapshots.
+
+Independent Ubuntu/POSIX validation passed **178/178 complete source tests** with **92.74% line / 82.56% branch / 96.26% function coverage**, clean effective diff, and **67/67 focused D0010 migration/head/recovery tests**. The 12-sample authority matrix preserved semantic equality in every sample. The checked evidence reproduced the structural result: at 100,000 files and one touched path the v3 update uses **14 semantic-node reads, 7 node writes, and 8 object deltas**; the v3 snapshot is **3,396 bytes** versus **6,180,415 bytes** for v2. Compatibility materialization is still total-tree work and is reported separately.
+
+The connected tmcp/Termux environment still denies the hard-link primitive required by the inherited ImmutableJournal adapter, so a full local legacy gate there is not promoted as green. The directly executable local semantic-v3 subset passed 26/26; the complete legacy + v3 source claim comes from the independent Ubuntu/POSIX run. This preserves the earlier filesystem qualification boundary rather than weakening it to make a local test pass.
+
+D0010 therefore verifies exactly this boundary: **opt-in local semantic-v3 authority, compact snapshot, transactional head, quiesced forward migration, explicit ambiguity recovery, rollback/downgrade barrier, scrub/exact repair, and reference-aware GC**. It does not verify a real Git repository/publication adapter, Git OID authority, provider/distributed transaction ownership, distributed Claims, hostile-storage authenticity, ContextSlice/model transport, or universal rewriting of historical v2 Cases. The next highest-ROI gate is the real repository/Git projection and fenced publication layer over the verified semantic root.
+
+---
+
 # mvp-1a-6 D0009 semantic-authority representation comparison report
 
 - Date: 2026-08-09

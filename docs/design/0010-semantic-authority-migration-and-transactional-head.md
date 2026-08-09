@@ -1,12 +1,12 @@
 # Design 0010 — Semantic-Authority Migration and Transactional Head
 
-- Status: accepted
+- Status: verified
 - Class: 2
-- Target development identity: `mvp-1a-7` candidate
+- Target development identity: `mvp-1a-7`
 - Direct parent: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - Evidence precursor: verified Design 0009 and `docs/evidence/mvp-1a-6-semantic-authority-representation-2026-08-09.json`
 
-> Accepted authority: this record authorizes only the bounded local semantic-authority v3 migration described below. It does not authorize Git OID authority, provider/distributed ownership, distributed Claim migration, repository publication, ContextSlice/model transport, or a general storage rewrite.
+> Verified boundary: this record verifies only the bounded local semantic-authority v3 migration described below. It does not verify Git OID authority, provider/distributed ownership, distributed Claim migration, repository publication, ContextSlice/model transport, or a general storage rewrite.
 
 ## 1. Decision
 
@@ -296,3 +296,15 @@ Stop and do not publish `mvp-1a-7` if any of the following remains unresolved:
 `verified` means the bounded local v3 profile, migration, transactional head, repair/GC barriers, and declared source/environment evidence are closed. It does not mean provider durability, Git publication, distributed ownership, or universal migration of all historical v2 Cases is solved.
 
 Only after D0010 is verified may the roadmap move to the real repository/Git projection layer over the new semantic root.
+
+## 17. Verification record
+
+D0010 became `verified` on 2026-08-09 after the full acceptance matrix closed for the declared local profile. The independently validated source candidate is `152f88daa7775c5d545ec865cc0a8a470b45697e`. Checked structural evidence is `docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json`, committed at `d62aa597f332f7bc86fcd9de209017974826a00b`, with SHA-256 `2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e`.
+
+Independent Ubuntu/POSIX GitHub Actions run `31311936616`, job `93240950927`, used Node 22 and completed the source gate with **178/178 tests**, **92.74% line / 82.56% branch / 96.26% function coverage**, the effective diff check, **67/67 focused D0010 migration/head/recovery tests**, and the full 12-sample semantic-authority matrix. All 12 runtime matrix samples preserved semantic equality. The checked evidence independently reproduced the same structural conclusions.
+
+At 100,000 files and one touched path, the checked matrix recorded **14 semantic-node reads, 7 node writes, and 8 object deltas**. The compact v3 snapshot was **3,396 bytes** versus **6,180,415 bytes** for the corresponding schema-v2 snapshot. This is evidence that normal v3 authority construction is sparse and compact; explicit compatibility materialization still scales with the complete tree and remains outside the normal authority path rather than being relabeled as constant work.
+
+The connected tmcp/Termux filesystem is still not qualified for the inherited ImmutableJournal hard-link publication primitive, so its full legacy suite is not counted as a green environment gate. A directly executable local v3 focused subset passed **26/26** with clean diff. The complete legacy + v3 source claim comes from the independent Ubuntu/POSIX run above.
+
+This verification closes the local radix/root, compact snapshot, transactional-head CAS/ambiguity, quiesced migration, rollback/downgrade barrier, corruption/scrub, exact repair, reference-aware GC, legacy-regression, and environment rows. It does not widen the design beyond the non-goals and completion boundary above.
