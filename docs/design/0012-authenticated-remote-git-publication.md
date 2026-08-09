@@ -1,13 +1,13 @@
 # Design 0012 — Authenticated Remote Git Publication
 
-- Status: accepted
+- Status: verified
 - Class: 2
 - Development identity: `mvp-1a-7` — same active development direction
 - Direct source predecessor: exact `mvp-1a-7@ab498c233da9cd7a414986f596f602871d86d203`
 - Semantic/projection precursors: verified D0010 `tdev.semantic.path-byte-radix.v1` and D0011 `tdev.git.text-tree.v1`
 - Remote publication profile: `tdev.git.remote-existing-branch.v1`
 
-> Accepted direction decision: D0012 keeps the D0010 semantic root and transactional Case head as tdev authority. It extends the D0011 derived Git candidate to one authenticated **existing remote branch**. Remote Git OIDs, provider refs, credentials, and provider policy do not become semantic/current-state authority. Therefore D0012 continues on `mvp-1a-7`; if implementation would require provider state to replace that authority, implementation must stop as a new-direction decision boundary.
+> Verified direction decision: D0012 keeps the D0010 semantic root and transactional Case head as tdev authority. It extends the D0011 derived Git candidate to one authenticated **existing remote branch**. Remote Git OIDs, provider refs, credentials, and provider policy do not become semantic/current-state authority. Therefore D0012 continues on `mvp-1a-7`; if implementation would require provider state to replace that authority, implementation must stop as a new-direction decision boundary.
 
 ## 1. Decision
 
@@ -176,3 +176,11 @@ D0012 does not add semantic authority in Git/provider state, remote branch creat
 D0012 may be `verified` only for the exact layers independently exercised. Source verification can prove the generic authenticated remote publication protocol while provider-specific protected-branch behavior remains explicitly pending if no protected validation target exists.
 
 No D0012 milestone creates a new `mvp-*` branch. A new branch is required only if a separately accepted future design promotes provider/Git state into tdev semantic/current-state authority or otherwise abandons the D0010 continuity contract.
+
+## 17. Verification record
+
+D0012 became `verified` on 2026-08-10 without changing the active `mvp-1a-7` development direction. The independently validated source candidate is `28ed1912dc61b8d33277f599ada6010a30a7f357`. GitHub Actions run `31328662608`, job `93283174570`, on Ubuntu 24.04.4 LTS / Node `v22.23.1` / Git `2.54.0` passed **200/200 complete source tests**, **92.79% line / 81.88% branch / 96.52% function coverage**, **22/22 combined D0011+D0012 focused tests**, and the effective diff gate. The validation workflow commit changed only its temporary workflow after the exact source candidate.
+
+Checked evidence is `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json`, SHA-256 `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`. The connected deployment also completed an authenticated GitHub `git push --dry-run` with `GIT_TERMINAL_PROMPT=0`; its dedicated probe ref was absent before and after, so this proves negotiation capability without treating a dry run as publication evidence.
+
+Verification closes only the generic source protocol and that bounded authentication capability. No D0012 actual provider ref was mutated for integration evidence, and protected-branch/ruleset semantics, provider-specific IAM/policy, signing, multi-host publication ownership, provider transactions, and hostile-provider authenticity remain unverified. Git/provider state remains derived publication and does not replace D0010 semantic authority.

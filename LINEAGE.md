@@ -4,17 +4,17 @@ This repository uses development-lineage identities, not product-style semantic 
 
 ## Current development identity
 
-- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 and D0011 are verified on this line
+- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010, D0011, and D0012 are verified on this line
 - **Architecture generation:** MVP generation 1
 - **Current direction origin from historical revision:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- **Baseline knowledge input:** verified Design 0010 semantic-v3 authority plus verified Design 0011 local real-Git projection evidence on the same development direction
-- **Latest verified design:** Design 0011 — Real Git Projection and Fenced Publication
-- **Active design:** none; the next provider-facing gate is authenticated remote Git publication/protected-branch ownership if pursued
+- **Baseline knowledge input:** verified D0010 semantic-v3 authority, D0011 local real-Git projection, and D0012 authenticated remote-publication source evidence on the same development direction
+- **Latest verified design:** Design 0012 — Authenticated Remote Git Publication
+- **Active design:** none; the next highest-ROI design gate is real repository/context/model transport
 - **Historical predecessor revision ref:** `mvp-1a-6` (named under the pre-`3048286a88c2687a2206cc3bcb4faab924be88d9` revision/checkpoint policy)
 
 `mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
 
-`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains two verified additive layers without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority: exact UTF-8 `100644` Git tree/commit construction plus one fenced local `refs/heads/...` CAS/reconciliation/rollback lane. Git OIDs remain derived identities; authenticated remote/provider publication, provider/distributed ownership, distributed Claims, and hostile-storage authenticity remain future boundaries.
+`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains three verified additive layers without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority. D0012 adds a generic authenticated **remote derived-publication source layer** over an already elected D0011 candidate, with target-bound intent, exact predecessor fencing, reread/restart reconciliation, and fail-safe rollback. Git OIDs and remote refs remain derived identities; actual provider-ref/protected-branch qualification, provider/distributed ownership, distributed Claims, and hostile-provider/storage authenticity remain future boundaries.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
@@ -55,7 +55,16 @@ Code revisions remain narrow while validated knowledge accumulates. Current accu
 - D0009 evidence preferring the C3 path-hash trie as a research candidate on checked operation/byte counts, with C2 radix retained as fallback/reference;
 - D0010 production evidence selecting C2-like compressed path-byte radix because one authority must enforce exact/ancestor/descendant topology without an O(N) scan or second synchronized prefix owner;
 - D0010 evidence that normal v3 root Promotion/checkpoint work is sparse while explicit compatibility materialization remains an acknowledged O(N) path, and that transactional-head ambiguity/migration/repair/GC boundaries can close locally without changing Git/provider ownership;
-- D0011 evidence that the same semantic root can project deterministically into real SHA-1 or SHA-256 bare Git repositories, that exact local ref CAS/reconciliation/rollback can be fenced without index/worktree authority, and that Git representation identity can remain separate from semantic authority.
+- D0011 evidence that the same semantic root can project deterministically into real SHA-1 or SHA-256 bare Git repositories, that exact local ref CAS/reconciliation/rollback can be fenced without index/worktree authority, and that Git representation identity can remain separate from semantic authority;
+- D0012 evidence that an already elected local candidate can be bound to one existing remote branch through an immutable target intent, exact expected-predecessor fencing, reread/restart reconciliation, and external deployment credentials without promoting provider state to semantic authority.
+
+## Verified D0012 gate
+
+D0012 is verified on the same mutable `mvp-1a-7` development direction for profile `tdev.git.remote-existing-branch.v1`. Source candidate `28ed1912dc61b8d33277f599ada6010a30a7f357` passed independent Ubuntu/POSIX GitHub Actions run `31328662608` / job `93283174570`: **200/200** complete source tests, **92.79% line / 81.88% branch / 96.52% function coverage**, clean effective diff, and **22/22** combined D0011+D0012 focused tests. Checked evidence is `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json`, SHA-256 `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`.
+
+The verified source contract requires a locally elected D0011 candidate with a non-null predecessor and one existing remote branch. An immutable intent binds the candidate and digest of the single effective push target without retaining the clear URL or raw credentials. Forward publication is exact-predecessor fenced and every accepted forward candidate remains topologically fast-forward; push outcomes are authoritative only after remote reread. Restart reconciliation is read-only and target-bound. Rollback is separately fenced, and provider rejection is not bypassed.
+
+The current deployment additionally completed an authenticated GitHub `push --dry-run` with interactive prompting disabled while the dedicated probe ref remained absent. This is capability evidence only: no D0012 remote ref mutation was used as integration evidence, and protected-branch/ruleset behavior, provider-specific IAM/policy, signing, multi-host ownership, provider transactions, or hostile-provider authenticity remain unverified. D0010 semantic root/Case head remain tdev authority.
 
 ## Verified D0011 gate
 

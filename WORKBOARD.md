@@ -6,18 +6,31 @@
 - Development identity / publication ref: `mvp-1a-7`
 - Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
 - Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified Design 0010 semantic-v3 authority plus verified Design 0011 local real-Git projection evidence on the same `mvp-1a-7` development direction
+- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, and D0012 authenticated remote-publication source evidence on the same `mvp-1a-7` development direction
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0011-real-git-projection-and-fenced-publication.md`
-- Active Class 2 design: none; the next provider-facing gate is authenticated remote Git publication/protected-branch ownership and reconciliation if that remains the chosen direction
+- Current verified design: `docs/design/0012-authenticated-remote-git-publication.md`
+- Active Class 2 design: none; the next highest-ROI design gate is real repository/context/model transport before ContextSlice/CAS work
 
 ## Active work
 
-No Class 2 design is active. D0011 is verified on the existing `mvp-1a-7` development direction. The next highest-ROI gate is a separate authenticated **remote/provider Git** publication contract over the already-verified local candidate/ref semantics; it must define remote ownership, authorization/protected-branch behavior, remote race/ambiguity reconciliation, receipts, and rollback without promoting Git OIDs to semantic authority.
+No Class 2 design is active. D0012 is verified on the existing `mvp-1a-7` development direction for its bounded generic authenticated remote-publication source contract plus current GitHub non-interactive push-negotiation capability. Actual provider-ref integration/restart and protected-branch/provider-policy semantics remain qualification work, not semantic authority. The next highest-ROI design gate returns to real repository/context/model transport before ContextSlice/CAS, token deduplication, warm executors, or locality scheduling.
 
 ## Verified work
+
+### D0012 — verified authenticated remote Git publication source contract
+
+- Status: `verified` for the generic existing-remote-branch source protocol plus authenticated GitHub push dry-run capability; `mvp-1a-7` remains the same active development direction
+- Design: `docs/design/0012-authenticated-remote-git-publication.md`
+- Independently validated source candidate: `28ed1912dc61b8d33277f599ada6010a30a7f357`
+- Profile: `tdev.git.remote-existing-branch.v1`; D0010 semantic root/Case head remain authority and remote Git remains derived publication
+- Admission: locally elected D0011 candidate, non-null exact predecessor, existing remote branch, immutable target-bound intent, and no raw credential or clear push URL in canonical data
+- Publication/recovery: exact expected-predecessor remote lease, mandatory remote reread after success/error, no blind replay, restart-safe read-only reconciliation, and fenced rollback with provider rejection kept fail-safe
+- Independent Ubuntu/POSIX validation: GitHub Actions run `31328662608`, job `93283174570`; **200/200** complete source tests, **92.79% line / 81.88% branch / 96.52% function** coverage, **22/22** combined D0011+D0012 focused tests, and clean effective diff
+- Provider capability: current GitHub transport completed authenticated `git push --dry-run` with `GIT_TERMINAL_PROMPT=0`; the dedicated probe ref remained absent before and after
+- Evidence: `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json` (SHA-256 `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`)
+- Boundaries: no actual D0012 provider-ref integration/restart evidence, protected-branch/ruleset qualification, provider-specific IAM/policy introspection, signing, multi-host publication owner, provider transaction coupling, hostile-provider authenticity, or Git/ref semantic authority
 
 ### D0011 — verified real local Git projection and fenced publication
 
@@ -136,18 +149,19 @@ No Class 2 design is active. D0011 is verified on the existing `mvp-1a-7` develo
 - D0008 concrete-store capacity admission, fail-closed legacy namespace, deterministic local publication-fault evidence, settlement/reopen Claim liveness, and complete authority-path measurement without semantic-authority migration;
 - D0009 non-authoritative representation evidence rejecting simple directory Merkle and retaining C2/C3 structural knowledge;
 - D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported;
-- D0011 real local Git projection over that semantic root with bare-repository SHA-1/SHA-256 support, deterministic `100644` text-tree projection, exact local branch-ref CAS/reconciliation/rollback, and no change to semantic authority.
+- D0011 real local Git projection over that semantic root with bare-repository SHA-1/SHA-256 support, deterministic `100644` text-tree projection, exact local branch-ref CAS/reconciliation/rollback, and no change to semantic authority;
+- D0012 generic authenticated remote-publication source protocol over an existing remote branch, with immutable target intent, exact predecessor fencing, reread/restart reconciliation, fail-safe rollback, external credential ownership, and no change to semantic authority.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. if remote publication remains the chosen direction, open a Class 2 authenticated remote/provider Git publication design covering credentials/owner, protected-branch semantics, remote race/ambiguity reconciliation, receipts, rollback, and the exact relation to the verified local candidate/ref contract;
-2. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
-3. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
+1. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
+2. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
+3. qualify D0012 against an actual provider ref and protected/provider-policy target before promoting it beyond source verification; keep provider refs derived unless a separately accepted direction change says otherwise;
 4. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
 
-D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract and D0011 closes the bounded local real-Git projection/ref-CAS contract. Provider transaction ownership, distributed Claims, authenticated remote Git publication/protected-branch semantics, hostile-storage authenticity, and global migration of historical v2 repositories remain future Class 2 work where applicable.
+D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes the bounded local real-Git projection/ref-CAS contract, and D0012 closes the bounded generic authenticated remote-publication **source** contract plus current GitHub dry-run authentication capability. Provider transaction ownership, distributed Claims, actual D0012 provider-ref integration/protected-branch qualification, hostile-storage/provider authenticity, and global migration of historical v2 repositories remain future work where applicable.
 
 ## Routing
 

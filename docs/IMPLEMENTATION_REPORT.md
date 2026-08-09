@@ -1,3 +1,30 @@
+# mvp-1a-7 D0012 authenticated remote Git publication report
+
+- Date: 2026-08-10
+- Development branch: `mvp-1a-7` — same mutable development direction; no new `mvp-*` branch is created for D0012
+- Historical branch-policy clarification: `ab498c233da9cd7a414986f596f602871d86d203` records `3048286a88c2687a2206cc3bcb4faab924be88d9` as the prospective revision/checkpoint -> mutable-direction policy transition without rewriting historical refs
+- Design: `docs/design/0012-authenticated-remote-git-publication.md`
+- Status: `verified` for the bounded generic authenticated remote-publication source profile plus current GitHub push-negotiation capability
+- Independently validated source candidate: `28ed1912dc61b8d33277f599ada6010a30a7f357`
+- Checked evidence: `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json`
+- Evidence SHA-256: `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`
+- Independent validation: GitHub Actions run `31328662608`, job `93283174570`
+- Remote profile: `tdev.git.remote-existing-branch.v1`
+
+D0012 continues the D0010/D0011 direction rather than changing authority. The D0010 semantic root and transactional Case head remain tdev current-state authority; the D0011 local Git candidate/ref remains a derived projection; D0012 adds only a derived authenticated remote-publication lane above an already locally elected candidate. If a future provider design makes a remote ref/OID elect Case semantic state or replaces the D0010 head, that is a separate direction decision rather than an extension of D0012.
+
+The first remote profile is deliberately narrow. It requires an existing full remote branch and a D0011 candidate with a non-null exact predecessor. `preparePublication` requires the candidate to be locally elected and the remote to name that predecessor, then emits an immutable intent binding candidate identity and a digest of the single effective push target. It stores neither raw credentials nor the clear target. `publish` revalidates the same bindings immediately before the external effect and uses one explicit expected-predecessor lease; accepted forward candidates are topologically fast-forward because their sole parent is that predecessor.
+
+Remote process exit status is not authority. After successful push, rejected push, or injected response loss, the adapter rereads the exact remote ref and classifies candidate/predecessor/third/unreadable states as applied/not-applied/conflict/ambiguous. Restart reconciliation is read-only and cannot follow a changed remote configuration because the immutable intent binds the target digest. Rollback is another exact candidate-to-predecessor fence; provider rejection is preserved as safe not-applied, and an intervening winner fences stale rollback. The adapter never creates/deletes a remote branch or disables provider policy.
+
+Security ownership stays external. The adapter accepts no token/password/key argument, disables interactive Git prompting, strips inherited `GIT_*` routing, disables hooks, rejects HTTP(S) targets containing embedded credentials/query data, and keeps clear target/provider diagnostics out of canonical typed intent/receipt/error facts. Deployment may use an already-configured credential helper or SSH agent, but those credentials never enter tdev semantic state.
+
+Independent Ubuntu/POSIX validation on Ubuntu 24.04.4 LTS / Node `v22.23.1` / Git `2.54.0` passed **200/200 complete source tests**, **92.79% line / 81.88% branch / 96.52% function coverage**, **22/22 combined D0011+D0012 focused tests**, and effective diff validation. Separately, the connected deployment completed an authenticated GitHub `push --dry-run` with `GIT_TERMINAL_PROMPT=0`; its dedicated probe ref remained absent before and after.
+
+The D0012 completion boundary therefore remains source-level plus bounded transport capability: **no actual D0012 provider ref mutation was used as integration evidence**. Provider-specific IAM/rulesets, protected-branch behavior, signing, multi-host ownership, provider transactions, hostile-provider authenticity, and provider-ref semantic authority are not verified. The next highest-ROI design gate returns to real repository/context/model transport; actual D0012 provider/protected-branch qualification remains a separate integration gate.
+
+---
+
 # mvp-1a-7 D0011 real Git projection and fenced-publication report
 
 - Date: 2026-08-10
