@@ -10,11 +10,11 @@
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Current verified design: `docs/design/0009-semantic-authority-representation-comparison.md`
-- Active Class 2 design: none; the next gate is a separate semantic-authority migration/transactional-head design
+- Active Class 2 design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md` (`accepted`)
 
 ## Active work
 
-D0009 is closed as `verified` for its non-authoritative comparison scope. Current `CaseEngine` authority, `treeDigest = digest(full tree)`, snapshot v2, journal formats, migration/rollback behavior, Git-OID status, and provider/distributed ownership remain unchanged. The next implementation-affecting step must be a **new Class 2 semantic-authority migration and transactional-head design**; C3 path-hash trie is its preferred structural research candidate and C2 path-byte radix remains the fallback/reference.
+D0010 is accepted as the `mvp-1a-7` implementation gate. Production v3 selects a **compressed UTF-8 path-byte radix** rather than D0009's benchmark-preferred hash trie because the current semantic contract must enforce file/descendant topology from the same authority structure without an O(N) scan or a second synchronized prefix owner. D0010 authorizes only the bounded opt-in local v3 profile: compact Plan/snapshot roots, sparse Promotion, one transactional local SQLite head, quiesced pre-Promotion v2->v3 migration, explicit ambiguity recovery, scrub/repair, and reference-aware GC. Existing v2 repositories and Git/provider/distributed ownership remain unchanged.
 
 ## Verified work
 
@@ -111,9 +111,9 @@ D0009 is closed as `verified` for its non-authoritative comparison scope. Curren
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. open a separate Class 2 semantic-authority migration/transactional-head design with C3 collision-safe path-hash trie as the preferred candidate and C2 path-byte radix as fallback/reference; define production identity/domain separation, path-key/collision contract, migration epoch, legacy-digest cutover, rollback/downgrade, mixed-writer exclusion, trusted head CAS/transaction, ambiguous-outcome recovery, corruption/scrub/repair, GC, security bounds, provider independence, and old-snapshot behavior before changing authority;
-2. only after that design is accepted, implement the smallest migration prototype and prove new-root write/restore/restart behavior against the current full-tree oracle without silently changing Git identity or provider ownership;
-3. add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
+1. implement and falsify accepted D0010: compressed path-byte radix authority, compact Plan/snapshot v3, transactional local head, quiesced forward migration, ambiguity recovery, corruption/repair, and reference-aware GC while preserving all legacy v2 behavior;
+2. independently verify the D0010 source/migration/restart/transaction layers and publish `mvp-1a-7` only if every stop gate closes;
+3. after D0010 verification, add a real repository/Git adapter as a derived projection and publication layer, preserving the separation between tdev semantic identity and Git tree/commit OIDs;
 4. add real repository/context/model transport before implementing ContextSlice/CAS, token deduplication, warm executors, or locality scheduling;
 5. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with migration, rollback, provider transaction, restart, and fault evidence;
 6. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies the selected persistence primitives, then add one fenced publication lane and versioned MCP/client qualification.

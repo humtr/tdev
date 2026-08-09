@@ -11,5 +11,6 @@
 | 0007 | Verified Immutable-Journal Materialization Reuse | verified | `mvp-1a-4` exact-byte-gated disposable materialization reuse over unchanged D0005 authority |
 | 0008 | Authority-Boundary Verification and Durability Admission | verified | `mvp-1a-5` complete authority-path evidence plus aggregate durable admission, legacy namespace hardening, deterministic local publication-fault classification, and checkpoint/Claim reopen liveness without semantic-authority migration |
 | 0009 | Semantic-Authority Representation Comparison | verified | `mvp-1a-6` non-authoritative comparison: directory Merkle rejected; bounded path-byte radix and collision-safe path-hash trie survive; hash trie preferred for the next migration design; current authority unchanged |
+| 0010 | Semantic-Authority Migration and Transactional Head | accepted | `mvp-1a-7` candidate: compressed path-byte radix v3 authority, compact snapshot, transactional local head, quiesced forward migration, repair/GC barriers; no Git/provider authority |
 
 `accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.
