@@ -1,0 +1,59 @@
+name: D0010 POSIX validation
+
+on:
+  pull_request:
+    branches: [mvp-1a-6]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Runtime and SQLite
+        run: |
+          node --version
+          npm --version
+          node -e "import('node:sqlite').then(({DatabaseSync})=>{const db=new DatabaseSync(':memory:'); db.exec('create table t(k text primary key,v int); insert into t values (\'a\',1)'); const r=db.prepare('update t set v=v+1 where k=? returning v').get('a'); if(r.v!==2) process.exit(1); db.close(); console.log('node:sqlite ok')})"
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+      - name: Source gate
+        run: npm run check
+      - name: Coverage
+        run: node --experimental-test-coverage --test test/*.test.mjs
+      - name: Effective diff check
+        run: git diff --check 131204b782d7c7b64edceb55e335fba10c8e5aee 152f88daa7775c5d545ec865cc0a8a470b45697e
+      - name: D0010 focused gate
+        run: node --test test/semantic-*.test.mjs test/durable-runner.test.mjs test/store.test.mjs
+      - name: D0010 full authority evidence
+        env:
+          TDEV_V3_SIZES: 1000,5000,20000,100000
+          TDEV_V3_TOUCHES: 1,8,128
+          TDEV_V3_SOURCE_REVISION: 152f88daa7775c5d545ec865cc0a8a470b45697e
+        run: |
+          node --expose-gc bench/semantic-v3-authority.mjs > d0010-evidence.json
+          node - <<'NODE'
+          const fs = require('fs');
+          const crypto = require('crypto');
+          const e = JSON.parse(fs.readFileSync('d0010-evidence.json', 'utf8'));
+          if (e.samples.length !== 12) throw new Error(`expected 12 samples, got ${e.samples.length}`);
+          const bad = e.samples.filter((s) => !s.semanticEquality);
+          if (bad.length) throw new Error(`semantic equality failed: ${JSON.stringify(bad)}`);
+          const sha = crypto.createHash('sha256').update(fs.readFileSync('d0010-evidence.json')).digest('hex');
+          console.log(`D0010_EVIDENCE_SHA256=${sha}`);
+          console.log(JSON.stringify(e.samples.map((s) => ({size:s.size,touchCount:s.touchCount,v2SnapshotBytes:s.v2SnapshotBytes,v3SnapshotBytes:s.v3SnapshotBytes,nodeReads:s.nodeReads,nodeWrites:s.nodeWrites,objectDeltaCount:s.objectDeltaCount,promotionMs:s.promotionMs,compatibilityMs:s.compatibilityMs})), null, 2));
+          NODE
+      - name: Upload D0010 evidence
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0010-authority-evidence
+          path: d0010-evidence.json
+          if-no-files-found: error
