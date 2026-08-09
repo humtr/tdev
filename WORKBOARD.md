@@ -11,11 +11,11 @@
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Current verified design: `docs/design/0010-semantic-authority-migration-and-transactional-head.md`
-- Active Class 2 design: none; the next production-affecting gate is the real repository/Git projection and fenced publication layer
+- Active Class 2 design: `docs/design/0011-real-git-projection-and-fenced-publication.md` (`accepted`)
 
 ## Active work
 
-No Class 2 design is active. D0010 is verified for the bounded opt-in local semantic-v3 profile. The next highest-ROI gate is a real repository/Git projection and fenced publication adapter over semantic roots; Git tree/commit OIDs remain derived identities and provider/distributed ownership is still outside the verified boundary.
+D0011 is accepted on the existing `mvp-1a-7` development direction. Implement and falsify the smallest real **local Git** projection plus fenced branch-ref publication lane over verified semantic-v3 roots. Git blob/tree/commit OIDs and the local publication ref remain derived projection state; D0010 semantic root/Case head remain tdev authority. The slice must use actual Git plumbing, no index/worktree mutation, exact expected-predecessor ref CAS, ambiguous-outcome reread, and fenced rollback. Remote push/auth/protected-branch/provider ownership remain outside D0011.
 
 ## Verified work
 

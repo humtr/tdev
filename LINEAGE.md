@@ -9,7 +9,7 @@ This repository uses development-lineage identities, not product-style semantic 
 - **Direction origin / historical predecessor:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - **Baseline knowledge input:** verified `mvp-1a-6` / Design 0009 plus verified Design 0010, checked semantic-v3 evidence, and independent Ubuntu/POSIX validation
 - **Latest verified design:** Design 0010 — Semantic-Authority Migration and Transactional Head
-- **Active design:** none; the next production-affecting gate is the real repository/Git projection and fenced publication layer
+- **Active design:** Design 0011 — Real Git Projection and Fenced Publication (`accepted`)
 - **Historical predecessor direction ref:** `mvp-1a-6`
 
 `mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
