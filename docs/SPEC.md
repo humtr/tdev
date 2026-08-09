@@ -6,7 +6,7 @@
 
 `tdev` executes one immutable Task DAG with parallel-first semantics, accepts isolated typed results, and produces one deterministic canonical tree through a single final Promotion Task.
 
-The source slice is **durable-ready**, not provider-complete: its domain and persistence contracts are executable in Node 22, while Cloudflare, Agent, Git, MCP, D1, and R2 adapters remain separate product work.
+The source slice is **durable-ready**, not provider-complete: its domain and persistence contracts are executable in Node 22. D0011 adds a bounded local real-Git projection adapter, while Cloudflare, Agent, remote/provider Git, MCP, D1, and R2 adapters remain separate product work.
 
 ## 2. Core invariants
 
@@ -30,6 +30,7 @@ The source slice is **durable-ready**, not provider-complete: its domain and per
 18. Derived counters, ready candidates, claim indexes, validation frontiers, and materialized caches may be deleted and rebuilt from authoritative records; they cannot author admission, fencing, CAS, or a terminal Case result.
 19. Settlement and Promotion remain deterministic across scheduling order, completion order, executor identity, and retry interleaving.
 20. Semantic-authority v3 is opt-in. Existing v2 repositories keep full-tree authority and existing store formats; a v3 Case uses profile `tdev.semantic.path-byte-radix.v1`, compact schema-v3 snapshots, and one trusted local transactional Case head.
+21. D0011 local Git projection is opt-in and post-Promotion: `GitProjectionAdapter` may derive real Git blobs/trees/commits from a validated semantic root and elect one full `refs/heads/...` ref by exact expected-predecessor CAS, but Git OIDs and that ref never replace the semantic root or Case head as tdev authority.
 
 ## 3. PlanRevision contract
 
@@ -166,6 +167,7 @@ Design 0001 snapshots are migrated deterministically to v2. `CaseRepository.load
 - `ImmutableJournalSnapshotStore` is an opt-in local-filesystem CAS adapter. It reads a legacy-v1 journal prefix and writes immutable v2 `delta-from-<expectedRevision>` commit slots with source/target snapshot-digest binding. Every load/CAS strictly observes the committed namespace and rereads every retained authoritative byte. An instance-local materialized snapshot may replace parse/replay only when an exact ordered cryptographic fingerprint over current filenames, lengths, and bytes matches a prior strict validation or a successfully durable local commit from that verified predecessor. Any namespace, file-type, length, or byte change forces complete D0005 validation/replay. The cache is disposable and cannot author CAS. Cross-process winner election is claimed only among immutable-v2 writers on the tested compatible local-filesystem no-replace hard-link publication boundary after an explicit cutover that quiesces legacy writers. Rolling cross-process legacy/new writers are unsupported. It has no durable checkpoint/head, compaction, or history deletion.
 - `SemanticSqliteStore` is an opt-in local v3 authority adapter. It stores immutable typed semantic objects and immutable schema-v3 snapshot objects plus one mutable expected-predecessor Case head in one SQLite transaction. A possibly committed database transaction reports `store_commit_ambiguous`; callers reconcile the durable head and do not blindly replay callbacks. The adapter fails explicitly when the required `node:sqlite` API is unavailable.
 - `SemanticCaseRepository` owns native v3 create/load/checkpoint/command boundaries and the bounded quiesced pre-Promotion v2 -> v3 migration. Migration requires explicit writer and Claim quiescence and rechecks the captured source v2 snapshot digest/revision immediately before publishing the first v3 head.
+- `GitProjectionAdapter` is an opt-in local post-Promotion projection adapter. It writes derived immutable Git objects without an index/worktree, validates their semantic binding, publishes only one full `refs/heads/...` ref with exact predecessor CAS, reconciles ambiguous outcomes by reread, and performs only fenced rollback. It is not a SnapshotStore, repository authority owner, or ordinary Task executor.
 - `CaseRepository` owns create, load, migration persistence, single-shot transaction, and command boundaries.
 - `CaseEngine` may maintain rebuildable Task-state counts, unsatisfied-dependency counts, ready IDs, claim-holder IDs, and a deterministic Plan-derived topological order. Ordinary transitions update changed entries/direct dependents only; any non-active Case-state candidate is confirmed from authoritative Task records.
 - `runCase` executes the graph in memory, maintains only a rebuildable ready-candidate acceleration set, and supports an injected checkpoint callback; every Task start still passes through authoritative `CaseEngine.admissionDecision`. Candidate loss invokes the engine repair boundary before deadlock is declared.
@@ -181,8 +183,8 @@ The source slice is accepted only when the executable matrix in `MVP.md` passes 
 
 - live Cloudflare Worker or Durable Object deployment;
 - persistent AgentDO delivery queue, WebSocket transport, or hibernation;
-- Termux filesystem, Git, process, or network executor;
-- Git commit/reference publication and rollback automation;
+- Termux filesystem/process/network executor or arbitrary Git index/worktree executor;
+- remote Git fetch/push, authorization, protected-branch publication, and provider rollback automation;
 - D1 projection or R2 Artifact byte storage;
 - public MCP endpoint or current-client qualification;
 - cross-system distributed transaction;

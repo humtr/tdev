@@ -11,6 +11,7 @@ The implementation treats the following as untrusted:
 - claim lease values supplied across a boundary;
 - JSON bytes read from the local store;
 - schema-v3 snapshot bytes, semantic object payloads, and transactional-head rows read from the local semantic SQLite store;
+- Git tree/blob/commit bytes and the publication-ref value reread by D0011 from the selected local repository;
 - restored snapshot fields, indexes, accepted results, Events, and receipts;
 - paths and file contents proposed by ChangeSets.
 
@@ -78,7 +79,7 @@ Canonical-tree and ChangeSet paths must be normalized relative paths and obey th
 
 Work Tasks cannot claim `canonical:` resources. Result-only work cannot claim `remote:` resources. Only the internal Promotion Task may hold `write canonical:tree`.
 
-This prevents the source core from being used as an arbitrary Git metadata or filesystem traversal writer. A real Agent must independently enforce an OS-level root and avoid following unsafe symlinks; that adapter is not present here.
+This prevents the source core from being used as an arbitrary Git metadata or filesystem traversal writer. D0011 is a separate post-Promotion adapter that projects only validated semantic paths as `100644` Git blobs/trees/commits and one fenced local branch ref; it does not apply an arbitrary index/worktree. A real Agent must still independently enforce an OS-level root and avoid unsafe symlink/filesystem behavior for general effects.
 
 ## 6. Bounded data
 
@@ -145,6 +146,15 @@ The no-replace ImmutableJournal claim remains conditional on a compatible local 
 `SemanticSqliteStore` is a trusted-local, single-transaction authority adapter, not a distributed lock or authentication service. Immutable objects and snapshots do not become current merely because their bytes exist; only the expected-predecessor Case head elects authority. Commit ambiguity is reconciled by rereading the durable head, never by assuming failure or replaying an external-effect callback.
 
 Repair is content-only: it may restore bytes that reproduce an already named exact digest and may not move the head. Reference-aware GC is an explicit expected-state transaction over current heads plus pins. Digests do not authorize callers, and the SQLite profile adds no tenant isolation, secret protection, provider IAM, or hostile-storage authenticity.
+
+### 9.2 Local Git projection boundary
+
+`GitProjectionAdapter` assumes its configured local Git executable and repository path are trusted deployment inputs. It does not trust inherited `GIT_*` routing/configuration overrides: the runner strips them, reinstalls only bounded internal Git settings and explicit commit metadata, disables replacement refs, and disables repository hooks for its plumbing commands. The publication ref is restricted to a direct `refs/heads/...` ref and every forward/reverse mutation uses an exact old-OID fence.
+
+Before publication, reconciliation, or rollback relies on candidate/receipt bindings only after rereading the repository: Git tree/blob bytes must rebuild the expected tdev semantic root and commit bytes must match the bound tree/parent/metadata as applicable. This prevents a recomputed typed digest from hiding a different local Git projection. Candidate/receipt digests remain integrity checks, not credentials or signatures.
+
+The adapter does not authenticate a hostile repository owner, protect an object database from replacement, prove the Git executable itself is trustworthy, authorize a remote, enforce protected-branch policy, or supply signed commits/refs. Remote transport and provider IAM remain separate security designs.
+
 ## 10. External effects
 
 Exactly-once execution is not promised. Safe handling is limited to:

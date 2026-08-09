@@ -30,6 +30,8 @@ The implementation is a deliberately narrower safe-integer canonical JSON profil
 | snapshot | domain-separated digest of the complete snapshot excluding `snapshotDigest` |
 | v3 semantic root | `tdev.semantic.root.v1` digest over profile, node digest, entry count, and exact `treeBytes` byte-count value |
 | v3 transactional head | `tdev.semantic.head.v1` digest over Case/epoch/generation/revision/snapshot/root/predecessor identity |
+| D0011 Git projection candidate | `tdev.git.projection-candidate.v1` digest over semantic root, object format, local publication ref, predecessor, Git tree/commit OIDs, and explicit commit metadata |
+| D0011 Git publication receipt | `tdev.git.publication-receipt.v1` digest over the candidate binding plus elected predecessor/tree/commit and observed-vs-reconciled outcome |
 
 An Attempt fence binds:
 
@@ -395,3 +397,15 @@ If a database commit outcome is unknown, the result is `store_commit_ambiguous`.
 Forward migration is limited to a quiesced schema-v2 Case before successful Promotion whose canonical tree still equals the immutable Plan base. Legacy writers and live Claim ownership must be quiesced. The migrator captures and rechecks the source snapshot digest/revision immediately before first v3 head publication. There is no rolling mixed-writer mode. After any post-migration v3 head commits, automatic downgrade to a v2 writer is forbidden.
 
 Reachable object corruption fails closed. Repair may insert only canonical content reproducing the exact already-authoritative expected digest and never moves the head. Reference-aware GC starts from all current heads plus explicit pins; apply requires an exact expected head/pin-set digest and deletes only unreachable immutable objects/snapshots.
+
+## 18. Local Git projection and fenced-ref protocol
+
+D0011 adds opt-in local projection profile `tdev.git.text-tree.v1`. It consumes a validated `SemanticRadixTree`; materializes the current normalized path/text map for this first correctness-oriented slice; writes exact UTF-8 Git blobs with mode `100644`; builds directory trees bottom-up; and creates a Git commit under explicit author/committer identity, timestamp/timezone, message, and optional exact predecessor commit. Git SHA-1 or SHA-256 object format is observed from the target repository and is part of projection identity. The tdev semantic root is unchanged.
+
+A projection candidate contains exactly `schemaVersion`, `profile`, `semanticRootDigest`, `objectFormat`, `publicationRef`, `expectedRefOid | null`, `treeOid`, `commitOid`, `commitMetadata`, and `candidateDigest`. `publicationRef` is restricted to a direct full `refs/heads/...` ref. Before a state-changing ref operation, the adapter rereads the Git tree/blob graph, rebuilds the existing tdev semantic root, and verifies the raw commit bytes against the candidate tree, parent, and commit metadata. Recomputing a candidate digest cannot make a mismatched Git tree or commit authoritative.
+
+Publication uses one expected-predecessor ref CAS. A non-null predecessor executes `update-ref <ref> <candidate> <predecessor>`; creation from absence uses the repository-format all-zero OID as the expected old value. Immutable candidate objects may exist without being elected. If publication response is lost or a ref update errors, durable reread classifies the ref as `applied` when it names the candidate, `not_applied` when it still names the predecessor or remains absent for a null predecessor, and `conflict` for any third OID. Blind replay is forbidden.
+
+A successful publication receipt contains exactly `schemaVersion`, `profile`, `candidateDigest`, `semanticRootDigest`, `objectFormat`, `publicationRef`, `predecessorOid | null`, `treeOid`, `commitOid`, `outcome`, and `receiptDigest`; outcome is `observed` or `reconciled`. Rollback is another fenced ref mutation: candidate -> predecessor for an existing predecessor, or conditional ref deletion for a create-from-absence. A third/ref-newer OID fences stale rollback. Neither forward publication nor rollback changes semantic Case authority or deletes Git objects.
+
+Candidate and receipt digests are integrity bindings, not authorization or hostile-repository authentication. D0011 scrubs inherited `GIT_*` process overrides, disables replacement refs and repository hooks for its plumbing, and supports bare repositories without index/worktree authority. Remote fetch/push, GitHub/GitLab authorization or protected branches, signing, multi-host ownership, provider transactions, and Git-object garbage collection are outside this protocol.

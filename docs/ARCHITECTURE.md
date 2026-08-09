@@ -68,6 +68,7 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | snapshot bytes and CAS revision | legacy snapshot store | executor |
 | v3 semantic tree/root authority | `CaseEngine` using the versioned semantic radix profile | `SemanticSqliteStore`, Git OID, executor |
 | v3 durable Case-head election | `SemanticSqliteStore` transaction | executor, Git ref, immutable object existence |
+| local post-Promotion Git object/ref projection | `GitProjectionAdapter` for derived Git candidate/ref state | `CaseEngine` semantic authority, ordinary work Task, executor |
 | load, source migration persistence, transaction | legacy `CaseRepository`; v3 `SemanticCaseRepository` | raw store |
 | deterministic candidate tree/root and manifest | Promotion | ordinary work Task |
 | canonical tree/root replacement | successful Promotion transition in `CaseEngine` | executor, Agent, MCP |
@@ -94,6 +95,7 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | `semantic-snapshot.mjs` | compact schema-v3 snapshot and Plan-binding validation |
 | `semantic-store.mjs` | opt-in local SQLite immutable-object/snapshot storage plus transactional expected-predecessor Case head |
 | `semantic-repository.mjs` | native v3 repository lifecycle, quiesced v2 -> v3 migration, rollback-status boundary |
+| `git-projection.mjs` | D0011 local real-Git SHA-1/SHA-256 derived tree/commit projection, exact `refs/heads` CAS, reread reconciliation, and fenced rollback |
 | `index.mjs` | supported source API surface |
 | `cli.mjs` | observable source demos only |
 
@@ -110,7 +112,7 @@ canonical
   <- CLI or future provider adapters
 ```
 
-Domain code has no dependency on Cloudflare, GitHub, Termux, MCP, filesystem effects, process execution, or network APIs. The local file store is the only Node filesystem adapter in this slice.
+Pure domain code has no dependency on Cloudflare, GitHub, Termux, MCP, filesystem effects, process execution, or network APIs. Outer local adapters include the file/journal stores, semantic SQLite store, and D0011 `GitProjectionAdapter`, which invokes a trusted local Git executable with bounded argv-array plumbing; those adapters do not become domain owners.
 
 ## 5. Parallel semantics
 
@@ -216,7 +218,16 @@ D0010 closes the bounded local authority migration that D0009 intentionally left
 
 For an opt-in v3 Case, `CaseEngine` owns lifecycle and the semantic base/canonical root descriptors. Typed immutable radix objects carry content; a small schema-v3 snapshot binds lifecycle state to those roots; `SemanticSqliteStore` elects the current snapshot/root pair through one expected-predecessor transactional head. Object existence alone is not authority. Existing v2 Cases retain the full-tree schema-v2 and legacy store semantics.
 
-The normal v3 Promotion/checkpoint path no longer materializes or hashes the complete text tree. Compatibility APIs, cold semantic hydration/scrub, and explicit full-tree comparison may still be O(N); D0010 does not claim otherwise. Git tree/commit OIDs, repository publication, provider transactions, distributed Claims, and hostile-storage authentication remain outside this authority boundary.
+The normal v3 Promotion/checkpoint path no longer materializes or hashes the complete text tree. Compatibility APIs, cold semantic hydration/scrub, and explicit full-tree comparison may still be O(N); D0010 does not claim otherwise. D0011 later adds a local derived Git projection outside this semantic-authority boundary; provider/remote publication, provider transactions, distributed Claims, and hostile-storage authentication remain outside the verified semantic owner.
+
+## 9.4 Verified local Git projection boundary
+
+D0011 implements one local `tdev.git.text-tree.v1` projection over a validated D0010 semantic tree. It materializes the semantic path/text map for this correctness-first slice, writes exact UTF-8 `100644` blobs and Git trees/commits without an index or worktree, and treats those immutable objects as derived candidates. The publication ref is restricted to a direct full `refs/heads/...` ref and is changed only through one exact expected-predecessor `update-ref` CAS.
+
+Candidate validation rereads the Git tree/blob graph, rebuilds the existing tdev semantic root, and checks raw commit bytes against the bound tree, parent, and explicit author/committer metadata before publication. Lost publication or rollback responses are classified by durable ref reread; a third OID is a conflict and blind replay is forbidden. Rollback is another fenced ref CAS and never rewrites semantic Case authority or deletes Git objects.
+
+This boundary is local-source verification, not a remote/provider claim. Git OIDs remain representation-dependent derived identities, SHA-1 and SHA-256 repositories may project the same semantic root differently, and D0011 does not prove fetch/push, GitHub/GitLab authorization or branch protection, signing, multi-host ownership, provider transactions, or hostile repository authenticity.
+
 ## 10. Architectural stop gates
 
 A new adapter or optimization is rejected when it:

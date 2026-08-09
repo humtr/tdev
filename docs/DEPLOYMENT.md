@@ -11,7 +11,7 @@ The verified source target is:
 - no third-party runtime dependency;
 - POSIX-like local filesystem only for `FileSnapshotStore`, `JournalSnapshotStore`, and `ImmutableJournalSnapshotStore` tests, benchmarks, and demos.
 
-The `mvp-1a-7` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below. The opt-in semantic-v3 SQLite adapter additionally requires the runtime `node:sqlite` API and fails explicitly when it is unavailable; legacy v2 operation does not depend on that API.
+The `mvp-1a-7` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below. The opt-in semantic-v3 SQLite adapter additionally requires the runtime `node:sqlite` API and fails explicitly when it is unavailable; legacy v2 operation does not depend on that API. D0011 local Git projection additionally requires a trusted local Git executable/repository providing the tested plumbing and SHA-1 or SHA-256 object format; it does not require or imply a Git remote.
 
 ## 2. Installation and gate
 
@@ -98,6 +98,13 @@ The cross-process evidence is limited to tested compatible local filesystems. On
 Use this opt-in local profile only on a Node 22+ runtime that provides `node:sqlite`. `openSemanticSqliteStore(path)` opens the SQLite authority database; `SemanticCaseRepository` uses it for native v3 creation, load/checkpoint/commands, and the bounded v2 -> v3 migration. The database stores immutable typed semantic objects, immutable schema-v3 snapshots, and one mutable per-Case transactional head.
 
 A commit transaction checks the exact predecessor head/revision, inserts objects and snapshot, and updates the head atomically. A possibly committed transaction reports `store_commit_ambiguous`; reopen/reconciliation decides successor versus predecessor versus third-state conflict. The adapter is local source infrastructure, not evidence for network filesystems, Durable Objects, multi-host SQLite, or provider transactions.
+
+### GitProjectionAdapter
+
+D0011's opt-in local profile `tdev.git.text-tree.v1` targets an existing local Git repository and one direct full `refs/heads/...` ref. It is verified with real bare SHA-1 and SHA-256 repositories. The adapter uses plumbing commands only, requires no index/worktree, writes exact UTF-8 `100644` content derived from a validated semantic tree, and supplies explicit commit identity/time/message instead of inheriting user Git identity/configuration.
+
+`project` may leave unreachable immutable candidate objects but does not move the ref. `publish` performs one exact predecessor `update-ref` CAS and reconciles an uncertain response by durable reread. `rollback` is another exact CAS and is fenced by any intervening ref move. These are local source guarantees only: no remote fetch/push, credentials, protected branches, server hooks, multi-host locking, provider transaction, or Git-object GC is claimed.
+
 ### CaseRepository
 
 The repository is the semantic persistence boundary:
@@ -232,7 +239,7 @@ A target-claim adapter must:
 
 ## 10. Publication lane
 
-Promotion currently produces an in-memory canonical text tree. A Git adapter should preserve the same separation:
+D0011's local Git adapter implements the publication separation after semantic Promotion:
 
 ```text
 accepted isolated results
@@ -243,11 +250,11 @@ accepted isolated results
   -> commit/reference receipt
 ```
 
-Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. Git object/tree construction can become content-addressed and incremental, but Git object identity remains a derived projection of the current tdev semantic tree unless a separate accepted Class 2 design changes semantic authority. File mode and repository object format can change Git tree OIDs without changing the current tdev path/text semantic input. Reference mutation remains a separate external effect with exact preconditions, idempotency/reconciliation, and rollback evidence.
+Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. D0011 now verifies local object/tree/commit construction and one local branch-ref CAS/reconciliation/rollback lane, but Git object identity remains a derived projection of the current tdev semantic tree unless a separate accepted Class 2 design changes semantic authority. File mode and repository object format can change Git tree OIDs without changing the current tdev path/text semantic input. Remote reference mutation remains a separate provider/external-effect design with its own authorization, preconditions, reconciliation, and rollback evidence.
 
 ## 11. Environment and configuration
 
-No environment variable is required by the source core. Provider adapters should keep mutable deployment configuration outside Plan/result digests unless it is intentionally part of the immutable Case contract.
+No environment variable is required by the source core. D0011 explicitly strips inherited `GIT_*` variables before invoking Git and supplies only bounded internal settings plus explicit author/committer metadata. Provider adapters should keep mutable deployment configuration outside Plan/result digests unless it is intentionally part of the immutable Case contract.
 
 Secrets must not be stored in Task input, evidence, receipts, or snapshots without a separate encrypted-secret design.
 
@@ -261,7 +268,7 @@ Secrets must not be stored in Task input, evidence, receipts, or snapshots witho
 | deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
 | production-qualified | measured SLO, load, security, and incident procedures accepted |
 
-This repository is at **source-verified** only.
+This repository remains **source-verified** with independently exercised local real-Git D0011 contract evidence. No remote/provider resource has been promoted to integration-verified or deployment-verified.
 
 ## 13. Release checklist
 
@@ -274,4 +281,4 @@ node --experimental-test-coverage --test test/*.test.mjs
 npm run bench
 ```
 
-If Git metadata is present, also run `git diff --check` and inspect `git status --short`. The supplied source archive has no `.git` metadata, so those checks are not an executable gate here. Confirm documentation still states all provider layers as unverified and that no generated/cache/runtime directory is included in the development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.
+When validating a Git checkout, also run `git diff --check` and inspect `git status --short`. Archive-only validation may omit `.git`, but that does not waive checkout diff/status gates for publication. Confirm documentation still states remote/provider layers as unverified and that no generated/cache/runtime directory is included in any development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.

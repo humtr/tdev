@@ -1,0 +1,90 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev-d0011-real-git-projection-verification",
+  "date": "2026-08-10",
+  "developmentBranch": "mvp-1a-7",
+  "branchSemantics": "same-development-direction-fast-forward",
+  "design": {
+    "id": "D0011",
+    "profile": "tdev.git.text-tree.v1",
+    "statusAtEvidenceCapture": "accepted",
+    "semanticAuthorityChanged": false,
+    "gitOidRole": "derived-projection-identity"
+  },
+  "sourceCandidate": "c321e9079855c87b9df806930b2cd48c61244e9b",
+  "sourcePredecessor": "d32dfffd29feb0f4be7564bcc9c481f8e754c0b2",
+  "independentValidation": {
+    "provider": "github-actions",
+    "pullRequest": 6,
+    "validationHead": "38985ef1bd91871105f220c16533f3ba36834d7f",
+    "workflowRun": 31325628829,
+    "workflowJob": 93275404092,
+    "runner": "Ubuntu 24.04.4 LTS",
+    "node": "v22.23.1",
+    "git": "git version 2.54.0",
+    "gitCapabilities": {
+      "sha1BareRepository": true,
+      "sha256BareRepository": true
+    },
+    "completeSourceGate": {
+      "tests": 191,
+      "passed": 191,
+      "failed": 0
+    },
+    "coverage": {
+      "linePercent": 92.8,
+      "branchPercent": 82.37,
+      "functionPercent": 96.34
+    },
+    "focusedGitGate": {
+      "tests": 13,
+      "passed": 13,
+      "failed": 0
+    },
+    "effectiveDiffCheck": true
+  },
+  "connectedRuntimeFocusedValidation": {
+    "jobId": "job_4tb_fefb29bf15",
+    "git": "git version 2.55.0",
+    "tests": 13,
+    "passed": 13,
+    "failed": 0,
+    "focusedCoverage": {
+      "module": "src/git-projection.mjs",
+      "linePercent": 88.86,
+      "branchPercent": 73.1,
+      "functionPercent": 95
+    }
+  },
+  "connectedRuntimeCompleteSourceGate": {
+    "qualified": false,
+    "reason": "Inherited ImmutableJournalSnapshotStore hard-link publication fails with EACCES in the connected Termux job-private filesystem; this environment is not counted for the complete source claim.",
+    "jobId": "job_4th_8e5d19829e",
+    "artifactId": "artifact_6e_1629628a3f"
+  },
+  "verifiedBehaviors": [
+    "exact UTF-8 semantic path/text projection into real bare Git objects",
+    "100644 file mode with tree-only directories",
+    "deterministic tree/commit identity for identical semantic root, predecessor, metadata, and object format",
+    "SHA-1 and SHA-256 repository object-format separation without semantic-root change",
+    "no index or worktree authority dependency",
+    "exact expected-predecessor create/update ref CAS with one winner",
+    "pre-update not-applied classification and post-update response-loss reconciliation",
+    "predecessor/candidate/third-state reconciliation across adapter restart",
+    "fenced rollback to predecessor or ref absence and stale-rollback rejection",
+    "full refs/heads namespace, symbolic-ref, predecessor-type, and commit-metadata fail-closed validation",
+    "read-only publication reconciliation without creating another Git object",
+    "semantic-root and commit-metadata tamper rejection even when the candidate digest is recomputed",
+    "inherited GIT_* environment cannot redirect the adapter repository",
+    "reference-transaction hooks are disabled for adapter plumbing"
+  ],
+  "nonClaims": [
+    "Git OID is not tdev semantic authority",
+    "no remote fetch or push publication contract",
+    "no GitHub or GitLab protected-branch or authorization semantics",
+    "no signed commit, tag, or ref authenticity",
+    "no distributed or multi-host publication owner",
+    "no provider transaction coupling between semantic Case head and Git ref",
+    "no Git object garbage collection or sparse Git-tree construction performance claim"
+  ]
+}

@@ -148,6 +148,15 @@ For the opt-in D0010 profile, open a local SQLite authority with `await openSema
 A v3 checkpoint persists new immutable semantic objects, one compact schema-v3 snapshot, and the exact successor Case head in one transaction. CAS mismatch preserves the winner. If the store returns `store_commit_ambiguous`, do not rerun the repository callback or executor. Reopen the database and reconcile the current head against the intended predecessor/successor; any third state requires operator investigation.
 
 Use `migrateV2CaseToSemantic` only after externally quiescing legacy writers and Claim ownership. The source must still be a valid pre-Promotion v2 Case and is rechecked immediately before target publication. `semanticMigrationRollbackStatus` allows only no-head or unadvanced generation-1 migration rollback; a later v3 head forbids automatic downgrade.
+
+### Local Git projection and fenced publication
+
+For D0011, construct `GitProjectionAdapter` with an existing trusted local Git repository path and a direct full `refs/heads/...` publication ref. Call `project({ semanticTree, expectedRefOid, commitMetadata })` after semantic Promotion. Projection may create immutable Git blobs/trees/commit objects but does not mutate the publication ref, index, or worktree. The candidate keeps the D0010 semantic root as its source binding while Git OIDs remain derived representation identities.
+
+Call `publish(candidate)` for the only forward local-ref mutation. The adapter validates the candidate against the repository, rebuilds the semantic root from the Git tree, validates the raw commit binding, and executes one exact expected-predecessor `update-ref` CAS. Pre-update failure remains not applied; post-update response loss is reconciled by durable ref reread. A third OID is a conflict. Do not blind-retry a failed publish or rebuild a second candidate merely to resolve an unknown outcome.
+
+`reconcilePublication(candidate)` is read-only and classifies predecessor/absence, candidate, or third-state conflict after restart. `rollback(receiptOrCandidate)` performs a separate exact CAS back to the predecessor or deletes only the exact candidate ref created from absence; an intervening publication fences stale rollback. Git object deletion, remote push, authorization, and protected-branch policy are not part of this local operation.
+
 ### Command mutation
 
 Use `repository.command(caseId, envelope, { claimValidator })` for receipt-backed state commands. Any command that starts an Attempt with a lease, accepts its result, or resolves a successful reconciliation must have access to the live claim owner.
@@ -211,6 +220,7 @@ Recommended operator signals:
 - Promotion conflict/topology failure details;
 - store corruption and noncanonical-read failures;
 - semantic-v3 head generation, CAS conflicts/ambiguity, root/object scrub failures, migration source-change rejections, and GC dry-run/apply counts;
+- D0011 Git candidate/object-format/ref identity, local ref CAS conflicts, reconciled outcomes, rollback conflicts, and semantic-binding validation failures;
 - full-snapshot vs delta bytes written, delta count, compaction count, and replay latency;
 - Promotion base-tree size, touched-path count, and validation time.
 
@@ -226,12 +236,14 @@ Recommended operator signals:
 | store corruption | refuse restore; do not rewrite automatically |
 | CAS conflict | preserve winner; do not replay external work |
 | semantic SQLite commit ambiguity | reopen and compare durable head with intended predecessor/successor; do not blindly retry |
+| local Git publication ambiguity | reread the exact publication ref and classify predecessor/candidate/third state; do not blindly replay `update-ref` |
+| local Git stale publication/rollback | preserve the current ref winner; report conflict |
 | future snapshot version | fail closed |
 | event/receipt/bounds exhaustion | reject entire mutation atomically |
 
 ## 15. Provider adapter gate
 
-Before a Cloudflare/Agent/Git adapter is accepted, it must prove:
+Before a Cloudflare/Agent/remote-Git provider adapter is accepted, it must prove:
 
 - authoritative state is persisted in the provider owner's transaction before dispatch;
 - delivery epoch and result fences survive reconnects;
