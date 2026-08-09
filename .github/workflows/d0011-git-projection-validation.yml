@@ -1,0 +1,51 @@
+name: D0011 real Git projection POSIX validation
+
+on:
+  pull_request:
+    branches: [mvp-1a-7]
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Check out validation head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node 22
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Runtime and Git capabilities
+        run: |
+          node --version
+          npm --version
+          git --version
+          sha1_repo="$(mktemp -d)/sha1.git"
+          sha256_repo="$(mktemp -d)/sha256.git"
+          git init --bare -q "$sha1_repo"
+          git init --bare -q --object-format=sha256 "$sha256_repo"
+          test "$(git -C "$sha1_repo" rev-parse --show-object-format)" = sha1
+          test "$(git -C "$sha256_repo" rev-parse --show-object-format)" = sha256
+
+      - name: Install
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Complete source gate
+        run: npm run check
+
+      - name: Complete source coverage
+        run: node --experimental-test-coverage --test test/*.test.mjs
+
+      - name: D0011 real Git focused gate
+        run: node --test test/git-projection.test.mjs
+
+      - name: Effective diff check
+        run: git diff --check origin/mvp-1a-7...HEAD
