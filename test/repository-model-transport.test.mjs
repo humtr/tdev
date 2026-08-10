@@ -872,11 +872,14 @@ test('POSIX successful child exit closes inherited descendant pipes without a fa
     repositoryPath: repo.repositoryPath,
     modelExecutable: process.execPath,
     modelArgs: [FIXTURE, 'spawn-grandchild-inherit-return', marker],
-    timeoutMs: 200,
+    // This timeout is a deadlock guard, not a startup-speed assertion. The grandchild
+    // deliberately remains alive well beyond it, so broken direct-child-exit cleanup
+    // still falsifies deterministically without requiring a sub-200 ms Node startup.
+    timeoutMs: 2_000,
   });
   const result = await adapter.execute(directInvocation(plan).invocation);
   assert.equal(result.kind, 'changeset');
-  await new Promise((resolve) => setTimeout(resolve, 500));
+  await new Promise((resolve) => setTimeout(resolve, 700));
   assert.equal(existsSync(marker), false);
 });
 

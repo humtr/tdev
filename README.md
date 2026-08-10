@@ -1,8 +1,8 @@
 # tdev mvp-1a-7
 
-`tdev` is a parallel-first, durable-ready Work Graph control plane core. The active development identity is `mvp-1a-7`: one mutable architectural direction whose exact revisions are Git commits, not new `mvp-*` branch numbers.
+`tdev` is a parallel-first Work Graph system being built toward a **deployed Cloudflare/local-Agent MVP**, not only a local source library. The active development identity is `mvp-1a-7`: one mutable architectural direction whose exact revisions are Git commits, not new `mvp-*` branch numbers.
 
-The latest verified design is D0014, **bounded repository-context preparation reuse and process lifecycle hardening**, over the intentionally simple D0013 full-repository/process-per-Attempt baseline.
+D0014 remains the latest verified production-source layer: **bounded repository-context preparation reuse and process lifecycle hardening** over the D0013 full-repository/process-per-Attempt baseline. D0015 rebaselines the final product program without changing D0014 source: final completion requires CaseDO/AgentDO or equivalent owners, an authenticated local Agent, deployed Git integration, secured MCP, provider/user setup, operations and final end-to-end qualification. See `docs/ROADMAP.md`.
 
 ## Current authority
 
@@ -51,7 +51,7 @@ On the actual 102-file / 1,788,423-byte audit repository, eight same-base Tasks 
 | Metric | D0013 baseline | D0014 | Change |
 | --- | ---: | ---: | ---: |
 | wall time | 5,287.2 ms | 1,027.2 ms | -80.6% |
-| throughput | 1.513/s | 7.788/s | +414.7% |
+| bounded batch completion rate | 1.513/s | 7.788/s | +414.7% |
 | Git commands | 48 | 5 | -89.6% |
 | Git stdout | 14.421 MB | 1.803 MB | -87.5% |
 | sampled peak RSS | 411.98 MiB | 386.92 MiB | -14.6% |
@@ -124,7 +124,7 @@ console.log(outcome.snapshot.canonicalTree);
 
 `GitRepositoryModelExecutor` accepts only the configured repository path, executable and profiles. Task input names an immutable commit and bounded instruction; it cannot choose an arbitrary executable, shell command, environment, Git routing or mutable worktree.
 
-D0014's default cache is bounded and optional. `contextCache: false` restores the D0013 cold behavior. A cache miss, eviction, restart or process loss rebuilds from the exact commit and verifies the authoritative `baseDigest`; cache-hit and cold paths must produce identical request semantic content.
+D0014's default retained cache is bounded and optional. Its entry/byte settings bound retained complete preparations, not total concurrently pending cold-preparation memory or process RSS. `contextCache: false` restores the D0013 cold behavior. A cache miss, eviction, restart or process loss rebuilds from the exact commit and verifies the authoritative `baseDigest`; cache-hit and cold paths must produce identical request semantic content.
 
 The model remains result-only. It cannot mutate the canonical repository directly, use a shared mutable worktree as authority or promote cache state into semantic truth.
 
@@ -141,23 +141,25 @@ The model remains result-only. It cannot mutate the canonical repository directl
 | `src/repository-model-transport.mjs` | D0013/D0014 repository context, cache, model transport and lifecycle |
 | `test/repository-model-transport.test.mjs` | repository/cache/process correctness and failure falsifiers |
 | `bench/repository-model-transport-efficiency.mjs` | D0014 scaling, retry, parallel and resource evidence |
-| `docs/design/0014-*.md` | accepted and verified D0014 contract |
-| `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md` | complete audit and decision report |
+| `docs/design/0014-*.md` | accepted and verified D0014 source contract |
+| `docs/design/0015-*.md` | verified final-MVP program rebaseline and D0014 post-review decision |
+| `docs/ROADMAP.md` | final-MVP capability groups, provisional Design program and qualification levels |
+| `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md` | complete D0014 audit and decision report |
+| `docs/D0014_POST_VERIFICATION_REVIEW.md` | independent post-publication precision review and corrections |
 | `docs/evidence/` | checked machine-readable evidence |
 
-## Explicit boundaries
+## Current boundaries and final-MVP program
 
-Not verified or implemented by D0014:
+Not yet verified or implemented by the current source:
 
-- deterministic minimum-context/ContextSlice selection or dependency expansion;
-- persistent or cross-worker context manifest/CAS, atomic publication, corruption recovery, GC or disk-pressure policy;
-- warm model process or process pool;
-- external model/provider API, authentication, tokenizer/accounting, billing/retry semantics, privacy/residency or data-egress policy;
-- provider token, network-latency, model-quality or cost savings;
-- locality scheduling, distributed Claim ownership or Cloudflare deployment;
-- Windows process-tree qualification;
-- production load/SLO/incident evidence.
+- the selected post-D0014 context-delivery/model-provider contract;
+- Cloudflare CaseDO/AgentDO ownership and an authenticated local-Agent delivery/runtime path;
+- deployed Git publication/provider-policy qualification;
+- secured MCP server, authentication/tenant authorization and current-client qualification;
+- required provider/user deployment configuration, migration/rollback/runbooks and fresh-environment qualification;
+- external-provider token/billing/latency/quality/privacy/residency outcomes;
+- production load/SLO/incident qualification.
 
-The next highest-ROI gate is a separate deterministic minimum-context/data-minimization design with exact commit, `baseDigest`, manifest, slice and request identities. Persistent CAS is a candidate only after cross-process benefit justifies its corruption, GC, eviction, migration and operational contracts.
+These are **open final-MVP capability groups**, not permanent product non-goals. The next context/model gate is decision-neutral: full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming and hybrids must compete on the post-D0014 baseline. Persistent CAS remains evidence-gated.
 
-Start with `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/MVP.md`, Design 0014 and the D0014 audit report.
+Start with `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/MVP.md`, Design 0015 and the D0014 post-verification review.

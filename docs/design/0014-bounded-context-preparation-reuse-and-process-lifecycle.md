@@ -295,7 +295,7 @@ Concurrency and lifecycle:
 Performance:
 
 - compare exact D0013 baseline and candidate on the same immutable repository commit;
-- report absolute and percentage changes for Git calls/bytes, materializations, unique/logical blob bytes, request bytes, process starts, CPU, RSS, p50/p95/p99/max latency, and throughput;
+- report absolute and percentage changes for Git calls/bytes, materializations, unique/logical blob bytes, request bytes, process starts, CPU, RSS, p50/p95/p99/max latency, and bounded batch completion rate;
 - retry 0/1/2/3 must reduce reconstruction amplification while retaining one process and one full request per Attempt;
 - same-base improvement must not cause material multi-base regression;
 - cold and warm/cache-hit states are reported separately;
@@ -336,6 +336,18 @@ D0014 became `verified` on 2026-08-10 without changing the active `mvp-1a-7` dev
 
 Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`. The full product decision is recorded in `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
 
-The actual-repository eight-same-base workload changed from 48 to 5 Git commands, 14.421 to 1.803 MB Git stdout, 5,287.2 to 1,027.2 ms wall time and 1.513 to 7.788 useful results/s. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries, while full request/process amplification remained Attempt-count dependent. Repeated same-base-8 p50/p95 changed from 5,422.2/5,521.3 to 1,047.2/1,062.3 ms; repeated multi-base-8 p50/p95 changed from 194.0/202.9 to 121.8/129.2 ms.
+The actual-repository eight-same-base workload changed from 48 to 5 Git commands, 14.421 to 1.803 MB Git stdout, 5,287.2 to 1,027.2 ms wall time and 1.513 to 7.788/s bounded batch completion rate. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries, while full request/process amplification remained Attempt-count dependent. Repeated same-base-8 p50/p95 changed from 5,422.2/5,521.3 to 1,047.2/1,062.3 ms; repeated multi-base-8 p50/p95 changed from 194.0/202.9 to 121.8/129.2 ms.
 
 Verification also closes the direct-child inherited-pipe falsifier, unresolved asynchronous observation falsifier, and cancelled-producer fresh-reader handoff falsifier. It does not qualify Windows process-tree behavior, deterministic ContextSlice, persistent/cross-worker CAS, external provider/tokenizer/billing semantics, warm process reuse, locality scheduling or production SLOs.
+
+
+## Post-verification review addendum — 2026-08-10
+
+Design 0015 and `docs/D0014_POST_VERIFICATION_REVIEW.md` independently rechecked this verified source after publication. No production-source correctness defect was found and D0014 remains `verified`. The review makes three precision points without changing this contract:
+
+1. `maxEntries/maxBytes` bound retained complete cache values; pending different-key preparations are live work and are not an executor-global memory/RSS ceiling. Caller/runner admission currently bounds live work, and the future AgentDO/executor layer must own aggregate deployed resource admission.
+2. Historical `throughputPerSecond` benchmark fields mean bounded batch completion rate, not sustained production throughput. CPU/tail numbers retain the measurement limitations in the audit report.
+3. The next gate is no longer preselected as ContextSlice. Full-context references, manifest/content references, ContextSlice, warm execution, streaming and staged hybrids must be compared against the post-D0014 profile.
+4. Fresh-checkout repetition exposed a timing-sensitive **test harness** guard, not a production transport defect: the inherited-pipe falsifier's 200 ms timeout could expire during ordinary Node startup. Design 0015 corrects only that test/fixture to use a 2-second deadlock guard while an un-killed grandchild remains observable for 5 seconds. The D0014 production module is unchanged.
+
+Artifact `9048558724` also has a corrected currently downloadable outer-ZIP SHA-256 of `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf`; the earlier Issue #7 comment recorded a different outer-ZIP value. Internal artifact manifest entries and the canonical product-evidence hash remain intact. The historical cause of the old digest value is unresolved rather than inferred.

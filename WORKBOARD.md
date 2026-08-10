@@ -6,19 +6,35 @@
 - Development identity / publication ref: `mvp-1a-7`
 - Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
 - Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, and D0014 bounded product-efficiency evidence on the same `mvp-1a-7` development direction
-- Runtime target: Node.js 22+
+- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 final-MVP program rebaseline/post-verification review on the same `mvp-1a-7` development direction
+- Current source runtime target: Node.js 22+; final MVP runtime additionally requires the accepted Cloudflare/local-Agent deployment profile
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md`
-- Active Class 2 design: none; the next gate is a deterministic minimum-context/ContextSlice contract, not a preselected persistent CAS implementation
-- Root Task: GitHub issue `humtr/tdev#7`; execution record only, not semantic authority
+- Final-MVP program owner: `docs/ROADMAP.md`
+- Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
+- Active Class 2 design: none; the next implementation decision is a decision-neutral per-Attempt context-delivery/model-execution gate (provisional D0016), not a preselected ContextSlice or persistent CAS
+- D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
 
-D0014 is verified on the existing `mvp-1a-7` direction. D0013 remains the historical full-context/process-per-Attempt baseline and D0010 semantic authority plus D0011/D0012 derived publication remain unchanged. For four identical full-context Attempts, the 75% repeated fraction is structurally `(4 - 1) / 4`; it was predictable from the design. The historical evidence remains valuable for its absolute 1,757,785-byte context and measured Git, serialization, process and retry costs. D0014 found nine additional issues, including dominant canonical request preparation, late size rejection, duplicate blob reads, cancellation waste, cancelled-producer handoff poisoning, descendant leakage/false timeout, and observer-induced stalls. The handoff race rejected the first verification candidate before canonical publication. Exact source `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed the independent Ubuntu/POSIX gate. The next work is a deterministic minimum-context/data-minimization contract with exact identity and provider boundaries; persistent CAS, external provider transport, warm executors and locality scheduling remain evidence-gated rather than predetermined.
+D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
+
+D0014 remains verified after independent post-publication review. The final source was not rewritten. The review confirms the `48 -> 5` same-base Git-call and retry `4x -> 1x` preparation results; corrects artifact `9048558724`'s outer ZIP digest record; distinguishes retained complete-cache bounds from concurrently pending live-work bounds; reproduces safe but cold-path LRU capacity+1 churn; and tightens benchmark wording. The immediate next engineering gate must compare full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming/lazy delivery and hybrids from the post-D0014 baseline. Persistent CAS remains evidence-gated.
 
 ## Verified work
+
+### D0015 — verified final-MVP program rebaseline and D0014 post-review
+
+- Status: `verified` documentation/program Class 2 decision; no D0014 production-source change
+- Design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
+- Program owner: `docs/ROADMAP.md`
+- D0014 review: `docs/D0014_POST_VERIFICATION_REVIEW.md`
+- Post-review evidence: `docs/evidence/mvp-1a-7-d0014-postreview-2026-08-10.json` (SHA-256 `469e9832affe98a52e7fa2c2c2a7908afd34f7c035c1497593294d6871c7d5fc`)
+- Final-MVP requirement: Cloudflare Case/Agent runtime + authenticated local Agent + deployed Git + secured MCP + configuration/migration/rollback/operations + final deployed qualification
+- D0014 disposition: remains `verified`; source/product evidence intact; no production-source correctness reopen; one timing-sensitive lifecycle test guard corrected
+- Provenance correction: artifact `9048558724` current GitHub/downloaded outer ZIP SHA-256 is `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf`; historical Issue value is superseded for outer-ZIP provenance only
+- Resource clarification: context-cache entry/byte limits bound retained complete preparations; pending different-key live work follows caller/admission concurrency and has no D0014 executor-global memory budget
+- Next gate: provisional D0016 decision-neutral per-Attempt context delivery/model execution comparison; roadmap IDs do not authorize implementation
 
 ### D0014 — verified repository/model transport product-efficiency slice
 
@@ -28,7 +44,7 @@ D0014 is verified on the existing `mvp-1a-7` direction. D0013 remains the histor
 - Authority: D0010 Case head/semantic root and Plan `baseDigest` remain authoritative; cache/preparation/encoding/observation state is derived, bounded, optional and restart-cold
 - Fix: exact-key one-producer/many-reader preparation reuse, finite LRU, early `ls-tree -l` bounds, unique-blob reads, cancellable Git, safe replacement after all-reader cancellation, request encoding reuse, POSIX process-group cleanup on direct-child exit, and non-blocking observations
 - Independent Ubuntu/POSIX validation: run `31348795334`, job `93335641224`; **232/232** complete tests, **93.10% line / 82.16% branch / 96.30% function** coverage, **32/32** focused tests, 22 baseline + 22 candidate scenarios, repeated tail workloads, clean diff and exact source bundle
-- Actual repository result, 8 Tasks / 1 base: wall 5,287.2 -> 1,027.2 ms (-80.6%), throughput 1.513 -> 7.788/s (+414.7%), Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB; request bytes remain 15,071,128 and process starts remain eight
+- Actual repository result, 8 Tasks / 1 base: wall 5,287.2 -> 1,027.2 ms (-80.6%), bounded batch completion rate 1.513 -> 7.788/s (+414.7%), Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB; request bytes remain 15,071,128 and process starts remain eight
 - Retry result: preparation amplification 1/2/3/4x -> 1x for zero through three retries; full request/process amplification remains Attempt-count dependent
 - Evidence: `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`)
 - Audit report: `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`

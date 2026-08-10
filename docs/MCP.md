@@ -1,6 +1,6 @@
 # MCP projection boundary
 
-> Normative owner for the future MCP role. No MCP server or current-client qualification is implemented in this source slice.
+> Normative owner for the MCP role. A secured deployed MCP command/projection surface and current-client qualification are **required for the final MVP**, but no MCP server or current-client qualification is implemented in the current source slice.
 
 ## 1. Role
 
@@ -26,9 +26,9 @@ Every state-changing MCP operation must map to a stable command envelope with:
 
 Response loss is handled by replaying the same request ID and payload. MCP must return the stored response receipt rather than synthesizing a new lifecycle decision.
 
-## 3. Suggested future tool surface
+## 3. Candidate final-MVP tool surface
 
-A provider design may expose tools equivalent to:
+A later accepted MCP Design may expose tools equivalent to:
 
 - `case_create`;
 - `case_get`;
@@ -79,4 +79,4 @@ MCP completion requires all of:
 - at least one currently supported MCP client exercised against the deployed endpoint;
 - explicit migration and rollback plan.
 
-Until then, MCP remains a documented boundary only.
+Until then, MCP remains a documented but **final-MVP-open** boundary. Source completion must not be confused with MCP/product completion.

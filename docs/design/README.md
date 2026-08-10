@@ -16,5 +16,10 @@
 | 0012 | Authenticated Remote Git Publication | verified | `mvp-1a-7`: existing-remote-branch authenticated derived publication source contract; provider refs remain non-authoritative |
 | 0013 | Real Repository Context and Model Transport | verified | `mvp-1a-7`: read-only immutable Git full-text context plus result-only trusted-local subprocess transport baseline before Context manifest/CAS/Slice |
 | 0014 | Bounded Repository-Context Preparation Reuse and Process Lifecycle | verified | `mvp-1a-7`: finite executor-local exact-base single-flight/LRU preparation reuse, early bounds, unique-blob reads, Git cancellation with safe producer handoff, POSIX descendant cleanup and non-blocking observations; full request/process-per-Attempt retained |
+| 0015 | Deployed MVP Program Rebaseline and D0014 Post-Verification Review | verified | `mvp-1a-7`: final MVP now requires Cloudflare/local-Agent/Git/MCP/deployment qualification; D0014 source remains verified while provenance/resource/measurement wording is corrected |
 
 `accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.
+
+## Provisional future program
+
+`docs/ROADMAP.md` lists provisional D0016+ planning identities across context delivery, provider execution, CaseDO/AgentDO, MCP/security, Git runtime integration, deployment/Agent operations and final qualification. Those labels are **not accepted Designs** and do not authorize Class 2 implementation; they may be merged, split, reordered or removed from evidence before implementation.

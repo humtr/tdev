@@ -45,7 +45,7 @@ if (behavior === 'sleep') {
   const marker = process.argv[3];
   const grandchild = spawn(process.execPath, [
     '-e',
-    `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'survived'), 300)`,
+    `setTimeout(() => require('node:fs').writeFileSync(${JSON.stringify(marker)}, 'survived'), 500); setTimeout(() => {}, 5_000)`,
   ], { stdio: ['ignore', 'inherit', 'inherit'] });
   grandchild.unref();
   const request = JSON.parse(requestText);

@@ -211,9 +211,13 @@ A first state-changing result after terminal cancellation, wrong executor epoch,
 
 No special secret type is implemented. Task input, evidence, receipts, snapshots, and file stores may persist their contents in cleartext. Do not place credentials or sensitive personal data in these fields without a separate encryption/redaction design.
 
-## 14. Explicit non-claims
+## 14. Final-MVP security gates
 
-The source gate does not prove:
+The final MVP must close, with deployed evidence, the security boundaries that the local source deliberately leaves open: authenticated Case/Agent/MCP principals, tenant and Case authorization, minimum-necessary repository disclosure to any external model/provider, secret injection and rotation, Agent registration/revocation, provider/GitHub least privilege, replay/reconnect behavior, payload/rate/resource bounds, auditability, and migration/rollback of security configuration. Authentication, Task capability admission, Claims and fencing remain distinct checks; possession of a request/fence/lease identifier is never authentication. User-performed credential issuance or provider consent is permitted, but the required permission, verification and revocation procedure remains part of final-MVP acceptance.
+
+## 15. Current source non-claims
+
+The current source gate does not prove:
 
 - user or Agent authentication;
 - tenant isolation;

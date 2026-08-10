@@ -144,9 +144,9 @@ load/reopen snapshot
 
 A failed Attempt-start checkpoint means zero executor calls. The repository does not auto-retry an arbitrary transaction callback after CAS conflict, because such a callback may already have performed an external effect.
 
-## 7. Production mapping
+## 7. Final-MVP deployment mapping
 
-The current contracts map cleanly to a future distributed product:
+The final MVP is required to realize the current contracts in the Cloudflare/local-Agent product topology. The mapping below is the current architecture hypothesis and ownership target; it is **not yet an implementation or provider-verification claim**:
 
 ```text
 CaseEngine + CaseRepository transaction -> Case Durable Object
@@ -159,7 +159,7 @@ MCP / Worker -> stateless projection and command ingress
 Promotion publication lane -> dedicated fenced Git/reference adapter
 ```
 
-This is a mapping, not an implementation claim. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
+This is a required final-MVP direction but still only a mapping at the current revision. `docs/ROADMAP.md` owns the capability-group gates. Each provider adapter requires a separate accepted Design and target-environment evidence. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
 
 ## 8. Security and failure boundaries
 

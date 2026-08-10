@@ -63,7 +63,7 @@ draft -> accepted -> implementing -> verified
 verified or accepted -> superseded
 ```
 
-Only accepted or implementing records authorize Class 2 code.
+Only accepted or implementing records authorize Class 2 code. A roadmap, milestone, capability group, or provisional future Design ID is planning context only; it never substitutes for an accepted Design record or independently authorizes Class 2 implementation.
 
 ## 4. Owner impact order
 

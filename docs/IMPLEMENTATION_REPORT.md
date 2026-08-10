@@ -1,3 +1,23 @@
+# mvp-1a-7 D0015 deployed MVP program rebaseline and D0014 post-review report
+
+- Date: 2026-08-10
+- Development branch: `mvp-1a-7` — same mutable direction; no new `mvp-*` branch
+- Design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
+- Status: `verified` for the program/documentation scope; production source unchanged; focused lifecycle test timing corrected
+- Program: `docs/ROADMAP.md`
+- D0014 review: `docs/D0014_POST_VERIFICATION_REVIEW.md`
+- Post-review evidence: `docs/evidence/mvp-1a-7-d0014-postreview-2026-08-10.json` (SHA-256 `469e9832affe98a52e7fa2c2c2a7908afd34f7c035c1497593294d6871c7d5fc`)
+
+D0015 records the owner decision that final MVP completion is no longer defined as the current local source slice. The final program requires the verified core to be deployed through Cloudflare CaseDO/AgentDO or equivalent owners, an authenticated local Agent, the actual selected model/context delivery path, fenced Git publication, a secured MCP/auth/tenant surface, provider/user configuration, migration/rollback/operations, and final fresh-environment E2E qualification. These layers remain open until independently verified; D0015 does not turn architecture mappings into implementation claims.
+
+The D0014 post-review found no production-source correctness defect. It did find a timing-sensitive inherited-pipe focused-test guard: the old 200 ms timeout acted as a Node startup-speed assertion on the review host. The test/fixture only are corrected to use a 2 s deadlock guard while an un-killed grandchild remains observable; the production transport remains unchanged. It confirms the independent same-base/retry preparation-count improvement, preserves the cancelled-producer handoff fix, verifies source-to-final identity, and keeps D0014 `verified`. Artifact `9048558724` has current outer ZIP SHA-256 `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf` by both GitHub metadata and re-download; the earlier Issue #7 outer-ZIP value is incorrect for the available artifact, while all internal `SHA256SUMS` entries and the product-evidence hash remain intact. The historical mismatch origin is not proven.
+
+Resource review distinguishes the finite retained LRU from active cold work. A four-entry cache with five cyclic bases preserved semantic identity over 100 bounded accesses but intentionally thrashed to repeated cold preparation. Eight different cold bases could be pending concurrently despite `maxEntries: 4`; the local runner capacity bounds one runner invocation, not a process-global executor memory budget. This is a future AgentDO/executor admission concern, not a D0014 authority failure. Human-facing summaries now call the reported jobs/wall calculation a bounded batch completion rate; historical evidence JSON remains unchanged.
+
+The next context/model gate is decision-neutral. Full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming/lazy delivery and staged hybrids must be compared from the post-D0014 profile. ContextSlice is not accepted until its model-visible semantic change has a completeness/dependency/fallback/quality falsifier. Persistent CAS remains evidence-gated.
+
+---
+
 # mvp-1a-7 D0014 repository/model transport product-efficiency report
 
 - Date: 2026-08-10
@@ -22,11 +42,11 @@ The highest-ROI bounded fix is an optional finite executor-local immutable prepa
 
 The D0013 full-context/result-only boundary is intentionally retained. Every Attempt still constructs and sends the complete request and starts one fresh model process. The fix therefore reduces local Git/decode/hash/encoding duplication but makes no claim about provider tokens, network egress, billing, context-window use, quality or external latency. Deterministic minimum-context selection and persistent cross-worker CAS remain separate contracts.
 
-Independent Ubuntu 24.04 / Node v22.23.1 / Git 2.54.0 validation passed **232/232** complete tests, **93.10% line / 82.16% branch / 96.30% function coverage**, **32/32** focused tests, 22 baseline plus 22 candidate scenarios, repeated parallel tail workloads, exact-source bundle/archive hashing and a clean effective diff. On the actual repository at eight same-base Tasks, wall time changed 5,287.2 -> 1,027.2 ms, throughput 1.513 -> 7.788/s, Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB, sampled peak RSS 411.98 -> 386.92 MiB and sampled peak heap 282.93 -> 129.62 MiB. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries; full request/process amplification remains Attempt-count dependent.
+Independent Ubuntu 24.04 / Node v22.23.1 / Git 2.54.0 validation passed **232/232** complete tests, **93.10% line / 82.16% branch / 96.30% function coverage**, **32/32** focused tests, 22 baseline plus 22 candidate scenarios, repeated parallel tail workloads, exact-source bundle/archive hashing and a clean effective diff. On the actual repository at eight same-base Tasks, wall time changed 5,287.2 -> 1,027.2 ms, bounded batch completion rate 1.513 -> 7.788/s, Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB, sampled peak RSS 411.98 -> 386.92 MiB and sampled peak heap 282.93 -> 129.62 MiB. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries; full request/process amplification remains Attempt-count dependent.
 
 Repeated same-base-8 p50/p95 changed 5,422.2/5,521.3 -> 1,047.2/1,062.3 ms. Repeated multi-base-8 p50/p95 changed 194.0/202.9 -> 121.8/129.2 ms; locality benefit declines as base count approaches Task count. Synthetic 10 MiB, many-small, few-large, deep, wide, duplicate-blob, oversize-rejection and cancellation scenarios preserve the same conclusion. Warm filesystem/Git caches, sequential benchmark order, fixture-model realism, parent-only CPU attribution, memory sampling and small tail samples remain explicit limitations rather than hidden SLO claims.
 
-The next highest-ROI gate is a deterministic minimum-context/ContextSlice and data-minimization contract with exact commit/base/manifest/slice/request identities, bounded dependency expansion, reproducibility, auditability, fail-closed behavior and external-provider security requirements. Persistent manifest/CAS is not preselected; it must first justify cross-process benefit against atomic publication, corruption, GC, eviction, disk pressure, migration and operational complexity.
+Design 0015 supersedes the old preselection of ContextSlice as the next implementation. The next context/model decision compares full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming/lazy delivery and staged hybrids under the post-D0014 profile. Persistent manifest/CAS remains unselected until cross-process/provider-reference evidence justifies its atomic publication, corruption, GC, eviction, disk pressure, migration and operational complexity.
 
 ---
 
@@ -56,7 +76,7 @@ Independent Ubuntu/POSIX validation on Node `v22.23.1` / Git `2.54.0` passed **2
 
 The measured baseline then ran three Cases / four Attempts against the same context, including a first-attempt subprocess failure followed by the existing retry path. The four Attempts requested **7,031,140 context bytes** for **1,757,785 unique bytes**; **5,273,355 bytes repeated**, the retry reconstructed the entire **1,757,785-byte** context, four processes started, and none were reused. The 75% repeated fraction is structurally `(4 - 1) / 4`; D0013's measured contribution is the absolute byte and Git/process cost, not discovery of that ratio. D0014 later compared broader alternatives and selected bounded exact-base preparation reuse before deterministic ContextSlice or persistent CAS. D0013 is not evidence of token savings or external-model latency because it defines no provider tokenizer or external model API.
 
-The D0013 completion boundary therefore remains deliberately narrow. External model/provider APIs, provider credentials/authentication, data-egress/redaction, billing/provider retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context caching, warm processes/toolchains, locality scheduling, Cloudflare/distributed ownership, and model/provider semantic authority remain separate future Class 2 work.
+The D0013 completion boundary therefore remains deliberately narrow. External model/provider APIs, provider credentials/authentication, data-egress/redaction, billing/provider retry semantics, tokenizer/token accounting, the selected context-delivery contract, Cloudflare/distributed ownership and secured MCP remain separate Class 2 work; Design 0015 now classifies the deployed runtime/security pieces as final-MVP requirements while keeping persistent CAS, locality scheduling and broader scale mechanisms evidence-gated.
 
 ---
 

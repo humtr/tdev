@@ -439,18 +439,18 @@ The implementation intentionally leaves these product costs:
 
 ## 20. Next highest-ROI gate
 
-The next gate should be a separate Class 2 **deterministic minimum-context / ContextSlice contract**, not an assumed heuristic and not an automatic persistent CAS implementation. It should define:
+At D0014 verification time, deterministic minimum-context/ContextSlice was the leading follow-on hypothesis. The post-publication review in Design 0015 **does not preserve that hypothesis as a preselected implementation**. D0014 changed the cost profile enough that the next Class 2 gate must compare:
 
-- versioned selection inputs and exact task/instruction binding;
-- immutable commit, `baseDigest`, context-manifest and Slice identity relationships;
-- deterministic path selection and dependency expansion;
-- ordering, file/byte limits, large-file/empty/overflow/failure behavior;
-- canonical Slice digest and request digest;
-- cold rebuild, restart, cache hit/miss and corruption behavior;
-- auditability and minimum-necessary data disclosure;
-- external provider authentication, redaction, secrets, tokenizer/accounting, request limits, retry billing, privacy/residency and hostile-provider assumptions.
+- full-context immutable reference transport;
+- immutable manifest plus content references;
+- deterministic ContextSlice;
+- warm executor/process behavior under the new profile;
+- streaming/lazy delivery;
+- staged hybrids, including semantic-preserving reference transport before any model-visible slicing.
 
-Persistent manifest/CAS should be added only if measured cross-worker reuse or provider content references justify its publication, corruption, GC and disk-pressure complexity. Warm executors should be revisited against a representative model runtime after full-request preparation/transport is no longer dominant.
+If ContextSlice wins, it must define versioned selection inputs and exact task/instruction binding; immutable commit/`baseDigest`/manifest/Slice identity; deterministic path selection and dependency expansion; ordering and byte/file/large-file/empty/overflow behavior; Slice/request digests; cold/restart/cache equivalence; explicit fallback or fail-closed behavior; auditability; minimum-necessary disclosure; and a representative correctness/quality falsifier against full context.
+
+Persistent manifest/CAS should be added only if measured cross-worker reuse or provider content references justify its publication, corruption, GC and disk-pressure complexity. External provider authentication, redaction, secrets, tokenizer/accounting, request limits, retry billing, privacy/residency and hostile-provider assumptions remain separate provider gates.
 
 ### Evidence-based answers to the seven core questions
 
@@ -461,3 +461,8 @@ Persistent manifest/CAS should be added only if measured cross-worker reuse or p
 5. **Is there a more dangerous bottleneck than the 75% ratio?** Yes: absolute repeated canonical/Git preparation multiplied by parallelism/retry, full request copies, late rejection/cancellation waste, cancelled-producer handoff poisoning, descendant lifecycle leakage/false timeouts, and observer-induced stalls.
 6. **Did this audit find it?** Yes. Nine previously unrepresented issues were isolated. The ninth invalidated the first verification candidate before publication; the corrected bounded high-ROI subset was then revalidated, while provider/data-minimization and full-request costs remain explicit.
 7. **What is the highest-ROI current fix?** Exact-key bounded same-base preparation/canonical-encoding reuse plus early preflight, unique-blob reads, Git cancellation, safe cancelled-producer replacement, and process/observation lifecycle hardening. Actual repository, retry, concurrency, scale, memory and failure evidence supports that choice.
+
+
+## Post-publication precision review
+
+`docs/D0014_POST_VERIFICATION_REVIEW.md` rechecks D0014 after canonical publication. It retains the verified source and measured operation-count results, corrects the final artifact outer-ZIP provenance record, distinguishes retained cache bounds from concurrent pending live-work bounds, validates bounded capacity-plus-one LRU churn, and tightens human-facing benchmark terminology. Raw historical evidence is not rewritten. The next context-delivery gate is decision-neutral rather than a preselected ContextSlice implementation.

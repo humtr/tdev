@@ -33,6 +33,7 @@ Do not infer authority from names, conventions, generated output, or passing tes
 | Trust, path, secret, and effect boundaries | `docs/SECURITY.md` |
 | Build, deployment, migration, rollback layers | `docs/DEPLOYMENT.md` |
 | Current source slice and verification gates | `docs/MVP.md` |
+| Final-MVP capability program, sequencing, and exit criteria | `docs/ROADMAP.md` |
 | MCP projection boundary | `docs/MCP.md` |
 | Integration evidence and retained boundaries | `docs/IMPLEMENTATION_REPORT.md` |
 | Current pointers only | `WORKBOARD.md` |

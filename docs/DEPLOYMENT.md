@@ -193,9 +193,9 @@ Once a Case snapshot is persisted as v2:
 
 The local adapters do not implement backup/restore orchestration. Journal compaction is storage maintenance, not a schema downgrade or backup. Provider point-in-time recovery, namespace migration, and class rename/delete procedures require provider-specific evidence.
 
-## 8. Cloudflare target architecture
+## 8. Required final-MVP Cloudflare target architecture
 
-A production Cloudflare design should map owners as follows:
+The final MVP must implement a Cloudflare/local-Agent topology that preserves the following ownership split, unless a later accepted Design proves and records an equivalent owner mapping:
 
 | Contract | Candidate provider owner |
 | --- | --- |
@@ -207,7 +207,7 @@ A production Cloudflare design should map owners as follows:
 | public ingress/projection | Worker/MCP layer |
 | local OS/Git/process effects | authenticated Agent |
 
-This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. It has not been deployed or load-tested in this repository.
+This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. It has not yet been deployed or load-tested in this repository, so the final-MVP requirement is open rather than silently satisfied. `ROADMAP.md` owns the integration and qualification sequence.
 
 ## 9. Provider adapter requirements
 
@@ -268,7 +268,7 @@ Secrets must not be stored in Task input, evidence, receipts, snapshots, remote 
 | deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
 | production-qualified | measured SLO, load, security, and incident procedures accepted |
 
-This repository remains **source-verified** for D0011 local Git, the D0012 generic authenticated remote-publication contract, and the D0013 trusted-local repository-context/subprocess transport plus D0014 bounded preparation reuse. D0013/D0014 independently exercise an actual tdev commit through full Git context reconstruction and a real local Node subprocess, including cold/no-cache/cache-hit, same-base/multi-base, retry, cancellation, eviction and POSIX descendant-cleanup paths; this is not an external model/provider integration claim. An authenticated GitHub `push --dry-run` additionally confirms D0012 non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no external model/provider resource has been promoted to integration-verified or deployment-verified.
+This repository remains **source-verified/local-adapter-verified only for the currently declared D0011-D0014 layers**; it is not yet a deployable or qualified final MVP. It is source-verified for D0011 local Git, the D0012 generic authenticated remote-publication contract, and the D0013 trusted-local repository-context/subprocess transport plus D0014 bounded preparation reuse. D0013/D0014 independently exercise an actual tdev commit through full Git context reconstruction and a real local Node subprocess, including cold/no-cache/cache-hit, same-base/multi-base, retry, cancellation, eviction and POSIX descendant-cleanup paths; this is not an external model/provider integration claim. An authenticated GitHub `push --dry-run` additionally confirms D0012 non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no external model/provider resource has been promoted to integration-verified or deployment-verified.
 
 ## 13. Release checklist
 

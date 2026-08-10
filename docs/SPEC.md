@@ -6,7 +6,9 @@
 
 `tdev` executes one immutable Task DAG with parallel-first semantics, accepts isolated typed results, and produces one deterministic canonical tree through a single final Promotion Task.
 
-The source slice is **durable-ready**, not provider-complete: its domain and persistence contracts are executable in Node 22. D0011 adds a bounded local real-Git projection adapter, while Cloudflare, Agent, remote/provider Git, MCP, D1, and R2 adapters remain separate product work.
+The currently verified source slice is **durable-ready and locally execution-capable**, not yet deployed-product complete: its domain/persistence contracts, local Git projection, authenticated remote-publication source contract, and trusted-local repository/model transport are executable in the declared Node/POSIX profiles.
+
+The **final MVP target is broader and mandatory**. It includes the Cloudflare Case/Agent runtime topology, an authenticated local Agent, deployed Git publication integration, a secured MCP command/projection surface, required provider/user configuration, migration/rollback/operations, and final deployed end-to-end qualification. `ROADMAP.md` owns that program decomposition. Cloudflare/Agent/MCP/provider layers remain unverified implementation gaps until their own accepted Designs and target-environment evidence exist.
 
 ## 2. Core invariants
 
@@ -181,16 +183,24 @@ A CAS conflict does not automatically replay a transaction callback or dispatch 
 
 The source slice is accepted only when the executable matrix in `MVP.md` passes in the declared runtime and documentation does not claim provider behavior that was not executed.
 
-## 12. Explicit non-goals
+## 12. Current slice exclusions, final-MVP requirements, and post-MVP non-goals
 
-- live Cloudflare Worker or Durable Object deployment;
-- persistent AgentDO delivery queue, WebSocket transport, or hibernation;
-- arbitrary Termux filesystem/network executor or Git index/worktree mutation executor beyond the bounded D0013 read-only repository/local-subprocess profile;
-- external model/provider API transport, provider credentials/authentication, tokenizer/token accounting, provider data-egress/billing/retry semantics, deterministic ContextSlice, persistent/cross-worker context manifest or CAS, warm executors, or locality scheduling; D0014 implements only bounded process-local preparation reuse;
-- actual D0012 provider-ref integration/restart qualification, provider-specific authorization/policy introspection, protected-branch behavior, branch creation/deletion, and production rollback automation;
-- D1 projection or R2 Artifact byte storage;
-- public MCP endpoint or current-client qualification;
-- cross-system distributed transaction;
-- exactly-once external effects;
+The following are **not implemented or verified by the current source slice but are final-MVP requirements where selected by the accepted deployed architecture**:
+
+- live Cloudflare Worker/CaseDO/AgentDO deployment and durable provider ownership;
+- authenticated local-Agent connection, bounded delivery/capacity, reconnect and runtime effect handling;
+- actual deployed D0012-derived Git publication with provider authorization/policy/restart/rollback qualification;
+- a public secured MCP endpoint, current-client qualification, authentication, tenant/Case authorization, replay/reconnect and payload/rate bounds;
+- external model/provider authentication, minimum-necessary repository egress, secret/redaction policy, request limits and tokenizer/billing/retry semantics when an external provider is selected;
+- fresh-environment Cloudflare/GitHub/provider/MCP/Agent configuration instructions, migration/rollback/runbooks and deployed E2E qualification;
+- R2/D1 or equivalent storage/projection only if a later accepted architecture requires those owners.
+
+The following remain current or likely **post-MVP/evidence-gated** rather than automatic blockers:
+
+- persistent/cross-worker context CAS solely for cache hit rate, locality scheduling, speculative execution, multi-provider routing, or large fleet warm pools without measured need;
+- arbitrary Termux/network-filesystem semantics beyond specifically qualified local-Agent adapters;
+- cross-system exactly-once transactions or effects;
 - hostile-storage authenticity from self-hashes alone;
-- large-DAG or large-repository performance completion.
+- universal large-DAG/large-repository performance completion or production SLO qualification beyond the accepted MVP workload.
+
+The immediate context-delivery mechanism is deliberately undecided: full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming and hybrids must be compared from the post-D0014 baseline before one becomes an accepted contract.
