@@ -291,6 +291,8 @@ class ContextPreparationCache {
         signal.removeEventListener('abort', onAbort);
         entry.waiters -= 1;
         if (entry.state === 'pending' && entry.waiters === 0) {
+          if (this.#entries.get(entry.key) === entry) this.#entries.delete(entry.key);
+          entry.state = 'aborting';
           entry.controller.abort(abortError('All context preparation readers were aborted'));
         }
         callback(value);

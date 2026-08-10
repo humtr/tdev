@@ -609,6 +609,53 @@ test('all cancelled readers abort the shared Git producer', async (t) => {
   assert.equal(modelCalls, 0);
 });
 
+test('a fresh reader after all prior readers cancel starts a replacement producer', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  let firstProducer = true;
+  let producerStarts = 0;
+  let firstStartedResolve;
+  const firstStarted = new Promise((resolve) => { firstStartedResolve = resolve; });
+  const runner = async (input) => {
+    if (input.args[0] === 'rev-parse' && input.args[1] === '--show-object-format') {
+      producerStarts += 1;
+    }
+    if (firstProducer) {
+      firstProducer = false;
+      firstStartedResolve();
+      return new Promise((resolve, reject) => {
+        const onAbort = () => {
+          setTimeout(() => reject(new ContractError('git_process_aborted', 'injected delayed abort')), 100);
+        };
+        input.signal.addEventListener('abort', onAbort, { once: true });
+        if (input.signal.aborted) onAbort();
+      });
+    }
+    return runGitCommand(input);
+  };
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    gitRunner: runner,
+    modelRunner: successfulModelRunner(),
+  });
+  const first = directInvocation(plan);
+  const second = directInvocation(plan);
+  const firstController = new AbortController();
+  const secondController = new AbortController();
+  first.invocation.signal = firstController.signal;
+  second.invocation.signal = secondController.signal;
+  const firstPending = adapter.execute(first.invocation);
+  await firstStarted;
+  const secondPending = adapter.execute(second.invocation);
+  await new Promise((resolve) => setImmediate(resolve));
+  firstController.abort();
+  secondController.abort();
+  await assert.rejects(firstPending, (error) => error?.code === 'model_transport_aborted');
+  await assert.rejects(secondPending, (error) => error?.code === 'model_transport_aborted');
+
+  await adapter.execute(directInvocation(plan).invocation);
+  assert.equal(producerStarts, 2);
+});
+
 test('cache-disabled cold path and cache-hit path produce identical canonical request bytes', async (t) => {
   const repo = makeRepo(t);
   const plan = planFor(repo);
