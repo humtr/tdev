@@ -171,6 +171,10 @@ Task input cannot choose the repository path, executable, argv, environment or w
 
 The verified D0013 security boundary covers only trusted-local full-context transfer. It does not authorize sending repository contents to an external model provider, define credential/secret handling for such a provider, prove data-egress/redaction policy, hostile-model authenticity, provider billing/retry semantics or tokenizer/token accounting. Those require a separate Class 2 provider/security contract.
 
+D0014's preparation reuse is a bounded in-memory derived optimization, not a new trust or authority boundary. Values are internally constructed only after exact commit/object-format/base-digest verification, are deeply frozen, are scoped to one normalized repository executor instance, and have no external publication or cache-injection API. A miss, eviction, restart or disabled cache rebuilds from authoritative inputs; malformed Git data, wrong base binding, producer failure or cancellation is not retained; an all-reader-cancelled pending entry is removed before producer abort so a fresh reader cannot inherit the doomed producer. POSIX model processes run in a separate process group, and cleanup begins on abort, timeout, output overflow and direct-child exit so descendants cannot retain inherited descriptors after the Attempt completes. Persistent cross-repository CAS permissions, poisoning, partial writes, GC and disk-pressure contracts remain intentionally absent because D0014 introduces no persistent CAS.
+
+Full-context transfer remains a data-minimization gap. Before any external provider is admitted, a separate contract must define minimum-necessary deterministic selection, auditability, redaction and secret handling, authentication, request/token limits, retry billing, hostile-provider assumptions, privacy, residency and data-egress policy. No D0014 byte reduction is represented as token, billing, latency or model-quality evidence.
+
 ## 10. External effects
 
 Exactly-once execution is not promised. Safe handling is limited to:

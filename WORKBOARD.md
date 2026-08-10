@@ -6,19 +6,33 @@
 - Development identity / publication ref: `mvp-1a-7`
 - Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
 - Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, and D0013 trusted-local repository/model transport evidence on the same `mvp-1a-7` development direction
+- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, and D0014 bounded product-efficiency evidence on the same `mvp-1a-7` development direction
 - Runtime target: Node.js 22+
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
-- Current verified design: `docs/design/0013-real-repository-context-and-model-transport.md`
-- Active Class 2 design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md` (`accepted`)
+- Current verified design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md`
+- Active Class 2 design: none; the next gate is a deterministic minimum-context/ContextSlice contract, not a preselected persistent CAS implementation
 - Root Task: GitHub issue `humtr/tdev#7`; execution record only, not semantic authority
 
 ## Active work
 
-D0014 is accepted for implementation on the existing `mvp-1a-7` direction. D0013 remains the verified full-context/process-per-Attempt baseline and D0010 semantic authority plus D0011/D0012 derived publication remain unchanged. For four identical full-context Attempts, the 75% repeated fraction is structurally `(4 - 1) / 4`; it was predictable from the design. The historical evidence remains valuable for its absolute 1,757,785-byte context and measured Git, serialization, process, and retry costs. The D0014 audit found that repeated canonical request construction is larger than local process startup on the current repository, size limits are enforced after blob buffering, duplicate blob OIDs are reread, and model descendants survive direct-child timeout cleanup. The accepted highest-ROI slice is bounded same-base preparation/canonical-encoding reuse with exact identity, early size preflight, cancellable Git preparation, and POSIX process-group cleanup. Persistent CAS, deterministic ContextSlice, external provider transport, warm executors, and locality scheduling remain deferred until their separate contracts are justified.
+D0014 is verified on the existing `mvp-1a-7` direction. D0013 remains the historical full-context/process-per-Attempt baseline and D0010 semantic authority plus D0011/D0012 derived publication remain unchanged. For four identical full-context Attempts, the 75% repeated fraction is structurally `(4 - 1) / 4`; it was predictable from the design. The historical evidence remains valuable for its absolute 1,757,785-byte context and measured Git, serialization, process and retry costs. D0014 found nine additional issues, including dominant canonical request preparation, late size rejection, duplicate blob reads, cancellation waste, cancelled-producer handoff poisoning, descendant leakage/false timeout, and observer-induced stalls. The handoff race rejected the first verification candidate before canonical publication. Exact source `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed the independent Ubuntu/POSIX gate. The next work is a deterministic minimum-context/data-minimization contract with exact identity and provider boundaries; persistent CAS, external provider transport, warm executors and locality scheduling remain evidence-gated rather than predetermined.
 
 ## Verified work
+
+### D0014 — verified repository/model transport product-efficiency slice
+
+- Status: `verified` for bounded executor-local exact-base preparation reuse and POSIX lifecycle hardening; `mvp-1a-7` remains the same active direction
+- Design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md`
+- Independently validated source candidate: `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0`
+- Authority: D0010 Case head/semantic root and Plan `baseDigest` remain authoritative; cache/preparation/encoding/observation state is derived, bounded, optional and restart-cold
+- Fix: exact-key one-producer/many-reader preparation reuse, finite LRU, early `ls-tree -l` bounds, unique-blob reads, cancellable Git, safe replacement after all-reader cancellation, request encoding reuse, POSIX process-group cleanup on direct-child exit, and non-blocking observations
+- Independent Ubuntu/POSIX validation: run `31348795334`, job `93335641224`; **232/232** complete tests, **93.10% line / 82.16% branch / 96.30% function** coverage, **32/32** focused tests, 22 baseline + 22 candidate scenarios, repeated tail workloads, clean diff and exact source bundle
+- Actual repository result, 8 Tasks / 1 base: wall 5,287.2 -> 1,027.2 ms (-80.6%), throughput 1.513 -> 7.788/s (+414.7%), Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB; request bytes remain 15,071,128 and process starts remain eight
+- Retry result: preparation amplification 1/2/3/4x -> 1x for zero through three retries; full request/process amplification remains Attempt-count dependent
+- Evidence: `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`)
+- Audit report: `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`
+- Boundaries: no deterministic ContextSlice, persistent manifest/CAS, cross-worker reuse, warm process, provider/tokenizer/billing claim, locality scheduler or semantic-authority change
 
 ### D0013 — verified real repository context and trusted-local model transport
 
@@ -30,9 +44,9 @@ D0014 is accepted for implementation on the existing `mvp-1a-7` direction. D0013
 - Context boundary: read-only Git objects, fatal UTF-8 `100644`/`100755` regular blobs, exact path-to-text `baseDigest` binding, no worktree/index/ref mutation, and request-digest-bound subprocess response
 - Independent Ubuntu/POSIX validation: GitHub Actions run `31331491616`, job `93290347063`; **216/216** complete source tests, **92.86% line / 81.61% branch / 96.34% function** coverage, **16/16** D0013 focused tests, actual source-candidate repository probe, and clean effective diff
 - Independent repository probe: 101 files / 1,757,785 content bytes, SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, executable file `src/cli.mjs`
-- Measured baseline: four Attempts requested 7,031,140 context bytes for one unique 1,757,785-byte context; 5,273,355 bytes were duplicate (75%), one retry reconstructed 1,757,785 bytes, four processes started and none were reused
+- Measured baseline: four Attempts requested 7,031,140 context bytes for one unique 1,757,785-byte context; 5,273,355 bytes were repeated and one retry reconstructed 1,757,785 bytes. The 75% fraction is structurally predictable; the absolute values are the measured evidence
 - Evidence: `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json` (SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`)
-- Boundaries: no external LLM/provider API, provider authentication/data-egress/billing/retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context cache, warm executor, locality scheduling, or model/provider semantic authority
+- Historical boundaries at D0013 verification: no external LLM/provider API, provider authentication/data-egress/billing/retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context cache, warm executor, locality scheduling, or model/provider semantic authority; D0014 later adds only bounded process-local preparation reuse
 
 ### D0012 — verified authenticated remote Git publication source contract
 
@@ -166,19 +180,21 @@ D0014 is accepted for implementation on the existing `mvp-1a-7` direction. D0013
 - D0010 opt-in semantic-v3 authority with one compressed path-byte radix owner, sparse root Promotion, compact schema-v3 snapshots, transactional local head, quiesced v2 migration, ambiguity recovery, exact repair, and reference-aware GC while legacy v2 remains supported;
 - D0011 real local Git projection over that semantic root with bare-repository SHA-1/SHA-256 support, deterministic `100644` text-tree projection, exact local branch-ref CAS/reconciliation/rollback, and no change to semantic authority;
 - D0012 generic authenticated remote-publication source protocol over an existing remote branch, with immutable target intent, exact predecessor fencing, reread/restart reconciliation, fail-safe rollback, external credential ownership, and no change to semantic authority;
-- D0013 read-only exact-commit full-text context plus trusted-local request-digest-bound subprocess transport, with existing result/fencing/Promotion authority unchanged and measured full-context/retry duplication.
+- D0013 read-only exact-commit full-text context plus trusted-local request-digest-bound subprocess transport, with existing result/fencing/Promotion authority unchanged and measured full-context/retry absolute cost;
+- D0014 bounded exact-base preparation/canonical-encoding reuse, early bounds, unique-blob reads, Git cancellation, POSIX lifecycle cleanup and non-blocking observations, all as derived/rebuildable execution state.
 
 ## Next highest-ROI gates
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. design a Context manifest/CAS plus deterministic ContextSlice layer against the D0013 measured full-context baseline, preserving exact base binding and treating cache/slice state as rebuildable non-authority;
-2. add Cloudflare CaseDO/AgentDO/D1/R2 adapters plus a durable cross-owner Claim service with explicit migration, rollback, provider transaction, restart, and fault evidence;
+1. design a deterministic minimum-context/ContextSlice and minimum-necessary-data contract with exact commit/`baseDigest`/manifest/Slice/request identity, dependency expansion, limits, auditability, redaction and provider-egress boundaries;
+2. add a persistent manifest/CAS only if measured cross-worker reuse or provider content references justify atomic publication, corruption, permissions, GC, eviction and disk-pressure complexity;
 3. qualify D0012 against an actual provider ref and protected/provider-policy target before promoting it beyond source verification; keep provider refs derived unless a separately accepted direction change says otherwise;
-4. separately design any external model/provider API transport with explicit authentication, data-egress, billing/retry, tokenizer and hostile-provider boundaries before claiming provider/token savings;
-5. qualify authenticated Termux/Git operation adapters on a filesystem that satisfies their selected persistence primitives, then add versioned MCP/client qualification.
+4. separately design any external model/provider API transport with explicit authentication, data-egress, billing/retry, tokenizer, privacy/residency and hostile-provider boundaries before claiming provider/token savings;
+5. reconsider warm executors/process pools against a representative model runtime after full-request preparation/transport is no longer dominant; locality scheduling remains measurement-gated;
+6. add Cloudflare/distributed adapters and Termux/MCP qualification only under their existing explicit ownership, migration and filesystem/provider contracts.
 
-D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes the bounded local real-Git projection/ref-CAS contract, D0012 closes the bounded generic authenticated remote-publication **source** contract plus current GitHub dry-run authentication capability, and D0013 closes the bounded trusted-local immutable-repository/full-context/subprocess transport baseline. Context optimization, external model/provider transport, provider transaction ownership, distributed Claims, actual D0012 provider-ref/protected-branch qualification, hostile-storage/provider authenticity, and global migration of historical v2 repositories remain future work where applicable.
+D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes bounded local real-Git projection/ref-CAS, D0012 closes bounded authenticated remote-publication source semantics, D0013 establishes the trusted-local full-context/process-per-Attempt baseline, and D0014 closes bounded same-base preparation reuse plus failure-path lifecycle hardening. Minimum-context/provider data minimization, persistent cross-worker CAS, provider integration, distributed ownership/Claims, actual D0012 protected-provider qualification, warm process reuse and global migration remain future work where applicable.
 
 ## Routing
 

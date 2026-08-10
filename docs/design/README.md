@@ -15,5 +15,6 @@
 | 0011 | Real Git Projection and Fenced Publication | verified | `mvp-1a-7`: local SHA-1/SHA-256 Git projection and exact local ref CAS above unchanged semantic authority |
 | 0012 | Authenticated Remote Git Publication | verified | `mvp-1a-7`: existing-remote-branch authenticated derived publication source contract; provider refs remain non-authoritative |
 | 0013 | Real Repository Context and Model Transport | verified | `mvp-1a-7`: read-only immutable Git full-text context plus result-only trusted-local subprocess transport baseline before Context manifest/CAS/Slice |
+| 0014 | Bounded Repository-Context Preparation Reuse and Process Lifecycle | verified | `mvp-1a-7`: finite executor-local exact-base single-flight/LRU preparation reuse, early bounds, unique-blob reads, Git cancellation with safe producer handoff, POSIX descendant cleanup and non-blocking observations; full request/process-per-Attempt retained |
 
 `accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.

@@ -1,6 +1,6 @@
 # Design 0014: bounded repository-context preparation reuse and process lifecycle
 
-- Status: `accepted`
+- Status: `verified`
 - Root Task: GitHub issue `humtr/tdev#7`
 - Baseline: exact `mvp-1a-7@3baa86a133b12b5f433b4d4a053528dd559f5371`
 - Development direction: unchanged; implementation continues by fast-forwarding `mvp-1a-7`
@@ -18,7 +18,7 @@ The highest-ROI bounded vertical slice is not a persistent CAS and is not an aut
 2. retains a small LRU of verified immutable context preparations for later retries and nearby same-base Tasks;
 3. reuses canonical context encodings so request construction does not repeatedly clone and re-escape the complete file set;
 4. preflights file and tree byte limits from `git ls-tree -l` before reading blob bodies, and reads each unique blob object only once per cold preparation;
-5. propagates cancellation to Git preparation while preserving one-producer/many-reader semantics;
+5. propagates cancellation to Git preparation while preserving one-producer/many-reader semantics and removing a doomed all-reader-cancelled producer from lookup before admitting a fresh reader;
 6. kills the complete POSIX model process group on abort, timeout, output overflow, and direct-child exit rather than only the direct child, so inherited descendant pipes cannot turn a valid response into a false timeout;
 7. adds non-authoritative stage/cache/resource observations sufficient to distinguish Git, preparation wait, request construction, process, and response parsing work, without awaiting asynchronous observation-sink completion.
 
@@ -118,6 +118,7 @@ The audit found additional problems not represented by the historical 75% ratio:
 6. **Request byte bounds are checked after final full serialization.** A 1 KiB request limit still caused a complete 1.01 MB repository read and full context construction before rejection in a bounded fixture.
 7. **A successful direct child can be misclassified as timed out when a descendant inherits its pipes.** Node's `close` event waits for inherited stdout/stderr handles. A fixture that returned a valid bound result and exited still reached the transport timeout because its grandchild retained those handles. Cleanup must begin at direct-child `exit`, not only at `close` or failure.
 8. **An unresolved asynchronous observation sink can stall an otherwise complete Attempt indefinitely.** Observation exceptions were swallowed, but the baseline candidate awaited the returned promise. Non-authoritative instrumentation therefore remained capable of controlling transport completion while its delay was also absent from `totalDurationMs`.
+9. **An all-reader-cancelled producer can poison a fresh reader during abort handoff.** The first verification candidate aborted the producer but left its pending entry in lookup until rejection settled. A new reader could join that doomed entry and inherit `git_process_aborted`. Independent pre-publication review rejected that candidate; the corrected source removes the exact entry before abort and uses entry-object identity so old completion cannot remove a replacement.
 
 The existing operations contract already documents that `runCase(..., { signal })` cancels only ClaimLedger waits and that command-driven cancellation is not wired to active per-Attempt signals. That is a previously known product limitation, not a D0014 discovery. D0014 improves behavior once the per-Attempt signal is delivered; it does not silently redefine runner cancellation ownership.
 
@@ -192,9 +193,10 @@ Concurrency rules:
 3. Different keys produce concurrently; there is no global cache lock.
 4. Producer failure removes the entry. A later call performs a cold authoritative rebuild.
 5. One reader cancellation stops that reader without poisoning other readers.
-6. When all readers cancel before production completes, the producer AbortSignal fires and the Git process is terminated.
-7. LRU eviction removes only the cache reference. Active readers retain their immutable value safely.
-8. Restart/cache loss begins cold. There is no durable cache migration.
+6. When all readers cancel before production completes, the pending entry is removed from lookup before the producer AbortSignal fires and the Git process is terminated.
+7. A fresh reader arriving during the old producer's abort/rejection window starts a replacement producer; the old producer cannot delete or overwrite it because completion paths compare exact entry identity.
+8. LRU eviction removes only the cache reference. Active readers retain their immutable value safely.
+9. Restart/cache loss begins cold. There is no durable cache migration.
 
 Retained-byte accounting conservatively includes canonical encoded buffers and UTF-16-sized text/path estimates. It is an admission bound, not a promise about V8 allocator/RSS overhead. Active in-flight work remains bounded by executor admission/capacity rather than by pretending cache eviction can remove live work.
 
@@ -284,6 +286,7 @@ Concurrency and lifecycle:
 - 8 Tasks over 2/4/8 bases produce exactly one cold preparation per distinct base and do not serialize unrelated bases;
 - one-reader cancellation does not fail other readers;
 - all-reader cancellation stops Git preparation;
+- a fresh reader after all-reader cancellation starts a replacement producer rather than joining the doomed producer;
 - timeout/abort/output overflow leaves no POSIX descendant;
 - a successful child whose descendant inherited stdout/stderr returns before timeout and leaves no descendant;
 - a never-settling asynchronous observation sink cannot block success or failure delivery;
@@ -318,3 +321,21 @@ Complete verification:
 ## 16. Direction decision
 
 D0014 changes no semantic source of truth, current-state owner, persistence authority, execution result boundary, or publication authority. Its state is derived, bounded, rebuildable, restart-safe, and optional. It is therefore the same `mvp-1a-7` architectural line; creating a new `mvp-*` branch would misrepresent a Design revision as a direction change.
+
+## 17. Verification record
+
+D0014 became `verified` on 2026-08-10 without changing the active `mvp-1a-7` development direction. Exact source candidate `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed independent Ubuntu/POSIX GitHub Actions run `31348795334`, job `93335641224`, on Ubuntu 24.04.4 LTS / Node `v22.23.1` / Git `2.54.0`:
+
+- **232/232** complete source tests;
+- **93.10% line / 82.16% branch / 96.30% function coverage**;
+- `repository-model-transport.mjs`: **92.14% line / 77.04% branch / 97.26% function coverage**;
+- **32/32** focused repository/cache/process/cancellation/failure-path tests;
+- 22 baseline plus 22 candidate benchmark scenarios;
+- repeated same-base-8 and multi-base-8 tail workloads;
+- clean effective diff and exact source bundle/archive integrity.
+
+Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`. The full product decision is recorded in `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
+
+The actual-repository eight-same-base workload changed from 48 to 5 Git commands, 14.421 to 1.803 MB Git stdout, 5,287.2 to 1,027.2 ms wall time and 1.513 to 7.788 useful results/s. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries, while full request/process amplification remained Attempt-count dependent. Repeated same-base-8 p50/p95 changed from 5,422.2/5,521.3 to 1,047.2/1,062.3 ms; repeated multi-base-8 p50/p95 changed from 194.0/202.9 to 121.8/129.2 ms.
+
+Verification also closes the direct-child inherited-pipe falsifier, unresolved asynchronous observation falsifier, and cancelled-producer fresh-reader handoff falsifier. It does not qualify Windows process-tree behavior, deterministic ContextSlice, persistent/cross-worker CAS, external provider/tokenizer/billing semantics, warm process reuse, locality scheduling or production SLOs.

@@ -1,3 +1,35 @@
+# mvp-1a-7 D0014 repository/model transport product-efficiency report
+
+- Date: 2026-08-10
+- Development branch: `mvp-1a-7` — same mutable development direction; no new `mvp-*` branch is created for D0014
+- Audit-start baseline: `3baa86a133b12b5f433b4d4a053528dd559f5371`
+- Accepted design commit: `74ebcd3e70de052225fb34ae15037bf8a5f10c04`
+- Design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md`
+- Status: `verified` for bounded executor-local exact-base preparation reuse and POSIX lifecycle hardening
+- Independently validated source candidate: `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0`
+- Checked evidence: `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`
+- Evidence SHA-256: `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`
+- Independent validation: GitHub Actions run `31348795334`, job `93335641224`
+- Full decision report: `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`
+
+D0014 re-audited the complete D0013 path from Task admission through immutable Git context, request construction, model process, response/result validation, retry/cancellation and downstream Promotion/publication. D0010 Case head, semantic root and Plan `baseDigest` remain current-state authority. D0011/D0012 Git publication, D0013 transport and all D0014 cache/encoding/process observations remain derived. There is no semantic or durable-data migration and no development-direction change.
+
+The audit separates predictable structure from measurement. Every-Attempt full repository materialization, process-per-Attempt execution, retry reconstruction and repeated-context fraction `(N - 1) / N` were predictable from D0013. The historical four-Attempt 75% ratio therefore is not a newly discovered result. D0013's contribution was the absolute 101-file / 1,757,785-byte context and actual Git/request/process/retry cost. D0014 measured the active audit-start repository at 102 files / 1,788,423 content bytes and 1,883,891 canonical request bytes per same-base Attempt.
+
+Code inspection, scaling and failure injection found higher-impact issues than the ratio itself: repeated canonical repository encoding dominated the current lightweight local process startup; file/tree/request bounds were enforced after expensive buffering; duplicate blob OIDs were reread; cancellation did not stop Git work; direct-child cleanup could leave descendants; a descendant inheriting stdout/stderr could convert a valid response into a false timeout; an unresolved asynchronous observation sink could indefinitely stall a completed Attempt; and an all-reader-cancelled producer could remain discoverable long enough to poison a fresh reader with `git_process_aborted`. The first verification candidate was rejected before canonical publication when the handoff race was reproduced. These newly discovered lifecycle failures could amplify retries and resource use even when repository preparation was otherwise optimized.
+
+The highest-ROI bounded fix is an optional finite executor-local immutable preparation cache keyed by exact repository instance, object format, commit OID, profile and authoritative `baseDigest`. One producer serves concurrent same-key readers, different keys prepare concurrently, producer failure is removed, reader cancellation is isolated, all-reader cancellation removes the doomed entry before aborting Git, fresh readers start a replacement producer, and finite LRU entry/byte bounds prevent unbounded retention. Cold preparation uses `git ls-tree -l` preflight, reads each unique blob OID once, verifies and freezes the complete context, and retains canonical repository encodings. Cache disablement, eviction, restart or process loss reconstructs from Git and must generate the same request semantic content.
+
+The D0013 full-context/result-only boundary is intentionally retained. Every Attempt still constructs and sends the complete request and starts one fresh model process. The fix therefore reduces local Git/decode/hash/encoding duplication but makes no claim about provider tokens, network egress, billing, context-window use, quality or external latency. Deterministic minimum-context selection and persistent cross-worker CAS remain separate contracts.
+
+Independent Ubuntu 24.04 / Node v22.23.1 / Git 2.54.0 validation passed **232/232** complete tests, **93.10% line / 82.16% branch / 96.30% function coverage**, **32/32** focused tests, 22 baseline plus 22 candidate scenarios, repeated parallel tail workloads, exact-source bundle/archive hashing and a clean effective diff. On the actual repository at eight same-base Tasks, wall time changed 5,287.2 -> 1,027.2 ms, throughput 1.513 -> 7.788/s, Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB, sampled peak RSS 411.98 -> 386.92 MiB and sampled peak heap 282.93 -> 129.62 MiB. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries; full request/process amplification remains Attempt-count dependent.
+
+Repeated same-base-8 p50/p95 changed 5,422.2/5,521.3 -> 1,047.2/1,062.3 ms. Repeated multi-base-8 p50/p95 changed 194.0/202.9 -> 121.8/129.2 ms; locality benefit declines as base count approaches Task count. Synthetic 10 MiB, many-small, few-large, deep, wide, duplicate-blob, oversize-rejection and cancellation scenarios preserve the same conclusion. Warm filesystem/Git caches, sequential benchmark order, fixture-model realism, parent-only CPU attribution, memory sampling and small tail samples remain explicit limitations rather than hidden SLO claims.
+
+The next highest-ROI gate is a deterministic minimum-context/ContextSlice and data-minimization contract with exact commit/base/manifest/slice/request identities, bounded dependency expansion, reproducibility, auditability, fail-closed behavior and external-provider security requirements. Persistent manifest/CAS is not preselected; it must first justify cross-process benefit against atomic publication, corruption, GC, eviction, disk pressure, migration and operational complexity.
+
+---
+
 # mvp-1a-7 D0013 real repository context and model transport report
 
 - Date: 2026-08-10
@@ -22,7 +54,7 @@ Failure handling is likewise additive. Base mismatch, unsupported repository ent
 
 Independent Ubuntu/POSIX validation on Node `v22.23.1` / Git `2.54.0` passed **216/216 complete source tests**, **92.86% line / 81.61% branch / 96.34% function coverage**, **16/16 focused D0013 tests**, a real source-candidate repository context probe, and the effective diff gate. The source-candidate probe observed 101 supported files / 1,757,785 content bytes, SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`, semantic base digest `sha256:c34ee68955f7acadf8c104f1b0077f512138f25215f34f9b1b6383a9a6a7418b`, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, and `src/cli.mjs` as the retained executable text file.
 
-The measured baseline then ran three Cases / four Attempts against the same context, including a first-attempt subprocess failure followed by the existing retry path. The four Attempts requested **7,031,140 context bytes** for **1,757,785 unique bytes**; **5,273,355 bytes (75%) were duplicate**, the retry reconstructed the entire **1,757,785-byte** context, four processes started, and none were reused. This is sufficient to prioritize a separate Context manifest/CAS plus deterministic ContextSlice design against measured duplicate bytes. It is not evidence of token savings or external-model latency because D0013 defines no provider tokenizer or external model API.
+The measured baseline then ran three Cases / four Attempts against the same context, including a first-attempt subprocess failure followed by the existing retry path. The four Attempts requested **7,031,140 context bytes** for **1,757,785 unique bytes**; **5,273,355 bytes repeated**, the retry reconstructed the entire **1,757,785-byte** context, four processes started, and none were reused. The 75% repeated fraction is structurally `(4 - 1) / 4`; D0013's measured contribution is the absolute byte and Git/process cost, not discovery of that ratio. D0014 later compared broader alternatives and selected bounded exact-base preparation reuse before deterministic ContextSlice or persistent CAS. D0013 is not evidence of token savings or external-model latency because it defines no provider tokenizer or external model API.
 
 The D0013 completion boundary therefore remains deliberately narrow. External model/provider APIs, provider credentials/authentication, data-egress/redaction, billing/provider retry semantics, tokenizer/token accounting, Context manifest/CAS/Slice, context caching, warm processes/toolchains, locality scheduling, Cloudflare/distributed ownership, and model/provider semantic authority remain separate future Class 2 work.
 

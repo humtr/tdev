@@ -1,94 +1,84 @@
-# tdev mvp-1a-6
+# tdev mvp-1a-7
 
-`tdev` is a **parallel-first, durable-ready Work Graph control core**. The active verified development identity is `mvp-1a-6`, descended directly from exact `mvp-1a-5@aaf7ec9258fb776443dd70345a1acea33ed22d78`. Design 0009 verifies a non-authoritative semantic-representation comparison; it does **not** migrate the current full text-tree authority, snapshot schema, or journal formats. Exact lineage is in `LINEAGE.md`.
+`tdev` is a parallel-first, durable-ready Work Graph control plane core. The active development identity is `mvp-1a-7`: one mutable architectural direction whose exact revisions are Git commits, not new `mvp-*` branch numbers.
+
+The latest verified design is D0014, **bounded repository-context preparation reuse and process lifecycle hardening**, over the intentionally simple D0013 full-repository/process-per-Attempt baseline.
+
+## Current authority
+
+The current-state chain remains:
 
 ```text
-immutable PlanRevision
-  -> derived dependency readiness
-  -> authority + semantic Claim admission
-  -> durable fenced Attempt
-  -> isolated bounded result
-  -> deterministic Promotion
-  -> canonical tree
+D0010 Case head
+  -> D0010 semantic root
+  -> Plan baseDigest
+  -> derived repository/model execution transport
+  -> existing result / Claim / fencing validation
+  -> Promotion
+  -> derived D0011 local Git projection
+  -> derived D0012 remote publication
 ```
 
-`capacity = 1` and `capacity > 1` are the same execution protocol. There is no serial compatibility scheduler and no second lifecycle owner.
+Git OIDs, repository context, context-cache entries, canonical request encodings, model processes and transport observations are derived execution state. They cannot elect a Case head, authorize an Attempt, accept a result or publish canonical state.
 
-## Verified source slice
+## Verified layers on mvp-1a-7
 
-The repository provides:
+- **D0010:** opt-in local semantic-v3 authority using a compressed UTF-8 path-byte radix, compact snapshots, one transactional SQLite Case head, quiesced migration, ambiguity recovery, exact repair and reference-aware GC.
+- **D0011:** deterministic real local Git projection and exact local branch-ref CAS over the unchanged semantic root.
+- **D0012:** authenticated existing-remote-branch publication source contract with immutable target intent, exact predecessor fencing and reread/restart reconciliation.
+- **D0013:** read-only exact-commit full-text repository context and request-digest-bound trusted-local result-only subprocess transport.
+- **D0014:** finite executor-local exact-base preparation single-flight/LRU reuse, early size preflight, unique-blob reads, cancellable Git plumbing, reusable immutable repository encodings, POSIX process-group cleanup and non-blocking observations.
 
-- immutable PlanRevision compilation, cycle rejection, reverse edges, and exactly one full-join Promotion Task;
-- one CaseEngine owner for Case, Task, Attempt, Event, receipt, accepted result, and canonical tree state;
-- per-Case dependency readiness and claim-compatible parallel admission;
-- a closed result algebra: `changeset`, `observation`, `validation`, `artifact-set`, and `effect-receipt`;
-- effect-aware recovery for `result-only`, `idempotent-external`, and `reconcilable-external` work;
-- complete result fencing over Case, Plan, Task, Attempt, executor epoch, fencing token, and optional claim-set-bound lease;
-- a narrow cross-Case `ClaimLedger` that owns semantic leases only, separate from execution capacity/resource budgets;
-- authority as the intersection of Case grant, Workspace policy, and executor capability;
-- deterministic Promotion that records every accepted result while allowing only ChangeSets to mutate the candidate tree;
-- snapshot schema v2 with canonical data, Event hash chaining, semantic restore validation, complete blocker evidence, command receipts, and v1→v2 migration;
-- memory, atomic full-snapshot local-file, verified single-process journal, and opt-in immutable expected-revision journal compare-and-swap stores;
-- a `CaseRepository` transaction boundary and `runDurableCase` durable-before-dispatch protocol, including concrete-store capacity checks, fail-closed pre-dispatch external-effect admission, and durable-predecessor reopen recovery after settlement-checkpoint failure;
-- entry-level atomic mutation rollback, incremental Task/dependency accounting, deterministic topological blocker propagation, and rebuildable indexes;
-- Claim overlap indexing with release-time path pruning and reference-oracle equivalence tests;
-- a Design 0004 journal materialization cache usable only after the exact durable base/delta bytes match a cryptographic fingerprint;
-- an opt-in `ImmutableJournalSnapshotStore` with expected-revision no-replace slots, source/target digest binding, tested local-filesystem cross-process winner election after an explicit legacy-writer cutover, and Design 0007 exact-byte-gated disposable materialization reuse that still rereads every retained authoritative byte on each load/CAS;
-- strict JSON, safe integers, path/topology defenses, and explicit count/byte limits.
+D0014 retains the complete D0013 model request and one process start per Attempt. It reduces repeated local Git/decode/validation/hash/encoding work; it does not claim provider token, network, billing, model-quality or external latency savings.
 
-This is a correctness-oriented source core. Cloudflare Durable Objects, Agent transport, Termux execution, Git publication, D1/R2, repository/context/model transport, warm executor processes, and MCP endpoints are deliberately **not** claimed as implemented.
+## D0014 decision and evidence
 
-## Development lineage
+For exactly `N` identical full-context Attempts, repeated context after the first copy is structurally `(N - 1) / N`. D0013's historical 75% value at four Attempts was therefore predictable. The useful D0013 measurements were the absolute repository/context size and real Git, request, process and retry costs.
 
-`mvp-1a-6` is a direct continuation of exact `mvp-1a-5`. Designs 0007 and 0008 retain the existing durable authority, publication, materialization reuse, capacity admission, namespace hardening, and settlement/reopen behavior. Verified Design 0009 adds only non-authoritative comparison models, tests, and checked evidence; no production `src/` authority path changes. Design 0004/0005 correctness barriers remain regression requirements.
+D0014 re-audited that path and found higher-impact risks, including late size rejection, duplicate blob reads, cancellation waste, descendant process leakage, inherited-pipe false timeouts, asynchronous observation sinks that could stall transport completion, and a cancelled-producer handoff race that could poison a fresh reader. The first verification candidate was rejected before canonical publication when that race was reproduced.
 
-The D0009 matrix rejects a simple directory-Merkle root because one sparse update in a 100k-wide directory still hashes 100,000 sibling references. Bounded path-byte radix and collision-safe path-hash trie models both survive structurally; the hash trie is the preferred candidate for the **next migration design** because it uses materially fewer structural nodes/hashes in the checked broad workloads even after path-key SHA-256 cost is counted. The current engine still materializes and hashes the complete text tree for authoritative `treeDigest`, so none of these research roots is production authority in `mvp-1a-6`.
+Exact source candidate `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed independent Ubuntu/POSIX run `31348795334`, job `93335641224`:
 
-`legacy/mvp-parallel` is historical research lineage only and is not an active implementation identity.
+- 232/232 complete tests;
+- 93.10% line / 82.16% branch / 96.30% function coverage;
+- 32/32 focused repository/cache/process tests;
+- 22 baseline plus 22 candidate benchmark scenarios;
+- repeated same-base and multi-base tail workloads;
+- exact source bundle/archive and evidence hashing.
+
+On the actual 102-file / 1,788,423-byte audit repository, eight same-base Tasks changed:
+
+| Metric | D0013 baseline | D0014 | Change |
+| --- | ---: | ---: | ---: |
+| wall time | 5,287.2 ms | 1,027.2 ms | -80.6% |
+| throughput | 1.513/s | 7.788/s | +414.7% |
+| Git commands | 48 | 5 | -89.6% |
+| Git stdout | 14.421 MB | 1.803 MB | -87.5% |
+| sampled peak RSS | 411.98 MiB | 386.92 MiB | -14.6% |
+| sampled peak heap | 282.93 MiB | 129.62 MiB | -54.9% |
+| model input | 15,071,128 bytes | 15,071,128 bytes | unchanged |
+| process starts | 8 | 8 | unchanged |
+
+Preparation amplification across zero through three retries changed from 1/2/3/4 times to one exact-base preparation. Full request bytes and process starts remain proportional to Attempt count.
+
+The checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`); the full decision report is `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
 
 ## Runtime and verification
 
-The executable source target is:
-
-- Node.js 22 or newer;
-- no third-party runtime dependency;
-- Go is not required for this source slice.
+The source target is Node.js 22 or newer with no third-party runtime dependency.
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
 npm run check
+node --test --experimental-test-coverage test/*.test.mjs
+node --expose-gc bench/repository-model-transport-efficiency.mjs --scenario all
 ```
 
-`npm run check` runs syntax checks, the full Node test suite, an in-memory demo, and a file-backed durable demo.
+`npm run check` performs syntax checks, the complete Node test suite, the in-memory demo and the file-backed durable demo.
 
-Additional commands:
+Benchmark results are development evidence, not production SLOs. The checked D0014 matrix records warm filesystem/Git cache effects, sequential-order bias, fixture-model limits, parent-only CPU attribution, sampled-memory limits and small tail-sample limitations.
 
-```sh
-npm test
-npm run demo
-npm run durable-demo
-npm run bench
-npm run bench:authority
-npm run bench:semantic
-npm run bench:persistence -- --source . --label mvp-1a-6 --tasks 32 --payload-bytes 4096 --repeats 3
-node --experimental-test-coverage --test test/*.test.mjs
-```
-
-`npm run bench` is a single-process component observation. Repeat it externally for p50/range. The checked-in three-state comparison was produced by isolated child samples; the reusable harness is:
-
-```sh
-npm run bench:compare -- \
-  --state mvp-1=/path/to/tdev-mvp-1 \
-  --state mvp-1a-1=/path/to/tdev-mvp-1a-1 \
-  --state mvp-1a-2=/path/to/tdev-mvp-1a-2 \
-  --state mvp-1a-3=/path/to/tdev-mvp-1a-3 \
-  --state mvp-1a-4=. \
-  --samples 3 --warmups 0 --timeout-ms 20000
-```
-
-The harness reports Plan compilation/validation, Case construction, wide/deep graph execution, retained post-GC memory observations, canonical digests, and explicit timeouts. It does not fabricate provider, context-token, or process cold-start metrics.
-
-## Minimal use
+## Minimal Work Graph use
 
 ```js
 import { CaseEngine, definePlan, runCase } from './src/index.mjs';
@@ -126,38 +116,48 @@ const outcome = await runCase(
   { capacity: 4 },
 );
 
-console.log(outcome.caseState);              // succeeded
-console.log(outcome.snapshot.canonicalTree); // deterministic promoted tree
+console.log(outcome.caseState);
+console.log(outcome.snapshot.canonicalTree);
 ```
 
-For durable local execution, construct a `MemorySnapshotStore`, `FileSnapshotStore`, `JournalSnapshotStore`, or opt-in `ImmutableJournalSnapshotStore`, wrap it in `CaseRepository`, create the Case, and call `runDurableCase`. A running Attempt is persisted successfully before its executor is invoked. Every checkpoint uses the concrete store's materialized-capacity assertion when available; external-effect dispatch additionally proves bounded successor fit before the real Attempt/executor boundary. Settlement is persisted before terminal lease release, and a failed settlement checkpoint is recovered from the durable predecessor via `reopen:true` rather than by prematurely releasing the lease.
+## Repository/model executor boundary
+
+`GitRepositoryModelExecutor` accepts only the configured repository path, executable and profiles. Task input names an immutable commit and bounded instruction; it cannot choose an arbitrary executable, shell command, environment, Git routing or mutable worktree.
+
+D0014's default cache is bounded and optional. `contextCache: false` restores the D0013 cold behavior. A cache miss, eviction, restart or process loss rebuilds from the exact commit and verifies the authoritative `baseDigest`; cache-hit and cold paths must produce identical request semantic content.
+
+The model remains result-only. It cannot mutate the canonical repository directly, use a shared mutable worktree as authority or promote cache state into semantic truth.
 
 ## Repository map
 
 | Path | Responsibility |
 | --- | --- |
-| `src/plan.mjs` | immutable PlanRevision compilation and graph contract |
-| `src/engine.mjs` | sole Case/Task/Attempt/result/Event/receipt/canonical owner; entry transaction and rebuildable accounting |
-| `src/runner.mjs` | capacity-bound orchestration and disposable ready candidates |
+| `src/engine.mjs` | sole Case/Task/Attempt/result/Event/receipt/canonical owner |
+| `src/runner.mjs` | capacity-bound parallel orchestration |
 | `src/durable-runner.mjs` | checkpoint-before-dispatch durable orchestration |
-| `src/results.mjs` | closed isolated-result algebra |
-| `src/promotion.mjs` | deterministic join and canonical-tree candidate construction |
-| `src/claim-ledger.mjs` | cross-Case lease owner, generations, and rebuildable/prunable overlap index |
-| `src/store.mjs` | memory, full-file, and verified append-delta local CAS adapters |
-| `src/repository.mjs` | restore/migration persistence, transaction, and command boundary |
-| `src/canonical.mjs` | strict JSON, canonical encoding, hashing, safe records |
-| `src/policy.mjs` | authority, path policy, topology, and resource limits |
-| `bench/` | component, isolated development-state, authority-boundary, and non-authoritative semantic-representation harnesses |
-| `docs/` | normative contracts, design, verification, audit, and evidence |
+| `src/semantic-*.mjs` | D0010 semantic-v3 authority, storage and migration |
+| `src/git-projection.mjs` | D0011 local derived Git projection/ref CAS |
+| `src/git-remote-publication.mjs` | D0012 authenticated derived remote publication |
+| `src/repository-model-transport.mjs` | D0013/D0014 repository context, cache, model transport and lifecycle |
+| `test/repository-model-transport.test.mjs` | repository/cache/process correctness and failure falsifiers |
+| `bench/repository-model-transport-efficiency.mjs` | D0014 scaling, retry, parallel and resource evidence |
+| `docs/design/0014-*.md` | accepted and verified D0014 contract |
+| `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md` | complete audit and decision report |
+| `docs/evidence/` | checked machine-readable evidence |
 
-## Exact boundaries
+## Explicit boundaries
 
-`FileSnapshotStore` and the Design 0004 `JournalSnapshotStore` serialize a Case only among store instances in the **same Node process** and do not claim cross-process CAS. The opt-in Design 0005/0007 `ImmutableJournalSnapshotStore` instead uses one immutable expected-revision publication slot and has tested local-filesystem cross-process single-winner CAS **only after an explicit quiesced cutover from legacy writers**. Every load/CAS still strictly observes the committed namespace and rereads every retained authoritative byte. If the exact ordered filename/length/byte fingerprint matches prior strict validation, the instance may reuse that materialization; otherwise it performs complete D0005 replay. It does not use a durable checkpoint/head, proposal cache, compaction, or history deletion shortcut.
+Not verified or implemented by D0014:
 
-Snapshot self-digests detect accidental corruption and inconsistent rewrites; they do not authenticate against an attacker who can rewrite the complete record and recompute every digest. External effects are not advertised as exactly once: they require stable idempotency or authoritative reconciliation.
+- deterministic minimum-context/ContextSlice selection or dependency expansion;
+- persistent or cross-worker context manifest/CAS, atomic publication, corruption recovery, GC or disk-pressure policy;
+- warm model process or process pool;
+- external model/provider API, authentication, tokenizer/accounting, billing/retry semantics, privacy/residency or data-egress policy;
+- provider token, network-latency, model-quality or cost savings;
+- locality scheduling, distributed Claim ownership or Cloudflare deployment;
+- Windows process-tree qualification;
+- production load/SLO/incident evidence.
 
-Promotion still copies, validates, and hashes the complete in-memory text tree. The current Case snapshot also packages the compiled Plan with its full base tree, complete accepted-result state, the canonical tree, Attempts, Events, and receipts; a successful Promotion accepted result retains the complete final tree as well. Verified D0008 measures this complete authority-packaging path. Verified D0009 separately demonstrates that bounded persistent research roots can make candidate-root work sparse, but the current legacy full-tree materialization/digest remains a complete compatibility tax and therefore current production authority is unchanged. Context bytes/tokens and executor cold/warm behavior remain unavailable because this source slice contains no repository scanner, model transport, or process/toolchain executor lifecycle.
+The next highest-ROI gate is a separate deterministic minimum-context/data-minimization design with exact commit, `baseDigest`, manifest, slice and request identities. Persistent CAS is a candidate only after cross-process benefit justifies its corruption, GC, eviction, migration and operational contracts.
 
-`ImmutableJournalSnapshotStore` remains conditional on compatible local hard-link/fsync behavior. The connected tmcp/Termux filesystem denied hard-link creation and is not qualified for that adapter; the D0008 candidate passed the complete source/coverage gate on Ubuntu/POSIX with hard-link tests enabled.
-
-Start with `docs/SPEC.md`, `docs/ARCHITECTURE.md`, verified Designs 0008 and 0009, `docs/MVP.md`, and `docs/IMPLEMENTATION_REPORT.md`. Designs 0004, 0005, and 0007 remain inherited verified foundations. The next production-affecting step requires a separate accepted Class 2 semantic-authority migration and transactional-head design under `SDD.md`; D0009's preferred hash-trie model is evidence for that design, not authority by itself.
+Start with `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/MVP.md`, Design 0014 and the D0014 audit report.
