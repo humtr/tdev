@@ -574,10 +574,10 @@ function buildRequest(preparation, invocation, maxRequestBytes) {
   };
 }
 
-async function emitObservation(callback, value) {
+function emitObservation(callback, value) {
   if (callback === null) return;
   try {
-    await callback(freeze(value));
+    Promise.resolve(callback(freeze(value))).catch(() => {});
   } catch {
     // Observations are explicitly non-authoritative and cannot change transport success/failure.
   }
@@ -628,14 +628,18 @@ export function runModelSubprocess({
     let terminalReason = null;
     let settled = false;
 
-    const stop = (reason) => {
-      if (terminalReason === null) terminalReason = reason;
+    const killProcessGroup = () => {
       if (useProcessGroup && Number.isSafeInteger(child.pid) && child.pid > 0) {
         try {
           process.kill(-child.pid, 'SIGKILL');
-          return;
+          return true;
         } catch {}
       }
+      return false;
+    };
+    const stop = (reason) => {
+      if (terminalReason === null) terminalReason = reason;
+      if (killProcessGroup()) return;
       try { child.kill('SIGKILL'); } catch {}
     };
     const onAbort = () => stop('aborted');
@@ -663,14 +667,17 @@ export function runModelSubprocess({
       signal.removeEventListener('abort', onAbort);
       reject(new ContractError('model_process_spawn_failed', 'Model subprocess failed to start', { processStarts: 0 }, { cause }));
     });
+    child.once('exit', () => {
+      // `close` waits for inherited stdio handles. Kill remaining group members as soon as
+      // the direct child exits so a successful response cannot be misclassified as timeout.
+      killProcessGroup();
+    });
     child.once('close', (code, processSignal) => {
       if (settled) return;
       settled = true;
       clearTimeout(timer);
       signal.removeEventListener('abort', onAbort);
-      if (useProcessGroup && Number.isSafeInteger(child.pid) && child.pid > 0) {
-        try { process.kill(-child.pid, 'SIGKILL'); } catch {}
-      }
+      killProcessGroup();
       const result = {
         code,
         signal: processSignal,

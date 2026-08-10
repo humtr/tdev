@@ -817,6 +817,22 @@ test('POSIX timeout and successful return clean up model descendants', { skip: p
   assert.equal(existsSync(returnMarker), false);
 });
 
+test('POSIX successful child exit closes inherited descendant pipes without a false timeout', { skip: process.platform === 'win32' }, async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  const marker = path.join(repo.repositoryPath, 'inherited-pipe-grandchild');
+  const adapter = new GitRepositoryModelExecutor({
+    repositoryPath: repo.repositoryPath,
+    modelExecutable: process.execPath,
+    modelArgs: [FIXTURE, 'spawn-grandchild-inherit-return', marker],
+    timeoutMs: 200,
+  });
+  const result = await adapter.execute(directInvocation(plan).invocation);
+  assert.equal(result.kind, 'changeset');
+  await new Promise((resolve) => setTimeout(resolve, 500));
+  assert.equal(existsSync(marker), false);
+});
+
 test('existing retry budget reuses verified context but still owns each process/request retry', async (t) => {
   const repo = makeRepo(t);
   const plan = planFor({ ...repo, maxAttempts: 2, instruction: 'after-retry' });
@@ -866,6 +882,26 @@ test('observation callback failure cannot change a successful result', async (t)
     observation: () => { throw new Error('metrics sink down'); },
   });
   const result = await adapter.execute(direct.invocation);
+  assert.equal(result.kind, 'changeset');
+  assert.equal(result.writes[0].content, 'model-content');
+});
+
+test('an unresolved asynchronous observation callback cannot block a successful result', async (t) => {
+  const repo = makeRepo(t);
+  const plan = planFor(repo);
+  const direct = directInvocation(plan);
+  let observed = false;
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', {
+    observation: () => {
+      observed = true;
+      return new Promise(() => {});
+    },
+  });
+  const result = await Promise.race([
+    adapter.execute(direct.invocation),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('observation blocked execution')), 500)),
+  ]);
+  assert.equal(observed, true);
   assert.equal(result.kind, 'changeset');
   assert.equal(result.writes[0].content, 'model-content');
 });

@@ -19,8 +19,8 @@ The highest-ROI bounded vertical slice is not a persistent CAS and is not an aut
 3. reuses canonical context encodings so request construction does not repeatedly clone and re-escape the complete file set;
 4. preflights file and tree byte limits from `git ls-tree -l` before reading blob bodies, and reads each unique blob object only once per cold preparation;
 5. propagates cancellation to Git preparation while preserving one-producer/many-reader semantics;
-6. kills the complete POSIX model process group on abort, timeout, or output overflow rather than only the direct child;
-7. adds non-authoritative stage/cache/resource observations sufficient to distinguish Git, preparation wait, request construction, process, and response parsing work.
+6. kills the complete POSIX model process group on abort, timeout, output overflow, and direct-child exit rather than only the direct child, so inherited descendant pipes cannot turn a valid response into a false timeout;
+7. adds non-authoritative stage/cache/resource observations sufficient to distinguish Git, preparation wait, request construction, process, and response parsing work, without awaiting asynchronous observation-sink completion.
 
 This slice keeps the D0013 full-context request profile. It removes repeated local preparation and canonical-encoding work, but it does not claim to remove model/provider input bytes. Deterministic ContextSlice and provider-facing content references remain separate contracts.
 
@@ -116,6 +116,8 @@ The audit found additional problems not represented by the historical 75% ratio:
 4. **Model descendants survive failure cleanup.** A timeout killed the direct child while a spawned grandchild remained alive and completed a delayed write. This can leak CPU, I/O, inherited descriptors, or credentials after the Attempt is no longer acceptable.
 5. **A pre-aborted invocation performs a Git object-format process before rejecting.** Cancellation during Git preparation is not delivered to the Git child, so completed work can be discarded before model spawn.
 6. **Request byte bounds are checked after final full serialization.** A 1 KiB request limit still caused a complete 1.01 MB repository read and full context construction before rejection in a bounded fixture.
+7. **A successful direct child can be misclassified as timed out when a descendant inherits its pipes.** Node's `close` event waits for inherited stdout/stderr handles. A fixture that returned a valid bound result and exited still reached the transport timeout because its grandchild retained those handles. Cleanup must begin at direct-child `exit`, not only at `close` or failure.
+8. **An unresolved asynchronous observation sink can stall an otherwise complete Attempt indefinitely.** Observation exceptions were swallowed, but the baseline candidate awaited the returned promise. Non-authoritative instrumentation therefore remained capable of controlling transport completion while its delay was also absent from `totalDurationMs`.
 
 The existing operations contract already documents that `runCase(..., { signal })` cancels only ClaimLedger waits and that command-driven cancellation is not wired to active per-Attempt signals. That is a previously known product limitation, not a D0014 discovery. D0014 improves behavior once the per-Attempt signal is delivered; it does not silently redefine runner cancellation ownership.
 
@@ -212,7 +214,7 @@ The request still contains the complete repository text. Therefore D0014 may cla
 
 ## 10. Process lifecycle
 
-On POSIX, the model child starts as the leader of a separate process group. Abort, timeout, stdout overflow, stderr overflow, and startup cleanup target that process group with a direct-child fallback. The transport still waits for close and reports bounded facts. A focused falsifier must prove that a descendant cannot outlive terminal cleanup.
+On POSIX, the model child starts as the leader of a separate process group. Abort, timeout, stdout overflow, stderr overflow, and startup cleanup target that process group with a direct-child fallback. A natural direct-child `exit` also triggers group cleanup before the transport waits for `close`; otherwise a descendant that inherited stdout/stderr can keep those pipes open, cause a false timeout, and amplify retry work even though the direct child returned a valid response. Focused falsifiers must prove that a descendant cannot outlive terminal cleanup and that inherited descendant pipes cannot delay a successful result until timeout.
 
 Non-POSIX process-tree semantics remain unqualified by this design; direct-child fallback remains. Independent acceptance is Ubuntu/POSIX.
 
@@ -234,7 +236,7 @@ Non-authoritative observations add enough data to separate:
 - response bytes and parse duration;
 - total duration and outcome.
 
-Observation callback failure remains unable to change transport success/failure. Metrics do not become lifecycle or acceptance evidence.
+Observation callback failure remains unable to change transport success/failure. The callback may return a promise, but transport completion does not await that promise; asynchronous sink rejection is consumed outside the authoritative path. Synchronous callback execution is still expected to be bounded by the caller. Metrics do not become lifecycle or acceptance evidence.
 
 ## 12. Failure, recovery, corruption, and security
 
@@ -283,6 +285,8 @@ Concurrency and lifecycle:
 - one-reader cancellation does not fail other readers;
 - all-reader cancellation stops Git preparation;
 - timeout/abort/output overflow leaves no POSIX descendant;
+- a successful child whose descendant inherited stdout/stderr returns before timeout and leaves no descendant;
+- a never-settling asynchronous observation sink cannot block success or failure delivery;
 - bounded eviction does not invalidate active readers and later cold rebuild succeeds.
 
 Performance:
