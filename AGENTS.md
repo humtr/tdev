@@ -7,7 +7,7 @@ Scope: the entire repository unless a nearer `AGENTS.md` narrows only local impl
 Before a change, read in this order:
 
 1. `RULE.md` and `SDD.md`;
-2. `docs/DOCUMENTATION.md` and `docs/development/WORKFLOW.md`;
+2. `docs/DOCUMENTATION.md`, `docs/development/WORKFLOW.md`, and `docs/development/ACCESS.md`;
 3. `WORKBOARD.md`, `docs/ROADMAP.md`, and `docs/development/PROGRAM.md`;
 4. the current Capability Group execution document when work is on a `group/*` lane (currently `docs/development/GROUP_E_CONTEXT_DELIVERY.md`);
 5. the active Design record, if any;
@@ -26,6 +26,7 @@ Do not infer authority from names, conventions, generated output, branch locatio
 - Final integration returns validated Group history to the active `mvp-*` direction through a non-force ancestry-preserving path. Prefer fast-forward when only one lane advanced; prefer an explicit merge when parallel validated Group histories must both be retained. Do not squash verified Design/evidence provenance by default.
 - Previously superseded `mvp-*` direction branches are reference-only and are not modified. Tool-owned `tmcp/*` worktree branches are transport bookkeeping and do not define development direction.
 - Development replicas do not have to be perfectly synchronized at every instant. Follow `docs/development/WORKFLOW.md`: synchronize when possible, continue on an available plane when safe, record exact sync debt, and reconcile later. Never guess the state of an unavailable plane.
+- Plane health and current-session access are separate observations. Follow `docs/development/ACCESS.md`; absence of a tmcp/local tool in the current agent session does not prove Termux or the route is unhealthy, and a user-reported healthy route does not by itself update the last observed local Git identity.
 
 ## Normative owners
 
@@ -41,6 +42,7 @@ Do not infer authority from names, conventions, generated output, branch locatio
 | Current source slice and verification gates | `docs/MVP.md` |
 | Final-MVP capability program, sequencing, and exit criteria | `docs/ROADMAP.md` |
 | Self-development work planes, synchronization, branch/integration workflow | `docs/development/WORKFLOW.md` |
+| Current-session access versus development-plane health | `docs/development/ACCESS.md` |
 | Exhaustive provisional Design execution/coverage register | `docs/development/PROGRAM.md` |
 | Current Group E execution and exit contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
 | MCP projection boundary | `docs/MCP.md` |
