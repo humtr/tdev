@@ -294,6 +294,6 @@ Expected follow-on after the decision:
 - D0017 if a new context-delivery contract is selected;
 - D0018 for the accepted model executor/provider runtime boundary;
 - D0022 only if the selected reference/content architecture actually requires durable/shared content storage;
-- Group E exit review before integration to `mvp-1a-7`.
+- Group E exit review before electing the exact final `group/e-context-delivery` checkpoint head and creating `group/f-cloudflare-runtime` from that exact head.
 
 A later accepted Design may merge/split/reorder these planning labels if one coherent authority decision makes the current decomposition artificial.

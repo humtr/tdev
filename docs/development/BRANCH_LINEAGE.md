@@ -136,6 +136,8 @@ The next branch `group/f-cloudflare-runtime` must **not** be opened as a paralle
 
 For post-D0015 branch progression, this file owns the branch-lineage rule. `WORKBOARD.md` and `LINEAGE.md` retain historical verified-state information, but any older statement that future Group work should be fast-forwarded or merged back into `mvp-1a-7` is legacy wording and does not control the checkpoint sequence.
 
+Operational Git or registry pointers do not override this rule. A tmcp project `defaultBranch`, canonical checkout branch, local `origin/*` tracking ref, Task transport branch, or disposable working mirror is an operational pointer or observation only. When one differs from the active cumulative branch, derive work authority from this file plus the current pointers and direct remote observation, record the exact synchronization or metadata debt, and reconcile only with explicit preconditions. Do not rewrite retained checkpoints merely to make operational pointers equal.
+
 Use these terms:
 
 - **legacy baseline** — `mvp-1a-7` at the Group E creation predecessor;

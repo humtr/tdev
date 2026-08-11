@@ -10,4 +10,4 @@
 8. Tests use barriers, controlled promises, or public outcomes; timeout is only a deadlock guard.
 9. A check proves only its observed layer. Skipped, unsupported, or unexecuted layers remain `unknown`.
 10. Review the effective diff and mechanize recurring invariants with tests where practical.
-11. Treat the active `mvp-*` branch as a development-direction identity, not a design/checkpoint counter: while direction is unchanged, fast-forward the same branch; create a new `mvp-*` branch only after an explicit user/owner direction-change decision recorded in `LINEAGE.md`.
+11. Branch progression follows its self-development owner. For post-D0015 work, follow `docs/development/BRANCH_LINEAGE.md`: exactly one cumulative `group/*` branch is active, completed Group refs are retained checkpoints, each successor is created only from the exact final accepted predecessor head, and later Group work is not merged or fast-forwarded back into the retained `mvp-1a-7` baseline. Historical `mvp-*` branch rules remain evidence context only.
