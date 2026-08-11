@@ -32,7 +32,7 @@ group/e-context-delivery
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **active / D0016+D0017 accepted; D0017 implementation/verification next** | D0016 mechanism decision + D0017 contract decision | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
+| E | Context delivery and model input | **active / D0016+D0017 accepted; D0017 production source verified; D0018 next** | D0016 mechanism decision + D0017 contract decision + D0017 production implementation | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
 | F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
@@ -97,17 +97,17 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0017 — Selected Context Delivery Contract
 
 - **Group:** E
-- **Status:** **accepted Design — 2026-08-12; production implementation/verification pending**
-- **Purpose:** freeze the D0016-selected immutable full-context reference contract before Class 2 source implementation.
+- **Status:** **accepted Design — 2026-08-12; production source independently verified on the supported-Termux source scope**
+- **Purpose:** freeze the D0016-selected immutable full-context reference contract; the later Class 2 production implementation now demonstrates the same accepted meaning without changing Design authority.
 - **Accepted logical identity:** `repositoryCommitOid` + semantic `baseDigest` + repository `contextDigest` + authorization-scope digest over `caseId`/`planDigest`/`caseContractDigest`; `attemptId` and physical locators are excluded.
 - **Authorization:** reference possession is not authority; the receiver recomputes scope from the already-admitted invocation before exposing content.
 - **Selected receiver representation:** bounded packed/hybrid under the same logical reference; current v1 bounds are 128 files/pack, 2 MiB semantic bytes/pack, 3 MiB stored bytes/pack, 512 KiB manifest and at most 790 packs, in addition to inherited repository semantic bounds.
 - **Failure/lifecycle:** unauthorized/stale/missing/corrupt/limit-exceeded fail before model acceptance; retry/restart preserves exact identity; partial cancellation has no accepted effect; retention/eviction belongs to derived receiver-local materialization.
 - **Alternatives:** single canonical bundle and fine-grained manifest/content refs remain valid comparators/possible future physical representations but are not the selected v1; ContextSlice remains unselected.
 - **Durability boundary:** no persistent/shared CAS is required; D0022 remains conditional.
-- **Evidence:** `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; all failure falsifiers and semantic/reference invariants passed.
+- **Evidence:** Design evidence `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; production implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; production verification `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`; focused D0017+transport 52/52 and supported-Termux source coverage 226/226 passed, while exact all-test coverage is platform-unqualified only for the existing ImmutableJournal hard-link `EACCES`.
 - **Cheapest implementation falsifier:** exact identity equality across retry/restart plus unauthorized/stale/missing/corrupt/bound/cancel rejection before model acceptance on the real implementation path.
-- **Exit:** production implementation independently `verified` without creating a second semantic owner; Design acceptance alone does not satisfy Group E exit.
+- **Exit:** satisfied for D0017 production source: independently `verified` without creating a second semantic owner. Group E remains active because D0018 and the later Group E exit review/checkpoint remain open.
 - **User/provider action:** none for this trusted-local contract decision; external provider/storage actions belong to their later accepted owner.
 - **Lane:** active cumulative `group/e-context-delivery`.
 

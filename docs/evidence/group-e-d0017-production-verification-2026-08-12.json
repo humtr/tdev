@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0017-production-verification",
+  "date": "2026-08-12",
+  "design": {
+    "id": "D0017",
+    "title": "Selected Context Delivery Contract",
+    "status": "accepted",
+    "acceptedCommit": "1e94528d2a0cda5991d5b168253a88838adbb9a7",
+    "designEvidence": {
+      "path": "docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json",
+      "sha256": "a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2"
+    },
+    "predecessorEvidence": {
+      "path": "docs/evidence/group-e-d0016-context-delivery-2026-08-11.json",
+      "sha256": "ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495"
+    }
+  },
+  "production": {
+    "implementationCommit": "eea429100d4bc6b6e9e6b74a29da2fbcdecc53db",
+    "baselineCommit": "1e94528d2a0cda5991d5b168253a88838adbb9a7",
+    "status": "verified",
+    "qualification": "source-verified on the supported Termux test scope; exact all-test coverage is platform-unqualified because the pre-existing ImmutableJournalSnapshotStore hard-link publication tests fail with link(2) EACCES on this Termux filesystem",
+    "files": [
+      "src/selected-context-delivery.mjs",
+      "src/repository-model-transport.mjs",
+      "src/runner.mjs",
+      "test/selected-context-delivery.test.mjs",
+      "test/repository-model-transport.test.mjs",
+      "bench/repository-model-transport-efficiency.mjs"
+    ]
+  },
+  "contractChecks": {
+    "logicalReferenceProfile": "tdev.selected-context-reference.v1",
+    "authorizationScopeProfile": "tdev.selected-context-reference-scope.v1",
+    "packProfile": "tdev.context-pack.v1",
+    "logicalIdentity": [
+      "repositoryCommitOid",
+      "semanticBaseDigest",
+      "contextDigest",
+      "authorizationScopeDigest"
+    ],
+    "authorizationScope": [
+      "caseId",
+      "planDigest",
+      "caseContractDigest"
+    ],
+    "attemptIdExcludedFromLogicalIdentity": true,
+    "physicalRepresentationExcludedFromLogicalIdentity": true,
+    "authorizationCheckedBeforeCarrierAccess": true,
+    "fullSemanticEquivalenceCheckedAgainstAuthoritativePreparationBytes": true,
+    "retryReferenceIdentityStable": true,
+    "coldReconstructionReferenceIdentityStable": true,
+    "cacheHitMissModelRequestSemanticsStable": true,
+    "typedFailures": [
+      "context_reference_unauthorized",
+      "context_reference_stale",
+      "context_reference_missing",
+      "context_reference_corrupt",
+      "context_reference_limit_exceeded"
+    ],
+    "cancellationHasNoAcceptedPartialEffect": true,
+    "rawAbsoluteLocatorExcludedFromProductRequest": true,
+    "carrierRetention": "ephemeral receiver/executor-local derived state",
+    "persistentSharedCasActivated": false,
+    "warmProcessReuseActivated": false,
+    "contextSliceActivated": false
+  },
+  "bounds": {
+    "maxPathBytes": 4096,
+    "maxFileBytes": 2097152,
+    "maxTreeEntries": 100000,
+    "maxTreeSemanticBytes": 16777216,
+    "maxFilesPerPack": 128,
+    "maxPackSemanticBytes": 2097152,
+    "maxPackStoredBytes": 3145728,
+    "maxManifestBytes": 524288,
+    "maxPacks": 790
+  },
+  "validation": {
+    "testsFirst": {
+      "command": "node --test test/selected-context-delivery.test.mjs",
+      "initialOutcome": "red as expected because src/selected-context-delivery.mjs did not yet exist"
+    },
+    "focused": {
+      "command": "node --test test/selected-context-delivery.test.mjs test/repository-model-transport.test.mjs",
+      "tests": 52,
+      "passed": 52,
+      "failed": 0,
+      "status": "passed"
+    },
+    "install": {
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "exitCode": 0,
+      "status": "passed"
+    },
+    "check": {
+      "command": "npm run check",
+      "exitCode": 0,
+      "status": "passed"
+    },
+    "exactFullCoverage": {
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "exitCode": 1,
+      "status": "platform-unqualified",
+      "observedFailureScope": "test/immutable-journal.test.mjs only",
+      "observedCause": "pre-existing Termux filesystem link(2) EACCES at ImmutableJournalSnapshotStore no-replace hard-link publication",
+      "d0017OrRepositoryModelTransportFailuresObserved": false
+    },
+    "supportedTermuxCoverage": {
+      "command": "files=$(find test -maxdepth 1 -name '*.test.mjs' ! -name 'immutable-journal.test.mjs' -print | sort); node --experimental-test-coverage --test $files",
+      "tests": 226,
+      "passed": 226,
+      "failed": 0,
+      "lineCoveragePercent": 85.51,
+      "branchCoveragePercent": 76.9,
+      "functionCoveragePercent": 92.73,
+      "selectedContextDeliveryLineCoveragePercent": 83.99,
+      "selectedContextDeliveryFunctionCoveragePercent": 100,
+      "repositoryModelTransportLineCoveragePercent": 91.93,
+      "status": "passed"
+    },
+    "diffCheck": {
+      "command": "git diff --check",
+      "exitCode": 0,
+      "status": "passed"
+    }
+  },
+  "migrationRollback": {
+    "persistedCaseOrPlanSchemaChanged": false,
+    "durableContextStateIntroduced": false,
+    "dataMigrationRequired": false,
+    "softwareRollback": "deploy the pre-D0017 full-inline D0013/D0014 implementation; semantic Case/Plan authority and persisted schema are unchanged",
+    "liveTypedFailureInlineFallbackAllowed": false
+  },
+  "deferredBoundaries": {
+    "D0018": "warm executor/process/provider lifecycle and external-provider contract remain separate",
+    "D0022": "conditional only; no persistent/shared CAS was activated",
+    "ContextSlice": "not selected or implemented",
+    "externalProviderUnknowns": [
+      "authentication",
+      "tokenizer/accounting",
+      "billing/retry charging",
+      "minimum-necessary egress/redaction",
+      "privacy/residency/provider retention",
+      "provider-specific limits and lifecycle"
+    ]
+  }
+}

@@ -1,16 +1,18 @@
-# Group E D0017 selected context delivery contract decision report
+# Group E D0017 selected context delivery production verification report
 
 - Date: 2026-08-12
 - Active cumulative branch: `group/e-context-delivery`
 - Decision baseline: `2eb6002cc1ff93cdfcda12e190427e10c05a12f1`
 - Falsifier source commit: `583c8855612c92f6a98a3c1ab2b4173197499576`
 - Design: `docs/design/0017-selected-context-delivery-contract.md`
-- Status: `accepted` at the Design/contract layer; production implementation remains unverified
-- Production `src/` change: none
+- Design status: `accepted`
+- Production implementation status: `verified` on the supported-Termux source scope; exact all-test coverage is platform-unqualified on the current Termux filesystem
+- Production implementation commit: `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`
 - D0016 evidence: `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json` (SHA-256 `ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`)
-- D0017 evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`)
+- D0017 Design evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`)
+- D0017 production verification evidence: `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` (SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`)
 
-D0017 closes the contract decision left open by D0016 without implementing a production transport. The accepted logical `tdev.selected-context-reference.v1` identity binds exact immutable repository commit, semantic `baseDigest`, repository `contextDigest`, and an authorization-scope digest over the already-admitted `caseId`, `planDigest`, and `caseContractDigest`. `attemptId`, raw paths, physical storage locators, representation kind and provider credentials are excluded. Reference possession is not authority; receiver resolution requires the admitted scope to reproduce the authorization digest.
+The accepted D0017 Design closes the contract decision left open by D0016, and the separately scoped production commit `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` now implements that contract in the existing repository/model transport without redesigning it. The logical `tdev.selected-context-reference.v1` identity binds exact immutable repository commit, semantic `baseDigest`, repository `contextDigest`, and an authorization-scope digest over the already-admitted `caseId`, `planDigest`, and `caseContractDigest`. `attemptId`, raw paths, physical storage locators, representation kind and provider credentials are excluded. Reference possession is not authority; receiver resolution recomputes admitted scope before accessing carrier content.
 
 The D0017 falsifier compared single canonical bundle, fine-grained manifest/content references and bounded packed/hybrid under exactly the same logical reference on the current repository and many-small/few-large/deep/wide shapes. Packed/hybrid reduced representation reads to 3 on the 120-file current repository, 17 for both 2000-file shapes, 2 for four few-large files and 2 for 128 deep files. Fine-grained manifest required 121/2001/5/129/2001 reads respectively, while one bundle required one read but showed substantially larger whole-JSON heap/RSS in several measured shapes. Timing did not produce one universal winner, so the accepted reason is bounded fanout/working-set balance, not a production latency claim.
 
@@ -18,7 +20,9 @@ The accepted v1 representation bounds are 128 files/pack, 2 MiB semantic bytes/p
 
 All recorded D0017 failure falsifiers passed: wrong authority -> `context_reference_unauthorized`, wrong expected base -> `context_reference_stale`, missing binding -> `context_reference_missing`, digest corruption -> `context_reference_corrupt`, pack-bound overflow -> `context_reference_limit_exceeded`, retry/restart retained the same logical reference, and cancellation after partial resolution produced no accepted-completion marker. All candidate success paths reconstructed the expected full semantic context, and no benchmark local store path appeared in the logical request.
 
-Receiver-local packed/materialized state remains derived, rebuildable and eviction-owned by the receiver/executor. D0017 activates no persistent cross-worker CAS/shared durable storage; D0022 remains conditional. D0018 retains warm executor/process/provider lifecycle and the final real executor/provider boundary. ContextSlice remains unselected. A later production implementation may be undertaken under this accepted Design, but the explicit scope of this decision task stops before that `src/` implementation and therefore makes no `verified` D0017 product claim.
+Receiver-local packed/materialized state remains derived, rebuildable and executor-owned in memory. D0017 activates no persistent cross-worker CAS/shared durable storage; D0022 remains conditional. D0018 retains warm executor/process/provider lifecycle and the final real executor/provider boundary, and the existing subprocess still starts fresh per Attempt. ContextSlice remains unselected.
+
+Production verification passed the focused D0017+repository-model transport suite 52/52, `npm ci --ignore-scripts --no-audit --no-fund`, `npm run check`, and `git diff --check`. The supported-Termux source coverage run excluding only the pre-existing `test/immutable-journal.test.mjs` passed 226/226. The exact `node --experimental-test-coverage --test test/*.test.mjs` command is **platform-unqualified**, not green: only the existing ImmutableJournal hard-link publication tests fail with `link(2) EACCES` on this filesystem, and no D0017/repository-model-transport failure was observed. D0017 changes no persisted Case/Plan semantic-state schema and introduces no durable context state, so no data migration is required. Release rollback is deployment of the pre-D0017 D0013/D0014 full-inline implementation; a live typed D0017 reference failure may not silently fall back inline. This is a source/trusted-local verification claim only, not an all-platform, external-provider, deployment, privacy/residency, tokenizer or billing qualification.
 
 ---
 

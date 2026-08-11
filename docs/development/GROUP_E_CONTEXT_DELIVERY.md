@@ -74,11 +74,11 @@ Do not choose by elegance or expected architecture. Choose from post-D0014 evide
 
 ### D0017 — selected delivery contract
 
-Status: **accepted Design — 2026-08-12; production implementation/verification pending**.
+Status: **accepted Design — 2026-08-12; production source independently verified on the supported-Termux source scope**.
 
 D0017 freezes one representation-independent logical reference identity over exact repository commit, semantic base, repository `contextDigest` and admitted Case/Plan authorization scope. Attempt identity and physical locators are excluded so retry/restart can preserve one logical reference without making it a bearer credential. The first receiver representation is bounded packed/hybrid; resolution is complete-semantic and fail closed for unauthorized, stale, missing, corrupt and limit-exceeded conditions. Receiver-local materialization remains derived/rebuildable and does not activate D0022.
 
-Evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`). Acceptance is a Design-layer gate only; Group E still requires D0017 production verification.
+Design evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`). Production implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` is independently verified on the supported-Termux source scope by `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` (SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`). Focused D0017+transport tests passed 52/52 and the supported-Termux source suite passed 226/226; exact all-test coverage remains platform-unqualified only because the pre-existing ImmutableJournal hard-link tests hit `link(2) EACCES`. This closes D0017 production-source verification but not D0018 or the final Group E exit review/checkpoint.
 
 ### D0018 — final model executor/provider boundary
 
@@ -233,9 +233,9 @@ Codex or another coding agent should execute Group E in this order unless new ev
 3. attempt replica synchronization, but continue on the available plane if another plane is temporarily unavailable and the required gate is executable;
 4. record exact sync debt rather than guessing unavailable state;
 5. retain accepted D0016 and D0017 as the current Class 2 decision/contract gates;
-6. for a separately scoped D0017 implementation task, implement only the accepted logical reference and bounded packed/hybrid representation;
-7. run focused correctness/failure tests, then full source gates and independently verify authority, stale identity, retry/cancel/restart/resource/security boundaries;
-8. update product owners only where implemented meaning actually changes and advance D0017 to `verified` only from implementation evidence;
+6. retain the independently verified D0017 production implementation/evidence without reinterpreting the accepted Design;
+7. preserve the D0017 focused/source verification qualification, including the exact-full Termux hard-link limitation;
+8. keep product owners synchronized with the implemented D0017 meaning;
 9. execute D0018 separately for warm executor/process/provider lifecycle and the final actual runtime boundary;
 10. activate conditional D0022 only if accepted evidence proves durable/shared content storage is required;
 11. remeasure before considering any ContextSlice semantic reduction;

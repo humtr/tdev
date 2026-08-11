@@ -9,10 +9,12 @@
 - D0016 raw evidence: `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json` (SHA-256 `ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`)
 - D0017 falsifier source: `583c8855612c92f6a98a3c1ab2b4173197499576`
 - D0017 raw evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`)
-- Production-source change in this Design: none
-- Current product owners remain unchanged until implementation: `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`
+- Production-source change in this Design task: none
+- Later production implementation: `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`, independently verified on the supported-Termux source scope
+- Production verification evidence: `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` (SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`)
+- Product owners synchronized after implementation: `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`
 
-> `accepted` is a Design-layer decision. Under `SDD.md` it makes a separately scoped implementation task permissible, but the explicit execution scope of this D0017 decision task stops before Class 2 production `src/` implementation. It is not a `verified` production claim.
+> `accepted` remains the Design-layer status. Under `SDD.md` it authorized the separately scoped production task; later production verification is a distinct evidence layer and does not retroactively turn the Design decision itself into a source-verification claim. The implementation is `verified` only for the declared supported-Termux source scope; exact all-test coverage remains platform-unqualified for the pre-existing ImmutableJournal hard-link limitation, and no external-provider/deployment qualification is implied.
 
 ## 1. One-line definition
 
@@ -380,7 +382,7 @@ Because this decision adds no durable state, there is no D0017 data migration to
 | representation choice | candidate has an unbounded/pathological shape hidden by averages | actual + many-small + few-large + deep + wide were compared; packed/hybrid bounded fanout without claiming universal wall-time victory |
 | durable-state barrier | selected representation requires shared durable correctness owner | current v1 requires none; D0022 remains conditional |
 
-The evidence closes the D0017 **decision/contract acceptance layer**. It does not close production implementation or provider verification.
+The original evidence closes the D0017 **decision/contract acceptance layer**. The later production evidence closes the trusted-local production-source implementation layer under its declared supported-Termux qualification; provider/runtime verification remains separate.
 
 ## 16. Acceptance decision
 
@@ -396,10 +398,25 @@ D0017 is **accepted** with this exact scope:
 8. cancellation has no accepted effect and partial derived state is cleaned/discarded as specified;
 9. local retention/eviction belongs to the receiver/executor and remains non-authoritative/rebuildable;
 10. no durable shared store, provider lifecycle, warm process, ContextSlice or external provider contract is activated;
-11. production `src/` implementation is not part of this Design commit and remains unverified.
+11. production `src/` implementation is not part of this Design commit; the later implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` is independently verified under the separate production evidence and declared platform qualification.
 
 ## 17. Next authorized boundary
 
-In normal `SDD.md` terms, this accepted Design permits a **separately scoped D0017 production implementation task** to implement exactly this contract and independently verify it. The explicit user scope for the current decision task ends before that production implementation, so no `src/` change is made here.
+The separately scoped D0017 production task has now implemented exactly this accepted contract at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` and independently verified the trusted-local source path under the qualification recorded below. This does not reopen or redesign the accepted contract.
 
-D0018 remains downstream and owns warm executor/process/provider lifecycle and the final real executor/provider boundary. D0022 remains conditional. Group E remains active because its exit criteria require D0017 implementation verification and the applicable D0018 closure; **Group F must not be created from this acceptance alone.**
+D0018 is now the downstream Group E boundary and owns warm executor/process/provider lifecycle and the final real executor/provider boundary. D0022 remains conditional. Group E remains active because D0018 and the final Group E exit review/checkpoint are still open; **Group F must not be created from D0017 verification alone.**
+
+## 18. Production implementation verification
+
+The production implementation preserves the accepted logical/physical separation: `tdev.selected-context-reference.v1` binds immutable commit, semantic base/context and admitted authorization scope, while `tdev.context-pack.v1` is an executor-local ephemeral packed/hybrid carrier. The receiver recomputes authorization before carrier access, validates stale/missing/corrupt/limit conditions with the accepted typed failures, reconstructs the complete semantic repository context, and requires canonical descriptor/file bytes to equal the authoritative D0014 preparation before the existing fresh subprocess request is admitted.
+
+Verification at source commit `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` produced these independent results:
+
+- focused D0017 + repository/model transport: 52/52 passed;
+- `npm ci --ignore-scripts --no-audit --no-fund`: passed;
+- `npm run check`: passed;
+- supported-Termux source coverage excluding only the pre-existing hard-link test file: 226/226 passed;
+- exact all-test coverage: **platform-unqualified** because `test/immutable-journal.test.mjs` alone hits the previously known `link(2) EACCES`; no D0017/repository-model-transport failure was observed;
+- `git diff --check`: passed.
+
+The implementation creates no persisted Case/Plan schema change and no durable context state, so D0017 requires no data migration. Release rollback is deployment of the pre-D0017 D0013/D0014 full-inline source; a live unauthorized/stale/missing/corrupt/limit reference failure is not permitted to fall back inline. D0018 warm/provider lifecycle, D0022 persistent/shared storage, ContextSlice, and external-provider authentication/tokenizer/billing/privacy/residency remain outside this production verification.

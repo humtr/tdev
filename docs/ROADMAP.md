@@ -56,7 +56,7 @@ For this project, **“MVP complete” means Level 4**. Source completion, deplo
 | B | Semantic authority and persistence | VERIFIED local / runtime integration open | D0009-D0010 | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |
 | C | Git and publication | SOURCE VERIFIED / deployment open | D0011-D0012 | deployed fenced Promotion -> Git candidate -> authenticated remote publication path is reconciliable and least-privilege qualified |
 | D | Repository and model execution | LOCAL VERIFIED | D0013-D0014 | selected actual executor/provider path preserves result-only/fencing/cancellation/resource contracts |
-| E | Context delivery and model input | ACTIVE — D0016/D0017 DESIGN ACCEPTED; IMPLEMENTATION/VERIFICATION OPEN | D0014 verified + D0016 mechanism decision + D0017 contract decision | per-Attempt delivery/disclosure contract selected from measured post-D0014 costs and independently verified |
+| E | Context delivery and model input | ACTIVE — D0016/D0017 DESIGN ACCEPTED; D0017 PRODUCTION SOURCE VERIFIED; D0018 OPEN | D0014 verified + D0016 mechanism decision + D0017 contract decision + D0017 production implementation | per-Attempt delivery/disclosure contract selected from measured post-D0014 costs and independently verified |
 | F | Cloudflare runtime and local Agent topology | NOT IMPLEMENTED | architecture mapping only | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity and fencing are deployed and verified |
 | G | MCP, authentication and security | DOCUMENTED BOUNDARY / NOT IMPLEMENTED | `MCP.md`, `SECURITY.md` | real secured MCP endpoint passes auth/tenant/replay/stale-fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | NOT IMPLEMENTED | deployment requirements only | fresh deploy, user/provider setup, migration/rollback/runbooks and full deployed qualification pass |
@@ -71,16 +71,16 @@ D0016 therefore measured the remaining context/executor candidates instead of pr
 
 D0017 now accepts the exact logical contract and receiver representation. One logical reference binds exact repository commit, semantic `baseDigest`, repository `contextDigest` and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators. The first receiver representation is bounded packed/hybrid, selected as the balance between whole-bundle parse/working-set cost and fine-grained manifest per-file lookup fanout. D0017 does not claim a universal wall-time win, does not select ContextSlice, and does not activate a persistent shared CAS.
 
-The next Group E work is **production implementation and independent verification of D0017**, followed by D0018 measurement/contract work for the final real executor/provider lifecycle. Only after that real-runtime evidence may semantic input reduction such as ContextSlice be reconsidered. Persistent cross-worker CAS/D0022 remains evidence-gated.
+D0017 production implementation is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; focused D0017+transport tests passed 52/52 and the supported-Termux source suite passed 226/226. Exact all-test coverage is platform-unqualified only because the pre-existing ImmutableJournal hard-link tests hit `link(2) EACCES` on this Termux filesystem. The next Group E work is **D0018 measurement/contract work for the final real executor/provider lifecycle**. Only after that real-runtime evidence may semantic input reduction such as ContextSlice be reconsidered. Persistent cross-worker CAS/D0022 remains evidence-gated.
 
 ## 6. Provisional remaining Design program
 
-These IDs describe a planning envelope. D0016 and D0017 are now accepted Design-layer decisions and are retained below as completed Group E decision gates; D0017 production implementation/verification and the later IDs remain open unless their owner records otherwise and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
+These IDs describe a planning envelope. D0016 and D0017 are accepted Design-layer decisions and are retained below as completed Group E decision gates; D0017 production source verification is closed under its declared supported-Termux qualification, while D0018 and the later IDs remain open unless their owner records otherwise and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
 
 | Provisional ID | Group | Planning question | MVP criticality |
 | --- | --- | --- | --- |
 | D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
-| D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12** — authorized immutable logical reference + bounded packed/hybrid receiver; production implementation/verification pending |
+| D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12; production source verified on supported-Termux scope** — authorized immutable logical reference + bounded packed/hybrid receiver; implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` |
 | D0018 | D/E | Model Executor / External Provider Runtime Contract | required for the accepted final execution profile |
 | D0019 | B/F | CaseDO Authority Adapter | required |
 | D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |
@@ -150,7 +150,7 @@ The roadmap is not a serial Design-number queue. A likely dependency spine is:
 
 ```text
 D0016 -> D0017 accepted contract
-               -> D0017 implementation/verification -> D0018
+               -> D0017 production verified -> D0018
                |
         +------+------+
         |             |

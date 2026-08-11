@@ -18,7 +18,7 @@
 - Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
 - Most recent accepted Class 2 decision: D0017 — Selected Context Delivery Contract, accepted 2026-08-12; it freezes a representation-independent authorized immutable full-context reference and a bounded packed/hybrid receiver representation.
-- Active Class 2 production-source implementation: none in this decision task. D0017 is accepted at the Design layer, but implementation/verification is a separate evidence layer and Group E remains active.
+- Active Class 2 production-source implementation: D0017 production source is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; exact all-test coverage is platform-unqualified only for the pre-existing ImmutableJournal hard-link `link(2) EACCES`. The D0017 Design remains `accepted`, and Group E remains active for D0018.
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
@@ -27,7 +27,7 @@ Group E is the current mutable cumulative development checkpoint. All accepted p
 
 D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
 
-D0014 remains verified after independent post-publication review. The final source was not rewritten. D0016 remeasured the remaining per-Attempt transport/executor boundary and selected an immutable full-context reference envelope. D0017 is now accepted at the Design layer: the logical identity binds exact repository commit, semantic base/context digest and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators; the first receiver representation is bounded packed/hybrid. Production implementation/verification remains open. ContextSlice remains unselected, warm executor/process reuse remains a D0018 concern, and persistent CAS/D0022 remains conditional.
+D0014 remains verified after independent post-publication review. The final source was not rewritten. D0016 remeasured the remaining per-Attempt transport/executor boundary and selected an immutable full-context reference envelope. D0017 remains accepted at the Design layer: the logical identity binds exact repository commit, semantic base/context digest and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators; the first receiver representation is bounded packed/hybrid. The separately scoped production implementation is now independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`, with evidence in `docs/evidence/group-e-d0017-production-verification-2026-08-12.json`; the exact all-test coverage command remains platform-unqualified only because the pre-existing ImmutableJournal hard-link tests hit `link(2) EACCES` on this Termux filesystem. ContextSlice remains unselected, warm executor/process reuse remains a D0018 concern, and persistent CAS/D0022 remains conditional.
 
 ## Verified work
 
@@ -43,7 +43,7 @@ D0014 remains verified after independent post-publication review. The final sour
 - Provenance correction: artifact `9048558724` current GitHub/downloaded outer ZIP SHA-256 is `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf`; historical Issue value is superseded for outer-ZIP provenance only
 - Resource clarification: context-cache entry/byte limits bound retained complete preparations; pending different-key live work follows caller/admission concurrency and has no D0014 executor-global memory budget
 - D0016 disposition: accepted decision on 2026-08-11; immutable full-context reference envelope selected from measured evidence with no production `src/` change
-- D0017 disposition: accepted Design on 2026-08-12; representation-independent authorized reference + bounded packed/hybrid receiver representation; raw evidence `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; production `src/` implementation/verification not performed in this decision task
+- D0017 disposition: Design remains `accepted` from 2026-08-12; representation-independent authorized reference + bounded packed/hybrid receiver representation; Design evidence `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; production source is independently `verified` on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`, with production evidence `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`; exact all-test coverage is platform-unqualified only for the existing ImmutableJournal hard-link `EACCES`
 
 ### D0014 — verified repository/model transport product-efficiency slice
 
