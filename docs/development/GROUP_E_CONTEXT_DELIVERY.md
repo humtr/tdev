@@ -74,9 +74,11 @@ Do not choose by elegance or expected architecture. Choose from post-D0014 evide
 
 ### D0017 — selected delivery contract
 
-Status: required next Class 2 Design / not yet accepted. No D0017 production-source implementation is authorized until that contract is accepted.
+Status: **accepted Design — 2026-08-12; production implementation/verification pending**.
 
-D0017 must implement exact identity, bounds, retry/restart behavior, corruption/stale handling, fallback/fail-closed semantics and audit evidence for the selected immutable full-context reference envelope.
+D0017 freezes one representation-independent logical reference identity over exact repository commit, semantic base, repository `contextDigest` and admitted Case/Plan authorization scope. Attempt identity and physical locators are excluded so retry/restart can preserve one logical reference without making it a bearer credential. The first receiver representation is bounded packed/hybrid; resolution is complete-semantic and fail closed for unauthorized, stale, missing, corrupt and limit-exceeded conditions. Receiver-local materialization remains derived/rebuildable and does not activate D0022.
+
+Evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`). Acceptance is a Design-layer gate only; Group E still requires D0017 production verification.
 
 ### D0018 — final model executor/provider boundary
 
@@ -159,22 +161,23 @@ A deterministic ContextSlice must define at minimum:
 
 Token/cost savings alone cannot qualify ContextSlice if correctness/completeness evidence is weak.
 
-## 8. Full-context reference contract if selected
+## 8. Accepted D0017 full-context reference contract
 
-A reference-based semantic-preserving path must define at minimum:
+D0017 now answers the reference questions that D0016 left open. The normative exact contract is `docs/design/0017-selected-context-delivery-contract.md`; this Group owner records only its routing summary:
 
-- immutable reference namespace and identity;
-- exact receiver resolution semantics;
-- receiver authorization and tenant/Case boundary if remote;
-- missing/corrupt content failure behavior;
-- stale commit/`baseDigest` mismatch rejection;
-- canonical request identity despite out-of-band bytes;
-- bounded fetch/read behavior and backpressure;
-- retry/restart behavior;
-- data-retention/GC owner if references outlive one request;
-- proof that model-visible content is equivalent to the current full context when that is the contract.
+- logical profiles: `tdev.selected-context-reference.v1` and `tdev.selected-context-reference-scope.v1`;
+- reference identity: exact immutable repository commit + semantic `baseDigest` + repository `contextDigest` + authorization-scope digest;
+- authorization scope: admitted `caseId` + `planDigest` + `caseContractDigest`; the reference is not a bearer credential;
+- retry/restart: `attemptId` is excluded, so exact retries retain the same logical reference;
+- product/API boundary: raw local paths, physical storage locators and representation kind are excluded from the logical reference;
+- receiver representation: bounded packed/hybrid, with 128 files/pack, 2 MiB semantic bytes/pack, 3 MiB stored bytes/pack, 512 KiB manifest, at most 790 packs, plus inherited repository semantic bounds;
+- failure classes: unauthorized/stale/missing/corrupt/limit-exceeded all fail before model acceptance;
+- cancellation: partial resolution has no accepted effect and incomplete temporary state is discarded/cleaned;
+- retention/expiry: receiver/executor-owned derived local materialization only; no D0022 durable/shared owner is activated;
+- time: resolution consumes the existing finite invocation/executor deadline and AbortSignal budget; D0017 invents no separate unbounded phase;
+- rollback: explicit deployment rollback may restore the current full-inline implementation, but a live missing/corrupt reference cannot silently fall back per request.
 
-Reference transport and ContextSlice are complementary layers and may be staged sequentially.
+Reference transport and a future ContextSlice remain complementary layers, but ContextSlice is not selected by D0017.
 
 ## 9. Warm/streaming execution contract if selected
 
@@ -229,15 +232,15 @@ Codex or another coding agent should execute Group E in this order unless new ev
 2. observe GitHub, local and working-mirror identities for `group/e-context-delivery` that are actually reachable;
 3. attempt replica synchronization, but continue on the available plane if another plane is temporarily unavailable and the required gate is executable;
 4. record exact sync debt rather than guessing unavailable state;
-5. draft/accept D0016 before Class 2 source changes;
-6. build measurement/falsifier instrumentation before choosing a mechanism;
-7. compare all required candidates or record why a candidate is inapplicable from direct evidence;
-8. accept one bounded decision;
-9. implement the smallest production-shaped vertical slice;
-10. run focused correctness/failure tests, then full source gates, then provider/target gates when applicable;
-11. independently review authority, stale identity, retry/cancel/restart/resource/security boundaries;
-12. update Design, product owners only where meaning changed, program register and evidence;
-13. repeat for D0017/D0018 and conditional D0022 as required;
+5. retain accepted D0016 and D0017 as the current Class 2 decision/contract gates;
+6. for a separately scoped D0017 implementation task, implement only the accepted logical reference and bounded packed/hybrid representation;
+7. run focused correctness/failure tests, then full source gates and independently verify authority, stale identity, retry/cancel/restart/resource/security boundaries;
+8. update product owners only where implemented meaning actually changes and advance D0017 to `verified` only from implementation evidence;
+9. execute D0018 separately for warm executor/process/provider lifecycle and the final actual runtime boundary;
+10. activate conditional D0022 only if accepted evidence proves durable/shared content storage is required;
+11. remeasure before considering any ContextSlice semantic reduction;
+12. keep the active cumulative Group E lane until all Group E exit conditions close;
+13. update Design/status owners and evidence without conflating accepted, implemented and verified layers;
 14. perform a Group E exit review;
 15. elect and retain the final Group E checkpoint head;
 16. create `group/f-cloudflare-runtime` from that exact head and continue there. Do not advance `mvp-1a-7` as part of this transition.

@@ -32,7 +32,7 @@ group/e-context-delivery
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **active / D0016 accepted; D0017 next** | D0016 accepted decision | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
+| E | Context delivery and model input | **active / D0016+D0017 accepted; D0017 implementation/verification next** | D0016 mechanism decision + D0017 contract decision | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
 | F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
@@ -97,15 +97,18 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0017 — Selected Context Delivery Contract
 
 - **Group:** E
-- **Status:** required next Design / not yet accepted
-- **Purpose:** implement the D0016-selected delivery mechanism with deterministic identity, bounds, retry/restart behavior and auditability.
-- **Affected owners:** context/model transport and any content-reference contract selected by D0016.
-- **Required identity:** exact commit, authoritative `baseDigest`, preparation/manifest identity and selected delivery identity; slice identity if slicing is chosen.
-- **If ContextSlice is chosen:** deterministic selection; instruction binding; dependency expansion; stable ordering; source/generated/large-file policy; empty/overflow behavior; stale-base rejection; retry/restart/cache equality; explicit full-context fallback or fail-closed behavior; audit record; representative full-vs-slice quality/correctness falsifier.
-- **If references are chosen:** immutable content/reference binding; receiver authorization; missing/corrupt reference behavior; stale identity rejection; disclosure boundary; fallback; retention/GC ownership if durable content is introduced.
-- **Cheapest falsifier:** cold/no-cache/restart/retry equality on exact identity plus corruption/stale-reference rejection before model acceptance.
-- **Exit:** selected contract verified without creating a second semantic owner; measured improvement covers the D0016-selected bottleneck.
-- **User/provider action:** only if the selected contract depends on external storage/provider APIs.
+- **Status:** **accepted Design — 2026-08-12; production implementation/verification pending**
+- **Purpose:** freeze the D0016-selected immutable full-context reference contract before Class 2 source implementation.
+- **Accepted logical identity:** `repositoryCommitOid` + semantic `baseDigest` + repository `contextDigest` + authorization-scope digest over `caseId`/`planDigest`/`caseContractDigest`; `attemptId` and physical locators are excluded.
+- **Authorization:** reference possession is not authority; the receiver recomputes scope from the already-admitted invocation before exposing content.
+- **Selected receiver representation:** bounded packed/hybrid under the same logical reference; current v1 bounds are 128 files/pack, 2 MiB semantic bytes/pack, 3 MiB stored bytes/pack, 512 KiB manifest and at most 790 packs, in addition to inherited repository semantic bounds.
+- **Failure/lifecycle:** unauthorized/stale/missing/corrupt/limit-exceeded fail before model acceptance; retry/restart preserves exact identity; partial cancellation has no accepted effect; retention/eviction belongs to derived receiver-local materialization.
+- **Alternatives:** single canonical bundle and fine-grained manifest/content refs remain valid comparators/possible future physical representations but are not the selected v1; ContextSlice remains unselected.
+- **Durability boundary:** no persistent/shared CAS is required; D0022 remains conditional.
+- **Evidence:** `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; all failure falsifiers and semantic/reference invariants passed.
+- **Cheapest implementation falsifier:** exact identity equality across retry/restart plus unauthorized/stale/missing/corrupt/bound/cancel rejection before model acceptance on the real implementation path.
+- **Exit:** production implementation independently `verified` without creating a second semantic owner; Design acceptance alone does not satisfy Group E exit.
+- **User/provider action:** none for this trusted-local contract decision; external provider/storage actions belong to their later accepted owner.
 - **Lane:** active cumulative `group/e-context-delivery`.
 
 ### D0018 — Model Executor / External Provider Runtime Contract
@@ -256,8 +259,9 @@ This file and the other `docs/development/*` owners close the documentation gap 
 Group E is not complete merely when D0016 chooses an idea. Its current planning closure is:
 
 ```text
-D0016 decision
-   -> D0017 selected delivery contract, if a source/contract change is selected
+D0016 accepted mechanism decision
+   -> D0017 accepted contract decision
+   -> D0017 production implementation + independent verification
    -> D0018 final execution/provider boundary where context delivery crosses the real executor
    -> D0022 only if the selected reference/content architecture requires durable content storage
    -> independent Group E exit review
@@ -341,8 +345,8 @@ The absence of an implementation mechanism is not permission to omit the require
 
 The following questions remain evidence-dependent and can change the provisional plan:
 
-- Does full-context reference transport remove enough post-D0014 cost before ContextSlice is justified?
-- Is ContextSlice needed for MVP quality/cost/privacy after reference transport and real provider measurement?
+- After D0017 is implemented and D0018 measures the representative real executor/provider boundary, does semantic input volume/disclosure remain material enough to justify a separate ContextSlice Design?
+- If ContextSlice later becomes justified, what completeness/dependency/fallback/quality evidence is sufficient without weakening the accepted full-context reference fallback/rollback boundary?
 - Does the selected provider/runtime require persistent content storage, making D0022 mandatory?
 - Can D0010 authority be hosted in CaseDO without semantic migration, or is an explicit migration required?
 - What exact facts must AgentDO own, and which live-resource budget belongs to AgentDO versus local Agent/executor?

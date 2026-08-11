@@ -17,8 +17,8 @@
 - Development-program register: `docs/development/PROGRAM.md`
 - Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
-- Most recent accepted Class 2 decision: D0016 — Per-Attempt Context Delivery Minimization Decision, accepted 2026-08-11; it selects an immutable full-context reference envelope and does not itself authorize production-source changes.
-- Active Class 2 production-source design: none. D0017 — Selected Context Delivery Contract is the next required Design and must be accepted before implementation.
+- Most recent accepted Class 2 decision: D0017 — Selected Context Delivery Contract, accepted 2026-08-12; it freezes a representation-independent authorized immutable full-context reference and a bounded packed/hybrid receiver representation.
+- Active Class 2 production-source implementation: none in this decision task. D0017 is accepted at the Design layer, but implementation/verification is a separate evidence layer and Group E remains active.
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
@@ -27,7 +27,7 @@ Group E is the current mutable cumulative development checkpoint. All accepted p
 
 D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
 
-D0014 remains verified after independent post-publication review. The final source was not rewritten. D0016 has now remeasured the remaining per-Attempt transport/executor boundary and accepted an immutable full-context reference envelope as the first staged change. D0017 is the immediate next engineering gate: it must define the authorized immutable reference and choose/falsify a bounded receiver representation. ContextSlice remains unselected, warm executor/process reuse remains a D0018 concern, and persistent CAS remains evidence-gated.
+D0014 remains verified after independent post-publication review. The final source was not rewritten. D0016 remeasured the remaining per-Attempt transport/executor boundary and selected an immutable full-context reference envelope. D0017 is now accepted at the Design layer: the logical identity binds exact repository commit, semantic base/context digest and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators; the first receiver representation is bounded packed/hybrid. Production implementation/verification remains open. ContextSlice remains unselected, warm executor/process reuse remains a D0018 concern, and persistent CAS/D0022 remains conditional.
 
 ## Verified work
 
@@ -43,7 +43,7 @@ D0014 remains verified after independent post-publication review. The final sour
 - Provenance correction: artifact `9048558724` current GitHub/downloaded outer ZIP SHA-256 is `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf`; historical Issue value is superseded for outer-ZIP provenance only
 - Resource clarification: context-cache entry/byte limits bound retained complete preparations; pending different-key live work follows caller/admission concurrency and has no D0014 executor-global memory budget
 - D0016 disposition: accepted decision on 2026-08-11; immutable full-context reference envelope selected from measured evidence with no production `src/` change
-- Next gate: D0017 selected context-delivery contract; it is required but not accepted and does not authorize production implementation yet
+- D0017 disposition: accepted Design on 2026-08-12; representation-independent authorized reference + bounded packed/hybrid receiver representation; raw evidence `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; production `src/` implementation/verification not performed in this decision task
 
 ### D0014 — verified repository/model transport product-efficiency slice
 
@@ -212,11 +212,11 @@ D0014 remains verified after independent post-publication review. The final sour
 
 These are ordered follow-on gates, not verified implementation claims.
 
-1. design a deterministic minimum-context/ContextSlice and minimum-necessary-data contract with exact commit/`baseDigest`/manifest/Slice/request identity, dependency expansion, limits, auditability, redaction and provider-egress boundaries;
-2. add a persistent manifest/CAS only if measured cross-worker reuse or provider content references justify atomic publication, corruption, permissions, GC, eviction and disk-pressure complexity;
-3. qualify D0012 against an actual provider ref and protected/provider-policy target before promoting it beyond source verification; keep provider refs derived unless a separately accepted direction change says otherwise;
-4. separately design any external model/provider API transport with explicit authentication, data-egress, billing/retry, tokenizer, privacy/residency and hostile-provider boundaries before claiming provider/token savings;
-5. reconsider warm executors/process pools against a representative model runtime after full-request preparation/transport is no longer dominant; locality scheduling remains measurement-gated;
+1. in a separate scoped task, implement and independently verify the accepted D0017 logical reference + bounded packed/hybrid receiver contract without changing semantic authority or silently activating durable shared storage;
+2. execute D0018 against the representative final executor/provider boundary, including warm lifecycle only there, and remeasure whether startup/provider cost or semantic input volume remains material;
+3. consider deterministic ContextSlice only after that real-runtime remeasurement establishes a remaining disclosure/token/attention bottleneck and a separate completeness/dependency/fallback/quality Design is accepted;
+4. activate D0022 persistent/shared content storage only if a later accepted contract proves it is a correctness/availability requirement rather than a cache optimization;
+5. qualify D0012 against an actual provider ref and protected/provider-policy target before promoting it beyond source verification; keep provider refs derived unless a separately accepted direction change says otherwise;
 6. add Cloudflare/distributed adapters and Termux/MCP qualification only under their existing explicit ownership, migration and filesystem/provider contracts.
 
 D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC contract, D0011 closes bounded local real-Git projection/ref-CAS, D0012 closes bounded authenticated remote-publication source semantics, D0013 establishes the trusted-local full-context/process-per-Attempt baseline, and D0014 closes bounded same-base preparation reuse plus failure-path lifecycle hardening. Minimum-context/provider data minimization, persistent cross-worker CAS, provider integration, distributed ownership/Claims, actual D0012 protected-provider qualification, warm process reuse and global migration remain future work where applicable.

@@ -1,3 +1,27 @@
+# Group E D0017 selected context delivery contract decision report
+
+- Date: 2026-08-12
+- Active cumulative branch: `group/e-context-delivery`
+- Decision baseline: `2eb6002cc1ff93cdfcda12e190427e10c05a12f1`
+- Falsifier source commit: `583c8855612c92f6a98a3c1ab2b4173197499576`
+- Design: `docs/design/0017-selected-context-delivery-contract.md`
+- Status: `accepted` at the Design/contract layer; production implementation remains unverified
+- Production `src/` change: none
+- D0016 evidence: `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json` (SHA-256 `ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`)
+- D0017 evidence: `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` (SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`)
+
+D0017 closes the contract decision left open by D0016 without implementing a production transport. The accepted logical `tdev.selected-context-reference.v1` identity binds exact immutable repository commit, semantic `baseDigest`, repository `contextDigest`, and an authorization-scope digest over the already-admitted `caseId`, `planDigest`, and `caseContractDigest`. `attemptId`, raw paths, physical storage locators, representation kind and provider credentials are excluded. Reference possession is not authority; receiver resolution requires the admitted scope to reproduce the authorization digest.
+
+The D0017 falsifier compared single canonical bundle, fine-grained manifest/content references and bounded packed/hybrid under exactly the same logical reference on the current repository and many-small/few-large/deep/wide shapes. Packed/hybrid reduced representation reads to 3 on the 120-file current repository, 17 for both 2000-file shapes, 2 for four few-large files and 2 for 128 deep files. Fine-grained manifest required 121/2001/5/129/2001 reads respectively, while one bundle required one read but showed substantially larger whole-JSON heap/RSS in several measured shapes. Timing did not produce one universal winner, so the accepted reason is bounded fanout/working-set balance, not a production latency claim.
+
+The accepted v1 representation bounds are 128 files/pack, 2 MiB semantic bytes/pack, 3 MiB stored bytes/pack, 512 KiB pack manifest and at most 790 packs, in addition to the existing 4096-byte path / 2 MiB file / 100000-entry / 16 MiB tree semantic bounds. Resolution consumes the existing finite invocation/executor timeout and AbortSignal budget; D0017 does not invent an unbounded extra phase or a platform-specific RSS SLO.
+
+All recorded D0017 failure falsifiers passed: wrong authority -> `context_reference_unauthorized`, wrong expected base -> `context_reference_stale`, missing binding -> `context_reference_missing`, digest corruption -> `context_reference_corrupt`, pack-bound overflow -> `context_reference_limit_exceeded`, retry/restart retained the same logical reference, and cancellation after partial resolution produced no accepted-completion marker. All candidate success paths reconstructed the expected full semantic context, and no benchmark local store path appeared in the logical request.
+
+Receiver-local packed/materialized state remains derived, rebuildable and eviction-owned by the receiver/executor. D0017 activates no persistent cross-worker CAS/shared durable storage; D0022 remains conditional. D0018 retains warm executor/process/provider lifecycle and the final real executor/provider boundary. ContextSlice remains unselected. A later production implementation may be undertaken under this accepted Design, but the explicit scope of this decision task stops before that `src/` implementation and therefore makes no `verified` D0017 product claim.
+
+---
+
 # mvp-1a-7 D0015 deployed MVP program rebaseline and D0014 post-review report
 
 - Date: 2026-08-10

@@ -56,36 +56,31 @@ For this project, **“MVP complete” means Level 4**. Source completion, deplo
 | B | Semantic authority and persistence | VERIFIED local / runtime integration open | D0009-D0010 | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |
 | C | Git and publication | SOURCE VERIFIED / deployment open | D0011-D0012 | deployed fenced Promotion -> Git candidate -> authenticated remote publication path is reconciliable and least-privilege qualified |
 | D | Repository and model execution | LOCAL VERIFIED | D0013-D0014 | selected actual executor/provider path preserves result-only/fencing/cancellation/resource contracts |
-| E | Context delivery and model input | READY | D0014 post-review baseline | per-Attempt delivery/disclosure contract selected from measured post-D0014 costs and independently verified |
+| E | Context delivery and model input | ACTIVE — D0016/D0017 DESIGN ACCEPTED; IMPLEMENTATION/VERIFICATION OPEN | D0014 verified + D0016 mechanism decision + D0017 contract decision | per-Attempt delivery/disclosure contract selected from measured post-D0014 costs and independently verified |
 | F | Cloudflare runtime and local Agent topology | NOT IMPLEMENTED | architecture mapping only | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity and fencing are deployed and verified |
 | G | MCP, authentication and security | DOCUMENTED BOUNDARY / NOT IMPLEMENTED | `MCP.md`, `SECURITY.md` | real secured MCP endpoint passes auth/tenant/replay/stale-fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | NOT IMPLEMENTED | deployment requirements only | fresh deploy, user/provider setup, migration/rollback/runbooks and full deployed qualification pass |
 
 A group may be implemented through multiple Designs. Conversely, one Design may close adjacent gates when one coherent authority decision makes separation artificial.
 
-## 5. Post-D0014 baseline and next decision
+## 5. Post-D0014 Group E decision state
 
 D0014 removes a structural repository-preparation amplification axis for same exact bases: validated evidence retains the `48 -> 5` same-base-eight Git-call result and retry preparation `4x -> 1x`. It does **not** remove one complete canonical request or one model process start per Attempt.
 
-The next decision therefore starts from the remaining cost, not from the pre-D0014 roadmap. Candidate mechanisms must include at least:
+D0016 therefore measured the remaining context/executor candidates instead of preselecting ContextSlice. It accepted the first staged mechanism as a semantic-preserving immutable full-context reference envelope: same-base/eight reference requests reduced parent-to-receiver transfer by about 99.97%, while fresh-receiver wall time and process starts remained separate questions.
 
-1. **full-context reference transport** — retain model-visible full-context semantics while reducing repeated request copying/transfer/parse;
-2. **immutable manifest plus content references** — bind content identity while separating request metadata from bytes;
-3. **deterministic ContextSlice** — reduce model-visible bytes/disclosure, but only with a completeness/dependency/fallback/quality contract;
-4. **warm executor/process** — remeasure startup/initialization now that preparation is cheaper;
-5. **streaming/lazy delivery** — reduce peak copies/backpressure while preserving explicit semantics;
-6. **hybrid/staged approaches** — e.g. semantic-preserving reference transport first, then remeasure before accepting ContextSlice risk.
+D0017 now accepts the exact logical contract and receiver representation. One logical reference binds exact repository commit, semantic `baseDigest`, repository `contextDigest` and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators. The first receiver representation is bounded packed/hybrid, selected as the balance between whole-bundle parse/working-set cost and fine-grained manifest per-file lookup fanout. D0017 does not claim a universal wall-time win, does not select ContextSlice, and does not activate a persistent shared CAS.
 
-Persistent cross-worker CAS remains evidence-gated. D0014 process-local reuse already removes much repeated work, while persistent CAS adds publication, corruption, permissions, partial-write, reader-protection, GC, disk-pressure, migration and rollback contracts.
+The next Group E work is **production implementation and independent verification of D0017**, followed by D0018 measurement/contract work for the final real executor/provider lifecycle. Only after that real-runtime evidence may semantic input reduction such as ContextSlice be reconsidered. Persistent cross-worker CAS/D0022 remains evidence-gated.
 
 ## 6. Provisional remaining Design program
 
-These IDs describe a planning envelope. D0016 is now an accepted decision and is retained below as the completed entry gate for Group E; the remaining IDs are not accepted decisions unless their owner records otherwise and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
+These IDs describe a planning envelope. D0016 and D0017 are now accepted Design-layer decisions and are retained below as completed Group E decision gates; D0017 production implementation/verification and the later IDs remain open unless their owner records otherwise and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
 
 | Provisional ID | Group | Planning question | MVP criticality |
 | --- | --- | --- | --- |
 | D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
-| D0017 | E | Selected Context Delivery Contract | **required next** — define authorized immutable reference + receiver representation |
+| D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12** — authorized immutable logical reference + bounded packed/hybrid receiver; production implementation/verification pending |
 | D0018 | D/E | Model Executor / External Provider Runtime Contract | required for the accepted final execution profile |
 | D0019 | B/F | CaseDO Authority Adapter | required |
 | D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |
@@ -154,7 +149,8 @@ Credential material must not enter Plan inputs, Case snapshots, semantic Events,
 The roadmap is not a serial Design-number queue. A likely dependency spine is:
 
 ```text
-D0016 -> D0017/D0018
+D0016 -> D0017 accepted contract
+               -> D0017 implementation/verification -> D0018
                |
         +------+------+
         |             |
