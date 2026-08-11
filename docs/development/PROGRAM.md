@@ -32,7 +32,7 @@ group/e-context-delivery
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **active / decision-ready** | D0014 post-review baseline | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
+| E | Context delivery and model input | **active / D0016 accepted; D0017 next** | D0016 accepted decision | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
 | F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
@@ -81,9 +81,11 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0016 — Per-Attempt Context Delivery Minimization Decision
 
 - **Group:** E
-- **Status:** decision-ready / next Class 2 gate
+- **Status:** accepted decision — 2026-08-11
 - **Purpose:** remeasure the post-D0014 cost profile and choose the next semantic/transport layer rather than preselect ContextSlice.
-- **Must compare:** full-context immutable reference transport; manifest + content references; deterministic ContextSlice; warm executor/process; streaming/lazy delivery; staged/hybrid combinations.
+- **Compared:** inline full context, immutable bundle reference, manifest/content references, warm inline, streaming inline and warm+reference hybrid; ContextSlice/persistent CAS/provider work remained explicitly bounded out where their prerequisite contracts were absent.
+- **Measured:** same-base 1/2/4/8, multi-base 2/4/8, retry 0..3, cold restart, capacity + 1, repository-shape sensitivity, stale/corrupt/missing references, input-limit rejection and cancellation.
+- **Accepted staged strategy:** immutable full-context reference envelope. D0017 must define the authorized immutable logical reference and choose/falsify the bounded receiver representation; D0018 separately owns warm executor/provider lifetime.
 - **Affected owners:** repository/model execution and future provider/context transport; no semantic-authority migration is assumed.
 - **Explicit non-owners:** cache hit rate, Git OID or provider reference existence cannot authorize Case/Task/result/Promotion state.
 - **Prerequisites:** D0014 verified; post-review attribution/resource bounds understood.
@@ -95,7 +97,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0017 — Selected Context Delivery Contract
 
 - **Group:** E
-- **Status:** planned; conditional on D0016 selecting a source/contract change
+- **Status:** required next Design / not yet accepted
 - **Purpose:** implement the D0016-selected delivery mechanism with deterministic identity, bounds, retry/restart behavior and auditability.
 - **Affected owners:** context/model transport and any content-reference contract selected by D0016.
 - **Required identity:** exact commit, authoritative `baseDigest`, preparation/manifest identity and selected delivery identity; slice identity if slicing is chosen.

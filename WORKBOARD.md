@@ -17,7 +17,8 @@
 - Development-program register: `docs/development/PROGRAM.md`
 - Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
-- Active Class 2 design: none accepted yet; `docs/design/0016-per-attempt-context-delivery-minimization-decision.md` is the current draft/decision gate and does not preselect ContextSlice or persistent CAS
+- Most recent accepted Class 2 decision: D0016 — Per-Attempt Context Delivery Minimization Decision, accepted 2026-08-11; it selects an immutable full-context reference envelope and does not itself authorize production-source changes.
+- Active Class 2 production-source design: none. D0017 — Selected Context Delivery Contract is the next required Design and must be accepted before implementation.
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
@@ -26,7 +27,7 @@ Group E is the current mutable cumulative development checkpoint. All accepted p
 
 D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
 
-D0014 remains verified after independent post-publication review. The final source was not rewritten. The review confirms the `48 -> 5` same-base Git-call and retry `4x -> 1x` preparation results; corrects artifact `9048558724`'s outer ZIP digest record; distinguishes retained complete-cache bounds from concurrently pending live-work bounds; reproduces safe but cold-path LRU capacity+1 churn; and tightens benchmark wording. The immediate next engineering gate must compare full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming/lazy delivery and hybrids from the post-D0014 baseline. Persistent CAS remains evidence-gated.
+D0014 remains verified after independent post-publication review. The final source was not rewritten. D0016 has now remeasured the remaining per-Attempt transport/executor boundary and accepted an immutable full-context reference envelope as the first staged change. D0017 is the immediate next engineering gate: it must define the authorized immutable reference and choose/falsify a bounded receiver representation. ContextSlice remains unselected, warm executor/process reuse remains a D0018 concern, and persistent CAS remains evidence-gated.
 
 ## Verified work
 
@@ -41,7 +42,8 @@ D0014 remains verified after independent post-publication review. The final sour
 - D0014 disposition: remains `verified`; source/product evidence intact; no production-source correctness reopen; one timing-sensitive lifecycle test guard corrected
 - Provenance correction: artifact `9048558724` current GitHub/downloaded outer ZIP SHA-256 is `7578976ee2f7695a8f7922255a5b07e486f1bb824e12c4d60dfa2f6e63ed21bf`; historical Issue value is superseded for outer-ZIP provenance only
 - Resource clarification: context-cache entry/byte limits bound retained complete preparations; pending different-key live work follows caller/admission concurrency and has no D0014 executor-global memory budget
-- Next gate: provisional D0016 decision-neutral per-Attempt context delivery/model execution comparison; roadmap IDs do not authorize implementation
+- D0016 disposition: accepted decision on 2026-08-11; immutable full-context reference envelope selected from measured evidence with no production `src/` change
+- Next gate: D0017 selected context-delivery contract; it is required but not accepted and does not authorize production implementation yet
 
 ### D0014 — verified repository/model transport product-efficiency slice
 

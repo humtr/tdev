@@ -1,0 +1,2555 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.context-delivery-decision-benchmark.v1",
+  "sourceSha": "fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a",
+  "benchmarkCommit": "fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a",
+  "environment": {
+    "node": "v26.4.0",
+    "platform": "android/arm64",
+    "git": "git version 2.55.0"
+  },
+  "limits": {
+    "maxTreeEntries": 100000,
+    "maxFileBytes": 2097152,
+    "maxTreeBytes": 16777216
+  },
+  "sameBase": {
+    "context": {
+      "commitOid": "fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a",
+      "baseDigest": "sha256:f2f7d4474dceca0c3ffdef05c67e7d183c8693c7abf37156e8e351fa3a14c445",
+      "contextDigest": "sha256:468dd680435cbd441e35d684d6e8262645d88718d00be4b3f05706a75977b685",
+      "fileCount": 118,
+      "contentBytes": 2284793,
+      "preparation": {
+        "wallMs": 301.867968,
+        "gitCommandCount": 5,
+        "gitInputBytes": 4838,
+        "gitStdoutBytes": 2302294,
+        "scanDurationMs": 300,
+        "contextMaterializations": 1
+      },
+      "bundleBytes": 2403446,
+      "manifestBytes": 70073,
+      "uniqueBlobCount": 118
+    },
+    "results": [
+      {
+        "workload": "same-base-1",
+        "result": {
+          "candidate": "inline-full",
+          "attempts": 1,
+          "processStarts": 1,
+          "requestBytes": 2403708,
+          "requestBuildMs": 21.618281000000025,
+          "wallMs": 990.6975000000001,
+          "throughputPerSecond": 1.0093898490709827,
+          "latency": {
+            "count": 1,
+            "p50": 990.1585409999999,
+            "p95": 990.1585409999999,
+            "max": 990.1585409999999
+          },
+          "receiverRequestParseMs": 538.2922390000001,
+          "receiverResolveMs": 90.83885399999997,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 925.404,
+          "receiverCpuSystemMs": 102.93,
+          "receiverMaxRssBytes": 214224896,
+          "receiverMaxHeapBytes": 94530896,
+          "receiverCacheStatuses": {
+            "none": 1
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 2284793,
+          "parentMemory": {
+            "beforeRss": 118046720,
+            "afterRss": 120971264,
+            "sampledPeakRss": 121556992,
+            "sampledRssDelta": 3510272,
+            "beforeHeap": 8575992,
+            "afterHeap": 30460064,
+            "sampledPeakHeap": 30579688,
+            "sampledHeapDelta": 22003696
+          }
+        }
+      },
+      {
+        "workload": "same-base-1",
+        "result": {
+          "candidate": "bundle-ref",
+          "attempts": 1,
+          "processStarts": 1,
+          "requestBytes": 702,
+          "requestBuildMs": 0.3816670000001068,
+          "wallMs": 1010.3141660000001,
+          "throughputPerSecond": 0.989791129980058,
+          "latency": {
+            "count": 1,
+            "p50": 1010.2408849999999,
+            "p95": 1010.2408849999999,
+            "max": 1010.2408849999999
+          },
+          "receiverRequestParseMs": 2.224063000000001,
+          "receiverResolveMs": 654.957969,
+          "receiverStorageBytes": 2403446,
+          "receiverCpuUserMs": 892.606,
+          "receiverCpuSystemMs": 136.126,
+          "receiverMaxRssBytes": 210132992,
+          "receiverMaxHeapBytes": 94489344,
+          "receiverCacheStatuses": {
+            "none": 1
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 2284793,
+          "parentMemory": {
+            "beforeRss": 120229888,
+            "afterRss": 116920320,
+            "sampledPeakRss": 120229888,
+            "sampledRssDelta": 0,
+            "beforeHeap": 8628680,
+            "afterHeap": 8981104,
+            "sampledPeakHeap": 8970864,
+            "sampledHeapDelta": 342184
+          }
+        }
+      },
+      {
+        "workload": "same-base-1",
+        "result": {
+          "candidate": "manifest-content-ref",
+          "attempts": 1,
+          "processStarts": 1,
+          "requestBytes": 716,
+          "requestBuildMs": 0.42666700000017954,
+          "wallMs": 378.9229680000003,
+          "throughputPerSecond": 2.6390588178861702,
+          "latency": {
+            "count": 1,
+            "p50": 378.816875,
+            "p95": 378.816875,
+            "max": 378.816875
+          },
+          "receiverRequestParseMs": 1.9556249999999977,
+          "receiverResolveMs": 66.47260400000002,
+          "receiverStorageBytes": 2354866,
+          "receiverCpuUserMs": 138.762,
+          "receiverCpuSystemMs": 5.742,
+          "receiverMaxRssBytes": 74752000,
+          "receiverMaxHeapBytes": 19007256,
+          "receiverCacheStatuses": {
+            "none": 1
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 2284793,
+          "parentMemory": {
+            "beforeRss": 114548736,
+            "afterRss": 113627136,
+            "sampledPeakRss": 114552832,
+            "sampledRssDelta": 4096,
+            "beforeHeap": 8619000,
+            "afterHeap": 8795200,
+            "sampledPeakHeap": 8791792,
+            "sampledHeapDelta": 172792
+          }
+        }
+      },
+      {
+        "workload": "same-base-1",
+        "result": {
+          "candidate": "warm-inline",
+          "attempts": 1,
+          "processStarts": 1,
+          "requestBytes": 2403708,
+          "requestBuildMs": 36.838436999999885,
+          "wallMs": 1075.9072399999995,
+          "throughputPerSecond": 0.9294481557722396,
+          "latency": {
+            "count": 1,
+            "p50": 1012.2179169999995,
+            "p95": 1012.2179169999995,
+            "max": 1012.2179169999995
+          },
+          "receiverRequestParseMs": 604.118073,
+          "receiverResolveMs": 87.98447899999996,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 1217.655,
+          "receiverCpuSystemMs": 54.37,
+          "receiverMaxRssBytes": 173010944,
+          "receiverMaxHeapBytes": 99369448,
+          "receiverCacheStatuses": {
+            "none": 1
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 2284793,
+          "parentMemory": {
+            "beforeRss": 113627136,
+            "afterRss": 105897984,
+            "sampledPeakRss": 116043776,
+            "sampledRssDelta": 2416640,
+            "beforeHeap": 8621528,
+            "afterHeap": 14002776,
+            "sampledPeakHeap": 26151216,
+            "sampledHeapDelta": 17529688
+          }
+        }
+      },
+      {
+        "workload": "same-base-2",
+        "result": {
+          "candidate": "inline-full",
+          "attempts": 2,
+          "processStarts": 2,
+          "requestBytes": 4807416,
+          "requestBuildMs": 52.54145900000003,
+          "wallMs": 1362.7852600000006,
+          "throughputPerSecond": 1.4675826476139016,
+          "latency": {
+            "count": 2,
+            "p50": 1289.3072389999998,
+            "p95": 1362.6236449999997,
+            "max": 1362.6236449999997
+          },
+          "receiverRequestParseMs": 1332.803124,
+          "receiverResolveMs": 604.4011970000001,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 2189.982,
+          "receiverCpuSystemMs": 178.054,
+          "receiverMaxRssBytes": 196276224,
+          "receiverMaxHeapBytes": 79327152,
+          "receiverCacheStatuses": {
+            "none": 2
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 4569586,
+          "parentMemory": {
+            "beforeRss": 98701312,
+            "afterRss": 119336960,
+            "sampledPeakRss": 119562240,
+            "sampledRssDelta": 20860928,
+            "beforeHeap": 8664736,
+            "afterHeap": 28295368,
+            "sampledPeakHeap": 28292744,
+            "sampledHeapDelta": 19628008
+          }
+        }
+      },
+      {
+        "workload": "same-base-2",
+        "result": {
+          "candidate": "bundle-ref",
+          "attempts": 2,
+          "processStarts": 2,
+          "requestBytes": 1404,
+          "requestBuildMs": 0.596667000000707,
+          "wallMs": 1191.1378640000003,
+          "throughputPerSecond": 1.6790667650205766,
+          "latency": {
+            "count": 2,
+            "p50": 1112.7292699999998,
+            "p95": 1191.042708,
+            "max": 1191.042708
+          },
+          "receiverRequestParseMs": 4.215885000000014,
+          "receiverResolveMs": 1529.4994780000002,
+          "receiverStorageBytes": 4806892,
+          "receiverCpuUserMs": 1816.2800000000002,
+          "receiverCpuSystemMs": 163.688,
+          "receiverMaxRssBytes": 203710464,
+          "receiverMaxHeapBytes": 94619560,
+          "receiverCacheStatuses": {
+            "none": 2
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 4569586,
+          "parentMemory": {
+            "beforeRss": 116764672,
+            "afterRss": 116449280,
+            "sampledPeakRss": 116785152,
+            "sampledRssDelta": 20480,
+            "beforeHeap": 8669208,
+            "afterHeap": 9060920,
+            "sampledPeakHeap": 9058288,
+            "sampledHeapDelta": 389080
+          }
+        }
+      },
+      {
+        "workload": "same-base-2",
+        "result": {
+          "candidate": "manifest-content-ref",
+          "attempts": 2,
+          "processStarts": 2,
+          "requestBytes": 1432,
+          "requestBuildMs": 0.2881250000000364,
+          "wallMs": 445.09843699999965,
+          "throughputPerSecond": 4.493388054741701,
+          "latency": {
+            "count": 2,
+            "p50": 420.64916600000015,
+            "p95": 425.78005199999916,
+            "max": 425.78005199999916
+          },
+          "receiverRequestParseMs": 4.175573000000014,
+          "receiverResolveMs": 205.05349,
+          "receiverStorageBytes": 4709732,
+          "receiverCpuUserMs": 245.664,
+          "receiverCpuSystemMs": 46.187,
+          "receiverMaxRssBytes": 74670080,
+          "receiverMaxHeapBytes": 19004440,
+          "receiverCacheStatuses": {
+            "none": 2
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 4569586,
+          "parentMemory": {
+            "beforeRss": 114110464,
+            "afterRss": 114388992,
+            "sampledPeakRss": 114388992,
+            "sampledRssDelta": 278528,
+            "beforeHeap": 8691888,
+            "afterHeap": 8924952,
+            "sampledPeakHeap": 8921696,
+            "sampledHeapDelta": 229808
+          }
+        }
+      },
+      {
+        "workload": "same-base-2",
+        "result": {
+          "candidate": "warm-inline",
+          "attempts": 2,
+          "processStarts": 1,
+          "requestBytes": 4807416,
+          "requestBuildMs": 62.762031000000206,
+          "wallMs": 1704.0403119999992,
+          "throughputPerSecond": 1.1736811540876275,
+          "latency": {
+            "count": 2,
+            "p50": 879.6638540000004,
+            "p95": 1629.4438539999992,
+            "max": 1629.4438539999992
+          },
+          "receiverRequestParseMs": 983.4210939999999,
+          "receiverResolveMs": 305.0312489999999,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 1584.192,
+          "receiverCpuSystemMs": 119.795,
+          "receiverMaxRssBytes": 215056384,
+          "receiverMaxHeapBytes": 99908472,
+          "receiverCacheStatuses": {
+            "none": 2
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 4569586,
+          "parentMemory": {
+            "beforeRss": 114401280,
+            "afterRss": 109903872,
+            "sampledPeakRss": 134496256,
+            "sampledRssDelta": 20094976,
+            "beforeHeap": 8707608,
+            "afterHeap": 29901512,
+            "sampledPeakHeap": 47564872,
+            "sampledHeapDelta": 38857264
+          }
+        }
+      },
+      {
+        "workload": "same-base-4",
+        "result": {
+          "candidate": "inline-full",
+          "attempts": 4,
+          "processStarts": 4,
+          "requestBytes": 9614832,
+          "requestBuildMs": 111.02036500000031,
+          "wallMs": 2469.5413529999987,
+          "throughputPerSecond": 1.6197339619929023,
+          "latency": {
+            "count": 4,
+            "p50": 2232.478280000001,
+            "p95": 2469.3320299999996,
+            "max": 2469.3320299999996
+          },
+          "receiverRequestParseMs": 5582.0419249999995,
+          "receiverResolveMs": 718.2470310000001,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 5639.368,
+          "receiverCpuSystemMs": 382.02,
+          "receiverMaxRssBytes": 205565952,
+          "receiverMaxHeapBytes": 94672400,
+          "receiverCacheStatuses": {
+            "none": 4
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 9139172,
+          "parentMemory": {
+            "beforeRss": 88969216,
+            "afterRss": 117248000,
+            "sampledPeakRss": 117248000,
+            "sampledRssDelta": 28278784,
+            "beforeHeap": 8723928,
+            "afterHeap": 29066632,
+            "sampledPeakHeap": 29344656,
+            "sampledHeapDelta": 20620728
+          }
+        }
+      },
+      {
+        "workload": "same-base-4",
+        "result": {
+          "candidate": "bundle-ref",
+          "attempts": 4,
+          "processStarts": 4,
+          "requestBytes": 2808,
+          "requestBuildMs": 0.33713499999976193,
+          "wallMs": 2787.861456999999,
+          "throughputPerSecond": 1.4347915280927825,
+          "latency": {
+            "count": 4,
+            "p50": 2171.6691649999993,
+            "p95": 2736.952863999999,
+            "max": 2736.952863999999
+          },
+          "receiverRequestParseMs": 58.80708299999998,
+          "receiverResolveMs": 6506.826768,
+          "receiverStorageBytes": 9613784,
+          "receiverCpuUserMs": 5366.277,
+          "receiverCpuSystemMs": 437.22700000000003,
+          "receiverMaxRssBytes": 195551232,
+          "receiverMaxHeapBytes": 94629872,
+          "receiverCacheStatuses": {
+            "none": 4
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 9139172,
+          "parentMemory": {
+            "beforeRss": 103923712,
+            "afterRss": 103546880,
+            "sampledPeakRss": 103923712,
+            "sampledRssDelta": 0,
+            "beforeHeap": 8765696,
+            "afterHeap": 9639064,
+            "sampledPeakHeap": 9636112,
+            "sampledHeapDelta": 870416
+          }
+        }
+      },
+      {
+        "workload": "same-base-4",
+        "result": {
+          "candidate": "manifest-content-ref",
+          "attempts": 4,
+          "processStarts": 4,
+          "requestBytes": 2864,
+          "requestBuildMs": 0.3174479999997857,
+          "wallMs": 832.0498429999989,
+          "throughputPerSecond": 4.807404308349837,
+          "latency": {
+            "count": 4,
+            "p50": 654.9460409999992,
+            "p95": 781.6903650000004,
+            "max": 781.6903650000004
+          },
+          "receiverRequestParseMs": 15.535209000000066,
+          "receiverResolveMs": 472.655312,
+          "receiverStorageBytes": 9419464,
+          "receiverCpuUserMs": 495.80100000000004,
+          "receiverCpuSystemMs": 100.413,
+          "receiverMaxRssBytes": 74620928,
+          "receiverMaxHeapBytes": 19015528,
+          "receiverCacheStatuses": {
+            "none": 4
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 9139172,
+          "parentMemory": {
+            "beforeRss": 103329792,
+            "afterRss": 79634432,
+            "sampledPeakRss": 103329792,
+            "sampledRssDelta": 0,
+            "beforeHeap": 8769600,
+            "afterHeap": 9155800,
+            "sampledPeakHeap": 9153120,
+            "sampledHeapDelta": 383520
+          }
+        }
+      },
+      {
+        "workload": "same-base-4",
+        "result": {
+          "candidate": "warm-inline",
+          "attempts": 4,
+          "processStarts": 1,
+          "requestBytes": 9614832,
+          "requestBuildMs": 121.16265600000042,
+          "wallMs": 3498.200884,
+          "throughputPerSecond": 1.1434449114386536,
+          "latency": {
+            "count": 4,
+            "p50": 2267.8308849999994,
+            "p95": 3398.645155000002,
+            "max": 3398.645155000002
+          },
+          "receiverRequestParseMs": 2166.071406,
+          "receiverResolveMs": 343.7017189999999,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 3080.391,
+          "receiverCpuSystemMs": 194.33300000000003,
+          "receiverMaxRssBytes": 458772480,
+          "receiverMaxHeapBytes": 295889248,
+          "receiverCacheStatuses": {
+            "none": 4
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 9139172,
+          "parentMemory": {
+            "beforeRss": 79663104,
+            "afterRss": 139313152,
+            "sampledPeakRss": 139313152,
+            "sampledRssDelta": 59650048,
+            "beforeHeap": 8779304,
+            "afterHeap": 59501976,
+            "sampledPeakHeap": 59500688,
+            "sampledHeapDelta": 50721384
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "inline-full",
+          "attempts": 8,
+          "processStarts": 8,
+          "requestBytes": 19229664,
+          "requestBuildMs": 195.91463499999736,
+          "wallMs": 6866.724997000001,
+          "throughputPerSecond": 1.1650386470253453,
+          "latency": {
+            "count": 8,
+            "p50": 6050.0424459999995,
+            "p95": 6708.680571000001,
+            "max": 6708.680571000001
+          },
+          "receiverRequestParseMs": 30448.376762000004,
+          "receiverResolveMs": 2454.0122890000007,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 14573.389,
+          "receiverCpuSystemMs": 1184.937,
+          "receiverMaxRssBytes": 200433664,
+          "receiverMaxHeapBytes": 94556240,
+          "receiverCacheStatuses": {
+            "none": 8
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 107307008,
+            "afterRss": 135737344,
+            "sampledPeakRss": 148094976,
+            "sampledRssDelta": 40787968,
+            "beforeHeap": 8793720,
+            "afterHeap": 10707896,
+            "sampledPeakHeap": 50300832,
+            "sampledHeapDelta": 41507112
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "bundle-ref",
+          "attempts": 8,
+          "processStarts": 8,
+          "requestBytes": 5616,
+          "requestBuildMs": 0.48791699999856064,
+          "wallMs": 5973.643019000003,
+          "throughputPerSecond": 1.339216283021079,
+          "latency": {
+            "count": 8,
+            "p50": 4779.444477000001,
+            "p95": 5929.871873,
+            "max": 5929.871873
+          },
+          "receiverRequestParseMs": 131.4521329999999,
+          "receiverResolveMs": 29189.435978,
+          "receiverStorageBytes": 19227568,
+          "receiverCpuUserMs": 13832.155999999999,
+          "receiverCpuSystemMs": 1035.824,
+          "receiverMaxRssBytes": 197386240,
+          "receiverMaxHeapBytes": 94472088,
+          "receiverCacheStatuses": {
+            "none": 8
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 127946752,
+            "afterRss": 85164032,
+            "sampledPeakRss": 127946752,
+            "sampledRssDelta": 0,
+            "beforeHeap": 8800704,
+            "afterHeap": 9141376,
+            "sampledPeakHeap": 9675696,
+            "sampledHeapDelta": 874992
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "manifest-content-ref",
+          "attempts": 8,
+          "processStarts": 8,
+          "requestBytes": 5728,
+          "requestBuildMs": 0.540936999997939,
+          "wallMs": 2119.438696999998,
+          "throughputPerSecond": 3.7745842856053167,
+          "latency": {
+            "count": 8,
+            "p50": 1584.8960929999994,
+            "p95": 2021.8624469999995,
+            "max": 2021.8624469999995
+          },
+          "receiverRequestParseMs": 90.81697899999949,
+          "receiverResolveMs": 3031.8855189999995,
+          "receiverStorageBytes": 18838928,
+          "receiverCpuUserMs": 1585.24,
+          "receiverCpuSystemMs": 336.742,
+          "receiverMaxRssBytes": 75239424,
+          "receiverMaxHeapBytes": 19016032,
+          "receiverCacheStatuses": {
+            "none": 8
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 82771968,
+            "afterRss": 82731008,
+            "sampledPeakRss": 83087360,
+            "sampledRssDelta": 315392,
+            "beforeHeap": 8813968,
+            "afterHeap": 9617664,
+            "sampledPeakHeap": 9615096,
+            "sampledHeapDelta": 801128
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "warm-inline",
+          "attempts": 8,
+          "processStarts": 1,
+          "requestBytes": 19229664,
+          "requestBuildMs": 289.34661400000186,
+          "wallMs": 9095.124788000001,
+          "throughputPerSecond": 0.8795921096712278,
+          "latency": {
+            "count": 8,
+            "p50": 4773.724840999996,
+            "p95": 8889.350308999994,
+            "max": 8889.350308999994
+          },
+          "receiverRequestParseMs": 6940.653800999999,
+          "receiverResolveMs": 1208.1804670000013,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 8329.221,
+          "receiverCpuSystemMs": 405.50600000000003,
+          "receiverMaxRssBytes": 503160832,
+          "receiverMaxHeapBytes": 291034256,
+          "receiverCacheStatuses": {
+            "none": 8
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 82718720,
+            "afterRss": 144412672,
+            "sampledPeakRss": 144412672,
+            "sampledRssDelta": 61693952,
+            "beforeHeap": 8816320,
+            "afterHeap": 56131872,
+            "sampledPeakHeap": 56130616,
+            "sampledHeapDelta": 47314296
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "streaming-inline",
+          "attempts": 8,
+          "processStarts": 8,
+          "requestBytes": 19229704,
+          "requestBuildMs": 573.9336449999973,
+          "wallMs": 7716.748382000005,
+          "throughputPerSecond": 1.0367060844773304,
+          "latency": {
+            "count": 8,
+            "p50": 7047.765153,
+            "p95": 7567.094266999993,
+            "max": 7567.094266999993
+          },
+          "receiverRequestParseMs": 35874.803319,
+          "receiverResolveMs": 3942.6387479999994,
+          "receiverStorageBytes": 0,
+          "receiverCpuUserMs": 15949.446,
+          "receiverCpuSystemMs": 1120.4089999999999,
+          "receiverMaxRssBytes": 198152192,
+          "receiverMaxHeapBytes": 94719408,
+          "receiverCacheStatuses": {
+            "none": 8
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 100319232,
+            "afterRss": 132935680,
+            "sampledPeakRss": 148340736,
+            "sampledRssDelta": 48021504,
+            "beforeHeap": 8144456,
+            "afterHeap": 10334800,
+            "sampledPeakHeap": 59338432,
+            "sampledHeapDelta": 51193976
+          }
+        }
+      },
+      {
+        "workload": "same-base-8",
+        "result": {
+          "candidate": "warm-bundle-ref",
+          "attempts": 8,
+          "processStarts": 1,
+          "requestBytes": 5656,
+          "requestBuildMs": 0.34249999999883585,
+          "wallMs": 2246.605155999998,
+          "throughputPerSecond": 3.560928353891843,
+          "latency": {
+            "count": 8,
+            "p50": 1986.3385930000004,
+            "p95": 2142.588957,
+            "max": 2142.588957
+          },
+          "receiverRequestParseMs": 5.068905999999913,
+          "receiverResolveMs": 1691.1977080000001,
+          "receiverStorageBytes": 2403446,
+          "receiverCpuUserMs": 1831.8240000000003,
+          "receiverCpuSystemMs": 176.88499999999996,
+          "receiverMaxRssBytes": 216993792,
+          "receiverMaxHeapBytes": 119924472,
+          "receiverCacheStatuses": {
+            "miss": 1,
+            "hit": 7
+          },
+          "semanticEquivalent": true,
+          "modelVisibleContextBytes": 18278344,
+          "parentMemory": {
+            "beforeRss": 131940352,
+            "afterRss": 116195328,
+            "sampledPeakRss": 131940352,
+            "sampledRssDelta": 0,
+            "beforeHeap": 8144240,
+            "afterHeap": 8855808,
+            "sampledPeakHeap": 8854520,
+            "sampledHeapDelta": 710280
+          }
+        }
+      }
+    ]
+  },
+  "retry": [
+    {
+      "workload": "retry-0",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 1,
+        "processStarts": 1,
+        "requestBytes": 2403708,
+        "requestBuildMs": 32.16760400000203,
+        "wallMs": 1533.6536979999946,
+        "throughputPerSecond": 0.6520376805429275,
+        "latency": {
+          "count": 1,
+          "p50": 1533.550780999998,
+          "p95": 1533.550780999998,
+          "max": 1533.550780999998
+        },
+        "receiverRequestParseMs": 875.6813010000001,
+        "receiverResolveMs": 129.33468799999991,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 1144.03,
+        "receiverCpuSystemMs": 114.54,
+        "receiverMaxRssBytes": 201482240,
+        "receiverMaxHeapBytes": 94695776,
+        "receiverCacheStatuses": {
+          "none": 1
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2284793,
+        "parentMemory": {
+          "beforeRss": 122368000,
+          "afterRss": 124207104,
+          "sampledPeakRss": 124833792,
+          "sampledRssDelta": 2465792,
+          "beforeHeap": 8275048,
+          "afterHeap": 30069408,
+          "sampledPeakHeap": 30063200,
+          "sampledHeapDelta": 21788152
+        }
+      }
+    },
+    {
+      "workload": "retry-0",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 1,
+        "processStarts": 1,
+        "requestBytes": 701,
+        "requestBuildMs": 0.14661400000477443,
+        "wallMs": 1429.151353000001,
+        "throughputPerSecond": 0.699715952338324,
+        "latency": {
+          "count": 1,
+          "p50": 1429.1194269999978,
+          "p95": 1429.1194269999978,
+          "max": 1429.1194269999978
+        },
+        "receiverRequestParseMs": 3.1531250000000455,
+        "receiverResolveMs": 935.4636979999999,
+        "receiverStorageBytes": 2403446,
+        "receiverCpuUserMs": 1157.884,
+        "receiverCpuSystemMs": 142.751,
+        "receiverMaxRssBytes": 203821056,
+        "receiverMaxHeapBytes": 94578216,
+        "receiverCacheStatuses": {
+          "none": 1
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2284793,
+        "parentMemory": {
+          "beforeRss": 123330560,
+          "afterRss": 120475648,
+          "sampledPeakRss": 123330560,
+          "sampledRssDelta": 0,
+          "beforeHeap": 8227528,
+          "afterHeap": 8632824,
+          "sampledPeakHeap": 8630256,
+          "sampledHeapDelta": 402728
+        }
+      }
+    },
+    {
+      "workload": "retry-0",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 1,
+        "processStarts": 1,
+        "requestBytes": 715,
+        "requestBuildMs": 0.14104100000258768,
+        "wallMs": 566.3660410000011,
+        "throughputPerSecond": 1.765642583786195,
+        "latency": {
+          "count": 1,
+          "p50": 566.3341139999975,
+          "p95": 566.3341139999975,
+          "max": 566.3341139999975
+        },
+        "receiverRequestParseMs": 3.128072999999972,
+        "receiverResolveMs": 124.10119800000001,
+        "receiverStorageBytes": 2354748,
+        "receiverCpuUserMs": 167.669,
+        "receiverCpuSystemMs": 44.739,
+        "receiverMaxRssBytes": 74326016,
+        "receiverMaxHeapBytes": 19003576,
+        "receiverCacheStatuses": {
+          "none": 1
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2284793,
+        "parentMemory": {
+          "beforeRss": 120459264,
+          "afterRss": 117723136,
+          "sampledPeakRss": 120459264,
+          "sampledRssDelta": 0,
+          "beforeHeap": 8225472,
+          "afterHeap": 8423984,
+          "sampledPeakHeap": 8419168,
+          "sampledHeapDelta": 193696
+        }
+      }
+    },
+    {
+      "workload": "retry-0",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 1,
+        "processStarts": 1,
+        "requestBytes": 2403708,
+        "requestBuildMs": 47.2609369999991,
+        "wallMs": 1607.995781000005,
+        "throughputPerSecond": 0.6218921789571517,
+        "latency": {
+          "count": 1,
+          "p50": 1482.2857809999987,
+          "p95": 1482.2857809999987,
+          "max": 1482.2857809999987
+        },
+        "receiverRequestParseMs": 824.1554160000001,
+        "receiverResolveMs": 212.46218799999997,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 1205.235,
+        "receiverCpuSystemMs": 113.848,
+        "receiverMaxRssBytes": 201662464,
+        "receiverMaxHeapBytes": 99788800,
+        "receiverCacheStatuses": {
+          "none": 1
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2284793,
+        "parentMemory": {
+          "beforeRss": 117731328,
+          "afterRss": 109957120,
+          "sampledPeakRss": 120078336,
+          "sampledRssDelta": 2347008,
+          "beforeHeap": 8225320,
+          "afterHeap": 13510216,
+          "sampledPeakHeap": 25760464,
+          "sampledHeapDelta": 17535144
+        }
+      }
+    },
+    {
+      "workload": "retry-1",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 2,
+        "processStarts": 2,
+        "requestBytes": 4807416,
+        "requestBuildMs": 124.99098999999842,
+        "wallMs": 2439.3224989999944,
+        "throughputPerSecond": 0.8198997880845621,
+        "latency": {
+          "count": 2,
+          "p50": 2342.2543220000007,
+          "p95": 2439.2652069999967,
+          "max": 2439.2652069999967
+        },
+        "receiverRequestParseMs": 3209.4192169999997,
+        "receiverResolveMs": 452.3316140000002,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 3772.845,
+        "receiverCpuSystemMs": 314.067,
+        "receiverMaxRssBytes": 196780032,
+        "receiverMaxHeapBytes": 94532136,
+        "receiverCacheStatuses": {
+          "none": 2
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4569586,
+        "parentMemory": {
+          "beforeRss": 102735872,
+          "afterRss": 122101760,
+          "sampledPeakRss": 122458112,
+          "sampledRssDelta": 19722240,
+          "beforeHeap": 8217600,
+          "afterHeap": 28071528,
+          "sampledPeakHeap": 28068960,
+          "sampledHeapDelta": 19851360
+        }
+      }
+    },
+    {
+      "workload": "retry-1",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 2,
+        "processStarts": 2,
+        "requestBytes": 1402,
+        "requestBuildMs": 0.1690630000011879,
+        "wallMs": 2410.3348419999966,
+        "throughputPerSecond": 0.8297602329560495,
+        "latency": {
+          "count": 2,
+          "p50": 2084.7131240000017,
+          "p95": 2387.6809370000046,
+          "max": 2387.6809370000046
+        },
+        "receiverRequestParseMs": 7.938281000000018,
+        "receiverResolveMs": 3355.071509,
+        "receiverStorageBytes": 4806892,
+        "receiverCpuUserMs": 3388.654,
+        "receiverCpuSystemMs": 289.01300000000003,
+        "receiverMaxRssBytes": 198356992,
+        "receiverMaxHeapBytes": 94507016,
+        "receiverCacheStatuses": {
+          "none": 2
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4569586,
+        "parentMemory": {
+          "beforeRss": 119533568,
+          "afterRss": 119435264,
+          "sampledPeakRss": 119738368,
+          "sampledRssDelta": 204800,
+          "beforeHeap": 8223264,
+          "afterHeap": 8878304,
+          "sampledPeakHeap": 8875736,
+          "sampledHeapDelta": 652472
+        }
+      }
+    },
+    {
+      "workload": "retry-1",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 2,
+        "processStarts": 2,
+        "requestBytes": 1430,
+        "requestBuildMs": 0.20604200000525452,
+        "wallMs": 742.7477599999984,
+        "throughputPerSecond": 2.6927041826420375,
+        "latency": {
+          "count": 2,
+          "p50": 691.2272910000029,
+          "p95": 742.7113539999991,
+          "max": 742.7113539999991
+        },
+        "receiverRequestParseMs": 7.206405999999959,
+        "receiverResolveMs": 378.589947,
+        "receiverStorageBytes": 4709496,
+        "receiverCpuUserMs": 361.957,
+        "receiverCpuSystemMs": 73.947,
+        "receiverMaxRssBytes": 74022912,
+        "receiverMaxHeapBytes": 19009800,
+        "receiverCacheStatuses": {
+          "none": 2
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4569586,
+        "parentMemory": {
+          "beforeRss": 117043200,
+          "afterRss": 117141504,
+          "sampledPeakRss": 117379072,
+          "sampledRssDelta": 335872,
+          "beforeHeap": 8219992,
+          "afterHeap": 8475968,
+          "sampledPeakHeap": 8473400,
+          "sampledHeapDelta": 253408
+        }
+      }
+    },
+    {
+      "workload": "retry-1",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 2,
+        "processStarts": 1,
+        "requestBytes": 4807416,
+        "requestBuildMs": 106.08333400000993,
+        "wallMs": 2850.7032800000015,
+        "throughputPerSecond": 0.7015812603267496,
+        "latency": {
+          "count": 2,
+          "p50": 1982.436977999998,
+          "p95": 2744.901352999994,
+          "max": 2744.901352999994
+        },
+        "receiverRequestParseMs": 1838.2624479999995,
+        "receiverResolveMs": 393.13916599999993,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 2877.666,
+        "receiverCpuSystemMs": 185.18,
+        "receiverMaxRssBytes": 302460928,
+        "receiverMaxHeapBytes": 179062392,
+        "receiverCacheStatuses": {
+          "none": 2
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4569586,
+        "parentMemory": {
+          "beforeRss": 117170176,
+          "afterRss": 113328128,
+          "sampledPeakRss": 117170176,
+          "sampledRssDelta": 0,
+          "beforeHeap": 8221120,
+          "afterHeap": 29665376,
+          "sampledPeakHeap": 29664120,
+          "sampledHeapDelta": 21443000
+        }
+      }
+    },
+    {
+      "workload": "retry-2",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 3,
+        "processStarts": 3,
+        "requestBytes": 7211124,
+        "requestBuildMs": 94.4552079999994,
+        "wallMs": 2627.222707000008,
+        "throughputPerSecond": 1.1418902523972403,
+        "latency": {
+          "count": 3,
+          "p50": 2284.754893999998,
+          "p95": 2570.839061999999,
+          "max": 2570.839061999999
+        },
+        "receiverRequestParseMs": 4412.341091,
+        "receiverResolveMs": 317.6493759999994,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 4792.447,
+        "receiverCpuSystemMs": 308.747,
+        "receiverMaxRssBytes": 201723904,
+        "receiverMaxHeapBytes": 94510424,
+        "receiverCacheStatuses": {
+          "none": 3
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 6854379,
+        "parentMemory": {
+          "beforeRss": 92393472,
+          "afterRss": 110338048,
+          "sampledPeakRss": 115945472,
+          "sampledRssDelta": 23552000,
+          "beforeHeap": 8221784,
+          "afterHeap": 28388624,
+          "sampledPeakHeap": 28386056,
+          "sampledHeapDelta": 20164272
+        }
+      }
+    },
+    {
+      "workload": "retry-2",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 3,
+        "processStarts": 3,
+        "requestBytes": 2103,
+        "requestBuildMs": 0.18036499999288935,
+        "wallMs": 2396.175623999996,
+        "throughputPerSecond": 1.2519950415788075,
+        "latency": {
+          "count": 3,
+          "p50": 2007.5833840000123,
+          "p95": 2395.882654999994,
+          "max": 2395.882654999994
+        },
+        "receiverRequestParseMs": 7.96489600000001,
+        "receiverResolveMs": 4726.116405,
+        "receiverStorageBytes": 7210338,
+        "receiverCpuUserMs": 5149.098,
+        "receiverCpuSystemMs": 384.107,
+        "receiverMaxRssBytes": 194899968,
+        "receiverMaxHeapBytes": 94372728,
+        "receiverCacheStatuses": {
+          "none": 3
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 6854379,
+        "parentMemory": {
+          "beforeRss": 105168896,
+          "afterRss": 100298752,
+          "sampledPeakRss": 105168896,
+          "sampledRssDelta": 0,
+          "beforeHeap": 8229944,
+          "afterHeap": 8920504,
+          "sampledPeakHeap": 8917936,
+          "sampledHeapDelta": 687992
+        }
+      }
+    },
+    {
+      "workload": "retry-2",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 3,
+        "processStarts": 3,
+        "requestBytes": 2145,
+        "requestBuildMs": 0.2747919999965234,
+        "wallMs": 1115.459686999995,
+        "throughputPerSecond": 2.6894741557791617,
+        "latency": {
+          "count": 3,
+          "p50": 980.235050999996,
+          "p95": 1061.491406000001,
+          "max": 1061.491406000001
+        },
+        "receiverRequestParseMs": 13.784582999999998,
+        "receiverResolveMs": 471.492707,
+        "receiverStorageBytes": 7064244,
+        "receiverCpuUserMs": 506.071,
+        "receiverCpuSystemMs": 82.68,
+        "receiverMaxRssBytes": 74575872,
+        "receiverMaxHeapBytes": 19015192,
+        "receiverCacheStatuses": {
+          "none": 3
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 6854379,
+        "parentMemory": {
+          "beforeRss": 100294656,
+          "afterRss": 98062336,
+          "sampledPeakRss": 100294656,
+          "sampledRssDelta": 0,
+          "beforeHeap": 8226416,
+          "afterHeap": 8606648,
+          "sampledPeakHeap": 8604088,
+          "sampledHeapDelta": 377672
+        }
+      }
+    },
+    {
+      "workload": "retry-2",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 3,
+        "processStarts": 1,
+        "requestBytes": 7211124,
+        "requestBuildMs": 148.5860939999984,
+        "wallMs": 3266.0208319999947,
+        "throughputPerSecond": 0.9185489481899314,
+        "latency": {
+          "count": 3,
+          "p50": 2495.6899459999986,
+          "p95": 3148.19468700001,
+          "max": 3148.19468700001
+        },
+        "receiverRequestParseMs": 2066.4810919999995,
+        "receiverResolveMs": 560.0016660000003,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 3347.7599999999998,
+        "receiverCpuSystemMs": 237.60399999999998,
+        "receiverMaxRssBytes": 367423488,
+        "receiverMaxHeapBytes": 241177752,
+        "receiverCacheStatuses": {
+          "none": 3
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 6854379,
+        "parentMemory": {
+          "beforeRss": 98091008,
+          "afterRss": 120193024,
+          "sampledPeakRss": 120504320,
+          "sampledRssDelta": 22413312,
+          "beforeHeap": 8228664,
+          "afterHeap": 41766576,
+          "sampledPeakHeap": 41765320,
+          "sampledHeapDelta": 33536656
+        }
+      }
+    },
+    {
+      "workload": "retry-3",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 9614832,
+        "requestBuildMs": 131.6369790000026,
+        "wallMs": 3154.547237999999,
+        "throughputPerSecond": 1.2680108104946377,
+        "latency": {
+          "count": 4,
+          "p50": 2467.2013529999967,
+          "p95": 3094.1907800000045,
+          "max": 3094.1907800000045
+        },
+        "receiverRequestParseMs": 6631.8137480000005,
+        "receiverResolveMs": 607.3690110000005,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 6546.206,
+        "receiverCpuSystemMs": 487.40700000000004,
+        "receiverMaxRssBytes": 200331264,
+        "receiverMaxHeapBytes": 94580296,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 9139172,
+        "parentMemory": {
+          "beforeRss": 102133760,
+          "afterRss": 107577344,
+          "sampledPeakRss": 122761216,
+          "sampledRssDelta": 20627456,
+          "beforeHeap": 8236696,
+          "afterHeap": 9063216,
+          "sampledPeakHeap": 27812088,
+          "sampledHeapDelta": 19575392
+        }
+      }
+    },
+    {
+      "workload": "retry-3",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2804,
+        "requestBuildMs": 0.212708000006387,
+        "wallMs": 3149.0922379999975,
+        "throughputPerSecond": 1.2702073161694425,
+        "latency": {
+          "count": 4,
+          "p50": 2986.5747899999988,
+          "p95": 3149.0591130000103,
+          "max": 3149.0591130000103
+        },
+        "receiverRequestParseMs": 17.597759999999994,
+        "receiverResolveMs": 8690.077861,
+        "receiverStorageBytes": 9613784,
+        "receiverCpuUserMs": 6694.611999999999,
+        "receiverCpuSystemMs": 507.798,
+        "receiverMaxRssBytes": 199077888,
+        "receiverMaxHeapBytes": 94615048,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 9139172,
+        "parentMemory": {
+          "beforeRss": 100352000,
+          "afterRss": 100294656,
+          "sampledPeakRss": 100651008,
+          "sampledRssDelta": 299008,
+          "beforeHeap": 8234608,
+          "afterHeap": 8424376,
+          "sampledPeakHeap": 9090528,
+          "sampledHeapDelta": 855920
+        }
+      }
+    },
+    {
+      "workload": "retry-3",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2860,
+        "requestBuildMs": 0.1920840000093449,
+        "wallMs": 1242.7344259999954,
+        "throughputPerSecond": 3.2187086124867794,
+        "latency": {
+          "count": 4,
+          "p50": 1160.424530999997,
+          "p95": 1181.5928640000056,
+          "max": 1181.5928640000056
+        },
+        "receiverRequestParseMs": 28.198487999999998,
+        "receiverResolveMs": 1069.174998,
+        "receiverStorageBytes": 9418992,
+        "receiverCpuUserMs": 738.931,
+        "receiverCpuSystemMs": 202.17600000000002,
+        "receiverMaxRssBytes": 74145792,
+        "receiverMaxHeapBytes": 19006120,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 9139172,
+        "parentMemory": {
+          "beforeRss": 95363072,
+          "afterRss": 95363072,
+          "sampledPeakRss": 95719424,
+          "sampledRssDelta": 356352,
+          "beforeHeap": 8232776,
+          "afterHeap": 8707080,
+          "sampledPeakHeap": 8704512,
+          "sampledHeapDelta": 471736
+        }
+      }
+    },
+    {
+      "workload": "retry-3",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 4,
+        "processStarts": 1,
+        "requestBytes": 9614832,
+        "requestBuildMs": 159.31265600000916,
+        "wallMs": 3882.4356239999906,
+        "throughputPerSecond": 1.030281088313033,
+        "latency": {
+          "count": 4,
+          "p50": 1924.5708320000122,
+          "p95": 3779.6127590000106,
+          "max": 3779.6127590000106
+        },
+        "receiverRequestParseMs": 2870.2827589999997,
+        "receiverResolveMs": 422.7428120000004,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 3614.481,
+        "receiverCpuSystemMs": 168.05,
+        "receiverMaxRssBytes": 315269120,
+        "receiverMaxHeapBytes": 175824512,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 9139172,
+        "parentMemory": {
+          "beforeRss": 95379456,
+          "afterRss": 128548864,
+          "sampledPeakRss": 128548864,
+          "sampledRssDelta": 33169408,
+          "beforeHeap": 8233784,
+          "afterHeap": 54102864,
+          "sampledPeakHeap": 54101400,
+          "sampledHeapDelta": 45867616
+        }
+      }
+    },
+    {
+      "workload": "retry-3",
+      "result": {
+        "candidate": "warm-bundle-ref",
+        "attempts": 4,
+        "processStarts": 1,
+        "requestBytes": 2824,
+        "requestBuildMs": 0.21145899999828544,
+        "wallMs": 1337.6804679999914,
+        "throughputPerSecond": 2.9902507330323265,
+        "latency": {
+          "count": 4,
+          "p50": 1181.272134999992,
+          "p95": 1247.0218749999913,
+          "max": 1247.0218749999913
+        },
+        "receiverRequestParseMs": 3.4958859999999277,
+        "receiverResolveMs": 904.9934900000001,
+        "receiverStorageBytes": 2403446,
+        "receiverCpuUserMs": 1213.902,
+        "receiverCpuSystemMs": 126.045,
+        "receiverMaxRssBytes": 229240832,
+        "receiverMaxHeapBytes": 120004744,
+        "receiverCacheStatuses": {
+          "miss": 1,
+          "hit": 3
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 9139172,
+        "parentMemory": {
+          "beforeRss": 97869824,
+          "afterRss": 97497088,
+          "sampledPeakRss": 97914880,
+          "sampledRssDelta": 45056,
+          "beforeHeap": 8273944,
+          "afterHeap": 8784248,
+          "sampledPeakHeap": 8783088,
+          "sampledHeapDelta": 509144
+        }
+      }
+    }
+  ],
+  "multiBase": [
+    {
+      "workload": "multi-base-2",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 1083480,
+        "requestBuildMs": 14.408907000004547,
+        "wallMs": 1676.800728000002,
+        "throughputPerSecond": 4.770990295037605,
+        "latency": {
+          "count": 8,
+          "p50": 1131.1344790000003,
+          "p95": 1562.3495819999953,
+          "max": 1562.3495819999953
+        },
+        "receiverRequestParseMs": 662.9048959999999,
+        "receiverResolveMs": 233.68031600000012,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 674.537,
+        "receiverCpuSystemMs": 64.80799999999999,
+        "receiverMaxRssBytes": 57716736,
+        "receiverMaxHeapBytes": 7120272,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 96407552,
+          "afterRss": 98148352,
+          "sampledPeakRss": 98148352,
+          "sampledRssDelta": 1740800,
+          "beforeHeap": 6741360,
+          "afterHeap": 8014368,
+          "sampledPeakHeap": 8011808,
+          "sampledHeapDelta": 1270448
+        }
+      }
+    },
+    {
+      "workload": "multi-base-2",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5624,
+        "requestBuildMs": 0.26453099999343976,
+        "wallMs": 1649.0561460000026,
+        "throughputPerSecond": 4.851259927932125,
+        "latency": {
+          "count": 8,
+          "p50": 1323.0220310000004,
+          "p95": 1563.7201549999882,
+          "max": 1563.7201549999882
+        },
+        "receiverRequestParseMs": 109.82255399999963,
+        "receiverResolveMs": 910.0523440000004,
+        "receiverStorageBytes": 1081384,
+        "receiverCpuUserMs": 677.094,
+        "receiverCpuSystemMs": 87.38,
+        "receiverMaxRssBytes": 57409536,
+        "receiverMaxHeapBytes": 7079720,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 97583104,
+          "afterRss": 94547968,
+          "sampledPeakRss": 97583104,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6680848,
+          "afterHeap": 7344072,
+          "sampledPeakHeap": 7339256,
+          "sampledHeapDelta": 658408
+        }
+      }
+    },
+    {
+      "workload": "multi-base-2",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5736,
+        "requestBuildMs": 1.3269270000018878,
+        "wallMs": 1533.4980719999876,
+        "throughputPerSecond": 5.216830817117627,
+        "latency": {
+          "count": 8,
+          "p50": 1070.8385940000007,
+          "p95": 1351.560989000005,
+          "max": 1351.560989000005
+        },
+        "receiverRequestParseMs": 55.79479000000009,
+        "receiverResolveMs": 252.06218900000005,
+        "receiverStorageBytes": 1161296,
+        "receiverCpuUserMs": 308.83099999999996,
+        "receiverCpuSystemMs": 24.771,
+        "receiverMaxRssBytes": 48705536,
+        "receiverMaxHeapBytes": 7591728,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 93560832,
+          "afterRss": 93777920,
+          "sampledPeakRss": 93777920,
+          "sampledRssDelta": 217088,
+          "beforeHeap": 6684784,
+          "afterHeap": 7329952,
+          "sampledPeakHeap": 7322888,
+          "sampledHeapDelta": 638104
+        }
+      }
+    },
+    {
+      "workload": "multi-base-2",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 8,
+        "processStarts": 1,
+        "requestBytes": 1083480,
+        "requestBuildMs": 9.25859300000593,
+        "wallMs": 603.0746360000048,
+        "throughputPerSecond": 13.265356429282718,
+        "latency": {
+          "count": 8,
+          "p50": 496.2891660000023,
+          "p95": 549.4754689999972,
+          "max": 549.4754689999972
+        },
+        "receiverRequestParseMs": 146.71427099999994,
+        "receiverResolveMs": 47.13499800000017,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 236.56399999999996,
+        "receiverCpuSystemMs": 14.971,
+        "receiverMaxRssBytes": 76759040,
+        "receiverMaxHeapBytes": 23455936,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 93798400,
+          "afterRss": 94601216,
+          "sampledPeakRss": 95100928,
+          "sampledRssDelta": 1302528,
+          "beforeHeap": 6685248,
+          "afterHeap": 6994224,
+          "sampledPeakHeap": 8233952,
+          "sampledHeapDelta": 1548704
+        }
+      }
+    },
+    {
+      "workload": "multi-base-4",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 1083480,
+        "requestBuildMs": 11.766511000008904,
+        "wallMs": 1596.9998429999978,
+        "throughputPerSecond": 5.009393103615985,
+        "latency": {
+          "count": 8,
+          "p50": 1227.2624480000086,
+          "p95": 1476.576509999999,
+          "max": 1476.576509999999
+        },
+        "receiverRequestParseMs": 841.9488030000002,
+        "receiverResolveMs": 220.6963010000003,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 803.154,
+        "receiverCpuSystemMs": 85.11199999999998,
+        "receiverMaxRssBytes": 57597952,
+        "receiverMaxHeapBytes": 7192464,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 94302208,
+          "afterRss": 85614592,
+          "sampledPeakRss": 94302208,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6696152,
+          "afterHeap": 7136704,
+          "sampledPeakHeap": 8300824,
+          "sampledHeapDelta": 1604672
+        }
+      }
+    },
+    {
+      "workload": "multi-base-4",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5624,
+        "requestBuildMs": 0.29302099999040365,
+        "wallMs": 1521.1987490000029,
+        "throughputPerSecond": 5.2590103727464905,
+        "latency": {
+          "count": 8,
+          "p50": 964.0546360000008,
+          "p95": 1440.5329689999926,
+          "max": 1440.5329689999926
+        },
+        "receiverRequestParseMs": 60.37203099999999,
+        "receiverResolveMs": 714.440677,
+        "receiverStorageBytes": 1081384,
+        "receiverCpuUserMs": 689.552,
+        "receiverCpuSystemMs": 100.174,
+        "receiverMaxRssBytes": 57511936,
+        "receiverMaxHeapBytes": 7050616,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 85037056,
+          "afterRss": 84942848,
+          "sampledPeakRss": 85291008,
+          "sampledRssDelta": 253952,
+          "beforeHeap": 6719248,
+          "afterHeap": 7367776,
+          "sampledPeakHeap": 7360720,
+          "sampledHeapDelta": 641472
+        }
+      }
+    },
+    {
+      "workload": "multi-base-4",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5736,
+        "requestBuildMs": 0.8888020000013057,
+        "wallMs": 1548.5229680000048,
+        "throughputPerSecond": 5.166213330585856,
+        "latency": {
+          "count": 8,
+          "p50": 1289.4480199999962,
+          "p95": 1448.8927069999918,
+          "max": 1448.8927069999918
+        },
+        "receiverRequestParseMs": 84.43203099999994,
+        "receiverResolveMs": 300.32369700000015,
+        "receiverStorageBytes": 1161296,
+        "receiverCpuUserMs": 301.007,
+        "receiverCpuSystemMs": 42.355999999999995,
+        "receiverMaxRssBytes": 50917376,
+        "receiverMaxHeapBytes": 8127664,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 84983808,
+          "afterRss": 84840448,
+          "sampledPeakRss": 85266432,
+          "sampledRssDelta": 282624,
+          "beforeHeap": 6721832,
+          "afterHeap": 7371216,
+          "sampledPeakHeap": 7364152,
+          "sampledHeapDelta": 642320
+        }
+      }
+    },
+    {
+      "workload": "multi-base-4",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 8,
+        "processStarts": 1,
+        "requestBytes": 1083480,
+        "requestBuildMs": 11.32531200000085,
+        "wallMs": 578.6982810000045,
+        "throughputPerSecond": 13.824129538065687,
+        "latency": {
+          "count": 8,
+          "p50": 456.4740620000084,
+          "p95": 531.5669780000026,
+          "max": 531.5669780000026
+        },
+        "receiverRequestParseMs": 148.1359890000001,
+        "receiverResolveMs": 40.55994700000002,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 246.335,
+        "receiverCpuSystemMs": 20.219999999999995,
+        "receiverMaxRssBytes": 78368768,
+        "receiverMaxHeapBytes": 23216216,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 84815872,
+          "afterRss": 85602304,
+          "sampledPeakRss": 85958656,
+          "sampledRssDelta": 1142784,
+          "beforeHeap": 6722632,
+          "afterHeap": 8453440,
+          "sampledPeakHeap": 8452088,
+          "sampledHeapDelta": 1729456
+        }
+      }
+    },
+    {
+      "workload": "multi-base-8",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 1083480,
+        "requestBuildMs": 10.87812500000291,
+        "wallMs": 1631.404687000002,
+        "throughputPerSecond": 4.903749550156827,
+        "latency": {
+          "count": 8,
+          "p50": 1322.682031000004,
+          "p95": 1494.2005199999985,
+          "max": 1494.2005199999985
+        },
+        "receiverRequestParseMs": 752.4824489999999,
+        "receiverResolveMs": 156.90796699999953,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 665.853,
+        "receiverCpuSystemMs": 93.39699999999999,
+        "receiverMaxRssBytes": 57757696,
+        "receiverMaxHeapBytes": 7070520,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 85331968,
+          "afterRss": 86089728,
+          "sampledPeakRss": 86089728,
+          "sampledRssDelta": 757760,
+          "beforeHeap": 6720728,
+          "afterHeap": 8112224,
+          "sampledPeakHeap": 8109664,
+          "sampledHeapDelta": 1388936
+        }
+      }
+    },
+    {
+      "workload": "multi-base-8",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5624,
+        "requestBuildMs": 0.2994790000084322,
+        "wallMs": 1562.7983329999988,
+        "throughputPerSecond": 5.119022609041909,
+        "latency": {
+          "count": 8,
+          "p50": 1302.7160929999955,
+          "p95": 1427.910155999998,
+          "max": 1427.910155999998
+        },
+        "receiverRequestParseMs": 120.06041799999991,
+        "receiverResolveMs": 931.5940610000001,
+        "receiverStorageBytes": 1081384,
+        "receiverCpuUserMs": 718.919,
+        "receiverCpuSystemMs": 112.94,
+        "receiverMaxRssBytes": 57610240,
+        "receiverMaxHeapBytes": 6982640,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 85270528,
+          "afterRss": 62726144,
+          "sampledPeakRss": 85270528,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6721944,
+          "afterHeap": 7387024,
+          "sampledPeakHeap": 7379960,
+          "sampledHeapDelta": 658016
+        }
+      }
+    },
+    {
+      "workload": "multi-base-8",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 8,
+        "processStarts": 8,
+        "requestBytes": 5736,
+        "requestBuildMs": 0.2547389999963343,
+        "wallMs": 1441.6236970000027,
+        "throughputPerSecond": 5.549298347861429,
+        "latency": {
+          "count": 8,
+          "p50": 1106.5494789999939,
+          "p95": 1241.9805729999935,
+          "max": 1241.9805729999935
+        },
+        "receiverRequestParseMs": 70.81661500000001,
+        "receiverResolveMs": 323.708231,
+        "receiverStorageBytes": 1161296,
+        "receiverCpuUserMs": 290.398,
+        "receiverCpuSystemMs": 39.072,
+        "receiverMaxRssBytes": 51089408,
+        "receiverMaxHeapBytes": 7398360,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 62554112,
+          "afterRss": 62312448,
+          "sampledPeakRss": 62844928,
+          "sampledRssDelta": 290816,
+          "beforeHeap": 6726592,
+          "afterHeap": 7355112,
+          "sampledPeakHeap": 7352552,
+          "sampledHeapDelta": 625960
+        }
+      }
+    },
+    {
+      "workload": "multi-base-8",
+      "result": {
+        "candidate": "warm-inline",
+        "attempts": 8,
+        "processStarts": 1,
+        "requestBytes": 1083480,
+        "requestBuildMs": 16.490417000008165,
+        "wallMs": 556.8812499999913,
+        "throughputPerSecond": 14.365719801124794,
+        "latency": {
+          "count": 8,
+          "p50": 460.3686979999911,
+          "p95": 511.7319790000038,
+          "max": 511.7319790000038
+        },
+        "receiverRequestParseMs": 135.21911500000004,
+        "receiverResolveMs": 37.07588599999997,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 244.19400000000002,
+        "receiverCpuSystemMs": 24.103,
+        "receiverMaxRssBytes": 77041664,
+        "receiverMaxHeapBytes": 23302008,
+        "receiverCacheStatuses": {
+          "none": 8
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 1015896,
+        "parentMemory": {
+          "beforeRss": 62296064,
+          "afterRss": 63537152,
+          "sampledPeakRss": 63537152,
+          "sampledRssDelta": 1241088,
+          "beforeHeap": 6724824,
+          "afterHeap": 7004408,
+          "sampledPeakHeap": 8270816,
+          "sampledHeapDelta": 1545992
+        }
+      }
+    }
+  ],
+  "shapes": [
+    {
+      "workload": "shape-many-small-4",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 4026084,
+        "requestBuildMs": 100.68781200000376,
+        "wallMs": 1546.6377599999978,
+        "throughputPerSecond": 2.586255232770216,
+        "latency": {
+          "count": 4,
+          "p50": 956.4405720000068,
+          "p95": 1496.6358850000106,
+          "max": 1496.6358850000106
+        },
+        "receiverRequestParseMs": 1575.835208,
+        "receiverResolveMs": 310.6658839999998,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 1937.7499999999998,
+        "receiverCpuSystemMs": 183.257,
+        "receiverMaxRssBytes": 87080960,
+        "receiverMaxHeapBytes": 34783104,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 91914240,
+          "afterRss": 93622272,
+          "sampledPeakRss": 95944704,
+          "sampledRssDelta": 4030464,
+          "beforeHeap": 6860840,
+          "afterHeap": 13953776,
+          "sampledPeakHeap": 13951224,
+          "sampledHeapDelta": 7090384
+        }
+      }
+    },
+    {
+      "workload": "shape-many-small-4",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2848,
+        "requestBuildMs": 0.18713500000012573,
+        "wallMs": 1545.3573960000067,
+        "throughputPerSecond": 2.588398004470406,
+        "latency": {
+          "count": 4,
+          "p50": 1097.6771349999908,
+          "p95": 1498.1677079999936,
+          "max": 1498.1677079999936
+        },
+        "receiverRequestParseMs": 32.222238999999945,
+        "receiverResolveMs": 2053.8922380000004,
+        "receiverStorageBytes": 4025036,
+        "receiverCpuUserMs": 2202.651,
+        "receiverCpuSystemMs": 181.73000000000002,
+        "receiverMaxRssBytes": 88461312,
+        "receiverMaxHeapBytes": 34564448,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 87105536,
+          "afterRss": 87531520,
+          "sampledPeakRss": 87531520,
+          "sampledRssDelta": 425984,
+          "beforeHeap": 6801408,
+          "afterHeap": 7308312,
+          "sampledPeakHeap": 7305744,
+          "sampledHeapDelta": 504336
+        }
+      }
+    },
+    {
+      "workload": "shape-many-small-4",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2904,
+        "requestBuildMs": 0.2916149999946356,
+        "wallMs": 2011.331302000006,
+        "throughputPerSecond": 1.9887325355213847,
+        "latency": {
+          "count": 4,
+          "p50": 1625.3368750000081,
+          "p95": 1944.685988000012,
+          "max": 1944.685988000012
+        },
+        "receiverRequestParseMs": 19.011926000000074,
+        "receiverResolveMs": 3921.0287999999996,
+        "receiverStorageBytes": 6593060,
+        "receiverCpuUserMs": 3585.0159999999996,
+        "receiverCpuSystemMs": 471.51800000000003,
+        "receiverMaxRssBytes": 112189440,
+        "receiverMaxHeapBytes": 43930400,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 86523904,
+          "afterRss": 85856256,
+          "sampledPeakRss": 86523904,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6798080,
+          "afterHeap": 7428856,
+          "sampledPeakHeap": 7426288,
+          "sampledHeapDelta": 628208
+        }
+      }
+    },
+    {
+      "workload": "shape-few-large-4",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 4201116,
+        "requestBuildMs": 27.13713600000483,
+        "wallMs": 2135.708697000009,
+        "throughputPerSecond": 1.8729146000195285,
+        "latency": {
+          "count": 4,
+          "p50": 1972.3285410000099,
+          "p95": 2062.3586450000003,
+          "max": 2062.3586450000003
+        },
+        "receiverRequestParseMs": 3563.7246859999996,
+        "receiverResolveMs": 487.561197,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 2970.6800000000003,
+        "receiverCpuSystemMs": 248.61300000000003,
+        "receiverMaxRssBytes": 107139072,
+        "receiverMaxHeapBytes": 43010312,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4194304,
+        "parentMemory": {
+          "beforeRss": 92073984,
+          "afterRss": 101847040,
+          "sampledPeakRss": 101851136,
+          "sampledRssDelta": 9777152,
+          "beforeHeap": 6857736,
+          "afterHeap": 15947304,
+          "sampledPeakHeap": 15944760,
+          "sampledHeapDelta": 9087024
+        }
+      }
+    },
+    {
+      "workload": "shape-few-large-4",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2844,
+        "requestBuildMs": 0.24036399999749847,
+        "wallMs": 2544.5920310000074,
+        "throughputPerSecond": 1.5719612225728883,
+        "latency": {
+          "count": 4,
+          "p50": 2387.894842000009,
+          "p95": 2491.1924470000085,
+          "max": 2491.1924470000085
+        },
+        "receiverRequestParseMs": 30.269480000000044,
+        "receiverResolveMs": 4532.899373,
+        "receiverStorageBytes": 4200068,
+        "receiverCpuUserMs": 3193.904,
+        "receiverCpuSystemMs": 309.381,
+        "receiverMaxRssBytes": 105971712,
+        "receiverMaxHeapBytes": 42951216,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4194304,
+        "parentMemory": {
+          "beforeRss": 92917760,
+          "afterRss": 92913664,
+          "sampledPeakRss": 93450240,
+          "sampledRssDelta": 532480,
+          "beforeHeap": 6858216,
+          "afterHeap": 7622040,
+          "sampledPeakHeap": 7619480,
+          "sampledHeapDelta": 761264
+        }
+      }
+    },
+    {
+      "workload": "shape-few-large-4",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2900,
+        "requestBuildMs": 0.21474000001035165,
+        "wallMs": 1130.810884999999,
+        "throughputPerSecond": 3.537284662766581,
+        "latency": {
+          "count": 4,
+          "p50": 952.6699479999952,
+          "p95": 1099.4247909999976,
+          "max": 1099.4247909999976
+        },
+        "receiverRequestParseMs": 22.34187499999996,
+        "receiverResolveMs": 183.21656200000018,
+        "receiverStorageBytes": 4205212,
+        "receiverCpuUserMs": 196.925,
+        "receiverCpuSystemMs": 40.421,
+        "receiverMaxRssBytes": 55345152,
+        "receiverMaxHeapBytes": 10063912,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 4194304,
+        "parentMemory": {
+          "beforeRss": 91918336,
+          "afterRss": 73854976,
+          "sampledPeakRss": 92413952,
+          "sampledRssDelta": 495616,
+          "beforeHeap": 6861704,
+          "afterHeap": 7304160,
+          "sampledPeakHeap": 7301592,
+          "sampledHeapDelta": 439888
+        }
+      }
+    },
+    {
+      "workload": "shape-deep-4",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2370080,
+        "requestBuildMs": 21.805208000005223,
+        "wallMs": 1650.0380199999927,
+        "throughputPerSecond": 2.424186565107159,
+        "latency": {
+          "count": 4,
+          "p50": 1389.262864000004,
+          "p95": 1608.5530720000097,
+          "max": 1608.5530720000097
+        },
+        "receiverRequestParseMs": 1987.379739,
+        "receiverResolveMs": 276.8316130000002,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 1876.145,
+        "receiverCpuSystemMs": 149.564,
+        "receiverMaxRssBytes": 80658432,
+        "receiverMaxHeapBytes": 26443832,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2097152,
+        "parentMemory": {
+          "beforeRss": 77783040,
+          "afterRss": 81952768,
+          "sampledPeakRss": 82284544,
+          "sampledRssDelta": 4501504,
+          "beforeHeap": 6394712,
+          "afterHeap": 6967840,
+          "sampledPeakHeap": 13296912,
+          "sampledHeapDelta": 6902200
+        }
+      }
+    },
+    {
+      "workload": "shape-deep-4",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2824,
+        "requestBuildMs": 0.26635400000668596,
+        "wallMs": 1784.6021350000083,
+        "throughputPerSecond": 2.241395951260577,
+        "latency": {
+          "count": 4,
+          "p50": 1375.2932290000026,
+          "p95": 1784.5732810000045,
+          "max": 1784.5732810000045
+        },
+        "receiverRequestParseMs": 38.33078200000011,
+        "receiverResolveMs": 2017.957291,
+        "receiverStorageBytes": 2369032,
+        "receiverCpuUserMs": 1763.049,
+        "receiverCpuSystemMs": 185.47199999999998,
+        "receiverMaxRssBytes": 80457728,
+        "receiverMaxHeapBytes": 26417576,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2097152,
+        "parentMemory": {
+          "beforeRss": 80859136,
+          "afterRss": 79437824,
+          "sampledPeakRss": 80859136,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6376624,
+          "afterHeap": 6968312,
+          "sampledPeakHeap": 6963496,
+          "sampledHeapDelta": 586872
+        }
+      }
+    },
+    {
+      "workload": "shape-deep-4",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2880,
+        "requestBuildMs": 0.2526569999754429,
+        "wallMs": 1202.1397909999941,
+        "throughputPerSecond": 3.3274000494340337,
+        "latency": {
+          "count": 4,
+          "p50": 985.6527599999972,
+          "p95": 1157.179426000017,
+          "max": 1157.179426000017
+        },
+        "receiverRequestParseMs": 24.919168000000013,
+        "receiverResolveMs": 548.9314050000002,
+        "receiverStorageBytes": 2530336,
+        "receiverCpuUserMs": 544.9359999999999,
+        "receiverCpuSystemMs": 77.353,
+        "receiverMaxRssBytes": 59269120,
+        "receiverMaxHeapBytes": 10910528,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2097152,
+        "parentMemory": {
+          "beforeRss": 78868480,
+          "afterRss": 78417920,
+          "sampledPeakRss": 78868480,
+          "sampledRssDelta": 0,
+          "beforeHeap": 6378328,
+          "afterHeap": 6810712,
+          "sampledPeakHeap": 6808144,
+          "sampledHeapDelta": 429816
+        }
+      }
+    },
+    {
+      "workload": "shape-wide-4",
+      "result": {
+        "candidate": "inline-full",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 3946964,
+        "requestBuildMs": 132.03661399998236,
+        "wallMs": 1835.5143220000027,
+        "throughputPerSecond": 2.1792257091415896,
+        "latency": {
+          "count": 4,
+          "p50": 1424.161248999997,
+          "p95": 1835.4756769999804,
+          "max": 1835.4756769999804
+        },
+        "receiverRequestParseMs": 2654.232551,
+        "receiverResolveMs": 451.4602090000001,
+        "receiverStorageBytes": 0,
+        "receiverCpuUserMs": 2731.969,
+        "receiverCpuSystemMs": 203.61599999999999,
+        "receiverMaxRssBytes": 89178112,
+        "receiverMaxHeapBytes": 33955048,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 90320896,
+          "afterRss": 93913088,
+          "sampledPeakRss": 95494144,
+          "sampledRssDelta": 5173248,
+          "beforeHeap": 6903640,
+          "afterHeap": 13876048,
+          "sampledPeakHeap": 13868992,
+          "sampledHeapDelta": 6965352
+        }
+      }
+    },
+    {
+      "workload": "shape-wide-4",
+      "result": {
+        "candidate": "bundle-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2824,
+        "requestBuildMs": 0.3882290000037756,
+        "wallMs": 1833.5506760000135,
+        "throughputPerSecond": 2.1815595567427724,
+        "latency": {
+          "count": 4,
+          "p50": 1404.9096870000067,
+          "p95": 1808.8364059999876,
+          "max": 1808.8364059999876
+        },
+        "receiverRequestParseMs": 28.927240000000097,
+        "receiverResolveMs": 2183.163021,
+        "receiverStorageBytes": 3945916,
+        "receiverCpuUserMs": 2505.947,
+        "receiverCpuSystemMs": 208.379,
+        "receiverMaxRssBytes": 87494656,
+        "receiverMaxHeapBytes": 33797296,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 86208512,
+          "afterRss": 86835200,
+          "sampledPeakRss": 86835200,
+          "sampledRssDelta": 626688,
+          "beforeHeap": 6874072,
+          "afterHeap": 7449592,
+          "sampledPeakHeap": 7447032,
+          "sampledHeapDelta": 572960
+        }
+      }
+    },
+    {
+      "workload": "shape-wide-4",
+      "result": {
+        "candidate": "manifest-content-ref",
+        "attempts": 4,
+        "processStarts": 4,
+        "requestBytes": 2880,
+        "requestBuildMs": 0.27067699999315664,
+        "wallMs": 2326.2884889999987,
+        "throughputPerSecond": 1.719477192495364,
+        "latency": {
+          "count": 4,
+          "p50": 2098.216769999999,
+          "p95": 2262.9972390000185,
+          "max": 2262.9972390000185
+        },
+        "receiverRequestParseMs": 17.197812,
+        "receiverResolveMs": 5133.2905709999995,
+        "receiverStorageBytes": 6465940,
+        "receiverCpuUserMs": 3860.641,
+        "receiverCpuSystemMs": 495.11199999999997,
+        "receiverMaxRssBytes": 105271296,
+        "receiverMaxHeapBytes": 41257664,
+        "receiverCacheStatuses": {
+          "none": 4
+        },
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 2048000,
+        "parentMemory": {
+          "beforeRss": 85602304,
+          "afterRss": 85254144,
+          "sampledPeakRss": 85606400,
+          "sampledRssDelta": 4096,
+          "beforeHeap": 6873328,
+          "afterHeap": 7564448,
+          "sampledPeakHeap": 7559632,
+          "sampledHeapDelta": 686304
+        }
+      }
+    }
+  ],
+  "failures": {
+    "restart": {
+      "first": {
+        "ok": true,
+        "requestParseMs": 3.2531250000000114,
+        "baseDigest": "sha256:f2f7d4474dceca0c3ffdef05c67e7d183c8693c7abf37156e8e351fa3a14c445",
+        "contextDigest": "sha256:468dd680435cbd441e35d684d6e8262645d88718d00be4b3f05706a75977b685",
+        "storageBytes": 2403446,
+        "cacheStatus": "none",
+        "resolveMs": 965.231301,
+        "cpuUserMs": 1294.162,
+        "cpuSystemMs": 179.807,
+        "rssBytes": 208027648,
+        "heapBytes": 94644456
+      },
+      "second": {
+        "ok": true,
+        "requestParseMs": 3.1889059999999745,
+        "baseDigest": "sha256:f2f7d4474dceca0c3ffdef05c67e7d183c8693c7abf37156e8e351fa3a14c445",
+        "contextDigest": "sha256:468dd680435cbd441e35d684d6e8262645d88718d00be4b3f05706a75977b685",
+        "storageBytes": 2403446,
+        "cacheStatus": "none",
+        "resolveMs": 1306.9453119999998,
+        "cpuUserMs": 1644.149,
+        "cpuSystemMs": 117.168,
+        "rssBytes": 193871872,
+        "heapBytes": 94357208
+      },
+      "equal": true
+    },
+    "staleIdentity": {
+      "ok": false,
+      "code": "stale_base_identity",
+      "message": "stale base"
+    },
+    "corruptReference": {
+      "ok": false,
+      "code": "reference_digest_mismatch",
+      "message": "bundle digest mismatch"
+    },
+    "missingReference": {
+      "ok": false,
+      "code": "reference_missing",
+      "message": "referenced content is unavailable"
+    },
+    "oversizeInput": {
+      "maxFileBytes": 2097152,
+      "submittedFileBytes": 2097153,
+      "response": {
+        "ok": false,
+        "code": "reference_file_size_mismatch",
+        "message": "file size mismatch"
+      }
+    },
+    "cancelBeforeWork": {
+      "code": null,
+      "signal": "SIGKILL",
+      "wallMs": 57.25682300000335,
+      "deliveredBytes": 0
+    },
+    "cancelDuringDelivery": {
+      "code": null,
+      "signal": "SIGKILL",
+      "wallMs": 75.9745830000029,
+      "deliveredBytes": 65536
+    }
+  },
+  "candidateBoundaries": {
+    "contextSlice": {
+      "executed": false,
+      "reason": "D0016 requires deterministic selection/dependency/fallback and representative correctness/quality evidence before a model-visible semantic reduction can be selected."
+    },
+    "persistentCas": {
+      "executed": false,
+      "reason": "No cross-worker reuse requirement is established; persistent publication/corruption/GC/migration contracts remain evidence-gated."
+    },
+    "externalProvider": {
+      "executed": false,
+      "reason": "D0018 owns provider authentication, egress, tokenizer/billing/retry/privacy behavior; local fixture evidence cannot qualify those claims."
+    }
+  },
+  "decisionSummary": {
+    "exactBaseline": {
+      "inlineRequestBytesSameBase8": 19229664,
+      "inlineProcessStartsSameBase8": 8,
+      "contextBytesPerAttempt": 2284793
+    },
+    "sameBase8Relative": {
+      "inline-full": {
+        "requestByteChangePercent": 0,
+        "wallChangePercent": 0,
+        "processStarts": 8,
+        "receiverStorageBytes": 0,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      },
+      "bundle-ref": {
+        "requestByteChangePercent": -99.97079512153722,
+        "wallChangePercent": -13.005937741647966,
+        "processStarts": 8,
+        "receiverStorageBytes": 19227568,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      },
+      "manifest-content-ref": {
+        "requestByteChangePercent": -99.97021268806361,
+        "wallChangePercent": -69.13465009992453,
+        "processStarts": 8,
+        "receiverStorageBytes": 18838928,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      },
+      "warm-inline": {
+        "requestByteChangePercent": 0,
+        "wallChangePercent": 32.452148469227524,
+        "processStarts": 1,
+        "receiverStorageBytes": 0,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      },
+      "streaming-inline": {
+        "requestByteChangePercent": 0.000208011954860865,
+        "wallChangePercent": 12.37887618000386,
+        "processStarts": 8,
+        "receiverStorageBytes": 0,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      },
+      "warm-bundle-ref": {
+        "requestByteChangePercent": -99.97058710958237,
+        "wallChangePercent": -67.28272710816996,
+        "processStarts": 1,
+        "receiverStorageBytes": 2403446,
+        "semanticEquivalent": true,
+        "modelVisibleContextBytes": 18278344
+      }
+    },
+    "semanticGate": {
+      "fullContextCandidatesEquivalent": true,
+      "contextSlice": "not-selected: deterministic dependency/completeness/quality contract and representative full-context comparison are absent"
+    },
+    "interpretation": {
+      "bundleReference": "reduces parent-to-receiver request bytes while preserving full receiver-visible context; fresh receivers still pay full reference resolution/storage reads and process starts",
+      "manifestContentReference": "reduces request bytes but adds per-file reference-resolution work; file-count-sensitive complexity must earn its value over a single immutable bundle",
+      "warmInline": "reduces process starts but retains full request bytes and full-context disclosure; one warm receiver is also a capacity/queue owner rather than a free optimization",
+      "streamingInline": "preserves request bytes and full receiver parse in this bounded model; it may reduce peak copies only after a source-shaped streaming builder exists, so no product memory claim is made here",
+      "warmBundleReference": "combines low request bytes with receiver-side exact-digest cache reuse after the first resolution; restart is cold and must re-resolve the immutable bundle"
+    }
+  }
+}

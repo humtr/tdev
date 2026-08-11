@@ -1,6 +1,8 @@
 # Design 0016: per-Attempt context delivery minimization decision
 
-- Status: `draft`
+- Status: `accepted`
+- Owner decision: 2026-08-11
+- Accepted decision scope: choose the next context-delivery mechanism family from measured evidence; production-source implementation still requires a separately accepted D0017 contract.
 - Capability Group: E — Context delivery and model input
 - Work lane: `group/e-context-delivery`
 - Work-lane creation base: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`
@@ -9,7 +11,7 @@
 - Affected product owners if a later implementation is selected: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md` as applicable
 - Program owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 
-> This draft does **not** authorize Class 2 source changes. It defines the measurement and decision gate required before selecting a context-delivery mechanism.
+> This accepted decision does **not** itself authorize the D0017/D0018 production implementation. It selects the staged mechanism family and evidence boundary that the next accepted Designs must implement.
 
 ## 1. One-line definition
 
@@ -297,3 +299,83 @@ Expected follow-on after the decision:
 - Group E exit review before electing the exact final `group/e-context-delivery` checkpoint head and creating `group/f-cloudflare-runtime` from that exact head.
 
 A later accepted Design may merge/split/reorder these planning labels if one coherent authority decision makes the current decomposition artificial.
+
+## 17. Accepted decision and evidence — 2026-08-11
+
+### 17.1 Evidence identity
+
+The accepted decision is grounded in the repository-owned benchmark falsifier `bench/context-delivery-decision.mjs` at exact source commit `fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a`.
+
+Raw evidence:
+
+- `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json`
+- SHA-256: `ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`
+- size: `82,703` bytes
+- environment: Node `v26.4.0`, Android/arm64 Termux, Git `2.55.0`
+- actual repository context at the benchmark commit: `118` files, `2,284,793` content bytes, semantic base digest `sha256:f2f7d4474dceca0c3ffdef05c67e7d183c8693c7abf37156e8e351fa3a14c445`
+
+The benchmark executes real Node receiver subprocesses and uses the current `GitRepositoryModelExecutor.materializeContext` path for repository preparation. The benchmark reference carrier uses local files only as a falsification transport. Those file paths are **not** an accepted product API or authorization contract.
+
+### 17.2 Actual-repository same-base result
+
+For eight concurrent Attempts on one actual repository base:
+
+| Candidate | request bytes | process starts | wall ms | receiver storage bytes | semantic equivalence |
+| --- | ---: | ---: | ---: | ---: | --- |
+| inline full context | 19,229,664 | 8 | 6,866.7 | 0 | yes |
+| immutable bundle reference | 5,616 | 8 | 5,973.6 | 19,227,568 | yes |
+| manifest/content references | 5,728 | 8 | 2,119.4 | 18,838,928 | yes |
+| warm inline | 19,229,664 | 1 | 9,095.1 | 0 | yes |
+| streaming inline | 19,229,704 | 8 | 7,716.7 | 0 | yes |
+| warm + bundle reference | 5,656 | 1 | 2,246.6 | 2,403,446 | yes |
+
+Therefore the reference-envelope family removed approximately `99.97%` of repeated parent-to-receiver request bytes without reducing model-visible context or changing the semantic base. A reference alone does not guarantee lower fresh-receiver wall time: receiver representation and resolution cost remain a separate optimization problem.
+
+### 17.3 Workload and falsifier boundaries
+
+The required matrix also covered same-base capacity `1 + 1`, retry up to `3`, multi-base `2/4/8`, many-small, few-large, deep and wide repository shapes, cold restart, stale identity, corrupt/missing references, oversize input, and cancellation.
+
+Decision-relevant observations:
+
+- same-base capacity `1 + 1`: warm-inline reduced starts to one but was slower than inline; manifest/content reference was the fastest measured candidate;
+- retry `3`: inline sent `9,614,832` bytes; manifest/content reference sent `2,860` bytes and warm+bundle sent `2,824` bytes;
+- multi-base `8`: warm-inline was process-start dominated and fast, showing executor lifetime can matter independently of context transport;
+- many-small and wide shapes made per-file manifest/content resolution slower than inline or one-bundle resolution, while few-large and deep shapes favored manifest/content resolution; therefore raw per-file lookup count is a real shape-sensitive cost;
+- cold restart reproduced the same exact semantic base/context identity;
+- stale identity failed as `stale_base_identity`, corrupt content as `reference_digest_mismatch`, and missing content as `reference_missing`;
+- a `2,097,153`-byte file against a `2,097,152`-byte limit failed closed as `reference_file_size_mismatch`;
+- cancellation before work delivered `0` bytes and cancellation during delivery stopped after `65,536` bytes; both receiver process groups terminated by signal.
+
+### 17.4 Accepted staged mechanism
+
+D0016 selects **an immutable full-context reference envelope** as the next context-delivery mechanism family.
+
+The acceptance means:
+
+1. D0017 is now required. It must define one logical immutable context-reference identity bound to the expected semantic base/context digest, authorization scope, missing/corrupt/stale handling, bounded resolution, restart behavior and cleanup/retention rules.
+2. D0017 must preserve full semantic context at this stage. The reference changes transport and receiver materialization; it does not silently reduce model-visible repository content.
+3. The benchmark's local file paths are instrumentation only. D0017 must not expose arbitrary host paths as the product contract.
+4. D0017 must choose and falsify the receiver representation under that one logical reference. A single canonical bundle is simpler but had material fresh-resolution cost; manifest/content resolution was often faster but was file-count/shape sensitive. A bounded packed or hybrid representation remains admissible if it preserves the accepted reference identity and wins the D0017 evidence gate.
+5. Warm executor/process reuse is **not** part of the D0017 context authority decision. D0018 owns executor lifetime, capacity, reset, crash/restart and provider behavior. The warm+reference result is evidence that the two mechanisms can compose, not authorization to merge their owners.
+6. ContextSlice is not selected. No deterministic dependency/completeness/fallback contract or representative full-vs-slice correctness/quality evidence exists yet.
+7. Streaming inline is not selected as the first mechanism because it retained full request volume and did not win the measured actual-repository workload.
+8. Persistent cross-worker CAS is not selected or required by D0016. D0022 remains conditional until a later accepted contract proves a durable/shared storage requirement.
+9. External provider/tokenizer/billing/privacy claims remain `unknown` and belong to D0018.
+
+### 17.5 Acceptance closure
+
+The D0016 acceptance matrix is closed at the **decision layer**: baseline numbers, authority preservation, same-base scaling, multi-base sensitivity, retry behavior, capacity interaction, restart behavior, resource/cancellation bounds, security/disclosure boundary, migration/rollback boundary, minimum sufficient mechanism and reproduced evidence are all recorded above or in the raw evidence.
+
+This acceptance does not claim deployed-provider equivalence, production SLOs, ContextSlice quality, persistent CAS correctness, or warm-executor correctness. No production `src/` behavior changes in D0016.
+
+### 17.6 Validation scope and Termux boundary
+
+Validation intentionally bypassed the stale tmcp `portable` / `portable-test` profiles because they still invoke the absent `npm run verify:sandbox` script. Repository-owned gates were executed directly instead.
+
+- `npm ci --ignore-scripts --no-audit --no-fund` — passed.
+- `npm run check` — passed before and after the test-only observation guard adjustment.
+- focused `node --experimental-test-coverage --test test/repository-model-transport.test.mjs` — `32/32` passed after increasing only the test deadlock guard from `500 ms` to `2,000 ms`; the same test had passed under normal `npm run check` and reproduced at about `810 ms` only under coverage instrumentation.
+- required full `node --experimental-test-coverage --test test/*.test.mjs` — executed; after the guard adjustment, remaining failures were confined to the already documented Termux `ImmutableJournalSnapshotStore` hard-link `link(2) EACCES` boundary. No unrelated/non-ImmutableJournal failure remained.
+- supported Termux coverage excluding only `test/immutable-journal.test.mjs` — `206/206` passed; aggregate coverage was `85.59%` line, `77.65%` branch and `92.48%` function.
+
+The observation-guard change is test-only commit `0383dfd959ff6232a8e4ac07b82070dcd81e626f`; it changes no production behavior and does not qualify ImmutableJournal hard-link semantics on Termux. Full source coverage therefore remains **platform-unqualified**, not falsely green.

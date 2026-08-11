@@ -59,7 +59,7 @@ The next question is therefore not "implement ContextSlice". It is:
 
 ### D0016 — decision gate
 
-Status: next Class 2 Design to draft/accept.
+Status: accepted 2026-08-11. The measured decision selects an immutable full-context reference envelope; receiver representation is intentionally deferred to D0017.
 
 Measure and compare at least:
 
@@ -74,9 +74,9 @@ Do not choose by elegance or expected architecture. Choose from post-D0014 evide
 
 ### D0017 — selected delivery contract
 
-Only required if D0016 selects a source/contract change.
+Status: required next Class 2 Design / not yet accepted. No D0017 production-source implementation is authorized until that contract is accepted.
 
-Implement exact identity, bounds, retry/restart behavior, corruption/stale handling, fallback/fail-closed semantics and audit evidence for the selected mechanism.
+D0017 must implement exact identity, bounds, retry/restart behavior, corruption/stale handling, fallback/fail-closed semantics and audit evidence for the selected immutable full-context reference envelope.
 
 ### D0018 — final model executor/provider boundary
 
@@ -92,7 +92,7 @@ Do not add R2/D1 merely because they appear in the program. If Group E can close
 
 ## 5. D0016 measurement contract
 
-Before accepting D0016, build a measurement matrix that separates at least:
+D0016 was accepted only after the following matrix was executed by the repository-owned falsifier. The raw evidence is `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json` (`sha256:ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`). The matrix separates at least:
 
 - parent repository preparation already addressed by D0014;
 - per-Attempt canonical request construction/copy;

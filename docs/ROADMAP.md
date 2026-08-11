@@ -80,12 +80,12 @@ Persistent cross-worker CAS remains evidence-gated. D0014 process-local reuse al
 
 ## 6. Provisional remaining Design program
 
-These IDs describe a planning envelope. They are not accepted decisions and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
+These IDs describe a planning envelope. D0016 is now an accepted decision and is retained below as the completed entry gate for Group E; the remaining IDs are not accepted decisions unless their owner records otherwise and may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
 
 | Provisional ID | Group | Planning question | MVP criticality |
 | --- | --- | --- | --- |
-| D0016 | E | Per-Attempt Context Delivery Minimization Decision | required decision gate |
-| D0017 | E | Selected Context Delivery Contract | required if D0016 selects a source change |
+| D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
+| D0017 | E | Selected Context Delivery Contract | **required next** — define authorized immutable reference + receiver representation |
 | D0018 | D/E | Model Executor / External Provider Runtime Contract | required for the accepted final execution profile |
 | D0019 | B/F | CaseDO Authority Adapter | required |
 | D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |

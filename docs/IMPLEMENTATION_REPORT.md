@@ -1024,3 +1024,28 @@ Introduce one real repository/executor adapter with measured ownership boundarie
 - validation critical path and reusable evidence.
 
 Use that evidence to choose between touched-path/content-addressed Promotion and ContextSlice/executor reuse. Preserve the current deterministic Promotion, Claim separation, fencing, durable Attempt, CAS, and rebuildable-acceleration invariants while doing so.
+
+---
+
+# G. D0016 context-delivery decision evidence — 2026-08-11
+
+D0016 is a decision/evidence gate, not a production transport implementation. The repository added the bounded falsifier `bench/context-delivery-decision.mjs` in three small commits ending at `fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a`; no production `src/` behavior changed.
+
+The final raw evidence is `docs/evidence/group-e-d0016-context-delivery-2026-08-11.json`, SHA-256 `ba4dbfe09dd05a48c741a384316f1e9755409ab1369335ebe898d2269537c495`, generated from exact source `fcadb272e5e7ccd47ca35b2b6a1e826290cfdc4a` on Node `v26.4.0`, Android/arm64 Termux and Git `2.55.0`.
+
+On the actual `118`-file / `2,284,793`-content-byte repository context with eight same-base Attempts:
+
+- inline full context: `19,229,664` request bytes, `8` process starts, `6,866.7 ms` wall;
+- immutable bundle reference: `5,616` request bytes, `8` starts, `5,973.6 ms` wall;
+- manifest/content references: `5,728` request bytes, `8` starts, `2,119.4 ms` wall;
+- warm inline: unchanged `19,229,664` request bytes, `1` start, `9,095.1 ms` wall;
+- streaming inline: unchanged request-volume class, `8` starts, `7,716.7 ms` wall;
+- warm + bundle reference: `5,656` request bytes, `1` start, `2,246.6 ms` wall.
+
+All full-context candidates reproduced the same semantic base and kept the same model-visible context volume. The reference-envelope family therefore removes roughly `99.97%` of repeated parent-to-receiver request bytes without creating a new semantic authority, but representation costs remain workload-sensitive: per-file manifest/content resolution lost on many-small and wide shapes, while warm process reuse helped the synthetic multi-base/process-dominated workload but hurt the actual same-base inline workload.
+
+Failure probes also closed the decision boundary: stale base -> `stale_base_identity`; corrupt reference -> `reference_digest_mismatch`; missing reference -> `reference_missing`; a one-byte-over-limit file -> `reference_file_size_mismatch`; cancellation before receiver work and during partial delivery both terminated the receiver process group.
+
+Accepted D0016 decision: use an **immutable full-context reference envelope** as the next staged context-delivery family. D0017 must define the authorized immutable logical reference and choose a bounded receiver representation; benchmark local file paths are not a product API. D0018 separately owns warm executor/process lifetime and provider behavior. ContextSlice and persistent cross-worker CAS remain unselected/evidence-gated.
+
+Validation was executed directly from repository-owned commands rather than the stale tmcp `portable` / `portable-test` profiles. `npm ci` and `npm run check` passed. Coverage exposed a pre-existing 500 ms test-only observation guard that reproduced at about 810 ms under coverage but not under the normal check; commit `0383dfd959ff6232a8e4ac07b82070dcd81e626f` increases only that deadlock guard to 2,000 ms, after which focused repository-model coverage passed `32/32`. The required full coverage command was still not green on Termux because `ImmutableJournalSnapshotStore` hard-link publication fails with the previously documented `link(2) EACCES`; after the guard adjustment, those ImmutableJournal cases were the only remaining failure class. Coverage over the rest of the Termux-supported suite passed `206/206` at `85.59%` line / `77.65%` branch / `92.48%` function. This does not qualify the hard-link layer.
