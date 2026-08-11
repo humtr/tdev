@@ -18,6 +18,10 @@ import {
 import { runGitCommand } from './git-projection.mjs';
 import { DEFAULT_LIMITS, validateRelativePath } from './policy.mjs';
 import { validateTree } from './promotion.mjs';
+import {
+  prepareSelectedContextDelivery,
+  resolveSelectedContextDelivery,
+} from './selected-context-delivery.mjs';
 
 export const REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-full-text.v1';
 export const MODEL_TRANSPORT_PROFILE = 'tdev.model.subprocess-json.v1';
@@ -514,9 +518,10 @@ function requestInvocation(invocation) {
 
 function validateInvocation(invocation) {
   assertRecordShape(invocation, [
-    'caseId', 'planRevisionId', 'planDigest', 'baseDigest', 'effectKey', 'fencingToken', 'claimLease',
+    'caseId', 'planRevisionId', 'planDigest', 'caseContractDigest', 'baseDigest', 'effectKey', 'fencingToken', 'claimLease',
     'signal', 'task', 'attempt', 'acceptedResults',
   ], [], 'repository model invocation');
+  assertScalarString(invocation.caseContractDigest, 'caseContractDigest');
   assertAbortSignal(invocation.signal, 'Invocation signal');
   const task = invocation.task;
   if (!isPlainRecord(task) || task.kind !== 'work' || task.execution?.operation !== MODEL_REPOSITORY_OPERATION ||
@@ -959,7 +964,30 @@ export class GitRepositoryModelExecutor {
       this.#limits.maxRequestBytes,
     );
     const preparation = acquired.preparation;
-    const request = buildRequest(preparation, invocation, this.#limits.maxRequestBytes);
+    const resolutionStarted = performance.now();
+    const delivery = await prepareSelectedContextDelivery({
+      descriptor: preparation.descriptor,
+      files: preparation.files,
+    }, invocation);
+    const resolved = await resolveSelectedContextDelivery(delivery, invocation);
+    const resolvedDescriptorBytes = Buffer.from(canonicalJson(resolved.descriptor), 'utf8');
+    const resolvedFilesBytes = Buffer.from(canonicalJson(resolved.files), 'utf8');
+    if (!resolvedDescriptorBytes.equals(preparation.descriptorBytes) ||
+        !resolvedFilesBytes.equals(preparation.filesBytes)) {
+      throw new ContractError(
+        'context_reference_corrupt',
+        'Resolved selected context differs from authoritative full repository context',
+      );
+    }
+    const resolvedPreparation = {
+      ...preparation,
+      descriptor: resolved.descriptor,
+      files: resolved.files,
+      descriptorBytes: resolvedDescriptorBytes,
+      filesBytes: resolvedFilesBytes,
+    };
+    const resolutionDurationMs = durationMs(resolutionStarted);
+    const request = buildRequest(resolvedPreparation, invocation, this.#limits.maxRequestBytes);
     const producerGitMetrics = acquired.contextMaterializations === 1
       ? preparation.gitMetrics
       : zeroGitMetrics();
@@ -979,6 +1007,12 @@ export class GitRepositoryModelExecutor {
       attemptId: invocation.attempt.id,
       repositoryCommitOid: task.input.repositoryCommitOid,
       contextDigest: preparation.descriptor.contextDigest,
+      contextReferenceId: resolved.reference.referenceId,
+      authorizationScopeDigest: resolved.reference.authorizationScopeDigest,
+      contextPackCount: resolved.packCount,
+      contextManifestBytes: resolved.manifestBytes,
+      contextPackedStoredBytes: resolved.storedBytes,
+      contextResolutionDurationMs: resolutionDurationMs,
       fileCount: preparation.descriptor.fileCount,
       contextBytes: preparation.descriptor.contentBytes,
       logicalBlobCount: preparation.logicalBlobCount,

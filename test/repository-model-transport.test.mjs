@@ -110,6 +110,7 @@ function directInvocation(plan, taskId = 'model') {
       caseId: engine.caseId,
       planRevisionId: engine.plan.revisionId,
       planDigest: engine.plan.planDigest,
+      caseContractDigest: engine.caseContract.contractDigest,
       baseDigest: engine.plan.baseDigest,
       effectKey: attempt.effectKey,
       fencingToken: attempt.fencingToken,
@@ -917,7 +918,11 @@ test('existing retry budget reuses verified context but still owns each process/
   assert.equal(calls, 2);
   assert.equal(observations.length, 2);
   assert.equal(observations[0].contextDigest, observations[1].contextDigest);
+  assert.equal(observations[0].contextReferenceId, observations[1].contextReferenceId);
+  assert.equal(observations[0].authorizationScopeDigest, observations[1].authorizationScopeDigest);
+  assert.equal(observations.every((entry) => entry.contextPackCount >= 1), true);
   assert.equal(observations.reduce((sum, entry) => sum + entry.processStarts, 0), 2);
+  assert.equal(observations.every((entry) => entry.processReuses === 0), true);
   assert.equal(observations.reduce((sum, entry) => sum + entry.contextBytes, 0), 2 * observations[0].contextBytes);
   assert.equal(observations.reduce((sum, entry) => sum + entry.contextMaterializations, 0), 1);
   assert.equal(observations.reduce((sum, entry) => sum + entry.gitCommandCount, 0), 5);

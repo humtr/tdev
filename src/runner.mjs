@@ -222,6 +222,7 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
             caseId: engine.caseId,
             planRevisionId: engine.plan.revisionId,
             planDigest: engine.plan.planDigest,
+            caseContractDigest: engine.caseContract.contractDigest,
             baseDigest: engine.plan.baseDigest,
             effectKey: attempt.effectKey,
             fencingToken: attempt.fencingToken,

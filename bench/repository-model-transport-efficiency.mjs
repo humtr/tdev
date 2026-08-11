@@ -254,6 +254,7 @@ function invocation(source, plan, index) {
       caseId: engine.caseId,
       planRevisionId: plan.revisionId,
       planDigest: plan.planDigest,
+      caseContractDigest: engine.caseContract.contractDigest,
       baseDigest: plan.baseDigest,
       effectKey: attempt.effectKey,
       fencingToken: attempt.fencingToken,
