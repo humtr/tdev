@@ -1,6 +1,6 @@
 # Group E execution contract — context delivery and model input
 
-> Current Capability Group execution owner for `group/e-context-delivery`. This file prepares Codex/agents to take Group E from the verified D0014/D0015 baseline to the Group E exit without preselecting an implementation mechanism.
+> Current Capability Group execution owner for `group/e-context-delivery`. This file prepares Codex/agents to take Group E from the verified D0014/D0015 baseline to the Group E checkpoint exit without preselecting an implementation mechanism.
 
 ## 1. Identity and branch
 
@@ -10,19 +10,21 @@ Group:
 E — Context delivery and model input
 ```
 
-Work-integration branch:
+Active cumulative branch:
 
 ```text
 group/e-context-delivery
 ```
 
-Creation base:
+Creation predecessor:
 
 ```text
 mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 ```
 
-This branch is a development work lane. `mvp-1a-7` remains the integrated development-direction ref. Final Group E integration must re-observe the then-current integration head and reconcile ancestry before publication.
+`mvp-1a-7` is the retained cumulative legacy baseline through D0015. Group E is the first post-D0015 cumulative checkpoint branch. **Do not integrate Group E back into `mvp-1a-7`.** When Group E is complete, retain its exact final head as the Group E checkpoint and create `group/f-cloudflare-runtime` from that exact head.
+
+Branch succession is owned by `docs/development/BRANCH_LINEAGE.md`.
 
 ## 2. Starting authority and verified baseline
 
@@ -80,13 +82,13 @@ Implement exact identity, bounds, retry/restart behavior, corruption/stale handl
 
 Group E cannot claim final product closure while the chosen context contract exists only in a synthetic local transport if the accepted final runtime crosses a different provider/executor boundary.
 
-D0018 is shared D/E work and must bind the selected context delivery to the final execution profile while preserving result-only acceptance, Attempt identity, cancellation, retry and resource semantics.
+D0018 is shared D/E work and must bind the selected context delivery to the final execution profile while preserving result-only acceptance, Attempt identity, cancellation, retry and resource semantics. Even though D0018 affects Group D/E capability ownership, its accepted work remains on the active Group E cumulative branch; no separate D or E history is later merged.
 
 ### D0022 — conditional storage dependency
 
 D0022 becomes a Group E dependency only if D0016/D0017 selects a content-reference design whose correctness or availability requires durable/shared content storage or query projection.
 
-Do not add R2/D1 merely because they appear in the program. If Group E can close without them, leave D0022 conditional for later runtime/artifact needs.
+Do not add R2/D1 merely because they appear in the program. If Group E can close without them, leave D0022 conditional for later runtime/artifact needs inherited by subsequent cumulative Group branches.
 
 ## 5. D0016 measurement contract
 
@@ -215,18 +217,19 @@ Group E is complete only when all applicable conditions hold:
 10. Focused, full source and applicable provider tests pass from exact source identities.
 11. Evidence distinguishes measured facts, inference, unknowns and unsupported environments.
 12. Product owners and `docs/ROADMAP.md` remain consistent with the final accepted mechanism.
-13. The group branch is reconciled with the latest `mvp-1a-7` and integrated without losing validated Design/evidence lineage.
-14. Termux/GitHub/working-mirror synchronization state is reported; remaining sync debt may be reconciled later under `docs/development/WORKFLOW.md` and does not erase engineering evidence.
+13. The exact final `group/e-context-delivery` head is elected and recorded as the cumulative Group E checkpoint; it is **not** merged back into `mvp-1a-7`.
+14. Termux/GitHub/working-mirror replicas of Group E are reconciled enough to trust that checkpoint head; nonessential remaining sync debt is reported explicitly.
+15. Only after checkpoint election may `group/f-cloudflare-runtime` be created, and it must be created from the exact final Group E SHA.
 
 ## 12. Codex execution loop
 
 Codex or another coding agent should execute Group E in this order unless new evidence changes the cheapest gate:
 
-1. read repository instructions and all Group E owners;
-2. observe GitHub, local and working-mirror identities that are actually reachable;
-3. attempt synchronization, but continue on the available plane if another plane is temporarily unavailable and the required gate is executable;
+1. read repository instructions and all Group E owners, including `docs/development/BRANCH_LINEAGE.md`;
+2. observe GitHub, local and working-mirror identities for `group/e-context-delivery` that are actually reachable;
+3. attempt replica synchronization, but continue on the available plane if another plane is temporarily unavailable and the required gate is executable;
 4. record exact sync debt rather than guessing unavailable state;
-5. draft D0016 before Class 2 source changes;
+5. draft/accept D0016 before Class 2 source changes;
 6. build measurement/falsifier instrumentation before choosing a mechanism;
 7. compare all required candidates or record why a candidate is inapplicable from direct evidence;
 8. accept one bounded decision;
@@ -235,9 +238,11 @@ Codex or another coding agent should execute Group E in this order unless new ev
 11. independently review authority, stale identity, retry/cancel/restart/resource/security boundaries;
 12. update Design, product owners only where meaning changed, program register and evidence;
 13. repeat for D0017/D0018 and conditional D0022 as required;
-14. perform a Group E exit review before integrating the branch.
+14. perform a Group E exit review;
+15. elect and retain the final Group E checkpoint head;
+16. create `group/f-cloudflare-runtime` from that exact head and continue there. Do not advance `mvp-1a-7` as part of this transition.
 
-Do not skip to later runtime/cloud/security implementation merely because the program lists it. Parallel research is allowed only when it does not preempt an unresolved Group E authority/transport decision.
+Do not skip to later runtime/cloud/security implementation merely because the program lists it. Parallel research is allowed only when it does not preempt an unresolved Group E authority/transport decision; accepted later-Group implementation belongs on the later cumulative successor branch.
 
 ## 13. Completion handoff
 
@@ -245,7 +250,7 @@ The final Group E handoff must report:
 
 ```text
 Group E branch head: <sha>
-Integration predecessor: <sha>
+Legacy predecessor: mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 D0016: <status / sha>
 D0017: <status / not-needed / sha>
 D0018 E-facing contract: <status / sha>
@@ -254,12 +259,13 @@ Selected context mechanism: <name>
 Model-visible semantics: <unchanged / changed under accepted contract>
 Measured remaining bottleneck: <evidence>
 Source/provider validation: <runs/evidence>
-GitHub head: <sha>
-Termux head: <sha or unobserved>
+GitHub Group E head: <sha>
+Termux Group E head: <sha or unobserved>
 Working mirror: <sha or disposable/unobserved>
-Sync state/debt: <state>
+Replica sync state/debt: <state>
+Checkpoint elected: <yes/no; exact sha>
 Remaining Group E unknowns: <list>
-Next Group/integration gate: <target>
+Next branch: group/f-cloudflare-runtime from <exact final Group E sha>
 ```
 
-Only after this record is complete should Group E be treated as ready for integration into the active `mvp-*` development direction.
+Only after this record is complete should Group E be treated as a completed cumulative checkpoint and used as the creation base for Group F.

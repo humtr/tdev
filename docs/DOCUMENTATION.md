@@ -26,7 +26,7 @@ A product contract may say that the final MVP requires Cloudflare, a local Agent
 
 ### B. Self-development / engineering
 
-Development documents answer **how we change, sequence, integrate, review and publish tdev itself**.
+Development documents answer **how we change, sequence, integrate, checkpoint, review and publish tdev itself**.
 
 Current owners and records:
 
@@ -35,15 +35,19 @@ Current owners and records:
 | repository-wide agent instructions | `AGENTS.md` |
 | implementation guardrails | `RULE.md` |
 | change classification and Design lifecycle | `SDD.md` |
-| current pointers | `WORKBOARD.md` |
-| development identity and accumulated knowledge lineage | `LINEAGE.md` |
+| current pointers and historical verified-state summary | `WORKBOARD.md` |
+| historical development identity and accumulated knowledge lineage | `LINEAGE.md` |
 | final-MVP capability decomposition and high-level sequencing | `docs/ROADMAP.md` |
-| development-plane, synchronization and branch workflow | `docs/development/WORKFLOW.md` |
+| development-plane and synchronization workflow | `docs/development/WORKFLOW.md` |
+| current-session access versus plane health | `docs/development/ACCESS.md` |
+| post-D0015 cumulative Group checkpoint branch succession | `docs/development/BRANCH_LINEAGE.md` |
 | exhaustive capability/Design execution register | `docs/development/PROGRAM.md` |
 | active Group E execution contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
 | one bounded Class 2 decision | `docs/design/*.md` |
 
 Development documents may reference product contracts, but they may not silently redefine them. A branch, worktree, cache, issue, task tracker, session or planning label is never product authority merely because a development document uses it.
+
+For **post-D0015 branch progression**, `docs/development/BRANCH_LINEAGE.md` is the normative owner. Older wording in `WORKBOARD.md`, `LINEAGE.md`, `PROGRAM.md`, or other pre-checkpoint documents that describes `mvp-1a-7` as a continuously fast-forwarded integration destination is retained only as historical context and is superseded for Group E and later branch succession.
 
 ### C. Evidence / qualification
 
@@ -82,7 +86,7 @@ Allowed cross-references must preserve this authority direction.
 
 ## 3. Product scope versus development program
 
-`docs/SPEC.md` owns whether a capability is a final-MVP requirement. `docs/ROADMAP.md` owns the high-level capability-group program needed to close those requirements. `docs/development/PROGRAM.md` expands that roadmap into an engineering execution register.
+`docs/SPEC.md` owns whether a capability is a final-MVP requirement. `docs/ROADMAP.md` owns the high-level capability-group program needed to close those requirements. `docs/development/PROGRAM.md` expands that roadmap into an engineering execution register. `docs/development/BRANCH_LINEAGE.md` owns how completed Groups accumulate as Git checkpoints; branch shape does not change capability ownership.
 
 Therefore:
 
@@ -92,11 +96,13 @@ SPEC / product owners
 ROADMAP
     -> capability group + program exit
 DEVELOPMENT PROGRAM
-    -> provisional Designs + dependencies + falsifiers + execution lane
+    -> provisional Designs + dependencies + falsifiers
 DESIGN
     -> one accepted Class 2 decision
 EVIDENCE
     -> observed verification
+BRANCH LINEAGE
+    -> retained cumulative Group checkpoint and successor creation
 ```
 
 A provisional Design entry is not authorization. Only an accepted/implementing Design under `SDD.md` authorizes Class 2 code.
@@ -121,6 +127,8 @@ No requirement may disappear merely because its implementation owner is undecide
 
 Conversely, every planned Design must trace upward to a product requirement, risk, verification gap, or evidence-backed optimization. A Design with no such parent is not justified by numbering alone.
 
+Branch checkpoints are an orthogonal preservation mechanism: a Group checkpoint is valid only after the Group exit chain above is complete enough to elect its final head.
+
 ## 5. Program coverage ledger
 
 `docs/development/PROGRAM.md` is the execution coverage ledger. It must record for every provisional Design-sized gate:
@@ -133,11 +141,13 @@ Conversely, every planned Design must trace upward to a product requirement, ris
 - cheapest useful falsifier;
 - required exit evidence;
 - deployment/provider/user actions if applicable;
-- expected work branch/integration lane;
+- expected active cumulative Group lane;
 - current status (`planned`, `decision-ready`, `accepted`, `implementing`, `verified`, `conditional`, `post-MVP`, `blocked`, `superseded`);
 - unresolved questions that could split, merge, remove or reorder the gate.
 
 When a new requirement appears, it must be entered into this ledger before it can be considered covered.
+
+`PROGRAM.md` does not own branch succession. When its historical branch wording conflicts with `BRANCH_LINEAGE.md`, the latter controls post-D0015 progression.
 
 ## 6. Historical documents and physical layout
 
@@ -149,7 +159,8 @@ The current migration policy is:
 2. add explicit owners and cross-links;
 3. put new self-development documents under `docs/development/`;
 4. keep existing historical paths stable unless a later bounded cleanup proves the link/update cost worthwhile;
-5. never rewrite historical evidence merely to match a newer taxonomy.
+5. never rewrite historical evidence merely to match a newer taxonomy;
+6. when a newer development-governance owner supersedes older operational wording, record explicit precedence instead of rewriting historical verified-state narratives wholesale.
 
 ## 7. Naming discipline
 
@@ -159,19 +170,24 @@ Use these terms consistently:
 - **development program** — how the repository intends to reach the product target;
 - **Design** — one accepted Class 2 decision under `SDD.md`;
 - **verification gate** — observable falsifier/acceptance evidence;
-- **development identity** — active `mvp-*` integration direction;
-- **group branch** — `group/*` work-integration lane, never product authority;
+- **legacy baseline** — retained pre-Group checkpoint such as `mvp-1a-7@83e9610...`;
+- **active cumulative Group branch** — the one current `group/*` ref receiving accepted post-D0015 development;
+- **completed Group checkpoint** — retained Group ref whose exit is accepted and which becomes the exact predecessor for the next Group;
+- **prototype fork** — final MVP prototype ref created from the exact final Group head after qualification;
 - **published head** — observed remote ref identity at one location/time;
 - **local head** — observed Termux/local ref identity at one location/time;
 - **working mirror** — derived ChatGPT/CI checkout used to inspect, test, reconcile or construct candidates;
-- **sync debt** — a known, provenance-preserving difference between development replicas that must be reconciled later.
+- **sync debt** — a known, provenance-preserving difference between replicas of the same development ref that must be reconciled later.
+
+Intentional ancestry differences between `mvp-1a-7`, Group E, Group F, Group G and Group H are not sync debt; they are checkpoint lineage.
 
 ## 8. Review rule
 
-Before closing a Group or Design, review documentation in three passes:
+Before closing a Group or Design, review documentation in four passes:
 
 1. **Product pass:** did product meaning change, and is the correct normative owner updated?
-2. **Development pass:** are program status, dependencies, branch/integration state and remaining gates accurate?
+2. **Development pass:** are program status, dependencies and remaining gates accurate?
 3. **Evidence pass:** does every `verified` claim name executable or provider evidence, with unsupported layers still explicit?
+4. **Checkpoint pass:** if a Group is closing, is its exact final head recorded and is the successor branch created only from that head according to `BRANCH_LINEAGE.md`?
 
-A claim is incomplete if any one of these passes is silently substituted for another.
+A claim is incomplete if any applicable pass is silently substituted for another.
