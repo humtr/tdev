@@ -676,20 +676,57 @@ async function failureMatrix(repositoryPath, commit, root) {
   missing.reference.path = path.join(root, 'does-not-exist.json');
   const missingResponse = await runFresh(Buffer.from(canonicalJson(missing), 'utf8'));
 
-  const cancelStarted = performance.now();
-  const child = spawn(process.execPath, [SELF, '--receiver-single'], {
-    stdio: ['pipe', 'pipe', 'ignore'],
-    env: { ...process.env, TDEV_D0016_RECEIVER_DELAY_MS: '200' },
-    shell: false,
-  });
-  child.stdin.end(good);
-  await new Promise((resolve) => setTimeout(resolve, 20));
-  child.kill('SIGKILL');
-  const cancel = await new Promise((resolve) => child.once('close', (code, signal) => resolve({
-    code,
-    signal,
-    wallMs: performance.now() - cancelStarted,
-  })));
+  const oversizeContent = 'x'.repeat(DEFAULT_LIMITS.maxFileBytes + 1);
+  const oversizeTree = Object.assign(Object.create(null), { 'oversize.txt': oversizeContent });
+  const oversizeBaseDigest = digest(oversizeTree);
+  const oversizeBytes = Buffer.byteLength(oversizeContent, 'utf8');
+  const oversizeRequest = Buffer.from(canonicalJson({
+    schemaVersion: 1,
+    mode: 'inline-full',
+    invocation: {
+      schemaVersion: 1,
+      attemptIndex: 0,
+      commitOid: prepared.context.commitOid,
+      baseDigest: oversizeBaseDigest,
+      instruction: 'd0016-oversize-falsifier',
+    },
+    repositoryContext: {
+      schemaVersion: 1,
+      semanticBaseDigest: oversizeBaseDigest,
+      fileCount: 1,
+      contentBytes: oversizeBytes,
+    },
+    repositoryFiles: [{
+      path: 'oversize.txt',
+      mode: '100644',
+      blobOid: '0'.repeat(40),
+      byteLength: oversizeBytes,
+      content: oversizeContent,
+    }],
+  }), 'utf8');
+  const oversizeResponse = await runFresh(oversizeRequest);
+
+  async function killReceiver({ request = null, writeBytes = 0, delayMs = 0 }) {
+    const started = performance.now();
+    const child = spawn(process.execPath, [SELF, '--receiver-single'], {
+      stdio: ['pipe', 'ignore', 'ignore'],
+      env: { ...process.env, TDEV_D0016_RECEIVER_DELAY_MS: String(delayMs) },
+      shell: false,
+    });
+    child.stdin.on('error', () => {});
+    if (request !== null && writeBytes > 0) child.stdin.write(request.subarray(0, Math.min(writeBytes, request.length)));
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    child.kill('SIGKILL');
+    return new Promise((resolve) => child.once('close', (code, signal) => resolve({
+      code,
+      signal,
+      wallMs: performance.now() - started,
+      deliveredBytes: request === null ? 0 : Math.min(writeBytes, request.length),
+    })));
+  }
+
+  const cancelBeforeWork = await killReceiver({ delayMs: 200 });
+  const cancelDuringDelivery = await killReceiver({ request: inlineRequest(prepared.context, 0), writeBytes: STREAM_CHUNK_BYTES });
 
   return {
     restart: {
@@ -700,7 +737,13 @@ async function failureMatrix(repositoryPath, commit, root) {
     staleIdentity: staleResponse.response,
     corruptReference: corruptResponse.response,
     missingReference: missingResponse.response,
-    cancellation: cancel,
+    oversizeInput: {
+      maxFileBytes: DEFAULT_LIMITS.maxFileBytes,
+      submittedFileBytes: oversizeBytes,
+      response: oversizeResponse.response,
+    },
+    cancelBeforeWork,
+    cancelDuringDelivery,
   };
 }
 
