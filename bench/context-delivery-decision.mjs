@@ -39,6 +39,15 @@ function sha256(bytes) {
   return `sha256:${createHash('sha256').update(bytes).digest('hex')}`;
 }
 
+function readReference(filePath, code) {
+  try {
+    return readFileSync(filePath);
+  } catch (error) {
+    if (error?.code === 'ENOENT') throw Object.assign(new Error('referenced content is unavailable'), { code });
+    throw error;
+  }
+}
+
 function parseCommit(repositoryPath, commitish) {
   const commitOid = runGit(repositoryPath, ['rev-parse', `${commitish}^{commit}`]).toString('utf8').trim();
   const objectFormat = runGit(repositoryPath, ['rev-parse', '--show-object-format']).toString('utf8').trim();
@@ -275,7 +284,7 @@ function resolveRequest(request, cache = null) {
       ({ descriptor, files } = cached);
       cacheStatus = 'hit';
     } else {
-      const bytes = readFileSync(request.reference.path);
+      const bytes = readReference(request.reference.path, 'reference_missing');
       storageBytes += bytes.length;
       if (sha256(bytes) !== request.reference.digest) throw Object.assign(new Error('bundle digest mismatch'), { code: 'reference_digest_mismatch' });
       const bundle = strictJsonParse(bytes, { maxBytes: MAX_JSON_BYTES, maxStringCodePoints: MAX_JSON_BYTES });
@@ -288,14 +297,14 @@ function resolveRequest(request, cache = null) {
       }
     }
   } else if (request.mode === 'manifest-content-ref') {
-    const bytes = readFileSync(request.reference.path);
+    const bytes = readReference(request.reference.path, 'reference_missing');
     storageBytes += bytes.length;
     if (sha256(bytes) !== request.reference.digest) throw Object.assign(new Error('manifest digest mismatch'), { code: 'reference_digest_mismatch' });
     const manifest = strictJsonParse(bytes, { maxBytes: MAX_JSON_BYTES, maxStringCodePoints: MAX_JSON_BYTES });
     descriptor = manifest.descriptor;
     if (descriptor.contextDigest !== request.reference.contextDigest) throw Object.assign(new Error('context digest mismatch'), { code: 'reference_context_mismatch' });
     files = manifest.contentRefs.map((entry) => {
-      const contentBytes = readFileSync(entry.blobPath);
+      const contentBytes = readReference(entry.blobPath, 'content_reference_missing');
       storageBytes += contentBytes.length;
       if (sha256(contentBytes) !== entry.contentDigest || contentBytes.length !== entry.byteLength) {
         throw Object.assign(new Error('content digest mismatch'), { code: 'content_reference_mismatch' });
