@@ -3,19 +3,26 @@
 ## Current baseline
 
 - Repository: `humtr/tdev`
-- Development identity / publication ref: `mvp-1a-7`
-- Branch meaning: active mutable development direction; keep fast-forwarding `mvp-1a-7` while direction is unchanged, and do not create a new `mvp-*` ref merely for a Design/verification/milestone transition
-- Direction origin / historical predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 final-MVP program rebaseline/post-verification review on the same `mvp-1a-7` development direction
+- Legacy cumulative baseline: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`; this ref is retained as the D0015-and-earlier checkpoint and is not the post-D0015 integration destination
+- Active cumulative Capability Group: Group E — Context delivery and model input
+- Active cumulative branch: `group/e-context-delivery`
+- Group E creation predecessor: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`
+- Post-D0015 branch succession owner: `docs/development/BRANCH_LINEAGE.md`; completed Groups are retained checkpoints and each successor Group is created from the exact final head of its predecessor
+- Historical direction origin / predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 final-MVP program rebaseline/post-verification review accumulated in the retained `mvp-1a-7` baseline
 - Current source runtime target: Node.js 22+; final MVP runtime additionally requires the accepted Cloudflare/local-Agent deployment profile
 - Canonical architecture owner: `docs/ARCHITECTURE.md`
 - Verification owner: `docs/MVP.md`
 - Final-MVP program owner: `docs/ROADMAP.md`
+- Development-program register: `docs/development/PROGRAM.md`
+- Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
-- Active Class 2 design: none; the next implementation decision is a decision-neutral per-Attempt context-delivery/model-execution gate (provisional D0016), not a preselected ContextSlice or persistent CAS
+- Active Class 2 design: none accepted yet; `docs/design/0016-per-attempt-context-delivery-minimization-decision.md` is the current draft/decision gate and does not preselect ContextSlice or persistent CAS
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
+
+Group E is the current mutable cumulative development checkpoint. All accepted post-D0015 work lands on `group/e-context-delivery`. When Group E satisfies its exit criteria, its exact final head is retained as the Group E checkpoint and `group/f-cloudflare-runtime` is created from that exact head. Normal progression does **not** fast-forward or merge Group E back into `mvp-1a-7`.
 
 D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
 
@@ -38,7 +45,7 @@ D0014 remains verified after independent post-publication review. The final sour
 
 ### D0014 — verified repository/model transport product-efficiency slice
 
-- Status: `verified` for bounded executor-local exact-base preparation reuse and POSIX lifecycle hardening; `mvp-1a-7` remains the same active direction
+- Status: `verified` for bounded executor-local exact-base preparation reuse and POSIX lifecycle hardening; `mvp-1a-7` was the active development direction at verification time
 - Design: `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md`
 - Independently validated source candidate: `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0`
 - Authority: D0010 Case head/semantic root and Plan `baseDigest` remain authoritative; cache/preparation/encoding/observation state is derived, bounded, optional and restart-cold
@@ -52,7 +59,7 @@ D0014 remains verified after independent post-publication review. The final sour
 
 ### D0013 — verified real repository context and trusted-local model transport
 
-- Status: `verified` for the bounded trusted-local repository/context/subprocess profile; `mvp-1a-7` remains the same active development direction
+- Status: `verified` for the bounded trusted-local repository/context/subprocess profile; `mvp-1a-7` was the active development direction at verification time
 - Design: `docs/design/0013-real-repository-context-and-model-transport.md`
 - Independently validated source candidate: `3f7c04ad4e343af2968d082bf4ffb559e2580100`
 - Profiles: `tdev.repository-context.git-full-text.v1` and `tdev.model.subprocess-json.v1`; operation `tdev.model.repository`
@@ -66,7 +73,7 @@ D0014 remains verified after independent post-publication review. The final sour
 
 ### D0012 — verified authenticated remote Git publication source contract
 
-- Status: `verified` for the generic existing-remote-branch source protocol plus authenticated GitHub push dry-run capability; `mvp-1a-7` remains the same active development direction
+- Status: `verified` for the generic existing-remote-branch source protocol plus authenticated GitHub push dry-run capability; `mvp-1a-7` was the active development direction at verification time
 - Design: `docs/design/0012-authenticated-remote-git-publication.md`
 - Independently validated source candidate: `28ed1912dc61b8d33277f599ada6010a30a7f357`
 - Profile: `tdev.git.remote-existing-branch.v1`; D0010 semantic root/Case head remain authority and remote Git remains derived publication
@@ -79,7 +86,7 @@ D0014 remains verified after independent post-publication review. The final sour
 
 ### D0011 — verified real local Git projection and fenced publication
 
-- Status: `verified` for local Git object/ref projection only; `mvp-1a-7` remains the same active development direction
+- Status: `verified` for local Git object/ref projection only; `mvp-1a-7` was the active development direction at verification time
 - Design: `docs/design/0011-real-git-projection-and-fenced-publication.md`
 - Independently validated source candidate: `c321e9079855c87b9df806930b2cd48c61244e9b`
 - Profile: `tdev.git.text-tree.v1`; semantic authority remains the D0010 semantic root/Case head and Git OIDs remain derived identities
@@ -214,7 +221,12 @@ D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC co
 
 ## Routing
 
-- Development lineage: `LINEAGE.md`
+- Development checkpoint succession: `docs/development/BRANCH_LINEAGE.md`
+- Development-plane synchronization: `docs/development/WORKFLOW.md`
+- Session-access model: `docs/development/ACCESS.md`
+- Development program register: `docs/development/PROGRAM.md`
+- Documentation taxonomy: `docs/DOCUMENTATION.md`
+- Historical lineage: `LINEAGE.md`
 - Change method: `SDD.md`
 - Product contract: `docs/SPEC.md`
 - Architecture/ownership: `docs/ARCHITECTURE.md`

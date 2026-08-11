@@ -1,13 +1,12 @@
 # tdev development program register
 
-> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, branches and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
+> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, cumulative Group lanes and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch succession is owned by `docs/development/BRANCH_LINEAGE.md`. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
 
 ## 1. Current program position
 
-Observed integration baseline at creation of this register:
+Retained legacy baseline and exact Group E predecessor:
 
 ```text
-GitHub published integration ref:
 mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 ```
 
@@ -17,28 +16,28 @@ Current active Capability Group:
 Group E — Context delivery and model input
 ```
 
-Current work-integration branch:
+Current active cumulative branch:
 
 ```text
 group/e-context-delivery
 ```
 
-The branch was created from the exact integration baseline above. It does not replace `mvp-1a-7` as the integrated development direction.
+`mvp-1a-7` is retained as the cumulative baseline through D0015; it is not the destination for post-D0015 Group integration. When Group E completes, its exact final head is retained as the E checkpoint and `group/f-cloudflare-runtime` is created from that exact head. F then accumulates E+F; G is created from final F; H from final G; the final MVP prototype branch is forked from the exact final H head.
 
 ## 2. Capability Group register
 
-| Group | Capability | Current status | Existing verified foundation | Work lane | Final-MVP exit |
+| Group | Capability | Current status | Existing verified foundation | Cumulative checkpoint lane | Final-MVP exit |
 | --- | --- | --- | --- | --- | --- |
-| A | Parallel execution and durable core | foundation verified | D0001-D0008 | historical; no new branch required | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch and existing acceptance oracle |
-| B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | likely Group F/shared CaseDO work | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
-| C | Git and publication | source verified; deployed integration open | D0011-D0012 | shared with Group F runtime integration | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
-| D | Repository and model execution | trusted-local verified | D0013-D0014 | shared D0018 with Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
+| A | Parallel execution and durable core | foundation verified | D0001-D0008 | historical foundation retained in `mvp-1a-7` ancestry | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch and existing acceptance oracle |
+| B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
+| C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
+| D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
 | E | Context delivery and model input | **active / decision-ready** | D0014 post-review baseline | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
-| F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | future `group/f-cloudflare-runtime` | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
-| G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | future `group/g-mcp-security` | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
-| H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | future `group/h-deployment-qualification` | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
+| F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
+| G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
+| H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
 
-A Design can close more than one Group exit when the same authority decision genuinely spans them. That relationship must be explicit in the Design rather than inferred from its branch name.
+A Design can close more than one Group exit when the same authority decision genuinely spans them. Because branch progression is cumulative, a cross-Group Design is not implemented by merging independent Group branches; earlier accepted work is inherited by ancestry and later Groups may extend it under their own gates.
 
 ## 3. What the pre-existing roadmap already captured
 
@@ -64,16 +63,16 @@ The high-level roadmap did **not** fully own the following execution details:
 1. separation of product-contract, self-development and evidence documentation layers;
 2. Termux/GitHub/ChatGPT capability asymmetry and temporary synchronization debt;
 3. exact Git commit identity versus per-location mutable ref observation;
-4. `group/*` Capability Group branch lifecycle and integration strategy;
-5. current active group/branch execution contract;
+4. cumulative `group/*` Capability Group checkpoint lifecycle and successor-creation rule;
+5. current active Group/branch execution contract;
 6. per-Design authority/non-owner boundary;
 7. per-Design cheapest falsifier;
 8. per-Design explicit exit evidence;
 9. per-Design provider/user-configuration dependency;
-10. per-Design branch/integration lane;
+10. per-Design active cumulative Group lane;
 11. a coverage rule proving every product requirement maps to Group -> Design/gate -> evidence;
 12. explicit treatment of cross-group Designs and conditional Designs;
-13. a register of unresolved questions whose answers can split, merge, remove, reorder or defer a Design.
+13. a register of unresolved questions whose answers can split, combine, remove, reorder or defer a Design.
 
 This file and the other `docs/development/*` owners close the documentation gap without pretending the provisional decisions have already been accepted.
 
@@ -91,7 +90,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** equivalent full-context same-base/multibase/retry workloads that separately measure parent construction/copy, transferred bytes, receiver parse, process/provider startup and memory; any candidate that fails semantic-equivalence or does not remove the measured bottleneck is rejected.
 - **Exit:** one selected staged strategy, or an explicit evidence-backed decision to retain current full-context transport; residual costs and rejected alternatives recorded.
 - **User/provider action:** none required for local comparison; provider-specific candidate measurements require credentials only if/when an external provider is selected.
-- **Lane:** `group/e-context-delivery`.
+- **Lane:** active cumulative `group/e-context-delivery`.
 
 ### D0017 — Selected Context Delivery Contract
 
@@ -105,7 +104,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** cold/no-cache/restart/retry equality on exact identity plus corruption/stale-reference rejection before model acceptance.
 - **Exit:** selected contract verified without creating a second semantic owner; measured improvement covers the D0016-selected bottleneck.
 - **User/provider action:** only if the selected contract depends on external storage/provider APIs.
-- **Lane:** `group/e-context-delivery`.
+- **Lane:** active cumulative `group/e-context-delivery`.
 
 ### D0018 — Model Executor / External Provider Runtime Contract
 
@@ -116,8 +115,8 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must separate:** local process identity from provider identity; transport retry from Task retry; provider timeout from effect/result acceptance; provider usage/billing observation from semantic state.
 - **External-provider additions when selected:** authentication; minimum-necessary egress; redaction/secret exclusion; tokenizer/accounting; billing/retry charging; rate/size limits; privacy/residency; provider error/reconciliation policy.
 - **Cheapest falsifier:** same invocation/Attempt identity through the selected runtime with timeout/cancel/retry/stale-response tests and exact result acceptance parity with the existing local oracle.
-- **Exit:** final execution profile accepted with explicit unsupported alternatives and provider/user configuration requirements.
-- **Lane:** initially `group/e-context-delivery`; may become a cross-group integration commit because D is already a verified local foundation.
+- **Exit:** final execution profile accepted with explicit unsupported alternatives and provider/user configuration requirements sufficient for Group E closure; later Group F runtime work inherits this contract and may extend it only through a later accepted Design.
+- **Lane:** active cumulative `group/e-context-delivery` for the E-facing contract; no cross-branch merge is planned.
 
 ### D0019 — CaseDO Authority Adapter
 
@@ -130,7 +129,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** local oracle-equivalence matrix across duplicate command, stale revision, restart, response loss and ambiguous transaction outcome.
 - **Exit:** deployed/restarted Case runtime reproduces accepted local semantics and authoritative head selection.
 - **Provider evidence:** current official Cloudflare DO contract must be checked at Design time.
-- **Lane:** future `group/f-cloudflare-runtime`.
+- **Lane:** successor cumulative `group/f-cloudflare-runtime`, created from final Group E.
 
 ### D0020 — AgentDO Connection, Capacity and Delivery Owner
 
@@ -141,7 +140,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close:** reconnect, duplicate delivery, stale epoch, Agent crash, late result, capacity admission, queue overflow, cancel/timeout races, in-flight resource budget ownership.
 - **Cheapest falsifier:** two epochs plus disconnect/reconnect with stale delivery/result and queue/capacity saturation.
 - **Exit:** one durable Agent connection/delivery owner with stale-instance fencing and bounded live-work admission.
-- **Lane:** future `group/f-cloudflare-runtime`.
+- **Lane:** successor cumulative `group/f-cloudflare-runtime`.
 
 ### D0021 — Distributed Target Claims / Runtime Fencing
 
@@ -152,7 +151,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close if activated:** lease generation, concurrency, expiry/liveness, stale holder, restart, commit-time validation and failure recovery.
 - **Cheapest falsifier:** two independent Cases contend for one target across owner restart and stale lease generation.
 - **Exit:** distributed exclusion proven, or evidence explicitly moves this capability post-MVP because MVP workload does not need it.
-- **Lane:** future `group/f-cloudflare-runtime`.
+- **Lane:** successor cumulative `group/f-cloudflare-runtime`.
 
 ### D0022 — Artifact/Content Storage and Query Projection
 
@@ -164,7 +163,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close if activated:** owner/key identity, integrity, authorization, lifecycle, delete/GC, retry, corruption, migration and reader protection.
 - **Cheapest falsifier:** missing/corrupt/stale object plus duplicate publication and authorization denial without semantic-state change.
 - **Exit:** selected byte/query owners are independently rebuildable or explicitly authoritative only for their narrow declared fact.
-- **Lane:** whichever Group first makes the storage mandatory; likely E if context references select it, otherwise F.
+- **Lane:** whichever cumulative Group first makes the storage mandatory: E if required for context delivery, otherwise a later inherited checkpoint such as F.
 
 ### D0023 — MCP Command and Projection Surface
 
@@ -176,7 +175,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Explicit non-owner:** MCP is ingress/projection, not readiness, Task lifecycle, Claim or canonical-tree authority.
 - **Cheapest falsifier:** duplicate request + stale expected revision + reconnect/resume against one deployed endpoint.
 - **Exit:** real current client passes supported command/projection matrix.
-- **Lane:** future `group/g-mcp-security`.
+- **Lane:** successor cumulative `group/g-mcp-security`, created from final Group F.
 
 ### D0024 — MCP Authentication, Authorization and Tenant Security
 
@@ -188,7 +187,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** authenticated tenant A attempts Case/Artifact access for tenant B while preserving zero semantic effect.
 - **Exit:** supported client auth flow plus explicit tenant/Case denial matrix and credential-rotation/revocation path.
 - **User action:** identity/provider configuration as selected; exact permissions documented.
-- **Lane:** future `group/g-mcp-security`.
+- **Lane:** successor cumulative `group/g-mcp-security`.
 
 ### D0025 — Runtime Git Publication Integration
 
@@ -200,7 +199,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** ambiguous remote publication followed by exact remote reread, plus predecessor conflict and authorization denial.
 - **Exit:** deployed Promotion -> Git candidate -> authenticated remote publication succeeds and fails safely under the selected provider policy.
 - **User action:** GitHub app/token/SSH/branch rules as selected; document create/verify/revoke.
-- **Lane:** likely future Group F branch with C-owner review.
+- **Lane:** cumulative Group F when runtime placement is selected; Group C source evidence is inherited through ancestry.
 
 ### D0026 — Cloudflare Deployment Package and Configuration
 
@@ -212,7 +211,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** fresh non-production project deploy from documented commands with one controlled rollback.
 - **Exit:** reproducible configuration/deploy/rollback with expected provider state independently checked.
 - **User action:** Cloudflare account/token, DNS/domain if needed, secret injection and provider approvals.
-- **Lane:** future Group F or H lane depending runtime readiness.
+- **Lane:** first cumulative Group whose exit requires it, likely F for runnable deployment with H inheriting and qualifying it.
 
 ### D0027 — Local Agent Runtime and Secure Registration
 
@@ -224,7 +223,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** fresh machine registration, disconnect/reconnect with new epoch, stale Agent rejection and secret-exclusion check.
 - **Exit:** fresh supported machine joins the deployed runtime and can execute a bounded real Task under correct fencing.
 - **User action:** machine install permissions, local credentials/keys and selected model/Git access.
-- **Lane:** cross-group; likely initiated in Group F and security-reviewed by Group G.
+- **Lane:** initiated on cumulative Group F when runtime work begins; G and H inherit and may harden/qualify it without merging independent branches.
 
 ### D0028 — Operational Observability and Recovery
 
@@ -236,19 +235,19 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Metrics candidates:** latency, queue, retries, Agent/provider/cache/publication observations; none becomes semantic authority.
 - **Cheapest falsifier:** selected component outage with documented detection, bounded degradation and recovery/rollback.
 - **Exit:** runbooks and observation prove recovery without inventing semantic success from missing telemetry.
-- **Lane:** future `group/h-deployment-qualification`.
+- **Lane:** successor cumulative `group/h-deployment-qualification`, created from final Group G.
 
 ### D0029 — Full Deployed MVP Qualification
 
 - **Group:** H
 - **Status:** planned / required final gate
-- **Purpose:** prove the integrated product meets the final Level-4 definition.
+- **Purpose:** prove the cumulative product meets the final Level-4 definition.
 - **Required flow:** MCP/client -> Worker/API -> CaseDO -> parallel Tasks -> AgentDO -> local Agent/model provider -> isolated results -> CaseDO acceptance -> Promotion -> Git projection -> authenticated GitHub publication, including conditional storage/target owners when selected.
 - **Minimum matrix:** clean success; parallel same-base work; retry; cancellation; Agent disconnect/restart; CaseDO restart; duplicate command/delivery; stale Attempt; provider/model/context/wrong-base/resource failure; Git conflict/response loss/auth denial; MCP unauth/cross-tenant denial; deployment restart/migration/rollback; final published repository correctness.
 - **Cheapest falsifier:** start with deterministic single-failure injections before any load/SLO experiment.
 - **Exit:** all mandatory Groups meet exit criteria and representative deployed success/failure/recovery/security/rollback evidence is accepted.
 - **User action:** execute or approve unavoidable provider/account/credential steps from documented procedures.
-- **Lane:** future `group/h-deployment-qualification`, integrated only after required upstream Groups are ready.
+- **Lane:** cumulative `group/h-deployment-qualification`, which already inherits the accepted E+F+G checkpoints; the MVP prototype ref is created only from its exact final accepted head.
 
 ## 6. Current Group E closure map
 
@@ -260,15 +259,17 @@ D0016 decision
    -> D0018 final execution/provider boundary where context delivery crosses the real executor
    -> D0022 only if the selected reference/content architecture requires durable content storage
    -> independent Group E exit review
+   -> retain exact Group E checkpoint head
+   -> create Group F from that exact head
 ```
 
 D0022 remains conditional. A semantic-preserving reference approach that needs no durable shared content store must not introduce R2/D1 merely because the roadmap contains a planning label.
 
 ## 7. Parallelism and critical path
 
-The Design numbers are not a serial queue.
+The Design numbers are not a serial queue, but **Capability Group checkpoint publication is linear**.
 
-Likely critical path:
+Likely Design dependency path:
 
 ```text
 D0016
@@ -281,14 +282,14 @@ D0016
   -> D0029 qualification
 ```
 
-Research that does not preempt an unresolved owner can proceed in parallel:
+Research that does not preempt an unresolved owner can proceed early, but accepted repository changes follow the active cumulative Group branch:
 
 - Cloudflare CaseDO authority research for D0019;
 - AgentDO capacity/delivery research for D0020;
 - MCP threat-model/schema research for D0023/D0024;
 - GitHub branch-policy/credential research for D0025.
 
-Parallel research must not be presented as accepted implementation before its Design gate.
+Parallel research must not be presented as accepted implementation and must not create later Group checkpoint refs before their predecessor Group exits.
 
 ## 8. External user/provider action register
 
@@ -330,7 +331,7 @@ For every newly discovered requirement/finding:
 6. identify external user/provider actions;
 7. update Group closure and dependency relationships;
 8. after implementation, link exact evidence and source identity;
-9. after integration, verify no requirement remains only in conversation/session memory.
+9. after Group closure, verify the exact checkpoint head and successor-creation base so no requirement remains only in conversation/session memory.
 
 The absence of an implementation mechanism is not permission to omit the requirement. Record `unknown` or `conditional` until decided.
 
@@ -347,7 +348,7 @@ The following questions remain evidence-dependent and can change the provisional
 - Where is runtime Git publication safest: local Agent, dedicated worker/lane, or another owner?
 - Which MCP client/auth flow is the supported MVP target?
 - Which deployment/storage components are mandatory versus conditional after actual Cloudflare constraints are measured?
-- Which Designs can be merged without hiding independent authority/security/migration decisions?
+- Which provisional Designs can be combined, split, reordered or removed without hiding independent authority/security/migration decisions?
 
 These questions are not missing work; they are explicit decision gates. A future Design must resolve them from evidence rather than silently assuming an answer.
 
@@ -355,13 +356,13 @@ These questions are not missing work; they are explicit decision gates. A future
 
 A Group completion report must include:
 
-- exact group branch head;
-- exact integration predecessor used for final reconciliation;
+- exact completed Group branch head;
+- exact predecessor checkpoint SHA from which that Group was created;
 - Designs accepted/verified and any provisional labels removed or superseded;
 - product owners changed;
 - source/provider/user configuration evidence;
 - unresolved post-MVP items;
-- integration method into `mvp-1a-7`;
-- Termux/GitHub/working-mirror synchronization state and any remaining sync debt.
+- exact successor branch name and proof that it was created from the completed Group head, or the final prototype-fork decision when H completes;
+- Termux/GitHub/working-mirror synchronization state for the active ref and any remaining sync debt.
 
-A Group may be engineering-complete while synchronization debt remains, as defined by `docs/development/WORKFLOW.md`. It may not be called product-qualified if the required provider/deployed evidence is still unexecuted.
+A Group may be engineering-complete while synchronization debt remains, as defined by `docs/development/WORKFLOW.md`. It may not be called a retained checkpoint until the exact final head is elected and recorded, and it may not be called product-qualified if required provider/deployed evidence is still unexecuted.

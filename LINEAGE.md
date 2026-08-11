@@ -1,20 +1,34 @@
 # Development lineage
 
-This repository uses development-lineage identities, not product-style semantic versions.
+This repository uses development-lineage identities and cumulative Capability Group checkpoints, not product-style semantic versions.
 
-## Current development identity
+## Current development lineage
 
-- **Development identity:** `mvp-1a-7` — active mutable development-direction branch; D0010 through D0015 are verified on this line
+- **Legacy cumulative baseline:** exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`; D0010 through D0015 are verified on this retained checkpoint
+- **Active cumulative checkpoint branch:** `group/e-context-delivery`
+- **Group E predecessor:** exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`
+- **Post-D0015 branch succession owner:** `docs/development/BRANCH_LINEAGE.md`
 - **Architecture generation:** MVP generation 1
-- **Current direction origin from historical revision:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
-- **Baseline knowledge input:** verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 deployed-MVP program rebaseline/post-review on the same development direction
+- **Historical direction origin:** exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
+- **Baseline knowledge input:** verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 deployed-MVP program rebaseline/post-review accumulated in `mvp-1a-7`
 - **Latest verified design:** Design 0015 — Deployed MVP Program Rebaseline and D0014 Post-Verification Review
-- **Active design:** none; the next gate is a decision-neutral per-Attempt context-delivery/model-execution comparison under the post-D0014 profile
-- **Historical predecessor revision ref:** `mvp-1a-6` (named under the pre-`3048286a88c2687a2206cc3bcb4faab924be88d9` revision/checkpoint policy)
+- **Active Design gate:** D0016 draft — decision-neutral per-Attempt context-delivery/model-execution comparison; not yet an accepted Class 2 implementation decision
+- **Historical predecessor revision ref:** `mvp-1a-6` (named under the pre-Group revision/checkpoint policy)
 
-`mvp-1a-7` is the current development **direction**, not a frozen D0010 checkpoint. D0011, later designs, implementation commits, evidence, and verification continue to fast-forward this same branch while the product/development direction remains unchanged. A new `mvp-*` branch is created only after an explicit user/owner decision that the direction itself diverges; design-number changes, verification success, milestones, or ordinary source revisions are not sufficient reasons.
+`mvp-1a-7` is now a **retained legacy cumulative checkpoint through D0015**, not the destination for post-D0015 Group work. Normal progression is linear and cumulative:
 
-`mvp-1a-7` directly succeeds `mvp-1a-6` and now contains the five D0010-D0014 verified implementation layers plus D0015's verified product-program rebaseline without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority. D0012 adds a generic authenticated **remote derived-publication source layer** over an already elected D0011 candidate. D0013 adds a read-only exact-commit full-text repository context and trusted-local result-only subprocess transport while leaving result acceptance and Promotion with the existing owners. D0014 adds bounded executor-local exact-base preparation reuse, early bounds, duplicate-blob coalescing, cancellable Git plumbing, POSIX process-group cleanup, and non-blocking observations while retaining the D0013 full-context/process-per-Attempt contract. Git OIDs, remote refs, repository context, cache entries, request encodings and model/process state remain derived identities/inputs; deterministic context-delivery selection, external model/provider transport, actual provider-ref/protected-branch qualification, Cloudflare/provider ownership and secured MCP remain open final-MVP boundaries, while persistent cross-worker CAS and broader scale mechanisms remain evidence-gated as classified by `docs/ROADMAP.md`.
+```text
+mvp-1a-7
+  -> group/e-context-delivery
+  -> group/f-cloudflare-runtime
+  -> group/g-mcp-security
+  -> group/h-deployment-qualification
+  -> <mvp prototype branch>
+```
+
+Each successor Group is created from the exact final accepted head of its predecessor. Completed Group refs are retained as checkpoints. Normal Group progression does not fast-forward or merge later Groups back into `mvp-1a-7`, and E/F/G/H are not independently forked from `mvp-1a-7` for later collection.
+
+`mvp-1a-7` directly succeeds `mvp-1a-6` and contains the five D0010-D0014 verified implementation layers plus D0015's verified product-program rebaseline without removing the legacy v2 path. D0010 owns the opt-in local semantic-v3 authority: compressed UTF-8 path-byte radix plus compact schema-v3 Case snapshot elected by one expected-predecessor SQLite Case head. D0011 adds a real **local Git derived projection** over that authority. D0012 adds a generic authenticated **remote derived-publication source layer** over an already elected D0011 candidate. D0013 adds a read-only exact-commit full-text repository context and trusted-local result-only subprocess transport while leaving result acceptance and Promotion with the existing owners. D0014 adds bounded executor-local exact-base preparation reuse, early bounds, duplicate-blob coalescing, cancellable Git plumbing, POSIX process-group cleanup, and non-blocking observations while retaining the D0013 full-context/process-per-Attempt contract. Git OIDs, remote refs, repository context, cache entries, request encodings and model/process state remain derived identities/inputs; deterministic context-delivery selection, external model/provider transport, actual provider-ref/protected-branch qualification, Cloudflare/provider ownership and secured MCP remain open final-MVP boundaries, while persistent cross-worker CAS and broader scale mechanisms remain evidence-gated as classified by `docs/ROADMAP.md`.
 
 `mvp-1a-4` directly retains the verified `mvp-1a-3` Work Graph, lifecycle, Promotion, snapshot schema, immutable journal record format, no-replace expected-revision publication, migration boundary, and cross-process local-filesystem winner semantics. Its narrow designed change adds a disposable instance-local materialization cache that is usable only after the current committed namespace is strictly checked and every retained authoritative byte has been reread and matched by an exact ordered fingerprint.
 
@@ -27,7 +41,7 @@ The deciding fact is architecture and durable-code origin, not benchmark size.
 - The optimization is performance-only state. A cache miss, process restart, namespace change, file-type change, or byte change returns to complete D0005 strict validation/replay.
 - Design 0006 measured repeated prefix replay as the dominant local immutable-journal cost; Design 0007 removes only that redundant replay when exact current bytes prove the predecessor is unchanged.
 
-That historical decision stayed on lineage `1a` rather than creating a sibling lineage or architecture-generation restart. Under the current branch rule, source/design revision advancement alone no longer implies a new `mvp-*` branch; exact commit ancestry carries ordinary revision history.
+That historical decision stayed on lineage `1a` rather than creating a sibling lineage or architecture-generation restart. Under the historical pre-Group branch rule, source/design revision advancement alone did not imply a new `mvp-*` branch; exact commit ancestry carried ordinary revision history.
 
 ## Relationship to prior and legacy lineages
 
@@ -69,7 +83,7 @@ D0015 also retains D0014 `verified` after post-publication review. Artifact `904
 
 ## Verified D0014 gate
 
-D0014 is verified on the same mutable `mvp-1a-7` development direction. Exact source candidate `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed independent Ubuntu/POSIX GitHub Actions run `31348795334` / job `93335641224`: **232/232** complete source tests, **93.10% line / 82.16% branch / 96.30% function coverage**, clean effective diff, **32/32** focused repository/transport/cache/process tests, 22 baseline plus 22 candidate benchmark scenarios, and repeated same-base/multi-base tail workloads. Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`; the full decision report is `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
+D0014 is verified on the then-active mutable `mvp-1a-7` development direction. Exact source candidate `bb5e665e9d6c28b130d4e25dc373e8fce2053ff0` passed independent Ubuntu/POSIX GitHub Actions run `31348795334` / job `93335641224`: **232/232** complete source tests, **93.10% line / 82.16% branch / 96.30% function coverage**, clean effective diff, **32/32** focused repository/transport/cache/process tests, 22 baseline plus 22 candidate benchmark scenarios, and repeated same-base/multi-base tail workloads. Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`; the full decision report is `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
 
 The selected optimization is an optional finite executor-local exact-key preparation cache with one producer/many readers. Its identity binds repository instance, Git object format, immutable commit OID, repository profile and authoritative `baseDigest`. Cold preparation preflights tree/file bytes, reads each unique blob OID once, validates and freezes the exact full context, and retains canonical immutable repository encodings within entry/byte bounds. Cache miss, disablement, eviction, restart or process loss rebuilds from Git; different-base producers remain concurrent; producer failure is not retained; one reader cancellation cannot poison peers, and all-reader cancellation removes the doomed entry before abort so a fresh reader starts a replacement producer. Every Attempt still constructs/sends the complete request and starts one model process, so provider/token, network-egress and ContextSlice savings are not claimed.
 
@@ -79,7 +93,7 @@ D0014 also closes three newly discovered lifecycle hazards: cancelled-producer h
 
 ## Verified D0013 gate
 
-D0013 is verified on the same mutable `mvp-1a-7` development direction for repository profile `tdev.repository-context.git-full-text.v1`, model profile `tdev.model.subprocess-json.v1`, and operation `tdev.model.repository`. Source candidate `3f7c04ad4e343af2968d082bf4ffb559e2580100` passed independent Ubuntu/POSIX GitHub Actions run `31331491616` / job `93290347063`: **216/216** complete source tests, **92.86% line / 81.61% branch / 96.34% function coverage**, clean effective diff, and **16/16** focused D0013 tests. Checked evidence is `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json`, SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`.
+D0013 is verified on the then-active mutable `mvp-1a-7` development direction for repository profile `tdev.repository-context.git-full-text.v1`, model profile `tdev.model.subprocess-json.v1`, and operation `tdev.model.repository`. Source candidate `3f7c04ad4e343af2968d082bf4ffb559e2580100` passed independent Ubuntu/POSIX GitHub Actions run `31331491616` / job `93290347063`: **216/216** complete source tests, **92.86% line / 81.61% branch / 96.34% function coverage**, clean effective diff, and **16/16** focused D0013 tests. Checked evidence is `docs/evidence/mvp-1a-7-repository-model-transport-2026-08-10.json`, SHA-256 `a470635bee28c5584ac61abf51340548d6df5eca3872dbd73569b0ea8a03a614`.
 
 The independent real-repository probe bound the exact source candidate to SHA-1 tree `a3eaa014d122c6ccbfc58e9945520eb4569d588e`: 101 supported files, 1,757,785 content bytes, context digest `sha256:aa1b3d1a9b9ee155ed73bc0d4b8250d091ef942558567af39fde8feeec6d6ec4`, and `src/cli.mjs` as the retained `100755` file. The adapter reads that immutable commit rather than the mutable index/worktree, requires its path-to-text digest to equal the Attempt `baseDigest`, and transports one request-digest-bound full context to a fresh trusted local subprocess. The response remains only an input to existing result/Claim/fencing/Promotion validation.
 
@@ -87,7 +101,7 @@ The measured baseline reconstructed that same 1,757,785-byte context across four
 
 ## Verified D0012 gate
 
-D0012 is verified on the same mutable `mvp-1a-7` development direction for profile `tdev.git.remote-existing-branch.v1`. Source candidate `28ed1912dc61b8d33277f599ada6010a30a7f357` passed independent Ubuntu/POSIX GitHub Actions run `31328662608` / job `93283174570`: **200/200** complete source tests, **92.79% line / 81.88% branch / 96.52% function coverage**, clean effective diff, and **22/22** combined D0011+D0012 focused tests. Checked evidence is `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json`, SHA-256 `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`.
+D0012 is verified on the then-active mutable `mvp-1a-7` development direction for profile `tdev.git.remote-existing-branch.v1`. Source candidate `28ed1912dc61b8d33277f599ada6010a30a7f357` passed independent Ubuntu/POSIX GitHub Actions run `31328662608` / job `93283174570`: **200/200** complete source tests, **92.79% line / 81.88% branch / 96.52% function coverage**, clean effective diff, and **22/22** combined D0011+D0012 focused tests. Checked evidence is `docs/evidence/mvp-1a-7-remote-git-publication-2026-08-10.json`, SHA-256 `b89afba6de72a289fc6cb8574f2a07943483d1d222bd047b858bf5344479df55`.
 
 The verified source contract requires a locally elected D0011 candidate with a non-null predecessor and one existing remote branch. An immutable intent binds the candidate and digest of the single effective push target without retaining the clear URL or raw credentials. Forward publication is exact-predecessor fenced and every accepted forward candidate remains topologically fast-forward; push outcomes are authoritative only after remote reread. Restart reconciliation is read-only and target-bound. Rollback is separately fenced, and provider rejection is not bypassed.
 
@@ -95,7 +109,7 @@ The current deployment additionally completed an authenticated GitHub `push --dr
 
 ## Verified D0011 gate
 
-D0011 is verified on the existing mutable `mvp-1a-7` development direction; no new `mvp-*` branch was created for the Design/verification transition. Source candidate `c321e9079855c87b9df806930b2cd48c61244e9b` passed independent Ubuntu/POSIX run `31325628829` / job `93275404092`: **191/191** complete source tests, **92.80% line / 82.37% branch / 96.34% function coverage**, clean effective diff, **13/13** focused real-Git tests, and SHA-1/SHA-256 bare-repository capability checks. Checked evidence is `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json` with SHA-256 `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`.
+D0011 is verified on the then-active mutable `mvp-1a-7` development direction; no new `mvp-*` branch was created for the Design/verification transition. Source candidate `c321e9079855c87b9df806930b2cd48c61244e9b` passed independent Ubuntu/POSIX run `31325628829` / job `93275404092`: **191/191** complete source tests, **92.80% line / 82.37% branch / 96.34% function coverage**, clean effective diff, **13/13** focused real-Git tests, and SHA-1/SHA-256 bare-repository capability checks. Checked evidence is `docs/evidence/mvp-1a-7-git-projection-2026-08-10.json` with SHA-256 `b62bcc3c4f96b407a228a7e35c832f06936087db0ff9954e7dea538142fcfebd`.
 
 The verified profile is `tdev.git.text-tree.v1`. A validated D0010 semantic tree is materialized into exact UTF-8 `100644` blobs and Git trees/commits under explicit metadata; immutable objects are candidates only. A direct full `refs/heads/...` ref elects the visible local projection through exact expected-predecessor CAS. Lost responses are reconciled by durable ref reread; rollback is another fenced ref mutation. Candidate validation rereads Git bytes and rebuilds the tdev semantic root, so a recomputed typed candidate digest cannot hide a different tree/commit. Inherited `GIT_*` routing is scrubbed and replacement refs/hooks are disabled for the adapter plumbing.
 
@@ -125,14 +139,17 @@ The managed `tmcp/` scratch branch used by tooling remains transport bookkeeping
 
 ## Naming and branch rule
 
-This branch-lifecycle rule is **prospective from commit `3048286a88c2687a2206cc3bcb4faab924be88d9`**. Before that commit, contemporaneous repository documents used the numeric `mvp-1a-N` suffix as a development revision/checkpoint inside lineage `1a`, including `mvp-1a-1` through `mvp-1a-6`. The policy transition does not retroactively rename those historical refs as separate development directions; it changes how the active ref is advanced from that point forward.
+The older `mvp-*` branch-lifecycle rule is historical through D0015. It used the numeric `mvp-1a-N` suffix as a development revision/checkpoint and later treated `mvp-1a-7` as a mutable direction ref. That history remains valid for interpreting D0001-D0015 evidence; it does not control post-D0015 Capability Group succession.
 
-Current development-direction refs use names such as:
+For post-D0015 development, `docs/development/BRANCH_LINEAGE.md` is normative. Group refs are cumulative checkpoints, not parallel topic branches:
 
 ```text
-mvp-<generation><lineage>-<direction-id>
+mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
+  -> group/e-context-delivery
+  -> group/f-cloudflare-runtime
+  -> group/g-mcp-security
+  -> group/h-deployment-qualification
+  -> <mvp prototype branch>
 ```
 
-The full `mvp-*` name identifies a development direction. Its suffix is an opaque direction label, **not** a counter that advances for every Design, verification checkpoint, release-like milestone, or ordinary commit. Exact source revision belongs to Git commit ancestry.
-
-While direction is unchanged, the active ref named by `WORKBOARD.md` is fast-forwarded in place. A new `mvp-*` ref requires an explicit user/owner direction-change decision and a recorded divergence rationale here, including the retained predecessor. Generation changes remain reserved for an intentional architecture-foundation restart; lineage letters distinguish explicit sibling directions in one generation. Tool-owned `tmcp/*` branches remain scratch transport and never establish development-lineage identity.
+A Design number change alone does not create a branch. A successor Group ref is created only from the exact final accepted head of the predecessor Group. Completed Group checkpoint refs are retained and are not force-rewritten as routine development. `mvp-1a-7` is not advanced merely to mirror later Group progress. Tool-owned `tmcp/*` branches remain scratch transport and never establish development-lineage identity.
