@@ -67,6 +67,8 @@ For post-D0015 development there are two different branch roles:
 
 The current active cumulative branch is `group/e-context-delivery`.
 
+When Termux/local access is available, the **normal canonical checkout** must be on the active cumulative branch and track that same remote ref before normal substantive work begins. Retained predecessor/checkpoint refs stay present for provenance, but they are not checkout/work baselines once a successor is active. This alignment rule is derived from `BRANCH_LINEAGE.md`; the checkout itself does not become branch-lineage authority.
+
 ## 3. Synchronization principle
 
 The governing rule is:
@@ -95,7 +97,7 @@ Use these states for the **same active development ref** across repository locat
 
 A non-`SYNCED` state is **sync debt**, not automatically failure. The failure is losing exact identities/ancestry or overwriting one side without reconciliation.
 
-Do not call the intentional difference between `mvp-1a-7` and `group/e-context-delivery` sync debt. They are different lineage checkpoints by design.
+Do not call the intentional ref difference between `mvp-1a-7` and `group/e-context-delivery` sync debt. They are different lineage checkpoints by design. However, if the **canonical checkout branch itself** is still on `mvp-1a-7` or another completed predecessor after `group/e-context-delivery` is active, that is `CHECKOUT_ALIGNMENT_DEBT`, not a valid synchronization state for the active ref. Do not perform normal substantive work from that stale checkout. Align it when safe, or preserve unrelated dirty state and use an isolated worktree rooted at the exact active cumulative ref until alignment can be completed.
 
 ## 5. Work-start protocol
 
@@ -104,12 +106,13 @@ Before substantive work:
 1. read `AGENTS.md`, `RULE.md`, `SDD.md`, `docs/DOCUMENTATION.md`, this file, `docs/development/ACCESS.md`, `docs/development/BRANCH_LINEAGE.md`, `WORKBOARD.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, the current Group execution file and the active Design if any;
 2. identify the active cumulative Group branch from the branch-lineage/group document;
 3. observe the current GitHub ref for that active branch directly;
-4. observe Termux/local status for that same ref when available;
-5. observe the working mirror status when one exists;
-6. record exact SHAs and their relationship (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
-7. attempt the cheapest safe synchronization of replicas of the active branch;
-8. if synchronization cannot complete, choose the available work plane, state the debt, and continue only within that plane's actual capabilities;
-9. never invent the state of an unavailable plane.
+4. observe Termux/local status for that same ref when available, including the canonical checkout branch, HEAD and upstream;
+5. if the canonical checkout is on a predecessor/completed checkpoint, align a clean/safe checkout to the active cumulative branch and its upstream before normal substantive work; if alignment is unsafe because the plane is unavailable or unrelated dirty state must be preserved, record `CHECKOUT_ALIGNMENT_DEBT` and create/use an isolated worktree from the exact active ref instead;
+6. observe the working mirror status when one exists;
+7. record exact SHAs and their relationship (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
+8. attempt the cheapest safe synchronization of replicas of the active branch;
+9. if synchronization cannot complete, choose the available work plane, state the debt, and continue only within that plane's actual capabilities;
+10. never invent the state of an unavailable plane.
 
 Recommended form:
 
@@ -183,8 +186,9 @@ When the active Group exit criteria are satisfied:
 5. record the exact final Group checkpoint SHA;
 6. retain the completed Group ref;
 7. create the next Group branch from that exact SHA;
-8. update current Group pointers/documentation on the successor branch;
-9. do not fast-forward or merge the completed Group back into `mvp-1a-7`.
+8. when the relevant planes are available and safe to update, move the canonical checkout/work baseline and derived tmcp/GitHub default-branch pointers to the successor branch; if any plane cannot be aligned immediately, record exact alignment debt and do not treat the completed predecessor checkout as the new work baseline;
+9. update current Group pointers/documentation on the successor branch;
+10. do not fast-forward or merge the completed Group back into `mvp-1a-7`.
 
 If no further Capability Group remains, create the MVP prototype branch from the exact final Group head after final qualification and an explicit final-ref naming decision.
 
