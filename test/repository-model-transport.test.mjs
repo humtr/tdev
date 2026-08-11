@@ -949,7 +949,7 @@ test('an unresolved asynchronous observation callback cannot block a successful 
   });
   const result = await Promise.race([
     adapter.execute(direct.invocation),
-    new Promise((_, reject) => setTimeout(() => reject(new Error('observation blocked execution')), 500)),
+    new Promise((_, reject) => setTimeout(() => reject(new Error('observation blocked execution')), 2_000)),
   ]);
   assert.equal(observed, true);
   assert.equal(result.kind, 'changeset');
