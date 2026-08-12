@@ -317,3 +317,181 @@ test('retry interleaving does not change the canonical result', async () => {
   assert.equal(aDelayed.snapshot.canonicalDigest, bDelayed.snapshot.canonicalDigest);
   assert.deepEqual(aDelayed.snapshot.canonicalTree, bDelayed.snapshot.canonicalTree);
 });
+
+function deferred() {
+  let resolve;
+  let reject;
+  const promise = new Promise((resolvePromise, rejectPromise) => {
+    resolve = resolvePromise;
+    reject = rejectPromise;
+  });
+  return { promise, resolve, reject };
+}
+
+async function resolvesBeforeGuard(promise, guardMs = 250) {
+  let timer;
+  try {
+    return await Promise.race([
+      promise.then(() => true),
+      new Promise((resolve) => {
+        timer = setTimeout(() => resolve(false), guardMs);
+      }),
+    ]);
+  } finally {
+    clearTimeout(timer);
+  }
+}
+
+test('D0018 C1 active semantic cancellation promptly aborts the exact live invocation', async () => {
+  const engine = new CaseEngine({ caseId: 'd0018-c1-active-cancel', plan: planWithWork([{ id: 'a' }]) });
+  const entered = deferred();
+  const release = deferred();
+  const abortSeen = deferred();
+  let executorCalls = 0;
+
+  const running = runCase(engine, async ({ baseDigest, task, signal }) => {
+    executorCalls += 1;
+    signal.addEventListener('abort', () => abortSeen.resolve(), { once: true });
+    entered.resolve();
+    await release.promise;
+    return {
+      kind: 'changeset',
+      baseDigest,
+      writes: [{ path: `${task.id}.txt`, content: 'late' }],
+    };
+  });
+
+  await entered.promise;
+  engine.cancelTask('a', 'D0018 C1');
+  const abortedBeforeRelease = await resolvesBeforeGuard(abortSeen.promise);
+  release.resolve();
+  const result = await running;
+
+  assert.equal(abortedBeforeRelease, true, 'semantic cancellation must wake and abort the live invocation before executor settlement');
+  assert.equal(executorCalls, 1);
+  assert.equal(result.snapshot.attempts['a.1'].state, 'cancelled');
+  assert.deepEqual(result.snapshot.canonicalTree, {});
+});
+
+test('D0018 C2 cancellation during attempt_started checkpoint prevents executor invocation', async () => {
+  const engine = new CaseEngine({ caseId: 'd0018-c2-checkpoint-cancel', plan: planWithWork([{ id: 'a' }]) });
+  const checkpointEntered = deferred();
+  const releaseCheckpoint = deferred();
+  let blocked = false;
+  let executorCalls = 0;
+
+  const running = runCase(
+    engine,
+    async ({ baseDigest, task }) => {
+      executorCalls += 1;
+      return {
+        kind: 'changeset',
+        baseDigest,
+        writes: [{ path: `${task.id}.txt`, content: task.id }],
+      };
+    },
+    {
+      checkpoint: async (snapshot, metadata) => {
+        if (!blocked && metadata.reason === 'attempt_started') {
+          blocked = true;
+          checkpointEntered.resolve(snapshot.caseRevision);
+          await releaseCheckpoint.promise;
+        }
+      },
+    },
+  );
+
+  await checkpointEntered.promise;
+  engine.cancelTask('a', 'D0018 C2');
+  releaseCheckpoint.resolve();
+  const result = await running;
+
+  assert.equal(executorCalls, 0, 'runner must re-read Attempt authority after the awaited attempt_started checkpoint');
+  assert.equal(result.snapshot.attempts['a.1'].state, 'cancelled');
+});
+
+test('D0018 C3 checkpoint acknowledgement drains the exact newer semantic revision', async () => {
+  const engine = new CaseEngine({ caseId: 'd0018-c3-exact-checkpoint', plan: planWithWork([{ id: 'a' }]) });
+  const checkpointEntered = deferred();
+  const releaseCheckpoint = deferred();
+  const persisted = [];
+  let blocked = false;
+
+  const running = runCase(
+    engine,
+    async ({ baseDigest, task }) => ({
+      kind: 'changeset',
+      baseDigest,
+      writes: [{ path: `${task.id}.txt`, content: task.id }],
+    }),
+    {
+      checkpoint: async (snapshot, metadata) => {
+        assert.equal(metadata.caseRevision, snapshot.caseRevision, 'checkpoint metadata must describe the exact captured snapshot');
+        if (!blocked && metadata.reason === 'attempt_started') {
+          blocked = true;
+          checkpointEntered.resolve(snapshot.caseRevision);
+          await releaseCheckpoint.promise;
+        }
+        persisted.push(snapshot.caseRevision);
+      },
+    },
+  );
+
+  const oldRevision = await checkpointEntered.promise;
+  engine.cancelTask('a', 'D0018 C3');
+  const cancellationRevision = engine.caseRevision;
+  assert.ok(cancellationRevision > oldRevision);
+  releaseCheckpoint.resolve();
+  await running;
+
+  assert.equal(persisted[0], oldRevision);
+  assert.equal(persisted.at(-1), cancellationRevision, 'the newer cancellation revision must actually be persisted, not merely acknowledged');
+  assert.ok(persisted.length >= 2, 'checkpoint drain must persist a newer snapshot after stale I/O completes');
+});
+
+test('D0018 C4 runtime accounting releases an execution handle only after settlement', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/runner.mjs', import.meta.url), 'utf8');
+  const settleIndex = source.indexOf('await settle(outcome);');
+  const releaseIndex = source.indexOf('running.delete(outcome.attemptId);');
+  assert.ok(settleIndex >= 0 && releaseIndex >= 0);
+  assert.ok(settleIndex < releaseIndex, 'capacity accounting must retain the predecessor slot through settlement');
+});
+
+test('D0018 C4 capacity one does not start eligible work while predecessor cleanup is held', async () => {
+  const engine = new CaseEngine({
+    caseId: 'd0018-c4-capacity-cleanup',
+    plan: planWithWork([{ id: 'a' }, { id: 'b' }]),
+  });
+  const aEntered = deferred();
+  const releaseCleanup = deferred();
+  let bStarted = false;
+
+  const running = runCase(
+    engine,
+    async ({ baseDigest, task }) => {
+      if (task.id === 'a') {
+        aEntered.resolve();
+        await releaseCleanup.promise;
+      } else if (task.id === 'b') {
+        bStarted = true;
+      }
+      return {
+        kind: 'changeset',
+        baseDigest,
+        writes: [{ path: `${task.id}.txt`, content: task.id }],
+      };
+    },
+    { capacity: 1 },
+  );
+
+  await aEntered.promise;
+  engine.cancelTask('a', 'D0018 C4');
+  await new Promise((resolve) => setImmediate(resolve));
+  assert.equal(bStarted, false, 'B must remain out of the runtime slot until A cleanup settles');
+  releaseCleanup.resolve();
+  const result = await running;
+
+  assert.equal(bStarted, true);
+  assert.equal(result.maxConcurrent, 1);
+});
