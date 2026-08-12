@@ -1,0 +1,372 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-adversarial-convergence-falsifier",
+  "source": {
+    "root": "/data/data/com.termux/files/home/.tmcp/worktrees/d0018-converge-wt_06893db508723b2a",
+    "head": "b048712a372b5a46fb88134690ee57f92981df11",
+    "engineBlob": "1df83aaead55c147172b2a2f6b146421e8c80407",
+    "runnerBlob": "db92151eb662d7223bed34a4d091632def975b59",
+    "selectedContextBlob": "5d360638f430201a9a20075678b4225778e2da79",
+    "repositoryModelTransportBlob": "35224685084dff0019a22d9384e6a1f0e794b1f4"
+  },
+  "currentSource": {
+    "inFlightCancellation": {
+      "expectedOwner": "CaseEngine semantic cancellation; runner execution liveness",
+      "expectedOutcome": "semantic cancellation remains authoritative and late result is fenced; current source is expected to fail prompt liveness cleanup",
+      "observed": {
+        "taskState": "cancelled",
+        "attemptState": "cancelled",
+        "signalAborted": false,
+        "childAlive": true,
+        "descendantAlive": true
+      },
+      "afterSettlement": {
+        "finalCaseState": "cancelled",
+        "signalAborted": true,
+        "childExited": true,
+        "descendantExited": true,
+        "lateResultAccepted": false
+      },
+      "currentSourceFalsified": true
+    },
+    "cancelBeforeControllerRegistration": {
+      "expectedOwner": "CaseEngine semantic cancellation; runner admission/launch control; checkpoint owner persists exact snapshot revision",
+      "expectedOutcome": "a terminal Attempt must not invoke executor, and cancellation revision must not be acknowledged unless persisted",
+      "observed": {
+        "beforeCancelRevision": 2,
+        "cancelledRevision": 5,
+        "invocationsAfterCancellation": 1,
+        "signalAbortedAtExecutorEntry": false,
+        "checkpoints": [
+          {
+            "reason": "attempt_started",
+            "revision": 2,
+            "taskState": "running",
+            "attemptState": "running"
+          }
+        ],
+        "cancelledRevisionCheckpointed": false,
+        "lateResultAccepted": false
+      },
+      "currentSourceFalsified": true
+    }
+  },
+  "referenceProtocol": {
+    "status": "non-production executable design falsifier; passing cases do not claim source implementation",
+    "cases": [
+      {
+        "id": 1,
+        "expectedOwner": "CaseEngine cancellation; runner controller registration",
+        "expectedOutcome": "cancel before registration yields zero process/executor starts",
+        "observed": {
+          "registered": false,
+          "aborted": true,
+          "processStarts": 0,
+          "executorInvocations": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 2,
+        "expectedOwner": "CaseEngine cancellation; runner live controller",
+        "expectedOutcome": "cancel after registration but before executor invocation aborts exact controller and invokes nothing",
+        "observed": {
+          "aborted": true,
+          "executorInvocations": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 3,
+        "expectedOwner": "Runner admission plus transport pre-spawn abort check",
+        "expectedOutcome": "cancellation after executor entry but before spawn yields zero process starts",
+        "observed": {
+          "executorInvocations": 1,
+          "processStarts": 0,
+          "aborted": true
+        },
+        "passed": true
+      },
+      {
+        "id": 4,
+        "expectedOwner": "Runner liveness plus D0017 preparation respecting AbortSignal",
+        "expectedOutcome": "cancel during preparation stops before model invocation",
+        "observed": {
+          "preparationEntered": true,
+          "aborted": true,
+          "modelInvocations": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 5,
+        "expectedOwner": "D0017 logical authorization before physical carrier/cache access",
+        "expectedOutcome": "cancel/unauthorized state before carrier access performs zero physical reads",
+        "observed": {
+          "physicalReads": 0,
+          "modelInvocations": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 6,
+        "expectedOwner": "D0017 resolution plus runner cancellation",
+        "expectedOutcome": "cancel during pack/reference resolution prevents model invocation",
+        "observed": {
+          "resolutionEntered": true,
+          "aborted": true,
+          "modelInvocations": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 7,
+        "expectedOwner": "CaseEngine result acceptance/fencing",
+        "expectedOutcome": "child output produced before cancellation is still rejected if cancellation commits before acceptance",
+        "observed": {
+          "childOutputComplete": true,
+          "finalState": "cancelled",
+          "accepted": false
+        },
+        "passed": true
+      },
+      {
+        "id": 8,
+        "expectedOwner": "CaseEngine Attempt lifecycle/retry admission",
+        "expectedOutcome": "retry is inadmissible while predecessor nonterminal and admissible only after predecessor terminal",
+        "observed": {
+          "predecessorNonterminalRejected": true,
+          "predecessorState": "failed",
+          "retryState": "running"
+        },
+        "passed": true
+      },
+      {
+        "id": 9,
+        "expectedOwner": "CaseEngine Attempt/fence acceptance",
+        "expectedOutcome": "previous Attempt late response cannot bind to admitted retry",
+        "observed": {
+          "oldAccepted": false,
+          "newAccepted": true
+        },
+        "passed": true
+      },
+      {
+        "id": 10,
+        "expectedOwner": "Runner exact live-control identity",
+        "expectedOutcome": "stale cancellation notification for predecessor does not abort retry controller",
+        "observed": {
+          "retryControllerAborted": false
+        },
+        "passed": true
+      },
+      {
+        "id": 11,
+        "expectedOwner": "Runner compare-and-delete unregister",
+        "expectedOutcome": "stale unregister cannot delete a newer controller binding",
+        "observed": {
+          "staleUnregisterRemovedNew": false,
+          "newStillRegistered": true
+        },
+        "passed": true
+      },
+      {
+        "id": 12,
+        "expectedOwner": "Runner capacity N admission; CaseEngine retry owner",
+        "expectedOutcome": "semantic retry eligibility begins at predecessor terminal, but runtime admission waits for predecessor execution-handle cleanup so live bindings never exceed N",
+        "observed": {
+          "capacity": 3,
+          "predecessorAborted": [
+            false,
+            true,
+            false
+          ],
+          "retrySemanticallyEligible": true,
+          "retryAdmittedBeforeCleanup": false,
+          "retryAdmittedAfterCleanup": true,
+          "retryAborted": false,
+          "liveBindings": 3
+        },
+        "passed": true
+      },
+      {
+        "id": 13,
+        "expectedOwner": "D0017 logical authorization and derived physical cache",
+        "expectedOutcome": "same physical context may dedupe across scopes while logical reference IDs differ",
+        "observed": {
+          "sameContextDigest": true,
+          "referenceIdEqual": false,
+          "physicalEntries": 1,
+          "reads": 2
+        },
+        "passed": true
+      },
+      {
+        "id": 14,
+        "expectedOwner": "D0017 authorization scope",
+        "expectedOutcome": "copied logical reference across Case fails before physical read",
+        "observed": {
+          "code": "context_reference_unauthorized",
+          "physicalReads": 0
+        },
+        "passed": true
+      },
+      {
+        "id": 15,
+        "expectedOwner": "D0017 authorization/stale binding",
+        "expectedOutcome": "stale authorization scope is rejected even when physical bytes are valid",
+        "observed": {
+          "code": "context_reference_unauthorized",
+          "physicalReads": 0,
+          "validPhysicalEntryStillPresent": true
+        },
+        "passed": true
+      },
+      {
+        "id": 16,
+        "expectedOwner": "Derived cache integrity; authoritative source rebuild",
+        "expectedOutcome": "corrupt cache is rejected/evicted and a later valid rebuild succeeds",
+        "observed": {
+          "corruptCode": "context_reference_corrupt",
+          "validAfterRebuild": true,
+          "materializations": 2
+        },
+        "passed": true
+      },
+      {
+        "id": 17,
+        "expectedOwner": "CaseEngine retry plus derived cache",
+        "expectedOutcome": "cache loss between retries rebuilds bytes without changing logical reference when D0017 facts are unchanged",
+        "observed": {
+          "referenceStable": true,
+          "materializations": 2
+        },
+        "passed": true
+      },
+      {
+        "id": 18,
+        "expectedOwner": "D0017 derived carrier/cache; authoritative Git source",
+        "expectedOutcome": "cold restart with authoritative source available reconstructs same logical identity",
+        "observed": {
+          "referenceStable": true,
+          "rebuilt": true
+        },
+        "passed": true
+      },
+      {
+        "id": 19,
+        "expectedOwner": "Authoritative source availability boundary; no hidden fallback",
+        "expectedOutcome": "cold restart without authoritative source fails typed-missing and performs no model invocation",
+        "observed": {
+          "code": "context_reference_missing",
+          "modelInvocations": 0,
+          "hiddenFallback": false
+        },
+        "passed": true
+      },
+      {
+        "id": 20,
+        "expectedOwner": "CaseEngine semantic state; transport deadline liveness",
+        "expectedOutcome": "timeout cannot overwrite already-committed cancellation and transport timeout itself selects no semantic state",
+        "observed": {
+          "cancellationFirstFinal": "cancelled",
+          "timeoutOverwroteCancellation": false,
+          "timeoutFirstStateBeforeOwnerTransition": "running"
+        },
+        "passed": true
+      },
+      {
+        "id": 21,
+        "expectedOwner": "Runtime shutdown liveness; CaseEngine semantic cancellation",
+        "expectedOutcome": "shutdown aborts transport but does not invent semantic terminal state; concurrent Task cancellation remains authoritative",
+        "observed": {
+          "transportAborted": true,
+          "stateAfterShutdownBeforeOwnerTransition": "running",
+          "finalState": "cancelled"
+        },
+        "passed": true
+      },
+      {
+        "id": 22,
+        "expectedOwner": "Transport descendant cleanup",
+        "expectedOutcome": "direct child exit with descendant-held inherited pipe is bounded by process-group cleanup",
+        "observed": {
+          "directChildCode": 0,
+          "descendantPid": 18174,
+          "descendantExited": true,
+          "durationMs": 572
+        },
+        "passed": true
+      },
+      {
+        "id": 23,
+        "expectedOwner": "Observation is non-authoritative/non-blocking",
+        "expectedOutcome": "hanging observation callback cannot block runtime completion",
+        "observed": {
+          "invoked": true,
+          "awaited": false,
+          "blockedCompletion": false
+        },
+        "passed": true
+      },
+      {
+        "id": 24,
+        "expectedOwner": "Observation is non-authoritative/non-blocking",
+        "expectedOutcome": "throwing observation callback cannot change runtime outcome",
+        "observed": {
+          "invoked": true,
+          "throwEscaped": false,
+          "semanticMutation": false
+        },
+        "passed": true
+      },
+      {
+        "id": 25,
+        "expectedOwner": "Checkpoint owner persists exact snapshot revision; CaseEngine owns semantic revision",
+        "expectedOutcome": "blocked checkpoint may persist old snapshot but must not acknowledge newer revision",
+        "observed": {
+          "persistedRevision": 1,
+          "semanticRevision": 2,
+          "falselyAcknowledgedNewer": false
+        },
+        "passed": true
+      },
+      {
+        "id": 26,
+        "expectedOwner": "Checkpoint reconciliation loop",
+        "expectedOutcome": "after old snapshot persistence resumes, newer semantic revision is persisted before dependent dispatch/terminal return",
+        "observed": {
+          "persisted": [
+            {
+              "revision": 1,
+              "state": "running"
+            },
+            {
+              "revision": 2,
+              "state": "cancelled"
+            }
+          ],
+          "finalCheckpointedRevision": 2,
+          "semanticRevision": 2
+        },
+        "passed": true
+      },
+      {
+        "id": 27,
+        "expectedOwner": "Checkpoint reconciliation loop",
+        "expectedOutcome": "multiple rapid semantic transitions during one outstanding checkpoint are coalesced only by persisting a snapshot at the latest revision, never by false acknowledgement",
+        "observed": {
+          "persistedRevisions": [
+            1,
+            4
+          ],
+          "latestSemanticRevision": 4,
+          "finalState": "cancelled-final"
+        },
+        "passed": true
+      }
+    ],
+    "passed": true,
+    "count": 27
+  }
+}
