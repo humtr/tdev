@@ -63,7 +63,8 @@
         "job": "job_66a_2060dab0f0",
         "command": "npm run check",
         "exitCode": 0,
-        "status": "green"
+        "status": "historical-success-superseded-for-current-gate",
+        "classification": "this earlier execution actually succeeded, but it is not trusted as current npm-run-check gate evidence after later exact execution job_6a4_cc7f38a8e3 was interrupted and therefore did not establish a green current gate"
       },
       {
         "job": "job_66b_c17dc144ff",
@@ -97,17 +98,40 @@
       }
     ]
   },
+  "laterExactNpmRunCheck": {
+    "job": "job_6a4_cc7f38a8e3",
+    "sourceHead": "abf1e40eeebf63ef1abcd9594975edd9e7f5f3c3",
+    "command": "npm run check",
+    "shellSuccess": false,
+    "exitCode": null,
+    "signal": "SIGTERM",
+    "cancelled": true,
+    "observedBeforeInterruption": {
+      "tests": 250,
+      "passed": 224,
+      "failed": 25,
+      "cancelled": 1,
+      "immutableJournalFailureFamilyPresent": true
+    },
+    "status": "interrupted-not-green",
+    "classification": "the later exact npm run check was cancelled by its tmcp batch and cannot be classified green; the independently completed exact-all-test job_66b_c17dc144ff establishes that the matching ImmutableJournal failures on this Termux filesystem are the pre-existing link(2) EACCES platform limitation"
+  },
   "classification": {
     "replacementForInterruptedJob": true,
     "convergenceDesignFalsifiersGreen": true,
     "supportedTermuxSourceScopeGreen": true,
+    "npmRunCheckCurrentGateGreen": false,
+    "npmRunCheckCurrentGateClassification": "interrupted-not-green",
     "exactAllTestCoverageGreen": false,
     "exactAllTestCoverageClassification": "unsupported-environment",
+    "d0018RegressionFromHardLinkFailure": false,
+    "hardLinkClassification": "pre-existing Termux filesystem limitation evidenced by completed job_66b_c17dc144ff; not a D0018 regression",
     "d0018ProductionImplemented": false,
     "d0018ProductionVerified": false
   },
   "limitations": [
     "The supported-Termux suite intentionally excludes only test/immutable-journal.test.mjs because this environment lacks its required hard-link primitive.",
+    "The earlier job_66a npm run check did exit zero, but later job_6a4 at abf1 was interrupted and is explicitly not green; job_66b separately provides completed link(2) EACCES evidence for the unsupported exact-all-test layer.",
     "This evidence validates the exact a603 convergence/review source and reproduces current source defects; it does not validate a later D0018 production repair.",
     "The registered portable profile is stale and cannot substitute for the repository-owned AGENTS source gate."
   ]

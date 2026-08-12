@@ -48,7 +48,7 @@
     {
       "kind": "replacement-validation",
       "path": "docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json",
-      "sha256": "1a25fc9dba2c7322c42b54ffb7f599cb79ecd6bd911b42340b1a0f8e59d39d6b"
+      "sha256": "7bbab3ed53f5c777d6d22e0903ef0ba65959d4accf6b63448bd7b15fcca3c6ba"
     },
     {
       "kind": "warm-qualification",
@@ -188,7 +188,7 @@
   "validation": {
     "convergenceReferenceFalsifiers": "27/27 green",
     "warmQualification": "W01-W43 completed with explicit pass/falsified/unavailable/source-defect classifications",
-    "npmRunCheck": "green at a603 review source",
+    "npmRunCheck": "earlier a603 execution succeeded, but later exact abf1 execution was interrupted and is not green current-gate evidence",
     "supportedTermuxSuite": "226/226 green",
     "supportedTermuxCoverage": "green",
     "exactAllTestCoverage": "unsupported on this Termux filesystem only for pre-existing ImmutableJournal link(2) EACCES"

@@ -9,7 +9,7 @@
 - Accepted implementation scope: exact committed-Event observation, exact live-controller fencing, pre/post-publication and pre-execution authority checks, exact checkpoint-revision drain, and runtime-slot retention through predecessor cleanup/settlement; no model-process warm pool
 - Production implementation in this review Task: **none**
 - Executable review falsifiers: `bench/d0018-adversarial-convergence-falsifier.mjs` and `bench/d0018-warm-runtime-qualification.mjs`
-- Final adversarial evidence: `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (`fdd16013d1793b6db0f5d3f6aaaefe603d5b7960af7757ce5a99dd4b9cdc48fe`)
+- Final adversarial evidence: `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (`70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033`)
 
 > Acceptance freezes the bounded trusted-local runtime contract below. It does not claim production implementation, source verification of the repair, provider qualification, Group E completion, checkpoint election, or Group F creation.
 
@@ -285,6 +285,6 @@ Unsupported/unavailable are not green:
 
 ## 22. Acceptance record
 
-Acceptance is recorded under `SDD.md` after freezing the exact runtime, lifecycle observation, checkpoint, capacity, warm, lost-wake, security, migration, rollback and provider-status contracts above. Direct evidence is `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` with SHA-256 `fdd16013d1793b6db0f5d3f6aaaefe603d5b7960af7757ce5a99dd4b9cdc48fe`; replacement validation is `docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json` with SHA-256 `1a25fc9dba2c7322c42b54ffb7f599cb79ecd6bd911b42340b1a0f8e59d39d6b`; warm qualification is `docs/evidence/group-e-d0018-warm-runtime-qualification-2026-08-12.json` with SHA-256 `3f1e7dec8ba803fa4601d72a49c93402f4d301b1f012369d29c9a6fed51c8027`.
+Acceptance is recorded under `SDD.md` after freezing the exact runtime, lifecycle observation, checkpoint, capacity, warm, lost-wake, security, migration, rollback and provider-status contracts above. Direct evidence is `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` with SHA-256 `70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033`; replacement validation is `docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json` with SHA-256 `7bbab3ed53f5c777d6d22e0903ef0ba65959d4accf6b63448bd7b15fcca3c6ba`; warm qualification is `docs/evidence/group-e-d0018-warm-runtime-qualification-2026-08-12.json` with SHA-256 `3f1e7dec8ba803fa4601d72a49c93402f4d301b1f012369d29c9a6fed51c8027`.
 
 Acceptance authorizes only the smallest coherent C1-C4 production repair and the transient committed-Event observation/live-control machinery required by it. It does not authorize same-model-process warm pools, provider abstraction, Agent/AgentDO implementation, ContextSlice, D0022 storage, hidden polling, a second queue, executor/provider retry, or unrelated source changes. Production implementation must first enter `implementing` on the active Group E integration lineage.
