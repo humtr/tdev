@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-prior-work-independent-review",
+  "date": "2026-08-12",
+  "canonical": {
+    "branch": "group/e-context-delivery",
+    "localHead": "b048712a372b5a46fb88134690ee57f92981df11",
+    "remoteHead": "b048712a372b5a46fb88134690ee57f92981df11",
+    "cleanAtReviewStart": true
+  },
+  "prior": {
+    "branch": "tmcp/d0018-runtime-boundary-recovery",
+    "head": "b9e260391e56c82b6ca6c9ab7965664396da1069",
+    "branchModified": false,
+    "inspectionMethod": "task-owned isolated worktree created from exact prior head because the original prior worktree is owned by another Root Task",
+    "commits": [
+      {
+        "sha": "ecf8ff0de51f19e2cd517bcb13c456a2748cc8d4",
+        "parent": "b048712a372b5a46fb88134690ee57f92981df11",
+        "authoredAt": "2026-08-12T12:42:26+09:00",
+        "subject": "Record D0018 runtime boundary measurements"
+      },
+      {
+        "sha": "0f8c33ea600c1f3cfd9661d44ead34d0b9b9e9f2",
+        "parent": "ecf8ff0de51f19e2cd517bcb13c456a2748cc8d4",
+        "authoredAt": "2026-08-12T12:42:56+09:00",
+        "subject": "Draft D0018 final runtime boundary"
+      },
+      {
+        "sha": "b9e260391e56c82b6ca6c9ab7965664396da1069",
+        "parent": "0f8c33ea600c1f3cfd9661d44ead34d0b9b9e9f2",
+        "authoredAt": "2026-08-12T12:45:14+09:00",
+        "subject": "Document D0018 review handoff"
+      }
+    ],
+    "blobs": {
+      "ecf8ff0de51f19e2cd517bcb13c456a2748cc8d4:bench/model-executor-runtime-decision.mjs": "18a7093f57d06aa423d3429ae5f395f45ef79182",
+      "ecf8ff0de51f19e2cd517bcb13c456a2748cc8d4:docs/evidence/group-e-d0018-runtime-boundary-2026-08-12.json": "eae88965c08ff8a29243a58cfb03c0944be7b095",
+      "0f8c33ea600c1f3cfd9661d44ead34d0b9b9e9f2:docs/design/0018-final-model-executor-provider-runtime-boundary.md": "265822e50d615bf6e9e5a69fd15b43040f30463e",
+      "0f8c33ea600c1f3cfd9661d44ead34d0b9b9e9f2:docs/design/README.md": "215f95ba59d4b113be694e12aafc046970d9caa0",
+      "b9e260391e56c82b6ca6c9ab7965664396da1069:docs/evidence/group-e-d0018-review-manifest-2026-08-12.json": "c86da8d234f9e0cc621c2022733ebd2aca87010e"
+    }
+  },
+  "diagnosis": {
+    "rootProblem": "current CaseEngine cancellation fences late results but current runner does not promptly wake the active executor AbortController",
+    "selectedRuntime": "fresh trusted-local process per Attempt",
+    "warmCandidate": "measured structural process-start and boundary-byte advantage but not production-selected because reset/isolation domains are unproved",
+    "externalProvider": "not selected or qualified",
+    "contextDelivery": "consume accepted D0017 full semantic context and authorization-scoped logical reference; physical derived cache is separate from logical authority",
+    "retryOwner": "CaseEngine/Task lifecycle",
+    "queueOwner": "runner admission; no executor-internal semantic queue",
+    "capacity": "capacity 1 is N=1 of the same scheduler semantics",
+    "cancellationFixDraft": "non-authoritative engine-to-runner wake/notification targeting the active controller",
+    "d0022": "not required for current rebuildable semantics when authoritative Git source is available",
+    "contextSlice": "not selected",
+    "agentBoundary": "future Agent/AgentDO may host transport/topology functions but do not own Task/Attempt semantics",
+    "migration": "no durable schema change",
+    "rollback": "software rollback to current fresh-process path; delayed cancellation cleanup returns"
+  },
+  "benchmarkReview": {
+    "usesActualCanonicalExecutorForFreshPath": true,
+    "usesActualD0017ContextDeliveryForFreshPath": true,
+    "warmCandidateIsSyntheticNodeReceiver": true,
+    "realModelInferenceMeasured": false,
+    "processStartupIncludedInFreshWallTime": true,
+    "warmStartupReportedSeparately": true,
+    "candidateSemanticBytesPreserved": true,
+    "fixedRunOrder": true,
+    "randomizedOrReversedRunOrder": false,
+    "osAndGitCacheEffectsIsolated": false,
+    "modelSessionResetProved": false,
+    "moduleGlobalResetProved": false,
+    "conversationSessionResetProved": false,
+    "providerSdkResetProved": false,
+    "arbitraryExecutableResetProved": false,
+    "warmInternalQueue": false,
+    "warmConcurrentInvocationBehavior": "rejects with executor_capacity_exceeded",
+    "retryReferenceIdentityStable": true,
+    "cancellationDescendantCoverage": "prior benchmark diagnoses signal timing; it does not directly exercise the current transport descendant cleanup race"
+  },
+  "reruns": {
+    "environment": {
+      "node": "v26.4.0",
+      "platform": "android/arm64",
+      "git": "git version 2.55.0"
+    },
+    "source": {
+      "benchmarkHead": "b9e260391e56c82b6ca6c9ab7965664396da1069",
+      "canonicalCommitUnderTest": "b048712a372b5a46fb88134690ee57f92981df11",
+      "engineBlob": "1df83aaead55c147172b2a2f6b146421e8c80407",
+      "runnerBlob": "db92151eb662d7223bed34a4d091632def975b59",
+      "benchmarkBlob": "18a7093f57d06aa423d3429ae5f395f45ef79182"
+    },
+    "runs": [
+      {
+        "freshWallMs": 2316.8178639999987,
+        "freshLatencyMs": [937.8272390000002, 430.01369800000066, 450.37515600000006, 473.0742709999995],
+        "warmWallMs": 19.66213500000231,
+        "warmStartupMs": 396.85770799999955
+      },
+      {
+        "freshWallMs": 3327.9206239999985,
+        "freshLatencyMs": [1518.3503119999987, 566.7078650000003, 651.3252079999984, 569.7533340000009],
+        "warmWallMs": 15.893646000000444,
+        "warmStartupMs": 440.3934369999988
+      },
+      {
+        "freshWallMs": 3539.0267689999982,
+        "freshLatencyMs": [1613.9647909999985, 731.9565619999994, 588.7261980000003, 568.0809890000019],
+        "warmWallMs": 16.60687499999767,
+        "warmStartupMs": 467.9892179999988
+      }
+    ],
+    "stableStructuralFacts": {
+      "freshProcessStarts": 4,
+      "freshProcessReuses": 0,
+      "warmProcessStarts": 1,
+      "warmProcessReuses": 3,
+      "freshRequestBytes": 10844472,
+      "modelVisibleContextBytes": 10299080,
+      "freshReferenceStable": true,
+      "warmReferenceStable": true,
+      "warmBoundaryByteChangePercentIncludingOnePrime": -67.68998066480323,
+      "currentCancellationSignalAbortedBeforeExecutorSettles": false,
+      "currentCancellationSignalAbortedAfterExecutorSettles": true,
+      "d0017CarrierRebuildReferenceStable": true
+    },
+    "reproductionJudgment": "structural runtime conclusions reproduce; absolute latency values are unstable and are not treated as a production performance SLO or unbiased candidate comparison"
+  },
+  "attacksThatBreakPrior": [
+    "notification-only design does not close cancellation before controller registration",
+    "notification mechanism does not specify exact stale/wrong-Attempt/ABA unregister identity",
+    "checkpointedRevision can falsely acknowledge a newer semantic revision than the snapshot actually persisted, and prior Design does not address it",
+    "fixed benchmark ordering and unisolated OS/Git caches make absolute fresh-versus-warm latency numbers non-causal",
+    "warm measurements do not prove model/session/provider/arbitrary-executable reset",
+    "D0022 conclusion is valid only while authoritative source availability is part of the current operating assumption"
+  ],
+  "survivingPriorSemantics": [
+    "fresh trusted-local process per Attempt is the safe current runtime selection",
+    "CaseEngine remains semantic retry/cancellation/result authority",
+    "transport owns one finite operation and no semantic retry/queue",
+    "D0017 logical authorization is independent of physical derived-cache reuse",
+    "warm performance advantage is real structural evidence but insufficient for production eligibility",
+    "provider remains unqualified and ContextSlice remains unselected"
+  ]
+}

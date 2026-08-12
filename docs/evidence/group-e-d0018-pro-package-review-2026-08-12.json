@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-pro-package-independent-review",
+  "date": "2026-08-12",
+  "package": {
+    "name": "d0018-pro-review-package.tar.gz",
+    "sha256": "24089f8e898614f33157afdf827704a27aee5aa110026a0738f204bdc76c9b6c",
+    "treatedAsCanonicalAuthority": false,
+    "commitObjectsPresentInCurrentRepository": false,
+    "reportedCommits": [
+      "8107b22a586adaed76a39d2b6d89795007543481",
+      "4bff93e88aeb81d8f29b34cb0031561887c3872e",
+      "0163d4f5f23ec70035b3d0ff9d1322b6f706b695",
+      "1fa359b99d593775a1a51d76cf4b85c9865f088a",
+      "857d5c200ec1acd08c32e5f4b8349fd1748a0668",
+      "5adcc98ce39a99d7adf80bd39e40ffa38a76693a"
+    ],
+    "patchesReproduceReportedCommitIds": true,
+    "artifactHashesValidatedFromPackage": true
+  },
+  "trackSeparation": {
+    "independentCheckpointCommit": "0163d4f5f23ec70035b3d0ff9d1322b6f706b695",
+    "independentDesign": "docs/design/0018-pro-independent-runtime-boundary.md",
+    "laterSurvivingDesign": "docs/design/0018-pro-surviving-runtime-boundary.md",
+    "distinguishable": true,
+    "trackAClaimsPriorOpened": false,
+    "laterTrackBUsesCurrentExactSource": true,
+    "mixedTrackAAndTrackBAsOneCheckpoint": false
+  },
+  "independenceJudgment": {
+    "priorBranchExistedBeforeProCheckpoint": true,
+    "priorBranchReportedPushed": false,
+    "proEnvironmentReportedPriorBranchAvailable": false,
+    "proEnvironmentReportedPriorCommitsAvailable": false,
+    "proEnvironmentReportedPriorFilesAvailable": false,
+    "supportedClaim": "the Pro independent checkpoint has affirmative self-recorded non-access evidence and later environment evidence that the prior refs/files were unavailable",
+    "unsupportedStrongerClaim": "the evidence does not show that prior work did not exist before the Pro checkpoint; the recovered prior commits predate the Pro patch chain",
+    "priorCommitTimesKst": [
+      "2026-08-12T12:42:26+09:00",
+      "2026-08-12T12:42:56+09:00",
+      "2026-08-12T12:45:14+09:00"
+    ],
+    "proPatchAuthoredTimesKst": [
+      "2026-08-12T13:30:00+09:00",
+      "2026-08-12T13:40:00+09:00",
+      "2026-08-12T13:50:00+09:00",
+      "2026-08-12T14:35:00+09:00",
+      "2026-08-12T15:05:00+09:00",
+      "2026-08-12T13:46:14+09:00"
+    ],
+    "note": "patch Date headers are provenance metadata and are not used as sole evidence of execution chronology"
+  },
+  "sourceProvenance": {
+    "canonicalAnchorClaimed": "b048712a372b5a46fb88134690ee57f92981df11",
+    "currentCanonicalLocalHead": "b048712a372b5a46fb88134690ee57f92981df11",
+    "currentCanonicalRemoteHead": "b048712a372b5a46fb88134690ee57f92981df11",
+    "engineBlobClaimed": "1df83aaead55c147172b2a2f6b146421e8c80407",
+    "engineBlobCurrent": "1df83aaead55c147172b2a2f6b146421e8c80407",
+    "runnerBlobClaimed": "db92151eb662d7223bed34a4d091632def975b59",
+    "runnerBlobCurrent": "db92151eb662d7223bed34a4d091632def975b59",
+    "exactEngineRunnerBlobMatch": true
+  },
+  "prototypeVersusSource": {
+    "independentRuntimeFalsifier": "prototype/fixture with real repository source components but not a real model/provider",
+    "warmReceiver": "prototype fixture; structural performance and contamination evidence only",
+    "currentRunnerCancellationFalsifier": "exact current engine/runner blobs with deterministic barriers and synthetic child worker",
+    "fullCanonicalSourceGateInProEnvironment": "blocked/incomplete because a full exact b048 checkout was unavailable",
+    "productionSourceChanged": false
+  },
+  "proRecordedCurrentSourceFindings": {
+    "inFlight": {
+      "taskCancelled": true,
+      "attemptCancelled": true,
+      "signalAbortedImmediately": false,
+      "workerAliveImmediately": true,
+      "descendantAliveImmediately": true,
+      "lateResultAccepted": false
+    },
+    "cancelBeforeControllerRegistration": {
+      "revisionBeforeCancellation": 2,
+      "cancelledRevision": 5,
+      "executorInvocationsAfterCancellation": 1,
+      "signalAbortedAtExecutorEntry": false,
+      "cancelledRevisionCheckpointed": false
+    }
+  },
+  "independentTermuxReproduction": {
+    "harness": "bench/d0018-adversarial-convergence-falsifier.mjs",
+    "engineBlob": "1df83aaead55c147172b2a2f6b146421e8c80407",
+    "runnerBlob": "db92151eb662d7223bed34a4d091632def975b59",
+    "inFlightMatchesProSemantics": true,
+    "cancelBeforeControllerRegistrationMatchesProSemantics": true,
+    "observed": {
+      "inFlightSignalAbortedImmediately": false,
+      "inFlightChildAliveImmediately": true,
+      "inFlightDescendantAliveImmediately": true,
+      "lateResultAccepted": false,
+      "cancelledRevision": 5,
+      "executorInvocationsAfterCancellation": 1,
+      "signalAbortedAtExecutorEntry": false,
+      "cancelledRevisionCheckpointed": false
+    }
+  },
+  "attacksThatBreakPro": [
+    "its capacity-N controller test does not by itself freeze when a terminal predecessor releases its runtime slot relative to retry admission",
+    "stable live-control identity should distinguish the durable/external key from the local controller-object compare-and-delete token",
+    "level-triggered checks only at future scheduler turns do not prove a prompt liveness bound if a post-publication wake is lost and the executor is the only outstanding event",
+    "a reconciliation loop must not become a hidden polling scheduler or semantic queue owner",
+    "warm cross-Case contamination falsifies the tested warm receiver, not every possible future resettable constrained runtime",
+    "full exact canonical source gate was not available in the Pro environment"
+  ],
+  "survivingProSemantics": [
+    "current source has a real cancel-before-controller-registration launch race",
+    "current source has a real checkpoint revision acknowledgement race",
+    "exact stale notification/unregister handling is required",
+    "observation callbacks must be non-blocking and non-authoritative",
+    "D0017 copied-reference/stale-scope/cache-corruption falsifiers are valid design requirements",
+    "D0022 conclusion must remain conditional on source availability/topology/SLA",
+    "fresh process remains the current safe production candidate while warm reset domains are unproved"
+  ],
+  "selfReportedFinalVerdict": "both-require-redesign",
+  "reviewJudgmentOnSelfReportedVerdict": "not adopted; exact prior artifacts now recover substantial valid semantics and new convergence evidence supports hybrid-required"
+}

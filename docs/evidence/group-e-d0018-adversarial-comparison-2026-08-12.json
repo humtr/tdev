@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-adversarial-comparison",
+  "date": "2026-08-12",
+  "verdictCandidate": "hybrid-required",
+  "matrix": [
+    {
+      "axis": "provenance",
+      "prior": "exact local branch, commits, blobs, and parentage recovered from repository object database",
+      "pro": "six reported commits do not exist in the current repository object database; package patches reproduce those commit IDs and artifact hashes",
+      "stronger": "prior for repository-native provenance; Pro package remains verifiable external provenance",
+      "evidence": "git object/ref inspection plus package patch/hash inspection"
+    },
+    {
+      "axis": "independence claim",
+      "prior": "branch existed locally before Pro checkpoint and was reported unpushed",
+      "pro": "checkpoint records no prior branch/commit/file access; Pro environment later records those refs unavailable",
+      "stronger": "Pro claim survives only as non-access/clean-room evidence, not as proof that prior work did not yet exist",
+      "evidence": "prior commit timestamps 12:42-12:45 KST; Pro patch chain begins 13:30 KST; prior manifest unpushed; Pro validation says prior unavailable"
+    },
+    {
+      "axis": "current root problem",
+      "prior": "correctly identifies result-safe but operationally late cancellation",
+      "pro": "adds exact cancel-before-controller-registration and checkpoint-revision races",
+      "stronger": "Pro",
+      "evidence": "current engine/runner exact blobs independently reproduce both Pro races"
+    },
+    {
+      "axis": "fresh runtime reality",
+      "prior": "actual GitRepositoryModelExecutor and D0017 source path: four Attempts -> four starts, zero reuse",
+      "pro": "fresh-process prototype and exact engine/runner cancellation harness",
+      "stronger": "prior",
+      "evidence": "prior benchmark executes the repository executor/context boundary directly; Pro worker is explicitly a falsifier fixture"
+    },
+    {
+      "axis": "warm runtime fair trial",
+      "prior": "measures real boundary bytes and process starts with a synthetic warm receiver; one-start/three-reuse and -67.69% amortized boundary bytes",
+      "pro": "measures large structural latency benefit and directly falsifies cross-Case process-global isolation; reset domains remain unproved",
+      "stronger": "hybrid",
+      "evidence": "prior supplies production-shaped context/boundary economics; Pro supplies stronger contamination/reset falsifiers"
+    },
+    {
+      "axis": "cancellation control",
+      "prior": "non-authoritative engine-to-runner notification/wakeup",
+      "pro": "exact-Attempt registry, pre/post publication checks, stale notification/unregister protection, level-triggered reconciliation",
+      "stronger": "Pro but incomplete",
+      "evidence": "Pro closes pre-registration/ABA classes; its generic lost-notification recovery can still wait for a later scheduler turn unless an accepted bounded wake contract exists"
+    },
+    {
+      "axis": "control identity",
+      "prior": "active controller identity is not fully specified",
+      "pro": "caseId+taskId+attemptId+fence+executorId+executorEpoch plus controller object",
+      "stronger": "hybrid refinement",
+      "evidence": "stable registry key needs the semantic/executor tuple; controller object is a local compare-and-delete token, not an externally addressable key component"
+    },
+    {
+      "axis": "checkpoint revision accounting",
+      "prior": "not addressed",
+      "pro": "persisted snapshot revision must be acknowledged exactly and newer revisions drained/reconciled",
+      "stronger": "Pro",
+      "evidence": "canonical runner source and independent current-source harness reproduce revision 2 persisted while semantic cancellation advances to revision 5"
+    },
+    {
+      "axis": "retry eligibility vs runtime capacity",
+      "prior": "runner capacity is the owner and warm executor refuses hidden queueing",
+      "pro": "capacity-N exact abort tested but semantic retry versus execution-handle slot release not explicitly frozen",
+      "stronger": "new convergence semantics",
+      "evidence": "new case 12 showed an uncleaned predecessor plus retry would create four registry bindings at N=3; corrected protocol retains runtime slot until predecessor handle cleanup/settlement"
+    },
+    {
+      "axis": "retry ownership",
+      "prior": "CaseEngine/Task lifecycle only; new process per retry",
+      "pro": "same, with stale predecessor result/controller falsifiers",
+      "stronger": "Pro evidence, same surviving semantic",
+      "evidence": "new cases 8-11 and Pro cross-falsifiers"
+    },
+    {
+      "axis": "descendant cleanup",
+      "prior": "selected transport owns child/descendant cleanup but prior benchmark does not directly exercise inherited-pipe descendant behavior",
+      "pro": "POSIX descendant cleanup falsifier",
+      "stronger": "Pro/new convergence",
+      "evidence": "new case 22 calls current runModelSubprocess and observes descendant exit after direct child exits while inherited pipes stay open"
+    },
+    {
+      "axis": "D0017 authorization/cache separation",
+      "prior": "semantically correct separation",
+      "pro": "same plus copied-reference, stale-scope, corruption and recovery falsifiers",
+      "stronger": "Pro evidence, same surviving semantic",
+      "evidence": "new cases 13-17 preserve one physical entry across scopes while logical reference IDs differ and unauthorized reads remain zero"
+    },
+    {
+      "axis": "restart and D0022",
+      "prior": "rebuild from authoritative source preserves identity, so durable shared carrier not needed for observed semantics",
+      "pro": "adds explicit source-unavailable/offline/cross-worker/SLA condition",
+      "stronger": "Pro conditional",
+      "evidence": "new cases 18-19 distinguish successful cold rebuild from typed missing/no hidden fallback when source is unavailable"
+    },
+    {
+      "axis": "Agent/AgentDO",
+      "prior": "future host/topology only; no Task/Attempt authority transfer",
+      "pro": "same separation",
+      "stronger": "equivalent",
+      "evidence": "current architecture/program authority reserves semantic ownership to CaseEngine and later aggregate topology to AgentDO"
+    },
+    {
+      "axis": "external provider",
+      "prior": "not selected or verified",
+      "pro": "not selected or verified; enumerates missing IAM/secret/egress/privacy/retention/residency/accounting/retry-charge contract",
+      "stronger": "equivalent selection; Pro has fuller rejection checklist",
+      "evidence": "current security/deployment authority only supports trusted-local execution"
+    },
+    {
+      "axis": "ContextSlice",
+      "prior": "not selected; D0017 full semantic context",
+      "pro": "same",
+      "stronger": "equivalent",
+      "evidence": "accepted D0017 contract"
+    },
+    {
+      "axis": "validation",
+      "prior": "ran exact canonical Termux source gate and classified immutable-journal link EACCES",
+      "pro": "full exact b048 checkout unavailable; exact engine/runner falsifier valid but full current source gate blocked",
+      "stronger": "prior for full-source validation; new review must re-run current gate",
+      "evidence": "prior review manifest versus Pro validation evidence"
+    }
+  ],
+  "attacksBreakingPrior": [
+    "cancel-before-registration",
+    "missed/early notification without a registered target",
+    "stale notification and stale unregister ABA unspecified",
+    "checkpoint acknowledgement of a revision not actually persisted",
+    "warm reset domains unproved",
+    "absolute latency benchmark susceptible to fixed-order and cache effects"
+  ],
+  "attacksBreakingPro": [
+    "capacity-N simultaneous cancel/retry did not freeze semantic retry eligibility separately from runtime-slot release",
+    "controller object should be a compare-and-delete token rather than part of externally serializable execution identity",
+    "lost notification plus only future scheduler-turn reconciliation does not by itself establish a prompt cleanup bound while a long executor is the only outstanding event",
+    "every-scheduler-turn reconciliation must remain a bounded authority recheck, not a hidden polling scheduler/queue",
+    "full exact canonical source gate was unavailable in the Pro environment",
+    "warm contamination proves the tested receiver unsafe, not that every constrained warm runtime is impossible"
+  ],
+  "survivingSynthesis": [
+    "fresh trusted-local process group per admitted Attempt",
+    "CaseEngine remains semantic authority; notification/controller/checkpoint metadata are not authority",
+    "exact stable live-control key plus controller-object compare-and-delete",
+    "pre/post-registration and pre-spawn authority checks",
+    "exact persisted-snapshot revision acknowledgement plus drain/reconcile of newer revisions",
+    "runtime capacity slot retained until predecessor execution handle has cleaned up/settled",
+    "no hidden executor/provider retry or queue",
+    "D0017 logical authorization independent of physical derived-cache dedupe",
+    "D0022 remains conditional on an accepted availability/shared-state requirement",
+    "warm remains a future candidate only under an accepted reset/isolation contract",
+    "no external provider, ContextSlice, or semantic ownership transfer to Agent/AgentDO"
+  ]
+}
