@@ -117,20 +117,96 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
   let maxConcurrent = 0;
   let lastClaimBlock = null;
   let checkpointedRevision = engine.caseRevision;
+  let wakePending = false;
+  let wakeResolve = null;
 
   async function checkpointState(reason, detail = {}) {
-    if (!checkpoint || checkpointedRevision === engine.caseRevision) return;
-    const snapshot = engine.snapshot();
-    const metadata = deepFreeze(canonicalClone({
-      reason,
-      caseId: engine.caseId,
-      caseRevision: engine.caseRevision,
-      ...detail,
-    }));
-    await checkpoint(snapshot, metadata);
-    checkpointedRevision = engine.caseRevision;
+    if (!checkpoint) return;
+    while (checkpointedRevision !== engine.caseRevision) {
+      const snapshot = engine.snapshot();
+      const persistedRevision = snapshot.caseRevision;
+      const metadata = deepFreeze(canonicalClone({
+        reason,
+        caseId: engine.caseId,
+        ...detail,
+        caseRevision: persistedRevision,
+      }));
+      await checkpoint(snapshot, metadata);
+      checkpointedRevision = persistedRevision;
+    }
   }
 
+  function liveControlIdentity(attempt) {
+    return deepFreeze({
+      caseId: engine.caseId,
+      taskId: attempt.taskId,
+      attemptId: attempt.id,
+      fencingToken: attempt.fencingToken,
+      executorId: attempt.executorId,
+      executorEpoch: attempt.executorEpoch,
+    });
+  }
+
+  function matchesLiveControl(attempt, identity) {
+    return Boolean(attempt &&
+      identity.caseId === engine.caseId &&
+      identity.taskId === attempt.taskId &&
+      identity.attemptId === attempt.id &&
+      identity.fencingToken === attempt.fencingToken &&
+      identity.executorId === attempt.executorId &&
+      identity.executorEpoch === attempt.executorEpoch);
+  }
+
+  function unregisterLiveControl(entry) {
+    const attemptId = entry.controlIdentity.attemptId;
+    if (running.get(attemptId) !== entry) return false;
+    running.delete(attemptId);
+    return true;
+  }
+
+  function abortTerminalLiveControls() {
+    for (const [attemptId, entry] of running) {
+      const attempt = engine.attempts[attemptId];
+      if (!matchesLiveControl(attempt, entry.controlIdentity)) continue;
+      if (NONTERMINAL_ATTEMPT_STATES.has(attempt.state)) continue;
+      entry.abortController.abort(new ContractError('attempt_terminal', `Attempt ${attemptId} is terminal`));
+    }
+  }
+
+  function signalWake() {
+    wakePending = true;
+    if (wakeResolve) {
+      const resolve = wakeResolve;
+      wakeResolve = null;
+      resolve({ kind: 'wake' });
+    }
+  }
+
+  async function waitForRuntimeActivity() {
+    if (wakePending) {
+      wakePending = false;
+      return { kind: 'wake' };
+    }
+    let localWakeResolve;
+    const wake = new Promise((resolve) => {
+      localWakeResolve = () => resolve({ kind: 'wake' });
+      wakeResolve = localWakeResolve;
+    });
+    const activity = await Promise.race([
+      ...[...running.values()].map((entry) => entry.execution),
+      wake,
+    ]);
+    if (wakeResolve === localWakeResolve) wakeResolve = null;
+    if (activity?.kind === 'wake') wakePending = false;
+    return activity;
+  }
+
+  const stopObservingCommittedEvents = engine.observeCommittedEvents(() => {
+    abortTerminalLiveControls();
+    signalWake();
+  });
+
+  try {
   releaseTerminalLeases(engine, claimLedger);
   engine.reconcile();
   for (const taskId of engine.readyTaskIds()) readyTaskIds.add(taskId);
@@ -204,48 +280,75 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
       claimLease,
       claimValidator: claimLedger,
     });
+    const task = engine.plan.tasksById[taskId];
+    const acceptedResults = task.dependencies
+      .map((dependency) => ({
+        taskId: dependency,
+        result: clone(engine.taskStates[dependency].acceptedResult),
+      }))
+      .filter((entry) => entry.result !== null);
+    const abortController = new AbortController();
+    let beginExecution;
+    const executionGate = new Promise((resolve) => {
+      beginExecution = resolve;
+    });
+    const execution = executionGate
+      .then(() => {
+        const current = engine.attempts[attempt.id];
+        if (!matchesLiveControl(current, liveControlIdentity(attempt)) ||
+            !NONTERMINAL_ATTEMPT_STATES.has(current.state) ||
+            abortController.signal.aborted) {
+          throw abortController.signal.reason ??
+            new ContractError('attempt_not_live', `Attempt ${attempt.id} is no longer live`);
+        }
+        if (task.kind === 'promotion') return engine.createPromotionResult(taskId);
+        return executor({
+          caseId: engine.caseId,
+          planRevisionId: engine.plan.revisionId,
+          planDigest: engine.plan.planDigest,
+          caseContractDigest: engine.caseContract.contractDigest,
+          baseDigest: engine.plan.baseDigest,
+          effectKey: attempt.effectKey,
+          fencingToken: attempt.fencingToken,
+          claimLease: clone(attempt.claimLease),
+          signal: abortController.signal,
+          task: clone(task),
+          attempt: clone(attempt),
+          acceptedResults,
+        });
+      })
+      .then(
+        (result) => ({ attemptId: attempt.id, ok: true, result }),
+        (error) => ({ attemptId: attempt.id, ok: false, error }),
+      );
+    const entry = {
+      execution,
+      abortController,
+      controlIdentity: liveControlIdentity(attempt),
+      beginExecution,
+    };
+    running.set(attempt.id, entry);
+    maxConcurrent = Math.max(maxConcurrent, running.size);
 
-    function launch() {
-      const task = engine.plan.tasksById[taskId];
-      const acceptedResults = task.dependencies
-        .map((dependency) => ({
-          taskId: dependency,
-          result: clone(engine.taskStates[dependency].acceptedResult),
-        }))
-        .filter((entry) => entry.result !== null);
-      const abortController = new AbortController();
-
-      const execution = Promise.resolve()
-        .then(() => {
-          if (task.kind === 'promotion') return engine.createPromotionResult(taskId);
-          return executor({
-            caseId: engine.caseId,
-            planRevisionId: engine.plan.revisionId,
-            planDigest: engine.plan.planDigest,
-            caseContractDigest: engine.caseContract.contractDigest,
-            baseDigest: engine.plan.baseDigest,
-            effectKey: attempt.effectKey,
-            fencingToken: attempt.fencingToken,
-            claimLease: clone(attempt.claimLease),
-            signal: abortController.signal,
-            task: clone(task),
-            attempt: clone(attempt),
-            acceptedResults,
-          });
-        })
-        .then(
-          (result) => ({ attemptId: attempt.id, ok: true, result }),
-          (error) => ({ attemptId: attempt.id, ok: false, error }),
-        );
-
-      running.set(attempt.id, { execution, abortController });
-      maxConcurrent = Math.max(maxConcurrent, running.size);
+    try {
+      if (checkpoint) {
+        await checkpointState('attempt_started', { taskId, attemptId: attempt.id });
+      }
+    } catch (error) {
+      abortController.abort(error);
+      unregisterLiveControl(entry);
+      throw error;
     }
 
-    if (checkpoint) {
-      await checkpointState('attempt_started', { taskId, attemptId: attempt.id });
+    const current = engine.attempts[attempt.id];
+    if (!matchesLiveControl(current, entry.controlIdentity) || !NONTERMINAL_ATTEMPT_STATES.has(current.state)) {
+      abortController.abort(new ContractError('attempt_terminal', `Attempt ${attempt.id} became terminal before execution`));
+      unregisterLiveControl(entry);
+      releaseAttemptLease(current);
+      return false;
     }
-    launch();
+    entry.beginExecution();
+    return true;
   }
 
   async function settle(outcome) {
@@ -359,16 +462,23 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
       throw new ContractError('scheduler_deadlock', 'Active Case has no running or admissible Task');
     }
 
-    const outcome = await Promise.race([...running.values()].map((entry) => entry.execution));
+    const activity = await waitForRuntimeActivity();
+    if (activity?.kind === 'wake') {
+      abortTerminalLiveControls();
+      readyTaskIds.clear();
+      for (const taskId of engine.readyTaskIds()) readyTaskIds.add(taskId);
+      continue;
+    }
+    const outcome = activity;
     const entry = running.get(outcome.attemptId);
-    running.delete(outcome.attemptId);
+    if (!entry) continue;
     await settle(outcome);
     const settledTaskId = engine.attempts[outcome.attemptId]?.taskId;
     if (settledTaskId) refreshReadyAfter(settledTaskId);
-    if (entry && engine.attempts[outcome.attemptId]?.state === 'cancelled') {
-      entry.abortController.abort(new ContractError('attempt_cancelled', `Attempt ${outcome.attemptId} was cancelled`));
-    }
     await checkpointState('post_settlement', { attemptId: outcome.attemptId });
+    if (running.get(outcome.attemptId) === entry) {
+      running.delete(outcome.attemptId);
+    }
   }
 
   for (const [attemptId, entry] of running) {
@@ -385,4 +495,7 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
     maxConcurrent,
     snapshot: engine.snapshot(),
   };
+  } finally {
+    stopObservingCommittedEvents();
+  }
 }

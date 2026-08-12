@@ -649,6 +649,7 @@ export class CaseEngine {
     this.caseId = caseId;
     this._eventReservation = null;
     this._mutationFrame = null;
+    this._committedEventObservers = new Set();
     this._validatedEventSequence = 0;
     this._canonicalDigest = null;
     this._canonicalTreeCache = null;
@@ -1637,6 +1638,19 @@ export class CaseEngine {
     return this.plan.taskOrder.filter((taskId) => this.#isTaskReady(taskId, this._mutationFrame));
   }
 
+  observeCommittedEvents(observer) {
+    if (typeof observer !== 'function') {
+      throw new ContractError('invalid_event_observer', 'Committed Event observer must be a function');
+    }
+    this._committedEventObservers.add(observer);
+    let active = true;
+    return () => {
+      if (!active) return false;
+      active = false;
+      return this._committedEventObservers.delete(observer);
+    };
+  }
+
   applyCommand(envelope, options = {}) {
     if (this._eventReservation === null) {
       return this.#withEventReservation(this.plan.taskOrder.length + 4, () => this.applyCommand(envelope, options));
@@ -1766,6 +1780,7 @@ export class CaseEngine {
       this._mutationFrame = null;
       this.#assertIncrementalInvariants(frame);
       this.#refreshPerformanceIndexes(frame);
+      this.#publishCommittedEvents(this._events.slice(before.eventLength));
       return result;
     } catch (error) {
       this.caseState = before.caseState;
@@ -1790,6 +1805,25 @@ export class CaseEngine {
     } finally {
       this._mutationFrame = null;
       this._eventReservation = null;
+    }
+  }
+
+  #publishCommittedEvents(events) {
+    if (events.length === 0 || this._committedEventObservers.size === 0) return;
+    const observers = [...this._committedEventObservers];
+    for (const event of events) {
+      for (const observer of observers) {
+        queueMicrotask(() => {
+          try {
+            const result = observer(event);
+            if (result && typeof result.then === 'function') {
+              Promise.resolve(result).catch(() => {});
+            }
+          } catch {
+            // Observers are transient liveness hints only and cannot affect committed semantics.
+          }
+        });
+      }
     }
   }
 

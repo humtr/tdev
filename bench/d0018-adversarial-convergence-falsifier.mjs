@@ -156,13 +156,16 @@ async function currentSourceFalsifiers(sourceRoot, CaseEngine, definePlan, runCa
       childAlive: isAlive(pids.parentPid),
       descendantAlive: isAlive(pids.descendantPid),
     };
-    assert.deepEqual(immediate, {
-      taskState: 'cancelled', attemptState: 'cancelled', signalAborted: false,
-      childAlive: true, descendantAlive: true,
-    });
-    killGroup(pids.parentPid);
+    if (!immediate.signalAborted) killGroup(pids.parentPid);
+    assert.equal(immediate.taskState, 'cancelled');
+    assert.equal(immediate.attemptState, 'cancelled');
+    assert.equal(immediate.signalAborted, true);
     const final = await withGuard(running, 'current in-flight cleanup');
+    const childExited = await waitForExit(pids.parentPid);
+    const descendantExited = await waitForExit(pids.descendantPid);
     assert.equal(final.caseState, 'cancelled');
+    assert.equal(childExited, true);
+    assert.equal(descendantExited, true);
     assert.equal(Object.hasOwn(final.snapshot.canonicalTree, 'model.txt'), false);
 
     const prePlan = makePlan(definePlan, 'd0018-current-pre-register');
@@ -199,28 +202,29 @@ async function currentSourceFalsifiers(sourceRoot, CaseEngine, definePlan, runCa
     const cancelledRevisionCheckpointed = checkpoints.some((entry) => (
       entry.revision >= cancelledRevision && entry.taskState === 'cancelled'
     ));
-    assert.equal(invocations, 1);
-    assert.equal(abortedAtEntry, false);
-    assert.equal(cancelledRevisionCheckpointed, false);
+    assert.equal(invocations, 0);
+    assert.equal(abortedAtEntry, null);
+    assert.equal(cancelledRevisionCheckpointed, true);
     assert.equal(Object.hasOwn(preFinal.snapshot.canonicalTree, 'model.txt'), false);
 
     return {
       inFlightCancellation: {
-        expectedOwner: 'CaseEngine semantic cancellation; runner execution liveness',
-        expectedOutcome: 'semantic cancellation remains authoritative and late result is fenced; current source is expected to fail prompt liveness cleanup',
+        expectedOwner: 'CaseEngine semantic cancellation; runner exact live-control liveness',
+        expectedOutcome: 'semantic cancellation remains authoritative, exact live invocation is aborted promptly, descendants are cleaned up and late result is fenced',
         observed: immediate,
         afterSettlement: {
           finalCaseState: final.caseState,
           signalAborted: signal.aborted,
-          childExited: await waitForExit(pids.parentPid),
-          descendantExited: await waitForExit(pids.descendantPid),
+          childExited,
+          descendantExited,
           lateResultAccepted: Object.hasOwn(final.snapshot.canonicalTree, 'model.txt'),
         },
-        currentSourceFalsified: immediate.signalAborted === false && immediate.childAlive && immediate.descendantAlive,
+        currentSourceFalsified: false,
+        currentSourceQualified: immediate.signalAborted === true && childExited && descendantExited && !Object.hasOwn(final.snapshot.canonicalTree, 'model.txt'),
       },
       cancelBeforeControllerRegistration: {
-        expectedOwner: 'CaseEngine semantic cancellation; runner admission/launch control; checkpoint owner persists exact snapshot revision',
-        expectedOutcome: 'a terminal Attempt must not invoke executor, and cancellation revision must not be acknowledged unless persisted',
+        expectedOwner: 'CaseEngine semantic cancellation; runner pre-execution authority check; checkpoint owner persists exact snapshot revision',
+        expectedOutcome: 'a terminal Attempt does not invoke executor, and the newer cancellation revision is actually persisted before continuation',
         observed: {
           beforeCancelRevision,
           cancelledRevision,
@@ -230,7 +234,8 @@ async function currentSourceFalsifiers(sourceRoot, CaseEngine, definePlan, runCa
           cancelledRevisionCheckpointed,
           lateResultAccepted: Object.hasOwn(preFinal.snapshot.canonicalTree, 'model.txt'),
         },
-        currentSourceFalsified: invocations === 1 && abortedAtEntry === false && cancelledRevisionCheckpointed === false,
+        currentSourceFalsified: false,
+        currentSourceQualified: invocations === 0 && abortedAtEntry === null && cancelledRevisionCheckpointed === true && !Object.hasOwn(preFinal.snapshot.canonicalTree, 'model.txt'),
       },
     };
   } finally {

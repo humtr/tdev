@@ -203,3 +203,48 @@ test('blocked propagation follows graph topology rather than lexical Task order'
   assert.equal(engine.caseState, 'cancelled');
   assert.deepEqual(CaseEngine.restore(engine.snapshot(), { reopen: false }).snapshot(), engine.snapshot());
 });
+
+test('D0018 committed Event observers cannot alter semantics or publish rolled-back mutations', async () => {
+  const engine = new CaseEngine({ caseId: 'd0018-observation', plan: planWithWork([{ id: 'a' }]) });
+  let throwingCalls = 0;
+  let rejectingCalls = 0;
+  let hangingCalls = 0;
+
+  const stopThrowing = engine.observeCommittedEvents(() => {
+    throwingCalls += 1;
+    throw new Error('observer throw');
+  });
+  const stopRejecting = engine.observeCommittedEvents(() => {
+    rejectingCalls += 1;
+    return Promise.reject(new Error('observer reject'));
+  });
+  const stopHanging = engine.observeCommittedEvents(() => {
+    hangingCalls += 1;
+    return new Promise(() => {});
+  });
+
+  const attempt = engine.startAttempt('a', 'executor-a');
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(engine.attempts[attempt.id].state, 'running');
+  assert.ok(throwingCalls > 0);
+  assert.equal(rejectingCalls, throwingCalls);
+  assert.equal(hangingCalls, throwingCalls);
+
+  const callsAfterCommit = throwingCalls;
+  assert.throws(
+    () => engine.startAttempt('a', 'executor-b'),
+    (error) => error instanceof ContractError && error.code === 'not_admissible',
+  );
+  await new Promise((resolve) => setImmediate(resolve));
+
+  assert.equal(throwingCalls, callsAfterCommit, 'rolled-back mutation must publish no committed Event wake');
+  assert.equal(rejectingCalls, callsAfterCommit);
+  assert.equal(hangingCalls, callsAfterCommit);
+  assert.equal(engine.attempts[attempt.id].state, 'running');
+
+  assert.equal(stopThrowing(), true);
+  assert.equal(stopRejecting(), true);
+  assert.equal(stopHanging(), true);
+  assert.equal(stopThrowing(), false);
+});
