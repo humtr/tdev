@@ -18,7 +18,7 @@
 - Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
 - Most recent accepted Class 2 decision: D0018 — Adversarially Converged Model Executor/Runtime Boundary, accepted 2026-08-12; verdict `warm-host-qualified-model-attempt-fresh`, with only bounded D0014 host preparation reusable and a fresh D0017/model runtime per Attempt.
-- Active Class 2 production-source implementation: D0017 production source is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; exact all-test coverage is platform-unqualified only for the pre-existing ImmutableJournal hard-link `link(2) EACCES`. D0018 is accepted but its C1-C4 production repair has not yet entered `implementing`; Group E remains active until that source repair, verification and exit review close.
+- Active Class 2 production-source implementation: D0017 production source is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; exact all-test coverage is platform-unqualified only for the pre-existing ImmutableJournal hard-link `link(2) EACCES`. D0018 is accepted and has now entered `implementing` on the narrow integration lineage for only its frozen C1-C4 production repair; Group E remains active until that source repair, verification and exit review close.
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work

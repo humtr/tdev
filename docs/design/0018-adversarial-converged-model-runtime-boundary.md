@@ -1,13 +1,13 @@
 # Design 0018 — adversarially converged model executor/runtime boundary
 
-- Status: `accepted` — implementation authority is limited to the contract frozen here; production work must explicitly enter `implementing` before `src/` changes
+- Status: `implementing` — the accepted contract remains frozen; this integration lineage has explicitly entered production implementation before any `src/` changes
 - Capability Group: E — Context delivery and model input
 - Canonical authority anchor reviewed: `b048712a372b5a46fb88134690ee57f92981df11`
 - Accepted predecessor: D0017 selected context delivery contract
 - Prior work recovered: `tmcp/d0018-runtime-boundary-recovery@b9e260391e56c82b6ca6c9ab7965664396da1069`
 - Independent Pro package reviewed: reported chain through `5adcc98ce39a99d7adf80bd39e40ffa38a76693a` (commit objects absent from the current repository; package provenance only)
 - Accepted implementation scope: exact committed-Event observation, exact live-controller fencing, pre/post-publication and pre-execution authority checks, exact checkpoint-revision drain, and runtime-slot retention through predecessor cleanup/settlement; no model-process warm pool
-- Production implementation in this review Task: **none**
+- Production implementation in the predecessor review Task: **none**; production repair is now owned by the narrow successor integration Task
 - Executable review falsifiers: `bench/d0018-adversarial-convergence-falsifier.mjs` and `bench/d0018-warm-runtime-qualification.mjs`
 - Final adversarial evidence: `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (`70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033`)
 
@@ -25,7 +25,7 @@ Do not select same-process model/session reuse, a disposable-isolate runtime tha
 
 ## 2. Authority and current state
 
-D0018 is currently planned/required and has no accepted/implementing owner Design. Under `SDD.md`, the lifecycle, retry, cancellation, provider, persistence, migration, and rollback behavior here is Class 2. Production `src/` implementation is prohibited until the owner accepts the Design and explicitly authorizes implementation.
+D0018 is an accepted Class 2 Design, and this integration lineage now explicitly enters `implementing` under `SDD.md` before production `src/` changes. The accepted lifecycle, retry, cancellation, provider, persistence, migration, rollback, warm-boundary, checkpoint and capacity contracts below remain frozen; implementation authority is limited to the accepted C1-C4 repair.
 
 CaseEngine remains the authority for Case, Task, Attempt, cancellation, retry eligibility, reconciliation, result acceptance, fences, and terminal state. The runner owns current per-Case ready scheduling, admission capacity, and live execution handles. The executor/transport owns one finite operation, process I/O bounds, transport deadline, and direct-child/descendant cleanup. Neither runner nor transport owns semantic retry.
 

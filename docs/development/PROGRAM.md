@@ -32,7 +32,7 @@ group/e-context-delivery
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **active / D0016+D0017 accepted; D0017 production source verified; D0018 next** | D0016 mechanism decision + D0017 contract decision + D0017 production implementation | `group/e-context-delivery` | selected context-delivery/disclosure contract is measured, deterministic, provider-ready where applicable and independently verified |
+| E | Context delivery and model input | **active / D0016+D0017+D0018 accepted; D0017 source verified; D0018 implementing** | D0016 mechanism decision + D0017 contract/source + D0018 runtime decision | `group/e-context-delivery` | selected context-delivery/disclosure/runtime contract is measured, deterministic and independently verified in the actually selected runtime profile |
 | F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
@@ -114,11 +114,11 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0018 — Model Executor / External Provider Runtime Contract
 
 - **Groups:** D/E
-- **Status:** planned / required for final execution profile
-- **Purpose:** select and bind the final model execution profile: retained trusted-local subprocess, warm local executor, authenticated local Agent executor, external provider, or a bounded hybrid.
+- **Status:** **accepted Design — 2026-08-12; implementing bounded C1-C4 production repair**
+- **Purpose:** implement the accepted trusted-local `warm-host-qualified-model-attempt-fresh` profile: reusable bounded D0014 host preparation with fresh D0017 authorization/runtime/model process per Attempt, plus the frozen C1-C4 live-control/checkpoint/capacity repair.
 - **Affected owners:** executor admission/identity, process/provider lifecycle, result-only boundary, timeout/cancellation/retry, request identity, provider errors, resource limits.
 - **Must separate:** local process identity from provider identity; transport retry from Task retry; provider timeout from effect/result acceptance; provider usage/billing observation from semantic state.
-- **External-provider additions when selected:** authentication; minimum-necessary egress; redaction/secret exclusion; tokenizer/accounting; billing/retry charging; rate/size limits; privacy/residency; provider error/reconciliation policy.
+- **External-provider status:** no external provider is selected by D0018; provider authentication/egress/billing/session work remains outside this implementation and becomes applicable only under a later accepted owner if a provider is selected.
 - **Cheapest falsifier:** same invocation/Attempt identity through the selected runtime with timeout/cancel/retry/stale-response tests and exact result acceptance parity with the existing local oracle.
 - **Exit:** final execution profile accepted with explicit unsupported alternatives and provider/user configuration requirements sufficient for Group E closure; later Group F runtime work inherits this contract and may extend it only through a later accepted Design.
 - **Lane:** active cumulative `group/e-context-delivery` for the E-facing contract; no cross-branch merge is planned.
