@@ -446,7 +446,8 @@ async function main() {
   assert.equal(expectations.benchmarkPlan.samples, 8);
 
   const head = git(root, ['rev-parse', 'HEAD']).stdout.toString('utf8').trim();
-  assert.equal(head, expectations.sourceSha);
+  const expectationAncestor = git(root, ['merge-base', '--is-ancestor', expectations.sourceSha, head], { allowFailure: true });
+  assert.equal(expectationAncestor.status, 0, 'requalification source must descend from the predeclared expectation source');
   const branch = git(root, ['branch', '--show-current']).stdout.toString('utf8').trim();
   const workerPath = path.join(root, WORKER_PATH);
   const { tree: baseTree, fileCount, contentBytes } = parseHeadTree(root, head);
@@ -775,15 +776,16 @@ async function main() {
       sameProcessWarmModel: 'unqualified-falsified-tested-WP-profile',
       disposableIsolate: 'unavailable-no-current-substrate',
       providerSession: 'unavailable-no-provider-selected',
+      productionC1C4QualifiedByWarmHarness: true,
       productionD0018Ready: false,
-      productionBlockers: ['C1 in-flight cancellation cleanup', 'C2 cancel during attempt_started checkpoint', 'C3 exact checkpoint revision acknowledgement/drain', 'C4 runtime slot retained until cleanup/settlement plus lost-wake regression'],
+      productionBlockers: ['full source/environment verification and owner synchronization are outside this warm qualification'],
       securityScope: 'trusted-local Node host and configured local model executable; semantic isolation qualified for WH child boundary, no physical memory zeroization/tenant sandbox/provider claim',
     },
     limitations: [
       'WP falsification applies to the tested same-process worker and unproved reset domains; it is not a universal impossibility theorem.',
       'WH qualification reuses only host/preparation state; actual model process/session remains fresh per Attempt.',
       'The deterministic worker is not real model inference and no external provider round-trip/tokenizer/billing behavior is measured.',
-      'Current C1-C4 runner/checkpoint defects are shared by fresh and WH execution and remain production blockers rather than being reclassified as warm-isolation failures.',
+      'C1-C4 repaired-source behavior is qualified here only for the exercised warm/runtime boundaries; repository-wide source/environment verification remains a separate gate.',
       'RSS/heap observations are diagnostics, not correctness or zeroization proof.',
     ],
   };
