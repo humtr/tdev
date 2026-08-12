@@ -86,6 +86,8 @@ Group E cannot claim final product closure while the chosen context contract exi
 
 D0018 is shared D/E work and must bind the selected context delivery to the final execution profile while preserving result-only acceptance, Attempt identity, cancellation, retry and resource semantics. Even though D0018 affects Group D/E capability ownership, its accepted work remains on the active Group E cumulative branch; no separate D or E history is later merged.
 
+D0018 is now accepted at the Design layer with verdict `warm-host-qualified-model-attempt-fresh`. Exact reusable state is limited to the bounded immutable D0014 `GitRepositoryModelExecutor` preparation/cache; D0017 logical authorization/reference/carrier/request state, live controller/deadline and model process/module/session state are per-Attempt. W01-W43 qualification rejects the tested same-process WP profile and leaves WI/provider-session candidates unavailable. The accepted implementation scope is only the C1-C4 repair: committed-Event wake observation as non-authoritative liveness, exact live-control fencing, pre/post-publication and pre-execution authority checks, exact persisted-revision checkpoint drain, and runtime-slot retention through predecessor cleanup/settlement. The production source still reproduces C1-C3 and has not yet implemented or verified this repair. Final adversarial evidence is `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (SHA-256 `fdd16013d1793b6db0f5d3f6aaaefe603d5b7960af7757ce5a99dd4b9cdc48fe`).
+
 ### D0022 — conditional storage dependency
 
 D0022 becomes a Group E dependency only if D0016/D0017 selects a content-reference design whose correctness or availability requires durable/shared content storage or query projection.
@@ -236,7 +238,7 @@ Codex or another coding agent should execute Group E in this order unless new ev
 6. retain the independently verified D0017 production implementation/evidence without reinterpreting the accepted Design;
 7. preserve the D0017 focused/source verification qualification, including the exact-full Termux hard-link limitation;
 8. keep product owners synchronized with the implemented D0017 meaning;
-9. execute D0018 separately for warm executor/process/provider lifecycle and the final actual runtime boundary;
+9. retain the accepted D0018 warm-host/fresh-model contract and implement/verify only its bounded C1-C4 runtime repair before Group E exit review;
 10. activate conditional D0022 only if accepted evidence proves durable/shared content storage is required;
 11. remeasure before considering any ContextSlice semantic reduction;
 12. keep the active cumulative Group E lane until all Group E exit conditions close;
@@ -256,7 +258,7 @@ Group E branch head: <sha>
 Legacy predecessor: mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 D0016: <status / sha>
 D0017: <status / not-needed / sha>
-D0018 E-facing contract: <status / sha>
+D0018 E-facing contract: accepted Design `warm-host-qualified-model-attempt-fresh`; production repair/verification SHA pending
 D0022: <verified dependency / not required / deferred>
 Selected context mechanism: <name>
 Model-visible semantics: <unchanged / changed under accepted contract>

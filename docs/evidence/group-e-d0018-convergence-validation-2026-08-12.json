@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-convergence-replacement-validation",
+  "date": "2026-08-12",
+  "source": {
+    "branch": "tmcp/d0018-final-qualification",
+    "head": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+    "canonicalAnchor": "b048712a372b5a46fb88134690ee57f92981df11",
+    "priorInterruptedJob": "job_636_d606179584",
+    "priorInterruptedJobStatus": "interrupted"
+  },
+  "environment": {
+    "node": "v26.4.0",
+    "npm": "11.18.0",
+    "git": "git version 2.55.0",
+    "platform": "android/arm64",
+    "kernel": "Linux 6.1.145-android14-11-33419968-abS928NKSS6DZG1 aarch64 Android",
+    "filesystemQualification": "Termux filesystem does not support the ImmutableJournal hard-link publication primitive; link(2) returns EACCES"
+  },
+  "registeredValidation": {
+    "describeRefreshed": true,
+    "portableInstall": {
+      "job": "job_656_7ddea9fd4b",
+      "profile": "portable-install",
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "status": "green"
+    },
+    "portable": {
+      "job": "job_657_5f68ee6fd7",
+      "profile": "portable",
+      "command": "npm run verify:sandbox",
+      "status": "red-profile-drift",
+      "classification": "validation-profile drift; package.json has no verify:sandbox script, so this result is not a D0018 source regression and is not green"
+    }
+  },
+  "replacementGate": {
+    "parentJob": "job_666_6a1c4d152e",
+    "artifactSha256": "92c6b9a3a6f77904b5a40848166a4874d770e9ee820d1dde7064ae97d3d7f038",
+    "commands": [
+      {
+        "job": "job_667_2697b64011",
+        "command": "node --check bench/d0018-adversarial-convergence-falsifier.mjs",
+        "exitCode": 0,
+        "status": "green"
+      },
+      {
+        "job": "job_668_ab1cc5538d",
+        "command": "node bench/d0018-adversarial-convergence-falsifier.mjs --source-root .",
+        "exitCode": 0,
+        "status": "green",
+        "falsifierCases": 27,
+        "falsifierPassed": 27,
+        "currentSourceDefectsReproduced": ["C1", "C2", "C3"],
+        "note": "passing reference-protocol cases are design falsifiers, not proof that current production source implements the protocol"
+      },
+      {
+        "job": "job_669_11f42c8599",
+        "command": "git diff --check",
+        "exitCode": 0,
+        "status": "green"
+      },
+      {
+        "job": "job_66a_2060dab0f0",
+        "command": "npm run check",
+        "exitCode": 0,
+        "status": "green"
+      },
+      {
+        "job": "job_66b_c17dc144ff",
+        "command": "node --experimental-test-coverage --test test/*.test.mjs",
+        "exitCode": 1,
+        "status": "unsupported-environment",
+        "classification": "the only red family is pre-existing ImmutableJournal hard-link publication failure with link(2) EACCES; this Termux filesystem is not qualified for that adapter and this result is neither D0018 regression nor green"
+      },
+      {
+        "job": "job_66c_62624d67d8",
+        "command": "files=$(printf '%s\\n' test/*.test.mjs | grep -v '^test/immutable-journal.test.mjs$'); node --test $files",
+        "exitCode": 0,
+        "status": "green",
+        "testsPassed": 226,
+        "testsFailed": 0
+      },
+      {
+        "job": "job_66d_d6d7eee277",
+        "command": "files=$(printf '%s\\n' test/*.test.mjs | grep -v '^test/immutable-journal.test.mjs$'); node --experimental-test-coverage --test $files",
+        "exitCode": 0,
+        "status": "green",
+        "testsPassed": 226,
+        "testsFailed": 0,
+        "coverage": {
+          "linesPercent": 85.51,
+          "branchesPercent": 76.90,
+          "functionsPercent": 92.73,
+          "runner": {"linesPercent": 91.49, "branchesPercent": 82.40, "functionsPercent": 100.0},
+          "repositoryModelTransport": {"linesPercent": 91.93, "branchesPercent": 76.83, "functionsPercent": 97.26}
+        }
+      }
+    ]
+  },
+  "classification": {
+    "replacementForInterruptedJob": true,
+    "convergenceDesignFalsifiersGreen": true,
+    "supportedTermuxSourceScopeGreen": true,
+    "exactAllTestCoverageGreen": false,
+    "exactAllTestCoverageClassification": "unsupported-environment",
+    "d0018ProductionImplemented": false,
+    "d0018ProductionVerified": false
+  },
+  "limitations": [
+    "The supported-Termux suite intentionally excludes only test/immutable-journal.test.mjs because this environment lacks its required hard-link primitive.",
+    "This evidence validates the exact a603 convergence/review source and reproduces current source defects; it does not validate a later D0018 production repair.",
+    "The registered portable profile is stale and cannot substitute for the repository-owned AGENTS source gate."
+  ]
+}

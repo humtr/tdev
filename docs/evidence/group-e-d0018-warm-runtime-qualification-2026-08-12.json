@@ -1,0 +1,1651 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0018.warm-runtime-qualification.v1",
+  "date": "2026-08-12",
+  "source": {
+    "root": "/data/data/com.termux/files/home/.tmcp/worktrees/d0018-final-qualification-wt_efc56f6dfb63b6dc",
+    "branch": "tmcp/d0018-final-qualification",
+    "head": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+    "baseDigest": "sha256:69cbc90d4c9300d132ba75b8ec83325e428a174f4ed6dcd63b4c9552cc7c92e8",
+    "fileCount": 131,
+    "contentBytes": 2667284,
+    "lightweightScheduleCommit": "b86287b84375e2aeb833cf775371a7808a1239cf",
+    "lightweightFileCount": 1,
+    "lightweightContentBytes": 21,
+    "expectationsPath": "docs/evidence/group-e-d0018-warm-runtime-expectations-2026-08-12.json",
+    "workerPath": "bench/d0018-warm-runtime-worker.mjs",
+    "convergencePath": "bench/d0018-adversarial-convergence-falsifier.mjs"
+  },
+  "environment": {
+    "node": "v26.4.0",
+    "platform": "android",
+    "arch": "arm64"
+  },
+  "candidates": {
+    "F": "fresh model process per Attempt; no host preparation reuse required",
+    "WH": "long-lived GitRepositoryModelExecutor host with bounded immutable D0014 preparation reuse; per-invocation D0017 authorization/carrier; fresh model process per Attempt",
+    "WI": "unavailable-no-current-disposable-isolate-substrate",
+    "WP": "falsified-tested-same-process-worker",
+    "PS": "unavailable-no-provider-selected"
+  },
+  "differentialOracle": {
+    "canonicalDigestEqual": true,
+    "stableModelObservationEqualIgnoringDiagnosticPid": true,
+    "contextReferenceIdEqual": true,
+    "authorizationScopeDigestEqual": true,
+    "contextDigestEqual": true,
+    "requestBytesEqual": true,
+    "f": {
+      "count": 1,
+      "processStarts": 1,
+      "processReuses": 0,
+      "contextMaterializations": 1,
+      "cacheStatuses": [
+        "disabled"
+      ],
+      "requestBytes": [
+        2809042
+      ],
+      "referenceIds": [
+        "sha256:57b18b06dc6577e0bdbded961dc7118ae02a4f00d648dd4c841f92d017be6eb1"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:ea40fea342ac54ee4d3cb959ec27bb0f92c6dc97b2513274a9356c855f4b2cdb"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    },
+    "wh": {
+      "count": 2,
+      "processStarts": 2,
+      "processReuses": 0,
+      "contextMaterializations": 1,
+      "cacheStatuses": [
+        "miss",
+        "hit"
+      ],
+      "requestBytes": [
+        2809043,
+        2809042
+      ],
+      "referenceIds": [
+        "sha256:c645f4cf0fdbc54a793046ecbd42600d5e09adadbe70660b9987bbb0a2d49a8b",
+        "sha256:57b18b06dc6577e0bdbded961dc7118ae02a4f00d648dd4c841f92d017be6eb1"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:67cb051c038cc7b1e6ef591a71e0bf44590db5dad3b588b1fddc088611c11bbe",
+        "sha256:ea40fea342ac54ee4d3cb959ec27bb0f92c6dc97b2513274a9356c855f4b2cdb"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    }
+  },
+  "wpFalsifier": {
+    "processPid": 25882,
+    "first": {
+      "pid": 25882,
+      "globalSentinel": null,
+      "moduleCount": 0,
+      "moduleCases": [],
+      "prototypeSentinel": null,
+      "environmentSentinel": null,
+      "cwd": "/data/data/com.termux/files/home/.tmcp/worktrees/d0018-final-qualification-wt_efc56f6dfb63b6dc",
+      "signalListenerCount": 0,
+      "timerFired": false,
+      "asyncAfterReturnFired": false,
+      "callerSecret": null,
+      "configuredEnvironment": null
+    },
+    "second": {
+      "pid": 25882,
+      "globalSentinel": "wp-case-a",
+      "moduleCount": 1,
+      "moduleCases": [
+        "wp-case-a"
+      ],
+      "prototypeSentinel": "wp-case-a",
+      "environmentSentinel": "wp-case-a",
+      "cwd": "/",
+      "signalListenerCount": 1,
+      "timerFired": true,
+      "asyncAfterReturnFired": true,
+      "callerSecret": null,
+      "configuredEnvironment": null
+    },
+    "third": {
+      "pid": 25882,
+      "globalSentinel": "wp-case-b",
+      "moduleCount": 2,
+      "moduleCases": [
+        "wp-case-a",
+        "wp-case-b"
+      ],
+      "prototypeSentinel": "wp-case-b",
+      "environmentSentinel": "wp-case-b",
+      "cwd": "/",
+      "signalListenerCount": 2,
+      "timerFired": true,
+      "asyncAfterReturnFired": true,
+      "callerSecret": null,
+      "configuredEnvironment": null
+    },
+    "fourth": {
+      "pid": 25882,
+      "globalSentinel": "wp-case-c",
+      "moduleCount": 3,
+      "moduleCases": [
+        "wp-case-a",
+        "wp-case-b",
+        "wp-case-c"
+      ],
+      "prototypeSentinel": "wp-case-c",
+      "environmentSentinel": "wp-case-c",
+      "cwd": "/",
+      "signalListenerCount": 3,
+      "timerFired": true,
+      "asyncAfterReturnFired": true,
+      "callerSecret": null,
+      "configuredEnvironment": null
+    },
+    "lateFrameAfterReassignment": {
+      "type": "late",
+      "requestId": "C",
+      "caseId": "wp-case-c"
+    },
+    "stderrBytes": 0
+  },
+  "whActualRepositoryPath": {
+    "crossCase": {
+      "count": 2,
+      "processStarts": 2,
+      "processReuses": 0,
+      "contextMaterializations": 1,
+      "cacheStatuses": [
+        "miss",
+        "hit"
+      ],
+      "requestBytes": [
+        2809042,
+        2809042
+      ],
+      "referenceIds": [
+        "sha256:64f2ff9aa4ac9829e5d6304666fba9c0a030011c8e302fa57545da9f6545a23a",
+        "sha256:339a1d6e7a8f4735071e397ea5cc3481c88eb5d1b75354f96ecf97feb85f1d86"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:ec3015a6572ae891cb6c155689ae405e1a675c638ce22a14921d542d8c29a524",
+        "sha256:15ab5bb106f9a61952ad18861a1fab6962266d042a30a78062c628e0fb47c6bc"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    },
+    "freshChildPids": [
+      25906,
+      25939
+    ],
+    "parallel": {
+      "count": 3,
+      "processStarts": 3,
+      "processReuses": 0,
+      "contextMaterializations": 0,
+      "cacheStatuses": [
+        "hit",
+        "hit",
+        "hit"
+      ],
+      "requestBytes": [
+        2809046,
+        2809046,
+        2809046
+      ],
+      "referenceIds": [
+        "sha256:53bf8d0121d29d55c195fc9408211f25788c9fcd4b240608a2d1b04a09399470",
+        "sha256:a912a438d3fc4ed79e9e987bfc6bbc435f41f6746ba629558aa7c23c821aa6e7",
+        "sha256:a170201450f72f3816ef6e4868875ce03f8faeb81ce36d92bf88c5a69fe97943"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:0078500bfbd5587a329785aac9cec791cd50156556532ff0a342164d9b46a218",
+        "sha256:f832be2b49ae1e925200d43877acdb6f8d816edb81606b63e54dd7f2d28dded9",
+        "sha256:cce92dbcd9e4df40dfeb9d66bdbea9bcdba5191198dac56e9c71c39966cb2fc5"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    },
+    "restart": {
+      "count": 1,
+      "processStarts": 1,
+      "processReuses": 0,
+      "contextMaterializations": 1,
+      "cacheStatuses": [
+        "miss"
+      ],
+      "requestBytes": [
+        2809042
+      ],
+      "referenceIds": [
+        "sha256:64f2ff9aa4ac9829e5d6304666fba9c0a030011c8e302fa57545da9f6545a23a"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:ec3015a6572ae891cb6c155689ae405e1a675c638ce22a14921d542d8c29a524"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    },
+    "retry": {
+      "count": 2,
+      "processStarts": 2,
+      "processReuses": 0,
+      "contextMaterializations": 0,
+      "cacheStatuses": [
+        "hit",
+        "hit"
+      ],
+      "requestBytes": [
+        2809037,
+        2809037
+      ],
+      "referenceIds": [
+        "sha256:21ff6b7181d1239ec437368ed525407ec7d11a1edc61e6133b0c72993278fb03",
+        "sha256:21ff6b7181d1239ec437368ed525407ec7d11a1edc61e6133b0c72993278fb03"
+      ],
+      "authorizationScopeDigests": [
+        "sha256:7d7af6b022723dcdd6a0f8104cb01c8eadb79e597c47e693ad74b9ac91881bf7",
+        "sha256:7d7af6b022723dcdd6a0f8104cb01c8eadb79e597c47e693ad74b9ac91881bf7"
+      ],
+      "contextDigests": [
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+      ]
+    },
+    "directTransport": {
+      "activeCancel": {
+        "code": "model_transport_aborted",
+        "unexpectedlySucceeded": false
+      },
+      "timeout": {
+        "code": "model_transport_timeout",
+        "unexpectedlySucceeded": false
+      },
+      "crash": {
+        "code": "model_process_failed",
+        "unexpectedlySucceeded": false
+      }
+    }
+  },
+  "convergenceReplay": {
+    "currentSource": {
+      "inFlightCancellation": {
+        "expectedOwner": "CaseEngine semantic cancellation; runner execution liveness",
+        "expectedOutcome": "semantic cancellation remains authoritative and late result is fenced; current source is expected to fail prompt liveness cleanup",
+        "observed": {
+          "taskState": "cancelled",
+          "attemptState": "cancelled",
+          "signalAborted": false,
+          "childAlive": true,
+          "descendantAlive": true
+        },
+        "afterSettlement": {
+          "finalCaseState": "cancelled",
+          "signalAborted": true,
+          "childExited": true,
+          "descendantExited": true,
+          "lateResultAccepted": false
+        },
+        "currentSourceFalsified": true
+      },
+      "cancelBeforeControllerRegistration": {
+        "expectedOwner": "CaseEngine semantic cancellation; runner admission/launch control; checkpoint owner persists exact snapshot revision",
+        "expectedOutcome": "a terminal Attempt must not invoke executor, and cancellation revision must not be acknowledged unless persisted",
+        "observed": {
+          "beforeCancelRevision": 2,
+          "cancelledRevision": 5,
+          "invocationsAfterCancellation": 1,
+          "signalAbortedAtExecutorEntry": false,
+          "checkpoints": [
+            {
+              "reason": "attempt_started",
+              "revision": 2,
+              "taskState": "running",
+              "attemptState": "running"
+            }
+          ],
+          "cancelledRevisionCheckpointed": false,
+          "lateResultAccepted": false
+        },
+        "currentSourceFalsified": true
+      }
+    },
+    "referenceProtocolCount": 27,
+    "referenceProtocolPassed": true
+  },
+  "cases": [
+    {
+      "id": "W01",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpLeaked": "wp-case-a",
+        "whA": null,
+        "whB": null
+      },
+      "note": null
+    },
+    {
+      "id": "W02",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpModuleCount": 1,
+        "whModuleCounts": [
+          0,
+          0
+        ]
+      },
+      "note": null
+    },
+    {
+      "id": "W03",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpPrototype": "wp-case-a",
+        "whPrototype": null
+      },
+      "note": null
+    },
+    {
+      "id": "W04",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpEnvironment": "wp-case-a",
+        "wpCwd": "/",
+        "whEnvironment": null,
+        "whCwd": "/data/data/com.termux/files/home/.tmcp/worktrees/d0018-final-qualification-wt_efc56f6dfb63b6dc"
+      },
+      "note": null
+    },
+    {
+      "id": "W05",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpListeners": 1,
+        "whListeners": 0
+      },
+      "note": null
+    },
+    {
+      "id": "W06",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpTimerFired": true,
+        "whTimerFired": false
+      },
+      "note": null
+    },
+    {
+      "id": "W07",
+      "status": "wp_falsified_wh_passed",
+      "observed": {
+        "wpAsyncAfterReturn": true,
+        "whAsyncAfterReturn": false
+      },
+      "note": null
+    },
+    {
+      "id": "W08",
+      "status": "wp_falsified_wh_not_reassigned",
+      "observed": {
+        "wpLateFrame": {
+          "type": "late",
+          "requestId": "C",
+          "caseId": "wp-case-c"
+        },
+        "whProcessReuses": 0
+      },
+      "note": "WH starts a fresh child and has no model-worker reassignment boundary"
+    },
+    {
+      "id": "W09",
+      "status": "passed",
+      "observed": {
+        "directChildCode": 0,
+        "descendantPid": 25868,
+        "descendantExited": true,
+        "durationMs": 126
+      },
+      "note": null
+    },
+    {
+      "id": "W10",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "registered": false,
+        "aborted": true,
+        "processStarts": 0,
+        "executorInvocations": 0
+      },
+      "note": "current C2 is tracked separately at W33"
+    },
+    {
+      "id": "W11",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "aborted": true,
+        "executorInvocations": 0
+      },
+      "note": null
+    },
+    {
+      "id": "W12",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "materialization": {
+          "preparationEntered": true,
+          "aborted": true,
+          "modelInvocations": 0
+        },
+        "resolution": {
+          "resolutionEntered": true,
+          "aborted": true,
+          "modelInvocations": 0
+        }
+      },
+      "note": null
+    },
+    {
+      "id": "W13",
+      "status": "source_defect_shared_by_F_and_WH",
+      "observed": {
+        "currentSource": {
+          "expectedOwner": "CaseEngine semantic cancellation; runner execution liveness",
+          "expectedOutcome": "semantic cancellation remains authoritative and late result is fenced; current source is expected to fail prompt liveness cleanup",
+          "observed": {
+            "taskState": "cancelled",
+            "attemptState": "cancelled",
+            "signalAborted": false,
+            "childAlive": true,
+            "descendantAlive": true
+          },
+          "afterSettlement": {
+            "finalCaseState": "cancelled",
+            "signalAborted": true,
+            "childExited": true,
+            "descendantExited": true,
+            "lateResultAccepted": false
+          },
+          "currentSourceFalsified": true
+        },
+        "directTransportAbort": {
+          "code": "model_transport_aborted",
+          "unexpectedlySucceeded": false
+        }
+      },
+      "note": "C1 must be repaired before D0018 production verification"
+    },
+    {
+      "id": "W14",
+      "status": "not_applicable_WH_WP_unqualified",
+      "observed": {
+        "whResetStage": false,
+        "wpResetQualified": false
+      },
+      "note": null
+    },
+    {
+      "id": "W15",
+      "status": "passed_transport_fresh_child",
+      "observed": {
+        "timeout": {
+          "code": "model_transport_timeout",
+          "unexpectedlySucceeded": false
+        },
+        "afterTimeoutClean": true
+      },
+      "note": null
+    },
+    {
+      "id": "W16",
+      "status": "passed_transport_no_hidden_retry",
+      "observed": {
+        "crash": {
+          "code": "model_process_failed",
+          "unexpectedlySucceeded": false
+        },
+        "afterFailureClean": true
+      },
+      "note": null
+    },
+    {
+      "id": "W17",
+      "status": "not_applicable_WH_WP_unqualified",
+      "observed": {
+        "whResetStage": false,
+        "wpResetQualified": false
+      },
+      "note": null
+    },
+    {
+      "id": "W18",
+      "status": "not_applicable_WH_WP_unqualified",
+      "observed": {
+        "whResetStage": false,
+        "wpResetQualified": false
+      },
+      "note": null
+    },
+    {
+      "id": "W19",
+      "status": "passed_reference_and_actual_retry",
+      "observed": {
+        "reference": [
+          {
+            "predecessorNonterminalRejected": true,
+            "predecessorState": "failed",
+            "retryState": "running"
+          },
+          {
+            "oldAccepted": false,
+            "newAccepted": true
+          }
+        ],
+        "actualAttempts": [
+          "model.1",
+          "model.2"
+        ],
+        "actualTransport": {
+          "count": 2,
+          "processStarts": 2,
+          "processReuses": 0,
+          "contextMaterializations": 0,
+          "cacheStatuses": [
+            "hit",
+            "hit"
+          ],
+          "requestBytes": [
+            2809037,
+            2809037
+          ],
+          "referenceIds": [
+            "sha256:21ff6b7181d1239ec437368ed525407ec7d11a1edc61e6133b0c72993278fb03",
+            "sha256:21ff6b7181d1239ec437368ed525407ec7d11a1edc61e6133b0c72993278fb03"
+          ],
+          "authorizationScopeDigests": [
+            "sha256:7d7af6b022723dcdd6a0f8104cb01c8eadb79e597c47e693ad74b9ac91881bf7",
+            "sha256:7d7af6b022723dcdd6a0f8104cb01c8eadb79e597c47e693ad74b9ac91881bf7"
+          ],
+          "contextDigests": [
+            "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+            "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+          ]
+        }
+      },
+      "note": null
+    },
+    {
+      "id": "W20",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "staleUnregisterRemovedNew": false,
+        "newStillRegistered": true
+      },
+      "note": null
+    },
+    {
+      "id": "W21",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "retryControllerAborted": false
+      },
+      "note": null
+    },
+    {
+      "id": "W22",
+      "status": "passed_reference_protocol_production_repair_required",
+      "observed": {
+        "capacity": 3,
+        "predecessorAborted": [
+          false,
+          true,
+          false
+        ],
+        "retrySemanticallyEligible": true,
+        "retryAdmittedBeforeCleanup": false,
+        "retryAdmittedAfterCleanup": true,
+        "retryAborted": false,
+        "liveBindings": 3
+      },
+      "note": "C4 contract is frozen; production source repair must retain slot through cleanup/settlement"
+    },
+    {
+      "id": "W23",
+      "status": "passed_actual_WH",
+      "observed": {
+        "count": 3,
+        "processStarts": 3,
+        "processReuses": 0,
+        "contextMaterializations": 0,
+        "cacheStatuses": [
+          "hit",
+          "hit",
+          "hit"
+        ],
+        "requestBytes": [
+          2809046,
+          2809046,
+          2809046
+        ],
+        "referenceIds": [
+          "sha256:53bf8d0121d29d55c195fc9408211f25788c9fcd4b240608a2d1b04a09399470",
+          "sha256:a912a438d3fc4ed79e9e987bfc6bbc435f41f6746ba629558aa7c23c821aa6e7",
+          "sha256:a170201450f72f3816ef6e4868875ce03f8faeb81ce36d92bf88c5a69fe97943"
+        ],
+        "authorizationScopeDigests": [
+          "sha256:0078500bfbd5587a329785aac9cec791cd50156556532ff0a342164d9b46a218",
+          "sha256:f832be2b49ae1e925200d43877acdb6f8d816edb81606b63e54dd7f2d28dded9",
+          "sha256:cce92dbcd9e4df40dfeb9d66bdbea9bcdba5191198dac56e9c71c39966cb2fc5"
+        ],
+        "contextDigests": [
+          "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+          "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+          "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1"
+        ]
+      },
+      "note": null
+    },
+    {
+      "id": "W24",
+      "status": "passed_structural_actual_WH",
+      "observed": {
+        "attempts": 3,
+        "processStarts": 3,
+        "processReuses": 0
+      },
+      "note": "actual executor maps each admitted invocation to one fresh model operation and exposes no internal semantic queue"
+    },
+    {
+      "id": "W25",
+      "status": "passed_reference_and_actual_WH",
+      "observed": {
+        "reference": {
+          "sameContextDigest": true,
+          "referenceIdEqual": false,
+          "physicalEntries": 1,
+          "reads": 2
+        },
+        "actualSameContext": true,
+        "actualReferenceEqual": false,
+        "actualScopesEqual": false
+      },
+      "note": null
+    },
+    {
+      "id": "W26",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "code": "context_reference_unauthorized",
+        "physicalReads": 0
+      },
+      "note": null
+    },
+    {
+      "id": "W27",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "code": "context_reference_unauthorized",
+        "physicalReads": 0,
+        "validPhysicalEntryStillPresent": true
+      },
+      "note": null
+    },
+    {
+      "id": "W28",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "corruptCode": "context_reference_corrupt",
+        "validAfterRebuild": true,
+        "materializations": 2
+      },
+      "note": null
+    },
+    {
+      "id": "W29",
+      "status": "passed_reference_and_actual_restart",
+      "observed": {
+        "reference": {
+          "referenceStable": true,
+          "materializations": 2
+        },
+        "restartReferenceStable": true
+      },
+      "note": null
+    },
+    {
+      "id": "W30",
+      "status": "passed_typed_fail_closed_zero_model",
+      "observed": {
+        "errorCode": "repository_git_command_failed",
+        "modelCalls": 0,
+        "hiddenInlineFallback": false
+      },
+      "note": null
+    },
+    {
+      "id": "W31",
+      "status": "passed_reference_and_actual_restart",
+      "observed": {
+        "reference": {
+          "referenceStable": true,
+          "rebuilt": true
+        },
+        "freshProcessReported": true,
+        "referenceStable": true
+      },
+      "note": null
+    },
+    {
+      "id": "W32",
+      "status": "reference_protocol_pass_source_defect_C3",
+      "observed": {
+        "exactPersistedRevision": {
+          "persistedRevision": 1,
+          "semanticRevision": 2,
+          "falselyAcknowledgedNewer": false
+        },
+        "drain": {
+          "persisted": [
+            {
+              "revision": 1,
+              "state": "running"
+            },
+            {
+              "revision": 2,
+              "state": "cancelled"
+            }
+          ],
+          "finalCheckpointedRevision": 2,
+          "semanticRevision": 2
+        },
+        "currentSource": {
+          "expectedOwner": "CaseEngine semantic cancellation; runner admission/launch control; checkpoint owner persists exact snapshot revision",
+          "expectedOutcome": "a terminal Attempt must not invoke executor, and cancellation revision must not be acknowledged unless persisted",
+          "observed": {
+            "beforeCancelRevision": 2,
+            "cancelledRevision": 5,
+            "invocationsAfterCancellation": 1,
+            "signalAbortedAtExecutorEntry": false,
+            "checkpoints": [
+              {
+                "reason": "attempt_started",
+                "revision": 2,
+                "taskState": "running",
+                "attemptState": "running"
+              }
+            ],
+            "cancelledRevisionCheckpointed": false,
+            "lateResultAccepted": false
+          },
+          "currentSourceFalsified": true
+        }
+      },
+      "note": "production checkpoint implementation still falsely acknowledges a newer revision"
+    },
+    {
+      "id": "W33",
+      "status": "source_defect_C2_C3",
+      "observed": {
+        "expectedOwner": "CaseEngine semantic cancellation; runner admission/launch control; checkpoint owner persists exact snapshot revision",
+        "expectedOutcome": "a terminal Attempt must not invoke executor, and cancellation revision must not be acknowledged unless persisted",
+        "observed": {
+          "beforeCancelRevision": 2,
+          "cancelledRevision": 5,
+          "invocationsAfterCancellation": 1,
+          "signalAbortedAtExecutorEntry": false,
+          "checkpoints": [
+            {
+              "reason": "attempt_started",
+              "revision": 2,
+              "taskState": "running",
+              "attemptState": "running"
+            }
+          ],
+          "cancelledRevisionCheckpointed": false,
+          "lateResultAccepted": false
+        },
+        "currentSourceFalsified": true
+      },
+      "note": "production repair required; shared by F and WH"
+    },
+    {
+      "id": "W34",
+      "status": "semantic_pass_liveness_source_defect",
+      "observed": {
+        "expectedOwner": "CaseEngine semantic cancellation; runner execution liveness",
+        "expectedOutcome": "semantic cancellation remains authoritative and late result is fenced; current source is expected to fail prompt liveness cleanup",
+        "observed": {
+          "taskState": "cancelled",
+          "attemptState": "cancelled",
+          "signalAborted": false,
+          "childAlive": true,
+          "descendantAlive": true
+        },
+        "afterSettlement": {
+          "finalCaseState": "cancelled",
+          "signalAborted": true,
+          "childExited": true,
+          "descendantExited": true,
+          "lateResultAccepted": false
+        },
+        "currentSourceFalsified": true
+      },
+      "note": "late result fencing preserves semantic correctness without notification; C1 liveness repair remains required"
+    },
+    {
+      "id": "W35",
+      "status": "blocked_by_D0018_source_repair",
+      "observed": {
+        "runtimeSlotRule": {
+          "capacity": 3,
+          "predecessorAborted": [
+            false,
+            true,
+            false
+          ],
+          "retrySemanticallyEligible": true,
+          "retryAdmittedBeforeCleanup": false,
+          "retryAdmittedAfterCleanup": true,
+          "retryAborted": false,
+          "liveBindings": 3
+        }
+      },
+      "note": "current source has no lifecycle wake/registry boundary yet; lost-wake runtime reuse must be regression-tested after repair"
+    },
+    {
+      "id": "W36",
+      "status": "passed_reference_protocol",
+      "observed": {
+        "transportAborted": true,
+        "stateAfterShutdownBeforeOwnerTransition": "running",
+        "finalState": "cancelled"
+      },
+      "note": null
+    },
+    {
+      "id": "W37",
+      "status": "passed_actual_transport",
+      "observed": {
+        "callbacks": [
+          "throw",
+          "reject",
+          "hang"
+        ]
+      },
+      "note": null
+    },
+    {
+      "id": "W38",
+      "status": "passed_actual_WH_no_caller_env_leak",
+      "observed": {
+        "callerSecretObserved": null,
+        "configuredEnvironment": "qualified-host-environment"
+      },
+      "note": "no external-provider secret substrate is claimed"
+    },
+    {
+      "id": "W39",
+      "status": "unavailable",
+      "observed": {
+        "actualModelSessionSubstrateSelected": false
+      },
+      "note": "deterministic Node fixture is not real model/session qualification"
+    },
+    {
+      "id": "W40",
+      "status": "unavailable",
+      "observed": {
+        "externalProviderSelected": false
+      },
+      "note": "no provider SDK/session is selected or authorized"
+    },
+    {
+      "id": "W41",
+      "status": "passed_actual_WH",
+      "observed": {
+        "sequence": [
+          {
+            "caseId": "w41-success-1",
+            "outcome": "succeeded"
+          },
+          {
+            "caseId": "w41-success-2",
+            "outcome": "succeeded"
+          },
+          {
+            "caseId": "w41-cancel",
+            "outcome": "model_transport_aborted"
+          },
+          {
+            "caseId": "w41-after-cancel",
+            "outcome": "succeeded"
+          },
+          {
+            "caseId": "w41-timeout",
+            "outcome": "model_transport_timeout"
+          },
+          {
+            "caseId": "w41-after-timeout",
+            "outcome": "succeeded"
+          },
+          {
+            "caseId": "w41-crash",
+            "outcome": "model_process_failed"
+          },
+          {
+            "caseId": "w41-fresh-replacement",
+            "outcome": "succeeded"
+          },
+          {
+            "caseId": "w41-retry",
+            "outcome": "succeeded",
+            "attempts": 2
+          },
+          {
+            "caseId": "w41-different-case",
+            "outcome": "succeeded"
+          }
+        ]
+      },
+      "note": null
+    },
+    {
+      "id": "W42",
+      "status": "passed_with_shared_source_defects_classified",
+      "observed": {
+        "seeds": [
+          11,
+          29,
+          47,
+          83
+        ],
+        "schedules": [
+          {
+            "seed": 11,
+            "cases": [
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 23
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 15
+              },
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              }
+            ],
+            "observations": {
+              "count": 8,
+              "processStarts": 8,
+              "processReuses": 0,
+              "contextMaterializations": 1,
+              "cacheStatuses": [
+                "shared",
+                "shared",
+                "miss",
+                "shared",
+                "shared",
+                "shared",
+                "hit",
+                "hit"
+              ],
+              "requestBytes": [
+                2071,
+                2072,
+                2074,
+                2074,
+                2072,
+                2071,
+                2071,
+                2071
+              ],
+              "referenceIds": [
+                "sha256:5582e83c3ae3da52f574383569d6a1e5972d54cfded98cb1075eeb0587219fe2",
+                "sha256:25a7d730a1bf46ff02f63ff876231eb3c5496891e375a15992daedc0fd05d74e",
+                "sha256:53b528e2064775a3de7092cace774d98014f3be6ba633fb0bf74ee98870286e3",
+                "sha256:fe852b6f5f509d86fc68e2f564345e48f94eaca83b7a78e57f035126fa373f3c",
+                "sha256:59f43824aaf3b364c3f8d98cbda15a41eac59c25b5a3f81813ec6773e81d8a18",
+                "sha256:31872548b880b31c4131caa1742b346b46d639c708adf5b3d09462c2c8c6fad0",
+                "sha256:5582e83c3ae3da52f574383569d6a1e5972d54cfded98cb1075eeb0587219fe2",
+                "sha256:31872548b880b31c4131caa1742b346b46d639c708adf5b3d09462c2c8c6fad0"
+              ],
+              "authorizationScopeDigests": [
+                "sha256:1d8455592cb19b0859150564af99882340e74de44c7a7ca19d730bf6b4f631cd",
+                "sha256:bb85e7d4ea3f132c1725ff51a58a8714e0f8385d2dfaf5edc7cb7928f25d48ac",
+                "sha256:9e4af7b13309cdcd5c6e0b429e6428d9b6eb5e573705ed373581c6e7482e22d4",
+                "sha256:e126b8e3e34d272ebf623c5d2a1027f87c9bdb3f2a0dc9111b518c4d9d6e6c31",
+                "sha256:506a6f05b922281ee59084ad5a751d17e3eb93d36117900d25ff71c963d86fe1",
+                "sha256:bc2969cff9f8e08111ca1e1000c0b6341e698f3f40454edaa90f2957bce1fe03",
+                "sha256:1d8455592cb19b0859150564af99882340e74de44c7a7ca19d730bf6b4f631cd",
+                "sha256:bc2969cff9f8e08111ca1e1000c0b6341e698f3f40454edaa90f2957bce1fe03"
+              ],
+              "contextDigests": [
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b"
+              ]
+            }
+          },
+          {
+            "seed": 29,
+            "cases": [
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 19
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 8
+              },
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              }
+            ],
+            "observations": {
+              "count": 8,
+              "processStarts": 8,
+              "processReuses": 0,
+              "contextMaterializations": 0,
+              "cacheStatuses": [
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit"
+              ],
+              "requestBytes": [
+                2072,
+                2074,
+                2072,
+                2071,
+                2071,
+                2074,
+                2071,
+                2071
+              ],
+              "referenceIds": [
+                "sha256:d860c43aa6984a00da05a4fdc778ab3ecf0c12f1f065f823e5e148ba9e5e03fd",
+                "sha256:20516320f59c4d45a9934b72015fcc16dbf18dd47d3bc0ef505754d44c85023a",
+                "sha256:3675ea0e86a96b3a4aa9513f321d147a4b6aac200170f819690378454f1d20d3",
+                "sha256:002360bcadc9e99129c5083a459d0075624c5c712188ee0737b5508bc788ef1e",
+                "sha256:a304ab357a70f361f5c8839971c86dc918b5aeafce58bfdf7b0b9124acd1ba7d",
+                "sha256:4fdf9021a9f3ac3d9efc7d65e77cf7fdb72d0d42e3f9bb7c7592c03df6551076",
+                "sha256:002360bcadc9e99129c5083a459d0075624c5c712188ee0737b5508bc788ef1e",
+                "sha256:a304ab357a70f361f5c8839971c86dc918b5aeafce58bfdf7b0b9124acd1ba7d"
+              ],
+              "authorizationScopeDigests": [
+                "sha256:421a7f582feb780a347e14f7694b1fb71b11e2908d59de865b45467a9dedc7b4",
+                "sha256:f7a3ad77d345369bef711efec86d93484bd0b2c097e4decc59716afba928f14f",
+                "sha256:7eb23138d61b233686cd0948a7fdaab3ab70e88de42fd3fa14a9fce78c4b0764",
+                "sha256:daeee8e6891b8f7077feb9ca1ea45db5e37e54748d48bfcec69048d2e42fa1f0",
+                "sha256:ae8b1bae602da4c71b7c06267f926c0ead6ef156328045cb18542b171299407f",
+                "sha256:18f049466ad4d031cd4c31fc6b414ea3d1177c22a9e1d632b1604aa3fc20cea8",
+                "sha256:daeee8e6891b8f7077feb9ca1ea45db5e37e54748d48bfcec69048d2e42fa1f0",
+                "sha256:ae8b1bae602da4c71b7c06267f926c0ead6ef156328045cb18542b171299407f"
+              ],
+              "contextDigests": [
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b"
+              ]
+            }
+          },
+          {
+            "seed": 47,
+            "cases": [
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 14
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 9
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              }
+            ],
+            "observations": {
+              "count": 8,
+              "processStarts": 8,
+              "processReuses": 0,
+              "contextMaterializations": 0,
+              "cacheStatuses": [
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit"
+              ],
+              "requestBytes": [
+                2071,
+                2072,
+                2072,
+                2071,
+                2074,
+                2071,
+                2074,
+                2071
+              ],
+              "referenceIds": [
+                "sha256:616972de0ab620134794153f189cd237994ca7118f0e83371acbf991da830208",
+                "sha256:30b18f07a7329c1038d075bdd211efc2e3e3dfa2b2b903304e918ac85f9040ff",
+                "sha256:ee421ee12b8b154eeed25199b20be1b67dd08e304e7fb1f320ce2e5d700dcb3d",
+                "sha256:047dd1623b7817fae4f897dc0c5c14dda0cd52616580b9e1ee4473f8b3111f4c",
+                "sha256:304ea2373795c37a23ea2c30dd9d15da9f6180c60de4bd823360879b9dcf11ae",
+                "sha256:616972de0ab620134794153f189cd237994ca7118f0e83371acbf991da830208",
+                "sha256:689de163e464d313d205903e0c627319b2985c86ce5020647f4b122b4a7ec3a6",
+                "sha256:047dd1623b7817fae4f897dc0c5c14dda0cd52616580b9e1ee4473f8b3111f4c"
+              ],
+              "authorizationScopeDigests": [
+                "sha256:0700e1c8bc5e1899949173fcf1238173afa8e1039b473bf64435e3c3b2cc487b",
+                "sha256:52355e92da287f13124da19ee35ad5e7ee82760b3bc316731bc0f727ed5cc21c",
+                "sha256:19ac46c41b534f70137191f9e3e1399da6ed7e06147c9d60bc9fde2cb22d4219",
+                "sha256:edf65361a8d0350124cc84b4c1ed9e4f96e6820683684ee3729fbf51aa5e350b",
+                "sha256:dc71fc09877540bda6efba3c57ec987090ac3c78503458473fdc0a88335ea2ef",
+                "sha256:0700e1c8bc5e1899949173fcf1238173afa8e1039b473bf64435e3c3b2cc487b",
+                "sha256:9ab83779cb2a1e7b1da400f3c57a7bc62abdd02c079c8dd1cf3b1249c513d19b",
+                "sha256:edf65361a8d0350124cc84b4c1ed9e4f96e6820683684ee3729fbf51aa5e350b"
+              ],
+              "contextDigests": [
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b"
+              ]
+            }
+          },
+          {
+            "seed": 83,
+            "cases": [
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "success",
+                "state": "succeeded",
+                "attempts": 1
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 17
+              },
+              {
+                "type": "cancel",
+                "state": "cancelled",
+                "attempts": 1,
+                "cancelDelayMs": 23
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              },
+              {
+                "type": "retry",
+                "state": "succeeded",
+                "attempts": 2
+              }
+            ],
+            "observations": {
+              "count": 8,
+              "processStarts": 8,
+              "processReuses": 0,
+              "contextMaterializations": 0,
+              "cacheStatuses": [
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit",
+                "hit"
+              ],
+              "requestBytes": [
+                2074,
+                2072,
+                2072,
+                2071,
+                2074,
+                2071,
+                2071,
+                2071
+              ],
+              "referenceIds": [
+                "sha256:7d3b3b5829e7ecba331595e8d5388715f4832bb18d382fab29b3c11f64614fb3",
+                "sha256:e9e8edc0c044ac68ea8e00ade95d316122b3355a697a30ebcd737e082205d3ee",
+                "sha256:9c619f394283ee6f4dc9b46ff704162d7ed9436bc0bb757d042b48994a3f1676",
+                "sha256:c03ff87a6ffaf8e0e3792365d1eab56dcbd27785562b05a56e936bdf1def0731",
+                "sha256:e7b8007bed46cedaff28776a8e9de6d961b5a2bfee748ab4b53e01cbdcbbd710",
+                "sha256:57dddaee39ea397ff5ee69cadc69fc04c9b6472bf0a9d0099afeebb085ac1ccc",
+                "sha256:c03ff87a6ffaf8e0e3792365d1eab56dcbd27785562b05a56e936bdf1def0731",
+                "sha256:57dddaee39ea397ff5ee69cadc69fc04c9b6472bf0a9d0099afeebb085ac1ccc"
+              ],
+              "authorizationScopeDigests": [
+                "sha256:33241956b9d5ac66089d145e162d4975396b00df636bb0d2a1821ecbe5709cc7",
+                "sha256:1ba6d32ca5c339999dd44affb43d1f195ed47a194de7f1a057a62416b44e7a4f",
+                "sha256:8e2b3726bf94c4c7ba1b10c5942d9937ede054d453cb22d44d205e7749d500f5",
+                "sha256:032ea7ed2c486170cda1092581f9b1f2fbc370ee352a98cf6cc7d11f9f9d8305",
+                "sha256:8c92810de13b80945f5423bd1900eb65681b31afbf79cac2224959639be1d629",
+                "sha256:271614d74e961da8f8c2d42bca111d88cf20cefc82e870ffec41cb295168b7df",
+                "sha256:032ea7ed2c486170cda1092581f9b1f2fbc370ee352a98cf6cc7d11f9f9d8305",
+                "sha256:271614d74e961da8f8c2d42bca111d88cf20cefc82e870ffec41cb295168b7df"
+              ],
+              "contextDigests": [
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+                "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b"
+              ]
+            }
+          }
+        ]
+      },
+      "note": "WH has no reset stage; cancellation liveness remains the same C1 source defect, not cross-Attempt warm leakage"
+    },
+    {
+      "id": "W43",
+      "status": "passed_diagnostic",
+      "observed": {
+        "iterations": 12,
+        "distinctObservedPids": 12,
+        "observations": {
+          "count": 12,
+          "processStarts": 12,
+          "processReuses": 0,
+          "contextMaterializations": 1,
+          "cacheStatuses": [
+            "miss",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit",
+            "hit"
+          ],
+          "requestBytes": [
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2071,
+            2072,
+            2072
+          ],
+          "referenceIds": [
+            "sha256:5bedc40506329a67ce0e5765a550e68139d589755e49295d33055d8debff09c4",
+            "sha256:09f32b82b9ddc3a1f5aeb572df9b78d4ff87274c67fca794aa819b56fc6de153",
+            "sha256:54ae1fd7fa3d58dd98b65e5dc84b8ee7ac6a7deee06f819c538a1aa2b79a7ac7",
+            "sha256:801c859dfd896e59af7b12d6915e72596261a82469beaa5b043810d91acd6e7f",
+            "sha256:589fc7b4e57a63f491aa152a0b90fab902ed2944b7013eb3fc75515a58035624",
+            "sha256:2fd79650582bfef85317f4a3324fd322ad94dd7cf9ea15e1fe5b1da2fdd16147",
+            "sha256:14fa16ca218e048216c16da3806e8594323c1a16cb3e1b8d4296c82749e45c10",
+            "sha256:eb973e013f09dcdc8e6780ac6acac18351368812b196e90c89fe29180d51fcca",
+            "sha256:5645e42f24d8935c0b6c87c470ee365c300cab70ee058ad0cd53b5dabb720c57",
+            "sha256:bf67975c5bfb20a9651e14ba75c6503640ed6887cf1dec30adf59fd26e19282b",
+            "sha256:5c15823ccec8a478aa4ca12ee9c4243f20c22bc57050b4c4780530daec5c2cd0",
+            "sha256:20789b2d19f744c0e940cc51dde1ebcc2f99ca4704e4e195996498a04753a1b8"
+          ],
+          "authorizationScopeDigests": [
+            "sha256:a90b47c9b2fb1d481efde6c572864c4637b62af4dc47e5f7fe7dbf794864f423",
+            "sha256:c132875ce4bcb04e686b514237067133b5a0f6ce8784c5214dc9bb0c906724da",
+            "sha256:139fbd531c0129d5324c8fb52283883f19e16a83016ea04c7466dab667b47f50",
+            "sha256:63bcc7bff4625de33de4ee594358caab86c34c417ddb2593483ac8bc59cd3336",
+            "sha256:8074f50d32316a03560e344bff1dbbcfd8b55b10f697beb759c42dacb95df1be",
+            "sha256:6b10e0d287686641e4abd83da7a3558028e0e585064d8b94d29fbf0f85b31574",
+            "sha256:e7194c28db5496a1925e7f0e05263f6b4a247d61b3b476df0b3c340bd59cc1b3",
+            "sha256:738ff4d5e576b0bd8af854299477d240266a2c8dcb6a5f8ef2efa58e7de75e2c",
+            "sha256:0c159f0e23c58defb0c0148600c91801c57991e8d5313776bf0bd1dd7825c189",
+            "sha256:ccc863b0df159880b5ddd7fae6307a9f0a1a98b4eb0593a1e14dbcb6697b355f",
+            "sha256:ea34fd9100e272a85f0afb5c7527bd8789b6e2e6e85302725da6fdc96382f9ad",
+            "sha256:dd70bd517ae56a0a37cd22c8a7bf2e58e29d1ec5c7006f218d67825cd79c99dd"
+          ],
+          "contextDigests": [
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b",
+            "sha256:9a70b57b4c3dae1b8bfe262a0bb243b40e103836a1a468a042866bafed9f0b6b"
+          ]
+        },
+        "memory": {
+          "before": {
+            "rss": 403636224,
+            "heapTotal": 319160320,
+            "heapUsed": 180168224,
+            "external": 17508976,
+            "arrayBuffers": 15100729
+          },
+          "after": {
+            "rss": 403931136,
+            "heapTotal": 319160320,
+            "heapUsed": 174503008,
+            "external": 17703072,
+            "arrayBuffers": 15294785
+          },
+          "rssDelta": 294912,
+          "heapUsedDelta": -5665216
+        }
+      },
+      "note": "RSS/heap are diagnostic only and not correctness authority"
+    }
+  ],
+  "performanceEvidence": {
+    "order": [
+      "F",
+      "WH",
+      "WH",
+      "F",
+      "WH",
+      "F",
+      "F",
+      "WH"
+    ],
+    "samples": [
+      {
+        "index": 0,
+        "candidate": "F",
+        "endToEndMs": 5235.102184999996,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 1,
+        "cacheStatus": "disabled",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 109,
+        "processDurationMs": 185,
+        "totalDurationMs": 864,
+        "observationDelta": 1
+      },
+      {
+        "index": 1,
+        "candidate": "WH",
+        "endToEndMs": 5409.64473700001,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 1,
+        "cacheStatus": "miss",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 124,
+        "processDurationMs": 207,
+        "totalDurationMs": 1047,
+        "observationDelta": 1
+      },
+      {
+        "index": 2,
+        "candidate": "WH",
+        "endToEndMs": 4167.877342000007,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 0,
+        "cacheStatus": "hit",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 121,
+        "processDurationMs": 213,
+        "totalDurationMs": 412,
+        "observationDelta": 1
+      },
+      {
+        "index": 3,
+        "candidate": "F",
+        "endToEndMs": 5063.342342000004,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 1,
+        "cacheStatus": "disabled",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 136,
+        "processDurationMs": 223,
+        "totalDurationMs": 1056,
+        "observationDelta": 1
+      },
+      {
+        "index": 4,
+        "candidate": "WH",
+        "endToEndMs": 4421.910988000003,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 0,
+        "cacheStatus": "hit",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 107,
+        "processDurationMs": 190,
+        "totalDurationMs": 383,
+        "observationDelta": 1
+      },
+      {
+        "index": 5,
+        "candidate": "F",
+        "endToEndMs": 5116.374268999993,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 1,
+        "cacheStatus": "disabled",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 114,
+        "processDurationMs": 190,
+        "totalDurationMs": 1024,
+        "observationDelta": 1
+      },
+      {
+        "index": 6,
+        "candidate": "F",
+        "endToEndMs": 5067.381769,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 1,
+        "cacheStatus": "disabled",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 144,
+        "processDurationMs": 222,
+        "totalDurationMs": 1044,
+        "observationDelta": 1
+      },
+      {
+        "index": 7,
+        "candidate": "WH",
+        "endToEndMs": 4951.807185999991,
+        "processStarts": 1,
+        "processReuses": 0,
+        "contextMaterializations": 0,
+        "cacheStatus": "hit",
+        "contextReferenceId": "sha256:d8b05f35ac5fbb4c024146dada447e401086f9b8e9c888f8dd12db14f47d6685",
+        "authorizationScopeDigest": "sha256:d22b7a664b263ddcbe678aeb64e02ed81b31dee066a57d46543b8d62ff5cd131",
+        "contextDigest": "sha256:b5b5a592b7ede78e62a34b8a5c5341f043d29e3d51ec0e119e0f55c9ae66b2e1",
+        "requestBytes": 2809054,
+        "contextResolutionDurationMs": 125,
+        "processDurationMs": 215,
+        "totalDurationMs": 431,
+        "observationDelta": 1
+      }
+    ],
+    "structural": {
+      "fProcessStarts": 4,
+      "whProcessStarts": 4,
+      "fProcessReuses": 0,
+      "whProcessReuses": 0,
+      "fContextMaterializations": 4,
+      "whContextMaterializations": 1,
+      "requestBytesStable": true,
+      "referenceStable": true
+    },
+    "timingInterpretation": "wall-clock observation only; trivial deterministic local Node worker, no real model inference/provider, no production SLO"
+  },
+  "verdict": {
+    "primary": "warm-host-qualified-model-attempt-fresh",
+    "qualifiedReusedState": [
+      "GitRepositoryModelExecutor host object",
+      "bounded immutable exact-key D0014 repository preparation/cache"
+    ],
+    "recreatedPerAttempt": [
+      "D0017 authorization-scoped logical reference",
+      "D0017 packed/hybrid carrier and resolution",
+      "canonical model request",
+      "AbortSignal/controller supplied by runner",
+      "model OS process group",
+      "model module/global/session state",
+      "transport deadline and I/O buffers"
+    ],
+    "sameProcessWarmModel": "unqualified-falsified-tested-WP-profile",
+    "disposableIsolate": "unavailable-no-current-substrate",
+    "providerSession": "unavailable-no-provider-selected",
+    "productionD0018Ready": false,
+    "productionBlockers": [
+      "C1 in-flight cancellation cleanup",
+      "C2 cancel during attempt_started checkpoint",
+      "C3 exact checkpoint revision acknowledgement/drain",
+      "C4 runtime slot retained until cleanup/settlement plus lost-wake regression"
+    ],
+    "securityScope": "trusted-local Node host and configured local model executable; semantic isolation qualified for WH child boundary, no physical memory zeroization/tenant sandbox/provider claim"
+  },
+  "limitations": [
+    "WP falsification applies to the tested same-process worker and unproved reset domains; it is not a universal impossibility theorem.",
+    "WH qualification reuses only host/preparation state; actual model process/session remains fresh per Attempt.",
+    "The deterministic worker is not real model inference and no external provider round-trip/tokenizer/billing behavior is measured.",
+    "Current C1-C4 runner/checkpoint defects are shared by fresh and WH execution and remain production blockers rather than being reclassified as warm-isolation failures.",
+    "RSS/heap observations are diagnostics, not correctness or zeroization proof."
+  ]
+}

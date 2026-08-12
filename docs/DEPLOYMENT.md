@@ -272,6 +272,8 @@ This repository remains **source-verified/local-adapter-verified only for the cu
 
 D0017 changes no persisted Case/Plan semantic-state schema and introduces no durable context state, so it requires no data migration. Software rollback is deployment of the pre-D0017 D0013/D0014 full-inline implementation; because Case/Plan semantic authority and persisted schema are unchanged, that rollback requires no context-data conversion. A live `context_reference_unauthorized`, stale, missing, corrupt or limit-exceeded request must **not** silently fall back to inline delivery; per-request fallback is not rollback.
 
+D0018 is accepted only at the Design/qualification layer here, not source-verified. Its selected deployment profile is the existing trusted Node 22+ host with bounded D0014 preparation reuse and one fresh local model process group per Attempt; no external provider/session or same-model-process pool is selected. The accepted C1-C4 repair adds only transient live-control/Event-observation state and exact checkpoint/capacity ordering, with no durable schema or data migration. Software rollback is data-compatible but reintroduces the known cancellation/checkpoint/runtime-slot defects and is therefore an emergency compatibility rollback, not equivalent liveness behavior.
+
 ## 13. Release checklist
 
 Before cutting a source artifact:

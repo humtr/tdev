@@ -251,12 +251,14 @@ No source test proves:
 - hostile-storage authenticity;
 - external-model/provider token duplication, tokenizer economics, network latency, billing, quality or residency savings; D0013/D0014 measure local repository/request bytes only;
 - deterministic minimum-context/ContextSlice correctness, dependency expansion, persistent manifest/CAS corruption/GC, or cross-worker reuse; D0014 is only bounded process-local preparation reuse;
-- warm process/toolchain reuse benefit; D0014 still starts one process per Attempt and current fixture evidence makes preparation the higher-ROI first fix;
+- production same-model-process/session warm reuse: D0018 qualification falsified the tested WP profile and accepted only host/preparation warmth with a fresh model process per Attempt; the D0018 C1-C4 production repair is not yet source-verified;
 - production load, SLO, cost, or incident recovery;
 - universal fit of every component-valid Case under every arbitrarily configured durable-store bound; D0008 instead verifies fail-closed admission/recovery behavior when a concrete bound cannot be satisfied;
 - `ImmutableJournalSnapshotStore` publication on the connected tmcp/Termux filesystem, which does not provide the required hard-link primitive.
 
 These are `unavailable`, `pending`, or explicitly current gaps, not passed.
+
+Design 0018 is now `accepted` for the bounded trusted-local **warm host / fresh model Attempt** contract, not production-verified. Predeclared W01-W43 evidence preserves fresh-vs-WH semantic/request identity while reducing four repeated repository preparations to one; both paths still start four model processes and reuse zero model processes. Tested same-process WP reuse is unqualified because cross-Case global/module/prototype/environment/listener/timer/async state and a stale frame survived reassignment. Current exact source still reproduces C1 in-flight cleanup, C2 cancel-during-`attempt_started`, C3 false checkpoint-revision acknowledgement, and the C4 runtime-slot cleanup rule remains a required production regression. No external provider, ContextSlice or D0022 durable/shared store is selected by D0018.
 
 ## 8. Completion decision
 

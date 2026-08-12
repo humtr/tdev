@@ -1,24 +1,27 @@
 # Design 0018 — adversarially converged model executor/runtime boundary
 
-- Status: `draft` (**not accepted**)
+- Status: `accepted` — implementation authority is limited to the contract frozen here; production work must explicitly enter `implementing` before `src/` changes
 - Capability Group: E — Context delivery and model input
 - Canonical authority anchor reviewed: `b048712a372b5a46fb88134690ee57f92981df11`
 - Accepted predecessor: D0017 selected context delivery contract
 - Prior work recovered: `tmcp/d0018-runtime-boundary-recovery@b9e260391e56c82b6ca6c9ab7965664396da1069`
 - Independent Pro package reviewed: reported chain through `5adcc98ce39a99d7adf80bd39e40ffa38a76693a` (commit objects absent from the current repository; package provenance only)
-- Production-source change authorized by this document: **none**
-- Production implementation in this review: **none**
-- Executable review falsifier: `bench/d0018-adversarial-convergence-falsifier.mjs`
+- Accepted implementation scope: exact committed-Event observation, exact live-controller fencing, pre/post-publication and pre-execution authority checks, exact checkpoint-revision drain, and runtime-slot retention through predecessor cleanup/settlement; no model-process warm pool
+- Production implementation in this review Task: **none**
+- Executable review falsifiers: `bench/d0018-adversarial-convergence-falsifier.mjs` and `bench/d0018-warm-runtime-qualification.mjs`
+- Final adversarial evidence: `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (`fdd16013d1793b6db0f5d3f6aaaefe603d5b7960af7757ce5a99dd4b9cdc48fe`)
 
-> This draft is the result of adversarial comparison, not owner acceptance. It does not claim D0018 accepted, production implemented, provider verified, Group E complete, or full source gate green.
+> Acceptance freezes the bounded trusted-local runtime contract below. It does not claim production implementation, source verification of the repair, provider qualification, Group E completion, checkpoint election, or Group F creation.
 
 ## 1. Decision
 
-Select **one fresh trusted-local process group per admitted model Attempt**. Preserve the accepted D0017 full-semantic-context and authorization-scoped logical-reference contract. Add an exact live-control boundary that is **non-authoritative**, coupled to exact checkpoint-revision accounting and explicit runtime-capacity cleanup semantics.
+Select **warm host / fresh model Attempt** for the bounded trusted-local profile: one long-lived `GitRepositoryModelExecutor` host may retain only its already-bounded immutable D0014 exact-key repository preparation/cache, while every admitted model Attempt recreates D0017 authorization/reference/carrier resolution, request state, controller/deadline/I/O state, and starts **one fresh trusted-local model process group**. This verdict is `warm-host-qualified-model-attempt-fresh`.
 
-The prior draft and Pro draft each contain necessary semantics, but neither is sufficient unchanged. This draft therefore records a `hybrid-required` convergence.
+Preserve the accepted D0017 full-semantic-context and authorization-scoped logical-reference contract. Add an exact live-control boundary that is **non-authoritative**, coupled to exact checkpoint-revision accounting and runtime-capacity cleanup semantics. The tested same-process model-runtime candidate is not selected: W01-W08 falsify that WP profile through cross-Case global/module/prototype/environment/listener/timer/async residue and a stale late frame after reassignment.
 
-Do not select a warm model/session process, external provider, ContextSlice, new executor queue, Agent semantic authority, or AgentDO semantic authority in D0018.
+The prior branch, independent Pro package, adversarial convergence, replacement validation, and W01-W43 qualification were treated as mutually attacking evidence rather than authority. Their surviving synthesis is the contract in this file.
+
+Do not select same-process model/session reuse, a disposable-isolate runtime that the repository does not implement, an external provider, ContextSlice, a new executor queue, Agent semantic authority, or AgentDO semantic authority in D0018.
 
 ## 2. Authority and current state
 
@@ -56,21 +59,25 @@ One admitted model Attempt has:
 
 A Task retry is a new Attempt, fence, controller, process group, deadline, and invocation. It may reuse exact immutable physical context preparation after per-invocation D0017 authorization is revalidated.
 
-## 5. Process and session lifetime
+## 5. Host, process, and session lifetime
 
-Fresh trusted-local process-group lifetime is scoped to one Attempt. The direct child and descendants terminate on normal response close, authoritative cancellation propagation, timeout, output limit, crash, or runtime shutdown.
+The selected host may outlive an Attempt only to retain the bounded D0014 `GitRepositoryModelExecutor` preparation cache under its existing exact `(objectFormat, commitOid, baseDigest)` key, immutable-value, single-flight, entry/byte-bound, cancellation, eviction and cold-rebuild contract. That host/cache state is derived performance state, not Task, Attempt, authorization, result, queue, or retry authority.
 
-No model conversation/session, module-global state, model-internal state, provider SDK session, or arbitrary executable state is reused across Attempts by the selected runtime.
+The model process-group lifetime is scoped to exactly one Attempt. The direct child and descendants terminate on normal response close, authoritative cancellation propagation, timeout, output limit, crash, or runtime shutdown. Every new Attempt gets a fresh model process/module/global/session boundary and a fresh runtime controller/deadline.
 
-Fresh-process selection is an isolation/reset boundary for ordinary process state, not an OS/container sandbox or tenant-security proof.
+No model conversation/session, module-global state, model-internal state, provider SDK session, or arbitrary executable state is reused across Attempts by the selected runtime. Fresh-process selection is semantic isolation for ordinary trusted-local process state, not an OS/container sandbox, tenant-security proof, or physical/confidential memory-zeroization claim.
 
-## 6. Warm candidate
+## 6. Warm qualification and exact reuse boundary
 
-Warm receives a fair but conditional result.
+Warm is qualified only after separating host preparation reuse from same-model-process reuse.
 
-Prior exact-source reruns preserve the structural advantage: four fresh retries start four processes; the experimental warm receiver starts one and reuses it three times while preserving the same model-visible semantic bytes. The prior benchmark also reports approximately 67.69% lower amortized boundary bytes after one prime. Pro fixture measurements show large process-start latency savings.
+Candidate F disables host preparation reuse and still starts one model process per Attempt. Candidate WH reuses one `GitRepositoryModelExecutor` host and bounded immutable D0014 preparation, but recreates D0017 logical reference/authorization/carrier, canonical request, controller, deadline/I/O and model process per Attempt. Candidate WP reuses the same model/runtime process across Attempts. WI has no current disposable-isolate substrate. PS has no selected provider/session substrate.
 
-Those measurements do not prove semantic eligibility. Cross-Case process-global state was observed in the Pro warm receiver, and neither prior nor Pro proves reset of model internal state, conversation/session state, provider SDK state, module globals, or arbitrary model executable state. Therefore warm is **not production-selected**. A future constrained warm runtime may be reconsidered only under an accepted reset/isolation contract with direct falsifiers for all required reset domains.
+W01-W43 expectations were recorded before the new qualification run. Under exact current source, the F/WH differential produced equal canonical Case digest, equal model observation ignoring diagnostic PID, equal logical reference ID for the same Case/scope, equal authorization-scope digest, equal context digest, and equal request bytes. Four F samples materialized repository context four times; four WH samples materialized it once. Both started four model processes and reused zero model processes. Thus WH's structural gain is repository preparation reuse, not model-process warmth.
+
+WP failed W01-W08: the reused process exposed prior Case global, module singleton, prototype, environment/cwd, listener, timer and delayed-async state and emitted a stale frame after reassignment. This rejects the tested same-process profile without claiming that every possible future constrained resettable runtime is impossible. WI and PS are `unavailable`, not failed or qualified.
+
+Primary verdict: **`warm-host-qualified-model-attempt-fresh`**. Performance timing from the deterministic Node worker is wall-clock diagnostic evidence only; there is no real model inference/provider round-trip or production latency SLO in this Design.
 
 ## 7. Retry, queue, and capacity
 
@@ -80,7 +87,7 @@ Semantic retry eligibility begins only after the predecessor Attempt is terminal
 
 Capacity 1 is N=1 of the same admission algorithm. Capacity N permits at most N live execution handles and at most N process groups. Waiting work remains in the runner-owned ready/admission mechanism. The executor, transport, provider, warm receiver, and Agent do not introduce a second semantic queue.
 
-## 8. Stable live-control identity
+## 8. Stable live-control identity and accepted observation API
 
 A stable registry key contains the fields needed to distinguish the exact live execution:
 
@@ -91,9 +98,11 @@ A stable registry key contains the fields needed to distinguish the exact live e
 - `executorId`;
 - `executorEpoch`.
 
-The `AbortController` object is **not** serialized as part of the stable key. Its object identity is a local compare-and-delete token: unregister succeeds only when both the stable key and the currently stored controller object match. This closes stale-unregister ABA without treating an object reference as durable or semantic identity.
+The `AbortController` object is **not** serialized as part of the stable key. Its object identity is a local compare-and-delete token: unregister succeeds only when both the stable key and the currently stored controller object match. This closes stale-unregister ABA without treating an object reference as durable or semantic identity. Process ID, context digest, reference ID, cache identity, worker generation, and Attempt ordinal alone are insufficient live-control keys.
 
-Process ID, context digest, reference ID, cache identity, and Attempt ordinal alone are insufficient live-control keys.
+The accepted lifecycle wake surface is a transient `CaseEngine` **committed-Event observer**. Production may name the method according to repository style, but its semantic shape is frozen: a runner subscribes to immutable Event batches published only after the outer engine mutation has successfully passed incremental invariants and performance-index refresh; rolled-back Events are never observed. The observer is not persisted and is not replayed on restore. Callback invocation is best-effort/non-awaited; synchronous throw and promise rejection are contained and an unresolved callback promise is never awaited. The runner treats the Event only as a wake hint, extracts candidate `attemptId`/revision, rereads the authoritative Attempt, constructs the full stable live key from current Attempt identity, and aborts only an exact matching registered controller when the authoritative Attempt is terminal.
+
+This uses the repository's existing semantic Event boundary instead of inventing a second command bus, durable notification log, polling scheduler, or lifecycle owner.
 
 ## 9. Cancellation contract
 
@@ -126,24 +135,26 @@ A cancellation that wins before publication produces zero model process starts. 
 
 ### 9.2 Notification loss and reconciliation
 
-Pre-publication missed edges are closed by level checks in the handshake. After publication, the normal in-process observation path is expected to wake the matching handle, but its callback remains best-effort/non-authoritative.
+Pre-publication missed edges are closed by level checks in the handshake. After publication, the committed-Event observation path normally wakes the matching handle, but its callback remains best-effort/non-authoritative.
 
-Authority is rechecked at scheduler/admission wakes, after awaited hooks/checkpoints, before preparation/resolution/spawn, after executor settlement, and during shutdown. These are bounded authority checks attached to existing control flow; they must not become a hidden polling scheduler or new queue owner.
+Authority is rechecked after awaited hooks/checkpoints, before and after live-controller publication, before D0017 preparation/resolution and process spawn, after executor settlement, at normal scheduler/admission boundaries, and during shutdown. These are bounded checks attached to existing control flow; they must not become a hidden polling scheduler or new queue owner.
 
-If the owner requires a prompt cleanup bound even when a post-publication observation is actually dropped and no other scheduler wake occurs, that requires an explicit accepted cancellation-latency/SLO mechanism (for example a bounded reconciliation timer). This draft does not invent an interval or new scheduler owner. Without that additional SLO, semantic safety remains immediate while the existing finite transport deadline is the outer liveness bound for a lost post-publication wake.
+Current normative owners define no stronger post-publication lost-wake cleanup SLO than the existing finite transport deadline plus those normal reconciliation boundaries. Therefore D0018 adds **no periodic polling/timer scheduler**. Semantic safety is immediate through authoritative terminal state and late-result fencing; if a wake is genuinely lost while no other control-flow boundary occurs, the finite transport deadline is the outer cleanup bound. A future stronger cleanup SLO is a new accepted contract and must name the mechanism, timer/reconciliation owner, maximum bound, resource cost, shutdown behavior and retry interaction.
 
 ## 10. Checkpoint revision contract
 
-The current runner bug must not survive implementation.
+The current runner bug must not survive implementation. Checkpointing remains one runner-owned serialized lane.
 
-- capture one immutable snapshot and its `caseRevision` together;
-- persist that exact snapshot;
-- after persistence, set `checkpointedRevision` only to the revision that was actually persisted;
+- capture one immutable `snapshot` and `persistedRevision = snapshot.caseRevision` together;
+- build checkpoint metadata from that same revision, not from a later live engine revision;
+- await persistence of that exact snapshot;
+- after persistence, set `checkpointedRevision = persistedRevision` only;
 - never assign `checkpointedRevision = engine.caseRevision` merely because asynchronous I/O returned;
-- if CaseEngine advanced while persistence was outstanding, drain/reconcile a newer snapshot before dispatching work that depends on the stale checkpoint and before a terminal return that would otherwise leave the newer revision unpersisted;
-- multiple rapid semantic transitions may be coalesced by persisting a latest snapshot, but no unpersisted revision may be falsely acknowledged.
+- if `engine.caseRevision > checkpointedRevision` after I/O, loop/drain a newer exact snapshot before dispatching work that depends on the stale checkpoint and before a terminal return that would otherwise leave the newer revision unpersisted;
+- multiple rapid semantic transitions may be coalesced only by actually persisting a later snapshot; no unpersisted revision may be falsely acknowledged;
+- cancellation that wins during `attempt_started` persistence must be included in that drain, then the runner rereads Attempt authority and performs zero executor/model invocation.
 
-Notification metadata does not substitute for durable checkpointing.
+Committed-Event observation metadata does not substitute for durable checkpointing.
 
 ## 11. Timeout, crash, shutdown, and descendant cleanup
 
@@ -207,9 +218,9 @@ After owner acceptance, implementation order is:
 
 Rollback restores the previous fresh-process implementation without data migration. It reintroduces delayed cancellation cleanup, the pre-registration launch window, and the checkpoint-revision acknowledgement defect; therefore rollback is compatibility recovery, not behaviorally equivalent liveness/durability.
 
-## 19. Acceptance falsifiers
+## 19. Accepted implementation acceptance matrix and cheapest falsifiers
 
-Before this Design can be accepted for implementation, at least the following must be source-level or transport-level tests where applicable:
+The Design-acceptance evidence is executable. Before production status can become `verified`, source-level or transport-level regressions must cover at least:
 
 - cancel before controller registration;
 - cancel after registration but before executor invocation;
@@ -238,28 +249,42 @@ Before this Design can be accepted for implementation, at least the following mu
 - old snapshot persistence followed by newer revision drain;
 - multiple rapid transitions while one checkpoint is outstanding.
 
-The review harness implements all 27 as deterministic non-production design falsifiers and separately reproduces the two current-source failures on exact canonical engine/runner blobs.
+The convergence harness implements 27 deterministic design falsifiers and reproduces C1-C3 on the exact current engine/runner blobs. The warm harness predeclares and executes W01-W43, including F/WH differential, tested-WP contamination, capacity/retry/auth/cache/restart/shutdown/observation cases and fixed randomized seeds. C4 is frozen by the runtime-slot falsifier: semantic retry eligibility does not return predecessor runtime capacity before its execution handle/process cleanup and settlement.
 
-## 20. Remaining unknowns
+The production regression floor is the requested 16 fresh/runner tests: cancel-before-registration zero invocation; cancel during `attempt_started` zero invocation; cancel after registration/pre-spawn zero process; in-flight cleanup; late-result rejection; stale cancellation; stale unregister; exact persisted checkpoint revision; newer revision drained before dependent dispatch; capacity N no N+1 during cleanup; retry no inherited abort; timeout cannot overwrite cancellation; shutdown liveness-only; descendant-held inherited-pipe cleanup; observation callback throw/reject/hang isolation; D0017 authorization before physical access. Because WH is selected, retain additional tests proving fresh child/reset isolation, no reuse of poisoned same-process worker, no stale frame reassignment, ABA fencing, cancellation/timeout during cleanup boundaries, capacity while cleanup is outstanding, long-sequence isolation and cold restart/rebuild.
 
-- exact accepted shape/visibility of the lifecycle-observation API;
-- whether a post-publication lost-observation cleanup SLO stronger than the finite transport timeout is required, and if so its bound/mechanism;
-- production cancellation cleanup latency SLO;
-- non-POSIX descendant termination equivalence;
-- future Agent/AgentDO aggregate topology;
-- exact external provider and security/economic contract;
-- real-model latency/memory/tokenizer/reset behavior;
-- any future source-unavailable/offline/cross-worker availability requirement that activates D0022;
-- any accepted quality threshold that could reopen ContextSlice.
+## 20. Unsupported environments and remaining unknowns
+
+Unsupported/unavailable are not green:
+
+- this connected Termux filesystem is not qualified for `ImmutableJournalSnapshotStore` hard-link publication (`link(2) EACCES`); D0018 supported-Termux validation excludes only that pre-existing adapter-specific file while exact all-test coverage remains platform-unqualified;
+- WI is unavailable because no disposable-isolate runtime exists in current source;
+- PS/external-provider session qualification is unavailable because no provider is selected;
+- non-POSIX descendant termination equivalence remains unknown;
+- future Agent/AgentDO aggregate topology and distributed capacity owner remain later Design work;
+- exact external provider security/economic contract remains unknown until a provider is selected;
+- real-model inference latency/memory/tokenizer/quality behavior is unmeasured;
+- any future source-unavailable/offline/cross-worker availability requirement may activate D0022;
+- any future accepted completeness/quality threshold may reopen ContextSlice.
 
 ## 21. Status vocabulary
 
 - independently diagnosed: **yes**
-- experimentally supported: **yes, for the exact current-source failures, prior structural benchmark, and declared non-production falsifiers**
-- prototype implemented: **yes, non-production review falsifier only**
-- draft designed: **yes**
-- accepted: **no**
+- experimentally supported: **yes, for exact current-source defects, WH bounded-profile qualification, tested-WP falsification, prior structural measurements and declared falsifiers**
+- prototype/review harness implemented: **yes, non-production only**
+- draft designed: **yes, historical stage completed**
+- accepted: **yes — bounded contract in this file**
+- implementing: **no — requires successor/integration Task and explicit status transition before production `src/` changes**
 - production implemented: **no**
-- source verified for a D0018 production change: **no production change exists**
-- provider verified: **no**
-- prior work independently reviewed: **yes, exact branch/commits/blobs recovered**
+- D0018 source verified: **no production repair exists yet**
+- D0018 environment verified: **no; current evidence is supported-Termux source/review qualification with the explicit ImmutableJournal filesystem exclusion**
+- provider verified: **no / not applicable to selected local profile**
+- prior work independently reviewed: **yes, exact prior branch/commits/blobs recovered; Pro package independently reviewed as external evidence**
+- Group E engineering complete: **no**
+- Group E checkpoint elected: **no**
+
+## 22. Acceptance record
+
+Acceptance is recorded under `SDD.md` after freezing the exact runtime, lifecycle observation, checkpoint, capacity, warm, lost-wake, security, migration, rollback and provider-status contracts above. Direct evidence is `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` with SHA-256 `fdd16013d1793b6db0f5d3f6aaaefe603d5b7960af7757ce5a99dd4b9cdc48fe`; replacement validation is `docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json` with SHA-256 `1a25fc9dba2c7322c42b54ffb7f599cb79ecd6bd911b42340b1a0f8e59d39d6b`; warm qualification is `docs/evidence/group-e-d0018-warm-runtime-qualification-2026-08-12.json` with SHA-256 `3f1e7dec8ba803fa4601d72a49c93402f4d301b1f012369d29c9a6fed51c8027`.
+
+Acceptance authorizes only the smallest coherent C1-C4 production repair and the transient committed-Event observation/live-control machinery required by it. It does not authorize same-model-process warm pools, provider abstraction, Agent/AgentDO implementation, ContextSlice, D0022 storage, hidden polling, a second queue, executor/provider retry, or unrelated source changes. Production implementation must first enter `implementing` on the active Group E integration lineage.

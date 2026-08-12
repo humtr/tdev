@@ -1,0 +1,204 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0018-final-adversarial-qualification",
+  "profileVersion": "tdev.d0018.final-adversarial.v1",
+  "date": "2026-08-12",
+  "source": {
+    "activeCumulativeBranch": "group/e-context-delivery",
+    "canonicalAnchor": "b048712a372b5a46fb88134690ee57f92981df11",
+    "reviewBranch": "tmcp/d0018-final-qualification",
+    "reviewHead": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+    "legacyBaseline": "83e9610d79b4ad70858e4dd7fe3625052336a92c",
+    "priorBranch": "b9e260391e56c82b6ca6c9ab7965664396da1069",
+    "convergenceBranch": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+    "priorAndConvergenceMergeBase": "b048712a372b5a46fb88134690ee57f92981df11"
+  },
+  "environment": {
+    "node": "v26.4.0",
+    "npm": "11.18.0",
+    "git": "git version 2.55.0",
+    "os": "Android/arm64 Termux on Linux 6.1.145",
+    "supportedRuntimeContract": "Node.js >=22 trusted-local ESM runtime",
+    "filesystemLimitation": "ImmutableJournal hard-link publication is unsupported here because link(2) returns EACCES"
+  },
+  "inputs": [
+    {
+      "kind": "prior-repository-work",
+      "ref": "tmcp/d0018-runtime-boundary-recovery@b9e260391e56c82b6ca6c9ab7965664396da1069",
+      "reviewEvidence": "docs/evidence/group-e-d0018-prior-work-review-2026-08-12.json",
+      "reviewEvidenceSha256": "a1ba9b017b383eece3f217dd7e0a9be3e6a238a05eabad36a5bef86e7fae308e",
+      "authority": false
+    },
+    {
+      "kind": "independent-pro-package",
+      "packageSha256": "24089f8e898614f33157afdf827704a27aee5aa110026a0738f204bdc76c9b6c",
+      "reviewEvidence": "docs/evidence/group-e-d0018-pro-package-review-2026-08-12.json",
+      "reviewEvidenceSha256": "052b079ddb44b8081cb68ce94ef5e0ae358e6937b0b2a8a5b39ccbf82017d4d0",
+      "cleanRoomClaim": "affirmative non-access evidence for the sealed Pro checkpoint; not proof that prior work did not exist",
+      "authority": false
+    },
+    {
+      "kind": "adversarial-convergence",
+      "comparisonEvidence": "docs/evidence/group-e-d0018-adversarial-comparison-2026-08-12.json",
+      "comparisonEvidenceSha256": "f3afd3910c97aeb2132af3a9326c37154349fc5570454114be01234dc6a57e0c",
+      "falsifierEvidence": "docs/evidence/group-e-d0018-adversarial-convergence-falsifier-2026-08-12.json",
+      "falsifierEvidenceSha256": "b059367cc37df2cf3ef3b6ac4f85b10114127836cc6f9261e882ef9f5ca431d2",
+      "authority": false
+    },
+    {
+      "kind": "replacement-validation",
+      "path": "docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json",
+      "sha256": "1a25fc9dba2c7322c42b54ffb7f599cb79ecd6bd911b42340b1a0f8e59d39d6b"
+    },
+    {
+      "kind": "warm-qualification",
+      "expectations": "docs/evidence/group-e-d0018-warm-runtime-expectations-2026-08-12.json",
+      "expectationsSha256": "66c26980e24c64ba5f9298cc168ff38dc763c12978d2164a63a202a683148e80",
+      "results": "docs/evidence/group-e-d0018-warm-runtime-qualification-2026-08-12.json",
+      "resultsSha256": "3f1e7dec8ba803fa4601d72a49c93402f4d301b1f012369d29c9a6fed51c8027"
+    }
+  ],
+  "repositoryFacts": {
+    "semanticOwner": "CaseEngine owns Case/Task/Attempt lifecycle, cancellation, retry eligibility, reconciliation and result authority",
+    "runnerOwner": "runner owns ready/admission capacity and exact live runtime control",
+    "transportOwner": "one finite operation, process I/O, timeout and child/descendant cleanup; no Task retry and no semantic queue",
+    "d0017Frozen": true,
+    "currentModelProfile": "tdev.model.subprocess-json.v1 trusted-local subprocess",
+    "currentProcessReuse": 0,
+    "currentHostPreparationReuse": "bounded exact-key D0014 GitRepositoryModelExecutor preparation cache",
+    "externalProviderSelected": false,
+    "contextSliceSelected": false
+  },
+  "survivingDefects": {
+    "C1": "semantic in-flight cancellation does not promptly abort the active runner controller/process/descendants",
+    "C2": "cancellation during attempt_started checkpoint can win before controller creation yet current runner can still invoke executor",
+    "C3": "checkpoint bookkeeping can acknowledge engine.caseRevision after persisting only an older snapshot revision",
+    "C4": "semantic terminality must not release a runtime capacity slot before predecessor live handle/process cleanup/settlement; retry admission before that boundary can create N+1 live execution"
+  },
+  "warmQualification": {
+    "primaryVerdict": "warm-host-qualified-model-attempt-fresh",
+    "F": "fresh model process per Attempt; host preparation reuse optional",
+    "WH": {
+      "qualified": true,
+      "reusedState": [
+        "GitRepositoryModelExecutor host object",
+        "bounded immutable exact-key D0014 repository preparation/cache"
+      ],
+      "recreatedPerAttempt": [
+        "D0017 authorization-scoped logical reference",
+        "D0017 packed/hybrid carrier and resolution",
+        "canonical model request",
+        "runner AbortSignal/controller",
+        "model OS process group",
+        "model module/global/session state",
+        "transport deadline and I/O buffers"
+      ],
+      "semanticIsolation": "experimentally supported for this bounded profile",
+      "memoryZeroization": "not claimed"
+    },
+    "WP": {
+      "qualified": false,
+      "verdict": "unqualified-falsified-tested-WP-profile",
+      "falsifiers": ["W01", "W02", "W03", "W04", "W05", "W06", "W07", "W08"],
+      "failure": "same-process worker retained cross-Case global/module/prototype/environment/listener/timer/async state and emitted a stale late frame after reassignment"
+    },
+    "WI": "unavailable-no-current-disposable-isolate-substrate",
+    "PS": "unavailable-no-provider-selected",
+    "w01ToW43DeclaredBeforeExecution": true,
+    "randomizedSeeds": [11, 29, 47, 83],
+    "differential": {
+      "canonicalDigestEqual": true,
+      "modelObservationEqualIgnoringDiagnosticPid": true,
+      "contextReferenceIdEqual": true,
+      "authorizationScopeDigestEqual": true,
+      "contextDigestEqual": true,
+      "requestBytesEqual": true
+    },
+    "structuralPerformance": {
+      "freshProcessStarts": 4,
+      "warmHostProcessStarts": 4,
+      "freshProcessReuses": 0,
+      "warmHostProcessReuses": 0,
+      "freshContextMaterializations": 4,
+      "warmHostContextMaterializations": 1,
+      "requestBytesStable": true,
+      "referenceStable": true,
+      "interpretation": "WH removes repeated repository preparation but does not reuse the model process; timing is local fixture evidence only"
+    }
+  },
+  "lostWakeDecision": {
+    "strongerCleanupSloFoundInCurrentOwners": false,
+    "selectedContract": "semantic correctness remains authoritative immediately through CaseEngine/fencing; cleanup on a lost post-publication wake is bounded by existing finite transport deadline plus existing control-flow reconciliation boundaries",
+    "hiddenPollingSchedulerAllowed": false,
+    "followOnIfStrongerSloRequired": "requires a new accepted owner contract naming mechanism, timer/reconciliation owner, maximum bound, resource cost, shutdown and retry interaction"
+  },
+  "d0017Consumption": {
+    "logicalIdentity": ["repositoryCommitOid", "semanticBaseDigest", "contextDigest", "authorizationScopeDigest"],
+    "authorizationScope": ["caseId", "planDigest", "caseContractDigest"],
+    "physicalWarmthIsAuthority": false,
+    "copiedReferenceFailsBeforeCarrierRead": true,
+    "staleReferenceFailsBeforeCarrierRead": true,
+    "corruptCacheEvictedAndRebuilt": true,
+    "cacheLossColdRebuildStable": true,
+    "sourceUnavailable": "typed fail-closed with zero model invocation and no inline fallback"
+  },
+  "provider": {
+    "selected": false,
+    "qualified": false,
+    "applicability": "not applicable to selected trusted-local runtime profile",
+    "externalRepositoryContextEgress": "none"
+  },
+  "d0022": {
+    "requiredNow": false,
+    "status": "conditional",
+    "activationConditions": ["source-unavailable execution", "offline restart", "cross-worker durable/shared content", "persistent shared CAS", "stronger reconstruction availability SLA", "durable provider handoff"]
+  },
+  "contextSlice": {
+    "selected": false,
+    "status": "unchanged D0017 full semantic context"
+  },
+  "security": {
+    "selectedBoundary": "trusted local Node host and trusted configured local model executable",
+    "semanticIsolation": "WH fresh child boundary qualified within bounded profile",
+    "physicalMemoryZeroization": "not required by current trusted-local owner and not claimed",
+    "tenantSandbox": "not claimed",
+    "providerSecurity": "unavailable because no provider is selected"
+  },
+  "migrationRollback": {
+    "durableSchemaChange": false,
+    "dataMigration": "none",
+    "runtimeStateDurability": "controller/notification/runtime-slot state remains transient and non-authoritative",
+    "rollback": "software rollback to the pre-D0018 fresh-process runner is data-compatible but reintroduces C1-C4 liveness/checkpoint/capacity defects"
+  },
+  "acceptanceReadiness": {
+    "warmVerdictClosed": true,
+    "lifecycleObservationContractClosedSemantically": true,
+    "checkpointContractClosed": true,
+    "capacityContractClosed": true,
+    "lostWakeSloClosed": true,
+    "migrationClosed": true,
+    "rollbackClosed": true,
+    "securityClosedForSelectedProfile": true,
+    "providerStatusClosed": true,
+    "acceptanceMatrixExecutable": true,
+    "designReadyForAcceptedStatus": true,
+    "productionImplementationReady": false,
+    "productionImplementationBlockers": ["C1", "C2", "C3", "C4 must be implemented and source-tested after accepted/implementing status"]
+  },
+  "validation": {
+    "convergenceReferenceFalsifiers": "27/27 green",
+    "warmQualification": "W01-W43 completed with explicit pass/falsified/unavailable/source-defect classifications",
+    "npmRunCheck": "green at a603 review source",
+    "supportedTermuxSuite": "226/226 green",
+    "supportedTermuxCoverage": "green",
+    "exactAllTestCoverage": "unsupported on this Termux filesystem only for pre-existing ImmutableJournal link(2) EACCES"
+  },
+  "remainingUnknowns": [
+    "non-POSIX descendant termination equivalence",
+    "future Agent/AgentDO aggregate topology and distributed capacity owner",
+    "exact external provider and provider security/economic contract if one is later selected",
+    "real model inference latency/memory/tokenizer/quality behavior",
+    "future stronger source-unavailable/offline/cross-worker availability requirement",
+    "future accepted completeness threshold that could reopen ContextSlice"
+  ]
+}
