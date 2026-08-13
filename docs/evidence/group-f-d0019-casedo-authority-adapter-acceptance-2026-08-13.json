@@ -1,0 +1,420 @@
+{
+  "schemaVersion": 1,
+  "design": "D0019",
+  "title": "CaseDO Authority Adapter Adversarial Design / Acceptance Evidence",
+  "measuredAt": "2026-08-13",
+  "decisionClass": "Class 2",
+  "groups": ["B", "F"],
+  "preOwnerSyncDecision": "accepted_ready",
+  "repositoryAuthority": {
+    "project": "humtr/tdev",
+    "activeBranch": "group/f-cloudflare-runtime",
+    "startingActiveFSha": "a7199f7b1f21e0ddddce02ad8574b621c290d331",
+    "retainedCompletedGroupESha": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "isolatedTaskBranch": "tmcp/d0019-casedo-authority-adapter",
+    "task": "task_6w6_c42c688364",
+    "worktree": "wt_eccba31ac43e5a20",
+    "taskAuthorityDigest": "596d0be7d9227705ff7cfda266f243ecc156b5da1d40445886a1c384e1802e15",
+    "checkoutAlignmentDebt": "canonical checkout remained on completed Group E; exact active Group F worktree was authorized by current branch-lineage owner",
+    "currentOwnerPaths": {
+      "access": "docs/development/ACCESS.md",
+      "branchLineage": "docs/development/BRANCH_LINEAGE.md"
+    },
+    "separateStaleMetadataCommit": "95deaacc81bd3cdc053beaa3ca3c64e3f3058bb4",
+    "separateStaleMetadataDecision": "docs/ROADMAP.md D0030 draft marker was stale against accepted PROGRAM.md/WORKBOARD.md state and was synchronized without changing D0030 semantics"
+  },
+  "inheritedDecisions": {
+    "d0010": {
+      "design": "docs/design/0010-semantic-authority-migration-and-transactional-head.md",
+      "evidence": "docs/evidence/mvp-1a-7-semantic-authority-migration-2026-08-09.json",
+      "evidenceSha256": "2129639870f970a10e2aaeb7e393672e4e5faec4e9c3e332361285069890f99e",
+      "meaning": "single semantic/current-state authority, expected-revision fencing, transactional current-head mutation, fail-closed migration boundary"
+    },
+    "d0018": {
+      "status": "closed; not reopened",
+      "design": "docs/design/0018-adversarial-converged-model-runtime-boundary.md",
+      "finalAdversarialEvidence": "docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json",
+      "finalAdversarialEvidenceSha256": "70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033",
+      "productionEvidence": "docs/evidence/group-e-d0018-production-verification-2026-08-13.json",
+      "productionEvidenceSha256": "2a1f53043c326ada9618d54ffc8d114b1666f2c25986226637287190948216b7",
+      "productionSourceSha": "73d404bdc24eac8337019738ba074c2a1fea4861",
+      "meaning": "supported-Termux trusted-local profile; warm host / fresh Attempt/model process; no external provider selected"
+    },
+    "d0030": {
+      "status": "accepted Design; not reopened",
+      "design": "docs/design/0030-immutable-journal-publication-portability.md",
+      "acceptanceEvidence": "docs/evidence/group-f-d0030-publication-portability-acceptance-convergence-2026-08-13.json",
+      "acceptanceEvidenceSha256": "239aada0b6f15e75faf6c2c04b779f3d578cdf36956d6b108f67b47ee038fd7b",
+      "productionImplementation": "separate and not performed by D0019",
+      "d0019DependencyConclusion": "D0019 semantic authority selection does not depend on D0030 production implementation; if a later production qualification requires the Termux ImmutableJournal authoritative write path, D0030 production implementation/qualification is a prerequisite for that verification only"
+    }
+  },
+  "providerResearch": {
+    "provider": "Cloudflare Durable Objects",
+    "retrievedAt": "2026-08-13",
+    "primarySourcesOnly": true,
+    "sources": [
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/",
+        "lastUpdated": "2026-05-27",
+        "findings": [
+          "SQLite-backed Durable Object storage is transactional and strongly consistent and private to the object.",
+          "transactionSync executes a synchronous callback in a transaction and rolls it back if the callback throws.",
+          "transaction executes storage operations in one transaction that commits or aborts; SQLite direct storage operations participate in the transaction.",
+          "No current primary-source statement was found that transaction callbacks are automatically replayed; D0019 does not depend on callback retry behavior."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/api/state/",
+        "lastUpdated": "2026-06",
+        "findings": [
+          "blockConcurrencyWhile blocks other events and is commonly used for constructor initialization/schema work.",
+          "If its callback throws, the object is terminated/reset; it has a 30-second timeout.",
+          "Regular SQLite storage operations are synchronous and do not yield the event loop; D0019 therefore does not use long external I/O under blockConcurrencyWhile."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/concepts/durable-object-lifecycle/",
+        "lastUpdated": "2026-07-03",
+        "findings": [
+          "A Durable Object instance can be evicted/reconstructed; in-memory state is not a durable authority and constructor initialization runs again on a new instance."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/platform/known-issues/",
+        "lastUpdated": "2026-07-03",
+        "findings": [
+          "Global uniqueness is enforced on new events and storage access, but a long-running event that never touches storage can become non-current during replacement/network partition/software update.",
+          "D0019 therefore requires authoritative mutations to touch durable storage and does not treat in-memory singleton identity as semantic proof."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/best-practices/error-handling/",
+        "lastUpdated": "2026-04-21",
+        "findings": [
+          "Uncaught object or infrastructure exceptions propagate to callers.",
+          "retryable errors are suggested for retry only when the application request is idempotent/safely repeatable; overloaded errors should not be retried.",
+          "A stub should be recreated after an exception.",
+          "An exception is not evidence that the semantic mutation did not commit; D0019 reconciles by durable request receipt."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/api/stub/",
+        "lastUpdated": "2026-04-21",
+        "findings": [
+          "Calls on the same stub have E-order semantics, but a thrown exception poisons in-flight/future calls on that stub; this is not an exactly-once request guarantee."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/api/alarms/",
+        "lastUpdated": "2026-04-21",
+        "findings": [
+          "Alarm handlers are at-least-once and are retried after uncaught failure with exponential backoff for up to six retries.",
+          "D0019 does not use alarms as command-admission authority."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/api/namespace/",
+        "lastUpdated": "2026-04",
+        "findings": [
+          "Name-derived Durable Object routing supplies a stable object identity within the selected namespace/jurisdiction; D0019 uses canonical Case ID routing but does not infer semantic authority from routing identity alone."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/platform/limits/",
+        "lastUpdated": "2026-06-01",
+        "findings": [
+          "SQLite storage is bounded per object; current paid-plan limit is 10 GB.",
+          "Maximum string/BLOB/table-row size is 2 MB, SQL statement length 100 KB, and maximum bound parameters per query 100.",
+          "D0019 production storage must normalize/chunk authoritative data rather than store an unbounded Case snapshot in a single row/blob."
+        ]
+      },
+      {
+        "url": "https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/",
+        "lastUpdated": "2026-07-15",
+        "findings": [
+          "Current declarative exports lifecycle supports created/deleted/renamed/transferred classes and replaces the legacy migrations lifecycle for Workers that adopt it.",
+          "A Worker cannot return to legacy migrations after deploying exports.",
+          "New namespaces use SQLite and a provisioned namespace storage backend is immutable in place.",
+          "These provider deployment constraints do not authorize a tdev semantic Case authority migration."
+        ]
+      }
+    ],
+    "notReliedUpon": [
+      "WebSocket Hibernation semantics",
+      "alarm delivery for command admission",
+      "in-memory Durable Object singleton state",
+      "transaction callback replay semantics",
+      "provider exception as proof of transaction failure"
+    ]
+  },
+  "authorityMaps": {
+    "currentLocalOracle": {
+      "Case identity": "D0010/CaseEngine local semantic authority",
+      "Case current revision": "authoritative local Case snapshot / transactional store",
+      "semantic head/root": "D0010 transactional semantic authority",
+      "command admission": "CaseEngine applyCommand through CaseRepository",
+      "command receipt": "CaseEngine receipts in durable snapshot",
+      "Task lifecycle": "CaseEngine",
+      "Attempt lifecycle": "CaseEngine",
+      "accepted result": "CaseEngine result acceptance",
+      "terminal Case status": "CaseEngine",
+      "running-before-dispatch record": "CaseRepository durable checkpoint",
+      "delivery intent": "runtime/runner boundary; not semantic result authority",
+      "Agent connection state": "not D0019",
+      "Agent capacity": "not D0019",
+      "Git publication state": "local effect truth plus accepted receipt; remote ref is derived publication",
+      "immutable artifact bytes": "artifact/journal storage owner, not semantic current-state owner",
+      "projections/query indexes": "derived"
+    },
+    "selectedCaseDoTopology": {
+      "Case identity": "one CaseDO selected by canonical Case identifier and validated again in durable Case metadata",
+      "Case current revision": "CaseDO SQLite authoritative transaction state",
+      "semantic head/root": "CaseDO SQLite authoritative transaction state preserving D0010 meaning",
+      "command admission": "CaseDO SQLite transaction",
+      "command receipt": "same CaseDO SQLite transaction as admitted mutation",
+      "Task lifecycle": "CaseDO SQLite authority",
+      "Attempt lifecycle": "CaseDO SQLite authority",
+      "accepted result": "CaseDO SQLite authority after fencing checks",
+      "terminal Case status": "CaseDO SQLite authority",
+      "running-before-dispatch record": "CaseDO SQLite authority committed before any remote delivery",
+      "delivery intent": "D0020 AgentDO/equivalent candidate owner after Case running commit",
+      "Agent connection state": "D0020 AgentDO/equivalent candidate owner",
+      "Agent capacity": "D0020 AgentDO/equivalent candidate owner",
+      "Git publication state": "local Agent owns OS/Git effect truth; accepted Case result records fenced evidence; remote ref is derived",
+      "immutable artifact bytes": "D0030/D0022 storage lane as applicable; not Case current-state authority",
+      "projections/query indexes": "Worker/D1/R2/equivalent derived projection; never accepted as command authority"
+    }
+  },
+  "candidateComparison": {
+    "A": {
+      "name": "CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority",
+      "result": "selected",
+      "reason": "It preserves the existing semantic state machine and changes the physical transactional adapter/placement, not the meaning. Provider SQLite transactions plus object routing are sufficient primitives when all authoritative reads/writes and receipts are persisted in one object transaction and no external side effect occurs inside it."
+    },
+    "B": {
+      "name": "explicit migration to ad-hoc CaseDO-native durable state",
+      "result": "rejected_for_current_D0019_MVP",
+      "reason": "Any semantic rewrite is unnecessary and risks observable drift. A source-to-destination copy without an independently durable old-writer fence was executably falsified: both stores accepted different commands from the same revision and diverged. Existing local Cases therefore remain with their current authority until a separate migration/cutover Design owns the placement generation and exclusive writer barrier."
+    },
+    "C": {
+      "name": "different single-owner equivalent instead of CaseDO",
+      "result": "not_selected",
+      "reason": "No repository or provider evidence falsified the bounded SQLite-backed CaseDO host/adaptor model. An equivalent remains architecturally legal only if later evidence falsifies CaseDO production qualification; it is not needed to close the Design question."
+    }
+  },
+  "selectedAuthorityModel": {
+    "owner": "one SQLite-backed CaseDO per authoritative Case",
+    "semanticCore": "existing D0010/CaseEngine contract is the oracle; CaseDO is a host/adapter, not a new semantic owner",
+    "inMemoryAuthority": false,
+    "transactionBoundary": [
+      "lookup requestId receipt and verify immutable command/request digest",
+      "verify expected Case revision before mutation",
+      "load/reconstruct and validate the authoritative Case state",
+      "apply exactly one CaseEngine semantic mutation",
+      "validate invariants/result fencing",
+      "atomically persist changed Case/Task/Attempt/semantic-head state plus advanced Case revision and the exact command receipt",
+      "commit before returning or attempting any external delivery/effect"
+    ],
+    "externalIoInsideAuthorityTransaction": "forbidden",
+    "storageRepresentation": "normalized/chunked SQLite rows/tables within provider limits; no unbounded single-row snapshot requirement",
+    "constructorReopen": "bounded schema/invariant initialization plus one durable semantic reopen/recovery; corrupt or unsupported state fails closed",
+    "commandReplay": "same requestId plus same immutable command digest returns the exact durable receipt response without a second mutation; mismatched reuse conflicts",
+    "revisionFence": "stale expected revision rejects before side effect or durable semantic mutation",
+    "responseLoss": "unknown outcome until receipt reread; recreate stub if required and replay same immutable request; never infer failure from transport error",
+    "runningBeforeDispatch": "running Attempt/fencing state must commit in CaseDO before any D0020/local-Agent delivery begins",
+    "resultAcceptance": "case/task/attempt/plan/executor-epoch/fencing-token/effect-key/result digest fences remain semantic oracle requirements",
+    "ambiguity": "external-effect uncertainty transitions to the existing reconciling semantics and requires effect-specific reread/evidence; never blind retry a reconcilable effect"
+  },
+  "migrationCutover": {
+    "currentD0019Decision": "no migration of an existing locally authoritative Case in the initial D0019 implementation",
+    "newCasePlacement": "after production qualification, a new Case may be born directly in its CaseDO and has no local semantic co-owner",
+    "existingCasePlacement": "existing local Cases remain writable only by their existing owner and must not be exposed as writable CaseDO copies",
+    "futureMigrationPrerequisite": "a separate accepted migration/cutover Design must define a durable placement generation, exact old-writer fence, source quiescence barrier, destination activation, read ownership, in-flight command treatment, duplicate receipt transfer, response-loss handling, restart/retry proof, rollback boundary, and completion evidence",
+    "falsifiedPattern": "copy_then_switch_without_old_writer_fence",
+    "rollback": "before any Case is born in CaseDO, code/config rollback may remove the unused adapter; after a CaseDO Case exists, rollback may only deploy a schema/semantic-compatible CaseDO implementation and must not route that Case back to local authority",
+    "downgrade": "no silent storage-backend downgrade, namespace reprovision, or semantic-owner downgrade; incompatible schema/backend lifecycle changes require a separately accepted migration/rollback plan"
+  },
+  "d0020Boundary": {
+    "d0019Owns": [
+      "Case semantic/current-state authority",
+      "Case/Task/Attempt state",
+      "command receipts",
+      "revision and result fencing",
+      "running-before-dispatch durable fact",
+      "accepted result and terminal Case meaning"
+    ],
+    "d0020OwnsCandidate": [
+      "Agent connection epoch",
+      "current connection",
+      "delivery owner/intent/queue",
+      "capacity",
+      "reconnect state"
+    ],
+    "crossingRule": "D0020 delivery may begin only after D0019 has committed running/fencing state; D0020 connection/capacity truth never becomes Case semantic authority"
+  },
+  "executableEvidence": {
+    "modelFile": "test/d0019-casedo-authority-model.test.mjs",
+    "modelFileSha256": "d7d34720a334205fc720a1920b8236281cdd84965ed253e423a1a4da060ce129",
+    "job": "job_6z8_d1a50d4653",
+    "executionDigest": "8c92e99c83e687f43283f85d2d1efc9d266ce74c1c9aec04eedfcde5cbf84fb3",
+    "command": "node --test test/d0019-casedo-authority-model.test.mjs test/durability.test.mjs test/durable-runner.test.mjs",
+    "tests": 41,
+    "pass": 41,
+    "fail": 0,
+    "prototypeClassification": "model-level falsifier over the accepted local semantic oracle; not production CaseDO code and not a live-provider qualification",
+    "productionSourceMutation": false
+  },
+  "adversarialMatrix": [
+    {
+      "id": 1,
+      "case": "duplicate command",
+      "localOracle": "same requestId + same command returns exact prior receipt response; no revision change",
+      "candidateA": "receipt lookup in same authoritative SQLite transaction returns exact prior response",
+      "evidence": "D0019 response-loss/replay model plus durability receipt oracle",
+      "result": "pass"
+    },
+    {
+      "id": 2,
+      "case": "same command after response loss",
+      "localOracle": "outcome is unknown until durable receipt reread; same-id replay reconciles",
+      "candidateA": "provider call exception is not failure proof; recreate stub and replay same immutable requestId",
+      "evidence": "D0019 model response-loss-after-commit test + Cloudflare error/stub docs",
+      "result": "pass"
+    },
+    {
+      "id": 3,
+      "case": "stale expected revision",
+      "localOracle": "revision_conflict with no semantic mutation",
+      "candidateA": "expected revision checked before mutation in the CaseDO transaction",
+      "evidence": "durability receipt/revision oracle and concurrent D0019 model",
+      "result": "pass"
+    },
+    {
+      "id": 4,
+      "case": "concurrent commands",
+      "localOracle": "only the command observing the current expected revision may commit",
+      "candidateA": "serialized object/storage transaction plus revision fence yields exactly one winner",
+      "evidence": "D0019 concurrent-admission model",
+      "result": "pass"
+    },
+    {
+      "id": 5,
+      "case": "restart before admission",
+      "localOracle": "no durable receipt/mutation exists; same request may be admitted normally",
+      "candidateA": "pre-commit failure leaves storage unchanged",
+      "evidence": "D0019 precommit-failure model",
+      "result": "pass"
+    },
+    {
+      "id": 6,
+      "case": "restart after durable admission",
+      "localOracle": "durable state/receipt survives and controls reopen",
+      "candidateA": "new object instance reconstructs only from durable SQLite authority",
+      "evidence": "D0019 reconstruction/replay model + lifecycle docs",
+      "result": "pass"
+    },
+    {
+      "id": 7,
+      "case": "restart after state mutation before response",
+      "localOracle": "reread committed receipt; do not repeat mutation",
+      "candidateA": "same as response-loss replay",
+      "evidence": "D0019 lost-response-after-commit model",
+      "result": "pass"
+    },
+    {
+      "id": 8,
+      "case": "ambiguous transaction/result",
+      "localOracle": "transaction outcome from durable reread; external result ambiguity enters reconciliation",
+      "candidateA": "receipt/state reread is mandatory; external-effect evidence remains separate",
+      "evidence": "D0019 model + existing reconciliation oracle + Cloudflare error docs",
+      "result": "pass"
+    },
+    {
+      "id": 9,
+      "case": "running-before-dispatch crash point",
+      "localOracle": "running Attempt and fencing token durable before executor invocation",
+      "candidateA": "CaseDO commits running/fencing transaction before crossing into D0020 delivery",
+      "evidence": "D0019 running-before-dispatch model + durable-runner oracle",
+      "result": "pass"
+    },
+    {
+      "id": 10,
+      "case": "duplicate dispatch",
+      "localOracle": "Attempt/fencing/effect-key semantics reject or reconcile stale/duplicate execution effects",
+      "candidateA": "CaseDO does not treat delivery as authority; D0020 must deliver using the committed Attempt identity/fence and accepted-result fence remains decisive",
+      "evidence": "existing result-fencing and effect-key oracle",
+      "result": "pass_at_D0019_boundary; D0020 delivery mechanics remain separate"
+    },
+    {
+      "id": 11,
+      "case": "stale Attempt result",
+      "localOracle": "stale epoch/token/identity rejected with no state change",
+      "candidateA": "same CaseEngine result envelope/fencing checks before transaction commit",
+      "evidence": "durability stale-result oracle",
+      "result": "pass"
+    },
+    {
+      "id": 12,
+      "case": "late result after cancellation/terminal state",
+      "localOracle": "terminal/cancellation intent and result fences govern; no resurrection",
+      "candidateA": "same state machine and fences persisted in CaseDO",
+      "evidence": "existing cancellation/reconciliation/result oracle",
+      "result": "pass"
+    },
+    {
+      "id": 13,
+      "case": "accepted result replay",
+      "localOracle": "same accepted envelope deduplicates; contradictory result conflicts",
+      "candidateA": "accepted-result digest/fence is authoritative in CaseDO transaction",
+      "evidence": "durability accepted-result replay oracle",
+      "result": "pass"
+    },
+    {
+      "id": 14,
+      "case": "Case reopen after eviction",
+      "localOracle": "restore validates durable state and applies defined reopen transition",
+      "candidateA": "constructor/reopen reconstructs from SQLite and persists any reopen mutation before commands",
+      "evidence": "D0019 reconstructed-authority model + lifecycle/state docs",
+      "result": "pass"
+    },
+    {
+      "id": 15,
+      "case": "corrupted/invalid durable state",
+      "localOracle": "snapshot/invariant corruption fails closed",
+      "candidateA": "unsupported/corrupt SQLite representation must fail initialization; no repair by guessing",
+      "evidence": "D0019 corrupted-state model + existing snapshot corruption oracle",
+      "result": "pass"
+    },
+    {
+      "id": 16,
+      "case": "migration boundary",
+      "localOracle": "one semantic owner; migration cannot allow divergent writers",
+      "candidateA": "existing Cases are not migrated by D0019; future migration requires an exclusive durable placement/writer fence",
+      "evidence": "D0019 dual-writer copy-then-switch falsifier demonstrated divergence",
+      "result": "pass_by_prohibiting_unfenced_migration; Candidate_B_falsified"
+    }
+  ],
+  "unverifiedLimitsAndProductionGates": {
+    "liveCloudflareDeployment": "not performed; production qualification remains separate",
+    "exactWranglerExportsOrLegacyMigrationsChoiceForRepository": "not frozen because no production deployment package was authorized in this Design task; production task must inspect then-current deployment authority and must not mix lifecycle mechanisms",
+    "transactionCallbackAutomaticRetry": "not documented in the current primary source located and intentionally not relied upon",
+    "normalizedSQLiteSchema": "not implemented; must independently prove atomic parity, size limits, schema migration, and failure injection",
+    "liveEvictionAndNetworkPartitionInjection": "not performed; Design uses documented lifecycle/storage semantics plus model equivalence; production acceptance must inject provider/restart/response-loss cases",
+    "providerAccountLimitsAndPlan": "not assumed beyond published platform limits; production deployment must verify the actual account/profile",
+    "D0020DeliveryImplementation": "separate Design/production task",
+    "D0030ProductionImplementation": "separate; only a later prerequisite if its Termux publication path is exercised by D0019 production qualification",
+    "validationRegistryDrift": "current registered portable profiles reference absent package scripts and are a separate maintenance/alignment issue"
+  },
+  "productionImplementationGate": [
+    "implement only the bounded SQLite-backed CaseDO adapter after this Design is accepted",
+    "do not create a second local semantic owner for a Case placed in CaseDO",
+    "use a normalized/chunked authoritative SQLite representation within current provider limits",
+    "prove receipt + revision + semantic-head + lifecycle mutation atomicity with real provider/miniflare-compatible failure injection as appropriate",
+    "prove object eviction/reconstruction and response-loss reread on the production adapter",
+    "prove running-before-D0020-dispatch ordering and stale-result fences",
+    "fail closed on corrupt/incompatible schema and on ambiguous authority placement",
+    "do not migrate existing local Cases without a separate accepted cutover/fencing Design",
+    "do not implement D0020 or D0030 production work inside the D0019 adapter task"
+  ]
+}
