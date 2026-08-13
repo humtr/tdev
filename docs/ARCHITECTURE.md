@@ -114,6 +114,8 @@ canonical
 
 Pure domain code has no dependency on Cloudflare, GitHub, Termux, MCP, filesystem effects, process execution, or network APIs. Outer local adapters include the file/journal stores, semantic SQLite store, and D0011 `GitProjectionAdapter`, which invokes a trusted local Git executable with bounded argv-array plumbing; those adapters do not become domain owners.
 
+D0030 keeps immutable-journal publication in that outer-adapter layer. Its accepted second backend uses one package-owned standalone native helper behind `store.mjs`: JS owns Case-path resolution and opens the Case directory, while the helper receives only an inherited directory fd plus generated single-component contender/final basenames and owns exactly one fd-relative `renameat2(..., RENAME_NOREPLACE)` operation. The helper has no semantic-read, cleanup-authority, shell, network, config, secret, absolute-path, or fallback role. A dedicated begin/result channel makes post-begin native result loss an ambiguity boundary handled by the JS/store owner through authoritative reread. Helper presence/capability is deployment qualification, not durable Case state. The current production `src/store.mjs` remains on hard-link publication until the separate post-acceptance implementation Task installs this boundary.
+
 ## 5. Parallel semantics
 
 Readiness is computed from immutable dependencies and current Task states. Admission then checks:
