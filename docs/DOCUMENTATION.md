@@ -34,7 +34,7 @@ Self-development documents answer how this repository is changed, routed, design
 | repository/session bootstrap entrypoint | `AGENTS.md` |
 | stable implementation guardrails | `RULE.md` |
 | change classification and Design lifecycle | `SDD.md` |
-| current routing instance and live carry-forward constraints | `WORKBOARD.md` |
+| current routing instance, runnable Design foreign keys, selected action and live carry-forward constraints | `WORKBOARD.md` |
 | cumulative checkpoint succession/preservation | `LINEAGE.md` |
 | documentation taxonomy and naming | `docs/DOCUMENTATION.md` |
 | development plane/worktree/synchronization/publication workflow | `docs/development/WORKFLOW.md` |
@@ -65,7 +65,7 @@ A document also has one primary session role:
 | --- | --- | --- |
 | bootstrap | always needed to establish current development authority | `AGENTS.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md` |
 | stable owner | loaded when affected scope requires its long-lived contract | product owners, `LINEAGE.md`, `WORKFLOW.md`, `ROADMAP.md`, `PROGRAM.md` |
-| current router | selects the current development frontier | `WORKBOARD.md` |
+| current router | selects the current development route and 0..N runnable Design revision references | `WORKBOARD.md` |
 | active decision | authorizes one Class 2 scope | current Design revision |
 | evidence | loaded for the gate/falsifier it proves | `docs/evidence/*`, tests/CI/runtime observations |
 | history | loaded for provenance, prior rationale or defect comparison | `docs/history/*`, old Git/Design state |
@@ -116,7 +116,7 @@ They may not independently originate another current value.
 
 In particular:
 
-- `WORKBOARD.md` owns the current active Group/branch/current gate/next action;
+- `WORKBOARD.md` owns the current active Group/branch, runnable `Dxxxx@rN` foreign keys and selected next action; Design owners, not WORKBOARD, own Design status;
 - `LINEAGE.md` owns valid checkpoint succession, not the current instance;
 - `ROADMAP.md` owns stable capability/exit intent, not current branch routing;
 - `PROGRAM.md` owns dependency/coverage planning, not current branch routing;
@@ -194,7 +194,7 @@ Before deleting duplicated prose, prove either:
 
 ## 7. Current router content rule
 
-`WORKBOARD.md` may retain old facts only when they constrain current action, for example:
+`WORKBOARD.md` may retain old facts only when they constrain current action. Its runnable frontier may contain zero, one or many Design revision foreign keys, and its selected next action is either `none` or one of those keys. For example:
 
 - immediate completed predecessor needed for current ancestry;
 - a live inherited qualification gap;

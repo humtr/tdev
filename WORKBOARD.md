@@ -1,6 +1,6 @@
 # WORKBOARD
 
-> Sole owner of the current tdev self-development routing instance. Stable rules live in `RULE.md`, `SDD.md`, `LINEAGE.md` and `docs/development/WORKFLOW.md`; product meaning lives in its named product owners. Historical detail is preserved in Design/evidence/history records and is loaded only when a current gate needs it.
+> Sole owner of the current tdev self-development routing instance. Stable rules live in `RULE.md`, `SDD.md`, `LINEAGE.md` and `docs/development/WORKFLOW.md`; product meaning and Design status/revision semantics live in their named owners. Historical detail is preserved in Design/evidence/history records and is loaded only when a current gate needs it.
 
 ## Current routing
 
@@ -9,38 +9,31 @@
 - Active cumulative branch: `group/f-cloudflare-runtime`
 - Immediate completed predecessor: `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`
 - Checkpoint succession owner: `LINEAGE.md`
-- Current self-development Design: D0031 revision 2 — `docs/design/0031-self-development-documentation-authority.md`, `accepted`; revision 1 was reopened by the 2026-08-14 framework-gap falsifier
-- Current self-development gate: implement D0031 revision 2 slices A2-A4, then independently verify the full generic routing/registry model at A5
-- Exact next action: implement the D0031 revision 2 generic WORKBOARD runnable-frontier contract; D0019 and D0030 product implementation remain separate and unchanged
-- Product frontier during D0031 correction: D0019 revision 2 production implementation/qualification and D0030 production implementation/package qualification remain runnable after the self-development correction no longer preempts repository-framework edits
 
 A mutable remote head is not stored here as timeless authority. Re-read the provider ref immediately before any remote-changing action and prove the expected non-force predecessor/ancestry.
 
-## Current product frontier
+## Runnable frontier
 
-### D0019 — CaseDO authority adapter
+Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- Design owner: `docs/design/0019-casedo-authority-adapter.md`
-- Current Design meaning: accepted revision 2 on Group F; one durable placement generation elects one exact provider tuple and one SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority
-- Canonical production state at the D0031 starting point: Design/model evidence accepted; production CaseDO adapter/provider qualification not yet landed on the active cumulative branch
-- Initial migration boundary: existing locally authoritative Cases are not migrated; any later move requires a separately accepted exclusive-writer cutover Design
-- D0020 remains the separate Agent connection/delivery/capacity/owner-loss boundary
-- Next product action after D0031: bounded production implementation/qualification for durable placement election plus the elected SQLite-backed CaseDO/profile, for new Cases only until a migration Design is accepted
+- D0031@r2 — `docs/design/0031-self-development-documentation-authority.md` — finish the accepted self-development framework correction and its independent verification
+- D0019@r2 — `docs/design/0019-casedo-authority-adapter.md` — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
+- D0030@r1 — `docs/design/0030-immutable-journal-publication-portability.md` — production helper/package implementation and qualification under the accepted portability contract
 
-### D0030 — immutable-journal publication portability
+## Selected next action
 
-- Design owner: `docs/design/0030-immutable-journal-publication-portability.md`
-- Current Design meaning: accepted; the bounded fd-relative native helper is the selected qualified `RENAME_NOREPLACE` backend contract
-- Production implementation/package qualification remains pending and separate from D0019
-- The inherited hard-link publication path is not qualified on the connected Termux/F2FS profile; no plain-rename/copy/check-then-rename fallback is authorized
+- D0031@r2 — complete A2-A4 of the repository-framework correction, then run the A5 adversarial/source verification gate
+
+The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- ImmutableJournal hard-link publication remains an inherited platform qualification gap on the current lineage. A check that exercises that unsupported primitive is not reported green merely because unrelated D0031 documentation tests pass.
+- ImmutableJournal hard-link publication remains an inherited platform qualification gap on the current lineage. A check that exercises that unsupported primitive is not reported green merely because unrelated documentation tests pass.
 - Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 or D0031 and should be repaired only in its own bounded scope unless it blocks a required gate.
-- Checkout alignment debt was observed at D0031 admission: the canonical Termux checkout was clean but still on completed Group E while the registered project/default development route was Group F. The D0031 work uses an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
-- No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route above. Rebind any such continuity data before dependent mutation.
+- Checkout alignment debt was observed at D0031 admission: the canonical Termux checkout was clean but still on completed Group E while the registered project/default development route was Group F. D0031 uses an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
+- No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route/frontier above. Rebind any such continuity data before dependent mutation.
+- A Design referenced by the runnable frontier stops authorizing that gate immediately if its maintained owner is no longer the same revision in `accepted` or `implementing` state. In particular `reopened`, `blocked`, `superseded`, `draft` and already `verified` meanings are not runnable Class 2 implementation authorization.
 
 ## Current owner pointers
 
@@ -58,6 +51,7 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 ## Routing stop lines
 
 - A missing or conflicting bootstrap/current-router owner blocks only the dependent mutation until corrected under `SDD.md`.
+- A selected Design action missing from the runnable frontier, or a frontier Design whose owner revision/status does not authorize implementation, blocks only that selected/dependent gate.
 - Completed Group/legacy refs are provenance and are not rewritten for ordinary correction.
 - A falsifier that reaches an accepted/verified Design meaning reopens the affected scope; new dependent mutation waits for corrected acceptance/supersession. Operational rollback is a separate deployment/state decision.
 - Product/runtime/provider/migration semantics unresolved by current owners remain `unknown`; D0031 does not authorize guessing them.

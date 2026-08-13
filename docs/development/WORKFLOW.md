@@ -70,9 +70,9 @@ Intentional ancestry differences between completed and successor Group refs are 
 Before substantive mutation:
 
 1. complete the fixed bootstrap in `AGENTS.md`: `RULE.md`, `SDD.md`, `WORKBOARD.md`;
-2. resolve the active cumulative branch, current Design/gate and live debts from `WORKBOARD.md`;
+2. resolve the active cumulative branch, runnable Design revision references, selected next action and live debts from `WORKBOARD.md`;
 3. load this workflow when execution/replica/publication state matters, and `LINEAGE.md` when checkpoint succession matters;
-4. load the active Design and affected normative product owners required by the scope;
+4. load every Design referenced by the selected/dependent Class 2 gate and the affected normative product owners required by the scope; verify the referenced Design revision is currently `accepted` or `implementing` before mutation;
 5. observe the current remote active ref directly when remote identity matters;
 6. observe local checkout branch, HEAD, upstream and dirty state when local access exists;
 7. observe any working mirror used for the change;

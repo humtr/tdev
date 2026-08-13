@@ -26,7 +26,7 @@ After the fixed kernel, read only the owners selected by the current route and a
 - development execution, worktrees, synchronization, publication or plane capability -> `docs/development/WORKFLOW.md`;
 - checkpoint succession, completed refs or prototype-fork questions -> `LINEAGE.md`;
 - product/capability sequencing -> `docs/ROADMAP.md` and, when Design-sized execution coverage matters, `docs/development/PROGRAM.md`;
-- Class 2 work -> the active accepted/implementing Design record under `docs/design/`;
+- Class 2 work -> every `Dxxxx@rN` Design record referenced by the runnable/selected gate in `WORKBOARD.md`;
 - product behavior -> every affected normative product owner named by `docs/DOCUMENTATION.md`;
 - verification -> `docs/MVP.md` plus the exact evidence required by the current gate.
 
@@ -36,7 +36,7 @@ Do not infer authority from file names, capitalization, branch location, generat
 
 ## Development route discipline
 
-- `WORKBOARD.md` owns the current routing instance: active cumulative Group, active branch, current Design/gate, exact next action and live debts/barriers.
+- `WORKBOARD.md` owns the current routing instance: active cumulative Group/branch, zero or more runnable `Dxxxx@rN` foreign keys, the selected next action, and live debts/barriers. Design files own their status and maintained revision meaning.
 - `LINEAGE.md` owns stable checkpoint succession and completed-ref preservation. It does not own which Group is current.
 - Resolve the active branch from `WORKBOARD.md`; do not carry a remembered branch from an earlier session or historical report.
 - Before a remote-changing action, freshly observe the actual provider ref and verify expected predecessor/ancestry. A commit SHA is immutable identity; a mutable ref observation is location- and time-specific.
