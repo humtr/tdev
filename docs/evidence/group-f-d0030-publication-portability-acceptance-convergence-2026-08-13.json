@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "design": "D0030",
+  "title": "Publication Portability Falsifier / Acceptance Convergence",
+  "measuredAt": "2026-08-13",
+  "currentRepositoryFact": {
+    "project": "humtr/tdev",
+    "activeBranch": "group/f-cloudflare-runtime",
+    "startingSha": "0ff5f7401f932a6c99d4f1a7d3adb63b61a3ac1f",
+    "retainedGroupE": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "task": "task_6sj_f91e13c374",
+    "worktree": "wt_309d5678efd6ab42",
+    "taskAuthorityDigest": "5f9625fa09c1a4ba4fbad95fdc826cdc1aecde853ad2a6d5b17d9a3f92c33e15",
+    "d0030StatusAtStart": "draft",
+    "productionSourceMutationAuthorizedAtStart": false,
+    "sourceStoreSha256AtStartAndAfterFalsifiers": "a4112a0dba0452886c36947e9d0a184b7c13d4a4bec25b96933a0f67cb09436a",
+    "immutableJournalTestSha256AtStartAndAfterFalsifiers": "1a9b755027d7bc1d375a42beb1b8b515f7313a1d5b1af0ba739038ea5f327ebc",
+    "registeredValidationDrift": {
+      "portable": "npm run verify:sandbox",
+      "full": "npm run verify:termux && npm run check",
+      "packageHasVerifySandbox": false,
+      "packageHasVerifyTermux": false,
+      "classification": "stale_validation_registry_metadata_separate_from_D0030_falsifier"
+    }
+  },
+  "priorMeasuredEvidence": {
+    "task": "task_6ni_625838d8a0",
+    "checkpoint": "cp_1786581036451_bed7284b8070",
+    "checkpointDigest": "bed7284b8070b6b185abdc71cc582ae957949170d0ba024f52f000dc3719767c",
+    "artifact": "docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json",
+    "artifactSha256": "370cb70792afd1e79395f7578e10502330d254e54cfdb6120d064450566a915f",
+    "reusedValidityKey": true,
+    "repeatedMeaninglessRows": false
+  },
+  "measuredLocalEvidence": {
+    "artifact": "docs/evidence/group-f-d0030-publication-portability-termux-falsifier-2026-08-13.json",
+    "artifactSha256": "50aa955cb547e594817e2005df5860e9c1a71eb45f2e47569c1584d33f674ae8",
+    "job": "job_6tt_909066ddd9",
+    "executionDigest": "b6e921fdfb0b3f8e66295f18fac1484a015a5410427d2650900635ab2fab725e",
+    "environment": {
+      "node": "v26.4.0",
+      "napi": "10",
+      "platform": "android",
+      "arch": "arm64",
+      "kernel": "6.1.145-android14-11-33419968-abS928NKSS6DZG1",
+      "filesystem": "F2FS",
+      "filesystemDevice": "/dev/block/dm-65",
+      "filesystemFsid": "fe4100000000",
+      "filesystemBlockSize": 4096,
+      "selinux": "u:r:untrusted_app_27:s0:c123,c257,c512,c768",
+      "mountOptions": "rw,lazytime,seclabel,nosuid,nodev,noatime,background_gc=on,nogc_merge,discard,discard_unit=block,user_xattr,inline_xattr,acl,inline_data,inline_dentry,noflush_merge,barrier,extent_cache,mode=adaptive,active_logs=6,reserve_root=32768,reserve_node=0,resuid=0,resgid=5678,usrquota,grpquota,inlinecrypt,alloc_mode=default,checkpoint_merge,fsync_mode=nobarrier,compress_algorithm=lz4,compress_log_size=5,compress_mode=user,memory=normal,lookup_mode=perf"
+    },
+    "integrationIdentity": {
+      "runnerSourceSha256": "efaf1af13ef2fda923e42a837913dd095953876dcab3b0f2e9f40a8f94d3a264",
+      "helperSourceSha256": "6c27f0e15d801d44a1db5760f8feb75640e4dbfd3143289b2afd9bd9fc8cdcc6",
+      "helperBinarySha256": "392578a12364108af742ba6e087d152bc14ca561062b503b9467c97babbf0414",
+      "addonSourceSha256": "fbc0de12b0ff2dd71f728a2150d4c75a06db41e09a93a0a471d61bc165d842a5",
+      "addonBinarySha256": "5ebdfb10870710eab48784677464cdf96f4fbd2f1d0e8261667caafd1f11c449"
+    },
+    "capabilityProbe": "all_required_rows_green",
+    "repositoryOracle": {
+      "scratchOnlyPublicationReplacement": true,
+      "existingTestFileUnmodified": true,
+      "productionSourceUnmodified": true,
+      "tests": 26,
+      "pass": 26,
+      "fail": 0
+    },
+    "ambiguity": {
+      "beforeSyscall": "no_successor_failure_and_predecessor_reread",
+      "helperKilledAfterSyscall": "store_commit_ambiguous_and_complete_successor_reread",
+      "helperTimeoutAfterSyscall": "store_commit_ambiguous_and_complete_successor_reread",
+      "helperAbnormalExitAfterSyscall": "store_commit_ambiguous_and_complete_successor_reread",
+      "resultStatusLossAfterSyscall": "store_commit_ambiguous_and_complete_successor_reread",
+      "directorySyncFailure": "store_commit_ambiguous_and_complete_successor_reread",
+      "blindRetryObserved": false
+    }
+  },
+  "measuredIndependentEnvironmentEvidence": {
+    "artifact": "docs/evidence/group-f-d0030-publication-portability-independent-posix-falsifier-2026-08-13.json",
+    "artifactSha256": "eeb7f266df67ad087c3695d1fbf30bd5c080946a88822da2fb5a90fab132481b",
+    "rawSessionArtifact": "/mnt/data/d0030-independent.json",
+    "rawSessionSha256": "5f6996fcd531a7aeca18a5537af5ebbaf08d20debd90e11eb6c84f5bd1877257",
+    "environment": "Debian GNU/Linux 13.3 / Linux 6.18.35 / x86_64 / Node v22.16.0 / ext4 /dev/vda",
+    "capabilityProbe": "all_required_rows_green",
+    "mixedRace": {
+      "iterations": 100,
+      "exactOneWinner": 100,
+      "loserConflict": 100,
+      "finalBytesValid": 100,
+      "overwriteObserved": 0,
+      "parallelContinuationObserved": 0,
+      "winnerDistribution": {
+        "hardlink": 50,
+        "renameNoreplace": 50
+      }
+    }
+  },
+  "externalPrimarySourceFact": {
+    "newExternalResearchForFollowup": false,
+    "note": "No new external-source claim was required for acceptance convergence; D0030 retains its separately sourced kernel/Node facts and this follow-up relies on direct executable measurement for the acceptance blockers."
+  },
+  "designInference": {
+    "selectedNativeIntegrationRoute": "bounded_fd_relative_standalone_native_helper",
+    "selectionReason": "Both candidates recover normal errno/conflict outcomes, but the helper isolates native crashes to a child, supplies an enforceable process deadline and a dedicated BEGIN/result channel, removes Node addon ABI coupling, confines authority to an inherited Case-directory fd plus generated basenames, and fails closed when missing. The Node-API comparator killed the host Node process with SIGABRT after publication and has no isolated in-process deadline boundary.",
+    "renameat2Decision": "RENAME_NOREPLACE survives as the qualified second backend",
+    "mixedBackendDecision": "Allow hard-link plus rename writers only when both backends are independently qualified for the same deployment validity key; otherwise homogeneous writers or a quiesced/fenced switch remain mandatory.",
+    "acceptanceBlockersMeasured": [1, 3, 4, 5, 6],
+    "acceptanceBlocker2": "ready_to_close_by_freezing_package_build_ABI_deadline_security_removal_rollback_contract_in_D0030_and_normative_owners"
+  },
+  "unknownUnverified": {
+    "destructivePowerLoss": "unverified",
+    "universalLinuxAndroidF2FSDurability": "not_claimed",
+    "networkFilesystem": "unverified",
+    "providerDistributedPublication": "unverified",
+    "productionHelperImplementation": "not_performed_in_this_task",
+    "productionPackageReleasePipelineVerification": "requires_separate_post_acceptance_implementation_and_qualification",
+    "validationRegistryRepair": "separate_maintenance_alignment_issue"
+  },
+  "preOwnerSyncDecision": "accepted_ready_if_and_only_if_the_selected_route_lifecycle_and_owner_contracts_are_frozen_without_weakening_the_measured_boundaries"
+}

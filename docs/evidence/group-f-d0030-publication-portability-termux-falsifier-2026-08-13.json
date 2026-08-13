@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "design": "D0030",
+  "plane": "termux-android-f2fs",
+  "startedAt": "2026-08-13T04:56:13.652Z",
+  "runtime": {
+    "node": "v26.4.0",
+    "napi": "10",
+    "platform": "android",
+    "arch": "arm64",
+    "kernelRelease": "6.1.145-android14-11-33419968-abS928NKSS6DZG1"
+  },
+  "build": {
+    "nodeInclude": "/data/data/com.termux/files/usr/include/node",
+    "helper": {
+      "cc": "cc",
+      "args": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "/data/data/com.termux/files/home/.tmcp/worktrees/d0030-falsifier-wt_309d5678efd6ab42/bench/d0030-native/rename_noreplace_helper.c",
+        "-o",
+        "/data/data/com.termux/files/home/.tmcp/state/execution/epochs/epoch_384a3438db9899bf664e/jobs/job_6tt_909066ddd9/tmp/tdev-d0030-native-RMpxOO/rename-noreplace-helper"
+      ],
+      "stderr": ""
+    },
+    "addon": {
+      "cc": "cc",
+      "args": [
+        "-std=c11",
+        "-O2",
+        "-Wall",
+        "-Wextra",
+        "-Werror",
+        "-shared",
+        "-fPIC",
+        "-I/data/data/com.termux/files/usr/include/node",
+        "/data/data/com.termux/files/home/.tmcp/worktrees/d0030-falsifier-wt_309d5678efd6ab42/bench/d0030-native/rename_noreplace_addon.c",
+        "-o",
+        "/data/data/com.termux/files/home/.tmcp/state/execution/epochs/epoch_384a3438db9899bf664e/jobs/job_6tt_909066ddd9/tmp/tdev-d0030-native-RMpxOO/rename-noreplace-addon.node"
+      ],
+      "stderr": ""
+    },
+    "identities": {
+      "runnerSourceSha256": "efaf1af13ef2fda923e42a837913dd095953876dcab3b0f2e9f40a8f94d3a264",
+      "helperSourceSha256": "6c27f0e15d801d44a1db5760f8feb75640e4dbfd3143289b2afd9bd9fc8cdcc6",
+      "addonSourceSha256": "fbc0de12b0ff2dd71f728a2150d4c75a06db41e09a93a0a471d61bc165d842a5",
+      "helperBinarySha256": "392578a12364108af742ba6e087d152bc14ca561062b503b9467c97babbf0414",
+      "addonBinarySha256": "5ebdfb10870710eab48784677464cdf96f4fbd2f1d0e8261667caafd1f11c449",
+      "helperBytes": 7728,
+      "addonBytes": 8560
+    }
+  },
+  "helper": {
+    "typedSuccess": {
+      "status": "success",
+      "statusCode": 0,
+      "errno": 0
+    },
+    "typedConflict": {
+      "status": "conflict",
+      "statusCode": 1,
+      "errno": 17
+    },
+    "sameDeviceInode": true,
+    "inheritedCaseDirectoryFd": 3,
+    "dedicatedSemanticResultFd": 4,
+    "shellUsed": false,
+    "childEnvironmentKeys": []
+  },
+  "capability": {
+    "qualified": true,
+    "exclusiveTempCreate": true,
+    "fixedCompleteWrite": 26,
+    "fileFsync": true,
+    "absentRenameNoReplace": {
+      "status": "success",
+      "statusCode": 0,
+      "errno": 0
+    },
+    "finalRegular": true,
+    "finalBytesVerified": true,
+    "sourceDisappeared": true,
+    "sameDeviceInode": true,
+    "secondContender": true,
+    "existingDestinationConflict": {
+      "status": "conflict",
+      "statusCode": 1,
+      "errno": 17
+    },
+    "winnerUnchanged": true,
+    "loserRemains": true,
+    "caseDirectoryFsync": true,
+    "cleanupDirectoryFsync": true
+  },
+  "adversarial": {
+    "file": {
+      "conflict": true,
+      "errno": 17,
+      "destinationIdentityPreserved": true,
+      "contenderRemains": true
+    },
+    "symlink": {
+      "conflict": true,
+      "errno": 17,
+      "destinationIdentityPreserved": true,
+      "contenderRemains": true
+    },
+    "directory": {
+      "conflict": true,
+      "errno": 17,
+      "destinationIdentityPreserved": true,
+      "contenderRemains": true
+    },
+    "basenameConfinement": {
+      "rejected": [
+        "",
+        ".",
+        "..",
+        "a/b",
+        "/absolute"
+      ]
+    }
+  },
+  "ambiguity": {
+    "beforeSyscall": {
+      "faultPoint": "before_syscall",
+      "began": false,
+      "publicationMayHaveHappened": false,
+      "classification": "no_successor_failure",
+      "reread": {
+        "state": "predecessor",
+        "type": "absent"
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false
+    },
+    "helperKilled": {
+      "faultPoint": "after_syscall_before_typed_result",
+      "began": true,
+      "publicationMayHaveHappened": true,
+      "classification": "store_commit_ambiguous",
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "reread": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 22
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false,
+      "helperInvocations": 1
+    },
+    "helperTimeout": {
+      "faultPoint": "after_syscall_before_typed_result",
+      "began": true,
+      "publicationMayHaveHappened": true,
+      "classification": "store_commit_ambiguous",
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGKILL"
+      },
+      "reread": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 23
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false,
+      "helperInvocations": 1
+    },
+    "helperAbnormalExit": {
+      "faultPoint": "after_syscall_before_typed_result",
+      "began": true,
+      "publicationMayHaveHappened": true,
+      "classification": "store_commit_ambiguous",
+      "nativeExit": {
+        "code": 91,
+        "signal": null
+      },
+      "reread": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 24
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false,
+      "helperInvocations": 1
+    },
+    "resultStatusLoss": {
+      "faultPoint": "after_syscall_before_typed_result",
+      "began": true,
+      "publicationMayHaveHappened": true,
+      "classification": "store_commit_ambiguous",
+      "nativeExit": {
+        "code": null,
+        "signal": "SIGPIPE"
+      },
+      "reread": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 27
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false,
+      "helperInvocations": 1
+    },
+    "directorySyncFailure": {
+      "faultPoint": "after_success_before_directory_fsync_completion",
+      "publicationMayHaveHappened": true,
+      "classification": "store_commit_ambiguous",
+      "reread": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 24
+      },
+      "directoryFsyncCompleted": false,
+      "blindRetry": false,
+      "helperInvocations": 1
+    },
+    "reconciliation": {
+      "predecessor": {
+        "state": "predecessor",
+        "type": "absent"
+      },
+      "successor": {
+        "state": "complete_successor",
+        "type": "regular",
+        "bytes": 8
+      },
+      "invalid": {
+        "state": "invalid_third_state",
+        "type": "wrong_bytes",
+        "bytes": 5
+      },
+      "blindRetry": false
+    }
+  },
+  "addon": {
+    "typedSuccess": {
+      "status": "success",
+      "errno": 0
+    },
+    "typedConflict": {
+      "status": "conflict",
+      "errno": 17
+    },
+    "invalid": {
+      "status": "invalid",
+      "errno": 22
+    },
+    "abnormalTermination": {
+      "code": null,
+      "signal": "SIGABRT",
+      "publicationObserved": true,
+      "blastRadius": "host_node_process"
+    },
+    "deadline": "no isolated in-process kill/deadline boundary in comparator"
+  },
+  "removal": {
+    "missingHelper": {
+      "classification": "unsupported_fail_closed",
+      "spawnError": {
+        "code": "ENOENT",
+        "message": "spawn /data/data/com.termux/files/home/.tmcp/state/execution/epochs/epoch_384a3438db9899bf664e/jobs/job_6tt_909066ddd9/tmp/tdev-d0030-native-RMpxOO/rename-noreplace-helper.missing ENOENT"
+      },
+      "publicationObserved": false,
+      "fallbackObserved": false
+    }
+  },
+  "repositoryOracle": {
+    "existingTestFileUnmodified": true,
+    "productionSourceUnmodified": true,
+    "scratchOnlyReplacement": "fs.link -> selected fd-relative helper",
+    "replacedOccurrences": 1,
+    "exitCode": 0,
+    "pass": 26,
+    "fail": 0,
+    "stdoutTail": "✔ ImmutableJournalSnapshotStore rejects legacy records after the v2 migration boundary (126.510833ms)\n✔ ImmutableJournalSnapshotStore rejects duplicate representations for one predecessor (123.652291ms)\n✔ ImmutableJournalSnapshotStore full replay exposes historical semantic corruption to warm CAS and cold load (113.79224ms)\n✔ ImmutableJournalSnapshotStore rejects source digest mismatch and unknown v2 schema (167.106771ms)\n✔ ImmutableJournalSnapshotStore fails closed on malformed, unsafe, noncanonical, and unreachable committed records (276.140313ms)\n✔ ImmutableJournalSnapshotStore ignores orphan dot-temp files without poisoning CAS (92.786354ms)\n✔ ImmutableJournalSnapshotStore rejects committed records when base is missing (86.689375ms)\n✔ ImmutableJournalSnapshotStore and MemorySnapshotStore materialize identical semantic snapshots (143.334114ms)\n✔ ImmutableJournalSnapshotStore preserves the legacy compaction cleanup crash shape (88.457136ms)\n✔ ImmutableJournalSnapshotStore enforces materialized snapshot bounds before commit (49.856823ms)\n✔ legacy and immutable journal adapters share one same-process migration serialization domain (57.017968ms)\n✔ ImmutableJournalSnapshotStore rejects a non-regular authoritative commit slot (40.665261ms)\n✔ ImmutableJournalSnapshotStore warm materialization rejects malformed committed namespace before reuse (46.2125ms)\n✔ ImmutableJournalSnapshotStore warm materialization rejects non-regular base authority before reuse (52.694896ms)\n▶ ImmutableJournalSnapshotStore injected pre-publication failures leave no successor\n  ✔ temporary_write (62.29474ms)\n  ✔ file_sync (74.432136ms)\n  ✔ final_publish (67.242708ms)\n✔ ImmutableJournalSnapshotStore injected pre-publication failures leave no successor (206.374843ms)\n✔ ImmutableJournalSnapshotStore preserves ambiguity after injected directory-sync failure (76.741146ms)\n✔ ImmutableJournalSnapshotStore cleanup injection cannot retroactively fail a committed successor (108.513021ms)\nℹ tests 26\nℹ suites 0\nℹ pass 26\nℹ fail 0\nℹ cancelled 0\nℹ skipped 0\nℹ todo 0\nℹ duration_ms 3116.119843\n",
+    "stderrTail": ""
+  },
+  "integrationComparison": {
+    "helper": {
+      "exactErrnoResult": true,
+      "conflictMapping": true,
+      "unsupportedMapping": "typed ENOSYS/EINVAL/EOPNOTSUPP and EACCES/EPERM; missing binary fail closed",
+      "abnormalTermination": "child boundary; parent survives; post-BEGIN loss ambiguous",
+      "resultLoss": "dedicated fd4 BEGIN/result protocol",
+      "deadline": "child kill enforceable; post-BEGIN timeout ambiguous",
+      "crashBlastRadius": "native helper child",
+      "nodeAbiCoupling": false,
+      "removalRollback": "missing helper fails closed, no fallback",
+      "securityConfinement": "fd3 Case directory + generated basenames; slash/dot/dotdot rejected; empty child environment"
+    },
+    "addon": {
+      "exactErrnoResult": true,
+      "conflictMapping": true,
+      "abnormalTermination": "SIGABRT kills host Node process after syscall",
+      "resultLoss": "host process loss can erase typed return after syscall",
+      "deadline": "no isolated in-process deadline boundary",
+      "crashBlastRadius": "host Node process",
+      "nodeAbiCoupling": "stable Node-API ABI but addon is a Node runtime native asset",
+      "removalRollback": "missing addon fails before syscall; no fallback",
+      "securityConfinement": "fd-relative call but native code has host-process ambient authority"
+    }
+  },
+  "finishedAt": "2026-08-13T04:56:17.693Z"
+}
