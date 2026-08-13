@@ -7,11 +7,12 @@
     "node": ">=22"
   },
   "scripts": {
-    "syntax": "for file in src/*.mjs test/*.mjs bench/*.mjs; do node --check \"$file\"; done",
+    "syntax": "for file in src/*.mjs test/*.mjs bench/*.mjs tools/*.mjs; do node --check \"$file\"; done",
     "test": "node --test test/*.test.mjs",
     "demo": "node src/cli.mjs demo",
     "durable-demo": "node src/cli.mjs durable-demo",
-    "check": "npm run syntax && npm test && npm run demo --silent && npm run durable-demo --silent",
+    "docs:check": "node tools/validate-documentation.mjs",
+    "check": "npm run syntax && npm run docs:check && npm test && npm run demo --silent && npm run durable-demo --silent",
     "bench": "node bench/control-plane.mjs",
     "bench:authority": "node bench/authority-boundary.mjs",
     "bench:semantic": "node --expose-gc bench/semantic-authority-representation.mjs",
