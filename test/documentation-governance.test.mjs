@@ -18,7 +18,7 @@ function workboardFixture({
   group = 'Group F — Cloudflare runtime and local Agent topology',
   branch = 'group/f-cloudflare-runtime',
   designId = 'D0031',
-  revision = 1,
+  revision = 2,
   status = 'accepted',
 } = {}) {
   return [
@@ -33,7 +33,7 @@ function workboardFixture({
   ].join('\n');
 }
 
-function designFixture({ id = '0031', revision = 1, status = 'accepted' } = {}) {
+function designFixture({ id = '0031', revision = 2, status = 'accepted' } = {}) {
   return [
     `# Design ${id} — Fixture`,
     '',
@@ -49,7 +49,7 @@ test('current repository documentation authority validates', () => {
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.route.design.id, 'D0031');
-  assert.equal(result.route.design.revision, 1);
+  assert.equal(result.route.design.revision, 2);
 });
 
 test('stale handoff claims cannot override repository routing', () => {
@@ -66,7 +66,7 @@ test('stale handoff claims cannot override repository routing', () => {
   });
   assert.equal(rebound.current.branch, 'group/f-cloudflare-runtime');
   assert.equal(rebound.current.design.id, 'D0031');
-  assert.equal(rebound.current.design.revision, 1);
+  assert.equal(rebound.current.design.revision, 2);
   assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designId', 'designRevision', 'designStatus']);
 });
 
@@ -94,15 +94,15 @@ test('F to G route transition is rebound from WORKBOARD alone', () => {
 });
 
 test('new Design revision invalidates a stale carried revision without changing the Design ID', () => {
-  const workboard = workboardFixture({ revision: 2 });
-  const design = designFixture({ revision: 2 });
+  const workboard = workboardFixture({ revision: 3 });
+  const design = designFixture({ revision: 3 });
   const rebound = rebindContinuity({
     workboardText: workboard,
     designText: design,
-    continuity: { designId: 'D0031', designRevision: 1, designStatus: 'accepted' },
+    continuity: { designId: 'D0031', designRevision: 2, designStatus: 'accepted' },
   });
   assert.equal(rebound.current.design.id, 'D0031');
-  assert.equal(rebound.current.design.revision, 2);
+  assert.equal(rebound.current.design.revision, 3);
   assert.deepEqual(rebound.staleClaims, ['designRevision']);
 });
 

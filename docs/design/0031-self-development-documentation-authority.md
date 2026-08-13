@@ -1,7 +1,12 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 1
+- Status: `accepted`
+- Revision: 2
+- Revision predecessor: revision 1 was verified at `8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db`; its verification evidence remains `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
+- Revision 2 reason: post-verification adversarial reproduction proved that r1 still required one singular current self-development Design, required ROADMAP's `ACTIVE` marker to move with WORKBOARD, and hard-coded D0019 in registry validation
+- Revision 2 falsifier: `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`
+- Revision 2 acceptance evidence: `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`
+- Revision 2 downstream revalidation: WORKBOARD routing, ROADMAP/PROGRAM current-state deduplication, Design-index derivation, documentation validation and stale-session adversarial tests; product/runtime semantics remain unaffected
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
@@ -74,8 +79,8 @@ Historical reports and evidence are loaded only when a current gate, Design, own
 - active cumulative Group;
 - active cumulative branch name;
 - completed immediate predecessor checkpoint needed for current ancestry;
-- active/accepted/implementing Design revisions relevant to the frontier;
-- exact next action/gate;
+- zero or more runnable Design revision references relevant to the frontier, without copying their owner status;
+- exactly one selected next action/gate or an explicit `none` when no runnable action exists;
 - live blockers, sync/alignment debt, inherited qualification gaps and rollback/migration barriers that still constrain current action;
 - pointers to the owners/evidence needed for that next action.
 
@@ -180,9 +185,11 @@ No handoff can originate a new branch, Design status, product contract or migrat
 
 `ROADMAP.md` owns stable capability decomposition and exit criteria. `PROGRAM.md` owns the engineering dependency/coverage graph. `WORKBOARD.md` owns the current executable frontier.
 
-ROADMAP/PROGRAM may retain historical or derived status for traceability only when clearly marked non-authoritative or mechanically checked against the current owners. They must not independently originate current branch routing.
+ROADMAP/PROGRAM may retain historical completion/provenance or stable planning classification, but they must not carry a mutable `ACTIVE`/current-Group/current-branch instance that must change when WORKBOARD advances. A WORKBOARD-only F-to-G route transition must leave ROADMAP/PROGRAM valid without synchronization edits.
 
-The Design record owns its current Design revision/status. Human-readable Design indexes are derived registries and must be mechanically checked rather than treated as independent authority.
+The Design record owns its maintained revision/status. WORKBOARD may reference `Dxxxx@rN` as a runnable foreign key but does not copy that status; validation resolves the Design owner and permits runnable Class 2 work only from the current `accepted` or `implementing` revision. Zero runnable Designs is valid.
+
+Human-readable Design indexes are deterministic derived projections of all maintained Design files. Validation checks the complete projection generically; no individual Design ID is special-cased.
 
 ## 8. Failure, compatibility and migration
 
@@ -199,14 +206,15 @@ The Design record owns its current Design revision/status. Human-readable Design
 | --- | --- |
 | bootstrap | a fresh-session procedure can determine current route from `AGENTS/RULE/SDD/WORKBOARD` without reading historical reports first |
 | stale handoff | a fixture claiming an old `mvp-*`, Group E or old Design revision cannot override current WORKBOARD/current Design owner |
-| route transition | changing a fixture router from F to G changes derived current route without editing stable AGENTS/RULE/WORKFLOW/LINEAGE law |
-| one owner | active branch/current Design/next-action instance is not independently declared as current by multiple live stable owners |
+| route transition | full documentation validation remains green when a fixture changes only WORKBOARD from F to G; AGENTS/RULE/WORKFLOW/LINEAGE/ROADMAP/PROGRAM remain byte-identical |
+| empty frontier | WORKBOARD with zero runnable Design references validates when no Design gate is selected |
+| one owner | active branch/runnable-frontier/next-action instance is not independently declared as current by multiple live stable owners |
 | lineage | completed checkpoint succession remains exact and historical checkpoints are not rewritten |
 | history | old Design/evidence/report observations remain recoverable and are not rewritten as current claims |
 | naming | live normative/current owners and bounded historical/specific records obey the declared filename categories, except documented conventions |
 | Design reopen | a falsified accepted/verified Design blocks new dependent mutation until corrected revision/supersession |
 | rollback separation | lifecycle rules do not imply that semantic correction requires Git/deployment rollback |
-| docs validation | executable validator detects missing kernel owner, duplicate current route, stale stable Group literals, bad history naming and broken required live references |
+| docs validation | executable validator detects missing kernel owner, duplicate current route, stale stable Group literals, bad history naming, broken required live references, non-authorizing/reopened frontier Designs and any Design-index drift without hard-coded Design IDs |
 | source non-regression | repository-required source gate remains green or any pre-existing platform-unqualified layer is reported exactly rather than hidden |
 
 ## 10. Rejected alternatives
@@ -243,6 +251,10 @@ Rejected as the normal correction model. Correct forward on the active cumulativ
 
 Acceptance of this Design authorizes only these self-development/documentation changes. It does not authorize D0019/D0020/D0030 product implementation, provider deployment, runtime migration, or product semantic changes.
 
-## 12. Verification conclusion
+## 12. Revision history and current correction
 
-Revision 1 is `verified` for the D0031 self-development/documentation scope. The repository-owned validator and seven adversarial governance tests close stale handoff, F-to-G routing, Design-revision mismatch and fail-closed owner-conflict cases. The supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 250/250 both uninstrumented and instrumented; product `src/` changed zero paths. Exact all-test commands remain platform-unqualified only because the pre-existing ImmutableJournal hard-link profile receives `link(2) EACCES` on this filesystem. That unrelated qualification gap is preserved rather than converted into D0031 success or failure.
+Revision 1 was `verified` for the original D0031 self-development/documentation scope at `8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db`. Its repository-owned validator and seven adversarial governance tests passed, and the supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 250/250 both uninstrumented and instrumented; product `src/` changed zero paths. Exact all-test commands remained platform-unqualified only because the pre-existing ImmutableJournal hard-link profile receives `link(2) EACCES` on this filesystem.
+
+The 2026-08-14 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json` reopens only the claims that r1 had fully generalized current routing and validation. It reproduced three concrete defects: an empty active-Design state could not parse, a WORKBOARD-only F-to-G transition failed against ROADMAP's duplicated `ACTIVE` marker, and validator code special-cased D0019. Those failures stay inside the same bootstrap/current-router/derived-state problem and owner family, so SDD requires a new revision of D0031 rather than a new Design ID.
+
+Revision 2 is now `accepted` to correct those defects. Its implementation must: (1) make WORKBOARD a generic route plus 0..N runnable Design foreign keys; (2) remove mutable current-route state from ROADMAP/PROGRAM; (3) derive the complete Design index generically; and (4) strengthen adversarial validation so the full repository, not merely a parser fixture, proves WORKBOARD-only route rebinding and reopened-Design blocking. Revision 2 is not `verified` until those gates pass. The inherited ImmutableJournal qualification gap and all product/provider/runtime semantics remain outside this correction.

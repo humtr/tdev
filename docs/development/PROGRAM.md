@@ -267,12 +267,12 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0031 — Self-Development Documentation Authority
 
 - **Groups:** cross-cutting self-development; no product Capability Group ownership
-- **Status:** verified revision 1 — 2026-08-13
-- **Purpose:** make each new development session rebind authority from `AGENTS.md` + `RULE.md` + `SDD.md` + `WORKBOARD.md`, make WORKBOARD the single current router, preserve history without letting it become current authority, normalize live normative versus bounded historical naming, and formalize Design revision/reopen/supersession.
+- **Status:** accepted revision 2 — 2026-08-14; revision 1 verification is retained as predecessor evidence
+- **Purpose:** preserve the r1 bootstrap/history/naming result while correcting its remaining router/derived-state implementation gap: WORKBOARD must support 0..N runnable Design refs, ROADMAP/PROGRAM must not duplicate mutable current routing, and Design-index/documentation validation must be generic.
 - **Product scope:** unchanged; this gate changes how tdev itself is developed and verified, not runtime Case/Task/Attempt/provider semantics.
-- **Evidence:** inventory `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`; verification `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`.
-- **Cheapest falsifier:** stale handoff/Group-E/old-Design fixtures must lose to the current router; a fixture F -> G router change must require no stable AGENTS/RULE/WORKFLOW/lineage-law edit.
-- **Exit:** satisfied — single-owner current routing, preserved historical records, formal correction lifecycle, stale-continuity/F-to-G/Design-revision falsifiers, and supported-Termux source/coverage gates are independently green; the inherited ImmutableJournal hard-link all-test profile remains separately unqualified.
+- **Evidence:** r1 inventory `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`; r1 verification `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`; r2 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`; r2 acceptance `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`.
+- **Cheapest falsifier:** full validation must accept a WORKBOARD-only F -> G fixture and an empty runnable frontier, reject a reopened/non-authorizing frontier Design, and compare the complete Design registry to a generic deterministic projection with no ID special cases.
+- **Exit:** open for revision 2 until A2-A4 implementation and A5 independent verification close those generic routing/registry falsifiers; the inherited ImmutableJournal hard-link all-test profile remains separately unqualified.
 - **Lane:** current cumulative development lineage resolved from `WORKBOARD.md`; D0031 does not own branch succession.
 
 ## 6. Completed Group E closure map

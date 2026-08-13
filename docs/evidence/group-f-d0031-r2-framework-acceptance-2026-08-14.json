@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.documentation-authority-revision-acceptance",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "design": "D0031",
+  "revision": 2,
+  "status": "accepted",
+  "predecessor": {
+    "revision": 1,
+    "verifiedCommit": "8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db",
+    "verificationEvidence": "docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json"
+  },
+  "reopenFalsifier": {
+    "evidence": "docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json",
+    "sha256": "1246b14287f0610cb607a747fb89e004f0e8de8c87315ef5e2ed0f8b7a37cc81",
+    "commit": "6ec09d98367b25f838e8d2650bf782b32ec4a208",
+    "reproductionJob": "job_7bw_450176575e"
+  },
+  "reasonForSameDesignRevision": "The falsifier repairs the same bootstrap/current-router/derived-state problem and owner family selected by D0031 revision 1; it does not introduce a new product, migration, security, provider or runtime decision boundary.",
+  "acceptedCorrections": [
+    "WORKBOARD owns a route plus zero or more runnable Dxxxx@rN foreign keys; it does not require a singular current self-development Design and does not copy Design status.",
+    "A runnable Class 2 Design reference is authorized only when its maintained Design owner resolves to the same revision and status accepted or implementing; reopened, draft, blocked, verified or superseded meanings cannot authorize that runnable mutation.",
+    "ROADMAP and PROGRAM may preserve stable capability/dependency planning and historical provenance, but no mutable ACTIVE/current-Group/current-branch instance may require synchronization when WORKBOARD advances.",
+    "The checked-in Design registry is a deterministic projection of every maintained Design file and must be validated generically without Design-ID special cases.",
+    "The F-to-G acceptance test runs full documentation validation with WORKBOARD as the only changed stable owner; zero runnable Designs is independently valid."
+  ],
+  "implementationSlices": [
+    "A2 generalize WORKBOARD runnable frontier and progressive-loading wording",
+    "A3 remove mutable current-route duplication from ROADMAP and PROGRAM",
+    "A4 generalize Design index generation, documentation validation and adversarial tests",
+    "A5 independently verify revision 2, remove D0031 from the runnable frontier after verification, and publish only by exact non-force fast-forward"
+  ],
+  "nonGoals": [
+    "No MVP.md or QUALIFICATION.md decomposition in phase A",
+    "No product src change",
+    "No D0019, D0020 or D0030 product implementation",
+    "No provider deployment, product migration or runtime state change",
+    "No completed checkpoint rewrite"
+  ],
+  "productSemantics": "unchanged"
+}
