@@ -10,19 +10,26 @@ Retained legacy baseline and exact Group E predecessor:
 mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 ```
 
+Completed Group E checkpoint:
+
+```text
+group/e-context-delivery @ 151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e
+checkpoint cp_1786580384438_9ed881e039da
+```
+
 Current active Capability Group:
 
 ```text
-Group E — Context delivery and model input
+Group F — Cloudflare runtime and local Agent topology
 ```
 
 Current active cumulative branch:
 
 ```text
-group/e-context-delivery
+group/f-cloudflare-runtime
 ```
 
-`mvp-1a-7` is retained as the cumulative baseline through D0015; it is not the destination for post-D0015 Group integration. When Group E completes, its exact final head is retained as the E checkpoint and `group/f-cloudflare-runtime` is created from that exact head. F then accumulates E+F; G is created from final F; H from final G; the final MVP prototype branch is forked from the exact final H head.
+`mvp-1a-7` is retained as the cumulative baseline through D0015; it is not the destination for post-D0015 Group integration. Group E is now a retained completed checkpoint, and `group/f-cloudflare-runtime` was created from its exact final head with no intervening commit. F accumulates E+F; G is created from final F; H from final G; the final MVP prototype branch is forked from the exact final H head.
 
 ## 2. Capability Group register
 
@@ -32,8 +39,8 @@ group/e-context-delivery
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **active / D0016+D0017+D0018 accepted; D0017 source verified; D0018 implementing** | D0016 mechanism decision + D0017 contract/source + D0018 runtime decision | `group/e-context-delivery` | selected context-delivery/disclosure/runtime contract is measured, deterministic and independently verified in the actually selected runtime profile |
-| F | Cloudflare runtime and local Agent topology | not implemented | architecture mapping only | successor `group/f-cloudflare-runtime`, created only from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
+| E | Context delivery and model input | **completed checkpoint / D0016+D0017+D0018 accepted; D0017+D0018 source/runtime verified** | D0016 mechanism decision + D0017 contract/source + D0018 runtime decision | retained `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E exit scope; retained checkpoint feeds F by ancestry |
+| F | Cloudflare runtime and local Agent topology | **active / topology not implemented** | architecture mapping only plus inherited E checkpoint | active `group/f-cloudflare-runtime` created from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
 
@@ -257,9 +264,9 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **User action:** execute or approve unavoidable provider/account/credential steps from documented procedures.
 - **Lane:** cumulative `group/h-deployment-qualification`, which already inherits the accepted E+F+G checkpoints; the MVP prototype ref is created only from its exact final accepted head.
 
-## 6. Current Group E closure map
+## 6. Completed Group E closure map
 
-Group E is not complete merely when D0016 chooses an idea. Its current planning closure is:
+Group E reached the following closure sequence before the exact checkpoint was retained and Group F was created:
 
 ```text
 D0016 accepted mechanism decision

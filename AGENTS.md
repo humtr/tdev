@@ -9,7 +9,7 @@ Before a change, read in this order:
 1. `RULE.md` and `SDD.md`;
 2. `docs/DOCUMENTATION.md`, `docs/development/WORKFLOW.md`, `docs/development/ACCESS.md`, and `docs/development/BRANCH_LINEAGE.md`;
 3. `WORKBOARD.md`, `docs/ROADMAP.md`, and `docs/development/PROGRAM.md`;
-4. the current Capability Group execution document when work is on a `group/*` lane (currently `docs/development/GROUP_E_CONTEXT_DELIVERY.md`);
+4. the current Capability Group execution document when one exists for the active `group/*` lane; Group E's retained execution/exit contract is `docs/development/GROUP_E_CONTEXT_DELIVERY.md`, and no Group F-specific execution document exists at this checkpoint;
 5. the active Design record, if any;
 6. every affected normative product owner;
 7. the implementation and executable verification path.
@@ -20,7 +20,7 @@ Do not infer authority from names, conventions, generated output, branch locatio
 
 - `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c` is the retained cumulative legacy baseline through D0015 and the exact predecessor from which Group E began. It is **not** the destination for post-D0015 Group integration.
 - Post-D0015 Capability Group development follows the cumulative checkpoint lineage owned by `docs/development/BRANCH_LINEAGE.md`.
-- The current mutable cumulative branch is `group/e-context-delivery`. When Group E is complete, retain its exact final head as the Group E checkpoint and create Group F from that exact head.
+- Group E is retained as a completed cumulative checkpoint at exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` (`cp_1786580384438_9ed881e039da`). The current mutable cumulative branch is `group/f-cloudflare-runtime`, created from that exact head with no intervening commit. Normal substantive work does not modify the completed Group E ref.
 - The normal canonical Termux checkout/work baseline follows the active cumulative Group branch and tracks that same remote ref when the plane is available and safe to align. A retained legacy or completed Group checkpoint remains a provenance ref; it is **not** the normal canonical checkout/work baseline after its successor becomes active.
 - Continue linearly: final E -> `group/f-cloudflare-runtime`; final F -> `group/g-mcp-security`; final G -> `group/h-deployment-qualification`; final H -> a separately named MVP prototype branch selected at the final qualification gate.
 - Do **not** create E/F/G/H as independent branches from `mvp-1a-7` and later merge them together. Do **not** merge completed Groups back into `mvp-1a-7` as normal progression.
@@ -48,7 +48,7 @@ Do not infer authority from names, conventions, generated output, branch locatio
 | Current-session access versus development-plane health | `docs/development/ACCESS.md` |
 | Post-D0015 cumulative Group checkpoint lineage | `docs/development/BRANCH_LINEAGE.md` |
 | Exhaustive provisional Design execution/coverage register | `docs/development/PROGRAM.md` |
-| Current Group E execution and exit contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
+| Completed Group E execution and exit contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
 | MCP projection boundary | `docs/MCP.md` |
 | Integration evidence and retained boundaries | `docs/IMPLEMENTATION_REPORT.md` |
 | Current pointers / historical verified-state summary | `WORKBOARD.md` |

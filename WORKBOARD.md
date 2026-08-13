@@ -4,9 +4,10 @@
 
 - Repository: `humtr/tdev`
 - Legacy cumulative baseline: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`; this ref is retained as the D0015-and-earlier checkpoint and is not the post-D0015 integration destination
-- Active cumulative Capability Group: Group E — Context delivery and model input
-- Active cumulative branch: `group/e-context-delivery`
+- Active cumulative Capability Group: Group F — Cloudflare runtime and local Agent topology
+- Active cumulative branch: `group/f-cloudflare-runtime`
 - Group E creation predecessor: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`
+- Completed Group E checkpoint: exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`; Group F was created from this exact SHA with no intervening commit
 - Post-D0015 branch succession owner: `docs/development/BRANCH_LINEAGE.md`; completed Groups are retained checkpoints and each successor Group is created from the exact final head of its predecessor
 - Historical direction origin / predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 final-MVP program rebaseline/post-verification review accumulated in the retained `mvp-1a-7` baseline
@@ -15,15 +16,15 @@
 - Verification owner: `docs/MVP.md`
 - Final-MVP program owner: `docs/ROADMAP.md`
 - Development-program register: `docs/development/PROGRAM.md`
-- Current Group execution owner: `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
+- Current Group execution owner: no Group F-specific execution document exists at this checkpoint; use `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/BRANCH_LINEAGE.md`, and each accepted Design owner. `docs/development/GROUP_E_CONTEXT_DELIVERY.md` is the retained completed Group E execution/exit record
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
 - Most recent accepted Class 2 decision: D0018 — Adversarially Converged Model Executor/Runtime Boundary, accepted 2026-08-12; verdict `warm-host-qualified-model-attempt-fresh`, with only bounded D0014 host preparation reusable and a fresh D0017/model runtime per Attempt.
-- Active Class 2 production-source state: D0017 production source is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`. D0018 production source/runtime is independently verified on the supported-Termux trusted-local scope at `73d404bdc24eac8337019738ba074c2a1fea4861`; exact `npm run check` remains platform-unqualified for the pre-existing ImmutableJournal hard-link `link(2) EACCES`, and instrumented full coverage additionally exposes timing-guard limitations that are green in the uninstrumented 233-test supported suite. Group E remains active only for final owner sync, publication, replica reconciliation and checkpoint election.
+- Active Class 2 production-source state: D0017 production source is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`. D0018 production source/runtime is independently verified on the supported-Termux trusted-local scope at `73d404bdc24eac8337019738ba074c2a1fea4861`; exact `npm run check` remains platform-unqualified for the pre-existing ImmutableJournal hard-link `link(2) EACCES`, and instrumented full coverage additionally exposes timing-guard limitations that are green in the uninstrumented 233-test supported suite. Group E exit/checkpoint is complete; the hard-link limitation is an inherited qualification gap on the active F lineage, not a reason to reopen E.
 - D0014 execution record: GitHub issue `humtr/tdev#7`; non-authoritative provenance record
 
 ## Active work
 
-Group E is the current mutable cumulative development checkpoint. All accepted post-D0015 work lands on `group/e-context-delivery`. When Group E satisfies its exit criteria, its exact final head is retained as the Group E checkpoint and `group/f-cloudflare-runtime` is created from that exact head. Normal progression does **not** fast-forward or merge Group E back into `mvp-1a-7`.
+Group F is the current mutable cumulative development checkpoint. Group E is retained at exact `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`; `group/f-cloudflare-runtime` was created from that exact checkpoint and now receives normal post-E substantive work. Normal progression does **not** modify completed Group E or fast-forward/merge completed Group work back into `mvp-1a-7`.
 
 D0015 has rebaselined the **final MVP** as the deployed Level-4 program in `docs/ROADMAP.md`: verified core plus CaseDO/AgentDO or equivalent Cloudflare owners, authenticated local Agent execution, deployed Git publication, secured MCP/auth/tenant boundary, provider/user setup, operations and final E2E qualification. Those capabilities are required final-MVP gaps, not claims that the current source already implements them.
 

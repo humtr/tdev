@@ -122,15 +122,22 @@ Current legacy predecessor:
 mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
 ```
 
+Completed Group E checkpoint:
+
+```text
+group/e-context-delivery @ 151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e
+checkpoint cp_1786580384438_9ed881e039da
+```
+
 Current active cumulative branch:
 
 ```text
-group/e-context-delivery
+group/f-cloudflare-runtime
 ```
 
-Group E is not yet a completed checkpoint. Its current remote head may advance while D0016-D0018 and applicable dependencies are executed.
+Group F was created from the exact final Group E checkpoint head with no intervening commit. Group E is now retained provenance/checkpoint state and is not modified by normal substantive development.
 
-The next branch `group/f-cloudflare-runtime` must **not** be opened as a parallel branch from `mvp-1a-7`; it is opened from the exact final Group E head after the Group E exit record is accepted.
+The next branch `group/g-mcp-security` must **not** be opened as a parallel branch from an earlier checkpoint; it is created only from the exact final Group F head after the Group F exit record is accepted.
 
 ## 9. Precedence and terminology
 

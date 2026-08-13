@@ -65,7 +65,7 @@ For post-D0015 development there are two different branch roles:
 - `mvp-1a-7` is the retained legacy baseline through D0015;
 - exactly one `group/*` branch is the active cumulative development branch at a time.
 
-The current active cumulative branch is `group/e-context-delivery`.
+The current active cumulative branch is `group/f-cloudflare-runtime`. The completed Group E checkpoint is retained at exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`.
 
 When Termux/local access is available, the **normal canonical checkout** must be on the active cumulative branch and track that same remote ref before normal substantive work begins. Retained predecessor/checkpoint refs stay present for provenance, but they are not checkout/work baselines once a successor is active. This alignment rule is derived from `BRANCH_LINEAGE.md`; the checkout itself does not become branch-lineage authority.
 
@@ -97,7 +97,7 @@ Use these states for the **same active development ref** across repository locat
 
 A non-`SYNCED` state is **sync debt**, not automatically failure. The failure is losing exact identities/ancestry or overwriting one side without reconciliation.
 
-Do not call the intentional ref difference between `mvp-1a-7` and `group/e-context-delivery` sync debt. They are different lineage checkpoints by design. However, if the **canonical checkout branch itself** is still on `mvp-1a-7` or another completed predecessor after `group/e-context-delivery` is active, that is `CHECKOUT_ALIGNMENT_DEBT`, not a valid synchronization state for the active ref. Do not perform normal substantive work from that stale checkout. Align it when safe, or preserve unrelated dirty state and use an isolated worktree rooted at the exact active cumulative ref until alignment can be completed.
+Do not call the intentional ref difference between the retained completed `group/e-context-delivery` checkpoint and active `group/f-cloudflare-runtime` sync debt. They are different lineage checkpoints by design. However, if the **canonical checkout branch itself** is still on `group/e-context-delivery`, `mvp-1a-7`, or another completed predecessor after `group/f-cloudflare-runtime` is active, that is `CHECKOUT_ALIGNMENT_DEBT`, not a valid synchronization state for the active ref. Do not perform normal substantive work from that stale checkout. Align it when safe, or preserve unrelated dirty state and use an isolated worktree rooted at the exact active cumulative ref until alignment can be completed.
 
 ## 5. Work-start protocol
 
