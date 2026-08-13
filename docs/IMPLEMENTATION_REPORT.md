@@ -1,3 +1,23 @@
+# Group E D0018 model runtime production verification report
+
+- Date: 2026-08-13
+- Active cumulative branch: `group/e-context-delivery`
+- Group E predecessor: `b048712a372b5a46fb88134690ee57f92981df11`
+- Design: `docs/design/0018-adversarial-converged-model-runtime-boundary.md`
+- Accepted profile: `warm-host-qualified-model-attempt-fresh`
+- Production implementation: `73d404bdc24eac8337019738ba074c2a1fea4861`
+- Production verification evidence: `docs/evidence/group-e-d0018-production-verification-2026-08-13.json` (SHA-256 `2a1f53043c326ada9618d54ffc8d114b1666f2c25986226637287190948216b7`)
+- Warm qualification artifact: `artifact_99_3317262b49` (SHA-256 `605ecfbd62dd67a721697955c922073029ebe6e044b5e024ca44a0c004888de2`)
+- Status: production source/runtime `verified` on the declared supported-Termux trusted-local qualification; Group E publication/checkpoint remains separate
+
+D0018 preserves CaseEngine semantic authority and the accepted D0017 logical-reference contract while adding only the bounded C1-C4 runtime repair. Committed Events are asynchronous non-authoritative wake hints; exact live-control identity includes Case/Task/Attempt/fence/executor epoch; `attempt_started` is durably checkpointed before the live controller binding is published; checkpoint acknowledgement drains exact semantic revisions; and physical runtime capacity remains occupied until predecessor settlement/checkpoint cleanup completes. No second semantic queue, executor/provider retry owner, polling scheduler, persistent controller registry, provider session, same-model-process warm pool, ContextSlice, D0022 persistent store or Group F implementation was introduced.
+
+The exact final supported-Termux source suite passed 233/233 at `73d404bdc24eac8337019738ba074c2a1fea4861`; the D0018 adversarial reference protocol passed 27/27; and `git diff --check` plus `npm ci --ignore-scripts --no-audit --no-fund` passed. The final W01-W43 qualification exited 0 with the accepted `warm-host-qualified-model-attempt-fresh` verdict. Its structural comparison retained four model-process starts in both F and WH, zero model-process reuse in both, and reduced context materializations from four to one under WH. Retry/restart/cross-Case paths keep fresh model processes and preserve the accepted D0017 logical identity.
+
+The exact `npm run check` command is **platform-unqualified**, not green, because the pre-existing `ImmutableJournalSnapshotStore` hard-link publication hits `link(2) EACCES` on the connected Termux filesystem. Exact instrumented full coverage is also not green: it includes the same hard-link limitation and additionally causes three existing 2-second repository-model transport timing guards to time out even though those tests pass in the uninstrumented 233-test supported suite. No external provider is selected, so provider-session/auth/egress/billing qualification is unavailable and not applicable to this trusted-local profile. D0018 changes no durable Case/Plan semantic schema, introduces no durable content owner and requires no data migration. Group E still requires final owner synchronization, publication, replica reconciliation and exact checkpoint election before Group F branch creation.
+
+---
+
 # Group E D0017 selected context delivery production verification report
 
 - Date: 2026-08-12

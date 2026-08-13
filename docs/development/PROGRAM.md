@@ -114,13 +114,16 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0018 — Model Executor / External Provider Runtime Contract
 
 - **Groups:** D/E
-- **Status:** **accepted Design — 2026-08-12; implementing bounded C1-C4 production repair**
-- **Purpose:** implement the accepted trusted-local `warm-host-qualified-model-attempt-fresh` profile: reusable bounded D0014 host preparation with fresh D0017 authorization/runtime/model process per Attempt, plus the frozen C1-C4 live-control/checkpoint/capacity repair.
+- **Status:** **accepted Design — 2026-08-12; production source/runtime verified on supported-Termux trusted-local scope — 2026-08-13**
+- **Purpose:** preserve the accepted trusted-local `warm-host-qualified-model-attempt-fresh` profile: reusable bounded D0014 host preparation with fresh D0017 authorization/runtime/model process per Attempt, plus the frozen C1-C4 live-control/checkpoint/capacity repair.
+- **Production source:** `73d404bdc24eac8337019738ba074c2a1fea4861`.
+- **Evidence:** `docs/evidence/group-e-d0018-production-verification-2026-08-13.json` SHA-256 `2a1f53043c326ada9618d54ffc8d114b1666f2c25986226637287190948216b7`; exact supported-Termux suite 233/233; adversarial reference protocol 27/27; W01-W43 warm qualification exit 0 with F/WH starts 4/4, reuse 0/0 and materializations 4/1.
 - **Affected owners:** executor admission/identity, process/provider lifecycle, result-only boundary, timeout/cancellation/retry, request identity, provider errors, resource limits.
 - **Must separate:** local process identity from provider identity; transport retry from Task retry; provider timeout from effect/result acceptance; provider usage/billing observation from semantic state.
-- **External-provider status:** no external provider is selected by D0018; provider authentication/egress/billing/session work remains outside this implementation and becomes applicable only under a later accepted owner if a provider is selected.
+- **External-provider status:** no external provider is selected by D0018; provider authentication/egress/billing/session work remains outside this verification and becomes applicable only under a later accepted owner if a provider is selected.
+- **Qualification limits:** exact `npm run check` remains platform-unqualified for the pre-existing ImmutableJournal hard-link `EACCES`; instrumented full coverage additionally exposes timing guards that pass uninstrumented. Neither layer is counted green.
 - **Cheapest falsifier:** same invocation/Attempt identity through the selected runtime with timeout/cancel/retry/stale-response tests and exact result acceptance parity with the existing local oracle.
-- **Exit:** final execution profile accepted with explicit unsupported alternatives and provider/user configuration requirements sufficient for Group E closure; later Group F runtime work inherits this contract and may extend it only through a later accepted Design.
+- **Exit:** satisfied for D0018 production source/runtime under the declared trusted-local qualification; Group E final owner sync/publication/replica reconciliation/checkpoint remain separate cumulative-branch gates. Later Group F runtime work inherits this contract and may extend it only through a later accepted Design.
 - **Lane:** active cumulative `group/e-context-delivery` for the E-facing contract; no cross-branch merge is planned.
 
 ### D0019 — CaseDO Authority Adapter

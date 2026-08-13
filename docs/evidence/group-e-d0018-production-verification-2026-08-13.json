@@ -1,0 +1,164 @@
+{
+  "schemaVersion": 1,
+  "kind": "group-e-d0018-production-verification",
+  "date": "2026-08-13",
+  "design": {
+    "id": "D0018",
+    "title": "Adversarially Converged Model Executor/Runtime Boundary",
+    "acceptedProfile": "warm-host-qualified-model-attempt-fresh",
+    "productionStatus": "verified-supported-termux-trusted-local",
+    "providerSelected": false,
+    "contextSliceSelected": false,
+    "d0022Required": false
+  },
+  "authority": {
+    "groupEPredecessor": "b048712a372b5a46fb88134690ee57f92981df11",
+    "productionSourceSha": "73d404bdc24eac8337019738ba074c2a1fea4861",
+    "repairCommit": "d4489d17132d42e7f28ba48e444cd074bf586c8d",
+    "handshakeAlignmentCommit": "73d404bdc24eac8337019738ba074c2a1fea4861",
+    "preFixRegressionCommit": "c1cffb0684d32b4d5acdb38d50a9ea54a66df672",
+    "acceptedDesignPath": "docs/design/0018-adversarial-converged-model-runtime-boundary.md"
+  },
+  "preFixRegression": {
+    "classification": "demonstrated-red-before-repair",
+    "c1": "Active semantic cancellation did not promptly abort the exact running invocation signal before the executor barrier released.",
+    "c2": "Cancellation committed while the attempt_started checkpoint was blocked could still allow one executor invocation after the checkpoint returned.",
+    "c3": "Checkpoint acknowledgement could persist revision 2 while the semantic cancellation revision had advanced to revision 5.",
+    "c4": "The production source deleted the running entry before awaited settlement/cleanup, so semantic completion could release the physical runtime slot too early; the behavioral capacity floor was retained as an additional falsifier.",
+    "provenance": [
+      "docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json",
+      "docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json"
+    ]
+  },
+  "implementedRepair": {
+    "committedEventObservation": "CaseEngine publishes only successful committed Events as asynchronous non-authoritative wake hints; observer throw/reject/hang cannot change a semantic mutation and rolled-back mutations publish nothing.",
+    "liveControlIdentity": "caseId + taskId + attemptId + fencingToken + executorId + executorEpoch; local controller object identity is used only for exact unregister comparison.",
+    "handshakeOrder": "Attempt start -> durable attempt_started checkpoint drain -> authoritative Attempt reread -> controller/live binding creation -> pre-publication reread -> live-control publication -> post-publication reread -> execution-gate release.",
+    "checkpointDrain": "Each checkpoint persists the exact snapshot caseRevision, acknowledges exactly that revision, and loops if semantic state advanced during I/O.",
+    "capacityCleanup": "Outcome settlement and its checkpoint complete before compare-delete of the running entry, retaining physical capacity through predecessor cleanup.",
+    "nonGoalsPreserved": [
+      "no second semantic queue",
+      "no executor/provider retry owner",
+      "no hidden polling scheduler",
+      "no persistent controller registry",
+      "no provider implementation or provider-session warmth",
+      "no same-model-process warm pool",
+      "no ContextSlice",
+      "no D0022 persistent content store",
+      "no Group F implementation"
+    ]
+  },
+  "green": {
+    "focusedOrderRepair": {
+      "loop": {"jobId": "job_6kq_f619061ded", "passed": 18, "failed": 0},
+      "engineAndLoop": {"jobId": "job_6kr_141145e5bf", "passed": 31, "failed": 0},
+      "adversarialBeforeCommit": {"jobId": "job_6ks_380f0075af", "referenceProtocolPassed": 27, "failed": 0}
+    },
+    "exactFinalSource": {
+      "adversarial": {
+        "jobId": "job_6ky_501e1aa4f6",
+        "sourceSha": "73d404bdc24eac8337019738ba074c2a1fea4861",
+        "referenceProtocolCount": 27,
+        "referenceProtocolPassed": true,
+        "c1Qualified": true,
+        "cancelBeforeControllerRegistrationQualified": true
+      },
+      "supportedTermuxSourceSuite": {
+        "jobId": "job_6kz_e7eb338e65",
+        "sourceSha": "73d404bdc24eac8337019738ba074c2a1fea4861",
+        "passed": 233,
+        "failed": 0,
+        "excludedOnly": "test/immutable-journal.test.mjs because its declared hard-link publication primitive is unavailable on the connected Termux filesystem"
+      },
+      "diffCheck": {"jobId": "job_6l0_1264c049a2", "exitCode": 0},
+      "portableInstall": {
+        "jobId": "job_6ls_565c8dea0d",
+        "command": "npm ci --ignore-scripts --no-audit --no-fund",
+        "exitCode": 0
+      },
+      "warmRuntime": {
+        "jobId": "job_6l5_b9f69adf09",
+        "artifactId": "artifact_99_3317262b49",
+        "artifactSha256": "605ecfbd62dd67a721697955c922073029ebe6e044b5e024ca44a0c004888de2",
+        "sourceSha": "73d404bdc24eac8337019738ba074c2a1fea4861",
+        "exitCode": 0,
+        "verdict": "warm-host-qualified-model-attempt-fresh",
+        "w01ThroughW43Qualified": true,
+        "productionC1C4QualifiedByWarmHarness": true,
+        "referenceProtocolCount": 27,
+        "referenceProtocolPassed": true,
+        "fProcessStarts": 4,
+        "whProcessStarts": 4,
+        "fProcessReuses": 0,
+        "whProcessReuses": 0,
+        "fContextMaterializations": 4,
+        "whContextMaterializations": 1,
+        "requestBytesStable": true,
+        "referenceStable": true,
+        "retryLogicalIdentityStable": true,
+        "sameProcessWarmModel": "unqualified-falsified-tested-WP-profile"
+      }
+    },
+    "d0017Preservation": {
+      "supportedSuiteCoverage": "The exact final 233-test supported-Termux suite includes D0017 authorization-before-physical-access, same logical reference across retry/restart/cache reuse, source-unavailable fail-closed, no hidden fallback, cancellation and repository-model transport lifecycle tests.",
+      "logicalReferenceAuthority": "repository commit + semantic baseDigest + contextDigest + admitted Case/Plan authorization scope remain authoritative; Attempt/process/provider/physical locator identity remain excluded."
+    }
+  },
+  "unsupportedOrUnqualified": {
+    "exactNpmCheck": {
+      "jobId": "job_6l1_5be86fca5d",
+      "artifactId": "artifact_97_952624a902",
+      "artifactSha256": "6850b7484bb0c420ba2cd6c7b80127b16723f9404fe9de1ba1c40617899da9eb",
+      "command": "npm run check",
+      "commandGreen": false,
+      "classification": "platform-unqualified-pre-existing-filesystem-primitive",
+      "cause": "ImmutableJournalSnapshotStore link(2) publication returns EACCES on the connected Termux filesystem; this is not counted as D0018 source green or D0018 regression."
+    },
+    "exactCoverage": {
+      "jobId": "job_6l3_02784f0941",
+      "artifactId": "artifact_98_86f40f576a",
+      "artifactSha256": "c889f0dcd080960cf35a057b16616b6b44f9dccc1e5da929e994183e3593e874",
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "commandGreen": false,
+      "classification": "platform-and-instrumentation-unqualified",
+      "causes": [
+        "ImmutableJournalSnapshotStore hard-link publication returns EACCES on the connected Termux filesystem.",
+        "Coverage instrumentation caused three existing 2-second repository-model transport timing guards to time out even though the same tests pass in the uninstrumented 233-test supported suite."
+      ]
+    }
+  },
+  "unavailableOrTooling": {
+    "registeredPortableProfile": {
+      "classification": "validation-metadata-defect",
+      "observation": "The registered portable profile invokes npm run verify:sandbox, but package.json has no verify:sandbox script; portable-install itself is green."
+    },
+    "independentAgentReview": {
+      "codex": {"jobId": "job_6jd_9324717230", "classification": "timeout-no-review-result"},
+      "agy": {"jobId": "job_6k5_049f67f2da", "classification": "session-configuration-error-no-review-result"},
+      "githubWorkflow": "No current Group E workflow was available on the remote branch for an independent exact-SHA hosted run."
+    },
+    "provider": "unavailable-not-selected; provider-session/auth/egress/billing qualification is not applicable to this trusted-local D0018 profile"
+  },
+  "environment": {
+    "node": "v26.4.0",
+    "npm": "11.18.0",
+    "platform": "android",
+    "arch": "arm64",
+    "kernel": "Linux 6.1.145-android14-11-33419968-abS928NKSS6DZG1 aarch64 Android",
+    "termux": "0.119.0-beta.3"
+  },
+  "persistenceMigrationRollback": {
+    "durableSchemaChanged": false,
+    "migrationRequired": false,
+    "newDurableOwner": false,
+    "rollbackMeaning": "Rollback remains source/deployment rollback to the predecessor runtime implementation; no D0018 durable semantic bytes require reverse migration."
+  },
+  "conclusion": {
+    "d0018ProductionSource": "verified on the declared supported-Termux trusted-local source/runtime qualification",
+    "acceptedRuntimeProfilePreserved": true,
+    "modelVisibleSemanticsChanged": false,
+    "groupEPublicationAndCheckpoint": "separate final integration layer; not claimed by this source evidence",
+    "fullImmutableJournalPlatformQualification": false,
+    "externalProviderQualification": false
+  }
+}
