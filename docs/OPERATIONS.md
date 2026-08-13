@@ -278,16 +278,21 @@ Recommended operator signals:
 
 D0019 accepts the **Design-layer** Case authority model: one SQLite-backed CaseDO hosts the existing D0010/CaseEngine semantic authority. That acceptance does not make a production adapter source-, integration-, deployment- or production-verified. Before the CaseDO adapter reaches those layers, and before any still-provisional Cloudflare/Agent adapter or D0012 provider-specific publication integration is promoted, the applicable layer must prove:
 
-- authoritative Case state and the exact command receipt commit in one CaseDO storage transaction before response or dispatch;
-- stale expected revisions are rejected before mutation/effect and duplicate commands reproduce the same durable receipt;
-- object eviction/reconstruction rebuilds authority solely from durable storage and preserves reopen semantics;
+- one durable placement election/generation binds each new Case to one exact deployment/environment/class/namespace/jurisdiction/DO tuple; competing placement initialization and fallback creation fail closed;
+- authoritative Case state and the exact command receipt commit in one elected CaseDO storage transaction before response or dispatch;
+- receipt identity is exactly `tdev.case-command.v1` over the canonical command only; valid same-request/same-command replay reproduces the same durable semantic response even when revision metadata differs, while conflicting command reuse fails;
+- stale expected revisions without a matching receipt are rejected before mutation/effect and concurrent current-revision admissions retain one winner;
+- ordinary object eviction/reconstruction rebuilds authority solely from durable storage with semantic reopen disabled; a running Attempt can remain running;
+- semantic reopen requires a separately durable execution/delivery-owner-loss recovery cause and is not inferred from CaseDO eviction, constructor rerun or RPC/stub failure;
 - a post-commit lost response reconciles by authoritative receipt/state reread rather than guessed failure or blind retry;
 - running Attempt identity/fencing state is durable before D0020 delivery begins;
 - delivery epoch and result fences survive reconnects;
 - uncertain external effects enter reconciliation rather than blind retry;
+- `tdev.casedo.sqlite-authority.v1` schema/profile, normalized/chunked storage and the deployment-qualified finite total Case budget fail closed before unsafe growth/effect;
+- old/new CaseDO code and schema are mutually compatible during provider rollout overlap or a fail-closed rollout barrier prevents incompatible mutation;
 - target claims survive owner restart or are safely fenced;
 - publication uses one fenced lane after Promotion;
 - corrupt/incompatible provider state fails closed;
 - migration and code rollback barriers are explicitly tested.
 
-The initial D0019 implementation must not migrate an existing locally authoritative Case. A new Case may be created directly in CaseDO only after the adapter is independently qualified. Any later migration requires a separate accepted cutover design with an independently durable old-writer fence and destination activation; operational routing changes alone cannot elect a new semantic owner.
+The initial D0019 implementation must not migrate an existing locally authoritative Case. A new Case may be created only after the placement protocol and CaseDO adapter/profile are independently qualified. Any later migration requires a separate accepted cutover design with an independently durable old-writer fence and destination activation; operational routing changes alone cannot elect a new semantic owner.

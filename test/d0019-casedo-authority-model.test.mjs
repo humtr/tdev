@@ -34,8 +34,41 @@ class SerializedCaseDoAuthorityModel {
     });
   }
 
-  reopen(caseId) {
+  reconstruct(caseId) {
+    return this.#serialize(() => this.repository.load(caseId));
+  }
+
+  recoverAfterExecutionOwnerLoss(caseId) {
     return this.#serialize(() => this.repository.load(caseId, { reopen: true }));
+  }
+}
+
+function placementIdentity(placement) {
+  return JSON.stringify([
+    placement.environment,
+    placement.scriptName,
+    placement.className,
+    placement.namespace,
+    placement.jurisdiction,
+    placement.durableObjectId,
+  ]);
+}
+
+class CasePlacementAuthorityModel {
+  constructor() {
+    this.records = new Map();
+  }
+
+  elect(caseId, placement) {
+    const identity = placementIdentity(placement);
+    const existing = this.records.get(caseId);
+    if (existing) {
+      if (existing.identity !== identity) throw modelError('placement_conflict');
+      return structuredClone(existing.record);
+    }
+    const record = { caseId, placementGeneration: 1, placement: structuredClone(placement) };
+    this.records.set(caseId, { identity, record: structuredClone(record) });
+    return structuredClone(record);
   }
 }
 
@@ -72,6 +105,33 @@ test('D0019 model: response loss after commit reconciles by durable receipt repl
   assert.equal(replay.persisted, false);
   assert.equal(replay.result.deduplicated, true);
   assert.deepEqual(replay.result.response, committed.receipts['request-1'].response);
+  assert.equal((await store.load(caseId)).caseRevision, committed.caseRevision);
+});
+
+test('D0019 model: receipt identity excludes expected revision and replays the exact semantic response', async () => {
+  const caseId = 'd0019-receipt-envelope';
+  const { store } = await createCase(caseId);
+  const initial = await store.load(caseId);
+  const authority = new SerializedCaseDoAuthorityModel(store);
+  const command = { type: 'start_attempt', taskId: 'a', executor: 'agent' };
+
+  const first = await authority.command(caseId, {
+    requestId: 'receipt-envelope-1',
+    expectedCaseRevision: initial.caseRevision,
+    command,
+  });
+  const committed = await store.load(caseId);
+  assert.ok(committed.caseRevision > initial.caseRevision);
+
+  const replay = await authority.command(caseId, {
+    requestId: 'receipt-envelope-1',
+    expectedCaseRevision: committed.caseRevision,
+    command,
+  });
+  assert.equal(replay.persisted, false);
+  assert.equal(replay.result.deduplicated, true);
+  assert.deepEqual(replay.result.response, first.result.response);
+  assert.deepEqual(replay.result.response, committed.receipts['receipt-envelope-1'].response);
   assert.equal((await store.load(caseId)).caseRevision, committed.caseRevision);
 });
 
@@ -126,20 +186,40 @@ test('D0019 model: failure before commit leaves no receipt and a same-id retry m
   assert.ok((await store.load(caseId)).caseRevision > before.caseRevision);
 });
 
-test('D0019 model: reconstructed authority runs reopen semantics from durable state', async () => {
-  const caseId = 'd0019-reopen';
+test('D0019 model: ordinary CaseDO reconstruction does not semantically reopen a live Attempt', async () => {
+  const caseId = 'd0019-eviction-no-reopen';
+  const { store, plan } = await createCase(caseId);
+  const engine = new CaseEngine({ caseId, plan });
+  const attempt = engine.startAttempt('a', { id: 'live-agent', epoch: 4 });
+  store.snapshots.set(caseId, structuredClone(engine.snapshot()));
+  const before = await store.load(caseId);
+
+  const reconstructedInstance = new SerializedCaseDoAuthorityModel(store);
+  const reconstructed = await reconstructedInstance.reconstruct(caseId);
+  assert.equal(reconstructed.attempts[attempt.id].state, 'running');
+  assert.equal(reconstructed.taskStates.a.state, 'running');
+  assert.equal(reconstructed.caseRevision, before.caseRevision);
+  assert.equal((await store.load(caseId)).caseRevision, before.caseRevision);
+});
+
+test('D0019 model: semantic reopen requires explicit execution-owner-loss recovery and persists once', async () => {
+  const caseId = 'd0019-explicit-recovery';
   const { store, plan } = await createCase(caseId);
   const engine = new CaseEngine({ caseId, plan });
   const attempt = engine.startAttempt('a', { id: 'lost-agent', epoch: 4 });
   store.snapshots.set(caseId, structuredClone(engine.snapshot()));
 
-  const reconstructedInstance = new SerializedCaseDoAuthorityModel(store);
-  const reopened = await reconstructedInstance.reopen(caseId);
+  const recovery = new SerializedCaseDoAuthorityModel(store);
+  const reopened = await recovery.recoverAfterExecutionOwnerLoss(caseId);
   assert.equal(reopened.attempts[attempt.id].state, 'interrupted');
   assert.equal(reopened.taskStates.a.state, 'pending');
   const persisted = await store.load(caseId);
   assert.equal(persisted.attempts[attempt.id].state, 'interrupted');
   assert.equal(persisted.caseRevision, reopened.caseRevision);
+
+  const replay = await new SerializedCaseDoAuthorityModel(store).recoverAfterExecutionOwnerLoss(caseId);
+  assert.equal(replay.attempts[attempt.id].state, 'interrupted');
+  assert.equal(replay.caseRevision, persisted.caseRevision);
 });
 
 test('D0019 model: corrupted durable state fails closed on reconstruction', async () => {
@@ -151,7 +231,7 @@ test('D0019 model: corrupted durable state fails closed on reconstruction', asyn
 
   const reconstructedInstance = new SerializedCaseDoAuthorityModel(store);
   await assert.rejects(
-    reconstructedInstance.reopen(caseId),
+    reconstructedInstance.reconstruct(caseId),
     (error) => error?.code === 'snapshot_digest_mismatch',
   );
 });
@@ -174,6 +254,32 @@ test('D0019 model: running state is durable before executor dispatch', async () 
   assert.equal(result.caseState, 'succeeded');
   assert.equal((await store.load(caseId)).caseState, 'succeeded');
   assert.equal(plan.planDigest, result.snapshot.plan.planDigest);
+});
+
+test('D0019 placement falsifier: one CaseId cannot be initialized in two provider placement contexts', () => {
+  const placements = new CasePlacementAuthorityModel();
+  const first = {
+    environment: 'production',
+    scriptName: 'tdev-runtime',
+    className: 'CaseDO',
+    namespace: 'CASE_AUTHORITY',
+    jurisdiction: 'eu',
+    durableObjectId: 'do-id-elected',
+  };
+
+  const elected = placements.elect('d0019-placement', first);
+  assert.equal(elected.placementGeneration, 1);
+  assert.deepEqual(placements.elect('d0019-placement', first), elected);
+
+  assert.throws(
+    () => placements.elect('d0019-placement', {
+      ...first,
+      environment: 'staging',
+      jurisdiction: 'fedramp',
+      durableObjectId: 'do-id-competing',
+    }),
+    (error) => error?.code === 'placement_conflict',
+  );
 });
 
 test('D0019 migration falsifier: copy-then-switch without an old-writer fence creates two authorities', async () => {

@@ -82,7 +82,7 @@ These IDs describe a planning envelope. D0016, D0017 and D0018 are accepted Desi
 | D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
 | D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12; production source verified on supported-Termux scope** — authorized immutable logical reference + bounded packed/hybrid receiver; implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` |
 | D0018 | D/E | Model Executor / External Provider Runtime Contract | **accepted Design 2026-08-12; production source/runtime verified on supported-Termux trusted-local scope** — `73d404bdc24eac8337019738ba074c2a1fea4861`, warm host / fresh model Attempt, no provider selected |
-| D0019 | B/F | CaseDO Authority Adapter | **accepted Design 2026-08-13; production implementation separate** — one SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; existing local Cases are not migrated by this Design |
+| D0019 | B/F | CaseDO Authority Adapter | **accepted Design, amended 2026-08-13; production implementation separate** — one durably elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; exact D0010 receipt identity is preserved; ordinary eviction does not imply semantic reopen; placement/schema/capacity/rollout gates are frozen; existing local Cases are not migrated by this Design |
 | D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |
 | D0021 | F | Distributed Target Claims / Runtime Fencing | conditional on final cross-Case conflict workload |
 | D0022 | F/E | Artifact/Content Storage and Query Projection (R2/D1/equivalent) | conditional on selected content/artifact architecture |
@@ -172,7 +172,7 @@ D0016 -> D0017 accepted contract
              D0029
 ```
 
-D0019 production-adapter work, D0020 Agent topology research, and MCP threat-model work may proceed in parallel when they do not preempt an unresolved owner decision. D0019 production work must preserve the accepted no-second-owner/no-existing-Case-migration boundary; D0020 remains the separate Agent connection/delivery/capacity owner decision. D0021 and D0022 stay conditional until the actual workload/architecture requires them.
+D0019 production-adapter work, D0020 Agent topology research, and MCP threat-model work may proceed in parallel when they do not preempt an unresolved owner decision. D0019 production work must preserve the amended durable-placement-generation, exact D0010 receipt identity, ordinary-reconstruction/no-implicit-reopen, versioned schema/capacity/rollout, no-second-owner and no-existing-Case-migration boundaries; D0020 remains the separate Agent connection/delivery/capacity owner decision. D0021 and D0022 stay conditional until the actual workload/architecture requires them.
 
 ## 10. Final deployed qualification
 

@@ -231,17 +231,22 @@ This mapping follows the actor-style requirement that one authoritative owner se
 
 The D0019 Case Durable Object adapter must:
 
-- route one placed Case to one SQLite-backed CaseDO and verify durable Case identity/schema before mutation;
-- restore/reopen from durable storage rather than assume in-memory survival;
+- elect one durable placement generation before new Case authority birth, binding `CaseId` to the exact deployment/environment, Worker script, class/namespace, jurisdiction and Durable Object ID; reject competing placement tuples and never fall back to a second destination after initialization failure;
+- route the elected Case to that SQLite-backed CaseDO and verify placement generation plus durable Case/profile/schema identity before mutation;
+- reconstruct ordinary CaseDO eviction from durable storage with semantic reopen disabled; do not infer execution-owner loss from in-memory loss, constructor rerun, deployment or stub/RPC failure;
+- invoke the existing semantic reopen path only from a separately durable execution/delivery-owner-loss recovery cause, fenced and committed exactly once;
 - preserve the existing D0010/CaseEngine semantic transition meaning rather than define CaseDO-native competing semantics;
 - atomically fence the expected revision and persist one command transition, the successor semantic head/current revision and the exact durable receipt in the owning transaction;
-- replay an exact duplicate request from that durable receipt and reject conflicting request reuse;
-- treat a lost/failed RPC after a possible commit as ambiguous until the same Case authority is reread;
+- use exactly `typedDigest('tdev.case-command.v1', canonicalClone(command))` as receipt command identity; `requestId` addresses the receipt and `expectedCaseRevision` is not part of that digest;
+- replay an exact duplicate request's durable semantic response before expected-revision equality and reject conflicting command reuse;
+- treat a lost/failed RPC after a possible commit as ambiguous until the same elected Case authority is reread;
 - prevent D0020/Agent dispatch until the running Attempt identity/fencing commit is durable;
 - keep Agent connection/capacity/reconnect state outside Case authority;
 - mark ambiguous external delivery/effects for existing reconciliation rather than blind retry;
-- use a normalized/chunked SQLite representation that respects current provider row/BLOB/query limits without weakening one semantic transaction boundary;
-- fail closed on corrupt/incompatible durable state and version schema evolution explicitly;
+- implement `tdev.casedo.sqlite-authority.v1` / schema version 1 with a normalized/chunked SQLite representation that respects current provider row/BLOB/query limits without weakening one semantic transaction boundary;
+- positively qualify a finite total authoritative Case budget from the actual provider/account configuration and fail admission before a mutation/effect can exceed it;
+- preserve lossless receipts/state across old/new code and schema overlap or establish a fail-closed rollout barrier; incompatible mixed schema writers are forbidden;
+- fail closed on corrupt/unknown-placement/incompatible durable state and version schema evolution explicitly;
 - create no migration path for an existing locally authoritative Case unless a separate accepted cutover design first supplies a durable placement generation, old-writer fence, destination activation and rollback boundary.
 
 An Agent delivery adapter must:

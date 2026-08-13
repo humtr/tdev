@@ -1,0 +1,172 @@
+{
+  "schemaVersion": 1,
+  "decisionId": "D0019",
+  "kind": "design-amendment-acceptance",
+  "observedAt": "2026-08-13",
+  "status": "accepted_as_amended",
+  "candidate": "A",
+  "scope": {
+    "included": [
+      "D0019 authority-adapter Design corrections",
+      "D0019 semantic falsifier corrections",
+      "directly affected normative owner synchronization",
+      "fresh repository-oracle and provider-primary-source verification"
+    ],
+    "excluded": [
+      "production CaseDO implementation",
+      "Worker routing or Durable Object namespace provisioning",
+      "D0020 production implementation",
+      "D0030 production implementation",
+      "existing-Case authority migration",
+      "live Cloudflare deployment qualification"
+    ]
+  },
+  "mcpRecovery": {
+    "previousBlocker": "tmcp Operation-plane connectivity had prevented creation of the required immutable Root Task and isolated worktree during the prior adversarial review",
+    "currentObservation": "both @tmcp/ngrok/operations and @tmcp/workers/operations returned the current Operation catalog successfully with available project/task/git/remote operations",
+    "discoveryTaskId": "task_71k_70f38f433d",
+    "amendmentTaskId": "task_71o_8f0c6154f2",
+    "amendmentWorktreeId": "wt_4f877e54f9398fe0",
+    "amendmentBranch": "tmcp/d0019-authority-amendment-20260813",
+    "conclusion": "the prior MCP capability blocker is resolved; repository mutation is now performed only through the exact-base Task-owned worktree"
+  },
+  "repositoryAuthority": {
+    "projectId": "tdev",
+    "remote": "https://github.com/humtr/tdev.git",
+    "publicationBranch": "group/f-cloudflare-runtime",
+    "baseSha": "fbd2807cf72cf6d076687c8455bb569a99f03e91",
+    "retainedGroupESha": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "authorityDocumentsRead": [
+      "AGENTS.md",
+      "RULE.md",
+      "SDD.md",
+      "WORKBOARD.md",
+      "docs/DOCUMENTATION.md",
+      "docs/development/WORKFLOW.md",
+      "docs/development/ACCESS.md",
+      "docs/development/BRANCH_LINEAGE.md",
+      "docs/ROADMAP.md",
+      "docs/development/PROGRAM.md",
+      "docs/PROTOCOL.md",
+      "docs/ARCHITECTURE.md",
+      "docs/OPERATIONS.md",
+      "docs/SECURITY.md",
+      "docs/DEPLOYMENT.md",
+      "docs/MVP.md",
+      "docs/design/README.md"
+    ]
+  },
+  "predecessorEvidence": {
+    "path": "docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json",
+    "sha256": "6e196ff1cae6c9ef993bcebf112405234fccc7c682a4563811c16ab2e41e7daa",
+    "preservedUnmodified": true
+  },
+  "repositoryOracle": {
+    "ordinaryLoad": "CaseRepository.load(caseId) restores with reopen=false unless reopen:true is explicitly requested",
+    "runnerRecovery": "runDurableCase() explicitly requests reopen:true because the local durable-runner restart means execution ownership was lost",
+    "receiptIdentity": "CaseEngine computes the receipt digest from canonical command content using the tdev.case-command.v1 domain; requestId addresses the receipt and expectedCaseRevision is not part of that digest",
+    "receiptOrdering": "after envelope validation, an existing same-request/same-command receipt is replayed before expectedCaseRevision equality is checked",
+    "reopenMeaning": "semantic reopen is an execution-owner/process-recovery transition; result-only nonterminal work may be interrupted/retried while uncertain external work remains reconciliation-bound"
+  },
+  "amendments": [
+    {
+      "id": "placement-generation",
+      "decision": "before new Cloudflare Case authority birth, one durable placement generation binds CaseId to the exact deployment/environment, Worker script, class/namespace, jurisdiction and Durable Object ID; a competing tuple fails closed and initialization retry reuses the elected destination",
+      "ownership": "placement is meta-authority for physical owner election only and is not a second semantic Case head"
+    },
+    {
+      "id": "eviction-versus-reopen",
+      "decision": "ordinary CaseDO eviction/reconstruction restores durable state with semantic reopen disabled; CaseDO lifecycle, constructor rerun, cache loss, deployment or stub/RPC failure does not itself prove Agent/executor ownership loss",
+      "recovery": "only a separate durable execution/delivery-owner-loss or uncertainty cause may invoke the existing reopen:true process-recovery transition, fenced and committed exactly once"
+    },
+    {
+      "id": "receipt-domain",
+      "decision": "freeze receipt command identity to typedDigest('tdev.case-command.v1', canonicalClone(command)); requestId and expectedCaseRevision are excluded from the command digest",
+      "replay": "a valid same-request/same-command receipt replay returns the durable semantic response before revision equality, including when valid revision metadata differs from the original request"
+    },
+    {
+      "id": "storage-capacity-rollout",
+      "decision": "initial production uses logical profile tdev.casedo.sqlite-authority.v1 with storageSchemaVersion=1 and normalized/chunked authoritative state",
+      "capacity": "a finite total authoritative Case budget must be positively qualified from the actual deployed provider/account profile with safety headroom; unknown or exceeded capacity fails before unsafe growth or external-effect crossing",
+      "rollout": "old/new CaseDO API and schema are compatible during provider rollout overlap or a fail-closed deployment barrier prevents incompatible mixed mutation"
+    }
+  ],
+  "providerPrimarySources": [
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/api/sqlite-storage-api/",
+      "supports": "SQLite-backed Durable Object storage and transaction boundaries"
+    },
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/",
+      "supports": "Durable Object class/storage lifecycle constraints"
+    },
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/reference/data-location/",
+      "supports": "the same name can identify different Durable Object IDs across jurisdiction contexts"
+    },
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/reference/environments/",
+      "supports": "environment bindings are separate deployment configuration contexts"
+    },
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/platform/known-issues/",
+      "supports": "deployment rollout can temporarily mix new Worker code with previous Durable Object code and requires compatibility-aware handling"
+    },
+    {
+      "url": "https://developers.cloudflare.com/durable-objects/platform/limits/",
+      "supports": "provider storage/row/query limits are finite and must not be replaced by an unbounded single-blob assumption"
+    }
+  ],
+  "falsifier": {
+    "path": "test/d0019-casedo-authority-model.test.mjs",
+    "sha256": "8e41ec7905898b1f479b4c62e8863af4b45077da250cd2ba360eb8c8df717d69",
+    "newCases": [
+      "same requestId and same command replay exact durable semantic response under changed valid expected-revision metadata",
+      "ordinary CaseDO reconstruction preserves a running Attempt and does not advance Case revision",
+      "explicit execution-owner-loss recovery applies existing reopen semantics and repeated recovery does not advance revision again",
+      "one CaseId placement generation rejects a competing provider placement tuple"
+    ]
+  },
+  "validation": {
+    "dependencyInstall": {
+      "jobId": "job_73x_a6d43aad86",
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "exitCode": 0,
+      "status": "passed"
+    },
+    "focusedOracle": {
+      "jobId": "job_73y_44100c90c8",
+      "command": "node --test test/d0019-casedo-authority-model.test.mjs test/durability.test.mjs test/durable-runner.test.mjs",
+      "tests": 44,
+      "passed": 44,
+      "failed": 0,
+      "status": "passed"
+    },
+    "fullRepositoryCheck": {
+      "jobId": "job_73z_b0eeeb5489",
+      "command": "npm run check",
+      "exitCode": 1,
+      "tests": 269,
+      "passed": 244,
+      "failed": 25,
+      "status": "not_green",
+      "failureClassification": "inherited Termux/F2FS ImmutableJournal hard-link publication qualification gap: link(2) returns EACCES in test/immutable-journal.test.mjs; this task does not modify src/store.mjs or D0030 production source",
+      "artifactId": "artifact_9z_78c8dbd59c",
+      "artifactSha256": "457db0a7a453ac72b82a08d0d494ec16dbe2abc909c18f3a622e922b0e74c122"
+    },
+    "diffCheckBeforeEvidence": {
+      "jobId": "job_74l_7edb1ed1fb",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "status": "passed"
+    }
+  },
+  "classification": {
+    "candidateA": "survives_as_amended",
+    "candidateB": "unfenced_copy_then_switch remains falsified",
+    "candidateC": "not_required_by_current_evidence",
+    "productionImplementationAuthorization": "design blocker from the prior adversarial review is resolved by this amendment; production remains a separate Root Task and must satisfy the amended gates",
+    "productionImplementationIncludedHere": false,
+    "productionVerifiedHere": false
+  }
+}
