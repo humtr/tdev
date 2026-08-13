@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.documentation-authority-gap-reproduction",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "base": "group/f-cloudflare-runtime@8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db",
+  "design": "D0031 revision 1",
+  "authority": {
+    "AGENTS.md": "sha256:7c9ae12a9c4851bb8c949c05c0cb1f762e2149cb9d00d5a6a04d559f29c94450",
+    "RULE.md": "sha256:f9e54fce7aa3f504fced6cc95be2fe0582c2111e36388ebb9d4e74774c4f4ce4",
+    "SDD.md": "sha256:beae9c0a3fbea28d91b066898c90b4f2907ea618e85ba761074826d8af5f1f9f",
+    "WORKBOARD.md": "sha256:c9137b59f79705689f263d8d1e7555898a2cdd379c91409c0e1c461051fabc67",
+    "docs/DOCUMENTATION.md": "sha256:5a2ce98ecf3226a2469ff433d00708f471268c45b007d20ff5b5b2e0bd9836db",
+    "docs/development/WORKFLOW.md": "sha256:7123132f3367174a8d83675945d574b5fa9d40fd33fb7bf9748decde32905e97",
+    "docs/ROADMAP.md": "sha256:784d9b4e38db8690615c89f76b00aadae4bf0558d739919078c164246970dcf8",
+    "docs/development/PROGRAM.md": "sha256:a8ae111c4960e5a8e53fab5d4c5cf794714a7ec8fdf84715d2e867fa4fea4326",
+    "docs/design/0031-self-development-documentation-authority.md": "sha256:81abefde28a5f355ee2d64596b8ddb6a0672ef5740d1675907dab1bf7af15590",
+    "tools/validate-documentation.mjs": "sha256:6c9e36c1cecee0eee6cf8434181b8bc8f47638f7bb84c907555c66de6f26f387",
+    "test/documentation-governance.test.mjs": "sha256:4620c2b56662dde89a5e01daa45582695f300a2d095851b9082690ebfc382608"
+  },
+  "baselineGovernanceTest": {
+    "jobId": "job_7bv_5552c92958",
+    "tests": 7,
+    "pass": 7,
+    "fail": 0
+  },
+  "reproduction": {
+    "jobId": "job_7bw_450176575e",
+    "zeroActiveDesign": "documentation_authority_current_design: expected exactly one match, found 0",
+    "workboardOnlyFToG": "documentation_authority_roadmap_active_mismatch: F != G",
+    "designSpecificValidator": "tools/validate-documentation.mjs explicitly calls parseRegistryStatus(registry, 'D0019')"
+  },
+  "finding": [
+    "D0031 revision 1 is verified and has no open self-development implementation gate, yet WORKBOARD and the validator require exactly one Current self-development Design.",
+    "The r1 F-to-G test exercises only WORKBOARD parsing; full documentation validation still requires a ROADMAP ACTIVE marker to change with the current route.",
+    "PROGRAM still carries active/current-like status and lane text even though WORKBOARD is declared the sole current router.",
+    "Design registry validation is not generic because D0019 is special-cased in validator code."
+  ],
+  "classification": "D0031 same-problem correction: reopen and issue revision 2 before changing the affected routing/validation semantics",
+  "productSemantics": "unchanged"
+}
