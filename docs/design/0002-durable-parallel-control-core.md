@@ -193,7 +193,7 @@ Observed verification gate:
 - checkpoint CAS conflict produced zero executor calls;
 - partial-Event failure rolled back the whole mutation.
 
-The detailed matrix is `docs/MVP.md`; implementation deltas and final coverage are in `docs/IMPLEMENTATION_REPORT.md`.
+The detailed matrix is `docs/MVP.md`; implementation deltas and final coverage are in `docs/history/implementation-report.md`.
 
 ## 8. Non-goals and follow-on gates
 

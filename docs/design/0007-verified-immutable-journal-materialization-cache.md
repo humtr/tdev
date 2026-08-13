@@ -5,7 +5,7 @@
 - Target development identity: `mvp-1a-4`
 - Direct code parent: `mvp-1a-3` / `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
 - Evidence input: Design 0006 phase-zero persistence measurements and isolated V research
-- Affected owners: `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `WORKBOARD.md`, `docs/IMPLEMENTATION_REPORT.md`
+- Affected owners: `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `WORKBOARD.md`, `docs/history/implementation-report.md`
 
 ## 1. One-line definition
 

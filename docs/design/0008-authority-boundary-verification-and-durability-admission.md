@@ -5,7 +5,7 @@
 - Target development identity: `mvp-1a-5`; verified for the bounded G1-G5 source and compatible-local-filesystem scope declared below
 - Direct code parent: `mvp-1a-4` / `1ff7c5d321958df725497d4e3a2649e210b029db`
 - Evidence date: 2026-08-09
-- Affected owners: `WORKBOARD.md`, `README.md`, `LINEAGE.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `docs/IMPLEMENTATION_REPORT.md`; prospective behavior changes may later require `docs/SPEC.md` and `docs/PROTOCOL.md`
+- Affected owners: `WORKBOARD.md`, `README.md`, `LINEAGE.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `docs/history/implementation-report.md`; prospective behavior changes may later require `docs/SPEC.md` and `docs/PROTOCOL.md`
 
 > Verified scope: the bounded G1-G5 verification, admission, recovery, namespace-hardening, and test-instrumentation work below is implemented and independently observed in the declared source/compatible-local-filesystem scope. This verification does **not** authorize a semantic-tree/root migration, snapshot schema change, durable-format rewrite, Git OID authority, provider/distributed claim, history GC, or rollback/downgrade change.
 

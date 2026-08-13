@@ -9,7 +9,7 @@
 - Production-source baseline: unchanged D0014/D0015 integrated source at the creation base; current Group E commits before this Design are documentation/self-development preparation only
 - Authority owners retained unless this Design explicitly proves otherwise: D0010 Case head, semantic root and Plan `baseDigest`; existing Task/Attempt/result/Promotion owners
 - Affected product owners if a later implementation is selected: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md` as applicable
-- Program owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/GROUP_E_CONTEXT_DELIVERY.md`
+- Program owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/history/group-e-context-delivery.md`
 
 > This accepted decision does **not** itself authorize the D0017/D0018 production implementation. It selects the staged mechanism family and evidence boundary that the next accepted Designs must implement.
 

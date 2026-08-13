@@ -334,7 +334,7 @@ D0014 became `verified` on 2026-08-10 without changing the active `mvp-1a-7` dev
 - repeated same-base-8 and multi-base-8 tail workloads;
 - clean effective diff and exact source bundle/archive integrity.
 
-Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`. The full product decision is recorded in `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
+Checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json`, SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`. The full product decision is recorded in `docs/history/d0014-product-efficiency-audit.md`.
 
 The actual-repository eight-same-base workload changed from 48 to 5 Git commands, 14.421 to 1.803 MB Git stdout, 5,287.2 to 1,027.2 ms wall time and 1.513 to 7.788/s bounded batch completion rate. Full model input remained 15,071,128 bytes and process starts remained eight. Retry preparation amplification changed from 1/2/3/4x to 1x for zero through three retries, while full request/process amplification remained Attempt-count dependent. Repeated same-base-8 p50/p95 changed from 5,422.2/5,521.3 to 1,047.2/1,062.3 ms; repeated multi-base-8 p50/p95 changed from 194.0/202.9 to 121.8/129.2 ms.
 
@@ -343,7 +343,7 @@ Verification also closes the direct-child inherited-pipe falsifier, unresolved a
 
 ## Post-verification review addendum — 2026-08-10
 
-Design 0015 and `docs/D0014_POST_VERIFICATION_REVIEW.md` independently rechecked this verified source after publication. No production-source correctness defect was found and D0014 remains `verified`. The review makes three precision points without changing this contract:
+Design 0015 and `docs/history/d0014-post-verification-review.md` independently rechecked this verified source after publication. No production-source correctness defect was found and D0014 remains `verified`. The review makes three precision points without changing this contract:
 
 1. `maxEntries/maxBytes` bound retained complete cache values; pending different-key preparations are live work and are not an executor-global memory/RSS ceiling. Caller/runner admission currently bounds live work, and the future AgentDO/executor layer must own aggregate deployed resource admission.
 2. Historical `throughputPerSecond` benchmark fields mean bounded batch completion rate, not sustained production throughput. CPU/tail numbers retain the measurement limitations in the audit report.

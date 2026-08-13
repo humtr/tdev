@@ -60,7 +60,7 @@ D0014 remains verified after independent post-publication review. The final sour
 - Status: `verified` documentation/program Class 2 decision; no D0014 production-source change
 - Design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
 - Program owner: `docs/ROADMAP.md`
-- D0014 review: `docs/D0014_POST_VERIFICATION_REVIEW.md`
+- D0014 review: `docs/history/d0014-post-verification-review.md`
 - Post-review evidence: `docs/evidence/mvp-1a-7-d0014-postreview-2026-08-10.json` (SHA-256 `469e9832affe98a52e7fa2c2c2a7908afd34f7c035c1497593294d6871c7d5fc`)
 - Final-MVP requirement: Cloudflare Case/Agent runtime + authenticated local Agent + deployed Git + secured MCP + configuration/migration/rollback/operations + final deployed qualification
 - D0014 disposition: remains `verified`; source/product evidence intact; no production-source correctness reopen; one timing-sensitive lifecycle test guard corrected
@@ -80,7 +80,7 @@ D0014 remains verified after independent post-publication review. The final sour
 - Actual repository result, 8 Tasks / 1 base: wall 5,287.2 -> 1,027.2 ms (-80.6%), bounded batch completion rate 1.513 -> 7.788/s (+414.7%), Git calls 48 -> 5, Git stdout 14.421 -> 1.803 MB; request bytes remain 15,071,128 and process starts remain eight
 - Retry result: preparation amplification 1/2/3/4x -> 1x for zero through three retries; full request/process amplification remains Attempt-count dependent
 - Evidence: `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`)
-- Audit report: `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`
+- Audit report: `docs/history/d0014-product-efficiency-audit.md`
 - Boundaries: no deterministic ContextSlice, persistent manifest/CAS, cross-worker reuse, warm process, provider/tokenizer/billing claim, locality scheduler or semantic-authority change
 
 ### D0013 — verified real repository context and trusted-local model transport
@@ -249,7 +249,7 @@ D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC co
 
 - Development checkpoint succession: `LINEAGE.md`
 - Development-plane synchronization: `docs/development/WORKFLOW.md`
-- Session-access model: `docs/development/ACCESS.md`
+- Session-access model: `docs/history/access-model.md`
 - Development program register: `docs/development/PROGRAM.md`
 - Documentation taxonomy: `docs/DOCUMENTATION.md`
 - Historical lineage: `LINEAGE.md`
@@ -262,4 +262,4 @@ D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC co
 - Deployment/migration/rollback: `docs/DEPLOYMENT.md`
 - MCP projection: `docs/MCP.md`
 - Verification and acceptance: `docs/MVP.md`
-- Independent audit and implementation report: `docs/IMPLEMENTATION_REPORT.md`
+- Independent audit and implementation report: `docs/history/implementation-report.md`

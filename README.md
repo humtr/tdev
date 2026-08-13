@@ -61,7 +61,7 @@ On the actual 102-file / 1,788,423-byte audit repository, eight same-base Tasks 
 
 Preparation amplification across zero through three retries changed from 1/2/3/4 times to one exact-base preparation. Full request bytes and process starts remain proportional to Attempt count.
 
-The checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`); the full decision report is `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md`.
+The checked evidence is `docs/evidence/mvp-1a-7-repository-model-efficiency-2026-08-10.json` (SHA-256 `ca22551d8137eadefd5af6c1f33196dfee4971f68e65e6d42f063d656b27f610`); the full decision report is `docs/history/d0014-product-efficiency-audit.md`.
 
 ## Runtime and verification
 
@@ -144,8 +144,8 @@ The model remains result-only. It cannot mutate the canonical repository directl
 | `docs/design/0014-*.md` | accepted and verified D0014 source contract |
 | `docs/design/0015-*.md` | verified final-MVP program rebaseline and D0014 post-review decision |
 | `docs/ROADMAP.md` | final-MVP capability groups, provisional Design program and qualification levels |
-| `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md` | complete D0014 audit and decision report |
-| `docs/D0014_POST_VERIFICATION_REVIEW.md` | independent post-publication precision review and corrections |
+| `docs/history/d0014-product-efficiency-audit.md` | complete D0014 audit and decision report |
+| `docs/history/d0014-post-verification-review.md` | independent post-publication precision review and corrections |
 | `docs/evidence/` | checked machine-readable evidence |
 
 ## Current boundaries and final-MVP program

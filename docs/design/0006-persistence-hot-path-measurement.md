@@ -3,7 +3,7 @@
 - Status: verified
 - Class: 2 (verification-method and persistence follow-on gate)
 - Baseline: `mvp-1a-3` / `52e79323f80bccd1123b7a538a6d49d5754cd1ec`
-- Evidence owners affected: `docs/MVP.md`, `docs/IMPLEMENTATION_REPORT.md`, `WORKBOARD.md`
+- Evidence owners affected: `docs/MVP.md`, `docs/history/implementation-report.md`, `WORKBOARD.md`
 - Product behavior changed by this record: none
 
 ## 1. One-line definition
