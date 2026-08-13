@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development-documentation-authority-inventory.v1",
+  "date": "2026-08-13",
+  "repository": "humtr/tdev",
+  "baseRevision": "97208151c8cdb04f89a6af0bd58eea568bc825c3",
+  "activeCumulativeBranch": "group/f-cloudflare-runtime",
+  "purpose": "Evidence-only semantic inventory before the D0031 self-development documentation architecture Design. This record does not itself change authority.",
+  "observedExecutionState": {
+    "registeredProjectDefaultBranch": "group/f-cloudflare-runtime",
+    "canonicalCheckoutObservedBranch": "group/e-context-delivery",
+    "canonicalCheckoutObservedHead": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "checkoutAlignmentDebt": true,
+    "isolatedAuditWorktreeHead": "97208151c8cdb04f89a6af0bd58eea568bc825c3"
+  },
+  "findings": [
+    {
+      "id": "F01",
+      "class": "stale-current-fact",
+      "path": "LINEAGE.md",
+      "finding": "The file declares group/e-context-delivery as the active cumulative checkpoint branch even though current repository authority and the observed remote active branch are group/f-cloudflare-runtime.",
+      "dispositionHypothesis": "Preserve its unique historical rationale as history; move current lineage authority to a single current normative owner."
+    },
+    {
+      "id": "F02",
+      "class": "duplicated-mutable-state",
+      "paths": [
+        "AGENTS.md",
+        "RULE.md",
+        "WORKBOARD.md",
+        "docs/ROADMAP.md",
+        "docs/development/PROGRAM.md",
+        "docs/development/WORKFLOW.md",
+        "docs/development/BRANCH_LINEAGE.md"
+      ],
+      "finding": "Active/completed Group and branch facts are repeated across stable rules, workflow, program and routing documents.",
+      "dispositionHypothesis": "WORKBOARD should own the current routing instance; lineage/workflow documents should own stable transition rules without duplicating the current instance."
+    },
+    {
+      "id": "F03",
+      "class": "bootstrap-overload",
+      "path": "AGENTS.md",
+      "finding": "The required-reading list forces many self-development and program documents into every change before affected scope is known.",
+      "dispositionHypothesis": "Use a small fixed bootstrap kernel and progressive loading selected by current routing and affected owners."
+    },
+    {
+      "id": "F04",
+      "class": "mixed-current-history",
+      "path": "WORKBOARD.md",
+      "finding": "The current router is followed by verified history from D0015 back through D0002 and a resulting-foundation narrative.",
+      "dispositionHypothesis": "Keep only carry-forward facts that constrain present routing; retain detailed history in Design/evidence/history owners."
+    },
+    {
+      "id": "F05",
+      "class": "historical-aggregate",
+      "path": "docs/IMPLEMENTATION_REPORT.md",
+      "finding": "The 1099-line report is an append-only historical verification aggregate whose early sections correctly describe formerly active Group E states but visually resembles a current ALLCAPS normative owner.",
+      "dispositionHypothesis": "Freeze/demote as a lowercase historical record; do not rewrite its historical observations as current state."
+    },
+    {
+      "id": "F06",
+      "class": "completed-specific-contract",
+      "path": "docs/development/GROUP_E_CONTEXT_DELIVERY.md",
+      "finding": "A completed Group E-specific execution contract remains in the ALLCAPS normative development namespace while no Group F equivalent exists.",
+      "dispositionHypothesis": "Preserve as lowercase history rather than perpetuating a Group-specific required-document class."
+    },
+    {
+      "id": "F07",
+      "class": "supporting-contract",
+      "path": "docs/development/ACCESS.md",
+      "finding": "The durable invariant is the distinction between plane health, route health and current-session capability; most of the document is a Termux/tmcp-specific elaboration of WORKFLOW semantics.",
+      "dispositionHypothesis": "Merge the durable invariant into WORKFLOW if no unique owner conflict is found; retain tool-specific examples only as supporting history/guide if still useful."
+    },
+    {
+      "id": "F08",
+      "class": "normative-acceptance-with-history",
+      "path": "docs/MVP.md",
+      "finding": "MVP.md is a widely referenced normative executable-acceptance owner but also accumulates historical verification counts and evidence narrative.",
+      "dispositionHypothesis": "Retain the stable normative path initially; reduce historical accumulation only after proving every retained acceptance rule and reference owner. Renaming to QUALIFICATION is not justified by naming value alone."
+    },
+    {
+      "id": "F09",
+      "class": "naming-signal-conflict",
+      "paths": [
+        "docs/development/BRANCH_LINEAGE.md",
+        "docs/development/GROUP_E_CONTEXT_DELIVERY.md",
+        "docs/D0014_POST_VERIFICATION_REVIEW.md",
+        "docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md",
+        "docs/IMPLEMENTATION_REPORT.md"
+      ],
+      "finding": "ALLCAPS currently mixes live normative owners with completed/specific/historical records, weakening filename semantics.",
+      "dispositionHypothesis": "Reserve ALLCAPS for live normative/current owners, with README as a conventional exception; use lowercase-kebab for bounded Design/evidence/history/specific records."
+    },
+    {
+      "id": "F10",
+      "class": "design-lifecycle-gap",
+      "path": "SDD.md",
+      "finding": "SDD says a failed falsifier reopens a Design or owner, but reopened and amended/revision are absent from the formal status/lifecycle model; D0019 already demonstrates an accepted-as-amended practice.",
+      "dispositionHypothesis": "Formalize revision, reopen, supersede and downstream invalidation without making rollback the default correction mechanism."
+    },
+    {
+      "id": "F11",
+      "class": "historical-reference-integrity",
+      "paths": [
+        "docs/design/*.md",
+        "docs/evidence/*.json",
+        "docs/IMPLEMENTATION_REPORT.md"
+      ],
+      "finding": "Historical records contain exact former document paths and branch identities that are part of provenance.",
+      "dispositionHypothesis": "Do not blindly rewrite evidence/historical path strings during naming migration; current live references and intentionally maintained records must be distinguished from immutable historical observations."
+    },
+    {
+      "id": "F12",
+      "class": "design-id-availability",
+      "path": "docs/design/",
+      "finding": "Existing Design files are D0001-D0019 and D0030; no D0031 file or planning entry was found in the bounded current program/design search.",
+      "dispositionHypothesis": "D0031 is available for the self-development documentation architecture decision, subject to the Design itself recording that it is a cross-cutting self-development/risk gate rather than a new product capability."
+    }
+  ],
+  "preservationRules": [
+    "Do not delete historical rationale merely because its former current pointer is stale.",
+    "Do not rewrite exact evidence observations to make them look current.",
+    "Do not create a new permanent meta-document for every derived session concept when an existing owner can carry the invariant.",
+    "Do not rename a widely referenced normative owner unless the semantic and reference-migration benefit exceeds the churn risk.",
+    "A fact remaining old but still constraining current work, such as a rollback barrier or inherited qualification gap, remains eligible for compact WORKBOARD carry-forward."
+  ],
+  "auditJobs": [
+    "job_78w_e767c014d5",
+    "job_78x_c35f25cb7b",
+    "job_78y_c14fee751a"
+  ],
+  "toolingNote": "Two independent agy harness attempts were not used as evidence because tmcp rejected their completion without an exact external session ID (HARNESS_SESSION_ID_MISSING)."
+}
