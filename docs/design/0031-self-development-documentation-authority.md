@@ -1,11 +1,13 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
 - Inventory evidence: `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`
+- Verification source: `92d4ffeae74a0a0cac00ec05ab4efea01e73eedb`
+- Verification evidence: `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
 - Product semantics: unchanged
 - Explicit non-owners: this Design does not redefine `SPEC.md`, `ARCHITECTURE.md`, `PROTOCOL.md`, `OPERATIONS.md`, `SECURITY.md`, `DEPLOYMENT.md`, `MCP.md`, runtime Case/Task/Attempt semantics, provider behavior, or product Git Promotion
 
@@ -240,3 +242,7 @@ Rejected as the normal correction model. Correct forward on the active cumulativ
 7. run full effective-diff and source/documentation gates, then publish by exact fast-forward only.
 
 Acceptance of this Design authorizes only these self-development/documentation changes. It does not authorize D0019/D0020/D0030 product implementation, provider deployment, runtime migration, or product semantic changes.
+
+## 12. Verification conclusion
+
+Revision 1 is `verified` for the D0031 self-development/documentation scope. The repository-owned validator and seven adversarial governance tests close stale handoff, F-to-G routing, Design-revision mismatch and fail-closed owner-conflict cases. The supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 250/250 both uninstrumented and instrumented; product `src/` changed zero paths. Exact all-test commands remain platform-unqualified only because the pre-existing ImmutableJournal hard-link profile receives `link(2) EACCES` on this filesystem. That unrelated qualification gap is preserved rather than converted into D0031 success or failure.

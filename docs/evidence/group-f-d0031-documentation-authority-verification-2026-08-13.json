@@ -1,0 +1,95 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development-documentation-authority-verification.v1",
+  "date": "2026-08-13",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0031",
+    "revision": 1,
+    "path": "docs/design/0031-self-development-documentation-authority.md"
+  },
+  "verificationSourceCommit": "92d4ffeae74a0a0cac00ec05ab4efea01e73eedb",
+  "baseRevision": "97208151c8cdb04f89a6af0bd58eea568bc825c3",
+  "activeCumulativeBranchAtVerification": "group/f-cloudflare-runtime",
+  "scope": "Self-development/documentation authority, session bootstrap and routing, naming/history separation, Design correction lifecycle, and executable documentation/session-rebind validation. Product runtime semantics are unchanged.",
+  "stageCommits": [
+    {"sha": "dfc86e17194babfc08b5d546705801b7d76ed6ab", "message": "docs: inventory self-development authority"},
+    {"sha": "087abdec4945bac0ba892e4806cee7b9070c128b", "message": "docs: accept D0031 documentation authority design"},
+    {"sha": "721e77bcfb52cd1504012cb46422d57f24afcddc", "message": "docs: rebind self-development authority"},
+    {"sha": "fb01e1543e5245e6bf852507e6a8a32d54122c89", "message": "docs: separate historical development records"},
+    {"sha": "e3cfeadccec164c82aabca8bd900ea0e48140c38", "message": "docs: make workboard the current router"},
+    {"sha": "61e7c9d5ac8fb45e19fa132b6834a2f1eb90e928", "message": "docs: formalize design correction lifecycle"},
+    {"sha": "92d4ffeae74a0a0cac00ec05ab4efea01e73eedb", "message": "test: enforce documentation authority"}
+  ],
+  "acceptance": {
+    "bootstrapKernel": {
+      "result": "pass",
+      "owners": ["AGENTS.md", "RULE.md", "SDD.md", "WORKBOARD.md"],
+      "note": "AGENTS/RULE/WORKFLOW contain no literal current Group F branch route; WORKBOARD owns the current route."
+    },
+    "staleContinuity": {
+      "result": "pass",
+      "cases": ["stale mvp-1a-7 branch", "stale Group E", "stale Design ID/revision/status"],
+      "behavior": "repository owners win and incompatible continuity claims are reported stale"
+    },
+    "routeTransition": {
+      "result": "pass",
+      "case": "fixture Group F -> Group G",
+      "behavior": "WORKBOARD-only route change resolves group/g-mcp-security without changing AGENTS, RULE, WORKFLOW, or lineage law"
+    },
+    "designCorrection": {
+      "result": "pass",
+      "behavior": "Design revision mismatch and status mismatch fail closed; pre-D0031 records without Revision are legacy revision 1; D0019 is formalized as accepted revision 2"
+    },
+    "historyPreservation": {
+      "result": "pass",
+      "note": "Completed/specific reports were moved to docs/history with exact bytes preserved during the migration stage; historical evidence strings were not globally rewritten."
+    },
+    "naming": {
+      "result": "pass",
+      "note": "Live normative/current owners remain uppercase; actively migrated historical Markdown uses lowercase kebab-case. MVP.md was intentionally retained as a widely referenced normative owner rather than renamed for style alone."
+    },
+    "effectiveDiff": {
+      "result": "pass",
+      "productSourceChangedPaths": 0,
+      "diffCheck": "pass"
+    }
+  },
+  "validation": {
+    "focusedDocumentationJob": "job_7at_cd428c5dc8",
+    "fullLayerJob": "job_7ax_f63eda0930",
+    "failureClassificationJob": "job_7ay_a9ad8b510d",
+    "npmCi": {"exit": 0},
+    "documentationValidator": {"exit": 0, "route": "F group/f-cloudflare-runtime D0031@r1 accepted"},
+    "documentationGovernanceTests": {"tests": 7, "pass": 7, "fail": 0},
+    "supportedTermuxSuiteExcludingInheritedImmutableJournalHardLinkProfile": {"tests": 250, "pass": 250, "fail": 0, "exit": 0},
+    "supportedTermuxInstrumentedCoverageExcludingInheritedImmutableJournalHardLinkProfile": {"tests": 250, "pass": 250, "fail": 0, "exit": 0},
+    "exactNpmCheck": {
+      "exit": 1,
+      "classification": "platform-unqualified due to inherited ImmutableJournal hard-link publication profile",
+      "d0031Regression": false
+    },
+    "exactAllTestCoverage": {
+      "exit": 1,
+      "classification": "platform-unqualified because the inherited ImmutableJournal hard-link profile is included",
+      "d0031Regression": false
+    },
+    "immutableJournalClassification": {
+      "tests": 26,
+      "pass": 1,
+      "fail": 25,
+      "exit": 1,
+      "cause": "link(2) EACCES on the connected Termux filesystem",
+      "note": "This is the pre-existing qualification gap already carried by current repository owners; D0031 does not modify src/store.mjs or publication semantics."
+    },
+    "gitDiffCheck": {"exit": 0}
+  },
+  "preservedBoundaries": [
+    "No src/ product file changed.",
+    "No product runtime, provider, durable-state, migration or deployment semantics changed.",
+    "Completed Group E and legacy checkpoint refs were not mutated.",
+    "The canonical Termux checkout remained a last-observed checkout-alignment debt while work used an isolated exact-Group-F worktree.",
+    "Exact historical evidence observations remain history rather than being rewritten to current wording."
+  ],
+  "result": "verified for the D0031 self-development/documentation scope on the declared repository and supported-Termux validation scope; unrelated inherited hard-link all-test layers remain explicitly unqualified"
+}

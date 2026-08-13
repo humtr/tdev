@@ -9,9 +9,9 @@
 - Active cumulative branch: `group/f-cloudflare-runtime`
 - Immediate completed predecessor: `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`
 - Checkpoint succession owner: `LINEAGE.md`
-- Current self-development Design: D0031 revision 1 — `docs/design/0031-self-development-documentation-authority.md`, `accepted`; implementation/verification in progress
-- Current self-development gate: add executable documentation and session-rebind validation for the accepted D0031 authority model
-- Exact next action: implement the D0031 documentation validator and adversarial stale-handoff/F-to-G/Design-revision fixtures, then run full repository gates
+- Current self-development Design: D0031 revision 1 — `docs/design/0031-self-development-documentation-authority.md`, `verified`; no open D0031 implementation gate
+- Current self-development gate: none — D0031 revision 1 is verified; its validator now guards current-route, naming/history and Design-revision drift
+- Exact next action: resume the bounded D0019 production implementation/qualification gate on the active Group F lineage; keep D0030 production implementation separate
 - Product frontier after D0031: resume the bounded D0019 production implementation/qualification gate; D0030 production implementation remains separate
 
 A mutable remote head is not stored here as timeless authority. Re-read the provider ref immediately before any remote-changing action and prove the expected non-force predecessor/ancestry.
