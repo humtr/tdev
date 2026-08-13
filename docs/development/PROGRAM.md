@@ -285,6 +285,17 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Unverified/separate:** destructive power-loss remains unverified; tmcp `portable`/`full` validation registry entries are stale because their `verify:sandbox`/`verify:termux` package scripts are absent and must be aligned separately.
 - **Lane:** active cumulative `group/f-cloudflare-runtime`; completed Group E is provenance only.
 
+### D0031 — Self-Development Documentation Authority
+
+- **Groups:** cross-cutting self-development; no product Capability Group ownership
+- **Status:** accepted revision 1 — 2026-08-13; implementation/verification staged separately
+- **Purpose:** make each new development session rebind authority from `AGENTS.md` + `RULE.md` + `SDD.md` + `WORKBOARD.md`, make WORKBOARD the single current router, preserve history without letting it become current authority, normalize live normative versus bounded historical naming, and formalize Design revision/reopen/supersession.
+- **Product scope:** unchanged; this gate changes how tdev itself is developed and verified, not runtime Case/Task/Attempt/provider semantics.
+- **Evidence:** `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`.
+- **Cheapest falsifier:** stale handoff/Group-E/old-Design fixtures must lose to the current router; a fixture F -> G router change must require no stable AGENTS/RULE/WORKFLOW/lineage-law edit.
+- **Exit:** single-owner current routing, preserved historical records, formal correction lifecycle, and executable documentation/session-routing validation are independently green.
+- **Lane:** current cumulative development lineage resolved from `WORKBOARD.md`; D0031 does not own branch succession.
+
 ## 6. Completed Group E closure map
 
 Group E reached the following closure sequence before the exact checkpoint was retained and Group F was created:
