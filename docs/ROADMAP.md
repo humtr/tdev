@@ -1,6 +1,8 @@
 # MVP program roadmap
 
 > Normative owner for final-MVP program decomposition, capability-group exit criteria, sequencing, and user/provider setup gates. Product scope remains owned by `SPEC.md`; component ownership remains owned by `ARCHITECTURE.md`; accepted implementation behavior requires a separate Design under `SDD.md`.
+>
+> Capability/program status cells are a derived planning view. `WORKBOARD.md` alone owns the current development route; an `ACTIVE` marker here must match that router and can never override it.
 
 ## 1. Final MVP definition
 
@@ -50,7 +52,7 @@ For this project, **“MVP complete” means Level 4**. Source completion, deplo
 
 ## 4. Capability groups
 
-| Group | Capability | Current status | Existing foundation | Final-MVP exit condition |
+| Group | Capability | Program status (derived) | Existing foundation | Final-MVP exit condition |
 | --- | --- | --- | --- | --- |
 | A | Parallel execution and durable core | VERIFIED source foundation | D0001-D0008 | provider adapters preserve one scheduler/lifecycle meaning and the existing oracle |
 | B | Semantic authority and persistence | VERIFIED local / runtime integration open | D0009-D0010 | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |

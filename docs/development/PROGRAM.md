@@ -2,45 +2,24 @@
 
 > Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, cumulative Group lanes and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch/checkpoint succession is owned by `LINEAGE.md`; the current routing instance is owned by `WORKBOARD.md`. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
 
-## 1. Current program position
+## 1. Routing relationship
 
-Retained legacy baseline and exact Group E predecessor:
+`PROGRAM.md` is the Design-sized dependency/coverage graph, not the current router. Resolve the active cumulative Group/branch, current Design gate and exact next action from `WORKBOARD.md`; resolve legal checkpoint succession from `LINEAGE.md`.
 
-```text
-mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
-```
+Status and lane fields below are planning/derived views. They must be repaired when their owners change, and later documentation validation may check them for drift. A stale program status cannot originate an alternate branch, reopen a completed checkpoint or authorize Class 2 implementation.
 
-Completed Group E checkpoint:
-
-```text
-group/e-context-delivery @ 151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e
-checkpoint cp_1786580384438_9ed881e039da
-```
-
-Current active Capability Group:
-
-```text
-Group F — Cloudflare runtime and local Agent topology
-```
-
-Current active cumulative branch:
-
-```text
-group/f-cloudflare-runtime
-```
-
-`mvp-1a-7` is retained as the cumulative baseline through D0015; it is not the destination for post-D0015 Group integration. Group E is now a retained completed checkpoint, and `group/f-cloudflare-runtime` was created from its exact final head with no intervening commit. F accumulates E+F; G is created from final F; H from final G; the final MVP prototype branch is forked from the exact final H head.
+The A-H Capability Group structure remains the program decomposition inherited from `docs/ROADMAP.md`. Exact historical checkpoint identities remain available in retained Design/evidence/history records and, when they still constrain the current route, in `WORKBOARD.md`.
 
 ## 2. Capability Group register
 
-| Group | Capability | Current status | Existing verified foundation | Cumulative checkpoint lane | Final-MVP exit |
+| Group | Capability | Program status (derived) | Existing verified foundation | Cumulative checkpoint lane | Final-MVP exit |
 | --- | --- | --- | --- | --- | --- |
 | A | Parallel execution and durable core | foundation verified | D0001-D0008 | historical foundation retained in `mvp-1a-7` ancestry | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch and existing acceptance oracle |
 | B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
 | C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
 | D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
 | E | Context delivery and model input | **completed checkpoint / D0016+D0017+D0018 accepted; D0017+D0018 source/runtime verified** | D0016 mechanism decision + D0017 contract/source + D0018 runtime decision | retained `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E exit scope; retained checkpoint feeds F by ancestry |
-| F | Cloudflare runtime and local Agent topology | **active / topology not implemented** | architecture mapping only plus inherited E checkpoint | active `group/f-cloudflare-runtime` created from final Group E | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
+| F | Cloudflare runtime and local Agent topology | **active / topology not implemented** | architecture mapping only plus inherited E checkpoint | Group F cumulative checkpoint lane; activation comes from `WORKBOARD.md` | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
 | G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
 | H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
 
@@ -149,7 +128,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Evidence:** predecessor `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json` SHA-256 `6e196ff1cae6c9ef993bcebf112405234fccc7c682a4563811c16ab2e41e7daa`; amendment `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json` SHA-256 `79470299245e617147976b7f806c0e23dc78dfc2a47ca867cb80f984a73dd623`; fresh model + inherited oracle run 44/44 passed; amended falsifier SHA-256 `8e41ec7905898b1f479b4c62e8863af4b45077da250cd2ba360eb8c8df717d69`.
 - **Provider evidence:** current Cloudflare primary docs were reverified for SQLite transactions/strong consistency, eviction/reconstruction, error/stub ambiguity, environment/jurisdiction-scoped identity, storage limits, class/storage lifecycle and old/new code rollout overlap; the accepted model does not rely on undocumented transaction-callback replay, exactly-once RPC/alarm delivery or DO memory permanence.
 - **Production gate:** implement durable placement election plus one elected normalized/chunked SQLite-backed adapter/profile, inject competing placement, exact receipt replay with changed valid revision metadata, stale/concurrent/precommit/postcommit-loss, ordinary eviction/no-reopen, explicit owner-loss recovery, corruption, capacity, rollout-compatibility, running-before-dispatch and result-fence failures, then independently verify real provider/deployment layers. No D0020/D0030 implementation or existing-Case migration is bundled into this Task.
-- **Lane:** active cumulative `group/f-cloudflare-runtime`.
+- **Lane:** Group F cumulative lane; current activation is resolved from `WORKBOARD.md`.
 
 ### D0020 — AgentDO Connection, Capacity and Delivery Owner
 
@@ -283,7 +262,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Evidence:** prior research `docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json` SHA-256 `370cb70792afd1e79395f7578e10502330d254e54cfdb6120d064450566a915f`; acceptance convergence `docs/evidence/group-f-d0030-publication-portability-acceptance-convergence-2026-08-13.json` SHA-256 `239aada0b6f15e75faf6c2c04b779f3d578cdf36956d6b108f67b47ee038fd7b`; Termux falsifier SHA-256 `50aa955cb547e594817e2005df5860e9c1a71eb45f2e47569c1584d33f674ae8`; independent POSIX summary SHA-256 `eeb7f266df67ad087c3695d1fbf30bd5c080946a88822da2fb5a90fab132481b`; falsifier commit `e0d7706d02827d136eada0a9484d8ef6874cb672`.
 - **Production implementation:** none yet. At this acceptance checkpoint `src/store.mjs` remains unchanged on the inherited hard-link primitive. The next authorized D0030 Task is post-acceptance production helper/package implementation and independent production qualification under the frozen contract.
 - **Unverified/separate:** destructive power-loss remains unverified; tmcp `portable`/`full` validation registry entries are stale because their `verify:sandbox`/`verify:termux` package scripts are absent and must be aligned separately.
-- **Lane:** active cumulative `group/f-cloudflare-runtime`; completed Group E is provenance only.
+- **Lane:** Group F cumulative lane; current activation is resolved from `WORKBOARD.md`; completed Group E is provenance only.
 
 ### D0031 — Self-Development Documentation Authority
 
