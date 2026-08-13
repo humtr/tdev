@@ -1,0 +1,312 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0030-immutable-publication-portability-research",
+  "date": "2026-08-13",
+  "design": "D0030",
+  "status": "draft-evidence",
+  "authority": {
+    "activeCumulativeBranch": "group/f-cloudflare-runtime",
+    "startSha": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "groupECheckpoint": {
+      "id": "cp_1786580384438_9ed881e039da",
+      "digest": "9ed881e039dadfc813af007cb743075c6549a643d9600d261dde002beb9644da",
+      "checkpointJobId": "job_6mv_1ba3d598cc"
+    },
+    "groupFCreation": {
+      "worktreeJobId": "job_6mx_27a426ca92",
+      "remoteCreateJobId": "job_6my_004e57d133",
+      "projectDefaultBranchJobId": "job_6n6_ff850ec6e7",
+      "createdFromExactGroupESha": true
+    },
+    "designTask": {
+      "taskId": "task_6pg_438824c731",
+      "authorityDigest": "d44c433b417315fb7521c09131ad4feac6954855383f9ca5eb2a45beb6f0f3e2",
+      "worktreeId": "wt_42c6c304f45e3a74",
+      "taskBranch": "tmcp/d0030-immutable-publication-portability"
+    }
+  },
+  "repositoryFacts": {
+    "immutableStoreSource": {
+      "path": "src/store.mjs",
+      "sha256": "a4112a0dba0452886c36947e9d0a184b7c13d4a4bec25b96933a0f67cb09436a",
+      "publication": "unique dot temp regular file, canonical write, file sync, hard-link no-replace publication, Case-directory sync, post-publication ambiguity, best-effort cleanup"
+    },
+    "immutableJournalTests": {
+      "path": "test/immutable-journal.test.mjs",
+      "sha256": "1a9b755027d7bc1d375a42beb1b8b515f7313a1d5b1af0ba739038ea5f327ebc",
+      "covered": [
+        "independent-process base create winner election",
+        "independent-process successor winner election",
+        "different successor revisions",
+        "stale writer denial",
+        "legacy/v2 migration and downgrade barrier",
+        "corruption/fork/gap/noncanonical/non-regular namespace rejection",
+        "pre-publication injected failures",
+        "directory-sync ambiguous commit",
+        "cleanup failure non-retroactivity"
+      ]
+    },
+    "package": {
+      "path": "package.json",
+      "sha256": "2aed3fa3a0baf11078ff6468fd992df8d117a1c0ac4666be2601fb109e1e1e6a",
+      "nodeMinimum": ">=22",
+      "existingNativeAddonOrHelperDependency": false
+    },
+    "designIdentity": {
+      "acceptedRegistryEndsAt": "D0018",
+      "provisionalRoadmapRangeAlreadyAssigned": "D0019-D0029",
+      "selectedNonCollidingId": "D0030"
+    },
+    "productionSourceMutationAuthorized": false
+  },
+  "priorMeasuredLocalEvidence": {
+    "task": {
+      "taskId": "task_6ni_625838d8a0",
+      "continuityKey": "tdev-termux-publication-portability-deep-research-20260813",
+      "checkpointId": "cp_1786581036451_bed7284b8070",
+      "checkpointDigest": "bed7284b8070b6b185abdc71cc582ae957949170d0ba024f52f000dc3719767c",
+      "repositoryMutation": false
+    },
+    "environmentAsMeasuredByPriorTask": {
+      "node": "v26.4.0",
+      "kernel": "Linux 6.1.145-android14-11-33419968-abS928NKSS6DZG1",
+      "architecture": "aarch64",
+      "probeFilesystem": "F2FS",
+      "selinuxDomain": "u:r:untrusted_app_27:s0:c123,c257,c512,c768",
+      "note": "These are measurements from the prior evidence Jobs; this D0030 draft does not promote them to universal Android/Linux/F2FS facts."
+    },
+    "jobs": [
+      {
+        "jobId": "job_6nk_71bd6cce78",
+        "executionDigest": "344272c8fd9bdff6e690ce23ef0c30cbd7ebf431484158dd1c86171c230cb23e",
+        "facts": [
+          "direct linkat(2) returned EACCES",
+          "same-directory renameat2(RENAME_NOREPLACE) to absent final succeeded",
+          "successful final had the same device and inode as the prewritten/fsynced temporary file",
+          "successful rename removed the temporary pathname and preserved exact payload bytes",
+          "Case-directory fsync after rename succeeded",
+          "existing destination returned EEXIST, left contender present, and preserved winner bytes",
+          "plain Node rename overwrote an existing destination",
+          "direct final O_EXCL publication exposed the final pathname at size 0 before payload write",
+          "naive symlink publication exposed mutable/deletable/path-escape indirection hazards"
+        ]
+      },
+      {
+        "jobId": "job_6nm_02faf8ff3d",
+        "executionDigest": "38f8fb39abb0617d6590f9c7b47ab9e6de8f13d2a9a24b51fbde8e07097da335",
+        "facts": [
+          "25/25 RENAME_NOREPLACE races produced exactly one winner and one EEXIST loser with no bad final value",
+          "preexisting final symlink was preserved and contender remained after EEXIST"
+        ]
+      },
+      {
+        "jobId": "job_6nn_d8adbde58d",
+        "executionDigest": "68ad7a9cc33682593bef81af000ba721d1c8bfbd627d7c6e3e32ad5ab0b9f43a",
+        "facts": [
+          "O_TMPFILE creation succeeded",
+          "publication through /proc/self/fd plus linkat(AT_SYMLINK_FOLLOW) returned EACCES",
+          "no final pathname was created"
+        ]
+      },
+      {
+        "jobId": "job_6nl_0550887331",
+        "executionDigest": "61d3e96c63e277ecb4823d7293f897473eb966a1f70f5da219646102cb39ac91",
+        "facts": [
+          "content-addressed object plus constrained symlink prototype read the correct object",
+          "same-UID object mutation failed closed through digest mismatch",
+          "../ target escape failed target grammar validation",
+          "missing object failed closed",
+          "openat2 RESOLVE_BENEATH|RESOLVE_NO_SYMLINKS accepted contained regular object and rejected symlink object with ELOOP"
+        ]
+      }
+    ]
+  },
+  "externalPrimarySources": [
+    {
+      "topic": "renameat2 RENAME_NOREPLACE",
+      "source": "Linux man-pages 6.18, rename(2), 2026-02-08",
+      "url": "https://man7.org/linux/man-pages/man2/rename.2.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "RENAME_NOREPLACE does not overwrite an existing new path",
+        "existing destination maps to EEXIST",
+        "underlying filesystem support is required",
+        "unsupported flag/filesystem can return EINVAL",
+        "renameat2 is Linux-specific"
+      ]
+    },
+    {
+      "topic": "file and directory durability",
+      "source": "Linux man-pages 6.18, fsync(2), 2026-02-08",
+      "url": "https://man7.org/linux/man-pages/man2/fsync.2.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "file fsync flushes file data/metadata according to the documented contract",
+        "file fsync alone does not necessarily make the containing directory entry durable",
+        "the containing directory requires an explicit fsync for that layer"
+      ]
+    },
+    {
+      "topic": "Android untrusted-app hard-link policy",
+      "source": "AOSP platform/system/sepolicy private/app_neverallows.te",
+      "revision": "434fb132e7adb545dc511564ca3b631ec617115a",
+      "url": "https://android.googlesource.com/platform/system/sepolicy/%2B/refs/heads/main/private/app_neverallows.te",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "all_untrusted_apps are prohibited from hard-linking file_type:file",
+        "AOSP comments state deletion-integrity and security reasons for the prohibition"
+      ]
+    },
+    {
+      "topic": "Android bionic renameat2 surface",
+      "source": "AOSP platform/bionic libc/include/stdio.h",
+      "revision": "2c2dc0173f037c581274058467850128de92a0c6",
+      "url": "https://android.googlesource.com/platform/bionic/%2B/master/libc/include/stdio.h",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "RENAME_NOREPLACE is exposed as the fail-if-new-path-exists renameat2 flag",
+        "renameat2 returns -1 and sets errno on failure",
+        "bionic renameat2 is introduced in Android API 30"
+      ]
+    },
+    {
+      "topic": "Node public rename semantics",
+      "source": "Node.js v26.7.0 fs documentation",
+      "url": "https://nodejs.org/api/fs.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "fs.rename overwrites an existing newPath and exposes no RENAME_NOREPLACE flag parameter"
+      ]
+    },
+    {
+      "topic": "Node subprocess boundary",
+      "source": "Node.js v26.7.0 child_process documentation",
+      "url": "https://nodejs.org/api/child_process.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "spawn/execFile can operate without a shell",
+        "subprocesses support bounded signal/timeout control",
+        "a positive parent file descriptor can be shared with a child through stdio"
+      ]
+    },
+    {
+      "topic": "Node-API native addon ABI",
+      "source": "Node.js v26.7.0 Node-API documentation",
+      "url": "https://nodejs.org/api/n-api.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "Node-API is Stability 2 Stable",
+        "Node-API is intended to provide ABI stability across Node versions for native addons"
+      ]
+    },
+    {
+      "topic": "libuv rename semantics",
+      "source": "libuv 1.x filesystem documentation",
+      "url": "https://docs.libuv.org/en/v1.x/fs.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "uv_fs_rename is equivalent to rename(2) and has no no-replace flag parameter"
+      ]
+    },
+    {
+      "topic": "Node FFI candidate",
+      "source": "Node.js v26.7.0 FFI documentation",
+      "url": "https://nodejs.org/api/ffi.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "node:ffi was added in Node 26.1.0 and is Stability 1 Experimental",
+        "it requires an FFI-enabled build and --experimental-ffi",
+        "the reviewed documentation exposes no direct stable errno helper; this is a documentation observation, not a proof of impossibility"
+      ]
+    },
+    {
+      "topic": "F2FS fsync policy",
+      "source": "Linux kernel F2FS documentation",
+      "url": "https://docs.kernel.org/filesystems/f2fs.html",
+      "retrieved": "2026-08-13",
+      "claimsUsed": [
+        "F2FS exposes posix, strict, and nobarrier fsync modes",
+        "deployment durability qualification therefore must identify the concrete mount/runtime profile"
+      ]
+    }
+  ],
+  "survivingDecision": {
+    "preferredSecondBackendCandidate": "same-directory renameat2(RENAME_NOREPLACE)",
+    "backendNeutralContract": [
+      "unique same-directory exclusive regular contender",
+      "complete canonical bytes before publication",
+      "contender file fsync before publication",
+      "one atomic no-replace regular-file publication operation",
+      "existing destination of any type is not overwritten and triggers reread",
+      "Case-directory fsync before success",
+      "known pre-publication failure means no successor",
+      "lost or post-publication uncertain result is store_commit_ambiguous and requires reread",
+      "cleanup is non-authoritative",
+      "committed namespace, regular-file, replay, corruption, migration and downgrade rules remain unchanged"
+    ],
+    "backendSelection": "explicitly qualified writer backend; never per-write silent fallback",
+    "mixedWriterRuleUntilQualified": "homogeneous writer backend or quiesced/fenced switch for one writable journal namespace",
+    "capabilityRule": "positive directory-local probe on the actual writable Case filesystem and exact integration identity; unsupported/unqualified paths fail closed",
+    "capabilityCache": "disposable process/store-instance state only; restart or validity-key change requires requalification",
+    "nodeIntegration": "unresolved; bounded fd-relative native helper is leading next falsifier, Node-API addon is stable secondary comparator, public Node/libuv rename rejected, experimental Node FFI not selected for Node >=22 baseline",
+    "durableFormatChange": false,
+    "dataMigrationRequiredForBackendSwitch": false
+  },
+  "rejectedOrDeferredAlternatives": [
+    {
+      "candidate": "plain rename or check-then-rename",
+      "decision": "rejected",
+      "reason": "overwrite semantics or TOCTOU winner-election race"
+    },
+    {
+      "candidate": "direct final O_EXCL write",
+      "decision": "rejected",
+      "reason": "authoritative final pathname becomes visible before complete bytes and file fsync"
+    },
+    {
+      "candidate": "copy or reflink to final",
+      "decision": "rejected as commit primitive",
+      "reason": "exposes transfer destination or still requires a separate no-replace publication primitive"
+    },
+    {
+      "candidate": "O_TMPFILE plus hard-link publication",
+      "decision": "rejected for measured Android profile",
+      "reason": "publication still encounters the denied hard-link boundary"
+    },
+    {
+      "candidate": "naive symlink",
+      "decision": "rejected",
+      "reason": "changes authoritative slot type and introduces mutable/deletable/path-escape indirection"
+    },
+    {
+      "candidate": "content-addressed object plus constrained symlink",
+      "decision": "deferred new durable protocol",
+      "reason": "technically feasible but adds object namespace, retention/GC, crash ordering, path-security, migration, downgrade and rollback ownership"
+    },
+    {
+      "candidate": "node:ffi baseline",
+      "decision": "deferred/rejected for current baseline",
+      "reason": "Node 26.1+ experimental/flag/build dependency conflicts with the repository Node >=22 baseline and exact errno integration is not frozen"
+    }
+  ],
+  "unknowns": [
+    "native helper versus Node-API addon selection",
+    "selected native route fresh-install/build/package/ABI lifecycle on supported Termux and independent POSIX",
+    "helper/addon abnormal termination and result-loss ambiguity behavior",
+    "mixed hard-link versus rename independent-process race on an independently qualified POSIX plane",
+    "independent Ubuntu/POSIX rename-backend repository qualification",
+    "current connected-device F2FS mount-option identity for a durability claim",
+    "sudden power-loss durability on the target Android/storage profile",
+    "support outside explicitly qualified runtime/filesystem profiles"
+  ],
+  "acceptanceBlockers": [
+    "measure production-shaped bounded native helper versus Node-API addon and select one integration route",
+    "freeze package/build/ABI/minimum-Node, fd/path confinement, typed result, finite deadline, abnormal termination, removal and rollback contract",
+    "qualify selected route on connected Termux/F2FS with actual directory-local probe and repository-shaped process race/fault harness",
+    "independently qualify rename backend on Ubuntu/POSIX and regress hard-link backend where qualified",
+    "pass mixed backend race or freeze a quiesced/homogeneous writer-switch rule",
+    "prove unsupported syscall/filesystem/policy/integration states fail closed with no weaker fallback"
+  ],
+  "powerLossGate": "Required before any power-loss-qualified deployment claim; absence does not imply failure and is not inferred from ordinary syscall/process tests.",
+  "designConclusion": "The evidence is sufficient to record D0030 as a draft with RENAME_NOREPLACE as the preferred qualified second backend candidate, but not sufficient to mark the Design accepted or authorize production source implementation."
+}

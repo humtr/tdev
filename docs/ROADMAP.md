@@ -93,8 +93,9 @@ These IDs describe a planning envelope. D0016, D0017 and D0018 are accepted Desi
 | D0027 | F/G/H | Local Agent Runtime and Secure Registration | required |
 | D0028 | H | Operational Observability and Recovery | required bounded operations gate |
 | D0029 | H | Full Deployed MVP Qualification | required final gate |
+| D0030 | B/F | Immutable Journal Publication Portability | **draft; no production authorization** — `RENAME_NOREPLACE` is the preferred qualified second-backend candidate; native integration and independent qualification remain open |
 
-The realistic planning envelope is roughly **10-14 additional Design-sized gates after D0015**, depending on merges and conditional owners. The count is not an acceptance metric; capability-group exit criteria are.
+The realistic planning envelope is roughly **10-15 additional Design-sized gates after D0015**, depending on merges, conditional owners, and cross-cutting evidence-driven Designs such as D0030. The count is not an acceptance metric; capability-group exit criteria are.
 
 ## 7. Ownership targets for the deployed topology
 

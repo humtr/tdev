@@ -264,6 +264,21 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **User action:** execute or approve unavoidable provider/account/credential steps from documented procedures.
 - **Lane:** cumulative `group/h-deployment-qualification`, which already inherits the accepted E+F+G checkpoints; the MVP prototype ref is created only from its exact final accepted head.
 
+### D0030 — Immutable Journal Publication Portability
+
+- **Groups:** B/F
+- **Status:** draft — evidence-backed primitive decision; no production authorization
+- **Purpose:** preserve D0005 immutable-journal durable format and commit meaning behind a backend-neutral prewritten/fsynced regular-file atomic no-replace publication contract while closing the inherited Termux hard-link portability gap without reopening Group E.
+- **Surviving candidate:** same-directory `renameat2(..., RENAME_NOREPLACE)` is the preferred second backend only on an exact runtime/filesystem/integration profile that is positively qualified; the existing hard-link backend remains where independently qualified.
+- **Integration status:** bounded fd-relative native helper versus stable Node-API addon remains unresolved. Public Node/libuv rename is rejected because it lacks no-replace semantics; experimental Node FFI is not the Node-22-baseline product route.
+- **Capability rule:** probe the actual writable Case filesystem with non-authoritative dot names; unsupported syscall/filesystem/policy/integration states fail closed and never silently fall back to plain rename, copy, check-then-rename, direct-final write, `O_TMPFILE`+link or symlink publication.
+- **Durability:** complete write -> file fsync -> no-replace publication -> Case-directory fsync; uncertainty after publication may have started is `store_commit_ambiguous` plus mandatory reread. Power-loss qualification remains a separate deployment layer.
+- **Compatibility:** committed regular-file names/bytes/replay remain unchanged and no data migration is introduced solely by switching publication backend. Until mixed-backend races are independently closed, a writable namespace uses one homogeneous backend or a quiesced/fenced switch.
+- **Cheapest falsifiers:** helper versus Node-API production-shaped prototypes, abnormal native-result ambiguity, mixed hard-link/rename race, repository immutable-journal matrix through the selected route, and exact Termux plus independent POSIX package qualification.
+- **Evidence:** `docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json` SHA-256 `370cb70792afd1e79395f7578e10502330d254e54cfdb6120d064450566a915f`.
+- **Accepted implementation:** none. `src/store.mjs` remains unchanged until D0030 is accepted under `SDD.md`.
+- **Lane:** active cumulative `group/f-cloudflare-runtime`; completed Group E is provenance only.
+
 ## 6. Completed Group E closure map
 
 Group E reached the following closure sequence before the exact checkpoint was retained and Group F was created:
