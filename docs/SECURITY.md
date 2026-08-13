@@ -223,6 +223,16 @@ No special secret type is implemented. Task input, evidence, receipts, snapshots
 
 The final MVP must close, with deployed evidence, the security boundaries that the local source deliberately leaves open: authenticated Case/Agent/MCP principals, tenant and Case authorization, minimum-necessary repository disclosure to any external model/provider, secret injection and rotation, Agent registration/revocation, provider/GitHub least privilege, replay/reconnect behavior, payload/rate/resource bounds, auditability, and migration/rollback of security configuration. Authentication, Task capability admission, Claims and fencing remain distinct checks; possession of a request/fence/lease identifier is never authentication. User-performed credential issuance or provider consent is permitted, but the required permission, verification and revocation procedure remains part of final-MVP acceptance.
 
+## 14.1 D0019 CaseDO authority trust boundary
+
+D0019 selects a single SQLite-backed CaseDO as the host of the existing D0010/CaseEngine semantic authority for a Case placed on Cloudflare. This does not make the Durable Object name, Worker route, in-memory instance, D1/R2 record or provider response an authorization credential or competing semantic owner.
+
+Ingress authentication/tenant authorization remains a separate owner and must complete before command admission. Case routing input must agree with durable Case identity/schema before mutation. Command/result payloads remain strictly parsed and bounded, and no Agent/Git/process/network call may run inside the authoritative Case transaction. A provider exception or response loss is not proof of command failure; reconciliation rereads the same durable authority under the original request identity.
+
+Agent connection epoch/current connection/delivery/capacity/reconnect truth remains D0020 scope. The local Agent remains the owner of actual OS/Git/process effect truth. Corrupt or incompatible CaseDO state fails closed instead of being reconstructed from projections. Provider lifecycle/configuration capable of deleting, transferring or making the Case authority unreadable requires the deployment/security owner and independent production evidence.
+
+D0019 authorizes no existing-Case migration. Any future move from a local owner to CaseDO requires a separately accepted cutover design that fences the old writer before destination activation and preserves receipts, in-flight ambiguity, restart and rollback semantics. A writable copied Case is not a backup authority.
+
 ## 15. Current source non-claims
 
 The current source gate does not prove:

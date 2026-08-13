@@ -217,7 +217,7 @@ The final MVP must implement a Cloudflare/local-Agent topology that preserves th
 
 | Contract | Candidate provider owner |
 | --- | --- |
-| Case graph/lifecycle/results/receipts | Case Durable Object with attached transactional storage |
+| Case graph/lifecycle/results/receipts | one SQLite-backed Case Durable Object hosting the existing D0010/CaseEngine authority — D0019 accepted Design |
 | Agent connection epoch/delivery/capacity | Agent Durable Object |
 | cross-Case target leases | dedicated target owner selected by target identity |
 | immutable Artifact bytes | R2 |
@@ -225,19 +225,24 @@ The final MVP must implement a Cloudflare/local-Agent topology that preserves th
 | public ingress/projection | Worker/MCP layer |
 | local OS/Git/process effects | authenticated Agent |
 
-This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. It has not yet been deployed or load-tested in this repository, so the final-MVP requirement is open rather than silently satisfied. `ROADMAP.md` owns the integration and qualification sequence.
+This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. D0019 freezes the Case row at the Design layer: CaseDO hosts/adapts the existing authority rather than introducing a second or rewritten semantic owner. The adapter has not yet been implemented, deployed or load-tested, and the Agent/target/storage/projection rows remain subject to their own owners. The final-MVP requirement is therefore still open. `ROADMAP.md` owns the integration and qualification sequence.
 
 ## 9. Provider adapter requirements
 
-A Case Durable Object adapter must:
+The D0019 Case Durable Object adapter must:
 
-- restore from durable storage rather than assume in-memory survival;
-- perform one command/state transition and durable write in the owning transaction;
-- return/replay the same mutation receipt after response loss;
-- prevent dispatch until the running Attempt commit is durable;
-- mark ambiguous delivery/effects for reconciliation;
-- preserve full snapshot and command validation;
-- version schema migrations and test a rollback barrier.
+- route one placed Case to one SQLite-backed CaseDO and verify durable Case identity/schema before mutation;
+- restore/reopen from durable storage rather than assume in-memory survival;
+- preserve the existing D0010/CaseEngine semantic transition meaning rather than define CaseDO-native competing semantics;
+- atomically fence the expected revision and persist one command transition, the successor semantic head/current revision and the exact durable receipt in the owning transaction;
+- replay an exact duplicate request from that durable receipt and reject conflicting request reuse;
+- treat a lost/failed RPC after a possible commit as ambiguous until the same Case authority is reread;
+- prevent D0020/Agent dispatch until the running Attempt identity/fencing commit is durable;
+- keep Agent connection/capacity/reconnect state outside Case authority;
+- mark ambiguous external delivery/effects for existing reconciliation rather than blind retry;
+- use a normalized/chunked SQLite representation that respects current provider row/BLOB/query limits without weakening one semantic transaction boundary;
+- fail closed on corrupt/incompatible durable state and version schema evolution explicitly;
+- create no migration path for an existing locally authoritative Case unless a separate accepted cutover design first supplies a durable placement generation, old-writer fence, destination activation and rollback boundary.
 
 An Agent delivery adapter must:
 
@@ -286,7 +291,7 @@ Secrets must not be stored in Task input, evidence, receipts, snapshots, remote 
 | deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
 | production-qualified | measured SLO, load, security, and incident procedures accepted |
 
-This repository remains **source-verified/local-adapter-verified only for the currently declared D0011-D0014 and D0017 trusted-local layers**; it is not yet a deployable or qualified final MVP. It is source-verified for D0011 local Git, the D0012 generic authenticated remote-publication contract, the D0013 trusted-local repository-context/subprocess transport, D0014 bounded preparation reuse, and the D0017 authorized full-context reference plus bounded packed/hybrid receiver. D0017 production implementation is verified at source level on the supported Termux test scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`: focused D0017+transport tests passed 52/52 and the Termux-supported full suite excluding only the pre-existing hard-link test file passed 226/226. The exact all-test coverage command is **platform-unqualified on this Termux filesystem**, not green, because `test/immutable-journal.test.mjs` still hits the previously documented `link(2) EACCES`; no D0017/repository-model-transport failure was observed there. D0013/D0014/D0017 exercise full Git context reconstruction, selected-context resolution and a real fresh local Node subprocess; this is not an external model/provider integration claim. An authenticated GitHub `push --dry-run` additionally confirms D0012 non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no external model/provider resource has been promoted to integration-verified or deployment-verified.
+This repository remains **source-verified/local-adapter-verified only for the currently declared D0011-D0014 and D0017 trusted-local layers**; D0018 production source/runtime is separately verified on its declared supported-Termux trusted-local scope, while D0019 is accepted only at the Design/model-falsifier layer and has no production CaseDO adapter yet. It is not yet a deployable or qualified final MVP. It is source-verified for D0011 local Git, the D0012 generic authenticated remote-publication contract, the D0013 trusted-local repository-context/subprocess transport, D0014 bounded preparation reuse, and the D0017 authorized full-context reference plus bounded packed/hybrid receiver. D0017 production implementation is verified at source level on the supported Termux test scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`: focused D0017+transport tests passed 52/52 and the Termux-supported full suite excluding only the pre-existing hard-link test file passed 226/226. The exact all-test coverage command is **platform-unqualified on this Termux filesystem**, not green, because `test/immutable-journal.test.mjs` still hits the previously documented `link(2) EACCES`; no D0017/repository-model-transport failure was observed there. D0013/D0014/D0017 exercise full Git context reconstruction, selected-context resolution and a real fresh local Node subprocess; this is not an external model/provider integration claim. An authenticated GitHub `push --dry-run` additionally confirms D0012 non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no external model/provider resource has been promoted to integration-verified or deployment-verified.
 
 D0017 changes no persisted Case/Plan semantic-state schema and introduces no durable context state, so it requires no data migration. Software rollback is deployment of the pre-D0017 D0013/D0014 full-inline implementation; because Case/Plan semantic authority and persisted schema are unchanged, that rollback requires no context-data conversion. A live `context_reference_unauthorized`, stale, missing, corrupt or limit-exceeded request must **not** silently fall back to inline delivery; per-request fallback is not rollback.
 

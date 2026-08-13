@@ -136,15 +136,19 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0019 — CaseDO Authority Adapter
 
 - **Groups:** B/F
-- **Status:** planned / required
-- **Purpose:** place or migrate D0010 Case semantic/current-state authority into the target Cloudflare Case runtime without creating a second owner.
-- **Key decision:** CaseDO hosts the existing authority versus an explicit authority migration; this cannot be assumed from architecture mapping alone.
-- **Owns when selected:** Case ID routing, durable transactional command/receipt replay, revision fencing, running-before-dispatch persistence, restart/reopen, response-loss reconciliation, migration barrier.
-- **Explicit non-owners:** AgentDO, Worker/MCP, D1/R2, Git ref.
-- **Cheapest falsifier:** local oracle-equivalence matrix across duplicate command, stale revision, restart, response loss and ambiguous transaction outcome.
-- **Exit:** deployed/restarted Case runtime reproduces accepted local semantics and authoritative head selection.
-- **Provider evidence:** current official Cloudflare DO contract must be checked at Design time.
-- **Lane:** successor cumulative `group/f-cloudflare-runtime`, created from final Group E.
+- **Status:** **accepted Design — 2026-08-13; production implementation/qualification separate**
+- **Purpose:** host the existing D0010/CaseEngine semantic/current-state authority in exactly one SQLite-backed CaseDO for a Case placed on Cloudflare, without creating a second owner or rewriting the semantic state machine.
+- **Selected model:** Candidate A — CaseDO is the physical host/adapter. Durable SQLite owns Case identity/current revision/semantic head, command receipts, Task/Attempt lifecycle, accepted result, terminal status and running-before-dispatch state; in-memory DO state and Worker/D1/R2/Git projections are non-authoritative.
+- **Command boundary:** exact receipt replay precedes expected-revision fencing; one existing CaseEngine mutation plus successor head/revision/receipt commits atomically; external I/O is outside the transaction. A possible post-commit response loss is unknown until the same durable receipt/state is reread.
+- **Restart:** eviction/reconstruction rebuilds only from durable storage and applies the defined reopen transition before new command admission; corrupt/incompatible state fails closed.
+- **Migration decision:** no existing locally authoritative Case is migrated by initial D0019. New qualified Cases may be born directly in CaseDO. Any future existing-Case move requires a separate accepted cutover Design with durable placement generation, old-writer fence, source quiescence, destination activation, receipt/in-flight/restart/retry/rollback proof.
+- **Rejected:** ad-hoc CaseDO-native semantic rewrite for current MVP; unfenced `copy then switch` was executably falsified because two writable copies accepted divergent same-revision commands.
+- **D0020 boundary:** Agent connection epoch/current connection/delivery owner/queue/capacity/reconnect remain D0020 facts. D0019 commits running Attempt/fencing state before crossing into delivery.
+- **D0030 boundary:** D0030 remains accepted/separate; its production implementation is only a later prerequisite for a D0019 verification route that actually exercises the Termux ImmutableJournal authoritative write path.
+- **Evidence:** `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json` SHA-256 `6e196ff1cae6c9ef993bcebf112405234fccc7c682a4563811c16ab2e41e7daa`; model + inherited oracle run 41/41 passed; falsifier commit `6c08082269c9dab6c17feccd2d90f4619c8a8577`.
+- **Provider evidence:** current Cloudflare primary docs were reverified for SQLite transactions/strong consistency, eviction/reconstruction, error/stub ambiguity, alarm retry semantics, identity/routing, storage limits and class/storage lifecycle; the accepted model does not rely on undocumented transaction-callback replay.
+- **Production gate:** implement one normalized/chunked SQLite-backed adapter, inject duplicate/stale/concurrent/precommit/postcommit-loss/eviction/corruption/running-before-dispatch/result-fence failures, then independently verify real provider/deployment layers. No D0020/D0030 implementation or existing-Case migration is bundled into this Task.
+- **Lane:** active cumulative `group/f-cloudflare-runtime`.
 
 ### D0020 — AgentDO Connection, Capacity and Delivery Owner
 

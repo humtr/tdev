@@ -148,11 +148,11 @@ A failed Attempt-start checkpoint means zero executor calls. The repository does
 
 ## 7. Final-MVP deployment mapping
 
-The final MVP is required to realize the current contracts in the Cloudflare/local-Agent product topology. The mapping below is the current architecture hypothesis and ownership target; it is **not yet an implementation or provider-verification claim**:
+The final MVP is required to realize the current contracts in the Cloudflare/local-Agent product topology. D0019 now freezes the Case semantic-authority row; the remaining provider-owner rows stay architecture targets until their own accepted Designs and target-environment evidence exist:
 
 ```text
-CaseEngine + CaseRepository transaction -> Case Durable Object
-connection epoch / delivery queue / device capacity -> Agent Durable Object
+D0010/CaseEngine semantic authority -> one SQLite-backed Case Durable Object (D0019 accepted)
+connection epoch / delivery queue / device capacity -> Agent Durable Object (D0020 candidate)
 cross-Case target claim leases -> dedicated target owner (AgentDO/ProjectDO/etc.)
 actual OS/Git/process/network truth -> Agent
 immutable Artifact bytes -> R2 or equivalent content store
@@ -161,7 +161,7 @@ MCP / Worker -> stateless projection and command ingress
 Promotion publication lane -> dedicated fenced Git/reference adapter
 ```
 
-This is a required final-MVP direction but still only a mapping at the current revision. `docs/ROADMAP.md` owns the capability-group gates. Each provider adapter requires a separate accepted Design and target-environment evidence. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
+D0019 is a Design-layer authority selection, not a production/provider-verification claim. A Case placed in Cloudflare has exactly one CaseDO durable SQLite owner for its D0010/CaseEngine current semantic facts; no writable local co-owner or projection may compete. `docs/ROADMAP.md` owns the remaining capability-group gates. Each still-provisional provider adapter requires its own accepted Design and target-environment evidence. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
 
 ## 8. Security and failure boundaries
 
@@ -247,6 +247,14 @@ This is intentionally the pre-optimization baseline. For four identical full-con
 D0014 keeps the same full-context request and result-only process boundary but adds an optional, bounded, instance-local derived preparation cache. The exact key is scoped by one executor/repository instance and binds object format, immutable commit OID and authoritative `baseDigest`. One producer may serve concurrent same-key readers; different keys prepare concurrently; a finite LRU retains only verified immutable descriptor/file encodings within entry/byte bounds. Cache loss, restart, disablement or eviction performs a cold rebuild from Git, so cache metadata cannot elect semantic state. Cold preparation preflights tree sizes, coalesces duplicate blob OIDs, propagates cancellation into Git, and POSIX process-group cleanup also begins at direct-child exit so inherited descendant pipes cannot convert a valid result into a timeout. Full repository request bytes and one process start per Attempt remain unchanged.
 
 D0017 preserves that semantic/process boundary while changing the trusted-local context-delivery stage. `tdev.selected-context-reference.v1` binds exact immutable commit, semantic `baseDigest`, repository `contextDigest`, and `tdev.selected-context-reference-scope.v1` authorization over admitted `caseId`, `planDigest`, and `caseContractDigest`; `attemptId`, representation kind, process identity and physical locators are excluded. `src/selected-context-delivery.mjs` derives bounded in-memory `tdev.context-pack.v1` packs (128 files, 2 MiB semantic, 3 MiB stored; 512 KiB manifest; at most 790 packs) and resolves them only after independently recomputing authorization. Resolution enforces inherited repository limits, typed unauthorized/stale/missing/corrupt/limit failures and AbortSignal cancellation, then reconstructs the complete context and requires canonical descriptor/file equality before subprocess admission. Carrier state is executor-owned, ephemeral, rebuildable and non-authoritative; no persisted Case/Plan schema, D0022 durable/shared store, D0018 warm process lifecycle or ContextSlice is introduced.
+
+## 9.7 Accepted D0019 Case authority boundary
+
+D0019 selects **hosting/adaptation, not a semantic rewrite**. One SQLite-backed CaseDO per placed Case owns the D0010/CaseEngine current revision, semantic head/root, command receipts, Task/Attempt lifecycle, accepted result, terminal status and running-before-dispatch record. Its in-memory instance and caches are disposable. The authoritative mutation transaction persists the exact receipt and successor state before returning or crossing into an external effect.
+
+Agent connection epoch/current connection/delivery queue/capacity/reconnect state stays outside that owner and remains D0020 scope. Actual OS/Git/process effect truth remains at the local Agent/effect boundary. Git refs, R2 objects, D1 rows and Worker/MCP projections remain derived or narrow-purpose owners only; none can elect a Case head.
+
+D0019 explicitly forbids an initial migration of an existing local Case. New qualified Cases may be born directly in CaseDO. Any later existing-Case move requires a separate cutover owner that fences the old writer before activating the destination; two writable copies are never a supported topology. CaseDO production code, live eviction/response-loss qualification and deployment lifecycle evidence remain a separate post-acceptance Task.
 
 ## 10. Architectural stop gates
 

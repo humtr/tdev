@@ -276,12 +276,18 @@ Recommended operator signals:
 
 ## 15. Provider adapter gate
 
-Before a provider adapter is accepted as owning Cloudflare/Agent state, or before D0012 remote Git is promoted beyond its bounded source contract into provider-specific integration/deployment qualification, the applicable layer must prove:
+D0019 accepts the **Design-layer** Case authority model: one SQLite-backed CaseDO hosts the existing D0010/CaseEngine semantic authority. That acceptance does not make a production adapter source-, integration-, deployment- or production-verified. Before the CaseDO adapter reaches those layers, and before any still-provisional Cloudflare/Agent adapter or D0012 provider-specific publication integration is promoted, the applicable layer must prove:
 
-- authoritative state is persisted in the provider owner's transaction before dispatch;
+- authoritative Case state and the exact command receipt commit in one CaseDO storage transaction before response or dispatch;
+- stale expected revisions are rejected before mutation/effect and duplicate commands reproduce the same durable receipt;
+- object eviction/reconstruction rebuilds authority solely from durable storage and preserves reopen semantics;
+- a post-commit lost response reconciles by authoritative receipt/state reread rather than guessed failure or blind retry;
+- running Attempt identity/fencing state is durable before D0020 delivery begins;
 - delivery epoch and result fences survive reconnects;
-- uncertain effects enter reconciliation rather than blind retry;
+- uncertain external effects enter reconciliation rather than blind retry;
 - target claims survive owner restart or are safely fenced;
 - publication uses one fenced lane after Promotion;
-- response loss after commit returns the same receipt/result identity;
+- corrupt/incompatible provider state fails closed;
 - migration and code rollback barriers are explicitly tested.
+
+The initial D0019 implementation must not migrate an existing locally authoritative Case. A new Case may be created directly in CaseDO only after the adapter is independently qualified. Any later migration requires a separate accepted cutover design with an independently durable old-writer fence and destination activation; operational routing changes alone cannot elect a new semantic owner.
