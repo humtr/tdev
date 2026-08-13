@@ -77,14 +77,14 @@ D0017 production implementation is independently verified on the supported-Termu
 
 ## 6. Provisional remaining Design program
 
-These IDs describe a planning envelope. D0016, D0017 and D0018 are accepted Design-layer decisions retained below as completed Group E decision gates; D0017 and D0018 production source verification are closed under their declared supported-Termux qualifications, and Group E cumulative exit/checkpoint election is complete. D0019 is now an accepted Group B/F Case-authority Design while its production implementation remains separate. The later provisional IDs remain open unless their owner records otherwise. Later provisional work may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
+These IDs describe a planning envelope. D0016, D0017 and D0018 are accepted Design-layer decisions retained below as completed Group E decision gates; D0017 and D0018 production source verification are closed under their declared supported-Termux qualifications, and Group E cumulative exit/checkpoint election is complete. D0019 revision 2 is now the accepted Group B/F Case-authority Design while its production implementation remains separate. The later provisional IDs remain open unless their owner records otherwise. Later provisional work may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
 
 | Provisional ID | Group | Planning question | MVP criticality |
 | --- | --- | --- | --- |
 | D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
 | D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12; production source verified on supported-Termux scope** — authorized immutable logical reference + bounded packed/hybrid receiver; implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` |
 | D0018 | D/E | Model Executor / External Provider Runtime Contract | **accepted Design 2026-08-12; production source/runtime verified on supported-Termux trusted-local scope** — `73d404bdc24eac8337019738ba074c2a1fea4861`, warm host / fresh model Attempt, no provider selected |
-| D0019 | B/F | CaseDO Authority Adapter | **accepted Design, amended 2026-08-13; production implementation separate** — one durably elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; exact D0010 receipt identity is preserved; ordinary eviction does not imply semantic reopen; placement/schema/capacity/rollout gates are frozen; existing local Cases are not migrated by this Design |
+| D0019 | B/F | CaseDO Authority Adapter | **accepted Design revision 2 — 2026-08-13; production implementation separate** — one durably elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; exact D0010 receipt identity is preserved; ordinary eviction does not imply semantic reopen; placement/schema/capacity/rollout gates are frozen; existing local Cases are not migrated by this Design |
 | D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |
 | D0021 | F | Distributed Target Claims / Runtime Fencing | conditional on final cross-Case conflict workload |
 | D0022 | F/E | Artifact/Content Storage and Query Projection (R2/D1/equivalent) | conditional on selected content/artifact architecture |

@@ -115,7 +115,7 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0019 — CaseDO Authority Adapter
 
 - **Groups:** B/F
-- **Status:** **accepted Design, amended 2026-08-13; production implementation/qualification separate**
+- **Status:** **accepted Design revision 2 — 2026-08-13; production implementation/qualification separate**
 - **Purpose:** elect exactly one Cloudflare provider placement for a new Case and host the existing D0010/CaseEngine semantic/current-state authority in that one elected SQLite-backed CaseDO, without creating a second semantic owner or rewriting the state machine.
 - **Selected model:** Candidate A — one durable placement generation binds `CaseId` to the exact deployment/environment, Worker script, class/namespace, jurisdiction and Durable Object ID; that elected CaseDO is the physical host/adapter. Placement is meta-authority for physical ownership only. Durable SQLite in the elected CaseDO owns Case current revision/semantic head, command receipts, Task/Attempt lifecycle, accepted result, terminal status and running-before-dispatch state; in-memory DO state and Worker/D1/R2/Git projections are non-authoritative.
 - **Command boundary:** receipt identity is exactly `typedDigest('tdev.case-command.v1', canonicalClone(command))`; `requestId` addresses the receipt and `expectedCaseRevision` is excluded from the digest. After a valid envelope, exact receipt replay precedes revision equality. With no matching receipt, expected revision fences one existing CaseEngine mutation and the successor head/revision/receipt commits atomically; external I/O is outside the transaction. A possible post-commit response loss is unknown until the same elected durable receipt/state is reread.

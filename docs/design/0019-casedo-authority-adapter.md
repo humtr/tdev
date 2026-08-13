@@ -1,6 +1,10 @@
 # Design 0019 — CaseDO Authority Adapter
 
 - Status: `accepted`
+- Revision: 2
+- Revision predecessor: revision 1 acceptance is identified by `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json`; revision 2 is identified by `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json`
+- Revision 2 reason: adversarial re-review required durable cross-placement election, exact command-only receipt digest/replay ordering, ordinary reconstruction without implicit semantic reopen, explicit owner-loss recovery, and schema/capacity/rollout gates while preserving the same CaseDO authority-adapter problem and selected owner family
+- Revision 2 downstream revalidation: production D0019 implementation/provider qualification must implement the amended boundaries; D0020 and D0030 remain separate; no previously verified Group E source meaning is reopened by this revision
 - Class: 2
 - Capability Groups: B/F — semantic authority / Cloudflare runtime authority
 - Active cumulative lineage: `group/f-cloudflare-runtime`
@@ -507,7 +511,7 @@ Acceptance is not production verification.
 
 ## 23. Acceptance conclusion
 
-D0019 remains `accepted`, **as amended**, as **Candidate A: one durably elected CaseDO hosts/adapts the existing D0010/CaseEngine authority**.
+D0019 revision 2 remains `accepted` as **Candidate A: one durably elected CaseDO hosts/adapts the existing D0010/CaseEngine authority**.
 
 The accepted meaning is not “Durable Objects are authoritative.” It is narrower: one SQLite-backed CaseDO may become the physical single owner for a placed Case only after a durable placement generation elects its exact provider identity, and only when it preserves the existing semantic oracle inside one durable transaction, reconstructs without inventing semantic reopen, preserves the exact D0010 receipt domain, respects the qualified storage/rollout profile, and keeps all competing ownership/projection/effect facts outside that authority.
 

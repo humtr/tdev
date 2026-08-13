@@ -10,8 +10,8 @@
 - Immediate completed predecessor: `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`
 - Checkpoint succession owner: `LINEAGE.md`
 - Current self-development Design: D0031 revision 1 — `docs/design/0031-self-development-documentation-authority.md`, `accepted`; implementation/verification in progress
-- Current self-development gate: compact current routing and remove duplicated mutable route ownership, then formalize Design correction lifecycle and add executable documentation/session-rebind falsifiers
-- Exact next action: continue D0031 on the active cumulative lineage; do not mix D0019/D0030 product implementation into this governance change
+- Current self-development gate: add executable documentation and session-rebind validation for the accepted D0031 authority model
+- Exact next action: implement the D0031 documentation validator and adversarial stale-handoff/F-to-G/Design-revision fixtures, then run full repository gates
 - Product frontier after D0031: resume the bounded D0019 production implementation/qualification gate; D0030 production implementation remains separate
 
 A mutable remote head is not stored here as timeless authority. Re-read the provider ref immediately before any remote-changing action and prove the expected non-force predecessor/ancestry.
@@ -21,7 +21,7 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 ### D0019 — CaseDO authority adapter
 
 - Design owner: `docs/design/0019-casedo-authority-adapter.md`
-- Current Design meaning: accepted as amended on Group F; one durable placement generation elects one exact provider tuple and one SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority
+- Current Design meaning: accepted revision 2 on Group F; one durable placement generation elects one exact provider tuple and one SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority
 - Canonical production state at the D0031 starting point: Design/model evidence accepted; production CaseDO adapter/provider qualification not yet landed on the active cumulative branch
 - Initial migration boundary: existing locally authoritative Cases are not migrated; any later move requires a separately accepted exclusive-writer cutover Design
 - D0020 remains the separate Agent connection/delivery/capacity/owner-loss boundary
