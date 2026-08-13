@@ -1,19 +1,23 @@
 # Design 0030 — Immutable Journal Publication Portability
 
-- Status: `draft`
+- Status: `accepted`
 - Class: 2
 - Capability Groups: B/F — semantic authority and persistence / active runtime portability
 - Active cumulative lineage: `group/f-cloudflare-runtime`
-- Authority anchor reviewed: `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`
+- Acceptance starting authority: `group/f-cloudflare-runtime@0ff5f7401f932a6c99d4f1a7d3adb63b61a3ac1f`
 - Completed predecessor checkpoint: Group E `cp_1786580384438_9ed881e039da` at the same exact SHA
 - Prior evidence Task: `task_6ni_625838d8a0`
 - Prior evidence checkpoint: `cp_1786581036451_bed7284b8070`
+- Acceptance falsifier evidence commit: `e0d7706d02827d136eada0a9484d8ef6874cb672`
 - Inherited Designs: D0005 immutable expected-revision journal CAS, D0007 verified materialization reuse, D0008 durability admission; D0010 v3 SQLite authority remains a separate opt-in profile
 - Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`; `docs/SPEC.md` only if accepted support scope changes
 - Planning owner: `docs/development/PROGRAM.md`
 - Research evidence: `docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json`
+- Acceptance convergence evidence: `docs/evidence/group-f-d0030-publication-portability-acceptance-convergence-2026-08-13.json`
+- Termux falsifier evidence: `docs/evidence/group-f-d0030-publication-portability-termux-falsifier-2026-08-13.json`
+- Independent POSIX falsifier evidence: `docs/evidence/group-f-d0030-publication-portability-independent-posix-falsifier-2026-08-13.json`
 
-> This draft records a surviving semantic decision but does **not** authorize production source changes. In particular it does not authorize replacing `fs.link`, adding a native dependency/helper, changing the journal format, or weakening the existing immutable-journal test matrix. Acceptance remains blocked on the integration and independent-qualification gates in section 15.
+> This accepted Design authorizes only a separate production implementation Task for the frozen bounded fd-relative native-helper route and qualified `RENAME_NOREPLACE` backend. Acceptance is not production verification. The acceptance Task did **not** replace `fs.link` in `src/store.mjs`, add a production native asset, change the durable journal format, or weaken the immutable-journal test matrix.
 
 ## 1. One-line definition
 
@@ -61,7 +65,7 @@ Node-API is a stable public native-addon ABI. Node `child_process.spawn` can run
 
 F2FS documents multiple `fsync_mode` policies (`posix`, `strict`, `nobarrier`). Therefore one Samsung/F2FS result is not a universal F2FS or Android durability qualification.
 
-### 2.4 Inferences and draft decisions
+### 2.4 Inferences and accepted decisions
 
 The store's required semantic primitive is not “hard link” itself. It is atomic no-replace publication of a complete, already-fsynced regular-file inode into an authoritative slot, followed by directory durability, with conflict and ambiguous-outcome handling that force reread rather than replay.
 
@@ -69,18 +73,15 @@ On the measured local profile, same-directory `RENAME_NOREPLACE` preserves that 
 
 `RENAME_NOREPLACE` is therefore the preferred second backend candidate. This does **not** imply universal Linux, Android, F2FS, or Node qualification.
 
-The Node/native integration mechanism is not yet selected. A narrowly owned native helper is the leading next falsifier because it can isolate native faults and use an already-open Case-directory fd plus generated basenames, while a Node-API addon is the stable in-process comparator. Public Node/libuv rename is semantically insufficient. Experimental Node FFI is not selected as product authority for this Node-22-minimum repository.
+The selected native integration is a narrowly owned standalone helper. The JS owner opens the Case directory, inherits that directory on a dedicated child fd, and passes only generated single-component contender/final basenames. The helper owns exactly one publication primitive: fd-relative `renameat2(..., RENAME_NOREPLACE)`. It uses no shell, network, config, secret lookup, semantic read, copy, or fallback path. A dedicated non-stdout/stderr result fd carries a fixed versioned begin/result protocol so that loss after the begin marker is conservatively ambiguous. A Node-API addon remains a comparator, not the selected route: normal errno/conflict mapping was equivalent, but an injected post-syscall abort killed the host Node process with `SIGABRT`, while the helper fault remained contained to the child and allowed parent-side mandatory reread.
 
 ### 2.5 Unknown / unverified
 
-- production-shaped native helper versus Node-API addon selection;
-- fresh-install/build/package availability for the selected native route on supported Termux/Android and independent POSIX environments;
-- exact helper deadline/status-loss behavior and the resulting ambiguity mapping;
-- mixed concurrent hard-link and rename-backend winner election on an independently qualified POSIX plane;
-- independent Ubuntu/POSIX `RENAME_NOREPLACE` backend qualification against the repository oracle;
-- current-device F2FS mount-option identity for a durability claim;
-- sudden power-loss durability on the target Android/storage profile;
-- universal support outside explicitly qualified runtime/filesystem profiles.
+- production helper implementation and release/install pipeline verification; no production native asset exists yet;
+- destructive sudden power-loss durability on the exact target Android/storage profile;
+- universal support outside explicitly qualified runtime/filesystem/integration profiles;
+- network-filesystem, object-store, Durable Object, and distributed-transaction equivalence;
+- repair of the separate tmcp validation-registry drift (`verify:sandbox` / `verify:termux` are registered but absent from the current package scripts).
 
 ## 3. Current contract and concrete portability problem
 
@@ -146,7 +147,7 @@ Backend selection occurs before an authoritative write and is fixed for the stor
 
 The implementation is expected to expose an explicit writer backend selection rather than per-write opportunistic fallback. The exact API spelling is deferred until the integration route is selected, but the semantic values are at least `hardlink` and `rename-noreplace`; unsupported or unqualified selection fails closed.
 
-Until the mixed-backend race row is independently closed, one writable journal namespace must not have concurrent hard-link and rename-backend writers. Deployment must use a homogeneous selected writer backend or a quiesced/fenced switch. Readers remain backend-neutral because durable committed files do not encode the publication primitive.
+Mixed hard-link and rename writers are admissible only when **both** backends are independently qualified for the same deployment validity key. The independent Debian/ext4 plane produced 100/100 exact-one-winner mixed races, 100/100 loser conflicts and valid final bytes, with zero overwrites and zero parallel continuations (50 hard-link winners, 50 rename winners). That evidence permits mixed publication primitives only on jointly qualified profiles; every other profile remains homogeneous or requires a quiesced/fenced switch. Readers remain backend-neutral because durable committed files do not encode the publication primitive.
 
 ## 6. Rename capability qualification and cache semantics
 
@@ -170,13 +171,13 @@ A positive probe may be cached only as disposable process/store-instance state b
 
 The read/reconciliation path does not require a writable publication capability; existing regular-file journals remain readable on a host that cannot currently publish.
 
-The accepted implementation must use one stable typed fail-closed outcome for an explicitly selected but unqualified backend. Proposed code: `store_publication_unsupported`. This name remains draft until the integration route is frozen; it must not be silently rewritten as a normal CAS conflict.
+The accepted implementation uses `store_publication_unsupported` as the stable typed fail-closed outcome for an explicitly selected but unqualified backend. It must not be silently rewritten as a normal CAS conflict or trigger a fallback publication primitive.
 
 ## 7. Semantic equivalence requirements
 
 ### Exactly-one-winner election
 
-Both backends must map two writers targeting the same predecessor slot to at most one successful final publication. Rename evidence already demonstrates 25/25 exact-one-winner races on the measured Termux/F2FS profile; full repository process-level races remain an acceptance row.
+Both backends must map two writers targeting the same predecessor slot to at most one successful final publication. The prior Termux/F2FS primitive evidence produced 25/25 exact-one-winner rename races. Acceptance convergence additionally ran the selected helper through the unchanged 26-test immutable-journal repository oracle in a scratch source mirror and independently ran 100 hard-link-versus-rename races on Debian/ext4 with 100 exact-one-winner outcomes and zero parallel continuations.
 
 ### Stale writer behavior
 
@@ -216,17 +217,17 @@ It has replacement semantics when the destination exists and no public no-replac
 
 The public FFI API is new in Node 26.1, Stability 1 Experimental, gated by `--experimental-ffi`, and available only in Node builds configured with FFI support. D0030 inherits Node `>=22`. The current FFI documentation exposes native symbol calls but no direct stable errno helper, while rename conflict/error classification requires an exact native result. Raising the minimum runtime or adding an experimental runtime flag merely to avoid owning a native boundary would be a separate support/deployment decision. D0030 therefore does not select FFI as the first product route. It may be re-evaluated only if the repository minimum-runtime/support policy changes and exact Termux/build/errno behavior is independently qualified.
 
-### 8.4 Narrow Node-API addon — viable secondary candidate
+### 8.4 Narrow Node-API addon — measured comparator, not selected
 
-Node-API is stable and ABI-oriented across Node versions. A minimal addon can issue `renameat2`, capture errno in the same native frame, and return a typed result without a second process. Costs are addon build/prebuild packaging, architecture/Android toolchain ownership, addon lifecycle, in-process native crash blast radius, and the need to prove that the call path does not create an unsupported event-loop or shutdown behavior. No such addon packaging path exists in the current repository.
+Node-API is stable and ABI-oriented across Node versions. The bounded comparator issued the same fd-relative syscall and recovered exact success/conflict errno on both Node 26/Termux-aarch64 and Node 22/independent-POSIX. It is not selected because its native code executes with host-process ambient authority, no isolated in-process deadline exists without adding another process boundary, and an injected abort immediately after the syscall killed the host Node process with `SIGABRT` after publication was observed. Moving the addon behind a process to recover those properties would converge on the selected helper shape with additional addon packaging complexity.
 
-### 8.5 Bounded packaged native helper — leading next falsifier, not yet selected
+### 8.5 Bounded packaged native helper — selected
 
-A narrowly owned executable can have one purpose: publish one contender basename to one final basename with `RENAME_NOREPLACE`. The preferred confinement shape is fd-relative: the JS owner opens the Case directory, passes that directory fd to the child through a dedicated inherited fd, and supplies only generated single-component basenames. The helper rejects empty names, slash-containing names, `.` and `..`; performs no network, config, secret, directory traversal, copy, fallback, or semantic read; and does not become a second store authority.
+The accepted integration is one narrowly owned executable whose only authority-changing action is fd-relative `renameat2(..., RENAME_NOREPLACE)` from one contender basename to one final basename. JS opens the Case directory and passes it on a dedicated inherited fd; only generated single-component basenames are accepted. Empty names, slash-containing names, `.` and `..` are rejected. The helper performs no network access, configuration/secret lookup, directory discovery, copy, fallback, semantic read, or cleanup authority and never receives an absolute Case path.
 
-The subprocess uses no shell and stdout/stderr are diagnostics only, never the result protocol. Normal helper exit uses a small fixed helper-status contract for success, destination conflict, unsupported capability/policy denial, and known syscall failure. If the helper fails, times out, is cancelled, or loses its status **after the publication syscall could have started**, the parent must conservatively return `store_commit_ambiguous` and reread rather than infer a pre-publication failure.
+The subprocess uses no shell. Stdout/stderr are diagnostics only. A dedicated result fd carries a fixed versioned protocol with a **begin marker immediately before the publication syscall** and a typed result containing success/conflict/unsupported/denied/error plus exact native errno. Failure known to precede the begin marker is a no-successor failure. After the begin marker, timeout, kill, abnormal exit, result/status loss, malformed/incomplete result, or controller uncertainty is `store_commit_ambiguous` and requires mandatory authoritative reread before any later attempt. The child has a finite controller deadline; the deadline is liveness control, never proof that publication did not occur.
 
-This route still needs packaging/fresh-install, deadline, abnormal termination, fd/path confinement, independent testing, rollback/removal, and performance/operational-burden evidence. Therefore D0030 remains draft instead of selecting it by convenience.
+Production packaging must provide a package-owned, platform-appropriate helper executable **before runtime publication**; commit-time compiler invocation or network fetch is not an accepted path. The executable is resolved from package-owned identity rather than `PATH`, and release/install metadata must bind the helper protocol/build identity for the declared OS/arch. Missing or mismatched helper identity is `store_publication_unsupported` before publication and never falls back. The helper process boundary deliberately avoids Node-addon ABI coupling; the JS product runtime remains the repository's Node `>=22` contract. Acceptance evidence compiled the same helper source on Termux/aarch64 Node 26 and Debian/x86_64 Node 22; the separate production Task must implement and verify the actual package/release pipeline.
 
 ## 9. Failure, cancellation, recovery, and cleanup
 
@@ -276,7 +277,7 @@ No data migration is required solely for hard-link -> rename backend activation.
 
 ### Writer rollout
 
-Until mixed-backend concurrency is qualified, switch writer backend only under homogeneous deployment or writer quiescence/fencing for a journal namespace. Read-only processes need no switch.
+Concurrent hard-link and rename writers are supported only on a deployment validity key where both publication backends have independently passed their capability gates. Otherwise switch writer backend only under a homogeneous deployment or writer quiescence/fencing for the journal namespace. The measured Termux profile is rename-only because hard-link publication is denied there. Read-only processes need no switch.
 
 ### Rollback
 
@@ -284,7 +285,7 @@ Rollback to hard-link publication is data-compatible only on an environment wher
 
 ### Deployment dependency
 
-Selecting either a helper or Node-API addon introduces a native deployment asset/build concern that the current package does not have. Fresh-install availability, executable/addon integrity, architecture/ABI coverage, Node-minimum compatibility, upgrade/removal, and rollback must be owned by `docs/DEPLOYMENT.md` before production verification.
+The selected helper introduces a native deployment asset/build concern that the current production package does not yet have. The accepted lifecycle is: build/package the helper before runtime for each declared OS/arch, resolve it only from package-owned identity, bind protocol/build identity into capability validity, and requalify after process restart, helper replacement, or validity-key change. Missing/mismatched assets fail closed. Removal or rollback may reactivate hard-link writes only where hard-link publication is independently qualified and the mixed/homogeneous rollout rule above is satisfied. These rules are owned by `docs/DEPLOYMENT.md`; the post-acceptance implementation Task must verify the concrete packaging mechanism.
 
 ## 12. Acceptance matrix and cheapest falsifiers
 
@@ -318,7 +319,7 @@ The cheapest new falsifiers are, in order:
 4. exact repository immutable-journal process race and fault matrix through the selected integration route;
 5. fresh-install/package check on Termux/aarch64 plus one independent Ubuntu/POSIX plane.
 
-If the selected integration cannot preserve the backend-neutral contract without a second authority, unsafe hidden path, unsupported deployment dependency, or ambiguity loss, the Design stays draft/reopens rather than falling back to a weaker primitive.
+If a later production implementation cannot preserve the backend-neutral contract without a second authority, unsafe hidden path, unsupported deployment dependency, or ambiguity loss, D0030 is falsified/reopened rather than falling back to a weaker primitive.
 
 ## 13. Rejected and deferred alternatives
 
@@ -365,31 +366,25 @@ D0030 does not authorize:
 
 After acceptance, `docs/PROTOCOL.md` should own the backend-neutral publication/reconciliation meaning; `docs/OPERATIONS.md` the runtime/error mapping; `docs/ARCHITECTURE.md` the publication adapter/native-boundary placement; `docs/SECURITY.md` path/fd/native trust and fail-closed rules; `docs/DEPLOYMENT.md` package/platform qualification; and `docs/MVP.md` the end-to-end qualification matrix. `docs/SPEC.md` changes only if the accepted support surface itself changes.
 
-## 15. Draft status and acceptance blockers
+## 15. Acceptance decision and closed blockers
 
-The semantic primitive decision is strong enough to keep `RENAME_NOREPLACE` as the preferred second backend candidate, but this record remains `draft` because a Class 2 implementation route is not yet frozen and independent qualification is incomplete.
+D0030 is `accepted` at the Design layer. Acceptance freezes the backend-neutral publication contract, selects the bounded fd-relative standalone helper, and preserves `RENAME_NOREPLACE` as the qualified second backend. It does **not** claim that the production helper has been implemented or packaged.
 
-Before D0030 may become `accepted`, all of these must close:
+The former acceptance blockers closed as follows:
 
-1. select the integration route from a measured production-shaped native helper versus Node-API addon comparison; do not select experimental FFI or an internal Node binding by convenience;
-2. freeze the selected route's package/build/ABI/minimum-Node lifecycle, fd/path confinement, typed result protocol, finite deadline behavior, abnormal termination mapping, removal and rollback;
-3. prove the selected route on the connected Termux/F2FS profile with the actual directory-local capability probe and repository-shaped process race/fault harness;
-4. independently qualify `RENAME_NOREPLACE` on Ubuntu/POSIX or the repository's current independent POSIX plane and regress the existing hard-link backend where it remains qualified;
-5. either pass mixed hard-link-versus-rename independent-process races or freeze a quiesced/homogeneous writer-switch rule as the only supported deployment transition;
-6. show that unsupported syscall/filesystem/policy/integration states fail closed and never trigger plain rename, copy, check-then-rename, direct-final write, `O_TMPFILE`+link, or symlink fallback.
+1. **Integration comparison — closed.** The same C helper/addon comparator sources were built and executed on Termux/aarch64 Node 26 and independent Debian/x86_64 Node 22. Both recovered normal errno/conflict results; the helper contained native crashes to the child and provided an enforceable deadline/result-loss boundary, while the addon post-syscall abort killed the host Node process.
+2. **Lifecycle/security/rollback freeze — closed by this accepted contract.** Package-owned pre-runtime helper identity, no runtime compilation/fetch, Node-ABI-independent process boundary, inherited Case-directory fd, basename-only grammar, no shell/network/config/secret access, dedicated begin/result fd, finite child deadline, post-begin ambiguity, fail-closed removal, requalification, and rollback/mixed-writer rules are normative.
+3. **Connected Termux/F2FS — closed for Design acceptance.** The exact Node 26.4.0 / Android 6.1.145 / aarch64 / F2FS / SELinux profile passed the complete directory-local capability probe, adversarial destinations, abnormal-result injection, and the unchanged 26/26 immutable-journal repository oracle through a scratch helper substitution. This is not a universal Android/F2FS claim.
+4. **Independent POSIX — closed.** Debian 13.3 / Linux 6.18.35 / x86_64 / Node 22.16.0 / ext4 passed the same helper/addon/capability/ambiguity rows; hard links were available for mixed-backend qualification.
+5. **Mixed writers — closed conditionally.** 100/100 independent hard-link-versus-rename races elected exactly one winner, with 100 loser conflicts, valid final bytes, zero overwrite and zero parallel continuation. Mixed publication primitives are allowed only on jointly qualified validity keys; otherwise homogeneous or quiesced/fenced rollout remains mandatory.
+6. **Fail-closed unsupported behavior — closed.** Missing helper and unsupported/error classes do not publish and do not trigger a fallback. Plain rename, copy, check-then-rename, direct-final write, `O_TMPFILE`+link and symlink publication remain rejected.
 
-Power-loss testing remains a required **production qualification layer for any power-loss-qualified deployment claim**, but its absence need not block Design acceptance if the accepted Design explicitly keeps that layer unverified until deployment qualification.
+The evidence commit is `e0d7706d02827d136eada0a9484d8ef6874cb672`. The acceptance-convergence artifact is SHA-256 `239aada0b6f15e75faf6c2c04b779f3d578cdf36956d6b108f67b47ee038fd7b`; the Termux artifact is `50aa955cb547e594817e2005df5860e9c1a71eb45f2e47569c1584d33f674ae8`; the repository-preserved independent-POSIX artifact is `eeb7f266df67ad087c3695d1fbf30bd5c080946a88822da2fb5a90fab132481b` and binds the session-local raw evidence digest `5f6996fcd531a7aeca18a5537af5ebbaf08d20debd90e11eb6c84f5bd1877257`.
 
-Only after D0030 is accepted may production `src/` implementation begin. Acceptance authorizes only the frozen integration/backend scope; it does not itself verify Termux, POSIX, deployment, or power-loss layers.
+Destructive power-loss testing was not executed and remains explicitly `unverified`. The existing tmcp validation registry is also separately stale: registered `portable`/`full` commands reference absent `verify:sandbox`/`verify:termux` package scripts. Neither condition is represented as a green production qualification.
 
 ## 16. Exact next authorized work
 
-The next Task may create only bounded, non-production integration falsifiers for:
+The next authorized Task is a **post-acceptance production implementation and qualification Task**. It may implement the selected package-owned fd-relative helper route in the production publication adapter, including the frozen typed result/ambiguity/capability contract, without changing committed filenames/bytes/schema/replay/migration/downgrade semantics and without adding fallback primitives. It must verify the actual package/release/install mechanism, production Termux and independent-POSIX rows, rollback/removal, restart requalification and the unchanged repository oracle before claiming production verification.
 
-- fd-relative `RENAME_NOREPLACE` native helper;
-- stable Node-API addon comparator;
-- abnormal helper/addon result and ambiguity reconciliation;
-- mixed hard-link/rename winner election on an independent POSIX plane;
-- exact Termux and independent POSIX capability/package observations.
-
-It may update this Design/evidence from those results. It may **not** replace `fs.link` in `src/store.mjs` or add a production native dependency until D0030 becomes `accepted` under `SDD.md`.
+The separate tmcp validation-registry drift should be repaired/aligned in its own maintenance scope or an explicitly combined authorized maintenance change; manual shell commands in this acceptance Task are evidence, not a substitute canonical validation profile. Destructive power-loss qualification remains a later deployment claim gate unless independently executed.
