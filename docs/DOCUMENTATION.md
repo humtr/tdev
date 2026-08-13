@@ -1,193 +1,227 @@
 # tdev documentation system
 
-> Normative owner for documentation taxonomy and cross-document authority boundaries. This file classifies documents; it does not redefine the product contracts owned by `SPEC.md`, `ARCHITECTURE.md`, `PROTOCOL.md`, `SECURITY.md`, `DEPLOYMENT.md`, `OPERATIONS.md`, or `MCP.md`.
+> Normative owner for documentation taxonomy, cross-document authority boundaries, naming categories and historical-retention rules. It classifies documents; it does not redefine product contracts.
 
-## 1. Three documentation layers
+## 1. Two independent classification axes
 
-Every durable repository document belongs primarily to one of three layers.
+Every durable document is classified on two axes. Do not confuse them.
 
-### A. Product contract
+### Axis A — what kind of truth it carries
 
-Product-contract documents answer **what tdev is required to mean or do**. They must be understandable without knowing which ChatGPT session, Codex run, Termux checkout, development branch, or Design number produced them.
+#### Product contract
 
-Current owners:
+Product contracts answer what tdev must mean or do at runtime. They are independent of the ChatGPT session, development branch, worktree, Design number or tool that produced them.
 
-| Contract | Owner |
+| Product concern | Owner |
 | --- | --- |
-| product scope, terminology, product acceptance, product non-goals | `docs/SPEC.md` |
-| component/fact ownership and dependency direction | `docs/ARCHITECTURE.md` |
+| scope, terminology, product acceptance and non-goals | `docs/SPEC.md` |
+| component/fact ownership, dependency direction and concurrency | `docs/ARCHITECTURE.md` |
 | Case/Task/Attempt/result/Claim/Promotion records and transitions | `docs/PROTOCOL.md` |
+| runtime operation boundary and failure behavior | `docs/OPERATIONS.md` |
 | trust, identity, secret, path and effect boundaries | `docs/SECURITY.md` |
-| runtime operation and failure behavior | `docs/OPERATIONS.md` |
-| deployment, provider binding, migration and rollback contract | `docs/DEPLOYMENT.md` |
+| deployment, provider binding, migration and rollback | `docs/DEPLOYMENT.md` |
 | MCP product surface and protocol boundary | `docs/MCP.md` |
+| executable source/provider qualification requirements | `docs/MVP.md` |
 
-A product contract may say that the final MVP requires Cloudflare, a local Agent, Git publication or secured MCP. It should not say that a particular ChatGPT session, `group/*` branch, D001x planning label, or Termux synchronization event is product semantics.
+A product owner may reference a development plan, but current branch/session/Design state cannot be required to interpret product meaning.
 
-### B. Self-development / engineering
+#### Self-development / engineering
 
-Development documents answer **how we change, sequence, integrate, checkpoint, review and publish tdev itself**.
+Self-development documents answer how this repository is changed, routed, designed, integrated, verified and published.
 
-Current owners and records:
-
-| Concern | Owner / record |
+| Development concern | Owner |
 | --- | --- |
-| repository-wide agent instructions | `AGENTS.md` |
-| implementation guardrails | `RULE.md` |
+| repository/session bootstrap entrypoint | `AGENTS.md` |
+| stable implementation guardrails | `RULE.md` |
 | change classification and Design lifecycle | `SDD.md` |
-| current pointers and historical verified-state summary | `WORKBOARD.md` |
-| historical development identity and accumulated knowledge lineage | `LINEAGE.md` |
-| final-MVP capability decomposition and high-level sequencing | `docs/ROADMAP.md` |
-| development-plane and synchronization workflow | `docs/development/WORKFLOW.md` |
-| current-session access versus plane health | `docs/development/ACCESS.md` |
-| post-D0015 cumulative Group checkpoint branch succession | `docs/development/BRANCH_LINEAGE.md` |
-| exhaustive capability/Design execution register | `docs/development/PROGRAM.md` |
-| active Group E execution contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
-| one bounded Class 2 decision | `docs/design/*.md` |
+| current routing instance and live carry-forward constraints | `WORKBOARD.md` |
+| cumulative checkpoint succession/preservation | `LINEAGE.md` |
+| documentation taxonomy and naming | `docs/DOCUMENTATION.md` |
+| development plane/worktree/synchronization/publication workflow | `docs/development/WORKFLOW.md` |
+| final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |
+| Design-sized dependency and coverage graph | `docs/development/PROGRAM.md` |
+| one bounded Class 2 decision | `docs/design/<id>-<name>.md` |
 
-Development documents may reference product contracts, but they may not silently redefine them. A branch, worktree, cache, issue, task tracker, session or planning label is never product authority merely because a development document uses it.
+Development documents may change product owners through an accepted Design, but they cannot silently become product semantics.
 
-For **post-D0015 branch progression**, `docs/development/BRANCH_LINEAGE.md` is the normative owner. Older wording in `WORKBOARD.md`, `LINEAGE.md`, `PROGRAM.md`, or other pre-checkpoint documents that describes `mvp-1a-7` as a continuously fast-forwarded integration destination is retained only as historical context and is superseded for Group E and later branch succession.
+#### Evidence / history
 
-### C. Evidence / qualification
-
-Evidence documents answer **what was actually observed, measured, reproduced or qualified**.
+Evidence answers what was observed. History preserves what was previously decided, believed, rejected or routed at a past point.
 
 Examples:
 
-- `docs/evidence/*.json`;
-- `docs/MVP.md` executable source/provider qualification records;
-- `docs/IMPLEMENTATION_REPORT.md` integration evidence and retained boundaries;
-- bounded audit/review reports such as `docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md` and `docs/D0014_POST_VERIFICATION_REVIEW.md`;
-- GitHub Actions run/job/artifact identities referenced by those records.
+- `docs/evidence/*.json` — structured observed evidence;
+- tests, workflow runs, artifacts and exact commit identities referenced by evidence;
+- `docs/history/*.md` — retained historical narrative or completed bounded reports;
+- superseded/older Design revisions preserved by Git/evidence identity.
 
-Evidence does not redefine a contract. A passing test proves only its declared layer. A failed falsifier may reopen a Design or owner, but the evidence file itself does not become the replacement owner.
+Evidence or history can falsify/reopen a contract but cannot become the replacement contract merely because it is detailed or passed once.
 
-## 2. Dependency rule
+### Axis B — how a new session uses it
+
+A document also has one primary session role:
+
+| Session role | Meaning | Typical documents |
+| --- | --- | --- |
+| bootstrap | always needed to establish current development authority | `AGENTS.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md` |
+| stable owner | loaded when affected scope requires its long-lived contract | product owners, `LINEAGE.md`, `WORKFLOW.md`, `ROADMAP.md`, `PROGRAM.md` |
+| current router | selects the current development frontier | `WORKBOARD.md` |
+| active decision | authorizes one Class 2 scope | current Design revision |
+| evidence | loaded for the gate/falsifier it proves | `docs/evidence/*`, tests/CI/runtime observations |
+| history | loaded for provenance, prior rationale or defect comparison | `docs/history/*`, old Git/Design state |
+
+Evidence is therefore a first-class truth category but is not a peer bootstrap router. A new session normally needs current routing before it knows which evidence matters.
+
+## 2. Bootstrap and progressive loading
+
+The unconditional repository bootstrap is:
+
+```text
+AGENTS.md
+RULE.md
+SDD.md
+WORKBOARD.md
+```
+
+`AGENTS.md` defines the algorithm; `RULE.md` defines stable engineering invariants; `SDD.md` defines change/Design lifecycle; `WORKBOARD.md` owns the current route.
+
+After that kernel, load stable owners selected by affected scope. Do not preload the whole historical/program corpus merely because it exists.
+
+A chat summary, handoff, project prompt, Task context, generated registry or cached session manifest is derived continuity material. It may be reused only after its routing/Design/owner claims are rebound to current repository owners.
+
+## 3. Information direction and one-owner rule
 
 The default information direction is:
 
 ```text
 self-development / engineering
-        | changes and verifies
+        | changes through Design
         v
 product contracts
         | are tested / observed by
         v
-evidence / qualification
+evidence
+
+history preserves former states of any layer without becoming current authority
 ```
 
-Allowed cross-references must preserve this authority direction.
+Each durable fact has one owner. Other documents may:
 
-- Engineering documents can say which product owner they intend to change.
-- Evidence can identify the exact product contract and source identity it tested.
-- Product contracts can link to `ROADMAP.md` for program decomposition, but product meaning must still be stated in the product owner itself.
-- Product contracts should not depend on a current development branch, ChatGPT/Termux synchronization state, or a provisional Design ID to define runtime meaning.
+- link to it;
+- derive a summary deterministically;
+- cache it with source identity and mismatch rejection;
+- record what it was at a historical point.
 
-## 3. Product scope versus development program
+They may not independently originate another current value.
 
-`docs/SPEC.md` owns whether a capability is a final-MVP requirement. `docs/ROADMAP.md` owns the high-level capability-group program needed to close those requirements. `docs/development/PROGRAM.md` expands that roadmap into an engineering execution register. `docs/development/BRANCH_LINEAGE.md` owns how completed Groups accumulate as Git checkpoints; branch shape does not change capability ownership.
+In particular:
 
-Therefore:
+- `WORKBOARD.md` owns the current active Group/branch/current gate/next action;
+- `LINEAGE.md` owns valid checkpoint succession, not the current instance;
+- `ROADMAP.md` owns stable capability/exit intent, not current branch routing;
+- `PROGRAM.md` owns dependency/coverage planning, not current branch routing;
+- a Design owns its current maintained revision/status; human indexes are derived summaries;
+- remote Git owns its current mutable ref observation, so publication rereads that ref rather than trusting a documentation snapshot.
 
-```text
-SPEC / product owners
-    -> required capability
-ROADMAP
-    -> capability group + program exit
-DEVELOPMENT PROGRAM
-    -> provisional Designs + dependencies + falsifiers
-DESIGN
-    -> one accepted Class 2 decision
-EVIDENCE
-    -> observed verification
-BRANCH LINEAGE
-    -> retained cumulative Group checkpoint and successor creation
-```
+## 4. Program traceability
 
-A provisional Design entry is not authorization. Only an accepted/implementing Design under `SDD.md` authorizes Class 2 code.
-
-## 4. Completeness invariant
-
-The documentation system is complete only when every final-MVP requirement can be traced through all applicable layers.
-
-For each requirement maintain the chain:
+Every final-MVP requirement must remain traceable through applicable layers:
 
 ```text
 product requirement
--> product owner section
--> capability group
--> group exit criterion
--> one or more Design/gate entries
--> exact verification/evidence requirement
--> user/provider configuration step when applicable
+-> product owner
+-> capability/exit intent
+-> Design/gate dependencies
+-> accepted Design when Class 2
+-> implementation
+-> exact verification/evidence
+-> operator/provider action when applicable
 ```
 
-No requirement may disappear merely because its implementation owner is undecided. Unknown ownership, conditional mechanisms and deferred choices are recorded explicitly as `unknown`, `conditional`, or `decision gate`.
+No requirement disappears because its mechanism is undecided. Unknown, conditional and deferred decisions stay explicit.
 
-Conversely, every planned Design must trace upward to a product requirement, risk, verification gap, or evidence-backed optimization. A Design with no such parent is not justified by numbering alone.
+Conversely, a planned Design needs a parent product requirement, risk, verification gap or evidence-backed optimization. A Design number is never authorization by itself.
 
-Branch checkpoints are an orthogonal preservation mechanism: a Group checkpoint is valid only after the Group exit chain above is complete enough to elect its final head.
+Checkpoint lineage is orthogonal to this trace: a Group checkpoint preserves accumulated work only after its exit can be trusted; branch names do not own capabilities.
 
-## 5. Program coverage ledger
+## 5. Naming semantics
 
-`docs/development/PROGRAM.md` is the execution coverage ledger. It must record for every provisional Design-sized gate:
+Filename style is a navigation signal, not authority by itself.
 
-- capability group(s);
-- problem/purpose;
-- product/authority owners affected and explicit non-owners;
-- prerequisites and dependencies;
-- MVP criticality or conditional status;
-- cheapest useful falsifier;
-- required exit evidence;
-- deployment/provider/user actions if applicable;
-- expected active cumulative Group lane;
-- current status (`planned`, `decision-ready`, `accepted`, `implementing`, `verified`, `conditional`, `post-MVP`, `blocked`, `superseded`);
-- unresolved questions that could split, merge, remove or reorder the gate.
+### Live normative/current Markdown
 
-When a new requirement appears, it must be entered into this ledger before it can be considered covered.
+Use `UPPERCASE.md`; prefer one semantic word when that remains clear and precise.
 
-`PROGRAM.md` does not own branch succession. When its historical branch wording conflicts with `BRANCH_LINEAGE.md`, the latter controls post-D0015 progression.
+Examples: `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `SPEC.md`, `PROTOCOL.md`, `SECURITY.md`, `WORKFLOW.md`, `PROGRAM.md`.
 
-## 6. Historical documents and physical layout
+A multiword live normative name is allowed when forcing one word would reduce clarity or create unnecessary migration risk. Existing widely referenced `MVP.md` remains the executable-acceptance owner under D0031 rather than being renamed only for stylistic purity.
 
-Do not mass-move historical Design/evidence files merely to make the directory tree visually pure. Existing references and exact historical evidence are valuable.
+`README.md` is a conventional navigation exception and does not become normative merely because it is uppercase.
 
-The current migration policy is:
+### Bounded/specific/historical material
 
-1. classify documents semantically first;
-2. add explicit owners and cross-links;
-3. put new self-development documents under `docs/development/`;
-4. keep existing historical paths stable unless a later bounded cleanup proves the link/update cost worthwhile;
-5. never rewrite historical evidence merely to match a newer taxonomy;
-6. when a newer development-governance owner supersedes older operational wording, record explicit precedence instead of rewriting historical verified-state narratives wholesale.
+Use lowercase kebab-case for new or actively migrated:
 
-## 7. Naming discipline
+- Design records: `docs/design/0031-self-development-documentation-authority.md`;
+- evidence: `docs/evidence/group-f-d0031-...json`;
+- completed group/campaign reports;
+- audits and reviews;
+- historical narratives under `docs/history/`.
 
-Use these terms consistently:
+Do not rename a file solely for aesthetics when the reference/provenance cost exceeds the semantic benefit.
 
-- **product contract** — runtime/product meaning;
-- **development program** — how the repository intends to reach the product target;
-- **Design** — one accepted Class 2 decision under `SDD.md`;
-- **verification gate** — observable falsifier/acceptance evidence;
-- **legacy baseline** — retained pre-Group checkpoint such as `mvp-1a-7@83e9610...`;
-- **active cumulative Group branch** — the one current `group/*` ref receiving accepted post-D0015 development;
-- **completed Group checkpoint** — retained Group ref whose exit is accepted and which becomes the exact predecessor for the next Group;
-- **prototype fork** — final MVP prototype ref created from the exact final Group head after qualification;
-- **published head** — observed remote ref identity at one location/time;
-- **local head** — observed Termux/local ref identity at one location/time;
-- **working mirror** — derived ChatGPT/CI checkout used to inspect, test, reconcile or construct candidates;
-- **sync debt** — a known, provenance-preserving difference between replicas of the same development ref that must be reconciled later.
+## 6. Historical retention
 
-Intentional ancestry differences between `mvp-1a-7`, Group E, Group F, Group G and Group H are not sync debt; they are checkpoint lineage.
+Preservation and loading are separate decisions.
 
-## 8. Review rule
+Keep historical material when it contains unique:
 
-Before closing a Group or Design, review documentation in four passes:
+- rejected alternatives or rationale;
+- falsifiers/counterexamples;
+- exact environment/qualification limits;
+- migration/rollback boundaries;
+- formerly current identities needed to interpret evidence;
+- evidence provenance not reproducible from current owners.
 
-1. **Product pass:** did product meaning change, and is the correct normative owner updated?
-2. **Development pass:** are program status, dependencies and remaining gates accurate?
-3. **Evidence pass:** does every `verified` claim name executable or provider evidence, with unsupported layers still explicit?
-4. **Checkpoint pass:** if a Group is closing, is its exact final head recorded and is the successor branch created only from that head according to `BRANCH_LINEAGE.md`?
+Do not keep a historical narrative in `WORKBOARD.md` merely because it is valuable. Move/retain it under its Design/evidence/history owner and link it only when current work needs it.
 
-A claim is incomplete if any applicable pass is silently substituted for another.
+A historically correct statement such as “Group E was active” remains correct inside a clearly historical report. Do not rewrite evidence/history to make it look current.
+
+Before deleting duplicated prose, prove either:
+
+1. it is a byte/meaning duplicate of a durable owner, or
+2. its unique information has been preserved at the correct historical/evidence owner.
+
+## 7. Current router content rule
+
+`WORKBOARD.md` may retain old facts only when they constrain current action, for example:
+
+- immediate completed predecessor needed for current ancestry;
+- a live inherited qualification gap;
+- unresolved sync/checkout-alignment debt;
+- active migration or rollback barrier;
+- accepted Design whose implementation remains a current frontier dependency.
+
+Detailed benchmark chronology, old test counts and superseded current pointers belong elsewhere.
+
+Age alone does not decide retention; present decision impact does.
+
+## 8. Derived registries and mismatch checks
+
+Human-readable registries such as `docs/design/README.md`, roadmap status summaries or program status fields are derived/supporting views when the underlying Design/current router owns the fact.
+
+They must not resolve conflicts in their own favor. Documentation validation should detect drift and require repair of the derived view or its deterministic generation rule.
+
+Do not introduce a new permanent authority/session manifest that repeats existing owners. An ephemeral resolver output is acceptable only if it identifies its source owners and becomes invalid when those sources change.
+
+## 9. Review rule
+
+Before closing a Design or checkpoint, review applicable dimensions independently:
+
+1. **Product:** did product meaning change, and was the correct owner updated?
+2. **Development:** are current routing, program dependencies and remaining gates accurate?
+3. **Evidence:** does every verification claim identify the layer actually observed, with unsupported layers explicit?
+4. **History:** were unique rationale/provenance preserved without being promoted into current authority?
+5. **Checkpoint:** if a Group closes, is the exact final head retained and the successor created only under `LINEAGE.md`?
+
+A claim is incomplete if one dimension is silently substituted for another.

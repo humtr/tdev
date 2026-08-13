@@ -8,7 +8,7 @@
 - Active cumulative branch: `group/f-cloudflare-runtime`
 - Group E creation predecessor: exact `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c`
 - Completed Group E checkpoint: exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`; Group F was created from this exact SHA with no intervening commit
-- Post-D0015 branch succession owner: `docs/development/BRANCH_LINEAGE.md`; completed Groups are retained checkpoints and each successor Group is created from the exact final head of its predecessor
+- Development checkpoint succession owner: `LINEAGE.md`; completed Groups are retained checkpoints and each successor Group is created from the exact final head of its predecessor
 - Historical direction origin / predecessor: exact `mvp-1a-6@131204b782d7c7b64edceb55e335fba10c8e5aee`
 - Knowledge inputs: verified D0010 semantic-v3 authority, D0011 local real-Git projection, D0012 authenticated remote-publication source evidence, D0013 trusted-local repository/model transport baseline, D0014 bounded product-efficiency evidence, and D0015 final-MVP program rebaseline/post-verification review accumulated in the retained `mvp-1a-7` baseline
 - Current source runtime target: Node.js 22+; final MVP runtime additionally requires the accepted Cloudflare/local-Agent deployment profile
@@ -16,7 +16,7 @@
 - Verification owner: `docs/MVP.md`
 - Final-MVP program owner: `docs/ROADMAP.md`
 - Development-program register: `docs/development/PROGRAM.md`
-- Current Group execution owner: no Group F-specific execution document exists at this checkpoint; use `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/BRANCH_LINEAGE.md`, and each accepted Design owner. `docs/development/GROUP_E_CONTEXT_DELIVERY.md` is the retained completed Group E execution/exit record
+- Current Group execution owner: no Group F-specific execution document exists; use `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `LINEAGE.md`, and each accepted Design owner. The completed Group E execution/exit record is historical context, not current routing authority
 - Current verified design: `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md`
 - Active self-development Class 2 decision: D0031 revision 1 — Self-Development Documentation Authority, accepted 2026-08-13; it changes repository bootstrap/routing/documentation/Design-correction governance only and leaves product semantics unchanged.
 - Most recent accepted product Class 2 decision: D0019 — CaseDO Authority Adapter, accepted **as amended** 2026-08-13; a durable placement generation elects one exact Cloudflare CaseDO tuple, that elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority, ordinary CaseDO reconstruction does not imply semantic reopen, exact D0010 command-receipt identity is preserved, and production implementation/qualification remains separate.
@@ -247,7 +247,7 @@ D0010 closes the bounded local semantic-v3 authority/head/migration/repair/GC co
 
 ## Routing
 
-- Development checkpoint succession: `docs/development/BRANCH_LINEAGE.md`
+- Development checkpoint succession: `LINEAGE.md`
 - Development-plane synchronization: `docs/development/WORKFLOW.md`
 - Session-access model: `docs/development/ACCESS.md`
 - Development program register: `docs/development/PROGRAM.md`

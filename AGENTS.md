@@ -2,62 +2,61 @@
 
 Scope: the entire repository unless a nearer `AGENTS.md` narrows only local implementation details.
 
-## Required reading
+## Session bootstrap
 
-Before a change, read in this order:
+`AGENTS.md` is the repository entrypoint, not a database of current branch or Design state.
 
-1. `RULE.md` and `SDD.md`;
-2. `docs/DOCUMENTATION.md`, `docs/development/WORKFLOW.md`, `docs/development/ACCESS.md`, and `docs/development/BRANCH_LINEAGE.md`;
-3. `WORKBOARD.md`, `docs/ROADMAP.md`, and `docs/development/PROGRAM.md`;
-4. the current Capability Group execution document when one exists for the active `group/*` lane; Group E's retained execution/exit contract is `docs/development/GROUP_E_CONTEXT_DELIVERY.md`, and no Group F-specific execution document exists at this checkpoint;
-5. the active Design record, if any;
-6. every affected normative product owner;
-7. the implementation and executable verification path.
+Before substantive work, establish the fixed bootstrap kernel in this order:
 
-Do not infer authority from names, conventions, generated output, branch location, planning labels, or passing tests.
+1. read `RULE.md`;
+2. read `SDD.md`;
+3. read `WORKBOARD.md` and resolve the current development route from it;
+4. compare any chat summary, handoff, project prompt, Task context, cached interpretation or historical record with those current owners;
+5. discard or mark stale every incompatible derived claim before dependent mutation.
 
-## Development branch discipline
+If a required bootstrap owner is missing, unreadable, or mutually inconsistent, stop only the dependent mutation and repair authority through `SDD.md`. Do not choose a branch, Design, migration, rollback, product meaning or completion claim by convention.
 
-- `mvp-1a-7@83e9610d79b4ad70858e4dd7fe3625052336a92c` is the retained cumulative legacy baseline through D0015 and the exact predecessor from which Group E began. It is **not** the destination for post-D0015 Group integration.
-- Post-D0015 Capability Group development follows the cumulative checkpoint lineage owned by `docs/development/BRANCH_LINEAGE.md`.
-- Group E is retained as a completed cumulative checkpoint at exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` (`cp_1786580384438_9ed881e039da`). The current mutable cumulative branch is `group/f-cloudflare-runtime`, created from that exact head with no intervening commit. Normal substantive work does not modify the completed Group E ref.
-- The normal canonical Termux checkout/work baseline follows the active cumulative Group branch and tracks that same remote ref when the plane is available and safe to align. A retained legacy or completed Group checkpoint remains a provenance ref; it is **not** the normal canonical checkout/work baseline after its successor becomes active.
-- Continue linearly: final E -> `group/f-cloudflare-runtime`; final F -> `group/g-mcp-security`; final G -> `group/h-deployment-qualification`; final H -> a separately named MVP prototype branch selected at the final qualification gate.
-- Do **not** create E/F/G/H as independent branches from `mvp-1a-7` and later merge them together. Do **not** merge completed Groups back into `mvp-1a-7` as normal progression.
-- `group/*` names are cumulative Capability Group checkpoints, not product semantic owners. A later Group inherits all accepted earlier Group work through ordinary Git ancestry.
-- A Design number change alone does not create a new branch. Group branch creation is tied to a completed predecessor Group checkpoint, not to every Design or verification milestone.
-- Completed Group checkpoint refs are retained for provenance and should not be force-rewritten as routine development. Temporary candidate branches may exist within the active Group, but accepted work lands on the active cumulative Group branch before Group completion.
-- Previously superseded or legacy `mvp-*` refs are reference/checkpoint history and are not modified merely to mirror later Group progress. Tool-owned `tmcp/*` worktree branches are transport bookkeeping and do not define development lineage.
-- Development replicas do not have to be perfectly synchronized at every instant. Follow `docs/development/WORKFLOW.md`: synchronize replicas of the **same active cumulative ref** when possible, continue on an available plane when safe, record exact sync debt, and reconcile later. A canonical checkout left on a predecessor checkpoint is not a valid replica-sync state; align it before normal substantive work, or preserve it only as explicit checkout-alignment debt while working from an isolated exact active-ref worktree. Never guess the state of an unavailable plane.
-- Plane health and current-session access are separate observations. Follow `docs/development/ACCESS.md`; absence of a tmcp/local tool in the current agent session does not prove Termux or the route is unhealthy, and a user-reported healthy route does not by itself update the last observed local Git identity.
+A new session reconstructs current development context from the repository. Previous-session continuity may accelerate discovery but never replaces the bootstrap rebind.
 
-## Normative owners
+## Progressive loading
 
-| Contract | Owner |
-| --- | --- |
-| Documentation taxonomy and authority layers | `docs/DOCUMENTATION.md` |
-| Product scope, terminology, acceptance, non-goals | `docs/SPEC.md` |
-| Components, ownership, dependency direction, concurrency | `docs/ARCHITECTURE.md` |
-| Work-graph records, states, claims, results, promotion | `docs/PROTOCOL.md` |
-| Executor operation boundary and failure behavior | `docs/OPERATIONS.md` |
-| Trust, path, secret, and effect boundaries | `docs/SECURITY.md` |
-| Build, deployment, migration, rollback layers | `docs/DEPLOYMENT.md` |
-| Current source slice and verification gates | `docs/MVP.md` |
-| Final-MVP capability program, sequencing, and exit criteria | `docs/ROADMAP.md` |
-| Self-development work planes and synchronization workflow | `docs/development/WORKFLOW.md` |
-| Current-session access versus development-plane health | `docs/development/ACCESS.md` |
-| Post-D0015 cumulative Group checkpoint lineage | `docs/development/BRANCH_LINEAGE.md` |
-| Exhaustive provisional Design execution/coverage register | `docs/development/PROGRAM.md` |
-| Completed Group E execution and exit contract | `docs/development/GROUP_E_CONTEXT_DELIVERY.md` |
-| MCP projection boundary | `docs/MCP.md` |
-| Integration evidence and retained boundaries | `docs/IMPLEMENTATION_REPORT.md` |
-| Current pointers / historical verified-state summary | `WORKBOARD.md` |
+After the fixed kernel, read only the owners selected by the current route and affected scope:
 
-Product contracts describe tdev. Development documents describe how tdev itself is changed. Evidence documents describe what has actually been proved. A development document may plan a product change but cannot silently redefine the product contract; evidence cannot become authority merely because it passed.
+- documentation taxonomy, naming or authority boundaries -> `docs/DOCUMENTATION.md`;
+- development execution, worktrees, synchronization, publication or plane capability -> `docs/development/WORKFLOW.md`;
+- checkpoint succession, completed refs or prototype-fork questions -> `LINEAGE.md`;
+- product/capability sequencing -> `docs/ROADMAP.md` and, when Design-sized execution coverage matters, `docs/development/PROGRAM.md`;
+- Class 2 work -> the active accepted/implementing Design record under `docs/design/`;
+- product behavior -> every affected normative product owner named by `docs/DOCUMENTATION.md`;
+- verification -> `docs/MVP.md` plus the exact evidence required by the current gate.
 
-For post-D0015 branch progression, `docs/development/BRANCH_LINEAGE.md` supersedes older wording in `WORKBOARD.md`, `LINEAGE.md`, or other pre-checkpoint documents that describes `mvp-1a-7` as a continuously fast-forwarded integration destination.
+Historical reports, old Designs and evidence are loaded when a current owner, falsifier or provenance question requires them. They are not part of the unconditional session bootstrap.
 
-## Repository invariants
+Do not infer authority from file names, capitalization, branch location, generated output, planning labels or passing tests. Naming is a navigation signal only; declared ownership controls.
+
+## Development route discipline
+
+- `WORKBOARD.md` owns the current routing instance: active cumulative Group, active branch, current Design/gate, exact next action and live debts/barriers.
+- `LINEAGE.md` owns stable checkpoint succession and completed-ref preservation. It does not own which Group is current.
+- Resolve the active branch from `WORKBOARD.md`; do not carry a remembered branch from an earlier session or historical report.
+- Before a remote-changing action, freshly observe the actual provider ref and verify expected predecessor/ancestry. A commit SHA is immutable identity; a mutable ref observation is location- and time-specific.
+- Completed Group checkpoints and legacy refs are provenance. Do not force-rewrite them as routine development and do not return to them as the normal correction path for an inherited defect.
+- Temporary `tmcp/*` or other tool-owned branches are transport/worktree bookkeeping unless current repository authority explicitly promotes one. They do not define tdev development lineage.
+- When the normal local checkout is unavailable, stale or unsafe to align, preserve unrelated state, record the exact debt, and use an isolated worktree rooted at the exact current active ref when `WORKFLOW.md` permits it.
+- Product Git publication (`Promotion -> Git`) and tdev self-development Git synchronization are separate authority systems.
+
+## Change discipline
+
+- Classify every change under `SDD.md` before implementation.
+- Only an accepted or implementing Design revision authorizes Class 2 implementation.
+- A failed falsifier may reopen an earlier Design/owner. Correct forward on the current cumulative lineage unless a separately authorized operational rollback is required and actually safe.
+- One durable fact or contract has one authoritative owner. Derived summaries, indexes and handoffs require a deterministic source or mismatch check and never silently become co-owners.
+- Preserve unrelated files, branches, worktrees, refs, processes, credentials, historical evidence and user state.
+- Keep changes in small reviewable commits. Before each commit/publication gate review the complete effective diff from the exact intended base.
+
+## Product invariants
+
+Unless an accepted Design and the responsible product owner change them:
 
 - Parallel execution is the base semantics; capacity one is a normal degeneration.
 - A PlanRevision is immutable.
@@ -68,13 +67,11 @@ For post-D0015 branch progression, `docs/development/BRANCH_LINEAGE.md` supersed
 - Promotion is the only canonical tree writer.
 - Accepted result order and executor capacity do not change the promoted tree.
 - Wall-clock time is not part of state-transition meaning or digests.
-- Unknown external effects, migrations, credentials, and rollback capability remain explicit unknowns.
-- Product Git publication (`Promotion -> Git`) and tdev self-development Git synchronization are separate authority systems.
-- A Git commit SHA is immutable identity; any statement about a current head must also name the observed ref/location when that distinction matters.
+- Unknown external effects, migrations, credentials and rollback capability remain explicit unknowns.
 
 ## Validation
 
-Minimum source gate:
+Use the acceptance and verification owners for the affected scope. The repository minimum source gate remains:
 
 ```sh
 npm ci --ignore-scripts --no-audit --no-fund
@@ -83,4 +80,4 @@ node --experimental-test-coverage --test test/*.test.mjs
 git diff --check
 ```
 
-A source gate proves only the declared Node behavior and local adapters. It does not prove distributed/provider storage, deployment, public-client behavior, or provider rollback.
+A source gate proves only its declared source/adaptor layer. Provider, deployment, public-client, migration and rollback claims require their own evidence.

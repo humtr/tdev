@@ -1,252 +1,172 @@
 # tdev self-development workflow
 
-> Normative owner for how tdev itself is developed across Termux, GitHub and derived agent workspaces. Branch succession after D0015 is owned by `docs/development/BRANCH_LINEAGE.md`. This is a self-development contract, not product runtime behavior.
+> Normative owner for how tdev itself is developed across available repository, execution and publication planes. `WORKBOARD.md` owns the current route; `LINEAGE.md` owns checkpoint succession. This is a self-development contract, not product runtime behavior.
 
 ## 1. Operating model
 
-`tdev` development uses three kinds of work location with different capabilities.
+Development can use multiple planes with different capabilities. A plane is authoritative only for the facts it actually owns.
 
-### Termux local checkout
+### Local execution checkout
 
-Termux is the full-capability local execution plane when connected and authorized.
+A capable local checkout may perform filesystem edits, Git operations, tests, processes and local runtime probes. It can be the strongest execution plane without becoming product authority or current-route authority.
 
-It can own or perform:
+### Remote repository
 
-- local filesystem edits;
-- `.git` object/ref operations;
-- local tests, processes and runtime probes;
-- commits, branches, fetch, merge, rebase when explicitly justified, and push;
-- local Agent/runtime work that GitHub cannot perform;
-- remote Git operations when network/credentials are available.
+The remote Git provider is the durable publication/collaboration plane for commits and refs. It owns the current observation of its mutable refs. It does not prove local filesystem/process or provider-runtime state.
 
-Termux is not required to be continuously reachable for all repository work. Loss of local connectivity is an availability limitation, not automatic proof that GitHub-side work must stop.
+### Working mirror / CI
 
-### GitHub repository
+Agent worktrees and CI checkouts are derived engineering mirrors. Prefer complete Git-aware mirrors at exact commits. They are disposable; losing one must not lose product or development authority.
 
-GitHub is the durable remote publication/collaboration plane.
+## 2. Plane health, access and observation
 
-It can own or perform:
-
-- durable Git objects and refs;
-- remote branch creation/update;
-- repository documents and source edits through supported connector/API paths;
-- Issues, PRs and provenance records;
-- GitHub Actions validation and artifacts;
-- a repository-visible source of truth that independent sessions can reread.
-
-GitHub does not possess the Termux filesystem/process environment and cannot substitute for local-only runtime evidence.
-
-### ChatGPT / CI working mirror
-
-A ChatGPT container such as `/mnt/data/tdev`, a Codex checkout, or a CI runner is a **derived Git-aware engineering mirror**.
-
-When possible, it should be a complete `.git` repository at an exact observed commit so that agents can use ancestry, diff and status instead of loose file copies. It is nevertheless disposable and non-authoritative: container loss must not lose product or development authority.
-
-Prefer reconstruction through normal Git mechanisms over copying another machine's `.git` directory byte-for-byte.
-
-## 2. Git identity and observation
-
-A Git commit SHA identifies one immutable commit object. The same object may exist simultaneously in Termux, GitHub, ChatGPT and CI repositories.
-
-The SHA is not inherently "remote" or "local". What differs by location is which mutable ref currently points to it.
-
-Always distinguish:
+Keep these separate:
 
 ```text
-GitHub active branch:   <ref> @ <sha>
-Termux local branch:    <ref> @ <sha>
-working mirror branch:  <ref/detached> @ <sha>
+plane health                healthy / unhealthy / unknown
+route or service health     healthy / unhealthy / unknown
+current-session capability  available / unavailable / unknown
+observed repository state   <ref @ sha> / last-observed / unobserved
 ```
 
-Do not report an unqualified "HEAD" when the location matters.
+A healthy plane may be inaccessible to the current session. Missing current-session tooling does not prove the plane is broken. A user report that a route is healthy does not itself update an exact Git identity.
 
-For post-D0015 development there are two different branch roles:
+When a required plane cannot be freshly observed, label that fact `unobserved` or `last-observed`; never silently upgrade it to current.
 
-- `mvp-1a-7` is the retained legacy baseline through D0015;
-- exactly one `group/*` branch is the active cumulative development branch at a time.
+## 3. Git identity and current route
 
-The current active cumulative branch is `group/f-cloudflare-runtime`. The completed Group E checkpoint is retained at exact `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`.
+A commit SHA identifies an immutable object. A branch/ref is mutable and must be named with the location whose state was observed.
 
-When Termux/local access is available, the **normal canonical checkout** must be on the active cumulative branch and track that same remote ref before normal substantive work begins. Retained predecessor/checkpoint refs stay present for provenance, but they are not checkout/work baselines once a successor is active. This alignment rule is derived from `BRANCH_LINEAGE.md`; the checkout itself does not become branch-lineage authority.
+Always distinguish when relevant:
 
-## 3. Synchronization principle
+```text
+remote active ref:    <ref> @ <sha-or-unobserved>
+local active ref:     <ref> @ <sha-or-unobserved>
+working mirror:       <ref/detached> @ <sha-or-unobserved>
+```
 
-The governing rule is:
+Resolve the active cumulative Group and branch from `WORKBOARD.md`. Do not infer them from the repository default branch, an old Design, a historical report, a handoff, a Task transport branch or the sequence in `LINEAGE.md`.
 
-> **Synchronize when possible; progress when not; never lose provenance; reconcile later.**
+The normal capable local checkout should track the active cumulative branch when safe. If it is on a completed/predecessor branch, that is `CHECKOUT_ALIGNMENT_DEBT`, not a second route authority. Preserve unrelated dirty state; align safely or use an isolated worktree from the exact current active ref.
 
-Synchronization is attempted before new work when practical, but inability to reach one plane is not by itself a reason to abandon work that can safely proceed on another plane.
+## 4. Synchronization states
 
-Availability must not require an unrealistically perfect state. Consistency is preserved by explicit identities, ancestry and reconciliation debt rather than by blocking all progress until every location is simultaneously reachable.
+Use these observations only for replicas of the same active development ref:
 
-Plane health and current-session access are separate observations; see `docs/development/ACCESS.md`.
-
-## 4. Development synchronization states
-
-Use these states for the **same active development ref** across repository locations. They are operational observations, not product states.
-
-| State | Meaning | May work continue? |
+| State | Meaning | May dependent work continue? |
 | --- | --- | --- |
-| `SYNCED` | observed Termux and GitHub active-branch refs identify the same commit | yes |
-| `TERMUX_AHEAD` | local commit(s) descend from the GitHub active-branch head and are not yet published | yes; record publication debt |
-| `GITHUB_AHEAD` | GitHub active-branch head descends from the observed Termux head and local reconciliation has not happened | yes; record local sync debt |
-| `CANDIDATE_AHEAD` | a temporary agent/CI candidate exists beyond the active cumulative Group branch | yes on that candidate lane; do not mislabel it Group-complete |
-| `UNOBSERVED` | one location cannot currently be read | yes if the available plane has sufficient capability; record what is unknown |
-| `DIVERGED` | Termux and GitHub contain independent descendants of the same active branch predecessor | limited; preserve both and reconcile before electing a checkpoint head |
-| `BLOCKED` | the required capability exists only on an unavailable plane and cannot be safely substituted | no for that specific gate; unrelated gates may continue |
+| `SYNCED` | observed local and remote active refs identify the same commit | yes |
+| `LOCAL_AHEAD` | local descendant is not yet published | yes; publication debt |
+| `REMOTE_AHEAD` | remote descendant is not yet reconciled locally | yes; local sync debt |
+| `CANDIDATE_AHEAD` | isolated candidate descends from active ref | yes on candidate; not checkpoint completion |
+| `UNOBSERVED` | one relevant plane cannot be freshly read | yes if the requested gate is independently executable elsewhere |
+| `DIVERGED` | replicas of the same active ref contain independent descendants | limited; preserve both and reconcile before checkpoint election |
+| `BLOCKED` | required capability exists on no currently usable authorized plane | no for that dependent gate |
 
-A non-`SYNCED` state is **sync debt**, not automatically failure. The failure is losing exact identities/ancestry or overwriting one side without reconciliation.
-
-Do not call the intentional ref difference between the retained completed `group/e-context-delivery` checkpoint and active `group/f-cloudflare-runtime` sync debt. They are different lineage checkpoints by design. However, if the **canonical checkout branch itself** is still on `group/e-context-delivery`, `mvp-1a-7`, or another completed predecessor after `group/f-cloudflare-runtime` is active, that is `CHECKOUT_ALIGNMENT_DEBT`, not a valid synchronization state for the active ref. Do not perform normal substantive work from that stale checkout. Align it when safe, or preserve unrelated dirty state and use an isolated worktree rooted at the exact active cumulative ref until alignment can be completed.
+Intentional ancestry differences between completed and successor Group refs are not synchronization debt. A stale canonical checkout on a completed ref is checkout-alignment debt because the checkout is supposed to follow the current route.
 
 ## 5. Work-start protocol
 
-Before substantive work:
+Before substantive mutation:
 
-1. read `AGENTS.md`, `RULE.md`, `SDD.md`, `docs/DOCUMENTATION.md`, this file, `docs/development/ACCESS.md`, `docs/development/BRANCH_LINEAGE.md`, `WORKBOARD.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, the current Group execution file and the active Design if any;
-2. identify the active cumulative Group branch from the branch-lineage/group document;
-3. observe the current GitHub ref for that active branch directly;
-4. observe Termux/local status for that same ref when available, including the canonical checkout branch, HEAD and upstream;
-5. if the canonical checkout is on a predecessor/completed checkpoint, align a clean/safe checkout to the active cumulative branch and its upstream before normal substantive work; if alignment is unsafe because the plane is unavailable or unrelated dirty state must be preserved, record `CHECKOUT_ALIGNMENT_DEBT` and create/use an isolated worktree from the exact active ref instead;
-6. observe the working mirror status when one exists;
-7. record exact SHAs and their relationship (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
-8. attempt the cheapest safe synchronization of replicas of the active branch;
-9. if synchronization cannot complete, choose the available work plane, state the debt, and continue only within that plane's actual capabilities;
-10. never invent the state of an unavailable plane.
+1. complete the fixed bootstrap in `AGENTS.md`: `RULE.md`, `SDD.md`, `WORKBOARD.md`;
+2. resolve the active cumulative branch, current Design/gate and live debts from `WORKBOARD.md`;
+3. load this workflow when execution/replica/publication state matters, and `LINEAGE.md` when checkpoint succession matters;
+4. load the active Design and affected normative product owners required by the scope;
+5. observe the current remote active ref directly when remote identity matters;
+6. observe local checkout branch, HEAD, upstream and dirty state when local access exists;
+7. observe any working mirror used for the change;
+8. record exact relationships (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
+9. attempt the cheapest safe alignment/reconciliation needed by the current gate;
+10. if one plane is unavailable or unsafe to align, preserve state, record exact debt, and continue only on a plane that can independently execute the requested gate;
+11. never invent the state of an unavailable plane.
 
-Recommended form:
+A handoff may provide candidate identities and prior observations, but each mutable fact is rebound to its current owner before use.
 
-```text
-Work-start identities
+## 6. Isolated work and canonical integration
 
-Legacy baseline:       mvp-1a-7 @ 83e9610d79b4ad70858e4dd7fe3625052336a92c
-Active cumulative ref: <group/ref>
-GitHub active head:    <sha-or-unobserved>
-Termux active head:    <sha-or-unobserved>
-Working mirror head:   <sha-or-unobserved>
-Replica relationship:  <equal/ancestor/diverged/unobserved>
-Sync attempt:           <result>
-Decision:               <where work will continue>
-Reconciliation debt:    <none or exact follow-up>
-```
+Parallel work is the default development posture. Capacity one is the same model with one executor.
 
-## 6. Replica reconciliation rules
+- Independent investigations or implementation candidates may use isolated worktrees/branches at exact bases.
+- Ordinary work produces isolated changes; canonical integration/commit/publication uses one controlled lane.
+- A tool-owned worktree branch is transport bookkeeping unless repository authority explicitly elects it as a development ref.
+- Preserve unrelated files, worktrees, refs, processes and credentials.
+- Do not use `reset --hard`, cleaning, force-push or history rewriting as a default reconciliation technique.
 
-### Simple GitHub-ahead case
+When two candidate lines differ semantically, compare them against the accepted Design and falsifiers before choosing integration mechanics. Git convenience cannot choose product meaning.
 
-If local `C` is an ancestor of GitHub `C1` on the same active Group ref, reconcile by fetch plus fast-forward-only update when local access returns.
+## 7. Replica reconciliation
 
-### Simple local-ahead case
+### Remote ahead
 
-If GitHub `C` is an ancestor of local `C1` on the same active Group ref, publish using a normal non-force fast-forward after validation and re-observation of the expected predecessor.
+If the observed local active head is an ancestor of the current remote active head and the local checkout is safe to update, fetch and fast-forward only.
 
-### Divergence
+### Local ahead
 
-If two replicas contain independent descendants of one active Group predecessor, preserve both descendants. Choose merge, rebase, cherry-pick or supersession from semantics/evidence; do not use `reset --hard` merely to make identities equal.
+If the current remote active head is an ancestor of the validated local candidate, publish by normal non-force fast-forward after freshly rereading the expected remote predecessor.
 
-Already shared or independently verified commits should not be rewritten casually.
+### Diverged
 
-This reconciliation is **not** a mechanism for combining Capability Groups. Capability Groups succeed each other linearly through `BRANCH_LINEAGE.md`.
+Preserve both descendants. Choose merge, rebase, cherry-pick or semantic supersession only after inspecting the complete differences and current authority. Already shared or independently evidenced commits are not rewritten casually.
 
-## 7. Cumulative checkpoint branch model
+After an ambiguous remote write, reread the provider ref before retrying.
 
-The branch lineage is:
+## 8. Checkpoint transition
 
-```text
-mvp-1a-7
-  -> group/e-context-delivery
-  -> group/f-cloudflare-runtime
-  -> group/g-mcp-security
-  -> group/h-deployment-qualification
-  -> <mvp prototype branch>
-```
+Checkpoint creation and successor rules come from `LINEAGE.md`; capability exit intent comes from `ROADMAP.md`; `WORKBOARD.md` supplies the current instance.
 
-Each arrow means: create the successor from the **exact final verified head** of the predecessor checkpoint.
+When the active Group exit is satisfied:
 
-`mvp-1a-7` is not advanced to absorb Group E or later Groups. Group F is not created from `mvp-1a-7`; it is created from final Group E. G is created from final F; H from final G.
-
-A Group branch:
-
-- accumulates all earlier accepted Group history through ancestry;
-- remains mutable only while that Group is active;
-- becomes a retained checkpoint when its exit is accepted;
-- is the exact base for the next Group branch;
-- is not a product semantic authority merely because it is a checkpoint.
-
-Temporary subordinate candidate branches may be used during one Group, but accepted work must land on the active Group branch before Group completion.
-
-## 8. Group transition protocol
-
-When the active Group exit criteria are satisfied:
-
-1. re-observe the active Group head on GitHub and any required execution plane;
+1. re-observe the exact active Group head on required planes;
 2. finish required source/provider/target validation;
-3. record exact Design/evidence identities and unresolved boundaries;
-4. reconcile replica sync debt required to elect a trustworthy final Group head;
-5. record the exact final Group checkpoint SHA;
-6. retain the completed Group ref;
-7. create the next Group branch from that exact SHA;
-8. when the relevant planes are available and safe to update, move the canonical checkout/work baseline and derived tmcp/GitHub default-branch pointers to the successor branch; if any plane cannot be aligned immediately, record exact alignment debt and do not treat the completed predecessor checkout as the new work baseline;
-9. update current Group pointers/documentation on the successor branch;
-10. do not fast-forward or merge the completed Group back into `mvp-1a-7`.
+3. record Design/evidence identities and unresolved boundaries;
+4. reconcile debt required to elect a trustworthy final checkpoint;
+5. retain the completed Group ref at the exact final head;
+6. create the successor only from that exact head;
+7. update `WORKBOARD.md` to the successor route;
+8. align capable local/default operational pointers when safe, otherwise record exact alignment debt;
+9. do not update retained predecessor refs merely to mirror the successor.
 
-If no further Capability Group remains, create the MVP prototype branch from the exact final Group head after final qualification and an explicit final-ref naming decision.
+If no planned Group remains, the prototype fork follows the final rule in `LINEAGE.md`.
 
-## 9. Codex / agent working-mirror rule
+## 9. Publication safety
 
-An automated coding agent should, when the environment permits:
-
-1. materialize a complete Git checkout with `.git`;
-2. verify the exact intended active Group SHA before edits;
-3. work on the active cumulative Group branch or a subordinate temporary candidate branch;
-4. keep the worktree clean between intentional commits;
-5. run the declared source/focused/provider gates;
-6. record exact source/evidence SHA identities;
-7. publish only through a non-force path whose expected predecessor was reread;
-8. report Termux/GitHub/working-mirror mismatch for the same active ref as synchronization debt rather than silently correcting it;
-9. never create the next Group branch before the predecessor checkpoint is accepted.
-
-If the agent lacks one plane, it should not stop merely because perfect synchronization is impossible. It should proceed on the available plane when the requested gate is executable there and leave a precise reconciliation record.
-
-## 10. Work-completion protocol
-
-Completion has separate dimensions.
-
-### Engineering completion
-
-The requested Design/Group gate is implemented and verified in the plane capable of executing it.
-
-### Replica synchronization completion
-
-Known replicas of the active Group branch have been reconciled enough to trust the elected checkpoint head.
-
-### Group checkpoint completion
-
-The final Group head is recorded and, only then, the successor Group branch may be created from that exact head.
-
-These dimensions may complete at different times. A report must state them separately.
-
-Example:
+Before repository publication verify:
 
 ```text
-Engineering result: Group E exit evidence complete @ <sha>
-GitHub Group E: <sha>
-Termux Group E: <older sha or unobserved>
-Replica state: GITHUB_AHEAD
-Checkpoint status: not yet elected / elected @ <sha>
-Next branch: do not create until checkpoint election / group/f-cloudflare-runtime from <sha>
+repository/remote identity
+current route from WORKBOARD
+candidate exact HEAD
+complete effective diff from exact base
+clean or explicitly preserved worktree/index state
+fresh remote destination ref
+expected remote predecessor
+ancestry / non-force fast-forward condition
+required validation evidence
 ```
 
-Do not call unsynchronized replicas "equal". Do not call successful engineering work "failed" solely because a nonessential plane is temporarily unreachable.
+Publication admission is not completion. After a push or equivalent mutation, reread the remote ref and prove that it names the intended commit.
+
+Product Git publication performed by tdev runtime and repository self-development publication remain separate systems and must not inherit authority from one another.
+
+## 10. Completion layers
+
+Report applicable layers independently:
+
+- engineering/source result;
+- validation result;
+- repository publication result;
+- replica alignment result;
+- checkpoint election result;
+- runtime/provider/client result when actually in scope.
+
+One layer cannot silently stand in for another. A successful source gate does not prove provider deployment; temporary inability to observe a nonessential plane does not erase independently completed engineering work.
 
 ## 11. Safety invariants
 
-- Preserve unrelated local changes; never use `reset --hard` as a default sync mechanism.
-- Never infer local state from a remote ref or remote state from a stale local tracking ref.
-- `origin/<branch>` is only the last fetched observation in a local repository.
-- Re-read the actual GitHub ref before publication when remote state matters.
-- Record exact commit ancestry, not only filenames or archive hashes.
-- Do not merge Group E/F/G/H back into `mvp-1a-7` as normal progression.
-- Do not create a later Group from an older legacy baseline when a completed predecessor Group exists.
-- `SDD.md` still controls whether Class 2 code is authorized.
-- Product Git publication (`Promotion -> Git`) and tdev self-development Git synchronization are different systems and must never share authority by accident.
+- Preserve unrelated local changes and historical evidence.
+- Never infer local state from a remote ref or current remote state from a stale local tracking ref.
+- Treat mutable remote heads as fresh observations, not cached law.
+- Keep current routing in `WORKBOARD.md`, succession law in `LINEAGE.md`, and product semantics in their named product owners.
+- `SDD.md` controls Class 2 authorization and correction lifecycle.
+- Unknown migration, rollback, credential, provider and external-effect state stays explicit.

@@ -1,6 +1,6 @@
 # tdev development program register
 
-> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, cumulative Group lanes and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch succession is owned by `docs/development/BRANCH_LINEAGE.md`. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
+> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, cumulative Group lanes and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch/checkpoint succession is owned by `LINEAGE.md`; the current routing instance is owned by `WORKBOARD.md`. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
 
 ## 1. Current program position
 
