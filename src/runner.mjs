@@ -281,6 +281,17 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
       claimValidator: claimLedger,
     });
     const task = engine.plan.tasksById[taskId];
+    if (checkpoint) {
+      await checkpointState('attempt_started', { taskId, attemptId: attempt.id });
+    }
+
+    const controlIdentity = liveControlIdentity(attempt);
+    let current = engine.attempts[attempt.id];
+    if (!matchesLiveControl(current, controlIdentity) || !NONTERMINAL_ATTEMPT_STATES.has(current.state)) {
+      releaseAttemptLease(current);
+      return false;
+    }
+
     const acceptedResults = task.dependencies
       .map((dependency) => ({
         taskId: dependency,
@@ -294,9 +305,9 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
     });
     const execution = executionGate
       .then(() => {
-        const current = engine.attempts[attempt.id];
-        if (!matchesLiveControl(current, liveControlIdentity(attempt)) ||
-            !NONTERMINAL_ATTEMPT_STATES.has(current.state) ||
+        const currentAttempt = engine.attempts[attempt.id];
+        if (!matchesLiveControl(currentAttempt, controlIdentity) ||
+            !NONTERMINAL_ATTEMPT_STATES.has(currentAttempt.state) ||
             abortController.signal.aborted) {
           throw abortController.signal.reason ??
             new ContractError('attempt_not_live', `Attempt ${attempt.id} is no longer live`);
@@ -324,24 +335,22 @@ export async function runCaseWithHooks(engine, executor, options = {}, internalH
     const entry = {
       execution,
       abortController,
-      controlIdentity: liveControlIdentity(attempt),
+      controlIdentity,
       beginExecution,
     };
+
+    current = engine.attempts[attempt.id];
+    if (!matchesLiveControl(current, controlIdentity) || !NONTERMINAL_ATTEMPT_STATES.has(current.state)) {
+      abortController.abort(new ContractError('attempt_terminal', `Attempt ${attempt.id} became terminal before live-control publication`));
+      releaseAttemptLease(current);
+      return false;
+    }
+
     running.set(attempt.id, entry);
     maxConcurrent = Math.max(maxConcurrent, running.size);
 
-    try {
-      if (checkpoint) {
-        await checkpointState('attempt_started', { taskId, attemptId: attempt.id });
-      }
-    } catch (error) {
-      abortController.abort(error);
-      unregisterLiveControl(entry);
-      throw error;
-    }
-
-    const current = engine.attempts[attempt.id];
-    if (!matchesLiveControl(current, entry.controlIdentity) || !NONTERMINAL_ATTEMPT_STATES.has(current.state)) {
+    current = engine.attempts[attempt.id];
+    if (!matchesLiveControl(current, controlIdentity) || !NONTERMINAL_ATTEMPT_STATES.has(current.state)) {
       abortController.abort(new ContractError('attempt_terminal', `Attempt ${attempt.id} became terminal before execution`));
       unregisterLiveControl(entry);
       releaseAttemptLease(current);

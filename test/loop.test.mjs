@@ -410,6 +410,18 @@ test('D0018 C2 cancellation during attempt_started checkpoint prevents executor 
   assert.equal(result.snapshot.attempts['a.1'].state, 'cancelled');
 });
 
+test('D0018 C2 live-control publication follows the durable attempt_started checkpoint', async () => {
+  const { readFile } = await import('node:fs/promises');
+  const source = await readFile(new URL('../src/runner.mjs', import.meta.url), 'utf8');
+  const checkpointIndex = source.indexOf("await checkpointState('attempt_started'");
+  const publicationIndex = source.indexOf('running.set(attempt.id, entry);');
+  assert.ok(checkpointIndex >= 0 && publicationIndex >= 0);
+  assert.ok(
+    checkpointIndex < publicationIndex,
+    'accepted D0018 handshake must persist attempt_started before publishing the live controller binding',
+  );
+});
+
 test('D0018 C3 checkpoint acknowledgement drains the exact newer semantic revision', async () => {
   const engine = new CaseEngine({ caseId: 'd0018-c3-exact-checkpoint', plan: planWithWork([{ id: 'a' }]) });
   const checkpointEntered = deferred();
