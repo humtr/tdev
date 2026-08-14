@@ -11,13 +11,23 @@ The verified source target is:
 - no third-party runtime dependency;
 - POSIX-like local filesystem only for `FileSnapshotStore`, `JournalSnapshotStore`, and `ImmutableJournalSnapshotStore` tests, benchmarks, and demos.
 
-The executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Development branch/checkpoint names do not own that runtime contract. Filesystem-specific publication claims remain conditional on the adapter requirements below. The opt-in semantic-v3 SQLite adapter additionally requires the runtime `node:sqlite` API and fails explicitly when it is unavailable; legacy v2 operation does not depend on that API. D0011 local Git projection additionally requires a trusted local Git executable/repository providing the tested plumbing and SHA-1 or SHA-256 object format; it does not require or imply a Git remote.
+The `mvp-1a-7` executable source contract remains Node 22+ and has no generated Go/provider runtime dependency. Filesystem-specific publication claims remain conditional on the adapter requirements below. The opt-in semantic-v3 SQLite adapter additionally requires the runtime `node:sqlite` API and fails explicitly when it is unavailable; legacy v2 operation does not depend on that API. D0011 local Git projection additionally requires a trusted local Git executable/repository providing the tested plumbing and SHA-1 or SHA-256 object format; it does not require or imply a Git remote.
 
-## 2. Installation and source qualification
+## 2. Installation and gate
 
-The lockfile contains no external package dependency. Install from the repository lockfile in the declared Node runtime, then run the complete baseline source qualification owned by `QUALIFICATION.md`. This deployment owner intentionally does not duplicate that command sequence or its proof-method catalog.
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check
+```
 
-A source gate proves only its declared source/adaptor layer. Provider integration, deployment, migration and rollback require the additional evidence owned by this file, the responsible Design, and the applicable qualification method.
+The lockfile contains no external package dependency. `npm run check` is the source verification gate:
+
+1. syntax-check every source, test, and benchmark module;
+2. run the complete Node test suite;
+3. run the in-memory demo;
+4. run the local file-backed durable demo.
+
+A provider deployment requires a different accepted design and additional gates.
 
 ## 3. Storage adapters
 
@@ -81,11 +91,11 @@ Once a directory contains a v2 `delta-from-*` record, unmodified `mvp-1a-2` `Jou
 
 The first v2 write is an explicit cutover, not a rolling mixed-writer migration. Before that write, the operator must stop every process that can still write the affected Case/directory with the legacy `JournalSnapshotStore` and independently validate the retained legacy chain using the new source. Only then may the first immutable CAS be admitted. Afterward, only `ImmutableJournalSnapshotStore` writers are supported for that Case/directory. The new-source legacy and immutable adapters share a process-local serialization key, but separate processes running mixed formats can otherwise publish different filename slots from the same predecessor; cross-process mixed-format operation is therefore unsupported rather than silently treated as safe.
 
-Cross-process publication capability is profile-specific. The hard-link backend may be selected only on a runtime/filesystem profile that positively qualifies the required no-replace hard-link semantics; a denied or unsupported hard-link primitive fails closed rather than weakening the publication contract. Qualification on one local filesystem does not transfer by assertion to another filesystem, network storage, provider object store, Durable Object, or distributed transaction substrate. D0030 provides a separately qualified second backend without weakening this rule.
+The cross-process evidence is limited to tested compatible local filesystems. On 2026-08-09 the connected tmcp/Termux environment denied hard-link creation on every writable mount probed and is therefore not qualified for the current production hard-link `ImmutableJournalSnapshotStore` publication path. The D0008 candidate passed the complete source, coverage, diff, and authority-smoke gates on Ubuntu/POSIX with the hard-link suite enabled. D0030 later accepts a second backend rather than weakening this requirement. Network filesystems, provider object stores, Durable Objects, and distributed transactions remain unverified.
 
-#### D0030 publication-portability deployment contract
+#### D0030 accepted publication-portability deployment contract
 
-The selected second backend is same-directory `renameat2(..., RENAME_NOREPLACE)` through a bounded fd-relative standalone helper. This is a deployment contract; maintained implementation/qualification status belongs to the D0030 Design and exact evidence.
+The accepted second backend is same-directory `renameat2(..., RENAME_NOREPLACE)` through a bounded fd-relative standalone helper. This is a Design-layer deployment contract, not a claim that the production package already ships that helper: at the D0030 acceptance checkpoint `src/store.mjs` still uses the inherited hard-link path.
 
 A production implementation must satisfy all of the following before selecting the rename backend:
 
@@ -97,9 +107,9 @@ A production implementation must satisfy all of the following before selecting t
 - run the actual-directory non-authoritative dot-name qualification sequence: exclusive contender creation, complete fixed write, file `fsync`, absent-destination no-replace publication, final regular type/bytes, source disappearance, same device/inode when observable, second contender, existing-destination conflict, unchanged winner, surviving loser, Case-directory `fsync`, cleanup, and cleanup-directory sync;
 - preserve committed filename/bytes/schema/replay/migration/downgrade semantics across backend changes.
 
-Concurrent hard-link and rename writers are permitted only on a deployment validity key where both backends are independently qualified together for the same committed bytes/names/replay contract. Qualification evidence from one runtime/filesystem profile is not portable by assertion to another. Without joint qualification, deploy homogeneous writers or use a quiesced/fenced backend switch.
+Concurrent hard-link and rename writers are permitted only on a deployment validity key where both backends are independently qualified. The D0030 independent Debian 13.3/x86_64/ext4 plane produced 100/100 exact-one-winner mixed races, 100 loser conflicts and valid final bytes, with zero overwrite and zero parallel continuation; this evidence is not portable by assertion to a new profile. Without joint qualification, deploy homogeneous writers or use a quiesced/fenced backend switch. The connected Termux/Android/aarch64/F2FS acceptance plane qualified the rename helper but remains hard-link-unqualified.
 
-Removal/rollback must also fail closed. A missing or mismatched helper cannot trigger a different publication primitive automatically. Hard-link writing may be re-enabled only where that backend is independently qualified and the homogeneous/mixed-writer rule is satisfied. Ordinary process-crash or directory-fsync fault evidence must not be reported as destructive power-loss qualification; any supported power-loss claim requires its own explicit evidence. A release that selects the rename backend must independently qualify the packaged helper, install path, actual writable filesystem and post-install runtime before claiming deployment support.
+Removal/rollback must also fail closed. A missing or mismatched helper cannot trigger a different publication primitive automatically. Hard-link writing may be re-enabled only where that backend is independently qualified and the homogeneous/mixed-writer rule is satisfied. Destructive power-loss testing was not performed for D0030; ordinary process-crash and directory-fsync fault evidence must not be reported as power-loss qualification. The actual production package/release/install pipeline and post-install Termux/independent-POSIX runs remain required in the separate post-acceptance implementation Task.
 
 ### SemanticSqliteStore and SemanticCaseRepository
 
@@ -109,7 +119,7 @@ A commit transaction checks the exact predecessor head/revision, inserts objects
 
 ### GitProjectionAdapter
 
-D0011's opt-in local profile `tdev.git.text-tree.v1` targets an existing local Git repository and one direct full `refs/heads/...` ref. Qualification of this local profile must exercise real bare SHA-1 and SHA-256 repositories. The adapter uses plumbing commands only, requires no index/worktree, writes exact UTF-8 `100644` content derived from a validated semantic tree, and supplies explicit commit identity/time/message instead of inheriting user Git identity/configuration.
+D0011's opt-in local profile `tdev.git.text-tree.v1` targets an existing local Git repository and one direct full `refs/heads/...` ref. It is verified with real bare SHA-1 and SHA-256 repositories. The adapter uses plumbing commands only, requires no index/worktree, writes exact UTF-8 `100644` content derived from a validated semantic tree, and supplies explicit commit identity/time/message instead of inheriting user Git identity/configuration.
 
 `project` may leave unreachable immutable candidate objects but does not move the ref. `publish` performs one exact predecessor `update-ref` CAS and reconciles an uncertain response by durable reread. `rollback` is another exact CAS and is fenced by any intervening ref move. These are local source guarantees only: no remote fetch/push, credentials, protected branches, server hooks, multi-host locking, provider transaction, or Git-object GC is claimed.
 
@@ -207,7 +217,7 @@ The final MVP must implement a Cloudflare/local-Agent topology that preserves th
 
 | Contract | Candidate provider owner |
 | --- | --- |
-| Case graph/lifecycle/results/receipts | one SQLite-backed Case Durable Object hosting the existing D0010/CaseEngine authority — D0019-selected |
+| Case graph/lifecycle/results/receipts | one SQLite-backed Case Durable Object hosting the existing D0010/CaseEngine authority — D0019 accepted Design |
 | Agent connection epoch/delivery/capacity | Agent Durable Object |
 | cross-Case target leases | dedicated target owner selected by target identity |
 | immutable Artifact bytes | R2 |
@@ -215,7 +225,7 @@ The final MVP must implement a Cloudflare/local-Agent topology that preserves th
 | public ingress/projection | Worker/MCP layer |
 | local OS/Git/process effects | authenticated Agent |
 
-This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. The D0019 contract fixes the Case row at the Design layer: CaseDO hosts/adapts the existing authority rather than introducing a second or rewritten semantic owner. The Agent/target/storage/projection rows remain subject to their own responsible owners and accepted Designs when selected. `ROADMAP.md` owns the stable final-MVP capability exits; `PROGRAM.md` and `WORKBOARD.md` own forward-gate coverage and current runnable scheduling.
+This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. D0019 freezes the Case row at the Design layer: CaseDO hosts/adapts the existing authority rather than introducing a second or rewritten semantic owner. The adapter has not yet been implemented, deployed or load-tested, and the Agent/target/storage/projection rows remain subject to their own owners. The final-MVP requirement is therefore still open. `ROADMAP.md` owns the integration and qualification sequence.
 
 ## 9. Provider adapter requirements
 
@@ -286,16 +296,21 @@ Secrets must not be stored in Task input, evidence, receipts, snapshots, remote 
 | deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
 | production-qualified | measured SLO, load, security, and incident procedures accepted |
 
-These evidence levels classify claims; they are not a second current-status ledger. Resolve maintained Design lifecycle/revision from the Design owner, current runnable work from `WORKBOARD.md`, stable final-MVP exits from `ROADMAP.md`, and observed source/provider/runtime results from the exact evidence records. A source/adaptor result must not be promoted to integration-, deployment-, or production-qualified merely because a lower layer passed.
+This repository remains **source-verified/local-adapter-verified only for the currently declared D0011-D0014 and D0017 trusted-local layers**; D0018 production source/runtime is separately verified on its declared supported-Termux trusted-local scope, while D0019 is accepted only at the Design/model-falsifier layer and has no production CaseDO adapter yet. It is not yet a deployable or qualified final MVP. It is source-verified for D0011 local Git, the D0012 generic authenticated remote-publication contract, the D0013 trusted-local repository-context/subprocess transport, D0014 bounded preparation reuse, and the D0017 authorized full-context reference plus bounded packed/hybrid receiver. D0017 production implementation is verified at source level on the supported Termux test scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`: focused D0017+transport tests passed 52/52 and the Termux-supported full suite excluding only the pre-existing hard-link test file passed 226/226. The exact all-test coverage command is **platform-unqualified on this Termux filesystem**, not green, because `test/immutable-journal.test.mjs` still hits the previously documented `link(2) EACCES`; no D0017/repository-model-transport failure was observed there. D0013/D0014/D0017 exercise full Git context reconstruction, selected-context resolution and a real fresh local Node subprocess; this is not an external model/provider integration claim. An authenticated GitHub `push --dry-run` additionally confirms D0012 non-interactive transport negotiation in the current deployment context. No D0012 remote ref has been mutated as integration evidence, and no external model/provider resource has been promoted to integration-verified or deployment-verified.
 
 D0017 changes no persisted Case/Plan semantic-state schema and introduces no durable context state, so it requires no data migration. Software rollback is deployment of the pre-D0017 D0013/D0014 full-inline implementation; because Case/Plan semantic authority and persisted schema are unchanged, that rollback requires no context-data conversion. A live `context_reference_unauthorized`, stale, missing, corrupt or limit-exceeded request must **not** silently fall back to inline delivery; per-request fallback is not rollback.
 
-D0018 defines the trusted-local deployment profile as the existing Node 22+ host with bounded D0014 preparation reuse and one fresh local model process group per Attempt; no external provider/session or same-model-process pool is selected. The C1-C4 runtime contract adds only transient live-control/Event-observation state and exact checkpoint/capacity ordering, with no durable schema or data migration. Software rollback is data-compatible but reintroduces the known cancellation/checkpoint/runtime-slot defects and is therefore an emergency compatibility rollback, not equivalent liveness behavior.
+D0018 is accepted only at the Design/qualification layer here, not source-verified. Its selected deployment profile is the existing trusted Node 22+ host with bounded D0014 preparation reuse and one fresh local model process group per Attempt; no external provider/session or same-model-process pool is selected. The accepted C1-C4 repair adds only transient live-control/Event-observation state and exact checkpoint/capacity ordering, with no durable schema or data migration. Software rollback is data-compatible but reintroduces the known cancellation/checkpoint/runtime-slot defects and is therefore an emergency compatibility rollback, not equivalent liveness behavior.
 
 ## 13. Release checklist
 
-Before cutting a source artifact, run the complete current baseline source gate from `QUALIFICATION.md` and the exact additional Design/provider/deployment gates applicable to the release. Do not copy those source commands or method rows into this checklist.
+Before cutting a source artifact:
 
-For a Git checkout, independently inspect repository cleanliness/publication preconditions required by the development workflow. Archive-only validation may omit `.git`, but that does not waive checkout publication gates when Git state is part of the release path. Confirm that no generated/cache/runtime directory or secret material is included in a development artifact.
+```sh
+npm ci --ignore-scripts --no-audit --no-fund
+npm run check
+node --experimental-test-coverage --test test/*.test.mjs
+npm run bench
+```
 
-Run `npm run bench` only when the affected release claims or investigates the corresponding performance path. Benchmark timing is observational evidence with its workload/environment identity; it has no implicit production SLO or generic pass/fail threshold.
+When validating a Git checkout, also run `git diff --check` and inspect `git status --short`. Archive-only validation may omit `.git`, but that does not waive checkout diff/status gates for publication. Confirm documentation distinguishes D0012 source verification/authenticated dry-run capability from still-unverified actual provider-ref integration and distinguishes D0013/D0014/D0017 trusted-local full-context verification from still-unverified external model/provider authentication, minimum-necessary data egress, redaction, tokenizer/billing semantics, deterministic ContextSlice, persistent/shared CAS and warm-process reuse. Exercise cache-disabled cold rebuild, cache hit, concurrent same-key and different-key misses, eviction/restart, producer failure, reader/all-reader cancellation, retry ownership, inherited-pipe descendants and non-blocking observations. Also confirm no generated/cache/runtime directory is included in any development archive. Benchmark timing is evidence only and has no fragile pass/fail threshold.

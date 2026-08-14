@@ -202,7 +202,11 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   check(() => assert(workboard.split('\n').length <= 120, 'documentation_authority_workboard_too_large'));
   check(() => assert(!/^### D00(?:0[2-9]|1[0-5])\b/m.test(workboard), 'documentation_authority_workboard_history'));
 
-  for (const file of ['AGENTS.md', 'RULE.md', 'README.md', 'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md']) {
+  for (const file of [
+    'AGENTS.md', 'RULE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md', 'docs/ROADMAP.md',
+    'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/SPEC.md', 'docs/ARCHITECTURE.md',
+    'docs/PROTOCOL.md', 'docs/OPERATIONS.md', 'docs/SECURITY.md', 'docs/DEPLOYMENT.md', 'docs/MCP.md',
+  ]) {
     check(() => assert(!readText(file).includes(route.branch), 'documentation_authority_stable_route_literal', file));
   }
 
@@ -233,6 +237,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     'docs/history/readme-before-d0033.md',
     'docs/history/roadmap-before-d0033.md',
     'docs/history/program-before-d0033.md',
+    'docs/history/deployment-before-d0033-owner-cleanup.md',
   ]) check(() => assert(existsPath(file), 'documentation_authority_missing_history_snapshot', file));
 
   const documentation = readText('docs/DOCUMENTATION.md');
@@ -269,10 +274,25 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
 
   const agents = readText('AGENTS.md');
   const readme = readText('README.md');
+  const productContractFiles = [
+    'docs/SPEC.md', 'docs/ARCHITECTURE.md', 'docs/PROTOCOL.md', 'docs/OPERATIONS.md',
+    'docs/SECURITY.md', 'docs/DEPLOYMENT.md', 'docs/MCP.md',
+  ];
+  const productContracts = Object.fromEntries(productContractFiles.map((file) => [file, readText(file)]));
+  const deployment = productContracts['docs/DEPLOYMENT.md'];
   check(() => assert(agents.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_agents_qualification_pointer'));
   check(() => assert(readme.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_readme_qualification_pointer'));
   for (const [file, text] of [['AGENTS.md', agents], ['README.md', readme]]) {
     check(() => assert(qualificationCommands.every((command) => !text.includes(command)), 'documentation_authority_source_gate_duplicate', file));
+  }
+  check(() => assert(qualificationCommands.every((command) => !deployment.includes(command)), 'documentation_authority_deployment_source_gate_duplicate'));
+  check(() => assert(!deployment.includes('mvp-1a-7'), 'documentation_authority_deployment_legacy_route_contract'));
+  check(() => assert(deployment.includes('These evidence levels classify claims; they are not a second current-status ledger.'), 'documentation_authority_deployment_evidence_level_boundary'));
+  check(() => assert(!/D\d{4}\s+is accepted only at the Design\/qualification layer here/i.test(deployment), 'documentation_authority_deployment_stale_design_status'));
+  for (const [file, text] of Object.entries(productContracts)) {
+    check(() => assert(qualificationCommands.every((command) => !text.includes(command)), 'documentation_authority_product_source_gate_duplicate', file));
+    check(() => assert(!/(?:docs\/)?MVP\.md/.test(text), 'documentation_authority_product_retired_mvp_pointer', file));
+    check(() => assert(!/(?:currently verified source slice|not implemented or verified at this Design-acceptance checkpoint|C1-C4 production repair remains open|current production source does not yet implement|current production source still uses|current src\/store\.mjs|repairs are accepted but not yet production-implemented|production-implemented and independently verified on the declared supported-Termux|adapter has not yet been implemented, deployed or load-tested|no MCP server or current-client qualification is implemented in the current source slice|It is verified with real bare|The accepted C1-C4 repair adds|at the D\d{4} acceptance checkpoint[^.]*src\/store\.mjs)/i.test(text), 'documentation_authority_product_mutable_status_ledger', file));
   }
   check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
   for (const file of ['AGENTS.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {

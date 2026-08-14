@@ -25,6 +25,7 @@ const currentAgents = fs.readFileSync(new URL('../AGENTS.md', import.meta.url), 
 const currentReadme = fs.readFileSync(new URL('../README.md', import.meta.url), 'utf8');
 const currentRoadmap = fs.readFileSync(new URL('../docs/ROADMAP.md', import.meta.url), 'utf8');
 const currentProgram = fs.readFileSync(new URL('../docs/development/PROGRAM.md', import.meta.url), 'utf8');
+const currentDeployment = fs.readFileSync(new URL('../docs/DEPLOYMENT.md', import.meta.url), 'utf8');
 const currentDesignTexts = Object.fromEntries([
   'docs/design/0031-self-development-documentation-authority.md',
   'docs/design/0032-qualification-authority-recomposition.md',
@@ -312,11 +313,51 @@ test('mutable current gaps cannot be reassigned to stable ROADMAP by QUALIFICATI
   assert.match(result.failures.join('\n'), /documentation_authority_qualification_mutable_roadmap_gap/);
 });
 
-test('pre-D0033 live planning/navigation snapshots remain byte-identical historical evidence', () => {
+test('DEPLOYMENT does not become a second current route, source-gate or Design-status ledger', () => {
+  assert.doesNotMatch(currentDeployment, /mvp-1a-7|D\d{4}\s+is accepted only at the Design\/qualification layer here/i);
+  for (const command of parseSourceGateCommands(currentQualification)) assert.equal(currentDeployment.includes(command), false);
+  assert.match(currentDeployment, /These evidence levels classify claims; they are not a second current-status ledger\./);
+
+  const command = parseSourceGateCommands(currentQualification)[0];
+  const duplicated = validateDocumentation(root, { 'docs/DEPLOYMENT.md': `${currentDeployment}\n${command}\n` });
+  assert.equal(duplicated.ok, false);
+  assert.match(duplicated.failures.join('\n'), /documentation_authority_deployment_source_gate_duplicate/);
+
+  const staleRoute = validateDocumentation(root, { 'docs/DEPLOYMENT.md': `${currentDeployment}\nmvp-1a-7\n` });
+  assert.equal(staleRoute.ok, false);
+  assert.match(staleRoute.failures.join('\n'), /documentation_authority_deployment_legacy_route_contract/);
+});
+
+test('stable product owners do not retain retired qualification paths or mutable implementation-status ledgers', () => {
+  const productPaths = [
+    'docs/SPEC.md', 'docs/ARCHITECTURE.md', 'docs/PROTOCOL.md', 'docs/OPERATIONS.md',
+    'docs/SECURITY.md', 'docs/DEPLOYMENT.md', 'docs/MCP.md',
+  ];
+  const stalePattern = /(?:currently verified source slice|not implemented or verified at this Design-acceptance checkpoint|C1-C4 production repair remains open|current production source does not yet implement|current production source still uses|current src\/store\.mjs|repairs are accepted but not yet production-implemented|production-implemented and independently verified on the declared supported-Termux|adapter has not yet been implemented, deployed or load-tested|no MCP server or current-client qualification is implemented in the current source slice|It is verified with real bare|The accepted C1-C4 repair adds|at the D\d{4} acceptance checkpoint[^.]*src\/store\.mjs)/i;
+  for (const relativePath of productPaths) {
+    const text = fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
+    assert.doesNotMatch(text, /(?:docs\/)?MVP\.md/, relativePath);
+    assert.doesNotMatch(text, stalePattern, relativePath);
+    for (const command of parseSourceGateCommands(currentQualification)) assert.equal(text.includes(command), false, `${relativePath} duplicates ${command}`);
+  }
+
+  const staleMvp = fs.readFileSync(new URL('../docs/SPEC.md', import.meta.url), 'utf8') + '\nMVP.md\n';
+  const mvpResult = validateDocumentation(root, { 'docs/SPEC.md': staleMvp });
+  assert.equal(mvpResult.ok, false);
+  assert.match(mvpResult.failures.join('\n'), /documentation_authority_product_retired_mvp_pointer: docs\/SPEC\.md/);
+
+  const staleStatus = fs.readFileSync(new URL('../docs/OPERATIONS.md', import.meta.url), 'utf8') + '\nThese D0018 repairs are accepted but not yet production-implemented.\n';
+  const statusResult = validateDocumentation(root, { 'docs/OPERATIONS.md': staleStatus });
+  assert.equal(statusResult.ok, false);
+  assert.match(statusResult.failures.join('\n'), /documentation_authority_product_mutable_status_ledger: docs\/OPERATIONS\.md/);
+});
+
+test('pre-D0033 live planning/navigation and deployment-ledger snapshots remain byte-identical historical evidence', () => {
   const expected = new Map([
     ['../docs/history/readme-before-d0033.md', '105e8c2e88e23eb7641cd1f4c48353ecb3338e465d9eadf145f7038e41094bc6'],
     ['../docs/history/roadmap-before-d0033.md', '60f7d265423d1262293d760853dc7ac92d61e71f3298bc8b2801017289f7d734'],
     ['../docs/history/program-before-d0033.md', '1c45524ea71f73b2a89bd461a5e2503846f8f06fb42a955a2f7b87ee725abce6'],
+    ['../docs/history/deployment-before-d0033-owner-cleanup.md', '9092b55d239baf8e245501eaea9c5c43a2134adc80540271b0562b931ea46456'],
   ]);
   for (const [relativePath, digest] of expected) {
     assert.equal(sha256(fs.readFileSync(new URL(relativePath, import.meta.url))), digest, relativePath);

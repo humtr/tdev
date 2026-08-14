@@ -1,6 +1,6 @@
 # MCP projection boundary
 
-> Normative owner for the MCP role. A secured deployed MCP command/projection surface and current-client qualification are **required for the final MVP**, but no MCP server or current-client qualification is implemented in the current source slice.
+> Normative owner for the MCP role. A secured deployed MCP command/projection surface and current-client qualification are **required for the final MVP**. Mutable implementation and current-client qualification status belongs to `WORKBOARD.md`, `PROGRAM.md`, the maintained Design and exact evidence, not this stable product owner.
 
 ## 1. Role
 
