@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.design-acceptance",
+  "design": "D0033",
+  "revision": 1,
+  "status": "accepted",
+  "acceptedAt": "2026-08-14",
+  "repository": "humtr/tdev",
+  "lineage": "group/f-cloudflare-runtime",
+  "acceptanceBase": "11c1e701fd67e07ae9891e8ea492c164f498a5c6",
+  "inventory": {
+    "path": "docs/evidence/group-f-d0033-program-roadmap-recomposition-inventory-2026-08-14.json",
+    "sha256": "b1055aedfc6ec13ccd9f29c31dc5cd1638041c8f00a09001ce99899d316a7ed0"
+  },
+  "decision": {
+    "roadmapOwner": "stable final-MVP definition, completion levels, one A-H capability/exit table, stable cross-capability constraints, external-setup acceptance shape, final deployed exit and post-MVP boundary",
+    "programOwner": "forward-looking Design/gate dependency and coverage graph, provisional/conditional gate labels, accepted Design foreign keys when still forward dependencies, cheapest falsifiers/exits, external-action dependencies and unresolved questions",
+    "currentRouter": "WORKBOARD.md",
+    "designOwner": "maintained docs/design record for decision/revision/status",
+    "qualificationOwner": "docs/QUALIFICATION.md",
+    "evidenceOwner": "docs/evidence/*",
+    "historyOwner": "docs/history/*"
+  },
+  "requiredPreservation": [
+    {"source": "README.md", "sha256": "105e8c2e88e23eb7641cd1f4c48353ecb3338e465d9eadf145f7038e41094bc6"},
+    {"source": "docs/ROADMAP.md", "sha256": "60f7d265423d1262293d760853dc7ac92d61e71f3298bc8b2801017289f7d734"},
+    {"source": "docs/development/PROGRAM.md", "sha256": "1c45524ea71f73b2a89bd461a5e2503846f8f06fb42a955a2f7b87ee725abce6"}
+  ],
+  "additionalCorrections": [
+    "rebuild README as current-neutral navigation and remove stale mvp-1a-7/D0014/fixed-read/source-gate ledger",
+    "correct QUALIFICATION mutable-gap wording without changing any method or command",
+    "remove generic validator hard-coded source-gate command co-owner",
+    "remove generic validator permanent equality lock to pre-D0032 historical 78-row method snapshot while preserving D0032 historical evidence",
+    "remove resolved/stale PROGRAM open questions",
+    "mechanize ROADMAP/PROGRAM traceability and one-owner separation"
+  ],
+  "nonGoals": [
+    "no D0019 or D0030 product implementation",
+    "no product runtime or provider mutation",
+    "no product durable schema/security/deployment semantic change",
+    "no rewrite of historical Design/evidence observations",
+    "no current-route ownership outside WORKBOARD"
+  ],
+  "acceptanceGates": [
+    "byte-identical history snapshots before compaction",
+    "ROADMAP contains the sole A-H capability/exit table and no current route/Design status/evidence ledger",
+    "PROGRAM contains no duplicated A-H table and only forward gate dependencies/coverage",
+    "README contains no current route claim, no duplicate source gate and no fixed old Design bootstrap list",
+    "QUALIFICATION commands/methods remain unchanged while mutable-gap owner wording is corrected",
+    "generic validator derives source-gate/current methods from QUALIFICATION and validates traceability without historical co-ownership",
+    "WORKBOARD-only F-to-G and zero-frontier/reopened-Design tests remain valid",
+    "zero product src paths changed",
+    "full applicable source/documentation qualification with inherited hard-link failure classified exactly",
+    "exact non-force fast-forward publication and provider reread"
+  ]
+}

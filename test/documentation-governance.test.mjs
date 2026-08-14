@@ -58,8 +58,8 @@ test('current repository documentation authority validates after verified qualif
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1']);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
+  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1', 'D0033@r1']);
+  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0033@r1');
 });
 
 test('zero runnable Designs and selected none pass full documentation validation', () => {
