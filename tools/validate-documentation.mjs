@@ -18,6 +18,48 @@ function sectionBody(text, heading) {
   return text.slice(bodyStart + 1, next < 0 ? text.length : next);
 }
 
+export const SOURCE_GATE_COMMANDS = Object.freeze([
+  'npm ci --ignore-scripts --no-audit --no-fund',
+  'npm run check',
+  'node --experimental-test-coverage --test test/*.test.mjs',
+  'git diff --check',
+]);
+
+function tableRows(text, heading, columns, label) {
+  const rows = sectionBody(text, heading).split('\n').filter((line) => line.startsWith('| '));
+  if (rows.length < 3) throw new Error(`documentation_authority_${label}: table missing`);
+  const data = [];
+  for (const line of rows.slice(2)) {
+    const cells = line.split('|').slice(1, -1).map((value) => value.trim());
+    if (cells.length !== columns) throw new Error(`documentation_authority_${label}: expected ${columns} columns`);
+    data.push(cells);
+  }
+  return data;
+}
+
+export function parseHistoricalQualificationPairs(text) {
+  return tableRows(text, '3. Acceptance matrix', 3, 'historical_qualification_matrix').map(([area, falsifier]) => [area, falsifier]);
+}
+
+export function parseQualificationPairs(text) {
+  return tableRows(text, '5. Qualification method catalog', 2, 'qualification_matrix');
+}
+
+export function parseSourceGateCommands(text) {
+  const body = sectionBody(text, '2. Baseline source qualification gate');
+  const matches = [...body.matchAll(/\`\`\`sh\n([\s\S]*?)\n\`\`\`/g)];
+  if (matches.length !== 1) throw new Error(`documentation_authority_qualification_source_gate_block: expected one shell block, found ${matches.length}`);
+  return matches[0][1].split('\n').map((line) => line.trim()).filter(Boolean);
+}
+
+export function parseQualificationOwner(documentationText) {
+  return singleMatch(
+    documentationText,
+    /^\|\s*verification methods, executable source gate and proof-layer boundaries\s*\|\s*`([^`]+)`\s*\|\s*$/gm,
+    'qualification_owner',
+  )[1];
+}
+
 export function parseWorkboardRouting(text) {
   const group = singleMatch(text, /^- Active cumulative Group:\s*(.+)$/gm, 'active_group')[1].trim();
   const branch = singleMatch(text, /^- Active cumulative branch:\s*`([^`]+)`\s*$/gm, 'active_branch')[1];
@@ -72,7 +114,7 @@ export function resolveFrontierDesigns({ root, route, readText }) {
   return resolved;
 }
 
-export function rebindContinuity({ workboardText, designTexts = {}, continuity = {} }) {
+export function rebindContinuity({ workboardText, designTexts = {}, documentationText, continuity = {} }) {
   const route = parseWorkboardRouting(workboardText);
   const resolved = route.frontier.map((item) => {
     const text = designTexts[item.path];
@@ -81,6 +123,7 @@ export function rebindContinuity({ workboardText, designTexts = {}, continuity =
     if (design.id !== item.id || design.revision !== item.revision) throw new Error(`documentation_authority_design_identity_mismatch: ${item.id}@r${item.revision}`);
     return { ...item, status: design.status };
   });
+  const qualificationOwner = documentationText === undefined ? null : parseQualificationOwner(documentationText);
   const staleClaims = [];
   if (continuity.branch !== undefined && continuity.branch !== route.branch) staleClaims.push('branch');
   if (continuity.group !== undefined && continuity.group !== route.group) staleClaims.push('group');
@@ -96,7 +139,10 @@ export function rebindContinuity({ workboardText, designTexts = {}, continuity =
       }
     }
   }
-  return { current: { ...route, frontier: resolved }, staleClaims };
+  if (continuity.qualificationOwner !== undefined && qualificationOwner !== null && continuity.qualificationOwner !== qualificationOwner) {
+    staleClaims.push('qualificationOwner');
+  }
+  return { current: { ...route, frontier: resolved, qualificationOwner }, staleClaims };
 }
 
 function assert(condition, code, detail = '') {
@@ -106,10 +152,18 @@ function assert(condition, code, detail = '') {
 export function validateDocumentation(root = process.cwd(), overrides = {}) {
   const failures = [];
   const check = (fn) => { try { fn(); } catch (error) { failures.push(error instanceof Error ? error.message : String(error)); } };
-  const readText = (relativePath) => Object.hasOwn(overrides, relativePath) ? overrides[relativePath] : fs.readFileSync(path.join(root, relativePath), 'utf8');
+  const hasOverride = (relativePath) => Object.hasOwn(overrides, relativePath);
+  const existsPath = (relativePath) => hasOverride(relativePath) ? overrides[relativePath] !== null : fs.existsSync(path.join(root, relativePath));
+  const readText = (relativePath) => {
+    if (hasOverride(relativePath)) {
+      if (overrides[relativePath] === null) throw new Error('documentation_authority_missing_override: ' + relativePath);
+      return overrides[relativePath];
+    }
+    return fs.readFileSync(path.join(root, relativePath), 'utf8');
+  };
 
   for (const file of ['AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md']) {
-    check(() => assert(Object.hasOwn(overrides, file) || fs.existsSync(path.join(root, file)), 'documentation_authority_missing_kernel', file));
+    check(() => assert(existsPath(file), 'documentation_authority_missing_kernel', file));
   }
   if (failures.length) return { ok: false, failures };
 
@@ -145,25 +199,38 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(!fs.existsSync(path.join(root, file)), 'documentation_authority_meta_owner_sprawl', file));
   }
 
-  check(() => assert(!fs.existsSync(path.join(root, 'docs/MVP.md')), 'documentation_authority_retired_live_path', 'docs/MVP.md'));
-  check(() => assert(Object.hasOwn(overrides, 'docs/QUALIFICATION.md') || fs.existsSync(path.join(root, 'docs/QUALIFICATION.md')), 'documentation_authority_missing_qualification'));
-  if (Object.hasOwn(overrides, 'docs/QUALIFICATION.md') || fs.existsSync(path.join(root, 'docs/QUALIFICATION.md'))) {
+  check(() => assert(!existsPath('docs/MVP.md'), 'documentation_authority_retired_live_path', 'docs/MVP.md'));
+  check(() => assert(existsPath('docs/QUALIFICATION.md'), 'documentation_authority_missing_qualification'));
+  check(() => assert(existsPath('docs/history/mvp-verification-and-evidence.md'), 'documentation_authority_missing_mvp_history'));
+
+  let qualificationOwner = null;
+  check(() => { qualificationOwner = parseQualificationOwner(readText('docs/DOCUMENTATION.md')); });
+  check(() => assert(qualificationOwner === 'docs/QUALIFICATION.md', 'documentation_authority_qualification_owner_path', String(qualificationOwner)));
+
+  if (existsPath('docs/QUALIFICATION.md')) {
     const qualification = readText('docs/QUALIFICATION.md');
-    const sourceCommands = [
-      'npm ci --ignore-scripts --no-audit --no-fund',
-      'npm run check',
-      'node --experimental-test-coverage --test test/*.test.mjs',
-      'git diff --check',
-    ];
-    for (const command of sourceCommands) check(() => assert(qualification.includes(command), 'documentation_authority_qualification_source_gate', command));
+    check(() => {
+      const actual = parseSourceGateCommands(qualification);
+      assert(JSON.stringify(actual) === JSON.stringify(SOURCE_GATE_COMMANDS), 'documentation_authority_qualification_source_gate_exact');
+    });
+    check(() => {
+      const historical = parseHistoricalQualificationPairs(readText('docs/history/mvp-verification-and-evidence.md'));
+      const current = parseQualificationPairs(qualification);
+      assert(historical.length === 78 && current.length === 78, 'documentation_authority_qualification_method_count', 'history=' + historical.length + ' current=' + current.length);
+      assert(JSON.stringify(current) === JSON.stringify(historical), 'documentation_authority_qualification_method_drift');
+    });
     check(() => assert(!/\|\s*Observed evidence\s*\|/i.test(qualification), 'documentation_authority_qualification_observed_ledger'));
+    check(() => assert(!/\b[0-9a-f]{40}\b/i.test(qualification), 'documentation_authority_qualification_commit_ledger'));
   }
+
   const agents = readText('AGENTS.md');
   check(() => assert(agents.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_agents_qualification_pointer'));
-  check(() => assert(!agents.includes('npm ci --ignore-scripts --no-audit --no-fund') && !agents.includes('node --experimental-test-coverage --test test/*.test.mjs'), 'documentation_authority_agents_source_gate_duplicate'));
+  check(() => assert(SOURCE_GATE_COMMANDS.every((command) => !agents.includes(command)), 'documentation_authority_agents_source_gate_duplicate'));
   check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
-  check(() => assert(readText('docs/DOCUMENTATION.md').includes('| verification methods, executable source gate and proof-layer boundaries | `docs/QUALIFICATION.md` |'), 'documentation_authority_documentation_qualification_owner'));
-  check(() => assert(fs.existsSync(path.join(root, 'docs/history/mvp-verification-and-evidence.md')), 'documentation_authority_missing_mvp_history'));
+  check(() => assert(readText('README.md').includes('`docs/QUALIFICATION.md`'), 'documentation_authority_readme_qualification_pointer'));
+  for (const file of ['AGENTS.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {
+    check(() => assert(!readText(file).includes('docs/MVP.md'), 'documentation_authority_stale_current_mvp_pointer', file));
+  }
 
   let resolvedFrontier = [];
   check(() => { resolvedFrontier = resolveFrontierDesigns({ root, route, readText }); });
@@ -190,6 +257,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/design/README.md',
   ];
   for (const file of liveReferenceFiles) {
+    if (!existsPath(file)) continue;
     const text = readText(file);
     for (const retired of retiredLivePaths) {
       if (file === 'LINEAGE.md' && retired === 'docs/development/BRANCH_LINEAGE.md') continue;
@@ -202,7 +270,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(/^[A-Z0-9_]+\.md$/.test(entry.name), 'documentation_authority_docs_root_name', entry.name));
   }
 
-  return { ok: failures.length === 0, failures, route, frontier: resolvedFrontier };
+  return { ok: failures.length === 0, failures, route, frontier: resolvedFrontier, qualificationOwner };
 }
 
 function runCli() {
