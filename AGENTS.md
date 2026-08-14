@@ -28,7 +28,7 @@ After the fixed kernel, read only the owners selected by the current route and a
 - product/capability sequencing -> `docs/ROADMAP.md` and, when Design-sized execution coverage matters, `docs/development/PROGRAM.md`;
 - Class 2 work -> every `Dxxxx@rN` Design record referenced by the runnable/selected gate in `WORKBOARD.md`;
 - product behavior -> every affected normative product owner named by `docs/DOCUMENTATION.md`;
-- verification -> `docs/MVP.md` plus the exact evidence required by the current gate.
+- verification -> `docs/QUALIFICATION.md` plus the exact evidence required by the current gate.
 
 Historical reports, old Designs and evidence are loaded when a current owner, falsifier or provenance question requires them. They are not part of the unconditional session bootstrap.
 
@@ -71,13 +71,6 @@ Unless an accepted Design and the responsible product owner change them:
 
 ## Validation
 
-Use the acceptance and verification owners for the affected scope. The repository minimum source gate remains:
-
-```sh
-npm ci --ignore-scripts --no-audit --no-fund
-npm run check
-node --experimental-test-coverage --test test/*.test.mjs
-git diff --check
-```
+Use `docs/QUALIFICATION.md` as the stable owner for the baseline source gate, verification methods and proof-layer boundaries, plus the exact evidence required by the affected gate. Do not duplicate its command list here.
 
 A source gate proves only its declared source/adaptor layer. Provider, deployment, public-client, migration and rollback claims require their own evidence.

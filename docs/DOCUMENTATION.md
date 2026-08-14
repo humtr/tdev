@@ -21,7 +21,7 @@ Product contracts answer what tdev must mean or do at runtime. They are independ
 | trust, identity, secret, path and effect boundaries | `docs/SECURITY.md` |
 | deployment, provider binding, migration and rollback | `docs/DEPLOYMENT.md` |
 | MCP product surface and protocol boundary | `docs/MCP.md` |
-| executable source/provider qualification requirements | `docs/MVP.md` |
+| verification methods, executable source gate and proof-layer boundaries | `docs/QUALIFICATION.md` |
 
 A product owner may reference a development plan, but current branch/session/Design state cannot be required to interpret product meaning.
 
@@ -154,7 +154,7 @@ Use `UPPERCASE.md`; prefer one semantic word when that remains clear and precise
 
 Examples: `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `SPEC.md`, `PROTOCOL.md`, `SECURITY.md`, `WORKFLOW.md`, `PROGRAM.md`.
 
-A multiword live normative name is allowed when forcing one word would reduce clarity or create unnecessary migration risk. Existing widely referenced `MVP.md` remains the executable-acceptance owner under D0031 rather than being renamed only for stylistic purity.
+A multiword live normative name is allowed when forcing one word would reduce clarity or create unnecessary migration risk. D0031 therefore retained `MVP.md` when only stylistic renaming was justified. D0032 later established a semantic owner separation: `QUALIFICATION.md` owns verification methodology, while the former MVP acceptance/evidence aggregate is preserved under `docs/history/`.
 
 `README.md` is a conventional navigation exception and does not become normative merely because it is uppercase.
 

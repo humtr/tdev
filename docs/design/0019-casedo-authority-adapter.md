@@ -21,7 +21,7 @@
 - Amendment evidence: `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json`
 - Amendment evidence SHA-256: `79470299245e617147976b7f806c0e23dc78dfc2a47ca867cb80f984a73dd623`
 - Inherited authority: D0010 semantic/current-state authority; D0018 runtime boundary remains closed; D0030 accepted publication portability remains separate
-- Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, `docs/design/README.md`
+- Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, `docs/design/README.md`
 - `docs/SPEC.md`: unchanged; product scope did not change
 
 > D0019 selects a runtime authority model. It does **not** contain the production CaseDO adapter, does not implement D0020 AgentDO delivery/connection ownership, does not implement D0030 publication portability, and does not migrate an existing locally authoritative Case.

@@ -10,7 +10,7 @@
 - Prior evidence checkpoint: `cp_1786581036451_bed7284b8070`
 - Acceptance falsifier evidence commit: `e0d7706d02827d136eada0a9484d8ef6874cb672`
 - Inherited Designs: D0005 immutable expected-revision journal CAS, D0007 verified materialization reuse, D0008 durability admission; D0010 v3 SQLite authority remains a separate opt-in profile
-- Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MVP.md`; `docs/SPEC.md` only if accepted support scope changes
+- Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`; `docs/SPEC.md` only if accepted support scope changes
 - Planning owner: `docs/development/PROGRAM.md`
 - Research evidence: `docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json`
 - Acceptance convergence evidence: `docs/evidence/group-f-d0030-publication-portability-acceptance-convergence-2026-08-13.json`
@@ -364,7 +364,7 @@ D0030 does not authorize:
 - universal Android/Linux/F2FS qualification from one connected device;
 - claiming power-loss evidence that was not executed.
 
-After acceptance, `docs/PROTOCOL.md` should own the backend-neutral publication/reconciliation meaning; `docs/OPERATIONS.md` the runtime/error mapping; `docs/ARCHITECTURE.md` the publication adapter/native-boundary placement; `docs/SECURITY.md` path/fd/native trust and fail-closed rules; `docs/DEPLOYMENT.md` package/platform qualification; and `docs/MVP.md` the end-to-end qualification matrix. `docs/SPEC.md` changes only if the accepted support surface itself changes.
+After acceptance, `docs/PROTOCOL.md` should own the backend-neutral publication/reconciliation meaning; `docs/OPERATIONS.md` the runtime/error mapping; `docs/ARCHITECTURE.md` the publication adapter/native-boundary placement; `docs/SECURITY.md` path/fd/native trust and fail-closed rules; `docs/DEPLOYMENT.md` package/platform qualification; and `docs/QUALIFICATION.md` the end-to-end qualification matrix. `docs/SPEC.md` changes only if the accepted support surface itself changes.
 
 ## 15. Acceptance decision and closed blockers
 

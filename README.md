@@ -144,6 +144,7 @@ The model remains result-only. It cannot mutate the canonical repository directl
 | `docs/design/0014-*.md` | accepted and verified D0014 source contract |
 | `docs/design/0015-*.md` | verified final-MVP program rebaseline and D0014 post-review decision |
 | `docs/ROADMAP.md` | final-MVP capability groups, provisional Design program and qualification levels |
+| `docs/QUALIFICATION.md` | source qualification gate, proof layers and verification-method catalog |
 | `docs/history/d0014-product-efficiency-audit.md` | complete D0014 audit and decision report |
 | `docs/history/d0014-post-verification-review.md` | independent post-publication precision review and corrections |
 | `docs/evidence/` | checked machine-readable evidence |
@@ -162,4 +163,4 @@ Not yet verified or implemented by the current source:
 
 These are **open final-MVP capability groups**, not permanent product non-goals. The next context/model gate is decision-neutral: full-context references, manifest/content references, deterministic ContextSlice, warm execution, streaming and hybrids must compete on the post-D0014 baseline. Persistent CAS remains evidence-gated.
 
-Start with `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/MVP.md`, Design 0015 and the D0014 post-verification review.
+Start with `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/ROADMAP.md`, `docs/QUALIFICATION.md`, Design 0015 and the D0014 post-verification review.

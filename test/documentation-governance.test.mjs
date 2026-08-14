@@ -31,6 +31,8 @@ function workboardFixture({
     ...frontier.map((item) => `- ${item.id}@r${item.revision} — \`${item.path}\` — fixture gate`), '',
     '## Selected next action', '',
     selected === null ? '- none' : `- ${selected.id}@r${selected.revision} — fixture selection`, '',
+    '## Current owner pointers', '',
+    '- Qualification methods and executable source gate: `docs/QUALIFICATION.md`', '',
   ].join('\n');
 }
 

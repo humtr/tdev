@@ -44,7 +44,7 @@ The selected next action must be `none` or identify exactly one entry already pr
 - Capability exits: `docs/ROADMAP.md`
 - Design-sized dependency/coverage graph: `docs/development/PROGRAM.md`
 - Design registry: `docs/design/README.md` (derived/supporting; Design files own their maintained revision/status)
-- Executable acceptance: `docs/MVP.md`
+- Qualification methods and executable source gate: `docs/QUALIFICATION.md`
 - Historical development records: `docs/history/`
 - Machine-readable evidence: `docs/evidence/`
 

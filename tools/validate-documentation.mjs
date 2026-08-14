@@ -145,6 +145,26 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(!fs.existsSync(path.join(root, file)), 'documentation_authority_meta_owner_sprawl', file));
   }
 
+  check(() => assert(!fs.existsSync(path.join(root, 'docs/MVP.md')), 'documentation_authority_retired_live_path', 'docs/MVP.md'));
+  check(() => assert(Object.hasOwn(overrides, 'docs/QUALIFICATION.md') || fs.existsSync(path.join(root, 'docs/QUALIFICATION.md')), 'documentation_authority_missing_qualification'));
+  if (Object.hasOwn(overrides, 'docs/QUALIFICATION.md') || fs.existsSync(path.join(root, 'docs/QUALIFICATION.md'))) {
+    const qualification = readText('docs/QUALIFICATION.md');
+    const sourceCommands = [
+      'npm ci --ignore-scripts --no-audit --no-fund',
+      'npm run check',
+      'node --experimental-test-coverage --test test/*.test.mjs',
+      'git diff --check',
+    ];
+    for (const command of sourceCommands) check(() => assert(qualification.includes(command), 'documentation_authority_qualification_source_gate', command));
+    check(() => assert(!/\|\s*Observed evidence\s*\|/i.test(qualification), 'documentation_authority_qualification_observed_ledger'));
+  }
+  const agents = readText('AGENTS.md');
+  check(() => assert(agents.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_agents_qualification_pointer'));
+  check(() => assert(!agents.includes('npm ci --ignore-scripts --no-audit --no-fund') && !agents.includes('node --experimental-test-coverage --test test/*.test.mjs'), 'documentation_authority_agents_source_gate_duplicate'));
+  check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
+  check(() => assert(readText('docs/DOCUMENTATION.md').includes('| verification methods, executable source gate and proof-layer boundaries | `docs/QUALIFICATION.md` |'), 'documentation_authority_documentation_qualification_owner'));
+  check(() => assert(fs.existsSync(path.join(root, 'docs/history/mvp-verification-and-evidence.md')), 'documentation_authority_missing_mvp_history'));
+
   let resolvedFrontier = [];
   check(() => { resolvedFrontier = resolveFrontierDesigns({ root, route, readText }); });
 
@@ -166,7 +186,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   });
 
   const liveReferenceFiles = [
-    'AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'LINEAGE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/MVP.md',
+    'AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'LINEAGE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md',
     'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/design/README.md',
   ];
   for (const file of liveReferenceFiles) {
