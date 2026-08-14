@@ -268,24 +268,26 @@ Unsupported/unavailable are not green:
 - any future source-unavailable/offline/cross-worker availability requirement may activate D0022;
 - any future accepted completeness/quality threshold may reopen ContextSlice.
 
-## 21. Status vocabulary
+## 21. Historical status vocabulary — as of D0018 acceptance before production repair
 
-- independently diagnosed: **yes**
-- experimentally supported: **yes, for exact current-source defects, WH bounded-profile qualification, tested-WP falsification, prior structural measurements and declared falsifiers**
-- prototype/review harness implemented: **yes, non-production only**
-- draft designed: **yes, historical stage completed**
-- accepted: **yes — bounded contract in this file**
-- implementing: **no — requires successor/integration Task and explicit status transition before production `src/` changes**
-- production implemented: **no**
-- D0018 source verified: **no production repair exists yet**
-- D0018 environment verified: **no; current evidence is supported-Termux source/review qualification with the explicit ImmutableJournal filesystem exclusion**
-- provider verified: **no / not applicable to selected local profile**
-- prior work independently reviewed: **yes, exact prior branch/commits/blobs recovered; Pro package independently reviewed as external evidence**
-- Group E engineering complete: **no**
-- Group E checkpoint elected: **no**
+This snapshot preserves the pre-production acceptance state only. It is historical/as-of context, not D0018's current lifecycle or production-verification statement; the maintained current record at the top of this Design and its verification evidence own the later verified outcome.
+
+- independently diagnosed at that checkpoint: **yes**
+- experimentally supported at that checkpoint: **yes, for then-current-source defects, WH bounded-profile qualification, tested-WP falsification, prior structural measurements and declared falsifiers**
+- prototype/review harness implemented at that checkpoint: **yes, non-production only**
+- draft designed at that checkpoint: **yes, historical stage completed**
+- accepted at that checkpoint: **yes — bounded contract in this file**
+- implementing at that checkpoint: **no — the successor/integration Task and explicit status transition had not yet begun production `src/` changes**
+- production implemented at that checkpoint: **no**
+- D0018 source verified at that checkpoint: **no production repair existed yet**
+- D0018 environment verified at that checkpoint: **no; the evidence then covered supported-Termux source/review qualification with the explicit ImmutableJournal filesystem exclusion**
+- provider verified at that checkpoint: **no / not applicable to the selected local profile**
+- prior work independently reviewed at that checkpoint: **yes, exact prior branch/commits/blobs recovered; Pro package independently reviewed as external evidence**
+- Group E engineering complete at that checkpoint: **no**
+- Group E checkpoint elected at that checkpoint: **no**
 
 ## 22. Acceptance record
 
 Acceptance is recorded under `SDD.md` after freezing the exact runtime, lifecycle observation, checkpoint, capacity, warm, lost-wake, security, migration, rollback and provider-status contracts above. Direct evidence is `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` with SHA-256 `70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033`; replacement validation is `docs/evidence/group-e-d0018-convergence-validation-2026-08-12.json` with SHA-256 `7bbab3ed53f5c777d6d22e0903ef0ba65959d4accf6b63448bd7b15fcca3c6ba`; warm qualification is `docs/evidence/group-e-d0018-warm-runtime-qualification-2026-08-12.json` with SHA-256 `3f1e7dec8ba803fa4601d72a49c93402f4d301b1f012369d29c9a6fed51c8027`.
 
-Acceptance authorizes only the smallest coherent C1-C4 production repair and the transient committed-Event observation/live-control machinery required by it. It does not authorize same-model-process warm pools, provider abstraction, Agent/AgentDO implementation, ContextSlice, D0022 storage, hidden polling, a second queue, executor/provider retry, or unrelated source changes. Production implementation must first enter `implementing` on the active Group E integration lineage.
+Acceptance authorized only the smallest coherent C1-C4 production repair and the transient committed-Event observation/live-control machinery required by it. It did not authorize same-model-process warm pools, provider abstraction, Agent/AgentDO implementation, ContextSlice, D0022 storage, hidden polling, a second queue, executor/provider retry, or unrelated source changes. At that acceptance checkpoint, production implementation still had to enter `implementing` on the then-active Group E integration lineage; the maintained verified record at the top of this Design records the later outcome.

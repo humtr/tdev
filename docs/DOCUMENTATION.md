@@ -72,9 +72,13 @@ A document also has one primary session role:
 
 Evidence is therefore a first-class truth category but is not a peer bootstrap router. A new session normally needs current routing before it knows which evidence matters.
 
-## 2. Bootstrap and progressive loading
+## 2. Authority location, bootstrap and progressive loading
 
-The unconditional repository bootstrap is:
+Before the fixed kernel can be trusted, a fresh actor must know which exact published snapshot supplies it. Authority location is therefore a pre-bootstrap resolution step, not a fifth bootstrap owner. It may inspect published `ref@sha` candidates, each candidate's own `WORKBOARD.md`, and exact immediate-predecessor identity/ancestry solely to select one exact snapshot or fail closed. Its output is ephemeral, names its source observations, and becomes invalid when those observations change.
+
+Provider default, checkout state, branch-name shape, timestamps, continuity caches and local-only refs may help discover candidates but cannot elect the route. A candidate is eligible only when the `WORKBOARD.md` contained by that published ref declares the same repository and active ref; exact predecessor identity/ancestry must agree; exactly one maximal eligible candidate is required.
+
+After exact snapshot binding, the unconditional repository bootstrap is:
 
 ```text
 AGENTS.md
@@ -83,7 +87,7 @@ SDD.md
 WORKBOARD.md
 ```
 
-`AGENTS.md` defines the algorithm; `RULE.md` defines stable engineering invariants; `SDD.md` defines change/Design lifecycle; `WORKBOARD.md` owns the current route.
+`AGENTS.md` defines the algorithm; `RULE.md` defines stable engineering invariants; `SDD.md` defines change/Design lifecycle; `WORKBOARD.md` owns the current route. The bound `WORKBOARD.md` must agree with the bound published ref.
 
 After that kernel, load stable owners selected by affected scope. Do not preload the whole historical/program corpus merely because it exists.
 
@@ -105,14 +109,15 @@ evidence
 history preserves former states of any layer without becoming current authority
 ```
 
-Each durable fact has one owner. Other documents may:
+Each durable mutable fact has one canonical origin owner, and that owner must expose exactly one current semantic value. Other documents may:
 
 - link to it;
 - derive a summary deterministically;
 - cache it with source identity and mismatch rejection;
-- record what it was at a historical point.
+- record what it was at a historical/as-of point with explicit non-current scoping;
+- impose a validation constraint without becoming a second value owner.
 
-They may not independently originate another current value.
+They may not independently originate another current value, and the canonical owner itself may not present a second unscoped current-looking value that competes with its canonical metadata. For maintained Designs, a secondary lifecycle/implementation status snapshot is valid only when it is explicitly historical/as-of; deterministic index equality and owner-body single-valuedness are separate validation gates.
 
 In particular:
 
@@ -212,7 +217,7 @@ Human-readable registries such as `docs/design/README.md` and any generated/cach
 
 Derived projections must not resolve conflicts in their own favor. Documentation validation should detect drift and require repair of the derived view or its deterministic generation rule.
 
-Do not introduce a new permanent authority/session manifest that repeats existing owners. An ephemeral resolver output is acceptable only if it identifies its source owners and becomes invalid when those sources change.
+Do not introduce a new permanent authority/session manifest that repeats existing owners. An ephemeral authority-location resolver output is acceptable only if it identifies exact published source observations, derives rather than originates route meaning, rejects ambiguity/conflict, and becomes invalid when those sources change.
 
 ## 9. Review rule
 

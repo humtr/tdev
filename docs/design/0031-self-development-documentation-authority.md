@@ -1,6 +1,6 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 3
 - Revision predecessor: revision 2 was verified at `34e2857261c05593cc38d73c8209302f2a193b70`; revision 1 and revision 2 verification evidence remain historical evidence
 - Revision 3 reason: fresh convergence revalidation reproduced two gaps inside the verified r2 problem boundary: pre-bootstrap authority location can start from a coherent predecessor/default snapshot with no contract for locating the actual current snapshot, and a maintained Design owner can expose contradictory current-looking lifecycle/implementation state while metadata/index validation stays green
@@ -69,7 +69,7 @@ After the kernel, load only documents selected by the current route and affected
 - program/capability planning -> `docs/ROADMAP.md` and/or `docs/development/PROGRAM.md`;
 - Class 2 work -> every Design revision referenced by the selected/dependent Class 2 gate in `WORKBOARD.md`;
 - product behavior -> every affected product owner;
-- verification -> `docs/MVP.md` and exact referenced evidence required by the gate.
+- verification -> the current qualification/proof-method owner selected by `docs/DOCUMENTATION.md` and exact referenced evidence required by the gate.
 
 Historical reports and evidence are loaded only when a current gate, Design, owner, falsifier or provenance question requires them.
 
@@ -132,7 +132,7 @@ Filename semantics are a secondary signal, never a substitute for declared owner
 1. Live normative/current Markdown owners use `UPPERCASE.md`, preferably one semantic word when that remains clear (`RULE`, `SDD`, `WORKBOARD`, `LINEAGE`, `SPEC`, `PROTOCOL`, `SECURITY`, `WORKFLOW`, `PROGRAM`).
 2. Bounded Design, evidence, completed campaign/group material, audits, reviews and historical reports use lowercase kebab-case names under semantic directories.
 3. `README.md` is a conventional exception and may remain uppercase without becoming a normative product/development owner.
-4. Existing widely referenced normative names are not renamed solely for stylistic purity. In particular `docs/MVP.md` remains the executable-acceptance owner in D0031; its historical accumulation may be reduced separately while keeping the stable path.
+4. Existing widely referenced normative names are not renamed solely for stylistic purity. D0031 originally retained `docs/MVP.md`; later D0032 split verification methodology into `docs/QUALIFICATION.md` and preserved the former MVP aggregate as history, so this maintained revision follows that newer owner without rewriting D0031's historical Git evidence.
 5. Historical evidence bytes are not rewritten simply to update a former path/name. Maintained live documents may update navigational references when a file moves.
 
 Initial D0031 layout actions are limited to records whose role is already clear:
@@ -288,4 +288,4 @@ Revision 2 was `verified`. WORKBOARD models a route plus 0..N runnable `Dxxxx@rN
 
 The 2026-08-15 convergence falsifier reopens only r2's affected bootstrap/current-routing/documentation-validation meaning. Fresh observation found the provider default and normal checkout coherently on completed Group E while current WORKBOARD authority was Group F, and r2 supplied no pre-bootstrap rule for locating which snapshot's fixed kernel to read. The same fresh source review found D0018's maintained body could still expose a current-looking pre-production status snapshot contradicting its verified production record without failing the generated index or governance validator. These defects remain inside D0031's existing bootstrap/authority/validation problem and owner family, so revision 3 is the corrected revision rather than a new Design or registry migration.
 
-Revision 3 is `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json`. It adds only an ephemeral published-candidate authority locator, owner-internal current-value single-valuedness, D0018 record scoping, and the executable falsifiers needed to prevent recurrence. It does not change product semantics, product source, D0019 acceptance, or WORKBOARD's scheduling ownership.
+Revision 3 was `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json` at `f2000d286f9ce527529792356473be74e9bcd41f` and is now `implementing`. It adds only an ephemeral published-candidate authority locator, owner-internal current-value single-valuedness, D0018 record scoping, and the executable falsifiers needed to prevent recurrence. It does not change product semantics, product source, D0019 acceptance, or WORKBOARD's scheduling ownership.

@@ -119,6 +119,76 @@ export function parseWorkboardRouting(text) {
   return { group, groupId, branch, frontier, selected };
 }
 
+function parseAuthorityCandidateWorkboard(text) {
+  const repository = singleMatch(text, /^- Repository:\s*`([^`]+)`\s*$/gm, 'locator_repository')[1];
+  const branch = singleMatch(text, /^- Active cumulative branch:\s*`([^`]+)`\s*$/gm, 'locator_active_branch')[1];
+  const predecessorMatches = [...text.matchAll(/^- Immediate completed predecessor:\s*`([^@`]+)@([0-9a-f]{40})`/gmi)];
+  if (predecessorMatches.length > 1) {
+    throw new Error(`documentation_authority_locator_predecessor: expected at most one match, found ${predecessorMatches.length}`);
+  }
+  const predecessor = predecessorMatches.length === 0 ? null : { ref: predecessorMatches[0][1], sha: predecessorMatches[0][2].toLowerCase() };
+  return { repository, branch, predecessor };
+}
+
+export function resolvePublishedAuthority({ repository, candidates, isAncestor }) {
+  if (!repository || !Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error('documentation_authority_locator_missing_candidates');
+  }
+  if (typeof isAncestor !== 'function') throw new Error('documentation_authority_locator_missing_ancestry');
+
+  const byRef = new Map();
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate.ref !== 'string' || !/^[0-9a-f]{40}$/i.test(candidate.sha ?? '')) {
+      throw new Error('documentation_authority_locator_candidate_identity');
+    }
+    if (byRef.has(candidate.ref)) throw new Error(`documentation_authority_locator_duplicate_ref: ${candidate.ref}`);
+    byRef.set(candidate.ref, { ...candidate, sha: candidate.sha.toLowerCase() });
+  }
+
+  const eligible = [];
+  for (const candidate of byRef.values()) {
+    if (typeof candidate.workboardText !== 'string') continue;
+    const declaration = parseAuthorityCandidateWorkboard(candidate.workboardText);
+    if (declaration.repository !== repository || declaration.branch !== candidate.ref) continue;
+    eligible.push({ ...candidate, declaration });
+  }
+  if (eligible.length === 0) throw new Error('documentation_authority_locator_no_eligible_candidate');
+
+  const eligibleByRef = new Map(eligible.map((candidate) => [candidate.ref, candidate]));
+  const superseded = new Set();
+  for (const candidate of eligible) {
+    const predecessor = candidate.declaration.predecessor;
+    if (!predecessor) continue;
+    const observed = byRef.get(predecessor.ref);
+    if (!observed || observed.sha !== predecessor.sha) {
+      throw new Error(`documentation_authority_locator_predecessor_identity_conflict: ${candidate.ref} -> ${predecessor.ref}@${predecessor.sha}`);
+    }
+    if (!isAncestor(predecessor.sha, candidate.sha)) {
+      throw new Error(`documentation_authority_locator_predecessor_ancestry_conflict: ${candidate.ref} -> ${predecessor.ref}@${predecessor.sha}`);
+    }
+    const eligiblePredecessor = eligibleByRef.get(predecessor.ref);
+    if (eligiblePredecessor && eligiblePredecessor.sha === predecessor.sha) superseded.add(predecessor.ref);
+  }
+
+  const maxima = eligible.filter((candidate) => !superseded.has(candidate.ref));
+  if (maxima.length !== 1) {
+    throw new Error(`documentation_authority_locator_ambiguous_maxima: ${maxima.map(({ ref, sha }) => `${ref}@${sha}`).join(',') || 'none'}`);
+  }
+  const selected = maxima[0];
+  return { repository, ref: selected.ref, sha: selected.sha };
+}
+
+export function validateMaintainedDesignSingleValue(text, label = 'Design') {
+  const snapshotHeadings = [...text.matchAll(/^##\s+([^\n]*(?:status vocabulary|status snapshot|implementation status|lifecycle status)[^\n]*)$/gmi)];
+  for (const match of snapshotHeadings) {
+    const heading = match[1].trim();
+    if (!/\b(?:historical|as[- ]of|predecessor|prior revision|former)\b/i.test(heading)) {
+      throw new Error(`documentation_authority_design_current_status_snapshot: ${label} -> ${heading}`);
+    }
+  }
+  return true;
+}
+
 export function parseDesignMetadata(text) {
   const record = parseDesignRecord(text);
   return { id: record.id, status: record.status, revision: record.revision, explicitRevision: record.explicitRevision };
@@ -310,6 +380,15 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
 
   let resolvedFrontier = [];
   check(() => { resolvedFrontier = resolveFrontierDesigns({ root, route, readText }); });
+
+  const designDirectory = path.join(root, 'docs/design');
+  if (fs.existsSync(designDirectory)) {
+    for (const file of fs.readdirSync(designDirectory)) {
+      if (!/^\d{4}-.+\.md$/.test(file)) continue;
+      const relativePath = `docs/design/${file}`;
+      check(() => validateMaintainedDesignSingleValue(readText(relativePath), relativePath));
+    }
+  }
 
   const roadmap = readText('docs/ROADMAP.md');
   let roadmapGroups = [];

@@ -13,7 +13,9 @@ import {
   parseSourceGateCommands,
   parseWorkboardRouting,
   rebindContinuity,
+  resolvePublishedAuthority,
   validateDocumentation,
+  validateMaintainedDesignSingleValue,
 } from '../tools/validate-documentation.mjs';
 
 const root = new URL('..', import.meta.url).pathname;
@@ -26,6 +28,7 @@ const currentReadme = fs.readFileSync(new URL('../README.md', import.meta.url), 
 const currentRoadmap = fs.readFileSync(new URL('../docs/ROADMAP.md', import.meta.url), 'utf8');
 const currentProgram = fs.readFileSync(new URL('../docs/development/PROGRAM.md', import.meta.url), 'utf8');
 const currentDeployment = fs.readFileSync(new URL('../docs/DEPLOYMENT.md', import.meta.url), 'utf8');
+const currentD0018 = fs.readFileSync(new URL('../docs/design/0018-adversarial-converged-model-runtime-boundary.md', import.meta.url), 'utf8');
 const currentDesignTexts = Object.fromEntries([
   'docs/design/0031-self-development-documentation-authority.md',
   'docs/design/0032-qualification-authority-recomposition.md',
@@ -54,6 +57,16 @@ function workboardFixture({
   ].join('\n');
 }
 
+function authorityWorkboardFixture({ repository = 'humtr/tdev', branch, predecessor = null } = {}) {
+  return [
+    '# WORKBOARD', '', '## Current routing', '',
+    `- Repository: \`${repository}\``,
+    `- Active cumulative branch: \`${branch}\``,
+    ...(predecessor ? [`- Immediate completed predecessor: \`${predecessor.ref}@${predecessor.sha}\`, checkpoint \`fixture\``] : []),
+    '',
+  ].join('\n');
+}
+
 function designFixture({ id = '0031', revision = 2, status = 'accepted', explicitRevision = true } = {}) {
   return [
     `# Design ${id} — Fixture`, '', `- Status: \`${status}\``,
@@ -70,7 +83,9 @@ test('current repository documentation authority validates after D0033/D0034 ver
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1']);
+  const frontier = result.route.frontier.map((item) => `${item.id}@r${item.revision}`);
+  assert.ok(frontier.includes('D0019@r2'));
+  assert.ok(frontier.includes('D0030@r1'));
   assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
@@ -94,13 +109,13 @@ test('WORKBOARD-only F to G rebinding passes full validation without editing sta
 
 test('a reopened frontier Design fails closed', () => {
   const relativePath = 'docs/design/0031-self-development-documentation-authority.md';
-  const reopened = currentDesignTexts[relativePath].replace('- Status: `verified`', '- Status: `reopened`');
+  const reopened = currentDesignTexts[relativePath].replace(/^- Status: `[^`]+`$/m, '- Status: `reopened`');
   const result = validateDocumentation(root, {
-    'WORKBOARD.md': workboardFixture({ frontier: [{ id: 'D0031', revision: 2, path: relativePath }], selected: { id: 'D0031', revision: 2 } }),
+    'WORKBOARD.md': workboardFixture({ frontier: [{ id: 'D0031', revision: 3, path: relativePath }], selected: { id: 'D0031', revision: 3 } }),
     [relativePath]: reopened,
   });
   assert.equal(result.ok, false);
-  assert.match(result.failures.join('\n'), /documentation_authority_frontier_design_not_runnable: D0031@r2 reopened/);
+  assert.match(result.failures.join('\n'), /documentation_authority_frontier_design_not_runnable: D0031@r3 reopened/);
 });
 
 test('stale continuity cannot override route or maintained Design revision/status', () => {
@@ -125,6 +140,85 @@ test('selected action must identify a runnable frontier entry', () => {
 test('duplicate or missing current route fields fail closed', () => {
   assert.throws(() => parseWorkboardRouting(`${workboardFixture()}- Active cumulative branch: \`group/other\`\n`), /documentation_authority_active_branch/);
   assert.throws(() => parseWorkboardRouting(workboardFixture().replace(/^- Active cumulative branch:.*\n/m, '')), /documentation_authority_active_branch/);
+});
+
+test('authority location chooses the unique published successor over a coherent predecessor/default', () => {
+  const predecessorSha = '1'.repeat(40);
+  const currentSha = '2'.repeat(40);
+  const predecessorRef = 'group/predecessor';
+  const currentRef = 'group/current';
+  const result = resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [
+      { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) },
+      { ref: currentRef, sha: currentSha, workboardText: authorityWorkboardFixture({ branch: currentRef, predecessor: { ref: predecessorRef, sha: predecessorSha } }) },
+    ],
+    isAncestor: (ancestor, descendant) => ancestor === predecessorSha && descendant === currentSha,
+  });
+  assert.deepEqual(result, { repository: 'humtr/tdev', ref: currentRef, sha: currentSha });
+});
+
+test('successor ref existence without its own election cannot advance authority', () => {
+  const currentSha = '2'.repeat(40);
+  const unelectedSha = '3'.repeat(40);
+  const currentRef = 'group/current';
+  const currentWorkboard = authorityWorkboardFixture({ branch: currentRef });
+  const result = resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [
+      { ref: currentRef, sha: currentSha, workboardText: currentWorkboard },
+      { ref: 'group/unelected-successor', sha: unelectedSha, workboardText: currentWorkboard },
+    ],
+    isAncestor: () => false,
+  });
+  assert.deepEqual(result, { repository: 'humtr/tdev', ref: currentRef, sha: currentSha });
+});
+
+test('local-only successor state cannot advance published authority', () => {
+  const currentSha = '2'.repeat(40);
+  const currentRef = 'group/current';
+  const localOnly = { ref: 'group/local-only', sha: '3'.repeat(40), workboardText: authorityWorkboardFixture({ branch: 'group/local-only' }) };
+  const publishedCandidates = [{ ref: currentRef, sha: currentSha, workboardText: authorityWorkboardFixture({ branch: currentRef }) }];
+  assert.equal(publishedCandidates.includes(localOnly), false);
+  assert.deepEqual(resolvePublishedAuthority({ repository: 'humtr/tdev', candidates: publishedCandidates, isAncestor: () => false }), {
+    repository: 'humtr/tdev', ref: currentRef, sha: currentSha,
+  });
+});
+
+test('authority location fails closed on competing elected successors or predecessor mismatch', () => {
+  const predecessorSha = '1'.repeat(40);
+  const predecessorRef = 'group/predecessor';
+  const left = { ref: 'group/left', sha: '2'.repeat(40) };
+  const right = { ref: 'group/right', sha: '3'.repeat(40) };
+  const base = { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) };
+  const descendants = [left, right].map((candidate) => ({
+    ...candidate,
+    workboardText: authorityWorkboardFixture({ branch: candidate.ref, predecessor: { ref: predecessorRef, sha: predecessorSha } }),
+  }));
+  assert.throws(() => resolvePublishedAuthority({
+    repository: 'humtr/tdev', candidates: [base, ...descendants], isAncestor: (ancestor) => ancestor === predecessorSha,
+  }), /documentation_authority_locator_ambiguous_maxima/);
+
+  const wrongPredecessor = authorityWorkboardFixture({ branch: left.ref, predecessor: { ref: predecessorRef, sha: '4'.repeat(40) } });
+  assert.throws(() => resolvePublishedAuthority({
+    repository: 'humtr/tdev', candidates: [base, { ...left, workboardText: wrongPredecessor }], isAncestor: () => true,
+  }), /documentation_authority_locator_predecessor_identity_conflict/);
+});
+
+test('maintained Design status snapshots must be explicitly historical/as-of', () => {
+  const contradictory = `${designFixture({ id: '0099', status: 'verified' })}\n## Status vocabulary\n\n- production implemented: **no**\n`;
+  assert.throws(() => validateMaintainedDesignSingleValue(contradictory, 'fixture'), /documentation_authority_design_current_status_snapshot/);
+
+  const historical = `${designFixture({ id: '0099', status: 'verified' })}\n## Historical status snapshot — as of predecessor acceptance\n\n- production implemented at that checkpoint: **no**\n`;
+  assert.doesNotThrow(() => validateMaintainedDesignSingleValue(historical, 'fixture'));
+
+  const d0018Shaped = currentD0018.replace(
+    '## 21. Historical status vocabulary — as of D0018 acceptance before production repair',
+    '## 21. Status vocabulary',
+  );
+  const result = validateDocumentation(root, { 'docs/design/0018-adversarial-converged-model-runtime-boundary.md': d0018Shaped });
+  assert.equal(result.ok, false);
+  assert.match(result.failures.join('\n'), /documentation_authority_design_current_status_snapshot: docs\/design\/0018-/);
 });
 
 test('pre-D0031 Designs without Revision remain legacy revision 1', () => {

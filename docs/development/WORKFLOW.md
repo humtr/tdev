@@ -45,9 +45,11 @@ local active ref:     <ref> @ <sha-or-unobserved>
 working mirror:       <ref/detached> @ <sha-or-unobserved>
 ```
 
-Resolve the active cumulative Group and branch from `WORKBOARD.md`. Do not infer them from the repository default branch, an old Design, a historical report, a handoff, a Task transport branch or the sequence in `LINEAGE.md`.
+Before `WORKBOARD.md` can resolve the route, bind the exact published snapshot that supplies it. When no trusted immutable `ref@sha` is already supplied, enumerate published candidates and apply D0031 authority location: the candidate's own `WORKBOARD.md` must name the intended repository and the same published ref as active, declared immediate-predecessor identity and Git ancestry must agree, and exactly one maximal eligible candidate must remain. Any absence, competing maxima or identity/ancestry conflict is `BLOCKED` for the dependent mutation.
 
-The normal capable local checkout should track the active cumulative branch when safe. If it is on a completed/predecessor branch, that is `CHECKOUT_ALIGNMENT_DEBT`, not a second route authority. Preserve unrelated dirty state; align safely or use an isolated worktree from the exact current active ref.
+Resolve the active cumulative Group and branch only from the `WORKBOARD.md` in that bound snapshot. Do not infer them from the repository default branch, an old Design, a historical report, a handoff, a Task transport branch, timestamps, branch naming, mere ref existence or the sequence in `LINEAGE.md`.
+
+The normal capable local checkout should track the active cumulative branch when safe. If it is on a completed/predecessor branch, that is `CHECKOUT_ALIGNMENT_DEBT`, not a second route authority. The provider default may likewise be aligned as a compatibility/discovery pointer only after current authority is already resolved. Preserve unrelated dirty state; align safely or use an isolated worktree from the exact current active ref.
 
 ## 4. Synchronization states
 
@@ -69,17 +71,18 @@ Intentional ancestry differences between completed and successor Group refs are 
 
 Before substantive mutation:
 
-1. complete the fixed bootstrap in `AGENTS.md`: `RULE.md`, `SDD.md`, `WORKBOARD.md`;
-2. resolve the active cumulative branch, runnable Design revision references, selected next action and live debts from `WORKBOARD.md`;
-3. load this workflow when execution/replica/publication state matters, and `LINEAGE.md` when checkpoint succession matters;
-4. load every Design referenced by the selected/dependent Class 2 gate and the affected normative product owners required by the scope; verify the referenced Design revision is currently `accepted` or `implementing` before mutation;
-5. observe the current remote active ref directly when remote identity matters;
-6. observe local checkout branch, HEAD, upstream and dirty state when local access exists;
-7. observe any working mirror used for the change;
-8. record exact relationships (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
-9. attempt the cheapest safe alignment/reconciliation needed by the current gate;
-10. if one plane is unavailable or unsafe to align, preserve state, record exact debt, and continue only on a plane that can independently execute the requested gate;
-11. never invent the state of an unavailable plane.
+1. locate and bind one exact published current repository snapshot under `AGENTS.md`/D0031 unless a trusted immutable identity is already supplied;
+2. complete the fixed bootstrap from that bound snapshot: `RULE.md`, `SDD.md`, `WORKBOARD.md`;
+3. confirm the bound ref matches the active branch declared by `WORKBOARD.md`, then resolve the active cumulative branch, runnable Design revision references, selected next action and live debts from it;
+4. load this workflow when execution/replica/publication state matters, and `LINEAGE.md` when checkpoint succession matters;
+5. load every Design referenced by the selected/dependent Class 2 gate and the affected normative product owners required by the scope; verify the referenced Design revision is currently `accepted` or `implementing` before mutation;
+6. observe the current remote active ref directly when remote identity matters;
+7. observe local checkout branch, HEAD, upstream and dirty state when local access exists;
+8. observe any working mirror used for the change;
+9. record exact relationships (`equal`, `ancestor`, `descendant`, `diverged`, `unobserved`);
+10. attempt the cheapest safe alignment/reconciliation needed by the current gate;
+11. if one plane is unavailable or unsafe to align, preserve state, record exact debt, and continue only on a plane that can independently execute the requested gate;
+12. never invent the state of an unavailable plane.
 
 A handoff may provide candidate identities and prior observations, but each mutable fact is rebound to its current owner before use.
 
@@ -124,8 +127,9 @@ When the active Group exit is satisfied:
 5. retain the completed Group ref at the exact final head;
 6. create the successor only from that exact head;
 7. update `WORKBOARD.md` to the successor route;
-8. align capable local/default operational pointers when safe, otherwise record exact alignment debt;
-9. do not update retained predecessor refs merely to mirror the successor.
+8. align capable local/default operational pointers when safe, otherwise record exact alignment debt; alignment is compatibility/discovery state, never route election;
+9. reread any aligned provider/default pointer when its alignment is part of the checkpoint evidence;
+10. do not update retained predecessor refs merely to mirror the successor.
 
 If no planned Group remains, the prototype fork follows the final rule in `LINEAGE.md`.
 
