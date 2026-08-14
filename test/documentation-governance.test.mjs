@@ -317,7 +317,7 @@ test('mutable current gaps cannot be reassigned to stable ROADMAP by QUALIFICATI
 test('DEPLOYMENT does not become a second current route, source-gate or Design-status ledger', () => {
   assert.doesNotMatch(currentDeployment, /mvp-1a-7|D\d{4}\s+is accepted only at the Design\/qualification layer here/i);
   for (const command of parseSourceGateCommands(currentQualification)) assert.equal(currentDeployment.includes(command), false);
-  assert.match(currentDeployment, /These evidence levels classify claims; they are not a second current-status ledger\./);
+  assert.match(currentDeployment, /`QUALIFICATION\.md` owns proof-layer classification/);
 
   const command = parseSourceGateCommands(currentQualification)[0];
   const duplicated = validateDocumentation(root, { 'docs/DEPLOYMENT.md': `${currentDeployment}\n${command}\n` });
@@ -339,6 +339,9 @@ test('stable product owners do not retain retired qualification paths or mutable
     const text = fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
     assert.doesNotMatch(text, /(?:docs\/)?MVP\.md/, relativePath);
     assert.doesNotMatch(text, stalePattern, relativePath);
+    assert.doesNotMatch(text, /\b[0-9a-f]{40}\b/i, relativePath);
+    assert.doesNotMatch(text, /^#{2,4}\s+.*(?:Verified|Measured|Benchmark|Current .*?(?:boundary|status|state|slice))/mi, relativePath);
+    assert.doesNotMatch(text, /\b\d+\/\d+\b[^\n]*(?:pass|passed|fail|failed|sample|samples|race|races)/i, relativePath);
     for (const command of parseSourceGateCommands(currentQualification)) assert.equal(text.includes(command), false, `${relativePath} duplicates ${command}`);
   }
 
@@ -351,6 +354,31 @@ test('stable product owners do not retain retired qualification paths or mutable
   const statusResult = validateDocumentation(root, { 'docs/OPERATIONS.md': staleStatus });
   assert.equal(statusResult.ok, false);
   assert.match(statusResult.failures.join('\n'), /documentation_authority_product_mutable_status_ledger: docs\/OPERATIONS\.md/);
+
+  const evidenceHeading = validateDocumentation(root, { 'docs/ARCHITECTURE.md': `${fs.readFileSync(new URL('../docs/ARCHITECTURE.md', import.meta.url), 'utf8')}\n## Verified fixture boundary\n` });
+  assert.equal(evidenceHeading.ok, false);
+  assert.match(evidenceHeading.failures.join('\n'), /documentation_authority_product_evidence_heading: docs\/ARCHITECTURE\.md/);
+
+  const resultLedger = validateDocumentation(root, { 'docs/SECURITY.md': `${fs.readFileSync(new URL('../docs/SECURITY.md', import.meta.url), 'utf8')}\n26\/26 passed fixture\n` });
+  assert.equal(resultLedger.ok, false);
+  assert.match(resultLedger.failures.join('\n'), /documentation_authority_product_result_ledger: docs\/SECURITY\.md/);
+
+  const commitLedger = validateDocumentation(root, { 'docs/SPEC.md': `${fs.readFileSync(new URL('../docs/SPEC.md', import.meta.url), 'utf8')}\n${'a'.repeat(40)}\n` });
+  assert.equal(commitLedger.ok, false);
+  assert.match(commitLedger.failures.join('\n'), /documentation_authority_product_commit_ledger: docs\/SPEC\.md/);
+});
+
+test('pre-D0034 product-owner snapshots remain byte-identical historical evidence', () => {
+  const expected = new Map([
+    ['../docs/history/spec-before-d0034.md', 'a7435307b5183bd44ff185009dd2b063398b909feac189d319c192f3c8756262'],
+    ['../docs/history/architecture-before-d0034.md', '3f62bdda39268568139811b0eff818de3fdf384052bea6a9a6fc85de4438e184'],
+    ['../docs/history/protocol-before-d0034.md', '2e67baa96f6322832510df5e887971396bf955e6c43c3c21dafc070fec512386'],
+    ['../docs/history/operations-before-d0034.md', '170c32dc343d9f722c5ee0894275c0a8791bb77a06c9ffeb9a0b631827da4c90'],
+    ['../docs/history/security-before-d0034.md', '193780943518521302d1948d37944f0ac342049c47626b0a600bb5380d2f8b09'],
+    ['../docs/history/deployment-before-d0034.md', '9b8a73284ddd258ec5ab0b46520d53cee6b0e1ed2d95d2b00ec436940c63d327'],
+    ['../docs/history/mcp-before-d0034.md', '566d6cebd1ba1032fde23dd1ff588560bc9757d2d7541606c662d9bb4e026168'],
+  ]);
+  for (const [relativePath, digest] of expected) assert.equal(sha256(fs.readFileSync(new URL(relativePath, import.meta.url))), digest, relativePath);
 });
 
 test('pre-D0033 live planning/navigation and deployment-ledger snapshots remain byte-identical historical evidence', () => {

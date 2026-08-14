@@ -287,12 +287,15 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   }
   check(() => assert(qualificationCommands.every((command) => !deployment.includes(command)), 'documentation_authority_deployment_source_gate_duplicate'));
   check(() => assert(!deployment.includes('mvp-1a-7'), 'documentation_authority_deployment_legacy_route_contract'));
-  check(() => assert(deployment.includes('These evidence levels classify claims; they are not a second current-status ledger.'), 'documentation_authority_deployment_evidence_level_boundary'));
+  check(() => assert(deployment.includes('`QUALIFICATION.md` owns proof-layer classification'), 'documentation_authority_deployment_qualification_boundary'));
   check(() => assert(!/D\d{4}\s+is accepted only at the Design\/qualification layer here/i.test(deployment), 'documentation_authority_deployment_stale_design_status'));
   for (const [file, text] of Object.entries(productContracts)) {
     check(() => assert(qualificationCommands.every((command) => !text.includes(command)), 'documentation_authority_product_source_gate_duplicate', file));
     check(() => assert(!/(?:docs\/)?MVP\.md/.test(text), 'documentation_authority_product_retired_mvp_pointer', file));
     check(() => assert(!/(?:currently verified source slice|not implemented or verified at this Design-acceptance checkpoint|C1-C4 production repair remains open|current production source does not yet implement|current production source still uses|current src\/store\.mjs|repairs are accepted but not yet production-implemented|production-implemented and independently verified on the declared supported-Termux|adapter has not yet been implemented, deployed or load-tested|no MCP server or current-client qualification is implemented in the current source slice|It is verified with real bare|The accepted C1-C4 repair adds|at the D\d{4} acceptance checkpoint[^.]*src\/store\.mjs)/i.test(text), 'documentation_authority_product_mutable_status_ledger', file));
+    check(() => assert(!/\b[0-9a-f]{40}\b/i.test(text), 'documentation_authority_product_commit_ledger', file));
+    check(() => assert(!/^#{2,4}\s+.*(?:Verified|Measured|Benchmark|Current .*?(?:boundary|status|state|slice))/mi.test(text), 'documentation_authority_product_evidence_heading', file));
+    check(() => assert(!/\b\d+\/\d+\b[^\n]*(?:pass|passed|fail|failed|sample|samples|race|races)/i.test(text), 'documentation_authority_product_result_ledger', file));
   }
   check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
   for (const file of ['AGENTS.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {

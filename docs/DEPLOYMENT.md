@@ -268,7 +268,7 @@ accepted isolated results
   -> commit/reference receipt
 ```
 
-Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. D0011 verifies local object/tree/commit construction and one local branch-ref CAS/reconciliation/rollback lane; D0012 adds the separate `tdev.git.remote-existing-branch.v1` external-effect adapter for an already locally elected candidate and existing remote branch. Git OIDs and remote refs remain derived publication identities. D0012 binds one effective push target into an immutable intent, uses exact predecessor remote fencing, rereads uncertain outcomes, and never creates/deletes a remote branch or bypasses provider policy.
+Ordinary Tasks must not update the Git index, worktree, branch, or remote ref. D0011 defines local object/tree/commit construction and one local branch-ref CAS/reconciliation/rollback lane; D0012 adds the separate `tdev.git.remote-existing-branch.v1` external-effect adapter for an already locally elected candidate and existing remote branch. Git OIDs and remote refs remain derived publication identities. D0012 binds one effective push target into an immutable intent, uses exact predecessor remote fencing, rereads uncertain outcomes, and never creates/deletes a remote branch or bypasses provider policy.
 
 ## 11. Environment and configuration
 
@@ -276,17 +276,11 @@ No environment variable is required by the source core. D0011, D0012 and D0013/D
 
 Secrets must not be stored in Task input, evidence, receipts, snapshots, remote intents, model observations, or clear embedded Git URLs without a separate encrypted-secret design.
 
-## 12. Deployment evidence levels
+## 12. Deployment qualification boundary
 
-| Level | Meaning |
-| --- | --- |
-| source-verified | Node source tests and demos passed locally |
-| adapter-verified | provider adapter unit/contract tests passed |
-| integration-verified | real provider resources exercised, including restart/response loss |
-| deployment-verified | migrations, routes, bindings, observability, and rollback tested in target environment |
-| production-qualified | measured SLO, load, security, and incident procedures accepted |
+`QUALIFICATION.md` owns proof-layer classification and the rule that a lower-layer result cannot be promoted into a higher-layer claim. This deployment owner adds only the deployment-specific observation requirements: exercise the selected real provider resources, restart/response-loss behavior, bindings/routes, every supported migration, observability/recovery path, rollback/revocation barrier, and the target environment actually being claimed.
 
-These evidence levels classify claims; they are not a second current-status ledger. Resolve maintained Design lifecycle/revision from the Design owner, current runnable work from `WORKBOARD.md`, stable final-MVP exits from `ROADMAP.md`, and observed source/provider/runtime results from the exact evidence records. A source/adaptor result must not be promoted to integration-, deployment-, or production-qualified merely because a lower layer passed.
+Resolve maintained Design lifecycle/revision from the Design owner, runnable work from `WORKBOARD.md`, stable final-MVP exits from `ROADMAP.md`, and observed source/provider/runtime results from exact evidence records.
 
 D0017 changes no persisted Case/Plan semantic-state schema and introduces no durable context state, so it requires no data migration. Software rollback is deployment of the pre-D0017 D0013/D0014 full-inline implementation; because Case/Plan semantic authority and persisted schema are unchanged, that rollback requires no context-data conversion. A live `context_reference_unauthorized`, stale, missing, corrupt or limit-exceeded request must **not** silently fall back to inline delivery; per-request fallback is not rollback.
 
