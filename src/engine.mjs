@@ -283,6 +283,23 @@ function receiptDigest(command) {
   return typedDigest('tdev.case-command.v1', command);
 }
 
+export function inspectCaseCommandEnvelope(envelope) {
+  assertRecordShape(envelope, ['requestId', 'command'], ['expectedCaseRevision'], 'command envelope');
+  const { requestId, expectedCaseRevision = undefined, command } = envelope;
+  assertIdentifier(requestId, 'requestId');
+  if (expectedCaseRevision !== undefined) {
+    assertSafeInteger(expectedCaseRevision, 'expectedCaseRevision', { min: 0 });
+  }
+  validateCommand(command);
+  const normalizedCommand = canonicalClone(command);
+  return deepFreeze({
+    requestId,
+    expectedCaseRevision: expectedCaseRevision ?? null,
+    command: normalizedCommand,
+    commandDigest: receiptDigest(normalizedCommand),
+  });
+}
+
 function snapshotDigest(snapshotWithoutDigest) {
   return typedDigest('tdev.case-snapshot.v2', snapshotWithoutDigest);
 }
@@ -1657,15 +1674,13 @@ export class CaseEngine {
     }
     assertRecordShape(options, [], ['claimValidator'], 'applyCommand options');
     assertClaimValidator(options.claimValidator);
-    assertRecordShape(envelope, ['requestId', 'command'], ['expectedCaseRevision'], 'command envelope');
-    const { requestId, expectedCaseRevision = undefined, command } = envelope;
-    assertIdentifier(requestId, 'requestId');
-    if (expectedCaseRevision !== undefined) {
-      assertSafeInteger(expectedCaseRevision, 'expectedCaseRevision', { min: 0 });
-    }
-    validateCommand(command);
-    const normalizedCommand = canonicalClone(command);
-    const commandDigest = receiptDigest(normalizedCommand);
+    const inspected = inspectCaseCommandEnvelope(envelope);
+    const {
+      requestId,
+      expectedCaseRevision,
+      command: normalizedCommand,
+      commandDigest,
+    } = inspected;
     const existing = this._receipts[requestId];
     if (existing) {
       if (existing.commandDigest !== commandDigest) {
@@ -1673,7 +1688,7 @@ export class CaseEngine {
       }
       return deepFreeze({ deduplicated: true, response: canonicalClone(existing.response) });
     }
-    if (expectedCaseRevision !== undefined) {
+    if (expectedCaseRevision !== null) {
       if (expectedCaseRevision !== this.caseRevision) {
         throw new ContractError('revision_conflict', `Expected Case revision ${expectedCaseRevision}, found ${this.caseRevision}`, {
           expectedCaseRevision,

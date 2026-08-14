@@ -10,6 +10,16 @@ export {
   typedDigest,
 } from './canonical.mjs';
 export { ClaimLedger } from './claim-ledger.mjs';
+export {
+  CASEDO_DEFAULT_CHUNK_BYTES,
+  CASEDO_STORAGE_PROFILE,
+  CASEDO_STORAGE_SCHEMA_VERSION,
+  CASEDO_WRITER_PROTOCOL,
+  CaseDOAuthority,
+  CasePlacementAuthority,
+  createCasePlacement,
+  validateCasePlacement,
+} from './casedo-authority.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
   GIT_PROJECTION_CANDIDATE_DOMAIN,
