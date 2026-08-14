@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.program-roadmap-recomposition-inventory",
+  "capturedAt": "2026-08-14",
+  "source": {
+    "repository": "humtr/tdev",
+    "branch": "group/f-cloudflare-runtime",
+    "commit": "143d648636d26ba0df5eaf474f1aefae32f7f531"
+  },
+  "files": {
+    "docs/ROADMAP.md": {"sha256": "60f7d265423d1262293d760853dc7ac92d61e71f3298bc8b2801017289f7d734", "bytes": 16635, "lines": 212},
+    "docs/development/PROGRAM.md": {"sha256": "1c45524ea71f73b2a89bd461a5e2503846f8f06fb42a955a2f7b87ee725abce6", "bytes": 40803, "lines": 392},
+    "README.md": {"sha256": "105e8c2e88e23eb7641cd1f4c48353ecb3338e465d9eadf145f7038e41094bc6", "bytes": 10110, "lines": 167},
+    "docs/QUALIFICATION.md": {"sha256": "159a715bd4f2239cd54d800c7ff57e44f0ff9c1c98c214ff003cdccbb42dfb8a", "bytes": 12017, "lines": 154},
+    "tools/validate-documentation.mjs": {"sha256": "9c6323670c2f78bd2289d1a82b2cc6d18a44649ae923bb3c242a173e89289c3f", "bytes": 16454, "lines": 289}
+  },
+  "targetOwnership": {
+    "WORKBOARD.md": "sole mutable current Group/branch/runnable-frontier/selected-action owner",
+    "docs/ROADMAP.md": "stable final-MVP definition, capability groups, completion levels, Group exit criteria, cross-capability sequencing constraints, final deployed exit and post-MVP boundary",
+    "docs/development/PROGRAM.md": "forward-looking Design/gate dependency and coverage register, conditionality, cheapest falsifier, external-action dependency and unresolved decision questions",
+    "docs/design/<id>-<name>.md": "maintained Design decision, revision and lifecycle status",
+    "docs/QUALIFICATION.md": "current verification methodology and proof-layer boundary",
+    "docs/evidence/*": "observed machine-readable evidence",
+    "docs/history/*": "historical narrative and superseded live-document snapshots"
+  },
+  "roadmapSectionDisposition": [
+    {"section": "1 Final MVP definition", "action": "retain/compact", "owner": "ROADMAP"},
+    {"section": "2 Program hierarchy", "action": "retain/compact", "owner": "ROADMAP"},
+    {"section": "3 Completion levels", "action": "retain", "owner": "ROADMAP"},
+    {"section": "4 Capability groups", "action": "retain as sole A-H capability/exit table", "owner": "ROADMAP"},
+    {"section": "5 Post-D0014 Group E decision state", "action": "remove from live roadmap after byte-preserving snapshot", "owner": "Design/evidence/history"},
+    {"section": "6 Provisional remaining Design program", "action": "remove Design status/evidence; move only forward gate mapping to PROGRAM", "owner": "PROGRAM + Design owners"},
+    {"section": "7 Ownership targets for deployed topology", "action": "replace detailed owner hypotheses with product-owner pointers and capability constraints", "owner": "ARCHITECTURE/product Designs; ROADMAP only exit intent"},
+    {"section": "8 User/provider configuration gate", "action": "retain compact final-MVP external-setup acceptance shape", "owner": "ROADMAP with deployment/security owners for exact mechanisms"},
+    {"section": "9 Dependency and parallelism posture", "action": "move Design dependency graph to PROGRAM; retain only stable Group ordering/parallelism rule", "owner": "PROGRAM/ROADMAP"},
+    {"section": "10 Final deployed qualification", "action": "retain as Level-4 exit intent; proof methods remain QUALIFICATION", "owner": "ROADMAP"},
+    {"section": "11 Post-MVP candidates", "action": "retain", "owner": "ROADMAP"}
+  ],
+  "programSectionDisposition": [
+    {"section": "1 Routing relationship", "action": "retain/compact", "owner": "PROGRAM boundary"},
+    {"section": "2 Capability Group register", "action": "remove duplicate A-H table and link ROADMAP", "owner": "ROADMAP"},
+    {"section": "3 What the pre-existing roadmap already captured", "action": "remove from live register after snapshot", "owner": "history"},
+    {"section": "4 Gaps not fully captured", "action": "remove historical self-description after snapshot", "owner": "history/D0033 rationale"},
+    {"section": "5 Provisional Design register", "action": "rebuild as compact forward gate register; no copied maintained status/evidence narrative", "owner": "PROGRAM + Design foreign keys"},
+    {"section": "6 Completed Group E closure map", "action": "remove from live program after snapshot", "owner": "LINEAGE/Design/evidence/history"},
+    {"section": "7 Parallelism and critical path", "action": "retain as compact dependency graph", "owner": "PROGRAM"},
+    {"section": "8 External user/provider action register", "action": "deduplicate to ROADMAP/DEPLOYMENT/SECURITY pointer plus per-gate dependency field", "owner": "ROADMAP/product owners"},
+    {"section": "9 Omission-prevention process", "action": "retain as coverage rule", "owner": "PROGRAM"},
+    {"section": "10 Open-question register", "action": "retain only currently unresolved questions; remove/rewrite questions already answered by D0017/D0018/D0019", "owner": "PROGRAM"},
+    {"section": "11 Completion reporting", "action": "replace duplicated procedure with WORKFLOW/LINEAGE pointer", "owner": "WORKFLOW/LINEAGE"}
+  ],
+  "additionalDefects": [
+    {
+      "id": "README_STALE_ROUTE",
+      "classification": "derived-navigation defect",
+      "evidence": "README title/body says active development identity is mvp-1a-7 while WORKBOARD owns Group F/group/f-cloudflare-runtime",
+      "correction": "preserve old README snapshot, then rebuild README as current-neutral navigation/product overview that points to bootstrap owners"
+    },
+    {
+      "id": "README_STALE_LAYER_AND_GATE",
+      "classification": "derived-navigation defect",
+      "evidence": "README calls D0014 the latest verified production-source layer, repeats a source/coverage/benchmark command block, and describes the already-decided post-D0014 context gate as future work",
+      "correction": "remove historical ledger/gate duplication from live README; point to Design registry, QUALIFICATION and current router"
+    },
+    {
+      "id": "README_FIXED_START_SET",
+      "classification": "bootstrap-navigation defect",
+      "evidence": "README instructs every session to read LINEAGE/SPEC/ARCHITECTURE/ROADMAP/QUALIFICATION/D0015/D0014 review after the kernel, conflicting with AGENTS progressive loading",
+      "correction": "README must defer session bootstrap to AGENTS -> RULE -> SDD -> WORKBOARD and describe scope-driven loading only"
+    },
+    {
+      "id": "QUALIFICATION_MUTABLE_ROADMAP_GAP",
+      "classification": "bounded owner-wording defect",
+      "evidence": "QUALIFICATION says mutable current gaps may belong in ROADMAP although D0031 r2 makes ROADMAP a stable capability/exit owner",
+      "correction": "mutable current gaps belong in WORKBOARD or responsible Design/product owner; ROADMAP keeps stable unmet exit criteria"
+    },
+    {
+      "id": "VALIDATOR_SOURCE_GATE_COOWNER",
+      "classification": "bounded implementation defect under unchanged D0032 meaning",
+      "evidence": "tools/validate-documentation.mjs hard-codes SOURCE_GATE_COMMANDS and therefore must be edited whenever the QUALIFICATION owner changes",
+      "correction": "derive current commands from QUALIFICATION and validate structure/duplication without a second semantic command list"
+    },
+    {
+      "id": "VALIDATOR_MIGRATION_LOCK",
+      "classification": "bounded implementation defect under unchanged D0032 meaning",
+      "evidence": "generic validation permanently requires current qualification methods to equal the 78-row pre-D0032 historical snapshot",
+      "correction": "retain D0032 transition equality in historical evidence, but make generic governance validate current owner structure rather than make history a perpetual co-owner"
+    },
+    {
+      "id": "PROGRAM_RESOLVED_OPEN_QUESTIONS",
+      "classification": "planning drift",
+      "evidence": "PROGRAM still asks whether D0010 can be hosted in CaseDO and phrases D0017/D0018 implementation/measurement as future conditions even though D0019 r2 is accepted and D0017/D0018 work is already completed for their declared scopes",
+      "correction": "remove resolved questions; preserve only conditions whose answers remain evidence-dependent"
+    },
+    {
+      "id": "ROADMAP_PROGRAM_DESIGN_STATUS_DUPLICATION",
+      "classification": "owner duplication",
+      "evidence": "ROADMAP and PROGRAM repeat accepted/verified Design status, commit/evidence identities and completion narrative also owned by Design/evidence records",
+      "correction": "use Design IDs/revisions as foreign keys only where a forward dependency requires them"
+    }
+  ],
+  "safety": {
+    "preserveBeforeCompaction": ["README.md", "docs/ROADMAP.md", "docs/development/PROGRAM.md"],
+    "productSourceChangesAllowed": false,
+    "runtimeOrProviderChangesAllowed": false,
+    "historicalEvidenceRewriteAllowed": false,
+    "currentRouteOwner": "WORKBOARD.md"
+  },
+  "recommendedDesign": {
+    "id": "D0033",
+    "class": 2,
+    "problemBoundary": "final planning-authority/traceability recomposition after D0031/D0032",
+    "separateDesignRequiredForIndependentProductMeaning": true
+  }
+}
