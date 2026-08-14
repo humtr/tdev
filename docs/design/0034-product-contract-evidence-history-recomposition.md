@@ -1,12 +1,13 @@
 # Design 0034 — Product Contract Evidence and History Recomposition
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; accepted from `group/f-cloudflare-runtime@f4b65010ef48e92e682646aa254d876f0bd37463`
 - Inventory evidence: `docs/evidence/group-f-d0034-product-contract-evidence-history-inventory-2026-08-14.json`
 - Acceptance evidence: `docs/evidence/group-f-d0034-product-contract-evidence-history-acceptance-2026-08-14.json`
+- Verification evidence: `docs/evidence/group-f-d0034-product-contract-evidence-history-verification-2026-08-14.json`
 - Affected owners: stable product-contract Markdown owners named by `docs/DOCUMENTATION.md`, `docs/history/`, documentation governance/tests, `WORKBOARD.md`, derived Design index
 - Product/runtime semantics: unchanged
 - Explicit non-goals: no source/runtime/provider/deployment mutation; no protocol identifier, digest, schema/profile version, resource bound, migration barrier, rollback rule, security boundary or accepted product behavior change

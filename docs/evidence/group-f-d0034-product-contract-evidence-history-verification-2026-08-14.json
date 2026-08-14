@@ -1,0 +1,44 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.design-verification",
+  "design": "D0034",
+  "revision": 1,
+  "status": "verified",
+  "verifiedAt": "2026-08-14",
+  "repository": "humtr/tdev",
+  "lineage": "group/f-cloudflare-runtime",
+  "candidateBeforeClosure": "270b446a88caf56ea3b770eaedb98a67a80f50bf",
+  "documentationVerificationJob": "job_7p2_9f2777c7d9",
+  "documentationGovernance": {"tests": 29, "pass": 29, "fail": 0},
+  "preservation": {
+    "specBeforeD0034": "a7435307b5183bd44ff185009dd2b063398b909feac189d319c192f3c8756262",
+    "architectureBeforeD0034": "3f62bdda39268568139811b0eff818de3fdf384052bea6a9a6fc85de4438e184",
+    "protocolBeforeD0034": "2e67baa96f6322832510df5e887971396bf955e6c43c3c21dafc070fec512386",
+    "operationsBeforeD0034": "170c32dc343d9f722c5ee0894275c0a8791bb77a06c9ffeb9a0b631827da4c90",
+    "securityBeforeD0034": "193780943518521302d1948d37944f0ac342049c47626b0a600bb5380d2f8b09",
+    "deploymentBeforeD0034": "9b8a73284ddd258ec5ab0b46520d53cee6b0e1ed2d95d2b00ec436940c63d327",
+    "mcpBeforeD0034": "566d6cebd1ba1032fde23dd1ff588560bc9757d2d7541606c662d9bb4e026168"
+  },
+  "ownerResults": {
+    "stableProductOwnersChecked": 7,
+    "architectureEvidenceHeavySectionsRecomposed": true,
+    "productCommitLedgers": 0,
+    "productEvidenceHistoryHeadings": 0,
+    "productPassedResultLedgers": 0,
+    "retiredQualificationPointers": 0,
+    "sourceGateCopiesOutsideQualification": 0,
+    "mutableImplementationStatusLedgers": 0,
+    "deploymentProofLayerClassificationDelegatedToQualification": true,
+    "protocolIdentifiersVersionsBoundsChanged": false,
+    "securityMigrationRollbackMeaningChanged": false,
+    "productSrcChangedPaths": 0
+  },
+  "sourceRegressionClassification": {
+    "supportedNonHardLinkSuite": {"tests": 272, "pass": 272, "fail": 0, "job": "job_7oj_523c9f618f"},
+    "supportedNonHardLinkCoverage": {"tests": 272, "pass": 272, "fail": 0, "job": "job_7ok_1b013559e9"},
+    "inheritedHardLinkProfile": {"tests": 26, "pass": 1, "fail": 25, "cause": "link(2) EACCES on the current Termux/filesystem profile", "job": "job_7op_7c490349ff"},
+    "allTestsDiagnostic": {"tests": 298, "pass": 273, "fail": 25, "job": "job_7os_f39fb25180"},
+    "interpretation": "all observed failures are confined to the inherited immutable-journal hard-link profile; D0034 changed zero product src paths"
+  },
+  "publication": "pending exact closure commit and remote fast-forward"
+}

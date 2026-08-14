@@ -18,12 +18,10 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 - D0019@r2 — `docs/design/0019-casedo-authority-adapter.md` — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 - D0030@r1 — `docs/design/0030-immutable-journal-publication-portability.md` — production helper/package implementation and qualification under the accepted portability contract
-- D0033@r1 — `docs/design/0033-program-roadmap-authority-recomposition.md` — final planning-authority, roadmap/program, README and governance reconstruction
-- D0034@r1 — `docs/design/0034-product-contract-evidence-history-recomposition.md` — stable product-contract versus evidence/history authority recomposition
 
 ## Selected next action
 
-- D0034@r1 — stable product-contract versus evidence/history authority recomposition
+- D0019@r2 — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 

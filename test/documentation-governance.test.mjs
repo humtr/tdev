@@ -65,13 +65,13 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates during accepted D0033/D0034 recomposition', () => {
+test('current repository documentation authority validates after D0033/D0034 verification', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1', 'D0033@r1', 'D0034@r1']);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0034@r1');
+  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1']);
+  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
 });

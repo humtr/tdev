@@ -1,0 +1,40 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.design-verification",
+  "design": "D0033",
+  "revision": 1,
+  "status": "verified",
+  "verifiedAt": "2026-08-14",
+  "repository": "humtr/tdev",
+  "lineage": "group/f-cloudflare-runtime",
+  "candidateBeforeClosure": "270b446a88caf56ea3b770eaedb98a67a80f50bf",
+  "documentationVerificationJob": "job_7p2_9f2777c7d9",
+  "documentationGovernance": {"tests": 29, "pass": 29, "fail": 0},
+  "preservation": {
+    "readmeBeforeD0033": "105e8c2e88e23eb7641cd1f4c48353ecb3338e465d9eadf145f7038e41094bc6",
+    "roadmapBeforeD0033": "60f7d265423d1262293d760853dc7ac92d61e71f3298bc8b2801017289f7d734",
+    "programBeforeD0033": "1c45524ea71f73b2a89bd461a5e2503846f8f06fb42a955a2f7b87ee725abce6",
+    "deploymentBeforeD0033OwnerCleanup": "9092b55d239baf8e245501eaea9c5c43a2134adc80540271b0562b931ea46456"
+  },
+  "ownerResults": {
+    "roadmapCapabilityGroups": 8,
+    "programForwardGates": 12,
+    "qualificationSourceCommands": 4,
+    "qualificationMethods": 78,
+    "qualificationMethodsAndCommandsUnchangedFromAcceptanceBase": true,
+    "readmeCurrentNeutral": true,
+    "workboardSoleCurrentRouter": true,
+    "programHasNoCapabilityTableStatusLedgerOrCommitLedger": true,
+    "roadmapHasNoDesignStatusCurrentRouteOrCommitLedger": true,
+    "resolvedStaleQuestionsRemoved": true,
+    "productSrcChangedPaths": 0
+  },
+  "sourceRegressionClassification": {
+    "supportedNonHardLinkSuite": {"tests": 272, "pass": 272, "fail": 0, "job": "job_7oj_523c9f618f"},
+    "supportedNonHardLinkCoverage": {"tests": 272, "pass": 272, "fail": 0, "job": "job_7ok_1b013559e9"},
+    "inheritedHardLinkProfile": {"tests": 26, "pass": 1, "fail": 25, "cause": "link(2) EACCES on the current Termux/filesystem profile", "job": "job_7op_7c490349ff"},
+    "allTestsDiagnostic": {"tests": 298, "pass": 273, "fail": 25, "job": "job_7os_f39fb25180"},
+    "interpretation": "all observed failures are confined to the inherited immutable-journal hard-link profile; D0033 changed zero product src paths"
+  },
+  "publication": "pending exact closure commit and remote fast-forward"
+}

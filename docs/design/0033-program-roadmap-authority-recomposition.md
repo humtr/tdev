@@ -1,12 +1,13 @@
 # Design 0033 — Program and Roadmap Authority Recomposition
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision is accepted from `group/f-cloudflare-runtime@11c1e701fd67e07ae9891e8ea492c164f498a5c6`
 - Inventory evidence: `docs/evidence/group-f-d0033-program-roadmap-recomposition-inventory-2026-08-14.json`
 - Acceptance evidence: `docs/evidence/group-f-d0033-program-roadmap-recomposition-acceptance-2026-08-14.json`
+- Verification evidence: `docs/evidence/group-f-d0033-program-roadmap-recomposition-verification-2026-08-14.json`
 - Affected owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `README.md`, `docs/DOCUMENTATION.md`, bounded owner wording in `docs/QUALIFICATION.md`, documentation validation/tests, `WORKBOARD.md`, derived Design index, and historical snapshots created by this Design
 - Preserved owners: `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MCP.md`, all product source/runtime state, all maintained product Design decisions, `LINEAGE.md`, and the D0032 qualification-method meaning
 - Product semantics: unchanged
