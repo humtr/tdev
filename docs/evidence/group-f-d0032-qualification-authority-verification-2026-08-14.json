@@ -1,0 +1,157 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.qualification-authority-verification.v1",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0032",
+    "revision": 1,
+    "path": "docs/design/0032-qualification-authority-recomposition.md"
+  },
+  "baseRevision": "7332a7b347f7ecc94c1c12b37ce92ee3358de314",
+  "verificationSourceCommit": "19317e43a7c01ec8ee841395e938eaffe1ace177",
+  "stageCommits": [
+    {
+      "stage": "B0",
+      "sha": "3e8599ddc0ecce26c339933af13a82a1be7d0f59",
+      "purpose": "inventory MVP qualification authority"
+    },
+    {
+      "stage": "B1",
+      "sha": "de06c9bcfb7539648783d045eb10b1516cc25305",
+      "purpose": "accept D0032 qualification authority"
+    },
+    {
+      "stage": "B2",
+      "sha": "3606e0ce4393943b4416d8f9c5d060aede20e35e",
+      "purpose": "preserve historical MVP verification record"
+    },
+    {
+      "stage": "B3",
+      "sha": "151914317a6c45e468d6973c36ea50be5fe85499",
+      "purpose": "atomically replace MVP with qualification authority"
+    },
+    {
+      "stage": "B4",
+      "sha": "19317e43a7c01ec8ee841395e938eaffe1ace177",
+      "purpose": "mechanize qualification authority falsifiers"
+    }
+  ],
+  "preservedHistory": {
+    "path": "docs/history/mvp-verification-and-evidence.md",
+    "sha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "expectedPreTransitionSha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "byteIdentical": true
+  },
+  "liveAuthority": {
+    "retiredPathAbsent": "docs/MVP.md",
+    "qualificationOwner": "docs/QUALIFICATION.md",
+    "qualificationSha256": "159a715bd4f2239cd54d800c7ff57e44f0ff9c1c98c214ff003cdccbb42dfb8a",
+    "methodPairs": 78,
+    "observedEvidenceColumnPresent": false,
+    "sourceGateCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run check",
+      "node --experimental-test-coverage --test test/*.test.mjs",
+      "git diff --check"
+    ],
+    "agentsDuplicatesSourceCommands": false
+  },
+  "adversarialValidation": {
+    "job": "job_7g5_b35af47ef9",
+    "tests": 17,
+    "pass": 17,
+    "fail": 0,
+    "cases": [
+      "zero runnable frontier",
+      "WORKBOARD-only F-to-G route rebind",
+      "reopened Design blocks frontier",
+      "stale branch/group/Design revision/status",
+      "stale docs/MVP.md qualification owner",
+      "missing QUALIFICATION",
+      "resurrected live MVP",
+      "source-gate drift",
+      "method-pair drift",
+      "Observed evidence contamination",
+      "source-gate duplication in AGENTS",
+      "Design index drift",
+      "no current runnable Design ID special cases"
+    ]
+  },
+  "baselineSourceQualification": {
+    "npmCi": {
+      "job": "job_7gb_0289ebb157",
+      "exit": 0
+    },
+    "npmRunCheck": {
+      "job": "job_7ge_3f7c3117b8",
+      "exit": 1,
+      "tests": 286,
+      "pass": 261,
+      "fail": 25,
+      "eaccesOccurrences": 46,
+      "classification": "platform-unqualified: inherited ImmutableJournal hard-link publication profile"
+    },
+    "fullCoverage": {
+      "job": "job_7gf_45246e1402",
+      "exit": 1,
+      "tests": 286,
+      "pass": 261,
+      "fail": 25,
+      "eaccesOccurrences": 46,
+      "coverageReportGenerated": true,
+      "allFiles": {
+        "linePercent": 88.55,
+        "branchPercent": 76.74,
+        "functionPercent": 94.71
+      },
+      "classification": "platform-unqualified: same inherited ImmutableJournal hard-link publication profile"
+    },
+    "gitDiffCheck": {
+      "job": "job_7gb_0289ebb157",
+      "exit": 0
+    }
+  },
+  "separatedRegressionEvidence": {
+    "supportedSuite": {
+      "job": "job_7gc_46fe391881",
+      "tests": 260,
+      "pass": 260,
+      "fail": 0,
+      "exit": 0
+    },
+    "supportedCoverage": {
+      "job": "job_7gg_57f536b16c",
+      "tests": 260,
+      "pass": 260,
+      "fail": 0,
+      "exit": 0,
+      "allFiles": {
+        "linePercent": 85.76,
+        "branchPercent": 77.43,
+        "functionPercent": 93.12
+      }
+    },
+    "isolatedImmutableJournal": {
+      "job": "job_7gd_5fb0e0ddfa",
+      "tests": 26,
+      "pass": 1,
+      "fail": 25,
+      "testExit": 1,
+      "eaccesOccurrences": 46,
+      "cause": "link(2) EACCES on connected Termux filesystem"
+    }
+  },
+  "finalizationPrecheck": {
+    "job": "job_7gb_0289ebb157",
+    "documentationGovernance": "17/17 pass",
+    "syntax": 0,
+    "historicalShaExact": true,
+    "liveMvpAbsent": true,
+    "qualificationPresent": true,
+    "productSrcChangedPaths": 0
+  },
+  "productSemanticsChanged": false,
+  "phaseCStarted": false,
+  "result": "D0032 revision 1 verified for qualification-authority/documentation scope. The connected-Termux exact all-test and coverage layers remain explicitly platform-unqualified only for the inherited ImmutableJournal hard-link primitive; this is not reported as a D0032 pass or regression."
+}

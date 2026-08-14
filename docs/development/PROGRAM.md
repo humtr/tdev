@@ -262,14 +262,14 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0032 — Qualification Authority Recomposition
 
 - **Groups:** cross-cutting qualification authority; no product Capability Group ownership
-- **Status:** accepted revision 1 — 2026-08-14
+- **Status:** verified revision 1 — 2026-08-14
 - **Purpose:** replace the overloaded live MVP acceptance/evidence aggregate with one QUALIFICATION owner for verification methods and proof-layer boundaries while preserving the former MVP bytes as history.
 - **Source-gate decision:** the existing AGENTS four-command repository minimum becomes the sole baseline source qualification sequence under QUALIFICATION; AGENTS becomes a pointer after the atomic owner swap.
 - **Method preservation:** all 78 former MVP Area + Cheapest falsifier pairs must survive exactly; Observed evidence remains historical/evidence material.
 - **Product scope:** unchanged; SPEC/ARCHITECTURE/PROTOCOL/OPERATIONS/SECURITY/DEPLOYMENT/MCP and runtime source are not redefined.
-- **Evidence:** inventory `docs/evidence/group-f-d0032-mvp-qualification-inventory-2026-08-14.json`; acceptance `docs/evidence/group-f-d0032-qualification-authority-acceptance-2026-08-14.json`.
+- **Evidence:** inventory `docs/evidence/group-f-d0032-mvp-qualification-inventory-2026-08-14.json`; acceptance `docs/evidence/group-f-d0032-qualification-authority-acceptance-2026-08-14.json`; verification `docs/evidence/group-f-d0032-qualification-authority-verification-2026-08-14.json`.
 - **Cheapest falsifier:** a byte-identical historical snapshot plus exact 78-row method comparison, unique live QUALIFICATION owner validation, stale-MVP rejection and zero product-src change.
-- **Exit:** open until the live owner swap, reference/validator migration and independent B verification close those gates.
+- **Exit:** satisfied for revision 1: the old MVP bytes are preserved exactly, QUALIFICATION is the unique live proof-method owner, all 78 method pairs survive unchanged, stale/duplicate/missing owner states fail closed, governance tests pass 17/17, supported non-hard-link source/coverage pass 260/260, and product `src/` changed zero paths. Exact all-test/coverage on this connected Termux filesystem remain separately platform-unqualified only for the inherited 25 ImmutableJournal `link(2) EACCES` failures.
 
 ## 6. Completed Group E closure map
 

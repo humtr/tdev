@@ -16,13 +16,12 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- D0032@r1 — `docs/design/0032-qualification-authority-recomposition.md` — replace the overloaded MVP acceptance/evidence aggregate with one qualification owner while preserving exact history
 - D0019@r2 — `docs/design/0019-casedo-authority-adapter.md` — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 - D0030@r1 — `docs/design/0030-immutable-journal-publication-portability.md` — production helper/package implementation and qualification under the accepted portability contract
 
 ## Selected next action
 
-- D0032@r1 — preserve the exact former MVP history, construct the accepted qualification owner, atomically swap current references, and run adversarial/source verification
+- D0019@r2 — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 

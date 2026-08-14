@@ -1,12 +1,14 @@
 # Design 0032 — Qualification Authority Recomposition
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision was accepted from `group/f-cloudflare-runtime@3e8599ddc0ecce26c339933af13a82a1be7d0f59`
 - Inventory evidence: `docs/evidence/group-f-d0032-mvp-qualification-inventory-2026-08-14.json`
 - Acceptance evidence: `docs/evidence/group-f-d0032-qualification-authority-acceptance-2026-08-14.json`
+- Verification source: `19317e43a7c01ec8ee841395e938eaffe1ace177`
+- Verification evidence: `docs/evidence/group-f-d0032-qualification-authority-verification-2026-08-14.json`
 - Affected owners: `docs/MVP.md` (retiring live owner), `docs/QUALIFICATION.md` (replacement owner), `AGENTS.md`, `WORKBOARD.md`, `docs/DOCUMENTATION.md`, maintained current-owner references, documentation validation/tests
 - Preserved owners: `docs/SPEC.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/MCP.md`, `docs/ROADMAP.md`, runtime implementation and all durable product state
 - Product semantics: unchanged
@@ -200,3 +202,9 @@ Rejected. The current breadth conflict proves why duplicated command ownership i
 7. mark D0032 verified, remove it from the runnable frontier, and publish by exact non-force fast-forward only after a fresh remote predecessor read.
 
 Implementation does not authorize Phase C deep PROGRAM/ROADMAP compaction or any D0019/D0030 product implementation.
+
+## 13. Verification conclusion
+
+Revision 1 is verified for the bounded qualification-authority/documentation scope. The pre-D0032 MVP aggregate is preserved byte-identically at SHA-256 `45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346`; the live namespace has one qualification owner, `docs/QUALIFICATION.md`; all 78 historical Area + Cheapest falsifier pairs are mechanically identical in the new method catalog; the four-command baseline is owned only by QUALIFICATION; stale-MVP and owner/method/source-gate drift fail closed in the 17-test governance suite; and no product `src/` path changed.
+
+The connected Termux environment remains explicitly platform-unqualified for the inherited ImmutableJournal hard-link publication primitive: exact `npm run check` and exact full coverage both execute 286 tests with 261 pass / 25 fail, and the same 25 failures reproduce in isolated `test/immutable-journal.test.mjs` as `link(2) EACCES`. The hard-link-excluded supported suite and instrumented coverage both pass 260/260. This inherited product/platform gap is not a D0032 regression and is not hidden by the D0032 verification claim.
