@@ -38,8 +38,8 @@ Self-development documents answer how this repository is changed, routed, design
 | cumulative checkpoint succession/preservation | `LINEAGE.md` |
 | documentation taxonomy and naming | `docs/DOCUMENTATION.md` |
 | development plane/worktree/synchronization/publication workflow | `docs/development/WORKFLOW.md` |
-| final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |
-| Design-sized dependency and coverage graph | `docs/development/PROGRAM.md` |
+| stable final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |
+| forward Design/gate dependency and coverage graph | `docs/development/PROGRAM.md` |
 | one bounded Class 2 decision | `docs/design/<id>-<name>.md` |
 
 Development documents may change product owners through an accepted Design, but they cannot silently become product semantics.
@@ -208,9 +208,9 @@ Age alone does not decide retention; present decision impact does.
 
 ## 8. Derived registries and mismatch checks
 
-Human-readable registries such as `docs/design/README.md`, roadmap status summaries or program status fields are derived/supporting views when the underlying Design/current router owns the fact.
+Human-readable registries such as `docs/design/README.md` and any generated/cached projection are derived/supporting views when another owner owns the underlying fact. `ROADMAP.md` and `PROGRAM.md` are stable planning owners for their declared capability/forward-gate relations; they do not become derived copies of maintained Design status or current routing.
 
-They must not resolve conflicts in their own favor. Documentation validation should detect drift and require repair of the derived view or its deterministic generation rule.
+Derived projections must not resolve conflicts in their own favor. Documentation validation should detect drift and require repair of the derived view or its deterministic generation rule.
 
 Do not introduce a new permanent authority/session manifest that repeats existing owners. An ephemeral resolver output is acceptable only if it identifies its source owners and becomes invalid when those sources change.
 

@@ -40,7 +40,7 @@ Evidence from one layer proves only that layer. In particular, local/source test
 
 A positive qualification claim identifies the exact source/revision, execution environment/profile, command or falsifier, outcome and durable evidence when applicable. Skipped, unavailable, unsupported, stale or unexecuted evidence remains explicit and cannot be recorded as pass.
 
-A previous pass is historical evidence, not timeless current status. Mutable current gaps belong in `WORKBOARD.md`, `docs/ROADMAP.md` or the responsible Design/product owner rather than this stable method owner.
+A previous pass is historical evidence, not timeless current status. Mutable current gaps belong in `WORKBOARD.md` or the responsible Design/product owner rather than this stable method owner. `docs/ROADMAP.md` owns stable unmet capability/exit criteria, not mutable current state.
 
 When a required gate is impossible on the current environment, preserve both facts separately: what bounded subset did pass, and which required layer remains unqualified.
 
