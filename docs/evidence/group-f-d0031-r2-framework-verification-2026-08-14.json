@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development-documentation-authority-verification.v2",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0031",
+    "revision": 2,
+    "path": "docs/design/0031-self-development-documentation-authority.md",
+    "predecessorRevision": 1
+  },
+  "verificationSourceCommit": "34e2857261c05593cc38d73c8209302f2a193b70",
+  "baseRevision": "8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db",
+  "activeCumulativeBranchAtVerification": "group/f-cloudflare-runtime",
+  "scope": "D0031 revision 2 self-development framework correction only: generic WORKBOARD 0..N runnable frontier, removal of mutable route mirrors from ROADMAP/PROGRAM, deterministic Design-index projection, generic documentation validation, and adversarial session rebind/reopen behavior. Product runtime semantics are unchanged.",
+  "stageCommits": [
+    {"stage": "A0", "sha": "6ec09d98367b25f838e8d2650bf782b32ec4a208", "purpose": "reproduce D0031 r1 framework gaps"},
+    {"stage": "A1", "sha": "583946783bd3a5089422c3536a0069fe98dc1184", "purpose": "accept D0031 revision 2 correction"},
+    {"stage": "A2", "sha": "e17d6e281a2ae225445af5280cf9a5f2c37b08e9", "purpose": "generalize WORKBOARD runnable frontier"},
+    {"stage": "A3", "sha": "0ae857653b53d6bc308eee42e983b9262de3b525", "purpose": "remove mutable route mirrors from ROADMAP and PROGRAM"},
+    {"stage": "A4", "sha": "34e2857261c05593cc38d73c8209302f2a193b70", "purpose": "derive complete Design registry and generalize documentation validation"}
+  ],
+  "acceptance": {
+    "zeroRunnableFrontier": {
+      "result": "pass",
+      "behavior": "full documentation validation accepts a WORKBOARD with zero runnable Design references and selected action none"
+    },
+    "workboardOnlyRouteTransition": {
+      "result": "pass",
+      "case": "Group F to Group G fixture",
+      "behavior": "full validation accepts a WORKBOARD-only route change without synchronizing AGENTS, RULE, WORKFLOW, LINEAGE, ROADMAP or PROGRAM"
+    },
+    "reopenedDesignBlocking": {
+      "result": "pass",
+      "behavior": "a frontier Design changed to reopened fails closed as non-runnable"
+    },
+    "staleContinuity": {
+      "result": "pass",
+      "cases": ["stale mvp-1a-7 branch", "stale Group E", "stale Design revision", "stale Design status", "Design absent from current frontier"]
+    },
+    "designIndex": {
+      "result": "pass",
+      "maintainedDesignRecords": 21,
+      "behavior": "docs/design/README.md is byte-for-byte the deterministic projection of every maintained Design H1/status/revision; legacy records without Revision render as r1"
+    },
+    "noDesignIdSpecialCases": {
+      "result": "pass",
+      "behavior": "governance implementation files contain no D0019 or D0031 special-case identifiers"
+    },
+    "routeMirrorRemoval": {
+      "result": "pass",
+      "behavior": "ROADMAP and PROGRAM carry no mutable ACTIVE/current-lane/current-branch mirror that must change with WORKBOARD"
+    },
+    "completedSelfDevelopmentGateLeavesFrontier": {
+      "result": "pass",
+      "behavior": "after D0031 r2 verification the current frontier is D0019@r2 plus D0030@r1 and selected next action is D0019@r2"
+    },
+    "productSourceChangedPaths": 0
+  },
+  "validation": {
+    "governanceAndFinalization": {
+      "job": "job_7e2_0dabbfc47f",
+      "documentationValidator": {"exit": 0, "route": "F group/f-cloudflare-runtime frontier=2 selected=D0019@r2"},
+      "documentationGovernanceTests": {"tests": 11, "pass": 11, "fail": 0},
+      "syntax": {"exit": 0},
+      "gitDiffCheck": {"exit": 0},
+      "productSourceChangedPaths": 0
+    },
+    "supportedTermuxSuiteExcludingInheritedImmutableJournalHardLinkProfile": {
+      "job": "job_7ds_5d46939057",
+      "tests": 254,
+      "pass": 254,
+      "fail": 0,
+      "exit": 0
+    },
+    "supportedTermuxInstrumentedCoverageExcludingInheritedImmutableJournalHardLinkProfile": {
+      "job": "job_7du_a1248c2471",
+      "exit": 0,
+      "coverageReportGenerated": true,
+      "allFiles": {"linePercent": 85.66, "branchPercent": 77.28, "functionPercent": 92.92}
+    },
+    "immutableJournalClassification": {
+      "job": "job_7dv_7a8e7fede8",
+      "tests": 26,
+      "pass": 1,
+      "fail": 25,
+      "testExit": 1,
+      "wrapperExit": 0,
+      "eaccesOccurrences": 46,
+      "cause": "link(2) EACCES on the connected Termux filesystem",
+      "d0031Regression": false
+    },
+    "exactNpmCheck": {
+      "job": "job_7dw_965af9cf96",
+      "exit": 1,
+      "tests": 280,
+      "pass": 255,
+      "fail": 25,
+      "eaccesOccurrences": 46,
+      "completedPhasesBeforeFailure": ["syntax", "docs:check", "test"],
+      "classification": "platform-unqualified due to the inherited ImmutableJournal hard-link publication profile; the 25 failures are the same isolated hard-link profile failures",
+      "d0031Regression": false
+    },
+    "discardedCombinedDiagnostic": {
+      "job": "job_7dr_e50e522cf9",
+      "result": "timed_out_at_120_seconds",
+      "note": "design-index, documentation validator and governance tests had already passed 11/11; the over-bundled job was replaced by the completed split validation jobs above and made no repository mutation"
+    }
+  },
+  "preservedBoundaries": [
+    "No src/ product file changed.",
+    "No product runtime, provider, durable-state, migration, deployment or product Git publication semantics changed.",
+    "Completed Group E and legacy checkpoint refs were not mutated.",
+    "Historical evidence and prior D0031 revision 1 verification remain preserved rather than rewritten.",
+    "The inherited ImmutableJournal hard-link qualification gap remains explicit rather than being reported green.",
+    "Phase B MVP.md/QUALIFICATION decomposition was not started."
+  ],
+  "result": "verified for D0031 revision 2 self-development/documentation scope on the declared repository and supported-Termux qualification scope; inherited ImmutableJournal hard-link all-test behavior remains explicitly platform-unqualified"
+}

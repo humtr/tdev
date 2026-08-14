@@ -16,13 +16,12 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- D0031@r2 — `docs/design/0031-self-development-documentation-authority.md` — finish the accepted self-development framework correction and its independent verification
 - D0019@r2 — `docs/design/0019-casedo-authority-adapter.md` — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 - D0030@r1 — `docs/design/0030-immutable-journal-publication-portability.md` — production helper/package implementation and qualification under the accepted portability contract
 
 ## Selected next action
 
-- D0031@r2 — complete A2-A4 of the repository-framework correction, then run the A5 adversarial/source verification gate
+- D0019@r2 — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
@@ -30,8 +29,8 @@ The selected next action must be `none` or identify exactly one entry already pr
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
 - ImmutableJournal hard-link publication remains an inherited platform qualification gap on the current lineage. A check that exercises that unsupported primitive is not reported green merely because unrelated documentation tests pass.
-- Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 or D0031 and should be repaired only in its own bounded scope unless it blocks a required gate.
-- Checkout alignment debt was observed at D0031 admission: the canonical Termux checkout was clean but still on completed Group E while the registered project/default development route was Group F. D0031 uses an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
+- Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 and should be repaired only in its own bounded scope unless it blocks a required gate.
+- Checkout alignment debt was observed during D0031: the canonical Termux checkout was clean but still on completed Group E while the registered project/default development route was Group F. The D0031 correction was verified from an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
 - No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route/frontier above. Rebind any such continuity data before dependent mutation.
 - A Design referenced by the runnable frontier stops authorizing that gate immediately if its maintained owner is no longer the same revision in `accepted` or `implementing` state. In particular `reopened`, `blocked`, `superseded`, `draft` and already `verified` meanings are not runnable Class 2 implementation authorization.
 

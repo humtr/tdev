@@ -24,6 +24,6 @@
 | D0018 | r1 | verified | adversarially converged model executor/runtime boundary | `docs/design/0018-adversarial-converged-model-runtime-boundary.md` |
 | D0019 | r2 | accepted | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
 | D0030 | r1 | accepted | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
-| D0031 | r2 | accepted | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
+| D0031 | r2 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

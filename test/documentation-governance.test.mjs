@@ -20,8 +20,8 @@ const currentDesignTexts = Object.fromEntries([
 function workboardFixture({
   group = 'Group F — Cloudflare runtime and local Agent topology',
   branch = 'group/f-cloudflare-runtime',
-  frontier = [{ id: 'D0031', revision: 2, path: 'docs/design/0031-self-development-documentation-authority.md' }],
-  selected = { id: 'D0031', revision: 2 },
+  frontier = [{ id: 'D0019', revision: 2, path: 'docs/design/0019-casedo-authority-adapter.md' }],
+  selected = { id: 'D0019', revision: 2 },
 } = {}) {
   return [
     '# WORKBOARD', '', '## Current routing', '',
@@ -41,12 +41,12 @@ function designFixture({ id = '0031', revision = 2, status = 'accepted', explici
   ].join('\n');
 }
 
-test('current repository documentation authority validates with a multi-Design frontier', () => {
+test('current repository documentation authority validates after completed self-development gate leaves the frontier', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0031@r2', 'D0019@r2', 'D0030@r1']);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0031@r2');
+  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1']);
+  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
 });
 
 test('zero runnable Designs and selected none pass full documentation validation', () => {
@@ -66,8 +66,12 @@ test('WORKBOARD-only F to G rebinding passes full validation without editing sta
 });
 
 test('a reopened frontier Design fails closed', () => {
-  const reopened = currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'].replace('- Status: `accepted`', '- Status: `reopened`');
-  const result = validateDocumentation(root, { 'docs/design/0031-self-development-documentation-authority.md': reopened });
+  const path = 'docs/design/0031-self-development-documentation-authority.md';
+  const reopened = currentDesignTexts[path].replace('- Status: `verified`', '- Status: `reopened`');
+  const result = validateDocumentation(root, {
+    'WORKBOARD.md': workboardFixture({ frontier: [{ id: 'D0031', revision: 2, path }], selected: { id: 'D0031', revision: 2 } }),
+    [path]: reopened,
+  });
   assert.equal(result.ok, false);
   assert.match(result.failures.join('\n'), /documentation_authority_frontier_design_not_runnable: D0031@r2 reopened/);
 });
@@ -76,7 +80,7 @@ test('stale continuity cannot override route or maintained Design revision/statu
   const rebound = rebindContinuity({
     workboardText: currentWorkboard,
     designTexts: currentDesignTexts,
-    continuity: { branch: 'mvp-1a-7', group: 'Group E — context delivery', designId: 'D0031', designRevision: 1, designStatus: 'verified' },
+    continuity: { branch: 'mvp-1a-7', group: 'Group E — context delivery', designId: 'D0019', designRevision: 1, designStatus: 'verified' },
   });
   assert.equal(rebound.current.branch, 'group/f-cloudflare-runtime');
   assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designRevision', 'designStatus']);

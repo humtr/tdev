@@ -252,12 +252,12 @@ This file and the other `docs/development/*` owners close the documentation gap 
 ### D0031 — Self-Development Documentation Authority
 
 - **Groups:** cross-cutting self-development; no product Capability Group ownership
-- **Status:** accepted revision 2 — 2026-08-14; revision 1 verification is retained as predecessor evidence
+- **Status:** verified revision 2 — 2026-08-14; revision 1 verification is retained as predecessor evidence
 - **Purpose:** preserve the r1 bootstrap/history/naming result while correcting its remaining router/derived-state implementation gap: WORKBOARD must support 0..N runnable Design refs, ROADMAP/PROGRAM must not duplicate mutable current routing, and Design-index/documentation validation must be generic.
 - **Product scope:** unchanged; this gate changes how tdev itself is developed and verified, not runtime Case/Task/Attempt/provider semantics.
-- **Evidence:** r1 inventory `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`; r1 verification `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`; r2 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`; r2 acceptance `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`.
+- **Evidence:** r1 inventory `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`; r1 verification `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`; r2 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`; r2 acceptance `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`; r2 verification `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`.
 - **Cheapest falsifier:** full validation must accept a WORKBOARD-only F -> G fixture and an empty runnable frontier, reject a reopened/non-authorizing frontier Design, and compare the complete Design registry to a generic deterministic projection with no ID special cases.
-- **Exit:** open for revision 2 until A2-A4 implementation and A5 independent verification close those generic routing/registry falsifiers; the inherited ImmutableJournal hard-link all-test profile remains separately unqualified.
+- **Exit:** satisfied for revision 2: zero-frontier and WORKBOARD-only F-to-G full validation pass, reopened frontier Designs fail closed, the complete Design registry is deterministic with no ID special cases, and supported-Termux non-hard-link source/coverage gates pass. The inherited ImmutableJournal hard-link all-test profile remains separately unqualified.
 
 ## 6. Completed Group E closure map
 

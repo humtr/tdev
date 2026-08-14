@@ -1,18 +1,20 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 2
 - Revision predecessor: revision 1 was verified at `8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db`; its verification evidence remains `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
 - Revision 2 reason: post-verification adversarial reproduction proved that r1 still required one singular current self-development Design, required ROADMAP's `ACTIVE` marker to move with WORKBOARD, and hard-coded D0019 in registry validation
 - Revision 2 falsifier: `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`
 - Revision 2 acceptance evidence: `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`
+- Revision 2 verification evidence: `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`
 - Revision 2 downstream revalidation: WORKBOARD routing, ROADMAP/PROGRAM current-state deduplication, Design-index derivation, documentation validation and stale-session adversarial tests; product/runtime semantics remain unaffected
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
 - Inventory evidence: `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`
-- Verification source: `92d4ffeae74a0a0cac00ec05ab4efea01e73eedb`
-- Verification evidence: `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
+- Revision 1 verification source: `92d4ffeae74a0a0cac00ec05ab4efea01e73eedb`
+- Revision 1 verification evidence: `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
+- Revision 2 verification source: `34e2857261c05593cc38d73c8209302f2a193b70`
 - Product semantics: unchanged
 - Explicit non-owners: this Design does not redefine `SPEC.md`, `ARCHITECTURE.md`, `PROTOCOL.md`, `OPERATIONS.md`, `SECURITY.md`, `DEPLOYMENT.md`, `MCP.md`, runtime Case/Task/Attempt semantics, provider behavior, or product Git Promotion
 
@@ -66,7 +68,7 @@ After the kernel, load only documents selected by the current route and affected
 - development execution, replica or publication work -> `docs/development/WORKFLOW.md`;
 - checkpoint succession or completed-ref questions -> `LINEAGE.md`;
 - program/capability planning -> `docs/ROADMAP.md` and/or `docs/development/PROGRAM.md`;
-- Class 2 work -> the active Design revision;
+- Class 2 work -> every Design revision referenced by the selected/dependent Class 2 gate in `WORKBOARD.md`;
 - product behavior -> every affected product owner;
 - verification -> `docs/MVP.md` and exact referenced evidence required by the gate.
 
@@ -257,4 +259,4 @@ Revision 1 was `verified` for the original D0031 self-development/documentation 
 
 The 2026-08-14 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json` reopens only the claims that r1 had fully generalized current routing and validation. It reproduced three concrete defects: an empty active-Design state could not parse, a WORKBOARD-only F-to-G transition failed against ROADMAP's duplicated `ACTIVE` marker, and validator code special-cased D0019. Those failures stay inside the same bootstrap/current-router/derived-state problem and owner family, so SDD requires a new revision of D0031 rather than a new Design ID.
 
-Revision 2 is now `accepted` to correct those defects. Its implementation must: (1) make WORKBOARD a generic route plus 0..N runnable Design foreign keys; (2) remove mutable current-route state from ROADMAP/PROGRAM; (3) derive the complete Design index generically; and (4) strengthen adversarial validation so the full repository, not merely a parser fixture, proves WORKBOARD-only route rebinding and reopened-Design blocking. Revision 2 is not `verified` until those gates pass. The inherited ImmutableJournal qualification gap and all product/provider/runtime semantics remain outside this correction.
+Revision 2 is `verified`. WORKBOARD now models a route plus 0..N runnable `Dxxxx@rN` foreign keys and resolves authorization from the Design owner; ROADMAP/PROGRAM carry no mutable `ACTIVE`/current-lane mirror; the Design README is an exact deterministic projection of every maintained Design; and full adversarial validation proves zero-frontier validity, WORKBOARD-only F-to-G rebinding, reopened-Design fail-closed behavior, stale-continuity rejection and registry-drift detection without Design-ID special cases. The supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 254/254 and the same subset completed instrumented coverage with exit 0. Exact `npm run check` remains explicitly platform-unqualified only because the inherited ImmutableJournal profile contributes the same 25 `link(2)` `EACCES` failures reproduced in isolation. Product `src/` changed zero paths. Evidence is `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`.
