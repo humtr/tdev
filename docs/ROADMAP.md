@@ -1,211 +1,129 @@
-# MVP program roadmap
+# tdev final-MVP roadmap
 
-> Normative owner for final-MVP program decomposition, capability-group exit criteria, sequencing, and user/provider setup gates. Product scope remains owned by `SPEC.md`; component ownership remains owned by `ARCHITECTURE.md`; accepted implementation behavior requires a separate Design under `SDD.md`.
->
-> `WORKBOARD.md` alone owns the mutable current development route and runnable frontier. This roadmap owns stable capability decomposition, exit criteria and retained capability provenance; it carries no `ACTIVE`/current-Group mirror that must move when WORKBOARD advances.
+> Normative owner for the stable final-MVP capability decomposition, completion levels, Capability Group exit intent, cross-capability sequencing constraints, external-setup acceptance shape, final deployed exit, and post-MVP boundary. Product meaning remains in the named product owners. `WORKBOARD.md` alone owns the mutable current development route and runnable frontier; `docs/development/PROGRAM.md` owns forward Design/gate dependency coverage.
 
 ## 1. Final MVP definition
 
-The final tdev MVP is a **deployed and qualified product**, not only a source-library milestone. Completion requires the verified parallel/durable semantic core to be integrated with the intended Cloudflare and local-Agent runtime, real Git publication, a secured MCP surface, deployment/configuration procedures, and representative end-to-end failure/recovery evidence.
+The tdev MVP is a **deployed and qualified parallel-first Work Graph product**, not only a source-library milestone.
 
-The target includes, when required by the accepted runtime architecture:
+Final completion requires the cumulative product to preserve the verified semantic core while integrating the intended Cloudflare/local-Agent topology, real Git publication, a secured MCP surface, reproducible deployment/configuration, operational recovery, and representative deployed success/failure/security/migration/rollback evidence.
 
-- the existing parallel/durable Case execution and D0010 semantic/current-state authority;
-- `CaseDO` (Case Durable Object) or an equivalent single authoritative Case runtime owner;
-- `AgentDO` or an equivalent Agent connection/capacity/delivery owner;
-- an authenticated local Agent for OS/Git/process/model effects;
-- repository/model execution and the selected deterministic context-delivery contract;
-- D0011/D0012-derived Git projection/publication integrated into the deployed runtime;
-- Worker/API ingress and a real MCP projection/command surface;
-- authentication, tenant/Case authorization, Task capability admission, secret handling, payload/rate bounds, reconnect/replay, and audit boundaries;
-- Cloudflare storage/projection components such as R2/D1 only where the selected architecture actually needs them;
-- provider, GitHub, Cloudflare, MCP-client, Agent-machine, and secret configuration procedures;
-- migration, rollback, operational recovery, and fresh-environment deployment evidence;
-- a final deployed end-to-end qualification matrix.
+The product owners named in `docs/DOCUMENTATION.md` define the exact runtime contracts. This roadmap does not restate those contracts or choose a provider mechanism before its responsible Design/product owner does.
 
-Some provider/account operations necessarily require a user or operator. Those steps remain part of MVP acceptance: they must be documented with required permissions, inputs, expected results, verification, rollback/revocation, and secret-exposure warnings.
-
-## 2. Program hierarchy
-
-Roadmap work is organized as:
-
-```text
-MVP Program
-  -> Capability Group
-       -> Design
-            -> Verification Gate
-```
-
-A capability group is a durable product ability, not a branch or version. A Design is one accepted Class 2 decision that may implement all or part of a group. A verification gate is observable evidence. **Provisional Design IDs in this roadmap are planning labels only and do not authorize implementation.** `SDD.md` still requires an accepted Design record before Class 2 code changes.
-
-## 3. Completion levels
+## 2. Completion levels
 
 | Level | Meaning |
 | --- | --- |
-| 0 — Verified Core | source semantics, local authority, Git/repository/model substrate independently verified in declared environments |
-| 1 — Integrated Runtime | CaseDO/AgentDO/local Agent/model/Git execution path integrated in target runtime |
-| 2 — Secured Product Surface | MCP/auth/tenant/secret/provider boundaries implemented and independently falsified |
-| 3 — Deployable MVP | fresh environment can be configured and deployed from documented steps, including required user actions |
-| 4 — Qualified MVP | deployed E2E success, failure, recovery, security, migration and rollback matrix accepted |
+| 0 — Verified Core | source semantics and local substrate are independently verified in their declared environments |
+| 1 — Integrated Runtime | Case authority, Agent delivery, local execution/model work and Git execution are integrated in the target runtime |
+| 2 — Secured Product Surface | supported MCP/auth/tenant/secret/provider boundaries are implemented and independently falsified |
+| 3 — Deployable MVP | a fresh supported environment can be configured, deployed, operated and rolled back from documented procedures, including required user/operator actions |
+| 4 — Qualified MVP | representative deployed success, failure, recovery, security, migration, rollback and final publication evidence is accepted |
 
-For this project, **“MVP complete” means Level 4**. Source completion, deployment, and production qualification must not be conflated.
+**“MVP complete” means Level 4.** A lower-layer source or adapter pass never implies deployed-product completion.
 
-## 4. Capability groups
+## 3. Capability Groups
 
-| Group | Capability | Existing foundation / retained provenance | Final-MVP exit condition |
-| --- | --- | --- | --- |
-| A | Parallel execution and durable core | D0001-D0008 source foundation | provider adapters preserve one scheduler/lifecycle meaning and the existing oracle |
-| B | Semantic authority and persistence | D0009-D0010 local semantic authority foundation | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |
-| C | Git and publication | D0011-D0012 source publication foundation | deployed fenced Promotion -> Git candidate -> authenticated remote publication path is reconciliable and least-privilege qualified |
-| D | Repository and model execution | D0013-D0014 trusted-local repository/model foundation | selected actual executor/provider path preserves result-only/fencing/cancellation/resource contracts |
-| E | Context delivery and model input | D0016 mechanism + D0017 contract/source + D0018 runtime; retained completed checkpoint `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E scope; retained checkpoint is predecessor provenance for later cumulative work |
-| F | Cloudflare runtime and local Agent topology | architecture mapping plus inherited completed Group E checkpoint | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity and fencing are deployed and verified |
-| G | MCP, authentication and security | `MCP.md`, `SECURITY.md` documented boundary | real secured MCP endpoint passes auth/tenant/replay/stale-fence/limit/reconnect/current-client gates |
-| H | Deployment, operations and final qualification | deployment/operations requirements | fresh deploy, user/provider setup, migration/rollback/runbooks and full deployed qualification pass |
+This is the sole live A-H capability/exit table. Group identifiers are durable planning keys, not current branch state and not Design lifecycle status.
 
-A group may be implemented through multiple Designs. Conversely, one Design may close adjacent gates when one coherent authority decision makes separation artificial.
+| Group | Capability | Stable final-MVP exit condition |
+| --- | --- | --- |
+| A | Parallel execution and durable core | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch behavior, isolated ordinary results, single canonical Promotion and the existing semantic oracle |
+| B | Semantic authority and persistence | the target Case runtime durably hosts or explicitly migrates the accepted Case authority with restart, receipt/replay, ambiguity and response-loss evidence and no competing writable semantic owner |
+| C | Git and publication | Promotion-derived candidates reach authenticated remote Git publication through one fenced, least-privilege and reconcilable publication lane |
+| D | Repository and model execution | the supported executor/provider path preserves exact repository/context identity, result-only behavior, fencing, cancellation/retry and bounded resource contracts |
+| E | Context delivery and model input | the selected context-delivery/executor boundary remains semantically equivalent, authorized, bounded and restart/retry safe for its declared supported scope |
+| F | Cloudflare runtime and local Agent topology | Case authority, Agent connection/delivery, local Agent execution, restart/capacity/fencing and required runtime integrations are deployed and independently verified |
+| G | MCP, authentication and security | a real supported MCP endpoint passes version/schema, authentication, tenant/Case authorization, replay, stale-fence, bound, reconnect and current-client gates |
+| H | Deployment, operations and final qualification | fresh setup/deploy, provider/user configuration, operations/recovery, supported migration/rollback and the complete Level-4 deployed qualification matrix pass |
 
-## 5. Post-D0014 Group E decision state
+Detailed predecessor checkpoints, completed Design evidence and maintained Design status belong to `LINEAGE.md`, Design records, evidence and history rather than this table.
 
-D0014 removes a structural repository-preparation amplification axis for same exact bases: validated evidence retains the `48 -> 5` same-base-eight Git-call result and retry preparation `4x -> 1x`. It does **not** remove one complete canonical request or one model process start per Attempt.
+## 4. Stable dependency posture
 
-D0016 therefore measured the remaining context/executor candidates instead of preselecting ContextSlice. It accepted the first staged mechanism as a semantic-preserving immutable full-context reference envelope: same-base/eight reference requests reduced parent-to-receiver transfer by about 99.97%, while fresh-receiver wall time and process starts remained separate questions.
+Capability development is **parallel where ownership permits, cumulative where exit dependencies require**.
 
-D0017 now accepts the exact logical contract and receiver representation. One logical reference binds exact repository commit, semantic `baseDigest`, repository `contextDigest` and admitted Case/Plan authorization scope while excluding Attempt identity and physical locators. The first receiver representation is bounded packed/hybrid, selected as the balance between whole-bundle parse/working-set cost and fine-grained manifest per-file lookup fanout. D0017 does not claim a universal wall-time win, does not select ContextSlice, and does not activate a persistent shared CAS.
-
-D0017 production implementation is independently verified on the supported-Termux source scope at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; focused D0017+transport tests passed 52/52 and the supported-Termux source suite passed 226/226. D0018 production source/runtime is independently verified on the supported-Termux trusted-local scope at `73d404bdc24eac8337019738ba074c2a1fea4861`: the exact supported suite passed 233/233, the adversarial reference protocol passed 27/27, and W01-W43 requalified `warm-host-qualified-model-attempt-fresh` with F/WH process starts `4/4`, reuse `0/0`, and context materializations `4/1`. Exact all-test hard-link and instrumented-coverage layers remain explicitly unqualified rather than green. Tested same-process WP reuse is unqualified; no external provider is selected. Group E exit/checkpoint was subsequently elected at exact `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, and `group/f-cloudflare-runtime` was created from that exact head; the hard-link limitation remains an inherited qualification gap rather than reopening Group E. ContextSlice remains unselected and persistent cross-worker CAS/D0022 remains evidence-gated.
-
-## 6. Provisional remaining Design program
-
-These IDs describe a planning envelope. D0016, D0017 and D0018 are accepted Design-layer decisions retained below as completed Group E decision gates; D0017 and D0018 production source verification are closed under their declared supported-Termux qualifications, and Group E cumulative exit/checkpoint election is complete. D0019 revision 2 is now the accepted Group B/F Case-authority Design while its production implementation remains separate. The later provisional IDs remain open unless their owner records otherwise. Later provisional work may be merged, split, reordered, made conditional, or moved post-MVP from new evidence.
-
-| Provisional ID | Group | Planning question | MVP criticality |
-| --- | --- | --- | --- |
-| D0016 | E | Per-Attempt Context Delivery Minimization Decision | **accepted 2026-08-11** — immutable full-context reference envelope |
-| D0017 | E | Selected Context Delivery Contract | **accepted Design 2026-08-12; production source verified on supported-Termux scope** — authorized immutable logical reference + bounded packed/hybrid receiver; implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` |
-| D0018 | D/E | Model Executor / External Provider Runtime Contract | **accepted Design 2026-08-12; production source/runtime verified on supported-Termux trusted-local scope** — `73d404bdc24eac8337019738ba074c2a1fea4861`, warm host / fresh model Attempt, no provider selected |
-| D0019 | B/F | CaseDO Authority Adapter | **accepted Design revision 2 — 2026-08-13; production implementation separate** — one durably elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; exact D0010 receipt identity is preserved; ordinary eviction does not imply semantic reopen; placement/schema/capacity/rollout gates are frozen; existing local Cases are not migrated by this Design |
-| D0020 | F | AgentDO Connection, Capacity and Delivery Owner | required |
-| D0021 | F | Distributed Target Claims / Runtime Fencing | conditional on final cross-Case conflict workload |
-| D0022 | F/E | Artifact/Content Storage and Query Projection (R2/D1/equivalent) | conditional on selected content/artifact architecture |
-| D0023 | G | MCP Command and Projection Surface | required |
-| D0024 | G | MCP Authentication, Authorization and Tenant Security | required |
-| D0025 | C/F | Runtime Git Publication Integration | required |
-| D0026 | F/H | Cloudflare Deployment Package and Configuration | required |
-| D0027 | F/G/H | Local Agent Runtime and Secure Registration | required |
-| D0028 | H | Operational Observability and Recovery | required bounded operations gate |
-| D0029 | H | Full Deployed MVP Qualification | required final gate |
-| D0030 | B/F | Immutable Journal Publication Portability | **accepted Design 2026-08-13; production implementation separate** — bounded fd-relative helper selected for qualified `RENAME_NOREPLACE`; backend-neutral committed bytes/names/replay and mandatory reread on ambiguous publication are frozen |
-
-The realistic planning envelope is roughly **10-15 additional Design-sized gates after D0015**, depending on merges, conditional owners, and cross-cutting evidence-driven Designs such as D0030. The count is not an acceptance metric; capability-group exit criteria are.
-
-## 7. Ownership targets for the deployed topology
-
-The default architecture hypothesis, to be independently designed rather than assumed, is:
+The stable dependency shape is:
 
 ```text
-MCP client / API
-      |
-   Worker ingress
-      |
-    CaseDO  -------------------> fenced Git publication lane
-      |
-      +---- Task/Attempt delivery ----> AgentDO
-                                        |
-                                        v
-                              authenticated local Agent
-                                        |
-                              Git / process / model/provider
+A + B + C + D + E foundations
+            |
+            v
+F integrated runtime
+     |            \
+     |             +--> C publication integration may advance with the runtime once its owner/fence is fixed
+     v
+G secured product surface
+     |
+     v
+H deployability + operations + final qualification
 ```
 
-Ownership must remain separated:
+This diagram is capability ordering, not a Design-number queue. Research and independently owned Designs may proceed in parallel when they do not preempt an unresolved owner/security/migration decision. Exact runnable Design revisions and scheduling come only from `WORKBOARD.md`.
 
-- `CaseDO`: Case graph/lifecycle/results/receipts and the accepted semantic authority host; not Agent connection truth;
-- `AgentDO`: Agent connection epoch, bounded delivery queue/capacity and delivery receipts; not Task lifecycle or accepted result authority;
-- local Agent: actual OS/Git/process/network effect truth; not canonical Case state;
-- target owner (`AgentDO`, `ProjectDO`, dedicated `TargetDO`, or equivalent): only if cross-Case exclusion needs one durable lease owner;
-- R2/equivalent: immutable bytes only if selected; object existence is not semantic authority;
-- D1/equivalent: locator/query projection only if selected;
-- Worker/MCP: stateless or replayable ingress/projection; not readiness, lifecycle, Claims or canonical-tree authority.
+Development checkpoint succession is separately owned by `LINEAGE.md`; capability completion cannot be inferred from a branch name.
 
-If a provider implementation cannot preserve these boundaries and instead changes semantic authority, the change must be explicitly classified as an authority migration.
+## 5. External setup acceptance shape
 
-## 8. User/provider configuration gate
+Unavoidable provider/account/machine configuration remains part of final-MVP acceptance. Exact mechanisms are owned by `DEPLOYMENT.md`, `SECURITY.md`, `OPERATIONS.md`, the responsible Design and provider evidence.
 
-Every required external setup step must be tracked in this form:
+Every required external step must identify:
 
-| Field | Requirement |
+| Field | Required meaning |
 | --- | --- |
-| Actor | user, operator, CI, deployment automation, or provider administrator |
-| Permission | minimum provider/GitHub/Cloudflare/MCP permission needed |
-| Inputs | non-secret identifiers plus separately handled secret inputs |
-| Action | exact CLI/API/UI operation or documented manual step |
-| Expected result | provider-visible state after success |
-| Verification | independent read/check proving the expected state |
-| Rollback/revoke | safe reversal or credential revocation procedure |
-| Secret warning | where the value must not be persisted or logged |
+| actor | user, operator, CI/deployment automation, provider administrator, or supported client |
+| permission | minimum Cloudflare/GitHub/provider/MCP/local-machine permission needed |
+| non-secret inputs | stable identifiers and configuration names; secret values are handled separately |
+| action | exact supported CLI/API/UI/manual operation |
+| expected result | provider- or machine-visible state after success |
+| verification | an independent read/check proving that state |
+| rollback/revoke | safe reversal, disablement, credential rotation or revocation procedure |
+| secret warning | where sensitive values must not be persisted, logged, committed or exposed to model/context state |
 
-Credential material must not enter Plan inputs, Case snapshots, semantic Events, evidence, repository content, model observations, or clear remote intents.
+Credential material must not become Plan/Case semantic state, evidence payload, repository content or clear remote intent.
 
-## 9. Dependency and parallelism posture
+## 6. Final deployed Level-4 exit
 
-The roadmap is not a serial Design-number queue. A likely dependency spine is:
+The final deployed qualification must cover, at minimum, one representative supported path for each applicable row below. `docs/QUALIFICATION.md` owns verification-method semantics; exact evidence belongs under `docs/evidence/` or the responsible provider/runtime record.
 
-```text
-D0016 -> D0017 accepted contract
-               -> D0017 production verified -> D0018
-               |
-        +------+------+
-        |             |
-      D0019         D0020
-      CaseDO         AgentDO
-        +------+-+----+
-               |
-       D0022/D0027 as selected
-               |
-         D0023 + D0024
-               |
-             D0025
-               |
-             D0026
-               |
-             D0028
-               |
-             D0029
-```
-
-D0019 production-adapter work, D0020 Agent topology research, and MCP threat-model work may proceed in parallel when they do not preempt an unresolved owner decision. D0019 production work must preserve the amended durable-placement-generation, exact D0010 receipt identity, ordinary-reconstruction/no-implicit-reopen, versioned schema/capacity/rollout, no-second-owner and no-existing-Case-migration boundaries; D0020 remains the separate Agent connection/delivery/capacity owner decision. D0021 and D0022 stay conditional until the actual workload/architecture requires them.
-
-## 10. Final deployed qualification
-
-D0029 or its eventual equivalent must exercise at least:
-
-- a clean successful Case with parallel Tasks;
-- same-base parallel model work;
+- clean Case success with parallel Tasks and isolated results;
+- same-base parallel repository/model work with accepted-result order independence;
 - Task retry and cancellation;
-- Agent disconnect/reconnect/restart and stale delivery;
-- CaseDO restart/response loss and duplicate command replay;
-- provider/model failure and bounded output/input/resource rejection;
-- wrong repository base/context identity;
-- stale Attempt/fencing/claim denial;
-- Git publication conflict, authorization denial and ambiguous response reconciliation;
-- unauthenticated and cross-tenant MCP denial;
-- deployment restart and supported migration;
-- rollback/revocation procedures;
+- Agent disconnect/reconnect/restart, stale delivery and bounded capacity behavior;
+- Case runtime restart/response loss and duplicate command replay;
+- provider/model/context/resource rejection without invented semantic success;
+- wrong repository base/context identity and stale Attempt/fencing denial;
+- Git predecessor conflict, authorization denial and ambiguous publication reconciliation;
+- unauthenticated and cross-tenant MCP denial with zero unauthorized semantic effect;
+- deployment restart and every supported migration path;
+- rollback/revocation procedures that are actually supported by the deployed state/schema;
 - final remote repository content equal to the accepted Promotion projection.
 
-Small deterministic falsifiers should precede load tests. Production SLOs are not implied by bounded development benchmarks.
+Small deterministic falsifiers precede load/SLO experiments. Development benchmark results do not imply production SLOs.
 
-## 11. Post-MVP candidates
+## 7. Post-MVP boundary
 
-Unless a preceding Design produces contrary evidence, the following are not automatically MVP blockers:
+Unless an accepted product Design produces contrary evidence, the following are not automatic MVP blockers:
 
 - fleet-wide persistent context CAS solely for cache hit rate;
 - cache-locality scheduling;
 - speculative execution;
 - multi-provider routing;
-- large fleet warm pools beyond what the selected execution profile requires;
+- fleet-scale warm pools beyond the selected supported execution profile;
 - advanced distributed indexing/GC unrelated to MVP correctness;
 - platform parity outside the accepted Cloudflare/local-Agent target.
 
-The roadmap is a decision structure from verified evidence to the next falsifiable gate, not a promise that every provisional mechanism will be implemented.
+Conditional capability required for correctness becomes MVP work when evidence activates its gate; it is not deferred merely because its provisional Design label existed later in a numbered list.
+
+## 8. Relationship to other owners
+
+- `docs/SPEC.md` and the named product documents own product meaning and non-goals.
+- this file owns **what capability exits define the final MVP**.
+- `docs/development/PROGRAM.md` owns **which forward Design-sized gates cover those exits and how they depend on one another**.
+- a maintained `docs/design/<id>-<name>.md` owns an accepted Class 2 decision/revision/status.
+- `WORKBOARD.md` owns **what is runnable/selected now**.
+- `docs/QUALIFICATION.md` owns verification methods and proof-layer boundaries.
+- `docs/evidence/` records what was actually observed.
+- `docs/history/` and Git preserve former planning/current states without becoming current authority.
+
+A route transition, Design status update, test result or benchmark does not require editing this roadmap unless the stable capability decomposition/exit meaning itself changes under an accepted Design.
