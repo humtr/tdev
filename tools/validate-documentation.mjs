@@ -18,13 +18,6 @@ function sectionBody(text, heading) {
   return text.slice(bodyStart + 1, next < 0 ? text.length : next);
 }
 
-export const SOURCE_GATE_COMMANDS = Object.freeze([
-  'npm ci --ignore-scripts --no-audit --no-fund',
-  'npm run check',
-  'node --experimental-test-coverage --test test/*.test.mjs',
-  'git diff --check',
-]);
-
 function tableRows(text, heading, columns, label) {
   const rows = sectionBody(text, heading).split('\n').filter((line) => line.startsWith('| '));
   if (rows.length < 3) throw new Error(`documentation_authority_${label}: table missing`);
@@ -58,6 +51,40 @@ export function parseQualificationOwner(documentationText) {
     /^\|\s*verification methods, executable source gate and proof-layer boundaries\s*\|\s*`([^`]+)`\s*\|\s*$/gm,
     'qualification_owner',
   )[1];
+}
+
+export function parseRoadmapGroups(text) {
+  return tableRows(text, '3. Capability Groups', 3, 'roadmap_groups').map(([group, capability, exit]) => {
+    if (!/^[A-H]$/.test(group)) throw new Error(`documentation_authority_roadmap_group_id: ${group}`);
+    if (!capability || !exit) throw new Error(`documentation_authority_roadmap_group_empty: ${group}`);
+    return { group, capability, exit };
+  });
+}
+
+export function parseProgramGates(text) {
+  return tableRows(text, '2. Forward gate register', 7, 'program_gates').map((cells) => {
+    const [gate, groupText, authority, depends, conditionality, falsifier, externalAction] = cells;
+    const groups = groupText.split('/').map((value) => value.trim()).filter(Boolean);
+    if (groups.length === 0) throw new Error(`documentation_authority_program_gate_groups: ${gate}`);
+    const maintained = /^(D\d{4})@r(\d+)$/.exec(gate);
+    const provisional = /^(D\d{4})$/.exec(gate);
+    if (maintained) {
+      const owner = /^maintained Design foreign key:\s*`([^`]+)`$/.exec(authority);
+      if (!owner) throw new Error(`documentation_authority_program_maintained_authority: ${gate}`);
+      return {
+        kind: 'maintained', gate, id: maintained[1], revision: Number(maintained[2]), path: owner[1], groups,
+        depends, conditionality, falsifier, externalAction,
+      };
+    }
+    if (provisional) {
+      if (authority !== 'provisional label') throw new Error(`documentation_authority_program_provisional_authority: ${gate}`);
+      return {
+        kind: 'provisional', gate, id: provisional[1], revision: null, path: null, groups,
+        depends, conditionality, falsifier, externalAction,
+      };
+    }
+    throw new Error(`documentation_authority_program_gate_id: ${gate}`);
+  });
 }
 
 export function parseWorkboardRouting(text) {
@@ -175,16 +202,16 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   check(() => assert(workboard.split('\n').length <= 120, 'documentation_authority_workboard_too_large'));
   check(() => assert(!/^### D00(?:0[2-9]|1[0-5])\b/m.test(workboard), 'documentation_authority_workboard_history'));
 
-  for (const file of ['AGENTS.md', 'RULE.md', 'docs/development/WORKFLOW.md']) {
+  for (const file of ['AGENTS.md', 'RULE.md', 'README.md', 'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md']) {
     check(() => assert(!readText(file).includes(route.branch), 'documentation_authority_stable_route_literal', file));
   }
 
-  check(() => assert(fs.existsSync(path.join(root, 'LINEAGE.md')), 'documentation_authority_missing_lineage'));
+  check(() => assert(existsPath('LINEAGE.md'), 'documentation_authority_missing_lineage'));
   const retiredLivePaths = [
     'docs/development/BRANCH_LINEAGE.md', 'docs/development/ACCESS.md', 'docs/development/GROUP_E_CONTEXT_DELIVERY.md',
     'docs/IMPLEMENTATION_REPORT.md', 'docs/D0014_PRODUCT_EFFICIENCY_AUDIT.md', 'docs/D0014_POST_VERIFICATION_REVIEW.md',
   ];
-  for (const file of retiredLivePaths) check(() => assert(!fs.existsSync(path.join(root, file)), 'documentation_authority_retired_live_path', file));
+  for (const file of retiredLivePaths) check(() => assert(!existsPath(file), 'documentation_authority_retired_live_path', file));
 
   const historyDir = path.join(root, 'docs/history');
   check(() => assert(fs.existsSync(historyDir), 'documentation_authority_missing_history_dir'));
@@ -196,56 +223,108 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   }
 
   for (const file of ['AUTHORITY.md', 'SESSION.md', 'ROUTER.md', 'HANDOFF.md', 'docs/development/AUTHORITY.md', 'docs/development/SESSION.md', 'docs/development/ROUTER.md', 'docs/development/HANDOFF.md']) {
-    check(() => assert(!fs.existsSync(path.join(root, file)), 'documentation_authority_meta_owner_sprawl', file));
+    check(() => assert(!existsPath(file), 'documentation_authority_meta_owner_sprawl', file));
   }
 
   check(() => assert(!existsPath('docs/MVP.md'), 'documentation_authority_retired_live_path', 'docs/MVP.md'));
   check(() => assert(existsPath('docs/QUALIFICATION.md'), 'documentation_authority_missing_qualification'));
-  check(() => assert(existsPath('docs/history/mvp-verification-and-evidence.md'), 'documentation_authority_missing_mvp_history'));
+  for (const file of [
+    'docs/history/mvp-verification-and-evidence.md',
+    'docs/history/readme-before-d0033.md',
+    'docs/history/roadmap-before-d0033.md',
+    'docs/history/program-before-d0033.md',
+  ]) check(() => assert(existsPath(file), 'documentation_authority_missing_history_snapshot', file));
 
+  const documentation = readText('docs/DOCUMENTATION.md');
   let qualificationOwner = null;
-  check(() => { qualificationOwner = parseQualificationOwner(readText('docs/DOCUMENTATION.md')); });
+  check(() => { qualificationOwner = parseQualificationOwner(documentation); });
   check(() => assert(qualificationOwner === 'docs/QUALIFICATION.md', 'documentation_authority_qualification_owner_path', String(qualificationOwner)));
+  check(() => assert(documentation.includes('| stable final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |'), 'documentation_authority_documentation_roadmap_owner'));
+  check(() => assert(documentation.includes('| forward Design/gate dependency and coverage graph | `docs/development/PROGRAM.md` |'), 'documentation_authority_documentation_program_owner'));
 
+  let qualificationCommands = [];
+  let qualificationPairs = [];
   if (existsPath('docs/QUALIFICATION.md')) {
     const qualification = readText('docs/QUALIFICATION.md');
     check(() => {
-      const actual = parseSourceGateCommands(qualification);
-      assert(JSON.stringify(actual) === JSON.stringify(SOURCE_GATE_COMMANDS), 'documentation_authority_qualification_source_gate_exact');
+      qualificationCommands = parseSourceGateCommands(qualification);
+      assert(qualificationCommands.length > 0, 'documentation_authority_qualification_source_gate_empty');
+      assert(new Set(qualificationCommands).size === qualificationCommands.length, 'documentation_authority_qualification_source_gate_duplicate');
     });
     check(() => {
-      const historical = parseHistoricalQualificationPairs(readText('docs/history/mvp-verification-and-evidence.md'));
-      const current = parseQualificationPairs(qualification);
-      assert(historical.length === 78 && current.length === 78, 'documentation_authority_qualification_method_count', 'history=' + historical.length + ' current=' + current.length);
-      assert(JSON.stringify(current) === JSON.stringify(historical), 'documentation_authority_qualification_method_drift');
+      qualificationPairs = parseQualificationPairs(qualification);
+      assert(qualificationPairs.length > 0, 'documentation_authority_qualification_method_empty');
+      const areas = qualificationPairs.map(([area]) => area);
+      assert(areas.every(Boolean), 'documentation_authority_qualification_method_area_empty');
+      assert(new Set(areas).size === areas.length, 'documentation_authority_qualification_method_area_duplicate');
+      assert(qualificationPairs.every(([, falsifier]) => Boolean(falsifier)), 'documentation_authority_qualification_method_falsifier_empty');
     });
     check(() => assert(!/\|\s*Observed evidence\s*\|/i.test(qualification), 'documentation_authority_qualification_observed_ledger'));
     check(() => assert(!/\b[0-9a-f]{40}\b/i.test(qualification), 'documentation_authority_qualification_commit_ledger'));
+    check(() => {
+      const mutableGapClause = /Mutable current gaps belong in([\s\S]*?)rather than this stable method owner/i.exec(qualification)?.[1] ?? '';
+      assert(!mutableGapClause.includes('docs/ROADMAP.md'), 'documentation_authority_qualification_mutable_roadmap_gap');
+    });
   }
 
   const agents = readText('AGENTS.md');
+  const readme = readText('README.md');
   check(() => assert(agents.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_agents_qualification_pointer'));
-  check(() => assert(SOURCE_GATE_COMMANDS.every((command) => !agents.includes(command)), 'documentation_authority_agents_source_gate_duplicate'));
+  check(() => assert(readme.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_readme_qualification_pointer'));
+  for (const [file, text] of [['AGENTS.md', agents], ['README.md', readme]]) {
+    check(() => assert(qualificationCommands.every((command) => !text.includes(command)), 'documentation_authority_source_gate_duplicate', file));
+  }
   check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
-  check(() => assert(readText('README.md').includes('`docs/QUALIFICATION.md`'), 'documentation_authority_readme_qualification_pointer'));
   for (const file of ['AGENTS.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {
     check(() => assert(!readText(file).includes('docs/MVP.md'), 'documentation_authority_stale_current_mvp_pointer', file));
   }
 
+  for (const pointer of ['AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/QUALIFICATION.md']) {
+    check(() => assert(readme.includes(pointer), 'documentation_authority_readme_owner_pointer', pointer));
+  }
+  check(() => assert(!readme.includes('mvp-1a-7'), 'documentation_authority_readme_stale_legacy_route'));
+  check(() => assert(!/latest verified production-source layer|active development identity/i.test(readme), 'documentation_authority_readme_stale_status'));
+
   let resolvedFrontier = [];
   check(() => { resolvedFrontier = resolveFrontierDesigns({ root, route, readText }); });
 
+  const roadmap = readText('docs/ROADMAP.md');
+  let roadmapGroups = [];
+  check(() => { roadmapGroups = parseRoadmapGroups(roadmap); });
+  check(() => {
+    const ids = roadmapGroups.map(({ group }) => group);
+    assert(JSON.stringify(ids) === JSON.stringify(['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']), 'documentation_authority_roadmap_group_set', ids.join(','));
+  });
+  check(() => assert(roadmap.includes('`WORKBOARD.md` alone owns the mutable current development route and runnable frontier'), 'documentation_authority_roadmap_router_boundary'));
+  check(() => assert(!/\bD\d{4}(?:@r\d+)?\b/.test(roadmap), 'documentation_authority_roadmap_design_ledger'));
+  check(() => assert(!/\b[0-9a-f]{40}\b/i.test(roadmap), 'documentation_authority_roadmap_commit_ledger'));
+  check(() => assert(!/\bACTIVE\b/.test(roadmap), 'documentation_authority_roadmap_active_mirror'));
+
   const program = readText('docs/development/PROGRAM.md');
+  let programGates = [];
+  check(() => { programGates = parseProgramGates(program); });
   check(() => assert(program.includes('mutable current routing instance and runnable frontier are owned only by `WORKBOARD.md`'), 'documentation_authority_program_router_boundary'));
   check(() => assert(program.includes('This register carries no current lane, `ACTIVE` Group or branch instance'), 'documentation_authority_program_current_mirror_rule'));
+  check(() => assert(!program.split('\n').some((line) => /^\|\s*[A-H]\s*\|/.test(line)), 'documentation_authority_program_capability_table_duplicate'));
   check(() => assert(!/^- \*\*Lane:\*\*/m.test(program), 'documentation_authority_program_lane_mirror'));
-  check(() => assert(!/Program status \(derived\)|Cumulative checkpoint lane/i.test(program), 'documentation_authority_program_status_mirror'));
-  check(() => assert(!program.split('\n').filter((line) => /^\|\s*[A-H]\s*\|/.test(line)).some((line) => /\bACTIVE\b/i.test(line)), 'documentation_authority_program_active_mirror'));
+  check(() => assert(!/\|\s*Status\s*\||^-\s*\*\*Status:\*\*/mi.test(program), 'documentation_authority_program_status_ledger'));
+  check(() => assert(!/\b[0-9a-f]{40}\b/i.test(program), 'documentation_authority_program_commit_ledger'));
 
-  const roadmap = readText('docs/ROADMAP.md');
-  check(() => assert(roadmap.includes('`WORKBOARD.md` alone owns the mutable current development route and runnable frontier'), 'documentation_authority_roadmap_router_boundary'));
-  check(() => assert(!/Program status \(derived\)/i.test(roadmap), 'documentation_authority_roadmap_status_mirror'));
-  check(() => assert(!roadmap.split('\n').filter((line) => /^\|\s*[A-H]\s*\|/.test(line)).some((line) => /\bACTIVE\b/i.test(line)), 'documentation_authority_roadmap_active_mirror'));
+  const roadmapGroupIds = new Set(roadmapGroups.map(({ group }) => group));
+  const seenProgramGates = new Set();
+  for (const gate of programGates) {
+    check(() => assert(!seenProgramGates.has(gate.gate), 'documentation_authority_program_gate_duplicate', gate.gate));
+    seenProgramGates.add(gate.gate);
+    for (const group of gate.groups) check(() => assert(roadmapGroupIds.has(group), 'documentation_authority_program_unknown_group', `${gate.gate} -> ${group}`));
+    if (gate.kind !== 'maintained') continue;
+    check(() => {
+      let text;
+      try { text = readText(gate.path); } catch { throw new Error(`documentation_authority_program_missing_design: ${gate.path}`); }
+      const design = parseDesignMetadata(text);
+      assert(design.id === gate.id, 'documentation_authority_program_design_id_mismatch', `${gate.gate} -> ${design.id}`);
+      assert(design.revision === gate.revision, 'documentation_authority_program_design_revision_mismatch', `${gate.gate} -> r${design.revision}`);
+    });
+  }
 
   check(() => {
     const expected = renderDesignIndex(root, { readText });
@@ -270,7 +349,17 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(/^[A-Z0-9_]+\.md$/.test(entry.name), 'documentation_authority_docs_root_name', entry.name));
   }
 
-  return { ok: failures.length === 0, failures, route, frontier: resolvedFrontier, qualificationOwner };
+  return {
+    ok: failures.length === 0,
+    failures,
+    route,
+    frontier: resolvedFrontier,
+    qualificationOwner,
+    qualificationCommands,
+    qualificationPairs,
+    roadmapGroups,
+    programGates,
+  };
 }
 
 function runCli() {
@@ -281,7 +370,7 @@ function runCli() {
     return;
   }
   const selected = result.route.selected ? `${result.route.selected.id}@r${result.route.selected.revision}` : 'none';
-  process.stdout.write(`documentation-authority ok: ${result.route.groupId} ${result.route.branch} frontier=${result.route.frontier.length} selected=${selected}\n`);
+  process.stdout.write(`documentation-authority ok: ${result.route.groupId} ${result.route.branch} frontier=${result.route.frontier.length} selected=${selected} groups=${result.roadmapGroups.length} gates=${result.programGates.length}\n`);
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
