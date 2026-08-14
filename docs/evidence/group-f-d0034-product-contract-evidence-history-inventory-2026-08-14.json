@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.product-contract-evidence-history-inventory",
+  "capturedAt": "2026-08-14",
+  "source": {
+    "repository": "humtr/tdev",
+    "branch": "group/f-cloudflare-runtime",
+    "commit": "40febe096fbc3c7c009e2a16ced423cf1f612fdf"
+  },
+  "problemBoundary": "stable product-contract owners retain historical measurements, verification chronology, current implementation-status wording, and evidence packaging detail that should be evidence/history or Design provenance rather than live product contract",
+  "files": {
+    "docs/SPEC.md": {"lines": 207, "bytes": 21804, "classification": "mostly stable contract; small evidence/status residue already reduced by D0033; preserve snapshot before any D0034 edit"},
+    "docs/ARCHITECTURE.md": {"lines": 269, "bytes": 30840, "classification": "primary D0034 target; sections 9.1-9.6 mix stable authority rationale with D0008-D0014 measurement/verification chronology"},
+    "docs/PROTOCOL.md": {"lines": 453, "bytes": 36716, "classification": "mostly stable protocol contract; inspect only evidence/status wording and avoid removing protocol constants/bounds"},
+    "docs/OPERATIONS.md": {"lines": 298, "bytes": 32508, "classification": "mostly stable operating contract; some evidence/current-profile wording remains"},
+    "docs/SECURITY.md": {"lines": 250, "bytes": 26935, "classification": "stable security contract with some historical measurement/comparator/profile-evidence prose"},
+    "docs/DEPLOYMENT.md": {"lines": 301, "bytes": 28756, "classification": "stable deployment/migration/rollback contract; D0033 already removed major current-status ledger; remaining evidence wording should be normalized only when not contract-bearing"},
+    "docs/MCP.md": {"lines": 82, "bytes": 3752, "classification": "small stable surface contract; no broad compaction expected"}
+  },
+  "primaryEvidenceHistoryFindings": [
+    {
+      "file": "docs/ARCHITECTURE.md",
+      "sections": ["9.1 Current authority packaging boundary", "9.2 Verified semantic-representation comparison", "9.3 Verified semantic-authority v3 boundary", "9.4 Verified local Git projection boundary", "9.5 Verified remote Git publication source boundary", "9.6 Verified repository-context and local model-transport boundary"],
+      "finding": "the live architecture owner contains measured sample counts, stop-gate results, benchmark comparisons, implementation packaging chronology and verification-state headings beside stable authority decisions",
+      "target": "retain the architecture decisions/rationale/invariants; remove detailed observed results and verification chronology from the live owner after exact predecessor preservation"
+    },
+    {
+      "file": "docs/SECURITY.md",
+      "finding": "some D0018/D0030 comparator and tested-profile observations are phrased as live security narrative",
+      "target": "retain fail-closed/security conclusions and selected trust boundaries; leave historical comparator/profile results in Design/evidence/history"
+    },
+    {
+      "file": "docs/DEPLOYMENT.md",
+      "finding": "some legacy adapter verification wording remains even after D0033 current-status cleanup",
+      "target": "retain runtime prerequisites, migration/rollback/deployment qualification requirements; avoid live evidence ledger wording"
+    },
+    {
+      "file": "docs/OPERATIONS.md",
+      "finding": "some verified/cache/profile wording describes prior evidence rather than operating law",
+      "target": "retain the operational behavior and failure rules; express evidence references as proof requirements rather than current status"
+    }
+  ],
+  "notDefectsByThemselves": [
+    "Design identifiers used to name the origin of a stable accepted contract",
+    "protocol constants, digest domains, schema/profile versions and exact resource bounds that are part of the maintained contract",
+    "migration/rollback warnings that name predecessor formats or old executable generations",
+    "references to evidence/Design records used as trace pointers without copying measured results",
+    "statements that a source-layer proof does not imply provider/deployment/security qualification"
+  ],
+  "ownerTarget": {
+    "productContract": "stable product meaning, ownership, transitions, failure behavior, trust/deployment constraints, compatibility/migration/rollback and enduring rationale needed to interpret the contract",
+    "design": "accepted decision alternatives, decision-specific evidence interpretation and maintained revision/status",
+    "evidence": "observed counts, dates, environments, benchmark results, exact test outcomes and provider/runtime observations",
+    "history": "pre-recomposition live product-owner snapshots and superseded implementation/evidence chronology"
+  },
+  "safety": {
+    "preserveAllSevenProductOwnersBeforeCompaction": true,
+    "productRuntimeSemanticsChangeAllowed": false,
+    "protocolConstantOrBoundChangeAllowed": false,
+    "migrationRollbackMeaningChangeAllowed": false,
+    "historicalEvidenceRewriteAllowed": false,
+    "sourceCodeChangeAllowed": false
+  },
+  "recommendedDesign": {
+    "id": "D0034",
+    "class": 2,
+    "name": "Product Contract Evidence and History Recomposition",
+    "reason": "this changes durable documentation ownership boundaries across product contract/evidence/history and is independent from D0033 planning authority"
+  }
+}
