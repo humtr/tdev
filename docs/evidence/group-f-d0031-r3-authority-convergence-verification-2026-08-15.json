@@ -1,0 +1,115 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.documentation-authority-convergence-verification.v3",
+  "date": "2026-08-15",
+  "repository": "humtr/tdev",
+  "design": "D0031 revision 3",
+  "acceptedSource": "f2000d286f9ce527529792356473be74e9bcd41f",
+  "verifiedImplementationSource": "85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5",
+  "taskId": "task_7ti_3223f7d71e",
+  "worktreeId": "wt_7cec3c12f647d993",
+  "freshAuthority": {
+    "activeBranch": "group/f-cloudflare-runtime",
+    "startingRemoteHead": "df50caa9f00aa228e7db30caa8b85bc4315c173a",
+    "completedPredecessor": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "predecessorIsAncestorOfVerifiedSource": true,
+    "providerDefaultAtFreshRevalidation": "group/e-context-delivery",
+    "providerDefaultAfterCompatibilityAlignment": "group/f-cloudflare-runtime",
+    "providerDefaultRole": "discovery/compatibility pointer only; WORKBOARD remains route authority",
+    "canonicalCheckoutAtFreshRevalidation": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "canonicalCheckoutCleanAtFreshRevalidation": true,
+    "canonicalCheckoutClassification": "CHECKOUT_ALIGNMENT_DEBT; not used as current authority"
+  },
+  "changes": {
+    "authorityLocation": "ephemeral published-candidate resolver using candidate-contained WORKBOARD self-declaration plus exact predecessor identity and Git ancestry; unique maximal candidate required; conflicts fail closed",
+    "singleValue": "maintained Design secondary lifecycle/implementation status snapshots must be explicitly historical/as-of; generated projection equality remains a separate gate",
+    "D0018": "pre-production status vocabulary re-scoped as historical/as-of; product/runtime semantics and verified lifecycle unchanged",
+    "productSourceChanged": false,
+    "D0019Changed": false
+  },
+  "validation": {
+    "focusedGovernance": {
+      "status": "passed",
+      "jobId": "job_7x0_7fc3ffaa14",
+      "tests": 34,
+      "passed": 34,
+      "failed": 0,
+      "covers": [
+        "coherent predecessor/default selects unique valid successor",
+        "successor ref existence without self-election cannot advance authority",
+        "local-only successor cannot advance published authority",
+        "competing maxima and predecessor identity conflict fail closed",
+        "D0018-shaped unscoped current-looking status snapshot is rejected",
+        "explicit historical/as-of status snapshot is allowed",
+        "Design index remains exact deterministic projection"
+      ]
+    },
+    "documentationValidator": {
+      "status": "passed",
+      "jobId": "job_7x0_7fc3ffaa14",
+      "selected": "D0019@r2"
+    },
+    "dependencyInstall": {
+      "status": "passed",
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "jobId": "job_7wm_a35e1af120"
+    },
+    "requiredFullCheck": {
+      "status": "failed_environment",
+      "command": "npm run check",
+      "jobId": "job_7wn_f7f2618bd8",
+      "artifactId": "artifact_aq_54c1e6a5ff",
+      "classification": "not green; inherited ImmutableJournal hard-link profile reaches link(2) EACCES on this Termux filesystem"
+    },
+    "supportedNonHardlinkRegression": {
+      "status": "passed",
+      "jobId": "job_7ws_d6b5b4bc47",
+      "tests": 277,
+      "passed": 277,
+      "failed": 0,
+      "executionDigest": "15cad1f6ae63dc10b248cdc979a19d46d90d83ae085a5658554dd8cd3595fb2b"
+    },
+    "isolatedInheritedHardlinkProfile": {
+      "status": "failed_environment",
+      "jobId": "job_7wz_5c1ca631b0",
+      "tests": 26,
+      "passed": 1,
+      "failed": 25,
+      "failurePrimitive": "link(2) EACCES",
+      "executionDigest": "178e5672789459b84f3783cb61a8360315fbe4b20ccc8179f513be0d6d700bf0"
+    },
+    "requiredFullCoverage": {
+      "status": "failed_environment",
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "jobId": "job_7wv_f2bce8ebe5",
+      "exitCode": 1,
+      "coverageReportProduced": true,
+      "executionDigest": "5f974aa16870a917ebdc6b43e856b2b8da6f41937359571824e7fd9ef57359ee",
+      "classification": "not green; the failing tests are the same inherited ImmutableJournal hard-link family, while the separately executed supported non-hardlink suite is 277/277 green"
+    },
+    "diffAndScope": {
+      "status": "passed",
+      "jobId": "job_7x0_7fc3ffaa14",
+      "gitDiffCheck": true,
+      "completedPredecessorAncestry": true,
+      "srcDiffFromStartingAuthority": 0
+    },
+    "finalLifecycleProjection": {
+      "status": "passed",
+      "jobId": "job_7xb_0b42d22e7f",
+      "designIndexGeneratedAndExact": true,
+      "governanceTests": 34,
+      "governancePassed": 34,
+      "documentationFrontier": ["D0019@r2", "D0030@r1"],
+      "selected": "D0019@r2",
+      "gitDiffCheck": true,
+      "srcDiffFromStartingAuthority": 0
+    }
+  },
+  "qualificationDecision": {
+    "D0031Revision3": "verified on its self-development/documentation scope",
+    "fullTermuxAllTestLayer": "unqualified because the inherited hard-link primitive remains unavailable; no non-green command is reported green",
+    "D0019Selection": "preserved and not blocked for exact-ref-bound isolated implementation",
+    "coldStartAuthorityDiscovery": "no longer blocked by the r2 contract gap after r3; conflicting/ambiguous published candidates intentionally fail closed"
+  }
+}

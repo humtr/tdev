@@ -1,6 +1,6 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 3
 - Revision predecessor: revision 2 was verified at `34e2857261c05593cc38d73c8209302f2a193b70`; revision 1 and revision 2 verification evidence remain historical evidence
 - Revision 3 reason: fresh convergence revalidation reproduced two gaps inside the verified r2 problem boundary: pre-bootstrap authority location can start from a coherent predecessor/default snapshot with no contract for locating the actual current snapshot, and a maintained Design owner can expose contradictory current-looking lifecycle/implementation state while metadata/index validation stays green
@@ -14,6 +14,8 @@
 - Revision 1 verification source: `92d4ffeae74a0a0cac00ec05ab4efea01e73eedb`
 - Revision 1 verification evidence: `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
 - Revision 2 verification source: `34e2857261c05593cc38d73c8209302f2a193b70`
+- Revision 3 verification source: `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`
+- Revision 3 verification evidence: `docs/evidence/group-f-d0031-r3-authority-convergence-verification-2026-08-15.json`
 - Product semantics: unchanged
 - Explicit non-owners: this Design does not redefine `SPEC.md`, `ARCHITECTURE.md`, `PROTOCOL.md`, `OPERATIONS.md`, `SECURITY.md`, `DEPLOYMENT.md`, `MCP.md`, runtime Case/Task/Attempt semantics, provider behavior, or product Git Promotion
 
@@ -288,4 +290,4 @@ Revision 2 was `verified`. WORKBOARD models a route plus 0..N runnable `Dxxxx@rN
 
 The 2026-08-15 convergence falsifier reopens only r2's affected bootstrap/current-routing/documentation-validation meaning. Fresh observation found the provider default and normal checkout coherently on completed Group E while current WORKBOARD authority was Group F, and r2 supplied no pre-bootstrap rule for locating which snapshot's fixed kernel to read. The same fresh source review found D0018's maintained body could still expose a current-looking pre-production status snapshot contradicting its verified production record without failing the generated index or governance validator. These defects remain inside D0031's existing bootstrap/authority/validation problem and owner family, so revision 3 is the corrected revision rather than a new Design or registry migration.
 
-Revision 3 was `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json` at `f2000d286f9ce527529792356473be74e9bcd41f` and is now `implementing`. It adds only an ephemeral published-candidate authority locator, owner-internal current-value single-valuedness, D0018 record scoping, and the executable falsifiers needed to prevent recurrence. It does not change product semantics, product source, D0019 acceptance, or WORKBOARD's scheduling ownership.
+Revision 3 was `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json` at `f2000d286f9ce527529792356473be74e9bcd41f`, implemented at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`, and is now `verified` by `docs/evidence/group-f-d0031-r3-authority-convergence-verification-2026-08-15.json`. The authority-location and single-value falsifiers pass 34/34 governance tests, documentation validation and exact projection checks pass, the supported non-hardlink regression suite passes 277/277, and product `src/` changed zero paths. The exact full `npm run check` and full coverage commands remain explicitly non-green on this Termux filesystem because the inherited ImmutableJournal hard-link profile reproduces 25 `link(2)` `EACCES` failures in isolation; that platform layer is not reported qualified. Revision 3 changes no product semantics, product source, D0019 acceptance, or WORKBOARD scheduling ownership.
