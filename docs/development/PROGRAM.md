@@ -1,27 +1,27 @@
 # tdev development program register
 
-> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers, cumulative Group lanes and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch/checkpoint succession is owned by `LINEAGE.md`; the current routing instance is owned by `WORKBOARD.md`. Entries here are planning/execution records and do not authorize Class 2 code until an accepted Design exists under `SDD.md`.
+> Engineering execution owner for mapping the final-MVP capability roadmap into provisional Design-sized gates, dependencies, falsifiers and exit evidence. Product scope remains owned by `docs/SPEC.md`; product fact ownership remains owned by the normative product documents; `docs/ROADMAP.md` owns the high-level capability program. Branch/checkpoint succession is owned by `LINEAGE.md`; the mutable current routing instance and runnable frontier are owned only by `WORKBOARD.md`. Entries here are planning/execution records and do not authorize Class 2 code until the referenced Design owner authorizes it under `SDD.md`.
 
 ## 1. Routing relationship
 
-`PROGRAM.md` is the Design-sized dependency/coverage graph, not the current router. Resolve the active cumulative Group/branch, current Design gate and exact next action from `WORKBOARD.md`; resolve legal checkpoint succession from `LINEAGE.md`.
+`PROGRAM.md` is the Design-sized dependency/coverage graph, not the current router. Resolve the active cumulative Group/branch, runnable Design revision references and selected next action from `WORKBOARD.md`; resolve legal checkpoint succession from `LINEAGE.md`.
 
-Status and lane fields below are planning/derived views. They must be repaired when their owners change, and later documentation validation may check them for drift. A stale program status cannot originate an alternate branch, reopen a completed checkpoint or authorize Class 2 implementation.
+Status descriptions below are planning/history context only. This register carries no current lane, `ACTIVE` Group or branch instance that must be synchronized when WORKBOARD advances. A stale program status cannot originate an alternate route, reopen a completed checkpoint or authorize Class 2 implementation.
 
 The A-H Capability Group structure remains the program decomposition inherited from `docs/ROADMAP.md`. Exact historical checkpoint identities remain available in retained Design/evidence/history records and, when they still constrain the current route, in `WORKBOARD.md`.
 
 ## 2. Capability Group register
 
-| Group | Capability | Program status (derived) | Existing verified foundation | Cumulative checkpoint lane | Final-MVP exit |
-| --- | --- | --- | --- | --- | --- |
-| A | Parallel execution and durable core | foundation verified | D0001-D0008 | historical foundation retained in `mvp-1a-7` ancestry | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch and existing acceptance oracle |
-| B | Semantic authority and persistence | local verified; deployed host open | D0009-D0010 | inherited foundation; deployed closure occurs while later cumulative Groups advance | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
-| C | Git and publication | source verified; deployed integration open | D0011-D0012 | inherited foundation; deployed closure occurs while later cumulative Groups advance | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
-| D | Repository and model execution | trusted-local verified | D0013-D0014 | inherited foundation; D0018 closes the remaining D/E boundary on Group E | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
-| E | Context delivery and model input | **completed checkpoint / D0016+D0017+D0018 accepted; D0017+D0018 source/runtime verified** | D0016 mechanism decision + D0017 contract/source + D0018 runtime decision | retained `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E exit scope; retained checkpoint feeds F by ancestry |
-| F | Cloudflare runtime and local Agent topology | **active / topology not implemented** | architecture mapping only plus inherited E checkpoint | Group F cumulative checkpoint lane; activation comes from `WORKBOARD.md` | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
-| G | MCP, authentication and security | boundary documented; not implemented | `MCP.md`, `SECURITY.md` | successor `group/g-mcp-security`, created only from final Group F | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
-| H | Deployment, operations and final qualification | not implemented | deployment/operations requirements only | successor `group/h-deployment-qualification`, created only from final Group G | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
+| Group | Capability | Existing verified foundation / retained provenance | Final-MVP exit |
+| --- | --- | --- | --- |
+| A | Parallel execution and durable core | D0001-D0008 foundation | target adapters preserve one scheduler/lifecycle meaning, durable-before-dispatch and existing acceptance oracle |
+| B | Semantic authority and persistence | D0009-D0010 local authority foundation | target Case runtime hosts or explicitly migrates D0010 authority with restart/response-loss equivalence |
+| C | Git and publication | D0011-D0012 source publication foundation | Promotion-derived candidate reaches authenticated remote publication through one fenced/reconcilable lane |
+| D | Repository and model execution | D0013-D0014 trusted-local foundation; D0018 later closes the D/E runtime boundary | final executor/provider preserves result-only, fencing, cancellation, retry, identity and resource contracts |
+| E | Context delivery and model input | D0016+D0017+D0018; retained completed checkpoint `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E exit scope; retained checkpoint is predecessor provenance |
+| F | Cloudflare runtime and local Agent topology | architecture mapping plus inherited completed Group E checkpoint | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity, fencing and integration are deployed and verified |
+| G | MCP, authentication and security | `MCP.md`, `SECURITY.md` documented boundary | real supported MCP endpoint passes schema/auth/tenant/replay/fence/limit/reconnect/current-client gates |
+| H | Deployment, operations and final qualification | deployment/operations requirements | fresh setup, deployment, migration/rollback, recovery and full deployed qualification pass |
 
 A Design can close more than one Group exit when the same authority decision genuinely spans them. Because branch progression is cumulative, a cross-Group Design is not implemented by merging independent Group branches; earlier accepted work is inherited by ancestry and later Groups may extend it under their own gates.
 
@@ -50,12 +50,12 @@ The high-level roadmap did **not** fully own the following execution details:
 2. Termux/GitHub/ChatGPT capability asymmetry and temporary synchronization debt;
 3. exact Git commit identity versus per-location mutable ref observation;
 4. cumulative `group/*` Capability Group checkpoint lifecycle and successor-creation rule;
-5. current active Group/branch execution contract;
+5. explicit routing separation: mutable active Group/branch/frontier belongs to `WORKBOARD.md`, not this register;
 6. per-Design authority/non-owner boundary;
 7. per-Design cheapest falsifier;
 8. per-Design explicit exit evidence;
 9. per-Design provider/user-configuration dependency;
-10. per-Design active cumulative Group lane;
+10. per-Design Capability Group/dependency mapping without a duplicated current lane;
 11. a coverage rule proving every product requirement maps to Group -> Design/gate -> evidence;
 12. explicit treatment of cross-group Designs and conditional Designs;
 13. a register of unresolved questions whose answers can split, combine, remove, reorder or defer a Design.
@@ -78,7 +78,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** equivalent full-context same-base/multibase/retry workloads that separately measure parent construction/copy, transferred bytes, receiver parse, process/provider startup and memory; any candidate that fails semantic-equivalence or does not remove the measured bottleneck is rejected.
 - **Exit:** one selected staged strategy, or an explicit evidence-backed decision to retain current full-context transport; residual costs and rejected alternatives recorded.
 - **User/provider action:** none required for local comparison; provider-specific candidate measurements require credentials only if/when an external provider is selected.
-- **Lane:** active cumulative `group/e-context-delivery`.
 
 ### D0017 — Selected Context Delivery Contract
 
@@ -93,9 +92,8 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Durability boundary:** no persistent/shared CAS is required; D0022 remains conditional.
 - **Evidence:** Design evidence `docs/evidence/group-e-d0017-context-delivery-contract-2026-08-12.json` SHA-256 `a901816ada0d25858bcc78b94a2dc091376c34c004e6041027e22a5ddf9a3ca2`; production implementation `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db`; production verification `docs/evidence/group-e-d0017-production-verification-2026-08-12.json` SHA-256 `ea9371c467dd5b1d86ddbfb97b81109c0d1b0885186610f04b92bb753cd1b907`; focused D0017+transport 52/52 and supported-Termux source coverage 226/226 passed, while exact all-test coverage is platform-unqualified only for the existing ImmutableJournal hard-link `EACCES`.
 - **Cheapest implementation falsifier:** exact identity equality across retry/restart plus unauthorized/stale/missing/corrupt/bound/cancel rejection before model acceptance on the real implementation path.
-- **Exit:** satisfied for D0017 production source: independently `verified` without creating a second semantic owner. Group E remains active because D0018 and the later Group E exit review/checkpoint remain open.
+- **Exit:** satisfied for D0017 production source: independently `verified` without creating a second semantic owner. At that historical verification point, D0018 and the later Group E exit review/checkpoint were still open.
 - **User/provider action:** none for this trusted-local contract decision; external provider/storage actions belong to their later accepted owner.
-- **Lane:** active cumulative `group/e-context-delivery`.
 
 ### D0018 — Model Executor / External Provider Runtime Contract
 
@@ -110,7 +108,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Qualification limits:** exact `npm run check` remains platform-unqualified for the pre-existing ImmutableJournal hard-link `EACCES`; instrumented full coverage additionally exposes timing guards that pass uninstrumented. Neither layer is counted green.
 - **Cheapest falsifier:** same invocation/Attempt identity through the selected runtime with timeout/cancel/retry/stale-response tests and exact result acceptance parity with the existing local oracle.
 - **Exit:** satisfied for D0018 production source/runtime under the declared trusted-local qualification; Group E final owner sync/publication/replica reconciliation/checkpoint remain separate cumulative-branch gates. Later Group F runtime work inherits this contract and may extend it only through a later accepted Design.
-- **Lane:** active cumulative `group/e-context-delivery` for the E-facing contract; no cross-branch merge is planned.
 
 ### D0019 — CaseDO Authority Adapter
 
@@ -128,7 +125,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Evidence:** predecessor `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json` SHA-256 `6e196ff1cae6c9ef993bcebf112405234fccc7c682a4563811c16ab2e41e7daa`; amendment `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json` SHA-256 `79470299245e617147976b7f806c0e23dc78dfc2a47ca867cb80f984a73dd623`; fresh model + inherited oracle run 44/44 passed; amended falsifier SHA-256 `8e41ec7905898b1f479b4c62e8863af4b45077da250cd2ba360eb8c8df717d69`.
 - **Provider evidence:** current Cloudflare primary docs were reverified for SQLite transactions/strong consistency, eviction/reconstruction, error/stub ambiguity, environment/jurisdiction-scoped identity, storage limits, class/storage lifecycle and old/new code rollout overlap; the accepted model does not rely on undocumented transaction-callback replay, exactly-once RPC/alarm delivery or DO memory permanence.
 - **Production gate:** implement durable placement election plus one elected normalized/chunked SQLite-backed adapter/profile, inject competing placement, exact receipt replay with changed valid revision metadata, stale/concurrent/precommit/postcommit-loss, ordinary eviction/no-reopen, explicit owner-loss recovery, corruption, capacity, rollout-compatibility, running-before-dispatch and result-fence failures, then independently verify real provider/deployment layers. No D0020/D0030 implementation or existing-Case migration is bundled into this Task.
-- **Lane:** Group F cumulative lane; current activation is resolved from `WORKBOARD.md`.
 
 ### D0020 — AgentDO Connection, Capacity and Delivery Owner
 
@@ -139,7 +135,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close:** reconnect, duplicate delivery, stale epoch, Agent crash, late result, capacity admission, queue overflow, cancel/timeout races, in-flight resource budget ownership.
 - **Cheapest falsifier:** two epochs plus disconnect/reconnect with stale delivery/result and queue/capacity saturation.
 - **Exit:** one durable Agent connection/delivery owner with stale-instance fencing and bounded live-work admission.
-- **Lane:** successor cumulative `group/f-cloudflare-runtime`.
 
 ### D0021 — Distributed Target Claims / Runtime Fencing
 
@@ -150,7 +145,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close if activated:** lease generation, concurrency, expiry/liveness, stale holder, restart, commit-time validation and failure recovery.
 - **Cheapest falsifier:** two independent Cases contend for one target across owner restart and stale lease generation.
 - **Exit:** distributed exclusion proven, or evidence explicitly moves this capability post-MVP because MVP workload does not need it.
-- **Lane:** successor cumulative `group/f-cloudflare-runtime`.
 
 ### D0022 — Artifact/Content Storage and Query Projection
 
@@ -162,7 +156,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Must close if activated:** owner/key identity, integrity, authorization, lifecycle, delete/GC, retry, corruption, migration and reader protection.
 - **Cheapest falsifier:** missing/corrupt/stale object plus duplicate publication and authorization denial without semantic-state change.
 - **Exit:** selected byte/query owners are independently rebuildable or explicitly authoritative only for their narrow declared fact.
-- **Lane:** whichever cumulative Group first makes the storage mandatory: E if required for context delivery, otherwise a later inherited checkpoint such as F.
 
 ### D0023 — MCP Command and Projection Surface
 
@@ -174,7 +167,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Explicit non-owner:** MCP is ingress/projection, not readiness, Task lifecycle, Claim or canonical-tree authority.
 - **Cheapest falsifier:** duplicate request + stale expected revision + reconnect/resume against one deployed endpoint.
 - **Exit:** real current client passes supported command/projection matrix.
-- **Lane:** successor cumulative `group/g-mcp-security`, created from final Group F.
 
 ### D0024 — MCP Authentication, Authorization and Tenant Security
 
@@ -186,7 +178,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** authenticated tenant A attempts Case/Artifact access for tenant B while preserving zero semantic effect.
 - **Exit:** supported client auth flow plus explicit tenant/Case denial matrix and credential-rotation/revocation path.
 - **User action:** identity/provider configuration as selected; exact permissions documented.
-- **Lane:** successor cumulative `group/g-mcp-security`.
 
 ### D0025 — Runtime Git Publication Integration
 
@@ -198,7 +189,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** ambiguous remote publication followed by exact remote reread, plus predecessor conflict and authorization denial.
 - **Exit:** deployed Promotion -> Git candidate -> authenticated remote publication succeeds and fails safely under the selected provider policy.
 - **User action:** GitHub app/token/SSH/branch rules as selected; document create/verify/revoke.
-- **Lane:** cumulative Group F when runtime placement is selected; Group C source evidence is inherited through ancestry.
 
 ### D0026 — Cloudflare Deployment Package and Configuration
 
@@ -210,7 +200,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** fresh non-production project deploy from documented commands with one controlled rollback.
 - **Exit:** reproducible configuration/deploy/rollback with expected provider state independently checked.
 - **User action:** Cloudflare account/token, DNS/domain if needed, secret injection and provider approvals.
-- **Lane:** first cumulative Group whose exit requires it, likely F for runnable deployment with H inheriting and qualifying it.
 
 ### D0027 — Local Agent Runtime and Secure Registration
 
@@ -222,7 +211,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** fresh machine registration, disconnect/reconnect with new epoch, stale Agent rejection and secret-exclusion check.
 - **Exit:** fresh supported machine joins the deployed runtime and can execute a bounded real Task under correct fencing.
 - **User action:** machine install permissions, local credentials/keys and selected model/Git access.
-- **Lane:** initiated on cumulative Group F when runtime work begins; G and H inherit and may harden/qualify it without merging independent branches.
 
 ### D0028 — Operational Observability and Recovery
 
@@ -234,7 +222,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Metrics candidates:** latency, queue, retries, Agent/provider/cache/publication observations; none becomes semantic authority.
 - **Cheapest falsifier:** selected component outage with documented detection, bounded degradation and recovery/rollback.
 - **Exit:** runbooks and observation prove recovery without inventing semantic success from missing telemetry.
-- **Lane:** successor cumulative `group/h-deployment-qualification`, created from final Group G.
 
 ### D0029 — Full Deployed MVP Qualification
 
@@ -246,7 +233,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Cheapest falsifier:** start with deterministic single-failure injections before any load/SLO experiment.
 - **Exit:** all mandatory Groups meet exit criteria and representative deployed success/failure/recovery/security/rollback evidence is accepted.
 - **User action:** execute or approve unavoidable provider/account/credential steps from documented procedures.
-- **Lane:** cumulative `group/h-deployment-qualification`, which already inherits the accepted E+F+G checkpoints; the MVP prototype ref is created only from its exact final accepted head.
 
 ### D0030 — Immutable Journal Publication Portability
 
@@ -262,7 +248,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Evidence:** prior research `docs/evidence/group-f-d0030-immutable-publication-portability-research-2026-08-13.json` SHA-256 `370cb70792afd1e79395f7578e10502330d254e54cfdb6120d064450566a915f`; acceptance convergence `docs/evidence/group-f-d0030-publication-portability-acceptance-convergence-2026-08-13.json` SHA-256 `239aada0b6f15e75faf6c2c04b779f3d578cdf36956d6b108f67b47ee038fd7b`; Termux falsifier SHA-256 `50aa955cb547e594817e2005df5860e9c1a71eb45f2e47569c1584d33f674ae8`; independent POSIX summary SHA-256 `eeb7f266df67ad087c3695d1fbf30bd5c080946a88822da2fb5a90fab132481b`; falsifier commit `e0d7706d02827d136eada0a9484d8ef6874cb672`.
 - **Production implementation:** none yet. At this acceptance checkpoint `src/store.mjs` remains unchanged on the inherited hard-link primitive. The next authorized D0030 Task is post-acceptance production helper/package implementation and independent production qualification under the frozen contract.
 - **Unverified/separate:** destructive power-loss remains unverified; tmcp `portable`/`full` validation registry entries are stale because their `verify:sandbox`/`verify:termux` package scripts are absent and must be aligned separately.
-- **Lane:** Group F cumulative lane; current activation is resolved from `WORKBOARD.md`; completed Group E is provenance only.
 
 ### D0031 — Self-Development Documentation Authority
 
@@ -273,7 +258,6 @@ This file and the other `docs/development/*` owners close the documentation gap 
 - **Evidence:** r1 inventory `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`; r1 verification `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`; r2 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`; r2 acceptance `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`.
 - **Cheapest falsifier:** full validation must accept a WORKBOARD-only F -> G fixture and an empty runnable frontier, reject a reopened/non-authorizing frontier Design, and compare the complete Design registry to a generic deterministic projection with no ID special cases.
 - **Exit:** open for revision 2 until A2-A4 implementation and A5 independent verification close those generic routing/registry falsifiers; the inherited ImmutableJournal hard-link all-test profile remains separately unqualified.
-- **Lane:** current cumulative development lineage resolved from `WORKBOARD.md`; D0031 does not own branch succession.
 
 ## 6. Completed Group E closure map
 
@@ -309,7 +293,7 @@ D0016
   -> D0029 qualification
 ```
 
-Research that does not preempt an unresolved owner can proceed early, but accepted repository changes follow the active cumulative Group branch:
+Research that does not preempt an unresolved owner can proceed early, but accepted repository changes execute on the current route freshly resolved from `WORKBOARD.md`:
 
 - Cloudflare CaseDO authority research for D0019;
 - AgentDO capacity/delivery research for D0020;

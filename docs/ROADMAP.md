@@ -2,7 +2,7 @@
 
 > Normative owner for final-MVP program decomposition, capability-group exit criteria, sequencing, and user/provider setup gates. Product scope remains owned by `SPEC.md`; component ownership remains owned by `ARCHITECTURE.md`; accepted implementation behavior requires a separate Design under `SDD.md`.
 >
-> Capability/program status cells are a derived planning view. `WORKBOARD.md` alone owns the current development route; an `ACTIVE` marker here must match that router and can never override it.
+> `WORKBOARD.md` alone owns the mutable current development route and runnable frontier. This roadmap owns stable capability decomposition, exit criteria and retained capability provenance; it carries no `ACTIVE`/current-Group mirror that must move when WORKBOARD advances.
 
 ## 1. Final MVP definition
 
@@ -40,28 +40,28 @@ A capability group is a durable product ability, not a branch or version. A Desi
 
 ## 3. Completion levels
 
-| Level | Meaning | Current use |
-| --- | --- | --- |
-| 0 — Verified Core | source semantics, local authority, Git/repository/model substrate independently verified in declared environments | substantially reached through D0014/D0015 review |
-| 1 — Integrated Runtime | CaseDO/AgentDO/local Agent/model/Git execution path integrated in target runtime | open |
-| 2 — Secured Product Surface | MCP/auth/tenant/secret/provider boundaries implemented and independently falsified | open |
-| 3 — Deployable MVP | fresh environment can be configured and deployed from documented steps, including required user actions | open |
-| 4 — Qualified MVP | deployed E2E success, failure, recovery, security, migration and rollback matrix accepted | open |
+| Level | Meaning |
+| --- | --- |
+| 0 — Verified Core | source semantics, local authority, Git/repository/model substrate independently verified in declared environments |
+| 1 — Integrated Runtime | CaseDO/AgentDO/local Agent/model/Git execution path integrated in target runtime |
+| 2 — Secured Product Surface | MCP/auth/tenant/secret/provider boundaries implemented and independently falsified |
+| 3 — Deployable MVP | fresh environment can be configured and deployed from documented steps, including required user actions |
+| 4 — Qualified MVP | deployed E2E success, failure, recovery, security, migration and rollback matrix accepted |
 
 For this project, **“MVP complete” means Level 4**. Source completion, deployment, and production qualification must not be conflated.
 
 ## 4. Capability groups
 
-| Group | Capability | Program status (derived) | Existing foundation | Final-MVP exit condition |
-| --- | --- | --- | --- | --- |
-| A | Parallel execution and durable core | VERIFIED source foundation | D0001-D0008 | provider adapters preserve one scheduler/lifecycle meaning and the existing oracle |
-| B | Semantic authority and persistence | VERIFIED local / runtime integration open | D0009-D0010 | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |
-| C | Git and publication | SOURCE VERIFIED / deployment open | D0011-D0012 | deployed fenced Promotion -> Git candidate -> authenticated remote publication path is reconciliable and least-privilege qualified |
-| D | Repository and model execution | LOCAL VERIFIED | D0013-D0014 | selected actual executor/provider path preserves result-only/fencing/cancellation/resource contracts |
-| E | Context delivery and model input | COMPLETED CHECKPOINT — D0016/D0017/D0018 DESIGN ACCEPTED; D0017/D0018 SOURCE VERIFIED; EXIT ELECTED AT `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | D0014 verified + D0016 mechanism decision + D0017 contract/source + D0018 runtime source | satisfied for the declared Group E scope; retained as completed checkpoint |
-| F | Cloudflare runtime and local Agent topology | ACTIVE / TOPOLOGY NOT IMPLEMENTED | architecture mapping only plus inherited E checkpoint | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity and fencing are deployed and verified |
-| G | MCP, authentication and security | DOCUMENTED BOUNDARY / NOT IMPLEMENTED | `MCP.md`, `SECURITY.md` | real secured MCP endpoint passes auth/tenant/replay/stale-fence/limit/reconnect/current-client gates |
-| H | Deployment, operations and final qualification | NOT IMPLEMENTED | deployment requirements only | fresh deploy, user/provider setup, migration/rollback/runbooks and full deployed qualification pass |
+| Group | Capability | Existing foundation / retained provenance | Final-MVP exit condition |
+| --- | --- | --- | --- |
+| A | Parallel execution and durable core | D0001-D0008 source foundation | provider adapters preserve one scheduler/lifecycle meaning and the existing oracle |
+| B | Semantic authority and persistence | D0009-D0010 local semantic authority foundation | target Case runtime durably hosts or explicitly migrates the D0010 authority with restart/response-loss evidence |
+| C | Git and publication | D0011-D0012 source publication foundation | deployed fenced Promotion -> Git candidate -> authenticated remote publication path is reconciliable and least-privilege qualified |
+| D | Repository and model execution | D0013-D0014 trusted-local repository/model foundation | selected actual executor/provider path preserves result-only/fencing/cancellation/resource contracts |
+| E | Context delivery and model input | D0016 mechanism + D0017 contract/source + D0018 runtime; retained completed checkpoint `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e` | satisfied for the declared Group E scope; retained checkpoint is predecessor provenance for later cumulative work |
+| F | Cloudflare runtime and local Agent topology | architecture mapping plus inherited completed Group E checkpoint | CaseDO/AgentDO/local Agent ownership, delivery, restart, capacity and fencing are deployed and verified |
+| G | MCP, authentication and security | `MCP.md`, `SECURITY.md` documented boundary | real secured MCP endpoint passes auth/tenant/replay/stale-fence/limit/reconnect/current-client gates |
+| H | Deployment, operations and final qualification | deployment/operations requirements | fresh deploy, user/provider setup, migration/rollback/runbooks and full deployed qualification pass |
 
 A group may be implemented through multiple Designs. Conversely, one Design may close adjacent gates when one coherent authority decision makes separation artificial.
 
