@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.qualification-authority-acceptance.v1",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0032",
+    "revision": 1,
+    "status": "accepted",
+    "path": "docs/design/0032-qualification-authority-recomposition.md"
+  },
+  "base": "3e8599ddc0ecce26c339933af13a82a1be7d0f59",
+  "inventory": "docs/evidence/group-f-d0032-mvp-qualification-inventory-2026-08-14.json",
+  "sourceMvp": {
+    "path": "docs/MVP.md",
+    "sha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "bytes": 52228,
+    "lines": 308,
+    "acceptanceMethodRows": 78
+  },
+  "decision": {
+    "replacementOwner": "docs/QUALIFICATION.md",
+    "historicalSnapshot": "docs/history/mvp-verification-and-evidence.md",
+    "sourceGateOwner": "docs/QUALIFICATION.md",
+    "sourceGate": [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run check",
+      "node --experimental-test-coverage --test test/*.test.mjs",
+      "git diff --check"
+    ],
+    "matrixMigration": "preserve all 78 Area + Cheapest falsifier pairs exactly; Observed evidence remains history/evidence",
+    "productSemanticsChanged": false,
+    "phaseCCompactionAuthorized": false
+  },
+  "reasoning": [
+    "Current AGENTS already declares the four-command sequence as the repository minimum source gate while MVP carries only a two-command subset.",
+    "Historical MVP evidence repeatedly used coverage and diff validation in addition to npm run check.",
+    "One-owner discipline requires moving the source-gate commands into one qualification owner and leaving AGENTS as a bootstrap pointer.",
+    "A required command that is platform-unqualified remains non-green; a supported subset cannot silently substitute for it."
+  ],
+  "ownerSwapPreconditions": [
+    "byte-identical historical snapshot proven",
+    "78 method pairs mechanically preserved",
+    "atomic live owner and maintained-current-reference swap",
+    "documentation validator updated to fail closed on qualification-owner drift",
+    "zero product src path changes"
+  ],
+  "result": "accepted; authorizes only the bounded qualification-authority recomposition described by D0032 revision 1"
+}

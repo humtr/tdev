@@ -25,5 +25,6 @@
 | D0019 | r2 | accepted | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
 | D0030 | r1 | accepted | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
 | D0031 | r2 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
+| D0032 | r1 | accepted | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

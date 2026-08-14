@@ -41,12 +41,12 @@ function designFixture({ id = '0031', revision = 2, status = 'accepted', explici
   ].join('\n');
 }
 
-test('current repository documentation authority validates after completed self-development gate leaves the frontier', () => {
+test('current repository documentation authority validates with the accepted qualification-recomposition gate in the frontier', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1']);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
+  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0032@r1', 'D0019@r2', 'D0030@r1']);
+  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0032@r1');
 });
 
 test('zero runnable Designs and selected none pass full documentation validation', () => {
