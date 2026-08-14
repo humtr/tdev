@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.documentation-authority-convergence-acceptance.v3",
+  "date": "2026-08-15",
+  "repository": "humtr/tdev",
+  "design": "D0031 revision 3",
+  "predecessor": "D0031 revision 2 verified",
+  "falsifier": "docs/evidence/group-f-d0031-r3-authority-convergence-falsifier-2026-08-15.json",
+  "decision": {
+    "authorityLocation": "before the fixed bootstrap kernel, use an ephemeral published-candidate resolver: a candidate is eligible only when its own WORKBOARD repository identity matches and its active branch equals the published ref containing it; validate exact predecessor identity and Git ancestry; remove candidates superseded by another eligible candidate that names them as exact immediate predecessor; accept exactly one maximal candidate and bind to its exact ref/SHA, otherwise fail closed",
+    "nonAuthorities": ["provider default branch", "current checkout", "branch naming", "timestamps", "mere successor-ref existence", "local-only successor existence", "handoff/cache continuity", "tool-owned branches"],
+    "defaultAlignment": "a provider default may be aligned to the current route as a compatibility/discovery pointer after current authority is known, but never becomes route authority",
+    "singleValue": "one durable mutable semantic value has one canonical origin owner, and that owner must expose exactly one current semantic value; derived projections, exact-bound caches, explicitly historical/as-of statements, independent evidence and validation constraints remain non-authoritative",
+    "D0018Repair": "reclassify the stale pre-production Status vocabulary as explicitly historical/as-of without changing D0018 product/runtime semantics or erasing its prior state"
+  },
+  "affectedOwners": [
+    "AGENTS.md",
+    "docs/DOCUMENTATION.md",
+    "docs/development/WORKFLOW.md",
+    "docs/design/0031-self-development-documentation-authority.md",
+    "tools/validate-documentation.mjs",
+    "test/documentation-governance.test.mjs",
+    "docs/design/0018-adversarial-converged-model-runtime-boundary.md",
+    "WORKBOARD.md",
+    "docs/design/README.md"
+  ],
+  "acceptance": {
+    "sameProblemBoundary": true,
+    "newRegistryOrDatabase": false,
+    "productSourceAuthorized": false,
+    "D0019ImplementationAuthorizedByThisTask": false,
+    "D0019SelectionPreserved": true,
+    "coldStartDependentOnCorrection": true,
+    "exactRefBoundD0019Blocked": false
+  }
+}

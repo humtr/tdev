@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.documentation-authority-convergence-falsifier.v3",
+  "date": "2026-08-15",
+  "repository": "humtr/tdev",
+  "reviewInputRole": "C/P/CxP convergence is evidence/adjudication input only; repository owners remain authoritative",
+  "freshBinding": {
+    "currentRouteOwner": "WORKBOARD.md",
+    "activeBranch": "group/f-cloudflare-runtime",
+    "activeRemoteHead": "df50caa9f00aa228e7db30caa8b85bc4315c173a",
+    "providerDefaultBranchObserved": "group/e-context-delivery",
+    "providerDefaultHeadObserved": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "canonicalCheckoutObserved": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "canonicalCheckoutClean": true,
+    "isolatedCurrentWorktreeBase": "df50caa9f00aa228e7db30caa8b85bc4315c173a"
+  },
+  "authorityDigests": {
+    "AGENTS.md": "sha256:a096b5763b94e6dc30379977029be5372ee3b1682b65260bd8bd86f6eb97845b",
+    "RULE.md": "sha256:f9e54fce7aa3f504fced6cc95be2fe0582c2111e36388ebb9d4e74774c4f4ce4",
+    "SDD.md": "sha256:beae9c0a3fbea28d91b066898c90b4f2907ea618e85ba761074826d8af5f1f9f",
+    "WORKBOARD.md": "sha256:8c17c7d176f7f8f70f0015aad1412e0135c459b9a47be1daf03ff374173c4cde",
+    "docs/DOCUMENTATION.md": "sha256:be0f134660bb51ac20b384036122b048f10daaf27df05b994240d457a3e73ae7",
+    "docs/development/WORKFLOW.md": "sha256:429539a990f17800500a64f521d77cafb72f3415c25ac5a7628c8de9979fbea5",
+    "D0031": "sha256:815903a33c8bbc3e14371b0ae5f79e88fe95655742c66d00c83b9f056aaa05b5",
+    "D0018": "sha256:74e9ce1022d4151124e15d4b79e2e911f66bf7eec71fb0688f52912b17bbe09e",
+    "documentationValidator": "sha256:a93add4a864dd417cc2578d29f3f87eaebbfe58a185959e0f787e72a45d34c1b",
+    "designIndexGenerator": "sha256:3321d37bd24245425e75f4d490edf2cb117cf36b2b1b9bc61a5d574eb0e6e654",
+    "governanceTests": "sha256:e00b1d774f649c9cb4bcb048b34ff38b29c6085466567d56983c075c9ea58549"
+  },
+  "falsifiers": {
+    "preBootstrapAuthorityLocation": {
+      "result": "reproduced",
+      "observation": "a fresh actor entering through the coherent provider default/canonical checkout reaches completed Group E, while D0031 r2 begins by reading the fixed kernel inside an already-selected snapshot and defines no independent way to locate the current Group F snapshot",
+      "currentValidatorLimit": "rebindContinuity consumes an already-selected WORKBOARD text; it cannot locate that WORKBOARD from a coherent predecessor/default snapshot"
+    },
+    "ownerInternalSingleValuedness": {
+      "result": "reproduced",
+      "observation": "D0018's maintained owner declares verified production implementation/current source near its canonical metadata and current-state section, but its later unscoped Status vocabulary says production implemented no and source verified no",
+      "currentValidatorLimit": "the Design index parses canonical metadata only and documentation validation does not reject a conflicting current-looking status snapshot in the same maintained owner"
+    }
+  },
+  "classification": {
+    "D0031": "revision 2 affected bootstrap/current-routing/documentation-validation meaning is falsified; reopen the affected meaning and issue revision 3 under SDD.md",
+    "D0018": "maintained-record consistency defect only; current product/runtime decision is not falsified by this evidence",
+    "productSemantics": "unchanged",
+    "D0019": "preserve accepted revision 2 and current WORKBOARD selection"
+  }
+}

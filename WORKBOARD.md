@@ -18,6 +18,7 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 - D0019@r2 — `docs/design/0019-casedo-authority-adapter.md` — bounded production implementation/qualification for the elected SQLite-backed CaseDO authority adapter
 - D0030@r1 — `docs/design/0030-immutable-journal-publication-portability.md` — production helper/package implementation and qualification under the accepted portability contract
+- D0031@r3 — `docs/design/0031-self-development-documentation-authority.md` — bounded authority-location and maintained-owner single-value correction after the r2 falsifier
 
 ## Selected next action
 
@@ -32,6 +33,7 @@ The selected next action must be `none` or identify exactly one entry already pr
 - Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 and should be repaired only in its own bounded scope unless it blocks a required gate.
 - Checkout alignment debt was observed during D0031: the canonical Termux checkout was clean but still on completed Group E while the registered project/default development route was Group F. The D0031 correction was verified from an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
 - No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route/frontier above. Rebind any such continuity data before dependent mutation.
+- D0031@r3 is a parallel self-development correction and does not displace the selected D0019@r2 product action. Arbitrary cold-start authority discovery and any claim that D0031 bootstrap verification is complete depend on the r3 locator correction; isolated D0019 work already bound to an exact current ref/SHA is not blocked by that locator defect.
 - A Design referenced by the runnable frontier stops authorizing that gate immediately if its maintained owner is no longer the same revision in `accepted` or `implementing` state. In particular `reopened`, `blocked`, `superseded`, `draft` and already `verified` meanings are not runnable Class 2 implementation authorization.
 
 ## Current owner pointers

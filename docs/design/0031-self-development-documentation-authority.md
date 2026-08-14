@@ -1,13 +1,12 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 2
-- Revision predecessor: revision 1 was verified at `8c89b9a6248b82456d52e3bbaaa0ff4e18cd20db`; its verification evidence remains `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
-- Revision 2 reason: post-verification adversarial reproduction proved that r1 still required one singular current self-development Design, required ROADMAP's `ACTIVE` marker to move with WORKBOARD, and hard-coded D0019 in registry validation
-- Revision 2 falsifier: `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json`
-- Revision 2 acceptance evidence: `docs/evidence/group-f-d0031-r2-framework-acceptance-2026-08-14.json`
-- Revision 2 verification evidence: `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`
-- Revision 2 downstream revalidation: WORKBOARD routing, ROADMAP/PROGRAM current-state deduplication, Design-index derivation, documentation validation and stale-session adversarial tests; product/runtime semantics remain unaffected
+- Status: `accepted`
+- Revision: 3
+- Revision predecessor: revision 2 was verified at `34e2857261c05593cc38d73c8209302f2a193b70`; revision 1 and revision 2 verification evidence remain historical evidence
+- Revision 3 reason: fresh convergence revalidation reproduced two gaps inside the verified r2 problem boundary: pre-bootstrap authority location can start from a coherent predecessor/default snapshot with no contract for locating the actual current snapshot, and a maintained Design owner can expose contradictory current-looking lifecycle/implementation state while metadata/index validation stays green
+- Revision 3 falsifier: `docs/evidence/group-f-d0031-r3-authority-convergence-falsifier-2026-08-15.json`
+- Revision 3 acceptance evidence: `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json`
+- Revision 3 downstream revalidation: authority-location resolution, stale/default/local-only candidate behavior, owner-internal current-value consistency, D0018 maintained-record scoping, Design-index derivation and documentation governance; product/runtime semantics remain unaffected
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
@@ -108,6 +107,24 @@ Therefore a separate live `ACCESS.md` owner is unnecessary. Its durable invarian
 
 `WORKFLOW.md` resolves the active branch from `WORKBOARD.md`; it does not embed Group F or any later current Group as process law.
 
+### 3.6 Pre-bootstrap authority location
+
+The fixed kernel is authoritative only after the session has bound itself to the repository snapshot that actually contains the current router. A fresh actor therefore performs an authority-location step before section 3.1 when its starting snapshot is not already trusted by exact immutable identity.
+
+Authority location is an ephemeral resolution, not a new owner:
+
+1. freshly enumerate the published repository candidates that can contain the self-development kernel;
+2. read each candidate's `WORKBOARD.md` as a declaration made by that exact published `ref@sha`;
+3. keep a candidate only when its repository identity matches the intended repository and its declared active branch is exactly the published ref containing it;
+4. for each retained candidate, validate any declared immediate predecessor against the exact published predecessor identity and Git ancestry;
+5. treat a retained candidate as superseding its exact predecessor candidate only when that predecessor relation is valid;
+6. select exactly one retained maximal candidate and bind to its exact `ref@sha` before reading the fixed kernel;
+7. if no maximal candidate exists, more than one maximal candidate remains, or a required predecessor identity/ancestry conflicts, fail the dependent mutation closed.
+
+The provider default branch, current checkout, branch-name shape, timestamps, a remembered route, mere existence of a later ref, and local-only unpublished refs are discovery inputs only. None can elect the route. A provider default or normal checkout may be aligned to the already-resolved current route as an operational compatibility pointer, but that alignment never becomes a second current-route owner.
+
+A tool-owned transport branch is not a route candidate merely because it contains current-looking files: its own published ref must equal the active branch declared by the `WORKBOARD.md` it contains. The resolver result is disposable and becomes invalid when any source ref observation changes.
+
 ## 4. Decision — naming and physical layout
 
 Filename semantics are a secondary signal, never a substitute for declared ownership.
@@ -174,12 +191,13 @@ A handoff, chat summary, project prompt, Task context or generated registry is c
 
 A continuation may carry observations and cached interpretations only when it also carries enough identity to test compatibility. At session start or before mutation:
 
-1. read the fixed bootstrap kernel;
-2. resolve current routing from `WORKBOARD.md`;
-3. load the current stable owners required by that route;
-4. compare any carried branch/Design/owner claim to the current owners;
-5. discard or mark stale every incompatible derived claim;
-6. freshly observe mutable external state at the gate that requires it.
+1. locate and bind the exact current repository snapshot under section 3.6 unless the starting snapshot is already trusted by exact immutable identity;
+2. read the fixed bootstrap kernel from that bound snapshot;
+3. resolve current routing from `WORKBOARD.md` and confirm it matches the bound published ref;
+4. load the current stable owners required by that route;
+5. compare any carried branch/Design/owner claim to the current owners;
+6. discard or mark stale every incompatible derived claim;
+7. freshly observe mutable external state at the gate that requires it.
 
 No handoff can originate a new branch, Design status, product contract or migration authority.
 
@@ -191,7 +209,9 @@ ROADMAP/PROGRAM may retain historical completion/provenance or stable planning c
 
 The Design record owns its maintained revision/status. WORKBOARD may reference `Dxxxx@rN` as a runnable foreign key but does not copy that status; validation resolves the Design owner and permits runnable Class 2 work only from the current `accepted` or `implementing` revision. Zero runnable Designs is valid.
 
-Human-readable Design indexes are deterministic derived projections of all maintained Design files. Validation checks the complete projection generically; no individual Design ID is special-cased.
+One durable mutable semantic value requires not only one canonical origin owner but exactly one current semantic value exposed by that owner. A maintained owner must not state a second current-looking lifecycle/implementation value that contradicts or competes with its canonical current metadata. Explicitly historical/as-of predecessor statements, independent evidence, deterministic projections, exact-source caches and validation constraints remain allowed because they do not originate a second current value. Current-versus-historical scoping must be machine-checkable for maintained status snapshots; a generated index alone cannot prove owner-body consistency.
+
+Human-readable Design indexes are deterministic derived projections of all maintained Design files. Validation checks the complete projection generically; no individual Design ID is special-cased. Projection equality and owner-body single-valuedness are separate gates.
 
 ## 8. Failure, compatibility and migration
 
@@ -206,11 +226,16 @@ Human-readable Design indexes are deterministic derived projections of all maint
 
 | Gate | Cheapest falsifier / required result |
 | --- | --- |
-| bootstrap | a fresh-session procedure can determine current route from `AGENTS/RULE/SDD/WORKBOARD` without reading historical reports first |
+| authority location — coherent predecessor/default | with a coherent predecessor as provider/default entry and a published current successor, the resolver binds the unique valid current `ref@sha` or fails closed; it never silently accepts the predecessor as current |
+| authority location — unelected successor | a later-looking successor ref whose own WORKBOARD still declares the predecessor is not elected merely because the ref exists |
+| authority location — local-only successor | an unpublished/local successor or current-looking checkout cannot advance the published current route |
+| authority location — conflict | sibling/self-declaring candidates or predecessor identity/ancestry conflicts fail closed rather than using time/name/default heuristics |
+| bootstrap | after exact authority location, a fresh-session procedure can determine current route from `AGENTS/RULE/SDD/WORKBOARD` without reading historical reports first |
 | stale handoff | a fixture claiming an old `mvp-*`, Group E or old Design revision cannot override current WORKBOARD/current Design owner |
 | route transition | full documentation validation remains green when a fixture changes only WORKBOARD from F to G; AGENTS/RULE/WORKFLOW/LINEAGE/ROADMAP/PROGRAM remain byte-identical |
 | empty frontier | WORKBOARD with zero runnable Design references validates when no Design gate is selected |
 | one owner | active branch/runnable-frontier/next-action instance is not independently declared as current by multiple live stable owners |
+| owner single value | a maintained Design with canonical current lifecycle metadata plus a conflicting unscoped current-looking status snapshot is rejected, while an explicitly historical/as-of predecessor snapshot remains valid |
 | lineage | completed checkpoint succession remains exact and historical checkpoints are not rewritten |
 | history | old Design/evidence/report observations remain recoverable and are not rewritten as current claims |
 | naming | live normative/current owners and bounded historical/specific records obey the declared filename categories, except documented conventions |
@@ -259,4 +284,8 @@ Revision 1 was `verified` for the original D0031 self-development/documentation 
 
 The 2026-08-14 falsifier `docs/evidence/group-f-d0031-r2-framework-gap-reproduction-2026-08-14.json` reopens only the claims that r1 had fully generalized current routing and validation. It reproduced three concrete defects: an empty active-Design state could not parse, a WORKBOARD-only F-to-G transition failed against ROADMAP's duplicated `ACTIVE` marker, and validator code special-cased D0019. Those failures stay inside the same bootstrap/current-router/derived-state problem and owner family, so SDD requires a new revision of D0031 rather than a new Design ID.
 
-Revision 2 is `verified`. WORKBOARD now models a route plus 0..N runnable `Dxxxx@rN` foreign keys and resolves authorization from the Design owner; ROADMAP/PROGRAM carry no mutable `ACTIVE`/current-lane mirror; the Design README is an exact deterministic projection of every maintained Design; and full adversarial validation proves zero-frontier validity, WORKBOARD-only F-to-G rebinding, reopened-Design fail-closed behavior, stale-continuity rejection and registry-drift detection without Design-ID special cases. The supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 254/254 and the same subset completed instrumented coverage with exit 0. Exact `npm run check` remains explicitly platform-unqualified only because the inherited ImmutableJournal profile contributes the same 25 `link(2)` `EACCES` failures reproduced in isolation. Product `src/` changed zero paths. Evidence is `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`.
+Revision 2 was `verified`. WORKBOARD models a route plus 0..N runnable `Dxxxx@rN` foreign keys and resolves authorization from the Design owner; ROADMAP/PROGRAM carry no mutable `ACTIVE`/current-lane mirror; the Design README is an exact deterministic projection of every maintained Design; and r2 adversarial validation proved zero-frontier validity, WORKBOARD-only F-to-G rebinding, reopened-Design fail-closed behavior, stale-continuity rejection and registry-drift detection without Design-ID special cases. The supported-Termux suite excluding the inherited ImmutableJournal hard-link profile passed 254/254 and the same subset completed instrumented coverage with exit 0. Exact `npm run check` remained explicitly platform-unqualified only because the inherited ImmutableJournal profile contributed the same 25 `link(2)` `EACCES` failures reproduced in isolation. Product `src/` changed zero paths. Evidence is `docs/evidence/group-f-d0031-r2-framework-verification-2026-08-14.json`.
+
+The 2026-08-15 convergence falsifier reopens only r2's affected bootstrap/current-routing/documentation-validation meaning. Fresh observation found the provider default and normal checkout coherently on completed Group E while current WORKBOARD authority was Group F, and r2 supplied no pre-bootstrap rule for locating which snapshot's fixed kernel to read. The same fresh source review found D0018's maintained body could still expose a current-looking pre-production status snapshot contradicting its verified production record without failing the generated index or governance validator. These defects remain inside D0031's existing bootstrap/authority/validation problem and owner family, so revision 3 is the corrected revision rather than a new Design or registry migration.
+
+Revision 3 is `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json`. It adds only an ephemeral published-candidate authority locator, owner-internal current-value single-valuedness, D0018 record scoping, and the executable falsifiers needed to prevent recurrence. It does not change product semantics, product source, D0019 acceptance, or WORKBOARD's scheduling ownership.
