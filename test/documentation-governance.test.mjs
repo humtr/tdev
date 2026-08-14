@@ -30,6 +30,7 @@ const currentDesignTexts = Object.fromEntries([
   'docs/design/0031-self-development-documentation-authority.md',
   'docs/design/0032-qualification-authority-recomposition.md',
   'docs/design/0033-program-roadmap-authority-recomposition.md',
+  'docs/design/0034-product-contract-evidence-history-recomposition.md',
   'docs/design/0019-casedo-authority-adapter.md',
   'docs/design/0030-immutable-journal-publication-portability.md',
 ].map((relativePath) => [relativePath, fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8')]));
@@ -64,13 +65,13 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates during accepted D0033 recomposition', () => {
+test('current repository documentation authority validates during accepted D0033/D0034 recomposition', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
-  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1', 'D0033@r1']);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0033@r1');
+  assert.deepEqual(result.route.frontier.map((item) => `${item.id}@r${item.revision}`), ['D0019@r2', 'D0030@r1', 'D0033@r1', 'D0034@r1']);
+  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0034@r1');
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
 });

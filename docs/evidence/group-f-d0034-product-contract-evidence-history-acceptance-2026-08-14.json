@@ -1,0 +1,41 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.self-development.design-acceptance",
+  "design": "D0034",
+  "revision": 1,
+  "status": "accepted",
+  "acceptedAt": "2026-08-14",
+  "repository": "humtr/tdev",
+  "lineage": "group/f-cloudflare-runtime",
+  "acceptanceBase": "f4b65010ef48e92e682646aa254d876f0bd37463",
+  "inventory": {
+    "path": "docs/evidence/group-f-d0034-product-contract-evidence-history-inventory-2026-08-14.json",
+    "sha256": "5f7a76cdda796941416dde3c9254cdb324fd4d9232efc705d524a8bd791f7a1e"
+  },
+  "decision": "stable product owners keep durable product contract and enduring rationale; exact observed measurements, verification chronology, mutable implementation status and superseded packaging live in Design/evidence/history",
+  "preserveBeforeRemoval": [
+    "docs/SPEC.md",
+    "docs/ARCHITECTURE.md",
+    "docs/PROTOCOL.md",
+    "docs/OPERATIONS.md",
+    "docs/SECURITY.md",
+    "docs/DEPLOYMENT.md",
+    "docs/MCP.md"
+  ],
+  "nonGoals": [
+    "no source/runtime/provider mutation",
+    "no product semantic change",
+    "no protocol identifier/digest/version/bound change",
+    "no migration/rollback/security meaning change",
+    "no rewrite of historical Design/evidence observations"
+  ],
+  "requiredGates": [
+    "byte-identical predecessor snapshots",
+    "architecture measurement/evidence chronology removed from live owner while stable decisions survive",
+    "other product owners changed only for evidence/status normalization",
+    "generic evidence-history boundary governance",
+    "zero product src changes",
+    "full applicable source/documentation qualification with inherited hard-link limitation classified exactly",
+    "exact non-force fast-forward publication"
+  ]
+}

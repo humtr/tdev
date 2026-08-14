@@ -27,5 +27,6 @@
 | D0031 | r2 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 | D0032 | r1 | verified | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
 | D0033 | r1 | accepted | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
+| D0034 | r1 | accepted | Product Contract Evidence and History Recomposition | `docs/design/0034-product-contract-evidence-history-recomposition.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.
