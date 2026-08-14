@@ -1,0 +1,171 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0019-production-implementation",
+  "observedAt": "2026-08-15",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0019",
+    "revision": 2,
+    "lifecycleAfterThisEvidence": "implementing",
+    "productionVerified": false
+  },
+  "freshAuthority": {
+    "activeGroup": "F",
+    "branch": "group/f-cloudflare-runtime",
+    "startingRemoteHead": "c8dc8875b454d77c86928b3c1d4d2392be4644e4",
+    "immediateCompletedPredecessor": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+    "rootTaskId": "task_7y8_8713101d9d",
+    "worktreeId": "wt_6576e87729fafc50",
+    "worktreeBranch": "tmcp/tdev-d0019-production-implementation-20260815",
+    "canonicalCheckoutAtTaskStart": "clean Group E checkout; alignment debt only; not used as mutation base",
+    "providerDefaultUsedAsAuthority": false
+  },
+  "implementationCommits": [
+    {
+      "sha": "5280710309c3a4f4cfe0c33a52694ba0be544da8",
+      "subject": "feat: add D0019 CaseDO authority adapter"
+    },
+    {
+      "sha": "20834157c0049bf6ef515885971adf7c57042f7e",
+      "subject": "test: qualify D0019 CaseDO adapter semantics"
+    },
+    {
+      "sha": "26fe927af4e835ebcb1c06c8fcf3def2eb5c9587",
+      "subject": "fix: preserve D0019 placement owner boundary"
+    }
+  ],
+  "implementation": {
+    "semanticOracle": "existing D0010/CaseEngine semantic-v3 authority via CaseEngine.restore(..., reopen:false) and applyCommand()",
+    "storageProfile": "tdev.casedo.sqlite-authority.v1",
+    "storageSchemaVersion": 1,
+    "writerProtocol": "tdev.casedo.writer.v1",
+    "representation": "bounded SQLite metadata plus safely chunked semantic-v3 snapshot and content-addressed semantic objects",
+    "commandTransaction": "one storage.transactionSync() transaction validates placement/profile/schema/writer, replays an existing receipt before expected revision, restores CaseEngine, applies one command, capacity-checks the successor and atomically writes semantic objects/snapshot/head/meta",
+    "receiptIdentity": "typedDigest('tdev.case-command.v1', canonicalClone(command)); requestId addresses the receipt and expectedCaseRevision is envelope metadata",
+    "ordinaryReconstruction": "reopen:false; a live running Attempt remains live after reconstruction",
+    "executionOwnerLossRecovery": "separate durable idempotent recovery action; reopen:true is used only after an explicit opaque owner-loss cause",
+    "responseLoss": "post-commit response-loss injection reconciles by authoritative receipt reread without a second semantic mutation",
+    "resultFencing": "existing CaseEngine result identity/fencing remains authoritative; stale and contradictory results do not gain commit authority",
+    "capacity": "positive finite maxAuthoritativeBytesPerCase is required; there is no generic production default",
+    "rolloutBarrier": "writerCompatibilityId fails closed on incompatible writer code/profile",
+    "cloudflareHost": "CaseRuntimeDO validates deployment/environment/Worker/class/namespace/jurisdiction/current Durable Object ID against the elected placement before load/command/recovery",
+    "authorityBirthBoundary": "initializeElectedCase requires an already-elected placement record; the Cloudflare host intentionally exposes no authority-birth RPC",
+    "placementProviderBinding": "pending; the accepted Design does not choose the exact durable placement meta-authority substrate, so no guessed CasePlacementDO/registry owner is implemented",
+    "existingCaseMigration": "not implemented",
+    "d0020DeliveryProtocol": "not implemented or frozen"
+  },
+  "validation": {
+    "npmCi": {
+      "status": "passed",
+      "jobId": "job_801_9d26e5fbc3",
+      "command": "npm ci --ignore-scripts --no-audit --no-fund"
+    },
+    "focusedFinal": {
+      "status": "passed",
+      "jobId": "job_81n_3049947144",
+      "tests": 19,
+      "passed": 19,
+      "scope": "final CaseDO adapter tests plus existing D0019 model falsifiers after placement-owner correction"
+    },
+    "exactSourceGate": {
+      "status": "failed_environment_qualification",
+      "jobId": "job_81v_8f0e0485dc",
+      "command": "npm run check",
+      "reason": "ImmutableJournal hard-link publication tests fail on this Termux environment with link(2) EACCES; this exact gate is not green"
+    },
+    "exactFullCoverageGate": {
+      "status": "failed_environment_qualification",
+      "jobId": "job_81x_615171ade4",
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "reason": "same ImmutableJournal link(2) EACCES profile; the coverage command exits 1 and is not green"
+    },
+    "isolatedHardLinkProfile": {
+      "status": "failed_environment_qualification",
+      "jobId": "job_820_b34531fe13",
+      "command": "node --test test/immutable-journal.test.mjs",
+      "reason": "publication paths invoking link(2) fail with EACCES"
+    },
+    "supportedNonHardLinkGate": {
+      "status": "passed",
+      "jobId": "job_81y_8325898708",
+      "tests": 286,
+      "passed": 286,
+      "alsoPassed": [
+        "npm run syntax",
+        "npm run docs:check",
+        "npm run demo --silent",
+        "npm run durable-demo --silent",
+        "git diff --check"
+      ],
+      "note": "supporting evidence only; this does not substitute for the exact source gate"
+    },
+    "supportedNonHardLinkCoverage": {
+      "status": "passed",
+      "jobId": "job_81z_f25bd306b6",
+      "tests": 286,
+      "passed": 286,
+      "coverage": {
+        "allFiles": {
+          "linePercent": 86.10,
+          "branchPercent": 77.54,
+          "functionPercent": 93.68
+        },
+        "src/casedo-authority.mjs": {
+          "linePercent": 90.59,
+          "branchPercent": 74.62,
+          "functionPercent": 100.00
+        }
+      },
+      "note": "supporting evidence only; immutable-journal.test.mjs is excluded because the Termux link(2) primitive is unavailable"
+    },
+    "liveProviderAvailability": {
+      "status": "unavailable",
+      "jobId": "job_809_07744eccbb",
+      "observed": [
+        "no Wrangler config under the inspected repository depth",
+        "wrangler executable absent from PATH",
+        "no CLOUDFLARE_* variable names visible in the bounded job environment"
+      ]
+    }
+  },
+  "proofLayers": {
+    "semanticModel": "passed",
+    "sourceImplementation": "implemented and locally validated",
+    "adapterIntegration": "passed against a Cloudflare-shaped synchronous SQLite storage facade",
+    "placementProviderBinding": "pending",
+    "providerLive": "unavailable_not_executed",
+    "crossVersionRollout": "not_executed",
+    "migrationRollback": "existing-Case migration not implemented; live rehearsal not applicable to this source change",
+    "deployedE2E": "unavailable_not_executed"
+  },
+  "lifecycleDecision": {
+    "status": "implementing",
+    "reason": "production source and local adapter proof exist, but durable placement-provider binding, deployment-qualified capacity, live provider evidence and rollout qualification remain unresolved or unavailable",
+    "workboardSelectionChanges": false,
+    "d0020Activated": false
+  },
+  "remainingUnknowns": [
+    "exact durable provider substrate and binding for the D0019 placement meta-authority",
+    "actual Cloudflare account/plan capacity and safety headroom used to set maxAuthoritativeBytesPerCase",
+    "exact Wrangler exports versus migrations lifecycle configuration for deployment",
+    "live SQLite Durable Object eviction/restart/response-loss/fault behavior for this adapter",
+    "old/new Worker code coexistence and rollout barrier qualification",
+    "migration/rollback semantics for any future existing-Case cutover",
+    "D0020 delivery identity, Agent epoch, queue representation, reconnect protocol, WebSocket topology, hibernation and Agent cost policy",
+    "later security/deployment/final-E2E gates",
+    "any future measured trigger for a cross-Case target owner"
+  ],
+  "scopeExclusions": [
+    "D0031 authority correction",
+    "D0018 record repair or product semantic reopening",
+    "D0030 implementation",
+    "D0020 distributed Agent delivery protocol",
+    "DB-centered control-plane replacement",
+    "product event sourcing",
+    "generic provider-neutral actor runtime",
+    "unconditional cross-Case target owner",
+    "self-development structured registry migration",
+    "existing local Case migration",
+    "unrelated cleanup"
+  ]
+}

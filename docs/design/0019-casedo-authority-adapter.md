@@ -1,6 +1,6 @@
 # Design 0019 — CaseDO Authority Adapter
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 2
 - Revision predecessor: revision 1 acceptance is identified by `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json`; revision 2 is identified by `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json`
 - Revision 2 reason: adversarial re-review required durable cross-placement election, exact command-only receipt digest/replay ordering, ordinary reconstruction without implicit semantic reopen, explicit owner-loss recovery, and schema/capacity/rollout gates while preserving the same CaseDO authority-adapter problem and selected owner family
@@ -20,11 +20,17 @@
 - Amendment base: `group/f-cloudflare-runtime@fbd2807cf72cf6d076687c8455bb569a99f03e91`
 - Amendment evidence: `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json`
 - Amendment evidence SHA-256: `79470299245e617147976b7f806c0e23dc78dfc2a47ca867cb80f984a73dd623`
+- Production implementation Task: `task_7y8_8713101d9d`
+- Production implementation worktree: `wt_6576e87729fafc50`
+- Production implementation base: `group/f-cloudflare-runtime@c8dc8875b454d77c86928b3c1d4d2392be4644e4`
+- Production implementation commits: `5280710309c3a4f4cfe0c33a52694ba0be544da8`, `20834157c0049bf6ef515885971adf7c57042f7e`, `26fe927af4e835ebcb1c06c8fcf3def2eb5c9587`
+- Production implementation evidence: `docs/evidence/group-f-d0019-casedo-production-implementation-2026-08-15.json`
+- Production implementation evidence SHA-256: `1bbb1939b263db4d2a2690fab604ccd87d38043c8ef1791326c2c02b383f6ea4`
 - Inherited authority: D0010 semantic/current-state authority; D0018 runtime boundary remains closed; D0030 accepted publication portability remains separate
 - Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, `docs/design/README.md`
 - `docs/SPEC.md`: unchanged; product scope did not change
 
-> D0019 selects a runtime authority model. It does **not** contain the production CaseDO adapter, does not implement D0020 AgentDO delivery/connection ownership, does not implement D0030 publication portability, and does not migrate an existing locally authoritative Case.
+> **Revision-2 acceptance boundary (as of 2026-08-13):** D0019 selected a runtime authority model; that acceptance task itself did **not** contain the production CaseDO adapter, D0020 Agent delivery/connection ownership, D0030 publication portability, or an existing-Case migration. Current production implementation progress is recorded in Section 24 and does not change the accepted r2 semantics.
 
 ## 1. One-line definition
 
@@ -469,9 +475,9 @@ The executable artifact `test/d0019-casedo-authority-model.test.mjs` uses the re
 
 The migration falsifier specifically demonstrated that two stores copied from the same revision can each successfully admit a different command if both remain writable. That is a hard rejection of an unfenced `copy then switch` plan.
 
-## 21. Unverified limits
+## 21. Revision-2 acceptance-boundary unverified limits (as of 2026-08-13)
 
-These are deliberately **not** promoted to accepted facts:
+At the r2 acceptance boundary, the following were deliberately **not** promoted to accepted facts. Current implementation evidence is recorded separately in Section 24:
 
 - no production CaseDO source was implemented or deployed in this Design task;
 - no live Cloudflare eviction/network-partition/response-loss injection was run against a production adapter;
@@ -487,7 +493,7 @@ These are production qualification gates, not unresolved public/persistent/secur
 
 ## 22. Production implementation gate
 
-Acceptance authorizes a **separate bounded D0019 production implementation Root Task** only if it preserves this contract.
+The r2 acceptance authorized a **separate bounded D0019 production implementation Root Task** only if it preserves this contract. Current satisfaction of this gate is recorded in Section 24; this list remains the accepted implementation contract rather than a current completion claim.
 
 That Task must, at minimum:
 
@@ -509,10 +515,36 @@ That Task must, at minimum:
 
 Acceptance is not production verification.
 
-## 23. Acceptance conclusion
+## 23. Revision-2 acceptance conclusion (as of 2026-08-13)
 
-D0019 revision 2 remains `accepted` as **Candidate A: one durably elected CaseDO hosts/adapts the existing D0010/CaseEngine authority**.
+At the revision-2 acceptance boundary, D0019 r2 was `accepted` as **Candidate A: one durably elected CaseDO hosts/adapts the existing D0010/CaseEngine authority**.
 
 The accepted meaning is not “Durable Objects are authoritative.” It is narrower: one SQLite-backed CaseDO may become the physical single owner for a placed Case only after a durable placement generation elects its exact provider identity, and only when it preserves the existing semantic oracle inside one durable transaction, reconstructs without inventing semantic reopen, preserves the exact D0010 receipt domain, respects the qualified storage/rollout profile, and keeps all competing ownership/projection/effect facts outside that authority.
 
-Candidate B's unfenced migration form is falsified; existing local Cases are not migrated by D0019. Candidate C is unnecessary on present evidence. Placement uniqueness, exact receipt identity/replay, ordinary reconstruction versus explicit recovery reopen, response-loss/revision/running-before-dispatch/ambiguity behavior, initial storage/capacity/rollout profile, migration prohibition, rollback boundary, D0020 separation and D0030 relationship are now frozen tightly enough for a separate production implementation Task. The amendment removes the prior implementation-authorization blocker; it does not itself implement or production-verify the adapter.
+At that acceptance boundary, Candidate B's unfenced migration form was falsified; existing local Cases were not migrated by D0019, and Candidate C was unnecessary on the available evidence. Placement uniqueness, exact receipt identity/replay, ordinary reconstruction versus explicit recovery reopen, response-loss/revision/running-before-dispatch/ambiguity behavior, initial storage/capacity/rollout profile, migration prohibition, rollback boundary, D0020 separation and D0030 relationship were frozen tightly enough for a separate production implementation Task. The amendment removed the prior implementation-authorization blocker; the acceptance task itself did not implement or production-verify the adapter.
+
+## 24. Production implementation status (as of 2026-08-15)
+
+The maintained lifecycle status is now `implementing`. Revision 2 and its accepted product/runtime semantics are unchanged.
+
+Implemented source evidence:
+
+- `src/casedo-authority.mjs` implements `tdev.casedo.sqlite-authority.v1` / `storageSchemaVersion = 1` as a bounded SQLite host for the existing D0010 semantic-v3 authority. Snapshot authority and content-addressed semantic objects are safely chunked; the adapter does not define a second Case state machine.
+- `src/engine.mjs` exposes the existing command-envelope inspection needed by the adapter so the receipt identity remains exactly `typedDigest('tdev.case-command.v1', canonicalClone(command))` and receipt replay remains before expected-revision rejection.
+- one synchronous storage transaction validates placement/profile/schema/writer compatibility, restores `CaseEngine` with `reopen:false`, applies exactly one semantic command, capacity-checks the successor, and atomically persists semantic objects, snapshot, head and metadata. Injected precommit writes roll back; postcommit response loss reconciles by durable receipt reread.
+- ordinary reconstruction preserves a live `running` Attempt. `reopen:true` is confined to a separate durable, idempotent execution-owner-loss recovery action; its cause remains opaque and does not define D0020 delivery/epoch/reconnect meaning.
+- `src/cloudflare-casedo.mjs` provides the provider host for an **already elected** Case placement and checks deployment/environment/Worker/class/namespace/jurisdiction/current Durable Object identity before authoritative operations. No Cloudflare authority-birth RPC is exposed.
+- a positive finite `maxAuthoritativeBytesPerCase` and writer compatibility identity are mandatory deployment inputs; no generic production capacity default is supplied.
+
+The implementation deliberately does **not** guess the still-unselected durable placement meta-authority substrate. An earlier local candidate that could have made separate placement Durable Objects independent registry owners was removed before publication. `initializeElectedCase()` therefore has an explicit precondition that a separately owned durable placement election already selected the exact record. Production gate item 2 remains pending until current deployment authority selects or binds one durable atomic placement path and proves competing destinations cannot initialize one CaseId.
+
+Validation at this status:
+
+- focused final CaseDO adapter plus D0019 model falsifiers: `19/19` passed;
+- supported non-hard-link source suite: `286/286` passed together with syntax, documentation validation, demo, durable demo and `git diff --check`;
+- supported non-hard-link coverage: `286/286` passed, all-files line/branch/function coverage `86.10% / 77.54% / 93.68%`, and `src/casedo-authority.mjs` `90.59% / 74.62% / 100%`;
+- exact `npm run check`: **not green** in this Termux environment because `immutable-journal.test.mjs` hard-link publication reaches `link(2)` `EACCES`;
+- exact full coverage command: **not green** for the same inherited hard-link qualification reason;
+- live Cloudflare/provider qualification: unavailable in this task environment; no repository Wrangler config, Wrangler executable or bounded `CLOUDFLARE_*` environment names were observed, so account limits, deployment-qualified capacity, provider fault injection and rollout overlap were not guessed green.
+
+The exact machine-readable evidence is `docs/evidence/group-f-d0019-casedo-production-implementation-2026-08-15.json`. D0019 is therefore **source-implemented and locally adapter-qualified, but provider/placement qualification-pending**. It is not production `verified`, WORKBOARD remains on D0019@r2, and D0020 is not activated by this evidence.
