@@ -1,0 +1,774 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.mvp-qualification-semantic-inventory.v1",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "source": {
+    "path": "docs/MVP.md",
+    "sha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "bytes": 52228,
+    "lines": 307,
+    "head": "7332a7b347f7ecc94c1c12b37ce92ee3358de314"
+  },
+  "authorityFacts": {
+    "currentRouteOwner": "WORKBOARD.md",
+    "currentRoute": "Group F / group/f-cloudflare-runtime",
+    "documentationOwner": "docs/DOCUMENTATION.md",
+    "currentAcceptanceOwnerBeforeB": "docs/MVP.md",
+    "finalMvpCapabilityOwner": "docs/ROADMAP.md",
+    "changeClass": 2,
+    "nextUnusedDesignIdObserved": "D0032"
+  },
+  "sectionDisposition": [
+    {
+      "lines": "1-3",
+      "sourceRole": "live owner title/authority declaration",
+      "disposition": "replace_owner_metadata",
+      "destination": "docs/QUALIFICATION.md"
+    },
+    {
+      "lines": "5-39",
+      "sourceRole": "D0007-D0014 vertical-slice and Design completion summaries",
+      "disposition": "historical_design_summary",
+      "destination": "docs/history/mvp-verification-and-evidence.md; maintained Design/product owners remain authoritative"
+    },
+    {
+      "lines": "40-45",
+      "sourceRole": "final-MVP target plus then-current maturity/D0014 review status",
+      "disposition": "split",
+      "destination": "stable Level-4 completion definition remains docs/ROADMAP.md; observation/history remains historical snapshot; qualification owner retains only source-vs-product proof-layer rule"
+    },
+    {
+      "lines": "46-51",
+      "sourceRole": "source qualification command gate",
+      "disposition": "qualification_contract_candidate_with_conflict",
+      "destination": "B1 Design must resolve against AGENTS.md minimum source gate before owner swap"
+    },
+    {
+      "lines": "53-80",
+      "sourceRole": "D0007-D0014 source candidates, test counts, coverage, environment and evidence identities",
+      "disposition": "historical_evidence_summary",
+      "destination": "docs/history/mvp-verification-and-evidence.md plus referenced docs/evidence records"
+    },
+    {
+      "lines": "81-163",
+      "sourceRole": "acceptance matrix containing verification method plus observed result",
+      "disposition": "split_each_row",
+      "destination": "Area + cheapest falsifier -> docs/QUALIFICATION.md; Observed evidence -> historical snapshot / referenced evidence"
+    },
+    {
+      "lines": "164-180",
+      "sourceRole": "historical test inventory and historical pass counts",
+      "disposition": "history",
+      "destination": "docs/history/mvp-verification-and-evidence.md"
+    },
+    {
+      "lines": "181-192",
+      "sourceRole": "differential/fault development evidence",
+      "disposition": "history",
+      "destination": "docs/history/mvp-verification-and-evidence.md and referenced checked evidence"
+    },
+    {
+      "lines": "193-237",
+      "sourceRole": "benchmark/scale/performance observations and limitations",
+      "disposition": "history",
+      "destination": "docs/history/mvp-verification-and-evidence.md and referenced evidence; no production SLO is created"
+    },
+    {
+      "lines": "238-259",
+      "sourceRole": "proof-layer limits plus specific then-current unqualified gaps",
+      "disposition": "split",
+      "destination": "generic source-does-not-prove-provider/deployment/security rule -> docs/QUALIFICATION.md; specific mutable gaps -> current WORKBOARD/ROADMAP/Design owners; exact wording remains historical snapshot"
+    },
+    {
+      "lines": "261-263",
+      "sourceRole": "D0030 and D0018 Design/status/evidence summaries",
+      "disposition": "derived_status_history",
+      "destination": "maintained Design owners + historical snapshot; not qualification owner"
+    },
+    {
+      "lines": "265-308",
+      "sourceRole": "D0007-D0019 completion/status narrative and follow-on gates",
+      "disposition": "history_and_owner_links",
+      "destination": "Design owners / docs/ROADMAP.md / WORKBOARD.md as applicable; exact narrative remains historical snapshot; qualification owner retains only general layer-completion rule"
+    }
+  ],
+  "acceptanceMatrix": {
+    "dataRows": 78,
+    "preservationRule": "Every Area + Cheapest falsifier pair is carried forward as a qualification method unless a later accepted Design explicitly changes it. Observed evidence cells are historical observations and are not copied as current qualification state.",
+    "rows": [
+      {
+        "sourceLine": 85,
+        "area": "immutable graph",
+        "cheapestFalsifier": "mutate Plan / duplicate Task / unknown dependency / cycle",
+        "observedEvidence": "rejected; compiled Plan frozen",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 86,
+        "area": "one Promotion",
+        "cheapestFalsifier": "zero/multiple Promotion or incomplete full join",
+        "observedEvidence": "rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 87,
+        "area": "capacity degeneration",
+        "cheapestFalsifier": "same graph at capacity 1 and N",
+        "observedEvidence": "equal canonical digest and manifest",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 88,
+        "area": "scheduling/completion order",
+        "cheapestFalsifier": "inverse executor timing and accepted-result order",
+        "observedEvidence": "same canonical tree/digest",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 89,
+        "area": "executor identity",
+        "cheapestFalsifier": "different executor IDs/epochs with valid envelopes",
+        "observedEvidence": "evidence differs; canonical result equal",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 90,
+        "area": "retry order",
+        "cheapestFalsifier": "alternate retry interleavings",
+        "observedEvidence": "canonical result equal",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 91,
+        "area": "parallel admission",
+        "cheapestFalsifier": "disjoint claims with barriers",
+        "observedEvidence": "overlap observed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 92,
+        "area": "Claim correctness",
+        "cheapestFalsifier": "exact/reference oracle over randomized prefix sets",
+        "observedEvidence": "equivalent decisions",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 93,
+        "area": "Claim lifecycle",
+        "cheapestFalsifier": "acquire/release 2,000 unique paths",
+        "observedEvidence": "overlap trie pruned back to root; restore/rebuild equal",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 94,
+        "area": "authority",
+        "cheapestFalsifier": "one missing set in the capability intersection",
+        "observedEvidence": "deterministic denial",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 95,
+        "area": "complete fencing",
+        "cheapestFalsifier": "stale epoch/token/identity/lease/scope",
+        "observedEvidence": "rejected with no state change",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 96,
+        "area": "durable dispatch",
+        "cheapestFalsifier": "inspect store before executor callback",
+        "observedEvidence": "running Attempt already durable",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 97,
+        "area": "checkpoint race",
+        "cheapestFalsifier": "forced CAS loss before dispatch",
+        "observedEvidence": "zero executor calls",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 98,
+        "area": "accepted-result durability",
+        "cheapestFalsifier": "inspect persistence and lease-release ordering",
+        "observedEvidence": "settlement durable before release",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 99,
+        "area": "effect recovery",
+        "cheapestFalsifier": "reopen each effect class / invalid external result",
+        "observedEvidence": "class-specific retry/reconcile/unverified behavior",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 100,
+        "area": "cancellation race",
+        "cheapestFalsifier": "cancel before late success",
+        "observedEvidence": "intent/terminal state preserved; late result rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 101,
+        "area": "blocker propagation",
+        "cheapestFalsifier": "reverse-lexical topological chain and cancellation DAG",
+        "observedEvidence": "one deterministic topological pass; no Event overrun",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 102,
+        "area": "atomic mutation",
+        "cheapestFalsifier": "fail after first Event / invalid reconciliation",
+        "observedEvidence": "all changed entries/scalars/events restored",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 103,
+        "area": "full restore oracle",
+        "cheapestFalsifier": "snapshot after every randomized transition",
+        "observedEvidence": "100 histories accepted exactly by full restore",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 104,
+        "area": "acceleration loss",
+        "cheapestFalsifier": "delete/corrupt counters, ready set, claim-holder set",
+        "observedEvidence": "top-level reconcile rebuilds exact snapshot/readiness/holders",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 105,
+        "area": "runner candidate loss",
+        "cheapestFalsifier": "clear local ready candidates",
+        "observedEvidence": "repair/rebuild before deadlock; graph completes",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 106,
+        "area": "Promotion safety",
+        "cheapestFalsifier": "conflict/topology/path error",
+        "observedEvidence": "stable failure; old canonical tree preserved",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 107,
+        "area": "strict/canonical data",
+        "cheapestFalsifier": "duplicate key, unsafe number, malformed UTF-8, noncanonical bytes",
+        "observedEvidence": "rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 108,
+        "area": "bounds",
+        "cheapestFalsifier": "result/evidence/Event/receipt/snapshot overflow",
+        "observedEvidence": "rejected before partial commit",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 109,
+        "area": "snapshot integrity",
+        "cheapestFalsifier": "digest/Event/result/index/state/blocker corruption",
+        "observedEvidence": "restore rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 110,
+        "area": "v1 migration",
+        "cheapestFalsifier": "historical succeeded fixture",
+        "observedEvidence": "deterministic v2 recomputation and CAS persistence",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 111,
+        "area": "File store stale race",
+        "cheapestFalsifier": "independent same-process instances",
+        "observedEvidence": "exactly one CAS winner",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 112,
+        "area": "Journal stale race",
+        "cheapestFalsifier": "warm stale instance after another instance commits",
+        "observedEvidence": "stale expected revision rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 113,
+        "area": "Journal concurrent race",
+        "cheapestFalsifier": "independent same-process CAS calls",
+        "observedEvidence": "exactly one winner",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 114,
+        "area": "Immutable journal create race",
+        "cheapestFalsifier": "independent Node processes / absent base",
+        "observedEvidence": "exactly one base winner observed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 115,
+        "area": "Immutable journal same-process race",
+        "cheapestFalsifier": "independent instances / one expected revision",
+        "observedEvidence": "exactly one winner observed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 116,
+        "area": "Immutable journal process race",
+        "cheapestFalsifier": "independent Node processes / one expected revision",
+        "observedEvidence": "exactly one winner observed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 117,
+        "area": "Immutable journal format migration",
+        "cheapestFalsifier": "legacy prefix -> v2; v2 -> legacy",
+        "observedEvidence": "forward accepted; reverse and duplicate predecessor rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 118,
+        "area": "Immutable journal cutover",
+        "cheapestFalsifier": "legacy/new adapters at one predecessor",
+        "observedEvidence": "same-process mixed adapters serialize; cross-process mixed-format writers require legacy-writer quiescence before first v2 publication",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 119,
+        "area": "Immutable journal full replay",
+        "cheapestFalsifier": "historical semantic corruption / restart",
+        "observedEvidence": "warm/cold/reopen integrity result equal; corruption fails closed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 120,
+        "area": "Immutable warm namespace",
+        "cheapestFalsifier": "warm instance then add malformed committed-looking name",
+        "observedEvidence": "fail closed before materialization reuse",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 121,
+        "area": "Immutable warm base file type",
+        "cheapestFalsifier": "warm instance then replace `base.json` with non-regular entry",
+        "observedEvidence": "fail closed before materialization reuse",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 122,
+        "area": "warm-cache corruption",
+        "cheapestFalsifier": "mutate durable base after load",
+        "observedEvidence": "next load/CAS fails `store_corrupt`",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 123,
+        "area": "Legacy journal record contents",
+        "cheapestFalsifier": "recognized delta with malformed/noncanonical/truncated contents, missing base, replay corruption",
+        "observedEvidence": "covered cases fail closed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 124,
+        "area": "Legacy committed namespace",
+        "cheapestFalsifier": "malformed committed-looking `delta-*` name or recognized-name non-regular entry",
+        "observedEvidence": "verified fail-closed behavior, including warm materialization; malformed names use `store_journal_filename` and recognized non-regular slots use `store_journal_file_type`",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 125,
+        "area": "Immutable committed namespace",
+        "cheapestFalsifier": "malformed/unsafe committed-looking name or recognized non-regular authority slot",
+        "observedEvidence": "covered cases fail closed before materialization reuse",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 126,
+        "area": "Immutable publication ambiguity",
+        "cheapestFalsifier": "injected failure before/after the final-slot boundary",
+        "observedEvidence": "pre-publication temporary-write/file-sync/final-publish failures leave no successor; directory-sync failure preserves `store_commit_ambiguous` and authoritative re-read observes the possible successor; cleanup cannot retroactively fail a committed successor",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 127,
+        "area": "aggregate durable admission",
+        "cheapestFalsifier": "individually legal Case components whose combined snapshot exceeds configured store bound",
+        "observedEvidence": "external-effect capacity failure/unknown capacity rejects before executor invocation and releases a newly acquired Claim; result-only oversized settlement leaves the durable running predecessor authoritative",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 128,
+        "area": "settlement checkpoint/Claim liveness",
+        "cheapestFalsifier": "checkpoint exception after in-memory settlement and before terminal lease release",
+        "observedEvidence": "idempotent-external reopen durably interrupts the predecessor then retries under budget; reconcilable external work reopens as `reconciling` and retains the lease until fenced terminal reconciliation",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 129,
+        "area": "D0009 semantic equivalence",
+        "cheapestFalsifier": "research model materializes a different tree/current digest",
+        "observedEvidence": "all 141 completed model samples equal current Promotion tree and `digest(tree)`",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 130,
+        "area": "D0009 root determinism",
+        "cheapestFalsifier": "rebuild/input/write history changes research root",
+        "observedEvidence": "focused rebuild and permutation tests pass",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 131,
+        "area": "D0009 hash collision",
+        "cheapestFalsifier": "equal path-hash key aliases/losses complete paths",
+        "observedEvidence": "injected same-key collision bucket preserves deterministic complete paths",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 132,
+        "area": "D0009 directory Merkle",
+        "cheapestFalsifier": "one sparse write in a wide directory requires bounded metadata work",
+        "observedEvidence": "falsified: 100k-wide one-write sample hashes 100,000 sibling refs; C1 rejected",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 133,
+        "area": "D0009 bounded sparse structures",
+        "cheapestFalsifier": "C2/C3 1/8/128 update work scales with total tree entries",
+        "observedEvidence": "checked structural node/hash counts remain sparse; both survive",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 134,
+        "area": "D0009 compatibility tax",
+        "cheapestFalsifier": "research root removes need for current full-tree materialization/digest without migration",
+        "observedEvidence": "falsified: all models still require complete compatibility materialization/digest; three 100k broad stops occur there",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 135,
+        "area": "D0010 root/topology",
+        "cheapestFalsifier": "rebuild/order/batch history changes root or prefix conflict needs O(N) materialization",
+        "observedEvidence": "same final valid trees share root; exact/ancestor/descendant conflicts rejected by radix traversal",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 136,
+        "area": "D0010 sparse authority",
+        "cheapestFalsifier": "1/8/128 writes or v3 checkpoint secretly materialize/hash the full tree",
+        "observedEvidence": "checked structural reads/writes scale with touched radix paths; compact snapshot excludes full base/canonical/Promotion trees",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 137,
+        "area": "D0010 head/ambiguity",
+        "cheapestFalsifier": "independent expected-predecessor writers both win or unknown commit triggers blind retry",
+        "observedEvidence": "one transactional head winner; pre/at/post-commit faults reconcile predecessor/successor/third-state explicitly",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 138,
+        "area": "D0010 migration/downgrade",
+        "cheapestFalsifier": "live/racing legacy source crosses cutover or post-v3 write downgrades automatically",
+        "observedEvidence": "explicit writer/Claim quiescence plus source digest/revision recheck; post-migration v3 write rejects automatic downgrade",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 139,
+        "area": "D0010 corruption/repair/GC",
+        "cheapestFalsifier": "corrupt reachable object hides behind cache, repair changes authority, or GC deletes live/pinned object",
+        "observedEvidence": "fail closed; repair reproduces exact expected digest without moving head; expected-state GC preserves heads/pins",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 140,
+        "area": "D0011 semantic Git binding",
+        "cheapestFalsifier": "real Git tree/blob bytes differ from candidate semantic root or commit bytes differ from tree/parent/metadata",
+        "observedEvidence": "publish/reconcile fails closed even when candidate digest is recomputed",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 141,
+        "area": "D0011 deterministic/object format",
+        "cheapestFalsifier": "same semantic root built in permuted order; project into SHA-1 and SHA-256 repos",
+        "observedEvidence": "same-format tree/commit deterministic; semantic root equal across formats while Git OIDs use correct format",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 142,
+        "area": "D0011 local ref CAS",
+        "cheapestFalsifier": "two independent creators/writers present one predecessor",
+        "observedEvidence": "exactly one ref winner; stale publication cannot overwrite",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 143,
+        "area": "D0011 ambiguity/restart",
+        "cheapestFalsifier": "inject pre/post-update loss and reopen adapter",
+        "observedEvidence": "predecessor/candidate/third state classified deterministically; no blind replay",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 144,
+        "area": "D0011 rollback",
+        "cheapestFalsifier": "rollback exact winner or after an intervening publication",
+        "observedEvidence": "exact predecessor/absence restored, or stale rollback fenced with third state preserved",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 145,
+        "area": "D0011 process/ref safety",
+        "cheapestFalsifier": "symbolic/wrong namespace, bad predecessor/metadata, inherited `GIT_DIR`, repository hook",
+        "observedEvidence": "fail closed or ignored as specified; target repo cannot be redirected and hook cannot gain publication authority",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 146,
+        "area": "D0012 target/admission",
+        "cheapestFalsifier": "local candidate is unelected, remote target changes, branch absent, or clear credential is embedded",
+        "observedEvidence": "fail before remote mutation; target intent is immutable and contains no clear URL/credential",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 147,
+        "area": "D0012 exact remote fence",
+        "cheapestFalsifier": "two locally elected siblings present one remote predecessor",
+        "observedEvidence": "at most one remote winner; stale predecessor cannot overwrite",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 148,
+        "area": "D0012 ambiguity/restart",
+        "cheapestFalsifier": "push result is lost or transport fails, then adapter restarts",
+        "observedEvidence": "remote reread classifies candidate/predecessor/third/unreadable; no blind replay and target identity must match intent",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 149,
+        "area": "D0012 rollback/provider rejection",
+        "cheapestFalsifier": "rollback current candidate, reject rewind, or advance remote first",
+        "observedEvidence": "exact rollback succeeds when permitted; provider rejection is safe not-applied; stale rollback preserves third winner",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 150,
+        "area": "D0012 routing/secrets",
+        "cheapestFalsifier": "inherited `GIT_DIR` or stderr/embedded credential attempts to redirect/leak",
+        "observedEvidence": "routing scrubbed; canonical intent/receipt/error facts exclude clear target and provider diagnostics",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 151,
+        "area": "D0013 exact repository base",
+        "cheapestFalsifier": "exact commit text map differs from Attempt `baseDigest`, or worktree changes after Plan creation",
+        "observedEvidence": "mismatch fails before subprocess; immutable commit context ignores worktree drift",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 152,
+        "area": "D0013 Git/text safety",
+        "cheapestFalsifier": "executable file, symlink, invalid UTF-8, path/tree bound failure, inherited `GIT_DIR`",
+        "observedEvidence": "`100644`/`100755` retained; unsupported/invalid input fails closed and inherited Git routing cannot redirect scan",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 153,
+        "area": "D0013 request/result binding",
+        "cheapestFalsifier": "stale/wrong request digest, malformed response, subprocess error/timeout/abort/output overflow",
+        "observedEvidence": "no accepted result; bounded failure/observation and existing Task retry owns any later Attempt",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 154,
+        "area": "D0013 repository authority",
+        "cheapestFalsifier": "model returns a ChangeSet",
+        "observedEvidence": "adapter does not mutate index/worktree/ref; result still passes existing Plan/Claim/fencing/Promotion path",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 155,
+        "area": "D0013 full-context baseline",
+        "cheapestFalsifier": "repeated Tasks/retry use same commit",
+        "observedEvidence": "four measured Attempts request 7,031,140 context bytes for one 1,757,785-byte unique context; 5,273,355 bytes repeat and retry rereads full context; the 75% fraction is structurally predictable",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 156,
+        "area": "D0014 same-base preparation",
+        "cheapestFalsifier": "1/2/4/8 Tasks share one immutable base",
+        "observedEvidence": "exactly one producer per exact key; Git preparation is reused while every Attempt still sends a full request and starts one process",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 157,
+        "area": "D0014 identity/restart/rollback",
+        "cheapestFalsifier": "changed commit or wrong `baseDigest`, cache loss, eviction, restart or `contextCache: false`",
+        "observedEvidence": "stale reuse fails closed; cold/cache-hit request semantics are equal; authoritative Git/current state rebuilds the derived value",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 158,
+        "area": "D0014 concurrency/failure",
+        "cheapestFalsifier": "same-key stampede, different bases, producer failure, one/all reader cancellation",
+        "observedEvidence": "one producer/many readers, unrelated bases remain concurrent, failure is not retained, one cancellation does not poison peers and all-reader cancellation aborts Git",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 159,
+        "area": "D0014 process lifecycle",
+        "cheapestFalsifier": "timeout/abort/overflow/direct-child exit with a descendant holding pipes",
+        "observedEvidence": "complete POSIX process group is cleaned; a valid direct-child response cannot become a false timeout and no descendant survives",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 160,
+        "area": "D0014 observations",
+        "cheapestFalsifier": "callback throws, rejects or never settles",
+        "observedEvidence": "transport outcome is unchanged and never awaits asynchronous observation completion",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 161,
+        "area": "compaction crash shape",
+        "cheapestFalsifier": "replacement base durable before covered-delta deletion",
+        "observedEvidence": "exact snapshot restored; covered deltas ignored",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      },
+      {
+        "sourceLine": 162,
+        "area": "three-state compatibility",
+        "cheapestFalsifier": "successful transition histories across all three states",
+        "observedEvidence": "100 seeds / 2,600 transitions exact snapshot equality",
+        "liveDisposition": "qualification_method",
+        "observedEvidenceDisposition": "history_snapshot"
+      }
+    ]
+  },
+  "sourceGateConflict": {
+    "status": "must_be_resolved_before_owner_swap",
+    "mvpLines": "48-51",
+    "mvpCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run check"
+    ],
+    "agentsCommands": [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run check",
+      "node --experimental-test-coverage --test test/*.test.mjs",
+      "git diff --check"
+    ],
+    "problem": "Two live owners currently describe different source-gate breadth. B must select one qualification owner and make AGENTS reference it rather than retaining a second command list."
+  },
+  "liveReferenceInventory": {
+    "maintainedReferencesObserved": [
+      "AGENTS.md",
+      "README.md",
+      "WORKBOARD.md",
+      "docs/DOCUMENTATION.md",
+      "docs/design/0001-parallel-first-mvp-loop.md",
+      "docs/design/0002-durable-parallel-control-core.md",
+      "docs/design/0006-persistence-hot-path-measurement.md",
+      "docs/design/0007-verified-immutable-journal-materialization-cache.md",
+      "docs/design/0008-authority-boundary-verification-and-durability-admission.md",
+      "docs/design/0009-semantic-authority-representation-comparison.md",
+      "docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md",
+      "docs/design/0019-casedo-authority-adapter.md",
+      "docs/design/0030-immutable-journal-publication-portability.md",
+      "docs/design/0031-self-development-documentation-authority.md"
+    ],
+    "rule": "Maintained live references that intend the current qualification owner must be updated atomically at the owner swap. Historical/evidence strings that accurately record docs/MVP.md remain untouched."
+  },
+  "ownerSwapPreconditions": [
+    "D0032 (or another fresh next ID if authority changes before acceptance) is accepted before Class 2 owner mutation.",
+    "The source-gate conflict is resolved explicitly.",
+    "A byte-identical historical preservation of this exact docs/MVP.md is proven before deleting the live path.",
+    "All 78 acceptance matrix methods are preserved in the replacement qualification owner or explicitly superseded by accepted Design text.",
+    "Observed evidence, pass counts, benchmarks and old completion narrative are not promoted into current authority.",
+    "Maintained live references are swapped in the same transition so only one live qualification owner remains.",
+    "Product src/runtime/provider/durable semantics remain unchanged."
+  ],
+  "unresolvedBeforeB1": [
+    "Which source-gate command set is the canonical qualification contract: the narrower historical MVP block or the broader current AGENTS minimum gate? This is a Class 2 acceptance-method decision and cannot be inferred from passing tests."
+  ],
+  "classificationComplete": true,
+  "ownerSwapAuthorizedByInventoryAlone": false
+}
