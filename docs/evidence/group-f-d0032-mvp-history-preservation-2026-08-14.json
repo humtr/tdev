@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "kind": "tdev.mvp-history-preservation.v1",
+  "date": "2026-08-14",
+  "repository": "humtr/tdev",
+  "sourceCommit": "de06c9bcfb7539648783d045eb10b1516cc25305",
+  "source": {
+    "path": "docs/MVP.md",
+    "sha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "bytes": 52228
+  },
+  "historicalCopy": {
+    "path": "docs/history/mvp-verification-and-evidence.md",
+    "sha256": "45148c5e9f152284d875152c4bff8d133dbf56662501473c9bd3a2225676d346",
+    "bytes": 52228
+  },
+  "verification": {
+    "cmp": "equal",
+    "sha256Equal": true,
+    "byteCountEqual": true
+  },
+  "authority": "The historical copy is provenance/evidence only; docs/MVP.md remains the live acceptance owner until the later atomic owner-swap commit.",
+  "result": "byte-identical historical preservation proven"
+}
