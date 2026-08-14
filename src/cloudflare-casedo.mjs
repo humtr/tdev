@@ -2,7 +2,6 @@ import { DurableObject } from 'cloudflare:workers';
 import { ContractError } from './canonical.mjs';
 import {
   CaseDOAuthority,
-  CasePlacementAuthority,
   validateCasePlacement,
 } from './casedo-authority.mjs';
 
@@ -82,10 +81,6 @@ export class CaseRuntimeDO extends DurableObject {
     return assertRuntimePlacement(input, this.config, this.durableObjectId);
   }
 
-  createCase(input) {
-    return this.authority.createCase({ ...input, placement: this.#placement(input.placement) });
-  }
-
   loadCase(input) {
     return this.authority.loadCase({ ...input, placement: this.#placement(input.placement) });
   }
@@ -96,23 +91,5 @@ export class CaseRuntimeDO extends DurableObject {
 
   recoverExecutionOwnerLoss(input) {
     return this.authority.recoverExecutionOwnerLoss({ ...input, placement: this.#placement(input.placement) });
-  }
-}
-
-export class CasePlacementDO extends DurableObject {
-  constructor(ctx, env) {
-    super(ctx, env);
-    this.authority = new CasePlacementAuthority(ctx.storage);
-    ctx.blockConcurrencyWhile(async () => {
-      this.authority.initialize();
-    });
-  }
-
-  elect(input) {
-    return this.authority.elect(input);
-  }
-
-  read(caseId) {
-    return this.authority.read(caseId);
   }
 }

@@ -16,7 +16,6 @@ export {
   CASEDO_STORAGE_SCHEMA_VERSION,
   CASEDO_WRITER_PROTOCOL,
   CaseDOAuthority,
-  CasePlacementAuthority,
   createCasePlacement,
   validateCasePlacement,
 } from './casedo-authority.mjs';

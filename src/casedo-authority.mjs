@@ -164,67 +164,6 @@ export function validateCasePlacement(input) {
   return recreated;
 }
 
-export class CasePlacementAuthority {
-  constructor(storage) {
-    this.storage = assertStorage(storage);
-  }
-
-  initialize() {
-    sqlExec(this.storage.sql, `CREATE TABLE IF NOT EXISTS casedo_placements (
-      case_id TEXT PRIMARY KEY,
-      placement_json TEXT NOT NULL,
-      placement_digest TEXT NOT NULL
-    )`);
-  }
-
-  elect(input) {
-    const proposed = createCasePlacement(input);
-    return this.storage.transactionSync(() => {
-      const current = sqlOneOrNull(
-        this.storage.sql,
-        'SELECT placement_json, placement_digest FROM casedo_placements WHERE case_id = ?',
-        proposed.caseId,
-      );
-      if (current !== null) {
-        const parsed = validateCasePlacement(parseCanonicalJson(current.placement_json, 32 * 1024, 'placement row'));
-        if (current.placement_digest !== parsed.placementDigest) {
-          throw new ContractError('casedo_store_corrupt', 'Placement row digest does not match its record');
-        }
-        if (canonicalJson(parsed) !== canonicalJson(proposed)) {
-          throw new ContractError('placement_conflict', `Case ${proposed.caseId} already has a different elected placement`, {
-            currentPlacementDigest: parsed.placementDigest,
-            proposedPlacementDigest: proposed.placementDigest,
-          });
-        }
-        return Object.freeze({ deduplicated: true, placement: parsed });
-      }
-      sqlExec(
-        this.storage.sql,
-        'INSERT INTO casedo_placements(case_id, placement_json, placement_digest) VALUES (?, ?, ?)',
-        proposed.caseId,
-        canonicalJson(proposed),
-        proposed.placementDigest,
-      );
-      return Object.freeze({ deduplicated: false, placement: proposed });
-    });
-  }
-
-  read(caseId) {
-    assertIdentifier(caseId, 'caseId');
-    const current = sqlOneOrNull(
-      this.storage.sql,
-      'SELECT placement_json, placement_digest FROM casedo_placements WHERE case_id = ?',
-      caseId,
-    );
-    if (current === null) return null;
-    const parsed = validateCasePlacement(parseCanonicalJson(current.placement_json, 32 * 1024, 'placement row'));
-    if (current.placement_digest !== parsed.placementDigest) {
-      throw new ContractError('casedo_store_corrupt', 'Placement row digest does not match its record');
-    }
-    return parsed;
-  }
-}
-
 function createHead(snapshot, previousHead = null) {
   const previous = previousHead === null ? null : validateSemanticHead(previousHead);
   const authority = snapshot.semanticAuthority;
@@ -447,8 +386,10 @@ export class CaseDOAuthority {
     }
   }
 
-  createCase(input) {
-    assertRecordShape(input, ['placement', 'plan'], ['caseContract'], 'CaseDO create');
+  initializeElectedCase(input) {
+    // The separately owned durable placement election must already have selected this exact
+    // record. This adapter intentionally does not choose, synthesize, or persist that owner.
+    assertRecordShape(input, ['placement', 'plan'], ['caseContract'], 'CaseDO elected initialization');
     const placement = validateCasePlacement(input.placement);
     const caseContract = input.caseContract ?? {};
     const committed = this.storage.transactionSync(() => {

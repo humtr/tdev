@@ -5,7 +5,6 @@ import {
   CASEDO_STORAGE_PROFILE,
   CASEDO_STORAGE_SCHEMA_VERSION,
   CaseDOAuthority,
-  CasePlacementAuthority,
   createCasePlacement,
 } from '../src/casedo-authority.mjs';
 import { planWithWork, resultFor } from './helpers.mjs';
@@ -93,7 +92,7 @@ function createFixture(caseId, options = {}) {
   const plan = planWithWork(options.tasks ?? [{ id: 'a' }], options.baseTree ?? {
     'seed.txt': 'x'.repeat(2048),
   });
-  const created = authority.createCase({ placement, plan });
+  const created = authority.initializeElectedCase({ placement, plan });
   return { storage, authority, placement, plan, created };
 }
 
@@ -119,30 +118,7 @@ function semanticResultEnvelope(snapshot, plan, attemptId, result) {
   };
 }
 
-test('CaseDO placement election is durable, idempotent, and conflicting tuples fail closed', () => {
-  const storage = new TestDurableObjectStorage();
-  const placements = new CasePlacementAuthority(storage);
-  placements.initialize();
-  const input = placementInput('placement-case');
-
-  const first = placements.elect(input);
-  assert.equal(first.deduplicated, false);
-  const replay = placements.elect(input);
-  assert.equal(replay.deduplicated, true);
-  assert.deepEqual(replay.placement, first.placement);
-  assert.deepEqual(placements.read(input.caseId), first.placement);
-
-  assert.throws(
-    () => placements.elect(placementInput(input.caseId, {
-      environment: 'staging',
-      durableObjectId: 'do-competing',
-    })),
-    assertCode('placement_conflict'),
-  );
-  storage.close();
-});
-
-test('CaseDO requires a finite deployment budget and creates native semantic-v3 state in chunks', () => {
+test('CaseDO requires a finite deployment budget and initializes elected native semantic-v3 state in chunks', () => {
   const storage = new TestDurableObjectStorage();
   assert.throws(
     () => new CaseDOAuthority(storage, { writerCompatibilityId: 'writer-v1' }),
@@ -151,7 +127,7 @@ test('CaseDO requires a finite deployment budget and creates native semantic-v3 
   const authority = makeAuthority(storage, { chunkBytes: 128 });
   const placement = createCasePlacement(placementInput('native-v3-case'));
   const plan = planWithWork([{ id: 'a' }], { 'large.txt': 'z'.repeat(4096) });
-  const created = authority.createCase({ placement, plan });
+  const created = authority.initializeElectedCase({ placement, plan });
 
   assert.equal(created.snapshot.schemaVersion, 3);
   assert.equal(created.snapshot.caseId, placement.caseId);
@@ -435,7 +411,7 @@ test('CaseDO capacity exhaustion fails before Case authority is created', () => 
   const authority = makeAuthority(storage, { maxAuthoritativeBytesPerCase: 1 });
   const placement = createCasePlacement(placementInput('capacity-case'));
   const plan = planWithWork([{ id: 'a' }]);
-  assert.throws(() => authority.createCase({ placement, plan }), assertCode('casedo_capacity_exceeded'));
+  assert.throws(() => authority.initializeElectedCase({ placement, plan }), assertCode('casedo_capacity_exceeded'));
   assert.equal(storage.rows('SELECT * FROM casedo_meta').length, 0);
   storage.close();
 });
