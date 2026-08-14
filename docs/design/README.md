@@ -1,31 +1,29 @@
 # design registry
 
-| ID | Title | Status | Scope |
-| --- | --- | --- | --- |
-| 0001 | Parallel-First Work Graph, Claims, Isolated Results, and Promotion | superseded | initial in-memory result-only loop |
-| 0002 | Durable-Ready Parallel Control Core | verified historical foundation | effect-aware, fenced, persistent parallel control core under Node 22 |
-| 0003 | Efficient Parallel Control Plane | superseded / audited | `mvp-1a-1` COW, indexes, journal delta, and benchmark experiment |
-| 0004 | Incremental Transition Core and Verified Journal Cache | verified | `mvp-1a-2` entry transaction, incremental accounting, deterministic repair, and safe journal cache |
-| 0005 | Immutable Expected-Revision Journal CAS | verified | `mvp-1a-3` opt-in immutable local journal, full replay, and cross-process commit-slot CAS |
-| 0006 | Persistence Hot-Path Measurement Before Acceleration | verified | exact D0005 replay/read/fingerprint profiling and follow-on decision gates |
-| 0007 | Verified Immutable-Journal Materialization Reuse | verified | `mvp-1a-4` exact-byte-gated disposable materialization reuse over unchanged D0005 authority |
-| 0008 | Authority-Boundary Verification and Durability Admission | verified | `mvp-1a-5` complete authority-path evidence plus aggregate durable admission, legacy namespace hardening, deterministic local publication-fault classification, and checkpoint/Claim reopen liveness without semantic-authority migration |
-| 0009 | Semantic-Authority Representation Comparison | verified | `mvp-1a-6` non-authoritative comparison: directory Merkle rejected; bounded path-byte radix and collision-safe path-hash trie survive; hash trie preferred for the next migration design; current authority unchanged |
-| 0010 | Semantic-Authority Migration and Transactional Head | verified | `mvp-1a-7`: compressed path-byte radix v3 authority, compact snapshot, transactional local head, quiesced forward migration, repair/GC barriers; no Git/provider authority |
-| 0011 | Real Git Projection and Fenced Publication | verified | `mvp-1a-7`: local SHA-1/SHA-256 Git projection and exact local ref CAS above unchanged semantic authority |
-| 0012 | Authenticated Remote Git Publication | verified | `mvp-1a-7`: existing-remote-branch authenticated derived publication source contract; provider refs remain non-authoritative |
-| 0013 | Real Repository Context and Model Transport | verified | `mvp-1a-7`: read-only immutable Git full-text context plus result-only trusted-local subprocess transport baseline before Context manifest/CAS/Slice |
-| 0014 | Bounded Repository-Context Preparation Reuse and Process Lifecycle | verified | `mvp-1a-7`: finite executor-local exact-base single-flight/LRU preparation reuse, early bounds, unique-blob reads, Git cancellation with safe producer handoff, POSIX descendant cleanup and non-blocking observations; full request/process-per-Attempt retained |
-| 0015 | Deployed MVP Program Rebaseline and D0014 Post-Verification Review | verified | `mvp-1a-7`: final MVP now requires Cloudflare/local-Agent/Git/MCP/deployment qualification; D0014 source remains verified while provenance/resource/measurement wording is corrected |
-| 0016 | Per-Attempt Context Delivery Minimization Decision | accepted | Group E decision gate: immutable full-context reference envelope selected from measured post-D0014 evidence; no production source implementation |
-| 0017 | Selected Context Delivery Contract | accepted / production verified (supported-Termux source) | Group E contract gate remains accepted; production `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` independently verifies the representation-independent authorized immutable reference plus bounded packed/hybrid receiver under the declared platform qualification |
-| 0018 | Adversarially Converged Model Executor/Runtime Boundary | accepted / production verified (supported-Termux trusted-local source/runtime) | Group E runtime gate: `73d404bdc24eac8337019738ba074c2a1fea4861` verifies accepted `warm-host-qualified-model-attempt-fresh`; only bounded immutable D0014 host preparation may survive Attempts, while D0017 authorization/carrier/request and model process/controller/deadline remain per-Attempt; hard-link/all-platform/provider qualification remains separate |
-| 0019 | CaseDO Authority Adapter | accepted r2 | B/F Case authority gate: one durably elected SQLite-backed CaseDO hosts/adapts the existing D0010/CaseEngine semantic authority; exact D0010 command-receipt identity is frozen; ordinary eviction reconstructs without semantic reopen; placement generation plus schema/capacity/rollout gates precede production; existing local Cases are not migrated; D0020 Agent connection/delivery ownership and production qualification remain separate |
-| 0030 | Immutable Journal Publication Portability | accepted | B/F publication portability: backend-neutral prewritten/fsynced regular-file no-replace contract; bounded fd-relative standalone helper selected for qualified `RENAME_NOREPLACE`; Termux/F2FS and independent POSIX acceptance falsifiers plus mixed-backend race are closed; production implementation remains separate |
-| 0031 | Self-Development Documentation Authority | accepted r2 | cross-cutting self-development correction: r1 history/naming/bootstrap remains preserved while r2 generalizes WORKBOARD to 0..N runnable Design refs, removes mutable route duplication from ROADMAP/PROGRAM, and makes Design-index/session validation generic; product semantics unchanged |
+> Deterministic projection generated by `node tools/generate-design-index.mjs`. Maintained Design files own title, lifecycle status and revision. This file is derived and must never authorize implementation or override a Design owner.
 
-`accepted` authorizes only the implementation scope frozen in a design and is not a verification claim. `verified` applies only to the source/environment evidence declared in each record. Provider adapters, distributed ownership, current-client behavior, and environments that do not satisfy required filesystem primitives require independent evidence.
+| ID | Revision | Status | Title | File |
+| --- | --- | --- | --- | --- |
+| D0001 | r1 | superseded | Parallel-First Work Graph, Claims, Isolated Results, and Promotion | `docs/design/0001-parallel-first-mvp-loop.md` |
+| D0002 | r1 | verified | Durable-Ready Parallel Control Core | `docs/design/0002-durable-parallel-control-core.md` |
+| D0003 | r1 | superseded | Efficient Parallel Control Plane | `docs/design/0003-efficient-parallel-control-plane.md` |
+| D0004 | r1 | verified | Incremental Transition Core and Verified Journal Cache | `docs/design/0004-incremental-transition-core-and-verified-journal-cache.md` |
+| D0005 | r1 | verified | Immutable Expected-Revision Journal CAS | `docs/design/0005-immutable-expected-revision-journal-cas.md` |
+| D0006 | r1 | verified | persistence hot-path measurement before acceleration | `docs/design/0006-persistence-hot-path-measurement.md` |
+| D0007 | r1 | verified | verified immutable-journal materialization reuse | `docs/design/0007-verified-immutable-journal-materialization-cache.md` |
+| D0008 | r1 | verified | authority-boundary verification and durability admission | `docs/design/0008-authority-boundary-verification-and-durability-admission.md` |
+| D0009 | r1 | verified | Semantic-Authority Representation Comparison | `docs/design/0009-semantic-authority-representation-comparison.md` |
+| D0010 | r1 | verified | Semantic-Authority Migration and Transactional Head | `docs/design/0010-semantic-authority-migration-and-transactional-head.md` |
+| D0011 | r1 | verified | Real Git Projection and Fenced Publication | `docs/design/0011-real-git-projection-and-fenced-publication.md` |
+| D0012 | r1 | verified | Authenticated Remote Git Publication | `docs/design/0012-authenticated-remote-git-publication.md` |
+| D0013 | r1 | verified | Real Repository Context and Model Transport | `docs/design/0013-real-repository-context-and-model-transport.md` |
+| D0014 | r1 | verified | bounded repository-context preparation reuse and process lifecycle | `docs/design/0014-bounded-context-preparation-reuse-and-process-lifecycle.md` |
+| D0015 | r1 | verified | deployed MVP program rebaseline and D0014 post-verification review | `docs/design/0015-deployed-mvp-program-rebaseline-and-d0014-postreview.md` |
+| D0016 | r1 | accepted | per-Attempt context delivery minimization decision | `docs/design/0016-per-attempt-context-delivery-minimization-decision.md` |
+| D0017 | r1 | accepted | selected context delivery contract | `docs/design/0017-selected-context-delivery-contract.md` |
+| D0018 | r1 | verified | adversarially converged model executor/runtime boundary | `docs/design/0018-adversarial-converged-model-runtime-boundary.md` |
+| D0019 | r2 | accepted | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
+| D0030 | r1 | accepted | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
+| D0031 | r2 | accepted | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 
-## Provisional future program
-
-`docs/ROADMAP.md` lists the remaining provisional D0020-D0029 planning identities across provider execution, AgentDO, MCP/security, Git runtime integration, deployment/Agent operations and final qualification. D0016, D0017, D0018, D0019 and D0030 are accepted Design-layer decisions; cross-cutting self-development D0031 revision 2 is accepted after the r1 framework-gap falsifier; D0017 and D0018 production source are independently verified under their declared supported-Termux qualifications, and Group E is the retained completed checkpoint feeding active Group F. D0019 revision 2 acceptance freezes the durable-placement-generation/one-CaseDO/one-existing-semantic-owner model, exact D0010 command-only receipt digest and replay ordering, ordinary reconstruction without implicit semantic reopen, explicit owner-loss recovery, versioned schema/capacity/rollout gates, response-loss/revision boundary, no-existing-Case-migration rule and D0020/D0030 separation; its production implementation/provider qualification remains separate. D0030 acceptance freezes the bounded fd-relative helper and qualified `RENAME_NOREPLACE` publication contract, but its production implementation/package qualification also remains separate. D0020-D0029 remain **not accepted Designs** unless their owner records otherwise and may be merged, split, reordered or removed from evidence before implementation.
+Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.
