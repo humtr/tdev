@@ -603,18 +603,47 @@ export function createWorkerUploadForm(metadata, modules) {
   return form;
 }
 
-function bindingByName(settings, name) {
-  return Array.isArray(settings?.bindings) ? settings.bindings.find((binding) => binding?.name === name) : undefined;
+function bindingByName(readback, name) {
+  const bindings = readback?.version?.resources?.bindings ?? readback?.settings?.bindings ?? readback?.bindings;
+  return Array.isArray(bindings) ? bindings.find((binding) => binding?.name === name) : undefined;
 }
 
-function runtimeSettings(settings) {
-  return settings?.script_runtime ?? settings;
+function runtimeSettings(readback) {
+  return readback?.version?.resources?.script_runtime ??
+    readback?.settings?.script_runtime ??
+    readback?.script_runtime ??
+    readback?.settings ??
+    readback;
 }
 
-function assertWorkerOwned(settings, scriptName) {
-  const runtime = runtimeSettings(settings);
-  if (runtime?.annotations?.['workers/tag'] !== D0019_WORKER_OWNERSHIP_TAG) {
-    fail('worker_ownership_conflict', `Worker ${scriptName} is not owned by the D0019 qualification profile`);
+function workerAnnotations(readback) {
+  return readback?.version?.annotations ?? readback?.settings?.annotations ?? readback?.annotations ?? {};
+}
+
+function assertWorkerOwned(readback, scriptName) {
+  const runtime = runtimeSettings(readback);
+  const markerBindings = [
+    ['TDEV_D0019_QUALIFICATION_MODE', 'enabled'],
+    ['TDEV_DEPLOYMENT', scriptName],
+    ['TDEV_ENVIRONMENT', 'qualification'],
+    ['TDEV_WORKER_SCRIPT', scriptName],
+  ];
+  for (const [name, value] of markerBindings) {
+    const binding = bindingByName(readback, name);
+    if (binding?.type !== 'plain_text' || binding?.text !== value) {
+      fail('worker_ownership_conflict', `Worker ${scriptName} does not carry the exact D0019 qualification ownership markers`);
+    }
+  }
+  const source = bindingByName(readback, 'TDEV_SOURCE_SHA');
+  const d1 = bindingByName(readback, 'TDEV_CASE_PLACEMENT');
+  const durableObject = bindingByName(readback, 'TDEV_CASE_AUTHORITY');
+  if (source?.type !== 'plain_text' || !/^[0-9a-f]{40}$/.test(source?.text ?? '') ||
+      d1?.type !== 'd1' || durableObject?.type !== 'durable_object_namespace' || durableObject?.class_name !== 'CaseRuntimeDO') {
+    fail('worker_ownership_conflict', `Worker ${scriptName} does not carry the exact D0019 qualification ownership bindings`);
+  }
+  const tag = workerAnnotations(readback)?.['workers/tag'];
+  if (tag !== undefined && tag !== D0019_WORKER_OWNERSHIP_TAG) {
+    fail('worker_ownership_conflict', `Worker ${scriptName} carries a conflicting Worker ownership tag`);
   }
   const exported = runtime?.exports?.CaseRuntimeDO;
   if (exported?.type !== 'durable-object' || exported?.storage !== 'sqlite') {
@@ -643,22 +672,58 @@ export function assertQualificationWorkerSettings(settings, expected) {
     ['TDEV_SOURCE_SHA', ['plain_text', 'text', expected.sourceSha]],
   ]);
   for (const [name, [type, field, value]] of required) {
-    const binding = bindingByName(runtime, name);
+    const binding = bindingByName(settings, name);
     if (binding?.type !== type || (field !== null && binding?.[field] !== value)) {
       fail('worker_settings_mismatch', `Worker ${expected.scriptName} binding ${name} does not match qualification profile`);
     }
   }
-  const durableObjectBinding = bindingByName(runtime, 'TDEV_CASE_AUTHORITY');
+  const durableObjectBinding = bindingByName(settings, 'TDEV_CASE_AUTHORITY');
   if (durableObjectBinding?.class_name !== 'CaseRuntimeDO' || durableObjectBinding?.namespace_id !== expected.namespaceId) {
     fail('worker_settings_mismatch', `Worker ${expected.scriptName} Durable Object binding does not resolve to its exact namespace`);
   }
-  const secret = bindingByName(runtime, QUALIFICATION_SECRET_BINDING);
+  const secret = bindingByName(settings, QUALIFICATION_SECRET_BINDING);
   if (secret?.type !== 'secret_text') fail('worker_settings_mismatch', `Worker ${expected.scriptName} qualification secret is absent`);
   return true;
 }
 
+async function latestWorkerVersion(client, scriptName) {
+  const response = await client.request(
+    'GET',
+    client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/versions?per_page=100`),
+  );
+  const items = response.result?.items;
+  if (!Array.isArray(items) || items.length === 0 || items.some((item) =>
+    typeof item?.id !== 'string' || item.id.length === 0 || !Number.isSafeInteger(item?.number) || item.number < 1)) {
+    fail('worker_version_unverified', `Worker ${scriptName} version list was invalid`);
+  }
+  const totalCount = Number(response.resultInfo?.total_count ?? items.length);
+  if (!Number.isSafeInteger(totalCount) || totalCount !== items.length) {
+    fail('worker_version_unverified', `Worker ${scriptName} version list was incomplete`, {
+      returned: items.length,
+      totalCount: Number.isSafeInteger(totalCount) ? totalCount : null,
+    });
+  }
+  const highestNumber = Math.max(...items.map((item) => item.number));
+  const matches = items.filter((item) => item.number === highestNumber);
+  if (matches.length !== 1) fail('worker_version_unverified', `Worker ${scriptName} latest version was ambiguous`);
+  const detail = await client.request(
+    'GET',
+    client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/versions/${encodeURIComponent(matches[0].id)}`),
+  );
+  if (detail.result?.id !== matches[0].id || detail.result?.number !== highestNumber) {
+    fail('worker_version_unverified', `Worker ${scriptName} latest version detail did not match its list entry`);
+  }
+  return detail.result;
+}
+
 async function workerSettings(client, scriptName, { allowNotFound = false } = {}) {
-  return client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/settings`), { allowNotFound });
+  const settings = await client.request(
+    'GET',
+    client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/settings`),
+    { allowNotFound },
+  );
+  if (!settings.found) return settings;
+  return { ...settings, result: { settings: settings.result, version: await latestWorkerVersion(client, scriptName) } };
 }
 
 async function setWorkerSubdomain(client, scriptName, enabled) {
@@ -755,6 +820,21 @@ async function waitForNamespace(client, scriptName) {
   throw lastError;
 }
 
+async function waitForWorkerReadback(client, scriptName, expected) {
+  let lastError;
+  for (let attempt = 0; attempt < 10; attempt += 1) {
+    try {
+      const readback = await workerSettings(client, scriptName);
+      assertQualificationWorkerSettings(readback.result, expected);
+      return readback;
+    } catch (cause) {
+      lastError = cause;
+      if (attempt < 9) await new Promise((resolve) => setTimeout(resolve, 500));
+    }
+  }
+  throw lastError;
+}
+
 async function provisionWorker(client, modules, config, qualificationToken, allowCreate, enableSubdomain) {
   const existing = await workerSettings(client, config.scriptName, { allowNotFound: true });
   if (!existing.found && !allowCreate) fail('missing_worker_resource', `Worker ${config.scriptName} does not exist`);
@@ -780,8 +860,7 @@ async function provisionWorker(client, modules, config, qualificationToken, allo
   await uploadWorker(client, config.scriptName, metadata, modules);
   await setWorkerSecret(client, config.scriptName, qualificationToken);
   await setWorkerSubdomain(client, config.scriptName, enableSubdomain);
-  const readback = await workerSettings(client, config.scriptName);
-  assertQualificationWorkerSettings(readback.result, finalConfig);
+  await waitForWorkerReadback(client, config.scriptName, finalConfig);
   return Object.freeze({
     scriptName: config.scriptName,
     namespaceId: namespace.id,

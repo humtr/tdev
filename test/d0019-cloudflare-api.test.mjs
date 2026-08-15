@@ -299,6 +299,22 @@ class FakeQualificationProvider {
       assert.ok(record, `missing fake Worker ${settingsMatch[1]}`);
       return { found: true, result: structuredClone(record.settings) };
     }
+    const versionListMatch = /\/workers\/scripts\/([^/]+)\/versions(?:\?.*)?$/.exec(apiPath);
+    if (method === 'GET' && versionListMatch) {
+      const record = this.records.get(versionListMatch[1]);
+      assert.ok(record, `missing fake Worker ${versionListMatch[1]}`);
+      return {
+        result: { items: structuredClone([...record.versions].reverse().map(({ id, number }) => ({ id, number }))) },
+        resultInfo: { total_count: record.versions.length },
+      };
+    }
+    const versionDetailMatch = /\/workers\/scripts\/([^/]+)\/versions\/([^/?]+)$/.exec(apiPath);
+    if (method === 'GET' && versionDetailMatch) {
+      const record = this.records.get(versionDetailMatch[1]);
+      const version = record?.versions.find((item) => item.id === versionDetailMatch[2]);
+      assert.ok(version, `missing fake Worker version ${versionDetailMatch[2]}`);
+      return { result: structuredClone(version) };
+    }
     const secretMatch = /\/workers\/scripts\/([^/]+)\/secrets$/.exec(apiPath);
     if (method === 'PUT' && secretMatch) {
       const record = this.records.get(secretMatch[1]);
@@ -308,6 +324,18 @@ class FakeQualificationProvider {
       record.secretLength = options.json.text.length;
       record.settings.bindings = record.settings.bindings.filter((binding) => binding.name !== options.json.name);
       record.settings.bindings.push({ type: 'secret_text', name: options.json.name });
+      record.settings.annotations = { 'workers/triggered_by': 'secret' };
+      const latest = record.versions.at(-1);
+      record.versions.push({
+        ...structuredClone(latest),
+        id: `${latest.id}-secret`,
+        number: latest.number + 1,
+        annotations: { 'workers/triggered_by': 'secret' },
+        resources: {
+          ...structuredClone(latest.resources),
+          bindings: structuredClone(record.settings.bindings),
+        },
+      });
       return { result: {} };
     }
     const subdomainMatch = /\/workers\/scripts\/([^/]+)\/subdomain$/.exec(apiPath);
@@ -345,12 +373,33 @@ class FakeQualificationProvider {
         ? { ...binding, namespace_id: namespace.id }
         : binding);
       if (previous?.secretLength) bindings.push({ type: 'secret_text', name: 'TDEV_D0019_QUALIFICATION_TOKEN' });
+      const number = (previous?.versions.at(-1)?.number ?? 0) + 1;
+      const version = {
+        id: `version-${scriptName}-${number}`,
+        number,
+        annotations: metadata.annotations,
+        resources: {
+          bindings,
+          script_runtime: {
+            compatibility_date: metadata.compatibility_date,
+            compatibility_flags: metadata.compatibility_flags,
+            exports: metadata.exports,
+            usage_model: 'standard',
+          },
+        },
+      };
       this.records.set(scriptName, {
-        settings: { ...metadata, bindings },
+        settings: {
+          annotations: metadata.annotations,
+          bindings,
+          compatibility_date: metadata.compatibility_date,
+          compatibility_flags: metadata.compatibility_flags,
+        },
         secretLength: previous?.secretLength ?? null,
         subdomainEnabled: previous?.subdomainEnabled ?? false,
+        versions: [...(previous?.versions ?? []), version],
       });
-      return { result: { id: `version-${scriptName}-${count}` } };
+      return { result: { id: version.id } };
     }
     assert.fail(`unexpected provider request ${method} ${apiPath}`);
   }
