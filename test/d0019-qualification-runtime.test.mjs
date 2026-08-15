@@ -73,6 +73,27 @@ function assertRpcTransportRecords(value) {
   for (const item of Object.values(value)) assertRpcTransportRecords(item);
 }
 
+test('D0019 qualification Durable Object RPC normalizes successful semantic results before returning', async () => {
+  const host = Object.create(D0019QualificationCaseDOHost.prototype);
+  const result = Object.assign(Object.create(null), {
+    snapshot: Object.assign(Object.create(null), { caseRevision: 1 }),
+  });
+  host.host = {
+    initializeElectedCase() {
+      return result;
+    },
+  };
+
+  const response = await host.qualificationInvoke({
+    operation: 'initialize',
+    placement: {},
+    plan: {},
+  });
+  assertRpcTransportRecords(response);
+  assert.equal(response.ok, true);
+  assert.equal(response.result.snapshot.caseRevision, 1);
+});
+
 test('D0019 qualification ingress derives one fixed generation placement and routes bounded operations', async () => {
   const calls = [];
   const stub = {

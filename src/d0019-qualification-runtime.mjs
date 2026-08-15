@@ -389,7 +389,7 @@ export class D0019QualificationCaseDOHost {
           envelope: input.envelope,
         });
       }
-      return { schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result };
+      return publicJsonClone({ schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result });
     } catch (error) {
       if (!(error instanceof ContractError)) throw error;
       return {
