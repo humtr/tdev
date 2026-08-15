@@ -150,14 +150,7 @@ class LocalNamespace {
       return record.host;
     };
     return {
-      initializeElectedCase: (input) => host().initializeElectedCase(input),
-      loadCase: (input) => host().loadCase(input),
-      command: (input) => host().command(input),
-      recoverExecutionOwnerLoss: (input) => host().recoverExecutionOwnerLoss(input),
-      qualificationAbortInstance: (input) => host().qualificationAbortInstance(input),
-      qualificationCommandThenAbort: (input) => host().qualificationCommandThenAbort(input),
-      qualificationRuntimeProbe: (input) => host().qualificationRuntimeProbe(input),
-      qualificationWriterBarrierProbe: (input) => host().qualificationWriterBarrierProbe(input),
+      qualificationInvoke: (input) => host().qualificationInvoke(input),
     };
   }
 

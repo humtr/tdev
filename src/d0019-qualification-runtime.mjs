@@ -15,6 +15,7 @@ export const D0019_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
 
 const textEncoder = new TextEncoder();
 const QUALIFICATION_MODE = 'enabled';
+const QUALIFICATION_RPC_SCHEMA_VERSION = 1;
 const MIN_TOKEN_BYTES = 32;
 const MAX_TOKEN_BYTES = 512;
 
@@ -145,6 +146,39 @@ function operationShape(input, operation) {
   assertRecordShape(input, ['operation', 'caseId', ...shape[0]], shape[1], `D0019 qualification ${operation}`);
 }
 
+function rpcOperationShape(input, operation) {
+  const shapes = {
+    initialize: [['plan'], ['caseContract']],
+    load: [[], []],
+    command: [['envelope'], []],
+    recover_execution_owner_loss: [['recoveryId', 'cause'], []],
+    abort_instance: [[], []],
+    command_then_abort: [['envelope'], []],
+    runtime_probe: [[], []],
+    writer_barrier_probe: [['expectedWriterCompatibilityId', 'envelope'], []],
+  };
+  const shape = shapes[operation];
+  if (!shape) throw new ContractError('qualification_unknown_operation', 'Unknown D0019 qualification RPC operation');
+  assertRecordShape(input, ['operation', 'placement', ...shape[0]], shape[1], `D0019 qualification RPC ${operation}`);
+}
+
+function unwrapQualificationRpc(response) {
+  assertRecordShape(response, ['schemaVersion', 'ok'], ['result', 'error'], 'D0019 qualification RPC response');
+  if (response.schemaVersion !== QUALIFICATION_RPC_SCHEMA_VERSION || typeof response.ok !== 'boolean') {
+    throw new ContractError('invalid_qualification_provider', 'D0019 qualification RPC response header is invalid');
+  }
+  if (response.ok) {
+    assertRecordShape(response, ['schemaVersion', 'ok', 'result'], [], 'D0019 qualification RPC success');
+    return response.result;
+  }
+  assertRecordShape(response, ['schemaVersion', 'ok', 'error'], [], 'D0019 qualification RPC failure');
+  assertRecordShape(response.error, ['code'], [], 'D0019 qualification RPC error');
+  if (typeof response.error.code !== 'string' || !/^[a-z][a-z0-9_]{0,127}$/.test(response.error.code)) {
+    throw new ContractError('invalid_qualification_provider', 'D0019 qualification RPC error code is invalid');
+  }
+  throw new ContractError(response.error.code, 'D0019 qualification authority rejected the operation');
+}
+
 export class D0019QualificationService {
   constructor(env, options = {}) {
     requiredQualificationMode(env);
@@ -165,7 +199,7 @@ export class D0019QualificationService {
       throw new ContractError('invalid_qualification_provider', 'Durable Object identity has the wrong jurisdiction');
     }
     const stub = this.namespace.get(id);
-    if (!stub || typeof stub !== 'object') {
+    if (!stub || (typeof stub !== 'object' && typeof stub !== 'function') || typeof stub.qualificationInvoke !== 'function') {
       throw new ContractError('invalid_qualification_provider', 'Durable Object namespace returned an invalid stub');
     }
     return {
@@ -181,20 +215,16 @@ export class D0019QualificationService {
     const { placement, stub } = this.#route(input.caseId);
 
     if (input.operation === 'elect') return this.placementAuthority.elect({ placement });
-    if (input.operation === 'initialize') return stub.initializeElectedCase({ placement, plan: input.plan, ...(input.caseContract === undefined ? {} : { caseContract: input.caseContract }) });
-    if (input.operation === 'load') return stub.loadCase({ placement });
-    if (input.operation === 'command') return stub.command({ placement, envelope: input.envelope });
-    if (input.operation === 'recover_execution_owner_loss') {
-      return stub.recoverExecutionOwnerLoss({ placement, recoveryId: input.recoveryId, cause: input.cause });
-    }
-    if (input.operation === 'abort_instance') return stub.qualificationAbortInstance({ placement });
-    if (input.operation === 'command_then_abort') return stub.qualificationCommandThenAbort({ placement, envelope: input.envelope });
-    if (input.operation === 'runtime_probe') return stub.qualificationRuntimeProbe({ placement });
-    return stub.qualificationWriterBarrierProbe({
+    return unwrapQualificationRpc(await stub.qualificationInvoke({
+      operation: input.operation,
       placement,
-      expectedWriterCompatibilityId: input.expectedWriterCompatibilityId,
-      envelope: input.envelope,
-    });
+      ...(input.plan === undefined ? {} : { plan: input.plan }),
+      ...(input.caseContract === undefined ? {} : { caseContract: input.caseContract }),
+      ...(input.envelope === undefined ? {} : { envelope: input.envelope }),
+      ...(input.recoveryId === undefined ? {} : { recoveryId: input.recoveryId }),
+      ...(input.cause === undefined ? {} : { cause: input.cause }),
+      ...(input.expectedWriterCompatibilityId === undefined ? {} : { expectedWriterCompatibilityId: input.expectedWriterCompatibilityId }),
+    }));
   }
 
   async fetch(request) {
@@ -295,6 +325,53 @@ export class D0019QualificationCaseDOHost {
     } catch (error) {
       if (!(error instanceof ContractError)) throw error;
       return { ...facts, attempted: true, mutation: { committed: false, errorCode: error.code } };
+    }
+  }
+
+  async qualificationInvoke(input) {
+    try {
+      if (!input || typeof input.operation !== 'string') {
+        throw new ContractError('qualification_unknown_operation', 'D0019 qualification RPC operation is invalid');
+      }
+      rpcOperationShape(input, input.operation);
+      let result;
+      if (input.operation === 'initialize') {
+        result = await this.initializeElectedCase({
+          placement: input.placement,
+          plan: input.plan,
+          ...(input.caseContract === undefined ? {} : { caseContract: input.caseContract }),
+        });
+      } else if (input.operation === 'load') {
+        result = await this.loadCase({ placement: input.placement });
+      } else if (input.operation === 'command') {
+        result = await this.command({ placement: input.placement, envelope: input.envelope });
+      } else if (input.operation === 'recover_execution_owner_loss') {
+        result = await this.recoverExecutionOwnerLoss({
+          placement: input.placement,
+          recoveryId: input.recoveryId,
+          cause: input.cause,
+        });
+      } else if (input.operation === 'abort_instance') {
+        result = await this.qualificationAbortInstance({ placement: input.placement });
+      } else if (input.operation === 'command_then_abort') {
+        result = await this.qualificationCommandThenAbort({ placement: input.placement, envelope: input.envelope });
+      } else if (input.operation === 'runtime_probe') {
+        result = await this.qualificationRuntimeProbe({ placement: input.placement });
+      } else {
+        result = await this.qualificationWriterBarrierProbe({
+          placement: input.placement,
+          expectedWriterCompatibilityId: input.expectedWriterCompatibilityId,
+          envelope: input.envelope,
+        });
+      }
+      return { schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result };
+    } catch (error) {
+      if (!(error instanceof ContractError)) throw error;
+      return {
+        schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION,
+        ok: false,
+        error: { code: error.code },
+      };
     }
   }
 }

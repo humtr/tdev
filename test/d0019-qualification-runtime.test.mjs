@@ -66,14 +66,10 @@ async function responseBody(response) {
 test('D0019 qualification ingress derives one fixed generation placement and routes bounded operations', async () => {
   const calls = [];
   const stub = {
-    async initializeElectedCase(input) { calls.push(['initialize', input]); return { initialized: true }; },
-    async loadCase(input) { calls.push(['load', input]); return { loaded: true }; },
-    async command(input) { calls.push(['command', input]); return { commanded: true }; },
-    async recoverExecutionOwnerLoss(input) { calls.push(['recover', input]); return { recovered: true }; },
-    async qualificationAbortInstance(input) { calls.push(['abort', input]); return { aborted: true }; },
-    async qualificationCommandThenAbort(input) { calls.push(['commandThenAbort', input]); return { aborted: true }; },
-    async qualificationRuntimeProbe(input) { calls.push(['runtimeProbe', input]); return { probed: true }; },
-    async qualificationWriterBarrierProbe(input) { calls.push(['writerBarrierProbe', input]); return { barrier: true }; },
+    async qualificationInvoke(input) {
+      calls.push([input.operation, input]);
+      return { schemaVersion: 1, ok: true, result: { operation: input.operation } };
+    },
   };
   const elections = [];
   const service = new D0019QualificationService(deploymentEnvironment({ stub }), {
@@ -107,15 +103,25 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
   assert.equal(elected.placementGeneration, 1);
   assert.equal(elected.workerScript, 'tdev-d0019-qualification-a');
   assert.equal(elected.durableObjectId, 'do:tdev-d0019-qualification-a:qualification-case');
-  assert.deepEqual(calls.map(([name]) => name), ['initialize', 'load', 'command', 'recover', 'abort', 'commandThenAbort', 'runtimeProbe', 'writerBarrierProbe']);
+  assert.deepEqual(calls.map(([name]) => name), [
+    'initialize',
+    'load',
+    'command',
+    'recover_execution_owner_loss',
+    'abort_instance',
+    'command_then_abort',
+    'runtime_probe',
+    'writer_barrier_probe',
+  ]);
   for (const [, input] of calls) assert.equal(input.placement.placementDigest, elected.placementDigest);
 });
 
 test('D0019 qualification ingress authenticates before provider access and rejects placement smuggling', async () => {
   let providerCalls = 0;
   const stub = {
-    async loadCase() {
+    async qualificationInvoke() {
       providerCalls += 1;
+      return { schemaVersion: 1, ok: true, result: null };
     },
   };
   const service = new D0019QualificationService(deploymentEnvironment({ stub }), {
@@ -141,6 +147,22 @@ test('D0019 qualification ingress authenticates before provider access and rejec
   assert.equal(smuggled.status, 400);
   assert.equal((await responseBody(smuggled)).error.code, 'unexpected_keys');
   assert.equal(providerCalls, 0);
+});
+
+test('D0019 qualification ingress restores a structured remote ContractError after the DO RPC boundary', async () => {
+  const service = new D0019QualificationService(deploymentEnvironment({
+    stub: {
+      async qualificationInvoke() {
+        return { schemaVersion: 1, ok: false, error: { code: 'placement_conflict' } };
+      },
+    },
+  }), { placementAuthority: {} });
+  const response = await service.fetch(qualificationRequest({ operation: 'load', caseId: 'rpc-conflict-case' }));
+  assert.equal(response.status, 409);
+  assert.deepEqual(await responseBody(response), {
+    ok: false,
+    error: { code: 'placement_conflict', details: {} },
+  });
 });
 
 test('D0019 qualification ingress rejects oversized or non-JSON requests before provider access', async () => {
@@ -227,6 +249,24 @@ test('D0019 qualification DO fault hooks abort only after election or committed 
     (error) => error?.code === 'provider_abort',
   );
   assert.deepEqual(events, ['command-committed', 'abort:tdev_d0019_qualification_abort_after_commit']);
+});
+
+test('D0019 qualification DO serializes ContractError codes before the provider RPC boundary', async () => {
+  const host = new D0019QualificationCaseDOHost(qualificationContext([]), deploymentEnvironment());
+  host.host = {
+    async initializeElectedCase() {
+      throw new ContractError('placement_conflict', 'simulated remote placement conflict');
+    },
+  };
+  assert.deepEqual(await host.qualificationInvoke({
+    operation: 'initialize',
+    placement: {},
+    plan: {},
+  }), {
+    schemaVersion: 1,
+    ok: false,
+    error: { code: 'placement_conflict' },
+  });
 });
 
 test('D0019 qualification writer barrier probes only the exact running writer and reports mutation rejection', async () => {
