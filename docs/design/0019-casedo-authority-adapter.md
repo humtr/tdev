@@ -542,11 +542,12 @@ The current deployment binding selects one **dedicated D1 database** as that nar
 
 Validation at this status:
 
-- focused final CaseDO adapter plus D0019 model falsifiers: `19/19` passed;
-- supported non-hard-link source suite: `286/286` passed together with syntax, documentation validation, demo, durable demo and `git diff --check`;
-- supported non-hard-link coverage: `286/286` passed, all-files line/branch/function coverage `86.10% / 77.54% / 93.68%`, and `src/casedo-authority.mjs` `90.59% / 74.62% / 100%`;
-- exact `npm run check`: **not green** in this Termux environment because `immutable-journal.test.mjs` hard-link publication reaches `link(2)` `EACCES`;
-- exact full coverage command: **not green** for the same inherited hard-link qualification reason;
-- live Cloudflare/provider qualification: unavailable in this task environment; no repository Wrangler config, Wrangler executable or bounded `CLOUDFLARE_*` environment names were observed, so account limits, deployment-qualified capacity, provider fault injection and rollout overlap were not guessed green.
+- focused CaseDO adapter, D0019 model, D1 placement and rollout-barrier falsifiers: `26/26` passed;
+- supported non-hard-link source suite: `293/293` passed together with syntax, documentation validation, demo, durable demo and `git diff --check`;
+- supported non-hard-link coverage: `293/293` passed, all-files line/branch/function coverage `85.88% / 77.38% / 93.77%`, `src/casedo-authority.mjs` `90.59% / 74.81% / 100%`, and `src/d1-case-placement.mjs` `76.10% / 66.67% / 100%`;
+- exact `npm run check`: **not green** in this Termux environment (`319` total, `294` passed, `25` failed) because `immutable-journal.test.mjs` hard-link publication reaches `link(2)` `EACCES`;
+- exact full coverage command: **not green** with the same `319 / 294 / 25` result and inherited hard-link qualification reason;
+- measurement-only `CaseDOAuthority.authoritativeBytes` fixtures observed `12,589 B` at 1 Task, `62,125 B` at 128, `211,885 B` at 512, `411,824 B` at 1024 and `811,696 B` at 2048; the 128-Task fixture grew from `62,125 B` to `120,633 B` after 16 accepted results / 32 receipts. The measurement ceiling is not a production budget, and no finite deployment value is selected from these values alone;
+- live Cloudflare/provider qualification remains unavailable in the current execution context: no repository Wrangler config is used, and neither the direct nor bounded interactive shell exposed any `CF_*` or `CLOUDFLARE_*` credential variable name. This observation means credentials were not delivered to this context; it does not claim that the user has no credential. Account limits, deployment-qualified capacity, provider fault injection and rollout overlap were not guessed green.
 
-The exact machine-readable evidence is `docs/evidence/group-f-d0019-casedo-production-implementation-2026-08-15.json`. D0019 is therefore **source-implemented and locally adapter-qualified, but provider/placement qualification-pending**. It is not production `verified`, WORKBOARD remains on D0019@r2, and D0020 is not activated by this evidence.
+The exact machine-readable evidence is `docs/evidence/group-f-d0019-casedo-production-implementation-2026-08-15.json`. D0019 is therefore **source-implemented with a dedicated-D1 placement binding and locally adapter-qualified, but live provider/resource/capacity/rollout qualification-pending**. It is not production `verified`, WORKBOARD remains on D0019@r2, and D0020 is not activated by this evidence.

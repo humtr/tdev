@@ -32,6 +32,18 @@
     {
       "sha": "26fe927af4e835ebcb1c06c8fcf3def2eb5c9587",
       "subject": "fix: preserve D0019 placement owner boundary"
+    },
+    {
+      "sha": "d58f6f0ffdd7da9dba94b444797be661d0d16628",
+      "subject": "feat: bind D0019 placement authority to D1"
+    },
+    {
+      "sha": "0b87004a3b9e5040c26f665604782a5bbde15564",
+      "subject": "test: falsify incompatible D0019 rollout writers"
+    },
+    {
+      "sha": "b0cf6f5021a456a5053d5c100c45c9199884c372",
+      "subject": "bench: measure D0019 authoritative Case bytes"
     }
   ],
   "implementation": {
@@ -49,8 +61,8 @@
     "capacity": "positive finite maxAuthoritativeBytesPerCase is required; there is no generic production default",
     "rolloutBarrier": "writerCompatibilityId fails closed on incompatible writer code/profile",
     "cloudflareHost": "CaseRuntimeDO validates deployment/environment/Worker/class/namespace/jurisdiction/current Durable Object ID against the elected placement before load/command/recovery",
-    "authorityBirthBoundary": "initializeElectedCase requires an already-elected placement record; the Cloudflare host intentionally exposes no authority-birth RPC",
-    "placementProviderBinding": "pending; the accepted Design does not choose the exact durable placement meta-authority substrate, so no guessed CasePlacementDO/registry owner is implemented",
+    "authorityBirthBoundary": "initializeElectedCase requires the exact placement record already elected in the dedicated D1 meta-authority; CaseDO never elects itself",
+    "placementProviderBinding": "source-bound to one dedicated D1 database using tdev.case-placement.d1.v1/schema 1; exact retries reuse the write-once CaseId row, competing digests fail closed, and no update/delete/relocation/re-election API exists; live resource/binding qualification remains pending",
     "existingCaseMigration": "not implemented",
     "d0020DeliveryProtocol": "not implemented or frozen"
   },
@@ -62,21 +74,25 @@
     },
     "focusedFinal": {
       "status": "passed",
-      "jobId": "job_81n_3049947144",
-      "tests": 19,
-      "passed": 19,
-      "scope": "final CaseDO adapter tests plus existing D0019 model falsifiers after placement-owner correction"
+      "command": "node --test test/casedo-authority.test.mjs test/d0019-casedo-authority-model.test.mjs test/d1-case-placement.test.mjs",
+      "tests": 26,
+      "passed": 26,
+      "scope": "CaseDO adapter, D0019 semantic model, D1 placement election and incompatible-writer barrier falsifiers"
     },
     "exactSourceGate": {
       "status": "failed_environment_qualification",
-      "jobId": "job_81v_8f0e0485dc",
       "command": "npm run check",
+      "tests": 319,
+      "passed": 294,
+      "failed": 25,
       "reason": "ImmutableJournal hard-link publication tests fail on this Termux environment with link(2) EACCES; this exact gate is not green"
     },
     "exactFullCoverageGate": {
       "status": "failed_environment_qualification",
-      "jobId": "job_81x_615171ade4",
       "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "tests": 319,
+      "passed": 294,
+      "failed": 25,
       "reason": "same ImmutableJournal link(2) EACCES profile; the coverage command exits 1 and is not green"
     },
     "isolatedHardLinkProfile": {
@@ -87,9 +103,8 @@
     },
     "supportedNonHardLinkGate": {
       "status": "passed",
-      "jobId": "job_81y_8325898708",
-      "tests": 286,
-      "passed": 286,
+      "tests": 293,
+      "passed": 293,
       "alsoPassed": [
         "npm run syntax",
         "npm run docs:check",
@@ -101,30 +116,56 @@
     },
     "supportedNonHardLinkCoverage": {
       "status": "passed",
-      "jobId": "job_81z_f25bd306b6",
-      "tests": 286,
-      "passed": 286,
+      "tests": 293,
+      "passed": 293,
       "coverage": {
         "allFiles": {
-          "linePercent": 86.10,
-          "branchPercent": 77.54,
-          "functionPercent": 93.68
+          "linePercent": 85.88,
+          "branchPercent": 77.38,
+          "functionPercent": 93.77
         },
         "src/casedo-authority.mjs": {
           "linePercent": 90.59,
-          "branchPercent": 74.62,
+          "branchPercent": 74.81,
+          "functionPercent": 100.00
+        },
+        "src/d1-case-placement.mjs": {
+          "linePercent": 76.10,
+          "branchPercent": 66.67,
           "functionPercent": 100.00
         }
       },
       "note": "supporting evidence only; immutable-journal.test.mjs is excluded because the Termux link(2) primitive is unavailable"
     },
+    "authoritativeByteMeasurements": {
+      "status": "passed_measurement_only",
+      "command": "node bench/d0019-case-budget-measurement.mjs init TASK_COUNT | growth TASK_COUNT ACCEPTED_RESULTS",
+      "productionBudgetQualified": false,
+      "adapterAccounting": "CaseDOAuthority.authoritativeBytes",
+      "measurementOnlyCeiling": 9007199254740991,
+      "initialBytesByTaskCount": {
+        "1": 12589,
+        "128": 62125,
+        "512": 211885,
+        "1024": 411824,
+        "2048": 811696
+      },
+      "growthFixture": {
+        "taskCount": 128,
+        "acceptedResults": 16,
+        "receipts": 32,
+        "initialBytes": 62125,
+        "finalBytes": 120633,
+        "growthBytes": 58508
+      },
+      "note": "Number.MAX_SAFE_INTEGER only prevents fixture rejection during measurement; these values do not select a production budget"
+    },
     "liveProviderAvailability": {
-      "status": "unavailable",
-      "jobId": "job_809_07744eccbb",
+      "status": "credential_not_delivered_to_current_execution_context",
       "observed": [
         "no Wrangler config under the inspected repository depth",
-        "wrangler executable absent from PATH",
-        "no CLOUDFLARE_* variable names visible in the bounded job environment"
+        "no CF_* or CLOUDFLARE_* environment variable names visible in the current direct shell",
+        "no CF_* or CLOUDFLARE_* environment variable names visible after the bounded interactive-shell check"
       ]
     }
   },
@@ -132,22 +173,22 @@
     "semanticModel": "passed",
     "sourceImplementation": "implemented and locally validated",
     "adapterIntegration": "passed against a Cloudflare-shaped synchronous SQLite storage facade",
-    "placementProviderBinding": "pending",
+    "placementProviderBinding": "source-bound_to_dedicated_D1_live_resource_pending",
     "providerLive": "unavailable_not_executed",
-    "crossVersionRollout": "not_executed",
+    "crossVersionRollout": "source fail-closed barrier passed; provider overlap not executed",
     "migrationRollback": "existing-Case migration not implemented; live rehearsal not applicable to this source change",
     "deployedE2E": "unavailable_not_executed"
   },
   "lifecycleDecision": {
     "status": "implementing",
-    "reason": "production source and local adapter proof exist, but durable placement-provider binding, deployment-qualified capacity, live provider evidence and rollout qualification remain unresolved or unavailable",
+    "reason": "production source, dedicated-D1 placement binding and local adapter proof exist, but the actual D1/Worker/CaseDO resources, deployment-qualified capacity, live fault/restart evidence and rollout overlap remain unqualified",
     "workboardSelectionChanges": false,
     "d0020Activated": false
   },
   "remainingUnknowns": [
-    "exact durable provider substrate and binding for the D0019 placement meta-authority",
+    "actual dedicated D1 resource identity, Worker binding and live concurrent single-winner behavior for the D0019 placement meta-authority",
     "actual Cloudflare account/plan capacity and safety headroom used to set maxAuthoritativeBytesPerCase",
-    "exact Wrangler exports versus migrations lifecycle configuration for deployment",
+    "exact Cloudflare exports lifecycle and no-Wrangler API deployment binding for the new SQLite-backed CaseDO namespace",
     "live SQLite Durable Object eviction/restart/response-loss/fault behavior for this adapter",
     "old/new Worker code coexistence and rollout barrier qualification",
     "migration/rollback semantics for any future existing-Case cutover",
