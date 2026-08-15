@@ -1,12 +1,14 @@
 import { ContractError } from './canonical.mjs';
 import {
   CaseDOAuthority,
+  createCasePlacement,
   validateCasePlacement,
 } from './casedo-authority.mjs';
 import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 
 const textEncoder = new TextEncoder();
 const MAX_BINDING_BYTES = 2048;
+const PROVIDER_JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
 
 function requiredTextBinding(env, name, maxBytes = MAX_BINDING_BYTES) {
   const value = env?.[name];
@@ -31,7 +33,15 @@ function positiveIntegerBinding(env, name) {
   return parsed;
 }
 
-function runtimeConfig(env) {
+function providerJurisdictionBinding(env) {
+  const jurisdiction = requiredTextBinding(env, 'TDEV_CASEDO_JURISDICTION');
+  if (!PROVIDER_JURISDICTIONS.has(jurisdiction)) {
+    throw new ContractError('invalid_casedo_deployment_config', 'TDEV_CASEDO_JURISDICTION is not a supported provider jurisdiction');
+  }
+  return jurisdiction;
+}
+
+export function readCaseRuntimeConfig(env) {
   return Object.freeze({
     maxAuthoritativeBytesPerCase: positiveIntegerBinding(env, 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE'),
     writerCompatibilityId: requiredTextBinding(env, 'TDEV_CASEDO_WRITER_COMPATIBILITY_ID'),
@@ -41,8 +51,18 @@ function runtimeConfig(env) {
       workerScript: requiredTextBinding(env, 'TDEV_WORKER_SCRIPT'),
       className: 'CaseRuntimeDO',
       namespace: requiredTextBinding(env, 'TDEV_CASEDO_NAMESPACE'),
-      jurisdiction: requiredTextBinding(env, 'TDEV_CASEDO_JURISDICTION'),
+      jurisdiction: providerJurisdictionBinding(env),
     }),
+  });
+}
+
+export function createRuntimeCasePlacement(env, caseId, durableObjectId) {
+  const config = readCaseRuntimeConfig(env);
+  return createCasePlacement({
+    caseId,
+    placementGeneration: 1,
+    ...config.placement,
+    durableObjectId,
   });
 }
 
@@ -65,7 +85,14 @@ function assertRuntimePlacement(input, config, durableObjectId) {
 
 export class CaseRuntimeDOHost {
   constructor(ctx, env) {
-    this.config = runtimeConfig(env);
+    this.config = readCaseRuntimeConfig(env);
+    const providerJurisdiction = ctx.id.jurisdiction ?? 'global';
+    if (providerJurisdiction !== this.config.placement.jurisdiction) {
+      throw new ContractError('placement_conflict', 'CaseDO provider identity has the wrong jurisdiction', {
+        expected: this.config.placement.jurisdiction,
+        actual: providerJurisdiction,
+      });
+    }
     this.durableObjectId = ctx.id.toString();
     this.authority = new CaseDOAuthority(ctx.storage, {
       maxAuthoritativeBytesPerCase: this.config.maxAuthoritativeBytesPerCase,
@@ -81,29 +108,29 @@ export class CaseRuntimeDOHost {
     return assertRuntimePlacement(input, this.config, this.durableObjectId);
   }
 
-  async #requireElected(input) {
+  async requireElectedPlacement(input) {
     const placement = this.#placement(input);
     await this.placementAuthority.requireElected({ placement });
     return placement;
   }
 
   async initializeElectedCase(input) {
-    const placement = await this.#requireElected(input.placement);
+    const placement = await this.requireElectedPlacement(input.placement);
     return this.authority.initializeElectedCase({ ...input, placement });
   }
 
   async loadCase(input) {
-    const placement = await this.#requireElected(input.placement);
+    const placement = await this.requireElectedPlacement(input.placement);
     return this.authority.loadCase({ ...input, placement });
   }
 
   async command(input) {
-    const placement = await this.#requireElected(input.placement);
+    const placement = await this.requireElectedPlacement(input.placement);
     return this.authority.command({ ...input, placement });
   }
 
   async recoverExecutionOwnerLoss(input) {
-    const placement = await this.#requireElected(input.placement);
+    const placement = await this.requireElectedPlacement(input.placement);
     return this.authority.recoverExecutionOwnerLoss({ ...input, placement });
   }
 }

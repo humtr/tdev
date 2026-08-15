@@ -26,7 +26,7 @@ function deploymentEnvironment() {
 
 function providerContext(durableObjectId = 'do-provider-case') {
   return {
-    id: { toString: () => durableObjectId },
+    id: { toString: () => durableObjectId, jurisdiction: 'eu' },
     storage: {
       transactionSync(operation) {
         return operation();
@@ -139,4 +139,14 @@ test('Cloudflare CaseDO host rejects a mismatched provider identity before consu
     (error) => error?.code === 'placement_conflict',
   );
   assert.equal(placementLookups, 0);
+});
+
+test('Cloudflare CaseDO host binds declared jurisdiction to the provider Durable Object identity', () => {
+  const Host = CaseRuntimeDOHost;
+  const context = providerContext();
+  context.id.jurisdiction = 'us';
+  assert.throws(
+    () => new Host(context, deploymentEnvironment()),
+    (error) => error?.code === 'placement_conflict',
+  );
 });
