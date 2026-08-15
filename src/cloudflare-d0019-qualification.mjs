@@ -33,6 +33,14 @@ export class CaseRuntimeDO extends DurableObject {
   qualificationCommandThenAbort(input) {
     return this.qualification.qualificationCommandThenAbort(input);
   }
+
+  qualificationRuntimeProbe(input) {
+    return this.qualification.qualificationRuntimeProbe(input);
+  }
+
+  qualificationWriterBarrierProbe(input) {
+    return this.qualification.qualificationWriterBarrierProbe(input);
+  }
 }
 
 export default {

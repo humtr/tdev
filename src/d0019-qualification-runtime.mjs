@@ -137,6 +137,8 @@ function operationShape(input, operation) {
     recover_execution_owner_loss: [['recoveryId', 'cause'], []],
     abort_instance: [[], []],
     command_then_abort: [['envelope'], []],
+    runtime_probe: [[], []],
+    writer_barrier_probe: [['expectedWriterCompatibilityId', 'envelope'], []],
   };
   const shape = shapes[operation];
   if (!shape) throw new ContractError('qualification_unknown_operation', 'Unknown D0019 qualification operation');
@@ -173,7 +175,7 @@ export class D0019QualificationService {
   }
 
   async #dispatch(input) {
-    assertRecordShape(input, ['operation', 'caseId'], ['plan', 'caseContract', 'envelope', 'recoveryId', 'cause'], 'D0019 qualification request');
+    assertRecordShape(input, ['operation', 'caseId'], ['plan', 'caseContract', 'envelope', 'recoveryId', 'cause', 'expectedWriterCompatibilityId'], 'D0019 qualification request');
     if (typeof input.operation !== 'string') throw new ContractError('qualification_unknown_operation', 'D0019 qualification operation is invalid');
     operationShape(input, input.operation);
     const { placement, stub } = this.#route(input.caseId);
@@ -186,7 +188,13 @@ export class D0019QualificationService {
       return stub.recoverExecutionOwnerLoss({ placement, recoveryId: input.recoveryId, cause: input.cause });
     }
     if (input.operation === 'abort_instance') return stub.qualificationAbortInstance({ placement });
-    return stub.qualificationCommandThenAbort({ placement, envelope: input.envelope });
+    if (input.operation === 'command_then_abort') return stub.qualificationCommandThenAbort({ placement, envelope: input.envelope });
+    if (input.operation === 'runtime_probe') return stub.qualificationRuntimeProbe({ placement });
+    return stub.qualificationWriterBarrierProbe({
+      placement,
+      expectedWriterCompatibilityId: input.expectedWriterCompatibilityId,
+      envelope: input.envelope,
+    });
   }
 
   async fetch(request) {
@@ -211,6 +219,28 @@ export class D0019QualificationCaseDOHost {
     }
     this.ctx = ctx;
     this.host = new CaseRuntimeDOHost(ctx, env);
+    const sourceSha = env?.TDEV_SOURCE_SHA;
+    if (typeof sourceSha !== 'string' || !/^[0-9a-f]{40}$/.test(sourceSha)) {
+      throw new ContractError('invalid_qualification_config', 'D0019 qualification source SHA binding is invalid');
+    }
+    const versionId = env?.TDEV_WORKER_VERSION?.id;
+    if (versionId !== undefined && (typeof versionId !== 'string' || versionId.length === 0 || versionId.length > 256)) {
+      throw new ContractError('invalid_qualification_config', 'D0019 qualification Worker version identity is invalid');
+    }
+    this.sourceSha = sourceSha;
+    this.workerVersionId = versionId ?? null;
+  }
+
+  #runtimeFacts() {
+    return {
+      writerCompatibilityId: this.host.config.writerCompatibilityId,
+      maxAuthoritativeBytesPerCase: this.host.config.maxAuthoritativeBytesPerCase,
+      workerScript: this.host.config.placement.workerScript,
+      namespace: this.host.config.placement.namespace,
+      jurisdiction: this.host.config.placement.jurisdiction,
+      sourceSha: this.sourceSha,
+      workerVersionId: this.workerVersionId,
+    };
   }
 
   initializeElectedCase(input) {
@@ -241,5 +271,30 @@ export class D0019QualificationCaseDOHost {
     await this.host.command(input);
     this.ctx.abort('tdev_d0019_qualification_abort_after_commit');
     throw new ContractError('qualification_abort_returned', 'Durable Object abort unexpectedly returned');
+  }
+
+  async qualificationRuntimeProbe(input) {
+    assertRecordShape(input, ['placement'], [], 'D0019 qualification runtime probe');
+    await this.host.requireElectedPlacement(input.placement);
+    return this.#runtimeFacts();
+  }
+
+  async qualificationWriterBarrierProbe(input) {
+    assertRecordShape(input, ['placement', 'expectedWriterCompatibilityId', 'envelope'], [], 'D0019 qualification writer barrier probe');
+    if (typeof input.expectedWriterCompatibilityId !== 'string' || input.expectedWriterCompatibilityId.length === 0) {
+      throw new ContractError('qualification_invalid_request', 'D0019 writer barrier probe requires an expected writer identity');
+    }
+    await this.host.requireElectedPlacement(input.placement);
+    const facts = this.#runtimeFacts();
+    if (facts.writerCompatibilityId !== input.expectedWriterCompatibilityId) {
+      return { ...facts, attempted: false, mutation: null };
+    }
+    try {
+      const result = await this.host.command({ placement: input.placement, envelope: input.envelope });
+      return { ...facts, attempted: true, mutation: { committed: true, result } };
+    } catch (error) {
+      if (!(error instanceof ContractError)) throw error;
+      return { ...facts, attempted: true, mutation: { committed: false, errorCode: error.code } };
+    }
   }
 }

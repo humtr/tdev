@@ -152,6 +152,8 @@ class LocalNamespace {
       recoverExecutionOwnerLoss: (input) => host().recoverExecutionOwnerLoss(input),
       qualificationAbortInstance: (input) => host().qualificationAbortInstance(input),
       qualificationCommandThenAbort: (input) => host().qualificationCommandThenAbort(input),
+      qualificationRuntimeProbe: (input) => host().qualificationRuntimeProbe(input),
+      qualificationWriterBarrierProbe: (input) => host().qualificationWriterBarrierProbe(input),
     };
   }
 
@@ -171,6 +173,8 @@ function localEndpoint(scriptName, d1) {
     TDEV_WORKER_SCRIPT: scriptName,
     TDEV_CASEDO_NAMESPACE: `namespace-${scriptName}`,
     TDEV_CASEDO_JURISDICTION: 'eu',
+    TDEV_SOURCE_SHA: '1'.repeat(40),
+    TDEV_WORKER_VERSION: { id: `version-${scriptName}` },
     TDEV_CASE_PLACEMENT: d1,
   };
   const namespace = new LocalNamespace(scriptName, env);

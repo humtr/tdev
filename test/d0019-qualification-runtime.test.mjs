@@ -22,6 +22,8 @@ function deploymentEnvironment({ script = 'tdev-d0019-qualification-a', stub, mo
     TDEV_WORKER_SCRIPT: script,
     TDEV_CASEDO_NAMESPACE: 'TDEV_CASE_AUTHORITY',
     TDEV_CASEDO_JURISDICTION: 'eu',
+    TDEV_SOURCE_SHA: '1'.repeat(40),
+    TDEV_WORKER_VERSION: { id: 'worker-version-1' },
     TDEV_CASE_PLACEMENT: {
       prepare() {
         return {};
@@ -70,6 +72,8 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     async recoverExecutionOwnerLoss(input) { calls.push(['recover', input]); return { recovered: true }; },
     async qualificationAbortInstance(input) { calls.push(['abort', input]); return { aborted: true }; },
     async qualificationCommandThenAbort(input) { calls.push(['commandThenAbort', input]); return { aborted: true }; },
+    async qualificationRuntimeProbe(input) { calls.push(['runtimeProbe', input]); return { probed: true }; },
+    async qualificationWriterBarrierProbe(input) { calls.push(['writerBarrierProbe', input]); return { barrier: true }; },
   };
   const elections = [];
   const service = new D0019QualificationService(deploymentEnvironment({ stub }), {
@@ -88,6 +92,8 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     { operation: 'recover_execution_owner_loss', caseId: 'qualification-case', recoveryId: 'loss-1', cause: { fixture: true } },
     { operation: 'abort_instance', caseId: 'qualification-case' },
     { operation: 'command_then_abort', caseId: 'qualification-case', envelope: { fixture: true } },
+    { operation: 'runtime_probe', caseId: 'qualification-case' },
+    { operation: 'writer_barrier_probe', caseId: 'qualification-case', expectedWriterCompatibilityId: 'writer-v2', envelope: { fixture: true } },
   ];
   for (const body of requests) {
     const response = await service.fetch(qualificationRequest(body));
@@ -101,7 +107,7 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
   assert.equal(elected.placementGeneration, 1);
   assert.equal(elected.workerScript, 'tdev-d0019-qualification-a');
   assert.equal(elected.durableObjectId, 'do:tdev-d0019-qualification-a:qualification-case');
-  assert.deepEqual(calls.map(([name]) => name), ['initialize', 'load', 'command', 'recover', 'abort', 'commandThenAbort']);
+  assert.deepEqual(calls.map(([name]) => name), ['initialize', 'load', 'command', 'recover', 'abort', 'commandThenAbort', 'runtimeProbe', 'writerBarrierProbe']);
   for (const [, input] of calls) assert.equal(input.placement.placementDigest, elected.placementDigest);
 });
 
@@ -221,6 +227,44 @@ test('D0019 qualification DO fault hooks abort only after election or committed 
     (error) => error?.code === 'provider_abort',
   );
   assert.deepEqual(events, ['command-committed', 'abort:tdev_d0019_qualification_abort_after_commit']);
+});
+
+test('D0019 qualification writer barrier probes only the exact running writer and reports mutation rejection', async () => {
+  const events = [];
+  const host = new D0019QualificationCaseDOHost(qualificationContext(events), deploymentEnvironment());
+  host.host = {
+    config: {
+      writerCompatibilityId: 'writer-v1',
+      maxAuthoritativeBytesPerCase: 8 * 1024 * 1024,
+      placement: { workerScript: 'tdev-d0019-qualification-a', namespace: 'TDEV_CASE_AUTHORITY', jurisdiction: 'eu' },
+    },
+    async requireElectedPlacement() {
+      events.push('placement');
+    },
+    async command() {
+      events.push('command');
+      throw new ContractError('casedo_writer_incompatible', 'simulated incompatible durable writer');
+    },
+  };
+  const skipped = await host.qualificationWriterBarrierProbe({
+    placement: {},
+    expectedWriterCompatibilityId: 'writer-v2',
+    envelope: {},
+  });
+  assert.equal(skipped.attempted, false);
+  assert.deepEqual(events, ['placement']);
+
+  events.length = 0;
+  const rejected = await host.qualificationWriterBarrierProbe({
+    placement: {},
+    expectedWriterCompatibilityId: 'writer-v1',
+    envelope: {},
+  });
+  assert.equal(rejected.attempted, true);
+  assert.deepEqual(rejected.mutation, { committed: false, errorCode: 'casedo_writer_incompatible' });
+  assert.equal(rejected.sourceSha, '1'.repeat(40));
+  assert.equal(rejected.workerVersionId, 'worker-version-1');
+  assert.deepEqual(events, ['placement', 'command']);
 });
 
 test('D0019 qualification runtime is unavailable unless the exact mode is enabled', () => {
