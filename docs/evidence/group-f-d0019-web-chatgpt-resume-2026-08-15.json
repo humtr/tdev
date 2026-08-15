@@ -1,0 +1,119 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0019-web-chatgpt-resume-checkpoint",
+  "observedAt": "2026-08-15T12:12:40Z",
+  "repository": "humtr/tdev",
+  "authority": {
+    "freshPublishedRef": "group/f-cloudflare-runtime@257658582310e4568cb7d6ae27babc38cc5419de",
+    "resolvedDesign": "D0019@r2",
+    "workboardStatus": "implementing",
+    "candidateSourceHead": "021fe33e5e519ad41d94f002e836198ca209af53",
+    "candidateIsPublished": false,
+    "candidateIsCompletion": false
+  },
+  "reviewedCandidate": {
+    "base": "257658582310e4568cb7d6ae27babc38cc5419de",
+    "commitsAfterBase": 13,
+    "workerModuleCount": 16,
+    "workerModuleDigest": "sha256:3c321e4db7b3ebf691abece5a5b1d417998cc1e3389f4f657f8b7dda50f45850",
+    "reviewFindings": [
+      {
+        "finding": "The structured qualification RPC envelope was not forwarded by the deployed Durable Object export class.",
+        "correctionCommit": "c55c36760f84dda19df2fb7db17c262e084e956d",
+        "validation": "The collected deployable main module must contain the exact qualificationInvoke forwarder."
+      },
+      {
+        "finding": "The live proof covered postcommit response loss but left precommit rollback at the local-only layer.",
+        "correctionCommit": "021fe33e5e519ad41d94f002e836198ca209af53",
+        "validation": "A qualification-only command fault now fails after exact D1 election but before SQLite commit; the live proof requires unchanged head/revision and no receipt before retrying the same command through postcommit response loss."
+      }
+    ],
+    "preservedBoundaries": [
+      "D1 owns only write-once CaseId to exact elected placement.",
+      "CaseDO and the unchanged D0010 CaseEngine remain the sole semantic authority.",
+      "No update, delete, relocation, re-election, existing-Case migration or semantic co-owner was added.",
+      "No D0020 delivery, Agent epoch, queue, reconnect, WebSocket or hibernation meaning was frozen.",
+      "Qualification-only ingress remains token protected and its workers.dev routes are disabled outside a bounded run."
+    ]
+  },
+  "validation": {
+    "focusedD0019": {
+      "command": "node --test --test-reporter=dot test/casedo-authority.test.mjs test/cloudflare-casedo-runtime.test.mjs test/d0019-casedo-authority-model.test.mjs test/d0019-cloudflare-api.test.mjs test/d0019-cloudflare-qualify.test.mjs test/d0019-live-qualification.test.mjs test/d0019-qualification-runtime.test.mjs test/d1-case-placement.test.mjs",
+      "tests": 69,
+      "passed": 69,
+      "failed": 0
+    },
+    "syntax": "passed",
+    "documentation": "passed",
+    "effectiveDiffCheck": "passed",
+    "exactRepositoryGate": {
+      "command": "npm run check",
+      "tests": 362,
+      "passed": 337,
+      "failed": 25,
+      "result": "not_green",
+      "failureLayer": "Termux hard-link publication",
+      "exactCause": "link(2) returned EACCES for every ImmutableJournalSnapshotStore hard-link case",
+      "qualificationMeaning": "preserved independent environment gap; not converted to pass and not attributed to the D0019 diff"
+    }
+  },
+  "lastProviderObservation": {
+    "tmcpTaskId": "task_88d_734cf9627c",
+    "readOnlyJobs": [
+      "job_88d_4b5292f905",
+      "job_88f_9a778dcf04",
+      "job_88i_b98288546c",
+      "job_88j_b026f92261"
+    ],
+    "credentialValuesExposed": false,
+    "wranglerUsed": false,
+    "tokenStatus": "active",
+    "accountType": "standard",
+    "subscriptionRead": "forbidden_by_current_token_403",
+    "database": "tdev-d0019-placement",
+    "qualificationWorkers": [
+      "tdev-d0019-qualification-a",
+      "tdev-d0019-qualification-b",
+      "tdev-d0019-qualification-capacity"
+    ],
+    "sqliteNamespacesObserved": 3,
+    "allQualificationSubdomainsDisabled": true,
+    "deployedSourceSha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+    "deployedSourceSupersededByCandidate": true,
+    "providerMutationAfterObservation": false,
+    "freshReadRequiredBeforeNextMutation": true
+  },
+  "capacityCandidate": {
+    "productionQualified": false,
+    "maxTaskInitialBytes": 3915402,
+    "growthFixtureFinalBytes": 1281193,
+    "liveFixtureLocalInitialBytes": 62125,
+    "liveFixtureLocalFinalBytes": 120633,
+    "safetyFactor": "4/1",
+    "derivedCandidateMaxAuthoritativeBytesPerCase": 16777216,
+    "providerMinimumPerObjectBytes": 1073741824,
+    "providerMaximumRowBytes": 2097152,
+    "providerLimitsSource": "https://developers.cloudflare.com/durable-objects/platform/limits/",
+    "providerLimitsCheckedAt": "2026-08-15T12:12:40Z",
+    "meaning": "The value remains provisional until the exact published source completes live workload, restart, capacity rejection and rollout proofs."
+  },
+  "resume": {
+    "executionClient": "Web ChatGPT through the public tmcp Operations surface",
+    "firstActions": [
+      "Freshly resolve published repository authority and reread the required bootstrap and D0019 owners.",
+      "Require the published Group F head to contain candidate source commit 021fe33e5e519ad41d94f002e836198ca209af53 and verify the complete effective diff.",
+      "Freshly reread the Cloudflare token/account, D1 schema and row count, exact Worker bindings/versions, Durable Object namespaces and disabled route state without printing secrets.",
+      "Deploy the exact clean published source with tools/d0019-cloudflare-qualify.mjs and no Wrangler, then run the single-winner, restart, precommit rollback, postcommit response-loss, capacity and writer-rollout proofs.",
+      "Require every qualification route to be disabled and independently reread after success or failure.",
+      "Record live evidence, qualify or reject the finite Case budget, run repository gates, and keep D0019 implementing unless every terminal gate is independently satisfied."
+    ],
+    "doNotStart": "D0020",
+    "doNotInfer": [
+      "Cloudflare account plan from account type",
+      "production capacity from local measurements alone",
+      "live provider proof from local provider-shaped tests",
+      "existing-Case migration or rollback semantics"
+    ]
+  },
+  "status": "implementation_checkpointed_provider_live_pending"
+}
