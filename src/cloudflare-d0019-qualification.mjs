@@ -41,6 +41,10 @@ export class CaseRuntimeDO extends DurableObject {
   qualificationWriterBarrierProbe(input) {
     return this.qualification.qualificationWriterBarrierProbe(input);
   }
+
+  qualificationInvoke(input) {
+    return this.qualification.qualificationInvoke(input);
+  }
 }
 
 export default {

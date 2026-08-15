@@ -114,6 +114,9 @@ test('D0019 Worker module collector closes only the static qualification depende
   assert.equal(modules.has('src/d1-case-placement.mjs'), true);
   assert.equal(modules.has('src/store.mjs'), false);
   assert.equal(modules.size, 16);
+  assert.ok(modules.get(D0019_WORKER_MAIN_MODULE).includes(
+    'return this.qualification.qualificationInvoke(input);',
+  ));
   assert.match(workerModuleDigest(modules), /^sha256:[0-9a-f]{64}$/);
 });
 
