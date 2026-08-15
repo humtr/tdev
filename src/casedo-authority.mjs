@@ -20,6 +20,7 @@ export const CASEDO_STORAGE_PROFILE = 'tdev.casedo.sqlite-authority.v1';
 export const CASEDO_STORAGE_SCHEMA_VERSION = 1;
 export const CASEDO_WRITER_PROTOCOL = 'tdev.casedo.writer.v1';
 export const CASEDO_DEFAULT_CHUNK_BYTES = 256 * 1024;
+export const CASEDO_MAX_RECOVERY_CAUSE_BYTES = 32 * 1024;
 
 const PLACEMENT_DOMAIN = 'tdev.casedo.placement.v1';
 const RECOVERY_CAUSE_DOMAIN = 'tdev.casedo.execution-owner-loss.v1';
@@ -38,6 +39,22 @@ function assertPositiveSafeInteger(value, label) {
     throw new ContractError('invalid_casedo_integer', `${label} must be a positive safe integer`);
   }
   return value;
+}
+
+function storedNonNegativeInteger(value, label) {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new ContractError('casedo_store_corrupt', `${label} is not a non-negative safe integer`);
+  }
+  return parsed;
+}
+
+function addStoredBytes(total, value, label) {
+  const next = total + value;
+  if (!Number.isSafeInteger(next) || next < 0) {
+    throw new ContractError('casedo_store_corrupt', `${label} exceeds safe integer accounting`);
+  }
+  return next;
 }
 
 function assertBoundedString(value, label, maxBytes = MAX_PLACEMENT_FIELD_BYTES) {
@@ -310,13 +327,80 @@ export class CaseDOAuthority {
     const meta = this.#readMeta();
     const head = this.#validateMeta(meta, placement);
     const snapshot = this.#loadSnapshot(meta, head);
+    const measuredAuthoritativeBytes = addStoredBytes(
+      META_OVERHEAD_BYTES + meta.snapshot_bytes + meta.snapshot_chunk_count * ROW_OVERHEAD_BYTES,
+      this.#existingUsage(),
+      'CaseDO authoritative byte total',
+    );
+    if (measuredAuthoritativeBytes !== meta.authoritative_bytes) {
+      throw new ContractError('casedo_store_corrupt', 'CaseDO authoritative byte accounting is inconsistent', {
+        recordedBytes: meta.authoritative_bytes,
+        measuredBytes: measuredAuthoritativeBytes,
+      });
+    }
+    if (measuredAuthoritativeBytes > this.maxAuthoritativeBytesPerCase) {
+      throw new ContractError('casedo_capacity_exceeded', 'CaseDO authoritative state exceeds the configured Case budget', {
+        requiredBytes: measuredAuthoritativeBytes,
+        maxAuthoritativeBytesPerCase: this.maxAuthoritativeBytesPerCase,
+      });
+    }
     return { meta, head, snapshot };
   }
 
   #existingUsage() {
-    const object = sqlOneOrNull(this.storage.sql, 'SELECT COALESCE(SUM(byte_length + (? * (chunk_count + 1))), 0) AS total FROM casedo_objects', ROW_OVERHEAD_BYTES);
-    const recovery = sqlOneOrNull(this.storage.sql, 'SELECT COALESCE(SUM(byte_length + ?), 0) AS total FROM casedo_recoveries', ROW_OVERHEAD_BYTES);
-    return Number(object?.total ?? 0) + Number(recovery?.total ?? 0);
+    let total = 0;
+    const objects = sqlRows(this.storage.sql, `SELECT
+      objects.digest, objects.chunk_count, objects.byte_length,
+      COUNT(chunks.chunk_index) AS measured_chunk_count,
+      COALESCE(SUM(LENGTH(CAST(chunks.payload AS BLOB))), 0) AS measured_byte_length,
+      COALESCE(MAX(LENGTH(CAST(chunks.payload AS BLOB))), 0) AS largest_chunk_bytes
+      FROM casedo_objects AS objects
+      LEFT JOIN casedo_object_chunks AS chunks ON chunks.digest = objects.digest
+      GROUP BY objects.digest, objects.chunk_count, objects.byte_length
+      ORDER BY objects.digest ASC`);
+    for (const object of objects) {
+      const chunkCount = storedNonNegativeInteger(object.chunk_count, 'CaseDO semantic object chunk count');
+      const byteLength = storedNonNegativeInteger(object.byte_length, 'CaseDO semantic object byte length');
+      const measuredChunkCount = storedNonNegativeInteger(object.measured_chunk_count, 'CaseDO measured semantic object chunk count');
+      const measuredByteLength = storedNonNegativeInteger(object.measured_byte_length, 'CaseDO measured semantic object byte length');
+      const largestChunkBytes = storedNonNegativeInteger(object.largest_chunk_bytes, 'CaseDO measured semantic object chunk size');
+      if (chunkCount <= 0 || byteLength <= 0 || chunkCount !== measuredChunkCount || byteLength !== measuredByteLength || largestChunkBytes > this.chunkBytes) {
+        throw new ContractError('casedo_store_corrupt', 'CaseDO semantic object byte accounting is inconsistent');
+      }
+      total = addStoredBytes(total, byteLength, 'CaseDO semantic object bytes');
+      total = addStoredBytes(total, (chunkCount + 1) * ROW_OVERHEAD_BYTES, 'CaseDO semantic object row overhead');
+    }
+
+    const orphanChunks = sqlOneOrNull(this.storage.sql, `SELECT COUNT(*) AS count
+      FROM casedo_object_chunks AS chunks
+      LEFT JOIN casedo_objects AS objects ON objects.digest = chunks.digest
+      WHERE objects.digest IS NULL`);
+    if (storedNonNegativeInteger(orphanChunks?.count ?? 0, 'CaseDO orphan semantic object chunk count') !== 0) {
+      throw new ContractError('casedo_store_corrupt', 'CaseDO contains orphan semantic object chunks');
+    }
+
+    const recoveries = sqlRows(this.storage.sql, `SELECT
+      recovery_id, cause_digest, committed_revision, head_digest, byte_length
+      FROM casedo_recoveries ORDER BY recovery_id ASC`);
+    for (const recovery of recoveries) {
+      try {
+        assertIdentifier(recovery.recovery_id, 'stored recoveryId');
+      } catch (cause) {
+        throw new ContractError('casedo_store_corrupt', 'CaseDO recovery identifier is invalid', {}, { cause });
+      }
+      if (typeof recovery.cause_digest !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(recovery.cause_digest) ||
+          typeof recovery.head_digest !== 'string' || !/^sha256:[0-9a-f]{64}$/.test(recovery.head_digest)) {
+        throw new ContractError('casedo_store_corrupt', 'CaseDO recovery digest is invalid');
+      }
+      storedNonNegativeInteger(recovery.committed_revision, 'CaseDO recovery committed revision');
+      const byteLength = storedNonNegativeInteger(recovery.byte_length, 'CaseDO recovery byte length');
+      const measuredByteLength = utf8Bytes(recovery.recovery_id) + utf8Bytes(recovery.cause_digest) + 256;
+      if (byteLength !== measuredByteLength) {
+        throw new ContractError('casedo_store_corrupt', 'CaseDO recovery byte accounting is inconsistent');
+      }
+      total = addStoredBytes(total, byteLength + ROW_OVERHEAD_BYTES, 'CaseDO recovery bytes');
+    }
+    return total;
   }
 
   #prepareObjects(records) {
@@ -448,7 +532,14 @@ export class CaseDOAuthority {
     assertRecordShape(input, ['placement', 'recoveryId', 'cause'], [], 'CaseDO explicit recovery');
     const placement = validateCasePlacement(input.placement);
     assertIdentifier(input.recoveryId, 'recoveryId');
-    const cause = canonicalClone(input.cause);
+    const causeText = canonicalJson(input.cause);
+    const causeBytes = utf8Bytes(causeText);
+    if (causeBytes > CASEDO_MAX_RECOVERY_CAUSE_BYTES) {
+      throw new ContractError('casedo_recovery_cause_too_large', 'CaseDO recovery cause exceeds its byte limit', {
+        maxBytes: CASEDO_MAX_RECOVERY_CAUSE_BYTES,
+      });
+    }
+    const cause = parseCanonicalJson(causeText, CASEDO_MAX_RECOVERY_CAUSE_BYTES, 'CaseDO recovery cause');
     const causeDigest = typedDigest(RECOVERY_CAUSE_DOMAIN, cause);
     const recoveryBytes = utf8Bytes(input.recoveryId) + utf8Bytes(causeDigest) + 256 + ROW_OVERHEAD_BYTES;
     const committed = this.storage.transactionSync(() => {

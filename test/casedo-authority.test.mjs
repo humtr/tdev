@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { DatabaseSync } from 'node:sqlite';
 import {
+  CASEDO_MAX_RECOVERY_CAUSE_BYTES,
   CASEDO_STORAGE_PROFILE,
   CASEDO_STORAGE_SCHEMA_VERSION,
   CaseDOAuthority,
@@ -393,6 +394,18 @@ test('CaseDO fails closed on corrupt chunks, incompatible schema/writer, and mis
     storage.close();
   }
   {
+    const { storage, authority, placement } = createFixture('accounting-mismatch-case');
+    storage.run('UPDATE casedo_meta SET authoritative_bytes = authoritative_bytes + 1');
+    assert.throws(() => authority.loadCase({ placement }), assertCode('casedo_store_corrupt'));
+    storage.close();
+  }
+  {
+    const { storage, authority, placement } = createFixture('object-accounting-mismatch-case');
+    storage.run('UPDATE casedo_objects SET byte_length = byte_length + 1 WHERE digest = (SELECT MIN(digest) FROM casedo_objects)');
+    assert.throws(() => authority.loadCase({ placement }), assertCode('casedo_store_corrupt'));
+    storage.close();
+  }
+  {
     const { storage, placement } = createFixture('writer-case');
     const incompatible = makeAuthority(storage, { writerCompatibilityId: 'writer-v2' });
     assert.throws(() => incompatible.loadCase({ placement }), assertCode('incompatible_casedo_writer'));
@@ -404,6 +417,25 @@ test('CaseDO fails closed on corrupt chunks, incompatible schema/writer, and mis
     assert.throws(() => authority.loadCase({ placement: wrongPlacement }), assertCode('placement_conflict'));
     storage.close();
   }
+});
+
+test('CaseDO rejects an oversized recovery cause before mutating authority', () => {
+  const { storage, authority, placement } = createFixture('bounded-recovery-cause-case');
+  const before = authority.loadCase({ placement });
+
+  assert.throws(
+    () => authority.recoverExecutionOwnerLoss({
+      placement,
+      recoveryId: 'oversized-owner-loss',
+      cause: { observation: 'x'.repeat(CASEDO_MAX_RECOVERY_CAUSE_BYTES) },
+    }),
+    assertCode('casedo_recovery_cause_too_large'),
+  );
+
+  const after = authority.loadCase({ placement });
+  assert.equal(after.snapshot.caseRevision, before.snapshot.caseRevision);
+  assert.equal(storage.rows('SELECT * FROM casedo_recoveries').length, 0);
+  storage.close();
 });
 
 test('incompatible rollout writer cannot mutate and the compatible writer retains authority', () => {
