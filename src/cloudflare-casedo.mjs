@@ -4,6 +4,7 @@ import {
   CaseDOAuthority,
   validateCasePlacement,
 } from './casedo-authority.mjs';
+import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 
 const textEncoder = new TextEncoder();
 const MAX_BINDING_BYTES = 2048;
@@ -72,6 +73,7 @@ export class CaseRuntimeDO extends DurableObject {
       maxAuthoritativeBytesPerCase: this.config.maxAuthoritativeBytesPerCase,
       writerCompatibilityId: this.config.writerCompatibilityId,
     });
+    this.placementAuthority = new D1CasePlacementAuthority(env?.TDEV_CASE_PLACEMENT);
     ctx.blockConcurrencyWhile(async () => {
       this.authority.initialize();
     });
@@ -79,6 +81,12 @@ export class CaseRuntimeDO extends DurableObject {
 
   #placement(input) {
     return assertRuntimePlacement(input, this.config, this.durableObjectId);
+  }
+
+  async initializeElectedCase(input) {
+    const placement = this.#placement(input.placement);
+    await this.placementAuthority.requireElected({ placement });
+    return this.authority.initializeElectedCase({ ...input, placement });
   }
 
   loadCase(input) {

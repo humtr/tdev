@@ -19,6 +19,11 @@ export {
   createCasePlacement,
   validateCasePlacement,
 } from './casedo-authority.mjs';
+export {
+  D1_CASE_PLACEMENT_PROFILE,
+  D1_CASE_PLACEMENT_SCHEMA_VERSION,
+  D1CasePlacementAuthority,
+} from './d1-case-placement.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
   GIT_PROJECTION_CANDIDATE_DOMAIN,

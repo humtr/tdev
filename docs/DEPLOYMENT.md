@@ -219,6 +219,14 @@ This mapping follows the actor-style requirement that one authoritative owner se
 
 ## 9. Provider adapter requirements
 
+### D0019 placement meta-authority binding
+
+For the current Group F D0019 Revision 2 implementation, the deployment owner binds the already-accepted durable placement-election contract to **one dedicated D1 database** with profile `tdev.case-placement.d1.v1` / schema version `1`. This is a provider binding of the existing D0019 placement owner, not a new Case semantic owner or a new Design-level generation/migration lifecycle. `CaseId` remains the write-once key: an exact placement retry reuses the stored canonical placement record, while any competing placement digest fails closed. There is no update, delete, relocation or re-election path in this binding.
+
+Every Worker deployment/environment context that is permitted to elect within the same Case authority domain must bind `TDEV_CASE_PLACEMENT` to the **same exact D1 database resource**. The checked migration source is `cloudflare/d1/migrations/0001-case-placement.sql`; it creates only the placement profile metadata and canonical `CaseId -> placement` rows. Runtime code does not create or upgrade this schema. The repository intentionally does not invent a Wrangler `database_id`, account, jurisdiction or migration invocation before the actual provider deployment surface is available and independently observed.
+
+This D1 database is a narrow placement meta-authority. It is not the Case semantic head, an Agent delivery queue, or the D1 query/locator projection row described elsewhere in this document. `CaseRuntimeDO.initializeElectedCase()` must reread and match the exact D1-elected placement before invoking the existing `CaseDOAuthority.initializeElectedCase()` boundary. A future move of an existing Case, placement-generation replacement, or reuse of another physical store requires the already-declared migration/cutover authority rather than mutating this write-once row in place.
+
 The D0019 Case Durable Object adapter must:
 
 - elect one durable placement generation before new Case authority birth, binding `CaseId` to the exact deployment/environment, Worker script, class/namespace, jurisdiction and Durable Object ID; reject competing placement tuples and never fall back to a second destination after initialization failure;
