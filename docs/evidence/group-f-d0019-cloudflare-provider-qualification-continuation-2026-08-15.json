@@ -1,0 +1,214 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0019-cloudflare-provider-qualification-continuation",
+  "observedAt": "2026-08-15T08:10:48.000Z",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0019",
+    "revision": 2,
+    "lifecycleAfterThisEvidence": "implementing",
+    "productionVerified": false,
+    "d0020Activated": false
+  },
+  "repositoryState": {
+    "freshRemoteRef": "group/f-cloudflare-runtime@257658582310e4568cb7d6ae27babc38cc5419de",
+    "candidateRef": "group/f-cloudflare-runtime@e51c56899cff91c190211efe7bd62277daf4f81e",
+    "candidateRelationship": "clean descendant, 10 commits ahead",
+    "candidateWorktree": "/data/data/com.termux/files/usr/tmp/tdev-d0019-provider-TaGkHb/repo",
+    "publication": "not performed",
+    "canonicalCheckoutMutation": "not performed"
+  },
+  "continuationCommits": [
+    {
+      "sha": "4beaf4449061962bf31a104058d39c6b65325613",
+      "subject": "fix: harden D0019 authority accounting"
+    },
+    {
+      "sha": "a0c4e835880b200b2e2d3cdd475979c79ca3928c",
+      "subject": "fix: revalidate D0019 placement per operation"
+    },
+    {
+      "sha": "5da40149b817cd2e5fad4a05eee033b52e12cde6",
+      "subject": "feat: add D0019 live qualification ingress"
+    },
+    {
+      "sha": "759b5018d41515b7bf7b758a43b9bf1f94967be3",
+      "subject": "feat: add Wrangler-free D0019 provider tooling"
+    },
+    {
+      "sha": "a5b6c634addf850500cdb838fc2d1d977014e242",
+      "subject": "test: add D0019 live authority proof runner"
+    },
+    {
+      "sha": "b9051987d6bb179ac806ae6fd66507d06882facf",
+      "subject": "test: add D0019 rollout barrier probes"
+    },
+    {
+      "sha": "cbd9db41a086c6eab58c8d65b038822cc4f11fb2",
+      "subject": "feat: automate D0019 provider qualification"
+    },
+    {
+      "sha": "a9bd8c1ff001cf0d51e2a00bd6f014eaf6248cf4",
+      "subject": "fix: verify Cloudflare Worker version ownership"
+    },
+    {
+      "sha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+      "subject": "fix: preserve safe D0019 live failure context"
+    },
+    {
+      "sha": "e51c56899cff91c190211efe7bd62277daf4f81e",
+      "subject": "fix: preserve D0019 errors across DO RPC"
+    }
+  ],
+  "credentialBoundary": {
+    "source": "external mode-0600 environment file outside the repository",
+    "accountIdStoredInEvidence": false,
+    "apiTokenStoredInEvidence": false,
+    "r2SecretStoredInEvidence": false,
+    "wranglerUsed": false
+  },
+  "freshAccountDiscovery": {
+    "accountIdDigest": "sha256:a81f2bf338aca1a50dfe63ae8e4739614460803fde0603c79971a4a78e8627c9",
+    "accountType": "standard",
+    "tokenStatus": "active",
+    "workersSubdomainConfigured": true,
+    "workerUsageModel": "standard",
+    "resourceCounts": {
+      "d1Databases": 1,
+      "durableObjectNamespaces": 3,
+      "workerScripts": 6
+    }
+  },
+  "providerResources": {
+    "jurisdiction": "global",
+    "placementDatabase": {
+      "name": "tdev-d0019-placement",
+      "profile": "tdev.case-placement.d1.v1",
+      "schemaVersion": 1,
+      "placementRows": 2,
+      "rawResourceIdentityRecorded": false
+    },
+    "qualificationWorkers": [
+      {
+        "scriptName": "tdev-d0019-qualification-a",
+        "deployedSourceSha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+        "writerCompatibilityId": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 16777216,
+        "publicProbeStatus": 404,
+        "publicQualificationIngressReachable": false
+      },
+      {
+        "scriptName": "tdev-d0019-qualification-b",
+        "deployedSourceSha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+        "writerCompatibilityId": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 16777216,
+        "publicProbeStatus": 404,
+        "publicQualificationIngressReachable": false
+      },
+      {
+        "scriptName": "tdev-d0019-qualification-capacity",
+        "deployedSourceSha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+        "writerCompatibilityId": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 1,
+        "publicProbeStatus": 404,
+        "publicQualificationIngressReachable": false
+      }
+    ],
+    "routeClosure": "verified read-only after the latest failed run; every qualification workers.dev ingress returned 404"
+  },
+  "liveQualificationAttempts": [
+    {
+      "sourceSha": "cbd9db41a086c6eab58c8d65b038822cc4f11fb2",
+      "result": "failed_closed_before_proofs",
+      "causeCode": "qualification_provision_failed",
+      "finding": "the settings endpoint omitted declarative exports and secret-setting created a new Worker version without inheriting the ownership annotation",
+      "correction": "a9bd8c1ff001cf0d51e2a00bd6f014eaf6248cf4 reads settings bindings plus the exact latest Worker version detail and uses persistent qualification bindings with SQLite export/namespace readback"
+    },
+    {
+      "sourceSha": "a9bd8c1ff001cf0d51e2a00bd6f014eaf6248cf4",
+      "result": "failed_closed_during_live_proof",
+      "causeCode": "qualification_unexpected_error",
+      "stage": "not retained by the then-current safe diagnostic contract",
+      "correction": "c1e21eec4963ccf581e8c703e203ec69726addcb preserves bounded stage/status/error-code context without secrets"
+    },
+    {
+      "sourceSha": "c1e21eec4963ccf581e8c703e203ec69726addcb",
+      "result": "failed_closed_during_live_proof",
+      "causeCode": "qualification_unexpected_error",
+      "stage": "losing placement initialization",
+      "observedStatus": 500,
+      "observedErrorCode": "qualification_provider_failure",
+      "expectedErrorCode": "placement_conflict",
+      "finding": "Cloudflare Durable Object RPC did not preserve the local ContractError prototype across the Worker boundary",
+      "correction": "e51c56899cff91c190211efe7bd62277daf4f81e serializes a bounded qualification RPC result/error envelope inside the Durable Object and restores the ContractError at the ingress Worker"
+    }
+  ],
+  "localValidation": {
+    "focusedD0019": {
+      "status": "passed",
+      "tests": 68,
+      "passed": 68,
+      "command": "node --test --test-reporter=dot test/casedo-authority.test.mjs test/cloudflare-casedo-runtime.test.mjs test/d0019-casedo-authority-model.test.mjs test/d0019-cloudflare-api.test.mjs test/d0019-cloudflare-qualify.test.mjs test/d0019-live-qualification.test.mjs test/d0019-qualification-runtime.test.mjs test/d1-case-placement.test.mjs"
+    },
+    "syntax": "passed",
+    "documentation": "passed",
+    "diffCheck": "passed",
+    "exactRepositoryGate": "not rerun at this continuation checkpoint; the independently preserved Termux hard-link EACCES qualification gap remains open",
+    "dependencyInstall": "not rerun; the current execution plane rejected the requested npm ci escalation before execution"
+  },
+  "capacityCandidate": {
+    "productionQualified": false,
+    "maximumTotalTaskInitialMeasurement": {
+      "workTasks": 9999,
+      "promotionTasks": 1,
+      "authoritativeBytes": 3915402
+    },
+    "growthMeasurement": {
+      "workTasks": 2048,
+      "acceptedResults": 128,
+      "receipts": 256,
+      "finalAuthoritativeBytes": 1281193
+    },
+    "representativeLiveComparisonFixture": {
+      "workTasks": 128,
+      "acceptedResults": 16,
+      "receipts": 32,
+      "localInitialBytes": 62125,
+      "localFinalBytes": 120633,
+      "allowedPlacementIdentityDriftBytes": 4096
+    },
+    "candidateMaxAuthoritativeBytesPerCase": 16777216,
+    "safetyFactor": "4/1 then rounded up to the next power of two",
+    "providerMinimumPerObjectBytesUsedForQualification": 1073741824,
+    "providerMaximumRowBytesUsedForQualification": 2097152,
+    "reasonNotQualified": "the e51c568 candidate has not completed the live workload, restart, capacity-rejection and writer-rollout proofs"
+  },
+  "proofLayers": {
+    "localSourceAndProviderShaped": "passed",
+    "actualAccountAndResourceDiscovery": "passed",
+    "actualD1SchemaAndWorkerNamespaceProvisioning": "passed",
+    "actualPlacementElection": "partially observed; two durable qualification placement rows exist, but terminal single-winner proof did not complete",
+    "actualCaseDOFaultAndRestart": "not completed",
+    "actualFiniteCapacityEnvelope": "not completed",
+    "actualWriterRolloutAndRollback": "not completed",
+    "publicRouteClosureAfterFailure": "passed",
+    "repositoryPublication": "not performed"
+  },
+  "exactNextAction": {
+    "sourceShaToDeploy": "e51c56899cff91c190211efe7bd62277daf4f81e",
+    "action": "rerun the Wrangler-free D0019 Cloudflare qualification from the clean candidate after fresh authority/account/resource checks",
+    "expectedFirstFalsifier": "the losing placement initialization must return placement_conflict through the structured qualification DO RPC envelope",
+    "onSuccess": "review and record the full live output, independently reread D1/Worker/namespace/route state, then adjudicate migration/no-dual-writer/rollback acceptance and run exact repository gates",
+    "onFailure": "preserve the exact safe stage/status/error code, verify every public qualification route is disabled, fix only the falsified layer, validate locally and continue",
+    "d0020": "do not start"
+  },
+  "scopeExclusions": [
+    "D0020 delivery, Agent epoch, queue, reconnect, WebSocket and hibernation semantics",
+    "existing-Case migration",
+    "D0031, D0018 and D0030 mutation",
+    "Case semantic-authority transfer away from D0010/CaseEngine",
+    "placement relocation, re-election, update or delete API",
+    "Wrangler",
+    "unrelated Cloudflare Worker mutation"
+  ]
+}
