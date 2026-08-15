@@ -329,6 +329,10 @@ export async function runD0019CloudflareQualification({
       'D0019 Cloudflare qualification did not complete with every public route disabled',
       {
         causeCode: primaryError?.code ?? null,
+        causeStage: typeof primaryError?.details?.stage === 'string' ? primaryError.details.stage : null,
+        causeStatus: Number.isSafeInteger(primaryError?.details?.status) ? primaryError.details.status : null,
+        causeErrorCode: typeof primaryError?.details?.errorCode === 'string' ? primaryError.details.errorCode : null,
+        causeTransportError: typeof primaryError?.details?.transportError === 'string' ? primaryError.details.transportError : null,
         routeClosureCode: closureError?.code ?? null,
       },
       { cause: primaryError ?? closureError },

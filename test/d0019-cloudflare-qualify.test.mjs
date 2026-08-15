@@ -78,6 +78,12 @@ function dependencies({ failCore = false, failDisable = false } = {}) {
         if (failCore) {
           const error = new Error('simulated core failure');
           error.code = 'simulated_core_failure';
+          error.details = {
+            stage: 'simulated core stage',
+            status: 409,
+            errorCode: 'simulated_provider_code',
+            transportError: null,
+          };
           throw error;
         }
         return { placement: { winnerScript: 'tdev-d0019-qualification-a' } };
@@ -120,7 +126,12 @@ test('D0019 Cloudflare qualification orchestration closes routes when a proof fa
   const fake = dependencies({ failCore: true });
   await assert.rejects(
     runD0019CloudflareQualification(configuration(), fake.value),
-    (error) => error?.code === 'd0019_cloudflare_qualification_failed' && error.details?.causeCode === 'simulated_core_failure',
+    (error) => error?.code === 'd0019_cloudflare_qualification_failed' &&
+      error.details?.causeCode === 'simulated_core_failure' &&
+      error.details?.causeStage === 'simulated core stage' &&
+      error.details?.causeStatus === 409 &&
+      error.details?.causeErrorCode === 'simulated_provider_code' &&
+      error.details?.causeTransportError === null,
   );
   assert.deepEqual(fake.events.filter(([kind]) => kind === 'subdomains').map((event) => event[1]), [true, false]);
 });
