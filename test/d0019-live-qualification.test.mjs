@@ -10,7 +10,11 @@ import {
 import { D1CasePlacementAuthority } from '../src/d1-case-placement.mjs';
 import {
   D0019QualificationHttpEndpoint,
+  qualifyD0019CapacityEnvelope,
+  runD0019LiveCapacityRejectionProof,
+  runD0019LiveCapacityWorkloadProof,
   runD0019CoreProviderProof,
+  runD0019LiveWriterRolloutProof,
 } from '../tools/d0019-live-qualification.mjs';
 
 const migrationSql = await readFile(new URL('../cloudflare/d1/migrations/0001-case-placement.sql', import.meta.url), 'utf8');
@@ -160,14 +164,18 @@ class LocalNamespace {
   close() {
     for (const record of this.objects.values()) record.storage.close();
   }
+
+  resetHosts() {
+    for (const record of this.objects.values()) record.host = null;
+  }
 }
 
-function localEndpoint(scriptName, d1) {
+function localEndpoint(scriptName, d1, { budget = 8 * 1024 * 1024, writerCompatibilityId = 'writer-v1' } = {}) {
   const env = {
     TDEV_D0019_QUALIFICATION_MODE: 'enabled',
     TDEV_D0019_QUALIFICATION_TOKEN: qualificationToken,
-    TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE: String(8 * 1024 * 1024),
-    TDEV_CASEDO_WRITER_COMPATIBILITY_ID: 'writer-v1',
+    TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE: String(budget),
+    TDEV_CASEDO_WRITER_COMPATIBILITY_ID: writerCompatibilityId,
     TDEV_DEPLOYMENT: scriptName,
     TDEV_ENVIRONMENT: 'qualification',
     TDEV_WORKER_SCRIPT: scriptName,
@@ -183,6 +191,11 @@ function localEndpoint(scriptName, d1) {
   return {
     scriptName,
     namespace,
+    redeploy(nextWriterCompatibilityId) {
+      env.TDEV_CASEDO_WRITER_COMPATIBILITY_ID = nextWriterCompatibilityId;
+      env.TDEV_WORKER_VERSION = { id: `version-${scriptName}-${nextWriterCompatibilityId}` };
+      namespace.resetHosts();
+    },
     async invoke(input) {
       const response = await service.fetch(new Request('https://qualification.invalid/qualification/d0019/v1', {
         method: 'POST',
@@ -280,4 +293,158 @@ test('D0019 qualification HTTP endpoint rejects unsafe origins, tokens, and over
     (error) => error?.code === 'qualification_request_too_large',
   );
   assert.equal(fetchCalls, 0);
+});
+
+function measurementFixture(overrides) {
+  return {
+    schemaVersion: 1,
+    evidenceKind: 'd0019-case-authoritative-byte-measurement',
+    measurementOnly: true,
+    productionBudgetQualified: false,
+    adapterAccounting: 'CaseDOAuthority.authoritativeBytes',
+    chunkBytes: 262144,
+    ...overrides,
+  };
+}
+
+test('D0019 capacity envelope requires maximum-Task initial bytes, growth bytes, explicit headroom, provider limits, and live account proof', () => {
+  const input = {
+    maxAuthoritativeBytesPerCase: 16 * 1024 * 1024,
+    chunkBytes: 262144,
+    measurements: [
+      measurementFixture({ mode: 'init', taskCount: 9999, authoritativeBytes: 3915402 }),
+      measurementFixture({ mode: 'growth', taskCount: 2048, acceptedResults: 128, finalAuthoritativeBytes: 1281193 }),
+    ],
+    safetyHeadroom: {
+      numerator: 4,
+      denominator: 1,
+      rationale: 'Four times the measured maximum-total-Task initial Case leaves an explicit bounded lifecycle reserve.',
+    },
+    providerLimits: {
+      minimumPerObjectBytes: 1024 * 1024 * 1024,
+      maximumRowBytes: 2 * 1024 * 1024,
+      source: 'https://developers.cloudflare.com/durable-objects/platform/limits/',
+      checkedAt: '2026-08-15T00:00:00.000Z',
+    },
+    accountProviderEvidence: {
+      accountIdDigest: `sha256:${'1'.repeat(64)}`,
+      accountType: 'standard',
+      tokenStatus: 'active',
+      sqliteNamespaceObserved: true,
+      liveRepresentativeAuthoritativeBytes: 120633,
+      liveRepresentativeRestartVerified: true,
+      liveCapacityRejectionVerified: true,
+    },
+  };
+  const result = qualifyD0019CapacityEnvelope(input);
+  assert.equal(result.productionBudgetQualified, true);
+  assert.equal(result.measuredHighWaterBytes, 3915402);
+  assert.equal(result.safetyHeadroom.minimumBudgetFromHeadroom, 15661608);
+  assert.equal(result.safetyHeadroom.reserveBytesAboveMeasuredHighWater, 12861814);
+  assert.throws(
+    () => qualifyD0019CapacityEnvelope({ ...input, maxAuthoritativeBytesPerCase: 8 * 1024 * 1024 }),
+    (error) => error?.code === 'capacity_headroom_insufficient',
+  );
+  assert.throws(
+    () => qualifyD0019CapacityEnvelope({ ...input, accountProviderEvidence: { ...input.accountProviderEvidence, liveCapacityRejectionVerified: false } }),
+    (error) => error?.code === 'invalid_capacity_evidence',
+  );
+});
+
+test('D0019 capacity workload reproduces adapter accounting after provider-shaped restart', async (t) => {
+  const d1 = new SharedD1();
+  const endpoint = localEndpoint('tdev-d0019-qualification-a', d1, { budget: 16 * 1024 * 1024 });
+  t.after(() => {
+    endpoint.namespace.close();
+    d1.close();
+  });
+  const placement = new D1CasePlacementAuthority(d1);
+  const evidence = await runD0019LiveCapacityWorkloadProof({
+    endpoint,
+    caseId: 'local-capacity-workload',
+    readPlacement: (caseId) => placement.get(caseId),
+    localInitialMeasurementBytes: 62125,
+    localFinalMeasurementBytes: 120633,
+    maxIdentityDriftBytes: 4096,
+    readOptions: { attempts: 1, delayMs: 0 },
+  });
+  assert.equal(evidence.localInitialMeasurementBytes, 62125);
+  assert.equal(evidence.localFinalMeasurementBytes, 120633);
+  assert.ok(Math.abs(evidence.initialIdentityDriftBytes) <= 4096);
+  assert.ok(Math.abs(evidence.finalIdentityDriftBytes) <= 4096);
+  assert.equal(evidence.receipts, 32);
+  assert.equal(evidence.providerRestartVerified, true);
+});
+
+test('D0019 live capacity rejection leaves no Case authority and cannot fall back to another placement', async (t) => {
+  const d1 = new SharedD1();
+  const constrained = localEndpoint('tdev-d0019-qualification-capacity', d1, { budget: 1 });
+  const competing = localEndpoint('tdev-d0019-qualification-a', d1);
+  t.after(() => {
+    constrained.namespace.close();
+    competing.namespace.close();
+    d1.close();
+  });
+  const placement = new D1CasePlacementAuthority(d1);
+  const evidence = await runD0019LiveCapacityRejectionProof({
+    endpoint: constrained,
+    competingEndpoint: competing,
+    caseId: 'local-capacity-rejection',
+    readPlacement: (caseId) => placement.get(caseId),
+  });
+  assert.equal(evidence.rejectedBeforeAuthorityBirth, true);
+  assert.equal(evidence.competingFallbackRejected, true);
+});
+
+test('D0019 rollout proof fences the exact incompatible writer and restores the compatible writer without mutation', async (t) => {
+  const d1 = new SharedD1();
+  const endpoint = localEndpoint('tdev-d0019-qualification-a', d1);
+  t.after(() => {
+    endpoint.namespace.close();
+    d1.close();
+  });
+  const placement = new D1CasePlacementAuthority(d1);
+  const evidence = await runD0019LiveWriterRolloutProof({
+    endpoint,
+    caseId: 'local-writer-rollout',
+    readPlacement: (caseId) => placement.get(caseId),
+    deployWriter: async (writerCompatibilityId) => endpoint.redeploy(writerCompatibilityId),
+    sourceSha: '1'.repeat(40),
+    compatibleWriterCompatibilityId: 'writer-v1',
+    incompatibleWriterCompatibilityId: 'writer-v2',
+    rolloutOptions: { attempts: 2, delayMs: 0, sleepImpl: async () => {} },
+  });
+  assert.equal(evidence.incompatibleMutationRejected, true);
+  assert.equal(evidence.rollbackPreservedAuthority, true);
+  assert.equal(evidence.compatibleWriterContinued, true);
+});
+
+test('D0019 rollout proof restores the compatible writer when the incompatible barrier is not observed', async (t) => {
+  const d1 = new SharedD1();
+  const endpoint = localEndpoint('tdev-d0019-qualification-a', d1);
+  t.after(() => {
+    endpoint.namespace.close();
+    d1.close();
+  });
+  const placement = new D1CasePlacementAuthority(d1);
+  const deployments = [];
+  await assert.rejects(
+    runD0019LiveWriterRolloutProof({
+      endpoint,
+      caseId: 'local-writer-rollout-failure',
+      readPlacement: (caseId) => placement.get(caseId),
+      deployWriter: async (writerCompatibilityId) => {
+        deployments.push(writerCompatibilityId);
+        endpoint.redeploy(writerCompatibilityId === 'writer-v2' ? 'writer-v1' : writerCompatibilityId);
+      },
+      sourceSha: '1'.repeat(40),
+      compatibleWriterCompatibilityId: 'writer-v1',
+      incompatibleWriterCompatibilityId: 'writer-v2',
+      rolloutOptions: { attempts: 1, delayMs: 0, sleepImpl: async () => {} },
+    }),
+    (error) => error?.code === 'writer_barrier_unverified',
+  );
+  assert.deepEqual(deployments, ['writer-v2', 'writer-v1']);
+  const probe = await endpoint.invoke({ operation: 'runtime_probe', caseId: 'local-writer-rollout-failure' });
+  assert.equal(probe.body.result.writerCompatibilityId, 'writer-v1');
 });

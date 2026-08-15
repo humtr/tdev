@@ -3,11 +3,18 @@ import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { canonicalJson, strictJsonParse } from '../src/canonical.mjs';
+import { validateCasePlacement } from '../src/casedo-authority.mjs';
 
 export const D0019_D1_DATABASE_NAME = 'tdev-d0019-placement';
 export const D0019_QUALIFICATION_SCRIPTS = Object.freeze([
   'tdev-d0019-qualification-a',
   'tdev-d0019-qualification-b',
+]);
+export const D0019_CAPACITY_QUALIFICATION_SCRIPT = 'tdev-d0019-qualification-capacity';
+const D0019_ALL_QUALIFICATION_SCRIPTS = new Set([
+  ...D0019_QUALIFICATION_SCRIPTS,
+  D0019_CAPACITY_QUALIFICATION_SCRIPT,
 ]);
 export const D0019_WORKER_OWNERSHIP_TAG = 'tdev-d0019-qualification-v1';
 export const D0019_WORKER_COMPATIBILITY_DATE = '2026-08-15';
@@ -95,6 +102,17 @@ function assertWriterCompatibilityId(value) {
   return value;
 }
 
+function assertQualificationScripts(values) {
+  if (!Array.isArray(values) || values.length === 0 || values.length > D0019_ALL_QUALIFICATION_SCRIPTS.size) {
+    fail('invalid_qualification_scripts', 'Qualification script selection is invalid');
+  }
+  const scripts = values.map(assertScriptName);
+  if (new Set(scripts).size !== scripts.length || scripts.some((script) => !D0019_ALL_QUALIFICATION_SCRIPTS.has(script))) {
+    fail('invalid_qualification_scripts', 'Qualification script selection is duplicated or outside the fixed allowlist');
+  }
+  return scripts;
+}
+
 function unquoteEnvValue(value, lineNumber) {
   if (value.length >= 2 && value.startsWith("'") && value.endsWith("'")) return value.slice(1, -1);
   if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
@@ -175,8 +193,11 @@ export class CloudflareApiClient {
     this.accountId = assertAccountId(accountId);
     this.apiToken = assertApiToken(apiToken);
     if (typeof fetchImpl !== 'function') fail('invalid_cloudflare_fetch', 'Cloudflare API client requires fetch');
+    if (apiOrigin !== API_ORIGIN) {
+      fail('invalid_cloudflare_api_origin', 'Cloudflare credentials may only be sent to the official API origin');
+    }
     this.fetchImpl = fetchImpl;
-    this.apiOrigin = apiOrigin;
+    this.apiOrigin = API_ORIGIN;
   }
 
   accountPath(suffix = '') {
@@ -256,6 +277,16 @@ export class CloudflareApiClient {
 async function listResult(client, apiPath) {
   const response = await client.request('GET', apiPath);
   if (!Array.isArray(response.result)) fail('invalid_cloudflare_api_response', 'Cloudflare list response did not contain an array', { apiPath });
+  const totalPages = Number(response.resultInfo?.total_pages ?? 1);
+  const totalCount = Number(response.resultInfo?.total_count ?? response.result.length);
+  if (!Number.isSafeInteger(totalPages) || totalPages < 1 || !Number.isSafeInteger(totalCount) || totalCount < response.result.length ||
+      totalPages > 1 || totalCount > response.result.length) {
+    fail('cloudflare_list_incomplete', 'Cloudflare list response was paginated or internally inconsistent', {
+      returned: response.result.length,
+      totalPages: Number.isSafeInteger(totalPages) ? totalPages : null,
+      totalCount: Number.isSafeInteger(totalCount) ? totalCount : null,
+    });
+  }
   return response.result;
 }
 
@@ -451,6 +482,33 @@ export async function ensureD1PlacementSchema(client, databaseId, migrationSql) 
   return Object.freeze({ ...after, applied: migrationError === null, reconciledAfterError: migrationError !== null });
 }
 
+export async function readD1PlacementRecord(client, databaseId, caseId) {
+  if (typeof caseId !== 'string' || caseId.length === 0 || caseId.length > 512 || caseId.includes('\0')) {
+    fail('invalid_qualification_case_id', 'D1 placement readback CaseId is invalid');
+  }
+  const rows = rowsFromSingleQuery(await d1Query(
+    client,
+    databaseId,
+    `SELECT case_id, placement_generation, placement_digest, placement_json
+       FROM tdev_case_placements WHERE case_id = ?`,
+    [caseId],
+  ), 'D1 exact placement readback');
+  if (rows.length === 0) return null;
+  if (rows.length !== 1) fail('placement_readback_ambiguous', 'D1 placement readback returned multiple rows');
+  const row = rows[0];
+  let placement;
+  try {
+    placement = validateCasePlacement(strictJsonParse(new TextEncoder().encode(row?.placement_json), { maxBytes: 64 * 1024 }));
+  } catch (cause) {
+    throw new CloudflareQualificationError('placement_readback_corrupt', 'D1 placement readback was invalid', {}, { cause });
+  }
+  if (row.case_id !== caseId || Number(row.placement_generation) !== placement.placementGeneration ||
+      row.placement_digest !== placement.placementDigest || canonicalJson(placement) !== row.placement_json) {
+    fail('placement_readback_corrupt', 'D1 placement readback fields did not match canonical placement bytes');
+  }
+  return placement;
+}
+
 function relativeModuleSpecifiers(source) {
   const specifiers = [];
   for (const match of source.matchAll(MODULE_SPECIFIER_PATTERN)) specifiers.push(match[1]);
@@ -528,6 +586,7 @@ export function buildQualificationWorkerMetadata({
       plainTextBinding('TDEV_WORKER_SCRIPT', script),
       plainTextBinding('TDEV_CASEDO_NAMESPACE', namespaceId),
       plainTextBinding('TDEV_CASEDO_JURISDICTION', providerJurisdiction),
+      plainTextBinding('TDEV_SOURCE_SHA', sourceSha.toLowerCase()),
     ],
     exports: {
       CaseRuntimeDO: { type: 'durable-object', storage: 'sqlite' },
@@ -581,6 +640,7 @@ export function assertQualificationWorkerSettings(settings, expected) {
     ['TDEV_WORKER_SCRIPT', ['plain_text', 'text', expected.scriptName]],
     ['TDEV_CASEDO_NAMESPACE', ['plain_text', 'text', expected.namespaceId]],
     ['TDEV_CASEDO_JURISDICTION', ['plain_text', 'text', expected.jurisdiction]],
+    ['TDEV_SOURCE_SHA', ['plain_text', 'text', expected.sourceSha]],
   ]);
   for (const [name, [type, field, value]] of required) {
     const binding = bindingByName(runtime, name);
@@ -607,6 +667,52 @@ async function setWorkerSubdomain(client, scriptName, enabled) {
   });
   if (response.result?.enabled !== enabled) fail('worker_subdomain_mismatch', `Worker ${scriptName} subdomain state did not match request`);
   return response.result;
+}
+
+export async function setD0019QualificationSubdomains(client, { scriptNames = D0019_QUALIFICATION_SCRIPTS, enabled }) {
+  const scripts = assertQualificationScripts(scriptNames);
+  if (typeof enabled !== 'boolean') fail('invalid_subdomain_state', 'Qualification subdomain state must be boolean');
+  const outcomes = [];
+  const failures = [];
+  for (const scriptName of scripts) {
+    try {
+      const settings = await workerSettings(client, scriptName);
+      assertWorkerOwned(settings.result, scriptName);
+      await setWorkerSubdomain(client, scriptName, enabled);
+      outcomes.push({ scriptName, enabled });
+    } catch (error) {
+      failures.push({ scriptName, code: error?.code ?? 'subdomain_state_failed' });
+    }
+  }
+  const safetyClosureFailures = [];
+  if (failures.length !== 0 && enabled) {
+    for (const scriptName of scripts) {
+      try {
+        const settings = await workerSettings(client, scriptName, { allowNotFound: true });
+        if (settings.found) {
+          assertWorkerOwned(settings.result, scriptName);
+          await setWorkerSubdomain(client, scriptName, false);
+        }
+      } catch (error) {
+        safetyClosureFailures.push({ scriptName, code: error?.code ?? 'subdomain_disable_failed' });
+      }
+    }
+  }
+  if (failures.length !== 0) {
+    fail('qualification_subdomain_state_failed', 'Qualification subdomain state could not be established for every selected Worker', {
+      failures,
+      safetyClosureFailures,
+    });
+  }
+  return outcomes;
+}
+
+export function qualificationWorkerOrigin(scriptName, workerSubdomain) {
+  const script = assertScriptName(scriptName);
+  if (typeof workerSubdomain !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(workerSubdomain)) {
+    fail('invalid_workers_subdomain', 'Cloudflare Workers subdomain is invalid');
+  }
+  return `https://${script}.${workerSubdomain}.workers.dev`;
 }
 
 async function uploadWorker(client, scriptName, metadata, modules) {
@@ -695,18 +801,26 @@ export async function provisionD0019QualificationResources({
   qualificationToken,
   allowCreate = false,
   enableSubdomain = false,
+  scriptNames = D0019_QUALIFICATION_SCRIPTS,
 }) {
   const providerJurisdiction = assertJurisdiction(jurisdiction);
   const maxBytes = assertPositiveSafeInteger(maxAuthoritativeBytesPerCase, 'maxAuthoritativeBytesPerCase');
   const writer = assertWriterCompatibilityId(writerCompatibilityId);
-  if (typeof qualificationToken !== 'string' || qualificationToken.length < 32) fail('invalid_qualification_token', 'Ephemeral qualification token is invalid');
+  const scripts = assertQualificationScripts(scriptNames);
+  const qualificationTokenBytes = typeof qualificationToken === 'string'
+    ? new TextEncoder().encode(qualificationToken).byteLength
+    : 0;
+  if (typeof qualificationToken !== 'string' || qualificationToken.includes('\0') ||
+      qualificationTokenBytes < 32 || qualificationTokenBytes > 512) {
+    fail('invalid_qualification_token', 'Ephemeral qualification token is invalid');
+  }
   const database = await ensureD1Database(client, discovery, { jurisdiction: providerJurisdiction, allowCreate });
   const migrationSql = fs.readFileSync(path.join(repositoryRoot, 'cloudflare/d1/migrations/0001-case-placement.sql'), 'utf8');
   const schema = await ensureD1PlacementSchema(client, database.uuid, migrationSql);
   const modules = collectWorkerModules(repositoryRoot);
   const workers = [];
   try {
-    for (const scriptName of D0019_QUALIFICATION_SCRIPTS) {
+    for (const scriptName of scripts) {
       workers.push(await provisionWorker(client, modules, {
         scriptName,
         databaseId: database.uuid,
@@ -718,7 +832,7 @@ export async function provisionD0019QualificationResources({
     }
   } catch (cause) {
     const safetyClosureFailures = [];
-    for (const scriptName of D0019_QUALIFICATION_SCRIPTS) {
+    for (const scriptName of scripts) {
       try {
         const settings = await workerSettings(client, scriptName, { allowNotFound: true });
         if (settings.found) {
@@ -777,7 +891,7 @@ function assertCliShape(command, values, flags) {
   }
 }
 
-function currentSourceSha(repositoryRoot) {
+export function readCleanSourceSha(repositoryRoot) {
   const dirty = execFileSync('git', ['status', '--porcelain'], { cwd: repositoryRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] });
   if (dirty.length !== 0) fail('source_worktree_dirty', 'Worker deployment requires a clean source worktree');
   const value = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] }).trim();
@@ -829,7 +943,7 @@ async function runCli() {
     jurisdiction,
     maxAuthoritativeBytesPerCase,
     writerCompatibilityId,
-    sourceSha: currentSourceSha(repositoryRoot),
+    sourceSha: readCleanSourceSha(repositoryRoot),
     qualificationToken,
     allowCreate: true,
     enableSubdomain: false,
@@ -837,9 +951,18 @@ async function runCli() {
   process.stdout.write(`${JSON.stringify({
     status: 'provisioned_disabled',
     accountIdDigest: discovery.accountIdDigest,
-    database: result.database,
+    database: {
+      name: result.database.name,
+      jurisdiction: result.database.jurisdiction,
+      uuidDigest: sha256(result.database.uuid),
+    },
     schema: result.schema,
-    workers: result.workers,
+    workers: result.workers.map((worker) => ({
+      scriptName: worker.scriptName,
+      namespaceIdDigest: sha256(worker.namespaceId),
+      moduleDigest: worker.moduleDigest,
+      subdomainEnabled: worker.subdomainEnabled,
+    })),
     qualificationTokenPersisted: false,
   })}\n`);
 }
@@ -848,7 +971,14 @@ const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;
 if (invokedPath === path.resolve(fileURLToPath(import.meta.url))) {
   runCli().catch((error) => {
     const code = error?.code ?? 'd0019_cloudflare_tool_failed';
-    const details = error instanceof CloudflareQualificationError ? error.details : {};
+    const details = error instanceof CloudflareQualificationError
+      ? {
+          status: error.details?.status ?? null,
+          causeCode: error.details?.causeCode ?? null,
+          failures: error.details?.failures ?? [],
+          safetyClosureFailures: error.details?.safetyClosureFailures ?? [],
+        }
+      : {};
     process.stderr.write(`${JSON.stringify({ status: 'failed', error: { code, details } })}\n`);
     process.exitCode = 1;
   });

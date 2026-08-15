@@ -484,3 +484,353 @@ export async function runD0019CoreProviderProof({
     },
   });
 }
+
+function positiveSafeInteger(value, label) {
+  assert(Number.isSafeInteger(value) && value > 0, 'invalid_capacity_evidence', `${label} must be a positive safe integer`);
+  return value;
+}
+
+function measurementHighWater(measurement, expectedChunkBytes) {
+  assert(isPlainRecord(measurement) && measurement.schemaVersion === 1 &&
+    measurement.evidenceKind === 'd0019-case-authoritative-byte-measurement' &&
+    measurement.measurementOnly === true && measurement.productionBudgetQualified === false &&
+    measurement.adapterAccounting === 'CaseDOAuthority.authoritativeBytes' &&
+    measurement.chunkBytes === expectedChunkBytes,
+  'invalid_capacity_evidence', 'Capacity measurement does not use the exact D0019 accounting profile');
+  if (measurement.mode === 'init') return positiveSafeInteger(measurement.authoritativeBytes, 'measurement.authoritativeBytes');
+  if (measurement.mode === 'growth') return positiveSafeInteger(measurement.finalAuthoritativeBytes, 'measurement.finalAuthoritativeBytes');
+  fail('invalid_capacity_evidence', 'Capacity measurement mode is invalid');
+}
+
+function ceilRatio(value, numerator, denominator) {
+  const result = (BigInt(value) * BigInt(numerator) + BigInt(denominator) - 1n) / BigInt(denominator);
+  assert(result <= BigInt(Number.MAX_SAFE_INTEGER), 'invalid_capacity_evidence', 'Capacity headroom calculation exceeds the safe integer range');
+  return Number(result);
+}
+
+export function qualifyD0019CapacityEnvelope({
+  maxAuthoritativeBytesPerCase,
+  chunkBytes,
+  measurements,
+  safetyHeadroom,
+  providerLimits,
+  accountProviderEvidence,
+}) {
+  const budget = positiveSafeInteger(maxAuthoritativeBytesPerCase, 'maxAuthoritativeBytesPerCase');
+  const chunks = positiveSafeInteger(chunkBytes, 'chunkBytes');
+  assert(Array.isArray(measurements) && measurements.length >= 2, 'invalid_capacity_evidence', 'Capacity qualification requires multiple representative measurements');
+  assert(measurements.some((measurement) => measurement.mode === 'init' && measurement.taskCount === 9999),
+    'invalid_capacity_evidence', 'Capacity qualification requires the maximum-total-Task initial measurement');
+  assert(measurements.some((measurement) => measurement.mode === 'growth' && measurement.acceptedResults > 0),
+    'invalid_capacity_evidence', 'Capacity qualification requires a receipt/result growth measurement');
+  const measuredValues = measurements.map((measurement) => measurementHighWater(measurement, chunks));
+  const measuredHighWaterBytes = Math.max(...measuredValues);
+
+  assert(isPlainRecord(safetyHeadroom), 'invalid_capacity_evidence', 'Capacity safety headroom is missing');
+  const numerator = positiveSafeInteger(safetyHeadroom.numerator, 'safetyHeadroom.numerator');
+  const denominator = positiveSafeInteger(safetyHeadroom.denominator, 'safetyHeadroom.denominator');
+  assert(numerator > denominator && typeof safetyHeadroom.rationale === 'string' &&
+    safetyHeadroom.rationale.length >= 32 && safetyHeadroom.rationale.length <= 2048,
+  'invalid_capacity_evidence', 'Capacity safety headroom must be greater than one and explicitly justified');
+  const minimumBudgetFromHeadroom = ceilRatio(measuredHighWaterBytes, numerator, denominator);
+  assert(budget >= minimumBudgetFromHeadroom, 'capacity_headroom_insufficient', 'Deployment Case budget does not satisfy the declared safety factor', {
+    budget,
+    minimumBudgetFromHeadroom,
+  });
+
+  assert(isPlainRecord(providerLimits), 'invalid_capacity_evidence', 'Provider limit evidence is missing');
+  const minimumPerObjectBytes = positiveSafeInteger(providerLimits.minimumPerObjectBytes, 'providerLimits.minimumPerObjectBytes');
+  const maximumRowBytes = positiveSafeInteger(providerLimits.maximumRowBytes, 'providerLimits.maximumRowBytes');
+  assert(typeof providerLimits.source === 'string' && providerLimits.source.startsWith('https://developers.cloudflare.com/'),
+    'invalid_capacity_evidence', 'Provider limit evidence must identify the official Cloudflare source');
+  assert(typeof providerLimits.checkedAt === 'string' && !Number.isNaN(Date.parse(providerLimits.checkedAt)),
+    'invalid_capacity_evidence', 'Provider limit evidence must include its observation time');
+  assert(budget <= minimumPerObjectBytes, 'capacity_provider_limit_exceeded', 'Deployment Case budget exceeds the conservative provider per-object limit');
+  assert(chunks < maximumRowBytes, 'capacity_provider_row_limit_exceeded', 'CaseDO chunk size does not leave space below the provider row limit');
+
+  assert(isPlainRecord(accountProviderEvidence) && /^sha256:[0-9a-f]{64}$/.test(accountProviderEvidence.accountIdDigest ?? '') &&
+    accountProviderEvidence.tokenStatus === 'active' && accountProviderEvidence.sqliteNamespaceObserved === true &&
+    accountProviderEvidence.liveRepresentativeRestartVerified === true && accountProviderEvidence.liveCapacityRejectionVerified === true,
+  'invalid_capacity_evidence', 'Actual account/provider capacity evidence is incomplete');
+  const liveRepresentativeBytes = positiveSafeInteger(accountProviderEvidence.liveRepresentativeAuthoritativeBytes, 'liveRepresentativeAuthoritativeBytes');
+  assert(liveRepresentativeBytes <= budget, 'capacity_live_measurement_exceeded', 'Live representative Case exceeded the deployment budget');
+
+  return Object.freeze({
+    schemaVersion: 1,
+    evidenceKind: 'd0019-finite-case-capacity-envelope',
+    productionBudgetQualified: true,
+    maxAuthoritativeBytesPerCase: budget,
+    chunkBytes: chunks,
+    measuredHighWaterBytes,
+    liveRepresentativeAuthoritativeBytes: liveRepresentativeBytes,
+    safetyHeadroom: {
+      numerator,
+      denominator,
+      rationale: safetyHeadroom.rationale,
+      minimumBudgetFromHeadroom,
+      reserveBytesAboveMeasuredHighWater: budget - measuredHighWaterBytes,
+    },
+    providerLimits: {
+      minimumPerObjectBytes,
+      maximumRowBytes,
+      source: providerLimits.source,
+      checkedAt: providerLimits.checkedAt,
+      budgetFractionBasisPoints: ceilRatio(budget, 10_000, minimumPerObjectBytes),
+      chunkFractionBasisPoints: ceilRatio(chunks, 10_000, maximumRowBytes),
+    },
+    accountProviderEvidence: {
+      accountIdDigest: accountProviderEvidence.accountIdDigest,
+      accountType: accountProviderEvidence.accountType ?? null,
+      tokenStatus: 'active',
+      sqliteNamespaceObserved: true,
+      liveRepresentativeRestartVerified: true,
+      liveCapacityRejectionVerified: true,
+    },
+  });
+}
+
+function qualificationTaskId(index) {
+  return `task-${String(index).padStart(5, '0')}`;
+}
+
+export function buildD0019CapacityQualificationPlan(workTaskCount = 128) {
+  positiveSafeInteger(workTaskCount, 'workTaskCount');
+  const tasks = Array.from({ length: workTaskCount }, (_, index) => ({
+    id: qualificationTaskId(index),
+    kind: 'work',
+    dependencies: [],
+    claims: [],
+    input: {},
+  }));
+  return definePlan({
+    revisionId: `d0019-budget-wide-${workTaskCount}`,
+    baseTree: { 'seed.txt': 'x'.repeat(2048) },
+    tasks: [
+      ...tasks,
+      {
+        id: 'promote',
+        kind: 'promotion',
+        dependencies: tasks.map((task) => task.id),
+        claims: [{ mode: 'write', resource: 'canonical:tree' }],
+        input: {},
+      },
+    ],
+  });
+}
+
+export async function runD0019LiveCapacityWorkloadProof({
+  endpoint,
+  caseId,
+  readPlacement,
+  workTaskCount = 128,
+  acceptedResults = 16,
+  localInitialMeasurementBytes,
+  localFinalMeasurementBytes,
+  maxIdentityDriftBytes,
+  readOptions = {},
+}) {
+  positiveSafeInteger(acceptedResults, 'acceptedResults');
+  positiveSafeInteger(localInitialMeasurementBytes, 'localInitialMeasurementBytes');
+  positiveSafeInteger(localFinalMeasurementBytes, 'localFinalMeasurementBytes');
+  positiveSafeInteger(maxIdentityDriftBytes, 'maxIdentityDriftBytes');
+  assert(acceptedResults <= workTaskCount, 'invalid_capacity_workload', 'Accepted result count exceeds the capacity workload');
+  const plan = buildD0019CapacityQualificationPlan(workTaskCount);
+  const elected = assertOk(await endpoint.invoke({ operation: 'elect', caseId }), 'capacity workload placement election');
+  assert(canonicalJson(await readPlacement(caseId)) === canonicalJson(elected),
+    'placement_readback_mismatch', 'Capacity workload D1 placement readback did not match');
+  const initialized = assertOk(await endpoint.invoke({ operation: 'initialize', caseId, plan }), 'capacity workload initialization');
+  const initialIdentityDriftBytes = initialized.authoritativeBytes - localInitialMeasurementBytes;
+  assert(Math.abs(initialIdentityDriftBytes) <= maxIdentityDriftBytes, 'capacity_measurement_mismatch', 'Live initial authoritative bytes exceeded the allowed placement-identity accounting drift', {
+    localMeasurement: localInitialMeasurementBytes,
+    actual: initialized.authoritativeBytes,
+    drift: initialIdentityDriftBytes,
+    maxIdentityDriftBytes,
+  });
+  for (let index = 0; index < acceptedResults; index += 1) {
+    const taskId = qualificationTaskId(index);
+    const beforeStart = await readCase(endpoint, caseId, readOptions);
+    const started = assertOk(await endpoint.invoke({
+      operation: 'command',
+      caseId,
+      envelope: {
+        requestId: `start-${taskId}`,
+        expectedCaseRevision: revision(beforeStart.snapshot),
+        command: { type: 'start_attempt', taskId, executor: 'measurement-agent' },
+      },
+    }), `capacity start ${taskId}`);
+    const running = await readCase(endpoint, caseId, readOptions);
+    const resultEnvelope = qualificationResultEnvelope(running.snapshot, plan, started.response.id, taskId);
+    resultEnvelope.result.writes = [{ path: `${taskId}.txt`, content: taskId }];
+    assertOk(await endpoint.invoke({
+      operation: 'command',
+      caseId,
+      envelope: {
+        requestId: `result-${taskId}`,
+        expectedCaseRevision: revision(running.snapshot),
+        command: { type: 'accept_result', envelope: resultEnvelope },
+      },
+    }), `capacity result ${taskId}`);
+  }
+  const finalState = await readCase(endpoint, caseId, readOptions);
+  const finalIdentityDriftBytes = finalState.authoritativeBytes - localFinalMeasurementBytes;
+  assert(Math.abs(finalIdentityDriftBytes) <= maxIdentityDriftBytes, 'capacity_measurement_mismatch', 'Live final authoritative bytes exceeded the allowed placement-identity accounting drift', {
+    localMeasurement: localFinalMeasurementBytes,
+    actual: finalState.authoritativeBytes,
+    drift: finalIdentityDriftBytes,
+    maxIdentityDriftBytes,
+  });
+  const aborted = await endpoint.invoke({ operation: 'abort_instance', caseId });
+  assertAmbiguousFailure(aborted, 'capacity workload provider instance abort');
+  const reconstructed = await readCase(endpoint, caseId, readOptions);
+  assertStateUnchanged(finalState, reconstructed, 'capacity workload reconstruction');
+  assert(reconstructed.authoritativeBytes === finalState.authoritativeBytes, 'capacity_measurement_mismatch', 'Reconstructed capacity accounting changed');
+  return Object.freeze({
+    schemaVersion: 1,
+    evidenceKind: 'd0019-live-capacity-workload-proof',
+    caseIdDigest: caseIdDigest(caseId),
+    placementDigest: elected.placementDigest,
+    planDigest: plan.planDigest,
+    workTaskCount,
+    acceptedResults,
+    receipts: acceptedResults * 2,
+    initialAuthoritativeBytes: initialized.authoritativeBytes,
+    finalAuthoritativeBytes: reconstructed.authoritativeBytes,
+    localInitialMeasurementBytes,
+    localFinalMeasurementBytes,
+    initialIdentityDriftBytes,
+    finalIdentityDriftBytes,
+    maxIdentityDriftBytes,
+    providerRestartVerified: true,
+  });
+}
+
+export async function runD0019LiveCapacityRejectionProof({ endpoint, competingEndpoint, caseId, readPlacement, plan = buildD0019CoreQualificationPlan() }) {
+  const elected = assertOk(await endpoint.invoke({ operation: 'elect', caseId }), 'capacity rejection placement election');
+  assert(canonicalJson(await readPlacement(caseId)) === canonicalJson(elected),
+    'placement_readback_mismatch', 'Capacity rejection D1 placement readback did not match');
+  assertError(await endpoint.invoke({ operation: 'initialize', caseId, plan }), 'casedo_capacity_exceeded', 'over-budget Case initialization');
+  assertError(await endpoint.invoke({ operation: 'load', caseId }), 'case_not_found', 'over-budget Case readback');
+  assertError(await competingEndpoint.invoke({ operation: 'initialize', caseId, plan }), 'placement_conflict', 'over-budget fallback placement');
+  return Object.freeze({
+    schemaVersion: 1,
+    evidenceKind: 'd0019-live-capacity-rejection-proof',
+    caseIdDigest: caseIdDigest(caseId),
+    placementDigest: elected.placementDigest,
+    rejectedBeforeAuthorityBirth: true,
+    competingFallbackRejected: true,
+  });
+}
+
+async function waitForRuntimeWriter(endpoint, caseId, writerCompatibilityId, { attempts = 40, delayMs = 500, sleepImpl = (duration) => new Promise((resolve) => setTimeout(resolve, duration)) } = {}) {
+  let last;
+  for (let attempt = 0; attempt < attempts; attempt += 1) {
+    last = await endpoint.invoke({ operation: 'runtime_probe', caseId });
+    if (last?.status === 200 && last.body?.ok === true && last.body.result?.writerCompatibilityId === writerCompatibilityId) {
+      return last.body.result;
+    }
+    if (attempt + 1 < attempts) await sleepImpl(delayMs);
+  }
+  fail('writer_rollout_not_observed', 'Expected writer was not observed within the bounded rollout window', {
+    expectedWriterCompatibilityId: writerCompatibilityId,
+    lastOutcome: last ? safeOutcome(last) : null,
+  });
+}
+
+export async function runD0019LiveWriterRolloutProof({
+  endpoint,
+  caseId,
+  readPlacement,
+  deployWriter,
+  sourceSha,
+  compatibleWriterCompatibilityId,
+  incompatibleWriterCompatibilityId,
+  rolloutOptions = {},
+}) {
+  assert(typeof deployWriter === 'function', 'invalid_rollout_configuration', 'Writer rollout proof requires a deployment callback');
+  assert(compatibleWriterCompatibilityId !== incompatibleWriterCompatibilityId,
+    'invalid_rollout_configuration', 'Writer rollout proof requires distinct writer identities');
+  const plan = buildD0019CoreQualificationPlan();
+  const elected = assertOk(await endpoint.invoke({ operation: 'elect', caseId }), 'rollout placement election');
+  assert(canonicalJson(await readPlacement(caseId)) === canonicalJson(elected), 'placement_readback_mismatch', 'Rollout D1 placement readback did not match');
+  const initialized = assertOk(await endpoint.invoke({ operation: 'initialize', caseId, plan }), 'rollout Case initialization');
+  const initialRevision = initialized.caseRevision;
+  const baseline = await waitForRuntimeWriter(endpoint, caseId, compatibleWriterCompatibilityId, rolloutOptions);
+  assert(baseline.sourceSha === sourceSha, 'writer_source_mismatch', 'Baseline writer did not report the exact source SHA');
+  const envelope = {
+    requestId: 'rollout-barrier-command',
+    expectedCaseRevision: initialRevision,
+    command: { type: 'start_attempt', taskId: 'task-a', executor: 'qualification-rollout-agent' },
+  };
+
+  let rolloutError = null;
+  let barrier;
+  try {
+    await deployWriter(incompatibleWriterCompatibilityId);
+    for (let attempt = 0; attempt < (rolloutOptions.attempts ?? 40); attempt += 1) {
+      const response = await endpoint.invoke({
+        operation: 'writer_barrier_probe',
+        caseId,
+        expectedWriterCompatibilityId: incompatibleWriterCompatibilityId,
+        envelope,
+      });
+      if (response?.status === 200 && response.body?.ok === true) {
+        const result = response.body.result;
+        if (result.writerCompatibilityId === incompatibleWriterCompatibilityId && result.attempted === true) {
+          barrier = result;
+          break;
+        }
+        assert(result.attempted === false, 'writer_rollout_unexpected_mutation', 'A non-target rollout writer attempted the barrier mutation');
+      }
+      if (attempt + 1 < (rolloutOptions.attempts ?? 40)) {
+        await (rolloutOptions.sleepImpl ?? ((duration) => new Promise((resolve) => setTimeout(resolve, duration))))(rolloutOptions.delayMs ?? 500);
+      }
+    }
+    assert(barrier?.mutation?.committed === false && barrier.mutation?.errorCode === 'incompatible_casedo_writer',
+      'writer_barrier_unverified', 'Incompatible live writer did not fail closed before mutation', {
+        writerCompatibilityId: barrier?.writerCompatibilityId ?? null,
+        attempted: barrier?.attempted ?? null,
+        committed: barrier?.mutation?.committed ?? null,
+        errorCode: barrier?.mutation?.errorCode ?? null,
+      });
+    assert(barrier.sourceSha === sourceSha, 'writer_source_mismatch', 'Incompatible writer did not report the exact source SHA');
+  } catch (error) {
+    rolloutError = error;
+  }
+
+  let restored;
+  try {
+    await deployWriter(compatibleWriterCompatibilityId);
+    restored = await waitForRuntimeWriter(endpoint, caseId, compatibleWriterCompatibilityId, rolloutOptions);
+    assert(restored.sourceSha === sourceSha, 'writer_source_mismatch', 'Restored writer did not report the exact source SHA');
+  } catch (rollbackError) {
+    fail('writer_rollback_failed', 'Compatible writer restoration failed after the rollout probe', {
+      rolloutErrorCode: rolloutError?.code ?? null,
+      rollbackErrorCode: rollbackError?.code ?? 'unknown',
+    });
+  }
+  if (rolloutError) throw rolloutError;
+  const afterRollback = await readCase(endpoint, caseId, rolloutOptions);
+  assert(revision(afterRollback.snapshot) === initialRevision && !receiptPresent(afterRollback.snapshot, envelope.requestId),
+    'writer_barrier_unexpected_mutation', 'Incompatible writer changed authority before rollback');
+  const committed = assertOk(await endpoint.invoke({ operation: 'command', caseId, envelope }), 'compatible writer after rollback');
+  assert(committed.deduplicated === false, 'writer_rollback_unverified', 'Restored compatible writer did not commit the pending command');
+  const finalState = await readCase(endpoint, caseId, rolloutOptions);
+  assert(receiptPresent(finalState.snapshot, envelope.requestId) && revision(finalState.snapshot) > initialRevision,
+    'writer_rollback_unverified', 'Restored compatible writer receipt was not durable');
+
+  return Object.freeze({
+    schemaVersion: 1,
+    evidenceKind: 'd0019-live-writer-rollout-proof',
+    caseIdDigest: caseIdDigest(caseId),
+    placementDigest: elected.placementDigest,
+    sourceSha,
+    compatibleWriterCompatibilityId,
+    incompatibleWriterCompatibilityId,
+    baselineWorkerVersionId: baseline.workerVersionId,
+    incompatibleWorkerVersionId: barrier.workerVersionId,
+    restoredWorkerVersionId: restored.workerVersionId,
+    incompatibleMutationRejected: true,
+    rollbackPreservedAuthority: true,
+    compatibleWriterContinued: true,
+  });
+}

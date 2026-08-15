@@ -1,7 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { canonicalJson } from '../src/canonical.mjs';
+import { createCasePlacement } from '../src/casedo-authority.mjs';
 import {
   CloudflareApiClient,
+  D0019_CAPACITY_QUALIFICATION_SCRIPT,
   D0019_WORKER_COMPATIBILITY_DATE,
   D0019_WORKER_MAIN_MODULE,
   D0019_WORKER_OWNERSHIP_TAG,
@@ -13,6 +16,9 @@ import {
   ensureD1PlacementSchema,
   parseCloudflareEnv,
   provisionD0019QualificationResources,
+  qualificationWorkerOrigin,
+  readD1PlacementRecord,
+  setD0019QualificationSubdomains,
   workerModuleDigest,
 } from '../tools/d0019-cloudflare-api.mjs';
 
@@ -89,6 +95,17 @@ test('D0019 Cloudflare API client keeps credentials in the authorization header 
   );
 });
 
+test('D0019 Cloudflare API client refuses to send credentials to a non-Cloudflare origin', () => {
+  assert.throws(
+    () => new CloudflareApiClient({
+      accountId: '1'.repeat(32),
+      apiToken: 'token-value-that-is-long-enough',
+      apiOrigin: 'https://example.invalid',
+    }),
+    (error) => error?.code === 'invalid_cloudflare_api_origin',
+  );
+});
+
 test('D0019 Worker module collector closes only the static qualification dependency graph', () => {
   const modules = collectWorkerModules(process.cwd());
   assert.equal(modules.has(D0019_WORKER_MAIN_MODULE), true);
@@ -150,6 +167,7 @@ test('D0019 Worker readback requires exact namespace, D1, runtime, writer, budge
     jurisdiction: 'eu',
     maxAuthoritativeBytesPerCase: 8 * 1024 * 1024,
     writerCompatibilityId: 'writer-v1',
+    sourceSha: '1'.repeat(40),
   }), true);
   const wrongNamespace = structuredClone(settings);
   wrongNamespace.bindings.find((binding) => binding.name === 'TDEV_CASE_AUTHORITY').namespace_id = 'other-namespace';
@@ -161,6 +179,7 @@ test('D0019 Worker readback requires exact namespace, D1, runtime, writer, budge
       jurisdiction: 'eu',
       maxAuthoritativeBytesPerCase: 8 * 1024 * 1024,
       writerCompatibilityId: 'writer-v1',
+      sourceSha: '1'.repeat(40),
     }),
     (error) => error?.code === 'worker_settings_mismatch',
   );
@@ -253,12 +272,13 @@ function compatibleSchemaResponse(sql) {
 }
 
 class FakeQualificationProvider {
-  constructor({ failFinalUploadFor = null } = {}) {
+  constructor({ failFinalUploadFor = null, failEnableFor = null } = {}) {
     this.records = new Map();
     this.namespaces = [];
     this.uploadCounts = new Map();
     this.subdomainEvents = [];
     this.failFinalUploadFor = failFinalUploadFor;
+    this.failEnableFor = failEnableFor;
   }
 
   accountPath(suffix) {
@@ -294,6 +314,11 @@ class FakeQualificationProvider {
     if (method === 'POST' && subdomainMatch) {
       const record = this.records.get(subdomainMatch[1]);
       assert.ok(record);
+      if (options.json.enabled === true && subdomainMatch[1] === this.failEnableFor) {
+        const error = new Error('simulated subdomain enable failure');
+        error.code = 'simulated_subdomain_failure';
+        throw error;
+      }
       record.subdomainEnabled = options.json.enabled;
       this.subdomainEvents.push([subdomainMatch[1], options.json.enabled]);
       return { result: { enabled: options.json.enabled } };
@@ -384,6 +409,71 @@ test('D0019 provisioning failure closes every owned public qualification route',
     ['tdev-d0019-qualification-a', false],
     ['tdev-d0019-qualification-b', false],
   ]);
+});
+
+test('D0019 provider tooling provisions the fixed capacity probe independently and rolls back partial route enablement', async () => {
+  const client = new FakeQualificationProvider({ failEnableFor: 'tdev-d0019-qualification-b' });
+  const common = {
+    client,
+    repositoryRoot: process.cwd(),
+    discovery: existingD1Discovery(),
+    jurisdiction: 'eu',
+    writerCompatibilityId: 'writer-v1',
+    sourceSha: '1'.repeat(40),
+    qualificationToken: 'q'.repeat(64),
+    allowCreate: true,
+    enableSubdomain: false,
+  };
+  const capacity = await provisionD0019QualificationResources({
+    ...common,
+    maxAuthoritativeBytesPerCase: 1,
+    scriptNames: [D0019_CAPACITY_QUALIFICATION_SCRIPT],
+  });
+  assert.equal(capacity.workers.length, 1);
+  assert.equal(capacity.workers[0].scriptName, D0019_CAPACITY_QUALIFICATION_SCRIPT);
+
+  await provisionD0019QualificationResources({
+    ...common,
+    maxAuthoritativeBytesPerCase: 16 * 1024 * 1024,
+  });
+  await assert.rejects(
+    setD0019QualificationSubdomains(client, { enabled: true }),
+    (error) => error?.code === 'qualification_subdomain_state_failed' &&
+      error.details?.failures?.[0]?.code === 'simulated_subdomain_failure' &&
+      error.details?.safetyClosureFailures?.length === 0,
+  );
+  assert.equal(client.records.get('tdev-d0019-qualification-a').subdomainEnabled, false);
+  assert.equal(client.records.get('tdev-d0019-qualification-b').subdomainEnabled, false);
+  assert.equal(qualificationWorkerOrigin('tdev-d0019-qualification-a', 'account-subdomain'),
+    'https://tdev-d0019-qualification-a.account-subdomain.workers.dev');
+  assert.throws(
+    () => qualificationWorkerOrigin('tdev-d0019-qualification-a', 'unsafe.example'),
+    (error) => error?.code === 'invalid_workers_subdomain',
+  );
+});
+
+test('D0019 D1 placement API readback verifies exact canonical placement fields', async () => {
+  const placement = createCasePlacement({
+    caseId: 'api-readback-case',
+    placementGeneration: 1,
+    deployment: 'tdev-d0019-qualification-a',
+    environment: 'qualification',
+    workerScript: 'tdev-d0019-qualification-a',
+    className: 'CaseRuntimeDO',
+    namespace: 'namespace-a',
+    jurisdiction: 'eu',
+    durableObjectId: 'durable-object-a',
+  });
+  const client = new SequencedClient([
+    queryEnvelope([{
+      case_id: placement.caseId,
+      placement_generation: placement.placementGeneration,
+      placement_digest: placement.placementDigest,
+      placement_json: canonicalJson(placement),
+    }]),
+  ]);
+  assert.deepEqual(await readD1PlacementRecord(client, 'database-uuid', placement.caseId), placement);
+  assert.equal(client.sequence.length, 0);
 });
 
 test('D0019 D1 migration runs only from total absence and verifies the exact readback schema', async () => {
