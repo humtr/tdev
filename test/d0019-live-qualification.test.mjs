@@ -228,6 +228,7 @@ test('D0019 live proof runner exercises the actual local D1 and CaseDO adapters 
   assert.equal(evidence.placement.reconciledOutcomes.filter((outcome) => outcome.ok).length, 1);
   assert.equal(evidence.authority.runningAttemptPersistedBeforeDispatch, true);
   assert.equal(evidence.authority.ordinaryAbortPreservedRunningAttempt, true);
+  assert.equal(evidence.authority.precommitFailureRolledBack, true);
   assert.equal(evidence.authority.responseLossReceiptReconciled, true);
   assert.equal(evidence.authority.explicitRecoveryCommittedOnce, true);
   assert.equal(evidence.authority.conflictingResultRejectedWithoutMutation, true);

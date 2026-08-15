@@ -87,6 +87,7 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     { operation: 'command', caseId: 'qualification-case', envelope: { fixture: true } },
     { operation: 'recover_execution_owner_loss', caseId: 'qualification-case', recoveryId: 'loss-1', cause: { fixture: true } },
     { operation: 'abort_instance', caseId: 'qualification-case' },
+    { operation: 'command_fail_before_commit', caseId: 'qualification-case', envelope: { fixture: true } },
     { operation: 'command_then_abort', caseId: 'qualification-case', envelope: { fixture: true } },
     { operation: 'runtime_probe', caseId: 'qualification-case' },
     { operation: 'writer_barrier_probe', caseId: 'qualification-case', expectedWriterCompatibilityId: 'writer-v2', envelope: { fixture: true } },
@@ -109,6 +110,7 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     'command',
     'recover_execution_owner_loss',
     'abort_instance',
+    'command_fail_before_commit',
     'command_then_abort',
     'runtime_probe',
     'writer_barrier_probe',
@@ -249,6 +251,32 @@ test('D0019 qualification DO fault hooks abort only after election or committed 
     (error) => error?.code === 'provider_abort',
   );
   assert.deepEqual(events, ['command-committed', 'abort:tdev_d0019_qualification_abort_after_commit']);
+});
+
+test('D0019 qualification DO injects a precommit command failure only after election and restores the authority hook', async () => {
+  const events = [];
+  const host = new D0019QualificationCaseDOHost(qualificationContext(events), deploymentEnvironment());
+  const authority = {
+    faultInjector: null,
+    command() {
+      events.push('command');
+      this.faultInjector('before_commit', { operation: 'command' });
+    },
+  };
+  host.host = {
+    authority,
+    async requireElectedPlacement(placement) {
+      events.push('placement');
+      return placement;
+    },
+  };
+
+  await assert.rejects(
+    host.qualificationCommandFailBeforeCommit({ placement: {}, envelope: {} }),
+    (error) => error?.code === 'qualification_injected_precommit_failure',
+  );
+  assert.deepEqual(events, ['placement', 'command']);
+  assert.equal(authority.faultInjector, null);
 });
 
 test('D0019 qualification DO serializes ContractError codes before the provider RPC boundary', async () => {

@@ -137,6 +137,7 @@ function operationShape(input, operation) {
     command: [['envelope'], []],
     recover_execution_owner_loss: [['recoveryId', 'cause'], []],
     abort_instance: [[], []],
+    command_fail_before_commit: [['envelope'], []],
     command_then_abort: [['envelope'], []],
     runtime_probe: [[], []],
     writer_barrier_probe: [['expectedWriterCompatibilityId', 'envelope'], []],
@@ -153,6 +154,7 @@ function rpcOperationShape(input, operation) {
     command: [['envelope'], []],
     recover_execution_owner_loss: [['recoveryId', 'cause'], []],
     abort_instance: [[], []],
+    command_fail_before_commit: [['envelope'], []],
     command_then_abort: [['envelope'], []],
     runtime_probe: [[], []],
     writer_barrier_probe: [['expectedWriterCompatibilityId', 'envelope'], []],
@@ -303,6 +305,25 @@ export class D0019QualificationCaseDOHost {
     throw new ContractError('qualification_abort_returned', 'Durable Object abort unexpectedly returned');
   }
 
+  async qualificationCommandFailBeforeCommit(input) {
+    assertRecordShape(input, ['placement', 'envelope'], [], 'D0019 qualification precommit failure');
+    const placement = await this.host.requireElectedPlacement(input.placement);
+    const authority = this.host.authority;
+    if (!authority || typeof authority.command !== 'function' || authority.faultInjector !== null) {
+      throw new ContractError('invalid_qualification_provider', 'D0019 qualification precommit fault boundary is unavailable');
+    }
+    authority.faultInjector = (stage, details) => {
+      if (stage === 'before_commit' && details?.operation === 'command') {
+        throw new ContractError('qualification_injected_precommit_failure', 'D0019 qualification injected a precommit failure');
+      }
+    };
+    try {
+      return authority.command({ placement, envelope: input.envelope });
+    } finally {
+      authority.faultInjector = null;
+    }
+  }
+
   async qualificationRuntimeProbe(input) {
     assertRecordShape(input, ['placement'], [], 'D0019 qualification runtime probe');
     await this.host.requireElectedPlacement(input.placement);
@@ -353,6 +374,8 @@ export class D0019QualificationCaseDOHost {
         });
       } else if (input.operation === 'abort_instance') {
         result = await this.qualificationAbortInstance({ placement: input.placement });
+      } else if (input.operation === 'command_fail_before_commit') {
+        result = await this.qualificationCommandFailBeforeCommit({ placement: input.placement, envelope: input.envelope });
       } else if (input.operation === 'command_then_abort') {
         result = await this.qualificationCommandThenAbort({ placement: input.placement, envelope: input.envelope });
       } else if (input.operation === 'runtime_probe') {

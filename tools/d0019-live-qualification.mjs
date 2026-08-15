@@ -381,6 +381,15 @@ export async function runD0019CoreProviderProof({
     expectedCaseRevision: revision(afterStale.snapshot),
     command: { type: 'cancel_task', taskId: 'task-c', reason: 'qualification response loss' },
   };
+  assertError(await winner.invoke({
+    operation: 'command_fail_before_commit',
+    caseId,
+    envelope: responseLossEnvelope,
+  }), 'qualification_injected_precommit_failure', 'injected precommit failure');
+  const afterPrecommitFailure = await readCase(winner, caseId, readOptions);
+  assertStateUnchanged(afterStale, afterPrecommitFailure, 'injected precommit failure');
+  assert(!receiptPresent(afterPrecommitFailure.snapshot, responseLossEnvelope.requestId),
+    'precommit_failure_mutated', 'Injected precommit failure persisted a receipt');
   const responseLoss = await winner.invoke({ operation: 'command_then_abort', caseId, envelope: responseLossEnvelope });
   assertAmbiguousFailure(responseLoss, 'postcommit response loss');
   const afterResponseLoss = await readCase(winner, caseId, readOptions);
@@ -477,6 +486,7 @@ export async function runD0019CoreProviderProof({
       runningAttemptPersistedBeforeDispatch: true,
       ordinaryAbortPreservedRunningAttempt: true,
       staleResultRejectedWithoutMutation: true,
+      precommitFailureRolledBack: true,
       responseLossReceiptReconciled: true,
       explicitRecoveryCommittedOnce: true,
       acceptedResultReplayDeduplicated: true,
