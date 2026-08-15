@@ -119,7 +119,6 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     { operation: 'recover_execution_owner_loss', caseId: 'qualification-case', recoveryId: 'loss-1', cause: { fixture: true } },
     { operation: 'abort_instance', caseId: 'qualification-case' },
     { operation: 'command_fail_before_commit', caseId: 'qualification-case', envelope: { fixture: true } },
-    { operation: 'command_then_abort', caseId: 'qualification-case', envelope: { fixture: true } },
     { operation: 'runtime_probe', caseId: 'qualification-case' },
     { operation: 'writer_barrier_probe', caseId: 'qualification-case', expectedWriterCompatibilityId: 'writer-v2', envelope: { fixture: true } },
   ];
@@ -142,11 +141,32 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     'recover_execution_owner_loss',
     'abort_instance',
     'command_fail_before_commit',
-    'command_then_abort',
     'runtime_probe',
     'writer_barrier_probe',
   ]);
   for (const [, input] of calls) assert.equal(input.placement.placementDigest, elected.placementDigest);
+});
+
+test('D0019 qualification ingress loses only the postcommit response after a successful Durable Object RPC', async () => {
+  const calls = [];
+  const service = new D0019QualificationService(deploymentEnvironment({
+    stub: {
+      async qualificationInvoke(input) {
+        calls.push(input);
+        return { schemaVersion: 1, ok: true, result: { caseRevision: 2 } };
+      },
+    },
+  }), { placementAuthority: {} });
+
+  const response = await service.fetch(qualificationRequest({
+    operation: 'command_then_abort',
+    caseId: 'response-loss-case',
+    envelope: { fixture: true },
+  }));
+  assert.equal(response.status, 500);
+  assert.equal((await responseBody(response)).error.code, 'qualification_provider_failure');
+  assert.equal(calls.length, 1);
+  assert.equal(calls[0].operation, 'command');
 });
 
 test('D0019 qualification ingress normalizes strict JSON records before the Durable Object RPC boundary', async () => {
@@ -277,15 +297,12 @@ function qualificationContext(events) {
   };
 }
 
-test('D0019 qualification DO fault hooks abort only after election or committed command boundaries', async () => {
+test('D0019 qualification DO instance-abort hook aborts only after election', async () => {
   const events = [];
   const host = new D0019QualificationCaseDOHost(qualificationContext(events), deploymentEnvironment());
   host.host = {
     async requireElectedPlacement() {
       events.push('placement');
-    },
-    async command() {
-      events.push('command-committed');
     },
   };
 
@@ -294,13 +311,6 @@ test('D0019 qualification DO fault hooks abort only after election or committed 
     (error) => error?.code === 'provider_abort',
   );
   assert.deepEqual(events, ['placement', 'abort:tdev_d0019_qualification_abort_instance']);
-
-  events.length = 0;
-  await assert.rejects(
-    host.qualificationCommandThenAbort({ placement: {}, envelope: {} }),
-    (error) => error?.code === 'provider_abort',
-  );
-  assert.deepEqual(events, ['command-committed', 'abort:tdev_d0019_qualification_abort_after_commit']);
 });
 
 test('D0019 qualification DO injects a precommit command failure only after election and restores the authority hook', async () => {

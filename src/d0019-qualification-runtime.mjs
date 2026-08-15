@@ -156,7 +156,6 @@ function rpcOperationShape(input, operation) {
     recover_execution_owner_loss: [['recoveryId', 'cause'], []],
     abort_instance: [[], []],
     command_fail_before_commit: [['envelope'], []],
-    command_then_abort: [['envelope'], []],
     runtime_probe: [[], []],
     writer_barrier_probe: [['expectedWriterCompatibilityId', 'envelope'], []],
   };
@@ -218,8 +217,9 @@ export class D0019QualificationService {
     const { placement, stub } = this.#route(input.caseId);
 
     if (input.operation === 'elect') return this.placementAuthority.elect({ placement });
+    const rpcOperation = input.operation === 'command_then_abort' ? 'command' : input.operation;
     const rpcInput = publicJsonClone({
-      operation: input.operation,
+      operation: rpcOperation,
       placement,
       ...(input.plan === undefined ? {} : { plan: input.plan }),
       ...(input.caseContract === undefined ? {} : { caseContract: input.caseContract }),
@@ -228,7 +228,11 @@ export class D0019QualificationService {
       ...(input.cause === undefined ? {} : { cause: input.cause }),
       ...(input.expectedWriterCompatibilityId === undefined ? {} : { expectedWriterCompatibilityId: input.expectedWriterCompatibilityId }),
     });
-    return unwrapQualificationRpc(await stub.qualificationInvoke(rpcInput));
+    const result = unwrapQualificationRpc(await stub.qualificationInvoke(rpcInput));
+    if (input.operation === 'command_then_abort') {
+      throw new Error('D0019 qualification injected postcommit response loss');
+    }
+    return result;
   }
 
   async fetch(request) {
@@ -297,13 +301,6 @@ export class D0019QualificationCaseDOHost {
     assertRecordShape(input, ['placement'], [], 'D0019 qualification instance abort');
     await this.host.requireElectedPlacement(input.placement);
     this.ctx.abort('tdev_d0019_qualification_abort_instance');
-    throw new ContractError('qualification_abort_returned', 'Durable Object abort unexpectedly returned');
-  }
-
-  async qualificationCommandThenAbort(input) {
-    assertRecordShape(input, ['placement', 'envelope'], [], 'D0019 qualification command-then-abort');
-    await this.host.command(input);
-    this.ctx.abort('tdev_d0019_qualification_abort_after_commit');
     throw new ContractError('qualification_abort_returned', 'Durable Object abort unexpectedly returned');
   }
 
@@ -378,8 +375,6 @@ export class D0019QualificationCaseDOHost {
         result = await this.qualificationAbortInstance({ placement: input.placement });
       } else if (input.operation === 'command_fail_before_commit') {
         result = await this.qualificationCommandFailBeforeCommit({ placement: input.placement, envelope: input.envelope });
-      } else if (input.operation === 'command_then_abort') {
-        result = await this.qualificationCommandThenAbort({ placement: input.placement, envelope: input.envelope });
       } else if (input.operation === 'runtime_probe') {
         result = await this.qualificationRuntimeProbe({ placement: input.placement });
       } else {
