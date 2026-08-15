@@ -406,6 +406,40 @@ test('CaseDO fails closed on corrupt chunks, incompatible schema/writer, and mis
   }
 });
 
+test('incompatible rollout writer cannot mutate and the compatible writer retains authority', () => {
+  const { storage, authority, placement } = createFixture('writer-rollout-case');
+  const before = authority.loadCase({ placement });
+  const incompatible = makeAuthority(storage, { writerCompatibilityId: 'writer-v2' });
+
+  assert.throws(
+    () => incompatible.command({
+      placement,
+      envelope: {
+        requestId: 'new-writer-command',
+        expectedCaseRevision: before.snapshot.caseRevision,
+        command: { type: 'start_attempt', taskId: 'a', executor: 'new-writer-agent' },
+      },
+    }),
+    assertCode('incompatible_casedo_writer'),
+  );
+
+  const afterRejected = authority.loadCase({ placement });
+  assert.equal(afterRejected.snapshot.caseRevision, before.snapshot.caseRevision);
+  assert.equal(afterRejected.snapshot.receipts['new-writer-command'], undefined);
+
+  const committed = authority.command({
+    placement,
+    envelope: {
+      requestId: 'old-writer-command',
+      expectedCaseRevision: before.snapshot.caseRevision,
+      command: { type: 'start_attempt', taskId: 'a', executor: 'compatible-agent' },
+    },
+  });
+  assert.equal(committed.deduplicated, false);
+  assert.ok(committed.caseRevision > before.snapshot.caseRevision);
+  storage.close();
+});
+
 test('CaseDO capacity exhaustion fails before Case authority is created', () => {
   const storage = new TestDurableObjectStorage();
   const authority = makeAuthority(storage, { maxAuthoritativeBytesPerCase: 1 });
