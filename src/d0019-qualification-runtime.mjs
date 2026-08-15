@@ -1,6 +1,7 @@
 import {
   ContractError,
   assertRecordShape,
+  publicJsonClone,
   strictJsonParse,
 } from './canonical.mjs';
 import {
@@ -217,7 +218,7 @@ export class D0019QualificationService {
     const { placement, stub } = this.#route(input.caseId);
 
     if (input.operation === 'elect') return this.placementAuthority.elect({ placement });
-    return unwrapQualificationRpc(await stub.qualificationInvoke({
+    const rpcInput = publicJsonClone({
       operation: input.operation,
       placement,
       ...(input.plan === undefined ? {} : { plan: input.plan }),
@@ -226,7 +227,8 @@ export class D0019QualificationService {
       ...(input.recoveryId === undefined ? {} : { recoveryId: input.recoveryId }),
       ...(input.cause === undefined ? {} : { cause: input.cause }),
       ...(input.expectedWriterCompatibilityId === undefined ? {} : { expectedWriterCompatibilityId: input.expectedWriterCompatibilityId }),
-    }));
+    });
+    return unwrapQualificationRpc(await stub.qualificationInvoke(rpcInput));
   }
 
   async fetch(request) {

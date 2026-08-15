@@ -63,6 +63,16 @@ async function responseBody(response) {
   return JSON.parse(await response.text());
 }
 
+function assertRpcTransportRecords(value) {
+  if (value === null || typeof value !== 'object') return;
+  if (Array.isArray(value)) {
+    for (const item of value) assertRpcTransportRecords(item);
+    return;
+  }
+  assert.equal(Object.getPrototypeOf(value), Object.prototype);
+  for (const item of Object.values(value)) assertRpcTransportRecords(item);
+}
+
 test('D0019 qualification ingress derives one fixed generation placement and routes bounded operations', async () => {
   const calls = [];
   const stub = {
@@ -116,6 +126,25 @@ test('D0019 qualification ingress derives one fixed generation placement and rou
     'writer_barrier_probe',
   ]);
   for (const [, input] of calls) assert.equal(input.placement.placementDigest, elected.placementDigest);
+});
+
+test('D0019 qualification ingress normalizes strict JSON records before the Durable Object RPC boundary', async () => {
+  const service = new D0019QualificationService(deploymentEnvironment({
+    stub: {
+      async qualificationInvoke(input) {
+        assertRpcTransportRecords(input);
+        return { schemaVersion: 1, ok: false, error: { code: 'placement_not_elected' } };
+      },
+    },
+  }), { placementAuthority: {} });
+
+  const response = await service.fetch(qualificationRequest({
+    operation: 'initialize',
+    caseId: 'rpc-transport-case',
+    plan: {},
+  }));
+  assert.equal(response.status, 400);
+  assert.equal((await responseBody(response)).error.code, 'placement_not_elected');
 });
 
 test('D0019 qualification ingress authenticates before provider access and rejects placement smuggling', async () => {
