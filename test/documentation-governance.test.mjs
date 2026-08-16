@@ -78,16 +78,17 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates after D0033/D0034 verification', () => {
+test('current repository documentation authority validates after D0019/D0030 verification', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
   const frontier = result.route.frontier.map((item) => `${item.id}@r${item.revision}`);
-  assert.ok(frontier.includes('D0019@r2'));
+  assert.ok(!frontier.includes('D0019@r2'));
   assert.ok(!frontier.includes('D0030@r1'));
+  assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `verified`$/m);
-  assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
+  assert.equal(result.route.selected, null);
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
 });
@@ -101,7 +102,7 @@ test('zero runnable Designs and selected none pass full documentation validation
 
 test('WORKBOARD-only F to G rebinding passes full validation without editing stable documents', () => {
   const result = validateDocumentation(root, {
-    'WORKBOARD.md': workboardFixture({ group: 'Group G — MCP, authentication and security', branch: 'group/g-mcp-security' }),
+    'WORKBOARD.md': workboardFixture({ group: 'Group G — MCP, authentication and security', branch: 'group/g-mcp-security', frontier: [], selected: null }),
   });
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.groupId, 'G');
@@ -119,14 +120,14 @@ test('a reopened frontier Design fails closed', () => {
   assert.match(result.failures.join('\n'), /documentation_authority_frontier_design_not_runnable: D0031@r3 reopened/);
 });
 
-test('stale continuity cannot override route or maintained Design revision/status', () => {
+test('stale continuity cannot override a zero-frontier current route', () => {
   const rebound = rebindContinuity({
     workboardText: currentWorkboard,
     designTexts: currentDesignTexts,
     continuity: { branch: 'mvp-1a-7', group: 'Group E — context delivery', designId: 'D0019', designRevision: 1, designStatus: 'verified' },
   });
   assert.equal(rebound.current.branch, 'group/f-cloudflare-runtime');
-  assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designRevision', 'designStatus']);
+  assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designId']);
 });
 
 test('a continuity Design absent from the current frontier is stale', () => {
@@ -240,7 +241,7 @@ test('qualification owner is uniquely rebound from documentation authority', () 
     },
   });
   assert.equal(rebound.current.qualificationOwner, 'docs/QUALIFICATION.md');
-  assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designRevision', 'designStatus', 'qualificationOwner']);
+  assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designId', 'qualificationOwner']);
 });
 
 test('source gate is parsed from QUALIFICATION and duplicated nowhere in bootstrap navigation', () => {
@@ -495,11 +496,19 @@ test('Design README is the exact deterministic projection of every maintained De
   assert.match(drift.failures.join('\n'), /documentation_authority_design_index_drift/);
 });
 
-test('governance implementation has no current runnable Design ID special cases', () => {
+test('governance implementation has no runnable Design ID special cases, including zero frontier', () => {
   const currentIds = parseWorkboardRouting(currentWorkboard).frontier.map((item) => item.id);
-  assert.ok(currentIds.length > 0);
+  assert.deepEqual(currentIds, []);
+  const syntheticIds = parseWorkboardRouting(workboardFixture({
+    frontier: [
+      { id: 'D0098', revision: 7, path: 'docs/design/0098-fixture.md' },
+      { id: 'D0099', revision: 3, path: 'docs/design/0099-fixture.md' },
+    ],
+    selected: { id: 'D0098', revision: 7 },
+  })).frontier.map((item) => item.id);
+  assert.deepEqual(syntheticIds, ['D0098', 'D0099']);
   for (const relativePath of ['tools/validate-documentation.mjs', 'tools/generate-design-index.mjs']) {
     const text = fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
-    for (const id of currentIds) assert.equal(text.includes(id), false, `${relativePath} hard-codes current ${id}`);
+    for (const id of syntheticIds) assert.equal(text.includes(id), false, `${relativePath} hard-codes runnable ${id}`);
   }
 });

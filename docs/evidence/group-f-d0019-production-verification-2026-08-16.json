@@ -1,0 +1,186 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0019-r2-production-verification",
+  "design": "D0019",
+  "revision": 2,
+  "status": "verified",
+  "taskId": "task_88t_76d4ab9711",
+  "terminalRequalificationSource": "844c8e216124488282fa1ba02f670274e0ba0c93",
+  "acceptedAuthority": {
+    "semanticOwner": "one durably elected SQLite-backed CaseDO hosts the unchanged D0010/CaseEngine semantic authority",
+    "placementMetaAuthority": "D1 tdev.case-placement.d1.v1 schema 1, write-once CaseId to exact elected placement",
+    "existingCaseMigration": false,
+    "agentDeliveryOwner": "D0020 remains separate and unactivated"
+  },
+  "providerLiveQualification": {
+    "exactDeployedSource": "ee00350ffcb81351b239934e08c05873552855a0",
+    "qualificationJobId": "job_8fv_4e3bc18fd1",
+    "independentReadbackJobId": "job_8fx_d7f02deb26",
+    "status": "provider_qualification_verified",
+    "proved": [
+      "one placement winner and placement_conflict loser fencing",
+      "Durable Object reconstruction preserves a running Attempt",
+      "precommit failure rolls back without semantic mutation",
+      "postcommit response loss reconciles by durable receipt replay",
+      "explicit execution-owner-loss recovery advances exactly once",
+      "stale/conflicting result fencing and accepted-result replay deduplication",
+      "capacity rejection occurs before Case authority birth and cannot fall back to another placement",
+      "finite 16777216-byte Case profile is provider-qualified",
+      "incompatible writer is fenced and tdev-casedo-writer-v1 is restored before continued mutation"
+    ],
+    "capacityEvidence": "docs/evidence/group-f-d0019-capacity-measurement-correction-2026-08-16.json"
+  },
+  "providerEvidenceReuse": {
+    "workerGraphComparisonJobId": "job_8st_3ffba2a569",
+    "priorSource": "ee00350ffcb81351b239934e08c05873552855a0",
+    "currentRepositorySource": "844c8e216124488282fa1ba02f670274e0ba0c93",
+    "workerModuleCount": 16,
+    "priorWorkerModuleDigest": "sha256:9fa6df0e9985060ba20125ef5979ad11ecda83f4cdad6f92f80ff0b88b452f15",
+    "currentWorkerModuleDigest": "sha256:9fa6df0e9985060ba20125ef5979ad11ecda83f4cdad6f92f80ff0b88b452f15",
+    "moduleNamesAndBytesEqual": true,
+    "changedWorkerModules": [],
+    "d1MigrationEqual": true,
+    "rationale": "The current repository changes after the live proof do not change the recursively collected Cloudflare qualification Worker module graph or the D1 migration. The live semantic proof therefore applies to the same deployed production-shaped program bytes; no redeploy or repeated fault/capacity mutation was needed for terminal requalification."
+  },
+  "freshProviderReadOnly": {
+    "jobId": "job_8su_537feca99e",
+    "observedAt": "2026-08-16T02:49:36.794Z",
+    "tokenStatus": "active",
+    "d1": {
+      "name": "tdev-d0019-placement",
+      "jurisdiction": "global",
+      "profile": "tdev.case-placement.d1.v1",
+      "schemaVersion": 1,
+      "placementRows": 10
+    },
+    "workers": [
+      {
+        "script": "tdev-d0019-qualification-a",
+        "latestVersion": 5,
+        "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+        "writer": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 16777216,
+        "sqliteNamespaceMatches": 1,
+        "routeEnabled": false,
+        "previewsEnabled": false
+      },
+      {
+        "script": "tdev-d0019-qualification-b",
+        "latestVersion": 5,
+        "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+        "writer": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 16777216,
+        "sqliteNamespaceMatches": 1,
+        "routeEnabled": false,
+        "previewsEnabled": false
+      },
+      {
+        "script": "tdev-d0019-qualification-capacity",
+        "latestVersion": 5,
+        "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+        "writer": "tdev-casedo-writer-v1",
+        "maxAuthoritativeBytesPerCase": 1,
+        "sqliteNamespaceMatches": 1,
+        "routeEnabled": false,
+        "previewsEnabled": false
+      }
+    ],
+    "providerMutationPerformed": false,
+    "secretsPersistedOrPrinted": false
+  },
+  "capacityMeasurementCorrection": {
+    "evidence": "docs/evidence/group-f-d0019-capacity-measurement-correction-2026-08-16.json",
+    "taskCount": 2048,
+    "acceptedResults": 128,
+    "initialAuthoritativeBytes": 811696,
+    "growthBytes": 469497,
+    "finalAuthoritativeBytes": 1281193,
+    "productionCaseBudgetBytes": 16777216,
+    "budgetChangedByCorrection": false,
+    "finalStateMode": "measurement-only calibrated accounting; not provider qualification"
+  },
+  "d0030Prerequisite": {
+    "designStatus": "verified",
+    "publishedSha": "844c8e216124488282fa1ba02f670274e0ba0c93",
+    "evidence": "docs/evidence/group-f-d0030-production-portability-verification-2026-08-16.json",
+    "inheritedTermuxLinkGapClosed": true
+  },
+  "terminalSourceQualification": {
+    "installAndFocusedAndRepositoryGateJobId": "job_8sv_cafe52f35d",
+    "installCommand": "npm ci --ignore-scripts --no-audit --no-fund",
+    "focusedD0019": {
+      "tests": 73,
+      "passed": 73,
+      "failed": 0
+    },
+    "exactRepositoryCheck": {
+      "tests": 371,
+      "passed": 371,
+      "failed": 0
+    },
+    "documentationAuthority": "passed",
+    "demo": "passed",
+    "durableDemo": "passed",
+    "diffCheck": "passed",
+    "fullCoverageJobId": "job_8sw_d5e3e6ed85",
+    "fullCoverage": {
+      "tests": 371,
+      "passed": 371,
+      "failed": 0,
+      "allFiles": {
+        "linePercent": 88.36,
+        "branchPercent": 76.01,
+        "functionPercent": 94.33
+      },
+      "d0019BudgetBenchmark": {
+        "linePercent": 94.65,
+        "branchPercent": 78.26,
+        "functionPercent": 100
+      }
+    }
+  },
+  "exclusions": {
+    "d0020Activated": false,
+    "existingCaseMigrationPerformed": false,
+    "productionMutationPerformanceOptimizationIncluded": false,
+    "cloudflareRedeployDuringTerminalRequalification": false,
+    "cloudflareMutationDuringTerminalRequalification": false
+  },
+  "conclusion": "D0019 Revision 2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for a placed Case under the accepted D1 placement/fencing/receipt/recovery/capacity/rollout contract. Provider live behavior is bound to an unchanged deployed Worker graph and fresh read-only provider state; the former Termux terminal-gate blocker is independently closed by verified D0030. D0020 remains separate and unactivated.",
+  "finalAuthorityRecordValidation": {
+    "jobId": "job_8tb_ed9b8d0dc0",
+    "outputArtifact": {
+      "artifactId": "artifact_bt_2876894ec2",
+      "sha256": "c6abcbb77d6534b688f6591f5df4be8a172b302bf88359bbaae58cecfa1dbf41"
+    },
+    "exactRepositoryCheck": {
+      "status": "passed",
+      "tests": 371,
+      "passed": 371,
+      "failed": 0
+    },
+    "fullCoverage": {
+      "status": "passed",
+      "tests": 371,
+      "passed": 371,
+      "failed": 0,
+      "allFiles": {
+        "linePercent": 88.29,
+        "branchPercent": 75.93,
+        "functionPercent": 94.25
+      },
+      "d0019BudgetBenchmark": {
+        "linePercent": 94.65,
+        "branchPercent": 78.26,
+        "functionPercent": 100
+      }
+    },
+    "documentationAuthority": {
+      "status": "passed",
+      "frontier": 0,
+      "selected": null
+    },
+    "diffCheck": "passed",
+    "note": "This gate includes the D0019 verified status, zero-frontier WORKBOARD transition, and generalized zero-frontier governance tests. The subsequent evidence-only binding update does not alter source/runtime/test semantics."
+  }
+}

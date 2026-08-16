@@ -1,6 +1,6 @@
 # Design 0019 — CaseDO Authority Adapter
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 2
 - Revision predecessor: revision 1 acceptance is identified by `docs/evidence/group-f-d0019-casedo-authority-adapter-acceptance-2026-08-13.json`; revision 2 is identified by `docs/evidence/group-f-d0019-authority-amendment-2026-08-13.json`
 - Revision 2 reason: adversarial re-review required durable cross-placement election, exact command-only receipt digest/replay ordering, ordinary reconstruction without implicit semantic reopen, explicit owner-loss recovery, and schema/capacity/rollout gates while preserving the same CaseDO authority-adapter problem and selected owner family
@@ -31,8 +31,11 @@
 - Provider qualification continuation evidence SHA-256: `ed8d785ae94e1bfe7fc041c6964f55ecc771499ff05157790c525c45d21ba07f`
 - Web ChatGPT resume source candidate: `021fe33e5e519ad41d94f002e836198ca209af53`
 - Web ChatGPT resume evidence: `docs/evidence/group-f-d0019-web-chatgpt-resume-2026-08-15.json`
+- Production verification Task: `task_88t_76d4ab9711`
+- Production verification source: `844c8e216124488282fa1ba02f670274e0ba0c93`
+- Production verification evidence: `docs/evidence/group-f-d0019-production-verification-2026-08-16.json`
 - Web ChatGPT resume evidence SHA-256: `4ba607e4c046a36fb3eca4dfb8e9b5169a9ab1c655738d734cd1b10685659c33`
-- Inherited authority: D0010 semantic/current-state authority; D0018 runtime boundary remains closed; D0030 accepted publication portability remains separate
+- Inherited authority: D0010 semantic/current-state authority; D0018 runtime boundary remains closed; D0030@r1 production publication portability is independently verified and remains separate
 - Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, `docs/design/README.md`
 - `docs/SPEC.md`: unchanged; product scope did not change
 
@@ -49,7 +52,7 @@ D0019 inherits rather than redefines these contracts:
 1. **D0010** owns the meaning of semantic/current-state authority: one current semantic head, expected-revision fencing, transactional mutation, explicit migration barriers, and no mixed writers.
 2. The current `CaseEngine` / `CaseRepository` behavior is the executable local oracle for command receipts, Case/Task/Attempt transitions, result fences, terminal state, snapshot integrity, reopen and reconciliation.
 3. **D0018** is closed. Its supported-Termux trusted-local runtime profile, warm host / fresh Attempt/model process boundary, and no-external-provider conclusion are ancestry; D0019 does not reopen them.
-4. **D0030** is accepted but its production implementation is separate. Its immutable-journal publication route is not the Case semantic owner and is not needed to select the D0019 authority model.
+4. **D0030** remains separate from Case semantic ownership. Its publication portability is now production-verified, closing the Termux repository-gate prerequisite without making the immutable-journal lane a Case semantic co-owner.
 5. D0020 remains the owner-design lane for Agent connection epoch, current connection, delivery ownership/queue, capacity and reconnect state.
 
 The architecture diagram's `CaseDO` label was only a hypothesis before this Design. Provider storage convenience is not itself semantic authority.
@@ -583,3 +586,14 @@ Profiling during the correction showed that the long wide-Case round-trip run is
 D0019 remains `implementing`: this addendum records the now-completed provider layer and the corrected capacity evidence, but it does not convert the independently preserved Termux `link(2)`/hard-link qualification gap into success. D0020 remains unactivated.
 
 Post-correction validation is independently recorded as follows: the focused D0019 set passes `73/73`, documentation authority validation passes with Group F still selecting `D0019@r2`, and `git diff --check` passes. The exact repository `npm run check` observes `366` tests with `341` passed / `25` failed; every failure remains inside `ImmutableJournalSnapshotStore` and is attributable to the preserved Termux `link(2)` `EACCES` gap. The authority-required full coverage command observes the same `366 / 341 / 25` split; its all-files coverage is `87.89% / 75.64% / 94.40%` line/branch/function and the changed D0019 budget benchmark is `94.65% / 78.26% / 100%`. These percentages are evidence observations only and do not weaken the non-green terminal gate.
+### 24.2 2026-08-16 terminal production verification
+
+D0019 Revision 2 is now **verified**. The terminal requalification source is `844c8e216124488282fa1ba02f670274e0ba0c93`; the durable verification owner is `docs/evidence/group-f-d0019-production-verification-2026-08-16.json`. Earlier `implementing`, provider-pending and Termux-hard-link paragraphs in this section are preserved as chronological evidence and are superseded for current lifecycle/routing by this terminal record.
+
+The Wrangler-free live Cloudflare proof at exact deployed source `ee00350ffcb81351b239934e08c05873552855a0` is reused rather than repeated because terminal requalification independently proves that the recursively collected 16-module qualification Worker graph is byte-for-byte unchanged: both the prior and current graph digest are `sha256:9fa6df0e9985060ba20125ef5979ad11ecda83f4cdad6f92f80ff0b88b452f15`, no Worker module changed and the D1 migration is unchanged. A fresh read-only Cloudflare observation then found D1 schema/profile `tdev.case-placement.d1.v1` / `1` with 10 placement rows; all three qualification Workers remain on the exact live-qualified source and one SQLite namespace each; writer compatibility is `tdev-casedo-writer-v1`; A/B retain the qualified 16 MiB budget while the capacity probe intentionally retains the one-byte rejection profile; all public routes and previews remain disabled. No Cloudflare mutation or redeploy was performed during terminal requalification.
+
+The live proof therefore continues to cover competing placement election/fencing, ordinary reconstruction, precommit rollback, postcommit response-loss receipt reconciliation, exactly-once owner-loss recovery, stale/conflicting result fencing, accepted replay deduplication, provider restart, capacity rejection before authority birth/no fallback and incompatible-writer rollback followed by compatible mutation. The measurement correction remains binding: `811,696` initial + `469,497` growth = `1,281,193` final bytes for the 2,048-Task/128-result fixture, while the independently derived and provider-qualified production Case budget remains `16,777,216` bytes.
+
+D0030@r1 is independently production-verified at `844c8e216124488282fa1ba02f670274e0ba0c93`, so the former Termux hard-link terminal-gate blocker is closed without weakening the immutable-journal oracle. On the exact D0019 terminal source, the focused D0019 suite passes `73/73`, the exact repository source gate passes `371/371`, and the final authority-record tree passes the authority-required full coverage command `371/371` with all-files line/branch/function coverage `88.29% / 75.93% / 94.25%`. Documentation validation, demo, durable demo and `git diff --check` are green.
+
+This verification does not activate or define D0020 Agent delivery/connection semantics, does not migrate any existing Case, and does not optimize the wide-Case mutation hot path discovered during measurement profiling. Those remain separate scopes.
