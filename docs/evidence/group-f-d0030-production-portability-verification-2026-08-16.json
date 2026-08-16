@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0030-production-publication-portability-verification",
+  "design": "D0030",
+  "designRevision": 1,
+  "status": "verified",
+  "taskId": "task_8nl_11ff1d8749",
+  "baseRevision": "3f508cc5b27c9d0a666145056fe589d73b1c8651",
+  "productionImplementationCommit": "938cc21639e6ed93b3f07ede63dfd49fc4a063db",
+  "qualificationSourceRevision": "0e3b76d06dfd6382d7ea5acb403fa1e3e391056a",
+  "contract": {
+    "durableFormatChanged": false,
+    "finalNamesChanged": false,
+    "replayMigrationDowngradeChanged": false,
+    "publicationOrder": [
+      "complete contender write",
+      "contender file fsync",
+      "atomic no-replace publication",
+      "Case-directory fsync"
+    ],
+    "conflictOutcome": "store_publish_conflict",
+    "unsupportedOutcome": "store_publication_unsupported",
+    "ambiguousOutcome": "store_commit_ambiguous",
+    "automaticFallback": false
+  },
+  "helperIdentity": {
+    "sourceSha256": "6c27f0e15d801d44a1db5760f8feb75640e4dbfd3143289b2afd9bd9fc8cdcc6",
+    "sourceMatchesAcceptedFalsifierHelper": true,
+    "androidArm64": {
+      "sha256": "392578a12364108af742ba6e087d152bc14ca561062b503b9467c97babbf0414",
+      "bytes": 7728,
+      "compiler": "clang version 21.1.8"
+    },
+    "linuxX64": {
+      "sha256": "e99cbe87f6d127cc0d2c594671d54ecec5c97b3646a539b4ac93aa4498055ff3",
+      "bytes": 16608,
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    }
+  },
+  "connectedTermuxQualification": {
+    "environmentJobId": "job_8p3_8c79d62983",
+    "runtime": {
+      "node": "v26.4.0",
+      "platform": "android",
+      "arch": "arm64",
+      "filesystem": "f2fs",
+      "selinuxDomain": "untrusted_app_27"
+    },
+    "unchangedImmutableJournalOracle": {
+      "jobId": "job_8pe_0bf73eff0a",
+      "tests": 26,
+      "passed": 26,
+      "failed": 0,
+      "backend": "rename-noreplace"
+    },
+    "focusedAndOracle": {
+      "jobId": "job_8pr_ecfdb802dd",
+      "tests": 31,
+      "passed": 31,
+      "failed": 0
+    },
+    "hardlinkProbe": {
+      "qualified": false,
+      "outcome": "store_publication_unsupported",
+      "fallbackObserved": false
+    },
+    "installedCopyProbeJobId": "job_8px_ae304e699d",
+    "installedCopyRecoveryJobId": "job_8py_dfab06391b",
+    "installedCopy": {
+      "packageCopyWasSymlink": false,
+      "normalWriteRead": "passed",
+      "tamperedHelper": "store_publication_unsupported",
+      "authorityCreatedAfterTamper": false,
+      "restoredHelperFreshProcess": "passed"
+    },
+    "exactRepositoryCheck": {
+      "jobId": "job_8q0_a9ea7d74b3",
+      "tests": 371,
+      "passed": 371,
+      "failed": 0,
+      "status": "passed"
+    },
+    "exactFullCoverage": {
+      "jobId": "job_8q2_166dc0c024",
+      "tests": 371,
+      "passed": 371,
+      "failed": 0,
+      "allFiles": {
+        "linePercent": 88.35,
+        "branchPercent": 75.99,
+        "functionPercent": 94.33
+      }
+    },
+    "precommitGateJobId": "job_8qz_2589045242"
+  },
+  "independentPosixQualification": {
+    "provider": "GitHub Actions",
+    "workflow": ".github/workflows/d0030-posix-qualification.yml",
+    "runId": 31922270858,
+    "jobId": 95103971790,
+    "headSha": "0e3b76d06dfd6382d7ea5acb403fa1e3e391056a",
+    "conclusion": "success",
+    "environment": {
+      "os": "Ubuntu 24.04.4 LTS",
+      "runnerImage": "ubuntu-24.04",
+      "node": "v22.23.2",
+      "platform": "linux",
+      "arch": "x64",
+      "kernel": "6.17.0-1022-azure",
+      "filesystemReported": "ext2/ext3",
+      "compiler": "cc (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0"
+    },
+    "focused": {
+      "tests": 5,
+      "passed": 5,
+      "failed": 0
+    },
+    "renameOracle": {
+      "tests": 26,
+      "passed": 26,
+      "failed": 0
+    },
+    "hardlinkOracle": {
+      "tests": 26,
+      "passed": 26,
+      "failed": 0
+    },
+    "mixedIndependentProcessRace": {
+      "rounds": 25,
+      "exactOneWinner": 25,
+      "loserConflicts": 25,
+      "hardlinkWins": 21,
+      "renameNoReplaceWins": 4
+    },
+    "installedCopy": {
+      "normalWrite": "passed",
+      "missingHelper": "store_publication_unsupported",
+      "authorityCreatedWithMissingHelper": false,
+      "tamperedHelper": "store_publication_unsupported",
+      "authorityCreatedWithTamperedHelper": false,
+      "restoredHelperFreshProcess": "passed"
+    },
+    "artifact": {
+      "id": 9256720007,
+      "name": "d0030-posix-evidence",
+      "bytes": 1508,
+      "digest": "sha256:4c95c9d36709d20f91a23331a6750ef51c58983ebad375d7e62ab8e64a4d7a00",
+      "expiresAt": "2026-08-30T02:36:18Z"
+    }
+  },
+  "exclusions": {
+    "destructivePowerLossQualified": false,
+    "universalAndroidLinuxFilesystemSupportClaimed": false,
+    "networkFilesystemOrDistributedTransactionEquivalenceClaimed": false,
+    "validationRegistryMaintenanceDebtClosed": false
+  },
+  "conclusion": "The production fd-relative renameat2(RENAME_NOREPLACE) helper path is verified for the connected Android/arm64 Termux profile, and the same production source is independently qualified on the recorded Linux/x64 POSIX profile with hardlink regression and mixed-writer evidence. The D0005 durable journal format and semantic oracle remain unchanged. Unsupported publication remains fail-closed with no fallback. Destructive power-loss durability is not claimed."
+}

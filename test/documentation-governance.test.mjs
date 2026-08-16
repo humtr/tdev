@@ -85,7 +85,8 @@ test('current repository documentation authority validates after D0033/D0034 ver
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
   const frontier = result.route.frontier.map((item) => `${item.id}@r${item.revision}`);
   assert.ok(frontier.includes('D0019@r2'));
-  assert.ok(frontier.includes('D0030@r1'));
+  assert.ok(!frontier.includes('D0030@r1'));
+  assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `verified`$/m);
   assert.equal(`${result.route.selected.id}@r${result.route.selected.revision}`, 'D0019@r2');
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
