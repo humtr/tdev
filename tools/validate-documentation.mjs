@@ -147,6 +147,7 @@ export function resolvePublishedAuthority({ repository, candidates, isAncestor }
 
   const eligible = [];
   for (const candidate of byRef.values()) {
+    if (candidate.ref.startsWith('concept-')) continue;
     if (typeof candidate.workboardText !== 'string') continue;
     const declaration = parseAuthorityCandidateWorkboard(candidate.workboardText);
     if (declaration.repository !== repository || declaration.branch !== candidate.ref) continue;

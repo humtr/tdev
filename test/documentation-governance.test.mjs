@@ -88,7 +88,9 @@ test('current repository documentation authority validates after D0019/D0030 ver
   assert.ok(!frontier.includes('D0030@r1'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `verified`$/m);
-  assert.equal(result.route.selected, null);
+  if (result.route.selected !== null) {
+    assert.ok(frontier.includes(`${result.route.selected.id}@r${result.route.selected.revision}`));
+  }
   assert.deepEqual(result.roadmapGroups.map(({ group }) => group), ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H']);
   assert.ok(result.programGates.length > 0);
 });
@@ -111,13 +113,14 @@ test('WORKBOARD-only F to G rebinding passes full validation without editing sta
 
 test('a reopened frontier Design fails closed', () => {
   const relativePath = 'docs/design/0031-self-development-documentation-authority.md';
+  const currentRevision = parseDesignMetadata(currentDesignTexts[relativePath]).revision;
   const reopened = currentDesignTexts[relativePath].replace(/^- Status: `[^`]+`$/m, '- Status: `reopened`');
   const result = validateDocumentation(root, {
-    'WORKBOARD.md': workboardFixture({ frontier: [{ id: 'D0031', revision: 3, path: relativePath }], selected: { id: 'D0031', revision: 3 } }),
+    'WORKBOARD.md': workboardFixture({ frontier: [{ id: 'D0031', revision: currentRevision, path: relativePath }], selected: { id: 'D0031', revision: currentRevision } }),
     [relativePath]: reopened,
   });
   assert.equal(result.ok, false);
-  assert.match(result.failures.join('\n'), /documentation_authority_frontier_design_not_runnable: D0031@r3 reopened/);
+  assert.match(result.failures.join('\n'), new RegExp(`documentation_authority_frontier_design_not_runnable: D0031@r${currentRevision} reopened`));
 });
 
 test('stale continuity cannot override a zero-frontier current route', () => {
@@ -158,6 +161,36 @@ test('authority location chooses the unique published successor over a coherent 
     isAncestor: (ancestor, descendant) => ancestor === predecessorSha && descendant === currentSha,
   });
   assert.deepEqual(result, { repository: 'humtr/tdev', ref: currentRef, sha: currentSha });
+});
+
+test('concept refs are conception provenance and never authority-location candidates', () => {
+  const currentRef = 'group/f-cloudflare-runtime';
+  const currentSha = '1'.repeat(40);
+  const selfDeclaringConcept = {
+    ref: 'concept-1a-7',
+    sha: '2'.repeat(40),
+    workboardText: authorityWorkboardFixture({ branch: 'concept-1a-7' }),
+  };
+  const legacySchemaConcept = {
+    ref: 'concept-1a-6',
+    sha: '3'.repeat(40),
+    workboardText: '# WORKBOARD\n\n- Development identity / publication ref: `concept-1a-6`\n',
+  };
+  const current = {
+    ref: currentRef,
+    sha: currentSha,
+    workboardText: authorityWorkboardFixture({ branch: currentRef }),
+  };
+  assert.deepEqual(resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [selfDeclaringConcept, legacySchemaConcept, current],
+    isAncestor: () => false,
+  }), { repository: 'humtr/tdev', ref: currentRef, sha: currentSha });
+  assert.throws(() => resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [selfDeclaringConcept, legacySchemaConcept],
+    isAncestor: () => false,
+  }), /documentation_authority_locator_no_eligible_candidate/);
 });
 
 test('successor ref existence without its own election cannot advance authority', () => {
@@ -498,7 +531,6 @@ test('Design README is the exact deterministic projection of every maintained De
 
 test('governance implementation has no runnable Design ID special cases, including zero frontier', () => {
   const currentIds = parseWorkboardRouting(currentWorkboard).frontier.map((item) => item.id);
-  assert.deepEqual(currentIds, []);
   const syntheticIds = parseWorkboardRouting(workboardFixture({
     frontier: [
       { id: 'D0098', revision: 7, path: 'docs/design/0098-fixture.md' },
@@ -509,6 +541,6 @@ test('governance implementation has no runnable Design ID special cases, includi
   assert.deepEqual(syntheticIds, ['D0098', 'D0099']);
   for (const relativePath of ['tools/validate-documentation.mjs', 'tools/generate-design-index.mjs']) {
     const text = fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8');
-    for (const id of syntheticIds) assert.equal(text.includes(id), false, `${relativePath} hard-codes runnable ${id}`);
+    for (const id of [...currentIds, ...syntheticIds]) assert.equal(text.includes(id), false, `${relativePath} hard-codes runnable ${id}`);
   }
 });

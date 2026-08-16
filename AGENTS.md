@@ -8,6 +8,8 @@ Scope: the entire repository unless a nearer `AGENTS.md` narrows only local impl
 
 Before reading the fixed kernel, bind the repository snapshot that is allowed to supply it. If the caller already supplies a trusted exact immutable `ref@sha`, validate that identity directly. Otherwise freshly enumerate published candidate refs and resolve them under D0031's authority-location contract: a candidate is eligible only when its own `WORKBOARD.md` names the intended repository and declares that exact published ref as active; exact immediate-predecessor identity and Git ancestry must agree; select exactly one maximal eligible candidate. Zero candidates, multiple maxima, or identity/ancestry conflict fails the dependent mutation closed.
 
+Published `concept-*` refs are conception/provenance snapshots, not self-development route refs. Exclude them from authority-location candidates **before** parsing their `WORKBOARD.md`, even when snapshot-era prose inside them once claimed to be current. This is deny-only classification: it cannot elect another ref or bypass the remaining WORKBOARD/predecessor/ancestry checks.
+
 The provider default branch, current checkout, branch naming, timestamps, remembered continuity, mere existence of a later ref and local-only unpublished refs are discovery inputs only. They do not elect the current route. Bind the selected exact `ref@sha`, then establish the fixed bootstrap kernel in this order:
 
 1. read `RULE.md` from the bound snapshot;

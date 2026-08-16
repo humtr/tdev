@@ -76,6 +76,8 @@ Evidence is therefore a first-class truth category but is not a peer bootstrap r
 
 Before the fixed kernel can be trusted, a fresh actor must know which exact published snapshot supplies it. Authority location is therefore a pre-bootstrap resolution step, not a fifth bootstrap owner. It may inspect published `ref@sha` candidates, each candidate's own `WORKBOARD.md`, and exact immediate-predecessor identity/ancestry solely to select one exact snapshot or fail closed. Its output is ephemeral, names its source observations, and becomes invalid when those observations change.
 
+The `concept-*` branch namespace is explicitly reserved for conception/provenance snapshots. Those refs are not routing candidates and are filtered before WORKBOARD parsing; historical self-current prose or legacy WORKBOARD shape inside them cannot create a competing current owner. This namespace is exclusion-only and cannot positively select a route.
+
 Provider default, checkout state, branch-name shape, timestamps, continuity caches and local-only refs may help discover candidates but cannot elect the route. A candidate is eligible only when the `WORKBOARD.md` contained by that published ref declares the same repository and active ref; exact predecessor identity/ancestry must agree; exactly one maximal eligible candidate is required.
 
 After exact snapshot binding, the unconditional repository bootstrap is:

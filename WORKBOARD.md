@@ -29,6 +29,7 @@ The selected next action must be `none` or identify exactly one entry already pr
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
+- `concept-*` refs are pre-Group conception/provenance snapshots only. D0031 excludes them from authority-location candidates before WORKBOARD parsing; the active work/publication route remains the cumulative Group branch named in Current routing.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r1 is production-verified. The connected Termux profile remains rename-noreplace-only because its security domain denies hard links, but that is now a qualified backend selection rather than an unresolved source-gate gap; unsupported hard-link selection fails closed and the exact repository gate is green.
 - Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 and should be repaired only in its own bounded scope unless it blocks a required gate.

@@ -47,6 +47,8 @@ working mirror:       <ref/detached> @ <sha-or-unobserved>
 
 Before `WORKBOARD.md` can resolve the route, bind the exact published snapshot that supplies it. When no trusted immutable `ref@sha` is already supplied, enumerate published candidates and apply D0031 authority location: the candidate's own `WORKBOARD.md` must name the intended repository and the same published ref as active, declared immediate-predecessor identity and Git ancestry must agree, and exactly one maximal eligible candidate must remain. Any absence, competing maxima or identity/ancestry conflict is `BLOCKED` for the dependent mutation.
 
+`concept-*` refs are conception/provenance snapshots and are excluded before candidate WORKBOARD parsing. They may be inspected for historical rationale or evidence when needed, but they never become the work/publication route and cannot block the cumulative Group route merely by containing stale self-current prose.
+
 Resolve the active cumulative Group and branch only from the `WORKBOARD.md` in that bound snapshot. Do not infer them from the repository default branch, an old Design, a historical report, a handoff, a Task transport branch, timestamps, branch naming, mere ref existence or the sequence in `LINEAGE.md`.
 
 The normal capable local checkout should track the active cumulative branch when safe. If it is on a completed/predecessor branch, that is `CHECKOUT_ALIGNMENT_DEBT`, not a second route authority. The provider default may likewise be aligned as a compatibility/discovery pointer only after current authority is already resolved. Preserve unrelated dirty state; align safely or use an isolated worktree from the exact current active ref.

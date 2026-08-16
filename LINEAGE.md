@@ -9,7 +9,7 @@ Post-D0015 development is one cumulative checkpoint lineage, not independently a
 The planned succession is:
 
 ```text
-mvp-1a-7
+concept-1a-7
   -> group/e-context-delivery
   -> group/f-cloudflare-runtime
   -> group/g-mcp-security
@@ -17,7 +17,7 @@ mvp-1a-7
   -> <prototype fork selected at final qualification>
 ```
 
-`mvp-1a-7` is the retained cumulative legacy baseline through D0015. Group names identify development checkpoints, not product semantic owners. Later checkpoints inherit accepted earlier work through ordinary Git ancestry.
+`concept-1a-7` is the retained pre-Group conception/legacy baseline through D0015, renamed from the historical `mvp-1a-7` ref. It is provenance only and is excluded from authority-location candidates; normal mutable work starts on the cumulative Group lane. Group names identify development checkpoints, not product semantic owners. Later checkpoints inherit accepted earlier work through ordinary Git ancestry.
 
 The current active cumulative Group/branch, immediate completed predecessor and current next action are read from `WORKBOARD.md`, not inferred from this sequence.
 
