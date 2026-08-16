@@ -23,6 +23,14 @@ A non-green required command is not converted to success. If the execution envir
 
 Focused Design/provider gates may add evidence for their own scope; they do not silently weaken this baseline.
 
+### D0030 publication-portability focused gate
+
+D0030 production verification adds backend/deployment evidence without replacing the baseline source gate. On each declared rename target, build the package-owned helper **before runtime** with `npm run build:native:d0030 --silent`, then run the D0030 focused falsifiers and the unchanged immutable-journal oracle through the selected backend. A rename-qualified independent POSIX row must also run the same oracle through hard-link where hard links are supported and execute repeated independent-process hard-link-versus-rename races against one final slot.
+
+The deployment layer must install a real package copy without lifecycle-script dependence, verify the package-relative helper/manifest identity, and prove that helper absence or mismatch rejects a new authority write as `store_publication_unsupported` with no fallback. Restoring the exact helper and starting a fresh process must requalify and resume writes. The connected Termux/Android row and the independent POSIX/Linux row are separate evidence; neither profile generalizes to another filesystem/runtime by assertion. Destructive power-loss remains unverified unless separately executed.
+
+The repository-owned independent POSIX method is `.github/workflows/d0030-posix-qualification.yml`. Its run is reusable evidence only when the workflow run, exact source SHA, Node/runtime/filesystem/compiler observations, helper/source digests, both backend oracles, mixed-race result and installed-copy recovery all bind the claim being reused.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

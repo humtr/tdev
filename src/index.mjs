@@ -75,3 +75,7 @@ export { WORK_RESULT_KINDS, normalizeTaskResult, resultIdentity } from './result
 export { runCase } from './runner.mjs';
 export { runDurableCase } from './durable-runner.mjs';
 export { FileSnapshotStore, ImmutableJournalSnapshotStore, JournalSnapshotStore, MemorySnapshotStore } from './store.mjs';
+export {
+  IMMUTABLE_JOURNAL_PUBLICATION_BACKENDS,
+  defaultImmutableJournalPublicationBackend,
+} from './immutable-journal-publication.mjs';

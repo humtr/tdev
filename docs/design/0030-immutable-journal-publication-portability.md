@@ -1,6 +1,6 @@
 # Design 0030 — Immutable Journal Publication Portability
 
-- Status: `accepted`
+- Status: `implementing`
 - Class: 2
 - Capability Groups: B/F — semantic authority and persistence / active runtime portability
 - Active cumulative lineage: `group/f-cloudflare-runtime`
@@ -8,6 +8,7 @@
 - Completed predecessor checkpoint: Group E `cp_1786580384438_9ed881e039da` at the same exact SHA
 - Prior evidence Task: `task_6ni_625838d8a0`
 - Prior evidence checkpoint: `cp_1786581036451_bed7284b8070`
+- Production implementation Task: `task_8nl_11ff1d8749` from exact Group F base `3f508cc5b27c9d0a666145056fe589d73b1c8651`
 - Acceptance falsifier evidence commit: `e0d7706d02827d136eada0a9484d8ef6874cb672`
 - Inherited Designs: D0005 immutable expected-revision journal CAS, D0007 verified materialization reuse, D0008 durability admission; D0010 v3 SQLite authority remains a separate opt-in profile
 - Affected normative owners after acceptance: `docs/PROTOCOL.md`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`; `docs/SPEC.md` only if accepted support scope changes
@@ -17,7 +18,7 @@
 - Termux falsifier evidence: `docs/evidence/group-f-d0030-publication-portability-termux-falsifier-2026-08-13.json`
 - Independent POSIX falsifier evidence: `docs/evidence/group-f-d0030-publication-portability-independent-posix-falsifier-2026-08-13.json`
 
-> This accepted Design authorizes only a separate production implementation Task for the frozen bounded fd-relative native-helper route and qualified `RENAME_NOREPLACE` backend. Acceptance is not production verification. The acceptance Task did **not** replace `fs.link` in `src/store.mjs`, add a production native asset, change the durable journal format, or weaken the immutable-journal test matrix.
+> The accepted D0030 semantics remain frozen while the separate production implementation Task is active. The acceptance Task itself did **not** replace `fs.link`, package a production native asset, change the durable journal format, or weaken the immutable-journal test matrix; current production implementation/qualification state is owned by Section 16.
 
 ## 1. One-line definition
 
@@ -25,13 +26,13 @@ Preserve the D0005 immutable-journal durable format and commit meaning behind a 
 
 ## 2. Evidence classification
 
-### 2.1 Current repository facts
+### 2.1 Acceptance-base repository facts
 
-At the reviewed F anchor, `ImmutableJournalSnapshotStore` creates a unique dot-prefixed temporary regular file exclusively, writes canonical bytes, fsyncs the file, hard-links that already-written inode into the authoritative final pathname without replacement, fsyncs the Case directory, and only then returns success. `EEXIST` is publication conflict. Failure after final publication but before successful Case-directory sync is `store_commit_ambiguous`. Temporary cleanup after the commit boundary is best-effort.
+At the F anchor reviewed for acceptance, `ImmutableJournalSnapshotStore` created a unique dot-prefixed temporary regular file exclusively, writes canonical bytes, fsyncs the file, hard-links that already-written inode into the authoritative final pathname without replacement, fsyncs the Case directory, and only then returns success. `EEXIST` is publication conflict. Failure after final publication but before successful Case-directory sync is `store_commit_ambiguous`. Temporary cleanup after the commit boundary is best-effort.
 
 Committed journal authority remains ordinary regular files: `base.json`, legacy `delta-<to>.json` where admitted by the migration rules, and immutable-v2 `delta-from-<from>.json`. Dot-prefixed temporary files are not authority. The reader rejects recognized committed names that are non-regular, malformed names, noncanonical bytes, gaps, forks, source/target digest mismatch, unsupported schema, invalid migration order, and missing base authority. D0007 cache reuse still begins with strict committed-namespace and exact-byte observation and cannot hide those failures.
 
-The repository minimum runtime is Node `>=22`. There is no current native-addon/helper build or runtime dependency in `package.json`. Public Node `fs.rename` is not used as the D0005 no-replace primitive because its replacement semantics differ from D0005.
+The repository minimum runtime is Node `>=22`. At that acceptance anchor there was no native-addon/helper build or runtime dependency in `package.json`. Public Node `fs.rename` was not used as the D0005 no-replace primitive because its replacement semantics differ from D0005.
 
 Group E was independently checkpointed at `151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`; `group/f-cloudflare-runtime` was then created from that exact SHA with no intervening commit. Group E is provenance only for this Design and is not reopened.
 
@@ -77,7 +78,7 @@ The selected native integration is a narrowly owned standalone helper. The JS ow
 
 ### 2.5 Unknown / unverified
 
-- production helper implementation and release/install pipeline verification; no production native asset exists yet;
+- independent production-shaped POSIX qualification of the exact published implementation, including both backends, mixed races and installed-copy recovery;
 - destructive sudden power-loss durability on the exact target Android/storage profile;
 - universal support outside explicitly qualified runtime/filesystem/integration profiles;
 - network-filesystem, object-store, Durable Object, and distributed-transaction equivalence;
@@ -285,7 +286,7 @@ Rollback to hard-link publication is data-compatible only on an environment wher
 
 ### Deployment dependency
 
-The selected helper introduces a native deployment asset/build concern that the current production package does not yet have. The accepted lifecycle is: build/package the helper before runtime for each declared OS/arch, resolve it only from package-owned identity, bind protocol/build identity into capability validity, and requalify after process restart, helper replacement, or validity-key change. Missing/mismatched assets fail closed. Removal or rollback may reactivate hard-link writes only where hard-link publication is independently qualified and the mixed/homogeneous rollout rule above is satisfied. These rules are owned by `docs/DEPLOYMENT.md`; the post-acceptance implementation Task must verify the concrete packaging mechanism.
+The selected helper introduces a native deployment asset/build concern. The accepted lifecycle is: build/package the helper before runtime for each declared OS/arch, resolve it only from package-owned identity, bind protocol/build identity into capability validity, and requalify after process restart, helper replacement, or validity-key change. Missing/mismatched assets fail closed. Removal or rollback may reactivate hard-link writes only where hard-link publication is independently qualified and the mixed/homogeneous rollout rule above is satisfied. These rules are owned by `docs/DEPLOYMENT.md`; the post-acceptance implementation Task must verify the concrete packaging mechanism.
 
 ## 12. Acceptance matrix and cheapest falsifiers
 
@@ -368,7 +369,7 @@ After acceptance, `docs/PROTOCOL.md` should own the backend-neutral publication/
 
 ## 15. Acceptance decision and closed blockers
 
-D0030 is `accepted` at the Design layer. Acceptance freezes the backend-neutral publication contract, selects the bounded fd-relative standalone helper, and preserves `RENAME_NOREPLACE` as the qualified second backend. It does **not** claim that the production helper has been implemented or packaged.
+At the Design-acceptance boundary, D0030 was `accepted`. Acceptance freezes the backend-neutral publication contract, selects the bounded fd-relative standalone helper, and preserves `RENAME_NOREPLACE` as the qualified second backend. It does **not** claim that the production helper has been implemented or packaged.
 
 The former acceptance blockers closed as follows:
 
@@ -383,8 +384,10 @@ The evidence commit is `e0d7706d02827d136eada0a9484d8ef6874cb672`. The acceptanc
 
 Destructive power-loss testing was not executed and remains explicitly `unverified`. The existing tmcp validation registry is also separately stale: registered `portable`/`full` commands reference absent `verify:sandbox`/`verify:termux` package scripts. Neither condition is represented as a green production qualification.
 
-## 16. Exact next authorized work
+## 16. Current production implementation/qualification state
 
-The next authorized Task is a **post-acceptance production implementation and qualification Task**. It may implement the selected package-owned fd-relative helper route in the production publication adapter, including the frozen typed result/ambiguity/capability contract, without changing committed filenames/bytes/schema/replay/migration/downgrade semantics and without adding fallback primitives. It must verify the actual package/release/install mechanism, production Termux and independent-POSIX rows, rollback/removal, restart requalification and the unchanged repository oracle before claiming production verification.
+D0030 is now **implementing** in the separately authorized production Task named in this Design header. The implementation preserves the accepted committed journal names/bytes/schema/replay/migration/downgrade contract while moving final-slot election behind a publication adapter. The package-owned production C helper is byte-identical to the accepted standalone-helper source; Android/arm64 carries a manifest-bound prebuilt executable, and the explicit native build owner can produce the declared helper for an independent Linux/x64 qualification package before runtime. Runtime helper lookup is package-relative, identity-checked and fd-relative; capability probing is non-authoritative and bound to the actual Case filesystem; no backend fallback is introduced.
 
-The separate tmcp validation-registry drift should be repaired/aligned in its own maintenance scope or an explicitly combined authorized maintenance change; manual shell commands in this acceptance Task are evidence, not a substitute canonical validation profile. Destructive power-loss qualification remains a later deployment claim gate unless independently executed.
+The connected Termux production row, fresh installed-copy/remove-or-mismatch/restart behavior, unchanged immutable-journal oracle and exact repository source gates have been exercised in the implementation Task. These local observations are **not yet D0030 verification** at this point in the maintained record. Independent production-shaped POSIX qualification of the published implementation, including both backends and repeated mixed-writer races, remains the open verification layer and is owned by the repository workflow `.github/workflows/d0030-posix-qualification.yml`. Final machine-readable evidence must bind the exact published implementation SHA and that independent run before this Design can move to `verified`.
+
+The separate tmcp validation-registry drift remains outside D0030 unless it blocks a required gate. Destructive power-loss qualification also remains a later deployment claim gate unless independently executed.

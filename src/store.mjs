@@ -1,5 +1,5 @@
 import { createHash, randomUUID } from 'node:crypto';
-import { link, open, mkdir, readdir, rename, rm } from 'node:fs/promises';
+import { open, mkdir, readdir, rename, rm } from 'node:fs/promises';
 import path from 'node:path';
 import {
   ContractError,
@@ -16,6 +16,10 @@ import {
   strictJsonParse,
   typedDigest,
 } from './canonical.mjs';
+import {
+  createImmutableJournalPublicationAdapter,
+  defaultImmutableJournalPublicationBackend,
+} from './immutable-journal-publication.mjs';
 
 const PROCESS_STORE_LOCKS = new Map();
 
@@ -896,7 +900,7 @@ function parseJournalFilenameRevision(filename, digits) {
 
 export class ImmutableJournalSnapshotStore {
   constructor(directory, options = {}) {
-    assertRecordShape(options, [], ['maxBytes', 'faultInjector'], 'ImmutableJournalSnapshotStore options');
+    assertRecordShape(options, [], ['maxBytes', 'faultInjector', 'publicationBackend'], 'ImmutableJournalSnapshotStore options');
     if (typeof directory !== 'string' || directory.length === 0) {
       throw new ContractError('invalid_store_directory', 'ImmutableJournalSnapshotStore directory must be a non-empty string');
     }
@@ -907,6 +911,8 @@ export class ImmutableJournalSnapshotStore {
     if (this.faultInjector !== null && typeof this.faultInjector !== 'function') {
       throw new ContractError('invalid_store_fault_injector', 'ImmutableJournalSnapshotStore faultInjector must be a function or null');
     }
+    this.publicationBackend = options.publicationBackend ?? defaultImmutableJournalPublicationBackend();
+    this.publication = createImmutableJournalPublicationAdapter(this.publicationBackend);
     this.materialized = new Map();
   }
 
@@ -1253,11 +1259,18 @@ export class ImmutableJournalSnapshotStore {
       handle = null;
       try {
         await this.#injectFault('final_publish');
-        await link(tempPath, finalPath);
+        await this.publication.publish(
+          this.#caseDirectory(caseId),
+          path.basename(tempPath),
+          path.basename(finalPath),
+        );
         finalPublished = true;
       } catch (error) {
-        if (error?.code === 'EEXIST') {
-          throw new ContractError('store_publish_conflict', `Immutable journal commit slot already exists for Case ${caseId}`);
+        if (error?.code === 'store_commit_ambiguous') {
+          throw new ContractError('store_commit_ambiguous', `Immutable journal publication for Case ${caseId} may already be committed`, {
+            caseId,
+            finalName: path.basename(finalPath),
+          }, { cause: error });
         }
         throw error;
       }

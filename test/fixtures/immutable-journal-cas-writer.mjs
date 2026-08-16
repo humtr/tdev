@@ -16,7 +16,8 @@ while (true) {
 }
 
 try {
-  const stored = await new ImmutableJournalSnapshotStore(directory)
+  const publicationBackend = process.env.TDEV_TEST_IMMUTABLE_JOURNAL_PUBLICATION_BACKEND ?? undefined;
+  const stored = await new ImmutableJournalSnapshotStore(directory, publicationBackend === undefined ? {} : { publicationBackend })
     .compareAndSwap(caseId, expectedRevision, snapshot);
   process.stdout.write(JSON.stringify({ ok: true, revision: stored.caseRevision }));
 } catch (error) {
