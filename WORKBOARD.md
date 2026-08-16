@@ -17,9 +17,12 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
 
+- D0031@r4 — `docs/design/0031-self-development-documentation-authority.md` — exclude conception/provenance refs from authority-location candidates and revalidate bootstrap routing
+
+
 ## Selected next action
 
-- none
+- D0031@r4 — repair authority-location concept-ref exclusion
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 

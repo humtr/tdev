@@ -1,12 +1,11 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 3
-- Revision predecessor: revision 2 was verified at `34e2857261c05593cc38d73c8209302f2a193b70`; revision 1 and revision 2 verification evidence remain historical evidence
-- Revision 3 reason: fresh convergence revalidation reproduced two gaps inside the verified r2 problem boundary: pre-bootstrap authority location can start from a coherent predecessor/default snapshot with no contract for locating the actual current snapshot, and a maintained Design owner can expose contradictory current-looking lifecycle/implementation state while metadata/index validation stays green
-- Revision 3 falsifier: `docs/evidence/group-f-d0031-r3-authority-convergence-falsifier-2026-08-15.json`
-- Revision 3 acceptance evidence: `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json`
-- Revision 3 downstream revalidation: authority-location resolution, stale/default/local-only candidate behavior, owner-internal current-value consistency, D0018 maintained-record scoping, Design-index derivation and documentation governance; product/runtime semantics remain unaffected
+- Status: `accepted`
+- Revision: 4
+- Revision predecessor: revision 3 was verified at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`; revisions 1-3 and their verification evidence remain historical evidence
+- Revision 4 reason: owner correction establishes that `concept-*` refs represent conception/provenance snapshots, not executable self-development routes. Revision 3 admitted every self-declaring published ref and therefore could let a concept ref compete for authority or let legacy concept WORKBOARD schema abort authority location before the real cumulative Group route was bound.
+- Revision 4 falsifier: `docs/evidence/group-f-d0031-r4-concept-ref-authority-acceptance-2026-08-16.json`
+- Revision 4 downstream revalidation: authority-location resolution, concept namespace exclusion, current-route rebinding, checkpoint-baseline naming, documentation governance and stale-continuity behavior; product/runtime semantics remain unaffected
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
@@ -115,6 +114,8 @@ The fixed kernel is authoritative only after the session has bound itself to the
 
 Authority location is an ephemeral resolution, not a new owner:
 
+Published refs whose names start with `concept-` are an explicit **conception/provenance namespace**. They are excluded from authority-location candidates before their `WORKBOARD.md` is parsed, even if historical snapshot prose inside such a ref once called itself current. This is a deny-only namespace classification: it cannot elect another ref, bypass exact predecessor/ancestry checks, or replace the current router.
+
 1. freshly enumerate the published repository candidates that can contain the self-development kernel;
 2. read each candidate's `WORKBOARD.md` as a declaration made by that exact published `ref@sha`;
 3. keep a candidate only when its repository identity matches the intended repository and its declared active branch is exactly the published ref containing it;
@@ -123,7 +124,7 @@ Authority location is an ephemeral resolution, not a new owner:
 6. select exactly one retained maximal candidate and bind to its exact `ref@sha` before reading the fixed kernel;
 7. if no maximal candidate exists, more than one maximal candidate remains, or a required predecessor identity/ancestry conflicts, fail the dependent mutation closed.
 
-The provider default branch, current checkout, branch-name shape, timestamps, a remembered route, mere existence of a later ref, and local-only unpublished refs are discovery inputs only. None can elect the route. A provider default or normal checkout may be aligned to the already-resolved current route as an operational compatibility pointer, but that alignment never becomes a second current-route owner.
+Apart from an explicitly owner-defined deny-only namespace such as `concept-*`, the provider default branch, current checkout, branch-name shape, timestamps, a remembered route, mere existence of a later ref, and local-only unpublished refs are discovery inputs only. None can elect the route. A deny-only namespace may disqualify a ref from routing but never elect its replacement. A provider default or normal checkout may be aligned to the already-resolved current route as an operational compatibility pointer, but that alignment never becomes a second current-route owner.
 
 A tool-owned transport branch is not a route candidate merely because it contains current-looking files: its own published ref must equal the active branch declared by the `WORKBOARD.md` it contains. The resolver result is disposable and becomes invalid when any source ref observation changes.
 
@@ -232,6 +233,7 @@ Human-readable Design indexes are deterministic derived projections of all maint
 | authority location — unelected successor | a later-looking successor ref whose own WORKBOARD still declares the predecessor is not elected merely because the ref exists |
 | authority location — local-only successor | an unpublished/local successor or current-looking checkout cannot advance the published current route |
 | authority location — conflict | sibling/self-declaring candidates or predecessor identity/ancestry conflicts fail closed rather than using time/name/default heuristics |
+| authority location — conception namespace | a published self-declaring or legacy-schema `concept-*` ref is ignored before WORKBOARD parsing and cannot become or block the current route |
 | bootstrap | after exact authority location, a fresh-session procedure can determine current route from `AGENTS/RULE/SDD/WORKBOARD` without reading historical reports first |
 | stale handoff | a fixture claiming an old `mvp-*`, Group E or old Design revision cannot override current WORKBOARD/current Design owner |
 | route transition | full documentation validation remains green when a fixture changes only WORKBOARD from F to G; AGENTS/RULE/WORKFLOW/LINEAGE/ROADMAP/PROGRAM remain byte-identical |
@@ -291,3 +293,11 @@ Revision 2 was `verified`. WORKBOARD models a route plus 0..N runnable `Dxxxx@rN
 The 2026-08-15 convergence falsifier reopens only r2's affected bootstrap/current-routing/documentation-validation meaning. Fresh observation found the provider default and normal checkout coherently on completed Group E while current WORKBOARD authority was Group F, and r2 supplied no pre-bootstrap rule for locating which snapshot's fixed kernel to read. The same fresh source review found D0018's maintained body could still expose a current-looking pre-production status snapshot contradicting its verified production record without failing the generated index or governance validator. These defects remain inside D0031's existing bootstrap/authority/validation problem and owner family, so revision 3 is the corrected revision rather than a new Design or registry migration.
 
 Revision 3 was `accepted` by `docs/evidence/group-f-d0031-r3-authority-convergence-acceptance-2026-08-15.json` at `f2000d286f9ce527529792356473be74e9bcd41f`, implemented at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`, and is now `verified` by `docs/evidence/group-f-d0031-r3-authority-convergence-verification-2026-08-15.json`. The authority-location and single-value falsifiers pass 34/34 governance tests, documentation validation and exact projection checks pass, the supported non-hardlink regression suite passes 277/277, and product `src/` changed zero paths. The exact full `npm run check` and full coverage commands remain explicitly non-green on this Termux filesystem because the inherited ImmutableJournal hard-link profile reproduces 25 `link(2)` `EACCES` failures in isolation; that platform layer is not reported qualified. Revision 3 changes no product semantics, product source, D0019 acceptance, or WORKBOARD scheduling ownership.
+
+## 13. Revision 4 concept-ref authority correction
+
+The 2026-08-16 repository-owner correction makes the pre-Group branch role explicit: `concept-*` means conception/provenance, not a mutable work or publication authority. The r3 resolver's generic self-declaration rule is therefore too broad for this repository because a concept snapshot can either present stale/current-looking routing prose or use a legacy WORKBOARD schema that should never participate in authority location.
+
+Revision 4 preserves the r3 owner model and changes only candidate admission. `concept-*` is a stable deny-only namespace checked before WORKBOARD parsing. Cumulative Group refs still require self-declaration, repository identity, exact predecessor identity, Git ancestry and one maximal eligible route. No branch-name pattern can positively elect a current route.
+
+Acceptance is bounded to self-development authority/location and checkpoint naming. Product semantics, runtime behavior, provider state, durable formats, security, deployment and product Git Promotion are unchanged.

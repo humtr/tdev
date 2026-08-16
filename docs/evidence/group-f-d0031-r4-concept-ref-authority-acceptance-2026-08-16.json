@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 4,
+  "phase": "acceptance",
+  "date": "2026-08-16",
+  "repository": "humtr/tdev",
+  "activeRouteBeforeCorrection": "group/f-cloudflare-runtime",
+  "predecessorHead": "59f932ff0579f7f746f1fa38047c47b45d8f1a44",
+  "observedConceptRefs": [
+    {
+      "ref": "concept-1a-6",
+      "sha": "131204b782d7c7b64edceb55e335fba10c8e5aee"
+    },
+    {
+      "ref": "concept-1a-4",
+      "sha": "1ff7c5d321958df725497d4e3a2649e210b029db"
+    },
+    {
+      "ref": "concept-1a-3",
+      "sha": "52e79323f80bccd1123b7a538a6d49d5754cd1ec"
+    },
+    {
+      "ref": "concept-1",
+      "sha": "837da18001aa664a5b7665cfb443759e316a4212"
+    },
+    {
+      "ref": "concept-1a-1",
+      "sha": "8702bb41a08ce291024b03da2605dda6c041ea91"
+    },
+    {
+      "ref": "concept-1a-5",
+      "sha": "aaf7ec9258fb776443dd70345a1acea33ed22d78"
+    },
+    {
+      "ref": "concept-1a-7",
+      "sha": "c263eadd3d36e691e86bcb5f8dbc71c8af0e8a6f"
+    },
+    {
+      "ref": "concept-1a-2",
+      "sha": "ee02845c8947b69f810308fd957e3952a8e508b9"
+    },
+    {
+      "ref": "concept-1a",
+      "sha": "f76f752a55a9b7d37d2d01aa5172e96d3e4ef039"
+    }
+  ],
+  "r3Falsifier": {
+    "reproduced": true,
+    "error": "Error: documentation_authority_locator_ambiguous_maxima: group/f-cloudflare-runtime@1111111111111111111111111111111111111111,concept-1a-7@2222222222222222222222222222222222222222"
+  },
+  "decision": "concept-* is conception/provenance only and is excluded before authority WORKBOARD parsing",
+  "productSemanticsChanged": false
+}
