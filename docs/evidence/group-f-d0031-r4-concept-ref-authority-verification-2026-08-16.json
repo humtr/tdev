@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 4,
+  "phase": "verification",
+  "date": "2026-08-16",
+  "repository": "humtr/tdev",
+  "implementationSource": "b01b313731a5beb9cb3ae394d9f6e03eca54cab6",
+  "executionEnvironment": "GitHub Actions ubuntu-latest, Node 22",
+  "gates": [
+    {
+      "command": "node --test test/documentation-governance.test.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "result": "pass"
+    },
+    {
+      "command": "npm run check",
+      "result": "pass"
+    },
+    {
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "result": "pass"
+    },
+    {
+      "command": "git diff --check",
+      "result": "pass"
+    }
+  ],
+  "verifiedMeaning": "concept-* refs are excluded before authority WORKBOARD parsing; cumulative Group routing remains WORKBOARD+predecessor+ancestry based",
+  "productSemanticsChanged": false,
+  "remainingUnknowns": [
+    "external clones/bookmarks may retain old branch names; they do not define repository authority"
+  ],
+  "verificationRun": {
+    "provider": "GitHub Actions",
+    "runId": 31939490487,
+    "exactImplementationSource": "b01b313731a5beb9cb3ae394d9f6e03eca54cab6",
+    "result": "success"
+  }
+}

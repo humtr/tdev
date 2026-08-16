@@ -1,11 +1,14 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 4
 - Revision predecessor: revision 3 was verified at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`; revisions 1-3 and their verification evidence remain historical evidence
 - Revision 4 reason: owner correction establishes that `concept-*` refs represent conception/provenance snapshots, not executable self-development routes. Revision 3 admitted every self-declaring published ref and therefore could let a concept ref compete for authority or let legacy concept WORKBOARD schema abort authority location before the real cumulative Group route was bound.
 - Revision 4 falsifier: `docs/evidence/group-f-d0031-r4-concept-ref-authority-acceptance-2026-08-16.json`
 - Revision 4 downstream revalidation: authority-location resolution, concept namespace exclusion, current-route rebinding, checkpoint-baseline naming, documentation governance and stale-continuity behavior; product/runtime semantics remain unaffected
+- Revision 4 implementation source: `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`
+- Revision 4 verification evidence: `docs/evidence/group-f-d0031-r4-concept-ref-authority-verification-2026-08-16.json`
+- Revision 4 verification run: GitHub Actions `31939490487` on exact implementation source `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
 - Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
@@ -301,3 +304,5 @@ The 2026-08-16 repository-owner correction makes the pre-Group branch role expli
 Revision 4 preserves the r3 owner model and changes only candidate admission. `concept-*` is a stable deny-only namespace checked before WORKBOARD parsing. Cumulative Group refs still require self-declaration, repository identity, exact predecessor identity, Git ancestry and one maximal eligible route. No branch-name pattern can positively elect a current route.
 
 Acceptance is bounded to self-development authority/location and checkpoint naming. Product semantics, runtime behavior, provider state, durable formats, security, deployment and product Git Promotion are unchanged.
+
+Revision 4 is verified at implementation source `b01b313731a5beb9cb3ae394d9f6e03eca54cab6` by `docs/evidence/group-f-d0031-r4-concept-ref-authority-verification-2026-08-16.json`. The focused governance falsifier and the complete repository baseline source/coverage gates passed on Ubuntu/Node 22; no product `src/` contract was changed by this revision.
