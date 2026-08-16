@@ -21,7 +21,7 @@ function configuration() {
     qualificationToken: 'q'.repeat(64),
     nonce: 'a'.repeat(16),
     maxTaskInitialBytes: 3915402,
-    growthFinalBytes: 1281193,
+    resultFixtureFinalAuthoritativeBytes: 1281193,
     safetyNumerator: 4,
     safetyDenominator: 1,
     providerMinimumPerObjectBytes: 1024 * 1024 * 1024,

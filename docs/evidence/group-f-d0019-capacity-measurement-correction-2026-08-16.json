@@ -1,0 +1,248 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0019-capacity-measurement-correction",
+  "recordedAt": "2026-08-16",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0019",
+    "revision": 2,
+    "group": "Group F"
+  },
+  "publishedQualificationSource": {
+    "branch": "group/f-cloudflare-runtime",
+    "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0"
+  },
+  "liveProviderQualification": {
+    "jobId": "job_8fv_4e3bc18fd1",
+    "status": "provider_qualification_verified",
+    "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+    "placementElection": {
+      "singleWinnerVerified": true,
+      "loserErrorCode": "placement_conflict",
+      "placementGeneration": 1
+    },
+    "authorityFaultAndRecovery": {
+      "revisionRaceSingleWinner": true,
+      "runningAttemptPersistedBeforeDispatch": true,
+      "ordinaryAbortPreservedRunningAttempt": true,
+      "staleResultRejectedWithoutMutation": true,
+      "precommitFailureRolledBack": true,
+      "postcommitResponseLossReconciledByReceipt": true,
+      "explicitOwnerLossRecoveryCommittedOnce": true,
+      "acceptedResultReplayDeduplicated": true,
+      "conflictingResultRejectedWithoutMutation": true
+    },
+    "representativeCapacityWorkload": {
+      "taskCount": 128,
+      "acceptedResults": 16,
+      "receipts": 32,
+      "localInitialAuthoritativeBytes": 62125,
+      "liveInitialAuthoritativeBytes": 62159,
+      "localFinalAuthoritativeBytes": 120633,
+      "liveFinalAuthoritativeBytes": 120667,
+      "initialDriftBytes": 34,
+      "finalDriftBytes": 34,
+      "maxAllowedDriftBytes": 4096,
+      "providerRestartVerified": true
+    },
+    "capacityRejection": {
+      "rejectedBeforeAuthorityBirth": true,
+      "competingFallbackRejected": true
+    },
+    "writerRollout": {
+      "incompatibleWriterRejectedMutation": true,
+      "rollbackPreservedAuthority": true,
+      "compatibleWriterContinued": true,
+      "restoredWriterCompatibilityId": "tdev-casedo-writer-v1"
+    },
+    "qualifiedCapacityEnvelope": {
+      "productionBudgetQualified": true,
+      "maxAuthoritativeBytesPerCase": 16777216,
+      "chunkBytes": 262144,
+      "measuredHighWaterBytes": 3915402,
+      "safetyFactor": "4/1",
+      "minimumBudgetBytes": 15661608,
+      "providerMinimumPerObjectBytes": 1000000000,
+      "providerMaximumRowBytes": 2000000
+    },
+    "publicQualificationRoutesDisabledAfterRun": true
+  },
+  "providerPostReadback": {
+    "jobId": "job_8fx_d7f02deb26",
+    "d1Database": "tdev-d0019-placement",
+    "placementRows": 10,
+    "allWorkerRoutesDisabled": true,
+    "allWorkerPreviewsDisabled": true,
+    "qualificationA": {
+      "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+      "writerCompatibilityId": "tdev-casedo-writer-v1",
+      "maxAuthoritativeBytesPerCase": 16777216,
+      "sqliteDurableObjectNamespaceObserved": true
+    },
+    "qualificationB": {
+      "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+      "writerCompatibilityId": "tdev-casedo-writer-v1",
+      "maxAuthoritativeBytesPerCase": 16777216,
+      "sqliteDurableObjectNamespaceObserved": true
+    },
+    "capacityRejectionWorker": {
+      "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+      "writerCompatibilityId": "tdev-casedo-writer-v1",
+      "maxAuthoritativeBytesPerCase": 1,
+      "sqliteDurableObjectNamespaceObserved": true,
+      "maxBytesMeaning": "intentional rejection profile"
+    },
+    "accountPlanInferred": false,
+    "subscriptionRead": "forbidden_by_current_token_403"
+  },
+  "capacityMeasurementCorrection": {
+    "meaningCorrection": {
+      "incorrectInterpretation": "1281193 bytes was previously discussed as growth",
+      "correctInterpretation": "1281193 bytes is final authoritative Case size for the 2048-task, 128-accepted-result fixture",
+      "initialAuthoritativeBytes": 811696,
+      "growthBytes": 469497,
+      "finalAuthoritativeBytes": 1281193,
+      "publishedHistoricalEvidenceNote": "published evidence that uses finalAuthoritativeBytes already labels 1281193 correctly; the older growthFixtureFinalBytes name is ambiguous and is superseded semantically by this record"
+    },
+    "calibratedFinalStateMeasurement": {
+      "jobId": "job_8ju_4b6b4f55a5",
+      "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+      "taskCount": 2048,
+      "acceptedResults": 128,
+      "receipts": 256,
+      "initialAuthoritativeBytes": 811696,
+      "finalAuthoritativeBytes": 1281193,
+      "growthBytes": 469497,
+      "finalCaseRevision": 513,
+      "snapshotBytes": 1270987,
+      "snapshotChunks": 5,
+      "semanticObjectRecords": 4,
+      "measurementOnly": true,
+      "productionBudgetQualified": false,
+      "method": "persistent CaseEngine semantic commands plus one calibrated fresh-state CaseDO accounting pass"
+    },
+    "originalRoundTripCrossCheck": {
+      "jobId": "job_8jx_706de5c656",
+      "sourceSha": "ee00350ffcb81351b239934e08c05873552855a0",
+      "command": "node bench/d0019-case-budget-measurement.mjs growth 128 128",
+      "taskCount": 128,
+      "acceptedResults": 128,
+      "receipts": 256,
+      "initialAuthoritativeBytes": 62125,
+      "finalAuthoritativeBytes": 531622,
+      "growthBytes": 469497,
+      "finalCaseRevision": 513,
+      "meaning": "independent CaseDO restore/persist round-trip cross-check of the 128-result incremental bytes for this repository fixture"
+    },
+    "calibrationFixtures": [
+      {
+        "taskCount": 128,
+        "acceptedResults": 16,
+        "finalAuthoritativeBytes": 120633,
+        "byteDeltaAgainstRoundTrip": 0
+      },
+      {
+        "taskCount": 512,
+        "acceptedResults": 16,
+        "finalAuthoritativeBytes": 270393,
+        "byteDeltaAgainstRoundTrip": 0
+      },
+      {
+        "taskCount": 2048,
+        "acceptedResults": 4,
+        "finalAuthoritativeBytes": 826308,
+        "byteDeltaAgainstRoundTrip": 0
+      }
+    ],
+    "repositoryCalibrationImplementation": {
+      "focusedJobId": "job_8mg_86003c5277",
+      "roundTripFixture": {
+        "taskCount": 128,
+        "acceptedResults": 4,
+        "initialAuthoritativeBytes": 62125,
+        "finalAuthoritativeBytes": 76737,
+        "growthBytes": 14612
+      },
+      "finalStateFixture": {
+        "taskCount": 128,
+        "acceptedResults": 4,
+        "initialAuthoritativeBytes": 62125,
+        "finalAuthoritativeBytes": 76737,
+        "growthBytes": 14612
+      },
+      "byteDelta": 0,
+      "progressTelemetry": "stderr JSON progress includes initialized/result phases, wallMs and cpuMs",
+      "multiChunkFixture": {
+        "jobId": "job_8mt_4aaae34607",
+        "taskCount": 2048,
+        "acceptedResults": 4,
+        "initialAuthoritativeBytes": 811696,
+        "finalAuthoritativeBytes": 826308,
+        "growthBytes": 14612,
+        "snapshotChunks": 4,
+        "semanticObjectRecords": 4,
+        "byteDeltaAgainstHistoricalRoundTrip": 0
+      }
+    }
+  },
+  "benchmarkSemantics": {
+    "growth": "end-to-end CaseDO round-trip path; retains repeated load, restore, validation, canonicalization and persistence and is useful as a round-trip stress/integrity path",
+    "final-state": "measurement-only persistent-CaseEngine path with calibrated fresh-state accounting; intended to obtain final capacity bytes without repeating persistence/restore for every command",
+    "calibrationRule": "final-state is not production qualification and must remain byte-calibrated against real CaseDOAuthority authoritativeBytes accounting",
+    "productionMutationOptimization": "out of scope; CaseDO command integrity semantics were not weakened or changed"
+  },
+  "capacityBudgetDecision": {
+    "changed": false,
+    "maxAuthoritativeBytesPerCase": 16777216,
+    "reason": "the budget is derived from the separately measured 3915402-byte maximum-total-Task initial fixture with a 4/1 factor, yielding 15661608 bytes before next-power-of-two rounding; live provider qualification also passed the 16 MiB profile"
+  },
+  "remainingRepositoryQualificationGap": {
+    "owner": "D0030-independent Termux hard-link portability layer",
+    "meaning": "must remain visible and must not be reinterpreted as a D0019 success",
+    "d0019Status": "implementing",
+    "d0020Activated": false
+  },
+  "repositoryValidation": {
+    "focusedD0019": {
+      "jobId": "job_8mv_50dee0e831",
+      "status": "passed",
+      "tests": 73,
+      "passed": 73,
+      "failed": 0,
+      "documentationAuthority": "passed",
+      "diffCheck": "passed"
+    },
+    "exactRepositoryCheck": {
+      "jobId": "job_8mw_098d69081c",
+      "command": "npm run check",
+      "status": "not_green_in_termux_environment",
+      "tests": 366,
+      "passed": 341,
+      "failed": 25,
+      "failureScope": "ImmutableJournalSnapshotStore only",
+      "rootCause": "Termux link(2) EACCES",
+      "d0019RegressionObserved": false
+    },
+    "exactFullCoverage": {
+      "jobId": "job_8n2_7cc06b2129",
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "status": "not_green_in_termux_environment",
+      "tests": 366,
+      "passed": 341,
+      "failed": 25,
+      "failureScope": "ImmutableJournalSnapshotStore only",
+      "rootCause": "Termux link(2) EACCES",
+      "allFiles": {
+        "linePercent": 87.89,
+        "branchPercent": 75.64,
+        "functionPercent": 94.4
+      },
+      "benchmark": {
+        "linePercent": 94.65,
+        "branchPercent": 78.26,
+        "functionPercent": 100
+      },
+      "d0019RegressionObserved": false
+    }
+  }
+}

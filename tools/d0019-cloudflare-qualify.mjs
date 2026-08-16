@@ -124,7 +124,7 @@ export async function runD0019CloudflareQualification({
   qualificationToken,
   nonce,
   maxTaskInitialBytes,
-  growthFinalBytes,
+  resultFixtureFinalAuthoritativeBytes,
   safetyNumerator,
   safetyDenominator,
   providerMinimumPerObjectBytes,
@@ -157,7 +157,7 @@ export async function runD0019CloudflareQualification({
   if (!discovery.workerSubdomain) fail('workers_subdomain_unavailable', 'Cloudflare account has no configured workers.dev subdomain');
   for (const scriptName of ALL_SCRIPTS) qualificationWorkerOrigin(scriptName, discovery.workerSubdomain);
   const maximumTaskInitial = positiveInteger(maxTaskInitialBytes, 'maxTaskInitialBytes');
-  const measuredGrowthFinal = positiveInteger(growthFinalBytes, 'growthFinalBytes');
+  const resultFixtureFinal = positiveInteger(resultFixtureFinalAuthoritativeBytes, 'resultFixtureFinalAuthoritativeBytes');
   const numerator = positiveInteger(safetyNumerator, 'safetyNumerator');
   const denominator = positiveInteger(safetyDenominator, 'safetyDenominator');
   const minimumPerObjectBytes = positiveInteger(providerMinimumPerObjectBytes, 'providerMinimumPerObjectBytes');
@@ -170,7 +170,7 @@ export async function runD0019CloudflareQualification({
   }
   const measurements = [
     measurementEvidence({ mode: 'init', taskCount: 9999, authoritativeBytes: maximumTaskInitial }),
-    measurementEvidence({ mode: 'growth', taskCount: 2048, acceptedResults: 128, authoritativeBytes: measuredGrowthFinal }),
+    measurementEvidence({ mode: 'growth', taskCount: 2048, acceptedResults: 128, authoritativeBytes: resultFixtureFinal }),
   ];
   const measuredHighWaterBytes = Math.max(...measurements.map((measurement) => measurement.authoritativeBytes ?? measurement.finalAuthoritativeBytes));
   const derivedBudget = deriveD0019Budget({ measuredHighWaterBytes, safetyNumerator: numerator, safetyDenominator: denominator });
@@ -358,7 +358,7 @@ function parseArgs(argv) {
     index += 1;
   }
   const allowed = new Set([
-    'env-file', 'jurisdiction', 'max-task-initial-bytes', 'growth-final-bytes', 'safety-numerator', 'safety-denominator',
+    'env-file', 'jurisdiction', 'max-task-initial-bytes', 'result-fixture-final-authoritative-bytes', 'safety-numerator', 'safety-denominator',
     'provider-minimum-per-object-bytes', 'provider-maximum-row-bytes', 'provider-limits-checked-at',
     'local-capacity-initial-bytes', 'local-capacity-final-bytes', 'max-identity-drift-bytes',
   ]);
@@ -384,7 +384,7 @@ async function runCli() {
     qualificationToken: randomBytes(32).toString('hex'),
     nonce: randomBytes(8).toString('hex'),
     maxTaskInitialBytes: positiveInteger(values['max-task-initial-bytes'], 'maxTaskInitialBytes'),
-    growthFinalBytes: positiveInteger(values['growth-final-bytes'], 'growthFinalBytes'),
+    resultFixtureFinalAuthoritativeBytes: positiveInteger(values['result-fixture-final-authoritative-bytes'], 'resultFixtureFinalAuthoritativeBytes'),
     safetyNumerator: positiveInteger(values['safety-numerator'], 'safetyNumerator'),
     safetyDenominator: positiveInteger(values['safety-denominator'], 'safetyDenominator'),
     providerMinimumPerObjectBytes: positiveInteger(values['provider-minimum-per-object-bytes'], 'providerMinimumPerObjectBytes'),
