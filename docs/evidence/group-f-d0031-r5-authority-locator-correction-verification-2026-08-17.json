@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 5,
+  "phase": "verification",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "51c0b380b2a349f386fa9a5e4abcb38ac930321a",
+  "implementationSource": "4354d8589aa0d2251bcd639bce1b1f13963e1037",
+  "implementationTree": "3bad1accb6a97419093168aad16b46be4a2ed81f",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_8ye_93bc9884e0",
+      "tests": 38,
+      "passed": 38
+    },
+    "sourceGate": {
+      "job": "job_8yf_5dbc1898fe",
+      "command": "npm run check",
+      "tests": 375,
+      "passed": 375
+    },
+    "providerShapedAuthority": {
+      "job": "job_8yf_5dbc1898fe",
+      "candidateCount": 38,
+      "selected": "group/f-cloudflare-runtime@9bbe2c7cc3002f13458f2b8b4b89dda570d72198",
+      "legacyNonCurrentWorkboards": "ignored before current-only predecessor parsing",
+      "malformedDeclaredPredecessor": "failed closed with documentation_authority_locator_predecessor_malformed"
+    },
+    "diffCheck": "passed"
+  },
+  "verifiedMeaning": [
+    "concept-* remains excluded before WORKBOARD parsing",
+    "legacy non-current non-concept WORKBOARD schemas cannot abort eligibility resolution",
+    "retained self-declaring candidates parse declared predecessor strictly",
+    "malformed or duplicate declared predecessor fails closed",
+    "exact predecessor identity and Git ancestry remain required",
+    "exactly one maximal eligible published candidate remains required"
+  ],
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false,
+  "unverifiedLayers": []
+}

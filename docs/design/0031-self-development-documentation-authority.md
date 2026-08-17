@@ -1,13 +1,14 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 5
 - Revision 5 predecessor: revision 4 was verified at `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`; revisions 1-4 and their verification evidence remain historical evidence
 - Revision 5 reason: fresh provider-shaped falsifiers on 2026-08-17 show that legacy non-concept WORKBOARD schemas can abort authority location before ineligibility is established, and a malformed declared immediate predecessor can be reduced to predecessor absence instead of failing closed.
 - Revision 5 falsifier evidence: `docs/evidence/group-f-d0031-r5-authority-locator-correction-acceptance-2026-08-17.json`
 - Revision 5 changed decision: authority location performs a shallow repository/self-ref eligibility probe before current-only predecessor parsing; a retained self-declaring candidate may omit the predecessor field, but if the predecessor label is present it must be exactly one well-formed `ref@40hex` declaration or the resolver fails closed.
 - Revision 5 downstream revalidation: complete live published-head resolution, legacy non-current WORKBOARD tolerance, malformed/duplicate predecessor rejection, exact predecessor identity and ancestry, unique-maximal election, current-route rebinding and documentation governance; product/runtime semantics remain unaffected.
-- Revision 5 implementation/verification: implementation is in progress from accepted lifecycle commit `51c0b380b2a349f386fa9a5e4abcb38ac930321a`; verification remains pending until the focused and provider-shaped falsifiers plus applicable repository gates pass.
+- Revision 5 implementation source: `4354d8589aa0d2251bcd639bce1b1f13963e1037` (tree `3bad1accb6a97419093168aad16b46be4a2ed81f`), after accepted lifecycle commit `51c0b380b2a349f386fa9a5e4abcb38ac930321a`.
+- Revision 5 verification evidence: `docs/evidence/group-f-d0031-r5-authority-locator-correction-verification-2026-08-17.json`; focused governance 38/38, exact source gate 375/375, and provider-shaped 38-head authority resolution passed in tmcp Jobs `job_8ye_93bc9884e0` and `job_8yf_5dbc1898fe`.
 - Revision 4 predecessor: revision 3 was verified at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`; revisions 1-3 and their verification evidence remain historical evidence
 - Revision 4 reason: owner correction establishes that `concept-*` refs represent conception/provenance snapshots, not executable self-development routes. Revision 3 admitted every self-declaring published ref and therefore could let a concept ref compete for authority or let legacy concept WORKBOARD schema abort authority location before the real cumulative Group route was bound.
 - Revision 4 falsifier: `docs/evidence/group-f-d0031-r4-concept-ref-authority-acceptance-2026-08-16.json`

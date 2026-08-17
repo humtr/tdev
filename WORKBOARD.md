@@ -16,18 +16,18 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- D0031@r5 — `docs/design/0031-self-development-documentation-authority.md` — implement the accepted authority-locator eligibility/predecessor correction and revalidate provider-shaped authority resolution
+
 
 ## Selected next action
 
-- D0031@r5 — implement the accepted authority-locator eligibility/predecessor correction and revalidate provider-shaped authority resolution
+- none
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- `concept-*` refs remain pre-Group conception/provenance snapshots and are excluded before WORKBOARD parsing. D0031@r5 now owns the selected correction for non-concept eligibility and predecessor parsing; provider-shaped authority resolution must be revalidated before that revision can return to verified.
+- D0031@r5 is verified. `concept-*` refs remain excluded before WORKBOARD parsing; legacy non-current WORKBOARD schemas are filtered by shallow self-declaration before current-only predecessor parsing, malformed declared predecessors fail closed, and the unique-maximal exact-ref/ancestry election remains authoritative.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r1 has a bounded correction pending for capability-cache lifecycle, post-BEGIN abnormal helper outcomes and clean Linux source-baseline qualification. Do not reuse its former blanket production-verified claim; unaffected D0005/D0007 durable-format and normal qualified-publication meaning remains preserved.
 - D0032@r1 and D0033@r1 have bounded governance-mechanization corrections pending for QUALIFICATION evidence-ledger exclusion and PROGRAM/maintained-Design status duplication. Their intended owner graph and historical preservation remain preserved; neither reopened scope is runnable until its own corrected revision is accepted.
