@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "design": "D0033",
+  "revision": 2,
+  "phase": "verification",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4",
+  "implementationSource": "181fe20dba26929a0b034661ad02ecee273f413b",
+  "cumulativeVerifiedTree": "deb7317108a83b9a7e78aac63683f980e68afda4",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_8zx_0e0dc9878f",
+      "tests": 41,
+      "passed": 41
+    },
+    "exactFalsifier": "D0019 is currently accepted. -> documentation_authority_program_design_status_prose",
+    "variantFalsifier": "Latest D0030 lifecycle is implementing. -> documentation_authority_program_design_status_prose",
+    "allowedControls": [
+      "At previous revision 1, D0019 was currently accepted.",
+      "D0030@r2 remains a maintained Design foreign key for the current Case-runtime gate."
+    ],
+    "fullSourceGate": {
+      "job": "job_903_782076b124",
+      "status": "succeeded",
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ]
+    }
+  },
+  "verifiedMeaning": "PROGRAM rejects generic current maintained-Design lifecycle ledgers while preserving foreign keys and explicitly historical/non-current planning prose.",
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false
+}

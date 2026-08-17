@@ -17,8 +17,6 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
 - D0030@r2 — `docs/design/0030-immutable-journal-publication-portability.md` — correct helper abnormal-outcome semantics, capability-cache lifecycle and clean-source qualification baseline
-- D0032@r2 — `docs/design/0032-qualification-authority-recomposition.md` — reject mutable current qualification result/evidence ledgers generically
-- D0033@r2 — `docs/design/0033-program-roadmap-authority-recomposition.md` — reject current maintained-Design lifecycle ledgers in PROGRAM generically
 
 ## Selected next action
 
@@ -32,7 +30,7 @@ The selected next action must be `none` or identify exactly one entry already pr
 - D0031@r6 is verified. Its r5 authority-location correction and r6 maintained-Design single-current-value enforcement jointly close the ACR-reached D0031 correction family at the verified source/provider-shaped layers.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r2 is accepted and runnable for capability-cache lifecycle, post-BEGIN abnormal helper outcomes and clean-source-baseline qualification; unaffected D0005/D0007 durable-format and normal qualified-publication meaning remains preserved.
-- D0032@r2 and D0033@r2 are accepted parallel-runnable governance corrections for QUALIFICATION current-result/evidence ledgers and PROGRAM current Design-status ledgers. Their intended owner graph and historical preservation remain preserved.
+- D0032@r2 and D0033@r2 are verified: QUALIFICATION mutable current result/evidence ledgers and PROGRAM current maintained-Design lifecycle ledgers now fail closed generically while historical/normative owner meaning remains preserved.
 - Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 and should be repaired only in its own bounded scope unless it blocks a required gate.
 - Checkout alignment debt was fresh-observed during D0031 r3: the canonical Termux checkout was clean but still on completed Group E while WORKBOARD authority was Group F. The correction was verified from an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
 - No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route/frontier above. Rebind any such continuity data before dependent mutation.

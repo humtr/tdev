@@ -1,0 +1,37 @@
+{
+  "schemaVersion": 1,
+  "design": "D0032",
+  "revision": 2,
+  "phase": "verification",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4",
+  "implementationSource": "97125f9b3da6245fb8a2d449ef4e19d69febd286",
+  "cumulativeVerifiedTree": "deb7317108a83b9a7e78aac63683f980e68afda4",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_8zu_732835250e",
+      "tests": 40,
+      "passed": 40
+    },
+    "exactFalsifier": "The most recent source gate passed 375 tests. -> documentation_authority_qualification_current_result_ledger",
+    "variantFalsifier": "Current evidence: 376/376 tests passed. -> documentation_authority_qualification_current_result_ledger",
+    "allowedControls": [
+      "Previous source gate passed 375 tests; this is historical evidence only.",
+      "Current evidence must be stored in bounded evidence records rather than this method owner."
+    ],
+    "fullSourceGate": {
+      "job": "job_903_782076b124",
+      "status": "succeeded",
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ]
+    }
+  },
+  "verifiedMeaning": "QUALIFICATION rejects mutable current result/evidence ledgers generically without rejecting historical evidence or normative methodology.",
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false
+}
