@@ -26,6 +26,9 @@ jobs:
       - name: Install JavaScript dependencies without lifecycle scripts
         run: npm ci --ignore-scripts --no-audit --no-fund
 
+      - name: Run clean-source D0030 falsifiers before native build
+        run: node --test test/d0030-publication-portability.test.mjs
+
       - name: Build package-owned D0030 helper
         run: npm run build:native:d0030 --silent
 
