@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates with D0030 D0032 D0033 r2 accepted', () => {
+test('current repository documentation authority validates with D0030 r2 implementing and D0032 D0033 r2 accepted', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -89,7 +89,7 @@ test('current repository documentation authority validates with D0030 D0032 D003
   assert.ok(frontier.includes('D0032@r2'));
   assert.ok(frontier.includes('D0033@r2'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
-  assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `accepted`$/m);
+  assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `implementing`$/m);
   assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `accepted`$/m);
   assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `accepted`$/m);

@@ -209,19 +209,32 @@ function classifyHelperOutcome(outcome, identity = null) {
   if (outcome.spawnError?.code === 'ENOENT') {
     throw unsupported('D0030 packaged helper disappeared before execution', {}, outcome.spawnError);
   }
+  const abnormalCompletion = outcome.timedOut || outcome.signal !== null || outcome.spawnError !== null || outcome.code !== 0;
+  if (abnormalCompletion) {
+    const details = {
+      timedOut: outcome.timedOut,
+      exitCode: outcome.code,
+      signal: outcome.signal,
+      spawnCode: outcome.spawnError?.code ?? null,
+    };
+    if (outcome.protocol.began) {
+      throw ambiguous('D0030 helper completed abnormally after publication could have begun', details, outcome.spawnError ?? undefined);
+    }
+    throw writeFailed('D0030 helper completed abnormally before the publication begin marker', details, outcome.spawnError ?? undefined);
+  }
   if (outcome.protocol.malformed || outcome.protocol.result === null) {
     if (outcome.protocol.began) {
       throw ambiguous('D0030 helper result was lost after publication could have begun', {
         timedOut: outcome.timedOut,
         exitCode: outcome.code,
         signal: outcome.signal,
-      }, outcome.spawnError ?? undefined);
+      });
     }
-    throw writeFailed('D0030 helper failed before the publication begin marker', {
+    throw writeFailed('D0030 helper returned no complete result before the publication begin marker', {
       timedOut: outcome.timedOut,
       exitCode: outcome.code,
       signal: outcome.signal,
-    }, outcome.spawnError ?? undefined);
+    });
   }
   const { status, errno } = outcome.protocol.result;
   if (status === 'success') return { status, errno, identity };
@@ -364,6 +377,24 @@ async function qualifyBackend(backend, caseDirectory) {
   if (qualificationError !== null) throw qualificationError;
 }
 
+function cacheQualifiedCapability(capabilities, location, beforeKey, afterKey, backend) {
+  if (beforeKey !== afterKey) {
+    capabilities.delete(location);
+    throw unsupported(`Immutable-journal ${backend} publication validity changed during capability qualification`, { backend });
+  }
+  capabilities.set(location, afterKey);
+  return afterKey;
+}
+
+async function withCapabilityInvalidation(capabilities, location, operation) {
+  try {
+    return await operation();
+  } catch (error) {
+    if (error?.code === 'store_publication_unsupported') capabilities.delete(location);
+    throw error;
+  }
+}
+
 export function defaultImmutableJournalPublicationBackend() {
   if (process.platform === 'android' && process.arch === 'arm64') {
     return IMMUTABLE_JOURNAL_PUBLICATION_BACKENDS.RENAME_NOREPLACE;
@@ -379,22 +410,29 @@ export function createImmutableJournalPublicationAdapter(backend = defaultImmuta
   return Object.freeze({
     backend,
     async qualify(caseDirectory) {
+      const location = path.resolve(caseDirectory);
       const key = await publicationValidityKey(backend, caseDirectory).catch((error) => {
         if (error instanceof ContractError) throw error;
         throw unsupported(`Failed to derive ${backend} publication validity key`, { backend }, error);
       });
-      if (capabilities.get(path.resolve(caseDirectory)) === key) return key;
+      if (capabilities.get(location) === key) return key;
+      capabilities.delete(location);
       await qualifyBackend(backend, caseDirectory);
-      const verifiedKey = await publicationValidityKey(backend, caseDirectory);
-      capabilities.set(path.resolve(caseDirectory), verifiedKey);
-      return verifiedKey;
+      const verifiedKey = await publicationValidityKey(backend, caseDirectory).catch((error) => {
+        if (error instanceof ContractError) throw error;
+        throw unsupported(`Failed to re-derive ${backend} publication validity key after qualification`, { backend }, error);
+      });
+      return cacheQualifiedCapability(capabilities, location, key, verifiedKey, backend);
     },
     async publish(caseDirectory, sourceName, finalName) {
-      await this.qualify(caseDirectory);
-      if (backend === IMMUTABLE_JOURNAL_PUBLICATION_BACKENDS.RENAME_NOREPLACE) {
-        return renameNoReplaceRaw(caseDirectory, sourceName, finalName);
-      }
-      return hardlinkRaw(caseDirectory, sourceName, finalName);
+      const location = path.resolve(caseDirectory);
+      return withCapabilityInvalidation(capabilities, location, async () => {
+        await this.qualify(caseDirectory);
+        if (backend === IMMUTABLE_JOURNAL_PUBLICATION_BACKENDS.RENAME_NOREPLACE) {
+          return renameNoReplaceRaw(caseDirectory, sourceName, finalName);
+        }
+        return hardlinkRaw(caseDirectory, sourceName, finalName);
+      });
     },
   });
 }
@@ -406,4 +444,6 @@ export const D0030_INTERNAL = Object.freeze({
   parseProtocol,
   classifyHelperOutcome,
   qualifyBackend,
+  cacheQualifiedCapability,
+  withCapabilityInvalidation,
 });

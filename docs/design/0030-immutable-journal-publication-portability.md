@@ -1,13 +1,13 @@
 # Design 0030 — Immutable Journal Publication Portability
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 2
 - Revision 2 predecessor: revision 1 was verified before the 2026-08-17 falsifiers; its unaffected D0005/D0007 durable-format and normal qualified-publication meaning remains historical verified evidence.
 - Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` reproduces the affected capability-cache, post-BEGIN abnormal-helper and clean-source-baseline defects after D0031 correction.
 - Revision 2 acceptance evidence: `docs/evidence/group-f-d0030-r2-portability-correction-acceptance-2026-08-17.json`.
 - Revision 2 changed decision: (1) a typed helper result is authoritative only after normal child completion; after BEGIN, timeout, signal, spawn uncertainty or nonzero exit remains `store_commit_ambiguous` even if a complete frame was captured; (2) a positive capability cache may be installed only when the exact validity key is identical before and after the probe, and a later `store_publication_unsupported` publication result invalidates the cached qualification before rethrow; (3) the clean repository source gate must not require an undeclared current-platform helper asset—source tests prove fail-closed absence when the package has no current target, while positive Linux helper/package qualification remains owned by the explicit pre-runtime build/install workflow.
 - Revision 2 preserved meaning: no backend fallback, fixed package-owned helper identity, D0005/D0007 journal format/replay/migration/downgrade, exact no-replace publication ordering on qualified paths and the destructive-sudden-power-loss exclusion remain unchanged.
-- Revision 2 implementation/verification: not yet executed at acceptance. Destructive power-loss, universal Linux/Android/filesystem support and any unexecuted deployment profile remain unverified.
+- Revision 2 implementation/verification: implementation is in progress from accepted lifecycle commit `2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4`; local source/focused verification and independent clean Linux/package qualification remain required before verified closure. Destructive power-loss and unexecuted profiles remain unverified.
 - Class: 2
 - Capability Groups: B/F — semantic authority and persistence / active runtime portability
 - Active cumulative lineage: `group/f-cloudflare-runtime`
