@@ -1,13 +1,14 @@
 # Design 0030 — Immutable Journal Publication Portability
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 2
 - Revision 2 predecessor: revision 1 was verified before the 2026-08-17 falsifiers; its unaffected D0005/D0007 durable-format and normal qualified-publication meaning remains historical verified evidence.
 - Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` reproduces the affected capability-cache, post-BEGIN abnormal-helper and clean-source-baseline defects after D0031 correction.
 - Revision 2 acceptance evidence: `docs/evidence/group-f-d0030-r2-portability-correction-acceptance-2026-08-17.json`.
 - Revision 2 changed decision: (1) a typed helper result is authoritative only after normal child completion; after BEGIN, timeout, signal, spawn uncertainty or nonzero exit remains `store_commit_ambiguous` even if a complete frame was captured; (2) a positive capability cache may be installed only when the exact validity key is identical before and after the probe, and a later `store_publication_unsupported` publication result invalidates the cached qualification before rethrow; (3) the clean repository source gate must not require an undeclared current-platform helper asset—source tests prove fail-closed absence when the package has no current target, while positive Linux helper/package qualification remains owned by the explicit pre-runtime build/install workflow.
 - Revision 2 preserved meaning: no backend fallback, fixed package-owned helper identity, D0005/D0007 journal format/replay/migration/downgrade, exact no-replace publication ordering on qualified paths and the destructive-sudden-power-loss exclusion remain unchanged.
-- Revision 2 implementation/verification: implementation is in progress from accepted lifecycle commit `2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4`; the POSIX workflow now runs the D0030 focused falsifiers on the clean Linux checkout before building a native helper, then separately builds/records/qualifies the package-owned helper. Local full-source verification and successful exact-commit Linux workflow evidence remain required before verified closure. Destructive power-loss and unexecuted profiles remain unverified.
+- Revision 2 implementation source: `380caa21257c2c86b00217cbbf5d987dec3ab7ca`; clean-source Linux qualification workflow source: `deb7317108a83b9a7e78aac63683f980e68afda4`; exact published qualification source: `06a21911466b5aab81e93281ac3ea3674f8b4b13`.
+- Revision 2 verification evidence: `docs/evidence/group-f-d0030-r2-portability-correction-verification-2026-08-17.json`; local focused 6/6 and exact four-command source gate passed, while GitHub Actions run `32017778519` / job `95350825288` proved clean Linux source before helper build and separate built-helper/package qualification, unchanged rename/hardlink journal oracles, mixed races and installed-copy/helper-recovery paths. Destructive sudden-power-loss and unexecuted runtime/filesystem/platform profiles remain unverified.
 - Class: 2
 - Capability Groups: B/F — semantic authority and persistence / active runtime portability
 - Active cumulative lineage: `group/f-cloudflare-runtime`

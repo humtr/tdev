@@ -23,7 +23,7 @@
 | D0017 | r1 | accepted | selected context delivery contract | `docs/design/0017-selected-context-delivery-contract.md` |
 | D0018 | r1 | verified | adversarially converged model executor/runtime boundary | `docs/design/0018-adversarial-converged-model-runtime-boundary.md` |
 | D0019 | r2 | verified | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
-| D0030 | r2 | implementing | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
+| D0030 | r2 | verified | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
 | D0031 | r6 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 | D0032 | r2 | verified | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
 | D0033 | r2 | verified | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |

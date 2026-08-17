@@ -1,0 +1,62 @@
+{
+  "schemaVersion": 1,
+  "design": "D0030",
+  "revision": 2,
+  "phase": "verification",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4",
+  "implementationSource": "380caa21257c2c86b00217cbbf5d987dec3ab7ca",
+  "cleanSourceWorkflowCommit": "deb7317108a83b9a7e78aac63683f980e68afda4",
+  "publishedQualificationSource": "06a21911466b5aab81e93281ac3ea3674f8b4b13",
+  "localVerification": {
+    "focused": {
+      "job": "job_8zo_65c04a2d47",
+      "tests": 6,
+      "passed": 6
+    },
+    "fullSourceGate": {
+      "job": "job_903_782076b124",
+      "status": "succeeded",
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ]
+    }
+  },
+  "linuxQualification": {
+    "workflowRunId": 32017778519,
+    "workflowJobId": 95350825288,
+    "headSha": "06a21911466b5aab81e93281ac3ea3674f8b4b13",
+    "conclusion": "success",
+    "cleanSourceBeforeBuild": "success",
+    "nativeHelperBuild": "success",
+    "helperIdentityRecord": "success",
+    "focusedAfterBuild": "success",
+    "renameNoreplaceOracle": "success",
+    "hardlinkOracle": "success",
+    "mixedIndependentProcessRaces": "success",
+    "installedCopyAndHelperRecovery": "success",
+    "artifact": {
+      "id": 9284171193,
+      "name": "d0030-posix-evidence",
+      "digest": "sha256:898ee58247030a4c9735112ba9b426b5346c50e5f4e51274cd04ef274d95e8a2",
+      "expired": false
+    }
+  },
+  "verifiedMeaning": [
+    "post-BEGIN abnormal helper completion remains ambiguous even when a complete typed result frame was captured",
+    "pre-BEGIN abnormal completion remains write-failed",
+    "positive capability cache requires an unchanged exact validity key across qualification",
+    "a later store_publication_unsupported publication outcome invalidates the positive capability cache",
+    "clean Linux source proves fail-closed absence before helper build; positive Linux helper/package qualification is proved separately after build",
+    "fixed backend selection, package-owned helper identity, D0005/D0007 journal meaning and normal qualified publication ordering remain preserved"
+  ],
+  "unverifiedLayers": [
+    "destructive sudden-power-loss durability",
+    "unexecuted runtime/filesystem/platform profiles beyond the qualified Linux-x64 and previously bounded evidence"
+  ],
+  "runtimeProviderProductMutation": false
+}
