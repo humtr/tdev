@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates after D0019/D0030 verification', () => {
+test('current repository documentation authority validates with D0031 r5 selected and affected designs reopened', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -87,7 +87,10 @@ test('current repository documentation authority validates after D0019/D0030 ver
   assert.ok(!frontier.includes('D0019@r2'));
   assert.ok(!frontier.includes('D0030@r1'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
-  assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `verified`$/m);
+  assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `reopened`$/m);
+  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `implementing`$/m);
+  assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `reopened`$/m);
+  assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `reopened`$/m);
   if (result.route.selected !== null) {
     assert.ok(frontier.includes(`${result.route.selected.id}@r${result.route.selected.revision}`));
   }
@@ -191,6 +194,57 @@ test('concept refs are conception provenance and never authority-location candid
     candidates: [selfDeclaringConcept, legacySchemaConcept],
     isAncestor: () => false,
   }), /documentation_authority_locator_no_eligible_candidate/);
+});
+
+test('legacy non-current WORKBOARD schemas are ignored before current-only predecessor parsing', () => {
+  const predecessorSha = '1'.repeat(40);
+  const currentSha = '2'.repeat(40);
+  const predecessorRef = 'group/e-context-delivery';
+  const currentRef = 'group/f-cloudflare-runtime';
+  const legacy = {
+    ref: 'legacy/research',
+    sha: '3'.repeat(40),
+    workboardText: '# WORKBOARD\n\n- Development identity / publication ref: `legacy/research`\n',
+  };
+  const predecessor = { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) };
+  const current = {
+    ref: currentRef,
+    sha: currentSha,
+    workboardText: authorityWorkboardFixture({ branch: currentRef, predecessor: { ref: predecessorRef, sha: predecessorSha } }),
+  };
+  assert.deepEqual(resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [legacy, predecessor, current],
+    isAncestor: (ancestor, descendant) => ancestor === predecessorSha && descendant === currentSha,
+  }), { repository: 'humtr/tdev', ref: currentRef, sha: currentSha });
+});
+
+test('a malformed declared immediate predecessor fails authority location closed', () => {
+  const currentRef = 'group/f-cloudflare-runtime';
+  const malformed = [
+    '# WORKBOARD', '', '## Current routing', '',
+    '- Repository: `humtr/tdev`',
+    `- Active cumulative branch: \`${currentRef}\``,
+    '- Immediate completed predecessor: `group/e-context-delivery@NOT-A-SHA`, checkpoint `broken`',
+    '',
+  ].join('\n');
+  assert.throws(() => resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [{ ref: currentRef, sha: '2'.repeat(40), workboardText: malformed }],
+    isAncestor: () => false,
+  }), /documentation_authority_locator_predecessor_malformed/);
+});
+
+test('duplicate immediate predecessor declarations fail authority location closed', () => {
+  const currentRef = 'group/f-cloudflare-runtime';
+  const predecessor = { ref: 'group/e-context-delivery', sha: '1'.repeat(40) };
+  const duplicated = authorityWorkboardFixture({ branch: currentRef, predecessor }) +
+    `- Immediate completed predecessor: \`${predecessor.ref}@${predecessor.sha}\`, checkpoint \`duplicate\`\n`;
+  assert.throws(() => resolvePublishedAuthority({
+    repository: 'humtr/tdev',
+    candidates: [{ ref: currentRef, sha: '2'.repeat(40), workboardText: duplicated }],
+    isAncestor: () => true,
+  }), /documentation_authority_locator_predecessor/);
 });
 
 test('successor ref existence without its own election cannot advance authority', () => {

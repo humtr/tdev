@@ -119,15 +119,22 @@ export function parseWorkboardRouting(text) {
   return { group, groupId, branch, frontier, selected };
 }
 
-function parseAuthorityCandidateWorkboard(text) {
-  const repository = singleMatch(text, /^- Repository:\s*`([^`]+)`\s*$/gm, 'locator_repository')[1];
-  const branch = singleMatch(text, /^- Active cumulative branch:\s*`([^`]+)`\s*$/gm, 'locator_active_branch')[1];
-  const predecessorMatches = [...text.matchAll(/^- Immediate completed predecessor:\s*`([^@`]+)@([0-9a-f]{40})`/gmi)];
-  if (predecessorMatches.length > 1) {
-    throw new Error(`documentation_authority_locator_predecessor: expected at most one match, found ${predecessorMatches.length}`);
+function probeAuthorityCandidateIdentity(text) {
+  const repositoryMatches = [...text.matchAll(/^- Repository:\s*`([^`]+)`\s*$/gmi)];
+  const branchMatches = [...text.matchAll(/^- Active cumulative branch:\s*`([^`]+)`\s*$/gmi)];
+  if (repositoryMatches.length !== 1 || branchMatches.length !== 1) return null;
+  return { repository: repositoryMatches[0][1], branch: branchMatches[0][1] };
+}
+
+function parseAuthorityCandidatePredecessor(text) {
+  const predecessorLines = text.split('\n').filter((line) => /^- Immediate completed predecessor:/i.test(line));
+  if (predecessorLines.length === 0) return null;
+  if (predecessorLines.length !== 1) {
+    throw new Error(`documentation_authority_locator_predecessor: expected at most one declaration, found ${predecessorLines.length}`);
   }
-  const predecessor = predecessorMatches.length === 0 ? null : { ref: predecessorMatches[0][1], sha: predecessorMatches[0][2].toLowerCase() };
-  return { repository, branch, predecessor };
+  const match = /^- Immediate completed predecessor:\s*`([^@`]+)@([0-9a-f]{40})`(?:,.*)?\s*$/i.exec(predecessorLines[0]);
+  if (!match) throw new Error('documentation_authority_locator_predecessor_malformed');
+  return { ref: match[1], sha: match[2].toLowerCase() };
 }
 
 export function resolvePublishedAuthority({ repository, candidates, isAncestor }) {
@@ -149,9 +156,10 @@ export function resolvePublishedAuthority({ repository, candidates, isAncestor }
   for (const candidate of byRef.values()) {
     if (candidate.ref.startsWith('concept-')) continue;
     if (typeof candidate.workboardText !== 'string') continue;
-    const declaration = parseAuthorityCandidateWorkboard(candidate.workboardText);
-    if (declaration.repository !== repository || declaration.branch !== candidate.ref) continue;
-    eligible.push({ ...candidate, declaration });
+    const identity = probeAuthorityCandidateIdentity(candidate.workboardText);
+    if (!identity || identity.repository !== repository || identity.branch !== candidate.ref) continue;
+    const predecessor = parseAuthorityCandidatePredecessor(candidate.workboardText);
+    eligible.push({ ...candidate, declaration: { ...identity, predecessor } });
   }
   if (eligible.length === 0) throw new Error('documentation_authority_locator_no_eligible_candidate');
 
