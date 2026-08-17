@@ -1,8 +1,14 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 4
-- Revision predecessor: revision 3 was verified at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`; revisions 1-3 and their verification evidence remain historical evidence
+- Status: `accepted`
+- Revision: 5
+- Revision 5 predecessor: revision 4 was verified at `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`; revisions 1-4 and their verification evidence remain historical evidence
+- Revision 5 reason: fresh provider-shaped falsifiers on 2026-08-17 show that legacy non-concept WORKBOARD schemas can abort authority location before ineligibility is established, and a malformed declared immediate predecessor can be reduced to predecessor absence instead of failing closed.
+- Revision 5 falsifier evidence: `docs/evidence/group-f-d0031-r5-authority-locator-correction-acceptance-2026-08-17.json`
+- Revision 5 changed decision: authority location performs a shallow repository/self-ref eligibility probe before current-only predecessor parsing; a retained self-declaring candidate may omit the predecessor field, but if the predecessor label is present it must be exactly one well-formed `ref@40hex` declaration or the resolver fails closed.
+- Revision 5 downstream revalidation: complete live published-head resolution, legacy non-current WORKBOARD tolerance, malformed/duplicate predecessor rejection, exact predecessor identity and ancestry, unique-maximal election, current-route rebinding and documentation governance; product/runtime semantics remain unaffected.
+- Revision 5 implementation/verification: not yet executed at acceptance; this accepted revision authorizes only the bounded D0031 correction routed by `WORKBOARD.md`.
+- Revision 4 predecessor: revision 3 was verified at `85009bf72ec9e1bfe876bb7a1dcbedd8b44e8dd5`; revisions 1-3 and their verification evidence remain historical evidence
 - Revision 4 reason: owner correction establishes that `concept-*` refs represent conception/provenance snapshots, not executable self-development routes. Revision 3 admitted every self-declaring published ref and therefore could let a concept ref compete for authority or let legacy concept WORKBOARD schema abort authority location before the real cumulative Group route was bound.
 - Revision 4 falsifier: `docs/evidence/group-f-d0031-r4-concept-ref-authority-acceptance-2026-08-16.json`
 - Revision 4 downstream revalidation: authority-location resolution, concept namespace exclusion, current-route rebinding, checkpoint-baseline naming, documentation governance and stale-continuity behavior; product/runtime semantics remain unaffected
@@ -11,7 +17,7 @@
 - Revision 4 verification run: GitHub Actions `31939490487` on exact implementation source `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`
 - Class: 2
 - Scope: self-development authority, session bootstrap, current routing, documentation naming/retention, Design correction lifecycle, documentation validation
-- Active cumulative lineage: resolved from `WORKBOARD.md`; acceptance was prepared from `group/f-cloudflare-runtime@97208151c8cdb04f89a6af0bd58eea568bc825c3`
+- Active cumulative lineage: resolved from `WORKBOARD.md`; revision 5 acceptance was prepared from exact current authority `group/f-cloudflare-runtime@9bbe2c7cc3002f13458f2b8b4b89dda570d72198`; earlier acceptance identities remain historical evidence.
 - Inventory evidence: `docs/evidence/group-f-d0031-documentation-authority-inventory-2026-08-13.json`
 - Revision 1 verification source: `92d4ffeae74a0a0cac00ec05ab4efea01e73eedb`
 - Revision 1 verification evidence: `docs/evidence/group-f-d0031-documentation-authority-verification-2026-08-13.json`
@@ -119,13 +125,13 @@ Authority location is an ephemeral resolution, not a new owner:
 
 Published refs whose names start with `concept-` are an explicit **conception/provenance namespace**. They are excluded from authority-location candidates before their `WORKBOARD.md` is parsed, even if historical snapshot prose inside such a ref once called itself current. This is a deny-only namespace classification: it cannot elect another ref, bypass exact predecessor/ancestry checks, or replace the current router.
 
-1. freshly enumerate the published repository candidates that can contain the self-development kernel;
-2. read each candidate's `WORKBOARD.md` as a declaration made by that exact published `ref@sha`;
-3. keep a candidate only when its repository identity matches the intended repository and its declared active branch is exactly the published ref containing it;
-4. for each retained candidate, validate any declared immediate predecessor against the exact published predecessor identity and Git ancestry;
-5. treat a retained candidate as superseding its exact predecessor candidate only when that predecessor relation is valid;
+1. freshly enumerate the published repository candidates that can contain the self-development kernel, excluding the owner-defined `concept-*` conception/provenance namespace before any WORKBOARD parsing;
+2. for every remaining candidate with a readable WORKBOARD, perform a shallow eligibility probe using only the repository declaration and active-branch declaration; keep the candidate only when exactly one well-formed repository value matches the intended repository and exactly one well-formed active branch equals the published ref containing that WORKBOARD; candidates that do not meet this self-declaration test are ineligible and are not subjected to current-only predecessor parsing;
+3. for each retained self-declaring candidate, inspect the immediate-predecessor declaration strictly: absence is allowed, but if the `Immediate completed predecessor` label is present it must appear exactly once and contain exactly one well-formed published `ref@40hex` identity; malformed or duplicate declarations fail authority location closed rather than being reduced to predecessor absence;
+4. for each retained candidate with a predecessor, verify that exact published predecessor identity exists and that Git ancestry proves the predecessor commit is an ancestor of the candidate;
+5. treat a retained candidate as superseding its exact predecessor candidate only when that predecessor identity and ancestry validation succeeds;
 6. select exactly one retained maximal candidate and bind to its exact `ref@sha` before reading the fixed kernel;
-7. if no maximal candidate exists, more than one maximal candidate remains, or a required predecessor identity/ancestry conflicts, fail the dependent mutation closed.
+7. if no maximal candidate exists, more than one maximal candidate remains, a retained predecessor declaration is malformed, or required predecessor identity/ancestry conflicts, fail the dependent mutation closed.
 
 Apart from an explicitly owner-defined deny-only namespace such as `concept-*`, the provider default branch, current checkout, branch-name shape, timestamps, a remembered route, mere existence of a later ref, and local-only unpublished refs are discovery inputs only. None can elect the route. A deny-only namespace may disqualify a ref from routing but never elect its replacement. A provider default or normal checkout may be aligned to the already-resolved current route as an operational compatibility pointer, but that alignment never becomes a second current-route owner.
 

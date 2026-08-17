@@ -1,7 +1,12 @@
 # Design 0033 — Program and Roadmap Authority Recomposition
 
-- Status: `verified`
+- Status: `reopened`
 - Revision: 1
+- Reopened on 2026-08-17: accepted ACR findings were freshly revalidated against current target owners and invalidate only the affected D0033 revision 1 scope described below.
+- Reopened affected scope: generic PROGRAM exclusion of maintained current Design-status prose and related owner-rule mechanization.
+- Preserved verified meaning: ROADMAP/PROGRAM owner separation, history preservation, README navigation role, traceability structure and product isolation remain intact unless a later falsifier reaches them.
+- Correction dependency: do not activate D0033 implementation until D0031 authority-location correction is verified and a corrected D0033 revision is separately accepted under SDD.md.
+- Reopen note: verification and production-verified statements below are historical as of revision 1 verification and do not override the maintained reopened status above.
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision is accepted from `group/f-cloudflare-runtime@11c1e701fd67e07ae9891e8ea492c164f498a5c6`

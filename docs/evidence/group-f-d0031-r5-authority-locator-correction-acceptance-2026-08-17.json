@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 5,
+  "phase": "acceptance",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "exactBase": "group/f-cloudflare-runtime@9bbe2c7cc3002f13458f2b8b4b89dda570d72198",
+  "providerHeadCountObserved": 38,
+  "freshTargetFalsifiers": [
+    {
+      "id": "full-provider-head-set",
+      "reproduced": true,
+      "outcome": "documentation_authority_locator_active_branch: expected exactly one match, found 0",
+      "meaning": "legacy non-concept WORKBOARD schemas can abort current resolver evaluation before ineligibility is established"
+    },
+    {
+      "id": "malformed-declared-predecessor",
+      "reproduced": true,
+      "outcome": "candidate selected despite Immediate completed predecessor label containing a non-SHA value",
+      "meaning": "malformed declared predecessor is currently reduced to predecessor absence instead of failing closed"
+    }
+  ],
+  "acceptedDecision": {
+    "sameDesignBoundary": true,
+    "currentRevision": 5,
+    "status": "accepted",
+    "eligibility": "exclude concept-* first; probe repository/self-ref identity before current-only predecessor parsing",
+    "predecessor": "absence allowed; if the predecessor label is present, exactly one well-formed ref@40hex declaration is required and identity/ancestry must validate",
+    "uniqueMaximal": "exactly one retained maximal candidate is required"
+  },
+  "affectedDownstream": [
+    "authority-location resolver",
+    "provider-shaped live-head rebind",
+    "legacy non-current WORKBOARD tolerance",
+    "malformed and duplicate predecessor rejection",
+    "documentation governance and stale continuity"
+  ],
+  "dependentReopenedScopes": [
+    "D0030@r1 affected scope",
+    "D0032@r1 affected scope",
+    "D0033@r1 affected scope"
+  ],
+  "preserved": [
+    "D0019@r2",
+    "D0034@r1",
+    "D0030 unaffected D0005/D0007 durable meaning",
+    "D0032/D0033 unaffected owner/history meaning"
+  ],
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "providerRuntimeMutation": false,
+  "productSemanticsChanged": false,
+  "unexecutedLayers": [
+    "D0031 implementation",
+    "post-fix provider-shaped resolver run",
+    "full source qualification",
+    "D0030/D0032/D0033 corrected revisions and implementation"
+  ]
+}

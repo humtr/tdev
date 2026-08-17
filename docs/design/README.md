@@ -23,10 +23,10 @@
 | D0017 | r1 | accepted | selected context delivery contract | `docs/design/0017-selected-context-delivery-contract.md` |
 | D0018 | r1 | verified | adversarially converged model executor/runtime boundary | `docs/design/0018-adversarial-converged-model-runtime-boundary.md` |
 | D0019 | r2 | verified | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
-| D0030 | r1 | verified | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
-| D0031 | r4 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
-| D0032 | r1 | verified | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
-| D0033 | r1 | verified | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
+| D0030 | r1 | reopened | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
+| D0031 | r5 | accepted | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
+| D0032 | r1 | reopened | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
+| D0033 | r1 | reopened | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
 | D0034 | r1 | verified | Product Contract Evidence and History Recomposition | `docs/design/0034-product-contract-evidence-history-recomposition.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

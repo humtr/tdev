@@ -1,7 +1,12 @@
 # Design 0030 — Immutable Journal Publication Portability
 
-- Status: `verified`
+- Status: `reopened`
 - Revision: 1
+- Reopened on 2026-08-17: accepted ACR findings were freshly revalidated against current target owners and invalidate only the affected D0030 revision 1 scope described below.
+- Reopened affected scope: capability-cache validity/invalidation, post-BEGIN abnormal helper outcome classification, and the exact clean Linux source-baseline qualification claim.
+- Preserved verified meaning: D0005/D0007 durable journal format, replay/migration/downgrade meaning, fixed backend selection, normal qualified publication ordering, and explicit destructive-power-loss exclusion remain intact unless a later falsifier reaches them.
+- Correction dependency: do not activate D0030 implementation until D0031 authority-location correction is verified and a corrected D0030 revision is separately accepted under SDD.md.
+- Reopen note: verification and production-verified statements below are historical as of revision 1 verification and do not override the maintained reopened status above.
 - Class: 2
 - Capability Groups: B/F — semantic authority and persistence / active runtime portability
 - Active cumulative lineage: `group/f-cloudflare-runtime`

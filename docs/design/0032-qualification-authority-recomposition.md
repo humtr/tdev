@@ -1,7 +1,12 @@
 # Design 0032 — Qualification Authority Recomposition
 
-- Status: `verified`
+- Status: `reopened`
 - Revision: 1
+- Reopened on 2026-08-17: accepted ACR findings were freshly revalidated against current target owners and invalidate only the affected D0032 revision 1 scope described below.
+- Reopened affected scope: generic QUALIFICATION evidence-ledger exclusion and mechanized rejection of current pass-count/evidence prose.
+- Preserved verified meaning: the unique live qualification owner, four-command baseline, proof-layer separation, byte-identical MVP history preservation and 78-method migration evidence remain intact unless a later falsifier reaches them.
+- Correction dependency: do not activate D0032 implementation until D0031 authority-location correction is verified and a corrected D0032 revision is separately accepted under SDD.md.
+- Reopen note: verification and production-verified statements below are historical as of revision 1 verification and do not override the maintained reopened status above.
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision was accepted from `group/f-cloudflare-runtime@3e8599ddc0ecce26c339933af13a82a1be7d0f59`

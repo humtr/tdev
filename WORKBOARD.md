@@ -16,21 +16,21 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-
-
+- D0031@r5 — `docs/design/0031-self-development-documentation-authority.md` — implement the accepted authority-locator eligibility/predecessor correction and revalidate provider-shaped authority resolution
 
 ## Selected next action
 
-- none
+- D0031@r5 — implement the accepted authority-locator eligibility/predecessor correction and revalidate provider-shaped authority resolution
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- `concept-*` refs are pre-Group conception/provenance snapshots only. D0031 excludes them from authority-location candidates before WORKBOARD parsing; the active work/publication route remains the cumulative Group branch named in Current routing.
+- `concept-*` refs remain pre-Group conception/provenance snapshots and are excluded before WORKBOARD parsing. D0031@r5 now owns the selected correction for non-concept eligibility and predecessor parsing; provider-shaped authority resolution must be revalidated before that revision can return to verified.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
-- D0030@r1 is production-verified. The connected Termux profile remains rename-noreplace-only because its security domain denies hard links, but that is now a qualified backend selection rather than an unresolved source-gate gap; unsupported hard-link selection fails closed and the exact repository gate is green.
+- D0030@r1 has a bounded correction pending for capability-cache lifecycle, post-BEGIN abnormal helper outcomes and clean Linux source-baseline qualification. Do not reuse its former blanket production-verified claim; unaffected D0005/D0007 durable-format and normal qualified-publication meaning remains preserved.
+- D0032@r1 and D0033@r1 have bounded governance-mechanization corrections pending for QUALIFICATION evidence-ledger exclusion and PROGRAM/maintained-Design status duplication. Their intended owner graph and historical preservation remain preserved; neither reopened scope is runnable until its own corrected revision is accepted.
 - Validation-registry maintenance debt remains: tmcp profiles named `portable` and `full` reference package scripts absent from the current `package.json`. That drift is not evidence for D0030 and should be repaired only in its own bounded scope unless it blocks a required gate.
 - Checkout alignment debt was fresh-observed during D0031 r3: the canonical Termux checkout was clean but still on completed Group E while WORKBOARD authority was Group F. The correction was verified from an isolated exact-Group-F worktree. Treat the checkout identity as `last-observed` until re-read; do not reset unrelated state merely to make pointers equal.
 - No handoff, chat summary, project prompt, historical report, generated registry or tool-owned `tmcp/*` branch can override the route/frontier above. Rebind any such continuity data before dependent mutation.
