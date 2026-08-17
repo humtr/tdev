@@ -1,12 +1,12 @@
 # Design 0032 — Qualification Authority Recomposition
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 2
 - Revision 2 predecessor: revision 1 was verified before the 2026-08-17 governance falsifier; its unique qualification owner, source-gate ownership, proof-layer separation and historical migration meaning remain preserved.
 - Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` proves that mutable current evidence/pass-count prose such as `The most recent source gate passed 375 tests.` can re-enter `docs/QUALIFICATION.md` without rejection.
 - Revision 2 acceptance evidence: `docs/evidence/group-f-d0032-r2-qualification-ledger-acceptance-2026-08-17.json`.
 - Revision 2 changed decision: validation generically rejects a live QUALIFICATION line that combines currentness (`current`, `currently`, `latest`, `most recent` or `newest`), an evidence/result subject (for example source gate, test/check/suite, benchmark, evidence or result), and an observed outcome/count. Normative methodology, historical/previous evidence language and evidence-record requirements remain allowed.
-- Revision 2 implementation/verification: not yet executed at acceptance; the rule must be generic rather than tied to one count, heading or Design ID.
+- Revision 2 implementation/verification: implementation is in progress from accepted lifecycle commit `2d663a1e6b4c71feba5bfb0195655ea71f6b8ef4`; focused current-result/evidence falsifiers and the applicable documentation/source gates remain required before verified closure.
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision was accepted from `group/f-cloudflare-runtime@3e8599ddc0ecce26c339933af13a82a1be7d0f59`

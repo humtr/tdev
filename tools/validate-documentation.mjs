@@ -364,6 +364,19 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(!/\|\s*Observed evidence\s*\|/i.test(qualification), 'documentation_authority_qualification_observed_ledger'));
     check(() => assert(!/\b[0-9a-f]{40}\b/i.test(qualification), 'documentation_authority_qualification_commit_ledger'));
     check(() => {
+      const currentness = /\b(?:current|currently|latest|most recent|newest)\b/i;
+      const evidenceSubject = /\b(?:source[- ]gate|tests?|checks?|suite|benchmark|evidence|results?)\b/i;
+      const observedOutcome = /\b(?:pass|passed|fail|failed|green|red|succeed|succeeded|verified)\b|\b\d+\s*\/\s*\d+\b|\b\d+\s+(?:tests?|checks?|samples?|races?|benchmarks?)\b/i;
+      const historicalScope = /\b(?:historical|previous|prior|former|earlier)\b|\bas[- ]of\b/i;
+      for (const line of qualification.split('\n')) {
+        assert(
+          !(currentness.test(line) && evidenceSubject.test(line) && observedOutcome.test(line) && !historicalScope.test(line)),
+          'documentation_authority_qualification_current_result_ledger',
+          line.trim(),
+        );
+      }
+    });
+    check(() => {
       const mutableGapClause = /Mutable current gaps belong in([\s\S]*?)rather than this stable method owner/i.exec(qualification)?.[1] ?? '';
       assert(!mutableGapClause.includes('docs/ROADMAP.md'), 'documentation_authority_qualification_mutable_roadmap_gap');
     });

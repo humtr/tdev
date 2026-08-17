@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates with D0030 r2 implementing and D0032 D0033 r2 accepted', () => {
+test('current repository documentation authority validates with D0030 D0032 r2 implementing and D0033 r2 accepted', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -91,7 +91,7 @@ test('current repository documentation authority validates with D0030 r2 impleme
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `implementing`$/m);
   assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
-  assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `accepted`$/m);
+  assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `implementing`$/m);
   assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `accepted`$/m);
   if (result.route.selected !== null) {
     assert.ok(frontier.includes(`${result.route.selected.id}@r${result.route.selected.revision}`));
@@ -384,6 +384,30 @@ test('duplicate source-gate commands and observed-ledger contamination fail clos
   const ledger = validateDocumentation(root, { 'docs/QUALIFICATION.md': `${currentQualification}\n| Observed evidence | historical pass |\n` });
   assert.equal(ledger.ok, false);
   assert.match(ledger.failures.join('\n'), /documentation_authority_qualification_observed_ledger/);
+});
+
+test('QUALIFICATION rejects mutable current result/evidence ledgers generically', () => {
+  const exact = validateDocumentation(root, {
+    'docs/QUALIFICATION.md': `${currentQualification}\nThe most recent source gate passed 375 tests.\n`,
+  });
+  assert.equal(exact.ok, false);
+  assert.match(exact.failures.join('\n'), /documentation_authority_qualification_current_result_ledger/);
+
+  const variant = validateDocumentation(root, {
+    'docs/QUALIFICATION.md': `${currentQualification}\nCurrent evidence: 376\/376 tests passed.\n`,
+  });
+  assert.equal(variant.ok, false);
+  assert.match(variant.failures.join('\n'), /documentation_authority_qualification_current_result_ledger/);
+
+  const historical = validateDocumentation(root, {
+    'docs/QUALIFICATION.md': `${currentQualification}\nPrevious source gate passed 375 tests; this is historical evidence only.\n`,
+  });
+  assert.equal(historical.ok, true, historical.failures?.join('\n'));
+
+  const normative = validateDocumentation(root, {
+    'docs/QUALIFICATION.md': `${currentQualification}\nCurrent evidence must be stored in bounded evidence records rather than this method owner.\n`,
+  });
+  assert.equal(normative.ok, true, normative.failures?.join('\n'));
 });
 
 test('D0032 historical method snapshot remains preserved without becoming a perpetual current co-owner', () => {

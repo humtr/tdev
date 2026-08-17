@@ -25,7 +25,7 @@
 | D0019 | r2 | verified | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
 | D0030 | r2 | implementing | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
 | D0031 | r6 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
-| D0032 | r2 | accepted | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
+| D0032 | r2 | implementing | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
 | D0033 | r2 | accepted | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
 | D0034 | r1 | verified | Product Contract Evidence and History Recomposition | `docs/design/0034-product-contract-evidence-history-recomposition.md` |
 
