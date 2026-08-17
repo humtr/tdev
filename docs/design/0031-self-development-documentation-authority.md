@@ -1,7 +1,12 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 5
+- Status: `accepted`
+- Revision: 6
+- Revision 6 predecessor: revision 5 was verified at `7e24a4bbd8a4669e7f3f2cdec449568b7140429e`; revisions 1-5 and their evidence remain historical evidence.
+- Revision 6 reason: a fresh target-native falsifier in tmcp Job `job_8yt_7d4b39e93b` proved that an unscoped `Current lifecycle status is draft.` assertion under an unrelated `## Readiness` heading still bypasses the maintained-Design single-value validator.
+- Revision 6 falsifier/acceptance evidence: `docs/evidence/group-f-d0031-r6-design-single-value-acceptance-2026-08-17.json`.
+- Revision 6 changed decision: canonical `- Status:` metadata remains the only maintained current Design lifecycle value. Any body assertion that uses `current`/`currently` to assign a canonical Design lifecycle value (`draft`, `accepted`, `implementing`, `verified`, `reopened` or `superseded`) must fail closed independent of heading spelling unless the assertion is explicitly historical/as-of/prior-revision scoped. The rule is generic across Design IDs and headings.
+- Revision 6 implementation/verification: not yet executed at acceptance; this revision authorizes only the bounded maintained-Design single-value validator correction and its regression fixtures.
 - Revision 5 predecessor: revision 4 was verified at `b01b313731a5beb9cb3ae394d9f6e03eca54cab6`; revisions 1-4 and their verification evidence remain historical evidence
 - Revision 5 reason: fresh provider-shaped falsifiers on 2026-08-17 show that legacy non-concept WORKBOARD schemas can abort authority location before ineligibility is established, and a malformed declared immediate predecessor can be reduced to predecessor absence instead of failing closed.
 - Revision 5 falsifier evidence: `docs/evidence/group-f-d0031-r5-authority-locator-correction-acceptance-2026-08-17.json`

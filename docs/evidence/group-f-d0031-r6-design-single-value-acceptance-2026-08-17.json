@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 6,
+  "phase": "acceptance",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "exactBase": "7e24a4bbd8a4669e7f3f2cdec449568b7140429e",
+  "falsifierJob": "job_8yt_7d4b39e93b",
+  "falsifier": {
+    "fixture": "maintained D0019 body plus an unscoped ## Readiness paragraph: Current lifecycle status is draft.",
+    "observed": "validateMaintainedDesignSingleValue accepted the contradiction",
+    "reproduced": true
+  },
+  "acceptedDecision": {
+    "sameDesignBoundary": true,
+    "status": "accepted",
+    "currentRevision": 6,
+    "rule": "A maintained Design body must reject an unscoped current/currently assertion of a Design lifecycle value, independent of heading spelling. Canonical metadata is the sole current lifecycle value. Explicit historical/as-of/prior-revision statements remain allowed.",
+    "mechanization": "generic across maintained Design IDs and heading names; no Design-ID special case"
+  },
+  "preserved": [
+    "D0031 r5 authority-location correction and provider-shaped verification",
+    "D0019@r2",
+    "D0034@r1",
+    "D0030/D0032/D0033 remain reopened and non-runnable until their own corrected revisions are accepted"
+  ],
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false
+}
