@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 6,
+  "phase": "verification",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "3016d038394cc750582c8500f0c100d8fa46edb0",
+  "implementationSource": "49597a5db8ef4289eca3c8dc6c4408775801c46e",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_8z2_dc8ff7b460",
+      "tests": 39,
+      "passed": 39
+    },
+    "sourceGate": {
+      "job": "job_8z8_ff1b9bc70d",
+      "command": "npm run check",
+      "tests": 376,
+      "passed": 376
+    },
+    "semanticStatusFalsifier": {
+      "job": "job_8z8_ff1b9bc70d",
+      "outcome": "failed closed with documentation_authority_design_current_status_prose"
+    },
+    "providerShapedAuthorityRegression": {
+      "job": "job_8z8_ff1b9bc70d",
+      "candidateCount": 38,
+      "selected": "group/f-cloudflare-runtime@9bbe2c7cc3002f13458f2b8b4b89dda570d72198"
+    },
+    "diffCheck": "passed"
+  },
+  "verifiedMeaning": [
+    "canonical Status metadata is the sole maintained current Design lifecycle value",
+    "unscoped current/currently lifecycle assertions fail closed independent of heading spelling",
+    "explicit historical/as-of/prior-revision lifecycle prose remains permitted",
+    "D0031 r5 authority-location correction remains preserved across the r6 implementation"
+  ],
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false,
+  "unverifiedLayers": []
+}

@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates with D0031 r6 implementing and affected designs reopened', () => {
+test('current repository documentation authority validates after D0031 r6 verification with affected designs reopened', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -88,7 +88,7 @@ test('current repository documentation authority validates with D0031 r6 impleme
   assert.ok(!frontier.includes('D0030@r1'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `reopened`$/m);
-  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `implementing`$/m);
+  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `reopened`$/m);
   assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `reopened`$/m);
   if (result.route.selected !== null) {
