@@ -188,10 +188,28 @@ export function resolvePublishedAuthority({ repository, candidates, isAncestor }
 }
 
 export function validateMaintainedDesignSingleValue(text, label = 'Design') {
+  const historicalScope = /\b(?:historical|as[- ]of|predecessor|prior revision|former|earlier|previous)\b|\brevision\s+\d+\b|\bat\s+(?:that|the)\s+checkpoint\b/i;
+  const lifecycleValue = '(?:draft|accepted|implementing|verified|reopened|superseded)';
+  const currentAssertion = new RegExp(
+    `\\bcurrently\\s+${lifecycleValue}\\b|` +
+    `\\bcurrent\\b[^\\n]{0,80}\\b(?:lifecycle|status)\\b[^\\n]{0,80}\\b${lifecycleValue}\\b|` +
+    `\\b(?:lifecycle|status)\\b[^\\n]{0,80}\\b${lifecycleValue}\\b[^\\n]{0,80}\\bcurrent\\b`,
+    'i',
+  );
+  let sectionHeading = '';
+  for (const rawLine of text.split('\n')) {
+    const headingMatch = /^##\s+(.+)$/.exec(rawLine);
+    if (headingMatch) sectionHeading = headingMatch[1].trim();
+    const line = rawLine.replace(/`[^`]*`/g, '');
+    if (/^- Status:\s*/.test(line)) continue;
+    if (currentAssertion.test(line) && !historicalScope.test(line) && !historicalScope.test(sectionHeading)) {
+      throw new Error(`documentation_authority_design_current_status_prose: ${label} -> ${rawLine.trim()}`);
+    }
+  }
   const snapshotHeadings = [...text.matchAll(/^##\s+([^\n]*(?:status vocabulary|status snapshot|implementation status|lifecycle status)[^\n]*)$/gmi)];
   for (const match of snapshotHeadings) {
     const heading = match[1].trim();
-    if (!/\b(?:historical|as[- ]of|predecessor|prior revision|former)\b/i.test(heading)) {
+    if (!historicalScope.test(heading)) {
       throw new Error(`documentation_authority_design_current_status_snapshot: ${label} -> ${heading}`);
     }
   }

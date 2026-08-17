@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates after D0031 r5 verification with affected designs reopened', () => {
+test('current repository documentation authority validates with D0031 r6 implementing and affected designs reopened', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -88,7 +88,7 @@ test('current repository documentation authority validates after D0031 r5 verifi
   assert.ok(!frontier.includes('D0030@r1'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `reopened`$/m);
-  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
+  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `implementing`$/m);
   assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `reopened`$/m);
   assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `reopened`$/m);
   if (result.route.selected !== null) {
@@ -292,6 +292,21 @@ test('authority location fails closed on competing elected successors or predece
   assert.throws(() => resolvePublishedAuthority({
     repository: 'humtr/tdev', candidates: [base, { ...left, workboardText: wrongPredecessor }], isAncestor: () => true,
   }), /documentation_authority_locator_predecessor_identity_conflict/);
+});
+
+test('maintained Design current lifecycle assertions fail independent of heading spelling', () => {
+  const contradictory = `${designFixture({ id: '0099', status: 'verified' })}\n## Readiness\n\nCurrent lifecycle status is draft.\n`;
+  assert.throws(
+    () => validateMaintainedDesignSingleValue(contradictory, 'fixture'),
+    /documentation_authority_design_current_status_prose/,
+  );
+  const direct = `${designFixture({ id: '0099', status: 'verified' })}\n## Notes\n\nD0099 is currently accepted.\n`;
+  assert.throws(
+    () => validateMaintainedDesignSingleValue(direct, 'fixture'),
+    /documentation_authority_design_current_status_prose/,
+  );
+  const historical = `${designFixture({ id: '0099', status: 'verified' })}\n## Historical readiness — as of revision 1\n\nCurrent lifecycle status is draft.\n`;
+  assert.equal(validateMaintainedDesignSingleValue(historical, 'fixture'), true);
 });
 
 test('maintained Design status snapshots must be explicitly historical/as-of', () => {
