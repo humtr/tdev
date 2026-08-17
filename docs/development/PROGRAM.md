@@ -32,7 +32,8 @@ Completed Design narrative, test counts, benchmark values, commit SHAs and evide
 | D0026 | F/H | provisional label | selected Worker/DO/Agent/storage/publication/security bindings | required | fresh non-production deployment from documented configuration plus controlled rollback; exit is reproducible provider-visible deploy/config/rollback state | Cloudflare account/project/routes/bindings/secrets and operator approvals |
 | D0027 | F/G/H | provisional label | D0020 connection/delivery contract and selected local execution/security boundaries | required | fresh machine registration, reconnect with new epoch, stale Agent rejection and secret-exclusion check; exit is an installable authenticated local Agent executing a bounded real Task under correct fencing | machine permissions plus selected Git/model/tool credentials |
 | D0028 | H | provisional label | deployed mandatory components and their recovery/rollback owners | required bounded operations gate | selected component outage with detection, bounded degradation and verified recovery/rollback; exit is actionable runbooks/observation without telemetry becoming semantic authority | operator/provider access needed to exercise recovery safely |
-| D0029 | H | provisional label | all mandatory A-H exits and every activated conditional gate | required final gate | deterministic deployed success/failure/security/recovery/migration/rollback matrix before any load/SLO experiment; exit is accepted Level-4 evidence | unavoidable provider/account/client actions documented and independently verified |
+| D0035@r1 | F/G/H | maintained Design foreign key: `docs/design/0035-tdev-self-hosting-and-tmcp-retirement.md` | supported paths selected by D0020 and D0023-D0028, plus every activated D0021/D0022 conditional gate used by the final deployment | required self-hosting/tmcp-retirement gate before final qualification; lifecycle authorization remains owned by the Design | disable the tmcp operational plane, then use tdev-owned MCP/Case/Task/Agent/validation/Promotion/Git paths to produce and provider-reread one real tdev successor with representative failure reconciliation; exit is independent evidence that no required step used tmcp | supported client, machine/Agent, GitHub and provider access plus an operator-controlled tmcp disable observation |
+| D0029 | H | provisional label | D0035@r1 plus all mandatory A-H exits and every activated conditional gate | required final gate | deterministic deployed success/failure/security/recovery/migration/rollback matrix before any load/SLO experiment; exit is accepted Level-4 evidence | unavoidable provider/account/client actions documented and independently verified |
 
 A future accepted Design may merge/split/reorder provisional rows when one authority decision makes the existing boundary wrong. Update this program relation only through the applicable SDD classification; a Design number is never authorization by itself.
 
@@ -55,6 +56,9 @@ D0022? -------+                 |
                                          |
                                          v
                                        D0028
+                                         |
+                                         v
+                                     D0035@r1
                                          |
                                          v
                                        D0029
