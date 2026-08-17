@@ -1,12 +1,12 @@
 # Design 0033 — Program and Roadmap Authority Recomposition
 
-- Status: `reopened`
-- Revision: 1
-- Reopened on 2026-08-17: accepted ACR findings were freshly revalidated against current target owners and invalidate only the affected D0033 revision 1 scope described below.
-- Reopened affected scope: generic PROGRAM exclusion of maintained current Design-status prose and related owner-rule mechanization.
-- Preserved verified meaning: ROADMAP/PROGRAM owner separation, history preservation, README navigation role, traceability structure and product isolation remain intact unless a later falsifier reaches them.
-- Correction dependency: do not activate D0033 implementation until D0031 authority-location correction is verified and a corrected D0033 revision is separately accepted under SDD.md.
-- Reopen note: verification and production-verified statements below are historical as of revision 1 verification and do not override the maintained reopened status above.
+- Status: `accepted`
+- Revision: 2
+- Revision 2 predecessor: revision 1 was verified before the 2026-08-17 governance falsifier; ROADMAP/PROGRAM owner separation, history preservation, navigation role, traceability and product isolation remain preserved.
+- Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` proves that stale current maintained-Design status prose such as `D0019 is currently accepted.` can re-enter `docs/development/PROGRAM.md` without rejection.
+- Revision 2 acceptance evidence: `docs/evidence/group-f-d0033-r2-program-status-ledger-acceptance-2026-08-17.json`.
+- Revision 2 changed decision: PROGRAM validation generically rejects a line that names a maintained Design identity, asserts currentness (`current`, `currently`, `latest`, `most recent` or `newest`) and assigns a canonical Design lifecycle value (`draft`, `accepted`, `implementing`, `verified`, `reopened` or `superseded`). Maintained Design foreign keys and historical/non-current planning prose remain allowed.
+- Revision 2 implementation/verification: not yet executed at acceptance; the rule must be generic across Design IDs and prose placement.
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision is accepted from `group/f-cloudflare-runtime@11c1e701fd67e07ae9891e8ea492c164f498a5c6`

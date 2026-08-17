@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "design": "D0030",
+  "revision": 2,
+  "phase": "acceptance",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "exactBase": "f642dfdc0de4dd7acc776d59ffa29d86b9e9e19a",
+  "freshFalsifierJob": "job_8yt_7d4b39e93b",
+  "acceptedCorrections": [
+    "post-BEGIN timeout/signal/spawn uncertainty/nonzero exit is ambiguous before trusting a typed result",
+    "capability validity key must be stable across the probe before caching",
+    "store_publication_unsupported during publication invalidates the positive capability cache before rethrow",
+    "clean source tests fail closed when no current-platform packaged helper is declared; positive Linux qualification remains explicit build/install evidence"
+  ],
+  "preserved": [
+    "D0005/D0007 durable journal meaning",
+    "fixed backend selection",
+    "no automatic fallback",
+    "normal qualified publication ordering",
+    "destructive sudden-power-loss remains excluded/unverified"
+  ],
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "runtimeProviderMutation": false
+}

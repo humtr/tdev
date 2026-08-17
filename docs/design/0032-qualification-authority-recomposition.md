@@ -1,12 +1,12 @@
 # Design 0032 — Qualification Authority Recomposition
 
-- Status: `reopened`
-- Revision: 1
-- Reopened on 2026-08-17: accepted ACR findings were freshly revalidated against current target owners and invalidate only the affected D0032 revision 1 scope described below.
-- Reopened affected scope: generic QUALIFICATION evidence-ledger exclusion and mechanized rejection of current pass-count/evidence prose.
-- Preserved verified meaning: the unique live qualification owner, four-command baseline, proof-layer separation, byte-identical MVP history preservation and 78-method migration evidence remain intact unless a later falsifier reaches them.
-- Correction dependency: do not activate D0032 implementation until D0031 authority-location correction is verified and a corrected D0032 revision is separately accepted under SDD.md.
-- Reopen note: verification and production-verified statements below are historical as of revision 1 verification and do not override the maintained reopened status above.
+- Status: `accepted`
+- Revision: 2
+- Revision 2 predecessor: revision 1 was verified before the 2026-08-17 governance falsifier; its unique qualification owner, source-gate ownership, proof-layer separation and historical migration meaning remain preserved.
+- Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` proves that mutable current evidence/pass-count prose such as `The most recent source gate passed 375 tests.` can re-enter `docs/QUALIFICATION.md` without rejection.
+- Revision 2 acceptance evidence: `docs/evidence/group-f-d0032-r2-qualification-ledger-acceptance-2026-08-17.json`.
+- Revision 2 changed decision: validation generically rejects a live QUALIFICATION line that combines currentness (`current`, `currently`, `latest`, `most recent` or `newest`), an evidence/result subject (for example source gate, test/check/suite, benchmark, evidence or result), and an observed outcome/count. Normative methodology, historical/previous evidence language and evidence-record requirements remain allowed.
+- Revision 2 implementation/verification: not yet executed at acceptance; the rule must be generic rather than tied to one count, heading or Design ID.
 - Class: 2
 - Decision date: 2026-08-14
 - Active cumulative lineage: resolved from `WORKBOARD.md`; this revision was accepted from `group/f-cloudflare-runtime@3e8599ddc0ecce26c339933af13a82a1be7d0f59`

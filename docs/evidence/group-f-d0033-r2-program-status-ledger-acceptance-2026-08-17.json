@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "design": "D0033",
+  "revision": 2,
+  "phase": "acceptance",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "exactBase": "f642dfdc0de4dd7acc776d59ffa29d86b9e9e19a",
+  "freshFalsifierJob": "job_8yt_7d4b39e93b",
+  "falsifier": "D0019 is currently accepted.",
+  "observed": "validateDocumentation accepted the injected current Design-status ledger",
+  "acceptedDecision": "reject generic current Design lifecycle assertions in PROGRAM while preserving foreign keys and non-current/historical planning prose",
+  "preserved": [
+    "ROADMAP stable capability owner",
+    "PROGRAM forward dependency/coverage owner",
+    "history preservation",
+    "README navigation role",
+    "product isolation"
+  ],
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "productSemanticsChanged": false
+}

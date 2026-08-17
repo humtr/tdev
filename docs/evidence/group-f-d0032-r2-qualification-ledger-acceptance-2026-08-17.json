@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "design": "D0032",
+  "revision": 2,
+  "phase": "acceptance",
+  "date": "2026-08-17",
+  "repository": "humtr/tdev",
+  "exactBase": "f642dfdc0de4dd7acc776d59ffa29d86b9e9e19a",
+  "freshFalsifierJob": "job_8yt_7d4b39e93b",
+  "falsifier": "The most recent source gate passed 375 tests.",
+  "observed": "validateDocumentation accepted the injected mutable current evidence ledger",
+  "acceptedDecision": "reject generic current qualification result/evidence assertions while preserving methodology, historical evidence and evidence-record requirements",
+  "preserved": [
+    "unique docs/QUALIFICATION.md live owner",
+    "four-command source baseline",
+    "proof-layer separation",
+    "byte-identical former MVP history",
+    "78-method migration evidence"
+  ],
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "productSemanticsChanged": false
+}
