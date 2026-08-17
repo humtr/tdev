@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates with D0030 D0032 r2 implementing and D0033 r2 accepted', () => {
+test('current repository documentation authority validates with D0030 D0032 D0033 r2 implementing', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -92,7 +92,7 @@ test('current repository documentation authority validates with D0030 D0032 r2 i
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `implementing`$/m);
   assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `implementing`$/m);
-  assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `accepted`$/m);
+  assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `implementing`$/m);
   if (result.route.selected !== null) {
     assert.ok(frontier.includes(`${result.route.selected.id}@r${result.route.selected.revision}`));
   }
@@ -513,6 +513,30 @@ test('PROGRAM status/commit ledgers and duplicated capability rows fail closed',
   const groupRow = validateDocumentation(root, { 'docs/development/PROGRAM.md': `${currentProgram}\n| A | duplicate | duplicate |\n` });
   assert.equal(groupRow.ok, false);
   assert.match(groupRow.failures.join('\n'), /documentation_authority_program_capability_table_duplicate/);
+});
+
+test('PROGRAM rejects current maintained-Design lifecycle ledgers generically', () => {
+  const exact = validateDocumentation(root, {
+    'docs/development/PROGRAM.md': `${currentProgram}\nD0019 is currently accepted.\n`,
+  });
+  assert.equal(exact.ok, false);
+  assert.match(exact.failures.join('\n'), /documentation_authority_program_design_status_prose/);
+
+  const variant = validateDocumentation(root, {
+    'docs/development/PROGRAM.md': `${currentProgram}\nLatest D0030 lifecycle is implementing.\n`,
+  });
+  assert.equal(variant.ok, false);
+  assert.match(variant.failures.join('\n'), /documentation_authority_program_design_status_prose/);
+
+  const historical = validateDocumentation(root, {
+    'docs/development/PROGRAM.md': `${currentProgram}\nAt previous revision 1, D0019 was currently accepted.\n`,
+  });
+  assert.equal(historical.ok, true, historical.failures?.join('\n'));
+
+  const foreignKeyOnly = validateDocumentation(root, {
+    'docs/development/PROGRAM.md': `${currentProgram}\nD0030@r2 remains a maintained Design foreign key for the current Case-runtime gate.\n`,
+  });
+  assert.equal(foreignKeyOnly.ok, true, foreignKeyOnly.failures?.join('\n'));
 });
 
 test('README stays current-neutral and cannot reintroduce a stale route or source-gate copy', () => {

@@ -451,6 +451,19 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   check(() => assert(!/^- \*\*Lane:\*\*/m.test(program), 'documentation_authority_program_lane_mirror'));
   check(() => assert(!/\|\s*Status\s*\||^-\s*\*\*Status:\*\*/mi.test(program), 'documentation_authority_program_status_ledger'));
   check(() => assert(!/\b[0-9a-f]{40}\b/i.test(program), 'documentation_authority_program_commit_ledger'));
+  check(() => {
+    const designIdentity = /\bD\d{4}(?:@r\d+)?\b/i;
+    const currentness = /\b(?:current|currently|latest|most recent|newest)\b/i;
+    const lifecycleValue = /\b(?:draft|accepted|implementing|verified|reopened|superseded)\b/i;
+    const historicalScope = /\b(?:historical|previous|prior|former|earlier)\b|\bas[- ]of\b|\brevision\s+\d+\b/i;
+    for (const line of program.split('\n')) {
+      assert(
+        !(designIdentity.test(line) && currentness.test(line) && lifecycleValue.test(line) && !historicalScope.test(line)),
+        'documentation_authority_program_design_status_prose',
+        line.trim(),
+      );
+    }
+  });
 
   const roadmapGroupIds = new Set(roadmapGroups.map(({ group }) => group));
   const seenProgramGates = new Set();
