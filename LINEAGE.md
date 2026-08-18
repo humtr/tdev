@@ -12,7 +12,7 @@ concept-1a-7
   -> group/f-cloudflare-runtime
 ```
 
-D0036 revision 1 replaces the future branch-per-checkpoint topology with one persistent `development` route. During its bridge, `group/f-cloudflare-runtime` remains published as the exact legacy predecessor while old and persistent authority resolvers are required to agree on one `development@sha`. After that bridge is proved, later Group checkpoint transitions remain on `development` unless a separately accepted Design changes the route model.
+D0036 revision 1 replaces the future branch-per-checkpoint topology with one persistent `development` route. Its cutover bridge required the legacy and persistent authority resolvers to agree on one exact `development@sha` while `group/f-cloudflare-runtime` remained the exact legacy predecessor. After that equality gate, terminal routing removes the live predecessor dependency: non-persistent legacy refs are provenance only, may be retained when a barrier requires them, and can neither elect nor block authority. Later Group checkpoint transitions remain on `development` unless a separately accepted Design changes the route model.
 
 `concept-1a-7` remains conception provenance and is excluded from authority-location candidates. Group names identify capability/checkpoint facts, not Git-route or product-semantic owners. A completed Group is represented by an exact commit identity plus its Design/evidence/history records; a durable extra ref is retained only when a bounded live consumer or recovery requirement justifies it.
 

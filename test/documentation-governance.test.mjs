@@ -370,14 +370,25 @@ test('persistent route declarations fail closed on competition, malformed mode a
     /documentation_authority_development_route_mode_unsupported/,
   );
 
-  const missingPredecessor = {
-    ...development,
+  assert.throws(
+    () => resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [base, development], isAncestor: () => false }),
+    /documentation_authority_locator_predecessor_ancestry_conflict/,
+  );
+});
+
+test('terminal persistent route no longer depends on a legacy predecessor or stale non-persistent refs', () => {
+  const developmentSha = '2'.repeat(40);
+  const development = {
+    ref: 'development', sha: developmentSha,
     workboardText: authorityWorkboardFixture({ branch: 'development', developmentRouteMode: 'persistent-v1' }),
   };
-  assert.throws(
-    () => resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [base, missingPredecessor], isAncestor: () => true }),
-    /documentation_authority_locator_ambiguous_maxima/,
-  );
+  const staleLegacy = {
+    ref: 'group/f-cloudflare-runtime', sha: '1'.repeat(40),
+    workboardText: authorityWorkboardFixture({ branch: 'group/f-cloudflare-runtime' }),
+  };
+  const expected = { repository: 'humtr/tdev', ref: 'development', sha: developmentSha };
+  assert.deepEqual(resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [staleLegacy, development] }), expected);
+  assert.deepEqual(resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [development] }), expected);
 });
 
 test('concept persistent markers are excluded before persistent route parsing', () => {

@@ -250,10 +250,21 @@ export function resolveRepositoryAuthority({ repository, candidates, isAncestor 
     parseDevelopmentRouteMode(candidate.workboardText);
   }
 
-  const legacy = resolvePublishedAuthority({ repository, candidates, isAncestor });
-  if (!persistentRouteSignalled) return legacy;
+  if (!persistentRouteSignalled) return resolvePublishedAuthority({ repository, candidates, isAncestor });
 
   const persistent = resolvePersistentPublishedAuthority({ repository, candidates });
+  const persistentCandidate = candidates.find((candidate) => (
+    candidate?.ref === persistent.ref
+    && typeof candidate.sha === 'string'
+    && candidate.sha.toLowerCase() === persistent.sha
+    && typeof candidate.workboardText === 'string'
+  ));
+  if (!persistentCandidate) throw new Error('documentation_authority_persistent_locator_selected_candidate_missing');
+
+  const predecessor = parseAuthorityCandidatePredecessor(persistentCandidate.workboardText);
+  if (!predecessor) return persistent;
+
+  const legacy = resolvePublishedAuthority({ repository, candidates, isAncestor });
   if (legacy.ref !== persistent.ref || legacy.sha !== persistent.sha) {
     throw new Error(`documentation_authority_bridge_resolver_disagreement: legacy=${legacy.ref}@${legacy.sha} persistent=${persistent.ref}@${persistent.sha}`);
   }

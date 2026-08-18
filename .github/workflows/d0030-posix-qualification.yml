@@ -3,7 +3,7 @@ name: D0030 POSIX qualification
 on:
   push:
     branches:
-      - group/f-cloudflare-runtime
+      - development
   workflow_dispatch:
 
 permissions:
