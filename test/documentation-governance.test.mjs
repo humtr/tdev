@@ -524,21 +524,24 @@ test('PROGRAM status/commit ledgers and duplicated capability rows fail closed',
   assert.match(groupRow.failures.join('\n'), /documentation_authority_program_capability_table_duplicate/);
 });
 
-test('PROGRAM rejects current maintained-Design lifecycle ledgers generically', () => {
-  const exact = validateDocumentation(root, {
-    'docs/development/PROGRAM.md': `${currentProgram}\nD0019 is currently accepted.\n`,
-  });
-  assert.equal(exact.ok, false);
-  assert.match(exact.failures.join('\n'), /documentation_authority_program_design_status_prose/);
+test('PROGRAM rejects current maintained-Design lifecycle ledgers for the complete canonical vocabulary', () => {
+  const lifecycleValues = ['draft', 'accepted', 'implementing', 'blocked', 'reopened', 'verified', 'superseded'];
+  for (const lifecycle of lifecycleValues) {
+    const exact = validateDocumentation(root, {
+      'docs/development/PROGRAM.md': `${currentProgram}\nD0019 is currently ${lifecycle}.\n`,
+    });
+    assert.equal(exact.ok, false, `direct current PROGRAM prose must reject ${lifecycle}`);
+    assert.match(exact.failures.join('\n'), /documentation_authority_program_design_status_prose/);
 
-  const variant = validateDocumentation(root, {
-    'docs/development/PROGRAM.md': `${currentProgram}\nLatest D0030 lifecycle is implementing.\n`,
-  });
-  assert.equal(variant.ok, false);
-  assert.match(variant.failures.join('\n'), /documentation_authority_program_design_status_prose/);
+    const variant = validateDocumentation(root, {
+      'docs/development/PROGRAM.md': `${currentProgram}\nLatest D0030 lifecycle is ${lifecycle}.\n`,
+    });
+    assert.equal(variant.ok, false, `latest lifecycle PROGRAM prose must reject ${lifecycle}`);
+    assert.match(variant.failures.join('\n'), /documentation_authority_program_design_status_prose/);
+  }
 
   const historical = validateDocumentation(root, {
-    'docs/development/PROGRAM.md': `${currentProgram}\nAt previous revision 1, D0019 was currently accepted.\n`,
+    'docs/development/PROGRAM.md': `${currentProgram}\nAt previous revision 1, D0019 was currently blocked.\n`,
   });
   assert.equal(historical.ok, true, historical.failures?.join('\n'));
 

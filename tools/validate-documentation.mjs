@@ -454,7 +454,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   check(() => {
     const designIdentity = /\bD\d{4}(?:@r\d+)?\b/i;
     const currentness = /\b(?:current|currently|latest|most recent|newest)\b/i;
-    const lifecycleValue = /\b(?:draft|accepted|implementing|verified|reopened|superseded)\b/i;
+    const lifecycleValue = /\b(?:draft|accepted|implementing|blocked|reopened|verified|superseded)\b/i;
     const historicalScope = /\b(?:historical|previous|prior|former|earlier)\b|\bas[- ]of\b|\brevision\s+\d+\b/i;
     for (const line of program.split('\n')) {
       assert(
