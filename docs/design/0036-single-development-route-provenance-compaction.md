@@ -1,6 +1,6 @@
 # Design 0036 — Single Development Route and Provenance Compaction
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-18
@@ -12,7 +12,7 @@
 - Scope: self-development route topology, pre-bootstrap route election migration, checkpoint/ref provenance compaction, bounded provider-ref retirement and the migration evidence needed to prove them
 - Product/runtime semantics: unchanged
 - Explicit non-goals: no merge or fast-forward of `main`; no product Git-Promotion change; no Cloudflare/runtime/deployment mutation; no tmcp retirement; no canonical-history rewrite; no wholesale merge of divergent historical branches; no structured-governance refactor beyond the fields needed to make this migration fail closed
-- Supersession relation: D0031 r7 remains the verified pre-cutover bootstrap/documentation predecessor while the bridge is active. The D0036 cutover supersedes only D0031's affected multi-ref authority-election/checkpoint-ref-preservation meaning and preserves its fixed kernel, one-owner, stale-context, Design-lifecycle and complete-lifecycle-vocabulary safeguards.
+- Supersession relation: D0031 r7 remains the verified pre-cutover bootstrap/documentation predecessor. D0036 verified the terminal persistent route and supersedes only D0031's affected multi-ref authority-election/checkpoint-ref-preservation meaning while preserving its fixed kernel, one-owner, stale-context, Design-lifecycle and complete-lifecycle-vocabulary safeguards.
 
 ## 1. One-line definition
 
@@ -247,7 +247,20 @@ Ambiguous provider writes are reconciled by provider reread before retry. Expect
 
 R4 structured-governance refactoring and R5 conditional owner/projection cleanup from the ACR convergence are not silently bundled into D0036. They require their own then-current owner/lifecycle classification after route shape stabilizes.
 
-## 13. Cheapest falsifiers
+## 13. Verification closure
+
+D0036 r1 is verified for its declared repository/source/provider self-development scope.
+
+- Terminal route source and publication were already proved on exact `development@1322540c34209dc38cc2eddc76e0660d99b84f04`: `job_9b4_d2ee33ce42` passed the full source gate, `job_9bd_eb0e2b5dd6` published that exact candidate by non-force fast-forward, and `job_9bf_00cd28f865` reread the provider and proved persistent-only authority, unchanged `main`, default `development`, the D0030 trigger migration, and no live predecessor.
+- Application reconciliation forward-preserved only three minimal non-current lessons in `docs/history/legacy-development-lessons.md`, with zero raw-artifact exceptions. Commit `ae11c927a60918626275fe6f1bf8ae656cfd3f74` published that history plus the fresh 19-ref content/consumer/reachability ledger after `job_9fe_47313cb518` passed the complete source/documentation gate.
+- `job_9fq_e42388533a` migrated the clean canonical tmcp checkout from the completed Group E ref to `development@ae11c927a60918626275fe6f1bf8ae656cfd3f74` with upstream `origin/development`; historical Tasks/worktrees were preserved rather than rewritten or deleted.
+- `job_9fr_b0a8b684af` exact-tip retired 13 transport/CI refs and left 8 published heads; `job_9fs_17ecdfce98` exact-tip retired five material/history refs after the three selected lessons were forward-preserved and left 3 heads; `job_9fy_6d7d1ea82b` proved the Group E tip reachable from `development`, exact-tip retired that final legacy ref, and reread exactly two provider heads: `development@ae11c927a60918626275fe6f1bf8ae656cfd3f74` and unchanged `main@b86287b84375e2aeb833cf775371a7808a1239cf`. Every destructive batch passed its required pre-delete documentation validation and post-delete complete source gate.
+- The one-time manifest records all 19 refs freshly observed at application admission with exact tips, material dispositions, controlled consumers, exact-object/reachability notes, pre-delete proof and post-delete provider observations. The net 18 heads that had already disappeared between the earlier 39-head cutover observation and the later 21-head application admission remain an explicit historical target-native evidence gap; D0036 does not fabricate per-ref deletion proof for refs it did not delete in this application.
+- Final verification remains bounded to repository/source/provider self-development evidence. It does not claim product runtime, Cloudflare deployment, tmcp retirement, development-to-main merge, or public-client qualification.
+
+The migration manifest freezes the destructive-batch evidence against the exact pre-closure `development` identity. The closure commit's exact published identity is provider-reread after publication and recorded in application provenance rather than forcing a self-referential manifest rewrite.
+
+## 14. Cheapest falsifiers
 
 Before destructive ref retirement, the cheapest decisive failures are:
 

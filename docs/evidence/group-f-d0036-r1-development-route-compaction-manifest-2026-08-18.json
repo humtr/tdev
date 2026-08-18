@@ -3,7 +3,7 @@
   "repository": "humtr/tdev",
   "design": "D0036",
   "revision": 1,
-  "migrationStatus": "retirement_in_progress",
+  "migrationStatus": "complete",
   "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
   "targetDevelopmentRef": "development",
   "bridge": {
@@ -46,13 +46,22 @@
           "reason": "validation transport and superseded package/benchmark material; current D0014 owners preserve the surviving meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "agent/d0015-program-validation",
@@ -80,13 +89,22 @@
           "reason": "transport-only patch chunks; current D0015 owners preserve accepted meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "concept-1a-7",
@@ -120,13 +138,22 @@
           "reason": "current self-development owners supersede them"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "proof": "npm run check passed immediately before the batch; required minimal textual history was present where applicable; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "remainingHeadCount": 3,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "group/e-context-delivery",
@@ -155,13 +182,22 @@
           "reason": "all repository content remains reachable from development and the ref is no longer authority"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "canonical tmcp checkout still tracks the Group E ref; controlled checkout migration and fresh pre-delete validation remain required",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fy_6d7d1ea82b",
+        "proof": "canonical tmcp checkout migration was independently reread; the Group E tip was proven reachable from development ancestry; npm run check passed; the exact provider tip was reread immediately before deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fy_6d7d1ea82b",
+        "remainingHeadCount": 2,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0008-posix-validation-ci",
@@ -189,13 +225,22 @@
           "reason": "historical CI wrapper is not present in the current development workflow tree"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0008-real-git-promotion-evidence",
@@ -229,13 +274,22 @@
           "reason": "raw historical executable material has no current named consumer"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "proof": "npm run check passed immediately before the batch; required minimal textual history was present where applicable; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "remainingHeadCount": 3,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0009-semantic-authority-evidence-7ba030",
@@ -263,13 +317,22 @@
           "reason": "final evidence meaning and bytes survive in current D0009 owners"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0009-semantic-authority-evidence-bc06d68",
@@ -297,13 +360,22 @@
           "reason": "verified current D0009 already codifies path-key accounting; intermediate observation is superseded"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0009-semantic-authority-validation-ci",
@@ -331,13 +403,22 @@
           "reason": "historical CI transport only"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0009-semantic-authority-validation-ci-pathkey",
@@ -365,13 +446,22 @@
           "reason": "historical CI transport only"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0010-semantic-authority-validation-ci",
@@ -399,13 +489,22 @@
           "reason": "current D0010 Design/source/evidence own surviving meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0011-git-projection-validation-ci",
@@ -433,13 +532,22 @@
           "reason": "current D0011 Design/source/evidence own surviving meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0012-remote-publication-validation-ci",
@@ -467,13 +575,22 @@
           "reason": "current D0012 Design/source/evidence own surviving meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0013-repository-model-transport-validation-ci",
@@ -501,13 +618,22 @@
           "reason": "current D0013 Design/source/evidence own surviving meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/d0014-product-efficiency-audit-ci",
@@ -535,13 +661,22 @@
           "reason": "transport/export packaging; current D0014 history/evidence preserve surviving measurements and falsifiers"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/full-lineage-reaudit-20260809",
@@ -569,13 +704,22 @@
           "reason": "transport-only export wrapper"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "proof": "npm run check passed immediately before the batch; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fr_b0a8b684af",
+        "remainingHeadCount": 8,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/persistence-phase0-52e793",
@@ -603,13 +747,22 @@
           "reason": "current D0006 and structured evidence preserve the surviving diagnosis"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "proof": "npm run check passed immediately before the batch; required minimal textual history was present where applicable; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "remainingHeadCount": 3,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/persistence-s-52e793",
@@ -643,13 +796,22 @@
           "reason": "no current raw-artifact consumer; D0010 owns the surviving transactional-head model"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "proof": "npm run check passed immediately before the batch; required minimal textual history was present where applicable; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "remainingHeadCount": 3,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     },
     {
       "ref": "research/persistence-v-52e793",
@@ -677,13 +839,22 @@
           "reason": "verified current D0007/source/evidence preserve the surviving V meaning"
         }
       ],
-      "deletionEligible": false,
-      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "deletionEligible": true,
+      "retentionReason": null,
       "preDeleteValidation": {
-        "status": "pending",
-        "required": "current docs/source validation immediately before destructive batch"
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "proof": "npm run check passed immediately before the batch; required minimal textual history was present where applicable; the exact provider tip was reread immediately before each deletion"
       },
-      "postDeleteProviderObservation": null
+      "postDeleteProviderObservation": {
+        "status": "passed",
+        "job": "job_9fs_17ecdfce98",
+        "remainingHeadCount": 3,
+        "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+        "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "postDeleteSourceGate": "passed"
+      },
+      "deletionCompleted": true
     }
   ],
   "providerRereads": [
@@ -792,6 +963,39 @@
       "netAlreadyAbsentHeadCount": 18,
       "status": "historical_target_native_per_ref_proof_missing",
       "disposition": "do not fabricate deleted-ref rows; preserve the evidence gap and prove all currently published refs fresh"
+    },
+    {
+      "job": "job_9fr_b0a8b684af",
+      "phase": "post_retirement_batch_1",
+      "result": "passed",
+      "remainingPublishedHeadCount": 8,
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+      "claim": "13 transport/CI refs were exact-tip deleted; provider reread preserved main/development; post-delete full source gate passed"
+    },
+    {
+      "job": "job_9fs_17ecdfce98",
+      "phase": "post_retirement_batch_2",
+      "result": "passed",
+      "remainingPublishedHeadCount": 3,
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+      "remainingLegacyRef": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+      "claim": "five material/history refs were exact-tip deleted after forward-preserving the three minimal lessons; post-delete full source gate passed"
+    },
+    {
+      "job": "job_9fy_6d7d1ea82b",
+      "phase": "post_retirement_group_e",
+      "result": "passed",
+      "remainingPublishedHeadCount": 2,
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+      "providerDefault": "development",
+      "publishedHeads": [
+        "development@ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+        "main@b86287b84375e2aeb833cf775371a7808a1239cf"
+      ],
+      "claim": "Group E was exact-tip deleted after controlled checkout migration and ancestry proof; post-delete full source gate passed"
     }
   ],
   "validation": [
@@ -882,28 +1086,109 @@
       "exitCode": 32,
       "stderr": "unexpected_staged_set",
       "effect": "no verification commit or push occurred; this job is not green evidence"
+    },
+    {
+      "job": "job_9fe_47313cb518",
+      "phase": "apply_reconciliation_source_gate",
+      "result": "passed",
+      "claim": "minimal history + WORKBOARD terminal proof + 19-row manifest reconciliation passed npm ci, npm run check, full coverage tests and diff check before publication"
+    },
+    {
+      "job": "job_9fq_e42388533a",
+      "phase": "canonical_checkout_migration",
+      "result": "passed",
+      "claim": "clean canonical checkout moved from group/e-context-delivery to development@ae11c927a60918626275fe6f1bf8ae656cfd3f74 with upstream origin/development"
+    },
+    {
+      "job": "job_9fr_b0a8b684af",
+      "phase": "retirement_batch_1",
+      "result": "passed",
+      "deletedRefCount": 13,
+      "remainingPublishedHeadCount": 8,
+      "preDeleteValidation": "passed",
+      "postDeleteValidation": "passed"
+    },
+    {
+      "job": "job_9fs_17ecdfce98",
+      "phase": "retirement_batch_2",
+      "result": "passed",
+      "deletedRefCount": 5,
+      "remainingPublishedHeadCount": 3,
+      "preDeleteValidation": "passed",
+      "postDeleteValidation": "passed"
+    },
+    {
+      "job": "job_9fy_6d7d1ea82b",
+      "phase": "retirement_group_e",
+      "result": "passed",
+      "deletedRefCount": 1,
+      "remainingPublishedHeadCount": 2,
+      "preDeleteValidation": "passed",
+      "postDeleteValidation": "passed"
     }
   ],
   "unresolvedExternalConsumers": [
     {
-      "scope": "currently published legacy refs across controlled repository/provider/tmcp planes",
-      "status": "audited_pre_retirement_with_one_controlled_migration_pending",
-      "effect": "no current repository/provider branch-name consumer observed except the canonical tmcp checkout tracking group/e-context-delivery; that checkout must migrate before the Group E ref can retire"
+      "scope": "the 19 legacy refs freshly observed at apply admission",
+      "status": "closed",
+      "effect": "all 19 passed their bounded current content/consumer/exact-object/provider barriers and were exact-tip retired in three validated batches"
     },
     {
-      "scope": "known tmcp exact-object holders",
-      "status": "bounded",
-      "effect": "Group E remains reachable from development; D0008-real-Git orphaned worktree and D0011/D0013 terminal validation worktrees retain local exact objects without requiring the remote ref names"
+      "scope": "known tmcp exact-object holders and historical Tasks/worktrees",
+      "status": "bounded_preserved",
+      "effect": "historical local Tasks/worktrees were not deleted or rewritten; known exact objects either remain reachable from development or remain in preserved local worktrees without requiring remote branch names"
     },
     {
-      "scope": "off-repository clones, bookmarks, cached names, or other consumers not visible to the controlled repository/provider/tmcp planes",
-      "status": "no_named_required_consumer_observed",
-      "effect": "they do not become repository authority; exact current tips are recorded for bounded recovery, and any separately proven required consumer discovered before its destructive batch blocks only the affected ref"
+      "scope": "off-repository clones, bookmarks, cached names, or consumers not visible to controlled repository/provider/tmcp planes",
+      "status": "no_named_required_consumer_observed_before_each_destructive_batch",
+      "effect": "no current named required consumer blocked retirement; exact pre-delete tips and recovery identities remain recorded in this manifest"
     },
     {
-      "scope": "net 18 heads already absent between the 39-head cutover observation and this 21-head apply observation",
-      "status": "historical_target_native_proof_gap",
-      "effect": "current target evidence cannot reconstruct their exact per-ref deletion barriers; this application does not invent them and limits destructive claims to refs observed now"
+      "scope": "net 18 heads already absent between the 39-head cutover observation and the 21-head apply admission",
+      "status": "historical_target_native_proof_gap_preserved",
+      "effect": "their exact per-ref historical deletion barriers cannot be reconstructed from current target evidence; this verification does not fabricate them and makes no destructive claim about those already-absent refs"
     }
-  ]
+  ],
+  "completion": {
+    "sourceAuthorityBeforeClosure": "development@ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+    "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
+    "providerDefault": "development",
+    "finalPublishedHeadCountBeforeClosureCommit": 2,
+    "finalPublishedHeads": [
+      "development@ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+      "main@b86287b84375e2aeb833cf775371a7808a1239cf"
+    ],
+    "canonicalCheckoutMigration": {
+      "job": "job_9fq_e42388533a",
+      "branch": "development",
+      "headAtMigration": "ae11c927a60918626275fe6f1bf8ae656cfd3f74",
+      "upstream": "origin/development"
+    },
+    "destructiveBatches": [
+      {
+        "job": "job_9fr_b0a8b684af",
+        "deletedRefCount": 13,
+        "remainingPublishedHeadCount": 8,
+        "result": "passed"
+      },
+      {
+        "job": "job_9fs_17ecdfce98",
+        "deletedRefCount": 5,
+        "remainingPublishedHeadCount": 3,
+        "result": "passed"
+      },
+      {
+        "job": "job_9fy_6d7d1ea82b",
+        "deletedRefCount": 1,
+        "remainingPublishedHeadCount": 2,
+        "result": "passed"
+      }
+    ],
+    "preservation": {
+      "rawArtifactExceptions": 0,
+      "textualHistory": "docs/history/legacy-development-lessons.md",
+      "textualLessonCount": 3
+    },
+    "proofBoundary": "source/repository/provider self-development only; no product runtime/deployment qualification is claimed"
+  }
 }
