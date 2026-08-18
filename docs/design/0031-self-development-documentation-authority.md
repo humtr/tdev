@@ -1,10 +1,12 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 7
 - Revision 7 predecessor: revision 6 was verified with implementation source `49597a5db8ef4289eca3c8dc6c4408775801c46e` and remained the maintained revision at the fresh application base `a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`; revisions 1-6 and their evidence remain historical evidence.
 - Revision 7 reason: ACR convergence `acr/tdev-20260818-devstate-planab-01` at `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, revalidated against exact current authority `group/f-cloudflare-runtime@a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`, proved a lifecycle-vocabulary contradiction: `SDD.md` and the Design-index parser include `blocked`, while the maintained-Design current-status prose guard and revision 6 decision enumerate the canonical lifecycle without it.
 - Revision 7 acceptance evidence: `docs/evidence/group-f-d0031-r7-blocked-lifecycle-vocabulary-acceptance-2026-08-18.json`.
+- Revision 7 implementation source: `2a1e0e5c9aea784181a2ab4e6b25858c6232a0d6`, after accepted lifecycle commit `615e979fb8026c1c704a38c3a8a0a4013320a73f`.
+- Revision 7 verification evidence: `docs/evidence/group-f-d0031-r7-blocked-lifecycle-vocabulary-verification-2026-08-18.json`; focused governance 41/41 and the exact four-command source gate passed, including 379/379 coverage-run tests, in tmcp Jobs `job_94b_bfaf12f5ad` and `job_94h_838ad5b3bd`.
 - Revision 7 changed decision: canonical `- Status:` metadata remains the only maintained current Design lifecycle value. Any body assertion that uses `current`/`currently` to assign any canonical Design lifecycle value (`draft`, `accepted`, `implementing`, `blocked`, `reopened`, `verified` or `superseded`) must fail closed independent of heading spelling unless explicitly historical/as-of/prior-revision scoped. The rule remains generic across Design IDs and headings.
 - Revision 7 downstream revalidation: maintained-Design single-current-value falsifiers across the complete lifecycle vocabulary, derived Design index agreement, current-router authorization, documentation governance and the applicable source gate. Product/runtime/provider semantics remain unaffected.
 - Revision 6 predecessor: revision 5 was verified at `7e24a4bbd8a4669e7f3f2cdec449568b7140429e`; revisions 1-5 and their evidence remain historical evidence.

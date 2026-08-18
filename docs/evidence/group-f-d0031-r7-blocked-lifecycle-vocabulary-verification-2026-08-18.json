@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 7,
+  "phase": "verification",
+  "date": "2026-08-18",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "615e979fb8026c1c704a38c3a8a0a4013320a73f",
+  "implementationSource": "2a1e0e5c9aea784181a2ab4e6b25858c6232a0d6",
+  "acrCampaign": "tdev-20260818-devstate-planab-01",
+  "acrHandoffSha": "dda5c3bbae5f137a7ba1f93ed08004b14a4704e0",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_94b_bfaf12f5ad",
+      "tests": 41,
+      "passed": 41,
+      "documentationCheck": "passed"
+    },
+    "completeLifecycleFalsifier": {
+      "values": ["draft", "accepted", "implementing", "blocked", "reopened", "verified", "superseded"],
+      "currentLifecycleForm": "all rejected with documentation_authority_design_current_status_prose",
+      "directCurrentlyForm": "all rejected with documentation_authority_design_current_status_prose",
+      "historicalBlockedControl": "allowed"
+    },
+    "fullSourceGate": {
+      "job": "job_94h_838ad5b3bd",
+      "status": "succeeded",
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ],
+      "coverageRunTests": 379,
+      "coverageRunPassed": 379,
+      "artifactSha256": "842f3881acc69bbc1fa719bd49aa198e8c235d3212a5ffe43814fcc7c6eb18d2"
+    }
+  },
+  "verifiedMeaning": [
+    "canonical Status metadata is the sole maintained current Design lifecycle value",
+    "unscoped current/currently assertions for every canonical lifecycle value, including blocked, fail closed independent of heading spelling",
+    "explicit historical/as-of/prior-revision lifecycle prose remains permitted",
+    "D0031 revision 5 authority-location and revision 6 single-current-value meaning remain preserved"
+  ],
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false,
+  "unverifiedLayers": []
+}

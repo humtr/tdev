@@ -16,19 +16,18 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- D0031@r7 — `docs/design/0031-self-development-documentation-authority.md` — R0 maintained-Design `blocked` lifecycle current-status guard correction
 - D0033@r3 — `docs/design/0033-program-roadmap-authority-recomposition.md` — R0 PROGRAM `blocked` lifecycle current-status guard correction
 
 ## Selected next action
 
-- D0031@r7 — implement and verify the maintained-Design complete lifecycle-vocabulary guard correction
+- D0033@r3 — implement and verify the PROGRAM complete lifecycle-vocabulary guard correction
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- D0031@r7 and D0033@r3 are accepted forward corrections for the ACR-revalidated `blocked` lifecycle-vocabulary defect. D0031 r6 and D0033 r2 remain historical verified predecessors; their unaffected owner meaning survives, but the affected current-status guards are not claimed corrected until these revisions are implemented and verified.
+- D0031@r7 is verified for the maintained-Design complete lifecycle-vocabulary guard, including `blocked`. D0033@r3 remains the accepted forward correction for the PROGRAM side of the same ACR-revalidated defect; D0031 r6 and D0033 r2 remain historical verified predecessors.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r2 is verified at the bounded source/Linux-x64 qualification layers: helper abnormal completion, capability-cache lifecycle and clean-source-before-build behavior now fail closed as accepted; D0005/D0007 durable-format and normal qualified-publication meaning remains preserved. Destructive sudden-power-loss and unexecuted platform/filesystem profiles remain outside this verified claim.
 - D0032@r2 remains verified: QUALIFICATION mutable current result/evidence ledgers fail closed generically while historical/normative owner meaning remains preserved. D0033 lifecycle-ledger correction is now routed through accepted revision 3 above.
