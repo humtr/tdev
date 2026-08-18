@@ -3,7 +3,7 @@
   "repository": "humtr/tdev",
   "design": "D0036",
   "revision": 1,
-  "migrationStatus": "bridge_seeded",
+  "migrationStatus": "persistent_route_cutover",
   "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
   "targetDevelopmentRef": "development",
   "bridge": {
@@ -12,10 +12,11 @@
     "legacyAuthorityAtImplementationEntry": "group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522",
     "seedSha": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
     "seedLegacyAuthority": "group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
-    "cutoverSha": null,
-    "legacyResolverResult": null,
-    "persistentResolverResult": null,
-    "defaultAligned": false,
+    "cutoverSha": "004fead5aaaeab2cabc568122c1f4e924cd59580",
+    "legacyResolverResult": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+    "persistentResolverResult": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+    "combinedResolverResult": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+    "defaultAligned": true,
     "legacyFallbackRemoved": false
   },
   "refs": [],
@@ -57,6 +58,50 @@
       "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
       "legacyAuthority": "group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
       "seedEligibleUnderLegacyResolver": false
+    },
+    {
+      "job": "job_98y_1b9ade7b21",
+      "phase": "pre_cutover_fence",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "development": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf"
+    },
+    {
+      "job": "job_98z_332d9e6d73",
+      "phase": "cutover_publication",
+      "development": "004fead5aaaeab2cabc568122c1f4e924cd59580",
+      "expectedPriorDevelopment": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "result": "non_force_fast_forward"
+    },
+    {
+      "job": "job_990_5dd9c87799",
+      "phase": "post_cutover_dual_resolver_election",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "development": "004fead5aaaeab2cabc568122c1f4e924cd59580",
+      "nonConceptPublishedHeadCount": 30,
+      "conceptExcludedBeforeWorkboardParse": 9,
+      "legacyResolver": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+      "persistentResolver": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+      "combinedResolver": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
+      "bridgeEquality": true
+    },
+    {
+      "job": "job_995_bdcea1a2af",
+      "phase": "pre_default_alignment",
+      "defaultBranch": "group/f-cloudflare-runtime",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "development": "004fead5aaaeab2cabc568122c1f4e924cd59580"
+    },
+    {
+      "job": "job_996_6d5a15e8ef",
+      "phase": "default_alignment_and_reread",
+      "defaultBefore": "group/f-cloudflare-runtime",
+      "defaultAfter": "development",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "development": "004fead5aaaeab2cabc568122c1f4e924cd59580"
     }
   ],
   "validation": [
@@ -106,6 +151,14 @@
       "passed": 46,
       "documentationCheck": "passed",
       "diffCheck": "passed"
+    },
+    {
+      "job": "job_98w_ff22e56771",
+      "phase": "bridge_cutover_source_gate",
+      "result": "passed",
+      "coverageRunTests": 384,
+      "coverageRunPassed": 384,
+      "artifactSha256": "9b6c0dc46d3dddf10a0f48edfbc09a1e261cd23ebb2aa14db4940342ccbe4285"
     }
   ],
   "unresolvedExternalConsumers": [

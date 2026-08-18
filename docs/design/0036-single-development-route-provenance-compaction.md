@@ -8,6 +8,7 @@
 - Trigger: user-directed application of ACR campaign `tdev-20260818-devstate-planab-01`, convergence `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, after target-native R0 verification
 - Acceptance evidence: `docs/evidence/group-f-d0036-r1-single-development-route-acceptance-2026-08-18.json`
 - Implementation entered from exact published acceptance `group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522`; the one-time migration manifest is `docs/evidence/group-f-d0036-r1-development-route-compaction-manifest-2026-08-18.json`.
+- R2b bridge implementation source: `004fead5aaaeab2cabc568122c1f4e924cd59580`. Its exact source gate passed 384/384 tests in `job_98w_ff22e56771`; after non-force publication, `job_990_5dd9c87799` proved the legacy, persistent and combined resolvers all elect exactly `development@004fead5aaaeab2cabc568122c1f4e924cd59580`, and `job_996_6d5a15e8ef` aligned provider default from the legacy Group F ref to `development` without changing `main` or either route head.
 - Scope: self-development route topology, pre-bootstrap route election migration, checkpoint/ref provenance compaction, bounded provider-ref retirement and the migration evidence needed to prove them
 - Product/runtime semantics: unchanged
 - Explicit non-goals: no merge or fast-forward of `main`; no product Git-Promotion change; no Cloudflare/runtime/deployment mutation; no tmcp retirement; no canonical-history rewrite; no wholesale merge of divergent historical branches; no structured-governance refactor beyond the fields needed to make this migration fail closed
