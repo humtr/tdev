@@ -3,7 +3,7 @@
   "repository": "humtr/tdev",
   "design": "D0036",
   "revision": 1,
-  "migrationStatus": "persistent_route_cutover",
+  "migrationStatus": "retirement_in_progress",
   "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
   "targetDevelopmentRef": "development",
   "bridge": {
@@ -17,9 +17,675 @@
     "persistentResolverResult": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
     "combinedResolverResult": "development@004fead5aaaeab2cabc568122c1f4e924cd59580",
     "defaultAligned": true,
-    "legacyFallbackRemoved": false
+    "legacyFallbackRemoved": true
   },
-  "refs": [],
+  "refs": [
+    {
+      "ref": "agent/d0014-baseline-audit",
+      "observedTip": "e29d1f9766b50577dacbefb8c8af5c84ab8dfca7",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "3baa86a133b12b5f433b4d4a053528dd559f5371",
+        "relation": "divergent",
+        "aheadBy": 6,
+        "behindBy": 141
+      },
+      "materialInventory": [
+        "D0014 validation patches/package chunks, one-off workflows, and a baseline benchmark; accepted D0014 meaning already survives in current Design/history/evidence"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "validation transport and superseded package/benchmark material; current D0014 owners preserve the surviving meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "agent/d0015-program-validation",
+      "observedTip": "07f80d6483c8408cdd1713ac844b7a7b0d89d9a8",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "9786e6e834abe0807de341ee22ffa3908d51036a",
+        "relation": "divergent",
+        "aheadBy": 7,
+        "behindBy": 136
+      },
+      "materialInventory": [
+        "D0015 candidate patch chunks only"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "transport-only patch chunks; current D0015 owners preserve accepted meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "concept-1a-7",
+      "observedTip": "c263eadd3d36e691e86bcb5f8dbc71c8af0e8a6f",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "83e9610d79b4ad70858e4dd7fe3625052336a92c",
+        "relation": "divergent",
+        "aheadBy": 4,
+        "behindBy": 135
+      },
+      "materialInventory": [
+        "R0001 development-ref taxonomy rename plus superseded bootstrap/routing prose"
+      ],
+      "branchNameConsumers": [
+        "LINEAGE and documentation-governance test literals are historical/provenance or falsifier fixtures, not provider branch consumers"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "R0001 rename rationale/provenance lesson",
+          "disposition": "ARCHIVE_CONTENT",
+          "destination": "docs/history/legacy-development-lessons.md",
+          "reason": "minimal non-current text prevents branch-taxonomy confusion"
+        },
+        {
+          "material": "superseded bootstrap/routing/governance bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current self-development owners supersede them"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "group/e-context-delivery",
+      "observedTip": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+        "relation": "ancestor_of_development",
+        "aheadBy": 0,
+        "behindBy": 104
+      },
+      "materialInventory": [
+        "no unique commits; exact tip is an ancestor of development"
+      ],
+      "branchNameConsumers": [
+        "canonical tmcp checkout still tracks origin/group/e-context-delivery and must be migrated to development before deletion",
+        "task_6c1_6066a09c97 names Group E in its immutable historical objective; no live jobs/processes were observed and current repository owners mark D0018 verified and Group E completed"
+      ],
+      "exactObjectConsumers": [
+        "tip is reachable from development ancestry; tmcp D0018 worktrees remain local and do not require remote-ref reachability"
+      ],
+      "dispositions": [
+        {
+          "material": "published ref pointer",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "all repository content remains reachable from development and the ref is no longer authority"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "canonical tmcp checkout still tracks the Group E ref; controlled checkout migration and fresh pre-delete validation remain required",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0008-posix-validation-ci",
+      "observedTip": "20a20973f396e59d700d8fc2cf8c449a0a927e1c",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "cf6b89d6bb2cff0b60ab2ca1a4521631f68c559f",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 172
+      },
+      "materialInventory": [
+        "one-off D0008 POSIX validation workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "historical CI wrapper is not present in the current development workflow tree"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0008-real-git-promotion-evidence",
+      "observedTip": "acd8fab5ea5ac336f26d39f2e875d020a513a428",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "1ff7c5d321958df725497d4e3a2649e210b029db",
+        "relation": "divergent",
+        "aheadBy": 2,
+        "behindBy": 179
+      },
+      "materialInventory": [
+        "real-Git touched-path phase-zero harness, superseded Designs/reports/evidence, and old WORKBOARD"
+      ],
+      "branchNameConsumers": [
+        "no current repository/provider branch-name consumer observed; source identity is preserved in the textual history record"
+      ],
+      "exactObjectConsumers": [
+        "orphaned tmcp worktree wt_30c16533e4807a97 retains the exact tip locally; remote branch name is not required"
+      ],
+      "dispositions": [
+        {
+          "material": "sparse-vs-full-authority, 100755, and Git-identity lesson",
+          "disposition": "ARCHIVE_CONTENT",
+          "destination": "docs/history/legacy-development-lessons.md",
+          "reason": "minimal text preserves the unique falsifier and boundary"
+        },
+        {
+          "material": "old source-equivalent harness/workflow/design/report/evidence bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "raw historical executable material has no current named consumer"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0009-semantic-authority-evidence-7ba030",
+      "observedTip": "a9c7da2d7f7e2fa10a7897b81e55c793d25f8e3c",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "7ba03082ac94fe75242c22a7b31ca76d933aeb0c",
+        "relation": "divergent",
+        "aheadBy": 2,
+        "behindBy": 166
+      },
+      "materialInventory": [
+        "one-off path-key validation workflow plus evidence duplicated by the current canonical D0009 evidence"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "final evidence meaning and bytes survive in current D0009 owners"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0009-semantic-authority-evidence-bc06d68",
+      "observedTip": "af40649c7afd1657eda2c14fc6ef68f4323f5d7d",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "bc06d68f7dae303f1ae689794818ccb06d599545",
+        "relation": "divergent",
+        "aheadBy": 2,
+        "behindBy": 167
+      },
+      "materialInventory": [
+        "one-off workflow plus superseded intermediate D0009 evidence"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "verified current D0009 already codifies path-key accounting; intermediate observation is superseded"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0009-semantic-authority-validation-ci",
+      "observedTip": "39d63ca1627645b5390d08221c861b7f591fdc17",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "bc06d68f7dae303f1ae689794818ccb06d599545",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 167
+      },
+      "materialInventory": [
+        "one-off D0009 validation workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "historical CI transport only"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0009-semantic-authority-validation-ci-pathkey",
+      "observedTip": "30b08b85b9a0f075a101b4a95a10c5b4730bf829",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "7ba03082ac94fe75242c22a7b31ca76d933aeb0c",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 166
+      },
+      "materialInventory": [
+        "one-off D0009 path-key validation workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "historical CI transport only"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0010-semantic-authority-validation-ci",
+      "observedTip": "d135e09d464b24189451986e9b733cdf7d17e0d7",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "152f88daa7775c5d545ec865cc0a8a470b45697e",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 158
+      },
+      "materialInventory": [
+        "one-off D0010 validation workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current D0010 Design/source/evidence own surviving meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0011-git-projection-validation-ci",
+      "observedTip": "38985ef1bd91871105f220c16533f3ba36834d7f",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "c321e9079855c87b9df806930b2cd48c61244e9b",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 152
+      },
+      "materialInventory": [
+        "one-off D0011 validation workflow"
+      ],
+      "branchNameConsumers": [
+        "tmcp validation worktree remains local under terminal completed task_4qo_ea304cc239; it does not require the remote branch name"
+      ],
+      "exactObjectConsumers": [
+        "tmcp worktree wt_2b2ab1d4cbd36067 retains the exact tip under a terminal completed Task"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current D0011 Design/source/evidence own surviving meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0012-remote-publication-validation-ci",
+      "observedTip": "bcb2a402d95ade1458bfce45ff5ad31112f6088c",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "28ed1912dc61b8d33277f599ada6010a30a7f357",
+        "relation": "divergent",
+        "aheadBy": 2,
+        "behindBy": 147
+      },
+      "materialInventory": [
+        "one-off D0012 validation workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current D0012 Design/source/evidence own surviving meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0013-repository-model-transport-validation-ci",
+      "observedTip": "829d94fa146c0ca1cd05156a4b60fedeaa6fbc8f",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "3f7c04ad4e343af2968d082bf4ffb559e2580100",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 143
+      },
+      "materialInventory": [
+        "one-off D0013 validation workflow"
+      ],
+      "branchNameConsumers": [
+        "tmcp validation worktree remains local under terminal completed task_505_4af9f3b61d; it does not require the remote branch name"
+      ],
+      "exactObjectConsumers": [
+        "tmcp worktree wt_bb825b1f33910512 retains the exact tip under a terminal completed Task"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current D0013 Design/source/evidence own surviving meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/d0014-product-efficiency-audit-ci",
+      "observedTip": "7a7a2afda62cd47181500dd7c90af4f4df358a23",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "3baa86a133b12b5f433b4d4a053528dd559f5371",
+        "relation": "divergent",
+        "aheadBy": 16,
+        "behindBy": 141
+      },
+      "materialInventory": [
+        "D0014 design/source/docs package chunks and one-off audit/export/validation workflows"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "transport/export packaging; current D0014 history/evidence preserve surviving measurements and falsifiers"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/full-lineage-reaudit-20260809",
+      "observedTip": "c63acdf808289f9714e9fd2dd40bf54cd5285343",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "1ff7c5d321958df725497d4e3a2649e210b029db",
+        "relation": "divergent",
+        "aheadBy": 1,
+        "behindBy": 179
+      },
+      "materialInventory": [
+        "one-off repository export workflow"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "workflow",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "transport-only export wrapper"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/persistence-phase0-52e793",
+      "observedTip": "820f052aaa2b4f2446959b18657c3c99453561c0",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "52e79323f80bccd1123b7a538a6d49d5754cd1ec",
+        "relation": "divergent",
+        "aheadBy": 4,
+        "behindBy": 181
+      },
+      "materialInventory": [
+        "phase-zero benchmark and older copies of verified D0006/evidence"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "current D0006 and structured evidence preserve the surviving diagnosis"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/persistence-s-52e793",
+      "observedTip": "1afcd83c54675b2738842a9a87686af4148723fb",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "52e79323f80bccd1123b7a538a6d49d5754cd1ec",
+        "relation": "divergent",
+        "aheadBy": 8,
+        "behindBy": 181
+      },
+      "materialInventory": [
+        "SQLite S prototype Design/evidence/source/test/benchmark plus shared phase-zero material"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "SQLite S correctness/detection/runtime/performance/migration lesson",
+          "disposition": "ARCHIVE_CONTENT",
+          "destination": "docs/history/legacy-development-lessons.md",
+          "reason": "minimal text preserves the rejected-path lesson"
+        },
+        {
+          "material": "prototype source, tests, benchmark, raw evidence, and older shared phase-zero bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "no current raw-artifact consumer; D0010 owns the surviving transactional-head model"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    },
+    {
+      "ref": "research/persistence-v-52e793",
+      "observedTip": "3f04323ff045efbb76998acd92877a0244e20bd9",
+      "relationToDevelopmentBase": {
+        "base": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+        "mergeBase": "52e79323f80bccd1123b7a538a6d49d5754cd1ec",
+        "relation": "divergent",
+        "aheadBy": 11,
+        "behindBy": 181
+      },
+      "materialInventory": [
+        "older D0006/D0007/source/evidence/WORKBOARD copies plus phase-zero benchmark"
+      ],
+      "branchNameConsumers": [
+        "none observed in current repository/provider/tmcp controlled planes"
+      ],
+      "exactObjectConsumers": [
+        "none observed in current controlled planes"
+      ],
+      "dispositions": [
+        {
+          "material": "all branch-unique bytes",
+          "disposition": "DROP_TRANSPORT",
+          "reason": "verified current D0007/source/evidence preserve the surviving V meaning"
+        }
+      ],
+      "deletionEligible": false,
+      "retentionReason": "fresh pre-delete source/docs validation and exact-tip destructive batch have not yet executed",
+      "preDeleteValidation": {
+        "status": "pending",
+        "required": "current docs/source validation immediately before destructive batch"
+      },
+      "postDeleteProviderObservation": null
+    }
+  ],
   "providerRereads": [
     {
       "job": "job_975_5d3e6c0cf7",
@@ -102,6 +768,30 @@
       "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
       "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
       "development": "004fead5aaaeab2cabc568122c1f4e924cd59580"
+    },
+    {
+      "job": "job_9f0_06cda73e6a",
+      "phase": "apply_pre_retirement_reconciliation",
+      "providerDefault": "development",
+      "publishedHeadCount": 21,
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+      "branchProtectionEnabledCount": 0,
+      "rulesetCount": 0,
+      "openPullRequestCount": 0,
+      "currentDevelopmentWorkflowTree": [
+        ".github/workflows/d0030-posix-qualification.yml"
+      ],
+      "note": "provider workflow registry still lists historical workflow identities, but the current development tree contains only the D0030 qualification workflow"
+    },
+    {
+      "job": "job_9f0_06cda73e6a",
+      "phase": "cutover_to_apply_evidence_gap",
+      "cutoverObservedHeadCount": 39,
+      "currentPublishedHeadCount": 21,
+      "netAlreadyAbsentHeadCount": 18,
+      "status": "historical_target_native_per_ref_proof_missing",
+      "disposition": "do not fabricate deleted-ref rows; preserve the evidence gap and prove all currently published refs fresh"
     }
   ],
   "validation": [
@@ -159,13 +849,61 @@
       "coverageRunTests": 384,
       "coverageRunPassed": 384,
       "artifactSha256": "9b6c0dc46d3dddf10a0f48edfbc09a1e261cd23ebb2aa14db4940342ccbe4285"
+    },
+    {
+      "job": "job_9b4_d2ee33ce42",
+      "phase": "terminal_r3_source_gate",
+      "result": "passed",
+      "source": "exact development candidate 1322540c34209dc38cc2eddc76e0660d99b84f04",
+      "claim": "npm ci, npm run check, full test coverage run, and diff check completed successfully"
+    },
+    {
+      "job": "job_9bd_eb0e2b5dd6",
+      "phase": "terminal_r3_publication",
+      "result": "passed",
+      "development": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+      "publication": "non_force_fast_forward"
+    },
+    {
+      "job": "job_9bf_00cd28f865",
+      "phase": "terminal_r3_provider_election",
+      "result": "passed",
+      "development": "1322540c34209dc38cc2eddc76e0660d99b84f04",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "providerDefault": "development",
+      "terminalPersistentOnly": true,
+      "livePredecessor": false,
+      "qualificationTrigger": "development"
+    },
+    {
+      "job": "job_9c2_fef73a0e7e",
+      "phase": "superseded_failed_final_verification_attempt",
+      "result": "failed",
+      "exitCode": 32,
+      "stderr": "unexpected_staged_set",
+      "effect": "no verification commit or push occurred; this job is not green evidence"
     }
   ],
   "unresolvedExternalConsumers": [
     {
-      "scope": "external branch-name or exact-object consumers not visible in current repository/provider/tmcp evidence",
-      "status": "not_yet_audited_per_ref",
-      "effect": "legacy-ref deletion remains unauthorized until the affected ref is individually bounded; unresolved required consumers retain that ref"
+      "scope": "currently published legacy refs across controlled repository/provider/tmcp planes",
+      "status": "audited_pre_retirement_with_one_controlled_migration_pending",
+      "effect": "no current repository/provider branch-name consumer observed except the canonical tmcp checkout tracking group/e-context-delivery; that checkout must migrate before the Group E ref can retire"
+    },
+    {
+      "scope": "known tmcp exact-object holders",
+      "status": "bounded",
+      "effect": "Group E remains reachable from development; D0008-real-Git orphaned worktree and D0011/D0013 terminal validation worktrees retain local exact objects without requiring the remote ref names"
+    },
+    {
+      "scope": "off-repository clones, bookmarks, cached names, or other consumers not visible to the controlled repository/provider/tmcp planes",
+      "status": "no_named_required_consumer_observed",
+      "effect": "they do not become repository authority; exact current tips are recorded for bounded recovery, and any separately proven required consumer discovered before its destructive batch blocks only the affected ref"
+    },
+    {
+      "scope": "net 18 heads already absent between the 39-head cutover observation and this 21-head apply observation",
+      "status": "historical_target_native_proof_gap",
+      "effect": "current target evidence cannot reconstruct their exact per-ref deletion barriers; this application does not invent them and limits destructive claims to refs observed now"
     }
   ]
 }
