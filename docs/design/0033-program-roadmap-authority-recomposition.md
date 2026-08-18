@@ -1,7 +1,12 @@
 # Design 0033 — Program and Roadmap Authority Recomposition
 
-- Status: `verified`
-- Revision: 2
+- Status: `accepted`
+- Revision: 3
+- Revision 3 predecessor: revision 2 was verified with implementation source `181fe20dba26929a0b034661ad02ecee273f413b` and remained the maintained revision at the fresh application base `a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`; revision 2 and earlier evidence remain historical evidence.
+- Revision 3 reason: ACR convergence `acr/tdev-20260818-devstate-planab-01` at `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, revalidated against exact current authority, proved that the PROGRAM current-status guard and revision 2 decision omit the canonical `blocked` lifecycle value even though `SDD.md` owns it.
+- Revision 3 acceptance evidence: `docs/evidence/group-f-d0033-r3-blocked-lifecycle-vocabulary-acceptance-2026-08-18.json`.
+- Revision 3 changed decision: PROGRAM validation generically rejects a line that names a maintained Design identity, asserts currentness (`current`, `currently`, `latest`, `most recent` or `newest`) and assigns any canonical Design lifecycle value (`draft`, `accepted`, `implementing`, `blocked`, `reopened`, `verified` or `superseded`). Maintained Design foreign keys and explicitly historical/non-current planning prose remain allowed.
+- Revision 3 downstream revalidation: PROGRAM complete-lifecycle current-status falsifiers, derived Design index agreement, current-router authorization, documentation governance and the applicable source gate. ROADMAP/PROGRAM owner separation, history preservation, navigation role, traceability and product isolation remain preserved.
 - Revision 2 predecessor: revision 1 was verified before the 2026-08-17 governance falsifier; ROADMAP/PROGRAM owner separation, history preservation, navigation role, traceability and product isolation remain preserved.
 - Revision 2 reason: fresh target-native revalidation in tmcp Job `job_8yt_7d4b39e93b` proves that stale current maintained-Design status prose such as `D0019 is currently accepted.` can re-enter `docs/development/PROGRAM.md` without rejection.
 - Revision 2 acceptance evidence: `docs/evidence/group-f-d0033-r2-program-status-ledger-acceptance-2026-08-17.json`.

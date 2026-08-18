@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "design": "D0033",
+  "revision": 3,
+  "phase": "acceptance",
+  "date": "2026-08-18",
+  "repository": "humtr/tdev",
+  "exactBase": "a7d198bcd2df2601d3527ca0a01dc58eef1d14a1",
+  "acrCampaign": "tdev-20260818-devstate-planab-01",
+  "acrConvergenceRef": "acr/tdev-20260818-devstate-planab-01/convergence",
+  "acrHandoffSha": "dda5c3bbae5f137a7ba1f93ed08004b14a4704e0",
+  "falsifier": {
+    "ownerVocabulary": "SDD.md includes blocked as a canonical Design lifecycle value",
+    "observedGuard": "tools/validate-documentation.mjs PROGRAM current-status lifecycle regex omits blocked",
+    "observedDesign": "D0033 revision 2 changed-decision vocabulary omits blocked",
+    "reproducedAtExactBase": true
+  },
+  "acceptedDecision": {
+    "sameDesignBoundary": true,
+    "status": "accepted",
+    "currentRevision": 3,
+    "canonicalLifecycle": ["draft", "accepted", "implementing", "blocked", "reopened", "verified", "superseded"],
+    "rule": "PROGRAM rejects current maintained-Design lifecycle assertions for every canonical lifecycle value, including blocked, while preserving foreign keys and explicitly historical/non-current planning prose."
+  },
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false
+}

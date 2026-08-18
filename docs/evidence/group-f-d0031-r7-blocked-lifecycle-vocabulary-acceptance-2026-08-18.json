@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 7,
+  "phase": "acceptance",
+  "date": "2026-08-18",
+  "repository": "humtr/tdev",
+  "exactBase": "a7d198bcd2df2601d3527ca0a01dc58eef1d14a1",
+  "acrCampaign": "tdev-20260818-devstate-planab-01",
+  "acrConvergenceRef": "acr/tdev-20260818-devstate-planab-01/convergence",
+  "acrHandoffSha": "dda5c3bbae5f137a7ba1f93ed08004b14a4704e0",
+  "falsifier": {
+    "ownerVocabulary": "SDD.md includes blocked as a canonical Design lifecycle value",
+    "derivedIndexVocabulary": "tools/generate-design-index.mjs includes blocked",
+    "observedGuard": "tools/validate-documentation.mjs validateMaintainedDesignSingleValue omits blocked from lifecycleValue",
+    "observedDesign": "D0031 revision 6 changed-decision vocabulary omits blocked",
+    "reproducedAtExactBase": true
+  },
+  "acceptedDecision": {
+    "sameDesignBoundary": true,
+    "status": "accepted",
+    "currentRevision": 7,
+    "canonicalLifecycle": ["draft", "accepted", "implementing", "blocked", "reopened", "verified", "superseded"],
+    "rule": "Canonical Status metadata is the sole maintained current lifecycle value; unscoped current/currently body assertions assigning any canonical lifecycle value must fail closed, including blocked.",
+    "mechanization": "generic across maintained Design IDs and heading names; historical/as-of/prior-revision scope remains allowed"
+  },
+  "implementationExecuted": false,
+  "verificationExecuted": false,
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false
+}
