@@ -78,7 +78,7 @@ function sha256(text) {
   return createHash('sha256').update(text).digest('hex');
 }
 
-test('current repository documentation authority validates after D0030 D0032 D0033 r2 verification', () => {
+test('current repository documentation authority validates without duplicating frontier Design status', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
@@ -87,12 +87,16 @@ test('current repository documentation authority validates after D0030 D0032 D00
   assert.ok(!frontier.includes('D0019@r2'));
   assert.ok(!frontier.includes('D0030@r2'));
   assert.ok(!frontier.includes('D0032@r2'));
-  assert.ok(!frontier.includes('D0033@r2'));
   assert.match(currentDesignTexts['docs/design/0019-casedo-authority-adapter.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0030-immutable-journal-publication-portability.md'], /^- Status: `verified`$/m);
-  assert.match(currentDesignTexts['docs/design/0031-self-development-documentation-authority.md'], /^- Status: `verified`$/m);
   assert.match(currentDesignTexts['docs/design/0032-qualification-authority-recomposition.md'], /^- Status: `verified`$/m);
-  assert.match(currentDesignTexts['docs/design/0033-program-roadmap-authority-recomposition.md'], /^- Status: `verified`$/m);
+  for (const item of result.route.frontier) {
+    const text = currentDesignTexts[item.path];
+    assert.notEqual(text, undefined, `missing fixture text for ${item.path}`);
+    const metadata = parseDesignMetadata(text);
+    assert.equal(metadata.revision, item.revision);
+    assert.ok(['accepted', 'implementing'].includes(metadata.status));
+  }
   if (result.route.selected !== null) {
     assert.ok(frontier.includes(`${result.route.selected.id}@r${result.route.selected.revision}`));
   }
@@ -296,18 +300,23 @@ test('authority location fails closed on competing elected successors or predece
   }), /documentation_authority_locator_predecessor_identity_conflict/);
 });
 
-test('maintained Design current lifecycle assertions fail independent of heading spelling', () => {
-  const contradictory = `${designFixture({ id: '0099', status: 'verified' })}\n## Readiness\n\nCurrent lifecycle status is draft.\n`;
-  assert.throws(
-    () => validateMaintainedDesignSingleValue(contradictory, 'fixture'),
-    /documentation_authority_design_current_status_prose/,
-  );
-  const direct = `${designFixture({ id: '0099', status: 'verified' })}\n## Notes\n\nD0099 is currently accepted.\n`;
-  assert.throws(
-    () => validateMaintainedDesignSingleValue(direct, 'fixture'),
-    /documentation_authority_design_current_status_prose/,
-  );
-  const historical = `${designFixture({ id: '0099', status: 'verified' })}\n## Historical readiness — as of revision 1\n\nCurrent lifecycle status is draft.\n`;
+test('maintained Design current lifecycle assertions fail for the complete canonical vocabulary independent of heading spelling', () => {
+  const lifecycleValues = ['draft', 'accepted', 'implementing', 'blocked', 'reopened', 'verified', 'superseded'];
+  for (const lifecycle of lifecycleValues) {
+    const contradictory = `${designFixture({ id: '0099', status: 'verified' })}\n## Readiness\n\nCurrent lifecycle status is ${lifecycle}.\n`;
+    assert.throws(
+      () => validateMaintainedDesignSingleValue(contradictory, 'fixture'),
+      /documentation_authority_design_current_status_prose/,
+      `current lifecycle prose must reject ${lifecycle}`,
+    );
+    const direct = `${designFixture({ id: '0099', status: 'verified' })}\n## Notes\n\nD0099 is currently ${lifecycle}.\n`;
+    assert.throws(
+      () => validateMaintainedDesignSingleValue(direct, 'fixture'),
+      /documentation_authority_design_current_status_prose/,
+      `direct current prose must reject ${lifecycle}`,
+    );
+  }
+  const historical = `${designFixture({ id: '0099', status: 'verified' })}\n## Historical readiness — as of revision 1\n\nCurrent lifecycle status is blocked.\n`;
   assert.equal(validateMaintainedDesignSingleValue(historical, 'fixture'), true);
 });
 

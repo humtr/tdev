@@ -189,7 +189,7 @@ export function resolvePublishedAuthority({ repository, candidates, isAncestor }
 
 export function validateMaintainedDesignSingleValue(text, label = 'Design') {
   const historicalScope = /\b(?:historical|as[- ]of|predecessor|prior revision|former|earlier|previous)\b|\brevision\s+\d+\b|\bat\s+(?:that|the)\s+checkpoint\b/i;
-  const lifecycleValue = '(?:draft|accepted|implementing|verified|reopened|superseded)';
+  const lifecycleValue = '(?:draft|accepted|implementing|blocked|reopened|verified|superseded)';
   const currentAssertion = new RegExp(
     `\\bcurrently\\s+${lifecycleValue}\\b|` +
     `\\bcurrent\\b[^\\n]{0,80}\\b(?:lifecycle|status)\\b[^\\n]{0,80}\\b${lifecycleValue}\\b|` +
