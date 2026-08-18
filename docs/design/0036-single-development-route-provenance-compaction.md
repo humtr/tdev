@@ -1,12 +1,13 @@
 # Design 0036 — Single Development Route and Provenance Compaction
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-18
 - Acceptance base: `group/f-cloudflare-runtime@675e2a192828954251f76fafcc34ef077bdad1f0`
 - Trigger: user-directed application of ACR campaign `tdev-20260818-devstate-planab-01`, convergence `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, after target-native R0 verification
 - Acceptance evidence: `docs/evidence/group-f-d0036-r1-single-development-route-acceptance-2026-08-18.json`
+- Implementation entered from exact published acceptance `group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522`; the one-time migration manifest is `docs/evidence/group-f-d0036-r1-development-route-compaction-manifest-2026-08-18.json`.
 - Scope: self-development route topology, pre-bootstrap route election migration, checkpoint/ref provenance compaction, bounded provider-ref retirement and the migration evidence needed to prove them
 - Product/runtime semantics: unchanged
 - Explicit non-goals: no merge or fast-forward of `main`; no product Git-Promotion change; no Cloudflare/runtime/deployment mutation; no tmcp retirement; no canonical-history rewrite; no wholesale merge of divergent historical branches; no structured-governance refactor beyond the fields needed to make this migration fail closed

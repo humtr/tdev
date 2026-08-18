@@ -1,0 +1,66 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0036",
+  "revision": 1,
+  "migrationStatus": "accepted_not_started",
+  "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
+  "targetDevelopmentRef": "development",
+  "bridge": {
+    "acceptedDesignCommit": "151253a7a927916aa60ba685733930105f830522",
+    "legacyAuthorityAtImplementationEntry": "group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522",
+    "seedSha": null,
+    "cutoverSha": null,
+    "legacyResolverResult": null,
+    "persistentResolverResult": null,
+    "defaultAligned": false,
+    "legacyFallbackRemoved": false
+  },
+  "refs": [],
+  "providerRereads": [
+    {
+      "job": "job_975_5d3e6c0cf7",
+      "phase": "post_acceptance_publication",
+      "groupF": "151253a7a927916aa60ba685733930105f830522",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": null
+    },
+    {
+      "job": "job_976_537d68d0e4",
+      "phase": "post_acceptance_authority_election",
+      "legacyAuthority": "group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522",
+      "legacyPredecessor": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
+      "ancestryVerified": true
+    }
+  ],
+  "validation": [
+    {
+      "job": "job_96s_bbc2ea0818",
+      "phase": "acceptance",
+      "result": "docs_check_passed"
+    },
+    {
+      "job": "job_96r_5bd6c19ece",
+      "phase": "acceptance_probe",
+      "result": "test_fixture_debt_identified",
+      "passed": 40,
+      "failed": 1
+    },
+    {
+      "job": "job_97k_503930cddc",
+      "phase": "implementation_entry",
+      "result": "generic_design_fixture_repair_passed",
+      "governanceTests": 41,
+      "passed": 41,
+      "documentationCheck": "passed",
+      "diffCheck": "passed"
+    }
+  ],
+  "unresolvedExternalConsumers": [
+    {
+      "scope": "external branch-name or exact-object consumers not visible in current repository/provider/tmcp evidence",
+      "status": "not_yet_audited_per_ref",
+      "effect": "legacy-ref deletion remains unauthorized until the affected ref is individually bounded; unresolved required consumers retain that ref"
+    }
+  ]
+}

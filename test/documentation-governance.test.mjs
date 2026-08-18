@@ -29,14 +29,14 @@ const currentRoadmap = fs.readFileSync(new URL('../docs/ROADMAP.md', import.meta
 const currentProgram = fs.readFileSync(new URL('../docs/development/PROGRAM.md', import.meta.url), 'utf8');
 const currentDeployment = fs.readFileSync(new URL('../docs/DEPLOYMENT.md', import.meta.url), 'utf8');
 const currentD0018 = fs.readFileSync(new URL('../docs/design/0018-adversarial-converged-model-runtime-boundary.md', import.meta.url), 'utf8');
-const currentDesignTexts = Object.fromEntries([
-  'docs/design/0031-self-development-documentation-authority.md',
-  'docs/design/0032-qualification-authority-recomposition.md',
-  'docs/design/0033-program-roadmap-authority-recomposition.md',
-  'docs/design/0034-product-contract-evidence-history-recomposition.md',
-  'docs/design/0019-casedo-authority-adapter.md',
-  'docs/design/0030-immutable-journal-publication-portability.md',
-].map((relativePath) => [relativePath, fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8')]));
+const currentDesignTexts = Object.fromEntries(
+  fs.readdirSync(new URL('../docs/design/', import.meta.url))
+    .filter((name) => /^\d{4}-.+\.md$/.test(name))
+    .map((name) => {
+      const relativePath = `docs/design/${name}`;
+      return [relativePath, fs.readFileSync(new URL(`../${relativePath}`, import.meta.url), 'utf8')];
+    }),
+);
 
 function workboardFixture({
   group = 'Group F — Cloudflare runtime and local Agent topology',
