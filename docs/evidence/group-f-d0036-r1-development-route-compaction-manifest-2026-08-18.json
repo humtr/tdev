@@ -3,13 +3,15 @@
   "repository": "humtr/tdev",
   "design": "D0036",
   "revision": 1,
-  "migrationStatus": "accepted_not_started",
+  "migrationStatus": "bridge_seeded",
   "mainBaseline": "b86287b84375e2aeb833cf775371a7808a1239cf",
   "targetDevelopmentRef": "development",
   "bridge": {
     "acceptedDesignCommit": "151253a7a927916aa60ba685733930105f830522",
+    "implementationEntryCommit": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
     "legacyAuthorityAtImplementationEntry": "group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522",
-    "seedSha": null,
+    "seedSha": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+    "seedLegacyAuthority": "group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
     "cutoverSha": null,
     "legacyResolverResult": null,
     "persistentResolverResult": null,
@@ -31,6 +33,30 @@
       "legacyAuthority": "group/f-cloudflare-runtime@151253a7a927916aa60ba685733930105f830522",
       "legacyPredecessor": "group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e",
       "ancestryVerified": true
+    },
+    {
+      "job": "job_97v_5757a0ae08",
+      "phase": "pre_seed_fresh_election",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "development": null,
+      "legacyAuthority": "group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6"
+    },
+    {
+      "job": "job_97w_5b06a7a6d7",
+      "phase": "seed_creation",
+      "development": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "expectedPriorDevelopment": null,
+      "result": "created_from_exact_fresh_group_f_head"
+    },
+    {
+      "job": "job_97x_8f6bf04410",
+      "phase": "post_seed_reread",
+      "groupF": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "development": "f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+      "legacyAuthority": "group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6",
+      "seedEligibleUnderLegacyResolver": false
     }
   ],
   "validation": [
@@ -52,6 +78,32 @@
       "result": "generic_design_fixture_repair_passed",
       "governanceTests": 41,
       "passed": 41,
+      "documentationCheck": "passed",
+      "diffCheck": "passed"
+    },
+    {
+      "job": "job_97r_d443b02c16",
+      "phase": "implementation_entry_source_gate",
+      "result": "passed",
+      "coverageRunTests": 379,
+      "coverageRunPassed": 379,
+      "artifactSha256": "909081078a8d060013533b881441c3dfec35f5792bfd0cbc424b51dea5a6b325"
+    },
+    {
+      "job": "job_98k_9cdb9d97bf",
+      "phase": "bridge_cutover_probe",
+      "result": "failed_then_corrected",
+      "passed": 41,
+      "failed": 5,
+      "falsifier": "legacy stable-route-literal guard treated the stable route token development as any prose occurrence after the D0036 route changed from a mutable Group ref",
+      "disposition": "preserve the legacy mutable-route ban only when no persistent route mode is active; require persistent-v1 to bind exactly development"
+    },
+    {
+      "job": "job_98p_f298b737c4",
+      "phase": "bridge_cutover_focused",
+      "result": "passed",
+      "governanceTests": 46,
+      "passed": 46,
       "documentationCheck": "passed",
       "diffCheck": "passed"
     }

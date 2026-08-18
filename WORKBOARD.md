@@ -6,8 +6,9 @@
 
 - Repository: `humtr/tdev`
 - Active cumulative Group: Group F — Cloudflare runtime and local Agent topology
-- Active cumulative branch: `group/f-cloudflare-runtime`
-- Immediate completed predecessor: `group/e-context-delivery@151aed9ffdb86fd3967b8ab7ecfd012e884a0e3e`, checkpoint `cp_1786580384438_9ed881e039da`
+- Development route mode: `persistent-v1`
+- Active cumulative branch: `development`
+- Immediate completed predecessor: `group/f-cloudflare-runtime@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6`, checkpoint `D0036 R2a byte-identical seed`
 - Checkpoint succession owner: `LINEAGE.md`
 
 A mutable remote head is not stored here as timeless authority. Re-read the provider ref immediately before any remote-changing action and prove the expected non-force predecessor/ancestry.
@@ -20,14 +21,14 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 ## Selected next action
 
-- D0036@r1 — seed and prove the persistent development-route bridge before any legacy-ref retirement
+- D0036@r1 — prove legacy/persistent resolver equality on the published `development` cutover before any legacy-ref retirement
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- D0031@r7 and D0033@r3 are verified for the complete canonical lifecycle vocabulary, including `blocked`; the ACR R0 current-status-guard correction is closed at the verified source layer. D0036@r1 is implementing as the separate route/provenance migration: D0031 r7 remains the pre-cutover bootstrap predecessor until D0036 bridge equality is proved, and `main` must not move during D0036 R1-R3. The acceptance-time test-only hard-coded Design fixture is now repaired generically by enumerating maintained Design files; the route remains on Group F until the byte-identical `development` seed and bridge cutover are separately proved.
+- D0031@r7 and D0033@r3 are verified for the complete canonical lifecycle vocabulary, including `blocked`; the ACR R0 current-status-guard correction is closed at the verified source layer. D0036@r1 is implementing as the separate route/provenance migration. R2a seeded `development@f36d229ae1a2cf2c74c9e85c3ee3ea35a0980fd6` byte-identically from the freshly elected Group F head (`job_97w_5b06a7a6d7`), and provider reread `job_97x_8f6bf04410` proved `main` unchanged and the seed still ineligible under the legacy resolver. This WORKBOARD is the R2b cutover candidate: it self-declares `persistent-v1`/`development` with exact Group F predecessor, but no bridge/provider completion is claimed until both resolvers independently elect its published exact SHA.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r2 is verified at the bounded source/Linux-x64 qualification layers: helper abnormal completion, capability-cache lifecycle and clean-source-before-build behavior now fail closed as accepted; D0005/D0007 durable-format and normal qualified-publication meaning remains preserved. Destructive sudden-power-loss and unexecuted platform/filesystem profiles remain outside this verified claim.
 - D0032@r2 remains verified: QUALIFICATION mutable current result/evidence ledgers fail closed generically while historical/normative owner meaning remains preserved. D0033@r3 now verifies the corresponding complete-lifecycle PROGRAM current-status guard.

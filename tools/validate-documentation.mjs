@@ -90,6 +90,7 @@ export function parseProgramGates(text) {
 export function parseWorkboardRouting(text) {
   const group = singleMatch(text, /^- Active cumulative Group:\s*(.+)$/gm, 'active_group')[1].trim();
   const branch = singleMatch(text, /^- Active cumulative branch:\s*`([^`]+)`\s*$/gm, 'active_branch')[1];
+  const developmentRouteMode = parseDevelopmentRouteMode(text);
   const groupId = /\bGroup\s+([A-Z0-9]+)\b/.exec(group)?.[1];
   if (!groupId) throw new Error('documentation_authority_active_group_id: cannot derive Group ID');
 
@@ -116,7 +117,25 @@ export function parseWorkboardRouting(text) {
       throw new Error(`documentation_authority_selected_not_frontier: ${selected.id}@r${selected.revision}`);
     }
   }
-  return { group, groupId, branch, frontier, selected };
+  return { group, groupId, branch, developmentRouteMode, frontier, selected };
+}
+
+function developmentRouteModeLines(text) {
+  return text.split('\n').filter((line) => /^- Development route mode:/i.test(line));
+}
+
+function parseDevelopmentRouteMode(text) {
+  const lines = developmentRouteModeLines(text);
+  if (lines.length === 0) return null;
+  if (lines.length !== 1) {
+    throw new Error(`documentation_authority_development_route_mode: expected at most one declaration, found ${lines.length}`);
+  }
+  const match = /^- Development route mode:\s*`([^`]+)`\s*$/i.exec(lines[0]);
+  if (!match) throw new Error('documentation_authority_development_route_mode_malformed');
+  if (match[1] !== 'persistent-v1') {
+    throw new Error(`documentation_authority_development_route_mode_unsupported: ${match[1]}`);
+  }
+  return match[1];
 }
 
 function probeAuthorityCandidateIdentity(text) {
@@ -185,6 +204,60 @@ export function resolvePublishedAuthority({ repository, candidates, isAncestor }
   }
   const selected = maxima[0];
   return { repository, ref: selected.ref, sha: selected.sha };
+}
+
+export function resolvePersistentPublishedAuthority({ repository, candidates }) {
+  if (!repository || !Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error('documentation_authority_persistent_locator_missing_candidates');
+  }
+
+  const seen = new Set();
+  const eligible = [];
+  for (const candidate of candidates) {
+    if (!candidate || typeof candidate.ref !== 'string' || !/^[0-9a-f]{40}$/i.test(candidate.sha ?? '')) {
+      throw new Error('documentation_authority_persistent_locator_candidate_identity');
+    }
+    if (seen.has(candidate.ref)) throw new Error(`documentation_authority_persistent_locator_duplicate_ref: ${candidate.ref}`);
+    seen.add(candidate.ref);
+    if (candidate.ref.startsWith('concept-')) continue;
+    if (typeof candidate.workboardText !== 'string') continue;
+    const identity = probeAuthorityCandidateIdentity(candidate.workboardText);
+    if (!identity || identity.repository !== repository || identity.branch !== candidate.ref) continue;
+    const mode = parseDevelopmentRouteMode(candidate.workboardText);
+    if (mode !== 'persistent-v1') continue;
+    eligible.push({ ...candidate, sha: candidate.sha.toLowerCase() });
+  }
+
+  if (eligible.length === 0) throw new Error('documentation_authority_persistent_locator_no_eligible_candidate');
+  if (eligible.length !== 1) {
+    throw new Error(`documentation_authority_persistent_locator_ambiguous: ${eligible.map(({ ref, sha }) => `${ref}@${sha}`).join(',')}`);
+  }
+  return { repository, ref: eligible[0].ref, sha: eligible[0].sha };
+}
+
+export function resolveRepositoryAuthority({ repository, candidates, isAncestor }) {
+  if (!repository || !Array.isArray(candidates) || candidates.length === 0) {
+    throw new Error('documentation_authority_locator_missing_candidates');
+  }
+
+  let persistentRouteSignalled = false;
+  for (const candidate of candidates) {
+    if (!candidate || candidate.ref?.startsWith('concept-') || typeof candidate.workboardText !== 'string') continue;
+    const identity = probeAuthorityCandidateIdentity(candidate.workboardText);
+    if (!identity || identity.repository !== repository || identity.branch !== candidate.ref) continue;
+    if (developmentRouteModeLines(candidate.workboardText).length === 0) continue;
+    persistentRouteSignalled = true;
+    parseDevelopmentRouteMode(candidate.workboardText);
+  }
+
+  const legacy = resolvePublishedAuthority({ repository, candidates, isAncestor });
+  if (!persistentRouteSignalled) return legacy;
+
+  const persistent = resolvePersistentPublishedAuthority({ repository, candidates });
+  if (legacy.ref !== persistent.ref || legacy.sha !== persistent.sha) {
+    throw new Error(`documentation_authority_bridge_resolver_disagreement: legacy=${legacy.ref}@${legacy.sha} persistent=${persistent.ref}@${persistent.sha}`);
+  }
+  return persistent;
 }
 
 export function validateMaintainedDesignSingleValue(text, label = 'Design') {
@@ -299,12 +372,18 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   check(() => assert(workboard.split('\n').length <= 120, 'documentation_authority_workboard_too_large'));
   check(() => assert(!/^### D00(?:0[2-9]|1[0-5])\b/m.test(workboard), 'documentation_authority_workboard_history'));
 
-  for (const file of [
-    'AGENTS.md', 'RULE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md', 'docs/ROADMAP.md',
-    'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/SPEC.md', 'docs/ARCHITECTURE.md',
-    'docs/PROTOCOL.md', 'docs/OPERATIONS.md', 'docs/SECURITY.md', 'docs/DEPLOYMENT.md', 'docs/MCP.md',
-  ]) {
-    check(() => assert(!readText(file).includes(route.branch), 'documentation_authority_stable_route_literal', file));
+  check(() => assert(
+    route.developmentRouteMode !== 'persistent-v1' || route.branch === 'development',
+    'documentation_authority_persistent_route_branch', route.branch,
+  ));
+  if (route.developmentRouteMode === null) {
+    for (const file of [
+      'AGENTS.md', 'RULE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md', 'docs/ROADMAP.md',
+      'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/SPEC.md', 'docs/ARCHITECTURE.md',
+      'docs/PROTOCOL.md', 'docs/OPERATIONS.md', 'docs/SECURITY.md', 'docs/DEPLOYMENT.md', 'docs/MCP.md',
+    ]) {
+      check(() => assert(!readText(file).includes(route.branch), 'documentation_authority_stable_route_literal', file));
+    }
   }
 
   check(() => assert(existsPath('LINEAGE.md'), 'documentation_authority_missing_lineage'));

@@ -6,15 +6,15 @@ Scope: the entire repository unless a nearer `AGENTS.md` narrows only local impl
 
 `AGENTS.md` is the repository entrypoint, not a database of current branch or Design state.
 
-Before reading the fixed kernel, bind the repository snapshot that is allowed to supply it. If the caller already supplies a trusted exact immutable `ref@sha`, validate that identity directly. Otherwise freshly enumerate published candidate refs and resolve them under D0031's authority-location contract: a candidate is eligible only when its own `WORKBOARD.md` names the intended repository and declares that exact published ref as active; exact immediate-predecessor identity and Git ancestry must agree; select exactly one maximal eligible candidate. Zero candidates, multiple maxima, or identity/ancestry conflict fails the dependent mutation closed.
+Before reading the fixed kernel, bind the repository snapshot that is allowed to supply it. If the caller already supplies a trusted exact immutable `ref@sha`, validate that identity directly. Otherwise freshly enumerate published candidate refs. Published `concept-*` refs are conception/provenance snapshots and are excluded **before** parsing their `WORKBOARD.md`.
 
-Published `concept-*` refs are conception/provenance snapshots, not self-development route refs. Exclude them from authority-location candidates **before** parsing their `WORKBOARD.md`, even when snapshot-era prose inside them once claimed to be current. This is deny-only classification: it cannot elect another ref or bypass the remaining WORKBOARD/predecessor/ancestry checks.
+D0036 revision 1 introduces a fail-closed bridge from D0031's checkpoint-ref election to one persistent development route. For self-declaring non-concept candidates, first inspect the candidate's own `WORKBOARD.md` for repository identity, exact active ref and the optional `Development route mode` field. If no eligible self-declaring candidate declares a route mode, resolve the legacy D0031 election: exact immediate-predecessor identity and Git ancestry must agree and exactly one maximal eligible candidate must remain. If a self-declaring candidate declares a route mode, the declaration must be exactly one `persistent-v1` value, exactly one published `persistent-v1` candidate must self-declare the intended repository and its exact ref, and the legacy D0031 resolver must independently elect the same exact `ref@sha`. Malformed/unsupported/duplicate route-mode declarations on a self-declaring candidate, zero or multiple persistent candidates, legacy identity/ancestry failure, or resolver disagreement blocks the dependent mutation. Until D0036 later verifies terminal fallback removal, this equality check is mandatory; provider default, checkout or branch naming cannot substitute for it.
 
 The provider default branch, current checkout, branch naming, timestamps, remembered continuity, mere existence of a later ref and local-only unpublished refs are discovery inputs only. They do not elect the current route. Bind the selected exact `ref@sha`, then establish the fixed bootstrap kernel in this order:
 
 1. read `RULE.md` from the bound snapshot;
 2. read `SDD.md` from the bound snapshot;
-3. read `WORKBOARD.md` from the bound snapshot, confirm its active branch matches the bound published ref, and resolve the current development route from it;
+3. read `WORKBOARD.md` from the bound snapshot, confirm its active branch matches the bound published ref and, when present, its route mode is exactly `persistent-v1`, then resolve the current development route from it;
 4. compare any chat summary, handoff, project prompt, Task context, cached interpretation or historical record with those current owners;
 5. discard or mark stale every incompatible derived claim before dependent mutation.
 
@@ -41,7 +41,7 @@ Do not infer authority from file names, capitalization, branch location, generat
 ## Development route discipline
 
 - `WORKBOARD.md` owns the current routing instance: active cumulative Group/branch, zero or more runnable `Dxxxx@rN` foreign keys, the selected next action, and live debts/barriers. Design files own their status and maintained revision meaning.
-- `LINEAGE.md` owns stable checkpoint succession and completed-ref preservation. It does not own which Group is current.
+- `LINEAGE.md` owns stable Group-checkpoint succession and provenance preservation. Under D0036, a Group checkpoint does not imply a new persistent branch; it does not own which Group is current.
 - Resolve the active branch from `WORKBOARD.md`; do not carry a remembered branch from an earlier session or historical report.
 - Before a remote-changing action, freshly observe the actual provider ref and verify expected predecessor/ancestry. A commit SHA is immutable identity; a mutable ref observation is location- and time-specific.
 - Completed Group checkpoints and legacy refs are provenance. Do not force-rewrite them as routine development and do not return to them as the normal correction path for an inherited defect.

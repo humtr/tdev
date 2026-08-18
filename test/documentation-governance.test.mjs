@@ -13,7 +13,9 @@ import {
   parseSourceGateCommands,
   parseWorkboardRouting,
   rebindContinuity,
+  resolvePersistentPublishedAuthority,
   resolvePublishedAuthority,
+  resolveRepositoryAuthority,
   validateDocumentation,
   validateMaintainedDesignSingleValue,
 } from '../tools/validate-documentation.mjs';
@@ -41,12 +43,14 @@ const currentDesignTexts = Object.fromEntries(
 function workboardFixture({
   group = 'Group F — Cloudflare runtime and local Agent topology',
   branch = 'group/f-cloudflare-runtime',
+  developmentRouteMode = null,
   frontier = [{ id: 'D0019', revision: 2, path: 'docs/design/0019-casedo-authority-adapter.md' }],
   selected = { id: 'D0019', revision: 2 },
 } = {}) {
   return [
     '# WORKBOARD', '', '## Current routing', '',
     `- Active cumulative Group: ${group}`,
+    ...(developmentRouteMode ? [`- Development route mode: \`${developmentRouteMode}\``] : []),
     `- Active cumulative branch: \`${branch}\``, '',
     '## Runnable frontier', '',
     ...frontier.map((item) => `- ${item.id}@r${item.revision} — \`${item.path}\` — fixture gate`), '',
@@ -57,10 +61,11 @@ function workboardFixture({
   ].join('\n');
 }
 
-function authorityWorkboardFixture({ repository = 'humtr/tdev', branch, predecessor = null } = {}) {
+function authorityWorkboardFixture({ repository = 'humtr/tdev', branch, predecessor = null, developmentRouteMode = null } = {}) {
   return [
     '# WORKBOARD', '', '## Current routing', '',
     `- Repository: \`${repository}\``,
+    ...(developmentRouteMode ? [`- Development route mode: \`${developmentRouteMode}\``] : []),
     `- Active cumulative branch: \`${branch}\``,
     ...(predecessor ? [`- Immediate completed predecessor: \`${predecessor.ref}@${predecessor.sha}\`, checkpoint \`fixture\``] : []),
     '',
@@ -81,7 +86,8 @@ function sha256(text) {
 test('current repository documentation authority validates without duplicating frontier Design status', () => {
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
-  assert.equal(result.route.branch, 'group/f-cloudflare-runtime');
+  assert.equal(result.route.branch, 'development');
+  assert.equal(result.route.developmentRouteMode, 'persistent-v1');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
   const frontier = result.route.frontier.map((item) => `${item.id}@r${item.revision}`);
   assert.ok(!frontier.includes('D0019@r2'));
@@ -138,7 +144,7 @@ test('stale continuity cannot override a zero-frontier current route', () => {
     designTexts: currentDesignTexts,
     continuity: { branch: 'mvp-1a-7', group: 'Group E — context delivery', designId: 'D0019', designRevision: 1, designStatus: 'verified' },
   });
-  assert.equal(rebound.current.branch, 'group/f-cloudflare-runtime');
+  assert.equal(rebound.current.branch, 'development');
   assert.deepEqual(rebound.staleClaims, ['branch', 'group', 'designId']);
 });
 
@@ -298,6 +304,109 @@ test('authority location fails closed on competing elected successors or predece
   assert.throws(() => resolvePublishedAuthority({
     repository: 'humtr/tdev', candidates: [base, { ...left, workboardText: wrongPredecessor }], isAncestor: () => true,
   }), /documentation_authority_locator_predecessor_identity_conflict/);
+});
+
+test('repository authority keeps the byte-identical seed ineligible until its own WORKBOARD declares development', () => {
+  const legacyRef = 'group/f-cloudflare-runtime';
+  const sha = '1'.repeat(40);
+  const seeded = authorityWorkboardFixture({ branch: legacyRef });
+  const candidates = [
+    { ref: legacyRef, sha, workboardText: seeded },
+    { ref: 'development', sha, workboardText: seeded },
+  ];
+  assert.deepEqual(resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates, isAncestor: () => false }), {
+    repository: 'humtr/tdev', ref: legacyRef, sha,
+  });
+});
+
+test('persistent bridge requires legacy and persistent resolvers to elect the same development commit', () => {
+  const predecessorRef = 'group/f-cloudflare-runtime';
+  const predecessorSha = '1'.repeat(40);
+  const developmentSha = '2'.repeat(40);
+  const candidates = [
+    { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) },
+    {
+      ref: 'development', sha: developmentSha,
+      workboardText: authorityWorkboardFixture({
+        branch: 'development', developmentRouteMode: 'persistent-v1',
+        predecessor: { ref: predecessorRef, sha: predecessorSha },
+      }),
+    },
+  ];
+  const isAncestor = (ancestor, descendant) => ancestor === predecessorSha && descendant === developmentSha;
+  const expected = { repository: 'humtr/tdev', ref: 'development', sha: developmentSha };
+  assert.deepEqual(resolvePublishedAuthority({ repository: 'humtr/tdev', candidates, isAncestor }), expected);
+  assert.deepEqual(resolvePersistentPublishedAuthority({ repository: 'humtr/tdev', candidates }), expected);
+  assert.deepEqual(resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates, isAncestor }), expected);
+});
+
+test('persistent route declarations fail closed on competition, malformed mode and legacy disagreement', () => {
+  const predecessorRef = 'group/f-cloudflare-runtime';
+  const predecessorSha = '1'.repeat(40);
+  const developmentSha = '2'.repeat(40);
+  const base = { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) };
+  const development = {
+    ref: 'development', sha: developmentSha,
+    workboardText: authorityWorkboardFixture({
+      branch: 'development', developmentRouteMode: 'persistent-v1',
+      predecessor: { ref: predecessorRef, sha: predecessorSha },
+    }),
+  };
+  const competing = {
+    ref: 'alternate-development', sha: '3'.repeat(40),
+    workboardText: authorityWorkboardFixture({ branch: 'alternate-development', developmentRouteMode: 'persistent-v1' }),
+  };
+  assert.throws(
+    () => resolvePersistentPublishedAuthority({ repository: 'humtr/tdev', candidates: [base, development, competing] }),
+    /documentation_authority_persistent_locator_ambiguous/,
+  );
+
+  const malformed = {
+    ...development,
+    workboardText: authorityWorkboardFixture({ branch: 'development', developmentRouteMode: 'future-v2' }),
+  };
+  assert.throws(
+    () => resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [base, malformed], isAncestor: () => true }),
+    /documentation_authority_development_route_mode_unsupported/,
+  );
+
+  const missingPredecessor = {
+    ...development,
+    workboardText: authorityWorkboardFixture({ branch: 'development', developmentRouteMode: 'persistent-v1' }),
+  };
+  assert.throws(
+    () => resolveRepositoryAuthority({ repository: 'humtr/tdev', candidates: [base, missingPredecessor], isAncestor: () => true }),
+    /documentation_authority_locator_ambiguous_maxima/,
+  );
+});
+
+test('concept persistent markers are excluded before persistent route parsing', () => {
+  const predecessorRef = 'group/f-cloudflare-runtime';
+  const predecessorSha = '1'.repeat(40);
+  const concept = {
+    ref: 'concept-persistent', sha: '3'.repeat(40),
+    workboardText: authorityWorkboardFixture({ branch: 'concept-persistent', developmentRouteMode: 'future-v2' }),
+  };
+  assert.deepEqual(resolveRepositoryAuthority({
+    repository: 'humtr/tdev',
+    candidates: [
+      concept,
+      { ref: predecessorRef, sha: predecessorSha, workboardText: authorityWorkboardFixture({ branch: predecessorRef }) },
+    ],
+    isAncestor: () => false,
+  }), { repository: 'humtr/tdev', ref: predecessorRef, sha: predecessorSha });
+});
+
+test('persistent routing keeps Group transitions branch-stable', () => {
+  const groupF = parseWorkboardRouting(workboardFixture({ branch: 'development', developmentRouteMode: 'persistent-v1' }));
+  const groupG = parseWorkboardRouting(workboardFixture({
+    group: 'Group G — MCP, authentication and security', branch: 'development', developmentRouteMode: 'persistent-v1',
+  }));
+  assert.equal(groupF.branch, 'development');
+  assert.equal(groupG.branch, 'development');
+  assert.equal(groupF.developmentRouteMode, 'persistent-v1');
+  assert.equal(groupG.developmentRouteMode, 'persistent-v1');
+  assert.notEqual(groupF.groupId, groupG.groupId);
 });
 
 test('maintained Design current lifecycle assertions fail for the complete canonical vocabulary independent of heading spelling', () => {
@@ -551,9 +660,16 @@ test('PROGRAM rejects current maintained-Design lifecycle ledgers for the comple
   assert.equal(foreignKeyOnly.ok, true, foreignKeyOnly.failures?.join('\n'));
 });
 
-test('README stays current-neutral and cannot reintroduce a stale route or source-gate copy', () => {
+test('README stays current-neutral and legacy mutable routes cannot leak into stable docs', () => {
   assert.doesNotMatch(currentReadme, /mvp-1a-7|latest verified production-source layer|active development identity/i);
-  const stale = validateDocumentation(root, { 'README.md': `${currentReadme}\ngroup/f-cloudflare-runtime\n` });
+  const legacyBranch = 'group/f-cloudflare-runtime';
+  const legacyWorkboard = currentWorkboard
+    .replace('- Development route mode: `persistent-v1`\n', '')
+    .replace('- Active cumulative branch: `development`', `- Active cumulative branch: \`${legacyBranch}\``);
+  const stale = validateDocumentation(root, {
+    'WORKBOARD.md': legacyWorkboard,
+    'README.md': `${currentReadme}\n${legacyBranch}\n`,
+  });
   assert.equal(stale.ok, false);
   assert.match(stale.failures.join('\n'), /documentation_authority_stable_route_literal: README\.md/);
 

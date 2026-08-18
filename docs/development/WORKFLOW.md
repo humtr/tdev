@@ -45,11 +45,11 @@ local active ref:     <ref> @ <sha-or-unobserved>
 working mirror:       <ref/detached> @ <sha-or-unobserved>
 ```
 
-Before `WORKBOARD.md` can resolve the route, bind the exact published snapshot that supplies it. When no trusted immutable `ref@sha` is already supplied, enumerate published candidates and apply D0031 authority location: the candidate's own `WORKBOARD.md` must name the intended repository and the same published ref as active, declared immediate-predecessor identity and Git ancestry must agree, and exactly one maximal eligible candidate must remain. Any absence, competing maxima or identity/ancestry conflict is `BLOCKED` for the dependent mutation.
+Before `WORKBOARD.md` can resolve the route, bind the exact published snapshot that supplies it using the current `AGENTS.md` authority-location contract. `concept-*` refs are excluded before candidate WORKBOARD parsing. With no self-declaring route-mode marker, the verified D0031 legacy predecessor/ancestry election remains active. During the D0036 bridge, exactly one self-declaring `persistent-v1` candidate must exist and the legacy resolver must independently elect the same exact `ref@sha`; any malformed/competing marker, predecessor/ancestry failure or resolver disagreement is `BLOCKED` for the dependent mutation.
 
-`concept-*` refs are conception/provenance snapshots and are excluded before candidate WORKBOARD parsing. They may be inspected for historical rationale or evidence when needed, but they never become the work/publication route and cannot block the cumulative Group route merely by containing stale self-current prose.
+A byte-identical `development` seed does not become authority by ref existence alone. It becomes the work/publication route only after its own WORKBOARD self-declares `development` and the bridge equality gate succeeds. Terminal removal of legacy fallback is separately proved later in D0036.
 
-Resolve the active cumulative Group and branch only from the `WORKBOARD.md` in that bound snapshot. Do not infer them from the repository default branch, an old Design, a historical report, a handoff, a Task transport branch, timestamps, branch naming, mere ref existence or the sequence in `LINEAGE.md`.
+Resolve the active cumulative Group and branch only from the `WORKBOARD.md` in that bound snapshot. Under D0036 the Group may advance while the branch remains `development`. Do not infer either field from repository default, an old Design, historical report, handoff, Task transport branch, timestamps, branch naming, mere ref existence or prior Group succession.
 
 The normal capable local checkout should track the active cumulative branch when safe. If it is on a completed/predecessor branch, that is `CHECKOUT_ALIGNMENT_DEBT`, not a second route authority. The provider default may likewise be aligned as a compatibility/discovery pointer only after current authority is already resolved. Preserve unrelated dirty state; align safely or use an isolated worktree from the exact current active ref.
 
@@ -73,7 +73,7 @@ Intentional ancestry differences between completed and successor Group refs are 
 
 Before substantive mutation:
 
-1. locate and bind one exact published current repository snapshot under `AGENTS.md`/D0031 unless a trusted immutable identity is already supplied;
+1. locate and bind one exact published current repository snapshot under the current `AGENTS.md` authority algorithm (legacy D0031 before a route marker; D0036 dual-resolver equality during the bridge) unless a trusted immutable identity is already supplied;
 2. complete the fixed bootstrap from that bound snapshot: `RULE.md`, `SDD.md`, `WORKBOARD.md`;
 3. confirm the bound ref matches the active branch declared by `WORKBOARD.md`, then resolve the active cumulative branch, runnable Design revision references, selected next action and live debts from it;
 4. load this workflow when execution/replica/publication state matters, and `LINEAGE.md` when checkpoint succession matters;
@@ -122,18 +122,18 @@ Checkpoint creation and successor rules come from `LINEAGE.md`; capability exit 
 
 When the active Group exit is satisfied:
 
-1. re-observe the exact active Group head on required planes;
+1. re-observe the exact active `development` head on required planes;
 2. finish required source/provider/target validation;
-3. record Design/evidence identities and unresolved boundaries;
-4. reconcile debt required to elect a trustworthy final checkpoint;
-5. retain the completed Group ref at the exact final head;
-6. create the successor only from that exact head;
-7. update `WORKBOARD.md` to the successor route;
+3. record the exact checkpoint commit, Design/evidence identities and unresolved boundaries;
+4. reconcile debt required to trust the completed Group checkpoint;
+5. retain an additional ref only when the current lineage/consumer/recovery contract requires one;
+6. update `WORKBOARD.md` to the successor Group while keeping `development` as the active route;
+7. publish that update only as a normal non-force descendant of the exact completed checkpoint;
 8. align capable local/default operational pointers when safe, otherwise record exact alignment debt; alignment is compatibility/discovery state, never route election;
-9. reread any aligned provider/default pointer when its alignment is part of the checkpoint evidence;
-10. do not update retained predecessor refs merely to mirror the successor.
+9. reread any aligned provider/default pointer when its alignment is part of checkpoint evidence;
+10. do not update retained legacy refs merely to mirror later development.
 
-If no planned Group remains, the prototype fork follows the final rule in `LINEAGE.md`.
+A future prototype/ref topology change follows the then-current accepted owner in `LINEAGE.md`; it is not implied by reaching the final planned Group.
 
 ## 9. Publication safety
 

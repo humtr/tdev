@@ -35,7 +35,7 @@ Self-development documents answer how this repository is changed, routed, design
 | stable implementation guardrails | `RULE.md` |
 | change classification and Design lifecycle | `SDD.md` |
 | current routing instance, runnable Design foreign keys, selected action and live carry-forward constraints | `WORKBOARD.md` |
-| cumulative checkpoint succession/preservation | `LINEAGE.md` |
+| Group-checkpoint succession and provenance preservation | `LINEAGE.md` |
 | documentation taxonomy and naming | `docs/DOCUMENTATION.md` |
 | development plane/worktree/synchronization/publication workflow | `docs/development/WORKFLOW.md` |
 | stable final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |
@@ -74,11 +74,13 @@ Evidence is therefore a first-class truth category but is not a peer bootstrap r
 
 ## 2. Authority location, bootstrap and progressive loading
 
-Before the fixed kernel can be trusted, a fresh actor must know which exact published snapshot supplies it. Authority location is therefore a pre-bootstrap resolution step, not a fifth bootstrap owner. It may inspect published `ref@sha` candidates, each candidate's own `WORKBOARD.md`, and exact immediate-predecessor identity/ancestry solely to select one exact snapshot or fail closed. Its output is ephemeral, names its source observations, and becomes invalid when those observations change.
+Before the fixed kernel can be trusted, a fresh actor must know which exact published snapshot supplies it. Authority location is therefore a pre-bootstrap resolution step, not a fifth bootstrap owner. Its output is ephemeral, names its source observations, and becomes invalid when those observations change.
 
-The `concept-*` branch namespace is explicitly reserved for conception/provenance snapshots. Those refs are not routing candidates and are filtered before WORKBOARD parsing; historical self-current prose or legacy WORKBOARD shape inside them cannot create a competing current owner. This namespace is exclusion-only and cannot positively select a route.
+The `concept-*` branch namespace is explicitly reserved for conception/provenance snapshots. Those refs are filtered before WORKBOARD parsing; historical self-current prose or legacy WORKBOARD shape inside them cannot create a competing current owner. This namespace is exclusion-only and cannot positively select a route.
 
-Provider default, checkout state, branch-name shape, timestamps, continuity caches and local-only refs may help discover candidates but cannot elect the route. A candidate is eligible only when the `WORKBOARD.md` contained by that published ref declares the same repository and active ref; exact predecessor identity/ancestry must agree; exactly one maximal eligible candidate is required.
+D0036 revision 1 supplies the bridge from legacy multi-checkpoint-ref election to the persistent route. If no exact self-declaring non-concept candidate declares `Development route mode`, use the verified D0031 legacy rule: candidate repository/ref self-declaration plus exact predecessor identity/ancestry must leave one maximal candidate. Once a self-declaring candidate declares a route mode, exactly one `persistent-v1` self-declaring candidate is required and the legacy resolver must independently select the same exact `ref@sha`. Malformed or competing persistent declarations and old/new resolver disagreement fail closed. Terminal removal of the legacy fallback is a later D0036 verification gate and is not inferred merely from the existence of `development`.
+
+Provider default, checkout state, branch-name shape, timestamps, continuity caches and local-only refs may help discover candidates but cannot elect the route. During the bridge, even a byte-identical `development` seed remains ineligible until its own published WORKBOARD self-declares `development` and satisfies the dual-resolver equality contract.
 
 After exact snapshot binding, the unconditional repository bootstrap is:
 
@@ -149,7 +151,7 @@ No requirement disappears because its mechanism is undecided. Unknown, condition
 
 Conversely, a planned Design needs a parent product requirement, risk, verification gap or evidence-backed optimization. A Design number is never authorization by itself.
 
-Checkpoint lineage is orthogonal to this trace: a Group checkpoint preserves accumulated work only after its exit can be trusted; branch names do not own capabilities.
+Checkpoint lineage is orthogonal to this trace: a Group checkpoint preserves accumulated work only after its exit can be trusted; branch names do not own capabilities. Under D0036, checkpoint identity is an exact reachable commit plus evidence by default, not a requirement for one permanent branch per Group.
 
 ## 5. Naming semantics
 
