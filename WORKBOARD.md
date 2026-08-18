@@ -16,16 +16,18 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
+- D0036@r1 — `docs/design/0036-single-development-route-provenance-compaction.md` — establish one persistent `development` route, bridge authority resolution, and perform barriered provenance compaction without moving `main`
+
 ## Selected next action
 
-- none
+- D0036@r1 — seed and prove the persistent development-route bridge before any legacy-ref retirement
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
 - Group E is completed and retained. D0017 production source is verified on its declared supported-Termux source scope; D0018 production source/runtime is verified on its declared supported-Termux trusted-local scope. Their detailed historical qualification belongs in their Design/evidence/history records, not this router.
-- D0031@r7 and D0033@r3 are verified for the complete canonical lifecycle vocabulary, including `blocked`; the ACR R0 current-status-guard correction is closed at the verified source layer. D0031 r6 and D0033 r2 remain historical verified predecessors.
+- D0031@r7 and D0033@r3 are verified for the complete canonical lifecycle vocabulary, including `blocked`; the ACR R0 current-status-guard correction is closed at the verified source layer. D0036@r1 is accepted as the separate route/provenance migration: D0031 r7 remains the pre-cutover bootstrap predecessor until D0036 bridge equality is proved, and `main` must not move during D0036 R1-R3. Acceptance `docs:check` is green; the focused governance probe exposed one test-only hard-coded Design fixture that must be made generic during D0036 implementation before source verification.
 - D0019@r2 is production-verified. The elected SQLite-backed CaseDO remains the single semantic owner for placed Cases under the verified D1 placement/fencing/recovery/capacity/rollout boundary; D0020 Agent delivery/connection semantics remain separate and unactivated.
 - D0030@r2 is verified at the bounded source/Linux-x64 qualification layers: helper abnormal completion, capability-cache lifecycle and clean-source-before-build behavior now fail closed as accepted; D0005/D0007 durable-format and normal qualified-publication meaning remains preserved. Destructive sudden-power-loss and unexecuted platform/filesystem profiles remain outside this verified claim.
 - D0032@r2 remains verified: QUALIFICATION mutable current result/evidence ledgers fail closed generically while historical/normative owner meaning remains preserved. D0033@r3 now verifies the corresponding complete-lifecycle PROGRAM current-status guard.
@@ -51,6 +53,6 @@ The selected next action must be `none` or identify exactly one entry already pr
 
 - A missing or conflicting bootstrap/current-router owner blocks only the dependent mutation until corrected under `SDD.md`.
 - A selected Design action missing from the runnable frontier, or a frontier Design whose owner revision/status does not authorize implementation, blocks only that selected/dependent gate.
-- Completed Group/legacy refs are provenance and are not rewritten for ordinary correction.
+- Completed Group/legacy refs are provenance and are not rewritten for ordinary correction. D0036 may retire a ref only through its accepted per-ref content/consumer/reachability barrier; unresolved refs remain explicit retained exceptions.
 - A falsifier that reaches an accepted/verified Design meaning reopens the affected scope; new dependent mutation waits for corrected acceptance/supersession. Operational rollback is a separate deployment/state decision.
 - Product/runtime/provider/migration semantics unresolved by current owners remain `unknown`; D0031 does not authorize guessing them.

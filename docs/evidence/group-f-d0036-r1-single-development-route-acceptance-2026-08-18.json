@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "design": "D0036",
+  "revision": 1,
+  "phase": "acceptance",
+  "date": "2026-08-18",
+  "repository": "humtr/tdev",
+  "exactAuthorityBase": "group/f-cloudflare-runtime@675e2a192828954251f76fafcc34ef077bdad1f0",
+  "acrCampaign": "tdev-20260818-devstate-planab-01",
+  "acrConvergenceRef": "acr/tdev-20260818-devstate-planab-01/convergence",
+  "acrHandoffSha": "dda5c3bbae5f137a7ba1f93ed08004b14a4704e0",
+  "providerObservation": {
+    "main": "b86287b84375e2aeb833cf775371a7808a1239cf",
+    "currentDevelopmentRef": "group/f-cloudflare-runtime",
+    "currentDevelopmentSha": "675e2a192828954251f76fafcc34ef077bdad1f0",
+    "targetDevelopmentRef": "development",
+    "targetDevelopmentRefPresent": false,
+    "targetDevelopmentRefnameValid": true
+  },
+  "classification": {
+    "class": 2,
+    "newDesignRequired": true,
+    "reason": "Separately decidable provider migration/cutover with a materially different persistent-route and provenance owner model under D0031 section 5.2 and SDD.md.",
+    "d0035Independent": true
+  },
+  "acceptedDecision": {
+    "persistentDevelopmentRef": "development",
+    "mainMoves": false,
+    "persistentRouteMode": "persistent-v1",
+    "legacyBridgeRequired": true,
+    "legacyFallbackTerminallyRemoved": true,
+    "perCheckpointPersistentRefs": false,
+    "wholeBranchMergeForProvenance": false,
+    "canonicalHistoryRewrite": false,
+    "perRefDeletionBarrier": true,
+    "unknownExternalConsumerPolicy": "retain the affected ref when available evidence cannot bound a required external branch-name or exact-object dependency",
+    "developmentToMainMergeActivated": false
+  },
+  "acceptanceValidation": {
+    "documentationCheck": {
+      "job": "job_96s_bbc2ea0818",
+      "status": "passed",
+      "route": "group/f-cloudflare-runtime",
+      "frontier": ["D0036@r1"],
+      "selected": "D0036@r1"
+    },
+    "focusedGovernanceProbe": {
+      "job": "job_96r_5bd6c19ece",
+      "passed": 40,
+      "failed": 1,
+      "failure": "test-only currentDesignTexts fixture does not yet load the newly added D0036 file",
+      "productionDocumentationValidatorFailed": false,
+      "disposition": "implementation prerequisite; fix generically after this accepted Design is published before source verification"
+    }
+  },
+  "implementationExecuted": false,
+  "providerTopologyMutation": false,
+  "runtimeDeploymentMutation": false,
+  "productSemanticsChanged": false
+}
