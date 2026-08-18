@@ -26,7 +26,7 @@
 | D0030 | r2 | verified | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
 | D0031 | r7 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 | D0032 | r2 | verified | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
-| D0033 | r3 | accepted | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
+| D0033 | r3 | verified | Program and Roadmap Authority Recomposition | `docs/design/0033-program-roadmap-authority-recomposition.md` |
 | D0034 | r1 | verified | Product Contract Evidence and History Recomposition | `docs/design/0034-product-contract-evidence-history-recomposition.md` |
 | D0035 | r1 | draft | tdev Self-Hosting and tmcp Retirement | `docs/design/0035-tdev-self-hosting-and-tmcp-retirement.md` |
 

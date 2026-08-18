@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "design": "D0033",
+  "revision": 3,
+  "phase": "verification",
+  "date": "2026-08-18",
+  "repository": "humtr/tdev",
+  "acceptanceCommit": "615e979fb8026c1c704a38c3a8a0a4013320a73f",
+  "implementationBase": "b12509e9d645ccd6156c22f21ce64a56c91f8cbf",
+  "implementationSource": "8decd6e910a4b3e9572de37478a09a6633236449",
+  "acrCampaign": "tdev-20260818-devstate-planab-01",
+  "acrHandoffSha": "dda5c3bbae5f137a7ba1f93ed08004b14a4704e0",
+  "verification": {
+    "focusedGovernance": {
+      "job": "job_95i_7e68536892",
+      "tests": 41,
+      "passed": 41,
+      "documentationCheck": "passed"
+    },
+    "completeLifecycleFalsifier": {
+      "values": ["draft", "accepted", "implementing", "blocked", "reopened", "verified", "superseded"],
+      "directCurrentForm": "all rejected with documentation_authority_program_design_status_prose",
+      "latestLifecycleForm": "all rejected with documentation_authority_program_design_status_prose",
+      "historicalBlockedControl": "allowed",
+      "maintainedForeignKeyControl": "allowed"
+    },
+    "fullSourceGate": {
+      "job": "job_95o_2bb4990135",
+      "status": "succeeded",
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ],
+      "coverageRunTests": 379,
+      "coverageRunPassed": 379,
+      "artifactSha256": "167f0f58bb1eca06885c8675ff329d2c948cb98201366e9b6489f483936442f6"
+    }
+  },
+  "verifiedMeaning": [
+    "PROGRAM rejects current maintained-Design lifecycle assertions for every canonical lifecycle value, including blocked",
+    "maintained Design foreign keys remain allowed",
+    "explicit historical/non-current planning prose remains allowed",
+    "ROADMAP/PROGRAM owner separation and D0033 revision 2 unaffected meaning remain preserved"
+  ],
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false,
+  "unverifiedLayers": []
+}
