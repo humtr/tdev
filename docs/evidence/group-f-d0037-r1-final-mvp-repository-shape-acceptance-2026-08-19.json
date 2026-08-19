@@ -1,0 +1,47 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0037",
+  "revision": 1,
+  "decisionDate": "2026-08-19",
+  "acceptanceBase": "development@d554e4a2bcfe1af60931006487b21aa41b12873e",
+  "trigger": "explicit user @acr apply",
+  "acr": {
+    "campaign": "tdev-20260819-mvp-repository-shape-01",
+    "convergenceRef": "acr/tdev-20260819-mvp-repository-shape-01/convergence",
+    "reviewQuality": "STRONG",
+    "applicationReadiness": "CONDITIONAL_ON_EXECUTABLE_PROOF",
+    "reviewedTarget": "development@d554e4a2bcfe1af60931006487b21aa41b12873e",
+    "targetMutationDuringReview": "none"
+  },
+  "acceptedDecision": {
+    "productRuntimeSource": "keep flat semantic src with src/index.mjs entrypoint",
+    "qualificationBoundary": "introduce top-level qualification/ for permanent non-product executable qualification/falsifier machinery",
+    "semanticMigrations": [
+      "D0019 internal qualification source/tool/test paths -> semantic cloudflare-casedo names; provider identities unchanged",
+      "D0030 native/build/workflow/qualification paths -> immutable-journal-publication semantic names as one deployment-shaped unit",
+      "D0018 executable falsifiers -> semantic model-runtime qualification names"
+    ],
+    "deletionCandidates": [
+      "D0009 research comparison executables",
+      "D0016/D0017 selection-only benches",
+      "development-state comparison executables",
+      "byte-identical D0030 benchmark helper duplicate"
+    ],
+    "preserve": [
+      "product/runtime semantics and public API",
+      "permanent regression and qualification coverage",
+      "Design/evidence/history provenance",
+      "schema/protocol/profile/migration identities",
+      "D0019 provider resource/binding identities unless separately migrated",
+      "persistent development route"
+    ]
+  },
+  "executableProofBoundaries": [
+    "whole-tree consumer/invariant scan before deletion-class paths disappear",
+    "baseline discovery/validation after qualification/ is introduced",
+    "D0019 focused/provider qualification for migrated internal paths where provider access is available",
+    "D0030 build/install/helper-identity/recovery/portability/mixed-race and workflow/check evidence before old paths/aliases disappear",
+    "external/manual consumer proof for old npm script, workflow/check and direct-path names; retain compatibility if absence is unproved"
+  ]
+}

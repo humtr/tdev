@@ -16,11 +16,11 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-
+- D0037@r1 — `docs/design/0037-final-mvp-repository-shape.md` — final-MVP repository shape and qualification-boundary application
 
 ## Selected next action
 
-- none
+- D0037@r1 — final-MVP repository shape and qualification-boundary application
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
