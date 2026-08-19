@@ -44,7 +44,7 @@ The numbers are not a serial queue. The current planning relation is approximate
 ```text
 D0019@r2 -----+-------------------------------+
               |                               |
-D0030@r1 --(when required by selected store qualification route)
+D0030@r2 --(when required by selected store qualification route)
               |                               |
 D0020 --------+----> runtime spine <---- D0027
               |                 |             |
