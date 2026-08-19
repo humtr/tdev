@@ -14,7 +14,7 @@ import {
   readCleanSourceSha,
   readD1PlacementRecord,
   setD0019QualificationSubdomains,
-} from './d0019-cloudflare-api.mjs';
+} from './cloudflare-casedo-api.mjs';
 import {
   D0019LiveQualificationError,
   D0019QualificationHttpEndpoint,
@@ -23,7 +23,7 @@ import {
   runD0019LiveCapacityRejectionProof,
   runD0019LiveCapacityWorkloadProof,
   runD0019LiveWriterRolloutProof,
-} from './d0019-live-qualification.mjs';
+} from './cloudflare-casedo-live.mjs';
 
 const PROVIDER_LIMIT_SOURCE = 'https://developers.cloudflare.com/durable-objects/platform/limits/';
 const COMPATIBLE_WRITER_ID = 'tdev-casedo-writer-v1';

@@ -5,7 +5,7 @@ import {
   strictJsonParse,
 } from '../src/canonical.mjs';
 import { definePlan } from '../src/engine.mjs';
-import { D0019_QUALIFICATION_MAX_REQUEST_BYTES } from '../src/d0019-qualification-runtime.mjs';
+import { D0019_QUALIFICATION_MAX_REQUEST_BYTES } from './cloudflare-casedo-runtime.mjs';
 
 export const D0019_LIVE_RESPONSE_MAX_BYTES = 16 * 1024 * 1024;
 

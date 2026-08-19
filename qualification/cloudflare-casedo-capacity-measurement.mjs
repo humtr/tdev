@@ -307,7 +307,7 @@ function progressReporter(mode, total) {
 const [mode, countInput, growthInput] = process.argv.slice(2);
 const count = Number(countInput);
 if (!['init', 'growth', 'final-state'].includes(mode) || !Number.isSafeInteger(count) || count < 1) {
-  throw new Error('usage: node bench/d0019-case-budget-measurement.mjs init TASK_COUNT | growth TASK_COUNT ACCEPTED_RESULTS | final-state TASK_COUNT ACCEPTED_RESULTS');
+  throw new Error('usage: node qualification/cloudflare-casedo-capacity-measurement.mjs init TASK_COUNT | growth TASK_COUNT ACCEPTED_RESULTS | final-state TASK_COUNT ACCEPTED_RESULTS');
 }
 
 if (mode === 'init') {

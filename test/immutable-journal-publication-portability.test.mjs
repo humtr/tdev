@@ -20,10 +20,10 @@ async function tempDirectory(t) {
 }
 
 test('D0030 production helper source is byte-identical to the accepted falsifier helper', async () => {
-  const accepted = await readFile(new URL('../bench/d0030-native/rename_noreplace_helper.c', import.meta.url));
-  const production = await readFile(new URL('../native/d0030/rename_noreplace_helper.c', import.meta.url));
-  const manifest = JSON.parse(await readFile(new URL('../native/d0030/manifest.json', import.meta.url), 'utf8'));
-  assert.deepEqual(production, accepted);
+  const compatibility = await readFile(new URL('../native/d0030/rename_noreplace_helper.c', import.meta.url));
+  const production = await readFile(new URL('../native/immutable-journal-publication/rename_noreplace_helper.c', import.meta.url));
+  const manifest = JSON.parse(await readFile(new URL('../native/immutable-journal-publication/manifest.json', import.meta.url), 'utf8'));
+  assert.deepEqual(production, compatibility);
   assert.equal(manifest.schemaVersion, 1);
   assert.equal(manifest.protocolVersion, 1);
   for (const entry of Object.values(manifest.helpers)) {
@@ -33,7 +33,7 @@ test('D0030 production helper source is byte-identical to the accepted falsifier
 
 test('D0030 packaged helper identity is exact when declared and clean-source absence fails closed without probe authority', async (t) => {
   const directory = await tempDirectory(t);
-  const manifest = JSON.parse(await readFile(new URL('../native/d0030/manifest.json', import.meta.url), 'utf8'));
+  const manifest = JSON.parse(await readFile(new URL('../native/immutable-journal-publication/manifest.json', import.meta.url), 'utf8'));
   const current = manifest.helpers[`${process.platform}-${process.arch}`];
   const adapter = createImmutableJournalPublicationAdapter(IMMUTABLE_JOURNAL_PUBLICATION_BACKENDS.RENAME_NOREPLACE);
   if (current === undefined) {

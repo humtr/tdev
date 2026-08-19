@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "protocolVersion": 1,
+  "helpers": {
+    "android-arm64": {
+      "platform": "android",
+      "arch": "arm64",
+      "relativePath": "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+      "sha256": "392578a12364108af742ba6e087d152bc14ca561062b503b9467c97babbf0414",
+      "sourceSha256": "6c27f0e15d801d44a1db5760f8feb75640e4dbfd3143289b2afd9bd9fc8cdcc6",
+      "bytes": 7728,
+      "compiler": "clang version 21.1.8"
+    }
+  }
+}

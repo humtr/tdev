@@ -6,7 +6,7 @@ import {
   D0019_QUALIFICATION_PATH,
   D0019QualificationCaseDOHost,
   D0019QualificationService,
-} from '../src/d0019-qualification-runtime.mjs';
+} from '../qualification/cloudflare-casedo-runtime.mjs';
 
 const qualificationToken = 'qualification-secret-token-00001';
 

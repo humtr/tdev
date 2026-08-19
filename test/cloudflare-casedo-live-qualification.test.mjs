@@ -6,7 +6,7 @@ import { canonicalJson } from '../src/canonical.mjs';
 import {
   D0019QualificationCaseDOHost,
   D0019QualificationService,
-} from '../src/d0019-qualification-runtime.mjs';
+} from '../qualification/cloudflare-casedo-runtime.mjs';
 import { D1CasePlacementAuthority } from '../src/d1-case-placement.mjs';
 import {
   D0019QualificationHttpEndpoint,
@@ -15,7 +15,7 @@ import {
   runD0019LiveCapacityWorkloadProof,
   runD0019CoreProviderProof,
   runD0019LiveWriterRolloutProof,
-} from '../tools/d0019-live-qualification.mjs';
+} from '../qualification/cloudflare-casedo-live.mjs';
 
 const migrationSql = await readFile(new URL('../cloudflare/d1/migrations/0001-case-placement.sql', import.meta.url), 'utf8');
 const qualificationToken = 'local-qualification-secret-token-00000001';

@@ -14,8 +14,8 @@ const HELPER_PROTOCOL_VERSION = 1;
 const HELPER_STATUSES = ['success', 'conflict', 'unsupported', 'denied', 'error', 'invalid'];
 const HELPER_DEADLINE_MS = 5_000;
 const ROOT = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-const MANIFEST_PATH = path.join(ROOT, 'native', 'd0030', 'manifest.json');
-const NATIVE_ROOT = path.join(ROOT, 'native', 'd0030');
+const MANIFEST_PATH = path.join(ROOT, 'native', 'immutable-journal-publication', 'manifest.json');
+const NATIVE_ROOT = path.join(ROOT, 'native', 'immutable-journal-publication');
 
 function storeError(code, message, details = {}, cause = undefined) {
   return new ContractError(code, message, details, cause === undefined ? undefined : { cause });

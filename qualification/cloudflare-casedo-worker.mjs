@@ -2,7 +2,7 @@ import { DurableObject } from 'cloudflare:workers';
 import {
   D0019QualificationCaseDOHost,
   D0019QualificationService,
-} from './d0019-qualification-runtime.mjs';
+} from './cloudflare-casedo-runtime.mjs';
 
 export class CaseRuntimeDO extends DurableObject {
   constructor(ctx, env) {

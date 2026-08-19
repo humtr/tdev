@@ -15,8 +15,8 @@ import {
 import { runCase } from '../src/runner.mjs';
 
 const EXPECTATIONS_PATH = 'docs/evidence/group-e-d0018-warm-runtime-expectations-2026-08-12.json';
-const WORKER_PATH = 'bench/d0018-warm-runtime-worker.mjs';
-const CONVERGENCE_PATH = 'bench/d0018-adversarial-convergence-falsifier.mjs';
+const WORKER_PATH = 'qualification/model-runtime-warm-host-worker.mjs';
+const CONVERGENCE_PATH = 'qualification/model-runtime-adversarial-falsifier.mjs';
 const GUARD_MS = 10_000;
 const CONFIGURED_ENV = 'qualified-host-environment';
 const CALLER_SECRET_KEY = 'TDEV_D0018_CALLER_SECRET';
@@ -450,7 +450,12 @@ async function main() {
   assert.equal(expectationAncestor.status, 0, 'requalification source must descend from the predeclared expectation source');
   const branch = git(root, ['branch', '--show-current']).stdout.toString('utf8').trim();
   const workerPath = path.join(root, WORKER_PATH);
-  const { tree: baseTree, fileCount, contentBytes } = parseHeadTree(root, head);
+  // The current tdev source tree now contains package-owned native binaries, while
+  // tdev.repository-context.git-full-text.v1 intentionally rejects non-UTF-8 blobs.
+  // Requalify current runtime code against the immutable, predeclared D0018
+  // expectation source rather than weakening the repository-context contract.
+  const repositoryContextCommit = expectations.sourceSha;
+  const { tree: baseTree, fileCount, contentBytes } = parseHeadTree(root, repositoryContextCommit);
   const baseDigest = digest(baseTree);
   const lightweightCommit = git(root, ['rev-list', '--max-parents=0', head]).stdout.toString('utf8').trim().split('\n').at(-1);
   assert.ok(lightweightCommit);
@@ -475,7 +480,7 @@ async function main() {
   process.env[CALLER_SECRET_KEY] = 'must-not-enter-model-environment';
   const whObservations = [];
   const wh = makeExecutor(root, workerPath, { observations: whObservations });
-  const successPlan = planFor({ commitOid: head, baseTree, instruction: 'success' });
+  const successPlan = planFor({ commitOid: repositoryContextCommit, baseTree, instruction: 'success' });
   const whA = await runCaseOnce({ caseId: 'wh-case-a', plan: successPlan, executor: wh.executor });
   const whB = await runCaseOnce({ caseId: 'wh-case-b', plan: successPlan, executor: wh.executor });
   const whPidA = assertFreshChild(whA.acceptedResult, root);
@@ -556,20 +561,20 @@ async function main() {
   assert.equal(restartObs[0].contextReferenceId, whAObservation.contextReferenceId);
   assert.equal(restartObs[0].contextDigest, whAObservation.contextDigest);
 
-  const activePlan = planFor({ commitOid: head, baseTree, instruction: 'sleep', revisionId: 'd0018-active-cancel' });
+  const activePlan = planFor({ commitOid: repositoryContextCommit, baseTree, instruction: 'sleep', revisionId: 'd0018-active-cancel' });
   const activeCancel = await modelTransportError(wh.executor, activePlan, 'wh-active-cancel', { abortAfterMs: 60 });
   assert.equal(activeCancel.code, 'model_transport_aborted');
   const timeoutObservations = [];
   const timeoutExecutor = makeExecutor(root, workerPath, { observations: timeoutObservations, timeoutMs: 50 });
   const timeoutResult = await modelTransportError(timeoutExecutor.executor, activePlan, 'wh-timeout');
   assert.equal(timeoutResult.code, 'model_transport_timeout');
-  const crashPlan = planFor({ commitOid: head, baseTree, instruction: 'crash', revisionId: 'd0018-crash' });
+  const crashPlan = planFor({ commitOid: repositoryContextCommit, baseTree, instruction: 'crash', revisionId: 'd0018-crash' });
   const crashResult = await modelTransportError(wh.executor, crashPlan, 'wh-crash');
   assert.equal(crashResult.code, 'model_process_failed');
   const afterFailure = await runCaseOnce({ caseId: 'wh-after-failure', plan: successPlan, executor: wh.executor });
   assertFreshChild(afterFailure.acceptedResult, root);
 
-  const retryPlan = planFor({ commitOid: head, baseTree, instruction: 'fail-first', maxAttempts: 2, revisionId: 'd0018-retry' });
+  const retryPlan = planFor({ commitOid: repositoryContextCommit, baseTree, instruction: 'fail-first', maxAttempts: 2, revisionId: 'd0018-retry' });
   const retryObservationStart = whObservations.length;
   const retryResult = await runCaseOnce({ caseId: 'wh-retry', plan: retryPlan, executor: wh.executor });
   assert.equal(retryResult.report.caseState, 'succeeded');
@@ -646,7 +651,7 @@ async function main() {
   const performanceEvidence = await performanceComparison({
     root,
     workerPath,
-    commitOid: head,
+    commitOid: repositoryContextCommit,
     baseTree,
     order: expectations.benchmarkPlan.order,
   });
@@ -721,6 +726,8 @@ async function main() {
       root,
       branch,
       head,
+      repositoryContextCommit,
+      repositoryContextReason: 'predeclared D0018 expectation source remains a valid UTF-8 text-tree fixture while current tdev HEAD contains package-owned native binary material',
       baseDigest,
       fileCount,
       contentBytes,

@@ -3,13 +3,13 @@ import {
   assertRecordShape,
   publicJsonClone,
   strictJsonParse,
-} from './canonical.mjs';
+} from '../src/canonical.mjs';
 import {
   CaseRuntimeDOHost,
   createRuntimeCasePlacement,
   readCaseRuntimeConfig,
-} from './cloudflare-casedo-runtime.mjs';
-import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
+} from '../src/cloudflare-casedo-runtime.mjs';
+import { D1CasePlacementAuthority } from '../src/d1-case-placement.mjs';
 
 export const D0019_QUALIFICATION_PATH = '/qualification/d0019/v1';
 export const D0019_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;

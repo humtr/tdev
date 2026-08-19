@@ -1,12 +1,13 @@
 # Design 0037 — Final-MVP Repository Shape and Qualification Boundary
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-19
 - Acceptance base: `development@d554e4a2bcfe1af60931006487b21aa41b12873e`
 - Trigger: user-directed application of ACR campaign `tdev-20260819-mvp-repository-shape-01`, convergence `acr/tdev-20260819-mvp-repository-shape-01/convergence`
 - Acceptance evidence: `docs/evidence/group-f-d0037-r1-final-mvp-repository-shape-acceptance-2026-08-19.json`
+- Source implementation evidence: `docs/evidence/group-f-d0037-r1-final-mvp-repository-shape-source-evidence-2026-08-19.json`
 - Scope: repository executable topology, qualification boundary, semantic path/name migration, bounded removal of superseded research/selection executables, and consumer-safe validation/publication sequencing
 - Product/runtime semantics: unchanged
 - Explicit non-goals: no new Agent/MCP product surface; no broad `src/` hierarchy redesign; no `main` mutation; no development-route rename; no protocol/schema/profile/migration/provider identity rename merely to remove Design chronology; no Cloudflare resource rename/teardown without its own fresh provider proof; no loss of permanent regression/qualification coverage or Design/evidence/history provenance
@@ -165,6 +166,16 @@ Cheapest falsifiers are missing discovery after a move, a stale import/path cons
 This Design does not claim that the repository is a completed Level-4 product MVP, does not create future Agent/MCP modules, and does not claim runtime/provider behavior from source-only evidence.
 
 Provider/external-consumer absence and D0030 platform/deployment identities remain separate proof layers. Application may close them only from direct evidence. Otherwise compatibility stays and the final Design verification records the bounded retained exception.
+
+### 10.1 Implementation-time proof adaptations
+
+D0037 does not weaken the D0013 repository-context contract to make the moved D0018 warm-host harness pass. The current tdev repository now contains package-owned native binary material, while `tdev.repository-context.git-full-text.v1` intentionally accepts only regular UTF-8 text blobs and fails closed on invalid UTF-8. The current warm-host requalification therefore runs the **current runtime code** against the predeclared D0018 expectation source commit `a603a736b3009331810f2e9e02d2f7ea9abf0d00`, which was independently revalidated as a current-HEAD ancestor and a complete UTF-8 text-tree fixture. Current-code HEAD and repository-context fixture identity are reported separately.
+
+The old D0030 npm script, workflow filename and `native/d0030/` package path remain bounded compatibility surfaces because external/manual direct-path consumer absence is not provable from repository state alone. The semantic `immutable-journal-publication` names are primary; compatibility mirrors/aliases must remain content-identical and may be removed only by a later negative-consumer proof.
+
+The connected Termux execution requalified D0030 build, source/manifest/binary identity and portability behavior, but two unchanged 25-round mixed-race attempts were interrupted by contender `SIGKILL`. This local environment row remains unqualified rather than green. The semantic Linux workflow must close the independent POSIX mixed-race and installed-copy/recovery layer after publication before D0037 verification.
+
+D0019 internal path migration preserves every external provider/resource/binding and migration identity. The current application has no authorized Cloudflare account-plane connector, so live provider qualification is not re-executed or claimed; D0019 source/regression qualification is recorded separately.
 
 ## 11. Verification closure rule
 

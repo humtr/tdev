@@ -5,7 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const benchmark = path.join(repositoryRoot, 'bench', 'd0019-case-budget-measurement.mjs');
+const benchmark = path.join(repositoryRoot, 'qualification', 'cloudflare-casedo-capacity-measurement.mjs');
 
 function run(mode, taskCount, acceptedResults) {
   const result = spawnSync(process.execPath, [benchmark, mode, String(taskCount), String(acceptedResults)], {

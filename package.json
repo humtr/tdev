@@ -7,7 +7,7 @@
     "node": ">=22"
   },
   "scripts": {
-    "syntax": "for file in src/*.mjs test/*.mjs bench/*.mjs tools/*.mjs; do node --check \"$file\"; done",
+    "syntax": "for file in src/*.mjs test/*.mjs bench/*.mjs tools/*.mjs qualification/*.mjs; do node --check \"$file\"; done",
     "test": "node --test test/*.test.mjs",
     "demo": "node src/cli.mjs demo",
     "durable-demo": "node src/cli.mjs durable-demo",
@@ -15,11 +15,10 @@
     "check": "npm run syntax && npm run docs:check && npm test && npm run demo --silent && npm run durable-demo --silent",
     "bench": "node bench/control-plane.mjs",
     "bench:authority": "node bench/authority-boundary.mjs",
-    "bench:semantic": "node --expose-gc bench/semantic-authority-representation.mjs",
     "bench:semantic-v3": "node --expose-gc bench/semantic-v3-authority.mjs",
     "bench:persistence": "node bench/persistence-hot-path.mjs",
-    "bench:compare": "node bench/compare-development-states.mjs",
     "bench:repository-model-transport": "node --expose-gc bench/repository-model-transport-efficiency.mjs --scenario all",
-    "build:native:d0030": "node tools/build-d0030-native-helper.mjs"
+    "build:native:d0030": "npm run build:native:immutable-journal-publication --silent",
+    "build:native:immutable-journal-publication": "node tools/build-immutable-journal-publication-helper.mjs"
   }
 }

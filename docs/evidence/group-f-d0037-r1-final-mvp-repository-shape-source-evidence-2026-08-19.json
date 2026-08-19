@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0037",
+  "revision": 1,
+  "date": "2026-08-19",
+  "candidateBase": "development@5440f0fa4e2a0e56f0443fc193ae33e6483f9119",
+  "scope": "pre-publication source/repository qualification for final-MVP repository-shape implementation",
+  "consumerProof": {
+    "wholeTreeCandidateScanJob": "job_9i0_1862cde563",
+    "deletionCandidateScanJob": "job_9i1_3664fd21e6",
+    "result": "D0009 research comparison, D0016/D0017 selection benches, and development-state comparison had no current live consumer beyond their own executable/package-script surface; current Design/evidence/history references were preserved. D0030 helper duplicate matched the production helper source byte-for-byte before removal."
+  },
+  "topology": {
+    "source": "flat semantic src retained; D0019 qualification-only modules removed from src",
+    "qualification": "semantic D0019/D0018/D0030 permanent proof executables moved under qualification/",
+    "bench": "live bench reduced to current product/performance benchmarks",
+    "nativePrimary": "native/immutable-journal-publication/",
+    "nativeCompatibility": "native/d0030/ retained as bounded compatibility mirror because external direct-path absence is unproved",
+    "workflowPrimary": ".github/workflows/immutable-journal-publication-posix-qualification.yml",
+    "workflowCompatibility": ".github/workflows/d0030-posix-qualification.yml retained as manual compatibility wrapper",
+    "buildPrimary": "build:native:immutable-journal-publication",
+    "buildCompatibility": "build:native:d0030 retained as alias"
+  },
+  "validation": {
+    "d0019Focused": {
+      "job": "job_9ih_249f41b7a7",
+      "result": "passed",
+      "details": "syntax including qualification/*.mjs, documentation authority, renamed D0019 regression/qualification tests 52/52, diff check"
+    },
+    "d0030UnitAndPortability": {
+      "jobs": ["job_9il_07db3a32fb", "job_9ip_1f493e9e3d"],
+      "result": "passed-with-separate-local-race-environment-gap",
+      "details": "semantic native build, portability unit 6/6 after one stale test-variable fix, portability falsifier, compatibility build alias, primary/compat source-manifest-binary identity all passed"
+    },
+    "d0030LocalMixedRace": {
+      "jobs": ["job_9il_07db3a32fb", "job_9io_4c453f17c6"],
+      "result": "unqualified-on-current-Termux-execution",
+      "failure": "independent contender process received SIGKILL before producing JSON in two 25-round attempts",
+      "sourceIdentityProofJob": "job_9ip_1f493e9e3d",
+      "sourceIdentity": "old tools/d0030-posix-mixed-race.mjs and new qualification/immutable-journal-publication-posix-mixed-race.mjs have identical sha256 8d8bf0b28ff1937d8aa3779d6031d5f86c5cab1737ad1f8bec219635f4545878",
+      "requiredSuccessorProof": "published Linux x64 semantic GitHub workflow must run 25-round mixed race and installed-copy/recovery gates"
+    },
+    "d0018Adversarial": {
+      "job": "job_9is_dd0d169e85",
+      "result": "passed",
+      "details": "current source adversarial convergence/reference qualification passed before warm-host repository-context issue"
+    },
+    "d0018WarmRepositoryContext": {
+      "fixtureValidationJob": "job_9j0_b86b127477",
+      "fixtureCommit": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+      "fixture": "predeclared D0018 expectation source, current-head ancestor, 131 regular UTF-8 files and 2667284 bytes",
+      "reason": "current tdev HEAD contains package-owned native binary material while tdev.repository-context.git-full-text.v1 correctly rejects non-UTF-8 blobs; product contract was not weakened",
+      "warmJob": "job_9j4_18442b2668",
+      "artifact": "artifact_cc_c0db09e914",
+      "artifactSha256": "4e6753a9f53d0475e360c3d5b7de5e16ad291510db38075745c247719b47876a",
+      "result": "passed",
+      "details": "actual shell success=true; W01-W43 had no blocking failure; current code HEAD and immutable repository-context fixture are reported separately"
+    },
+    "fullBaseline": {
+      "job": "job_9j6_15639a9eda",
+      "artifact": "artifact_cd_4c8c6d4209",
+      "artifactSha256": "83b417ed6b6b4905ae2b049931b8f478175b45ccdcf86b25b4d9bdec53ae17a9",
+      "result": "passed",
+      "details": "npm ci, npm run check, full node test coverage, git diff --check, generated Design index idempotence; actual artifact shell success=true"
+    }
+  },
+  "providerAndExternalBoundaries": {
+    "d0019LiveProvider": "not re-executed: current application has no authorized Cloudflare account-plane connector; no D0019 external provider/resource/binding identity was changed",
+    "d0030LinuxWorkflow": "pending publication of semantic workflow source",
+    "oldD0030ExternalConsumers": "absence not provable from repository state alone; compatibility script/workflow/native paths retained",
+    "mainMutation": "none",
+    "developmentRouteRename": "none"
+  },
+  "knownNonGreenAttempts": [
+    {"job": "job_9hk_bb2a73e0c7", "classification": "admission WORKBOARD syntax failure; corrected before acceptance publication"},
+    {"job": "job_9ho_34a2209f55", "classification": "wrapper exit 1 after green baseline because intentional uncommitted Design-index diff was tested with git diff --exit-code"},
+    {"job": "job_9i9_6f0a86fed2", "classification": "migration shell mechanics: redundant rmdir after git mv"},
+    {"job": "job_9ib_3c36e2db6a", "classification": "defensive replacement precondition mismatch"},
+    {"job": "job_9id_1b912a692a", "classification": "defensive replacement precondition mismatch"},
+    {"job": "job_9ii_7698c6634d", "classification": "focused test exposed one stale renamed local variable; fixed and requalified"},
+    {"job": "job_9iq_8689e5c8a6", "classification": "operator invocation omitted required --source-root; corrected"},
+    {"job": "job_9is_dd0d169e85", "classification": "adversarial passed; warm-host exposed stale self-HEAD text-fixture assumption after native binary introduction"},
+    {"job": "job_9j2_1384a370dd", "classification": "exact-edit correctly rejected non-unique replacement; no file mutation"}
+  ]
+}

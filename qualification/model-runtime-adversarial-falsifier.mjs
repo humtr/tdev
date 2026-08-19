@@ -13,7 +13,7 @@ const sleepTurn = () => new Promise((resolve) => setImmediate(resolve));
 function sourceRootFromArgs() {
   const index = process.argv.indexOf('--source-root');
   if (index < 0 || !process.argv[index + 1]) {
-    throw new Error('usage: node bench/d0018-adversarial-convergence-falsifier.mjs --source-root <repository>');
+    throw new Error('usage: node qualification/model-runtime-adversarial-falsifier.mjs --source-root <repository>');
   }
   return path.resolve(process.argv[index + 1]);
 }

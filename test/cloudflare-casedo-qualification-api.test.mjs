@@ -20,7 +20,7 @@ import {
   readD1PlacementRecord,
   setD0019QualificationSubdomains,
   workerModuleDigest,
-} from '../tools/d0019-cloudflare-api.mjs';
+} from '../qualification/cloudflare-casedo-api.mjs';
 
 function apiResponse(result, { status = 200, success = true, errors = [] } = {}) {
   return new Response(JSON.stringify({ success, errors, messages: [], result }), {
@@ -109,7 +109,7 @@ test('D0019 Cloudflare API client refuses to send credentials to a non-Cloudflar
 test('D0019 Worker module collector closes only the static qualification dependency graph', () => {
   const modules = collectWorkerModules(process.cwd());
   assert.equal(modules.has(D0019_WORKER_MAIN_MODULE), true);
-  assert.equal(modules.has('src/d0019-qualification-runtime.mjs'), true);
+  assert.equal(modules.has('qualification/cloudflare-casedo-runtime.mjs'), true);
   assert.equal(modules.has('src/casedo-authority.mjs'), true);
   assert.equal(modules.has('src/d1-case-placement.mjs'), true);
   assert.equal(modules.has('src/store.mjs'), false);

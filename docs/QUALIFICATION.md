@@ -23,13 +23,21 @@ A non-green required command is not converted to success. If the execution envir
 
 Focused Design/provider gates may add evidence for their own scope; they do not silently weaken this baseline.
 
+### Permanent executable qualification boundary
+
+Repository-owned executable proof machinery that is **not** product/runtime source lives under top-level `qualification/` with semantic names. This directory is a navigation and execution boundary, not a new behavior owner: product and accepted Design owners still define behavior, while this document defines how the corresponding claims are qualified.
+
+The baseline syntax gate must continue to discover `qualification/*.mjs`. Permanent regression tests remain under `test/`; genuine build/maintenance utilities remain under `tools/`; `bench/` is reserved for currently useful product/performance measurement rather than superseded decision research. Moving a proof executable never authorizes loss of its assertions, provider/runtime identity, rollback boundary or historical Design/evidence provenance.
+
+Historical `Dxxxx` names may remain in Design/evidence/history records where chronology is provenance. Live qualification paths should use semantic names when the Design number is not itself a compatibility identity. Provider resource names, schema/profile/protocol generations, migration ordinals, workflow/check names or package paths with external consumers are changed only through their own consumer-safe lifecycle; source-path cleanup alone is not that authorization.
+
 ### D0030 publication-portability focused gate
 
-D0030 production verification adds backend/deployment evidence without replacing the baseline source gate. On each declared rename target, build the package-owned helper **before runtime** with `npm run build:native:d0030 --silent`, then run the D0030 focused falsifiers and the unchanged immutable-journal oracle through the selected backend. A rename-qualified independent POSIX row must also run the same oracle through hard-link where hard links are supported and execute repeated independent-process hard-link-versus-rename races against one final slot.
+D0030 production verification adds backend/deployment evidence without replacing the baseline source gate. On each declared rename target, build the package-owned helper **before runtime** with `npm run build:native:immutable-journal-publication --silent`, then run the D0030 focused falsifiers and the unchanged immutable-journal oracle through the selected backend. A rename-qualified independent POSIX row must also run the same oracle through hard-link where hard links are supported and execute repeated independent-process hard-link-versus-rename races against one final slot.
 
 The deployment layer must install a real package copy without lifecycle-script dependence, verify the package-relative helper/manifest identity, and prove that helper absence or mismatch rejects a new authority write as `store_publication_unsupported` with no fallback. Restoring the exact helper and starting a fresh process must requalify and resume writes. The connected Termux/Android row and the independent POSIX/Linux row are separate evidence; neither profile generalizes to another filesystem/runtime by assertion. Destructive power-loss remains unverified unless separately executed.
 
-The repository-owned independent POSIX method is `.github/workflows/d0030-posix-qualification.yml`. Its run is reusable evidence only when the workflow run, exact source SHA, Node/runtime/filesystem/compiler observations, helper/source digests, both backend oracles, mixed-race result and installed-copy recovery all bind the claim being reused.
+The repository-owned independent POSIX method is `.github/workflows/immutable-journal-publication-posix-qualification.yml`. Its run is reusable evidence only when the workflow run, exact source SHA, Node/runtime/filesystem/compiler observations, helper/source digests, both backend oracles, mixed-race result and installed-copy recovery all bind the claim being reused.
 
 ## 3. Qualification layers
 

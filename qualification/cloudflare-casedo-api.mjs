@@ -18,7 +18,7 @@ const D0019_ALL_QUALIFICATION_SCRIPTS = new Set([
 ]);
 export const D0019_WORKER_OWNERSHIP_TAG = 'tdev-d0019-qualification-v1';
 export const D0019_WORKER_COMPATIBILITY_DATE = '2026-08-15';
-export const D0019_WORKER_MAIN_MODULE = 'src/cloudflare-d0019-qualification.mjs';
+export const D0019_WORKER_MAIN_MODULE = 'qualification/cloudflare-casedo-worker.mjs';
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const MAX_API_RESPONSE_BYTES = 8 * 1024 * 1024;

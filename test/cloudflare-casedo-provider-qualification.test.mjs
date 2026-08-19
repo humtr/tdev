@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {
   deriveD0019Budget,
   runD0019CloudflareQualification,
-} from '../tools/d0019-cloudflare-qualify.mjs';
+} from '../qualification/cloudflare-casedo-provider.mjs';
 
 function configuration() {
   return {

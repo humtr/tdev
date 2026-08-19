@@ -12,11 +12,10 @@ import { setTimeout as delay } from 'node:timers/promises';
 
 const require = createRequire(import.meta.url);
 const SELF = fileURLToPath(import.meta.url);
-const BENCH_DIR = path.dirname(SELF);
-const ROOT = path.dirname(BENCH_DIR);
-const NATIVE = path.join(BENCH_DIR, 'd0030-native');
-const HELPER_C = path.join(NATIVE, 'rename_noreplace_helper.c');
-const ADDON_C = path.join(NATIVE, 'rename_noreplace_addon.c');
+const QUALIFICATION_DIR = path.dirname(SELF);
+const ROOT = path.dirname(QUALIFICATION_DIR);
+const HELPER_C = path.join(ROOT, 'native', 'immutable-journal-publication', 'rename_noreplace_helper.c');
+const ADDON_C = path.join(QUALIFICATION_DIR, 'immutable-journal-publication-rename-noreplace-addon.c');
 const STATUS = ['success', 'conflict', 'unsupported', 'denied', 'error', 'invalid'];
 
 async function exists(p) { try { await access(p); return true; } catch { return false; } }
