@@ -1,6 +1,6 @@
 # Design 0037 — Final-MVP Repository Shape and Qualification Boundary
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-19
@@ -180,3 +180,15 @@ D0019 internal path migration preserves every external provider/resource/binding
 ## 11. Verification closure rule
 
 Set D0037 to `verified` only after the implementation is published and the target's required baseline/focused gates pass for every mutated row. Rows whose external-consumer proof cannot be closed must be represented as retained compatibility exceptions, not silently called deleted. The final verification record must distinguish source/repository proof from any provider/deployment layer actually observed.
+
+## 12. Verification closure
+
+D0037@r1 is verified against implementation `bc8f7d27b18b13c840367843e503a75f84c126d9`. The complete source candidate gate passed before publication, the commit was published to `development` by exact non-force predecessor fencing, and provider reread returned the same implementation SHA. Verification evidence is `docs/evidence/group-f-d0037-r1-final-mvp-repository-shape-verification-2026-08-19.json`.
+
+The semantic Linux POSIX workflow run `32222841632` completed successfully on that exact SHA. Its `linux-x64` job passed clean-source and post-build portability tests, unchanged immutable-journal oracles through both rename-no-replace and hardlink backends, the 25-round independent-process mixed race (`25/25` exact-one-winner with `25` loser conflicts), and fresh installed-copy helper missing/tamper/recovery qualification. Evidence artifact `9354508022` has digest `sha256:b5a6f88c7b2864f7917afecfd9b176baaf3e04574a48a1d0b143d844e79ef2df`. This closes the D0030 Linux proof that the current Termux process could not execute reliably.
+
+D0018 adversarial and warm-host qualification also passed after the warm harness stopped incorrectly treating binary-containing current tdev HEAD as a valid `git-full-text.v1` fixture. Current runtime code remains current; immutable repository context is the predeclared D0018 expectation source `a603a736b3009331810f2e9e02d2f7ea9abf0d00`. No product repository-context rule was relaxed.
+
+D0019 internal qualification paths are source/regression-qualified and all external provider/resource/binding/migration identities remain unchanged. No authorized Cloudflare account-plane connector was available in this application, so D0037 explicitly does **not** claim new D0019 live-provider qualification.
+
+The old D0030 npm script, build-tool entrypoint, workflow filename and `native/d0030/` content remain bounded compatibility surfaces because external/manual direct-path consumer absence was not proved. Their semantic `immutable-journal-publication` counterparts are primary. This retained compatibility is an explicit verified exception, not unfinished hidden deletion. A later cleanup may remove it only with fresh negative-consumer/readback evidence.

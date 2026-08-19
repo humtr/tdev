@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0037",
+  "revision": 1,
+  "date": "2026-08-19",
+  "implementationCommit": "bc8f7d27b18b13c840367843e503a75f84c126d9",
+  "implementationParent": "5440f0fa4e2a0e56f0443fc193ae33e6483f9119",
+  "sourceEvidence": "docs/evidence/group-f-d0037-r1-final-mvp-repository-shape-source-evidence-2026-08-19.json",
+  "sourceQualification": {
+    "finalCandidateGateJob": "job_9jj_dbeee0ba65",
+    "artifact": "artifact_ce_0def72f8d9",
+    "artifactSha256": "4e2bba428fb5e73769dcaff746eb015caca7653ee481cb3458d11611e3543a4f",
+    "result": "passed",
+    "details": "npm ci, npm run check, full node test coverage, source-evidence JSON parse, generated Design index idempotence and git diff check; artifact shell success=true"
+  },
+  "publication": {
+    "pushJob": "job_9jp_83f7a03e3a",
+    "remotePredecessor": "development@5440f0fa4e2a0e56f0443fc193ae33e6483f9119",
+    "published": "development@bc8f7d27b18b13c840367843e503a75f84c126d9",
+    "nonForce": true,
+    "providerRereadJob": "job_9jr_c64c592866"
+  },
+  "linuxPosixQualification": {
+    "workflow": ".github/workflows/immutable-journal-publication-posix-qualification.yml",
+    "runId": 32222841632,
+    "runNumber": 1,
+    "attempt": 1,
+    "event": "push",
+    "headSha": "bc8f7d27b18b13c840367843e503a75f84c126d9",
+    "status": "completed",
+    "conclusion": "success",
+    "jobId": 95976525977,
+    "jobName": "linux-x64",
+    "allNamedStepsConclusion": "success",
+    "mixedRace": {
+      "rounds": 25,
+      "exactOneWinner": 25,
+      "loserConflicts": 25,
+      "hardlinkWins": 15,
+      "renameNoReplaceWins": 10
+    },
+    "installedCopyRecovery": {
+      "initialWrite": "success",
+      "missingHelper": "store_publication_unsupported",
+      "tamperedHelper": "store_publication_unsupported",
+      "restoredHelper": "success"
+    },
+    "linuxHelper": {
+      "relativePath": "native/immutable-journal-publication/linux-x64/rename-noreplace-helper",
+      "sha256": "e99cbe87f6d127cc0d2c594671d54ecec5c97b3646a539b4ac93aa4498055ff3",
+      "sourceSha256": "6c27f0e15d801d44a1db5760f8feb75640e4dbfd3143289b2afd9bd9fc8cdcc6",
+      "bytes": 16608,
+      "node": "v22.23.2",
+      "platform": "linux",
+      "arch": "x64"
+    },
+    "artifact": {
+      "id": 9354508022,
+      "name": "d0030-posix-evidence",
+      "sizeBytes": 1542,
+      "digest": "sha256:b5a6f88c7b2864f7917afecfd9b176baaf3e04574a48a1d0b143d844e79ef2df"
+    }
+  },
+  "d0018Qualification": {
+    "adversarialJob": "job_9is_dd0d169e85",
+    "adversarial": "passed",
+    "repositoryContextFixture": "a603a736b3009331810f2e9e02d2f7ea9abf0d00",
+    "fixtureValidationJob": "job_9j0_b86b127477",
+    "warmJob": "job_9j4_18442b2668",
+    "warmArtifact": "artifact_cc_c0db09e914",
+    "warmArtifactSha256": "4e6753a9f53d0475e360c3d5b7de5e16ad291510db38075745c247719b47876a",
+    "warm": "passed",
+    "contractBoundary": "current runtime code is qualified against the predeclared immutable UTF-8 repository-context fixture; tdev.repository-context.git-full-text.v1 invalid-UTF8 fail-closed behavior was not weakened"
+  },
+  "d0019Boundary": {
+    "internalSemanticPathMigration": "verified at source/regression layer",
+    "focusedJob": "job_9ih_249f41b7a7",
+    "focusedTests": "52/52 passed",
+    "externalProviderIdentityChanged": false,
+    "liveCloudflareQualification": "unavailable/not executed because no authorized Cloudflare account-plane connector is present in this application",
+    "claimBoundary": "D0037 does not promote source evidence into Cloudflare runtime/provider qualification"
+  },
+  "retainedCompatibility": {
+    "reason": "external/manual direct-path consumer absence is not provable from repository state alone",
+    "items": [
+      "package script build:native:d0030 -> semantic build alias",
+      "tools/build-d0030-native-helper.mjs -> semantic build entrypoint compatibility wrapper",
+      ".github/workflows/d0030-posix-qualification.yml -> manual compatibility wrapper",
+      "native/d0030/ -> content-identical compatibility source/manifest/helper mirror"
+    ],
+    "removalRule": "remove only after a later negative-consumer/readback proof; D0037 does not claim those compatibility names retired"
+  },
+  "cleanupResult": {
+    "flatProductSourceRetained": true,
+    "qualificationBoundaryCreated": true,
+    "d0019InternalPathsSemantic": true,
+    "d0018QualificationPathsSemantic": true,
+    "d0030SemanticPrimaryCreated": true,
+    "supersededExecutableResearchRemoved": true,
+    "designEvidenceHistoryProvenancePreserved": true,
+    "mainMutation": "none",
+    "developmentRouteRename": "none"
+  },
+  "knownLocalLimitation": {
+    "termuxD0030MixedRace": "two local 25-round attempts were interrupted by contender SIGKILL and remain unqualified locally",
+    "resolution": "the published exact implementation SHA independently passed the same 25-round mixed-race gate on Linux x64; local failure is preserved rather than rewritten green"
+  },
+  "verificationClaim": "D0037 is verified for repository/source topology, permanent qualification-boundary semantics, current source regression, D0018 trusted-local qualification, and D0030 Linux-x64 publication qualification. It does not claim D0019 Cloudflare live-provider requalification or absence of external consumers for retained D0030 compatibility names."
+}
