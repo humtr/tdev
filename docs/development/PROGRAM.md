@@ -74,7 +74,6 @@ Only questions that can still change the forward graph belong here:
 
 - Does deployed/provider evidence show enough remaining semantic input volume or disclosure pressure to justify a separate ContextSlice decision, or does the accepted full-context reference contract remain sufficient for MVP?
 - Does the selected deployed content/artifact path require persistent shared storage/query projection, activating D0022?
-- What exact connection epoch, delivery receipt, bounded queue/capacity and live-resource facts belong to the Agent connection/delivery owner versus the local Agent/executor, to be resolved by D0020?
 - Do representative MVP workloads contain real cross-Case target conflicts requiring D0021?
 - Where should runtime Git publication effects execute under the final runtime/security model: authenticated local Agent, dedicated publication lane, or another fenced owner?
 - Which MCP client and authentication flow is the supported MVP target for D0023/D0024 qualification?

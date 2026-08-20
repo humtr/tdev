@@ -1,0 +1,45 @@
+{
+  "schemaVersion": 1,
+  "design": "D0020",
+  "revision": 1,
+  "phase": "acceptance",
+  "date": "2026-08-20",
+  "repository": "humtr/tdev",
+  "exactPublishedBase": "dfd4d0c9768515fd80f62346c128acc37d84e34b",
+  "reviewedCandidate": "c3f7a484a66315d90340d053d00cd07c231ff055",
+  "reviewedCandidateParent": "aaa66f51fdc686c202b5c0a11cd34e87351440fe",
+  "reviewedDesignSha256": "1adfaa75702959f4dc20df38cbf557fd7fb1374aca8a736aab69c69e5cd401cf",
+  "independentExactArtifactReview": {
+    "taskId": "task_ahs_1bdb96128c",
+    "terminalStatus": "completed",
+    "authority": "development@dfd4d0c9768515fd80f62346c128acc37d84e34b",
+    "c1CrossAxisEvidenceLegality": "CONFIRMED",
+    "c6ReservationPostGcNonReuse": "CONFIRMED",
+    "c8CancellationDispatchSerialization": "CONFIRMED",
+    "regression": "NO_MATERIAL_REGRESSION",
+    "overall": "ACCEPTABLE_FOR_DESIGN_ACCEPTANCE",
+    "designReadiness": "READY",
+    "executableProofReadiness": "PROOF_PENDING",
+    "implementationAuthorizationAtReview": "NOT_AUTHORIZED",
+    "targetMutations": "none"
+  },
+  "acceptedDecision": {
+    "status": "accepted",
+    "sameDesignBoundary": true,
+    "agentDeliveryAuthorityPerStableRoute": true,
+    "caseSemanticAuthorityPreserved": true,
+    "nonExecutableReservationBeforeAttempt": true,
+    "globalEvidenceTupleLegalityClosed": true,
+    "boundedReservationNonReuseClosed": true,
+    "caseSerializedDispatchGrantClosed": true
+  },
+  "postAcceptanceBoundary": {
+    "protocolOwnerAmendmentRequiredBeforeImplementation": true,
+    "protocolCommand": "grant_attempt_dispatch",
+    "productOwnerSynchronizationPrecedesImplementation": true,
+    "workboardRoutingActivationIsSeparate": true,
+    "implementationExecuted": false,
+    "providerRuntimeMutation": false
+  },
+  "acceptanceApplicationTask": "task_ail_a9924f97e1"
+}

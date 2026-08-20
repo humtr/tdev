@@ -1,15 +1,20 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `draft`
+- Status: `accepted`
 - Revision: 1
+- Acceptance evidence: `docs/evidence/group-f-d0020-agent-delivery-acceptance-2026-08-20.json`
+- Accepted exact review candidate: `c3f7a484a66315d90340d053d00cd07c231ff055`
+- Accepted review-candidate Design SHA-256: `1adfaa75702959f4dc20df38cbf557fd7fb1374aca8a736aab69c69e5cd401cf`
+- Independent exact-artifact acceptance review: `task_ahs_1bdb96128c` — C1/C6/C8 confirmed, no material regression, Design readiness `READY`, executable proof `PROOF_PENDING`
 - Class: 2
 - Decision date: 2026-08-20
 - Capability Group: F — Cloudflare runtime and local Agent topology
 - Drafting authority anchor: `development@dfd4d0c9768515fd80f62346c128acc37d84e34b`
 - Trigger: required provisional Group F Agent connection/delivery/capacity gate in `docs/development/PROGRAM.md`
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
-- Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; this draft correction does not mutate that owner
-- Product/runtime effect: Design proposal only; no implementation, provider mutation, deployment, WORKBOARD routing change, or lifecycle self-approval
+- Affected product owners after acceptance: `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`
+- Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; the acceptance transition does not mutate that owner
+- Product/runtime effect: accepted Design decision only; no implementation, provider mutation, deployment, or WORKBOARD routing activation is included in this acceptance
 
 ## 1. Decision
 
@@ -631,8 +636,8 @@ If any deferred item is required for safety rather than availability/convenience
 
 ## 25. Lifecycle and implementation boundary
 
-A later acceptance action may authorize only owner-native implementation of the selected semantic boundary. Runtime/module naming should remain semantic, for example Agent delivery authority/provider host and local Agent transport adapter; Design numbers remain provenance rather than runtime architecture.
+This accepted revision authorizes only owner-native implementation of the selected semantic boundary after required product-owner amendments and current WORKBOARD routing separately make that implementation runnable. Runtime/module naming should remain semantic, for example Agent delivery authority/provider host and local Agent transport adapter; Design numbers remain provenance rather than runtime architecture.
 
-If this revision is accepted, owner impact order is mandatory: before implementation, amend `docs/PROTOCOL.md` to add the exact Section-10 `grant_attempt_dispatch` command vocabulary, fields, admission predicate, receipt/replay/conflict behavior, `attempt_dispatch_granted` Event/Case-revision effect and cancellation serialization meaning. That amendment must explicitly preserve `running` as the already-committed D0019 predecessor, add no Task/Attempt lifecycle state, and leave activation/delivery/connection/capacity ownership in D0020 rather than CaseDO. The PROTOCOL amendment is owner-native follow-on work, not part of this draft correction and not optional implementation policy.
+For this accepted revision, owner impact order is mandatory: before implementation, amend `docs/PROTOCOL.md` to add the exact Section-10 `grant_attempt_dispatch` command vocabulary, fields, admission predicate, receipt/replay/conflict behavior, `attempt_dispatch_granted` Event/Case-revision effect and cancellation serialization meaning. That amendment must explicitly preserve `running` as the already-committed D0019 predecessor, add no Task/Attempt lifecycle state, and leave activation/delivery/connection/capacity ownership in D0020 rather than CaseDO. The PROTOCOL amendment is owner-native follow-on work, not part of this draft correction and not optional implementation policy.
 
-This proposal does not authorize production source changes, provider resources, deployment, WORKBOARD runnable-frontier/selection edits, Case semantic changes beyond the accepted future PROTOCOL owner amendment above, compatibility removal, or a lifecycle transition beyond controller-owned review.
+This acceptance does not itself activate production source changes, provider resources, deployment, WORKBOARD runnable-frontier/selection edits, Case semantic changes beyond the required future product-owner amendments, or compatibility removal. Implementation/provider/runtime proof remains a separate lifecycle layer.
