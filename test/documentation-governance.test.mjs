@@ -594,9 +594,9 @@ test('PROGRAM references only ROADMAP Groups and does not duplicate the A-H capa
   for (const gate of gates) for (const group of gate.groups) assert.ok(groups.has(group), `${gate.gate} -> ${group}`);
   assert.equal(currentProgram.split('\n').some((line) => /^\|\s*[A-H]\s*\|/.test(line)), false);
 
-  const invalid = validateDocumentation(root, { 'docs/development/PROGRAM.md': currentProgram.replace('| D0020 | F |', '| D0020 | Z |') });
+  const invalid = validateDocumentation(root, { 'docs/development/PROGRAM.md': currentProgram.replace('| D0020@r1 | F |', '| D0020@r1 | Z |') });
   assert.equal(invalid.ok, false);
-  assert.match(invalid.failures.join('\n'), /documentation_authority_program_unknown_group: D0020 -> Z/);
+  assert.match(invalid.failures.join('\n'), /documentation_authority_program_unknown_group: D0020@r1 -> Z/);
 });
 
 test('maintained PROGRAM Design foreign keys resolve generically to Design owner identity and revision', () => {
