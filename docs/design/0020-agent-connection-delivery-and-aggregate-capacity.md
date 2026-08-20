@@ -8,6 +8,7 @@
 - Drafting authority anchor: `development@dfd4d0c9768515fd80f62346c128acc37d84e34b`
 - Trigger: required provisional Group F Agent connection/delivery/capacity gate in `docs/development/PROGRAM.md`
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
+- Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; this draft correction does not mutate that owner
 - Product/runtime effect: Design proposal only; no implementation, provider mutation, deployment, WORKBOARD routing change, or lifecycle self-approval
 
 ## 1. Decision
@@ -78,7 +79,8 @@ This Design does not:
 | fencing token | CaseEngine | delivery owner, Agent, Case result path | Attempt lifetime | exact token + executor tuple + existing claim facts | bounded digest/ID |
 | reported capacity observation | authenticated current local Agent/executor | Agent delivery authority only | executor-generation evidence carrying monotonic `capacityRevision`; reconnect requires a fresh revision even when value is unchanged | current connection + executor tuple + capacity revision | `0..maxAgentCapacity`; malformed/out-of-bound evidence cannot mutate accepted state |
 | accepted/effective capacity | Agent delivery authority, as sole durable writer | aggregate admission | durable accepted `(executor tuple, capacityRevision, reportedCapacity, effectiveCapacity)`; effective value becomes unknown/0 at reconnect or replacement until fresh evidence | route + current connection/executor generation + accepted capacity revision | never above deployment ceiling; unknown admits zero |
-| slot reservation | Agent delivery authority | Case/runner admission | durable short-lived non-executable pre-delivery record containing only immutable preflight descriptor and identity | slot token/generation + request digest + executor tuple + capacity revision | reservations + delivery admission holds + physical execution slots cannot exceed effective capacity; no executable body bytes |
+| slot reservation | Agent delivery authority | Case/runner admission | durable short-lived non-executable pre-delivery record containing only immutable preflight descriptor and identity | reservation window + slot token/generation + request digest + executor tuple + capacity revision | reservations + delivery admission holds + physical execution slots cannot exceed effective capacity; no executable body bytes |
+| reservation idempotency window/floor | Agent delivery authority | reservation/activation admission | durable monotonic `reservationWindowGeneration` plus `minimumAcceptedReservationWindow`; bounded detailed request receipts exist only for the one open window and are GC'd only after that window is permanently fenced | generation below the durable floor is stale before request-ID lookup; closed generation never reopens | O(1) scalar fence plus bounded current-window detail; no historical request-ID set |
 | preflight descriptor | Agent delivery authority records the validated caller descriptor | activation and admission | immutable reservation lifetime | reservation identity + descriptor digest | body precursor digest, canonical body bytes, resource dimensions and protocol/bound profile are all bounded |
 | delivery identity (`deliveryId`) | Agent delivery authority on activation | transport, Agent, result/recovery bridge | stable for exact Attempt across reconnects until bounded delivery/tombstone GC | exact Attempt fence + executor tuple | one active record per admitted Attempt fence |
 | activation payload binding | Agent delivery authority | Agent/transport | immutable delivery lifetime | reservation descriptor + exact deliveryId/Attempt fence | actual body digest/bytes must equal preflight descriptor; complete envelope must satisfy its preflight bound |
@@ -95,7 +97,7 @@ This Design does not:
 | cancellation state | CaseDO/CaseEngine | delivery owner/Agent consume as control intent | Case semantic lifetime | Attempt fence | existing reason/evidence bounds |
 | uncertain external-effect state | CaseDO owns semantic `reconciling`/`unverified`; Agent/effect adapter produces effect evidence and delivery owner stores accepted evidence | recovery/result bridge | may outlive physical resource cleanup and capacity release until authoritative reconciliation | Attempt fence + deliveryId + executor tuple | bounded reconciliation evidence independent of physical-capacity accounting |
 
-Three generations remain distinct: **connection epoch**, **executor epoch**, and **Attempt fence**. Reconnect may change only connection epoch. Executor replacement changes the executor tuple. Semantic retry creates a new Attempt/fence.
+The three execution/delivery freshness fences remain distinct: **connection epoch**, **executor epoch**, and **Attempt fence**. Reconnect may change only connection epoch. Executor replacement changes the executor tuple. Semantic retry creates a new Attempt/fence. Section 11.3's `reservationWindowGeneration` is a separate Agent-owner idempotency-compaction generation: it can advance only to fence GC'd reservation request identities and has no connection, executor, Attempt, capacity-release or dispatch-authority meaning.
 
 ## 6. Failure and cheapest-falsifier matrix
 
@@ -120,21 +122,21 @@ Three generations remain distinct: **connection epoch**, **executor epoch**, and
 | capacity unknown/0 | admit none | any new reservation/slot opens |
 | cancel before reservation | no Agent state | cancellation creates delivery state |
 | cancel after reservation before Case commit | reservation released/expired; no delivery/effect | reservation activates after failed/cancelled start |
-| cancel after activation before dispatch authorization | fresh Case reread observes cancellation first; authorization/send forbidden | terminal/cancelled Attempt gains dispatch authorization |
-| cancel races after durable dispatch authorization | treat as possible execution until positive not-sent/not-started evidence; cancellation is intent | cancellation rewrites possible send as absent or frees physical resource without evidence |
+| cancel after activation before Case dispatch grant | cancel-first serializes in CaseDO, so grant/Agent authorization/send are forbidden and the activated hold closes only with positive no-start/no-handle evidence | terminal/cancelled Attempt gains a dispatch grant or first send |
+| cancel races after Case dispatch grant | grant-first is already the dispatch linearization; treat as possible execution/control intent even before Agent authorization/socket write until positive not-sent/not-started/no-handle evidence refines it | cancellation rewrites possible send as absent or frees physical resource without evidence |
 | stale result after new connection | ingress rejects | old socket can forward result |
 | stale result after new executor generation | delivery + Case fences reject | replacement executor satisfies predecessor Attempt |
 | payload/resource exhaustion | immutable descriptor preflight rejects every known bound before Attempt creation; activation verifies exact body/byte/bound equality | oversized known work creates running Attempt or activation substitutes unreserved bytes |
-| reservation response loss | stable live request reread/replay; after bounded expiry/GC the ancient request is stale, never new | retry double-counts capacity or GC'd ID obtains a new reservation |
+| reservation response loss | replay exact `(reservationWindowGeneration, reservationRequestId, digest)` while its window is open; after permanent window closure/GC the old generation is stale before lookup, never new | retry double-counts capacity or GC'd ID obtains a new reservation |
 | activation response loss | reread durable activation; activation is still not dispatch authorization | retry creates second delivery/slot or sends because activation reply was lost |
-| dispatch-authorization response loss | reread exact delivery/dispatch ordinal; existing authorization means possible execution, absent authorization permits only a fresh Case revalidation path | blind second authorization or physical send before durable authorization |
+| Agent dispatch-authorization response loss | reread exact `(deliveryId, dispatchOrdinal, dispatchGrantId)`; existing authorization means possible execution, while proven absence permits idempotent authorization from that same committed Case grant only | blind second ordinal/grant or physical send before durable authorization |
 | transport/evidence replay after tombstone GC | compact epoch/high-water/fence rejects ancient identity; observation never creates delivery | GC'd command/observation creates connection/capacity/reservation/execution |
 | result command response loss | reread Case durable receipt/state | second accepted result/Attempt appears |
 | reservation expires after Case start but before activation | stale activation rejects; explicit delivery-not-activated recovery | expired reservation still sends or leaves silent permanent running |
-| replay after transport receipt | same delivery reconciles; no later dispatch ordinal absent explicit positive safety proof + fresh Case validation | `received` authorizes a second invocation |
+| replay after transport receipt | same delivery reconciles; no later dispatch ordinal absent explicit positive safety proof + a fresh one-shot Case dispatch grant for that ordinal | `received` authorizes a second invocation |
 | executor replacement with old delivery live | predecessor admission/physical capacity unit and effect remain fenced/uncertain until positive predecessor no-handle/cleanup/recovery evidence; replacement capacity starts unknown/0 | new executor frees/replays predecessor blindly |
 
-The cheapest decisive source/model tests are therefore: capacity-1 two-Case race; old-epoch late message; reconnect-with-same-executor; disconnect-after-send unknown-effect case; owner reconstruction; capacity shrink/unknown; response-loss idempotency; payload preflight; and ack-versus-effect separation.
+The cheapest decisive source/model tests are therefore: capacity-1 two-Case race; old-epoch late message including after a committed Case grant; reconnect-with-same-executor; cancel-first with an activated delivery; grant-first cancellation before Agent authorization/socket write; grant and Agent-authorization response-loss replay; reservation-window close plus ancient replay and capacity shrink; contradictory evidence before/after physical cleanup; execution-started followed by negative evidence; owner reconstruction with activated-but-ungranted delivery; disconnect-after-send unknown-effect case; payload preflight; and ack-versus-effect separation.
 
 Passing them proves only the tested layer.
 
@@ -217,7 +219,7 @@ Shrink is non-preemptive. Existing reservations, delivery admission holds and ph
 
 A ready Case asks for a slot **before creating the next Attempt** so aggregate saturation does not manufacture running-but-unexecutable Attempts.
 
-A reservation request is idempotent and binds Agent route/executor tuple, the exact accepted `capacityRevision`, caller request digest, Case/Task identity, expected Case revision, predicted next Attempt ordinal/identity where exposed, bounded expiry, and an immutable **preflight descriptor**. The reservation carries no executable payload/body bytes and cannot be converted into execution by transport alone.
+A reservation request is idempotent and binds the exact current `reservationWindowGeneration`, stable `reservationRequestId` and `reservationRequestDigest`, Agent route/executor tuple, the exact accepted `capacityRevision`, Case/Task identity, expected Case revision, predicted next Attempt ordinal/identity where exposed, bounded expiry, and an immutable **preflight descriptor**. The reservation carries no executable payload/body bytes and cannot be converted into execution by transport alone.
 
 The preflight descriptor contains at least:
 
@@ -259,21 +261,38 @@ AgentDeliveryAuthority.activateDelivery(...)
   -> reservation converts one-for-one to delivery capacity hold
   -> dispatch remains not_authorized
 
-fresh CaseDO authoritative reread
-  -> exact same Attempt is still nonterminal/running and not cancelled
+CaseDO grant_attempt_dispatch command
+  -> same CaseDO command-serialization transaction as cancellation
+  -> validates exact Case + current running Task/Attempt/fence/executor tuple
+  + exact Agent route generation + activated delivery/activation receipt
+  + exact reservation-window/slot/preflight binding + expected Case revision
+  + dispatch is still legal and no grant already exists for this ordinal
+  -> commit one-shot dispatchGrantId + command receipt + attempt_dispatch_granted event
+  -> advance Case revision exactly once        [cancellation-vs-dispatch linearization point]
 
 AgentDeliveryAuthority.authorizeDispatch(...)
-  -> durable dispatch ordinal + exact observed Case revision/fence
+  -> exact durable activation + exact committed Case dispatch grant
+  -> durable dispatch ordinal bound to dispatchGrantId
   + current connection/executor tuple
-  -> dispatch = authorized        [linearization point]
+  -> dispatch = authorized
 
-only after that authorization commit
-  -> first physical send attempt
+only after that Agent authorization commit
+  -> physical send attempt for that ordinal
 ```
 
-If Case start fails/conflicts, release/expire reservation. If Case start response is ambiguous, reread Case authority before activation. If activation response is ambiguous, reread the reservation/delivery record; activation alone never authorizes send. If Case cancellation/terminal state is authoritatively observed before dispatch authorization commits, authorization fails and no send occurs. If dispatch-authorization response is ambiguous, reread the exact delivery/ordinal record before doing anything; never mint a second authorization blindly. Once durable dispatch authorization exists, a racing cancellation is conservatively treated as possible execution until positive not-sent/not-started evidence refines it.
+The selected Case command is `grant_attempt_dispatch`. It uses the existing Case command envelope's stable `requestId` and `expectedCaseRevision`; its command content contains exactly `caseId`, `taskId`, `attemptId`, `executorId`, `executorEpoch`, `fencingToken`, `agentId`, `routeGeneration`, `deliveryId`, `activationReceiptId`, `activationDigest`, `reservationWindowGeneration`, `reservationRequestId`, `reservationRequestDigest`, `slotToken`, `slotGeneration`, `preflightDescriptorDigest`, and the proposed `dispatchOrdinal`. The D0020 crossing adapter issues it only after reading the durable activation receipt. CaseDO validates the command against the exact current Case and currently `running` Task/Attempt/fence/executor facts, validates the supplied activation/reservation binding as the immutable D0020 crossing identity, rejects cancelled/terminal/non-running or already-granted ordinals, and commits the grant in the same atomic Case command boundary that serializes `cancel_task`.
 
-Revision 1 does not use `dispatch_pending`/`queued` for Agent capacity waiting. D0019@r2 froze `running` before the D0020 crossing; using those latent states would amend an accepted predecessor and require D0019 re-review. The capacity reservation is outside Case semantics and is intentionally non-executable.
+A first successful grant creates exactly one `dispatchGrantId`, one normal Case command receipt, and one `attempt_dispatch_granted` Event while advancing Case revision exactly once. The grant is a durable serialization fact only: it is not a Task state, Attempt lifecycle state, delivery queue state, result authority, execution result, or transfer of delivery ownership into CaseDO. `dispatchGrantId` is a domain-separated digest over the Case identity, grant `requestId`, and the exact immutable command fields above. Every executable dispatch ordinal, including a later ordinal allowed by Section 11 safety proof, requires its own one-shot grant before Agent authorization.
+
+Grant replay follows the existing Case receipt rule rather than inventing a second idempotency system: the same stable `requestId` plus identical command content returns the committed receipt even after response loss; the same request identity with different command content conflicts; a different request identity targeting an already-granted ordinal is rejected and cannot create another grant. The committed receipt exposes the exact `dispatchGrantId`, committed Case revision and Event identity needed by the Agent crossing. Thus grant-response loss is resolved by exact Case receipt replay/reread and cannot create a duplicate delivery or send.
+
+`AgentDeliveryAuthority.authorizeDispatch` no longer uses a Case reread as its permission boundary. It accepts only the exact committed Case grant bound to the same activation, delivery, reservation/preflight identity, Attempt fence and proposed ordinal, then commits its own idempotent transport authorization. Agent-authorization response loss replays/rereads that same `(deliveryId, dispatchOrdinal, dispatchGrantId)` authorization; it never mints a second ordinal or authorizes a send without the Case grant.
+
+If Case start fails/conflicts, release/expire the reservation. If Case start response is ambiguous, reread Case authority before activation. If activation response is ambiguous, reread the reservation/delivery record; activation remains non-executable because the Case needs its exact durable identity before it can grant dispatch. If cancellation commits before the grant, the grant cannot commit and no first send is permitted; the activated delivery is closed against dispatch while still `not_authorized`, and positive no-start/no-handle evidence releases its admission/resource hold without semantic retry or another Attempt. If the grant commits first, any later cancellation is ordered after the dispatch linearization point and the delivery is conservatively possible execution even when Agent authorization or the socket write has not yet happened. The Agent may withhold a not-yet-started send after learning that later cancellation, but absence semantics require positive Section-11 not-sent/not-started/no-handle evidence. Cancellation remains control intent and cannot revoke history by assertion.
+
+Owner reconstruction with an activated but ungranted delivery is likewise non-executable: the Agent owner may reread an existing exact Case grant/authorization receipt, but absence of a committed grant never becomes permission to send. If Case authority now rejects the stable grant request because cancellation/terminal state won, the delivery closes and its hold is cleaned up; if grant response alone was lost, replay of the same immutable grant request recovers the one receipt. No Agent-side semantic retry or duplicate Attempt is created.
+
+Revision 1 does not use `dispatch_pending`/`queued` for Agent capacity waiting. D0019@r2 froze `running` before the D0020 crossing; using those latent states would amend an accepted predecessor and require D0019 re-review. The capacity reservation is outside Case semantics and is intentionally non-executable. **D0019 compatibility verdict:** no predecessor reopen is required by this correction: the exact `running` Attempt/fence durable commit remains the mandatory predecessor, and D0020 adds only a stricter Case-serialized grant before first executable send without changing Task/Attempt lifecycle or moving delivery ownership into CaseDO.
 
 ## 11. Delivery identity and receipts
 
@@ -281,7 +300,7 @@ Revision 1 does not use `dispatch_pending`/`queued` for Agent capacity waiting. 
 
 `agentId + routeGeneration + caseId + taskId + attemptId + executorId + executorEpoch + fencingToken`
 
-Connection epoch is excluded so reconnect cannot create a second logical delivery. Activation separately stores immutable payload/body digest, effect key where applicable, source Case revision, slot token/generation, protocol version and byte count. Same deliveryId with different immutable content conflicts.
+Connection epoch is excluded so reconnect cannot create a second logical delivery. Activation separately stores immutable payload/body digest, effect key where applicable, source Case revision, exact `reservationWindowGeneration + reservationRequestId + reservationRequestDigest`, slot token/generation, preflight descriptor digest, protocol version and byte count. Same deliveryId with different immutable content conflicts.
 
 Every physical send adds the **current connection tuple** to that stable delivery envelope. The local Agent validates bounded shape and exact executor tuple before execution.
 
@@ -313,12 +332,33 @@ Within one dispatch ordinal, `sent_observed` cannot later become `positively_not
 
 The local Agent/effect adapter attaches a monotonically increasing positive safe-integer `localEvidenceRevision` to accepted execution/cleanup/effect observations for the exact `deliveryId + executor tuple`. Reconnect does not reset this revision; executor replacement cannot issue evidence for the predecessor tuple. The delivery authority classifies every duplicate/delayed/conflicting observation before mutation:
 
-- **exact idempotent replay** — same command/observation identity, same revision and same canonical digest/value: return the existing receipt, no transition;
-- **stale reject** — lower connection epoch, lower capacity/evidence revision, superseded executor tuple, older dispatch ordinal used as if current, expired/tombstoned identity, or any already-retired generation: no mutation;
+- **exact replay** — same command/observation identity, same revision and same canonical digest/value: return the existing receipt, no transition;
+- **stale** — lower connection epoch, lower capacity/evidence revision, superseded executor tuple, older dispatch ordinal used as if current, expired/tombstoned identity, or any already-retired generation: no mutation;
 - **conflict** — same identity/revision with different canonical content, or a transition contradicting already accepted stronger evidence: no mutation and surface conflict;
-- **monotonic evidence refinement** — a higher valid evidence revision that satisfies the transition rules above may replace only the weaker/unknown dimension it proves.
+- **monotonic refinement** — a higher valid evidence revision may replace only the weaker/unknown dimension it proves, and only when the resulting complete disposition tuple remains globally legal under the rules below.
 
-A higher dispatch ordinal for the same `deliveryId` is allowed only after fresh Case revalidation and one of two explicit safety proofs: the previous ordinal is positively unsent/not-started with no physical handle, or an independently accepted effect contract explicitly authorizes replay of the same stable effect key. It requires the delivery to retain a valid admission-capacity unit and the Section-10 dispatch-authorization transaction again. No disposition transition, reconnect, receipt replay or new dispatch ordinal creates a new Task/Attempt; semantic retry remains Case authority only.
+Those per-axis transitions are necessary but not sufficient. The complete tuple has these normative negative-evidence scopes and cross-axis implications:
+
+- `dispatch=positively_not_sent` is positive historical proof that this exact authorized `dispatchOrdinal` never crossed the physical-send emission boundary. Missing send acknowledgement, cancellation, disconnect or an unobserved socket call is not that proof.
+- `execution=not_started` is positive historical proof that this exact delivery/ordinal never crossed the selected local executor operation's start boundary. It means more than "not currently running" and cannot be inferred from a process-list miss after owner reconstruction.
+- `cleanup=no_handle` is reserved for positive proof that this exact delivery/ordinal never created or owned the selected local process/resource/handle. A raw observation that no handle exists **now** is only current absence and cannot set `no_handle`; when a handle existed and was later removed, the legal positive disposition is `cleanup_complete`.
+- Lack of a downstream observation leaves the corresponding axis `unknown`/`none`; absence of evidence never creates any of the three negative proofs above.
+
+Positive downstream evidence forbids contradictory upstream negatives without requiring all predecessor positives to have been observed. In particular:
+
+1. an authenticated `transportReceipt=received` for an ordinal is incompatible with `dispatch=positively_not_sent` for that ordinal;
+2. `execution=started` or `execution=completed` is incompatible with both `dispatch=positively_not_sent` and `execution=not_started`;
+3. accepted `effect=applied` is incompatible with `dispatch=positively_not_sent` and `execution=not_started`, even when transport receipt or local-start evidence was not separately observed;
+4. `execution=started`/`completed`, any other positive resource/process-creation evidence, `cleanup=held`, or `cleanup=cleanup_complete` is incompatible with `cleanup=no_handle`;
+5. a later negative observation can never refine away any already accepted positive fact listed above.
+
+Partial observation remains legal: for example `received + execution=unknown`, `completed + transportReceipt=none`, or `effect=applied + cleanup=unknown` does not require the missing predecessor axis to be synthesized. The implication rules only reject a simultaneously asserted absolute negative that the downstream positive makes impossible.
+
+Evidence assimilation is atomic for the disposition tuple. After identity/revision checks, every incoming observation is classified as exactly one of **exact replay**, **stale**, **conflict**, or **monotonic refinement**. A proposed higher `localEvidenceRevision` is a refinement only when its per-axis transition is legal **and** the resulting whole tuple satisfies every cross-axis implication above. Otherwise the entire observation is `conflict`; the owner must not partially mutate one axis and leave an illegal Cartesian product.
+
+`AgentDeliveryAuthority` is the sole durable writer of a bounded delivery evidence-conflict record containing the delivery/ordinal, conflicting evidence identities/revisions/digests and current disposition digest. While such a contradiction is unresolved, it blocks every new executable dispatch grant consumption, Agent dispatch authorization, physical send, initiation of a new local execution and same-delivery replay that could create another execution. Already-started execution may only be controlled/observed under its existing fence; the conflict cannot retroactively prevent or erase it. The conflict does not choose a Case result, rewrite an existing positive into a negative, or turn transport evidence into effect truth. Safe physical cleanup evidence may still monotonically prove that a real handle is gone and release physical capacity, but it does not clear the contradiction. If the conflict leaves whether send/start/effect occurred genuinely uncertain rather than rejecting one input as stale/invalid, the bounded conflict/uncertainty evidence crosses to CaseDO for conservative reconciliation; CaseDO remains the only semantic result/retry/reconciliation owner.
+
+A higher dispatch ordinal for the same `deliveryId` is allowed only after one of two explicit safety proofs: the previous ordinal is positively unsent/not-started with no physical handle, or an independently accepted effect contract explicitly authorizes replay of the same stable effect key. It requires the delivery to retain a valid admission-capacity unit and a fresh one-shot Section-10 Case dispatch grant followed by Agent dispatch authorization for the new ordinal. No disposition transition, reconnect, receipt replay or new dispatch ordinal creates a new Task/Attempt; semantic retry remains Case authority only.
 
 ### 11.2 Bounded idempotency, tombstones and ancient replay
 
@@ -328,12 +368,24 @@ Idempotency state is bounded. Large historical receipt sets may be compacted onl
 | --- | --- | --- | --- |
 | connect | `routeGeneration + expectedConnectionEpoch + connectRequestId + requestDigest`; exact current/last receipt replays | keep the current/last connection record plus only a bounded recent receipt set; older detail may GC after a strictly later durable `connectionEpoch` exists | durable last epoch/predecessor check rejects the ancient connect as stale; it cannot allocate a new epoch |
 | capacity advertisement/update | exact executor tuple + `capacityRevision` + canonical digest/value | keep accepted high-water record for the live executor generation plus bounded recent receipts; compact GC into durable accepted/high-water revision | `capacityRevision <=` high-water is replay/stale according to digest if retained, otherwise stale; it cannot restore an older capacity |
-| reserve | reservation request identity/digest + Case/Task/predicted Attempt + bounded expiry + descriptor digest | live record through expiry/terminal; bounded terminal tombstone through configured replay grace; GC only after the request is expired and cannot activate | expired/missing ancient reservation request is stale; it may not obtain a new reservation. A new reservation requires a new non-expired request identity after fresh Case/admission evaluation |
+| reserve | `reservationWindowGeneration + reservationRequestId` is the stable request identity; request digest binds Case/Task/predicted Attempt, expiry and descriptor | bounded detail is retained for every request in the one open window; an individual request ID is never forgotten while that window remains open. Window rollover/GC follows Section 11.3 only | generation below `minimumAcceptedReservationWindow` is stale before ID/digest lookup; a historical identity, including the same ID with different digest, can never become new work |
 | activate | live reservation + activation request identity/digest + exact Attempt fence + descriptor/body binding | activation receipt lives with delivery; terminal tombstone is retained through the delivery replay horizon and at least the reservation tombstone horizon | activation can only consume an extant live reservation; missing/GC'd reservation or delivery identity is stale and can never recreate either |
 | transport/local observation | deliveryId + connection tuple where transport-scoped + dispatch ordinal or `localEvidenceRevision` + digest | live delivery stores only finite disposition fields/high-water revisions; bounded terminal delivery tombstone after close | an observation never creates a delivery; unknown/GC'd delivery or revision at/below compacted high-water is stale |
 | result handoff | exact delivery/result digest maps to the existing Case command/result receipt and Attempt fence | Case receipt retention remains Case-owner bounded; delivery bridge keeps only bounded delivery/result crossing metadata | the bridge rereads Case authority; missing/GC'd delivery cannot create a new Case command identity or Attempt, and an already accepted exact Case result follows existing Case replay semantics |
 
 Finite configuration therefore includes replay horizons/tombstone counts, while compact last-epoch/high-water records remain O(1) per live route/executor/delivery generation rather than growing with historical commands.
+
+### 11.3 Reservation-window non-reuse fence
+
+Reservation GC uses one bounded generation namespace rather than an unbounded historical request-ID set. `AgentDeliveryAuthority` durably owns two positive safe integers: the one open `reservationWindowGeneration = G` and `minimumAcceptedReservationWindow = F`. Revision 1 maintains `F == G` at all times and retains no closed-but-still-accepted reservation window. A new `tryReserveSlot` is admitted only when it explicitly carries the current `G`; the stable reservation request identity is `(G, reservationRequestId)`, while `reservationRequestDigest` binds its immutable content.
+
+Within open G, same identity + same digest is exact replay, same identity + different digest is conflict, and a different request ID is new only after ordinary fresh Case/admission/capacity evaluation. A request with generation `< F` is stale before any detailed lookup; a generation `> G` is unsupported future input. The owner never rewrites an old request's generation to current and never treats "unknown after GC" as new.
+
+Detailed receipts/tombstones for G are bounded by configuration and are **not individually deleted while G remains open**, because forgetting one identity inside an accepting namespace would permit resurrection. When the bounded detail budget requires compaction, the owner stops admitting new reservations for G and performs a rollover only after every reservation from G is expired/terminal, no activation/delivery admission hold can still consume one, and the configured replay grace has elapsed. The rollover atomically and durably advances both `reservationWindowGeneration` and `minimumAcceptedReservationWindow` to `G + 1` before deleting G's detailed receipts/tombstones. Generation overflow fails closed. If G cannot drain, new reservation admission fails boundedly rather than opening extra historical windows or accumulating an unbounded ID set.
+
+After that fence commit, G is permanently closed. Any ancient G reserve or activation replay is stale before it can acquire capacity, recreate a reservation, activate a delivery, obtain a dispatch grant/authorization or reach execution; the same historical `(G, reservationRequestId)` with a different digest is still stale, not a fresh request. A legitimate later reservation uses the new current generation and a new stable request identity after fresh Case/admission evaluation. Closed generations are never reopened.
+
+This fence has a different owner/lifetime from the other generations. `connectionEpoch` fences logical transport sessions; executor `capacityRevision` fences reported capacity evidence; the executor epoch fences process-generation identity; `deliveryId` remains stable for one Attempt across reconnect; the Attempt fence remains Case semantic authority. `reservationWindowGeneration` exists only to bound reservation idempotency-detail lifetime. Advancing it cannot release a live capacity unit, supersede a connection/executor, close a delivery, create an Attempt, or authorize dispatch. Its durable cost is two O(1) scalar fences plus one bounded current-window request map.
 
 Case command/result receipts remain Case authority. Physical effect truth remains Agent/effect-adapter evidence consumed by Case reconciliation. Transport receipts are finite fields, not an unbounded message log, and transport receipt never becomes semantic/effect receipt.
 
@@ -351,7 +403,7 @@ A confirmed disconnect marks only the connection unavailable. It does not by its
 
 On reconnect the owner advances connection epoch, fences the old connection, installs the capacity-freshness barrier, and reconciles each live delivery against exact executor/local evidence. That reconciliation updates only the Section-11 dimensions under their evidence revisions:
 
-- positive `execution=not_started` with `cleanup=no_handle` may permit a later dispatch ordinal for the **same** delivery after fresh Case validation and capacity authorization;
+- positive `execution=not_started` with `cleanup=no_handle` may permit a later dispatch ordinal for the **same** delivery only after a fresh one-shot Case dispatch grant for that ordinal and grant-bound Agent authorization;
 - `execution=started` and/or `cleanup=held` resumes observation/control of that same physical execution and keeps its physical hold;
 - `execution=completed` forwards/reconciles existing exact result/effect evidence; `cleanup_complete` may independently release physical capacity even while result/effect truth remains uncertain;
 - `execution=unknown` or `effect=unknown` never authorizes blind replay; Case reconciliation/recovery remains effect-class dependent.
@@ -367,19 +419,19 @@ Cancellation stays Case semantic authority; `AgentDeliveryAuthority` owns only t
 1. **Before reservation:** no D0020 state.
 2. **Reservation exists, Case start did not commit:** release/expire reservation; zero delivery/effect.
 3. **Running Attempt committed, delivery not activated:** activation validates the exact Attempt/fence but still creates only `dispatch=not_authorized`; cancellation can close the crossing without send.
-4. **Activated, before first dispatch authorization:** immediately before authorizing any executable send, the delivery authority must freshly reread Case authority and prove the exact Attempt is still the current nonterminal/running Attempt and not cancelled. If cancellation/terminal state is observed first, dispatch authorization does not commit, no physical send is permitted, and the no-execution/cleanup path may release the capacity hold.
-5. **Durable dispatch authorization committed:** this commit is the cancellation-vs-dispatch linearization point. Only after it may transport attempt the physical send. A cancellation that becomes authoritative after this point is treated as **possible execution** even if the send call has not returned or its response is lost. Cancellation alone cannot rewrite `authorized` to `positively_not_sent` or infer `effect=not_applied`.
-6. **Later positive not-sent/not-started evidence:** exact evidence for that dispatch ordinal may monotonically refine the delivery to `positively_not_sent` and/or `execution=not_started`, `cleanup=no_handle`; only then may stronger not-applied classification be used when the effect contract supports it.
+4. **Activated, before Case dispatch grant:** activation is still non-executable. The crossing submits the stable Section-10 `grant_attempt_dispatch` command to the same CaseDO serialization boundary as `cancel_task`. If cancellation/terminal mutation commits first, the grant predicate cannot commit, no Agent dispatch authorization or physical send is permitted, and positive no-start/no-handle closure releases the delivery admission hold.
+5. **Case dispatch grant committed first:** the grant commit is the cancellation-vs-dispatch linearization point. A cancellation committed after that grant is ordered after dispatch permission and the delivery is conservatively **possible execution**, even if Agent authorization has not committed yet or the physical socket write has not started. Cancellation is control intent; it cannot erase the grant or infer absence/effect outcome.
+6. **Agent authorization/send after grant:** Agent authorization must bind the exact grant and may still withhold a not-yet-sent dispatch when later cancellation control is observed. Whether withheld or transport-ambiguous, absence is established only by exact positive evidence for that ordinal: `positively_not_sent`, `execution=not_started`, and where required `cleanup=no_handle`. Only such evidence may monotonically refine the conservative possible-execution view; stronger `effect=not_applied` still requires the effect contract to support it.
 7. **Send/start may have happened:** cancellation is control intent; send exact cancellation/control to the current delivery/executor, retain physical capacity only until positive no-handle/cleanup evidence, and keep any result/effect uncertainty durably separate for Case reconciliation.
 8. **Late result after cancellation:** remains subject to current delivery ingress and existing Case result/Attempt fencing.
 
-Response loss/reconnect never changes this order. Activation response loss is resolved by rereading activation; dispatch-authorization response loss by rereading the exact dispatch ordinal; transport response loss leaves an existing authorization as possible execution until stronger evidence arrives. None of those paths creates a new Attempt or implicit semantic retry.
+Response loss/reconnect never changes this order. Activation response loss is resolved by rereading activation; grant response loss by replay/reread of the same immutable Case command request; Agent authorization response loss by rereading the exact grant-bound dispatch ordinal; transport response loss leaves a committed grant/authorization as possible execution until stronger evidence arrives. None of those paths creates a new Attempt or implicit semantic retry.
 
 ## 15. External-effect uncertainty and replay
 
 Delivery recovery is not semantic retry.
 
-Reconnect may create a later dispatch ordinal for the **same delivery** only through Section 11's explicit safety proof and fresh Case revalidation: predecessor local execution is positively `not_started` with no handle, or an independently accepted effect contract explicitly makes replay of the same stable effect key safe. The new ordinal still requires durable dispatch authorization and valid capacity accounting. Unknown external effects never trigger blind replay.
+Reconnect may create a later dispatch ordinal for the **same delivery** only through Section 11's explicit safety proof and a fresh Case-serialized `grant_attempt_dispatch` for that exact new ordinal: predecessor local execution is positively `not_started` with no handle, or an independently accepted effect contract explicitly makes replay of the same stable effect key safe. The new ordinal still requires its grant-bound durable Agent dispatch authorization and valid capacity accounting. Unknown external effects never trigger blind replay.
 
 For external work:
 
@@ -412,7 +464,7 @@ Implementation must select finite values for at least:
 - `maxAgentCapacity`;
 - maximum live reservations, delivery admission holds and physical execution slots;
 - maximum retained delivery/effect-uncertainty records independent of physical capacity;
-- reservation lifetime, replay grace, command-class receipt/tombstone counts and delivery replay horizon;
+- reservation lifetime, replay grace, maximum detailed request identities in the one open reservation window, reservation-window safe-integer/overflow bound, command-class receipt/tombstone counts and delivery replay horizon;
 - maximum dispatch ordinals per delivery;
 - delivery/body/envelope bytes and aggregate live/retained evidence bytes;
 - connection metadata/WebSocket attachment bytes;
@@ -456,7 +508,7 @@ Concrete credential enrollment/rotation/install policy remains a downstream owne
 
 ## 19. Storage, provider and local runtime requirements
 
-The durable owner needs atomic persistent mutation for immutable route self-binding, connection generation/current identity/connect receipt, executor tuple, accepted capacity revision/reported/effective values and freshness barrier, reservations/preflight descriptors, activated deliveries, dispatch authorizations/ordinals, admission/physical-capacity accounting, immutable body/envelope binding, fixed transport/execution/cleanup/effect dispositions with evidence high-water marks, bounded replay tombstones/floors and recovery cause IDs.
+The durable owner needs atomic persistent mutation for immutable route self-binding, connection generation/current identity/connect receipt, executor tuple, accepted capacity revision/reported/effective values and freshness barrier, `reservationWindowGeneration`/`minimumAcceptedReservationWindow` plus bounded current-window reservation detail, reservations/preflight descriptors, activated deliveries, exact Case dispatch-grant bindings, dispatch authorizations/ordinals, admission/physical-capacity accounting, immutable body/envelope binding, fixed transport/execution/cleanup/effect dispositions with evidence high-water marks/conflict records, bounded replay tombstones/floors and recovery cause IDs.
 
 In-memory maps, socket objects and process handles are projections only.
 
@@ -496,10 +548,12 @@ After any delivery state exists, rollback may not switch to code that ignores ro
 - **free slot on disconnect/timeout:** rejected because neither proves local resource cleanup; positive cleanup may free physical capacity later without erasing semantic uncertainty.
 - **hold physical slot until semantic reconciliation ends:** rejected because a positively cleaned-up process/handle is no longer physical capacity even if effect/result truth remains unknown.
 - **inherit positive capacity across reconnect:** rejected because delayed updates within one executor generation require a fresh monotonic capacity revision fence.
-- **activation == dispatch authorization:** rejected because cancellation needs one durable linearization point after fresh Case revalidation and before physical send.
+- **activation == dispatch authorization:** rejected because activation must remain non-executable so Case cancellation can serialize against a later one-shot dispatch grant.
+- **fresh Case reread followed by Agent-side authorization as the cancellation boundary:** rejected because cancellation can commit after the reread and before the Agent commit. The selected CaseDO grant is the single durable ordering fact; Agent authorization binds it but does not replace it.
 - **unbounded idempotency receipt log:** rejected; bounded receipts/tombstones compact only behind durable epoch/revision/fence high-water state that makes ancient requests stale.
+- **TTL-only reservation ID reuse or unknown-after-GC-is-new:** rejected. The bounded reservation window must be permanently fenced before detail GC, so replay of the old generation is stale regardless of request digest.
 - **transport ack == effect receipt:** rejected because transport does not own effect truth.
-- **blind replay after reconnect:** rejected unless predecessor `not_started`/no-handle or independent effect-idempotency proof exists, followed by fresh Case validation and a new durable dispatch ordinal.
+- **blind replay after reconnect:** rejected unless predecessor `not_started`/no-handle or independent effect-idempotency proof exists, followed by a fresh one-shot Case dispatch grant and grant-bound Agent authorization for the new ordinal.
 - **mandatory durable local journal now:** not selected; conservative unknown -> Case reconciliation is safe, and stronger restart availability is a separate explicit requirement.
 
 ## 22. Acceptance criteria
@@ -508,19 +562,19 @@ Acceptance requires independent review to confirm all of the following without r
 
 1. one `AgentDeliveryAuthority` owns durable Agent route/connection/delivery/admission facts while CaseDO/CaseEngine remains sole semantic Task/Attempt/retry/result/reconciliation owner;
 2. the local Agent/executor is only the reported-capacity/physical-evidence producer, while `AgentDeliveryAuthority` is the sole durable writer of accepted/effective capacity and accepted delivery dispositions;
-3. delivery state uses the independent dispatch/transport-receipt/execution/cleanup/effect dimensions and exact transition rules in Section 11 rather than an implementation-defined phase enum;
-4. exact duplicate, delayed/stale, same-revision conflict and higher-revision monotonic evidence refinement have deterministic outcomes and none creates semantic retry;
+3. delivery state uses the independent dispatch/transport-receipt/execution/cleanup/effect dimensions plus Section-11 cross-axis implication rules; `positively_not_sent`, `not_started` and `no_handle` have the exact historical-negative scopes defined there, and current handle absence is not silently promoted into proved-never-created;
+4. every observation is deterministically classified as exact replay, stale, conflict or monotonic refinement; a higher revision cannot commit an illegal global evidence tuple, positive downstream evidence forbids contradictory upstream negatives without requiring unobserved predecessor positives, and conflict blocks new executable crossing without deciding Case semantics;
 5. capacity N bounds one aggregate stream of reservation/admission/physical units across multiple Cases, with N=1 the same algorithm and no reservation-to-delivery double count/gap;
 6. `capacityRevision` fences delayed updates within one executor generation; same-revision different values conflict and lower revisions cannot restore an older capacity;
 7. every new logical connection, including reconnect to the same executor tuple, admits zero until a strictly fresher capacity revision arrives; executor replacement also starts capacity-unknown/0;
 8. saturation/freshness/storage-bound denial creates no durable waiting Task entry and consumes no Attempt/retry budget;
 9. every reservation contains only the immutable preflight descriptor, and all known body/resource/protocol/envelope bounds fail before Attempt creation; activation body digest/bytes and complete envelope must match that descriptor;
 10. no executable payload can cross before the exact Case `running` Attempt/fence commit and successful activation of that exact live reservation;
-11. activation is not send authorization: fresh authoritative Case validation precedes every executable dispatch authorization, and no physical send may start before the matching authorization is durably committed;
-12. cancellation observed before dispatch authorization forbids send; cancellation racing after durable authorization is possible execution until positive not-sent/not-started evidence refines it;
+11. activation is not send authorization: every executable dispatch ordinal first obtains the exact one-shot CaseDO `grant_attempt_dispatch` receipt from the same serialization boundary as cancellation, then Agent authorization binds that exact grant, and no physical send may start before both commits;
+12. cancel-first means the Case grant cannot commit and there is no first send; grant-first is the cancellation-vs-dispatch linearization even when cancellation arrives before Agent authorization/socket write, so later cancellation is possible execution/control intent until positive not-sent/not-started/no-handle evidence refines it;
 13. old route-generation/connection messages cannot mutate delivery or Case state after supersession, and reconnect can preserve executor tuple while executor replacement cannot masquerade as reconnect;
-14. connect/capacity/reserve/activate/transport-local-observation/result handoff response loss/replay follows Section 11.2 bounded receipt/tombstone semantics and never double-allocates capacity or execution;
-15. after detailed receipt/tombstone GC, compact predecessor/epoch/revision/delivery fences make an ancient command stale; a GC'd ID can never obtain a new connection generation, capacity value, reservation, delivery or execution;
+14. connect/capacity/reserve/activate/Case-dispatch-grant/Agent-authorization/transport-local-observation/result handoff response loss follows the selected owner receipt rules and never double-allocates a grant, capacity unit, delivery, ordinal or execution;
+15. reservation detail GC is legal only after permanent bounded window closure: requests below `minimumAcceptedReservationWindow` are stale before lookup, same historical identity with a different digest is never new work, and ancient replay cannot regain reservation/capacity/delivery/grant/authorization/execution; other command classes retain their Section-11.2 compact predecessor/epoch/revision/delivery fences;
 16. a physical slot means actual local process/resource/handle ownership; positive cleanup/no-handle evidence releases physical capacity independently of later semantic/effect uncertainty;
 17. releasing physical capacity while `effect=unknown` leaves bounded delivery/effect evidence and Case reconciliation/retry prohibition intact; cleanup is not semantic/effect receipt;
 18. transport receipt, local execution completion, physical cleanup, effect evidence and Case semantic result acceptance remain distinct facts;
@@ -535,11 +589,13 @@ Acceptance requires independent review to confirm all of the following without r
 
 Independent acceptance must specifically challenge whether the non-executable pre-dispatch reservation is the smallest valid cross-owner admission primitive. If it duplicates semantic scheduling or cannot be recovered without a second authority, reject/split this revision rather than hiding the defect in implementation.
 
+Acceptance must also confirm the Section-10 Case grant as the selected cancellation/dispatch arbitration contract and record the owner obligation: after D0020 r1 is accepted, but **before any D0020 implementation**, `docs/PROTOCOL.md` must be amended owner-natively with `grant_attempt_dispatch`, the exact fields/admission predicate above, normal Case receipt/idempotency behavior, one `attempt_dispatch_granted` Event + Case revision advance on first commit, cancellation serialization, and the explicit facts that it adds no Attempt lifecycle state and transfers no delivery ownership to CaseDO. This draft correction does not perform that PROTOCOL mutation.
+
 ## 23. Verification layers after acceptance
 
 ### Source/model
 
-Add deterministic tests for multi-Case capacities 1/N; stale/lower and same-revision-conflicting capacity updates; reconnect freshness to the same executor and replacement-executor unknown/0 capacity; reserve/activate/dispatch-authorization response loss; old route-generation/connection late ack/result; exact duplicate versus stale/conflicting/higher-revision delivery evidence; every legal/illegal dispatch/execution/cleanup/effect transition; ancient command replay after each receipt/tombstone GC path; cancellation before and after the durable dispatch linearization point; disconnect before/after authorization/send/start/effect; Agent/Case owner reconstruction; saturation/shrink/unknown/growth; immutable preflight descriptor/body-digest/byte/resource/envelope mismatch and exhaustion; expired unactivated reservation; physical cleanup with still-unknown effect/result; unknown external-effect reconciliation; and no semantic retry from any delivery transition.
+Add deterministic tests for multi-Case capacities 1/N; stale/lower and same-revision-conflicting capacity updates; reconnect freshness to the same executor and replacement-executor unknown/0 capacity; reserve/activate/Case-dispatch-grant/Agent-authorization response loss; old route-generation/connection late ack/result; exact duplicate versus stale/conflicting/higher-revision delivery evidence; every legal/illegal per-axis and cross-axis dispatch/transport/execution/cleanup/effect tuple; reservation-window rollover plus ancient replay after reservation detail GC and every other receipt/tombstone GC path; cancel-first/grant-first ordering including cancellation before physical socket write; disconnect before/after authorization/send/start/effect; Agent/Case owner reconstruction; saturation/shrink/unknown/growth; immutable preflight descriptor/body-digest/byte/resource/envelope mismatch and exhaustion; expired unactivated reservation; physical cleanup with still-unknown effect/result; unknown external-effect reconciliation; and no semantic retry from any delivery transition.
 
 The repository source gate remains required; focused tests do not replace it.
 
@@ -577,4 +633,6 @@ If any deferred item is required for safety rather than availability/convenience
 
 A later acceptance action may authorize only owner-native implementation of the selected semantic boundary. Runtime/module naming should remain semantic, for example Agent delivery authority/provider host and local Agent transport adapter; Design numbers remain provenance rather than runtime architecture.
 
-This proposal does not authorize production source changes, provider resources, deployment, WORKBOARD runnable-frontier/selection edits, Case semantic changes, compatibility removal, or a lifecycle transition beyond controller-owned review.
+If this revision is accepted, owner impact order is mandatory: before implementation, amend `docs/PROTOCOL.md` to add the exact Section-10 `grant_attempt_dispatch` command vocabulary, fields, admission predicate, receipt/replay/conflict behavior, `attempt_dispatch_granted` Event/Case-revision effect and cancellation serialization meaning. That amendment must explicitly preserve `running` as the already-committed D0019 predecessor, add no Task/Attempt lifecycle state, and leave activation/delivery/connection/capacity ownership in D0020 rather than CaseDO. The PROTOCOL amendment is owner-native follow-on work, not part of this draft correction and not optional implementation policy.
+
+This proposal does not authorize production source changes, provider resources, deployment, WORKBOARD runnable-frontier/selection edits, Case semantic changes beyond the accepted future PROTOCOL owner amendment above, compatibility removal, or a lifecycle transition beyond controller-owned review.
