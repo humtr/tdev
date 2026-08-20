@@ -192,6 +192,40 @@ function validateCommand(command) {
     case 'cancel_task':
       assertRecordShape(command, ['type', 'taskId'], ['reason'], 'command');
       break;
+    case 'grant_attempt_dispatch':
+      assertRecordShape(command, [
+        'type',
+        'caseId',
+        'taskId',
+        'attemptId',
+        'executorId',
+        'executorEpoch',
+        'fencingToken',
+        'agentId',
+        'routeGeneration',
+        'deliveryId',
+        'activationReceiptId',
+        'activationDigest',
+        'reservationWindowGeneration',
+        'reservationRequestId',
+        'reservationRequestDigest',
+        'slotToken',
+        'slotGeneration',
+        'preflightDescriptorDigest',
+        'dispatchOrdinal',
+      ], [], 'command');
+      for (const field of [
+        'caseId', 'taskId', 'attemptId', 'executorId', 'agentId', 'reservationRequestId',
+      ]) assertIdentifier(command[field], `command.${field}`);
+      for (const field of [
+        'fencingToken', 'deliveryId', 'activationReceiptId', 'activationDigest', 'reservationRequestDigest',
+        'slotToken', 'preflightDescriptorDigest',
+      ]) assertDigest(command[field], `command.${field}`);
+      for (const field of [
+        'executorEpoch', 'routeGeneration', 'reservationWindowGeneration',
+        'slotGeneration', 'dispatchOrdinal',
+      ]) assertSafeInteger(command[field], `command.${field}`, { min: 1 });
+      break;
     case 'deny_task':
       assertRecordShape(command, ['type', 'taskId', 'missingCapabilities'], [], 'command');
       break;
@@ -298,6 +332,90 @@ export function inspectCaseCommandEnvelope(envelope) {
     command: normalizedCommand,
     commandDigest: receiptDigest(normalizedCommand),
   });
+}
+
+function assertMutationReceiptCommitEvent(caseId, requestId, receipt, commitEvent) {
+  if (!commitEvent) {
+    throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
+  }
+  if (commitEvent.type === 'command_committed') {
+    assertRecordShape(commitEvent.detail, ['requestId', 'commandDigest', 'responseDigest'], [], `command_committed Event ${receipt.committedRevision}`);
+    if (commitEvent.detail.requestId !== requestId ||
+        commitEvent.detail.commandDigest !== receipt.commandDigest ||
+        commitEvent.detail.responseDigest !== receipt.responseDigest) {
+      throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} does not match its commit Event`);
+    }
+    return;
+  }
+  if (commitEvent.type !== 'attempt_dispatch_granted') {
+    throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
+  }
+
+  assertRecordShape(commitEvent.detail, [
+    'requestId',
+    'dispatchGrantId',
+    'caseId',
+    'taskId',
+    'attemptId',
+    'executorId',
+    'executorEpoch',
+    'fencingToken',
+    'agentId',
+    'routeGeneration',
+    'deliveryId',
+    'activationReceiptId',
+    'activationDigest',
+    'reservationWindowGeneration',
+    'reservationRequestId',
+    'reservationRequestDigest',
+    'slotToken',
+    'slotGeneration',
+    'preflightDescriptorDigest',
+    'dispatchOrdinal',
+  ], [], `attempt_dispatch_granted Event ${receipt.committedRevision}`);
+  const detail = commitEvent.detail;
+  const command = {
+    type: 'grant_attempt_dispatch',
+    caseId: detail.caseId,
+    taskId: detail.taskId,
+    attemptId: detail.attemptId,
+    executorId: detail.executorId,
+    executorEpoch: detail.executorEpoch,
+    fencingToken: detail.fencingToken,
+    agentId: detail.agentId,
+    routeGeneration: detail.routeGeneration,
+    deliveryId: detail.deliveryId,
+    activationReceiptId: detail.activationReceiptId,
+    activationDigest: detail.activationDigest,
+    reservationWindowGeneration: detail.reservationWindowGeneration,
+    reservationRequestId: detail.reservationRequestId,
+    reservationRequestDigest: detail.reservationRequestDigest,
+    slotToken: detail.slotToken,
+    slotGeneration: detail.slotGeneration,
+    preflightDescriptorDigest: detail.preflightDescriptorDigest,
+    dispatchOrdinal: detail.dispatchOrdinal,
+  };
+  validateCommand(command);
+  assertDigest(detail.dispatchGrantId, `attempt_dispatch_granted Event ${receipt.committedRevision}.dispatchGrantId`);
+  assertRecordShape(receipt.response, ['dispatchGrantId', 'committedCaseRevision', 'event'], [], `Mutation receipt ${requestId}.response`);
+  assertRecordShape(receipt.response.event, ['sequence', 'caseRevision', 'eventDigest'], [], `Mutation receipt ${requestId}.response.event`);
+  const expectedGrantId = typedDigest('tdev.attempt-dispatch-grant.v1', {
+    caseId,
+    requestId,
+    command,
+  });
+  if (detail.requestId !== requestId ||
+      detail.caseId !== caseId ||
+      receipt.commandDigest !== receiptDigest(command) ||
+      detail.dispatchGrantId !== expectedGrantId ||
+      receipt.response.dispatchGrantId !== detail.dispatchGrantId ||
+      receipt.committedRevision !== commitEvent.caseRevision ||
+      receipt.response.committedCaseRevision !== commitEvent.caseRevision ||
+      receipt.response.event.sequence !== commitEvent.sequence ||
+      receipt.response.event.caseRevision !== commitEvent.caseRevision ||
+      receipt.response.event.eventDigest !== commitEvent.eventDigest) {
+    throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} does not match its dispatch grant Event`);
+  }
 }
 
 function snapshotDigest(snapshotWithoutDigest) {
@@ -1700,10 +1818,14 @@ export class CaseEngine {
       throw new ContractError('receipt_limit_exceeded', 'Case mutation receipt limit exceeded');
     }
 
-    const response = this.#dispatchCommand(normalizedCommand, options);
+    const response = normalizedCommand.type === 'grant_attempt_dispatch'
+      ? this.#grantAttemptDispatch(normalizedCommand, requestId)
+      : this.#dispatchCommand(normalizedCommand, options);
     const canonicalResponse = canonicalClone(response);
     const responseDigest = digest(canonicalResponse);
-    this._event('command_committed', { requestId, commandDigest, responseDigest });
+    if (normalizedCommand.type !== 'grant_attempt_dispatch') {
+      this._event('command_committed', { requestId, commandDigest, responseDigest });
+    }
     this.#setReceipt(requestId, {
       requestId,
       commandDigest,
@@ -1855,6 +1977,73 @@ export class CaseEngine {
     return seen.size;
   }
 
+  #grantAttemptDispatch(command, requestId) {
+    if (command.caseId !== this.caseId) {
+      throw new ContractError('dispatch_grant_case_mismatch', 'Dispatch grant Case identity does not match current Case');
+    }
+    const taskState = this._taskStates[command.taskId];
+    const attempt = this._attempts[command.attemptId];
+    if (!taskState || !attempt || attempt.taskId !== command.taskId) {
+      throw new ContractError('dispatch_grant_attempt_mismatch', 'Dispatch grant does not target the current Task/Attempt');
+    }
+    if (taskState.state !== 'running' || attempt.state !== 'running') {
+      throw new ContractError('dispatch_grant_not_running', 'Dispatch grant requires the exact currently running Task/Attempt');
+    }
+    if (attempt.executorId !== command.executorId || attempt.executorEpoch !== command.executorEpoch) {
+      throw new ContractError('dispatch_grant_executor_mismatch', 'Dispatch grant executor identity is stale or mismatched');
+    }
+    if (attempt.fencingToken !== command.fencingToken) {
+      throw new ContractError('dispatch_grant_fence_mismatch', 'Dispatch grant Attempt fence is stale or mismatched');
+    }
+    const priorGrant = this._events.find((event) =>
+      event.type === 'attempt_dispatch_granted' &&
+      event.detail.deliveryId === command.deliveryId &&
+      event.detail.dispatchOrdinal === command.dispatchOrdinal);
+    if (priorGrant) {
+      throw new ContractError('dispatch_already_granted', 'Delivery dispatch ordinal already has a committed Case grant', {
+        deliveryId: command.deliveryId,
+        dispatchOrdinal: command.dispatchOrdinal,
+        dispatchGrantId: priorGrant.detail.dispatchGrantId,
+      });
+    }
+    const dispatchGrantId = typedDigest('tdev.attempt-dispatch-grant.v1', {
+      caseId: this.caseId,
+      requestId,
+      command,
+    });
+    const event = this._event('attempt_dispatch_granted', {
+      requestId,
+      dispatchGrantId,
+      caseId: command.caseId,
+      taskId: command.taskId,
+      attemptId: command.attemptId,
+      executorId: command.executorId,
+      executorEpoch: command.executorEpoch,
+      fencingToken: command.fencingToken,
+      agentId: command.agentId,
+      routeGeneration: command.routeGeneration,
+      deliveryId: command.deliveryId,
+      activationReceiptId: command.activationReceiptId,
+      activationDigest: command.activationDigest,
+      reservationWindowGeneration: command.reservationWindowGeneration,
+      reservationRequestId: command.reservationRequestId,
+      reservationRequestDigest: command.reservationRequestDigest,
+      slotToken: command.slotToken,
+      slotGeneration: command.slotGeneration,
+      preflightDescriptorDigest: command.preflightDescriptorDigest,
+      dispatchOrdinal: command.dispatchOrdinal,
+    });
+    return deepFreeze({
+      dispatchGrantId,
+      committedCaseRevision: event.caseRevision,
+      event: {
+        sequence: event.sequence,
+        caseRevision: event.caseRevision,
+        eventDigest: event.eventDigest,
+      },
+    });
+  }
+
   #dispatchCommand(command, options) {
     switch (command.type) {
       case 'start_attempt':
@@ -1909,6 +2098,7 @@ export class CaseEngine {
     this._events.push(event);
     this.eventSequence = sequence;
     this.caseRevision = caseRevision;
+    return event;
   }
 
   #requireAttempt(attemptId) {
@@ -2097,15 +2287,7 @@ export class CaseEngine {
         }
       }
       const commitEvent = this._events[receipt.committedRevision - 1];
-      if (!commitEvent || commitEvent.type !== 'command_committed') {
-        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
-      }
-      assertRecordShape(commitEvent.detail, ['requestId', 'commandDigest', 'responseDigest'], [], `command_committed Event ${receipt.committedRevision}`);
-      if (commitEvent.detail.requestId !== requestId ||
-          commitEvent.detail.commandDigest !== receipt.commandDigest ||
-          commitEvent.detail.responseDigest !== receipt.responseDigest) {
-        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} does not match its commit Event`);
-      }
+      assertMutationReceiptCommitEvent(this.caseId, requestId, receipt, commitEvent);
       deepFreeze(receipt);
     }
 
@@ -2420,15 +2602,7 @@ export class CaseEngine {
       }
       committedRevisions.add(receipt.committedRevision);
       const commitEvent = this._events[receipt.committedRevision - 1];
-      if (!commitEvent || commitEvent.type !== 'command_committed') {
-        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} has no matching commit Event`);
-      }
-      assertRecordShape(commitEvent.detail, ['requestId', 'commandDigest', 'responseDigest'], [], `command_committed Event ${receipt.committedRevision}`);
-      if (commitEvent.detail.requestId !== requestId ||
-          commitEvent.detail.commandDigest !== receipt.commandDigest ||
-          commitEvent.detail.responseDigest !== receipt.responseDigest) {
-        throw new ContractError('invariant_receipt', `Mutation receipt ${requestId} does not match its commit Event`);
-      }
+      assertMutationReceiptCommitEvent(this.caseId, requestId, receipt, commitEvent);
       deepFreeze(receipt);
     }
 

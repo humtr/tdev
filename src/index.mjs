@@ -11,6 +11,25 @@ export {
 } from './canonical.mjs';
 export { ClaimLedger } from './claim-ledger.mjs';
 export {
+  AGENT_DELIVERY_PROFILE,
+  AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION,
+  AgentDeliveryAuthority,
+  MemoryAgentDeliveryStore,
+  agentDeliverySnapshotDigest,
+  agentPreflightDescriptorDigest,
+  agentRouteBindingDigest,
+  computeAgentActivationRequestDigest,
+  computeAgentCapacityRequestDigest,
+  computeAgentConnectRequestDigest,
+  computeAgentDeliveryId,
+  computeAgentReservationRequestDigest,
+  computeAgentResultHandoffRequestId,
+  computeAttemptDispatchGrantId,
+  defaultAgentDeliveryLimits,
+  normalizeAgentPreflightDescriptor,
+  normalizeAgentRouteBinding,
+} from './agent-delivery-authority.mjs';
+export {
   CASEDO_DEFAULT_CHUNK_BYTES,
   CASEDO_MAX_RECOVERY_CAUSE_BYTES,
   CASEDO_STORAGE_PROFILE,
