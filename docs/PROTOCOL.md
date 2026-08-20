@@ -303,10 +303,48 @@ Supported commands:
 - `accept_result`;
 - `fail_attempt`;
 - `cancel_task`;
+- `grant_attempt_dispatch`;
 - `deny_task`;
 - `resolve_reconciliation`.
 
-Unknown fields and unknown command types fail closed. Successful execution writes `command_committed` and a receipt in the same in-memory mutation boundary.
+Unknown fields and unknown command types fail closed. Existing supported commands other than `grant_attempt_dispatch` retain their established `command_committed` Event/receipt behavior. `grant_attempt_dispatch` uses the specialized profile below: its first successful commit writes **no additional generic `command_committed` Event**; it advances Case revision exactly once, writes exactly one `attempt_dispatch_granted` Event and stores exactly one normal command receipt in the same Case mutation. The D0019 CaseDO host persists the applicable transition, Event, advanced Case revision and receipt atomically before returning.
+
+### 12.1 Case-serialized Agent dispatch grant
+
+`grant_attempt_dispatch` is the Case-side durable arbitration fact required before any D0020 Agent-backed executable send. It does not replace the already committed `running` Attempt, and it is not a Task state, Attempt lifecycle state, delivery queue state, execution result or transfer of connection/delivery/capacity ownership into CaseDO.
+
+The outer command envelope supplies the normal stable `requestId` and `expectedCaseRevision`. Besides `type: "grant_attempt_dispatch"`, the command content contains exactly:
+
+```text
+caseId
+taskId
+attemptId
+executorId
+executorEpoch
+fencingToken
+agentId
+routeGeneration
+deliveryId
+activationReceiptId
+activationDigest
+reservationWindowGeneration
+reservationRequestId
+reservationRequestDigest
+slotToken
+slotGeneration
+preflightDescriptorDigest
+dispatchOrdinal
+```
+
+The D0020 crossing adapter may submit this command only after it has a durable non-executable activation receipt for that exact reservation, delivery and Attempt fence. Case command admission uses the ordinary receipt rule first: the same `requestId` plus the same canonical command digest replays the exact committed response, while the same request identity with different command content conflicts. Only when no matching receipt exists does `expectedCaseRevision` fence the mutation.
+
+Within the same Case command serialization boundary used by `cancel_task`, first-time admission validates that the command targets the exact current Case and a currently `running` Task/Attempt, matches the current executor ID/epoch and Attempt fence, carries one immutable Agent route/delivery/activation/reservation/slot/preflight binding, uses a positive bounded `dispatchOrdinal`, and is not cancelled, terminal or already granted for that exact delivery/ordinal. A different request identity targeting an already granted delivery/ordinal is rejected rather than creating a second grant.
+
+A successful first grant advances Case revision exactly once, commits exactly one `attempt_dispatch_granted` Event and exactly one normal command receipt, and returns the exact `dispatchGrantId`, committed Case revision and Event identity. `dispatchGrantId` is a domain-separated digest over the Case identity, grant `requestId`, and the complete immutable command fields above. The committed Event/receipt is the authoritative one-shot grant fact; a rebuildable index may accelerate lookup but cannot authorize another grant.
+
+Cancellation ordering is defined by that Case commit order. If cancellation or another terminal mutation commits first, the grant predicate fails and no Agent dispatch authorization or first physical send is permitted. If the dispatch grant commits first, a later cancellation is ordered after dispatch permission and the delivery is conservatively possible execution even when Agent authorization or the physical socket write has not yet occurred. Later absence may be established only by D0020's positive not-sent/not-started/no-handle evidence; cancellation itself never erases the grant or proves non-execution.
+
+No Agent, Git, process, network or other external effect runs inside the Case grant transaction. After the grant commits, the separate `AgentDeliveryAuthority` must bind that exact `dispatchGrantId` to the exact delivery and dispatch ordinal, commit its own durable dispatch authorization under the current route/connection/executor fences, and only then may transport attempt the physical send. Lost Case-grant or Agent-authorization responses are reconciled by exact receipt/authorization reread; neither path may invent a new grant, ordinal, delivery or semantic retry.
 
 ## 13. Event protocol
 

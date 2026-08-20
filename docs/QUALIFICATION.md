@@ -39,6 +39,28 @@ The deployment layer must install a real package copy without lifecycle-script d
 
 The repository-owned independent POSIX method is `.github/workflows/immutable-journal-publication-posix-qualification.yml`. Its run is reusable evidence only when the workflow run, exact source SHA, Node/runtime/filesystem/compiler observations, helper/source digests, both backend oracles, mixed-race result and installed-copy recovery all bind the claim being reused.
 
+### D0020 Agent delivery focused gates
+
+D0020 implementation/verification adds focused Agent-delivery evidence without replacing the baseline source gate. The accepted Design owns behavior; this section owns the minimum falsifier shape for claiming that behavior at each proof layer. Until these gates are actually executed against an implementation and the claimed environments, D0020 remains unverified at those layers.
+
+At the **source/model** layer, deterministic tests must at minimum falsify:
+
+- aggregate Agent capacity across at least two Cases at capacity 1 and N, including saturation with no durable waiting Task or premature Attempt creation;
+- capacity revision fencing with `4@7 -> 1@8 -> delayed 4@7`, same-revision conflicting values, reconnect freshness and executor replacement starting at capacity unknown/0;
+- immutable reservation preflight/body/resource/envelope binding, with known oversized work rejected before a running Attempt exists;
+- legal and illegal global delivery-evidence tuples, including historical not-sent/not-started/no-handle precision, whole-tuple monotonic refinement and conflict quarantine without semantic-result invention;
+- reservation-window rollover/GC with ancient exact replay and same historical identity plus changed digest unable to regain admission, together with bounded storage rather than an unbounded request-ID ledger;
+- `cancel_task` versus `grant_attempt_dispatch` ordering for cancel-first and grant-first, plus lost Case-grant response, lost Agent-authorization response, exact replay/conflict and no duplicate grant/ordinal/first-send authority;
+- connection replacement/reconstruction, stale old-socket evidence and grant reuse fencing, including activated-but-ungranted recovery;
+- positive physical cleanup/no-handle while effect/result remains unknown, proving immediate physical-slot release without erasing Case reconciliation or retry prohibition;
+- every reconnect/recovery/response-loss path preserving one semantic Attempt owner and introducing no lower-layer semantic retry.
+
+At the **provider/runtime** layer, use the actual claimed Durable Object/storage/WebSocket profile to prove one immutable `AgentRouteBinding` reaches exactly one writable `AgentDeliveryAuthority`; competing route bindings fail closed; hibernation/reconstruction of the same healthy logical connection does not synthesize a new epoch; a real reconnect does and starts the capacity-freshness barrier; stale sockets/executors remain fenced; live reservation/admission/physical accounting and reservation GC floors survive owner reconstruction; and dispatch/cancellation/response-loss races preserve the Case grant plus Agent authorization ordering. Provider namespace, jurisdiction, schema/config compatibility, finite durable limits and rollback barriers are part of the observation identity.
+
+At the **local Agent/machine** layer, prove fresh per-Attempt execution, monotonic capacity/evidence revisions, exact executor/connection/delivery/fence matching, dispatch-ordinal duplicate suppression, command-driven cancellation/control, bounded descendant/process/resource cleanup, positive no-handle/cleanup classification, effect evidence, physical-capacity release after actual cleanup and absence of a hidden semantic retry queue. The machine profile, executable/package identity and credential boundary must be identified; this layer does not by itself prove provider authority.
+
+At the **deployed-product** layer, compose the elected CaseDO semantic owner, one qualified `AgentDeliveryAuthority`, and an authenticated local Agent under concurrent multi-Case capacity, reconnect/restart, stale-delivery/result, cancellation/dispatch response-loss, physical-cleanup/effect-uncertainty and reconciliation conditions. Source, provider, local-machine and deployed-product evidence are independent proof layers; no one layer substitutes for another.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

@@ -57,14 +57,17 @@ There is one scheduler meaning and one canonical writer. `runCase` is a driver; 
 | --- | --- | --- |
 | PlanRevision graph and digest | compiled Plan held by `CaseEngine` | runner, executor, MCP |
 | dependency readiness | `CaseEngine`, derived from Task states | queue, ClaimLedger, stored ready flag |
-| Task and Attempt lifecycle | `CaseEngine` | Agent/AgentDO, ClaimLedger, store |
+| Task and Attempt lifecycle | `CaseEngine` | Agent/`AgentDeliveryAuthority`, ClaimLedger, store |
 | accepted result identity | `CaseEngine` | executor, transport |
 | Case terminal outcome | `CaseEngine` | runner, projection |
-| semantic Events and command receipts | `CaseEngine` | store, MCP |
+| semantic Events and command receipts, including `attempt_dispatch_granted` | `CaseEngine`/CaseDO command transaction | store, MCP, `AgentDeliveryAuthority` |
 | in-Case claim admission | `CaseEngine` | ClaimLedger |
 | cross-Case claim lease/generation | `ClaimLedger` or future target owner | each Case snapshot |
-| executor capacity and invocation | runner/provider adapter | `CaseEngine` lifecycle model |
-| actual filesystem/Git/process/network effect | executor/Agent adapter | Case coordinator |
+| direct/local per-invocation executor capacity and invocation | runner/provider adapter | `CaseEngine` lifecycle model |
+| stable Agent route binding and non-reused route generation | deployment owner for the supported Agent-backed profile | CaseDO, `AgentDeliveryAuthority`, local Agent re-election |
+| Agent connection generations, accepted/effective aggregate capacity, non-executable reservations, delivery admission/authorization and accepted delivery evidence | one durable `AgentDeliveryAuthority` per stable Agent route | CaseDO/`CaseEngine` Task lifecycle; local Agent physical truth |
+| cancellation-versus-Agent-dispatch ordering | `CaseEngine`/CaseDO via one-shot `grant_attempt_dispatch` receipt/Event | `AgentDeliveryAuthority`, transport |
+| actual filesystem/Git/process/network effect | executor/Agent adapter | Case coordinator, `AgentDeliveryAuthority` |
 | snapshot bytes and CAS revision | legacy snapshot store | executor |
 | v3 semantic tree/root authority | `CaseEngine` using the versioned semantic radix profile | `SemanticSqliteStore`, Git OID, executor |
 | v3 durable Case-head election | `SemanticSqliteStore` transaction | executor, Git ref, immutable object existence |
@@ -148,20 +151,21 @@ A failed Attempt-start checkpoint means zero executor calls. The repository does
 
 ## 7. Final-MVP deployment mapping
 
-The final MVP is required to realize the current contracts in the Cloudflare/local-Agent product topology. The D0019 contract fixes the Case semantic-authority row; the remaining provider-owner rows stay architecture targets until their responsible Designs and target-environment evidence establish them:
+The final MVP is required to realize the current contracts in the Cloudflare/local-Agent product topology. D0019 fixes the Case semantic-authority host; accepted D0020 fixes the Agent route/connection/delivery/admission owner shape. The remaining provider-owner rows stay architecture targets until their responsible Designs and target-environment evidence establish them:
 
 ```text
 D0010/CaseEngine semantic authority -> one SQLite-backed Case Durable Object (D0019-selected)
-connection epoch / delivery queue / device capacity -> Agent Durable Object (D0020 candidate)
+stable Agent route binding -> one deployment-owned immutable route generation
+connection generations / aggregate capacity / non-executable reservation + delivery admission -> one durable AgentDeliveryAuthority per stable route (D0020-selected; provider host requires deployment qualification)
 cross-Case target claim leases -> dedicated target owner (AgentDO/ProjectDO/etc.)
-actual OS/Git/process/network truth -> Agent
+actual OS/Git/process/network truth -> authenticated local Agent
 immutable Artifact bytes -> R2 or equivalent content store
 locator and query projection -> D1 or equivalent index
 MCP / Worker -> stateless projection and command ingress
 Promotion publication lane -> dedicated fenced Git/reference adapter
 ```
 
-D0019 defines a Design-layer authority selection; that contract alone is not production/provider-verification evidence. A Case placed in Cloudflare has exactly one CaseDO durable SQLite owner for its D0010/CaseEngine current semantic facts; no writable local co-owner or projection may compete. `docs/ROADMAP.md` owns the remaining capability-group exits. Each still-provisional provider adapter requires its responsible accepted Design and target-environment evidence. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
+D0019 and D0020 are Design-layer authority selections; neither alone is production/provider-verification evidence. A Case placed in Cloudflare has exactly one CaseDO durable SQLite owner for its D0010/CaseEngine current semantic facts; no writable local co-owner or projection may compete. The Case owner contributes only the one-shot `grant_attempt_dispatch` receipt/Event that serializes cancellation against dispatch permission after the `running` Attempt is already durable. `AgentDeliveryAuthority` consumes that exact grant and remains the owner of connection, aggregate capacity, reservation, delivery and Agent-side dispatch-authorization facts; it owns no waiting Task queue or semantic retry lifecycle. `docs/ROADMAP.md` owns the remaining capability-group exits. Each still-provisional provider adapter requires its responsible accepted Design and target-environment evidence. The production target-claim owner must persist lease acquisition/release with its own authoritative transaction. A local in-memory `ClaimLedger` cannot provide distributed fencing after process loss.
 
 ## 8. Security and failure boundaries
 
@@ -234,7 +238,7 @@ D0018 may keep only the bounded D0014 host preparation warm. Attempt authorizati
 
 D0019 selects **hosting/adaptation, not a semantic rewrite**. A durable placement generation first elects exactly one deployment/environment/class/namespace/jurisdiction/Durable-Object tuple for a new Cloudflare Case; that placement fact is meta-authority for physical ownership, not a semantic Case head. The elected SQLite-backed CaseDO owns the D0010/CaseEngine current revision, semantic head/root, command receipts, Task/Attempt lifecycle, accepted result, terminal status and running-before-dispatch record. Its in-memory instance and caches are disposable. The authoritative mutation transaction persists the exact receipt and successor state before returning or crossing into an external effect.
 
-Receipt identity stays exactly D0010: `typedDigest('tdev.case-command.v1', canonicalClone(command))`; `requestId` addresses the receipt and `expectedCaseRevision` is excluded from that digest. Ordinary CaseDO eviction reconstructs durable state without semantic reopen. Only an explicit durable execution/delivery-owner-loss recovery cause may invoke the existing reopen transition. Agent connection epoch/current connection/delivery queue/capacity/reconnect state stays outside Case authority and remains D0020 scope. Actual OS/Git/process effect truth remains at the local Agent/effect boundary. Git refs, R2 objects, D1 rows and Worker/MCP projections remain derived or narrow-purpose owners only; none can elect a Case head.
+Receipt identity stays exactly D0010: `typedDigest('tdev.case-command.v1', canonicalClone(command))`; `requestId` addresses the receipt and `expectedCaseRevision` is excluded from that digest. Ordinary CaseDO eviction reconstructs durable state without semantic reopen. Only an explicit durable execution/delivery-owner-loss recovery cause may invoke the existing reopen transition. Under accepted D0020, Agent route/connection generations, aggregate capacity, non-executable reservations, delivery admission, Agent-side dispatch authorization and accepted transport/execution/cleanup/effect evidence stay outside Case authority in one durable `AgentDeliveryAuthority` per stable route. CaseDO owns only the semantic Case facts plus the `grant_attempt_dispatch` cancellation/dispatch ordering receipt/Event; that grant does not move delivery ownership into CaseDO. Actual OS/Git/process effect truth remains at the local Agent/effect boundary. Git refs, R2 objects, D1 rows and Worker/MCP projections remain derived or narrow-purpose owners only; none can elect a Case head.
 
 The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` logical profile, normalized/chunked state, a finite deployment-qualified Case capacity budget, and compatible old/new schema/API overlap or a fail-closed rollout barrier. D0019 explicitly forbids an initial migration of an existing local Case. New qualified Cases may be born only after placement election. Any later existing-Case move requires a separate cutover owner that fences the old writer before activating the destination; two writable copies are never a supported topology. Production/provider qualification of this boundary requires live placement, eviction/response-loss, capacity, rollout and deployment-lifecycle evidence; current status belongs to the maintained Design and exact evidence.
 
@@ -243,7 +247,7 @@ The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` log
 A new adapter or optimization is rejected when it:
 
 - stores a competing ready state;
-- lets AgentDO, MCP, executor, or ClaimLedger own Task lifecycle;
+- lets `AgentDeliveryAuthority`, MCP, executor, or ClaimLedger own Task lifecycle;
 - lets an ordinary Task mutate canonical state;
 - retries an uncertain effect without idempotency/reconciliation evidence;
 - validates only a partial result identity;

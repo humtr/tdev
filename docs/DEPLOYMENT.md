@@ -207,17 +207,17 @@ The local adapters do not implement backup/restore orchestration. Journal compac
 
 The final MVP must implement a Cloudflare/local-Agent topology that preserves the following ownership split, unless a later accepted Design proves and records an equivalent owner mapping:
 
-| Contract | Candidate provider owner |
+| Contract | Selected or required owner shape |
 | --- | --- |
 | Case graph/lifecycle/results/receipts | one SQLite-backed Case Durable Object hosting the existing D0010/CaseEngine authority — D0019-selected |
-| Agent connection epoch/delivery/capacity | Agent Durable Object |
+| stable Agent route, connection generations, aggregate capacity, non-executable reservation and delivery admission | one durable `AgentDeliveryAuthority` per stable Agent route — D0020-selected; a Cloudflare Durable Object is a viable host only under the qualified immutable route binding below |
 | cross-Case target leases | dedicated target owner selected by target identity |
 | immutable Artifact bytes | R2 |
 | query/locator projection | D1 |
 | public ingress/projection | Worker/MCP layer |
 | local OS/Git/process effects | authenticated Agent |
 
-This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. The D0019 contract fixes the Case row at the Design layer: CaseDO hosts/adapts the existing authority rather than introducing a second or rewritten semantic owner. The Agent/target/storage/projection rows remain subject to their own responsible owners and accepted Designs when selected. `ROADMAP.md` owns the stable final-MVP capability exits; `PROGRAM.md` and `WORKBOARD.md` own forward-gate coverage and current runnable scheduling.
+This mapping follows the actor-style requirement that one authoritative owner serialize mutations for a fact. D0019 fixes the Case row at the Design layer: CaseDO hosts/adapts the existing authority rather than introducing a second or rewritten semantic owner. Accepted D0020 fixes the Agent owner shape without claiming that a provider host, local Agent installation or deployment has already been qualified. The target/storage/projection rows remain subject to their own responsible owners and accepted Designs when selected. `ROADMAP.md` owns the stable final-MVP capability exits; `PROGRAM.md` and `WORKBOARD.md` own forward-gate coverage and current runnable scheduling.
 
 ## 9. Provider adapter requirements
 
@@ -249,13 +249,20 @@ The D0019 Case Durable Object adapter must:
 - fail closed on corrupt/unknown-placement/incompatible durable state and version schema evolution explicitly;
 - create no migration path for an existing locally authoritative Case unless a separate accepted cutover design first supplies a durable placement generation, old-writer fence, destination activation and rollback boundary.
 
-An Agent delivery adapter must:
+A D0020 Agent delivery deployment must satisfy all of the following before it can be claimed as the selected Agent-backed runtime path:
 
-- own connection epoch and queue/delivery receipts, not Task state;
-- include complete fencing in every dispatch/result;
-- distinguish delivery acknowledgement from external-effect truth;
-- reconcile after disconnect rather than infer non-application;
-- bound queues, payloads, and reconnect behavior.
+- before first connection admission, the deployment owner durably commits one immutable `AgentRouteBinding` for the stable `agentId`, with a positive non-reused `routeGeneration` and exact deployment/environment/Worker/class/namespace/jurisdiction/Durable-Object identity; competing writable bindings fail closed;
+- expose exactly one writable `AgentDeliveryAuthority` for that route. Revision 1 provides no live route migration, dual-write cutover, storage recreation under a new writable identity or name-based re-election; those are unsupported/fail-closed until a separate accepted cutover contract exists;
+- durably preserve the route binding, current connection generation/identity and connect receipt, executor ID/epoch, accepted capacity revision/reported/effective values and reconnect freshness barrier, bounded reservation window/floor plus current-window request details, immutable preflight descriptors, reservations, activated deliveries, Case dispatch-grant bindings, Agent dispatch authorizations/ordinals, admission/physical-slot accounting, delivery evidence high-water/conflict records and compact replay/GC fences;
+- treat the local Agent/executor as the producer of physical capacity and execution/cleanup/effect evidence while `AgentDeliveryAuthority` remains the sole durable accepter/writer of effective capacity and delivery dispositions;
+- on an actual reconnect, install a new connection generation and admit aggregate capacity as unknown/0 until a strictly fresher capacity revision for the retained executor tuple arrives; executor replacement also starts unknown/0. Delayed predecessor capacity or stale sockets remain fenced. Ordinary Durable Object reconstruction or WebSocket hibernation recovery of the same healthy logical connection must not synthesize a new connection generation;
+- reserve one aggregate capacity unit from the immutable preflight descriptor before Case Attempt creation; saturation, freshness denial or known bounds failure creates no running Attempt, semantic retry or durable waiting Task queue;
+- require the exact durable D0019 `running` Attempt/fence, exact non-executable delivery activation, exact Case `grant_attempt_dispatch` receipt and exact grant-bound Agent authorization before any first physical send. Case cancellation and grant ordering remain CaseDO semantic serialization; connection/delivery/capacity stay with `AgentDeliveryAuthority`;
+- make reserve/activate/grant/authorization/evidence/result response loss idempotent under stable identities and authoritative reread. Reconnect or transport loss alone never authorizes a second semantic Attempt or blind replay; a later dispatch ordinal still needs D0020's positive no-start/no-handle or accepted effect-idempotency proof plus a fresh Case grant and Agent authorization;
+- distinguish transport acknowledgement, physical start/completion, physical cleanup and external-effect evidence. Positive cleanup/no-handle may release the physical slot while bounded effect/result uncertainty remains durable for Case reconciliation; disconnect/timeout/cancellation alone never releases a live physical resource;
+- use the bounded reservation-window generation/floor and the other connection/capacity/delivery high-water fences so tombstone/detail GC cannot make an ancient request new again; overflow or an undrainable bounded window fails new admission rather than retaining unbounded history;
+- authenticate the Agent principal before externally reachable connection/message/evidence/result admission and bind it to the exact supported Agent route/generation; identifiers, grant IDs and fencing values are not credentials;
+- preserve rollback compatibility with route/connection/capacity/evidence/grant/replay-floor state. Older code that ignores those facts cannot be activated while live reservations, admission holds, physical slots, unresolved deliveries/effects or replay fences still matter; deletion/recreation of provider storage is not rollback.
 
 A target-claim adapter must:
 
