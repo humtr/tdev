@@ -1,8 +1,11 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 1
 - Acceptance evidence: `docs/evidence/group-f-d0020-agent-delivery-acceptance-2026-08-20.json`
+- Verification source: `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c`
+- Verification Task: `task_as4_d78a3d2028`
+- Verification evidence: `docs/evidence/group-f-d0020-agent-delivery-production-verification-2026-08-21.json`
 - Accepted exact review candidate: `c3f7a484a66315d90340d053d00cd07c231ff055`
 - Accepted review-candidate Design SHA-256: `1adfaa75702959f4dc20df38cbf557fd7fb1374aca8a736aab69c69e5cd401cf`
 - Independent exact-artifact acceptance review: `task_ahs_1bdb96128c` — C1/C6/C8 confirmed, no material regression, Design readiness `READY`, executable proof `PROOF_PENDING`
@@ -14,7 +17,7 @@
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
 - Affected product owners after acceptance: `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`
 - Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; the acceptance transition does not mutate that owner
-- Product/runtime effect: accepted Design decision only; no implementation, provider mutation, deployment, or WORKBOARD routing activation is included in this acceptance
+- Product/runtime effect: verified D0020 Revision 1 source, provider/runtime, declared Android/Termux local-machine and deployed CaseDO + AgentDeliveryAuthority + authenticated local-Agent composition; Group F remains active and later provisional gates are not auto-activated
 
 ## 1. Decision
 
@@ -641,3 +644,13 @@ This accepted revision authorizes only owner-native implementation of the select
 For this accepted revision, owner impact order is mandatory: before implementation, amend `docs/PROTOCOL.md` to add the exact Section-10 `grant_attempt_dispatch` command vocabulary, fields, admission predicate, receipt/replay/conflict behavior, `attempt_dispatch_granted` Event/Case-revision effect and cancellation serialization meaning. That amendment must explicitly preserve `running` as the already-committed D0019 predecessor, add no Task/Attempt lifecycle state, and leave activation/delivery/connection/capacity ownership in D0020 rather than CaseDO. The PROTOCOL amendment is owner-native follow-on work, not part of this draft correction and not optional implementation policy.
 
 This acceptance does not itself activate production source changes, provider resources, deployment, WORKBOARD runnable-frontier/selection edits, Case semantic changes beyond the required future product-owner amendments, or compatibility removal. Implementation/provider/runtime proof remains a separate lifecycle layer.
+
+## 26. 2026-08-21 production verification
+
+Revision 1 is verified by `docs/evidence/group-f-d0020-agent-delivery-production-verification-2026-08-21.json` against exact source `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c` under Root Task `task_as4_d78a3d2028`.
+
+The observed proof layers are independently green: the current repository source gate and full coverage gate; the declared Android/Termux local-machine execution profile; real Cloudflare Durable Object/SQLite/WebSocket ownership and reconstruction behavior on source-owned non-production D0020 resources; route-scoped Agent authentication and stale connection/executor/delivery/result fencing; and deployed composition of the D0019 CaseDO semantic owner, one D0020 `AgentDeliveryAuthority`, and an authenticated local Agent.
+
+The deployed-product falsifiers include aggregate capacity pressure across Cases with no saturated-Case Attempt creation, healthy reconnect plus capacity-freshness barrier, executor restart with stale delivery/result rejection, cancel-first/grant-first serialization, Case dispatch-grant response loss with one durable receipt/Event and deduplicated replay, and real physical cleanup while external-effect truth remains `unknown`. In the last case the physical slot releases immediately from positive cleanup while the Case moves conservatively through `reconciling` to `unverified`; no blind replay or lower-layer semantic retry is introduced.
+
+This verification does not claim completion of all Group F or final MVP Level-4 exits. It performs no production cutover, live route migration, storage recreation, dual write, existing D0019 resource mutation or credential-enrollment expansion. All bounded D0020 qualification ingress is disabled after the live runs. Because D0020 is now `verified` and no maintained successor Design is currently in `accepted`/`implementing` state, the current Group F WORKBOARD frontier is empty and selection is `none`; provisional PROGRAM labels are not implementation authorization.

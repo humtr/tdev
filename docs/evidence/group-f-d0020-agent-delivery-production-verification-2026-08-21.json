@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "d0020-r1-production-verification",
+  "observedAt": "2026-08-21T02:51:44Z",
+  "repository": "humtr/tdev",
+  "design": {"id":"D0020","revision":1,"status":"verified"},
+  "authority": {
+    "publishedSource": "development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c",
+    "freshRemoteReadJobs": ["job_b7j_c76d218dc7","job_b7n_8787fb86ca"],
+    "rootTaskId": "task_as4_d78a3d2028",
+    "worktreeId": "wt_1c228a85fd57282d"
+  },
+  "sourceQualification": {
+    "install": {"status":"passed","jobId":"job_b7v_ce6f4474d6","command":"npm ci --ignore-scripts --no-audit --no-fund"},
+    "focused": {"status":"passed","jobId":"job_b7x_1dc244a72c","tests":58,"passed":58,"failed":0},
+    "repositoryGate": {"status":"passed","jobId":"job_b7w_c1a826f617","command":"npm run check","tests":435,"passed":435,"failed":0},
+    "coverage": {"status":"passed","jobId":"job_b7x_1dc244a72c","tests":435,"passed":435,"failed":0,"linePercent":87.49,"branchPercent":74.50,"functionPercent":92.95}
+  },
+  "localMachine": {
+    "status":"verified",
+    "readbackJobId":"job_b84_73d1cec191",
+    "node":"v26.4.0","platform":"android","arch":"arm64","termux":"0.119.0-beta.3","android":"16","git":"2.55.0",
+    "kernel":"Linux 6.1.145-android14-11-33419968-abS928NKSS6DZG1 aarch64",
+    "sourceHead":"0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c",
+    "proved":["fresh per-Attempt execution","monotonic capacity/evidence revisions","dispatch duplicate suppression","cancellation and descendant/process-group cleanup","executor replacement fencing","restart does not invent historical no_handle","physical capacity release from positive cleanup","no semantic retry queue"]
+  },
+  "cloudflare": {
+    "status":"verified_nonproduction_qualification",
+    "readbackJobId":"job_b7u_bb58c74f97",
+    "accountIdDigest":"sha256:a81f2bf338aca1a50dfe63ae8e4739614460803fde0603c79971a4a78e8627c9",
+    "tokenStatus":"active","jurisdiction":"global",
+    "agentDelivery":{"script":"tdev-d0020-qualification-clean-a","sourceSha":"0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c","class":"AgentDeliveryRuntimeDO","namespaceId":"0dad69baa7154d00949f88c8b8dbf94a","deploymentId":"112eb218-90e2-4786-ab68-78cb85f6588e","workerVersion":"a502e843-115a-42be-9990-c34cabf3b8f0","percentage":100,"publicIngressEnabled":false},
+    "caseComposition":{"script":"tdev-d0020-composition-case-r1","sourceSha":"0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c","class":"CaseRuntimeDO","namespaceId":"3b3d5808028f4e74bcbc1dc22f0757fd","placementDatabase":"tdev-d0020-composition-placement-r1","placementDatabaseId":"ff868f84-4fa3-4d3d-9024-8a1eec7b0c79","deploymentId":"fb6b2d26-4d98-43fe-b2c4-35bc117fb666","workerVersion":"b12006e3-d06c-47bc-bbdf-7209133b637d","percentage":100,"publicIngressEnabled":false},
+    "preservedD0019":{"placementDatabase":"tdev-d0019-placement","placementDatabaseId":"2c4342ba-402d-4303-90ed-1d9bda48c8d6","workers":["tdev-d0019-qualification-a","tdev-d0019-qualification-b","tdev-d0019-qualification-capacity"],"mutationByD0020Qualification":false},
+    "secretValuesPersistedOrPrinted":false
+  },
+  "liveProofs": {
+    "happyPathReconnect":{"status":"passed","jobId":"job_b6r_3ea7a8369f","proved":["CaseDO grant through ADA to actual Termux execution and result handoff","one physical execution under replay","real reconnect epoch advance","capacity freshness barrier"]},
+    "multiCaseCapacity":{"status":"passed","jobId":"job_b6t_0d5da223b4","proved":["capacity 1 admits one of two Cases","saturated Case creates zero Attempts","cleanup releases capacity for later admission"]},
+    "cancelGrantOrdering":{"status":"passed","jobId":"job_b6z_04b718163d","proved":["cancel-first prevents grant/send","grant-first leaves one durable linearization grant"]},
+    "restartStaleFencing":{"status":"passed","jobId":"job_b74_d61d9881fa","proved":["fresh executor capacity namespace","old dispatch rejected as stale_local_executor","old send suppressed","stale result closed 1008 stale_executor_fence before Case","Case state unchanged","no historical no_handle invention"]},
+    "responseLossEffectUncertainty":{"status":"passed","jobId":"job_b7m_1d62cefa62","grantResponseLoss":{"durableReceipt":true,"grantEvents":1,"replayDeduplicated":true,"caseRevisionStable":true,"physicalRuns":1,"dispatchReplaySuppressed":true},"effectUncertainty":{"physicalRuns":1,"cleanupComplete":true,"slotReleasedBeforeSemanticResolution":true,"agentEffect":"unknown","caseAfterRecovery":"reconciling","certainty":"unknown","recoveryReplayDeduplicated":true,"finalCase":"unverified","attemptCount":1,"blindReplay":false,"meaning":"The intentionally unknown external-effect Case ends unverified to prove conservative reconciliation; this is a positive D0020 safety result, not the Design lifecycle status."}}
+  },
+  "proofLayers": {"sourceStatic":"passed","localRuntimeAdapter":"passed","providerRuntime":"passed","securityClient":"passed","deploymentIdentityAndRouteClosure":"passed","deployedProductD0020Scope":"passed"},
+  "preservedAuthorityBoundaries": ["CaseDO/CaseEngine remains sole semantic Task/Attempt/retry/result/reconciliation owner","AgentDeliveryAuthority owns only route/connection/capacity/reservation/delivery/authorization/evidence","local Agent owns physical execution/evidence and no semantic retry queue","owner reconstruction does not synthesize reconnect or execution-owner loss","transport loss/restart/current handle absence do not invent historical no_handle or effect truth"],
+  "exclusions": {"productionCutover":false,"liveRouteMigration":false,"storageRecreation":false,"dualWrite":false,"existingD0019ResourceMutation":false,"credentialEnrollmentExpansion":false,"entireGroupFCompleted":false,"entireMvpLevel4Completed":false},
+  "routingAfterVerification": {"activeGroup":"F","branch":"development","mode":"persistent-v1","runnableFrontier":[],"selectedNextAction":null,"reason":"D0020 is no longer runnable after verification; no maintained accepted/implementing successor exists, so provisional PROGRAM labels are not auto-activated."},
+  "conclusion": "D0020 Revision 1 is verified for its applicable source/model, declared Android/Termux local-machine, real Cloudflare provider/runtime, route-scoped authentication/fencing, and deployed CaseDO plus AgentDeliveryAuthority plus authenticated local-Agent composition layers. Group F remains active and no provisional successor is activated."
+}
