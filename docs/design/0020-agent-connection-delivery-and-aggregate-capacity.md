@@ -1,7 +1,9 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `verified`
+- Status: `reopened`
 - Revision: 1
+- Reopen evidence: ACR campaign `tdev-20260821-post-d0020-architecture-01`, convergence ref `acr/tdev-20260821-post-d0020-architecture-01/convergence`
+- Reopen scope: A7 post-spawn historical `no_handle`/capacity-release truth; B3 exact connect-response replay/socket-incarnation close fencing; B5 terminal-delivery bounded GC/high-water/replay horizon. Unaffected verified facts remain valid under `SDD.md`.
 - Acceptance evidence: `docs/evidence/group-f-d0020-agent-delivery-acceptance-2026-08-20.json`
 - Verification source: `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c`
 - Verification Task: `task_as4_d78a3d2028`
