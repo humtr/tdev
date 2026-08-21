@@ -7,6 +7,7 @@
 - Active cumulative lineage: resolved from `WORKBOARD.md`; drafted from `development@09d7dfa889e7c974013eb231f20bd28f0263ee7b`
 - Trigger: post-D0020 forward-design review plus direct user application decision to turn the surviving boundary into a target-native Design
 - Draft correction basis: exact predecessor draft `development@23eca29eb9dac1fd06fe1e9d32dfb7d52aa01731` / blob `9c8f718fb62f82abb5c0ea3c4970764a4afd7ded`, corrected from the converged ACR campaign `tdev-20260822-d0027-r1-correction-01`; this provenance is review evidence, not repository authority
+- J1/J2 correction basis: exact rejected draft `development@d7f5d506498dc2d05b7b5c2ce4ce8dbf94db0599` / blob `56bd254cacbbbda705752cdd3f9222e69fdf736a`, corrected only for the two blockers converged by `tdev-20260822-d0027-r1-j1j2-correction-01`; this provenance is evidence and does not authorize implementation or override current repository owners
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, local-Agent package/runtime owners, the D0020 `AgentDeliveryAuthority` integration boundary, and the derived Design index
 - Product/runtime semantics: proposes the supported installable authenticated local-Agent package, installation-principal, bounded local-effect and crash/orphan-recovery contract; this draft authorizes no source implementation, provider mutation, credential issuance, deployment or runtime activation
 - Explicit non-goals: no D0020 reopen; no MCP user/client/tenant authentication ownership from D0024; no canonical remote Git publication ownership from D0025; no whole-provider deployment/secret-distribution ownership from D0026; no D0028 operations ownership; no D0035 self-hosting/tmcp-retirement completion; no arbitrary hostile-process sandbox; no external model-provider admission
@@ -42,7 +43,7 @@ This probe selects a viable mechanism to design against. It is not D0027 product
 
 ### Inference
 
-The final local-Agent boundary needs installation and credential identities that D0020 intentionally does not own: an installation incarnation that survives ordinary process restart but not reinstall/replacement, and a credential generation that can revoke an already-connected predecessor. The corrected package lifecycle additionally needs a separately advancing package-activation generation so package freshness is not overloaded onto credential lifetime, while release trust needs a monotonic SECURITY-owned trust-policy generation. The installation/credential/package activation fences can remain substate consumed by the existing `AgentDeliveryAuthority`; release-trust policy remains SECURITY-owned and is consumed as an admission input. Creating a second delivery/capacity owner is unnecessary and forbidden.
+The final local-Agent boundary needs installation and credential identities that D0020 intentionally does not own: an installation incarnation that survives ordinary process restart but not reinstall/replacement, and a credential generation that can revoke an already-connected predecessor. The corrected package lifecycle additionally needs a separately advancing package-activation generation so package freshness is not overloaded onto credential lifetime. Release trust needs a monotonic route-current trust election, and restartable lifecycle mutation needs a monotonic lifecycle identity so repeated stop/start cannot recreate an old predecessor tuple. The existing per-route `AgentDeliveryAuthority` can own the installation/credential/package-activation, route-current non-secret trust-election and lifecycle fences as one transactionally ordered security/admission substate. `docs/SECURITY.md` remains the abstract trust-policy/disposition owner, `docs/DEPLOYMENT.md` remains the concrete trust-material/wiring owner, and local state may observe/cache these identities but cannot elect them current. Creating a second delivery/capacity or current-trust owner is unnecessary and forbidden.
 
 Crash-safe physical ownership also requires a live kernel identity held by a package-owned process that survives control/transport-process restart. Persisted PID/PGID metadata alone is insufficient destructive authority after owner restart because numeric process identifiers can be reused.
 
@@ -83,7 +84,7 @@ D0027 owns the **installable authenticated local-Agent boundary**. The owner spl
 | Plan/Task/Attempt/result/semantic terminality and `grant_attempt_dispatch` | `CaseEngine`/CaseDO | local Agent, supervisor, `AgentDeliveryAuthority` |
 | stable `agentId`, route generation and deployment route binding | existing D0020/deployment owner | local re-election, machine hostname |
 | connection/socket/executor generations, aggregate capacity, reservation/delivery admission and Agent dispatch authorization | existing per-route `AgentDeliveryAuthority` | CaseDO semantic lifecycle, local supervisor |
-| current `installationGeneration`, current `credentialGeneration`, current `packageActivationGeneration`, lifecycle (`active`/`draining`/`revoked`) and idempotent management receipts | D0027 authentication/package-fence substate inside the existing `AgentDeliveryAuthority` | a second Agent registry/queue/capacity owner |
+| current `installationGeneration`, current `credentialGeneration`, current `packageActivationGeneration`, route-current `trustPolicyGeneration` + non-secret trust-election state, lifecycle (`active`/`draining`/`revoked`), current `lifecycleGeneration` and idempotent management receipts | D0027 security/admission substate inside the existing per-route `AgentDeliveryAuthority` | a second Agent registry/queue/capacity/trust/lifecycle owner |
 | abstract Agent-management authentication/admission, credential-lifecycle policy and release-trust policy | `docs/SECURITY.md` as synchronized by an accepted D0027 revision | D0020 identifiers, incumbent Agent credential possession, D0024 MCP identity, provisional D0026 planning labels |
 | concrete credential/trust material provisioning, package distribution, provider/operator wiring and rollback realization | `docs/DEPLOYMENT.md`; future D0026 may wire an accepted policy but does not originate it | Case semantic state, delivery receipts, repository/evidence/model state |
 | actual local process/resource ownership and cleanup evidence | D0027 package-owned execution supervisor + per-operation warden | CaseDO, `AgentDeliveryAuthority` physical inference |
@@ -93,7 +94,7 @@ D0027 owns the **installable authenticated local-Agent boundary**. The owner spl
 | deployed operational outage/recovery runbooks | D0028 | D0027 package semantics |
 | self-hosting and tmcp retirement proof | D0035 | D0027 alone |
 
-The `AgentDeliveryAuthority` remains one owner: D0027 adds only the installation/credential/package-activation election and stale-authority fences needed before its existing delivery state can be used. `docs/SECURITY.md` owns the abstract management-proof and release-trust policy selected by this Design after acceptance; `docs/DEPLOYMENT.md` owns concrete secret/trust/package realization and rollback wiring. A provisional Design/program label never becomes a product owner by reference. Secret bytes are never stored in the `AgentDeliveryAuthority` substate.
+The `AgentDeliveryAuthority` remains one owner: D0027 adds only the installation/credential/package-activation elections, the route-current non-secret trust election, the lifecycle disposition/generation and their stale-authority fences needed before its existing delivery state can be used. `docs/SECURITY.md` owns the abstract management-proof and release-trust/disposition policy selected by this Design after acceptance; `docs/DEPLOYMENT.md` owns concrete secret/trust/package realization and rollback wiring. Neither policy prose, deployment material nor local package state may expose a competing current runtime trust/lifecycle value. A provisional Design/program label never becomes a product owner by reference. Secret bytes are never stored in the `AgentDeliveryAuthority` substate.
 
 ## 5. Identity and durable state model
 
@@ -106,7 +107,8 @@ D0027 requires these identities to remain distinct:
 - `installationGeneration` — positive non-reused incarnation of one installed Agent package identity on that route;
 - `credentialGeneration` — current credential generation for one installation;
 - `packageActivationGeneration` — positive non-reused election of one exact package manifest/service state for that installation; every package-changing update, reinstall and rollback advances it even when `installationGeneration` is preserved;
-- `trustPolicyGeneration` — positive non-reused SECURITY-owned release-trust policy generation under which package activation is admitted; rollback never restores an older trust generation;
+- `trustPolicyGeneration` — positive non-reused route-current release-trust election generation held in the existing per-route `AgentDeliveryAuthority` under SECURITY-owned abstract policy/disposition semantics; every non-replay trust-state mutation advances it and rollback never restores an older trust generation;
+- `lifecycleGeneration` — positive non-reused route-current lifecycle transition generation beside `active`/`draining`/`revoked`; every new product-side lifecycle mutation advances it while exact replay returns the already-recorded generation/result, so disposition alone can never create a restart ABA predecessor;
 - `connectionEpoch` — D0020 logical network connection generation;
 - `socketIncarnationId` — D0020 physical socket incarnation for one logical connection;
 - `executorEpoch` — D0020/local execution generation; it advances when volatile executor state is replaced;
@@ -121,7 +123,7 @@ Machine identifiers, Android IDs, hostnames, filesystem paths, PID/PGID values a
 The local package persists one versioned installation record containing only non-secret state needed to restart safely, including:
 
 - exact stable route identity (`agentId`, `routeGeneration`);
-- current `installationGeneration`, `credentialGeneration`, `packageActivationGeneration` and observed `trustPolicyGeneration` identifiers/receipts;
+- current `installationGeneration`, `credentialGeneration` and `packageActivationGeneration`, plus observed route-current `trustPolicyGeneration`/trust-state and `lifecycleGeneration`/disposition/transition receipts needed for reconciliation; these local observations never elect product authority;
 - immutable current/previous package-manifest/configuration digests needed by a supported recovery or rollback path;
 - local state-schema version and supported predecessor rule;
 - `supervisorGeneration` and `operationGeneration` high-water values;
@@ -138,12 +140,14 @@ Secret material lives only behind the selected local credential backend and is r
 - real reconnect advances the D0020 connection generation; hibernation/reattach does not synthesize one;
 - executor replacement advances `executorEpoch` and never reuses a tuple while stale input may exist;
 - supervisor replacement advances `supervisorGeneration`;
+- every non-replay route-current trust-state mutation advances `trustPolicyGeneration`; exact replay does not, and copied/restored local trust state cannot lower or recreate current product trust;
+- every new product-side lifecycle mutation advances `lifecycleGeneration`; exact replay does not, and lifecycle disposition without the exact generation/transition cause is insufficient predecessor authority for start/stop/uninstall;
 - a compatible drained in-place package upgrade may preserve `installationGeneration`, but every package-changing update advances `packageActivationGeneration` and elects one exact manifest/service state under the current `trustPolicyGeneration`;
 - `credentialGeneration` advances independently when credential lifecycle requires it; a package change does not advance it merely to carry package-version meaning, although a selected concrete clone-safe activation mechanism may require a fresh credential as its activation proof;
 - reinstall, stale backup restore/clone, machine replacement or unclean package-state replacement requires a new `installationGeneration` and a fresh higher `packageActivationGeneration`;
 - copied package/journal bytes plus a usable data-plane credential are never sufficient to become current: every supported installation profile must provide an independently clone-safe current-installation activation property;
 - stable-route transfer to a new installation is legal only after an explicit predecessor admission fence; a new installation never adopts predecessor live handles;
-- product-side installation/credential/package/trust non-reuse fences outlive local package deletion, secret deletion, uninstall, stale restore, reinstall and replacement and cannot be reset by recreating local state.
+- product-side installation/credential/package/trust/lifecycle non-reuse fences outlive local package deletion, secret deletion, uninstall, stale restore, reinstall and replacement and cannot be reset by recreating local state.
 
 ## 6. Registration, authentication, rotation and revocation
 
@@ -153,7 +157,7 @@ D0027 does not create `agentId` or `routeGeneration`. The deployment owner first
 
 ### 6.2 Management authority and authenticated principal contract
 
-`docs/SECURITY.md` owns the abstract Agent-management proof domain. Every `register`, `replace`, `rotate`, `revoke`, package-activation or trust-policy mutation must present an independently authenticated management proof bound to:
+`docs/SECURITY.md` owns the abstract Agent-management proof domain. Every product-authority mutation—`register`, `replace`, `rotate`, `revoke`, package activation, trust-policy/trust-state transition, `stop`, `start` and `uninstall`—must present an independently authenticated management proof bound to:
 
 ```text
 operation
@@ -163,6 +167,8 @@ stable managementRequestId
 exact intentDigest
 expected predecessor security state
 ```
+
+For a trust-state transition, the predecessor includes the exact current `trustPolicyGeneration` and trust-state identity/dispositions. For a product-side lifecycle transition, it includes the exact current `lifecycleGeneration` and disposition plus the exact current route/installation/credential/package-activation/trust tuple relevant to that transition. An exact replay uses the same predecessor identity and returns the same result; an intervening current-state change makes an old request stale/conflicting rather than rebinding it.
 
 Data-plane Agent credential possession, a D0020 route/connection/executor/delivery identifier, D0024 MCP identity, hostname or machine identifier is insufficient by itself. Denied or mismatched management proof produces zero durable mutation. Emergency revocation must remain possible through the authoritative management proof without requiring possession of the credential being revoked.
 
@@ -177,11 +183,11 @@ credentialGeneration
 
 and the admitted session must additionally bind the exact current `packageActivationGeneration` and manifest identity elected under the current `trustPolicyGeneration`.
 
-The product-side fence in `AgentDeliveryAuthority` persists the current installation, credential and package-activation generations, lifecycle (`active`, `draining`, `revoked`) and immutable or safely compacted management receipts/fences. It stores no credential secret bytes.
+The product-side fence in `AgentDeliveryAuthority` persists the current installation, credential and package-activation generations, the route-current non-secret trust-election tuple, lifecycle (`active`, `draining`, `revoked`), current `lifecycleGeneration` and immutable or safely compacted management receipts/fences. It stores no credential or trust secret bytes.
 
 ### 6.3 Management requests, replay and bounded retention
 
-Registration, replacement, rotation, revocation, package activation and trust-policy transitions use a stable `managementRequestId`, exact intent digest and expected predecessor security state.
+Registration, replacement, rotation, revocation, package activation, trust-policy/trust-state transitions and product-side `stop`/`start`/`uninstall` lifecycle transitions use a stable `managementRequestId`, exact intent digest and expected predecessor security state.
 
 - the first successful transaction performs at most one authorized election/advance and records one immutable result receipt;
 - exact replay returns that same semantic result without minting another generation or repeating an external effect;
@@ -222,6 +228,29 @@ Coordinated credential rotation:
 
 Emergency revocation performs the product-side fence first. It blocks new delivery mutations/dispatch immediately but does not imply that already-started physical effects are absent, erase management/reconciliation authority, or release physical capacity.
 
+### 6.7 Route-current trust election and authorization serialization
+
+The existing per-route `AgentDeliveryAuthority` owns one **route-current non-secret trust-election substate**. `docs/SECURITY.md` owns the abstract trust-policy and disposition semantics; `docs/DEPLOYMENT.md` owns concrete trust material, verifier/key custody, distribution and provider wiring; local package state may cache or observe trust identities/receipts but cannot elect current trust.
+
+The route-current trust substate contains at least:
+
+- positive non-reused `trustPolicyGeneration`;
+- an exact current trust-state digest or equivalent immutable identity;
+- a bounded set of non-secret trust-subject identities/digests with explicit `active`, `retired` or `revoked` disposition;
+- immutable result receipts or safely compacted replay/non-reuse fences for trust-state mutations.
+
+Every successful non-replay trust-state mutation advances `trustPolicyGeneration`. Exact replay returns the prior semantic result without another advance; changed-intent or changed-predecessor reuse conflicts before mutation. Product-side generation/high-water/tombstone state survives bounded detail GC and local deletion/reinstall so a forgotten request or stale local trust image cannot recreate or lower current trust.
+
+Disposition semantics are fail-closed:
+
+- `active` may authorize new package activation only when the other current install/credential/package/lifecycle predicates pass;
+- `retired` never authorizes a new package activation by itself; a previously elected package activation may remain admitted only when the new current trust state explicitly and deterministically continues that exact activation/manifest;
+- `revoked` denies new dependent package activation, connect/reattach, start and Agent dispatch authority and makes dependent predecessor sessions product-inert for new delivery mutation.
+
+No trust disposition proves physical absence, Case terminality/cancellation or capacity release.
+
+Trust-state mutation, package-activation election, connect/reattach and new session/message authority, product-side start election and `AgentDeliveryAuthority` dispatch authorization serialize at this same per-route owner against one exact current install/credential/package/trust/lifecycle tuple. A transaction that loses a trust/lifecycle race must reread/reconcile current state; it cannot commit using the predecessor tuple. A later trust/lifecycle fence may prevent a previously readable Agent authorization from producing a new physical send, but it never rewrites the historical Case-owned `grant_attempt_dispatch` fact, D0020 possible-execution history or positive-cleanup requirements.
+
 ## 7. Package and fresh-machine bootstrap
 
 ### 7.1 Supported local profile
@@ -248,9 +277,9 @@ Every installable release has an immutable package manifest binding at least:
 - required runtime/service capabilities;
 - non-secret configuration schema identity.
 
-A fresh machine obtains the initial release trust anchor from an independently authenticated SECURITY-owned source; the candidate package/channel cannot authenticate the trust root that authenticates itself. Product trust state advances through a positive non-reused `trustPolicyGeneration` with explicit active, retired and revoked root/key dispositions.
+A fresh machine obtains the initial release trust anchor from an independently authenticated SECURITY-owned source; the candidate package/channel cannot authenticate the trust root that authenticates itself. The route-current trust state is elected only by the existing per-route `AgentDeliveryAuthority` under Section 6.7. Every non-replay trust-state mutation advances the positive non-reused `trustPolicyGeneration` and records explicit active, retired and revoked subject/key dispositions.
 
-Every package activation, including update, downgrade or rollback, is a new forward election under the **current** trust policy. Restoring older local trust bytes cannot lower current product authority, and an artifact authenticated only by a retired/revoked root cannot obtain new package authority unless the current policy explicitly reauthorizes it. Trust/package revocation denies new package/connect/start/dispatch authority but never proves physical cleanup or releases capacity.
+Every package activation, including update, downgrade or rollback, is a new forward election under the **current** trust state. Restoring older local trust bytes cannot lower current product authority. A retired trust subject cannot authorize a new package activation by itself; continuation of an already-elected exact activation/manifest must be explicitly admitted by the new current trust state, and absence/mismatch fails closed. A revoked trust subject denies new dependent package/connect/start/dispatch authority. Trust/package revocation never proves physical cleanup or releases capacity.
 
 The concrete signature algorithm, key-custody implementation and release transport may vary by deployment. Unverifiable, mismatched or stale-policy artifacts fail before registration/connect/activation and cannot consume current Agent authority.
 
@@ -380,9 +409,11 @@ Every supported tool profile must prove that managed descendants remain in the w
 
 ## 10. Stop, restart, reinstall, update, uninstall, migration and rollback
 
-The package persists one versioned **management lifecycle journal**. At most one management transaction may be nonterminal for an installation at a time. Every transaction binds a stable `managementRequestId`, intent digest, expected predecessor authority and the exact package/service election state. Staged old/new payload bytes may coexist, but filesystem recency, version strings, timestamps, service discovery order and process presence never elect current authority.
+The package persists one versioned **management lifecycle journal**. At most one management transaction may be nonterminal for an installation at a time. Every transaction binds a stable `managementRequestId`, intent digest, expected predecessor authority and the exact package/service/security election state. Staged old/new payload bytes may coexist, but filesystem recency, version strings, timestamps, service discovery order and process presence never elect current authority.
 
-Exactly one product-side `packageActivationGeneration` and one matching local package/service election may be current. Journal loss or product/local election mismatch fails closed before executable admission rather than choosing an apparent winner.
+The existing per-route `AgentDeliveryAuthority` owns lifecycle disposition `active | draining | revoked` plus one positive non-reused `lifecycleGeneration`. Every new product-side lifecycle mutation advances `lifecycleGeneration`; exact replay of the same stable request returns the already-recorded result and does not advance it again. The durable transition receipt or equivalent record binds at least the operation/cause, stable request identity, intent digest, exact expected predecessor lifecycle generation/disposition, exact route/install/credential/package/trust predecessor tuple, resulting lifecycle generation/disposition and enough correlation to reconcile subordinate local effects. Local service/process state is evidence or a subordinate effect, never the product lifecycle elector.
+
+Exactly one product-side `packageActivationGeneration` and one matching local package/service election may be current. Journal loss, missing lifecycle predecessor identity or product/local election mismatch fails closed before executable admission rather than choosing an apparent winner.
 
 | Transition | Required rule |
 | --- | --- |
@@ -391,20 +422,25 @@ Exactly one product-side `packageActivationGeneration` and one matching local pa
 | supervisor restart | advance `supervisorGeneration`; quarantine predecessor nonterminal records; no stored-PID destructive adoption; conservatively account held capacity |
 | credential rotation | use Section 6.4 two-sided readiness, advance only `credentialGeneration`, fence old sockets, reconnect; unresolved physical work remains held |
 | emergency security revocation | product fence first; block new Agent mutation/dispatch immediately; preserve cleanup/reconciliation state and do not infer physical absence |
-| base `stop` | install `active -> draining` admission fence, prohibit new executable admission, positively quiesce owned/held work, verify service/supervisor stopped; preserve installation/credential/package/trust authority for deterministic restart |
+| base `stop` | from the exact current active lifecycle generation, atomically elect a new `draining` lifecycle generation before local quiescence; prohibit later executable admission, positively quiesce owned/held work, verify service/supervisor stopped, and mark only that completed `base_stop` drain generation restart-eligible while preserving installation/credential/package/trust authority |
+| base `start` | authenticate an exact stable start request against the current completed restart-eligible `base_stop` draining generation and current route/install/credential/package/trust tuple; prepare local service while still fenced, revalidate the full current tuple, then atomically elect a new `active` lifecycle generation; any intervening security/package/install/lifecycle change makes the old request stale/conflicting |
 | compatible in-place update | stage + verify under current trust, drain/quiesce, preserve old/new recovery provenance, migrate compatible state, elect a fresh higher `packageActivationGeneration`, then activate exactly one matching local service; may preserve `installationGeneration` |
 | rollback / supported downgrade | another forward higher package activation under the current `trustPolicyGeneration`; never restore older package/trust generations or infer authority from old files |
 | reinstall / stale restore / clone | install predecessor admission fence, require exact positive predecessor quiescence when physical ambiguity exists, mint a new `installationGeneration` and fresh package activation, never adopt predecessor live handles or treat copied state/credential as current |
 | machine replacement | new installation generation; stable route reuse requires predecessor admission fence plus baseline-supported predecessor quiescence; replacement-machine boot does not prove old-host absence |
-| normal `uninstall` | persist transaction + draining admission fence, positively quiesce and release matching physical capacity, then commit final installation/package/credential revocation, reconcile secret retirement, and remove service/payload only after deletion barriers close |
+| normal `uninstall` | persist/reconcile the authenticated uninstall request and elect an uninstall-owned draining lifecycle generation even when already stopped/draining, positively quiesce and release matching physical capacity, then commit final installation/package/credential revocation plus a new final `revoked` lifecycle generation, reconcile secret retirement, and remove service/payload only after deletion barriers close |
 | reboot | may support same-host predecessor-boot process-absence proof under Section 9.5; cannot prove semantic failure/success or external-effect/result resolution |
 | unsupported downgrade | fail before registration/connect/activation unless the current trust/state compatibility rule admits it as the forward rollback transition above |
 
-### 10.1 Base stop
+### 10.1 Base stop and restart
 
-Base `stop` is **graceful drain-only**. It does not gain unspecified authority to kill ambiguous predecessor work. The draining fence blocks new executable admission while preserving exact management, reconciliation and cleanup authority. Stop succeeds only after positive quiescence for every live/held operation in scope and independent verification that the package service/supervisor is stopped. Installation, credential, package activation and trust authority remain current, so a later `start` is a deterministic restart of the same installation rather than re-registration.
+Base `stop` is **graceful drain-only**. It does not gain unspecified authority to kill ambiguous predecessor work. A legal stop starts only from the exact current active `lifecycleGeneration` and atomically elects a **new draining lifecycle generation before local quiescence**. The successful transition receipt records `base_stop` as its cause. That product-side fence races at the existing `AgentDeliveryAuthority` boundary with Agent executable authorization: if the drain election wins, no later authorization/new physical send may cross under the predecessor lifecycle generation; if Agent authorization wins first, its possible physical work remains held and must be positively settled before stop can succeed.
 
-Emergency security revocation is a separate transition: it may revoke product authority first, but still cannot claim cleanup or stop success without the same physical evidence.
+Stop succeeds only after positive quiescence for every live/held operation in scope and independent verification that the package service/supervisor is stopped. Only that completed `base_stop` draining generation is restart-eligible. A draining generation created by update, uninstall, reinstall/replacement or another lifecycle/security transition is not restart-eligible merely because its disposition is `draining`. Installation, credential, package activation and admitted trust authority may remain current across a completed base stop, so restart does not require re-registration.
+
+A legal `start` is an independently authenticated, replay-safe `draining -> active` management transition. The request binds the exact completed restart-eligible draining `lifecycleGeneration`, exact `base_stop` receipt/cause and the exact current route, installation, credential, package activation/manifest and trust-state tuple. Local package/service/supervisor preparation occurs while product executable admission remains fenced/draining. Immediately before activation, the same per-route `AgentDeliveryAuthority` revalidates that full tuple and that no conflicting/nonterminal lifecycle transaction exists, then atomically elects a **new active lifecycle generation**. An intervening credential, package, trust, installation or lifecycle change, reinstall, uninstall or newer stop makes the old start request stale/conflicting; it is reconciled or newly admitted rather than silently rebound. Predecessor live handles are never adopted.
+
+Emergency security revocation is a separate transition: trust revocation may fence new authority even without changing lifecycle disposition; when an emergency/security operation does change product lifecycle disposition it uses a new lifecycle generation. Neither form can claim cleanup or stop success without the same physical evidence.
 
 ### 10.2 Update and rollback cutover
 
@@ -424,10 +460,10 @@ The successor receives a new non-reused `installationGeneration` and fresh highe
 
 Normal uninstall is a crash-safe management transaction, not `rm -rf` semantics:
 
-1. durably create/reconcile the exact uninstall request and install the draining admission fence;
+1. durably create/reconcile the exact authenticated uninstall request and elect a new uninstall-owned draining `lifecycleGeneration` even when the predecessor is an already-completed restart-eligible stop drain, thereby invalidating every delayed start for that older lifecycle generation;
 2. stop new executable admission and obtain positive quiescence for all matching physical work;
 3. let `AgentDeliveryAuthority` release only matching physical capacity from accepted positive evidence;
-4. commit final product-side installation/package/credential revocation while preserving the management/replay record needed to reconcile response loss;
+4. commit final product-side installation/package/credential revocation and a new final `revoked` lifecycle generation while preserving the management/replay record needed to reconcile response loss;
 5. reconcile external and local secret retirement without requiring secret bytes in product state;
 6. remove service registration and package payload only after no required cleanup/replay/recovery evidence is being destroyed;
 7. report success only when product authority is revoked, physical cleanup is positively resolved, and the supported local service/payload absence contract is verified.
@@ -439,7 +475,7 @@ Ambiguous cleanup or a lost response leaves uninstall fenced/held and replayable
 Detailed management/provisioning receipts, old manifests and local recovery records need not be retained forever, but compaction is legal only after the corresponding safety barrier closes:
 
 - a surviving monotonic request/generation floor, closed namespace/window, tombstone/digest or equivalent must make GC'd predecessor management requests stale and non-creating;
-- installation, credential, package-activation and trust non-reuse fences survive local deletion, reinstall, stale restore and machine replacement;
+- installation, credential, package-activation, trust and lifecycle generation/high-water non-reuse fences survive local deletion, reinstall, stale restore and machine replacement;
 - exact predecessor scope remains addressable while any held physical slot can still be released by late positive quiescence evidence;
 - old manifest/schema/trust/service-registration provenance survives while any supported resume/rollback path can require it;
 - retained old provenance is historical/recovery input and can never independently re-elect itself current;
@@ -451,7 +487,7 @@ Every durable local/product format still has an explicit version, accepted prede
 
 - Case cancellation remains serialized against Agent dispatch by the Case-owned D0020 `grant_attempt_dispatch` boundary. The local package cannot invent a semantic cancellation winner.
 - A local cancel request may stop a positively owned warden/process group, but cancellation acknowledgement is not `cleanup_complete` until positive resource absence exists.
-- Lost management/provisioning responses reconcile through the exact stable request/provisioning identity and immutable result receipt or surviving closed-namespace/high-water/tombstone fence; blind re-enrollment/remint/re-execution is forbidden. A GC'd predecessor identity is stale/non-creating, never implicitly fresh.
+- Lost management/provisioning/lifecycle responses reconcile through the exact stable request/provisioning identity and immutable result receipt or surviving closed-namespace/high-water/tombstone fence; blind re-enrollment/remint/re-execution is forbidden. A GC'd trust/lifecycle predecessor identity is stale/non-creating, never implicitly fresh, and an ambiguous local service effect is reconciled rather than blindly repeated.
 - D0020 connect/delivery response loss keeps its existing logical-connection, socket-incarnation, delivery and replay rules; D0027 may not create a parallel replay protocol.
 - Revocation, disconnect, timeout, package/service disappearance, registry age or machine disappearance cannot turn uncertain execution into known failure or release capacity.
 - A corrupt/missing local operation or management journal, incompatible package/state version, product/local package-election mismatch, missing pidfd primitive, failed package signature/current-trust check or denied root/tool/network capability fails closed before new executable dispatch.
@@ -488,6 +524,18 @@ Rejected. D0020 deliberately owns delivery/capacity/reservation state and CaseDO
 
 Rejected. Same-host reboot under established host continuity can prove only that predecessor-boot processes are absent. Replacement-machine boot, timeout, inaccessibility, disappearance or an unscoped operator assertion is not baseline quiescence. Semantic/external-effect uncertainty remains with the existing Case/reconciliation owners.
 
+### Put current trust election in SECURITY/DEPLOYMENT prose, a separate registry or local package state
+
+Rejected. SECURITY owns abstract trust/disposition meaning and DEPLOYMENT owns concrete material/wiring, but one route-current runtime trust value is durable substate of the existing per-route `AgentDeliveryAuthority`. A second registry or local self-election would create competing current authority and cross-owner races against package/session/start/dispatch admission.
+
+### Use lifecycle disposition or installation/credential/package/trust generations as the restart predecessor
+
+Rejected. Base stop/start may preserve all of those security/package generations, so `active -> draining -> active -> draining` can recreate the same apparent predecessor and admit a delayed old start. A distinct positive non-reused `lifecycleGeneration` (or semantically identical route-current lifecycle epoch) advances on every product-side lifecycle mutation and is required in predecessor matching.
+
+### Let local service/process state elect product lifecycle authority
+
+Rejected. Service start/stop, supervisor control, secret retirement and payload deletion are subordinate journaled effects. They may prove local readiness/absence but cannot elect product `active`, `draining`, `revoked`, current trust or capacity state after response loss or crash.
+
 ### Make base `stop` an unspecified destructive cancellation
 
 Rejected. Base stop is graceful drain-only and can succeed only from positive quiescence plus verified service stop. Emergency revocation and any future stronger destructive operator action remain separately authorized transitions.
@@ -512,11 +560,12 @@ This matrix defines the evidence the eventual implementation must produce. Desig
 
 | Gate | Required result / proof layer |
 | --- | --- |
-| owner closure | exact Design review proves the owner table has no second Case/delivery/capacity owner, provisional planning label as product authority, or unresolved management/trust/lifetime/rollback policy choice |
-| management admission + replay | Design/source/security tests deny every non-management proof class with zero mutation; exact request replay is idempotent, changed-intent/predecessor reuse conflicts, and ancient replay after detailed receipt GC is stale/non-creating under the surviving bounded fence |
-| identity / clone / package activation | model/security tests cover non-reused installation/credential/package-activation/trust/supervisor/operation generations, prove copied backup-eligible state plus usable data-plane credential cannot self-elect a clone, and prove a predecessor package is stale after a successful package change |
+| owner closure | exact Design review proves the owner table has no second Case/delivery/capacity/current-trust/lifecycle owner, provisional planning label as product authority, or unresolved management/trust/lifetime/rollback policy choice |
+| management admission + replay | Design/source/security tests deny every non-management proof class with zero mutation across register/replace/rotate/revoke/package/trust and product-side stop/start/uninstall; exact request replay is idempotent, changed-intent/predecessor reuse conflicts, and ancient trust/lifecycle replay after detailed receipt GC is stale/non-creating under the surviving bounded fence |
+| identity / clone / package activation | model/security tests cover non-reused installation/credential/package-activation/trust/lifecycle/supervisor/operation generations, prove copied backup-eligible state plus usable data-plane credential cannot self-elect a clone, reject stale lifecycle predecessors after repeated stop/start, and prove a predecessor package is stale after a successful package change |
 | two-sided provisioning | crash/response-loss injection at verifier preparation, local secret readiness and current election proves a candidate is non-executable until both exact readiness receipts exist and recovery never blind-remints/reuses a candidate generation |
-| release trust lifecycle | fresh bootstrap proves the initial trust source is independently authenticated; rollover/revocation plus old-local-trust restoration proves retired/revoked trust cannot obtain new activation; rollback is a forward activation under current trust |
+| route-current release trust | Design/state tests prove only the existing per-route `AgentDeliveryAuthority` elects current non-secret trust state; every non-replay trust mutation advances `trustPolicyGeneration`; retired trust cannot authorize new activation and existing-activation continuation is explicit/current/fail-closed; revoked trust denies new dependent package/connect/start/dispatch authority; trust mutation races package/session/start/dispatch through one current-state serialization point and never fabricates cleanup/capacity release |
+| release trust lifecycle | fresh bootstrap proves the initial trust source is independently authenticated; rollover/revocation plus old-local-trust restoration proves retired/revoked trust cannot recreate/lower current authority; rollback is a forward activation under current trust |
 | registration/revocation | security/provider tests prove one route-scoped installation principal, exact response-loss reconciliation, coordinated rotation/emergency revocation and denial of already-open predecessor sockets before delivery mutation or new dispatch |
 | fresh-machine package | a genuinely fresh supported Android/Termux profile with no tdev checkout/tmcp setup obtains a provenance-bound package, establishes current trust, feature-probes required capabilities, provisions separated config/secrets and registers successfully |
 | pidfd support | every claimed machine profile positively proves `pidfd_open`/`pidfd_send_signal`; absent/denied support fails closed with no PID destructive fallback |
@@ -527,7 +576,8 @@ This matrix defines the evidence the eventual implementation must produce. Desig
 | cleanup domain | timeout/cancel/normal completion and descendant creation for every supported tool profile prove that package-owned resources remain in the warden cleanup domain and `cleanup_complete` follows positive absence only |
 | path/tool/network denial | denied root, symlink escape, executable/argv/environment/resource/network expansion and credential misuse produce zero unauthorized local effect |
 | D0020 composition | deployed CaseDO + `AgentDeliveryAuthority` + authenticated local Agent preserves running-before-dispatch, `grant_attempt_dispatch`, aggregate capacity, reservation, stale delivery and cleanup evidence ownership with no local durable Task queue |
-| base stop | drain-only stop blocks new executable admission, preserves management authority, reports success only after positive quiescence plus verified service stop, and restarts deterministically without re-registration |
+| lifecycle generation / start | repeated `active -> draining -> active -> draining` advances a positive non-reused `lifecycleGeneration`; a delayed start bound to the first drain fails predecessor matching, update/uninstall/security drains are not restart-eligible, and a legal start remains fenced during local preparation then revalidates route/install/credential/package/trust/lifecycle before atomically electing a new active generation |
+| base stop | drain-only stop elects a new draining lifecycle generation before local quiescence, races correctly against Agent authorization/send, preserves management authority, reports success only after positive quiescence plus verified service stop, and makes only the completed `base_stop` drain restart-eligible |
 | reinstall/replacement | predecessor admission is fenced, new `installationGeneration` + package activation are elected, copied/stale state never self-elects, old handles are never adopted and ambiguous predecessor capacity waits for positive quiescence |
 | update/rollback cutover | crash injection before/after staging, drain/quiescence, migration, product election and local service election leaves exactly one current package/service or a deterministic fenced/held recovery; rollback is a higher forward activation under current trust |
 | uninstall | crash/response-loss injection at drain, quiescence/capacity release, final revocation, secret retirement and payload deletion proves no premature success, no lost reconciliation path and no stale-authority resurrection after reinstall |
@@ -540,17 +590,17 @@ This matrix defines the evidence the eventual implementation must produce. Desig
 
 Before expensive whole-product qualification, the cheapest decisive failures are:
 
-1. a data-plane credential, D0020 identifier or D0024 identity can authorize `register`/`replace`/`rotate`/`revoke`/package/trust mutation, or denied management proof mutates durable state;
+1. a data-plane credential, D0020 identifier or D0024 identity can authorize `register`/`replace`/`rotate`/`revoke`/package/trust or product-side `stop`/`start`/`uninstall` mutation, or denied management proof mutates durable state;
 2. exact management request replay mints another generation/effect, changed-intent reuse succeeds, or an ancient request becomes fresh after detailed receipt GC;
 3. reinstall/restore/clone with copied package/journal plus a usable predecessor credential can become current without an independent clone-safe activation, or a pre-update package remains authoritative after package activation advances;
 4. one-sided credential readiness can become current, or a lost provisioning response causes blind remint/reuse rather than reconciliation of one stable provisioning identity;
-5. a package/channel can authenticate its own bootstrap trust root, restoring old local trust lowers current authority, or a retired/revoked-root-only artifact gains new package activation;
+5. a package/channel can authenticate its own bootstrap trust root, a second/local/prose owner can elect current trust, a non-replay trust mutation reuses `trustPolicyGeneration`, restoring old local trust lowers current authority, retired trust implicitly authorizes new activation, or revoked trust still grants new dependent package/connect/start/dispatch authority;
 6. after credential/package revocation an already-open predecessor socket can still read/mutate delivery state or receive a new dispatch authorization;
 7. any Task/tool effect can start before PREPARED/ACTIVE/GO_ALLOWED durability or a crash in that window is later reported as known `no_handle`;
 8. after supervisor restart the implementation uses stored PID/PGID/path/name as destructive authority or can signal an unrelated recycled process;
 9. a supported tool escapes the claimed warden cleanup domain and capacity is nevertheless released as `cleanup_complete`;
 10. timeout, replacement-machine reboot, inaccessibility, disappearance, registry age or unscoped operator assertion releases predecessor physical capacity without one exact baseline-positive quiescence receipt;
-11. base `stop` reports success while live/ambiguous work remains, or silently gains destructive cancellation authority beyond its graceful drain contract;
+11. base `stop` reports success while live/ambiguous work remains, fails to elect a new draining `lifecycleGeneration` before local quiescence, permits post-fence new Agent send, or silently gains destructive cancellation authority beyond its graceful drain contract;
 12. interrupted uninstall deletes the only management/replay/predecessor evidence before positive cleanup + final revocation can be reconciled, or package/service disappearance is treated as capacity release/success;
 13. an interrupted update leaves two executable package/service elections current, or current authority is reconstructed from filesystem recency, timestamp or process presence;
 14. rollback lowers `packageActivationGeneration`/`trustPolicyGeneration`, reactivates a stale credential by copying old state, or requires provenance the destructive path was allowed to delete;
@@ -559,7 +609,12 @@ Before expensive whole-product qualification, the cheapest decisive failures are
 17. ordinary D0027 Agent credentials can perform canonical remote Git publication or MCP user/tenant authority;
 18. a claimed profile without pidfd support silently falls back to PID signaling;
 19. incompatible downgrade or unclean reinstall activates executable work while newer/ambiguous predecessor state remains unfenced;
-20. a fresh supported installation requires an existing tdev checkout, tmcp Task/worktree state, ambient developer helper, runtime download of an unbound helper or an unverifiable package/trust artifact.
+20. a fresh supported installation requires an existing tdev checkout, tmcp Task/worktree state, ambient developer helper, runtime download of an unbound helper or an unverifiable package/trust artifact;
+21. trust revocation racing package activation, connect/reattach, start or Agent dispatch allows both incompatible predecessor/current authority commits to succeed instead of exactly one current-state winner;
+22. `active -> draining -> active -> draining` followed by a delayed start for the first drain succeeds because lifecycle disposition/security generations recreate an ABA predecessor instead of failing `lifecycleGeneration` matching;
+23. start from an update/uninstall/security-created drain becomes active, or a start admitted before an intervening credential/package/trust/install/lifecycle change silently rebinds instead of failing final current-state revalidation;
+24. lost/replayed stop/start/uninstall response advances lifecycle authority twice, repeats a destructive/local service effect blindly, or loses the only reconciliation receipt/fence;
+25. uninstall begun from a completed restart-eligible stop drain does not first advance to a new uninstall-owned draining generation, allowing a delayed predecessor start to revive authority during uninstall.
 
 Failure of one falsifier blocks only the affected D0027 scope; it does not reopen D0020 unless the evidence directly invalidates D0020's maintained verified meaning.
 
