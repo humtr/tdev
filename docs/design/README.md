@@ -24,6 +24,7 @@
 | D0018 | r1 | verified | adversarially converged model executor/runtime boundary | `docs/design/0018-adversarial-converged-model-runtime-boundary.md` |
 | D0019 | r2 | verified | CaseDO Authority Adapter | `docs/design/0019-casedo-authority-adapter.md` |
 | D0020 | r2 | verified | Agent Connection, Delivery, and Aggregate Capacity | `docs/design/0020-agent-connection-delivery-and-aggregate-capacity.md` |
+| D0027 | r1 | draft | Installable Authenticated Local Agent | `docs/design/0027-installable-authenticated-local-agent.md` |
 | D0030 | r2 | verified | Immutable Journal Publication Portability | `docs/design/0030-immutable-journal-publication-portability.md` |
 | D0031 | r7 | verified | Self-Development Documentation Authority | `docs/design/0031-self-development-documentation-authority.md` |
 | D0032 | r2 | verified | Qualification Authority Recomposition | `docs/design/0032-qualification-authority-recomposition.md` |
