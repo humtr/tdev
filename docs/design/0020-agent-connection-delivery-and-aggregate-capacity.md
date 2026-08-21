@@ -1,6 +1,6 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 2
 - Revision-1 predecessor/reopen publication: `development@1f942552862c1405ef3cf6007413f906f7b66a41`
 - Reopen evidence: ACR campaign `tdev-20260821-post-d0020-architecture-01`, convergence ref `acr/tdev-20260821-post-d0020-architecture-01/convergence`
@@ -22,7 +22,7 @@
 - Trigger: required provisional Group F Agent connection/delivery/capacity gate in `docs/development/PROGRAM.md`
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
 - Affected product owners after acceptance: `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`
-- Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; the acceptance transition does not mutate that owner
+- Revision-1 post-acceptance owner synchronization: `docs/PROTOCOL.md` already maintains the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; Revision 2 changes no Case-grant meaning. Revision-2 affected-owner synchronization is limited to current cleanup/incarnation/terminal-retention assertions in `docs/QUALIFICATION.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md` and `docs/DEPLOYMENT.md`.
 - Product/runtime effect: D0020 Revision 2 is accepted for the three reopened correction scopes; Class-2 correction is authorized but those scopes are not verified until the required source, Android/Termux, Cloudflare provider/runtime and bounded deployed-composition proofs pass. Unaffected Revision-1 verified facts remain preserved under `SDD.md`; no provisional successor is auto-activated.
 
 ### Revision 2 correction — accepted 2026-08-21
