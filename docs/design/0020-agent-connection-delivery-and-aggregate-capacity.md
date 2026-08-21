@@ -1,8 +1,12 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `reopened`
-- Revision: 1
+- Status: `accepted`
+- Revision: 2
+- Revision-1 predecessor/reopen publication: `development@1f942552862c1405ef3cf6007413f906f7b66a41`
 - Reopen evidence: ACR campaign `tdev-20260821-post-d0020-architecture-01`, convergence ref `acr/tdev-20260821-post-d0020-architecture-01/convergence`
+- Revision-2 repair review: tmcp Job `job_bb2_b4a663e8db` — `ACCEPTABLE_R2_CONTRACT`
+- Revision-2 exact candidate SHA-256: `a214205acaef0decfab1ce035b102ba5c92cd23aa11b4f9498004bd56f581e80`
+- Revision-2 exact-candidate acceptance review: tmcp Job `job_bbk_6bc440767c` — `ACCEPT_R2`, zero load-bearing blockers, implementation/provider proof pending
 - Reopen scope: A7 post-spawn historical `no_handle`/capacity-release truth; B3 exact connect-response replay/socket-incarnation close fencing; B5 terminal-delivery bounded GC/high-water/replay horizon. Unaffected verified facts remain valid under `SDD.md`.
 - Acceptance evidence: `docs/evidence/group-f-d0020-agent-delivery-acceptance-2026-08-20.json`
 - Verification source: `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c`
@@ -12,14 +16,63 @@
 - Accepted review-candidate Design SHA-256: `1adfaa75702959f4dc20df38cbf557fd7fb1374aca8a736aab69c69e5cd401cf`
 - Independent exact-artifact acceptance review: `task_ahs_1bdb96128c` — C1/C6/C8 confirmed, no material regression, Design readiness `READY`, executable proof `PROOF_PENDING`
 - Class: 2
-- Decision date: 2026-08-20
+- Decision date: 2026-08-21
 - Capability Group: F — Cloudflare runtime and local Agent topology
 - Drafting authority anchor: `development@dfd4d0c9768515fd80f62346c128acc37d84e34b`
 - Trigger: required provisional Group F Agent connection/delivery/capacity gate in `docs/development/PROGRAM.md`
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
 - Affected product owners after acceptance: `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`
 - Post-acceptance affected-owner obligation: before D0020 implementation, `docs/PROTOCOL.md` must owner-natively add the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; the acceptance transition does not mutate that owner
-- Product/runtime effect: verified D0020 Revision 1 source, provider/runtime, declared Android/Termux local-machine and deployed CaseDO + AgentDeliveryAuthority + authenticated local-Agent composition; Group F remains active and later provisional gates are not auto-activated
+- Product/runtime effect: D0020 Revision 2 is accepted for the three reopened correction scopes; Class-2 correction is authorized but those scopes are not verified until the required source, Android/Termux, Cloudflare provider/runtime and bounded deployed-composition proofs pass. Unaffected Revision-1 verified facts remain preserved under `SDD.md`; no provisional successor is auto-activated.
+
+### Revision 2 correction — accepted 2026-08-21
+
+Revision 2 preserves the same D0020 problem, responsibility boundary and selected owner family. It changes only the three scopes reopened by the 2026-08-21 ACR convergence. The rules in this subsection override conflicting Revision-1 wording while all unaffected Revision-1 decisions remain maintained.
+
+Predecessor and evidence:
+
+- predecessor maintained revision: D0020 Revision 1, historically accepted and verified, then reopened at `development@1f942552862c1405ef3cf6007413f906f7b66a41`;
+- falsifier evidence: ACR campaign `tdev-20260821-post-d0020-architecture-01`, convergence ref `acr/tdev-20260821-post-d0020-architecture-01/convergence`;
+- fresh independent repair review: tmcp Job `job_bb2_b4a663e8db`, read-only against the reopened source, verdict `ACCEPTABLE_R2_CONTRACT`;
+- no new semantic owner, retry queue, connection epoch meaning, Case result authority or reservation-window purpose is introduced.
+
+#### R2-A7 — execution-start and handle truth
+
+1. Historical `execution=not_started` and `cleanup=no_handle` are legal only from positive proof that the selected process/resource/handle was never created or owned for that delivery/ordinal.
+2. An untyped or ambiguous `executionAdapter.start()` exception is never such proof. It must conservatively preserve possible start/handle ownership and must not release the Agent capacity unit.
+3. The production Node adapter must perform every known pre-launch validation, including bounded stdin/body preparation, before spawning. If any failure occurs after a process/resource/handle is created, the adapter must retain that physical identity, terminate/control the exact process group, and positively await resource disappearance before reporting `cleanup_complete`. A post-creation failure may never be translated into `no_handle`; if positive cleanup cannot be established, cleanup remains `held`/unknown and the physical slot remains occupied.
+4. `AgentDeliveryAuthority` may release an admission/physical unit from `no_handle` only when that historical proof is legal, or from positive `cleanup_complete`; transport absence, a thrown start call, cancellation or semantic terminality is insufficient.
+
+#### R2-B3 — physical socket-incarnation fence for exact connect replay
+
+1. Logical `connectionId`/`connectionEpoch` retain Revision-1 meaning. Exact replay of one lost connect response reuses the retained logical receipt and must not mint a synthetic epoch.
+2. Every accepted physical WebSocket has a distinct non-reused bounded `socketIncarnationId` (or equivalent physical-incarnation token). The current logical connection durably records the current physical incarnation; the socket attachment carries the same token.
+3. Provider attach/replacement atomically binds a fresh physical incarnation to the already-current logical tuple before a predecessor physical socket may be treated as current. Closing a superseded socket with the same logical connection tuple but an older physical incarnation is `stale` and may not clear durable connection state, capacity evidence or the replacement socket.
+4. Message/reattach/close/error paths validate the physical incarnation in addition to the logical tuple. Hibernation reconstruction restores/validates the durable incarnation and does not advance logical connection epoch.
+5. Existing Revision-1 durable snapshots/attachments must migrate forward deterministically and fail closed under ambiguity. The maintained implementation must version the changed Agent-delivery snapshot/attachment contract; a legacy snapshot with no physical-incarnation token may be upgraded only when the provider can establish one unambiguous current physical socket for the durable logical connection. Ambiguous legacy physical sockets require conservative disconnect/reconnect rather than guessing. Rollback after Revision-2 state exists must be schema/protocol compatible or first drain/fence the route under Section 20.
+
+#### R2-B5 — terminal delivery compaction without resurrection
+
+1. `maxDeliveries` bounds detailed live/recent delivery state, not lifetime completed work. The owner also keeps a separately bounded terminal-delivery tombstone set and finite replay grace/horizon.
+2. Detailed delivery state is eligible for retirement only after its admission/physical slot is positively released and the lower layer has an exact non-resurrection proof: either the delivery was closed without executable dispatch under legal negative execution/no-handle evidence, or an exact Case-authoritative terminal/reconciliation receipt for the same Case/Task/Attempt/fence has been durably bound to the retirement. `AgentDeliveryAuthority` does not invent Case terminality.
+3. Retirement atomically replaces detailed delivery state with a compact tombstone that binds enough immutable identity to prevent substitution: delivery/activation identity and digest/receipt, reservation generation/request identity, Case/Task/Attempt/fence, retirement reason/Case receipt where applicable, terminal time, and the final bounded evidence/revision high-water required to classify replay.
+4. A tombstoned same delivery/activation exact replay may return only the bounded retired receipt; conflicting reuse is conflict/stale and may not recreate capacity, a reservation, a delivery, dispatch authority or execution. Transport/evidence/result observations for tombstoned or fully GC'd deliveries are stale/non-creating.
+5. A terminal tombstone may itself be dropped only after its reservation generation is permanently below `minimumAcceptedReservationWindow` and the configured delivery replay grace/horizon has elapsed. After that point the reservation-window generation floor plus the rule that unknown/GC'd observations never create a delivery is the O(1) ancient-replay fence.
+6. Before new admission, the owner may compact only deliveries satisfying the rules above. If detailed deliveries/tombstones cannot be safely compacted within configured bounds, admission fails closed; history is never deleted merely to make space. Once safe retirement and reservation-window rollover occur, fresh admission must continue beyond historical `maxDeliveries` completions.
+7. The Agent-delivery snapshot is revisioned for this new durable shape. Revision-1 snapshots migrate forward without deleting live uncertainty; provider storage remains usable only when the stored snapshot can be losslessly upgraded under these rules.
+
+#### Revision-2 affected owners and revalidation
+
+After acceptance and before Class-2 source implementation, update only owner documents that currently express one of these affected contracts. At minimum `docs/QUALIFICATION.md` must add explicit falsifiers for R2-A7/R2-B3/R2-B5; `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md` and `docs/DEPLOYMENT.md` change only where a current normative statement would otherwise contradict this revision. `PROGRAM.md` remains dependency planning rather than an independent status owner.
+
+Closure requires distinct evidence layers:
+
+- source/model: forced post-spawn failure truth/capacity ordering; exact same-request connect replay with superseded-socket close; retirement/compaction, bounded tombstones, ancient exact/conflicting replay, and continued admission beyond historical `maxDeliveries`;
+- declared Android/Termux local machine: a real process crosses spawn then fails before operation return, with no false `no_handle`, verified descendant/process-group disappearance, and no slot release before positive cleanup;
+- Cloudflare provider/runtime: exact lost-connect-response replay plus old-socket close under Hibernation/reconstruction; durable snapshot migration/incarnation persistence; terminal delivery retirement/tombstone persistence, ancient replay rejection and continued admission after reconstruction;
+- bounded deployed product: corrected CaseDO + AgentDeliveryAuthority + authenticated local-Agent composition for connection replay, cleanup/capacity evidence and post-compaction delivery behavior.
+
+D0027 remains research-only until these reopened D0020 scopes are corrected and requalified. Bounded D0023 schema/projection Design research may remain parallel; D0021/D0022 remain conditional and D0024/D0025 remain non-authorizing research. No security/client, full migration/cutover, whole-deployment or final-MVP proof is reopened unless the correction changes those boundaries.
 
 ## 1. Decision
 
