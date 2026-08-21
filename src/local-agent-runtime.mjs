@@ -599,7 +599,13 @@ function webSocketDataToText(data, maxBytes) {
 }
 
 export class LocalAgentWebSocketTransport {
-  constructor({ runtime, endpoint, authKey, webSocketFactory = (url, protocols) => new WebSocket(url, protocols) }) {
+  constructor({
+    runtime,
+    endpoint,
+    authKey,
+    webSocketFactory = (url, protocols) => new WebSocket(url, protocols),
+    onServerFrame = async () => {},
+  }) {
     if (!(runtime instanceof LocalAgentRuntime)) fail('invalid_local_agent_transport', 'WebSocket transport requires LocalAgentRuntime');
     const url = new URL(endpoint);
     if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) {
@@ -607,10 +613,12 @@ export class LocalAgentWebSocketTransport {
     }
     if (typeof authKey !== 'string' || authKey.length < 32) fail('invalid_local_agent_transport', 'Agent WebSocket auth key is missing or undersized');
     if (typeof webSocketFactory !== 'function') fail('invalid_local_agent_transport', 'Agent WebSocket factory must be callable');
+    if (typeof onServerFrame !== 'function') fail('invalid_local_agent_transport', 'Agent WebSocket server-frame handler must be callable');
     this.runtime = runtime;
     this.endpoint = url;
     this.authKey = authKey;
     this.webSocketFactory = webSocketFactory;
+    this.onServerFrame = onServerFrame;
     this.socket = null;
   }
 
@@ -653,7 +661,16 @@ export class LocalAgentWebSocketTransport {
     this.runtime.bindConnection({ id: connectionId, epoch: expectedConnectionEpoch + 1 });
     socket.addEventListener('message', (event) => {
       void webSocketDataToText(event.data, this.runtime.maxFrameBytes)
-        .then((text) => this.runtime.handleTransportMessage(text))
+        .then((text) => strictJsonParse(text, { maxBytes: this.runtime.maxFrameBytes }))
+        .then((frame) => {
+          if (frame?.type === 'dispatch' || frame?.type === 'control') {
+            return this.runtime.handleTransportMessage(frame);
+          }
+          if (['capacity_ack', 'evidence_ack', 'result_handoff'].includes(frame?.type)) {
+            return this.onServerFrame(canonicalClone(frame));
+          }
+          fail('invalid_local_agent_frame', 'Local Agent server frame type is unsupported');
+        })
         .catch(() => { try { socket.close(1008, 'local_agent_frame_rejected'); } catch {} });
     });
     socket.addEventListener('close', () => {

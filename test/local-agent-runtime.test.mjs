@@ -4,7 +4,7 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 
-import { digest } from '../src/index.mjs';
+import { canonicalJson, digest } from '../src/index.mjs';
 import {
   LOCAL_AGENT_AUTH_PROTOCOL_PREFIX,
   LOCAL_AGENT_WEBSOCKET_PROTOCOL,
@@ -389,4 +389,94 @@ test('WebSocket transport keeps authentication out of the URL and binds it to a 
   assert.equal(identity.connectionEpoch, 1);
   assert.equal(identity.executorEpoch, 1);
   transport.close();
+});
+
+
+test('WebSocket transport surfaces known server responses without feeding them into execution runtime', async () => {
+  const { agent } = runtime({ adapter: { async start() { throw new Error('server response reached execution runtime'); } } });
+  agent.connection = null;
+  const socket = new FakeWebSocket();
+  const frames = [];
+  const received = deferred();
+  const transport = new LocalAgentWebSocketTransport({
+    runtime: agent,
+    endpoint: 'wss://qualification.example/agent-delivery/v1/connect',
+    authKey: '0123456789abcdef0123456789abcdef0123456789abcdef',
+    webSocketFactory() {
+      queueMicrotask(() => socket.dispatch('open'));
+      return socket;
+    },
+    async onServerFrame(frame) {
+      frames.push(frame);
+      if (frames.length === 3) received.resolve();
+    },
+  });
+  await transport.connect({
+    expectedConnectionEpoch: 0,
+    connectRequestId: 'connect-responses',
+    connectionId: 'connection-responses',
+    protocolMetadataDigest: digest({ protocol: 'agent-v1' }),
+  });
+  socket.dispatch('message', { data: canonicalJson({ type: 'capacity_ack', result: { classification: 'accepted' } }) });
+  socket.dispatch('message', { data: canonicalJson({ type: 'evidence_ack', result: { classification: 'monotonic_refinement' } }) });
+  socket.dispatch('message', { data: canonicalJson({ type: 'result_handoff', handoff: { requestId: 'handoff-one' } }) });
+  await received.promise;
+  assert.deepEqual(frames.map((frame) => frame.type), ['capacity_ack', 'evidence_ack', 'result_handoff']);
+  assert.equal(socket.closed, null);
+  transport.close();
+});
+
+test('WebSocket transport rejects unknown server frames fail closed', async () => {
+  const { agent } = runtime({ adapter: { async start() { throw new Error('unused'); } } });
+  agent.connection = null;
+  const socket = new FakeWebSocket();
+  const transport = new LocalAgentWebSocketTransport({
+    runtime: agent,
+    endpoint: 'wss://qualification.example/agent-delivery/v1/connect',
+    authKey: '0123456789abcdef0123456789abcdef0123456789abcdef',
+    webSocketFactory() {
+      queueMicrotask(() => socket.dispatch('open'));
+      return socket;
+    },
+  });
+  await transport.connect({
+    expectedConnectionEpoch: 0,
+    connectRequestId: 'connect-unknown',
+    connectionId: 'connection-unknown',
+    protocolMetadataDigest: digest({ protocol: 'agent-v1' }),
+  });
+  socket.dispatch('message', { data: canonicalJson({ type: 'unexpected_server_message' }) });
+  for (let attempt = 0; attempt < 20 && socket.closed === null; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+  assert.deepEqual(socket.closed, { code: 1008, reason: 'local_agent_frame_rejected' });
+});
+
+test('WebSocket transport closes fail closed when the server-frame consumer rejects a known response', async () => {
+  const { agent } = runtime({ adapter: { async start() { throw new Error('unused'); } } });
+  agent.connection = null;
+  const socket = new FakeWebSocket();
+  const transport = new LocalAgentWebSocketTransport({
+    runtime: agent,
+    endpoint: 'wss://qualification.example/agent-delivery/v1/connect',
+    authKey: '0123456789abcdef0123456789abcdef0123456789abcdef',
+    webSocketFactory() {
+      queueMicrotask(() => socket.dispatch('open'));
+      return socket;
+    },
+    async onServerFrame() {
+      throw new Error('consumer rejected');
+    },
+  });
+  await transport.connect({
+    expectedConnectionEpoch: 0,
+    connectRequestId: 'connect-rejected-response',
+    connectionId: 'connection-rejected-response',
+    protocolMetadataDigest: digest({ protocol: 'agent-v1' }),
+  });
+  socket.dispatch('message', { data: canonicalJson({ type: 'capacity_ack', result: { classification: 'accepted' } }) });
+  for (let attempt = 0; attempt < 20 && socket.closed === null; attempt += 1) {
+    await new Promise((resolve) => setTimeout(resolve, 1));
+  }
+  assert.deepEqual(socket.closed, { code: 1008, reason: 'local_agent_frame_rejected' });
 });
