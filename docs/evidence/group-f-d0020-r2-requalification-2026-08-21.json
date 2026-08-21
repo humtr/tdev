@@ -1,0 +1,215 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0020-r2-requalification",
+  "observedAt": "2026-08-21T11:08:09Z",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0020",
+    "revision": 2,
+    "status": "verified",
+    "document": "docs/design/0020-agent-connection-delivery-and-aggregate-capacity.md"
+  },
+  "acrApplication": {
+    "campaignId": "tdev-20260821-post-d0020-architecture-01",
+    "convergenceRef": "acr/tdev-20260821-post-d0020-architecture-01/convergence",
+    "reopenedScopes": [
+      "A7 post-spawn historical no_handle and capacity-release truth",
+      "B3 exact connect-response replay and physical socket-incarnation close fencing",
+      "B5 terminal-delivery bounded GC, replay horizon, and continued admission"
+    ]
+  },
+  "authority": {
+    "implementationSource": "development@e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "rootTaskId": "task_baa_f9faac6436",
+    "taskWorktreeId": "wt_c4d90055c4eee2b0",
+    "publicationMode": "non-force development lineage"
+  },
+  "sourceQualification": {
+    "jobId": "job_bge_ff555931dc",
+    "npmCheck": {
+      "passed": 445,
+      "failed": 0
+    },
+    "coverage": {
+      "linePercent": 87.46,
+      "branchPercent": 74.47,
+      "functionPercent": 93.28
+    },
+    "diffCheck": "PASS",
+    "focusedAffectedGate": {
+      "passed": 68,
+      "failed": 0
+    },
+    "proofLayer": "source/model"
+  },
+  "localMachine": {
+    "jobId": "job_bgq_a1801b3b79",
+    "platform": "Android arm64 / Termux",
+    "node": "v26.4.0",
+    "termuxVersion": "0.119.0-beta.3",
+    "checks": {
+      "preHandleValidationNoSpawn": "PASS",
+      "postCreateFailureNeverNoHandle": "PASS",
+      "processGroupDisappearanceBeforeCleanupComplete": "PASS",
+      "orphanProcessesAfterProof": 0
+    },
+    "proofLayer": "declared Android/Termux local machine"
+  },
+  "cloudflare": {
+    "providerRuntimeB3B5": {
+      "jobId": "job_bhf_f6b4ef27d6",
+      "source": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+      "b3": {
+        "sameLogicalEpoch": true,
+        "sameLogicalConnectionId": true,
+        "physicalIncarnationReplaced": true,
+        "predecessorClosed": true,
+        "currentSurvivedPredecessorClose": true,
+        "replacementCapacityAccepted": true
+      },
+      "b5": {
+        "tombstonePersistedAcrossAbort": true,
+        "exactReplayDuringRetention": true,
+        "replayFloorAdvanced": true,
+        "ancientReplay": "reservation_stale",
+        "freshAdmissionAfterGc": true
+      }
+    },
+    "revision1ToRevision2Migration": {
+      "jobId": "job_bhs_49daac14b9",
+      "isolatedTemporaryWorker": true,
+      "predecessorSource": "0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c",
+      "correctedSource": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+      "revision1": {
+        "schemaVersion": 1,
+        "lastConnectionEpoch": 1,
+        "capacityRevision": 1,
+        "socketIncarnationPresent": false
+      },
+      "revision2": {
+        "schemaVersion": 2,
+        "lastConnectionEpochAfterUpgrade": 1,
+        "migrationDisposition": "fail_closed_disconnected"
+      },
+      "reconnect": {
+        "connectionEpoch": 2,
+        "socketIncarnationBound": true,
+        "capacityRevision": 2,
+        "capacityAccepted": true
+      },
+      "reconstruction": {
+        "schemaVersion": 2,
+        "connectionEpoch": 2,
+        "socketIncarnationPersisted": true
+      },
+      "cleanup": {
+        "subdomainDisabled": true,
+        "workerDeleted": true,
+        "settingsAbsent": true,
+        "namespaceAbsent": true
+      }
+    },
+    "finalReadback": {
+      "jobId": "job_biu_e83921a29c",
+      "agentWorker": {
+        "script": "tdev-d0020-qualification-clean-a",
+        "source": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+        "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+        "latestVersionId": "20023824-98a0-429d-9ca1-b08159bef1c9",
+        "latestVersionNumber": 72,
+        "activeDeploymentId": "2ffebc7c-5159-4d4d-8a56-a2ccdfe9c446",
+        "activePercentage": 100,
+        "subdomainEnabled": false,
+        "previewsEnabled": false
+      },
+      "caseWorker": {
+        "script": "tdev-d0020-composition-case-r1",
+        "source": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+        "namespaceId": "3b3d5808028f4e74bcbc1dc22f0757fd",
+        "databaseId": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+        "latestVersionId": "08b3463b-f0dd-4109-9baf-5f01b481f637",
+        "latestVersionNumber": 19,
+        "activeDeploymentId": "312b2ae4-ba39-4786-a210-9cc864ca80cc",
+        "activePercentage": 100,
+        "subdomainEnabled": false,
+        "previewsEnabled": false
+      },
+      "temporaryMigrationNamespacesRemaining": 0,
+      "localCompositionOrphansRemaining": 0
+    },
+    "proofLayer": "Cloudflare provider/runtime"
+  },
+  "deployedComposition": {
+    "jobId": "job_bit_562a6996c9",
+    "source": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "platform": {
+      "platform": "android",
+      "arch": "arm64",
+      "node": "v26.4.0",
+      "termuxVersion": "0.119.0-beta.3"
+    },
+    "case": {
+      "namespaceId": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "databaseId": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+      "initialRevision": 1,
+      "startRevision": 3,
+      "preResultRevision": 4,
+      "finalRevision": 6,
+      "attemptId": "task.1",
+      "attemptState": "succeeded",
+      "taskState": "succeeded",
+      "resultDigest": "sha256:f54de06539ab8c9ce084f60971af5a34741c66fea631026d8065f858e3207fd2",
+      "terminalReceiptRequestId": "delivery-result-ca95fb9a75636b9de8791c59571fe7934858d9b2c0c9254b3e7be0830bff79e8"
+    },
+    "agent": {
+      "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+      "connectionEpoch": 1,
+      "socketIncarnationBound": true,
+      "capacityRevision": 1,
+      "deliveryId": "sha256:372885b09386f538b7020d583e30fa3d62efbc7f5426a5b43007e57d7e24d2b3",
+      "tombstoneRetirementReason": "case_terminal_receipt",
+      "terminalReceiptStatus": "succeeded",
+      "slotDetailRetired": true
+    },
+    "localProcess": {
+      "dispatchSent": true,
+      "realChildProcess": true,
+      "resultHandoffObserved": true,
+      "positiveCleanupReleasedCapacity": true,
+      "finalLocalEvidenceRevision": 4,
+      "observedServerFrames": [
+        "capacity_ack",
+        "evidence_ack",
+        "evidence_ack",
+        "evidence_ack",
+        "result_handoff",
+        "evidence_ack"
+      ]
+    },
+    "terminal": {
+      "caseReceiptBound": true,
+      "caseSucceeded": true,
+      "deliveryRetired": true
+    },
+    "proofLayer": "bounded deployed CaseDO + AgentDeliveryAuthority + authenticated local-Agent composition"
+  },
+  "preservedAuthorityBoundaries": [
+    "CaseDO/CaseEngine remains sole Task/Attempt/retry/result/reconciliation semantic owner",
+    "AgentDeliveryAuthority remains aggregate connection/capacity/delivery owner for one stable Agent route",
+    "local Agent/executor remains physical execution and local evidence owner",
+    "logical connection epoch remains distinct from physical socket incarnation",
+    "cleanup completion remains distinct from effect/result uncertainty",
+    "reservation-window generation remains the ancient replay floor after bounded terminal GC"
+  ],
+  "exclusions": [
+    "No D0027 or other successor implementation is activated by this evidence",
+    "No final-MVP, whole-deployment, client-surface, or unrelated migration qualification is claimed",
+    "Source tests are not promoted to provider/runtime or local-machine proof; each affected layer has independent evidence"
+  ],
+  "routingAfterVerification": {
+    "runnableFrontier": [],
+    "selectedNextAction": null,
+    "successorsAutoActivated": false
+  },
+  "conclusion": "D0020 Revision 2 is verified for the three reopened A7/B3/B5 correction scopes while unaffected Revision-1 verified facts remain preserved."
+}

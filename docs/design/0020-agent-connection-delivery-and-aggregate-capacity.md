@@ -1,6 +1,6 @@
 # Design 0020 — Agent Connection, Delivery, and Aggregate Capacity
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 2
 - Revision-1 predecessor/reopen publication: `development@1f942552862c1405ef3cf6007413f906f7b66a41`
 - Reopen evidence: ACR campaign `tdev-20260821-post-d0020-architecture-01`, convergence ref `acr/tdev-20260821-post-d0020-architecture-01/convergence`
@@ -9,9 +9,12 @@
 - Revision-2 exact-candidate acceptance review: tmcp Job `job_bbk_6bc440767c` — `ACCEPT_R2`, zero load-bearing blockers, implementation/provider proof pending
 - Reopen scope: A7 post-spawn historical `no_handle`/capacity-release truth; B3 exact connect-response replay/socket-incarnation close fencing; B5 terminal-delivery bounded GC/high-water/replay horizon. Unaffected verified facts remain valid under `SDD.md`.
 - Acceptance evidence: `docs/evidence/group-f-d0020-agent-delivery-acceptance-2026-08-20.json`
-- Verification source: `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c`
-- Verification Task: `task_as4_d78a3d2028`
-- Verification evidence: `docs/evidence/group-f-d0020-agent-delivery-production-verification-2026-08-21.json`
+- Revision-1 verification source: `development@0e2e72fe4b035b916eb0e84f578634a3c2ecdb0c`
+- Revision-1 verification Task: `task_as4_d78a3d2028`
+- Revision-1 verification evidence: `docs/evidence/group-f-d0020-agent-delivery-production-verification-2026-08-21.json`
+- Revision-2 verified implementation source: `development@e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626`
+- Revision-2 requalification Task: `task_baa_f9faac6436`
+- Revision-2 requalification evidence: `docs/evidence/group-f-d0020-r2-requalification-2026-08-21.json`
 - Accepted exact review candidate: `c3f7a484a66315d90340d053d00cd07c231ff055`
 - Accepted review-candidate Design SHA-256: `1adfaa75702959f4dc20df38cbf557fd7fb1374aca8a736aab69c69e5cd401cf`
 - Independent exact-artifact acceptance review: `task_ahs_1bdb96128c` — C1/C6/C8 confirmed, no material regression, Design readiness `READY`, executable proof `PROOF_PENDING`
@@ -23,7 +26,7 @@
 - Inherited boundaries: D0018 verified runtime boundary; D0019@r2 verified CaseDO authority adapter
 - Affected product owners after acceptance: `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`
 - Revision-1 post-acceptance owner synchronization: `docs/PROTOCOL.md` already maintains the Section-10 `grant_attempt_dispatch` Case command/receipt/event contract; Revision 2 changes no Case-grant meaning. Revision-2 affected-owner synchronization is limited to current cleanup/incarnation/terminal-retention assertions in `docs/QUALIFICATION.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md` and `docs/DEPLOYMENT.md`.
-- Product/runtime effect: D0020 Revision 2 is accepted for the three reopened correction scopes; Class-2 correction is authorized but those scopes are not verified until the required source, Android/Termux, Cloudflare provider/runtime and bounded deployed-composition proofs pass. Unaffected Revision-1 verified facts remain preserved under `SDD.md`; no provisional successor is auto-activated.
+- Product/runtime effect: D0020 Revision 2 is verified for the three reopened correction scopes across source/model, declared Android/Termux local-machine execution, Cloudflare provider/runtime including Revision-1 durable-state migration, and bounded deployed CaseDO + AgentDeliveryAuthority + authenticated local-Agent composition. Unaffected Revision-1 verified facts remain preserved under `SDD.md`; no provisional successor is auto-activated.
 
 ### Revision 2 correction — accepted 2026-08-21
 
