@@ -149,7 +149,8 @@ function rpcShape(input) {
     roll_reservation_window: [['request', 'nowMs'], []],
     activate_delivery: [['request', 'nowMs'], []],
     grant_command: [['deliveryId'], ['dispatchOrdinal']],
-    close_undispatched_delivery: [['deliveryId'], []],
+    close_undispatched_delivery: [['deliveryId'], ['nowMs']],
+    bind_terminal_case_receipt: [['request', 'nowMs'], []],
     reacquire_delivery_admission: [['request'], []],
     send_dispatch: [['authorization', 'executableBody'], []],
     abort_instance: [[], []],
@@ -329,7 +330,13 @@ export class D0020QualificationAgentDeliveryDOHost {
       } else if (operation === 'grant_command') {
         result = this.host.grantCommand({ routeBinding, deliveryId: input.deliveryId, ...(input.dispatchOrdinal === undefined ? {} : { dispatchOrdinal: input.dispatchOrdinal }) });
       } else if (operation === 'close_undispatched_delivery') {
-        result = this.host.closeUndispatchedDelivery({ routeBinding, deliveryId: input.deliveryId });
+        result = this.host.closeUndispatchedDelivery({
+          routeBinding,
+          deliveryId: input.deliveryId,
+          ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }),
+        });
+      } else if (operation === 'bind_terminal_case_receipt') {
+        result = this.host.bindTerminalCaseReceipt({ routeBinding, request: input.request, nowMs: input.nowMs });
       } else if (operation === 'reacquire_delivery_admission') {
         result = this.host.reacquireDeliveryAdmission({ routeBinding, request: input.request });
       } else if (operation === 'send_dispatch') {

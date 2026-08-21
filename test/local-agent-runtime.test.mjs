@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { spawn as nodeSpawn } from 'node:child_process';
 import { mkdtemp, readFile, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
@@ -10,6 +11,7 @@ import {
   LOCAL_AGENT_WEBSOCKET_PROTOCOL,
   LocalAgentRuntime,
   LocalAgentWebSocketTransport,
+  createLocalExecutionStartError,
   createNodeProcessExecutionAdapter,
 } from '../src/local-agent-runtime.mjs';
 
@@ -167,7 +169,7 @@ test('positive not-started/no-handle permits the next ordinal but a started pred
   const failingAdapter = {
     async start() {
       starts += 1;
-      throw Object.assign(new Error('did not start'), { code: 'fixture_start_failed' });
+      throw createLocalExecutionStartError('fixture_start_failed', 'did not start', { phase: 'pre_handle' });
     },
   };
   const { agent, emitted } = runtime({ adapter: failingAdapter });
@@ -193,6 +195,99 @@ test('positive not-started/no-handle permits the next ordinal but a started pred
   await live.completion;
   await expectCodeAsync(() => started.agent.handleDispatch(secondEnvelope), 'local_dispatch_replay_unsafe');
   assert.equal(startedAdapter.starts, 1);
+});
+
+test('pre-handle stdin rejection proves no-handle without calling spawn', async () => {
+  let spawnCalls = 0;
+  const adapter = createNodeProcessExecutionAdapter({
+    maxOutputBytes: 8,
+    resolveExecution: async () => ({
+      command: process.execPath,
+      args: ['-e', 'process.exit(0)'],
+      stdin: '0123456789',
+    }),
+    spawnImpl(...args) {
+      spawnCalls += 1;
+      return nodeSpawn(...args);
+    },
+  });
+  const { agent, emitted } = runtime({ adapter });
+  const result = await agent.handleDispatch(dispatch());
+  assert.equal(result.classification, 'not_started');
+  assert.equal(result.noHandle, true);
+  assert.equal(result.causeCode, 'local_process_input_too_large');
+  assert.equal(spawnCalls, 0);
+  assert.equal(emitted.at(-1).payload.observation.execution, 'not_started');
+  assert.equal(emitted.at(-1).payload.observation.cleanup, 'no_handle');
+});
+
+test('untyped execution-start failure never proves historical no-handle', async () => {
+  const { agent, emitted } = runtime({
+    adapter: {
+      async start() {
+        throw Object.assign(new Error('ambiguous start failure'), { code: 'fixture_ambiguous_start' });
+      },
+    },
+  });
+  const firstEnvelope = dispatch();
+  const first = await agent.handleDispatch(firstEnvelope);
+  assert.equal(first.classification, 'start_failed_cleanup_held');
+  assert.equal(first.noHandle, false);
+  assert.equal(first.cleanupComplete, false);
+  assert.equal(emitted.at(-1).payload.observation.execution, 'started');
+  assert.equal(emitted.at(-1).payload.observation.cleanup, 'held');
+
+  await expectCodeAsync(
+    () => agent.handleDispatch({
+      ...firstEnvelope,
+      dispatchOrdinal: 2,
+      authorizationId: digest({ authorization: 'two' }),
+      dispatchGrantId: digest({ grant: 'two' }),
+    }),
+    'local_dispatch_replay_unsafe',
+  );
+});
+
+test('post-create handle failure waits for process-group disappearance and never reports no-handle', { skip: process.platform === 'win32' }, async () => {
+  let child = null;
+  let pid = null;
+  try {
+    const adapter = createNodeProcessExecutionAdapter({
+      cancelGraceMs: 2_000,
+      resolveExecution: async () => ({
+        command: process.execPath,
+        args: ['-e', 'setInterval(() => {}, 1000)'],
+      }),
+      spawnImpl(command, args, options) {
+        child = nodeSpawn(command, args, options);
+        child.on('error', () => {});
+        pid = child.pid;
+        return {
+          pid: child.pid,
+          stdout: null,
+          stderr: child.stderr,
+          stdin: child.stdin,
+        };
+      },
+    });
+    const { agent, emitted } = runtime({ adapter });
+    const result = await agent.handleDispatch(dispatch());
+    assert.equal(result.classification, 'start_failed_cleaned_up');
+    assert.equal(result.noHandle, false);
+    assert.equal(result.cleanupComplete, true);
+    assert.equal(Number.isSafeInteger(pid) && pid > 0, true);
+    assert.equal(processExists(pid), false);
+    assert.equal(emitted.some((frame) => frame.type === 'evidence' && frame.payload.observation.cleanup === 'no_handle'), false);
+    assert.equal(emitted.at(-1).payload.observation.execution, 'started');
+    assert.equal(emitted.at(-1).payload.observation.cleanup, 'cleanup_complete');
+  } finally {
+    if (pid) {
+      try { process.kill(-pid, 'SIGKILL'); } catch {}
+    }
+    child?.stdin?.destroy();
+    child?.stdout?.destroy();
+    child?.stderr?.destroy();
+  }
 });
 
 test('local evidence revision is monotonic across a network reconnect on the same executor', async () => {

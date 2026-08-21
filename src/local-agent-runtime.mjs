@@ -33,6 +33,43 @@ function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
 }
 
+const LOCAL_EXECUTION_START_FAILURE = Symbol('tdev.local-execution-start-failure.v1');
+
+export function createLocalExecutionStartError(code, message, {
+  phase,
+  cleanupComplete = false,
+  pid = null,
+  cause = undefined,
+} = {}) {
+  if (phase !== 'pre_handle' && phase !== 'post_create') {
+    fail('invalid_local_execution_start_failure', 'Local execution start failure phase must be pre_handle or post_create');
+  }
+  if (phase === 'pre_handle' && cleanupComplete) {
+    fail('invalid_local_execution_start_failure', 'Pre-handle failure cannot claim cleanup_complete');
+  }
+  if (pid !== null && (!Number.isSafeInteger(pid) || pid <= 0)) {
+    fail('invalid_local_execution_start_failure', 'Local execution start failure pid must be null or a positive safe integer');
+  }
+  const error = new ContractError(code, message, {
+    phase,
+    cleanupComplete: phase === 'post_create' && cleanupComplete,
+    pid,
+  }, cause === undefined ? undefined : { cause });
+  Object.defineProperties(error, {
+    [LOCAL_EXECUTION_START_FAILURE]: { value: true },
+    startFailurePhase: { value: phase, enumerable: true },
+    noHandle: { value: phase === 'pre_handle', enumerable: true },
+    resourceCreated: { value: phase === 'post_create', enumerable: true },
+    cleanupComplete: { value: phase === 'post_create' && cleanupComplete, enumerable: true },
+    pid: { value: pid, enumerable: true },
+  });
+  return error;
+}
+
+function isLocalExecutionStartError(error) {
+  return error?.[LOCAL_EXECUTION_START_FAILURE] === true;
+}
+
 function byteLength(value) {
   return textEncoder.encode(value).byteLength;
 }
@@ -303,10 +340,39 @@ export class LocalAgentRuntime {
         }),
       });
     } catch (cause) {
-      entry.executionState = 'not_started';
-      entry.cleanupState = 'no_handle';
-      await this.#emitEvidence(delivery, entry, { execution: 'not_started', cleanup: 'no_handle' });
-      return Object.freeze({ classification: 'not_started', executed: false, noHandle: true, causeCode: cause?.code ?? 'execution_start_failed' });
+      if (isLocalExecutionStartError(cause) && cause.startFailurePhase === 'pre_handle') {
+        entry.executionState = 'not_started';
+        entry.cleanupState = 'no_handle';
+        await this.#emitEvidence(delivery, entry, { execution: 'not_started', cleanup: 'no_handle' });
+        return Object.freeze({
+          classification: 'not_started',
+          executed: false,
+          noHandle: true,
+          causeCode: cause.code,
+        });
+      }
+      delivery.startedEver = true;
+      entry.executionState = 'started';
+      if (isLocalExecutionStartError(cause) && cause.startFailurePhase === 'post_create' && cause.cleanupComplete === true) {
+        entry.cleanupState = 'cleanup_complete';
+        await this.#emitEvidence(delivery, entry, { execution: 'started', cleanup: 'cleanup_complete' });
+        return Object.freeze({
+          classification: 'start_failed_cleaned_up',
+          executed: false,
+          noHandle: false,
+          cleanupComplete: true,
+          causeCode: cause?.code ?? 'execution_start_failed',
+        });
+      }
+      entry.cleanupState = 'held';
+      await this.#emitEvidence(delivery, entry, { execution: 'started', cleanup: 'held' });
+      return Object.freeze({
+        classification: 'start_failed_cleanup_held',
+        executed: false,
+        noHandle: false,
+        cleanupComplete: false,
+        causeCode: cause?.code ?? 'execution_start_failed',
+      });
     }
     if (!operation || typeof operation.cancel !== 'function' || typeof operation.cleanup !== 'function' ||
         !(operation.completion instanceof Promise)) {
@@ -464,47 +530,73 @@ export function createNodeProcessExecutionAdapter({
   assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
   return Object.freeze({
     async start({ envelope, signalContext }) {
-      const launch = await resolveExecution(canonicalClone(envelope.executableBody), Object.freeze({ envelope, signalContext }));
-      assertRecordShape(launch, ['command'], ['args', 'cwd', 'env', 'stdin', 'resultEnvelopeFactory', 'effectFromExit'], 'local process launch');
-      assertBoundedText(launch.command, 'launch.command', 4096);
-      const args = launch.args ?? [];
-      if (!Array.isArray(args) || args.length > 256 || args.some((arg) => typeof arg !== 'string' || byteLength(arg) > 4096)) {
-        fail('invalid_local_process_launch', 'Process arguments are outside supported bounds');
-      }
-      if (launch.cwd !== undefined && launch.cwd !== null && (typeof launch.cwd !== 'string' || launch.cwd.length === 0)) {
-        fail('invalid_local_process_launch', 'Process cwd must be null or non-empty text');
-      }
-      if (launch.env !== undefined && (launch.env === null || typeof launch.env !== 'object' || Array.isArray(launch.env))) {
-        fail('invalid_local_process_launch', 'Process env must be a record when provided');
-      }
-      const child = spawnImpl(launch.command, args, {
-        cwd: launch.cwd ?? undefined,
-        env: launch.env ?? process.env,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        detached: true,
-        shell: false,
-      });
-      if (!child || !Number.isSafeInteger(child.pid) || child.pid <= 0 || !child.stdout || !child.stderr || !child.stdin) {
-        try { child?.kill?.('SIGKILL'); } catch {}
-        fail('invalid_local_process_handle', 'Process launcher did not return a complete child handle');
-      }
-      const stdout = boundedBufferCollector(maxOutputBytes);
-      const stderr = boundedBufferCollector(maxOutputBytes);
-      child.stdout.on('data', (chunk) => stdout.push(chunk));
-      child.stderr.on('data', (chunk) => stderr.push(chunk));
-      if (launch.stdin === undefined || launch.stdin === null) child.stdin.end();
-      else {
-        const stdin = typeof launch.stdin === 'string' || Buffer.isBuffer(launch.stdin) ? launch.stdin : canonicalJson(launch.stdin);
-        if (Buffer.byteLength(stdin) > maxOutputBytes) {
-          killProcessGroup(child.pid, 'SIGKILL');
-          fail('local_process_input_too_large', 'Process stdin exceeds the configured byte bound');
+      let launch;
+      try {
+        launch = await resolveExecution(canonicalClone(envelope.executableBody), Object.freeze({ envelope, signalContext }));
+        assertRecordShape(launch, ['command'], ['args', 'cwd', 'env', 'stdin', 'resultEnvelopeFactory', 'effectFromExit'], 'local process launch');
+        assertBoundedText(launch.command, 'launch.command', 4096);
+        const args = launch.args ?? [];
+        if (!Array.isArray(args) || args.length > 256 || args.some((arg) => typeof arg !== 'string' || byteLength(arg) > 4096)) {
+          fail('invalid_local_process_launch', 'Process arguments are outside supported bounds');
         }
-        child.stdin.end(stdin);
+        if (launch.cwd !== undefined && launch.cwd !== null && (typeof launch.cwd !== 'string' || launch.cwd.length === 0)) {
+          fail('invalid_local_process_launch', 'Process cwd must be null or non-empty text');
+        }
+        if (launch.env !== undefined && (launch.env === null || typeof launch.env !== 'object' || Array.isArray(launch.env))) {
+          fail('invalid_local_process_launch', 'Process env must be a record when provided');
+        }
+      } catch (preLaunchCause) {
+        throw createLocalExecutionStartError(
+          preLaunchCause?.code ?? 'invalid_local_process_launch',
+          preLaunchCause?.message ?? 'Pre-launch validation failed',
+          { phase: 'pre_handle', cause: preLaunchCause },
+        );
       }
-      let exited = false;
-      let closed = false;
+
+      let preparedStdin = null;
+      if (launch.stdin !== undefined && launch.stdin !== null) {
+        try {
+          const stdinPayload = typeof launch.stdin === 'string' || Buffer.isBuffer(launch.stdin) ? launch.stdin : canonicalJson(launch.stdin);
+          preparedStdin = Buffer.isBuffer(stdinPayload) ? stdinPayload : Buffer.from(stdinPayload);
+          if (preparedStdin.byteLength > maxOutputBytes) {
+            fail('local_process_input_too_large', 'Process stdin exceeds the configured byte bound');
+          }
+        } catch (stdinCause) {
+          throw createLocalExecutionStartError(
+            stdinCause?.code ?? 'local_process_input_too_large',
+            stdinCause?.message ?? 'Stdin preparation failed',
+            { phase: 'pre_handle', cause: stdinCause },
+          );
+        }
+      }
+
+      let child;
+      try {
+        child = spawnImpl(launch.command, launch.args ?? [], {
+          cwd: launch.cwd ?? undefined,
+          env: launch.env ?? process.env,
+          stdio: ['pipe', 'pipe', 'pipe'],
+          detached: true,
+          shell: false,
+        });
+      } catch (spawnCause) {
+        throw createLocalExecutionStartError(
+          'local_process_spawn_failed',
+          'Process spawn failed before a child handle was returned',
+          { phase: 'pre_handle', cause: spawnCause },
+        );
+      }
+
+      if (!child || !Number.isSafeInteger(child.pid) || child.pid <= 0) {
+        try { child?.kill?.('SIGKILL'); } catch {}
+        throw createLocalExecutionStartError(
+          'invalid_local_process_handle',
+          'Process launcher returned an ambiguous/invalid child handle after the create call',
+          { phase: 'post_create', cleanupComplete: false },
+        );
+      }
+
       let cleanupError = null;
-      let exitRecord = null;
       const forceKillGroup = () => {
         try {
           return killProcessGroup(child.pid, 'SIGKILL');
@@ -513,6 +605,37 @@ export function createNodeProcessExecutionAdapter({
           return false;
         }
       };
+
+      if (!child.stdout || !child.stderr || !child.stdin) {
+        forceKillGroup();
+        let groupGone = false;
+        try {
+          groupGone = await waitForProcessGroupExit(child.pid, cancelGraceMs);
+        } catch (cause) {
+          cleanupError ??= cause;
+        }
+        throw createLocalExecutionStartError(
+          'invalid_local_process_handle',
+          'Process launcher did not return complete child streams after creating the process',
+          {
+            phase: 'post_create',
+            cleanupComplete: groupGone && cleanupError === null,
+            pid: child.pid,
+            cause: cleanupError ?? undefined,
+          },
+        );
+      }
+
+      const stdout = boundedBufferCollector(maxOutputBytes);
+      const stderr = boundedBufferCollector(maxOutputBytes);
+      child.stdout.on('data', (chunk) => stdout.push(chunk));
+      child.stderr.on('data', (chunk) => stderr.push(chunk));
+      if (preparedStdin === null) child.stdin.end();
+      else child.stdin.end(preparedStdin);
+
+      let exited = false;
+      let closed = false;
+      let exitRecord = null;
       const completion = new Promise((resolve, reject) => {
         child.once('error', (cause) => {
           if (!closed) reject(Object.assign(new Error('local child process error'), { code: cause?.code ?? 'local_child_error', cause }));

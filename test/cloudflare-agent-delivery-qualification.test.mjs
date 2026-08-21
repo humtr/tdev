@@ -154,6 +154,73 @@ test('qualification DO host derives route binding from the actual Durable Object
   assert.equal(reads.length, 1);
 });
 
+test('qualification DO host exposes bounded Revision-2 terminal-delivery transitions without caller-chosen route authority', async () => {
+  const calls = [];
+  const host = {
+    durableObjectId: 'do-agent-one',
+    config: {
+      placement: {
+        deployment: 'qualification',
+        environment: 'nonproduction',
+        workerScript: 'tdev-d0020-qualification',
+        className: 'AgentDeliveryRuntimeDO',
+        namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+        jurisdiction: 'global',
+      },
+    },
+    closeUndispatchedDelivery(input) {
+      calls.push({ type: 'close', input: structuredClone(input) });
+      return { classification: 'monotonic_refinement', retired: true };
+    },
+    bindTerminalCaseReceipt(input) {
+      calls.push({ type: 'terminal', input: structuredClone(input) });
+      return { classification: 'accepted', retired: true };
+    },
+  };
+  const ctx = { abort() { throw new Error('unexpected abort'); } };
+  const qualification = new D0020QualificationAgentDeliveryDOHost(ctx, baseEnv(), { host });
+
+  const closed = await qualification.qualificationInvoke({
+    operation: 'close_undispatched_delivery',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+    deliveryId: 'sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+    nowMs: 1234,
+  });
+  assert.equal(closed.ok, true);
+  assert.equal(closed.result.retired, true);
+  assert.equal(calls[0].input.routeBinding.agentId, 'agent-one');
+  assert.equal(calls[0].input.routeBinding.durableObjectId, 'do-agent-one');
+  assert.equal(calls[0].input.nowMs, 1234);
+
+  const terminalRequest = {
+    deliveryId: 'sha256:bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb',
+    command: { type: 'accept_result', envelope: { fixture: true } },
+    caseReceipt: { fixture: true },
+  };
+  const terminal = await qualification.qualificationInvoke({
+    operation: 'bind_terminal_case_receipt',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+    request: terminalRequest,
+    nowMs: 5678,
+  });
+  assert.equal(terminal.ok, true);
+  assert.equal(terminal.result.retired, true);
+  assert.deepEqual(calls[1].input.request, terminalRequest);
+  assert.equal(calls[1].input.nowMs, 5678);
+  assert.equal(calls[1].input.routeBinding.durableObjectId, 'do-agent-one');
+
+  const missingNow = await qualification.qualificationInvoke({
+    operation: 'bind_terminal_case_receipt',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+    request: terminalRequest,
+  });
+  assert.equal(missingNow.ok, false);
+  assert.equal(calls.length, 2);
+});
+
 test('qualification mode and secret bindings fail closed before a service becomes externally reachable', () => {
   const stub = { fetch() {}, qualificationInvoke() {} };
   const namespace = namespaceFor(stub);

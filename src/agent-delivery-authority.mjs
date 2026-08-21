@@ -14,7 +14,7 @@ import {
 } from './canonical.mjs';
 
 export const AGENT_DELIVERY_PROFILE = 'tdev.agent-delivery-authority.v1';
-export const AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION = 1;
+export const AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION = 2;
 
 const textEncoder = new TextEncoder();
 
@@ -22,6 +22,7 @@ const DEFAULT_LIMITS = deepFreeze({
   maxAgentCapacity: 64,
   maxReservations: 256,
   maxDeliveries: 1024,
+  maxDeliveryTombstones: 1024,
   maxSlotsPerReservation: 64,
   maxConnectReceipts: 32,
   maxDispatchOrdinalsPerDelivery: 8,
@@ -35,6 +36,7 @@ const DEFAULT_LIMITS = deepFreeze({
   maxEvidenceBytes: 16 * 1024,
   maxReservationLifetimeMs: 60 * 1000,
   reservationReplayGraceMs: 60 * 1000,
+  deliveryReplayGraceMs: 60 * 1000,
 });
 
 const ROUTE_BINDING_FIELDS = [
@@ -408,6 +410,12 @@ function assertCurrentConnection(state, input) {
   if (input.connectionEpoch !== state.connection.epoch || input.connectionId !== state.connection.id) {
     fail('stale_connection_fence', 'Connection identity is not current');
   }
+  if (input.socketIncarnationId !== undefined && input.socketIncarnationId !== null) {
+    assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
+    if (input.socketIncarnationId !== state.connection.socketIncarnationId) {
+      fail('stale_connection_fence', 'Physical socket incarnation is stale');
+    }
+  }
 }
 
 function assertCurrentExecutor(state, input) {
@@ -421,15 +429,28 @@ function assertCurrentExecutor(state, input) {
 
 function normalizeSnapshot(snapshot, expectedBinding = null) {
   if (!isPlainRecord(snapshot)) fail('invalid_agent_delivery_snapshot', 'Agent delivery snapshot must be a record');
+  if (snapshot.schemaVersion === 1) {
+    snapshot.schemaVersion = 2;
+    snapshot.deliveryTombstones = snapshot.deliveryTombstones ?? createRecord();
+    if (snapshot.connection !== null && snapshot.connection.socketIncarnationId === undefined) {
+      snapshot.connection.socketIncarnationId = null;
+    }
+    for (const delivery of Object.values(snapshot.deliveries ?? {})) {
+      if (delivery.terminalCaseReceipt === undefined) delivery.terminalCaseReceipt = null;
+      if (delivery.terminalAtMs === undefined) delivery.terminalAtMs = null;
+    }
+  }
   exactRecord(snapshot, [
     'schemaVersion', 'profile', 'routeBinding', 'routeBindingDigest', 'revision', 'lastConnectionEpoch',
     'connection', 'executor', 'capacityRevisionFloor', 'capacity', 'reservationWindowGeneration',
-    'minimumAcceptedReservationWindow', 'nextSlotGeneration', 'connectReceipts', 'reservations', 'deliveries', 'limits',
+    'minimumAcceptedReservationWindow', 'nextSlotGeneration', 'connectReceipts', 'reservations', 'deliveries',
+    'deliveryTombstones', 'limits',
   ], [], 'agent delivery snapshot');
   if (snapshot.schemaVersion !== AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION || snapshot.profile !== AGENT_DELIVERY_PROFILE) {
     fail('unsupported_agent_delivery_snapshot', 'Unsupported Agent delivery snapshot profile/schema');
   }
   const limits = normalizeLimits(snapshot.limits);
+  snapshot.limits = canonicalClone(limits);
   const binding = normalizeAgentRouteBinding(snapshot.routeBinding, limits);
   const bindingDigest = agentRouteBindingDigest(binding, limits);
   if (snapshot.routeBindingDigest !== bindingDigest) fail('agent_route_binding_corrupt', 'Durable Agent route binding digest does not match its content');
@@ -442,16 +463,19 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
   assertSafeInteger(snapshot.reservationWindowGeneration, 'snapshot.reservationWindowGeneration', { min: 1 });
   assertSafeInteger(snapshot.minimumAcceptedReservationWindow, 'snapshot.minimumAcceptedReservationWindow', { min: 1 });
   assertSafeInteger(snapshot.nextSlotGeneration, 'snapshot.nextSlotGeneration', { min: 1 });
-  if (snapshot.minimumAcceptedReservationWindow !== snapshot.reservationWindowGeneration) {
-    fail('invalid_agent_delivery_snapshot', 'Revision 1 requires minimumAcceptedReservationWindow == reservationWindowGeneration');
+  if (snapshot.minimumAcceptedReservationWindow > snapshot.reservationWindowGeneration) {
+    fail('invalid_agent_delivery_snapshot', 'minimumAcceptedReservationWindow cannot exceed reservationWindowGeneration');
   }
   if (snapshot.connection !== null) {
     exactRecord(snapshot.connection, [
-      'id', 'epoch', 'connectRequestId', 'requestDigest', 'executorId', 'executorEpoch', 'protocolMetadataDigest',
+      'id', 'epoch', 'socketIncarnationId', 'connectRequestId', 'requestDigest', 'executorId', 'executorEpoch', 'protocolMetadataDigest',
     ], [], 'snapshot.connection');
     assertBoundedText(snapshot.connection.id, 'snapshot.connection.id', limits.maxIdentifierBytes, { identifier: true });
     assertSafeInteger(snapshot.connection.epoch, 'snapshot.connection.epoch', { min: 1 });
     if (snapshot.connection.epoch !== snapshot.lastConnectionEpoch) fail('invalid_agent_delivery_snapshot', 'Current connection epoch must equal lastConnectionEpoch');
+    if (snapshot.connection.socketIncarnationId !== null) {
+      assertBoundedText(snapshot.connection.socketIncarnationId, 'snapshot.connection.socketIncarnationId', limits.maxIdentifierBytes, { identifier: true });
+    }
     assertDigest(snapshot.connection.requestDigest, 'snapshot.connection.requestDigest');
     assertDigest(snapshot.connection.protocolMetadataDigest, 'snapshot.connection.protocolMetadataDigest');
   }
@@ -486,6 +510,9 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
   }
   if (!isPlainRecord(snapshot.deliveries) || Object.keys(snapshot.deliveries).length > limits.maxDeliveries) {
     fail('invalid_agent_delivery_snapshot', 'Delivery state is invalid or unbounded');
+  }
+  if (!isPlainRecord(snapshot.deliveryTombstones) || Object.keys(snapshot.deliveryTombstones).length > limits.maxDeliveryTombstones) {
+    fail('invalid_agent_delivery_snapshot', 'Delivery tombstone state is invalid or unbounded');
   }
   for (const [requestId, reservation] of Object.entries(snapshot.reservations)) {
     assertBoundedText(requestId, 'reservation request id', limits.maxIdentifierBytes, { identifier: true });
@@ -527,6 +554,7 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
       'reservationExpectedCaseRevision', 'sourceCaseRevision', 'executorId', 'executorEpoch', 'fencingToken',
       'effectKey', 'effect', 'dispatches', 'localEvidenceRevision',
       'lastEvidenceDigest', 'lastEvidenceOrdinal', 'evidenceConflict', 'slotHeld', 'slotKind', 'closedUndispatched',
+      'terminalCaseReceipt', 'terminalAtMs',
     ], [], `delivery ${deliveryId}`);
     if (delivery.deliveryId !== deliveryId) fail('invalid_agent_delivery_snapshot', 'Delivery map identity mismatch');
     for (const field of ['activationRequestDigest', 'activationReceiptId', 'activationDigest', 'reservationRequestDigest', 'slotToken', 'preflightDescriptorDigest', 'executableBodyDigest', 'fencingToken']) {
@@ -590,6 +618,76 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
     if (typeof delivery.slotHeld !== 'boolean' || typeof delivery.closedUndispatched !== 'boolean') fail('invalid_agent_delivery_snapshot', 'Delivery booleans are invalid');
     if (!['none', 'admission', 'physical'].includes(delivery.slotKind)) fail('invalid_agent_delivery_snapshot', 'Invalid slot kind');
     if (delivery.slotHeld !== (delivery.slotKind !== 'none')) fail('invalid_agent_delivery_snapshot', 'slotHeld and slotKind disagree');
+    if (delivery.terminalCaseReceipt !== null && delivery.terminalCaseReceipt !== undefined) {
+      exactRecord(delivery.terminalCaseReceipt, [
+        'caseId', 'taskId', 'attemptId', 'fencingToken', 'requestId', 'commandDigest', 'responseDigest',
+        'committedCaseRevision', 'terminalStatus',
+      ], [], 'delivery.terminalCaseReceipt');
+      for (const field of ['caseId', 'taskId', 'attemptId', 'requestId']) {
+        assertBoundedText(delivery.terminalCaseReceipt[field], `delivery.terminalCaseReceipt.${field}`, limits.maxIdentifierBytes, { identifier: true });
+      }
+      for (const field of ['fencingToken', 'commandDigest', 'responseDigest']) {
+        assertDigest(delivery.terminalCaseReceipt[field], `delivery.terminalCaseReceipt.${field}`);
+      }
+      assertSafeInteger(delivery.terminalCaseReceipt.committedCaseRevision, 'delivery.terminalCaseReceipt.committedCaseRevision', { min: 1 });
+      if (delivery.terminalCaseReceipt.committedCaseRevision <= delivery.sourceCaseRevision) {
+        fail('invalid_agent_delivery_snapshot', 'Terminal Case receipt must postdate delivery activation');
+      }
+      if (!['succeeded', 'not_applied', 'cancelled', 'failed', 'unverified'].includes(delivery.terminalCaseReceipt.terminalStatus)) {
+        fail('invalid_agent_delivery_snapshot', 'Invalid terminal Case receipt status');
+      }
+    }
+    if (delivery.terminalAtMs !== null && delivery.terminalAtMs !== undefined) {
+      assertSafeInteger(delivery.terminalAtMs, 'delivery.terminalAtMs', { min: 0 });
+    }
+  }
+  for (const [deliveryId, tombstone] of Object.entries(snapshot.deliveryTombstones)) {
+    assertDigest(deliveryId, 'delivery tombstone id');
+    exactRecord(tombstone, [
+      'deliveryId', 'activationRequestId', 'activationRequestDigest', 'activationReceiptId', 'activationDigest',
+      'routeGeneration', 'reservationWindowGeneration', 'reservationRequestId', 'reservationRequestDigest',
+      'slotToken', 'slotGeneration', 'preflightDescriptorDigest', 'caseId', 'taskId', 'attemptId', 'attemptOrdinal',
+      'sourceCaseRevision', 'executorId', 'executorEpoch', 'fencingToken', 'retirementReason', 'terminalCaseReceipt', 'terminalAtMs',
+      'finalLocalEvidenceRevision', 'finalEvidenceDigest', 'finalDispatchesCount', 'receipt',
+    ], [], `delivery tombstone ${deliveryId}`);
+    if (tombstone.deliveryId !== deliveryId) fail('invalid_agent_delivery_snapshot', 'Delivery tombstone map identity mismatch');
+    for (const field of ['activationRequestDigest', 'activationReceiptId', 'activationDigest', 'reservationRequestDigest', 'slotToken', 'preflightDescriptorDigest', 'fencingToken']) {
+      assertDigest(tombstone[field], `tombstone.${field}`);
+    }
+    for (const field of ['activationRequestId', 'reservationRequestId', 'caseId', 'taskId', 'attemptId', 'executorId']) {
+      assertBoundedText(tombstone[field], `tombstone.${field}`, limits.maxIdentifierBytes, { identifier: true });
+    }
+    for (const field of ['routeGeneration', 'reservationWindowGeneration', 'slotGeneration', 'attemptOrdinal', 'executorEpoch']) {
+      assertSafeInteger(tombstone[field], `tombstone.${field}`, { min: 1 });
+    }
+    assertSafeInteger(tombstone.sourceCaseRevision, 'tombstone.sourceCaseRevision', { min: 0 });
+    if (!['closed_undispatched', 'case_terminal_receipt'].includes(tombstone.retirementReason)) {
+      fail('invalid_agent_delivery_snapshot', 'Invalid delivery tombstone retirement reason');
+    }
+    if (tombstone.terminalCaseReceipt !== null) {
+      exactRecord(tombstone.terminalCaseReceipt, [
+        'caseId', 'taskId', 'attemptId', 'fencingToken', 'requestId', 'commandDigest', 'responseDigest',
+        'committedCaseRevision', 'terminalStatus',
+      ], [], 'tombstone.terminalCaseReceipt');
+      for (const field of ['caseId', 'taskId', 'attemptId', 'requestId']) {
+        assertBoundedText(tombstone.terminalCaseReceipt[field], `tombstone.terminalCaseReceipt.${field}`, limits.maxIdentifierBytes, { identifier: true });
+      }
+      for (const field of ['fencingToken', 'commandDigest', 'responseDigest']) {
+        assertDigest(tombstone.terminalCaseReceipt[field], `tombstone.terminalCaseReceipt.${field}`);
+      }
+      assertSafeInteger(tombstone.terminalCaseReceipt.committedCaseRevision, 'tombstone.terminalCaseReceipt.committedCaseRevision', { min: 1 });
+      if (tombstone.terminalCaseReceipt.committedCaseRevision <= tombstone.sourceCaseRevision) {
+        fail('invalid_agent_delivery_snapshot', 'Terminal Case receipt must postdate delivery activation');
+      }
+      if (!['succeeded', 'not_applied', 'cancelled', 'failed', 'unverified'].includes(tombstone.terminalCaseReceipt.terminalStatus)) {
+        fail('invalid_agent_delivery_snapshot', 'Invalid terminal Case receipt status');
+      }
+    }
+    assertSafeInteger(tombstone.terminalAtMs, 'tombstone.terminalAtMs', { min: 0 });
+    assertSafeInteger(tombstone.finalLocalEvidenceRevision, 'tombstone.finalLocalEvidenceRevision', { min: 0 });
+    if (tombstone.finalEvidenceDigest !== null) assertDigest(tombstone.finalEvidenceDigest, 'tombstone.finalEvidenceDigest');
+    assertSafeInteger(tombstone.finalDispatchesCount, 'tombstone.finalDispatchesCount', { min: 0 });
+    exactRecord(tombstone.receipt, ['deliveryId', 'activationReceiptId', 'activationDigest', 'status', 'retirementReason'], [], 'tombstone.receipt');
   }
   return snapshot;
 }
@@ -618,8 +716,130 @@ function initialSnapshot(binding, input = {}) {
     connectReceipts: createRecord(),
     reservations: createRecord(),
     deliveries: createRecord(),
+    deliveryTombstones: createRecord(),
     limits,
   };
+}
+
+function normalizeTerminalCaseReceipt(delivery, command, caseReceipt, limits) {
+  if (!isPlainRecord(command)) fail('invalid_case_terminal_receipt', 'Terminal Case command must be a record');
+  if (!isPlainRecord(caseReceipt)) fail('invalid_case_terminal_receipt', 'Terminal Case receipt must be a record');
+  exactRecord(caseReceipt, ['requestId', 'commandDigest', 'response', 'responseDigest', 'committedRevision'], [], 'Case terminal receipt');
+  assertBoundedText(caseReceipt.requestId, 'caseReceipt.requestId', limits.maxIdentifierBytes, { identifier: true });
+  assertDigest(caseReceipt.commandDigest, 'caseReceipt.commandDigest');
+  assertDigest(caseReceipt.responseDigest, 'caseReceipt.responseDigest');
+  assertSafeInteger(caseReceipt.committedRevision, 'caseReceipt.committedRevision', { min: 1 });
+  const expectedCommandDigest = typedDigest('tdev.case-command.v1', canonicalClone(command));
+  if (caseReceipt.commandDigest !== expectedCommandDigest) {
+    fail('case_terminal_receipt_mismatch', 'Case terminal receipt does not bind the supplied command');
+  }
+  if (caseReceipt.responseDigest !== digest(caseReceipt.response)) {
+    fail('case_terminal_receipt_mismatch', 'Case terminal receipt response digest is invalid');
+  }
+  if (caseReceipt.committedRevision <= delivery.sourceCaseRevision) {
+    fail('case_terminal_receipt_stale', 'Case terminal receipt does not postdate delivery activation');
+  }
+
+  let terminalStatus;
+  if (command.type === 'accept_result') {
+    exactRecord(command, ['type', 'envelope'], [], 'terminal accept_result command');
+    const envelope = command.envelope;
+    exactRecord(envelope, [
+      'caseId', 'planRevisionId', 'planDigest', 'taskId', 'attemptId', 'executorId', 'executorEpoch', 'fencingToken',
+      'claimLeaseToken', 'claimLeaseGeneration', 'claimLeaseClaimsDigest', 'result',
+    ], [], 'terminal accept_result envelope');
+    if (envelope.caseId !== delivery.caseId || envelope.taskId !== delivery.taskId || envelope.attemptId !== delivery.attemptId ||
+        envelope.executorId !== delivery.executorId || envelope.executorEpoch !== delivery.executorEpoch ||
+        envelope.fencingToken !== delivery.fencingToken) {
+      fail('case_terminal_receipt_mismatch', 'Case terminal result does not bind the exact delivery Attempt fence');
+    }
+    terminalStatus = 'succeeded';
+  } else if (command.type === 'resolve_reconciliation') {
+    exactRecord(command, ['type', 'attemptId', 'decision'], [], 'terminal reconciliation command');
+    if (command.attemptId !== delivery.attemptId) {
+      fail('case_terminal_receipt_mismatch', 'Case reconciliation does not bind the exact delivery Attempt');
+    }
+    if (!isPlainRecord(command.decision) || !['succeeded', 'not_applied', 'cancelled', 'failed', 'unverified'].includes(command.decision.outcome)) {
+      fail('case_terminal_receipt_not_terminal', 'Case reconciliation outcome is not a supported terminal disposition');
+    }
+    terminalStatus = command.decision.outcome;
+  } else {
+    fail('case_terminal_receipt_not_terminal', 'Only terminal Case result/reconciliation receipts may retire a dispatched delivery');
+  }
+
+  return {
+    caseId: delivery.caseId,
+    taskId: delivery.taskId,
+    attemptId: delivery.attemptId,
+    fencingToken: delivery.fencingToken,
+    requestId: caseReceipt.requestId,
+    commandDigest: caseReceipt.commandDigest,
+    responseDigest: caseReceipt.responseDigest,
+    committedCaseRevision: caseReceipt.committedRevision,
+    terminalStatus,
+  };
+}
+
+function compactState(state, nowMs) {
+  if (nowMs !== undefined && nowMs !== null) {
+    for (const [deliveryId, tombstone] of Object.entries(state.deliveryTombstones)) {
+      if (tombstone.reservationWindowGeneration < state.minimumAcceptedReservationWindow &&
+          tombstone.terminalAtMs !== null &&
+          nowMs - tombstone.terminalAtMs >= state.limits.deliveryReplayGraceMs) {
+        delete state.deliveryTombstones[deliveryId];
+      }
+    }
+  }
+  for (const [deliveryId, delivery] of Object.entries(state.deliveries)) {
+    if (delivery.slotHeld) continue;
+    const isUndispatched = delivery.closedUndispatched;
+    const hasTerminalReceipt = delivery.terminalCaseReceipt !== null && delivery.terminalCaseReceipt !== undefined;
+    if (!isUndispatched && !hasTerminalReceipt) continue;
+
+    if (Object.keys(state.deliveryTombstones).length >= state.limits.maxDeliveryTombstones) {
+      break;
+    }
+
+    const terminalAtMs = delivery.terminalAtMs ?? (nowMs ?? Date.now());
+    const retirementReason = isUndispatched ? 'closed_undispatched' : 'case_terminal_receipt';
+    const tombstone = {
+      deliveryId: delivery.deliveryId,
+      activationRequestId: delivery.activationRequestId,
+      activationRequestDigest: delivery.activationRequestDigest,
+      activationReceiptId: delivery.activationReceiptId,
+      activationDigest: delivery.activationDigest,
+      routeGeneration: delivery.routeGeneration,
+      reservationWindowGeneration: delivery.reservationWindowGeneration,
+      reservationRequestId: delivery.reservationRequestId,
+      reservationRequestDigest: delivery.reservationRequestDigest,
+      slotToken: delivery.slotToken,
+      slotGeneration: delivery.slotGeneration,
+      preflightDescriptorDigest: delivery.preflightDescriptorDigest,
+      caseId: delivery.caseId,
+      taskId: delivery.taskId,
+      attemptId: delivery.attemptId,
+      attemptOrdinal: delivery.attemptOrdinal,
+      sourceCaseRevision: delivery.sourceCaseRevision,
+      executorId: delivery.executorId,
+      executorEpoch: delivery.executorEpoch,
+      fencingToken: delivery.fencingToken,
+      retirementReason,
+      terminalCaseReceipt: delivery.terminalCaseReceipt ?? null,
+      terminalAtMs,
+      finalLocalEvidenceRevision: delivery.localEvidenceRevision,
+      finalEvidenceDigest: delivery.lastEvidenceDigest,
+      finalDispatchesCount: Object.keys(delivery.dispatches).length,
+      receipt: {
+        deliveryId: delivery.deliveryId,
+        activationReceiptId: delivery.activationReceiptId,
+        activationDigest: delivery.activationDigest,
+        status: 'retired',
+        retirementReason,
+      },
+    };
+    state.deliveryTombstones[deliveryId] = tombstone;
+    delete state.deliveries[deliveryId];
+  }
 }
 
 function pruneConnectReceipts(state) {
@@ -712,7 +932,7 @@ export class AgentDeliveryAuthority {
     exactRecord(input, [
       'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'requestDigest', 'connectionId',
       'executorId', 'executorEpoch', 'protocolMetadataDigest',
-    ], [], 'connect');
+    ], ['socketIncarnationId'], 'connect');
     return this.#mutate((state) => {
       assertRouteInput(state, input);
       assertSafeInteger(input.expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
@@ -725,11 +945,23 @@ export class AgentDeliveryAuthority {
       const expectedDigest = computeAgentConnectRequestDigest(connectRequestContent(input));
       if (input.requestDigest !== expectedDigest) fail('connect_digest_mismatch', 'Connect request digest does not match canonical content');
 
+      let socketIncarnationId = input.socketIncarnationId;
+      if (socketIncarnationId !== undefined && socketIncarnationId !== null) {
+        assertBoundedText(socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
+      } else {
+        socketIncarnationId = `socket-incarnation-${state.revision + 1}`;
+      }
+
       const retained = state.connectReceipts[input.connectRequestId];
       if (retained) {
         if (retained.requestDigest !== input.requestDigest) fail('connect_request_conflict', 'Connect request identity was reused with different content');
-        if (retained.connectionEpoch !== state.lastConnectionEpoch) return { changed: false, result: { classification: 'stale', lastConnectionEpoch: state.lastConnectionEpoch } };
-        return { changed: false, result: { classification: 'exact_replay', receipt: retained.receipt } };
+        if (retained.connectionEpoch !== state.lastConnectionEpoch || state.connection === null ||
+            state.connection.connectRequestId !== input.connectRequestId || state.connection.id !== retained.receipt.connectionId ||
+            state.connection.epoch !== retained.connectionEpoch) {
+          return { changed: false, result: { classification: 'stale', lastConnectionEpoch: state.lastConnectionEpoch } };
+        }
+        state.connection.socketIncarnationId = socketIncarnationId;
+        return { changed: true, result: { classification: 'exact_replay', receipt: retained.receipt, socketIncarnationId } };
       }
       if (input.expectedConnectionEpoch < state.lastConnectionEpoch) return { changed: false, result: { classification: 'stale', lastConnectionEpoch: state.lastConnectionEpoch } };
       if (input.expectedConnectionEpoch !== state.lastConnectionEpoch) fail('connection_predecessor_conflict', 'Connect expectedConnectionEpoch is not the durable predecessor');
@@ -743,6 +975,7 @@ export class AgentDeliveryAuthority {
       state.connection = {
         id: input.connectionId,
         epoch: connectionEpoch,
+        socketIncarnationId,
         connectRequestId: input.connectRequestId,
         requestDigest: input.requestDigest,
         executorId: input.executorId,
@@ -774,18 +1007,46 @@ export class AgentDeliveryAuthority {
         receipt,
       };
       pruneConnectReceipts(state);
-      return { changed: true, result: { classification: 'accepted', receipt } };
+      return { changed: true, result: { classification: 'accepted', receipt, socketIncarnationId } };
+    });
+  }
+
+  adoptLegacySocketIncarnation(input) {
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch'], ['socketIncarnationId'], 'legacy socket incarnation adoption');
+    return this.#mutate((state) => {
+      assertRouteInput(state, input);
+      assertCurrentConnection(state, input);
+      let socketIncarnationId = input.socketIncarnationId;
+      if (socketIncarnationId !== undefined && socketIncarnationId !== null) {
+        assertBoundedText(socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
+      } else {
+        socketIncarnationId = `socket-incarnation-${state.revision + 1}`;
+      }
+      if (state.connection.socketIncarnationId !== null) {
+        if (state.connection.socketIncarnationId !== socketIncarnationId && input.socketIncarnationId !== undefined) {
+          fail('stale_connection_fence', 'Legacy socket cannot replace an already-bound physical incarnation');
+        }
+        return { changed: false, result: {
+          classification: 'exact_replay',
+          socketIncarnationId: state.connection.socketIncarnationId,
+        } };
+      }
+      state.connection.socketIncarnationId = socketIncarnationId;
+      return { changed: true, result: { classification: 'accepted', socketIncarnationId } };
     });
   }
 
   reattachConnection(input) {
-    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch'], [], 'connection reattachment');
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], [], 'connection reattachment');
     const state = this.read();
+    assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
     assertCurrentConnection(state, input);
+    if (state.connection.socketIncarnationId === null) fail('stale_connection_fence', 'Legacy physical socket incarnation is not yet bound');
     return deepFreeze({
       classification: 'exact_replay',
       connectionId: state.connection.id,
       connectionEpoch: state.connection.epoch,
+      socketIncarnationId: state.connection.socketIncarnationId,
       executorId: state.executor.id,
       executorEpoch: state.executor.epoch,
       syntheticEpochChange: false,
@@ -793,9 +1054,29 @@ export class AgentDeliveryAuthority {
   }
 
   disconnect(input) {
-    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch'], [], 'disconnect');
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], [], 'disconnect');
     return this.#mutate((state) => {
+      assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
       assertCurrentConnection(state, input);
+      state.connection = null;
+      state.capacity = null;
+      return { changed: true, result: {
+        classification: 'accepted',
+        connectionEpoch: state.lastConnectionEpoch,
+        slotsReleased: 0,
+        semanticRetryAuthorized: false,
+      } };
+    });
+  }
+
+  disconnectLegacyConnection(input) {
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch'], [], 'legacy connection disconnect');
+    return this.#mutate((state) => {
+      assertRouteInput(state, input);
+      assertCurrentConnection(state, input);
+      if (state.connection.socketIncarnationId !== null) {
+        fail('stale_connection_fence', 'Legacy logical disconnect cannot clear an incarnation-bound connection');
+      }
       state.connection = null;
       state.capacity = null;
       return { changed: true, result: {
@@ -885,6 +1166,7 @@ export class AgentDeliveryAuthority {
         return { changed: false, result: { classification: 'exact_replay', reservation: existing } };
       }
       if (input.reservationWindowGeneration !== state.reservationWindowGeneration) fail('reservation_stale', 'Reservation generation is no longer open');
+      compactState(state, nowMs);
       if (Object.keys(state.reservations).length >= state.limits.maxReservations) {
         fail('reservation_window_detail_limit', 'Open reservation window detail budget is exhausted and must drain before rollover');
       }
@@ -1005,6 +1287,7 @@ export class AgentDeliveryAuthority {
       state.reservationWindowGeneration += 1;
       state.minimumAcceptedReservationWindow = state.reservationWindowGeneration;
       state.reservations = createRecord();
+      compactState(state, nowMs);
       return { changed: true, result: { classification: 'accepted', generation: state.reservationWindowGeneration } };
     });
   }
@@ -1046,6 +1329,7 @@ export class AgentDeliveryAuthority {
         fencingToken: input.fencingToken,
       });
       if (input.deliveryId !== expectedDeliveryId) fail('delivery_identity_mismatch', 'deliveryId does not bind the exact Agent/Attempt/executor identity');
+      compactState(state, nowMs);
       const existingDelivery = state.deliveries[input.deliveryId];
       if (existingDelivery) {
         if (existingDelivery.activationRequestDigest === input.activationRequestDigest && existingDelivery.activationRequestId === input.activationRequestId) {
@@ -1053,8 +1337,20 @@ export class AgentDeliveryAuthority {
         }
         fail('delivery_conflict', 'Delivery identity was reused with different activation content');
       }
+      const existingTombstone = state.deliveryTombstones[input.deliveryId];
+      if (existingTombstone) {
+        if (existingTombstone.activationRequestDigest === input.activationRequestDigest && existingTombstone.activationRequestId === input.activationRequestId) {
+          return { changed: false, result: { classification: 'exact_replay', delivery: existingTombstone.receipt } };
+        }
+        fail('delivery_conflict', 'Delivery identity was reused with different activation content');
+      }
       for (const delivery of Object.values(state.deliveries)) {
         if (delivery.activationRequestId === input.activationRequestId) {
+          fail('activation_request_conflict', 'Activation request identity was reused for a different delivery');
+        }
+      }
+      for (const tombstone of Object.values(state.deliveryTombstones)) {
+        if (tombstone.activationRequestId === input.activationRequestId) {
           fail('activation_request_conflict', 'Activation request identity was reused for a different delivery');
         }
       }
@@ -1142,6 +1438,8 @@ export class AgentDeliveryAuthority {
         slotHeld: true,
         slotKind: 'admission',
         closedUndispatched: false,
+        terminalCaseReceipt: null,
+        terminalAtMs: null,
       };
       state.deliveries[input.deliveryId] = delivery;
       return { changed: true, result: { classification: 'accepted', delivery } };
@@ -1285,11 +1583,15 @@ export class AgentDeliveryAuthority {
     });
   }
 
-  closeUndispatchedDelivery(deliveryId) {
+  closeUndispatchedDelivery(deliveryId, { nowMs = null } = {}) {
     assertDigest(deliveryId, 'deliveryId');
+    if (nowMs !== null) assertSafeInteger(nowMs, 'close undispatched nowMs', { min: 0 });
     return this.#mutate((state) => {
       const delivery = state.deliveries[deliveryId];
-      if (!delivery) fail('unknown_delivery', 'Delivery does not exist');
+      if (!delivery) {
+        if (state.deliveryTombstones[deliveryId]) return { changed: false, result: { classification: 'stale', reason: 'retired_delivery' } };
+        fail('unknown_delivery', 'Delivery does not exist');
+      }
       if (Object.keys(delivery.dispatches).length !== 0) fail('possible_execution', 'Dispatch authorization exists; absence must come from exact ordinal evidence');
       if (delivery.closedUndispatched) return { changed: false, result: { classification: 'exact_replay', slotReleased: false } };
       delivery.closedUndispatched = true;
@@ -1297,7 +1599,8 @@ export class AgentDeliveryAuthority {
       delivery.slotHeld = false;
       delivery.slotKind = 'none';
       if (delivery.effect === 'unknown') delivery.effect = 'not_applied';
-      return { changed: true, result: {
+      if (nowMs !== null) delivery.terminalAtMs = nowMs;
+      const result = {
         classification: 'monotonic_refinement',
         dispatchAuthorized: false,
         positivelyNotSent: true,
@@ -1305,6 +1608,44 @@ export class AgentDeliveryAuthority {
         noHandle: true,
         effect: delivery.effect,
         slotReleased,
+      };
+      if (nowMs !== null) compactState(state, nowMs);
+      return { changed: true, result: { ...result, retired: state.deliveryTombstones[deliveryId] !== undefined } };
+    });
+  }
+
+  bindTerminalCaseReceipt(input, { nowMs } = {}) {
+    exactRecord(input, ['deliveryId', 'command', 'caseReceipt'], [], 'terminal Case receipt binding');
+    assertSafeInteger(nowMs, 'terminal Case receipt nowMs', { min: 0 });
+    return this.#mutate((state) => {
+      assertDigest(input.deliveryId, 'deliveryId');
+      const delivery = state.deliveries[input.deliveryId];
+      if (!delivery) {
+        const tombstone = state.deliveryTombstones[input.deliveryId];
+        if (tombstone !== undefined) {
+          return { changed: false, result: { classification: 'stale', reason: 'retired_delivery', receipt: tombstone.receipt } };
+        }
+        return { changed: false, result: { classification: 'stale', reason: 'unknown_or_gc_delivery' } };
+      }
+      if (delivery.slotHeld) {
+        fail('delivery_slot_held', 'Terminal Case receipt cannot retire a delivery while admission/physical capacity is still held');
+      }
+      const terminalCaseReceipt = normalizeTerminalCaseReceipt(delivery, input.command, input.caseReceipt, state.limits);
+      if (delivery.terminalCaseReceipt !== null) {
+        if (canonicalJson(delivery.terminalCaseReceipt) === canonicalJson(terminalCaseReceipt)) {
+          return { changed: false, result: { classification: 'exact_replay', terminalCaseReceipt } };
+        }
+        fail('case_terminal_receipt_conflict', 'Delivery already binds a different terminal Case receipt');
+      }
+      delivery.terminalCaseReceipt = terminalCaseReceipt;
+      delivery.terminalAtMs = nowMs;
+      compactState(state, nowMs);
+      const tombstone = state.deliveryTombstones[input.deliveryId];
+      return { changed: true, result: {
+        classification: 'accepted',
+        retired: tombstone !== undefined,
+        terminalCaseReceipt,
+        receipt: tombstone?.receipt ?? null,
       } };
     });
   }

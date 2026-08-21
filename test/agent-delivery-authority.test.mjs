@@ -296,6 +296,7 @@ test('connect is idempotent, hibernation reattachment preserves epoch, and stale
     routeGeneration: authority.read().routeBinding.routeGeneration,
     connectionId: first.id,
     connectionEpoch: first.epoch,
+    socketIncarnationId: first.socketIncarnationId,
   });
   assert.equal(reattached.syntheticEpochChange, false);
   assert.equal(authority.read().lastConnectionEpoch, 1);
@@ -710,6 +711,7 @@ test('disconnect alone never releases a live delivery slot or authorizes new adm
     routeGeneration: 1,
     connectionId: current.id,
     connectionEpoch: current.epoch,
+    socketIncarnationId: current.socketIncarnationId,
   });
   assert.equal(result.slotsReleased, 0);
   assert.equal(authority.admission().occupiedSlots, 1);
@@ -901,6 +903,178 @@ test('result handoff rejects pre-send, stale executor, and oversized result enve
     deliveryId: boundedFlow.delivery.deliveryId,
     resultEnvelope: largeEnvelope,
   }), 'agent_delivery_limit');
+});
+
+test('terminal delivery tombstones bound history, fail closed before Attempt when detail cannot compact, and GC behind the reservation floor', () => {
+  const { authority } = setupAgent({
+    reportedCapacity: 1,
+    limits: {
+      maxDeliveries: 1,
+      maxDeliveryTombstones: 1,
+      deliveryReplayGraceMs: 5,
+      reservationReplayGraceMs: 5,
+    },
+  });
+
+  const first = reserveStartActivate({
+    authority,
+    caseId: 'case-retire-a',
+    requestId: 'reservation-retire-a',
+  });
+  const firstActivation = activationInput(
+    authority,
+    first.reservation,
+    first.attempt,
+    first.engine,
+    'reservation-retire-a',
+  );
+  const firstClosed = authority.closeUndispatchedDelivery(first.delivery.deliveryId, { nowMs: NOW + 2 });
+  assert.equal(firstClosed.retired, true);
+  assert.equal(Object.keys(authority.read().deliveries).length, 0);
+  assert.equal(Object.keys(authority.read().deliveryTombstones).length, 1);
+  const firstReplay = authority.activateDelivery(firstActivation, { nowMs: NOW + 3 });
+  assert.equal(firstReplay.classification, 'exact_replay');
+  assert.equal(firstReplay.delivery.status, 'retired');
+  const conflictingActivation = {
+    ...firstActivation,
+    activationRequestId: 'activate-retire-a-conflict',
+  };
+  conflictingActivation.activationRequestDigest = computeAgentActivationRequestDigest(conflictingActivation);
+  expectCode(() => authority.activateDelivery(conflictingActivation, { nowMs: NOW + 3 }), 'delivery_conflict');
+
+  const second = reserveStartActivate({
+    authority,
+    caseId: 'case-retire-b',
+    requestId: 'reservation-retire-b',
+  });
+  const secondActivation = activationInput(
+    authority,
+    second.reservation,
+    second.attempt,
+    second.engine,
+    'reservation-retire-b',
+  );
+  const secondClosed = authority.closeUndispatchedDelivery(second.delivery.deliveryId, { nowMs: NOW + 7 });
+  assert.equal(secondClosed.retired, false, 'full tombstone budget must preserve detailed terminal state');
+  assert.equal(Object.keys(authority.read().deliveries).length, 1);
+  assert.equal(Object.keys(authority.read().deliveryTombstones).length, 1);
+
+  const blockedCase = makeCase('case-retire-blocked').engine;
+  const before = blockedCase.caseRevision;
+  expectCode(() => reserve(authority, reservationInput(authority, {
+    caseId: 'case-retire-blocked',
+    requestId: 'reservation-retire-blocked',
+    expectedCaseRevision: before,
+  }), NOW + 7), 'delivery_state_limit');
+  assert.equal(blockedCase.caseRevision, before);
+  assert.equal(blockedCase.taskStates.task.attemptIds.length, 0, 'storage denial must happen before semantic Attempt creation');
+
+  const rolled = authority.rollReservationWindow({ expectedGeneration: 1 }, { nowMs: NOW + 8 });
+  assert.equal(rolled.generation, 2);
+  assert.equal(authority.read().minimumAcceptedReservationWindow, 2);
+  assert.equal(Object.keys(authority.read().deliveries).length, 0);
+  assert.equal(Object.keys(authority.read().deliveryTombstones).length, 1);
+  expectCode(() => authority.activateDelivery(firstActivation, { nowMs: NOW + 9 }), 'reservation_stale');
+  assert.equal(authority.activateDelivery(secondActivation, { nowMs: NOW + 9 }).classification, 'exact_replay');
+
+  const fresh = reserveStartActivate({
+    authority,
+    caseId: 'case-retire-fresh',
+    requestId: 'reservation-retire-fresh',
+  });
+  assert.equal(fresh.delivery.reservationWindowGeneration, 2);
+  assert.equal(Object.keys(authority.read().deliveries).length, 1, 'fresh detail must be admitted beyond lifetime maxDeliveries completions');
+});
+
+test('a dispatched delivery retires only after positive cleanup and an exact Case terminal receipt', () => {
+  const { authority } = setupAgent({
+    reportedCapacity: 1,
+    limits: { maxDeliveries: 1, maxDeliveryTombstones: 1, deliveryReplayGraceMs: 5 },
+  });
+  const flow = reserveStartActivate({
+    authority,
+    caseId: 'case-terminal-receipt',
+    requestId: 'reservation-terminal-receipt',
+  });
+  const grant = caseGrant(authority, flow.engine, flow.delivery.deliveryId);
+  const authorization = authorize(authority, grant).authorization;
+  authority.claimFirstSend({
+    deliveryId: flow.delivery.deliveryId,
+    authorizationId: authorization.authorizationId,
+    dispatchOrdinal: 1,
+    dispatchGrantId: authorization.dispatchGrantId,
+  });
+  authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    1,
+    { dispatch: 'sent_observed', execution: 'started', cleanup: 'held' },
+  ));
+  const cleaned = authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    2,
+    { cleanup: 'cleanup_complete' },
+  ));
+  assert.equal(cleaned.slotReleased, true);
+  assert.equal(authority.read().deliveries[flow.delivery.deliveryId].slotHeld, false);
+
+  const result = resultFor(flow.engine.plan.baseDigest, flow.engine.plan.tasksById.task, 'terminal-result');
+  const resultEnvelope = flow.engine.resultEnvelope(flow.attempt.id, result);
+  const current = authority.read();
+  const handoff = authority.resultHandoff({
+    agentId: current.routeBinding.agentId,
+    routeGeneration: current.routeBinding.routeGeneration,
+    connectionId: current.connection.id,
+    connectionEpoch: current.connection.epoch,
+    deliveryId: flow.delivery.deliveryId,
+    resultEnvelope,
+  });
+  const caseEnvelope = {
+    requestId: handoff.requestId,
+    expectedCaseRevision: flow.engine.caseRevision,
+    command: handoff.command,
+  };
+  flow.engine.applyCommand(caseEnvelope);
+  const caseReceipt = flow.engine.receipts[handoff.requestId];
+  expectCode(() => authority.bindTerminalCaseReceipt({
+    deliveryId: flow.delivery.deliveryId,
+    command: handoff.command,
+    caseReceipt: { ...caseReceipt, responseDigest: digest('forged-response') },
+  }, { nowMs: NOW + 20 }), 'case_terminal_receipt_mismatch');
+
+  const bound = authority.bindTerminalCaseReceipt({
+    deliveryId: flow.delivery.deliveryId,
+    command: handoff.command,
+    caseReceipt,
+  }, { nowMs: NOW + 20 });
+  assert.equal(bound.classification, 'accepted');
+  assert.equal(bound.retired, true);
+  const tombstone = authority.read().deliveryTombstones[flow.delivery.deliveryId];
+  assert.equal(tombstone.retirementReason, 'case_terminal_receipt');
+  assert.equal(tombstone.terminalCaseReceipt.terminalStatus, 'succeeded');
+  assert.equal(tombstone.terminalCaseReceipt.requestId, handoff.requestId);
+  assert.equal(Object.keys(authority.read().deliveries).length, 0);
+
+  expectCode(() => authority.resultHandoff({
+    agentId: current.routeBinding.agentId,
+    routeGeneration: current.routeBinding.routeGeneration,
+    connectionId: current.connection.id,
+    connectionEpoch: current.connection.epoch,
+    deliveryId: flow.delivery.deliveryId,
+    resultEnvelope,
+  }), 'stale_delivery_fence');
+  const staleEvidence = authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    3,
+    { cleanup: 'cleanup_complete' },
+  ));
+  assert.equal(staleEvidence.classification, 'stale');
+  assert.equal(staleEvidence.reason, 'unknown_or_gc_delivery');
 });
 
 test('durable snapshot validation rejects corrupted delivery Attempt ordinal and dispatch receipt identity', () => {

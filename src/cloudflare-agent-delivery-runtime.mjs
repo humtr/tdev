@@ -320,30 +320,84 @@ function attachmentFromSocket(socket) {
   if (!socket || typeof socket.deserializeAttachment !== 'function') {
     fail('invalid_agent_socket', 'Hibernation socket attachment API is unavailable');
   }
-  const attachment = socket.deserializeAttachment();
-  assertRecordShape(attachment, [
-    'schemaVersion', 'agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'executorId', 'executorEpoch',
-  ], [], 'Agent socket attachment');
-  if (attachment.schemaVersion !== 1) fail('invalid_agent_socket', 'Agent socket attachment schema is unsupported');
+  const raw = socket.deserializeAttachment();
+  if (raw?.schemaVersion === 1) {
+    assertRecordShape(raw, [
+      'schemaVersion', 'agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'executorId', 'executorEpoch',
+    ], [], 'legacy Agent socket attachment');
+  } else if (raw?.schemaVersion === 2) {
+    assertRecordShape(raw, [
+      'schemaVersion', 'agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId',
+      'executorId', 'executorEpoch',
+    ], [], 'Agent socket attachment');
+  } else {
+    fail('invalid_agent_socket', 'Agent socket attachment schema is unsupported');
+  }
+  const attachment = {
+    schemaVersion: raw.schemaVersion,
+    agentId: raw.agentId,
+    routeGeneration: raw.routeGeneration,
+    connectionId: raw.connectionId,
+    connectionEpoch: raw.connectionEpoch,
+    socketIncarnationId: raw.schemaVersion === 2 ? raw.socketIncarnationId : null,
+    executorId: raw.executorId,
+    executorEpoch: raw.executorEpoch,
+  };
   assertIdentifier(attachment.agentId, 'attachment.agentId');
   assertSafeInteger(attachment.routeGeneration, 'attachment.routeGeneration', { min: 1 });
   assertIdentifier(attachment.connectionId, 'attachment.connectionId');
   assertSafeInteger(attachment.connectionEpoch, 'attachment.connectionEpoch', { min: 1 });
+  if (attachment.socketIncarnationId !== null) assertIdentifier(attachment.socketIncarnationId, 'attachment.socketIncarnationId');
   assertIdentifier(attachment.executorId, 'attachment.executorId');
   assertSafeInteger(attachment.executorEpoch, 'attachment.executorEpoch', { min: 1 });
-  if (byteLength(canonicalJson(attachment)) > AGENT_DELIVERY_MAX_ATTACHMENT_BYTES) {
+  if (byteLength(canonicalJson(raw)) > AGENT_DELIVERY_MAX_ATTACHMENT_BYTES) {
     fail('invalid_agent_socket', 'Agent socket attachment exceeds its application limit');
   }
   return attachment;
 }
 
-function connectionIdentityFromAttachment(attachment) {
+function logicalConnectionIdentityFromAttachment(attachment) {
   return {
     agentId: attachment.agentId,
     routeGeneration: attachment.routeGeneration,
     connectionId: attachment.connectionId,
     connectionEpoch: attachment.connectionEpoch,
   };
+}
+
+function connectionIdentityFromAttachment(attachment) {
+  if (attachment.socketIncarnationId === null) {
+    fail('stale_connection_fence', 'Legacy socket has no physical incarnation fence');
+  }
+  return {
+    ...logicalConnectionIdentityFromAttachment(attachment),
+    socketIncarnationId: attachment.socketIncarnationId,
+  };
+}
+
+function currentSocketAttachment(attachment, socketIncarnationId) {
+  assertIdentifier(socketIncarnationId, 'socketIncarnationId');
+  return {
+    schemaVersion: 2,
+    agentId: attachment.agentId,
+    routeGeneration: attachment.routeGeneration,
+    connectionId: attachment.connectionId,
+    connectionEpoch: attachment.connectionEpoch,
+    socketIncarnationId,
+    executorId: attachment.executorId,
+    executorEpoch: attachment.executorEpoch,
+  };
+}
+
+function attachmentTupleKey(attachment) {
+  return canonicalJson({
+    agentId: attachment.agentId,
+    routeGeneration: attachment.routeGeneration,
+    connectionId: attachment.connectionId,
+    connectionEpoch: attachment.connectionEpoch,
+    executorId: attachment.executorId,
+    executorEpoch: attachment.executorEpoch,
+  });
 }
 
 function decodeFrame(message, maxBytes) {
@@ -399,9 +453,17 @@ export class AgentDeliveryRuntimeDOHost {
     this.webSocketPairFactory = options.webSocketPairFactory ?? (() => new WebSocketPair());
     ctx.blockConcurrencyWhile(async () => {
       if (typeof this.store.initialize === 'function') this.store.initialize();
+      const legacyGroups = new Map();
       for (const socket of ctx.getWebSockets(AGENT_DELIVERY_SOCKET_TAG)) {
         try {
           const attachment = attachmentFromSocket(socket);
+          if (attachment.schemaVersion === 1) {
+            const key = attachmentTupleKey(attachment);
+            const group = legacyGroups.get(key) ?? [];
+            group.push({ socket, attachment });
+            legacyGroups.set(key, group);
+            continue;
+          }
           const routeBinding = createRuntimeAgentRouteBinding(this.env, {
             agentId: attachment.agentId,
             routeGeneration: attachment.routeGeneration,
@@ -410,6 +472,39 @@ export class AgentDeliveryRuntimeDOHost {
           this.#authority(routeBinding).reattachConnection(connectionIdentityFromAttachment(attachment));
         } catch {
           try { socket.close(1008, 'stale_hibernation_socket'); } catch {}
+        }
+      }
+      for (const group of legacyGroups.values()) {
+        const { attachment } = group[0];
+        try {
+          const routeBinding = createRuntimeAgentRouteBinding(this.env, {
+            agentId: attachment.agentId,
+            routeGeneration: attachment.routeGeneration,
+            durableObjectId: this.durableObjectId,
+          });
+          const authority = this.#authority(routeBinding);
+          const snapshot = authority.read();
+          const logicalMatch = snapshot.connection !== null && snapshot.executor !== null &&
+            snapshot.connection.id === attachment.connectionId && snapshot.connection.epoch === attachment.connectionEpoch &&
+            snapshot.executor.id === attachment.executorId && snapshot.executor.epoch === attachment.executorEpoch;
+          if (!logicalMatch || snapshot.connection.socketIncarnationId !== null) {
+            fail('stale_connection_fence', 'Legacy hibernation socket is not the unbound durable current connection');
+          }
+          if (group.length !== 1) {
+            authority.disconnectLegacyConnection(logicalConnectionIdentityFromAttachment(attachment));
+            for (const entry of group) {
+              try { entry.socket.close(1008, 'ambiguous_legacy_hibernation_socket'); } catch {}
+            }
+            continue;
+          }
+          const adopted = authority.adoptLegacySocketIncarnation(logicalConnectionIdentityFromAttachment(attachment));
+          const upgraded = currentSocketAttachment(attachment, adopted.socketIncarnationId);
+          group[0].socket.serializeAttachment(upgraded);
+          authority.reattachConnection(connectionIdentityFromAttachment(upgraded));
+        } catch {
+          for (const entry of group) {
+            try { entry.socket.close(1008, 'stale_hibernation_socket'); } catch {}
+          }
         }
       }
     });
@@ -469,8 +564,16 @@ export class AgentDeliveryRuntimeDOHost {
   }
 
   closeUndispatchedDelivery(input) {
-    assertRecordShape(input, ['routeBinding', 'deliveryId'], [], 'Agent delivery provider close undispatched');
-    return this.#authority(input.routeBinding).closeUndispatchedDelivery(input.deliveryId);
+    assertRecordShape(input, ['routeBinding', 'deliveryId'], ['nowMs'], 'Agent delivery provider close undispatched');
+    return this.#authority(input.routeBinding).closeUndispatchedDelivery(
+      input.deliveryId,
+      input.nowMs === undefined ? {} : { nowMs: input.nowMs },
+    );
+  }
+
+  bindTerminalCaseReceipt(input) {
+    assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider terminal Case receipt');
+    return this.#authority(input.routeBinding).bindTerminalCaseReceipt(input.request, { nowMs: input.nowMs });
   }
 
   reacquireDeliveryAdmission(input) {
@@ -509,11 +612,12 @@ export class AgentDeliveryRuntimeDOHost {
     }
     const receipt = result.receipt;
     const attachment = {
-      schemaVersion: 1,
+      schemaVersion: 2,
       agentId,
       routeGeneration,
       connectionId: receipt.connectionId,
       connectionEpoch: receipt.connectionEpoch,
+      socketIncarnationId: result.socketIncarnationId,
       executorId: receipt.executorId,
       executorEpoch: receipt.executorEpoch,
     };
@@ -526,22 +630,31 @@ export class AgentDeliveryRuntimeDOHost {
       if (oldSocket === server) continue;
       try {
         const old = attachmentFromSocket(oldSocket);
-        if (old.agentId === agentId && old.routeGeneration === routeGeneration && old.connectionEpoch <= attachment.connectionEpoch) {
-          oldSocket.close(1012, 'superseded_connection');
-        }
+        const sameRoute = old.agentId === agentId && old.routeGeneration === routeGeneration;
+        const olderLogical = old.connectionEpoch < attachment.connectionEpoch;
+        const supersededPhysical = old.connectionEpoch === attachment.connectionEpoch &&
+          old.connectionId === attachment.connectionId && old.socketIncarnationId !== attachment.socketIncarnationId;
+        if (sameRoute && (olderLogical || supersededPhysical)) oldSocket.close(1012, 'superseded_connection');
       } catch {
         try { oldSocket.close(1008, 'invalid_connection_attachment'); } catch {}
       }
     }
-    this.ctx.acceptWebSocket(server, [AGENT_DELIVERY_SOCKET_TAG, `epoch-${attachment.connectionEpoch}`]);
+    this.ctx.acceptWebSocket(server, [
+      AGENT_DELIVERY_SOCKET_TAG,
+      `epoch-${attachment.connectionEpoch}`,
+      `incarnation-${attachment.socketIncarnationId}`,
+    ]);
     return Object.freeze({ webSocket: client, routeBinding, result });
   }
 
-  #socketForAuthorization(authorization) {
+  #socketForAuthorization(authorization, currentConnection) {
+    if (currentConnection === null || currentConnection.socketIncarnationId === null) return null;
     for (const socket of this.ctx.getWebSockets(AGENT_DELIVERY_SOCKET_TAG)) {
       try {
         const attachment = attachmentFromSocket(socket);
-        if (attachment.connectionId === authorization.connectionId && attachment.connectionEpoch === authorization.connectionEpoch &&
+        if (attachment.schemaVersion === 2 &&
+            attachment.connectionId === authorization.connectionId && attachment.connectionEpoch === authorization.connectionEpoch &&
+            attachment.socketIncarnationId === currentConnection.socketIncarnationId &&
             attachment.executorId === authorization.executorId && attachment.executorEpoch === authorization.executorEpoch) {
           return socket;
         }
@@ -555,11 +668,11 @@ export class AgentDeliveryRuntimeDOHost {
     const authority = this.#authority(input.routeBinding);
     const authorizationResult = authority.authorizeDispatch(input.authorization);
     const authorization = authorizationResult.authorization;
-    const socket = this.#socketForAuthorization(authorization);
+    const state = authority.read();
+    const socket = this.#socketForAuthorization(authorization, state.connection);
     if (socket === null) {
       return Object.freeze({ classification: 'socket_unavailable', sent: false, possibleExecution: false, authorization });
     }
-    const state = authority.read();
     const delivery = state.deliveries[input.authorization.command.deliveryId];
     if (!delivery) fail('unknown_delivery', 'Dispatch send targets an unknown delivery');
     const bodyText = canonicalJson(input.executableBody);
