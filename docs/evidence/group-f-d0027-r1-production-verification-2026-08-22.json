@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0027-r1-production-verification",
+  "observedAt": "2026-08-22T08:59:10Z",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0027",
+    "revision": 1,
+    "status": "verified",
+    "document": "docs/design/0027-installable-authenticated-local-agent.md"
+  },
+  "authority": {
+    "implementationSource": "development@c234d93403c961fcef39694c0cba510e9d4837f1",
+    "implementingLifecycleSource": "development@b1c11e5b67494069e59096b2c0880263892e8e40",
+    "rootTaskId": "task_buq_0fa5cfb48c",
+    "taskWorktreeId": "wt_adc96b54a111ca06",
+    "publicationMode": "non-force development lineage"
+  },
+  "sourceQualification": {
+    "canonicalJobId": "job_cel_06eb7cdf3e",
+    "npmCheck": {
+      "passed": 477,
+      "failed": 0
+    },
+    "focusedJobId": "job_cf6_5a3172d1f3",
+    "focusedD0027Gate": {
+      "passed": 64,
+      "failed": 0
+    },
+    "documentationAuthority": "PASS",
+    "diffIntegrity": "PASS",
+    "proofLayer": "source/model"
+  },
+  "packageArtifact": {
+    "buildAndQualificationJobId": "job_ceo_75e6e63791",
+    "profile": "tdev.installable-agent-package.v1",
+    "sourceRevision": "c234d93403c961fcef39694c0cba510e9d4837f1",
+    "target": {
+      "platform": "android",
+      "arch": "arm64"
+    },
+    "archive": {
+      "file": "tdev-installable-agent-android-arm64-c234d93403c961fcef39694c0cba510e9d4837f1.tgz",
+      "sha256": "b129e2c9c34ce399722d1ebe293fbe54d28ab82f9834ec7f873019a86d919bbc",
+      "bytes": 87884
+    },
+    "releaseManifestDigest": "sha256:d2a6d354d285977183a4a34d8d0ecf4a0cce0e740371f7441e6143d596dfe0f9"
+  },
+  "localMachine": {
+    "packageQualificationJobId": "job_ceo_75e6e63791",
+    "nativeSupervisorQualificationJobId": "job_cf6_5a3172d1f3",
+    "platform": "android",
+    "arch": "arm64",
+    "node": "v26.4.0",
+    "termuxVersion": "0.119.0-beta.3",
+    "checks": {
+      "freshExtractedPackageWithoutCheckoutDependency": "PASS",
+      "releaseManifestAndFileDigestBinding": "PASS",
+      "pidfdExecutionAndCleanup": "PASS",
+      "descendantContainmentAndPositiveCleanup": "PASS",
+      "supervisorRestartStoredPidNonAdoption": "PASS",
+      "controlProcessRestartAgainstPackageSupervisor": "PASS",
+      "externalCredentialReferenceWithoutRawSecretPersistence": "PASS",
+      "positiveFinalQuiescence": "PASS",
+      "qualificationOwnedServiceLeaksAfterCleanup": 0
+    },
+    "proofLayer": "declared Android/Termux local package and machine"
+  },
+  "observedFalsifiersAndCorrections": [
+    {
+      "falsifier": "fresh runit service definition could be controlled before runsvdir discovered its supervise endpoint",
+      "disposition": "corrected in development@9344070f18fd861898543e9f89343eb495de90f1 by requiring positive runsvdir supervision before up/down lifecycle control"
+    },
+    {
+      "falsifier": "the initial package qualification harness used an ad hoc supervisor envelope rejected by the exact production dispatch validator",
+      "disposition": "qualification-only harness corrected in development@c234d93403c961fcef39694c0cba510e9d4837f1; production exact-envelope validation remained unchanged"
+    }
+  ],
+  "unverifiedLayers": {
+    "providerSecurity": {
+      "status": "unverified",
+      "reason": "D0027 leaves concrete provider credential, trust material and operator secret wiring to DEPLOYMENT/D0026; this gate issued no real credential and made no D0027 provider-security qualification claim"
+    },
+    "deploymentMigrationRollback": {
+      "status": "unverified",
+      "reason": "no real provider-owned legacy-to-D0027 deployment, credential rollout, package rollback or destructive migration campaign was executed by this source/local-package gate"
+    },
+    "deployedProduct": {
+      "status": "unverified",
+      "reason": "no authenticated installed D0027 Agent was composed end-to-end with the live CaseDO and provider-owned AgentDeliveryAuthority in this gate"
+    }
+  },
+  "preservedAuthorityBoundaries": [
+    "CaseDO/CaseEngine remains sole Task/Attempt/retry/result/reconciliation semantic owner",
+    "the per-route AgentDeliveryAuthority remains sole D0020 connection/capacity/delivery and D0027 current security/admission owner",
+    "the installed local Agent supervisor/warden remains physical execution and positive cleanup owner",
+    "concrete provider secret, credential, trust and rollout realization remains deployment-owned and is not synthesized by D0027 source verification",
+    "source/local evidence is not promoted to provider/security, deployment/migration/rollback or deployed-product proof"
+  ],
+  "routingAfterVerification": {
+    "runnableFrontier": [],
+    "selectedNextAction": null,
+    "successorsAutoActivated": false
+  },
+  "conclusion": "D0027 Revision 1 is verified at the source/model and declared Android/Termux local-package layers. Provider/security, deployment/migration/rollback and deployed-product layers remain explicitly unverified and separate."
+}

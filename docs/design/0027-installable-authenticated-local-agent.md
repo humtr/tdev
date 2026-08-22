@@ -1,6 +1,6 @@
 # Design 0027 — Installable Authenticated Local Agent
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 1
 - Acceptance evidence: `docs/evidence/group-f-d0027-r1-design-acceptance-2026-08-22.json`
 - Accepted exact review candidate: `6ceebe9a7f16aca1f68fc02154e66decea29c9e4`
@@ -17,7 +17,8 @@
 - Product/runtime semantics: accepts the supported installable authenticated local-Agent package, installation-principal, bounded local-effect and crash/orphan-recovery contract; this acceptance alone performs no source implementation, provider mutation, credential issuance, deployment or runtime activation
 - Implementation source: `development@c234d93403c961fcef39694c0cba510e9d4837f1`
 - Implementation Task: `task_buq_0fa5cfb48c`
-- Implementation qualification state: source/model and declared Android/Termux local-package evidence are observed; repository-native verification application is pending, while provider/security, deployment/migration/rollback and deployed-product layers remain independent and unverified
+- Verification evidence: `docs/evidence/group-f-d0027-r1-production-verification-2026-08-22.json`
+- Verification scope/effect: source/model and declared Android/Termux local-package layers are verified for `development@c234d93403c961fcef39694c0cba510e9d4837f1`; provider/security, deployment/migration/rollback and deployed-product layers remain independent and explicitly unverified
 - Explicit non-goals: no D0020 reopen; no MCP user/client/tenant authentication ownership from D0024; no canonical remote Git publication ownership from D0025; no whole-provider deployment/secret-distribution ownership from D0026; no D0028 operations ownership; no D0035 self-hosting/tmcp-retirement completion; no arbitrary hostile-process sandbox; no external model-provider admission
 
 ## 1. One-line definition
@@ -754,15 +755,17 @@ D0027 does not decide:
 
 Bounded D0023/D0024/D0025 research may proceed in parallel when it does not change D0027's owner assumptions by implication. D0026 executable credential/deployment proof and later D0035 composition consume D0027 after the required lifecycle gates close.
 
-## 16. Accepted lifecycle and next gate
+## 16. Verified lifecycle and follow-on gates
 
-This file is the canonical maintained Revision-1 `accepted` Design for D0027. Acceptance fixes the normative Class-2 boundary above but does not itself implement, deploy, issue credentials, activate runtime state or make a WORKBOARD gate runnable.
+This file is the canonical maintained Revision-1 `verified` Design for D0027 at the bounded source/model and declared Android/Termux local-package layers. The accepted Class-2 meaning above is unchanged; verification records observed implementation evidence and does not promote it into provider/security, deployment/migration/rollback or deployed-product proof.
 
-Before implementation may become runnable:
+Verification closure:
 
-1. the accepted decision remains subject to the normal `SDD.md` falsifier/reopen/revision rules; a semantic correction after this acceptance requires that lifecycle rather than silent implementation drift;
-2. product owners changed by this accepted revision are synchronized before implementation according to `SDD.md`;
-3. only then may `WORKBOARD.md` add/select D0027 when the current maintained status and dependencies authorize that exact implementation gate;
-4. source, fresh-machine, provider/security, migration/rollback and deployed-composition proof remain separate later layers and cannot be inferred from Design acceptance.
+1. the accepted decision and synchronized product-owner contracts remain subject to the normal `SDD.md` falsifier/reopen/revision rules;
+2. production implementation source is `development@c234d93403c961fcef39694c0cba510e9d4837f1` and the canonical source gate passed 477/477 tests in `job_cel_06eb7cdf3e`;
+3. exact D0027 focused source/runtime falsifiers passed 64/64 and the native Android/Termux pidfd supervisor qualification passed in `job_cf6_5a3172d1f3`;
+4. the immutable Android/arm64 package built from that exact source revision and fresh extracted-package qualification passed in `job_ceo_75e6e63791`, including package provenance, runit control restart, external credential-reference secret exclusion and positive cleanup/quiescence;
+5. provider/security, deployment/migration/rollback and deployed-product qualification remain separate unverified follow-on layers owned by their current contracts, including D0026 concrete provider credential/trust/operator wiring;
+6. `WORKBOARD.md` removes D0027 from the runnable frontier and selected next action on this verification application and does not auto-activate a provisional successor.
 
-Until owner synchronization and a later explicit WORKBOARD routing transition close, the repository's current runnable frontier and selected next action remain unchanged.
+A later falsifier that reaches this verified meaning reopens the affected D0027 scope under `SDD.md`; absence of proof in a separate follow-on layer does not rewrite the bounded source/local verification claim.
