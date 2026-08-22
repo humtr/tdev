@@ -106,8 +106,34 @@ async function main() {
     const supervisorStatus = await client.status();
     if (supervisorStatus?.supervisor?.initialized !== true) fail('installable_agent_package_supervisor_not_ready', 'Extracted package supervisor service is not initialized');
 
+    const qualificationTuple = {
+      installationGeneration: 1,
+      credentialGeneration: 1,
+      packageActivationGeneration: 1,
+      packageManifestDigest: release.manifestDigest,
+      trustPolicyGeneration: 1,
+      trustStateDigest: digestLabel('qualification-trust-state'),
+      lifecycleGeneration: 1,
+    };
     const operation = await client.start({
-      envelope: { qualification: 'd0027-package-local-machine', executableBody: { profile: 'diagnostic.node.version.v1', arguments: {} } },
+      envelope: {
+        type: 'dispatch',
+        deliveryId: digestLabel('qualification-delivery'),
+        dispatchOrdinal: 1,
+        authorizationId: digestLabel('qualification-authorization'),
+        dispatchGrantId: digestLabel('qualification-dispatch-grant'),
+        caseId: 'qualification-case-package',
+        taskId: 'qualification-task-package',
+        attemptId: 'qualification-task-package.1',
+        executorId: 'qualification-executor',
+        executorEpoch: 1,
+        fencingToken: digestLabel('qualification-fence'),
+        protocolVersion: 'd0027-package-qualification-v1',
+        executableBody: { profile: 'diagnostic.node.version.v1', arguments: {} },
+        installableAgentTuple: qualificationTuple,
+        socketIncarnationId: 'qualification-socket-one',
+        firstEmissionAdmissionId: digestLabel('qualification-first-emission'),
+      },
       launch: { command: process.execPath, args: ['--version'], cwd: packageRoot, env: {}, stdin: null },
     });
     const exit = await operation.completion;
@@ -130,15 +156,7 @@ async function main() {
       agentDeliveryUrl: 'ws://127.0.0.1:9/agent/connect',
       stateDirectory,
       credentialRef,
-      installableAgentTuple: {
-        installationGeneration: 1,
-        credentialGeneration: 1,
-        packageActivationGeneration: 1,
-        packageManifestDigest: release.manifestDigest,
-        trustPolicyGeneration: 1,
-        trustStateDigest: digestLabel('qualification-trust-state'),
-        lifecycleGeneration: 1,
-      },
+      installableAgentTuple: qualificationTuple,
       protocolMetadataDigest: digestLabel('qualification-protocol-metadata'),
       reportedCapacity: 1,
       reconnectDelayMs: 100,
