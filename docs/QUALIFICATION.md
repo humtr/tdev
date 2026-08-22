@@ -61,6 +61,29 @@ At the **local Agent/machine** layer, prove fresh per-Attempt execution, monoton
 
 At the **deployed-product** layer, compose the elected CaseDO semantic owner, one qualified `AgentDeliveryAuthority`, and an authenticated local Agent under concurrent multi-Case capacity, exact lost-connect-response replay plus superseded physical-socket close, reconnect/restart, stale-delivery/result, terminal-delivery retirement/ancient replay/continued fresh admission, cancellation/dispatch response-loss, forced post-creation cleanup/capacity ordering, physical-cleanup/effect-uncertainty and reconciliation conditions. Source, provider, local-machine and deployed-product evidence are independent proof layers; no one layer substitutes for another.
 
+### D0027 installable Agent focused gates
+
+D0027 implementation/verification adds focused installable-Agent evidence without replacing the baseline source gate or D0020 qualification. The accepted Design owns behavior; this section owns the minimum falsifier shape for claiming D0027 at each proof layer. Until these gates are actually executed against an implementation and the claimed environments, D0027 remains unverified at those layers.
+
+At the **source/model** layer, deterministic tests must at minimum falsify:
+
+- independently authenticated management admission: data-plane credentials, D0020 identifiers/grants and D0024 identities cannot authorize registration, replacement, credential/package/trust/lifecycle mutation; denial has zero durable/local effect;
+- exact stable-request replay, changed-intent/predecessor conflict and non-reuse/GC fencing for `genesisGeneration`, `installationGeneration`, `credentialGeneration`, `packageActivationGeneration`, `trustPolicyGeneration` and `lifecycleGeneration`;
+- J3 fence-first versus admission-first histories with the complete current tuple, serialization held through immediate send initiation, no transferable permit, no second `maySend` after response loss/ambiguous send, reconnect/current-tuple fencing and fresh authorization/admission for every later ordinal;
+- J4 concurrent first registration, crash/lost response at each genesis staging/final-election boundary, fixed candidate mismatch, failed-candidate retirement, stale restore/clone/deletion, bounded GC non-resurrection, non-executable partial tuples and rejection of base `start` before `initial_activate`;
+- stop/start lifecycle ABA, stop-before-quiescence fencing, start final revalidation, uninstall-owned draining from an already stopped route, response-loss replay, update/rollback/reinstall generation monotonicity and deletion barriers;
+- supervisor durable-before-create PREPARED/ACTIVE/GO_ALLOWED ordering, post-create failure remaining held, live pidfd/warden-only destructive authority, stored-PID rejection after supervisor replacement and complete descendant/process-resource cleanup before `cleanup_complete`;
+- legacy D0020-only predecessor quiescence: same-host same-boot whole-domain absence, scoped reboot proof, late evidence during `GENESIS_PENDING`, duplicate/stale evidence and missing-local-state histories may refine only the exact retained D0020 route + `deliveryId`/executor/evidence slot and otherwise keep activation blocked;
+- repository/state/evidence/log/manifest/model-visible secret exclusion and proof-layer non-promotion.
+
+At the **local Agent/machine** layer, install a real package copy on the exact supported fresh-machine profile without a tdev checkout, tmcp Task/worktree dependency, ambient developer helper or unbound runtime download. Prove package/service provenance, independently provisioned credential/trust inputs, clone-safe activation, control-process restart against the same supervisor, supervisor restart with no stored-PID destructive adoption, pidfd capability fail-closed behavior, warden descendant containment and positive cleanup under normal completion/cancellation/timeout/crash cases. Identify every package/helper/runtime/profile digest and the secret-storage boundary; this layer alone does not prove provider authority.
+
+At the **provider/security** layer, prove the existing D0020 route reaches exactly one writable `AgentDeliveryAuthority` whose D0027 substate atomically owns current installation/credential/package/trust/lifecycle/genesis and first-emission admission. Exercise independently authenticated management denial, credential/trust rotation and revocation against already-open sockets, package/trust/lifecycle/dispatch races, replay/high-water/GC reconstruction and bounded storage. Concrete trust/credential/package wiring must match SECURITY/DEPLOYMENT ownership and secret values must remain outside durable semantic/evidence/model-visible state.
+
+At the **deployment/migration/rollback** layer, execute supported legacy D0020-only initialization, interrupted genesis, reinstall/replacement, update, rollback and uninstall against exact versioned predecessor formats. Prove old writers cannot reactivate incompatible state, candidate generations never lower/reuse, a D0020 held slot remains addressable until matching positive quiescence arrives, unsafe missing locators keep capacity held, and payload/service/secret deletion never destroys the last required replay/recovery evidence.
+
+At the **deployed-product** layer, compose the elected CaseDO owner, the verified D0020 `AgentDeliveryAuthority` and one authenticated installed D0027 Agent. Run concurrent multi-Case work through J3 first-emission fencing, J4 first activation, real stop/start/reconnect/revocation/update/uninstall/reinstall, process-owner crash, positive physical cleanup, response-loss reconciliation and stale restore/replay. Source, local-machine, provider/security, migration/rollback and deployed-product evidence are independent; no one layer substitutes for another.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:
