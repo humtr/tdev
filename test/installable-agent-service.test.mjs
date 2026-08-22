@@ -118,6 +118,57 @@ async function fakeExecutable(filePath) {
   await chmod(filePath, 0o755);
 }
 
+test('Termux runit controller waits for runsvdir discovery before issuing service control', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-runit-discovery-test-'));
+  const prefix = path.join(root, 'prefix');
+  const packageRoot = path.join(root, 'release');
+  const stateDirectory = path.join(root, 'state');
+  const nodePath = path.join(prefix, 'bin', 'node');
+  await mkdir(path.join(prefix, 'var', 'service'), { recursive: true });
+  await mkdir(path.join(packageRoot, 'src'), { recursive: true });
+  for (const executable of ['sh', 'sv', 'runsv', 'node']) await fakeExecutable(path.join(prefix, 'bin', executable));
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const statusChecks = new Map();
+  const events = [];
+  const running = new Map();
+  const controller = new TermuxInstallableAgentServiceController({
+    prefix,
+    nodePath,
+    platform: 'android',
+    arch: 'arm64',
+    readyWaitMs: 200,
+    pollMs: 1,
+    runCommand(executable, args) {
+      const [command, servicePath] = args;
+      if (command === 'status') {
+        const count = (statusChecks.get(servicePath) ?? 0) + 1;
+        statusChecks.set(servicePath, count);
+        events.push(`status:${path.basename(servicePath)}:${count}`);
+        if (count < 3) return { status: 1, signal: null, stdout: '', stderr: 'supervise/ok unavailable' };
+        return { status: 0, signal: null, stdout: running.get(servicePath) === true ? 'run: service: (pid 1) 1s' : 'down: service: 1s, normally up', stderr: '' };
+      }
+      if (command === 'up') {
+        events.push(`up:${path.basename(servicePath)}`);
+        if ((statusChecks.get(servicePath) ?? 0) < 3) return { status: 1, signal: null, stdout: '', stderr: 'not supervised' };
+        running.set(servicePath, true);
+      }
+      if (command === 'down') running.set(servicePath, false);
+      return { status: 0, signal: null, stdout: '', stderr: '' };
+    },
+    clientFactory: () => ({ async status() { return { supervisor: { ...supervisorStatus(), liveOperations: 0 } }; } }),
+  });
+  const manifest = { target: { platform: 'android', arch: 'arm64' } };
+  const installed = await controller.install({ packageRoot, stateDirectory, manifest });
+  assert.equal(installed.classification, 'installed');
+  const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
+  assert.equal(statusChecks.get(layout.supervisorServicePath) >= 3, true);
+  assert.equal(statusChecks.get(layout.controlServicePath) >= 3, true);
+  const firstUp = events.findIndex((event) => event === `up:${path.basename(layout.supervisorServicePath)}`);
+  const thirdSupervisorStatus = events.findIndex((event) => event === `status:${path.basename(layout.supervisorServicePath)}:3`);
+  assert.equal(firstUp > thirdSupervisorStatus, true, 'sv up must occur only after runsvdir supervision is positively observed');
+});
+
 test('Termux runit controller installs a package-owned absolute service definition and rejects substitution', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-runit-test-'));
   const prefix = path.join(root, 'prefix');

@@ -205,14 +205,24 @@ export class TermuxInstallableAgentServiceController {
     return Object.freeze({ classification: 'unknown', text });
   }
 
+  async #waitSupervised(servicePath) {
+    const deadline = Date.now() + this.readyWaitMs;
+    while (Date.now() < deadline) {
+      const result = this.runCommand(path.join(this.prefix, 'bin', 'sv'), ['status', servicePath], { prefix: this.prefix });
+      if (result.status === 0) return;
+      await new Promise((resolve) => setTimeout(resolve, this.pollMs));
+    }
+    fail('installable_agent_service_not_supervised', 'Termux runsvdir did not positively discover the package-owned service before lifecycle control');
+  }
+
   async #waitDown(servicePath) {
     const deadline = Date.now() + this.readyWaitMs;
     while (Date.now() < deadline) {
       const status = this.#runitStatus(servicePath);
-      if (status.classification === 'down' || status.classification === 'not_running') return status;
+      if (status.classification === 'down') return status;
       await new Promise((resolve) => setTimeout(resolve, this.pollMs));
     }
-    fail('installable_agent_service_stop_unverified', 'Package-owned service did not positively reach down state');
+    fail('installable_agent_service_stop_unverified', 'Package-owned service did not positively reach supervised down state');
   }
 
   async #waitRunning(servicePath) {
@@ -275,6 +285,8 @@ export class TermuxInstallableAgentServiceController {
     const controlRun = renderControlRunScript({ prefix: this.prefix, nodePath: this.nodePath, packageRoot, stateDirectory, controlConfigPath: layout.controlConfigPath });
     const supervisorDefinition = await this.#ensureDefinition(layout.supervisorServicePath, supervisorRun, { enabled: true });
     const controlDefinition = await this.#ensureDefinition(layout.controlServicePath, controlRun, { enabled: false });
+    await this.#waitSupervised(layout.supervisorServicePath);
+    await this.#waitSupervised(layout.controlServicePath);
     this.#sv('up', layout.supervisorServicePath);
     const supervisor = await this.#waitSupervisorReady(layout);
     return Object.freeze({
@@ -324,6 +336,7 @@ export class TermuxInstallableAgentServiceController {
 
   async start({ stateDirectory }) {
     const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
+    await this.#waitSupervised(layout.supervisorServicePath);
     this.#sv('up', layout.supervisorServicePath);
     const supervisor = await this.#waitSupervisorReady(layout);
     return Object.freeze({ classification: 'prepared', profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE, serviceIdentity: layout.identity, supervisor });
@@ -359,12 +372,14 @@ export class TermuxInstallableAgentServiceController {
     const supervisorChanged = !existingSupervisorRun.equals(desiredSupervisorRun);
     const controlChanged = !existingControlRun.equals(desiredControlRun);
     const changed = supervisorChanged || controlChanged;
+    await this.#waitSupervised(layout.controlServicePath);
+    await this.#waitSupervised(layout.supervisorServicePath);
 
     if (changed) {
       const controlStatus = this.#runitStatus(layout.controlServicePath);
       const supervisorStatus = this.#runitStatus(layout.supervisorServicePath);
-      if (!['down', 'not_running'].includes(controlStatus.classification) || !['down', 'not_running'].includes(supervisorStatus.classification)) {
-        fail('installable_agent_service_update_not_quiesced', 'Release substitution requires both predecessor services to be positively down');
+      if (controlStatus.classification !== 'down' || supervisorStatus.classification !== 'down') {
+        fail('installable_agent_service_update_not_quiesced', 'Release substitution requires both predecessor services to be positively supervised and down');
       }
       await writeFile(path.join(layout.controlServicePath, 'down'), '', { mode: 0o600 });
       await writeFile(path.join(layout.supervisorServicePath, 'down'), '', { mode: 0o600 });
@@ -393,6 +408,7 @@ export class TermuxInstallableAgentServiceController {
     assertNonSecretControlConfig(controlConfig);
     const bytes = Buffer.from(`${canonicalJson(controlConfig)}\n`);
     await atomicWrite(layout.controlConfigPath, bytes, 0o600);
+    await this.#waitSupervised(layout.controlServicePath);
     this.#sv('up', layout.controlServicePath);
     const runit = await this.#waitRunning(layout.controlServicePath);
     return Object.freeze({
@@ -407,6 +423,8 @@ export class TermuxInstallableAgentServiceController {
   async quiesceAndStop({ stateDirectory, drainRequestId }) {
     if (typeof drainRequestId !== 'string' || drainRequestId.length === 0) fail('invalid_installable_agent_drain_request', 'drainRequestId is required');
     const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
+    await this.#waitSupervised(layout.controlServicePath);
+    await this.#waitSupervised(layout.supervisorServicePath);
     this.#sv('down', layout.controlServicePath);
     const controlStopped = await this.#waitDown(layout.controlServicePath);
     this.#sv('up', layout.supervisorServicePath);
@@ -453,10 +471,12 @@ export class TermuxInstallableAgentServiceController {
       return Object.freeze({ classification: 'exact_replay', profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE, serviceIdentity: layout.identity });
     }
     if (controlExists !== null) {
+      await this.#waitSupervised(layout.controlServicePath);
       this.#sv('down', layout.controlServicePath);
       await this.#waitDown(layout.controlServicePath);
     }
     if (supervisorExists !== null) {
+      await this.#waitSupervised(layout.supervisorServicePath);
       this.#sv('down', layout.supervisorServicePath);
       await this.#waitDown(layout.supervisorServicePath);
     }

@@ -97,11 +97,11 @@ async function main() {
     }
     if (release.manifest.target.platform !== 'android' || release.manifest.target.arch !== 'arm64') fail('installable_agent_package_target_mismatch', 'Extracted package target is not Android/arm64');
 
+    layout = termuxModule.termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
     const cliPath = path.join(packageRoot, 'src', 'installable-agent-package-cli.mjs');
     run(process.execPath, [cliPath, 'verify', '--package-root', packageRoot]);
     run(process.execPath, [cliPath, 'install', '--package-root', packageRoot, '--state-directory', stateDirectory]);
 
-    layout = termuxModule.termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
     const client = new serviceModule.InstallableAgentSupervisorServiceClient({ socketPath: layout.socketPath });
     const supervisorStatus = await client.status();
     if (supervisorStatus?.supervisor?.initialized !== true) fail('installable_agent_package_supervisor_not_ready', 'Extracted package supervisor service is not initialized');
