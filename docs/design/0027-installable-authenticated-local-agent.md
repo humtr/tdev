@@ -1,6 +1,6 @@
 # Design 0027 — Installable Authenticated Local Agent
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Acceptance evidence: `docs/evidence/group-f-d0027-r1-design-acceptance-2026-08-22.json`
 - Accepted exact review candidate: `6ceebe9a7f16aca1f68fc02154e66decea29c9e4`
@@ -15,6 +15,9 @@
 - J3/J4 correction basis: exact rejected J1/J2-corrected draft `development@b1e716f7b86348319bd8b270769db7dda989bae1` / blob `69ce91e9d1ad49943af6f3c392636e25e08a8a66`, corrected only for the pre-send stale-authorization fence and route-scoped genesis blockers converged by `tdev-20260822-d0027-r1-j3j4-correction-01`; this provenance is review evidence, not repository authority or implementation authorization
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, local-Agent package/runtime owners, the D0020 `AgentDeliveryAuthority` integration boundary, and the derived Design index
 - Product/runtime semantics: accepts the supported installable authenticated local-Agent package, installation-principal, bounded local-effect and crash/orphan-recovery contract; this acceptance alone performs no source implementation, provider mutation, credential issuance, deployment or runtime activation
+- Implementation source: `development@c234d93403c961fcef39694c0cba510e9d4837f1`
+- Implementation Task: `task_buq_0fa5cfb48c`
+- Implementation qualification state: source/model and declared Android/Termux local-package evidence are observed; repository-native verification application is pending, while provider/security, deployment/migration/rollback and deployed-product layers remain independent and unverified
 - Explicit non-goals: no D0020 reopen; no MCP user/client/tenant authentication ownership from D0024; no canonical remote Git publication ownership from D0025; no whole-provider deployment/secret-distribution ownership from D0026; no D0028 operations ownership; no D0035 self-hosting/tmcp-retirement completion; no arbitrary hostile-process sandbox; no external model-provider admission
 
 ## 1. One-line definition
