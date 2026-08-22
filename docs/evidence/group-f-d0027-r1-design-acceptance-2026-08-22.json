@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "design": "D0027",
+  "revision": 1,
+  "phase": "acceptance",
+  "date": "2026-08-22",
+  "repository": "humtr/tdev",
+  "reviewedCandidate": "6ceebe9a7f16aca1f68fc02154e66decea29c9e4",
+  "reviewedCandidateParent": "b1e716f7b86348319bd8b270769db7dda989bae1",
+  "reviewedDesignSha256": "8a4b7a7879bad176e9054a84f562e0dd0c458f835a36ff4e680992a6a0c38679",
+  "independentExactArtifactReview": {
+    "protocol": "ACR",
+    "campaignId": "tdev-20260822-d0027-r1-j3j4-reacceptance-01",
+    "convergenceRef": "acr/tdev-20260822-d0027-r1-j3j4-reacceptance-01/convergence",
+    "verdict": "ACCEPT_EXACT_D0027_R1_FOR_TARGET_NATIVE_DESIGN_ACCEPTANCE",
+    "quality": "STRONG",
+    "decisionReadiness": "READY",
+    "implementationActivationAtReview": "NONE",
+    "targetMutationsDuringReview": "none",
+    "roleResultBlobs": {
+      "A": "36279301797138cb55855981140a29b79df57dd2",
+      "B": "60ba3222081e5194baf5da817ca33df2d8e819f2",
+      "C": "2038697a3ecff9475a541be4f7e6df8871d36ca4",
+      "D": "37a1979bf960cf49a2e8c23ecc091a97735a1a80"
+    },
+    "legacyPredecessorAdjudication": "C4/C5 did not survive: the D0020 route + deliveryId/executor/evidence fence is the Section 9.5 equivalent complete cleanup-domain identity for a D0020-only held predecessor slot; missing locator/evidence keeps capacity held and blocks initial_activate",
+    "controllerValidationLimitation": "quality/readiness machine records validated; controller byte-for-byte role-result validator replay was unavailable because its container could not resolve raw.githubusercontent.com and was recorded as a non-blocking schema-compliance warning"
+  },
+  "acceptedDecision": {
+    "status": "accepted",
+    "sameDesignBoundary": true,
+    "j3OneShotFirstEmissionFenceClosed": true,
+    "j4RouteGenesisInitialActivationClosed": true,
+    "legacyD0020PredecessorQuiescenceClosed": true,
+    "caseAuthorityPreserved": true,
+    "agentDeliveryCapacityAuthorityPreserved": true,
+    "positivePhysicalCleanupRequired": true,
+    "proofLayerSeparationPreserved": true
+  },
+  "postAcceptanceBoundary": {
+    "productOwnerSynchronizationRequiredBeforeImplementation": true,
+    "workboardRoutingActivationIsSeparate": true,
+    "sourceImplementationExecuted": false,
+    "credentialOrProviderMutation": false,
+    "runtimeActivation": false
+  },
+  "acceptanceApplicationTask": "task_bsq_1eb6066272"
+}

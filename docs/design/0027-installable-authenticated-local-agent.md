@@ -1,7 +1,11 @@
 # Design 0027 — Installable Authenticated Local Agent
 
-- Status: `draft`
+- Status: `accepted`
 - Revision: 1
+- Acceptance evidence: `docs/evidence/group-f-d0027-r1-design-acceptance-2026-08-22.json`
+- Accepted exact review candidate: `6ceebe9a7f16aca1f68fc02154e66decea29c9e4`
+- Accepted review-candidate Design SHA-256: `8a4b7a7879bad176e9054a84f562e0dd0c458f835a36ff4e680992a6a0c38679`
+- Independent exact-artifact acceptance review: ACR campaign `tdev-20260822-d0027-r1-j3j4-reacceptance-01` — J3/J4 and legacy D0020 predecessor-quiescence adjudication closed, review quality `STRONG`, decision readiness `READY`, implementation activation `NONE`
 - Class: 2
 - Decision date: 2026-08-22
 - Active cumulative lineage: resolved from `WORKBOARD.md`; drafted from `development@09d7dfa889e7c974013eb231f20bd28f0263ee7b`
@@ -10,7 +14,7 @@
 - J1/J2 correction basis: exact rejected draft `development@d7f5d506498dc2d05b7b5c2ce4ce8dbf94db0599` / blob `56bd254cacbbbda705752cdd3f9222e69fdf736a`, corrected only for the two blockers converged by `tdev-20260822-d0027-r1-j1j2-correction-01`; this provenance is evidence and does not authorize implementation or override current repository owners
 - J3/J4 correction basis: exact rejected J1/J2-corrected draft `development@b1e716f7b86348319bd8b270769db7dda989bae1` / blob `69ce91e9d1ad49943af6f3c392636e25e08a8a66`, corrected only for the pre-send stale-authorization fence and route-scoped genesis blockers converged by `tdev-20260822-d0027-r1-j3j4-correction-01`; this provenance is review evidence, not repository authority or implementation authorization
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, local-Agent package/runtime owners, the D0020 `AgentDeliveryAuthority` integration boundary, and the derived Design index
-- Product/runtime semantics: proposes the supported installable authenticated local-Agent package, installation-principal, bounded local-effect and crash/orphan-recovery contract; this draft authorizes no source implementation, provider mutation, credential issuance, deployment or runtime activation
+- Product/runtime semantics: accepts the supported installable authenticated local-Agent package, installation-principal, bounded local-effect and crash/orphan-recovery contract; this acceptance alone performs no source implementation, provider mutation, credential issuance, deployment or runtime activation
 - Explicit non-goals: no D0020 reopen; no MCP user/client/tenant authentication ownership from D0024; no canonical remote Git publication ownership from D0025; no whole-provider deployment/secret-distribution ownership from D0026; no D0028 operations ownership; no D0035 self-hosting/tmcp-retirement completion; no arbitrary hostile-process sandbox; no external model-provider admission
 
 ## 1. One-line definition
@@ -747,16 +751,15 @@ D0027 does not decide:
 
 Bounded D0023/D0024/D0025 research may proceed in parallel when it does not change D0027's owner assumptions by implication. D0026 executable credential/deployment proof and later D0035 composition consume D0027 after the required lifecycle gates close.
 
-## 16. Draft lifecycle and next gate
+## 16. Accepted lifecycle and next gate
 
-This file is a Revision-1 `draft`. It is the canonical maintained Design proposal for D0027 but authorizes no Class-2 implementation.
+This file is the canonical maintained Revision-1 `accepted` Design for D0027. Acceptance fixes the normative Class-2 boundary above but does not itself implement, deploy, issue credentials, activate runtime state or make a WORKBOARD gate runnable.
 
 Before implementation may become runnable:
 
-1. exact-artifact Design review must attack the decisions, rejected alternatives, migration/rollback semantics, acceptance matrix and cheapest falsifiers above;
-2. any correction changes this draft before acceptance; a semantic correction after acceptance requires the normal SDD revision/reopen rules;
-3. only an `accepted` or `implementing` maintained revision may authorize source implementation;
-4. product owners changed by the accepted revision are synchronized before or with implementation according to `SDD.md`;
-5. `WORKBOARD.md` may add/select D0027 only after its current maintained revision/status actually authorizes the intended implementation gate.
+1. the accepted decision remains subject to the normal `SDD.md` falsifier/reopen/revision rules; a semantic correction after this acceptance requires that lifecycle rather than silent implementation drift;
+2. product owners changed by this accepted revision are synchronized before implementation according to `SDD.md`;
+3. only then may `WORKBOARD.md` add/select D0027 when the current maintained status and dependencies authorize that exact implementation gate;
+4. source, fresh-machine, provider/security, migration/rollback and deployed-composition proof remain separate later layers and cannot be inferred from Design acceptance.
 
-Until those conditions hold, the repository's current runnable frontier and selected next action remain unchanged.
+Until owner synchronization and a later explicit WORKBOARD routing transition close, the repository's current runnable frontier and selected next action remain unchanged.
