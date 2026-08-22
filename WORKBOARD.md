@@ -16,11 +16,11 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- none
+- D0027@r1 — `docs/design/0027-installable-authenticated-local-agent.md` — implement and source-qualify the accepted installable authenticated local-Agent boundary
 
 ## Selected next action
 
-- none
+- D0027@r1 — implement and source-qualify the accepted installable authenticated local-Agent boundary
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
