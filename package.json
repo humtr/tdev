@@ -19,6 +19,8 @@
     "bench:persistence": "node bench/persistence-hot-path.mjs",
     "bench:repository-model-transport": "node --expose-gc bench/repository-model-transport-efficiency.mjs --scenario all",
     "build:native:d0030": "npm run build:native:immutable-journal-publication --silent",
-    "build:native:immutable-journal-publication": "node tools/build-immutable-journal-publication-helper.mjs"
+    "build:native:immutable-journal-publication": "node tools/build-immutable-journal-publication-helper.mjs",
+    "build:native:installable-agent-supervisor": "node tools/build-installable-agent-supervisor-helper.mjs",
+    "build:installable-agent-package": "node tools/build-installable-agent-package.mjs"
   }
 }

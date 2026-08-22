@@ -1,0 +1,15 @@
+{
+  "schemaVersion": 1,
+  "abiVersion": 1,
+  "profile": "tdev.agent.termux.pidfd.v1",
+  "sourceRelativePath": "native/installable-agent-supervisor/pidfd_control.c",
+  "sourceSha256": "d610a76faf2f0aa82c2c15dc0cda62b701a3262b3a45b731f8cd5632349df475",
+  "helpers": {
+    "android-arm64": {
+      "platform": "android",
+      "arch": "arm64",
+      "relativePath": "native/installable-agent-supervisor/android-arm64/pidfd-control.node",
+      "sha256": "75d128a63e9c577bbfdba1b7162d234b0f4fd8cac097e144d8bf4eef9051da0a"
+    }
+  }
+}

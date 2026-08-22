@@ -12,9 +12,30 @@ import {
   isPlainRecord,
   typedDigest,
 } from './canonical.mjs';
+import {
+  assertInstallableAgentDataPlaneTuple,
+  compactManagementReceipts,
+  computeInstallableAgentManagementIntentDigest,
+  createLegacyInstallableAgentState,
+  createUnregisteredInstallableAgentState,
+  currentTupleDigest,
+  evidenceProofContext,
+  installableAgentCurrentTuple,
+  installableAgentPendingDigest,
+  installableAgentPredecessorDigest,
+  installableAgentSecurityStateDigest,
+  managementProofContext,
+  managementRequestReplay,
+  normalizeGenesisEvidenceType,
+  normalizeInstallableAgentDataPlaneTuple,
+  normalizeInstallableAgentState,
+  normalizePositiveQuiescenceProofClass,
+  recordManagementResult,
+  updateManagementResult,
+} from './installable-agent-admission.mjs';
 
 export const AGENT_DELIVERY_PROFILE = 'tdev.agent-delivery-authority.v1';
-export const AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION = 2;
+export const AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION = 3;
 
 const textEncoder = new TextEncoder();
 
@@ -26,6 +47,10 @@ const DEFAULT_LIMITS = deepFreeze({
   maxSlotsPerReservation: 64,
   maxConnectReceipts: 32,
   maxDispatchOrdinalsPerDelivery: 8,
+  maxManagementReceipts: 64,
+  maxManagementTombstones: 256,
+  maxTrustSubjects: 64,
+  maxPredecessorQuiescenceReceipts: 256,
   maxIdentifierBytes: 256,
   maxProtocolMetadataBytes: 4096,
   maxExecutableBodyBytes: 4 * 1024 * 1024,
@@ -268,7 +293,7 @@ function normalizeEvidenceObservation(input, limits) {
 }
 
 function connectRequestContent(input) {
-  return {
+  const content = {
     agentId: input.agentId,
     routeGeneration: input.routeGeneration,
     expectedConnectionEpoch: input.expectedConnectionEpoch,
@@ -278,14 +303,27 @@ function connectRequestContent(input) {
     executorEpoch: input.executorEpoch,
     protocolMetadataDigest: input.protocolMetadataDigest,
   };
+  if (input.installableAgentTuple !== undefined && input.installableAgentTuple !== null) {
+    content.installableAgentTuple = normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
+  }
+  return content;
 }
 
 export function computeAgentConnectRequestDigest(input) {
   exactRecord(input, [
     'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'connectionId',
     'executorId', 'executorEpoch', 'protocolMetadataDigest',
-  ], [], 'connect request content');
-  return typedDigest('tdev.agent-connect-request.v1', input);
+  ], ['installableAgentTuple'], 'connect request content');
+  if (input.installableAgentTuple !== undefined && input.installableAgentTuple !== null) {
+    normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
+  }
+  const content = connectRequestContent(input);
+  return typedDigest(
+    content.installableAgentTuple === undefined
+      ? 'tdev.agent-connect-request.v1'
+      : 'tdev.agent-connect-request.v2',
+    content,
+  );
 }
 
 function capacityRequestContent(input) {
@@ -418,6 +456,17 @@ function assertCurrentConnection(state, input) {
   }
 }
 
+function assertInstallableConnectionCurrent(state) {
+  if (state.installableAgent.state === 'LEGACY_D0020_ONLY') return null;
+  if (state.connection === null) fail('connection_unavailable', 'No current Agent connection');
+  const currentTuple = installableAgentCurrentTuple(state.installableAgent, { executable: true });
+  if (state.connection.installableAgentTuple === undefined || state.connection.installableAgentTuple === null ||
+      canonicalJson(state.connection.installableAgentTuple) !== canonicalJson(currentTuple)) {
+    fail('stale_installable_agent_fence', 'Connection is fenced to a predecessor D0027 tuple');
+  }
+  return currentTuple;
+}
+
 function assertCurrentExecutor(state, input) {
   if (state.executor === null) fail('executor_unavailable', 'No accepted executor tuple');
   assertBoundedText(input.executorId, 'executorId', state.limits.maxIdentifierBytes, { identifier: true });
@@ -440,17 +489,32 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
       if (delivery.terminalAtMs === undefined) delivery.terminalAtMs = null;
     }
   }
+  if (snapshot.schemaVersion === 2) {
+    snapshot.schemaVersion = 3;
+    snapshot.installableAgent = createLegacyInstallableAgentState();
+    if (snapshot.connection !== null && snapshot.connection.installableAgentTuple === undefined) {
+      snapshot.connection.installableAgentTuple = null;
+    }
+    for (const delivery of Object.values(snapshot.deliveries ?? {})) {
+      for (const dispatch of Object.values(delivery.dispatches ?? {})) {
+        if (dispatch.socketIncarnationId === undefined) dispatch.socketIncarnationId = null;
+        if (dispatch.installableAgentTuple === undefined) dispatch.installableAgentTuple = null;
+        if (dispatch.firstEmissionAdmission === undefined) dispatch.firstEmissionAdmission = null;
+      }
+    }
+  }
   exactRecord(snapshot, [
     'schemaVersion', 'profile', 'routeBinding', 'routeBindingDigest', 'revision', 'lastConnectionEpoch',
     'connection', 'executor', 'capacityRevisionFloor', 'capacity', 'reservationWindowGeneration',
     'minimumAcceptedReservationWindow', 'nextSlotGeneration', 'connectReceipts', 'reservations', 'deliveries',
-    'deliveryTombstones', 'limits',
+    'deliveryTombstones', 'installableAgent', 'limits',
   ], [], 'agent delivery snapshot');
   if (snapshot.schemaVersion !== AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION || snapshot.profile !== AGENT_DELIVERY_PROFILE) {
     fail('unsupported_agent_delivery_snapshot', 'Unsupported Agent delivery snapshot profile/schema');
   }
   const limits = normalizeLimits(snapshot.limits);
   snapshot.limits = canonicalClone(limits);
+  normalizeInstallableAgentState(snapshot.installableAgent, limits);
   const binding = normalizeAgentRouteBinding(snapshot.routeBinding, limits);
   const bindingDigest = agentRouteBindingDigest(binding, limits);
   if (snapshot.routeBindingDigest !== bindingDigest) fail('agent_route_binding_corrupt', 'Durable Agent route binding digest does not match its content');
@@ -469,7 +533,10 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
   if (snapshot.connection !== null) {
     exactRecord(snapshot.connection, [
       'id', 'epoch', 'socketIncarnationId', 'connectRequestId', 'requestDigest', 'executorId', 'executorEpoch', 'protocolMetadataDigest',
-    ], [], 'snapshot.connection');
+    ], ['installableAgentTuple'], 'snapshot.connection');
+    if (snapshot.connection.installableAgentTuple !== undefined && snapshot.connection.installableAgentTuple !== null) {
+      normalizeInstallableAgentDataPlaneTuple(snapshot.connection.installableAgentTuple);
+    }
     assertBoundedText(snapshot.connection.id, 'snapshot.connection.id', limits.maxIdentifierBytes, { identifier: true });
     assertSafeInteger(snapshot.connection.epoch, 'snapshot.connection.epoch', { min: 1 });
     if (snapshot.connection.epoch !== snapshot.lastConnectionEpoch) fail('invalid_agent_delivery_snapshot', 'Current connection epoch must equal lastConnectionEpoch');
@@ -590,7 +657,20 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
       exactRecord(dispatch, [
         'dispatchOrdinal', 'dispatchGrantId', 'grantRequestId', 'authorizationId', 'committedCaseRevision', 'event',
         'connectionId', 'connectionEpoch', 'executorId', 'executorEpoch', 'firstSendClaim', 'evidence',
-      ], [], `delivery ${deliveryId} dispatch ${ordinal}`);
+      ], ['socketIncarnationId', 'installableAgentTuple', 'firstEmissionAdmission'], `delivery ${deliveryId} dispatch ${ordinal}`);
+      if (dispatch.socketIncarnationId !== undefined && dispatch.socketIncarnationId !== null) {
+        assertBoundedText(dispatch.socketIncarnationId, 'dispatch.socketIncarnationId', limits.maxIdentifierBytes, { identifier: true });
+      }
+      if (dispatch.installableAgentTuple !== undefined && dispatch.installableAgentTuple !== null) {
+        normalizeInstallableAgentDataPlaneTuple(dispatch.installableAgentTuple);
+      }
+      if (dispatch.firstEmissionAdmission !== undefined && dispatch.firstEmissionAdmission !== null) {
+        exactRecord(dispatch.firstEmissionAdmission, ['admissionId', 'authorizationId', 'tupleDigest'], [], 'dispatch.firstEmissionAdmission');
+        assertDigest(dispatch.firstEmissionAdmission.admissionId, 'dispatch.firstEmissionAdmission.admissionId');
+        assertDigest(dispatch.firstEmissionAdmission.authorizationId, 'dispatch.firstEmissionAdmission.authorizationId');
+        assertDigest(dispatch.firstEmissionAdmission.tupleDigest, 'dispatch.firstEmissionAdmission.tupleDigest');
+        if (dispatch.firstEmissionAdmission.authorizationId !== dispatch.authorizationId) fail('invalid_agent_delivery_snapshot', 'First-emission admission authorization mismatch');
+      }
       if (dispatch.dispatchOrdinal !== ordinal) fail('invalid_agent_delivery_snapshot', 'Dispatch ordinal map identity mismatch');
       for (const field of ['dispatchGrantId', 'authorizationId']) assertDigest(dispatch[field], `dispatch.${field}`);
       for (const field of ['grantRequestId', 'connectionId', 'executorId']) {
@@ -717,6 +797,7 @@ function initialSnapshot(binding, input = {}) {
     reservations: createRecord(),
     deliveries: createRecord(),
     deliveryTombstones: createRecord(),
+    installableAgent: createLegacyInstallableAgentState(),
     limits,
   };
 }
@@ -865,6 +946,72 @@ function safeNegativeReplay(dispatch) {
     dispatch.evidence.cleanup === 'no_handle';
 }
 
+function nextInstallableGeneration(installableAgent, highWaterField, label) {
+  const current = installableAgent[highWaterField];
+  assertSafeInteger(current, highWaterField, { min: 0 });
+  if (current === Number.MAX_SAFE_INTEGER) fail('installable_agent_generation_overflow', `${label} cannot advance safely`);
+  const next = current + 1;
+  installableAgent[highWaterField] = next;
+  return next;
+}
+
+function requireInstallableCurrent(state, { executable = false } = {}) {
+  if (state.installableAgent.state !== 'CURRENT' || state.installableAgent.current === null) {
+    fail('installable_agent_not_current', 'D0027 current authority is required');
+  }
+  if (executable) installableAgentCurrentTuple(state.installableAgent, { executable: true });
+  return state.installableAgent.current;
+}
+
+function requireNoManagementTransaction(current) {
+  if (current.managementTransaction !== null) {
+    fail('management_transaction_in_progress', 'A D0027 management transaction is already nonterminal');
+  }
+}
+
+function d0027TransitionReceipt(operation, state, fields) {
+  return typedDigest('tdev.installable-agent-transition-receipt.v1', {
+    operation,
+    agentId: state.routeBinding.agentId,
+    routeGeneration: state.routeBinding.routeGeneration,
+    ...canonicalClone(fields),
+  });
+}
+
+function legacyHeldPredecessors(state) {
+  const locators = [];
+  for (const delivery of Object.values(state.deliveries)) {
+    if (!delivery.slotHeld) continue;
+    locators.push({
+      deliveryId: delivery.deliveryId,
+      executorId: delivery.executorId,
+      executorEpoch: delivery.executorEpoch,
+      evidenceRevision: delivery.localEvidenceRevision,
+      evidenceDigest: delivery.lastEvidenceDigest,
+      resolved: false,
+    });
+  }
+  locators.sort((left, right) => left.deliveryId.localeCompare(right.deliveryId));
+  return locators;
+}
+
+function managementResult(classification, result) {
+  return deepFreeze({ classification, ...canonicalClone(result) });
+}
+
+function transactionReadinessKey(type) {
+  const keys = {
+    verifier_ready: 'verifierReady',
+    local_ready: 'localReady',
+    package_verified: 'packageVerified',
+    local_service_ready: 'localServiceReady',
+    positive_quiescence: 'positiveQuiescence',
+    service_stopped: 'serviceStopped',
+    clone_safe_activation: 'cloneSafeActivation',
+  };
+  return keys[type] ?? null;
+}
+
 export class MemoryAgentDeliveryStore {
   constructor() {
     this.snapshots = new Map();
@@ -887,7 +1034,7 @@ export class MemoryAgentDeliveryStore {
 }
 
 export class AgentDeliveryAuthority {
-  constructor({ store, routeBinding }) {
+  constructor({ store, routeBinding, verifyManagementProof = null, verifyInstallableAgentEvidence = null }) {
     if (!store || typeof store.load !== 'function' || typeof store.compareAndSwap !== 'function') {
       fail('invalid_agent_delivery_store', 'Agent delivery store must expose load() and compareAndSwap()');
     }
@@ -895,6 +1042,10 @@ export class AgentDeliveryAuthority {
     this.store = store;
     this.routeBinding = canonicalClone(routeBinding);
     this.agentId = routeBinding.agentId;
+    this.verifyManagementProof = verifyManagementProof;
+    this.verifyInstallableAgentEvidence = verifyInstallableAgentEvidence;
+    if (verifyManagementProof !== null && typeof verifyManagementProof !== 'function') fail('invalid_management_verifier', 'verifyManagementProof must be a function');
+    if (verifyInstallableAgentEvidence !== null && typeof verifyInstallableAgentEvidence !== 'function') fail('invalid_installable_agent_evidence_verifier', 'verifyInstallableAgentEvidence must be a function');
     assertIdentifier(this.agentId, 'routeBinding.agentId');
   }
 
@@ -928,13 +1079,1022 @@ export class AgentDeliveryAuthority {
     return deepFreeze(canonicalClone(outcome.result));
   }
 
+  #verifyManagement(operation, state, input, intentContent = null) {
+    if (this.verifyManagementProof === null) {
+      fail('management_authentication_unavailable', 'D0027 management verifier is not configured');
+    }
+    assertBoundedText(input.managementRequestId, 'managementRequestId', state.limits.maxIdentifierBytes, { identifier: true });
+    assertDigest(input.intentDigest, 'intentDigest');
+    assertDigest(input.expectedPredecessorDigest, 'expectedPredecessorDigest');
+    if (!Object.hasOwn(input, 'managementProof')) fail('management_authentication_failed', 'Management proof is required');
+    if (intentContent !== null) {
+      const expectedIntentDigest = computeInstallableAgentManagementIntentDigest(operation, state.routeBinding, intentContent);
+      if (input.intentDigest !== expectedIntentDigest) fail('management_intent_digest_mismatch', 'Management intent digest does not match canonical content');
+    }
+    const context = managementProofContext(operation, state.routeBinding, input, input.expectedPredecessorDigest);
+    let accepted = false;
+    try {
+      accepted = this.verifyManagementProof(input.managementProof, context) === true;
+    } catch {
+      accepted = false;
+    }
+    if (!accepted) fail('management_authentication_failed', 'Independent D0027 management proof was denied');
+  }
+
+  #verifyInstallableEvidence(type, state, input, details) {
+    if (this.verifyInstallableAgentEvidence === null) {
+      fail('installable_agent_evidence_authentication_unavailable', 'D0027 evidence verifier is not configured');
+    }
+    assertDigest(input.evidenceDigest, 'evidenceDigest');
+    if (!Object.hasOwn(input, 'evidenceProof')) fail('installable_agent_evidence_authentication_failed', 'Installable Agent evidence proof is required');
+    const context = evidenceProofContext(type, state.routeBinding, { ...details, evidenceDigest: input.evidenceDigest });
+    let accepted = false;
+    try {
+      accepted = this.verifyInstallableAgentEvidence(input.evidenceProof, context) === true;
+    } catch {
+      accepted = false;
+    }
+    if (!accepted) fail('installable_agent_evidence_authentication_failed', 'Installable Agent evidence proof was denied');
+  }
+
+  #existingManagementReceipt(state, input, operation) {
+    const receipt = state.installableAgent.managementReceipts[input.managementRequestId];
+    if (!receipt) fail('unknown_management_request', 'Management request receipt does not exist');
+    if (receipt.operation !== operation || receipt.intentDigest !== input.intentDigest || receipt.predecessorDigest !== input.expectedPredecessorDigest) {
+      fail('management_request_conflict', 'Management request identity was reused with changed operation, intent or predecessor');
+    }
+    return receipt;
+  }
+
+  readInstallableAgent() {
+    const state = this.read();
+    return deepFreeze({
+      installableAgent: canonicalClone(state.installableAgent),
+      predecessorDigest: installableAgentPredecessorDigest(state.installableAgent),
+      currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: false }),
+      currentTupleDigest: currentTupleDigest(state.installableAgent),
+    });
+  }
+
+  migrateInstallableAgentRoute(input) {
+    exactRecord(input, ['migrationProfile'], [], 'D0027 legacy route migration');
+    if (input.migrationProfile !== 'tdev.d0020-only-to-d0027-unregistered.v1') {
+      fail('unsupported_installable_agent_migration', 'Unsupported D0027 route migration profile');
+    }
+    return this.#mutate((state) => {
+      if (state.installableAgent.state !== 'LEGACY_D0020_ONLY') {
+        fail('installable_agent_migration_conflict', 'Only an explicit D0020-only predecessor can migrate to D0027 UNREGISTERED');
+      }
+      state.installableAgent = createUnregisteredInstallableAgentState();
+      return { changed: true, result: {
+        classification: 'accepted',
+        state: 'UNREGISTERED',
+        predecessorDigest: installableAgentPredecessorDigest(state.installableAgent),
+      } };
+    });
+  }
+
+  registerInstallableAgent(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
+      'credentialProvisioningId', 'packageManifestDigest', 'packageTrustSubjectDigest', 'trustStateDigest', 'trustSubjects',
+    ], [], 'D0027 register');
+    const intentContent = {
+      credentialProvisioningId: input.credentialProvisioningId,
+      packageManifestDigest: input.packageManifestDigest,
+      packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+      trustStateDigest: input.trustStateDigest,
+      trustSubjects: canonicalClone(input.trustSubjects),
+    };
+    return this.#mutate((state) => {
+      if (state.installableAgent.state === 'LEGACY_D0020_ONLY') {
+        fail('installable_agent_migration_required', 'D0020-only route requires the explicit D0027 migration before registration');
+      }
+      this.#verifyManagement('register', state, input, intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'register', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      if (state.installableAgent.state !== 'UNREGISTERED' || state.installableAgent.everCurrent) {
+        fail('genesis_predecessor_conflict', 'First registration requires exact never-current UNREGISTERED state');
+      }
+      assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
+      assertDigest(input.packageManifestDigest, 'packageManifestDigest');
+      assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
+      assertDigest(input.trustStateDigest, 'trustStateDigest');
+      if (!isPlainRecord(input.trustSubjects) || input.trustSubjects[input.packageTrustSubjectDigest] !== 'active') {
+        fail('genesis_trust_conflict', 'Initial package trust subject must be explicitly active in the candidate trust state');
+      }
+      const unregisteredPredecessorDigest = installableAgentPredecessorDigest(state.installableAgent);
+      const genesisGeneration = nextInstallableGeneration(state.installableAgent, 'genesisGenerationHighWater', 'genesisGeneration');
+      const candidate = {
+        installationGeneration: nextInstallableGeneration(state.installableAgent, 'installationGenerationHighWater', 'installationGeneration'),
+        credentialGeneration: nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration'),
+        credentialProvisioningId: input.credentialProvisioningId,
+        packageActivationGeneration: nextInstallableGeneration(state.installableAgent, 'packageActivationGenerationHighWater', 'packageActivationGeneration'),
+        packageManifestDigest: input.packageManifestDigest,
+        packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+        trustPolicyGeneration: nextInstallableGeneration(state.installableAgent, 'trustPolicyGenerationHighWater', 'trustPolicyGeneration'),
+        trustStateDigest: input.trustStateDigest,
+        trustSubjects: canonicalClone(input.trustSubjects),
+        lifecycleGeneration: nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration'),
+      };
+      const legacyPredecessors = legacyHeldPredecessors(state);
+      const pendingDigest = installableAgentPendingDigest({
+        routeBinding: state.routeBinding,
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        candidate,
+        legacyPredecessors,
+      });
+      state.installableAgent.state = 'GENESIS_PENDING';
+      state.installableAgent.pending = {
+        genesisGeneration,
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        unregisteredPredecessorDigest,
+        pendingDigest,
+        candidate,
+        readiness: {
+          bootstrapTrust: null,
+          packageVerified: null,
+          verifierReady: null,
+          localReady: null,
+          localServiceReady: null,
+          predecessorQuiescence: legacyPredecessors.length === 0,
+        },
+        legacyPredecessors,
+      };
+      const result = {
+        state: 'GENESIS_PENDING',
+        genesisGeneration,
+        pendingDigest,
+        candidate: canonicalClone(candidate),
+        predecessorQuiescenceRequired: legacyPredecessors.length !== 0,
+      };
+      recordManagementResult(state.installableAgent, input, 'register', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  recordInstallableAgentGenesisEvidence(input) {
+    exactRecord(input, ['pendingDigest', 'genesisGeneration', 'type', 'evidenceDigest', 'evidenceProof'], [], 'D0027 genesis evidence');
+    normalizeGenesisEvidenceType(input.type);
+    const readinessKey = {
+      bootstrap_trust: 'bootstrapTrust',
+      package_verified: 'packageVerified',
+      verifier_ready: 'verifierReady',
+      local_ready: 'localReady',
+      local_service_ready: 'localServiceReady',
+    }[input.type];
+    if (readinessKey === undefined) fail('invalid_genesis_evidence', 'Evidence type is not a genesis staging receipt');
+    return this.#mutate((state) => {
+      if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) {
+        fail('genesis_not_pending', 'Genesis evidence requires GENESIS_PENDING state');
+      }
+      const pending = state.installableAgent.pending;
+      assertSafeInteger(input.genesisGeneration, 'genesisGeneration', { min: 1 });
+      assertDigest(input.pendingDigest, 'pendingDigest');
+      if (input.genesisGeneration !== pending.genesisGeneration || input.pendingDigest !== pending.pendingDigest) {
+        fail('stale_genesis_fence', 'Genesis evidence targets a stale pending identity');
+      }
+      const existing = pending.readiness[readinessKey];
+      if (existing !== null) {
+        if (existing !== input.evidenceDigest) fail('genesis_evidence_conflict', 'Genesis readiness identity changed after first acceptance');
+        return { changed: false, result: { classification: 'exact_replay', type: input.type, evidenceDigest: existing } };
+      }
+      this.#verifyInstallableEvidence(input.type, state, input, {
+        pendingDigest: pending.pendingDigest,
+        genesisGeneration: pending.genesisGeneration,
+        candidate: pending.candidate,
+      });
+      pending.readiness[readinessKey] = input.evidenceDigest;
+      return { changed: true, result: { classification: 'accepted', type: input.type, evidenceDigest: input.evidenceDigest } };
+    });
+  }
+
+  acceptLegacyPredecessorQuiescence(input) {
+    exactRecord(input, [
+      'pendingDigest', 'genesisGeneration', 'deliveryId', 'executorId', 'executorEpoch', 'evidenceRevision',
+      'evidenceDigest', 'proofClass', 'receiptDigest', 'proofEvidenceDigest', 'evidenceProof',
+    ], [], 'legacy D0020 predecessor quiescence');
+    normalizePositiveQuiescenceProofClass(input.proofClass);
+    return this.#mutate((state) => {
+      if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) {
+        fail('genesis_not_pending', 'Legacy predecessor quiescence requires GENESIS_PENDING state');
+      }
+      const pending = state.installableAgent.pending;
+      assertDigest(input.pendingDigest, 'pendingDigest');
+      assertSafeInteger(input.genesisGeneration, 'genesisGeneration', { min: 1 });
+      if (input.pendingDigest !== pending.pendingDigest || input.genesisGeneration !== pending.genesisGeneration) {
+        fail('stale_genesis_fence', 'Predecessor quiescence targets a stale genesis identity');
+      }
+      assertDigest(input.deliveryId, 'deliveryId');
+      assertBoundedText(input.executorId, 'executorId', state.limits.maxIdentifierBytes, { identifier: true });
+      assertSafeInteger(input.executorEpoch, 'executorEpoch', { min: 1 });
+      assertSafeInteger(input.evidenceRevision, 'evidenceRevision', { min: 0 });
+      if (input.evidenceDigest !== null) assertDigest(input.evidenceDigest, 'evidenceDigest');
+      assertDigest(input.receiptDigest, 'receiptDigest');
+      assertDigest(input.proofEvidenceDigest, 'proofEvidenceDigest');
+      const locator = pending.legacyPredecessors.find((candidate) => candidate.deliveryId === input.deliveryId);
+      if (!locator || locator.executorId !== input.executorId || locator.executorEpoch !== input.executorEpoch ||
+          locator.evidenceRevision !== input.evidenceRevision || locator.evidenceDigest !== input.evidenceDigest) {
+        fail('predecessor_quiescence_scope_mismatch', 'Positive quiescence proof does not match the retained D0020 cleanup-domain identity');
+      }
+      const expectedReceiptDigest = typedDigest('tdev.installable-agent-predecessor-quiescence.v1', {
+        agentId: state.routeBinding.agentId,
+        routeGeneration: state.routeBinding.routeGeneration,
+        pendingDigest: pending.pendingDigest,
+        deliveryId: input.deliveryId,
+        executorId: input.executorId,
+        executorEpoch: input.executorEpoch,
+        evidenceRevision: input.evidenceRevision,
+        evidenceDigest: input.evidenceDigest,
+        proofClass: input.proofClass,
+      });
+      if (input.receiptDigest !== expectedReceiptDigest) fail('predecessor_quiescence_receipt_mismatch', 'Predecessor quiescence receipt digest is invalid');
+      const existing = state.installableAgent.predecessorQuiescenceReceipts[input.deliveryId];
+      if (existing !== undefined) {
+        if (existing.receiptDigest !== input.receiptDigest) fail('predecessor_quiescence_conflict', 'Predecessor slot already has a different quiescence receipt');
+        return { changed: false, result: { classification: 'exact_replay', receipt: existing } };
+      }
+      const delivery = state.deliveries[input.deliveryId];
+      if (!delivery || delivery.executorId !== input.executorId || delivery.executorEpoch !== input.executorEpoch ||
+          delivery.localEvidenceRevision !== input.evidenceRevision || delivery.lastEvidenceDigest !== input.evidenceDigest) {
+        fail('stale_predecessor_quiescence_evidence', 'D0020 predecessor slot/evidence changed before quiescence acceptance');
+      }
+      this.#verifyInstallableEvidence('positive_quiescence', state, { ...input, evidenceDigest: input.proofEvidenceDigest }, {
+        pendingDigest: pending.pendingDigest,
+        deliveryId: input.deliveryId,
+        executorId: input.executorId,
+        executorEpoch: input.executorEpoch,
+        evidenceRevision: input.evidenceRevision,
+        priorEvidenceDigest: input.evidenceDigest,
+        proofClass: input.proofClass,
+        receiptDigest: input.receiptDigest,
+      });
+      const receipt = {
+        deliveryId: input.deliveryId,
+        executorId: input.executorId,
+        executorEpoch: input.executorEpoch,
+        evidenceRevision: input.evidenceRevision,
+        evidenceDigest: input.evidenceDigest,
+        proofClass: input.proofClass,
+        receiptDigest: input.receiptDigest,
+      };
+      state.installableAgent.predecessorQuiescenceReceipts[input.deliveryId] = receipt;
+      locator.resolved = true;
+      delivery.slotHeld = false;
+      delivery.slotKind = 'none';
+      pending.readiness.predecessorQuiescence = pending.legacyPredecessors.every((candidate) => candidate.resolved);
+      return { changed: true, result: { classification: 'accepted', receipt, slotReleased: true } };
+    });
+  }
+
+  initialActivateInstallableAgent(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof', 'pendingDigest', 'genesisGeneration',
+    ], [], 'D0027 initial_activate');
+    return this.#mutate((state) => {
+      if (state.installableAgent.state === 'LEGACY_D0020_ONLY') fail('installable_agent_migration_required', 'D0027 migration is required');
+      this.#verifyManagement('register', state, input, null);
+      const receipt = this.#existingManagementReceipt(state, input, 'register');
+      if (receipt.result?.state === 'CURRENT') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) {
+        fail('genesis_not_pending', 'initial_activate requires the exact GENESIS_PENDING transaction');
+      }
+      const pending = state.installableAgent.pending;
+      assertDigest(input.pendingDigest, 'pendingDigest');
+      assertSafeInteger(input.genesisGeneration, 'genesisGeneration', { min: 1 });
+      if (input.pendingDigest !== pending.pendingDigest || input.genesisGeneration !== pending.genesisGeneration ||
+          pending.managementRequestId !== input.managementRequestId || pending.intentDigest !== input.intentDigest) {
+        fail('stale_genesis_fence', 'initial_activate does not match the fixed pending genesis identity');
+      }
+      for (const locator of pending.legacyPredecessors) {
+        if (locator.resolved) continue;
+        const delivery = state.deliveries[locator.deliveryId];
+        if (delivery && !delivery.slotHeld && delivery.executorId === locator.executorId && delivery.executorEpoch === locator.executorEpoch &&
+            delivery.localEvidenceRevision >= locator.evidenceRevision) locator.resolved = true;
+      }
+      pending.readiness.predecessorQuiescence = pending.legacyPredecessors.every((candidate) => candidate.resolved);
+      for (const field of ['bootstrapTrust', 'packageVerified', 'verifierReady', 'localReady', 'localServiceReady']) {
+        if (pending.readiness[field] === null) fail('genesis_not_ready', `Genesis readiness ${field} is incomplete`);
+      }
+      if (!pending.readiness.predecessorQuiescence) fail('predecessor_quiescence_required', 'Legacy D0020 held predecessor remains ambiguous');
+      if (pending.candidate.trustSubjects[pending.candidate.packageTrustSubjectDigest] !== 'active') {
+        fail('genesis_trust_conflict', 'Candidate package is not active under the fixed candidate trust state');
+      }
+      const transitionReceiptDigest = d0027TransitionReceipt('initial_activate', state, {
+        managementRequestId: input.managementRequestId,
+        pendingDigest: pending.pendingDigest,
+        genesisGeneration: pending.genesisGeneration,
+        candidate: pending.candidate,
+      });
+      const candidate = canonicalClone(pending.candidate);
+      state.installableAgent.current = {
+        installationGeneration: candidate.installationGeneration,
+        installationDisposition: 'active',
+        credentialGeneration: candidate.credentialGeneration,
+        credentialDisposition: 'active',
+        packageActivationGeneration: candidate.packageActivationGeneration,
+        packageDisposition: 'active',
+        packageManifestDigest: candidate.packageManifestDigest,
+        packageTrustSubjectDigest: candidate.packageTrustSubjectDigest,
+        trustPolicyGeneration: candidate.trustPolicyGeneration,
+        trustStateDigest: candidate.trustStateDigest,
+        trustSubjects: canonicalClone(candidate.trustSubjects),
+        trustContinuesCurrentPackage: false,
+        lifecycleGeneration: candidate.lifecycleGeneration,
+        lifecycleDisposition: 'active',
+        lifecycleCause: 'initial_activate',
+        restartEligible: false,
+        restartEligibleStopRequestId: null,
+        transitionReceiptDigest,
+        managementTransaction: null,
+      };
+      state.installableAgent.state = 'CURRENT';
+      state.installableAgent.everCurrent = true;
+      state.installableAgent.pending = null;
+      const result = {
+        state: 'CURRENT',
+        cause: 'initial_activate',
+        genesisGeneration: input.genesisGeneration,
+        transitionReceiptDigest,
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: true }),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  failInstallableAgentGenesis(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof', 'pendingDigest', 'genesisGeneration', 'failureDigest',
+    ], [], 'D0027 failed genesis');
+    return this.#mutate((state) => {
+      this.#verifyManagement('register', state, input, null);
+      const receipt = this.#existingManagementReceipt(state, input, 'register');
+      if (receipt.result?.terminal === 'failed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) fail('genesis_not_pending', 'Failed genesis transition requires GENESIS_PENDING');
+      const pending = state.installableAgent.pending;
+      assertDigest(input.pendingDigest, 'pendingDigest');
+      assertDigest(input.failureDigest, 'failureDigest');
+      assertSafeInteger(input.genesisGeneration, 'genesisGeneration', { min: 1 });
+      if (pending.pendingDigest !== input.pendingDigest || pending.genesisGeneration !== input.genesisGeneration || pending.managementRequestId !== input.managementRequestId) {
+        fail('stale_genesis_fence', 'Failed genesis transition targets a stale pending identity');
+      }
+      state.installableAgent.state = 'UNREGISTERED';
+      state.installableAgent.pending = null;
+      const result = {
+        state: 'UNREGISTERED',
+        terminal: 'failed',
+        genesisGeneration: input.genesisGeneration,
+        failureDigest: input.failureDigest,
+        predecessorDigest: installableAgentPredecessorDigest(state.installableAgent),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  compactInstallableAgentManagementReceipts(input) {
+    exactRecord(input, ['requestIds'], [], 'D0027 management receipt compaction');
+    return this.#mutate((state) => {
+      if (state.installableAgent.state === 'LEGACY_D0020_ONLY') fail('installable_agent_migration_required', 'D0027 management state is unavailable on a legacy route');
+      if (!Array.isArray(input.requestIds) || input.requestIds.length === 0) fail('invalid_management_compaction', 'requestIds must be non-empty');
+      const inFlight = state.installableAgent.pending?.managementRequestId ?? state.installableAgent.current?.managementTransaction?.managementRequestId ?? null;
+      if (inFlight !== null && input.requestIds.includes(inFlight)) fail('management_compaction_unsafe', 'Cannot compact the nonterminal management transaction');
+      compactManagementReceipts(state.installableAgent, input.requestIds, state.limits);
+      return { changed: true, result: { classification: 'accepted', compacted: [...new Set(input.requestIds)] } };
+    });
+  }
+
+  recordInstallableAgentTransactionEvidence(input) {
+    exactRecord(input, ['managementRequestId', 'type', 'evidenceDigest', 'evidenceProof'], [], 'D0027 management transaction evidence');
+    normalizeGenesisEvidenceType(input.type);
+    const readinessKey = transactionReadinessKey(input.type);
+    if (readinessKey === null) fail('invalid_installable_agent_transaction_evidence', 'Unsupported management transaction evidence type');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const transaction = current.managementTransaction;
+      if (transaction === null || transaction.managementRequestId !== input.managementRequestId) {
+        fail('stale_management_transaction', 'Evidence targets no current D0027 management transaction');
+      }
+      if (!Object.hasOwn(transaction.readiness, readinessKey)) {
+        fail('invalid_installable_agent_transaction_evidence', 'Evidence type is not required by this management transaction');
+      }
+      const existing = transaction.readiness[readinessKey];
+      if (existing !== null) {
+        if (existing !== input.evidenceDigest) fail('management_transaction_evidence_conflict', 'Readiness evidence changed after first acceptance');
+        return { changed: false, result: { classification: 'exact_replay', type: input.type, evidenceDigest: existing } };
+      }
+      this.#verifyInstallableEvidence(input.type, state, input, {
+        managementRequestId: transaction.managementRequestId,
+        transactionType: transaction.type,
+        phase: transaction.phase,
+        candidate: transaction.candidate,
+        currentSecurityDigest: installableAgentSecurityStateDigest(state.installableAgent),
+      });
+      transaction.readiness[readinessKey] = input.evidenceDigest;
+      return { changed: true, result: { classification: 'accepted', type: input.type, evidenceDigest: input.evidenceDigest } };
+    });
+  }
+
+  mutateInstallableAgentTrust(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
+      'trustStateDigest', 'trustSubjects', 'trustContinuesCurrentPackage',
+    ], [], 'D0027 trust mutation');
+    const intentContent = {
+      trustStateDigest: input.trustStateDigest,
+      trustSubjects: canonicalClone(input.trustSubjects),
+      trustContinuesCurrentPackage: input.trustContinuesCurrentPackage,
+    };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('trust', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'trust', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      assertDigest(input.trustStateDigest, 'trustStateDigest');
+      if (!isPlainRecord(input.trustSubjects)) fail('invalid_installable_agent_trust', 'trustSubjects must be a record');
+      if (typeof input.trustContinuesCurrentPackage !== 'boolean') fail('invalid_installable_agent_trust', 'trustContinuesCurrentPackage must be boolean');
+      const trustPolicyGeneration = nextInstallableGeneration(state.installableAgent, 'trustPolicyGenerationHighWater', 'trustPolicyGeneration');
+      current.trustPolicyGeneration = trustPolicyGeneration;
+      current.trustStateDigest = input.trustStateDigest;
+      current.trustSubjects = canonicalClone(input.trustSubjects);
+      current.trustContinuesCurrentPackage = input.trustContinuesCurrentPackage;
+      current.transitionReceiptDigest = d0027TransitionReceipt('trust', state, {
+        managementRequestId: input.managementRequestId,
+        trustPolicyGeneration,
+        trustStateDigest: input.trustStateDigest,
+      });
+      const result = {
+        operation: 'trust',
+        phase: 'committed',
+        trustPolicyGeneration,
+        trustStateDigest: input.trustStateDigest,
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: false }),
+      };
+      recordManagementResult(state.installableAgent, input, 'trust', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  beginCredentialRotation(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof', 'credentialProvisioningId',
+    ], [], 'D0027 credential rotation begin');
+    const intentContent = { credentialProvisioningId: input.credentialProvisioningId };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('credential_rotate', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'credential_rotate', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
+      const credentialGeneration = nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration');
+      current.managementTransaction = {
+        type: 'credential_rotation',
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'preparing',
+        candidate: {
+          credentialGeneration,
+          credentialProvisioningId: input.credentialProvisioningId,
+          baseSecurityDigest: installableAgentSecurityStateDigest(state.installableAgent),
+        },
+        readiness: { verifierReady: null, localReady: null },
+      };
+      current.managementTransaction.candidate.baseSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = { operation: 'credential_rotation', phase: 'pending', credentialGeneration };
+      recordManagementResult(state.installableAgent, input, 'credential_rotate', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  commitCredentialRotation(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 credential rotation commit');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'credential_rotate');
+      this.#verifyManagement('credential_rotate', state, input, null);
+      if (receipt.result?.phase === 'committed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (transaction?.type !== 'credential_rotation' || transaction.managementRequestId !== input.managementRequestId) {
+        fail('stale_management_transaction', 'Credential rotation transaction is not current');
+      }
+      if (transaction.readiness.verifierReady === null || transaction.readiness.localReady === null) {
+        fail('credential_rotation_not_ready', 'Credential verifier/local readiness is incomplete');
+      }
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.baseSecurityDigest) {
+        fail('management_final_revalidation_failed', 'Credential rotation predecessor security tuple changed');
+      }
+      current.credentialGeneration = transaction.candidate.credentialGeneration;
+      current.credentialDisposition = 'active';
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('credential_rotate', state, {
+        managementRequestId: input.managementRequestId,
+        credentialGeneration: current.credentialGeneration,
+      });
+      const result = {
+        operation: 'credential_rotation',
+        phase: 'committed',
+        credentialGeneration: current.credentialGeneration,
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: false }),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  revokeInstallableAgentCredential(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 credential revocation');
+    const intentContent = { cause: 'credential_revoke' };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('credential_revoke', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'credential_revoke', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      const credentialGeneration = nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration');
+      current.credentialGeneration = credentialGeneration;
+      current.credentialDisposition = 'revoked';
+      current.transitionReceiptDigest = d0027TransitionReceipt('credential_revoke', state, {
+        managementRequestId: input.managementRequestId,
+        credentialGeneration,
+      });
+      const result = { operation: 'credential_revoke', phase: 'committed', credentialGeneration };
+      recordManagementResult(state.installableAgent, input, 'credential_revoke', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  beginBaseStop(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 base stop begin');
+    const intentContent = { cause: 'base_stop' };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('stop', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'stop', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      if (current.lifecycleDisposition !== 'active') fail('lifecycle_predecessor_conflict', 'base stop requires exact active lifecycle predecessor');
+      const lifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      current.lifecycleGeneration = lifecycleGeneration;
+      current.lifecycleDisposition = 'draining';
+      current.lifecycleCause = 'base_stop';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('base_stop_drain', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration,
+      });
+      current.managementTransaction = {
+        type: 'base_stop',
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'draining',
+        candidate: { lifecycleGeneration, drainingSecurityDigest: null },
+        readiness: { positiveQuiescence: null, serviceStopped: null },
+      };
+      current.managementTransaction.candidate.drainingSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = { operation: 'base_stop', phase: 'draining', lifecycleGeneration };
+      recordManagementResult(state.installableAgent, input, 'stop', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  completeBaseStop(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 base stop complete');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'stop');
+      this.#verifyManagement('stop', state, input, null);
+      if (receipt.result?.phase === 'completed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (transaction?.type !== 'base_stop' || transaction.managementRequestId !== input.managementRequestId) fail('stale_management_transaction', 'base stop transaction is not current');
+      if (transaction.readiness.positiveQuiescence === null || transaction.readiness.serviceStopped === null) {
+        fail('stop_not_quiesced', 'base stop requires positive physical quiescence and service/supervisor stop evidence');
+      }
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.drainingSecurityDigest) {
+        fail('management_final_revalidation_failed', 'base stop draining tuple changed');
+      }
+      current.restartEligible = true;
+      current.restartEligibleStopRequestId = input.managementRequestId;
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('base_stop_complete', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration: current.lifecycleGeneration,
+        quiescenceEvidenceDigest: transaction.readiness.positiveQuiescence,
+        serviceStoppedEvidenceDigest: transaction.readiness.serviceStopped,
+      });
+      const result = {
+        operation: 'base_stop',
+        phase: 'completed',
+        lifecycleGeneration: current.lifecycleGeneration,
+        restartEligible: true,
+        transitionReceiptDigest: current.transitionReceiptDigest,
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  prepareBaseStart(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 base start prepare');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const intentContent = { cause: 'base_start', restartEligibleStopRequestId: current.restartEligibleStopRequestId };
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('start', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'start', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      if (current.lifecycleDisposition !== 'draining' || current.lifecycleCause !== 'base_stop' || !current.restartEligible || current.restartEligibleStopRequestId === null) {
+        fail('start_not_restart_eligible', 'base start is restart-only from an exact completed base_stop drain');
+      }
+      const lifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      current.managementTransaction = {
+        type: 'base_start',
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'preparing',
+        candidate: {
+          lifecycleGeneration,
+          restartEligibleStopRequestId: current.restartEligibleStopRequestId,
+          baseSecurityDigest: installableAgentSecurityStateDigest(state.installableAgent),
+        },
+        readiness: { localServiceReady: null },
+      };
+      current.managementTransaction.candidate.baseSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = { operation: 'base_start', phase: 'preparing', lifecycleGeneration };
+      recordManagementResult(state.installableAgent, input, 'start', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  commitBaseStart(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 base start commit');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'start');
+      this.#verifyManagement('start', state, input, null);
+      if (receipt.result?.phase === 'committed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (transaction?.type !== 'base_start' || transaction.managementRequestId !== input.managementRequestId) fail('stale_management_transaction', 'base start transaction is not current');
+      if (transaction.readiness.localServiceReady === null) fail('start_not_ready', 'base start local preparation is incomplete');
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.baseSecurityDigest ||
+          current.restartEligibleStopRequestId !== transaction.candidate.restartEligibleStopRequestId) {
+        fail('management_final_revalidation_failed', 'base start final current tuple revalidation failed');
+      }
+      current.lifecycleGeneration = transaction.candidate.lifecycleGeneration;
+      current.lifecycleDisposition = 'active';
+      current.lifecycleCause = 'base_start';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('base_start', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration: current.lifecycleGeneration,
+      });
+      const result = {
+        operation: 'base_start',
+        phase: 'committed',
+        lifecycleGeneration: current.lifecycleGeneration,
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: true }),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  beginPackageActivation(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
+      'transitionCause', 'packageManifestDigest', 'packageTrustSubjectDigest',
+    ], [], 'D0027 package activation begin');
+    if (!['package_update', 'package_rollback'].includes(input.transitionCause)) fail('invalid_package_transition', 'Package transition must be update or forward rollback');
+    const intentContent = {
+      transitionCause: input.transitionCause,
+      packageManifestDigest: input.packageManifestDigest,
+      packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+    };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('package', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'package', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      if (current.lifecycleDisposition !== 'active') fail('lifecycle_predecessor_conflict', 'Package activation requires active predecessor before draining');
+      assertDigest(input.packageManifestDigest, 'packageManifestDigest');
+      assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
+      if (current.trustSubjects[input.packageTrustSubjectDigest] !== 'active') fail('package_trust_denied', 'New package activation requires an active trust subject');
+      const drainingLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      const finalLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      const packageActivationGeneration = nextInstallableGeneration(state.installableAgent, 'packageActivationGenerationHighWater', 'packageActivationGeneration');
+      current.lifecycleGeneration = drainingLifecycleGeneration;
+      current.lifecycleDisposition = 'draining';
+      current.lifecycleCause = input.transitionCause;
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt(`${input.transitionCause}_drain`, state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration: drainingLifecycleGeneration,
+      });
+      current.managementTransaction = {
+        type: input.transitionCause,
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'draining',
+        candidate: {
+          packageActivationGeneration,
+          packageManifestDigest: input.packageManifestDigest,
+          packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+          finalLifecycleGeneration,
+          drainingSecurityDigest: null,
+        },
+        readiness: { packageVerified: null, localServiceReady: null, positiveQuiescence: null },
+      };
+      current.managementTransaction.candidate.drainingSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = {
+        operation: input.transitionCause,
+        phase: 'draining',
+        packageActivationGeneration,
+        drainingLifecycleGeneration,
+        finalLifecycleGeneration,
+      };
+      recordManagementResult(state.installableAgent, input, 'package', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  commitPackageActivation(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 package activation commit');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'package');
+      this.#verifyManagement('package', state, input, null);
+      if (receipt.result?.phase === 'committed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (!['package_update', 'package_rollback'].includes(transaction?.type) || transaction.managementRequestId !== input.managementRequestId) {
+        fail('stale_management_transaction', 'Package activation transaction is not current');
+      }
+      for (const field of ['packageVerified', 'localServiceReady', 'positiveQuiescence']) {
+        if (transaction.readiness[field] === null) fail('package_activation_not_ready', `Package activation readiness ${field} is incomplete`);
+      }
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.drainingSecurityDigest) {
+        fail('management_final_revalidation_failed', 'Package activation draining tuple changed');
+      }
+      if (current.trustSubjects[transaction.candidate.packageTrustSubjectDigest] !== 'active') {
+        fail('package_trust_denied', 'Package trust subject is no longer active at final election');
+      }
+      current.packageActivationGeneration = transaction.candidate.packageActivationGeneration;
+      current.packageManifestDigest = transaction.candidate.packageManifestDigest;
+      current.packageTrustSubjectDigest = transaction.candidate.packageTrustSubjectDigest;
+      current.packageDisposition = 'active';
+      current.lifecycleGeneration = transaction.candidate.finalLifecycleGeneration;
+      current.lifecycleDisposition = 'active';
+      current.lifecycleCause = transaction.type;
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      const operation = transaction.type;
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt(operation, state, {
+        managementRequestId: input.managementRequestId,
+        packageActivationGeneration: current.packageActivationGeneration,
+        lifecycleGeneration: current.lifecycleGeneration,
+      });
+      const result = {
+        operation,
+        phase: 'committed',
+        packageActivationGeneration: current.packageActivationGeneration,
+        lifecycleGeneration: current.lifecycleGeneration,
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: true }),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  beginInstallableAgentReplacement(input) {
+    exactRecord(input, [
+      'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
+      'credentialProvisioningId', 'packageManifestDigest', 'packageTrustSubjectDigest',
+    ], [], 'D0027 replacement begin');
+    const intentContent = {
+      credentialProvisioningId: input.credentialProvisioningId,
+      packageManifestDigest: input.packageManifestDigest,
+      packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+    };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('replace', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'replace', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
+      assertDigest(input.packageManifestDigest, 'packageManifestDigest');
+      assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
+      if (current.trustSubjects[input.packageTrustSubjectDigest] !== 'active') fail('package_trust_denied', 'Replacement package requires an active trust subject');
+      const drainingLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      const finalLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      const installationGeneration = nextInstallableGeneration(state.installableAgent, 'installationGenerationHighWater', 'installationGeneration');
+      const credentialGeneration = nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration');
+      const packageActivationGeneration = nextInstallableGeneration(state.installableAgent, 'packageActivationGenerationHighWater', 'packageActivationGeneration');
+      current.lifecycleGeneration = drainingLifecycleGeneration;
+      current.lifecycleDisposition = 'draining';
+      current.lifecycleCause = 'replacement';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('replacement_drain', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration: drainingLifecycleGeneration,
+      });
+      current.managementTransaction = {
+        type: 'replacement',
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'draining',
+        candidate: {
+          installationGeneration,
+          credentialGeneration,
+          credentialProvisioningId: input.credentialProvisioningId,
+          packageActivationGeneration,
+          packageManifestDigest: input.packageManifestDigest,
+          packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+          finalLifecycleGeneration,
+          drainingSecurityDigest: null,
+        },
+        readiness: {
+          packageVerified: null,
+          verifierReady: null,
+          localReady: null,
+          localServiceReady: null,
+          positiveQuiescence: null,
+          cloneSafeActivation: null,
+        },
+      };
+      current.managementTransaction.candidate.drainingSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = {
+        operation: 'replacement',
+        phase: 'draining',
+        installationGeneration,
+        credentialGeneration,
+        packageActivationGeneration,
+        drainingLifecycleGeneration,
+        finalLifecycleGeneration,
+      };
+      recordManagementResult(state.installableAgent, input, 'replace', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  commitInstallableAgentReplacement(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 replacement commit');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'replace');
+      this.#verifyManagement('replace', state, input, null);
+      if (receipt.result?.phase === 'committed') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (transaction?.type !== 'replacement' || transaction.managementRequestId !== input.managementRequestId) fail('stale_management_transaction', 'Replacement transaction is not current');
+      for (const field of ['packageVerified', 'verifierReady', 'localReady', 'localServiceReady', 'positiveQuiescence', 'cloneSafeActivation']) {
+        if (transaction.readiness[field] === null) fail('replacement_not_ready', `Replacement readiness ${field} is incomplete`);
+      }
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.drainingSecurityDigest) {
+        fail('management_final_revalidation_failed', 'Replacement draining tuple changed');
+      }
+      if (current.trustSubjects[transaction.candidate.packageTrustSubjectDigest] !== 'active') fail('package_trust_denied', 'Replacement package trust subject is no longer active');
+      current.installationGeneration = transaction.candidate.installationGeneration;
+      current.installationDisposition = 'active';
+      current.credentialGeneration = transaction.candidate.credentialGeneration;
+      current.credentialDisposition = 'active';
+      current.packageActivationGeneration = transaction.candidate.packageActivationGeneration;
+      current.packageDisposition = 'active';
+      current.packageManifestDigest = transaction.candidate.packageManifestDigest;
+      current.packageTrustSubjectDigest = transaction.candidate.packageTrustSubjectDigest;
+      current.lifecycleGeneration = transaction.candidate.finalLifecycleGeneration;
+      current.lifecycleDisposition = 'active';
+      current.lifecycleCause = 'replacement';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('replacement', state, {
+        managementRequestId: input.managementRequestId,
+        installationGeneration: current.installationGeneration,
+        credentialGeneration: current.credentialGeneration,
+        packageActivationGeneration: current.packageActivationGeneration,
+        lifecycleGeneration: current.lifecycleGeneration,
+      });
+      const result = {
+        operation: 'replacement',
+        phase: 'committed',
+        currentTuple: installableAgentCurrentTuple(state.installableAgent, { executable: true }),
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  beginInstallableAgentUninstall(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 uninstall begin');
+    const intentContent = { cause: 'uninstall' };
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const known = state.installableAgent.managementReceipts[input.managementRequestId];
+      this.#verifyManagement('uninstall', state, input, known ? null : intentContent);
+      const replay = managementRequestReplay(state.installableAgent, input, 'uninstall', state.limits);
+      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      requireNoManagementTransaction(current);
+      const lifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      current.lifecycleGeneration = lifecycleGeneration;
+      current.lifecycleDisposition = 'draining';
+      current.lifecycleCause = 'uninstall';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('uninstall_drain', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration,
+      });
+      current.managementTransaction = {
+        type: 'uninstall',
+        managementRequestId: input.managementRequestId,
+        intentDigest: input.intentDigest,
+        predecessorDigest: input.expectedPredecessorDigest,
+        phase: 'draining',
+        candidate: { lifecycleGeneration, drainingSecurityDigest: null },
+        readiness: { positiveQuiescence: null, serviceStopped: null },
+      };
+      current.managementTransaction.candidate.drainingSecurityDigest = installableAgentSecurityStateDigest(state.installableAgent);
+      const result = { operation: 'uninstall', phase: 'draining', lifecycleGeneration };
+      recordManagementResult(state.installableAgent, input, 'uninstall', result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
+  completeInstallableAgentUninstall(input) {
+    exactRecord(input, ['managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof'], [], 'D0027 uninstall complete');
+    return this.#mutate((state) => {
+      const current = requireInstallableCurrent(state, { executable: false });
+      const receipt = this.#existingManagementReceipt(state, input, 'uninstall');
+      this.#verifyManagement('uninstall', state, input, null);
+      if (receipt.result?.phase === 'revoked') return { changed: false, result: managementResult('exact_replay', receipt.result) };
+      const transaction = current.managementTransaction;
+      if (transaction?.type !== 'uninstall' || transaction.managementRequestId !== input.managementRequestId) fail('stale_management_transaction', 'Uninstall transaction is not current');
+      if (transaction.readiness.positiveQuiescence === null || transaction.readiness.serviceStopped === null) {
+        fail('uninstall_not_quiesced', 'Uninstall requires positive quiescence and stopped service/supervisor evidence');
+      }
+      if (installableAgentSecurityStateDigest(state.installableAgent) !== transaction.candidate.drainingSecurityDigest) {
+        fail('management_final_revalidation_failed', 'Uninstall draining tuple changed');
+      }
+      const finalLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
+      current.installationDisposition = 'revoked';
+      current.credentialDisposition = 'revoked';
+      current.packageDisposition = 'revoked';
+      current.lifecycleGeneration = finalLifecycleGeneration;
+      current.lifecycleDisposition = 'revoked';
+      current.lifecycleCause = 'uninstall';
+      current.restartEligible = false;
+      current.restartEligibleStopRequestId = null;
+      current.managementTransaction = null;
+      current.transitionReceiptDigest = d0027TransitionReceipt('uninstall_revoked', state, {
+        managementRequestId: input.managementRequestId,
+        lifecycleGeneration: finalLifecycleGeneration,
+      });
+      const result = {
+        operation: 'uninstall',
+        phase: 'revoked',
+        lifecycleGeneration: finalLifecycleGeneration,
+        deletionBarrier: 'authority_revoked_replay_fences_retained',
+        transitionReceiptDigest: current.transitionReceiptDigest,
+      };
+      updateManagementResult(state.installableAgent, input.managementRequestId, result);
+      return { changed: true, result: managementResult('accepted', result) };
+    });
+  }
+
   connect(input) {
     exactRecord(input, [
       'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'requestDigest', 'connectionId',
       'executorId', 'executorEpoch', 'protocolMetadataDigest',
-    ], ['socketIncarnationId'], 'connect');
+    ], ['socketIncarnationId', 'installableAgentTuple'], 'connect');
     return this.#mutate((state) => {
       assertRouteInput(state, input);
+      const installableAgentTuple = assertInstallableAgentDataPlaneTuple(
+        state.installableAgent,
+        input.installableAgentTuple,
+        { allowLegacy: true },
+      );
       assertSafeInteger(input.expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
       for (const field of ['connectRequestId', 'connectionId', 'executorId']) {
         assertBoundedText(input[field], field, state.limits.maxIdentifierBytes, { identifier: true });
@@ -982,6 +2142,7 @@ export class AgentDeliveryAuthority {
         executorEpoch: input.executorEpoch,
         protocolMetadataDigest: input.protocolMetadataDigest,
       };
+      if (installableAgentTuple !== null) state.connection.installableAgentTuple = canonicalClone(installableAgentTuple);
       state.executor = { id: input.executorId, epoch: input.executorEpoch };
       state.capacity = null;
       const receipt = {
@@ -1037,11 +2198,21 @@ export class AgentDeliveryAuthority {
   }
 
   reattachConnection(input) {
-    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], [], 'connection reattachment');
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], ['installableAgentTuple'], 'connection reattachment');
     const state = this.read();
     assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
     assertCurrentConnection(state, input);
     if (state.connection.socketIncarnationId === null) fail('stale_connection_fence', 'Legacy physical socket incarnation is not yet bound');
+    if (state.installableAgent.state === 'LEGACY_D0020_ONLY') {
+      if (input.installableAgentTuple !== undefined && input.installableAgentTuple !== null) fail('installable_agent_tuple_conflict', 'Legacy D0020 connection cannot reattach with a D0027 tuple');
+    } else {
+      const supplied = normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
+      if (state.connection.installableAgentTuple === undefined || state.connection.installableAgentTuple === null ||
+          canonicalJson(supplied) !== canonicalJson(state.connection.installableAgentTuple)) {
+        fail('stale_installable_agent_fence', 'Reattachment tuple does not match the durable physical connection');
+      }
+      assertInstallableConnectionCurrent(state);
+    }
     return deepFreeze({
       classification: 'exact_replay',
       connectionId: state.connection.id,
@@ -1054,10 +2225,19 @@ export class AgentDeliveryAuthority {
   }
 
   disconnect(input) {
-    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], [], 'disconnect');
+    exactRecord(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId'], ['installableAgentTuple'], 'disconnect');
     return this.#mutate((state) => {
       assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', state.limits.maxIdentifierBytes, { identifier: true });
       assertCurrentConnection(state, input);
+      if (state.installableAgent.state === 'LEGACY_D0020_ONLY') {
+        if (input.installableAgentTuple !== undefined && input.installableAgentTuple !== null) fail('installable_agent_tuple_conflict', 'Legacy D0020 disconnect cannot carry a D0027 tuple');
+      } else {
+        const supplied = normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
+        if (state.connection.installableAgentTuple === undefined || state.connection.installableAgentTuple === null ||
+            canonicalJson(supplied) !== canonicalJson(state.connection.installableAgentTuple)) {
+          fail('stale_installable_agent_fence', 'Disconnect tuple does not match the durable physical connection');
+        }
+      }
       state.connection = null;
       state.capacity = null;
       return { changed: true, result: {
@@ -1131,6 +2311,7 @@ export class AgentDeliveryAuthority {
 
   admission() {
     const state = this.read();
+    assertInstallableConnectionCurrent(state);
     const capacity = effectiveCapacity(state);
     const occupied = occupiedSlots(state);
     return deepFreeze({
@@ -1153,6 +2334,7 @@ export class AgentDeliveryAuthority {
     assertSafeInteger(nowMs, 'reservation nowMs', { min: 0 });
     return this.#mutate((state) => {
       assertRouteInput(state, input);
+      assertInstallableConnectionCurrent(state);
       assertSafeInteger(input.reservationWindowGeneration, 'reservationWindowGeneration', { min: 1 });
       assertBoundedText(input.reservationRequestId, 'reservationRequestId', state.limits.maxIdentifierBytes, { identifier: true });
       assertDigest(input.reservationRequestDigest, 'reservationRequestDigest');
@@ -1302,6 +2484,7 @@ export class AgentDeliveryAuthority {
     assertSafeInteger(nowMs, 'activation nowMs', { min: 0 });
     return this.#mutate((state) => {
       assertRouteInput(state, input);
+      assertInstallableConnectionCurrent(state);
       for (const field of ['activationRequestId', 'reservationRequestId', 'caseId', 'taskId', 'attemptId', 'executorId']) {
         assertBoundedText(input[field], field, state.limits.maxIdentifierBytes, { identifier: true });
       }
@@ -1449,6 +2632,7 @@ export class AgentDeliveryAuthority {
   grantCommand(deliveryId, dispatchOrdinal = 1) {
     assertDigest(deliveryId, 'deliveryId');
     const state = this.read();
+    assertInstallableConnectionCurrent(state);
     assertSafeInteger(dispatchOrdinal, 'dispatchOrdinal', { min: 1, max: state.limits.maxDispatchOrdinalsPerDelivery });
     const delivery = state.deliveries[deliveryId];
     if (!delivery) fail('unknown_delivery', 'Delivery does not exist');
@@ -1500,14 +2684,7 @@ export class AgentDeliveryAuthority {
       assertRouteInput(state, command);
       const delivery = state.deliveries[command.deliveryId];
       if (!delivery) fail('unknown_delivery', 'Case grant targets an unknown delivery');
-      if (delivery.closedUndispatched) fail('delivery_closed', 'Delivery was closed before dispatch');
-      if (delivery.evidenceConflict !== null) fail('delivery_evidence_conflict', 'Conflicted delivery cannot authorize executable initiation');
       assertSafeInteger(command.dispatchOrdinal, 'dispatchOrdinal', { min: 1, max: state.limits.maxDispatchOrdinalsPerDelivery });
-      const expectedCommand = this.grantCommand(command.deliveryId, command.dispatchOrdinal);
-      if (canonicalJson(command) !== canonicalJson(expectedCommand)) fail('dispatch_grant_binding_mismatch', 'Case grant does not bind the exact activated delivery');
-      if (state.connection === null || state.executor === null || state.executor.id !== delivery.executorId || state.executor.epoch !== delivery.executorEpoch) {
-        fail('stale_executor_fence', 'Delivery executor is no longer current');
-      }
       const ordinalKey = String(command.dispatchOrdinal);
       const existing = delivery.dispatches[ordinalKey];
       if (existing) {
@@ -1516,7 +2693,22 @@ export class AgentDeliveryAuthority {
         }
         fail('dispatch_authorization_conflict', 'Delivery ordinal already has a different dispatch authorization');
       }
-      const authorizationId = typedDigest('tdev.agent-dispatch-authorization.v1', {
+      if (delivery.closedUndispatched) fail('delivery_closed', 'Delivery was closed before dispatch');
+      if (delivery.evidenceConflict !== null) fail('delivery_evidence_conflict', 'Conflicted delivery cannot authorize executable initiation');
+      const expectedCommand = this.grantCommand(command.deliveryId, command.dispatchOrdinal);
+      if (canonicalJson(command) !== canonicalJson(expectedCommand)) fail('dispatch_grant_binding_mismatch', 'Case grant does not bind the exact activated delivery');
+      if (state.connection === null || state.executor === null || state.executor.id !== delivery.executorId || state.executor.epoch !== delivery.executorEpoch) {
+        fail('stale_executor_fence', 'Delivery executor is no longer current');
+      }
+      assertInstallableConnectionCurrent(state);
+      const installableAgentTuple = state.installableAgent.state === 'LEGACY_D0020_ONLY'
+        ? null
+        : installableAgentCurrentTuple(state.installableAgent, { executable: true });
+      const socketIncarnationId = state.connection.socketIncarnationId;
+      if (installableAgentTuple !== null && socketIncarnationId === null) {
+        fail('physical_socket_incarnation_required', 'D0027 dispatch authorization requires the current physical socket incarnation');
+      }
+      const authorizationIdentity = {
         ...routeIdentity(state),
         deliveryId: delivery.deliveryId,
         dispatchOrdinal: command.dispatchOrdinal,
@@ -1525,7 +2717,15 @@ export class AgentDeliveryAuthority {
         connectionEpoch: state.connection.epoch,
         executorId: state.executor.id,
         executorEpoch: state.executor.epoch,
-      });
+      };
+      if (installableAgentTuple !== null) {
+        authorizationIdentity.socketIncarnationId = socketIncarnationId;
+        authorizationIdentity.installableAgentTuple = canonicalClone(installableAgentTuple);
+      }
+      const authorizationId = typedDigest(
+        installableAgentTuple === null ? 'tdev.agent-dispatch-authorization.v1' : 'tdev.agent-dispatch-authorization.v2',
+        authorizationIdentity,
+      );
       const dispatch = {
         dispatchOrdinal: command.dispatchOrdinal,
         dispatchGrantId: input.dispatchGrantId,
@@ -1540,6 +2740,11 @@ export class AgentDeliveryAuthority {
         firstSendClaim: null,
         evidence: emptyDispatchEvidence(),
       };
+      if (installableAgentTuple !== null) {
+        dispatch.socketIncarnationId = socketIncarnationId;
+        dispatch.installableAgentTuple = canonicalClone(installableAgentTuple);
+        dispatch.firstEmissionAdmission = null;
+      }
       delivery.dispatches[ordinalKey] = dispatch;
       return { changed: true, result: { classification: 'accepted', authorization: dispatch } };
     });
@@ -1548,6 +2753,9 @@ export class AgentDeliveryAuthority {
   claimFirstSend(input) {
     exactRecord(input, ['deliveryId', 'authorizationId', 'dispatchOrdinal', 'dispatchGrantId'], [], 'first send claim');
     return this.#mutate((state) => {
+      if (state.installableAgent.state !== 'LEGACY_D0020_ONLY') {
+        fail('installable_agent_first_emission_required', 'D0027 dispatch cannot use the transferable D0020 first-send claim');
+      }
       assertDigest(input.deliveryId, 'deliveryId');
       assertDigest(input.authorizationId, 'authorizationId');
       assertDigest(input.dispatchGrantId, 'dispatchGrantId');
@@ -1581,6 +2789,102 @@ export class AgentDeliveryAuthority {
       dispatch.firstSendClaim = { claimId, authorizationId: dispatch.authorizationId };
       return { changed: true, result: { classification: 'accepted', maySend: true, possibleExecution: true, claimId } };
     });
+  }
+
+  initiateFirstEmission(input, initiatePhysicalSend) {
+    exactRecord(input, ['deliveryId', 'authorizationId', 'dispatchOrdinal', 'dispatchGrantId'], [], 'D0027 first-emission admission');
+    if (typeof initiatePhysicalSend !== 'function') fail('invalid_first_emission_initiator', 'D0027 first-emission admission requires an immediate physical-send initiator');
+    const admission = this.#mutate((state) => {
+      if (state.installableAgent.state === 'LEGACY_D0020_ONLY') {
+        fail('installable_agent_first_emission_not_applicable', 'Legacy D0020 route uses its existing first-send claim path');
+      }
+      assertDigest(input.deliveryId, 'deliveryId');
+      assertDigest(input.authorizationId, 'authorizationId');
+      assertDigest(input.dispatchGrantId, 'dispatchGrantId');
+      assertSafeInteger(input.dispatchOrdinal, 'dispatchOrdinal', { min: 1, max: state.limits.maxDispatchOrdinalsPerDelivery });
+      const delivery = state.deliveries[input.deliveryId];
+      if (!delivery) fail('dispatch_not_authorized', 'Delivery does not exist');
+      if (delivery.evidenceConflict !== null) fail('delivery_evidence_conflict', 'Conflicted delivery cannot initiate a new send');
+      const dispatch = delivery.dispatches[String(input.dispatchOrdinal)];
+      if (!dispatch) fail('dispatch_not_authorized', 'Delivery ordinal has no durable dispatch authorization');
+      if (dispatch.authorizationId !== input.authorizationId || dispatch.dispatchGrantId !== input.dispatchGrantId) {
+        fail('dispatch_authorization_mismatch', 'First-emission admission does not match durable authorization');
+      }
+      if (dispatch.firstEmissionAdmission !== null) {
+        return { changed: false, result: {
+          classification: 'exact_replay',
+          maySend: false,
+          possibleExecution: true,
+          admissionId: dispatch.firstEmissionAdmission.admissionId,
+          tupleDigest: dispatch.firstEmissionAdmission.tupleDigest,
+        } };
+      }
+      const currentTuple = installableAgentCurrentTuple(state.installableAgent, { executable: true });
+      if (dispatch.installableAgentTuple === undefined || dispatch.installableAgentTuple === null ||
+          dispatch.socketIncarnationId === undefined || dispatch.socketIncarnationId === null) {
+        fail('stale_installable_agent_fence', 'Dispatch authorization predates the D0027 current tuple');
+      }
+      if (canonicalJson(dispatch.installableAgentTuple) !== canonicalJson(currentTuple)) {
+        fail('stale_installable_agent_fence', 'Dispatch authorization is fenced to a predecessor D0027 tuple');
+      }
+      if (state.connection === null || state.executor === null || state.connection.socketIncarnationId === null ||
+          state.connection.id !== dispatch.connectionId || state.connection.epoch !== dispatch.connectionEpoch ||
+          state.connection.socketIncarnationId !== dispatch.socketIncarnationId ||
+          state.executor.id !== dispatch.executorId || state.executor.epoch !== dispatch.executorEpoch) {
+        fail('stale_connection_fence', 'First-emission admission is fenced to a predecessor connection/socket/executor');
+      }
+      const tupleDigest = currentTupleDigest(state.installableAgent);
+      const admissionId = typedDigest('tdev.agent-first-emission-admission.v1', {
+        ...routeIdentity(state),
+        installableAgentTuple: currentTuple,
+        connectionId: dispatch.connectionId,
+        connectionEpoch: dispatch.connectionEpoch,
+        socketIncarnationId: dispatch.socketIncarnationId,
+        executorId: dispatch.executorId,
+        executorEpoch: dispatch.executorEpoch,
+        deliveryId: delivery.deliveryId,
+        dispatchOrdinal: dispatch.dispatchOrdinal,
+        dispatchGrantId: dispatch.dispatchGrantId,
+        authorizationId: dispatch.authorizationId,
+      });
+      dispatch.firstEmissionAdmission = { admissionId, authorizationId: dispatch.authorizationId, tupleDigest };
+      return { changed: true, result: {
+        classification: 'accepted',
+        maySend: true,
+        possibleExecution: true,
+        admissionId,
+        tupleDigest,
+        installableAgentTuple: canonicalClone(currentTuple),
+        socketIncarnationId: dispatch.socketIncarnationId,
+      } };
+    });
+    if (!admission.maySend) return admission;
+    try {
+      const initiated = initiatePhysicalSend(admission);
+      if (initiated !== null && (typeof initiated === 'object' || typeof initiated === 'function') && typeof initiated.then === 'function') {
+        return deepFreeze({
+          ...canonicalClone(admission),
+          classification: 'send_outcome_unknown',
+          maySend: false,
+          physicalSendInitiated: false,
+          errorCode: 'async_first_emission_initiator_forbidden',
+        });
+      }
+      return deepFreeze({
+        ...canonicalClone(admission),
+        classification: 'send_initiated',
+        maySend: false,
+        physicalSendInitiated: true,
+      });
+    } catch (cause) {
+      return deepFreeze({
+        ...canonicalClone(admission),
+        classification: 'send_outcome_unknown',
+        maySend: false,
+        physicalSendInitiated: false,
+        errorCode: cause?.code ?? 'physical_send_initiation_failed',
+      });
+    }
   }
 
   closeUndispatchedDelivery(deliveryId, { nowMs = null } = {}) {
@@ -1653,6 +2957,7 @@ export class AgentDeliveryAuthority {
   reacquireDeliveryAdmission(input) {
     exactRecord(input, ['deliveryId', 'expectedNextOrdinal'], [], 'delivery admission reacquisition');
     return this.#mutate((state) => {
+      assertInstallableConnectionCurrent(state);
       assertDigest(input.deliveryId, 'deliveryId');
       assertSafeInteger(input.expectedNextOrdinal, 'expectedNextOrdinal', { min: 2, max: state.limits.maxDispatchOrdinalsPerDelivery });
       const delivery = state.deliveries[input.deliveryId];
@@ -1816,8 +3121,8 @@ export class AgentDeliveryAuthority {
       fail('stale_delivery_fence', 'Result identity does not match the activated delivery/Attempt fence');
     }
     assertCurrentExecutor(state, envelope);
-    if (!Object.values(delivery.dispatches).some((dispatch) => dispatch.firstSendClaim !== null)) {
-      fail('result_before_dispatch', 'Result cannot cross before one executable dispatch acquired first-send authority');
+    if (!Object.values(delivery.dispatches).some((dispatch) => dispatch.firstSendClaim !== null || dispatch.firstEmissionAdmission !== null)) {
+      fail('result_before_dispatch', 'Result cannot cross before one executable dispatch acquired first-emission authority');
     }
     const envelopeBytes = textEncoder.encode(canonicalJson(envelope)).byteLength;
     if (envelopeBytes > state.limits.maxEnvelopeBytes) {

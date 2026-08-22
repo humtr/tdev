@@ -15,6 +15,7 @@ import {
   computeAgentConnectRequestDigest,
   normalizeAgentRouteBinding,
 } from './agent-delivery-authority.mjs';
+import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
@@ -316,6 +317,28 @@ function requiredQueryText(params, name) {
   return value;
 }
 
+function installableAgentTupleFromQuery(params) {
+  const fields = [
+    'installationGeneration', 'credentialGeneration', 'packageActivationGeneration', 'packageManifestDigest',
+    'trustPolicyGeneration', 'trustStateDigest', 'lifecycleGeneration',
+  ];
+  const present = fields.filter((field) => params.has(field));
+  if (present.length === 0) return null;
+  if (present.length !== fields.length) fail('invalid_agent_connect_request', 'D0027 connect tuple must be wholly present or absent');
+  const tuple = {
+    installationGeneration: positiveQueryInteger(params, 'installationGeneration'),
+    credentialGeneration: positiveQueryInteger(params, 'credentialGeneration'),
+    packageActivationGeneration: positiveQueryInteger(params, 'packageActivationGeneration'),
+    packageManifestDigest: requiredQueryText(params, 'packageManifestDigest'),
+    trustPolicyGeneration: positiveQueryInteger(params, 'trustPolicyGeneration'),
+    trustStateDigest: requiredQueryText(params, 'trustStateDigest'),
+    lifecycleGeneration: positiveQueryInteger(params, 'lifecycleGeneration'),
+  };
+  assertDigest(tuple.packageManifestDigest, 'packageManifestDigest');
+  assertDigest(tuple.trustStateDigest, 'trustStateDigest');
+  return normalizeInstallableAgentDataPlaneTuple(tuple);
+}
+
 function attachmentFromSocket(socket) {
   if (!socket || typeof socket.deserializeAttachment !== 'function') {
     fail('invalid_agent_socket', 'Hibernation socket attachment API is unavailable');
@@ -329,7 +352,7 @@ function attachmentFromSocket(socket) {
     assertRecordShape(raw, [
       'schemaVersion', 'agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'socketIncarnationId',
       'executorId', 'executorEpoch',
-    ], [], 'Agent socket attachment');
+    ], ['installableAgentTuple'], 'Agent socket attachment');
   } else {
     fail('invalid_agent_socket', 'Agent socket attachment schema is unsupported');
   }
@@ -342,6 +365,9 @@ function attachmentFromSocket(socket) {
     socketIncarnationId: raw.schemaVersion === 2 ? raw.socketIncarnationId : null,
     executorId: raw.executorId,
     executorEpoch: raw.executorEpoch,
+    installableAgentTuple: raw.schemaVersion === 2 && raw.installableAgentTuple !== undefined
+      ? normalizeInstallableAgentDataPlaneTuple(raw.installableAgentTuple)
+      : null,
   };
   assertIdentifier(attachment.agentId, 'attachment.agentId');
   assertSafeInteger(attachment.routeGeneration, 'attachment.routeGeneration', { min: 1 });
@@ -369,15 +395,19 @@ function connectionIdentityFromAttachment(attachment) {
   if (attachment.socketIncarnationId === null) {
     fail('stale_connection_fence', 'Legacy socket has no physical incarnation fence');
   }
-  return {
+  const identity = {
     ...logicalConnectionIdentityFromAttachment(attachment),
     socketIncarnationId: attachment.socketIncarnationId,
   };
+  if (attachment.installableAgentTuple !== undefined && attachment.installableAgentTuple !== null) {
+    identity.installableAgentTuple = canonicalClone(attachment.installableAgentTuple);
+  }
+  return identity;
 }
 
 function currentSocketAttachment(attachment, socketIncarnationId) {
   assertIdentifier(socketIncarnationId, 'socketIncarnationId');
-  return {
+  const upgraded = {
     schemaVersion: 2,
     agentId: attachment.agentId,
     routeGeneration: attachment.routeGeneration,
@@ -387,6 +417,8 @@ function currentSocketAttachment(attachment, socketIncarnationId) {
     executorId: attachment.executorId,
     executorEpoch: attachment.executorEpoch,
   };
+  if (attachment.installableAgentTuple !== null) upgraded.installableAgentTuple = canonicalClone(attachment.installableAgentTuple);
+  return upgraded;
 }
 
 function attachmentTupleKey(attachment) {
@@ -451,6 +483,8 @@ export class AgentDeliveryRuntimeDOHost {
     this.durableObjectId = ctx.id.toString();
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
     this.webSocketPairFactory = options.webSocketPairFactory ?? (() => new WebSocketPair());
+    this.verifyManagementProof = options.verifyManagementProof ?? null;
+    this.verifyInstallableAgentEvidence = options.verifyInstallableAgentEvidence ?? null;
     ctx.blockConcurrencyWhile(async () => {
       if (typeof this.store.initialize === 'function') this.store.initialize();
       const legacyGroups = new Map();
@@ -512,7 +546,12 @@ export class AgentDeliveryRuntimeDOHost {
 
   #authority(routeBinding) {
     const binding = assertRuntimeRouteBinding(routeBinding, this.config, this.durableObjectId);
-    return new AgentDeliveryAuthority({ store: this.store, routeBinding: binding });
+    return new AgentDeliveryAuthority({
+      store: this.store,
+      routeBinding: binding,
+      verifyManagementProof: this.verifyManagementProof,
+      verifyInstallableAgentEvidence: this.verifyInstallableAgentEvidence,
+    });
   }
 
   #bindingFromAttachment(attachment) {
@@ -531,6 +570,121 @@ export class AgentDeliveryRuntimeDOHost {
   readRoute(input) {
     assertRecordShape(input, ['routeBinding'], [], 'Agent delivery route read');
     return this.#authority(input.routeBinding).read();
+  }
+
+  readInstallableAgent(input) {
+    assertRecordShape(input, ['routeBinding'], [], 'D0027 installable Agent read');
+    return this.#authority(input.routeBinding).readInstallableAgent();
+  }
+
+  migrateInstallableAgentRoute(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 route migration');
+    return this.#authority(input.routeBinding).migrateInstallableAgentRoute(input.request);
+  }
+
+  registerInstallableAgent(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 register');
+    return this.#authority(input.routeBinding).registerInstallableAgent(input.request);
+  }
+
+  recordInstallableAgentGenesisEvidence(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 genesis evidence');
+    return this.#authority(input.routeBinding).recordInstallableAgentGenesisEvidence(input.request);
+  }
+
+  acceptLegacyPredecessorQuiescence(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 legacy predecessor quiescence');
+    return this.#authority(input.routeBinding).acceptLegacyPredecessorQuiescence(input.request);
+  }
+
+  initialActivateInstallableAgent(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 initial activation');
+    return this.#authority(input.routeBinding).initialActivateInstallableAgent(input.request);
+  }
+
+  failInstallableAgentGenesis(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 failed genesis');
+    return this.#authority(input.routeBinding).failInstallableAgentGenesis(input.request);
+  }
+
+  recordInstallableAgentTransactionEvidence(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 transaction evidence');
+    return this.#authority(input.routeBinding).recordInstallableAgentTransactionEvidence(input.request);
+  }
+
+  mutateInstallableAgentTrust(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 trust mutation');
+    return this.#authority(input.routeBinding).mutateInstallableAgentTrust(input.request);
+  }
+
+  beginCredentialRotation(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential rotation begin');
+    return this.#authority(input.routeBinding).beginCredentialRotation(input.request);
+  }
+
+  commitCredentialRotation(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential rotation commit');
+    return this.#authority(input.routeBinding).commitCredentialRotation(input.request);
+  }
+
+  revokeInstallableAgentCredential(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential revocation');
+    return this.#authority(input.routeBinding).revokeInstallableAgentCredential(input.request);
+  }
+
+  beginBaseStop(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base stop begin');
+    return this.#authority(input.routeBinding).beginBaseStop(input.request);
+  }
+
+  completeBaseStop(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base stop complete');
+    return this.#authority(input.routeBinding).completeBaseStop(input.request);
+  }
+
+  prepareBaseStart(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base start prepare');
+    return this.#authority(input.routeBinding).prepareBaseStart(input.request);
+  }
+
+  commitBaseStart(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base start commit');
+    return this.#authority(input.routeBinding).commitBaseStart(input.request);
+  }
+
+  beginPackageActivation(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 package activation begin');
+    return this.#authority(input.routeBinding).beginPackageActivation(input.request);
+  }
+
+  commitPackageActivation(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 package activation commit');
+    return this.#authority(input.routeBinding).commitPackageActivation(input.request);
+  }
+
+  beginInstallableAgentReplacement(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 replacement begin');
+    return this.#authority(input.routeBinding).beginInstallableAgentReplacement(input.request);
+  }
+
+  commitInstallableAgentReplacement(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 replacement commit');
+    return this.#authority(input.routeBinding).commitInstallableAgentReplacement(input.request);
+  }
+
+  beginInstallableAgentUninstall(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 uninstall begin');
+    return this.#authority(input.routeBinding).beginInstallableAgentUninstall(input.request);
+  }
+
+  completeInstallableAgentUninstall(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 uninstall complete');
+    return this.#authority(input.routeBinding).completeInstallableAgentUninstall(input.request);
+  }
+
+  compactInstallableAgentManagementReceipts(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 management receipt compaction');
+    return this.#authority(input.routeBinding).compactInstallableAgentManagementReceipts(input.request);
   }
 
   reserve(input) {
@@ -604,6 +758,8 @@ export class AgentDeliveryRuntimeDOHost {
       executorEpoch: positiveQueryInteger(url.searchParams, 'executorEpoch'),
       protocolMetadataDigest: requiredQueryText(url.searchParams, 'protocolMetadataDigest'),
     };
+    const installableAgentTuple = installableAgentTupleFromQuery(url.searchParams);
+    if (installableAgentTuple !== null) connect.installableAgentTuple = installableAgentTuple;
     assertDigest(connect.protocolMetadataDigest, 'protocolMetadataDigest');
     connect.requestDigest = computeAgentConnectRequestDigest(connect);
     const result = authority.connect(connect);
@@ -621,6 +777,7 @@ export class AgentDeliveryRuntimeDOHost {
       executorId: receipt.executorId,
       executorEpoch: receipt.executorEpoch,
     };
+    if (installableAgentTuple !== null) attachment.installableAgentTuple = canonicalClone(installableAgentTuple);
     if (byteLength(canonicalJson(attachment)) > AGENT_DELIVERY_MAX_ATTACHMENT_BYTES) {
       fail('invalid_agent_socket', 'Agent socket attachment exceeds its application limit');
     }
@@ -652,7 +809,10 @@ export class AgentDeliveryRuntimeDOHost {
     for (const socket of this.ctx.getWebSockets(AGENT_DELIVERY_SOCKET_TAG)) {
       try {
         const attachment = attachmentFromSocket(socket);
-        if (attachment.schemaVersion === 2 &&
+        const installableTupleMatch = authorization.installableAgentTuple === undefined || authorization.installableAgentTuple === null
+          ? attachment.installableAgentTuple === null
+          : attachment.installableAgentTuple !== null && canonicalJson(attachment.installableAgentTuple) === canonicalJson(authorization.installableAgentTuple);
+        if (attachment.schemaVersion === 2 && installableTupleMatch &&
             attachment.connectionId === authorization.connectionId && attachment.connectionEpoch === authorization.connectionEpoch &&
             attachment.socketIncarnationId === currentConnection.socketIncarnationId &&
             attachment.executorId === authorization.executorId && attachment.executorEpoch === authorization.executorEpoch) {
@@ -679,16 +839,7 @@ export class AgentDeliveryRuntimeDOHost {
     if (digest(input.executableBody) !== delivery.executableBodyDigest || byteLength(bodyText) !== delivery.executableBodyBytes) {
       fail('activation_substitution', 'Dispatch executable body differs from the activated delivery');
     }
-    const claim = authority.claimFirstSend({
-      deliveryId: delivery.deliveryId,
-      authorizationId: authorization.authorizationId,
-      dispatchOrdinal: authorization.dispatchOrdinal,
-      dispatchGrantId: authorization.dispatchGrantId,
-    });
-    if (!claim.maySend) {
-      return Object.freeze({ classification: 'exact_replay', sent: false, possibleExecution: true, claimId: claim.claimId, authorization });
-    }
-    const wireEnvelope = {
+    const baseWireEnvelope = {
       type: 'dispatch',
       deliveryId: delivery.deliveryId,
       dispatchOrdinal: authorization.dispatchOrdinal,
@@ -703,7 +854,61 @@ export class AgentDeliveryRuntimeDOHost {
       protocolVersion: delivery.protocolVersion,
       executableBody: canonicalClone(input.executableBody),
     };
-    const wireText = canonicalJson(wireEnvelope);
+    const d0027 = authorization.installableAgentTuple !== undefined && authorization.installableAgentTuple !== null;
+    if (d0027) {
+      const previewEnvelope = {
+        ...baseWireEnvelope,
+        installableAgentTuple: canonicalClone(authorization.installableAgentTuple),
+        socketIncarnationId: authorization.socketIncarnationId,
+        firstEmissionAdmissionId: `sha256:${'0'.repeat(64)}`,
+      };
+      const previewBytes = byteLength(canonicalJson(previewEnvelope));
+      if (previewBytes > delivery.envelopeBytes || previewBytes > this.config.maxFrameBytes) {
+        fail('agent_delivery_limit', 'D0027 dispatch wire envelope exceeds its activated/provider byte bound', {
+          wireBytes: previewBytes,
+          activatedEnvelopeBytes: delivery.envelopeBytes,
+          maxFrameBytes: this.config.maxFrameBytes,
+        });
+      }
+      const admission = authority.initiateFirstEmission({
+        deliveryId: delivery.deliveryId,
+        authorizationId: authorization.authorizationId,
+        dispatchOrdinal: authorization.dispatchOrdinal,
+        dispatchGrantId: authorization.dispatchGrantId,
+      }, (accepted) => {
+        const wireEnvelope = {
+          ...baseWireEnvelope,
+          installableAgentTuple: canonicalClone(accepted.installableAgentTuple),
+          socketIncarnationId: accepted.socketIncarnationId,
+          firstEmissionAdmissionId: accepted.admissionId,
+        };
+        socket.send(canonicalJson(wireEnvelope));
+      });
+      if (admission.classification === 'exact_replay') {
+        return Object.freeze({ classification: 'exact_replay', sent: false, possibleExecution: true, admissionId: admission.admissionId, authorization });
+      }
+      if (admission.classification === 'send_initiated') {
+        return Object.freeze({ classification: 'sent', sent: true, possibleExecution: true, admissionId: admission.admissionId, authorization });
+      }
+      return Object.freeze({
+        classification: 'send_outcome_unknown',
+        sent: false,
+        possibleExecution: true,
+        admissionId: admission.admissionId,
+        authorization,
+        errorCode: admission.errorCode,
+      });
+    }
+    const claim = authority.claimFirstSend({
+      deliveryId: delivery.deliveryId,
+      authorizationId: authorization.authorizationId,
+      dispatchOrdinal: authorization.dispatchOrdinal,
+      dispatchGrantId: authorization.dispatchGrantId,
+    });
+    if (!claim.maySend) {
+      return Object.freeze({ classification: 'exact_replay', sent: false, possibleExecution: true, claimId: claim.claimId, authorization });
+    }
+    const wireText = canonicalJson(baseWireEnvelope);
     const wireBytes = byteLength(wireText);
     if (wireBytes > delivery.envelopeBytes || wireBytes > this.config.maxFrameBytes) {
       fail('agent_delivery_limit', 'Dispatch wire envelope exceeds its activated/provider byte bound', {

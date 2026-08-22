@@ -16,6 +16,7 @@ import {
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   deriveAgentPrincipalToken,
 } from './cloudflare-agent-delivery-runtime.mjs';
+import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
 
 export const LOCAL_AGENT_RUNTIME_PROFILE = 'tdev.local-agent-runtime.v1';
 export const LOCAL_AGENT_WEBSOCKET_PROTOCOL = AGENT_DELIVERY_WEBSOCKET_PROTOCOL;
@@ -106,7 +107,7 @@ function normalizeDispatchEnvelope(input, { maxFrameBytes, maxDispatchOrdinals }
   assertRecordShape(input, [
     'type', 'deliveryId', 'dispatchOrdinal', 'authorizationId', 'dispatchGrantId', 'caseId', 'taskId', 'attemptId',
     'executorId', 'executorEpoch', 'fencingToken', 'protocolVersion', 'executableBody',
-  ], [], 'local Agent dispatch envelope');
+  ], ['installableAgentTuple', 'socketIncarnationId', 'firstEmissionAdmissionId'], 'local Agent dispatch envelope');
   if (input.type !== 'dispatch') fail('invalid_local_agent_dispatch', 'Local Agent only accepts dispatch envelopes on the executable path');
   assertDigest(input.deliveryId, 'deliveryId');
   assertSafeInteger(input.dispatchOrdinal, 'dispatchOrdinal', { min: 1, max: maxDispatchOrdinals });
@@ -117,6 +118,14 @@ function normalizeDispatchEnvelope(input, { maxFrameBytes, maxDispatchOrdinals }
   }
   assertSafeInteger(input.executorEpoch, 'executorEpoch', { min: 1 });
   assertDigest(input.fencingToken, 'fencingToken');
+  const d0027Fields = ['installableAgentTuple', 'socketIncarnationId', 'firstEmissionAdmissionId'];
+  const d0027Count = d0027Fields.filter((field) => input[field] !== undefined && input[field] !== null).length;
+  if (d0027Count !== 0 && d0027Count !== d0027Fields.length) fail('invalid_local_agent_dispatch', 'D0027 dispatch tuple must be wholly present or absent');
+  if (d0027Count === d0027Fields.length) {
+    normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
+    assertBoundedText(input.socketIncarnationId, 'socketIncarnationId', MAX_IDENTIFIER_BYTES, { identifier: true });
+    assertDigest(input.firstEmissionAdmissionId, 'firstEmissionAdmissionId');
+  }
   const envelope = canonicalClone(input);
   if (byteLength(canonicalJson(envelope)) > maxFrameBytes) {
     fail('local_agent_frame_too_large', 'Local Agent dispatch envelope exceeds the configured frame budget', { maxFrameBytes });
@@ -154,6 +163,7 @@ export class LocalAgentRuntime {
     executor,
     emit,
     executionAdapter,
+    installableAgentTuple = null,
     maxTrackedDeliveries = DEFAULT_MAX_TRACKED_DELIVERIES,
     maxDispatchOrdinals = DEFAULT_MAX_DISPATCH_ORDINALS,
     maxFrameBytes = DEFAULT_MAX_FRAME_BYTES,
@@ -163,6 +173,8 @@ export class LocalAgentRuntime {
     this.agentId = agentId;
     this.routeGeneration = routeGeneration;
     this.executor = assertExecutorTuple(executor);
+    this.installableAgentTuple = installableAgentTuple === null ? null : normalizeInstallableAgentDataPlaneTuple(installableAgentTuple);
+    this.socketIncarnationId = null;
     if (typeof emit !== 'function') fail('invalid_local_agent_runtime', 'Local Agent runtime requires an evidence transport emitter');
     if (!executionAdapter || typeof executionAdapter.start !== 'function') {
       fail('invalid_local_agent_runtime', 'Local Agent runtime requires an execution adapter exposing start()');
@@ -184,11 +196,12 @@ export class LocalAgentRuntime {
       fail('stale_local_connection', 'Local Agent connection epoch must advance on a real reconnect');
     }
     this.connection = next;
+    this.socketIncarnationId = null;
     return this.identity();
   }
 
   identity() {
-    return Object.freeze({
+    const identity = {
       profile: LOCAL_AGENT_RUNTIME_PROFILE,
       agentId: this.agentId,
       routeGeneration: this.routeGeneration,
@@ -197,7 +210,10 @@ export class LocalAgentRuntime {
       executorId: this.executor.id,
       executorEpoch: this.executor.epoch,
       capacityRevision: this.capacityRevision,
-    });
+    };
+    if (this.installableAgentTuple !== null) identity.installableAgentTuple = canonicalClone(this.installableAgentTuple);
+    if (this.socketIncarnationId !== null) identity.socketIncarnationId = this.socketIncarnationId;
+    return Object.freeze(identity);
   }
 
   replaceExecutor(tuple) {
@@ -280,6 +296,16 @@ export class LocalAgentRuntime {
     });
     if (envelope.executorId !== this.executor.id || envelope.executorEpoch !== this.executor.epoch) {
       fail('stale_local_executor', 'Dispatch targets a different executor generation');
+    }
+    const envelopeHasD0027 = envelope.installableAgentTuple !== undefined && envelope.installableAgentTuple !== null;
+    if (this.installableAgentTuple === null) {
+      if (envelopeHasD0027) fail('local_installable_agent_tuple_conflict', 'Legacy local runtime cannot execute a D0027 dispatch tuple');
+    } else {
+      if (!envelopeHasD0027 || canonicalJson(envelope.installableAgentTuple) !== canonicalJson(this.installableAgentTuple)) {
+        fail('stale_local_installable_agent_fence', 'Dispatch does not match the installed local D0027 tuple');
+      }
+      if (this.socketIncarnationId === null) this.socketIncarnationId = envelope.socketIncarnationId;
+      else if (this.socketIncarnationId !== envelope.socketIncarnationId) fail('stale_local_socket_incarnation', 'Dispatch arrived for a different physical socket incarnation');
     }
     const attemptOwner = this.attempts.get(envelope.attemptId);
     if (attemptOwner && attemptOwner !== envelope.deliveryId) {
@@ -743,6 +769,7 @@ export class LocalAgentWebSocketTransport {
     this.webSocketFactory = webSocketFactory;
     this.onServerFrame = onServerFrame;
     this.socket = null;
+    this.closePromise = null;
   }
 
   async connect({ expectedConnectionEpoch, connectRequestId, connectionId, protocolMetadataDigest }) {
@@ -752,7 +779,7 @@ export class LocalAgentWebSocketTransport {
     assertDigest(protocolMetadataDigest, 'protocolMetadataDigest');
     if (this.socket !== null) fail('local_transport_already_connected', 'Local Agent transport already owns a socket');
     const url = new URL(this.endpoint);
-    for (const [key, value] of Object.entries({
+    const query = {
       agentId: this.runtime.agentId,
       routeGeneration: this.runtime.routeGeneration,
       expectedConnectionEpoch,
@@ -761,7 +788,9 @@ export class LocalAgentWebSocketTransport {
       executorId: this.runtime.executor.id,
       executorEpoch: this.runtime.executor.epoch,
       protocolMetadataDigest,
-    })) url.searchParams.set(key, String(value));
+    };
+    if (this.runtime.installableAgentTuple !== null) Object.assign(query, this.runtime.installableAgentTuple);
+    for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
     const token = await deriveAgentPrincipalToken(this.authKey, {
       agentId: this.runtime.agentId,
       routeGeneration: this.runtime.routeGeneration,
@@ -782,6 +811,8 @@ export class LocalAgentWebSocketTransport {
     });
     this.socket = socket;
     this.runtime.bindConnection({ id: connectionId, epoch: expectedConnectionEpoch + 1 });
+    let resolveClose;
+    this.closePromise = new Promise((resolve) => { resolveClose = resolve; });
     socket.addEventListener('message', (event) => {
       void webSocketDataToText(event.data, this.runtime.maxFrameBytes)
         .then((text) => strictJsonParse(text, { maxBytes: this.runtime.maxFrameBytes }))
@@ -796,10 +827,16 @@ export class LocalAgentWebSocketTransport {
         })
         .catch(() => { try { socket.close(1008, 'local_agent_frame_rejected'); } catch {} });
     });
-    socket.addEventListener('close', () => {
+    socket.addEventListener('close', (event) => {
       if (this.socket === socket) this.socket = null;
-    });
+      resolveClose(Object.freeze({ code: event?.code ?? null, reason: event?.reason ?? null }));
+    }, { once: true });
     return this.runtime.identity();
+  }
+
+  waitForClose() {
+    if (this.closePromise === null) fail('local_connection_unavailable', 'Local Agent transport has not established a close-observable socket');
+    return this.closePromise;
   }
 
   async emit(frame) {

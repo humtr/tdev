@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.installable-agent-tool-profiles.v1",
+  "profiles": {
+    "diagnostic.node.version.v1": {
+      "executable": { "kind": "node_runtime" },
+      "argv": [
+        { "kind": "literal", "value": "--version" }
+      ],
+      "stdin": { "kind": "none" },
+      "environment": {},
+      "limits": {
+        "timeoutMs": 10000,
+        "maxOutputBytes": 65536
+      },
+      "network": "none",
+      "filesystem": "none",
+      "cleanupDomain": "warden_process_group"
+    }
+  }
+}

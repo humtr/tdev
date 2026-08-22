@@ -52,7 +52,7 @@ function dispatch(overrides = {}) {
   };
 }
 
-function runtime({ adapter, maxTrackedDeliveries = 1024 } = {}) {
+function runtime({ adapter, installableAgentTuple = null, maxTrackedDeliveries = 1024 } = {}) {
   const emitted = [];
   const executionAdapter = adapter ?? {
     async start() {
@@ -71,6 +71,7 @@ function runtime({ adapter, maxTrackedDeliveries = 1024 } = {}) {
     executor: { id: 'executor-one', epoch: 1 },
     emit: async (frame) => emitted.push(structuredClone(frame)),
     executionAdapter,
+    installableAgentTuple,
     maxTrackedDeliveries,
   });
   agent.bindConnection({ id: 'connection-one', epoch: 1 });
@@ -124,6 +125,52 @@ async function waitForFile(path, timeoutMs = 2_000) {
     }
   }
 }
+
+test('D0027 local runtime requires exact installed tuple and one physical socket incarnation', async () => {
+  const adapter = controlledAdapter();
+  const installableAgentTuple = {
+    installationGeneration: 3,
+    credentialGeneration: 5,
+    packageActivationGeneration: 7,
+    packageManifestDigest: digest({ package: 'd0027-local' }),
+    trustPolicyGeneration: 11,
+    trustStateDigest: digest({ trust: 'd0027-local' }),
+    lifecycleGeneration: 13,
+  };
+  const { agent } = runtime({ adapter, installableAgentTuple });
+  const first = dispatch({
+    installableAgentTuple,
+    socketIncarnationId: 'socket-d0027-one',
+    firstEmissionAdmissionId: digest({ admission: 'd0027-one' }),
+  });
+  const started = await agent.handleDispatch(first);
+  assert.equal(started.classification, 'started');
+  assert.equal(adapter.starts, 1);
+
+  const staleTuple = { ...installableAgentTuple, lifecycleGeneration: installableAgentTuple.lifecycleGeneration + 1 };
+  await expectCodeAsync(() => agent.handleDispatch(dispatch({
+    deliveryId: digest({ delivery: 'd0027-stale-tuple' }),
+    authorizationId: digest({ authorization: 'd0027-stale-tuple' }),
+    dispatchGrantId: digest({ grant: 'd0027-stale-tuple' }),
+    installableAgentTuple: staleTuple,
+    socketIncarnationId: 'socket-d0027-one',
+    firstEmissionAdmissionId: digest({ admission: 'd0027-stale-tuple' }),
+  })), 'stale_local_installable_agent_fence');
+
+  await expectCodeAsync(() => agent.handleDispatch(dispatch({
+    deliveryId: digest({ delivery: 'd0027-stale-socket' }),
+    authorizationId: digest({ authorization: 'd0027-stale-socket' }),
+    dispatchGrantId: digest({ grant: 'd0027-stale-socket' }),
+    installableAgentTuple,
+    socketIncarnationId: 'socket-d0027-two',
+    firstEmissionAdmissionId: digest({ admission: 'd0027-stale-socket' }),
+  })), 'stale_local_socket_incarnation');
+
+  const legacy = runtime({ adapter: controlledAdapter() }).agent;
+  await expectCodeAsync(() => legacy.handleDispatch(first), 'local_installable_agent_tuple_conflict');
+  adapter.gates[0].resolve({ effect: 'not_applied' });
+  await started.completion;
+});
 
 test('capacity revision survives reconnect and resets only for a replacement executor', async () => {
   const { agent, emitted } = runtime({ adapter: { async start() { throw new Error('unused'); } } });

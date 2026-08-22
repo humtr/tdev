@@ -11,6 +11,31 @@ export {
 } from './canonical.mjs';
 export { ClaimLedger } from './claim-ledger.mjs';
 export {
+  INSTALLABLE_AGENT_ADMISSION_PROFILE,
+  INSTALLABLE_AGENT_DATA_PLANE_TUPLE_DOMAIN,
+  INSTALLABLE_AGENT_EVIDENCE_DOMAIN,
+  INSTALLABLE_AGENT_MANAGEMENT_PROOF_DOMAIN,
+  assertInstallableAgentDataPlaneTuple,
+  compactManagementReceipts,
+  computeInstallableAgentManagementIntentDigest,
+  createLegacyInstallableAgentState,
+  createUnregisteredInstallableAgentState,
+  currentTupleDigest,
+  evidenceProofContext,
+  installableAgentCurrentTuple,
+  installableAgentPendingDigest,
+  installableAgentPredecessorDigest,
+  installableAgentSecurityStateDigest,
+  managementProofContext,
+  managementRequestReplay,
+  normalizeGenesisEvidenceType,
+  normalizeInstallableAgentDataPlaneTuple,
+  normalizeInstallableAgentState,
+  normalizePositiveQuiescenceProofClass,
+  recordManagementResult,
+  updateManagementResult,
+} from './installable-agent-admission.mjs';
+export {
   AGENT_DELIVERY_PROFILE,
   AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION,
   AgentDeliveryAuthority,
@@ -50,8 +75,55 @@ export {
   LOCAL_AGENT_WEBSOCKET_PROTOCOL,
   LocalAgentRuntime,
   LocalAgentWebSocketTransport,
+  createLocalExecutionStartError,
   createNodeProcessExecutionAdapter,
 } from './local-agent-runtime.mjs';
+export {
+  INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
+  INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
+  INSTALLABLE_AGENT_PACKAGE_PROFILE,
+  INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION,
+  INSTALLABLE_AGENT_MANAGEMENT_JOURNAL_PROFILE,
+  INSTALLABLE_AGENT_MANAGEMENT_JOURNAL_SCHEMA_VERSION,
+  INSTALLABLE_AGENT_MANAGEMENT_PROTOCOL_PROFILE,
+  InstallableAgentPackageManager,
+  normalizeInstallableAgentReleaseManifest,
+  verifyInstallableAgentRelease,
+} from './installable-agent-package.mjs';
+export { runInstallableAgentPackageCli } from './installable-agent-package-cli.mjs';
+export {
+  INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE,
+  INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION,
+  INSTALLABLE_AGENT_CONTROL_PROFILE,
+  INSTALLABLE_AGENT_TOOL_PROFILES_PROFILE,
+  INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH,
+  INSTALLABLE_AGENT_TOOL_PROFILES_SCHEMA_VERSION,
+  createInstallableAgentControlProcess,
+  normalizeInstallableAgentControlConfig,
+  readInstallableAgentControlConfig,
+} from './installable-agent-control.mjs';
+export {
+  INSTALLABLE_AGENT_SUPERVISOR_SERVICE_PROTOCOL,
+  InstallableAgentSupervisorServiceClient,
+  createInstallableAgentSupervisorServiceExecutionAdapter,
+  createInstallableAgentSupervisorServiceHandler,
+  runInstallableAgentSupervisorService,
+} from './installable-agent-supervisor-service.mjs';
+export {
+  INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,
+  TermuxInstallableAgentServiceController,
+  termuxInstallableAgentServiceLayout,
+} from './installable-agent-termux-service.mjs';
+export {
+  INSTALLABLE_AGENT_SUPERVISOR_PROFILE,
+  INSTALLABLE_AGENT_SUPERVISOR_SCHEMA_VERSION,
+  INSTALLABLE_AGENT_WARDEN_PROTOCOL,
+  FileInstallableAgentSupervisorJournal,
+  InstallableAgentSupervisor,
+  MemoryInstallableAgentSupervisorJournal,
+  createInstallableAgentSupervisor,
+  createInstallableAgentSupervisorExecutionAdapter,
+} from './installable-agent-supervisor.mjs';
 export {
   CASEDO_DEFAULT_CHUNK_BYTES,
   CASEDO_MAX_RECOVERY_CAUSE_BYTES,

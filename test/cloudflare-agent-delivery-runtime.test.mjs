@@ -3,13 +3,18 @@ import assert from 'node:assert/strict';
 
 import {
   AgentDeliveryAuthority,
+  CaseEngine,
   MemoryAgentDeliveryStore,
+  canonicalJson,
   computeAgentActivationRequestDigest,
+  computeAgentCapacityRequestDigest,
   computeAgentConnectRequestDigest,
   computeAgentDeliveryId,
   computeAgentReservationRequestDigest,
+  computeInstallableAgentManagementIntentDigest,
   digest,
 } from '../src/index.mjs';
+import { planWithWork } from './helpers.mjs';
 import {
   AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX,
   AGENT_DELIVERY_SOCKET_TAG,
@@ -186,10 +191,11 @@ async function upgradeRequest(runtimeEnv, {
   executorId = 'executor-one',
   executorEpoch = 1,
   token = null,
+  installableAgentTuple = null,
 } = {}) {
   const protocolMetadataDigest = digest({ protocol: 'test-v1' });
   const url = new URL('https://qualification.example/agent-delivery/v1/connect');
-  for (const [key, value] of Object.entries({
+  const query = {
     agentId,
     routeGeneration,
     expectedConnectionEpoch,
@@ -198,7 +204,9 @@ async function upgradeRequest(runtimeEnv, {
     executorId,
     executorEpoch,
     protocolMetadataDigest,
-  })) url.searchParams.set(key, String(value));
+  };
+  if (installableAgentTuple !== null) Object.assign(query, installableAgentTuple);
+  for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
   const bearer = token ?? await deriveAgentPrincipalToken(runtimeEnv.TDEV_AGENT_DELIVERY_AUTH_KEY, { agentId, routeGeneration });
   return new Request(url, {
     method: 'GET',
@@ -353,14 +361,14 @@ test('one unambiguous Revision-1 hibernation socket is upgraded in place without
   await ctx.blocked;
   const migrated = reconstructed.readRoute({ routeBinding: binding });
   const upgradedAttachment = socket.deserializeAttachment();
-  assert.equal(migrated.schemaVersion, 2);
+  assert.equal(migrated.schemaVersion, 3);
   assert.equal(migrated.lastConnectionEpoch, 1);
   assert.equal(migrated.connection.id, 'connection-1');
   assert.equal(typeof migrated.connection.socketIncarnationId, 'string');
   assert.equal(upgradedAttachment.schemaVersion, 2);
   assert.equal(upgradedAttachment.socketIncarnationId, migrated.connection.socketIncarnationId);
   assert.equal(socket.closed, null);
-  assert.equal(store.snapshots.get('agent-one').schemaVersion, 2, 'migration must become durable on incarnation adoption');
+  assert.equal(store.snapshots.get('agent-one').schemaVersion, 3, 'migration must become durable on incarnation adoption');
 });
 
 test('ambiguous Revision-1 hibernation sockets disconnect fail closed without minting a logical epoch', async () => {
@@ -676,4 +684,204 @@ test('stale predecessor close cannot disconnect the current replacement connecti
   const result = host.webSocketClose(predecessor);
   assert.equal(result.classification, 'stale');
   assert.equal(host.readRoute({ routeBinding: binding }).connection.id, 'connection-2');
+});
+
+async function d0027ProviderDispatchFixture(tag) {
+  const runtimeEnv = env();
+  const ctx = new FakeDurableObjectContext();
+  const store = new MemoryAgentDeliveryStore();
+  const verifyManagementProof = (proof) => proof === 'management-proof';
+  const verifyInstallableAgentEvidence = (proof) => proof === 'evidence-proof';
+  const host = new AgentDeliveryRuntimeDOHost(ctx, runtimeEnv, {
+    store,
+    webSocketPairFactory: pairFactory(),
+    verifyManagementProof,
+    verifyInstallableAgentEvidence,
+  });
+  await ctx.blocked;
+  const routeBinding = route(runtimeEnv);
+  host.initializeRoute({ routeBinding });
+  host.migrateInstallableAgentRoute({ routeBinding, request: { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1' } });
+  const packageTrustSubjectDigest = digest({ releaseKey: `provider-${tag}` });
+  const registerContent = {
+    credentialProvisioningId: `credential-${tag}`,
+    packageManifestDigest: digest({ package: tag }),
+    packageTrustSubjectDigest,
+    trustStateDigest: digest({ trust: tag }),
+    trustSubjects: { [packageTrustSubjectDigest]: 'active' },
+  };
+  const registerRequest = {
+    managementRequestId: `register-${tag}`,
+    intentDigest: computeInstallableAgentManagementIntentDigest('register', routeBinding, registerContent),
+    expectedPredecessorDigest: host.readInstallableAgent({ routeBinding }).predecessorDigest,
+    managementProof: 'management-proof',
+    ...registerContent,
+  };
+  const pending = host.registerInstallableAgent({ routeBinding, request: registerRequest });
+  for (const type of ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
+    host.recordInstallableAgentGenesisEvidence({ routeBinding, request: {
+      pendingDigest: pending.pendingDigest,
+      genesisGeneration: pending.genesisGeneration,
+      type,
+      evidenceDigest: digest({ type, tag }),
+      evidenceProof: 'evidence-proof',
+    } });
+  }
+  host.initialActivateInstallableAgent({ routeBinding, request: {
+    managementRequestId: registerRequest.managementRequestId,
+    intentDigest: registerRequest.intentDigest,
+    expectedPredecessorDigest: registerRequest.expectedPredecessorDigest,
+    managementProof: 'management-proof',
+    pendingDigest: pending.pendingDigest,
+    genesisGeneration: pending.genesisGeneration,
+  } });
+  const currentTuple = host.readInstallableAgent({ routeBinding }).currentTuple;
+  await host.acceptAgentWebSocket(await upgradeRequest(runtimeEnv, {
+    connectRequestId: `connect-${tag}`,
+    connectionId: `connection-${tag}`,
+    installableAgentTuple: currentTuple,
+  }));
+  const authority = new AgentDeliveryAuthority({ store, routeBinding, verifyManagementProof, verifyInstallableAgentEvidence });
+  const connected = authority.read();
+  const capacityContent = {
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    connectionId: connected.connection.id,
+    connectionEpoch: connected.connection.epoch,
+    executorId: connected.executor.id,
+    executorEpoch: connected.executor.epoch,
+    capacityRevision: 1,
+    reportedCapacity: 1,
+  };
+  authority.observeCapacity({ ...capacityContent, requestDigest: computeAgentCapacityRequestDigest(capacityContent) });
+  const executableBody = { command: 'provider-test', args: [tag] };
+  const executableBodyBytes = new TextEncoder().encode(canonicalJson(executableBody)).byteLength;
+  const preflightDescriptor = {
+    profileId: 'd0027-provider-test',
+    protocolVersion: 'v1',
+    executableBodyDigest: digest(executableBody),
+    executableBodyBytes,
+    resourceDimensions: { processSlots: 1 },
+    maxEnvelopeBytes: 16 * 1024,
+  };
+  const engine = new CaseEngine({ caseId: `case-${tag}`, plan: planWithWork([{ id: `task-${tag}` }]) });
+  const deliveryState = authority.read();
+  const reservationContent = {
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    reservationWindowGeneration: deliveryState.reservationWindowGeneration,
+    reservationRequestId: `reserve-${tag}`,
+    executorId: deliveryState.executor.id,
+    executorEpoch: deliveryState.executor.epoch,
+    capacityRevision: deliveryState.capacity.revision,
+    caseId: engine.caseId,
+    taskId: `task-${tag}`,
+    expectedCaseRevision: engine.caseRevision,
+    predictedAttemptOrdinal: 1,
+    requestedSlots: 1,
+    expiresAtMs: 9_000_100,
+    preflightDescriptor,
+  };
+  const reservation = authority.reserve({
+    ...reservationContent,
+    reservationRequestDigest: computeAgentReservationRequestDigest(reservationContent, deliveryState.limits),
+  }, { nowMs: 9_000_000 }).reservation;
+  const attempt = engine.startAttempt(`task-${tag}`, { id: deliveryState.executor.id, epoch: deliveryState.executor.epoch, capabilities: [] });
+  const deliveryId = computeAgentDeliveryId({
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    caseId: reservation.caseId,
+    taskId: reservation.taskId,
+    attemptId: attempt.id,
+    executorId: attempt.executorId,
+    executorEpoch: attempt.executorEpoch,
+    fencingToken: attempt.fencingToken,
+  });
+  const activation = {
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    activationRequestId: `activate-${tag}`,
+    reservationWindowGeneration: reservation.windowGeneration,
+    reservationRequestId: reservation.reservationRequestId,
+    reservationRequestDigest: reservation.reservationRequestDigest,
+    slotToken: reservation.slotToken,
+    slotGeneration: reservation.slotGeneration,
+    deliveryId,
+    caseId: reservation.caseId,
+    taskId: reservation.taskId,
+    attemptId: attempt.id,
+    attemptOrdinal: attempt.ordinal,
+    executorId: attempt.executorId,
+    executorEpoch: attempt.executorEpoch,
+    fencingToken: attempt.fencingToken,
+    sourceCaseRevision: engine.caseRevision,
+    executableBodyDigest: preflightDescriptor.executableBodyDigest,
+    executableBodyBytes,
+    envelopeBytes: preflightDescriptor.maxEnvelopeBytes,
+    protocolVersion: preflightDescriptor.protocolVersion,
+    effectKey: attempt.effectKey,
+  };
+  authority.activateDelivery({ ...activation, activationRequestDigest: computeAgentActivationRequestDigest(activation) }, { nowMs: 9_000_001 });
+  const command = authority.grantCommand(deliveryId, 1);
+  const grantRequestId = `grant-${tag}`;
+  const grant = engine.applyCommand({ requestId: grantRequestId, expectedCaseRevision: engine.caseRevision, command });
+  const authorization = {
+    grantRequestId,
+    command,
+    dispatchGrantId: grant.response.dispatchGrantId,
+    committedCaseRevision: grant.response.committedCaseRevision,
+    event: grant.response.event,
+  };
+  return { host, authority, ctx, routeBinding, executableBody, authorization };
+}
+
+function d0027ProviderTrustFence(authority, tag) {
+  const current = authority.readInstallableAgent().installableAgent.current;
+  const content = {
+    trustStateDigest: digest({ trustFence: tag }),
+    trustSubjects: { [current.packageTrustSubjectDigest]: 'active' },
+    trustContinuesCurrentPackage: false,
+  };
+  const state = authority.readInstallableAgent();
+  authority.mutateInstallableAgentTrust({
+    managementRequestId: `trust-fence-${tag}`,
+    intentDigest: computeInstallableAgentManagementIntentDigest('trust', authority.read().routeBinding, content),
+    expectedPredecessorDigest: state.predecessorDigest,
+    managementProof: 'management-proof',
+    ...content,
+  });
+}
+
+test('D0027 Cloudflare fence-first blocks physical send after durable authorization', async () => {
+  const fixture = await d0027ProviderDispatchFixture('provider-fence-first');
+  fixture.authority.authorizeDispatch(fixture.authorization);
+  d0027ProviderTrustFence(fixture.authority, 'provider-fence-first');
+  expectCode(() => fixture.host.sendAuthorizedDispatch({
+    routeBinding: fixture.routeBinding,
+    authorization: fixture.authorization,
+    executableBody: fixture.executableBody,
+  }), 'stale_installable_agent_fence');
+  assert.equal(fixture.ctx.sockets[0].sent.length, 0);
+});
+
+test('D0027 Cloudflare admission-first sends once and replay after a later fence never sends again', async () => {
+  const fixture = await d0027ProviderDispatchFixture('provider-admission-first');
+  const first = fixture.host.sendAuthorizedDispatch({
+    routeBinding: fixture.routeBinding,
+    authorization: fixture.authorization,
+    executableBody: fixture.executableBody,
+  });
+  assert.equal(first.classification, 'sent');
+  assert.equal(first.sent, true);
+  assert.equal(fixture.ctx.sockets[0].sent.length, 1);
+  d0027ProviderTrustFence(fixture.authority, 'provider-admission-first');
+  const replay = fixture.host.sendAuthorizedDispatch({
+    routeBinding: fixture.routeBinding,
+    authorization: fixture.authorization,
+    executableBody: fixture.executableBody,
+  });
+  assert.equal(replay.classification, 'exact_replay');
+  assert.equal(replay.sent, false);
+  assert.equal(replay.possibleExecution, true);
+  assert.equal(fixture.ctx.sockets[0].sent.length, 1);
 });
