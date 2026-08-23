@@ -1,9 +1,14 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { generateKeyPairSync, sign } from 'node:crypto';
 
 import {
   AgentDeliveryAuthority,
   CaseEngine,
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+  INSTALLABLE_AGENT_MANAGEMENT_ENVELOPE_PROFILE,
+  INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE,
   MemoryAgentDeliveryStore,
   canonicalJson,
   computeAgentActivationRequestDigest,
@@ -13,10 +18,15 @@ import {
   computeAgentReservationRequestDigest,
   computeInstallableAgentManagementIntentDigest,
   digest,
+  encodeBase64Url,
+  installableAgentManagementKeyId,
+  managementProofContext,
+  signedRecordBytes,
 } from '../src/index.mjs';
 import { planWithWork } from './helpers.mjs';
 import {
   AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX,
+  AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX,
   AGENT_DELIVERY_SOCKET_TAG,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
@@ -182,6 +192,69 @@ function connectAuthority(authority, overrides = {}) {
   return authority.connect({ ...content, requestDigest: computeAgentConnectRequestDigest(content) });
 }
 
+function ed25519Pair() {
+  const pair = generateKeyPairSync('ed25519');
+  return { ...pair, publicJwk: pair.publicKey.export({ format: 'jwk' }) };
+}
+
+function rsa3072Pair() {
+  const pair = generateKeyPairSync('rsa', { modulusLength: 3072, publicExponent: 0x10001 });
+  return { ...pair, publicJwk: pair.publicKey.export({ format: 'jwk' }) };
+}
+
+function concreteManagementEnvelope(routeBinding, operation, request, management) {
+  const context = managementProofContext(operation, routeBinding, request, request.expectedPredecessorDigest);
+  return {
+    profile: INSTALLABLE_AGENT_MANAGEMENT_ENVELOPE_PROFILE,
+    keyId: installableAgentManagementKeyId(management.publicJwk),
+    context,
+    signature: encodeBase64Url(sign(null, signedRecordBytes('tdev.agent-management.v1', context), management.privateKey)),
+  };
+}
+
+async function possessionUpgradeRequest(host, routeBinding, credential, {
+  expectedConnectionEpoch = 0,
+  connectRequestId = 'c1:1',
+  connectionId = 'connection-d0039-1',
+  executorId = 'executor-one',
+  executorEpoch = 1,
+  installableAgentTuple,
+} = {}) {
+  const protocolMetadataDigest = digest({ protocol: 'test-v1' });
+  const challengeInput = {
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    expectedConnectionEpoch,
+    connectRequestId,
+    connectionId,
+    executorId,
+    executorEpoch,
+    protocolMetadataDigest,
+    installableAgentTuple,
+  };
+  const { challenge } = host.issueInstallableAgentConnectChallenge({ routeBinding, request: challengeInput });
+  const envelope = {
+    profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+    keyId: challenge.credentialKeyId,
+    context: challenge,
+    signature: encodeBase64Url(sign('sha256', signedRecordBytes(INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE, challenge), credential.privateKey)),
+  };
+  const url = new URL('https://qualification.example/agent-delivery/v1/connect');
+  for (const [key, value] of Object.entries(challengeInput)) {
+    if (key === 'installableAgentTuple') continue;
+    url.searchParams.set(key, String(value));
+  }
+  for (const [key, value] of Object.entries(installableAgentTuple)) url.searchParams.set(key, String(value));
+  const possession = encodeBase64Url(new TextEncoder().encode(canonicalJson(envelope)));
+  return new Request(url, {
+    method: 'GET',
+    headers: {
+      upgrade: 'websocket',
+      'sec-websocket-protocol': `${AGENT_DELIVERY_WEBSOCKET_PROTOCOL}, ${AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX}${possession}`,
+    },
+  });
+}
+
 async function upgradeRequest(runtimeEnv, {
   agentId = 'agent-one',
   routeGeneration = 1,
@@ -216,6 +289,25 @@ async function upgradeRequest(runtimeEnv, {
     },
   });
 }
+
+test('first durable D0027 marker permanently rejects legacy HMAC/Bearer WebSocket authority', async () => {
+  const runtimeEnv = env();
+  const ctx = new FakeDurableObjectContext();
+  const host = new AgentDeliveryRuntimeDOHost(ctx, runtimeEnv, { webSocketPairFactory: pairFactory() });
+  await ctx.blocked;
+  const routeBinding = route(runtimeEnv);
+  host.initializeRoute({ routeBinding });
+  host.migrateInstallableAgentRoute({
+    routeBinding,
+    request: { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1' },
+  });
+  await expectCodeAsync(
+    async () => host.acceptAgentWebSocket(await upgradeRequest(runtimeEnv)),
+    'legacy_agent_auth_forbidden',
+  );
+  assert.equal(host.readInstallableAgent({ routeBinding }).installableAgent.state, 'UNREGISTERED');
+  assert.equal(ctx.sockets.length, 0);
+});
 
 test('Cloudflare Agent delivery deployment config fails closed at provider receive ceiling', () => {
   assert.equal(readAgentDeliveryRuntimeConfig(env()).maxFrameBytes, 8 * 1024);
@@ -700,11 +792,25 @@ async function d0027ProviderDispatchFixture(tag) {
   });
   await ctx.blocked;
   const routeBinding = route(runtimeEnv);
+  const management = ed25519Pair();
+  const releaseRoot = ed25519Pair();
+  const credential = rsa3072Pair();
   host.initializeRoute({ routeBinding });
-  host.migrateInstallableAgentRoute({ routeBinding, request: { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1' } });
+  host.migrateInstallableAgentRoute({
+    routeBinding,
+    request: {
+      migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1',
+      routeSecurity: {
+        profile: INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE,
+        managementPublicKey: management.publicJwk,
+        releaseRootPublicKey: releaseRoot.publicJwk,
+      },
+    },
+  });
   const packageTrustSubjectDigest = digest({ releaseKey: `provider-${tag}` });
   const registerContent = {
     credentialProvisioningId: `credential-${tag}`,
+    credentialPublicKey: credential.publicJwk,
     packageManifestDigest: digest({ package: tag }),
     packageTrustSubjectDigest,
     trustStateDigest: digest({ trust: tag }),
@@ -714,10 +820,10 @@ async function d0027ProviderDispatchFixture(tag) {
     managementRequestId: 'm2:1',
     intentDigest: computeInstallableAgentManagementIntentDigest('register', routeBinding, registerContent),
     expectedPredecessorDigest: host.readInstallableAgent({ routeBinding }).predecessorDigest,
-    managementProof: 'management-proof',
     ...registerContent,
   };
-  const pending = host.registerInstallableAgent({ routeBinding, request: registerRequest });
+  registerRequest.managementProof = concreteManagementEnvelope(routeBinding, 'register', registerRequest, management);
+  const pending = await host.registerInstallableAgent({ routeBinding, request: registerRequest });
   for (const type of ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
     host.recordInstallableAgentGenesisEvidence({ routeBinding, request: {
       pendingDigest: pending.pendingDigest,
@@ -727,17 +833,18 @@ async function d0027ProviderDispatchFixture(tag) {
       evidenceProof: 'evidence-proof',
     } });
   }
-  host.initialActivateInstallableAgent({ routeBinding, request: {
+  const activationRequest = {
     managementRequestId: registerRequest.managementRequestId,
     intentDigest: registerRequest.intentDigest,
     expectedPredecessorDigest: registerRequest.expectedPredecessorDigest,
-    managementProof: 'management-proof',
     pendingDigest: pending.pendingDigest,
     genesisGeneration: pending.genesisGeneration,
-  } });
+  };
+  activationRequest.managementProof = concreteManagementEnvelope(routeBinding, 'register', activationRequest, management);
+  await host.initialActivateInstallableAgent({ routeBinding, request: activationRequest });
   const currentTuple = host.readInstallableAgent({ routeBinding }).currentTuple;
-  await host.acceptAgentWebSocket(await upgradeRequest(runtimeEnv, {
-    connectRequestId: `connect-${tag}`,
+  await host.acceptAgentWebSocket(await possessionUpgradeRequest(host, routeBinding, credential, {
+    connectRequestId: 'c1:1',
     connectionId: `connection-${tag}`,
     installableAgentTuple: currentTuple,
   }));
@@ -832,30 +939,31 @@ async function d0027ProviderDispatchFixture(tag) {
     committedCaseRevision: grant.response.committedCaseRevision,
     event: grant.response.event,
   };
-  return { host, authority, ctx, routeBinding, executableBody, authorization };
+  return { host, authority, ctx, routeBinding, management, executableBody, authorization };
 }
 
-function d0027ProviderTrustFence(authority, tag) {
-  const current = authority.readInstallableAgent().installableAgent.current;
+async function d0027ProviderTrustFence(fixture, tag) {
+  const current = fixture.authority.readInstallableAgent().installableAgent.current;
   const content = {
     trustStateDigest: digest({ trustFence: tag }),
     trustSubjects: { [current.packageTrustSubjectDigest]: 'active' },
     trustContinuesCurrentPackage: false,
   };
-  const state = authority.readInstallableAgent();
-  authority.mutateInstallableAgentTrust({
+  const state = fixture.host.readInstallableAgent({ routeBinding: fixture.routeBinding });
+  const request = {
     managementRequestId: 'm2:2',
-    intentDigest: computeInstallableAgentManagementIntentDigest('trust', authority.read().routeBinding, content),
+    intentDigest: computeInstallableAgentManagementIntentDigest('trust', fixture.routeBinding, content),
     expectedPredecessorDigest: state.predecessorDigest,
-    managementProof: 'management-proof',
     ...content,
-  });
+  };
+  request.managementProof = concreteManagementEnvelope(fixture.routeBinding, 'trust', request, fixture.management);
+  await fixture.host.mutateInstallableAgentTrust({ routeBinding: fixture.routeBinding, request });
 }
 
 test('D0027 Cloudflare fence-first blocks physical send after durable authorization', async () => {
   const fixture = await d0027ProviderDispatchFixture('provider-fence-first');
   fixture.authority.authorizeDispatch(fixture.authorization);
-  d0027ProviderTrustFence(fixture.authority, 'provider-fence-first');
+  await d0027ProviderTrustFence(fixture, 'provider-fence-first');
   expectCode(() => fixture.host.sendAuthorizedDispatch({
     routeBinding: fixture.routeBinding,
     authorization: fixture.authorization,
@@ -874,7 +982,7 @@ test('D0027 Cloudflare admission-first sends once and replay after a later fence
   assert.equal(first.classification, 'sent');
   assert.equal(first.sent, true);
   assert.equal(fixture.ctx.sockets[0].sent.length, 1);
-  d0027ProviderTrustFence(fixture.authority, 'provider-admission-first');
+  await d0027ProviderTrustFence(fixture, 'provider-admission-first');
   const replay = fixture.host.sendAuthorizedDispatch({
     routeBinding: fixture.routeBinding,
     authorization: fixture.authorization,

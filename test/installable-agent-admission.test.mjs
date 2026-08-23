@@ -415,6 +415,26 @@ test('m2 sequencing is canonical, gap-safe, and failed mutations do not burn the
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
 });
 
+function strictAdmissionV1Snapshot(current) {
+  const predecessor = JSON.parse(JSON.stringify(current));
+  predecessor.profile = 'tdev.installable-agent-admission.v1';
+  for (const field of [
+    'managementRequestSequenceHighWater',
+    'managementKeyId',
+    'managementPublicKey',
+    'releaseRootKeyId',
+    'releaseRootPublicKey',
+    'currentCredentialKeyId',
+    'currentCredentialPublicKey',
+    'pendingCredentialKeyId',
+    'pendingCredentialPublicKey',
+    'connectRequestSequenceHighWater',
+    'possessionChallengeGenerationHighWater',
+    'possessionChallenge',
+  ]) delete predecessor[field];
+  return predecessor;
+}
+
 test('nested admission v1 migrates explicitly to v2 and imports only canonical surviving m2 sequence state', () => {
   const { authority } = createAuthority();
   const { request } = registerAndActivate(authority, 'nested-v2-migration');
@@ -424,17 +444,13 @@ test('nested admission v1 migrates explicitly to v2 and imports only canonical s
   assert.equal(current.managementRequestSequenceHighWater, 1);
   assert.equal(request.managementRequestId, 'm2:1');
 
-  const predecessorV1 = JSON.parse(JSON.stringify(current));
-  predecessorV1.profile = 'tdev.installable-agent-admission.v1';
-  delete predecessorV1.managementRequestSequenceHighWater;
+  const predecessorV1 = strictAdmissionV1Snapshot(current);
   const migrated = normalizeInstallableAgentState(predecessorV1, authority.read().limits);
   assert.equal(migrated.profile, INSTALLABLE_AGENT_ADMISSION_PROFILE);
   assert.equal(migrated.managementRequestSequenceHighWater, 1);
   assert.ok(migrated.managementReceipts['m2:1']);
 
-  const legacyOnly = JSON.parse(JSON.stringify(current));
-  legacyOnly.profile = 'tdev.installable-agent-admission.v1';
-  delete legacyOnly.managementRequestSequenceHighWater;
+  const legacyOnly = strictAdmissionV1Snapshot(current);
   const legacyReceipt = legacyOnly.managementReceipts['m2:1'];
   delete legacyOnly.managementReceipts['m2:1'];
   legacyOnly.managementReceipts['legacy-register'] = { ...legacyReceipt, managementRequestId: 'legacy-register' };
@@ -442,9 +458,7 @@ test('nested admission v1 migrates explicitly to v2 and imports only canonical s
   assert.equal(migratedLegacy.managementRequestSequenceHighWater, 0);
   assert.ok(migratedLegacy.managementReceipts['legacy-register']);
 
-  const noncanonical = JSON.parse(JSON.stringify(current));
-  noncanonical.profile = 'tdev.installable-agent-admission.v1';
-  delete noncanonical.managementRequestSequenceHighWater;
+  const noncanonical = strictAdmissionV1Snapshot(current);
   const badReceipt = noncanonical.managementReceipts['m2:1'];
   delete noncanonical.managementReceipts['m2:1'];
   noncanonical.managementReceipts['m2:01'] = { ...badReceipt, managementRequestId: 'm2:01' };
@@ -461,9 +475,7 @@ test('nested admission v1 migrates explicitly to v2 and imports only canonical s
     packageTrustSubjectDigest: trustSubject,
   });
   authority.beginPackageActivation(packageRequest);
-  const nonterminalV1 = JSON.parse(JSON.stringify(authority.readInstallableAgent().installableAgent));
-  nonterminalV1.profile = 'tdev.installable-agent-admission.v1';
-  delete nonterminalV1.managementRequestSequenceHighWater;
+  const nonterminalV1 = strictAdmissionV1Snapshot(authority.readInstallableAgent().installableAgent);
   expectCode(() => normalizeInstallableAgentState(nonterminalV1, authority.read().limits), 'unsupported_installable_agent_migration');
 });
 
