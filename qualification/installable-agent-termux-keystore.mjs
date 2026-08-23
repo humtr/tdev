@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 import { randomBytes } from 'node:crypto';
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
-import { spawn, spawnSync } from 'node:child_process';
-import os from 'node:os';
+import { chmod, mkdir, mkdtemp, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { spawnSync } from 'node:child_process';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import {
@@ -164,11 +163,22 @@ async function serviceProbe(inputPath, outputPath) {
   }
 }
 
-async function waitForResult(outputPath) {
+async function waitForResult(outputPath, errorPath) {
   const deadline = Date.now() + TIMEOUT_MS;
   while (Date.now() < deadline) {
     try { return await readFile(outputPath); }
     catch (error) { if (error?.code !== 'ENOENT') throw error; }
+    try {
+      const errorBytes = await readFile(errorPath);
+      if (errorBytes.byteLength > 0) {
+        if (errorBytes.byteLength > RESULT_MAX_BYTES) fail('termux_keystore_qualification_service_failed', 'Q3 runit service error exceeds its bound');
+        let serviceError = 'unknown';
+        try { serviceError = strictJsonParse(errorBytes, { maxBytes: RESULT_MAX_BYTES })?.error ?? 'unknown'; } catch {}
+        fail('termux_keystore_qualification_service_failed', 'Q3 runit service failed before producing a qualification result', { serviceError });
+      }
+    } catch (error) {
+      if (error?.code !== 'ENOENT') throw error;
+    }
     await new Promise((resolve) => setTimeout(resolve, 100));
   }
   fail('termux_keystore_qualification_timeout', 'Q3 runit service did not produce a result before timeout');
@@ -192,25 +202,30 @@ async function coordinate() {
   if (process.platform !== 'android' || process.arch !== 'arm64') fail('installable_agent_profile_unsupported', 'Q3 requires Android/arm64 Termux');
   const prefix = process.env.PREFIX;
   if (typeof prefix !== 'string' || !path.isAbsolute(prefix)) fail('installable_agent_profile_unsupported', 'Termux PREFIX is unavailable');
-  const staging = await mkdtemp(path.join(os.tmpdir(), 'tdev-agent-q3-service-'));
+  const staging = await mkdtemp(path.join(prefix, 'tmp', 'tdev-agent-q3-service-'));
   const serviceName = `tdev-agent-q3-${randomBytes(8).toString('hex')}`;
-  const servicePath = path.join(staging, serviceName);
+  const stagedServicePath = path.join(staging, serviceName);
+  const serviceRoot = path.join(prefix, 'var', 'service');
+  const servicePath = path.join(serviceRoot, serviceName);
   const inputPath = path.join(staging, 'input.json');
   const outputPath = path.join(staging, 'result.json');
+  const errorPath = path.join(staging, 'error.json');
   const svPath = path.join(prefix, 'bin', 'sv');
-  await mkdir(servicePath, { mode: 0o700 });
+  const serviceRootStat = await stat(serviceRoot);
+  if (!serviceRootStat.isDirectory()) fail('termux_keystore_qualification_service_root_invalid', 'Termux runsvdir service root is unavailable');
+  await mkdir(stagedServicePath, { mode: 0o700 });
   await writeFile(inputPath, `${canonicalJson(options)}\n`, { mode: 0o600 });
   const self = fileURLToPath(import.meta.url);
-  await writeFile(path.join(servicePath, 'run'), `#!/data/data/com.termux/files/usr/bin/bash\nexec ${shellQuote(process.execPath)} ${shellQuote(self)} --service-probe ${shellQuote(inputPath)} ${shellQuote(outputPath)}\n`, { mode: 0o700 });
-  await writeFile(path.join(servicePath, 'finish'), `#!/data/data/com.termux/files/usr/bin/bash\nexec ${shellQuote(svPath)} down ${shellQuote(servicePath)}\n`, { mode: 0o700 });
-  await writeFile(path.join(servicePath, 'down'), '', { mode: 0o600 });
-  await chmod(path.join(servicePath, 'run'), 0o700);
-  await chmod(path.join(servicePath, 'finish'), 0o700);
-  const runsv = spawn(path.join(prefix, 'bin', 'runsv'), [servicePath], { stdio: 'ignore', shell: false });
+  await writeFile(path.join(stagedServicePath, 'run'), `#!/data/data/com.termux/files/usr/bin/bash\nexec ${shellQuote(process.execPath)} ${shellQuote(self)} --service-probe ${shellQuote(inputPath)} ${shellQuote(outputPath)} 2>${shellQuote(errorPath)}\n`, { mode: 0o700 });
+  await writeFile(path.join(stagedServicePath, 'finish'), `#!/data/data/com.termux/files/usr/bin/bash\nexit 0\n`, { mode: 0o700 });
+  await writeFile(path.join(stagedServicePath, 'down'), '', { mode: 0o600 });
+  await chmod(path.join(stagedServicePath, 'run'), 0o700);
+  await chmod(path.join(stagedServicePath, 'finish'), 0o700);
+  await rename(stagedServicePath, servicePath);
   try {
     await waitForSupervisor(servicePath);
     run(svPath, ['up', servicePath]);
-    const resultBytes = await waitForResult(outputPath);
+    const resultBytes = await waitForResult(outputPath, errorPath);
     if (resultBytes.byteLength > RESULT_MAX_BYTES) fail('termux_keystore_qualification_result_invalid', 'Q3 service result exceeds its bound');
     const result = strictJsonParse(resultBytes, { maxBytes: RESULT_MAX_BYTES });
     if (result?.classification !== 'qualified' || result?.proofLayer !== 'physical_android_termux_service' || result?.androidSourceLineageId !== options.expectedLineage) {
@@ -219,11 +234,7 @@ async function coordinate() {
     process.stdout.write(`${JSON.stringify(result)}\n`);
   } finally {
     try { spawnSync(svPath, ['down', servicePath], { encoding: 'utf8' }); } catch {}
-    runsv.kill('SIGTERM');
-    await Promise.race([
-      new Promise((resolve) => runsv.once('close', resolve)),
-      new Promise((resolve) => setTimeout(resolve, 2_000)),
-    ]);
+    await rm(servicePath, { recursive: true, force: true });
     await rm(staging, { recursive: true, force: true });
   }
 }
