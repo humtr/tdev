@@ -1,0 +1,70 @@
+{
+  "schema": "tdev.design-acceptance-evidence.v1",
+  "design": "D0039",
+  "revision": 2,
+  "status": "accepted",
+  "date": "2026-08-23",
+  "repository": "humtr/tdev",
+  "acceptanceBase": {
+    "ref": "development",
+    "sha": "64900718b36387fe8577069bd5309c863363cfae",
+    "authorityMethod": "provider development readback plus AGENTS.md persistent-v1 resolver and fixed bootstrap kernel"
+  },
+  "predecessor": {
+    "revision": 1,
+    "acceptanceEvidence": "docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json",
+    "reopenEvidence": "docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json",
+    "falsifier": "One stable D0027 management request may advance lifecycleGeneration more than once, so m1:<target lifecycleGeneration> = predecessor+1 cannot identify the whole transaction."
+  },
+  "review": {
+    "coordinationRepository": "humtr/acr",
+    "campaign": "tdev-20260823-d0039-management-request-correction-01",
+    "convergenceRef": "acr/tdev-20260823-d0039-management-request-correction-01/convergence",
+    "reviewQuality": "STRONG",
+    "applicationReadiness": "CONDITIONAL_ON_EXECUTABLE_PROOF",
+    "independentRoles": ["A", "B", "C", "D"]
+  },
+  "acceptedDecision": {
+    "designBoundary": "same D0039 Design and owner family; D0027@r1 and D0038@r1 unaffected",
+    "requestIdentity": "route-generation-scoped canonical m2:<seq>, seq positive safe base-10 integer without leading zeroes",
+    "allocator": "sole AgentDeliveryAuthority accepts exactly managementRequestSequenceHighWater+1 and atomically burns the sequence with first durable transaction admission",
+    "multiPhaseBinding": "same request ID, operation, intentDigest and original expectedPredecessorDigest across every internal D0027 lifecycle phase",
+    "replayFloor": "retained exact receipt first; changed binding conflicts; otherwise seq <= high-water is stale/non-creating and seq > highWater+1 is a gap",
+    "signatureDomain": "tdev.agent-management.v1 unchanged",
+    "durableVersion": "outer Agent-delivery snapshot schema remains 3; nested installable-agent admission profile advances v1 -> v2 and requires managementRequestSequenceHighWater",
+    "migration": "explicit fail-closed supported v1 -> v2 predecessor classes only; first persisted nested v2 is the rollback barrier; no automatic v2 -> v1 downgrade"
+  },
+  "proofDelta": {
+    "Q1": "m2 canonical parsing, highWater+1/gap/stale/overflow, exact replay/conflict, same-ID multi-phase crash/restart, nested v1->v2 migration and GC/floor/storage-pressure tests",
+    "Q6": "live cutover/import request-floor initialization and predecessor classification",
+    "Q7": "authenticated management response-loss, stale, gap and altered request behavior",
+    "Q8": "request-sequence aspect of release/trust management only",
+    "Q9": "nested-v2 rollback barrier, retention and compaction",
+    "Q10": "deployed same-ID response-loss composition",
+    "unchangedMechanismMeaning": ["Q2", "Q3", "Q4", "Q5"]
+  },
+  "acceptanceValidation": {
+    "status": "passed",
+    "jobs": [
+      {
+        "jobId": "job_cva_4bc8868f2a",
+        "profile": "portable",
+        "command": "npm run check",
+        "exitCode": 0,
+        "documentationAuthority": "Group F development frontier=1 selected=D0039@r2",
+        "tests": {"passed": 478, "failed": 0},
+        "includes": ["syntax", "docs:check", "npm test", "demo", "durable-demo"]
+      }
+    ]
+  },
+  "unexecutedLayers": [
+    "corrected D0039 source implementation",
+    "D0039 Q1 executable source proof",
+    "fresh Cloudflare durable predecessor inventory",
+    "physical Android/Termux qualification",
+    "live migration/rollback qualification",
+    "deployed-product composition"
+  ],
+  "targetMutationBeforeAcceptanceCommit": "none",
+  "secretsRecorded": false
+}

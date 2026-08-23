@@ -1,13 +1,15 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `reopened`
-- Revision: 1
+- Status: `accepted`
+- Revision: 2
 - Class: 2
 - Decision date: 2026-08-23
-- Acceptance base: `development@9b78b5487591730754d9708e205d41367f510afc`
-- Trigger: user-directed application of ACR campaign `tdev-20260823-d0027-deployment-realization-design-01`, convergence `acr/tdev-20260823-d0027-deployment-realization-design-01/convergence`
-- Acceptance evidence: `docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json`
+- Acceptance base: `development@64900718b36387fe8577069bd5309c863363cfae`
+- Trigger: user-directed application of ACR campaign `tdev-20260823-d0039-management-request-correction-01`, convergence `acr/tdev-20260823-d0039-management-request-correction-01/convergence`
+- Predecessor revision: D0039@r1, accepted from `development@9b78b5487591730754d9708e205d41367f510afc`
+- Predecessor acceptance evidence: `docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json`
 - Reopen evidence: `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json`
+- Acceptance evidence: `docs/evidence/group-f-d0039-r2-management-request-correction-acceptance-2026-08-23.json`
 - Scope: concrete private F-side realization of D0027 credential/verifier, clone-safe local key custody, package/release/bootstrap trust, Cloudflare binding/IAM, D0020-to-D0027 genesis migration, forward rollback/recovery/retention and proof-layer-separated qualification
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, D0027 substate in the existing per-route `AgentDeliveryAuthority`, Cloudflare Agent delivery adapter, installable Agent package/runtime and focused/permanent tests
 - Explicit non-goals: no D0027 owner-model revision; no MCP/D0023/D0024 identity dependency; no D0025 canonical Git-publication dependency; no D0028 runbook semantics; no second route/current registry; no broad D0026 completion claim; no authority-restoring PITR or same-name resource recreation; no secret/private-key bytes in repository/evidence/model-visible state
@@ -72,7 +74,9 @@ Canonical public key is exactly:
 
 The signed semantic context is the existing `tdev.agent-management.v1` `managementProofContext`: operation, agentId, routeGeneration, managementRequestId, intentDigest, expectedPredecessorDigest. Signature is standard Ed25519, exactly 64 bytes / 86-character base64url-no-pad. Strict envelope profile is `tdev.agent-management-envelope.v1` with keyId/context/signature.
 
-Mutating `managementRequestId` is `m1:<target lifecycleGeneration as positive decimal without leading zeroes>`, exactly predecessor + 1. Exact retained replay returns prior result. Permanent `managementRequestGenerationHighWater` classifies compacted older generations stale/non-creating; changed intent at an old generation conflicts.
+Fresh mutating `managementRequestId` is exactly `m2:<seq>`, where `seq` is an ASCII positive base-10 safe integer in `1..9007199254740991` with no leading zeroes. Its namespace is scoped to the exact `(agentId, routeGeneration)` already bound by the management proof; it is independent of installation, credential, package, trust and lifecycle generations. The sole route `AgentDeliveryAuthority` owns durable nonnegative-safe-integer `managementRequestSequenceHighWater`. A fresh mutation may propose only `highWater + 1`, and the owner atomically burns/advances that sequence with the transaction's first durable admission. Zero, signs, whitespace, alternate spellings, gaps, reuse and safe-integer exhaustion fail closed; exhaustion does not automatically create a new `routeGeneration`.
+
+One admitted management transaction keeps the same `managementRequestId`, operation, `intentDigest` and original `expectedPredecessorDigest` through every draining/readiness/final active-or-revoked phase. Intermediate lifecycle generations are transaction phase state and never replace or rebind the request identity; every D0027 product-side lifecycle mutation still advances `lifecycleGeneration`. Replay classification is exact and permanent: retained exact receipt is checked first and returns its prior result; retained same-ID changed operation/intent/predecessor conflicts; otherwise any canonical `m2` sequence at or below `managementRequestSequenceHighWater` is retired/stale and non-creating, while a sequence above `highWater + 1` is a gap. Detail receipts/tombstones may compact only behind the durable high-water, and storage pressure rejects new mutation rather than lowering or deleting that floor.
 
 Private management key is operator-held only, absent from Agent, repository, package, Cloudflare secrets, Durable Object state, evidence and logs. Backup may copy the same identity only. Total loss fails closed. Compromise retires/quiesces the route and requires separately authorized D0020 cutover to strictly higher `routeGeneration` with a fresh key. No in-route replacement.
 
@@ -132,22 +136,22 @@ Durable Object PITR, database rewind, deletion/recreation or same-name inference
 
 Provider-side uninstall/revocation commits/exposes a durable terminal result before local AndroidKeyStore alias/package/service deletion. Local deletion failure is cleanup incompleteness, not continued authority.
 
-Semantic safety state has no wall-clock TTL: route and all D0027 generation high-waters, `connectRequestSequenceHighWater`, challengeGeneration high-water, management/lifecycle request high-water and terminal route tombstone survive compaction/logical deletion; revoked signer IDs survive route lifetime within the four-signer bound. Detail receipts may compact only behind permanent floors. Challenge detail may expire after 120 seconds because its high-water remains. Storage pressure rejects new state-changing work rather than deleting safety state.
+Semantic safety state has no wall-clock TTL: route and all D0027 generation high-waters, `connectRequestSequenceHighWater`, challengeGeneration high-water, `managementRequestSequenceHighWater` and terminal route tombstone survive compaction/logical deletion; revoked signer IDs survive route lifetime within the four-signer bound. Detail receipts may compact only behind permanent floors. Challenge detail may expire after 120 seconds because its high-water remains. Storage pressure rejects new state-changing work rather than deleting safety state.
 
 ## 13. Qualification matrix Q1-Q10
 
 No gate may be promoted into a later proof layer.
 
-- **Q1 source/canonical:** strict canonical/unknown-field vectors, base64url corpus, RSA JWK length/exponent, RSA/Ed25519 positive/negative/domain confusion, challenge live/expiry/consume/replay/restart/ancient floor, management replay/intent/predecessor/compaction, release signer/root/bootstrap tamper, HMAC hard rejection, storage-pressure fail-closed.
+- **Q1 source/canonical:** strict canonical/unknown-field vectors, base64url corpus, RSA JWK length/exponent, RSA/Ed25519 positive/negative/domain confusion, challenge live/expiry/consume/replay/restart/ancient floor, exact `m2:<seq>` parsing/canonicalization, `highWater+1` admission, gap/stale/overflow rejection, exact replay/conflict, same-ID multi-phase crash/restart, explicit nested admission v1->v2 migration, management receipt compaction behind the permanent request floor, release signer/root/bootstrap tamper, HMAC hard rejection, storage-pressure fail-closed.
 - **Q2 Workers crypto:** on exact deployed Workers runtime import real supported Termux:API RSA-3072 JWK and verify real SHA256withRSA; separately verify standard Ed25519 management/release vectors.
 - **Q3 physical Android/Termux:** prove Termux/Termux:API lineage, RSA-3072 AndroidKeyStore generation, unattended signing, public-key interoperability, missing API/uninstall/source switch/reinstall/device replacement fail-closed and no cloned private authority.
 - **Q4 fresh bootstrap:** no local trust; authenticate only independent capsule digest; fetch capsule/verifier/archive through untrusted transport; prove root/delegation/release/manifest chain and tamper each layer.
 - **Q5 live provider/IAM:** fresh Cloudflare binding/version/class/namespace/jurisdiction/route readback, exact route owner, 100-percent writer, IAM/private-key separation and secret inventory.
-- **Q6 live migration:** D0020-only -> UNREGISTERED -> GENESIS_PENDING -> CURRENT, crashes/restarts, held-slot/quiescence, no mixed writers, HMAC rejection from first marker and binding removal.
-- **Q7 management loss/compromise:** valid mutation/replay/stale/altered rejection, same-key backup if used, total loss fail-closed, compromise recovery only by higher-route cutover.
-- **Q8 release lifecycle:** signer replacement/retirement/revocation, bounded set, trust generation monotonicity, root loss/compromise, forward package rollback and no package/capsule self-authentication.
-- **Q9 rollback/provider-loss/retention:** schema-aware code rollback, no PITR/same-name authority, floors/tombstone across restart/compaction, storage pressure, provider-loss recovery only by fresh higher-route cutover.
-- **Q10 deployed composition:** fresh supported machine -> bootstrap -> provision -> CURRENT -> challenge -> AndroidKeyStore proof -> connect -> existing delivery composition -> update -> forward rollback -> restart -> response-loss retry -> uninstall -> local/provider terminal cleanup.
+- **Q6 live migration:** D0020-only -> nested-v2 UNREGISTERED -> GENESIS_PENDING -> CURRENT, plus any supported terminal D0027-aware nested-v1 predecessor import, crashes/restarts, exact request-floor initialization/import, held-slot/quiescence, no mixed writers, HMAC rejection from first marker and binding removal.
+- **Q7 management loss/compromise:** valid `m2` mutation/exact replay/stale/gap/altered rejection and same-ID response-loss reconciliation, same-key backup if used, total loss fail-closed, compromise recovery only by higher-route cutover.
+- **Q8 release lifecycle:** signer replacement/retirement/revocation under the same request-sequence rule, bounded set, trust generation monotonicity, root loss/compromise, forward package rollback and no package/capsule self-authentication.
+- **Q9 rollback/provider-loss/retention:** nested-v2 rollback barrier, no automatic v2->v1 downgrade, no PITR/same-name authority, request/generation floors and tombstones across restart/compaction, storage pressure, provider-loss recovery only by fresh higher-route cutover.
+- **Q10 deployed composition:** fresh supported machine -> bootstrap -> provision -> CURRENT -> challenge -> AndroidKeyStore proof -> connect -> existing delivery composition -> update -> forward rollback -> restart -> same-ID response-loss retry -> uninstall -> local/provider terminal cleanup.
 
 ## 14. Implementation ordering and stop rules
 
@@ -162,13 +166,13 @@ No gate may be promoted into a later proof layer.
 
 If an executable gate proves the mechanism cannot work without a new owner, trust root, recovery axis, rollback meaning or changed D0027 generation/fencing/crash/secret semantics, stop the dependent implementation and reopen/widen through `SDD.md`. Do not invent a fallback.
 
-## 15. Acceptance status and remaining proof
+## 15. Revision 2 acceptance status and remaining proof
 
-ACR review quality is `STRONG`; application readiness is `CONDITIONAL_ON_EXECUTABLE_PROOF`. Normative mechanism choices above are closed enough that implementation does not select security/deployment policy.
+Successor ACR campaign `tdev-20260823-d0039-management-request-correction-01` converged with review quality `STRONG` and application readiness `CONDITIONAL_ON_EXECUTABLE_PROOF`. Fresh target rebinding at `development@64900718b36387fe8577069bd5309c863363cfae` confirmed that this is the same D0039 problem/owner family, so Revision 2 closes the management-request identity/replay/versioning meaning before implementation. No user-owned policy choice remains inside this correction boundary.
 
-This acceptance does not claim Q1-Q10, provider identity, live IAM, physical Android key custody, live migration, rollback or deployed composition has passed. Those are executable proof boundaries.
+This acceptance does not claim Q1-Q10, corrected source behavior, provider identity, live IAM, physical Android key custody, live migration, rollback or deployed composition has passed. Those remain executable proof boundaries and one layer cannot promote another.
 
-## 16. Reopen — management-request/lifecycle generation conflict
+## 16. Revision 1 reopen — management-request/lifecycle generation conflict
 
 D0039@r1 is reopened on 2026-08-23 by `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json` before D0039 source/provider/device migration implementation began.
 
@@ -176,4 +180,14 @@ Revision 1 requires each mutating `managementRequestId` to be `m1:<target lifecy
 
 One stable request ID therefore cannot both encode the transaction's final lifecycle generation and equal the original predecessor + 1 for those transitions. Reinterpreting the ID as only the first draining generation, collapsing two D0027 lifecycle transitions into one generation, or minting a second management request for the completion phase would each change accepted meaning rather than merely implement Revision 1.
 
-Under `SDD.md`, the affected D0039 scope is not implementation authorization while reopened. D0027@r1 and D0038@r1 are not reopened by this falsifier. The corrected contract remains the same D0039 problem/owner family and therefore requires a new D0039 revision with fresh acceptance. That revision must select one monotonic management-request namespace/replay-floor rule that is explicitly compatible with stable multi-phase D0027 transactions; Revision 1 does not choose among the possible correction shapes.
+Under `SDD.md`, the affected D0039 scope was not implementation authorization while Revision 1 remained reopened. D0027@r1 and D0038@r1 were not reopened by this falsifier. The defect remained the same D0039 problem/owner family and therefore required a new D0039 revision with fresh acceptance rather than a D0027 revision or new owner.
+
+## 17. Revision 2 correction, durable version and migration
+
+Revision 2 selects the `m2:<seq>` / `managementRequestSequenceHighWater` contract in Section 6 and changes no D0027 lifecycle meaning. It also versions the affected durable substate explicitly: outer `AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION` remains `3`, while the nested installable-Agent admission profile advances from `tdev.installable-agent-admission.v1` to `tdev.installable-agent-admission.v2`. The strict D0027-aware v2 state requires nonnegative safe-integer `managementRequestSequenceHighWater`; v1 is never silently extended with an optional/defaulted field. The outer schema does not also advance because its top-level shape is unchanged and schema 3 already delegates strict nested validation to the nested admission owner.
+
+Supported predecessor handling is fail closed. Exact v1 `LEGACY_D0020_ONLY` may remain unchanged until the first D0027-aware cutover, which creates nested-v2 `UNREGISTERED` with request high-water `0`. A terminal v1 D0027-aware `UNREGISTERED` or `CURRENT` state may migrate only when no `GENESIS_PENDING` or `current.managementTransaction` is nonterminal. Migration preserves retained management receipts/tombstones and sets the v2 request high-water to the maximum canonical surviving `m2` sequence found in retained management identity fields, or `0` when none exists. Any `m2:`-prefixed identity that is noncanonical/out of safe range, any nonterminal predecessor management transaction, malformed/unknown predecessor profile, or any v2 state missing the required high-water blocks instead of guessing. Legacy non-`m2` identities remain replay/retirement-only and can never be admitted as fresh corrected requests.
+
+The first persisted nested-v2 D0027-aware state is the durable rollback barrier. Code that understands only nested v1 must not be activated for that route afterward; no automatic v2-to-v1 data downgrade exists. Rollback must use code that strictly reads v2 and preserves the request high-water, or recover forward under separately authorized route cutover semantics.
+
+Revision 2 keeps the immutable route-scoped Ed25519 management key, `tdev.agent-management.v1` signature domain, RSA/AndroidKeyStore credential profile, release/bootstrap trust, provider/IAM shape, D0020 coexistence/genesis model and single `AgentDeliveryAuthority` owner from Revision 1. The fresh proof delta is limited to Q1 and the request-sequence/version crossings described in Q6-Q10; Q2-Q5 mechanism meaning is not reopened. Source implementation remains unauthorized until this Revision 2 acceptance and its WORKBOARD routing are committed on the current cumulative lineage.
