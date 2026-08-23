@@ -1,0 +1,68 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0039",
+  "revision": 1,
+  "date": "2026-08-23",
+  "observedTarget": "development@cb0b4576449bed4e721d01fda9b2d86d54b34e4e",
+  "classification": "accepted-design normative conflict discovered during application revalidation",
+  "falsifier": {
+    "d0039Rule": "Mutating managementRequestId is m1:<target lifecycleGeneration>, exactly predecessor + 1.",
+    "d0027Rule": "Every product-side lifecycle mutation advances lifecycleGeneration, while one stable managementRequestId may own a crash-safe multi-phase management transaction.",
+    "contradiction": [
+      "D0027 compatible package update/rollback uses one stable managementRequestId, elects a draining lifecycleGeneration before quiescence, then elects a distinct final active lifecycleGeneration after readiness.",
+      "D0027 normal uninstall uses one stable managementRequestId, elects an uninstall-owned draining lifecycleGeneration, then a distinct final revoked lifecycleGeneration.",
+      "Therefore one stable managementRequestId cannot simultaneously encode the final target lifecycleGeneration and equal the original predecessor lifecycleGeneration + 1 for these accepted transitions."
+    ]
+  },
+  "authoritativeEvidence": {
+    "d0027Design": {
+      "path": "docs/design/0027-installable-authenticated-local-agent.md",
+      "sha256": "8a0c2c4d9d2301d8bff0dc926f1dbb5e777177db9eafd310d3c50c27ec6436a4",
+      "facts": [
+        "management lifecycle journal binds one stable managementRequestId per transaction",
+        "every new product-side lifecycle mutation advances lifecycleGeneration",
+        "base stop/start each elect a new lifecycle generation",
+        "normal uninstall requires draining generation then final revoked generation"
+      ],
+      "readJobId": "job_ct4_c32ef675d3"
+    },
+    "implementation": {
+      "path": "src/agent-delivery-authority.mjs",
+      "sha256": "dd32248e791640f268b00d95ea99e04bd9ea256c9b61819dd78a3bfd7b6e0a2f",
+      "facts": [
+        "beginPackageActivation allocates drainingLifecycleGeneration and finalLifecycleGeneration under one managementRequestId",
+        "commitPackageActivation applies finalLifecycleGeneration under that same managementRequestId",
+        "beginInstallableAgentUninstall allocates draining lifecycleGeneration under one managementRequestId",
+        "completeInstallableAgentUninstall allocates a new final revoked lifecycleGeneration under the same managementRequestId"
+      ],
+      "packageReadJobId": "job_ct5_3e9cb2806c",
+      "uninstallReadJobId": "job_ct6_f33e100149"
+    }
+  },
+  "runtimeCapabilityObservation": {
+    "termuxKeystoreJobId": "job_ct2_c72c63da0b",
+    "termuxKeystoreAvailable": true,
+    "rsa3072Supported": true,
+    "sha256withRsaSignSupported": true,
+    "userValidityMayBeOmitted": true,
+    "note": "The AndroidKeyStore realization itself is not the blocker; the blocker is management request sequencing semantics."
+  },
+  "unaffectedFacts": [
+    "D0038@r1 source/runtime-policy verification remains valid and published.",
+    "D0027@r1 verified lifecycle semantics remain authoritative and are not reopened by this finding.",
+    "D0039 owner family, RSA-3072 credential choice, Ed25519 management identity, release/bootstrap trust, connect challenge and provider/migration boundaries are not disproved by this specific falsifier, but D0039 cannot authorize dependent implementation while reopened."
+  ],
+  "requiredDisposition": {
+    "designStatus": "reopened",
+    "implementationAuthorization": "none until corrected D0039 revision is freshly accepted",
+    "correctionClass": "same Design ID, new revision, because the core D0027 deployment-realization problem and owner family remain unchanged",
+    "openDecisionAxis": "Define a monotonic management request identifier/replay floor that is compatible with D0027 stable multi-phase transactions without conflating request identity with every lifecycleGeneration transition.",
+    "candidateShapesNotSelected": [
+      "independent managementRequestGeneration sequence",
+      "binding request ID to one phase-specific lifecycle generation plus separate transaction identity",
+      "another reviewed monotonic namespace that preserves D0027 replay and ABA fences"
+    ]
+  },
+  "proofBoundary": "No D0039 source/provider/device migration mutation was performed before this falsifier was closed; application fails closed at the normative decision boundary."
+}

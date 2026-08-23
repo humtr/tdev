@@ -1,12 +1,13 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `accepted`
+- Status: `reopened`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-23
 - Acceptance base: `development@9b78b5487591730754d9708e205d41367f510afc`
 - Trigger: user-directed application of ACR campaign `tdev-20260823-d0027-deployment-realization-design-01`, convergence `acr/tdev-20260823-d0027-deployment-realization-design-01/convergence`
 - Acceptance evidence: `docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json`
+- Reopen evidence: `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json`
 - Scope: concrete private F-side realization of D0027 credential/verifier, clone-safe local key custody, package/release/bootstrap trust, Cloudflare binding/IAM, D0020-to-D0027 genesis migration, forward rollback/recovery/retention and proof-layer-separated qualification
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, D0027 substate in the existing per-route `AgentDeliveryAuthority`, Cloudflare Agent delivery adapter, installable Agent package/runtime and focused/permanent tests
 - Explicit non-goals: no D0027 owner-model revision; no MCP/D0023/D0024 identity dependency; no D0025 canonical Git-publication dependency; no D0028 runbook semantics; no second route/current registry; no broad D0026 completion claim; no authority-restoring PITR or same-name resource recreation; no secret/private-key bytes in repository/evidence/model-visible state
@@ -166,3 +167,13 @@ If an executable gate proves the mechanism cannot work without a new owner, trus
 ACR review quality is `STRONG`; application readiness is `CONDITIONAL_ON_EXECUTABLE_PROOF`. Normative mechanism choices above are closed enough that implementation does not select security/deployment policy.
 
 This acceptance does not claim Q1-Q10, provider identity, live IAM, physical Android key custody, live migration, rollback or deployed composition has passed. Those are executable proof boundaries.
+
+## 16. Reopen — management-request/lifecycle generation conflict
+
+D0039@r1 is reopened on 2026-08-23 by `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json` before D0039 source/provider/device migration implementation began.
+
+Revision 1 requires each mutating `managementRequestId` to be `m1:<target lifecycleGeneration>` with the number exactly predecessor lifecycle generation + 1. Current authoritative D0027 semantics instead require one stable management request to survive a crash-safe multi-phase transaction while **every product-side lifecycle mutation** advances `lifecycleGeneration`. In particular, one package update/rollback request elects a new draining generation before quiescence and a second final active generation after readiness; normal uninstall similarly elects a draining generation and then a distinct final revoked generation. The current `AgentDeliveryAuthority` implements those accepted D0027 rules exactly.
+
+One stable request ID therefore cannot both encode the transaction's final lifecycle generation and equal the original predecessor + 1 for those transitions. Reinterpreting the ID as only the first draining generation, collapsing two D0027 lifecycle transitions into one generation, or minting a second management request for the completion phase would each change accepted meaning rather than merely implement Revision 1.
+
+Under `SDD.md`, the affected D0039 scope is not implementation authorization while reopened. D0027@r1 and D0038@r1 are not reopened by this falsifier. The corrected contract remains the same D0039 problem/owner family and therefore requires a new D0039 revision with fresh acceptance. That revision must select one monotonic management-request namespace/replay-floor rule that is explicitly compatible with stable multi-phase D0027 transactions; Revision 1 does not choose among the possible correction shapes.
