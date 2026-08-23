@@ -217,6 +217,31 @@ test('D0039 c1 challenge burns durable floor, survives restart, rejects invalid 
   );
 });
 
+test('c1 numeric overflow and challenge-generation overflow fail closed without burning connect authority', async () => {
+  const { authority, store, routeBinding } = await createConcreteCurrent();
+  const numericOverflow = connectRequest(authority, 'c1:9007199254740992');
+  assert.throws(
+    () => authority.issueInstallableAgentConnectChallenge(numericOverflow, { nowMs: 1, nonce: encodeBase64Url(Buffer.alloc(32, 11)) }),
+    (error) => error?.code === 'invalid_connect_request_id',
+  );
+  let installable = authority.readInstallableAgent().installableAgent;
+  assert.equal(installable.connectRequestSequenceHighWater, 0);
+  assert.equal(installable.possessionChallengeGenerationHighWater, 0);
+
+  const snapshot = store.load(routeBinding.agentId);
+  snapshot.installableAgent.possessionChallengeGenerationHighWater = Number.MAX_SAFE_INTEGER;
+  store.compareAndSwap(routeBinding.agentId, snapshot.revision, snapshot);
+  const first = connectRequest(authority, 'c1:1');
+  assert.throws(
+    () => authority.issueInstallableAgentConnectChallenge(first, { nowMs: 2, nonce: encodeBase64Url(Buffer.alloc(32, 12)) }),
+    (error) => error?.code === 'possession_challenge_generation_overflow',
+  );
+  installable = authority.readInstallableAgent().installableAgent;
+  assert.equal(installable.connectRequestSequenceHighWater, 0);
+  assert.equal(installable.possessionChallengeGenerationHighWater, Number.MAX_SAFE_INTEGER);
+  assert.equal(installable.possessionChallenge, null);
+});
+
 test('expired challenge never revives and its c1 sequence remains permanently retired', async () => {
   const { authority, credential } = await createConcreteCurrent();
   const first = connectRequest(authority, 'c1:1');

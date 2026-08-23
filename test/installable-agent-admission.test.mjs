@@ -435,6 +435,35 @@ function strictAdmissionV1Snapshot(current) {
   return predecessor;
 }
 
+test('m2 numeric overflow and management receipt storage pressure fail closed without burning the request floor', () => {
+  const { authority } = createAuthority({ limits: { maxManagementReceipts: 1, maxManagementTombstones: 4 } });
+  migrate(authority);
+  const content = registrationContent('q1-overflow-capacity');
+  const overflow = managementRequest(authority, 'register', 'm2:9007199254740992', content);
+  expectCode(() => authority.registerInstallableAgent(overflow), 'invalid_management_request_id');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 0);
+
+  const first = managementRequest(authority, 'register', 'm2:1', content);
+  const pending = authority.registerInstallableAgent(first);
+  stageGenesis(authority, pending);
+  authority.initialActivateInstallableAgent({
+    ...managementEnvelope(first),
+    pendingDigest: pending.pendingDigest,
+    genesisGeneration: pending.genesisGeneration,
+  });
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
+
+  const current = authority.readInstallableAgent().installableAgent.current;
+  const trustContent = {
+    trustStateDigest: digest({ trust: 'q1-storage-pressure' }),
+    trustSubjects: { [current.packageTrustSubjectDigest]: 'active' },
+    trustContinuesCurrentPackage: false,
+  };
+  const second = managementRequest(authority, 'trust', 'm2:2', trustContent);
+  expectCode(() => authority.mutateInstallableAgentTrust(second), 'management_replay_capacity');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
+});
+
 test('nested admission v1 migrates explicitly to v2 and imports only canonical surviving m2 sequence state', () => {
   const { authority } = createAuthority();
   const { request } = registerAndActivate(authority, 'nested-v2-migration');
@@ -572,6 +601,41 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   assert.equal(final.credentialDisposition, 'revoked');
   assert.equal(final.packageDisposition, 'revoked');
   assert.equal(revoked.deletionBarrier, 'authority_revoked_replay_fences_retained');
+});
+
+test('one stable m2 base-stop transaction survives authority restart between phases and exact replay stays bound to the same request', () => {
+  const { authority, store, routeBinding } = createAuthority();
+  registerAndActivate(authority, 'same-id-restart');
+  const stopRequest = managementRequest(authority, 'stop', 'same-id-stop', { cause: 'base_stop' });
+  const stopEnvelope = managementEnvelope(stopRequest);
+  const draining = authority.beginBaseStop(stopEnvelope);
+  assert.equal(stopRequest.managementRequestId, 'm2:2');
+  assert.equal(draining.phase, 'draining');
+
+  const restarted = new AgentDeliveryAuthority({
+    store,
+    routeBinding,
+    verifyManagementProof: (proof) => proof === MGMT_PROOF,
+    verifyInstallableAgentEvidence: (proof) => proof === EVIDENCE_PROOF,
+  });
+  const replayedDrain = restarted.beginBaseStop(stopEnvelope);
+  assert.equal(replayedDrain.classification, 'exact_replay');
+  assert.equal(restarted.readInstallableAgent().installableAgent.current.managementTransaction.managementRequestId, stopRequest.managementRequestId);
+  evidence(restarted, stopRequest.managementRequestId, 'positive_quiescence', 'same-id-restart-quiescence');
+  evidence(restarted, stopRequest.managementRequestId, 'service_stopped', 'same-id-restart-stopped');
+  const stopped = restarted.completeBaseStop(stopEnvelope);
+  assert.equal(stopped.phase, 'completed');
+  assert.equal(restarted.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
+
+  const restartedAgain = new AgentDeliveryAuthority({
+    store,
+    routeBinding,
+    verifyManagementProof: (proof) => proof === MGMT_PROOF,
+    verifyInstallableAgentEvidence: (proof) => proof === EVIDENCE_PROOF,
+  });
+  const replayedCommit = restartedAgain.completeBaseStop(stopEnvelope);
+  assert.equal(replayedCommit.classification, 'exact_replay');
+  assert.equal(restartedAgain.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
 });
 
 test('completed base_stop is the only restart predecessor and start elects a new active lifecycle generation', () => {
