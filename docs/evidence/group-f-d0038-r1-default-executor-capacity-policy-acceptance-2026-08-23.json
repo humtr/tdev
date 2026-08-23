@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0038",
+  "revision": 1,
+  "decisionDate": "2026-08-23",
+  "acceptanceBase": "development@9b78b5487591730754d9708e205d41367f510afc",
+  "trigger": "explicit user @acr apply",
+  "acr": {
+    "campaign": "tdev-20260823-d0027-deployment-realization-design-01",
+    "convergenceRef": "acr/tdev-20260823-d0027-deployment-realization-design-01/convergence",
+    "reviewQuality": "STRONG",
+    "applicationReadiness": "CONDITIONAL_ON_EXECUTABLE_PROOF",
+    "reviewedTarget": "development@9b78b5487591730754d9708e205d41367f510afc",
+    "peerContaminationKnown": false,
+    "targetMutationDuringReview": "none"
+  },
+  "acceptedDecision": {
+    "omittedExecutorCapacity": 8,
+    "explicitPositiveSafeIntegerOverride": true,
+    "capacityOneMeaning": "same parallel admission model normal degeneration/regression",
+    "numericDefaultOwner": "D0038 plus docs/OPERATIONS.md and runner implementation",
+    "preservedOwners": [
+      "D0018 capacity-N executor/runtime semantics",
+      "Case/Task/Attempt semantic ownership",
+      "D0020 accepted/effective aggregate Agent capacity",
+      "D0027 installation/security/route fencing"
+    ],
+    "adaptiveCapacity": false,
+    "initialIntegratedD0027MayDefaultTo8AfterD0038Implementation": true
+  },
+  "supportingBoundedObservation": {
+    "environment": "Android/arm64 Node v26.4.0",
+    "workTasks": 63,
+    "dependencyDepth": 6,
+    "maxFrontierWidth": 32,
+    "attempts": 67,
+    "plannedRetries": 4,
+    "medianMs": {
+      "capacity4": 21423.689,
+      "capacity8": 13668.65,
+      "capacity12": 14167.706,
+      "capacity16": 14479.113
+    },
+    "canonicalOutcomeEquivalent": true,
+    "physicalConcurrencyReached": true,
+    "claimBoundary": "supports fixed policy selection only; not universal optimum, safety threshold or SLO"
+  },
+  "executableProofBoundaries": [
+    "source omitted-capacity change and invalid/explicit override regression",
+    "capacity widths 1/8/>8 with claims/retry/cancellation/fencing/result equivalence",
+    "supported Android/Termux resource-pressure and cleanup profile",
+    "D0020 Agent aggregate-capacity interaction",
+    "provider/deployed composition only where later directly executed"
+  ],
+  "proofStatusAtAcceptance": {
+    "designAcceptance": "PASS",
+    "sourceImplementation": "NOT_YET_EXECUTED",
+    "androidTermux": "NOT_YET_EXECUTED_FOR_D0038",
+    "provider": "NOT_YET_EXECUTED_FOR_D0038",
+    "deployedComposition": "NOT_YET_EXECUTED_FOR_D0038"
+  }
+}

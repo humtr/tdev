@@ -15,7 +15,7 @@ Neither driver owns Task lifecycle. `runCase` may cache rebuildable ready candid
 
 | Option | Meaning |
 | --- | --- |
-| `capacity` | positive safe integer; default `1` |
+| `capacity` | positive safe integer; default `8`; explicit `1` is the same parallel admission model at `N=1` |
 | `claimLedger` | optional cross-Case lease owner |
 | `waitForClaims` | wait for ledger revision when blocked; default `true` |
 | `globalClaimPredicate` | selects claims requiring the global owner |

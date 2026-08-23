@@ -114,6 +114,7 @@ The catalog below preserves the 78 pre-D0032 verification-method pairs exactly. 
 | immutable graph | mutate Plan / duplicate Task / unknown dependency / cycle |
 | one Promotion | zero/multiple Promotion or incomplete full join |
 | capacity degeneration | same graph at capacity 1 and N |
+| default executor capacity | omit `capacity` on a ready width greater than 8 and prove exactly 8 concurrent admissions; compare with explicit 1/8 for canonical result equivalence |
 | scheduling/completion order | inverse executor timing and accepted-result order |
 | executor identity | different executor IDs/epochs with valid envelopes |
 | retry order | alternate retry interleavings |

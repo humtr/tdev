@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0039",
+  "revision": 1,
+  "decisionDate": "2026-08-23",
+  "acceptanceBase": "development@9b78b5487591730754d9708e205d41367f510afc",
+  "trigger": "explicit user @acr apply",
+  "acr": {
+    "campaign": "tdev-20260823-d0027-deployment-realization-design-01",
+    "convergenceRef": "acr/tdev-20260823-d0027-deployment-realization-design-01/convergence",
+    "reviewQuality": "STRONG",
+    "applicationReadiness": "CONDITIONAL_ON_EXECUTABLE_PROOF",
+    "reviewedTarget": "development@9b78b5487591730754d9708e205d41367f510afc",
+    "peerContaminationKnown": false,
+    "targetMutationDuringReview": "none",
+    "roleResults": ["A", "B", "C", "D", "E", "F"],
+    "finalSpecialistVerdict": "CONTRACT_CLOSED_CONDITIONAL_ON_EXECUTABLE_PROOF"
+  },
+  "acceptedDecision": {
+    "owner": "existing per-route AgentDeliveryAuthority remains sole route-current owner",
+    "agentCredential": "Termux:API AndroidKeyStore RSA-3072, exponent 65537, SHA256withRSA; no private export or file fallback",
+    "management": "one immutable Ed25519 management key per routeGeneration with permanent request-generation replay floor",
+    "releaseTrust": "immutable offline Ed25519 release root plus bounded delegated Ed25519 signers and strict signed release statement",
+    "bootstrap": "independent canonical trust capsule authenticated by out-of-band raw SHA-256 digest",
+    "connectPossession": "one live 32-byte-nonce challenge per current credential, 120000ms TTL, durable consume before socket installation",
+    "connectReplay": "c1 monotonic request sequence plus permanent connectRequestSequenceHighWater",
+    "cloneSafety": "pinned Termux/Termux:API signing lineage, deterministic AndroidKeyStore alias, opaque credentialRef only",
+    "provider": "freshly discover/reuse exact D0020 Worker/AgentDeliveryRuntimeDO/route and require matching control-plane plus route-owner readback",
+    "writerBarrier": "100 percent D0027-aware state-changing writer before D0027 durable migration",
+    "legacyHmac": "predecessor-only; first D0027 UNREGISTERED marker permanently disables HMAC for D0027 state-changing authority; later remove binding after all routes leave D0020-only",
+    "migration": "D0020-only -> UNREGISTERED -> GENESIS_PENDING -> CURRENT via fixed candidate, readiness/quiescence and atomic initial_activate",
+    "rollback": "forward-only package activation generations; schema/fence-compatible code rollback; PITR/delete-recreate never restores authority",
+    "retention": "semantic generation/replay floors and terminal tombstone have no wall-clock TTL; storage pressure rejects mutation rather than deleting safety state",
+    "capacity8Ownership": "D0039 may consume D0038 but does not own numeric default"
+  },
+  "proofMatrix": {
+    "Q1": "source canonical/negative/challenge/replay/HMAC/storage-pressure vectors",
+    "Q2": "real deployed Workers RSA-3072 and standard Ed25519 verification",
+    "Q3": "physical Android/Termux lineage, AndroidKeyStore custody, clone/reinstall behavior",
+    "Q4": "fresh-machine bootstrap and tamper chain",
+    "Q5": "live provider binding, route-owner readback and IAM separation",
+    "Q6": "live D0020-to-D0027 migration and HMAC retirement",
+    "Q7": "management loss/compromise",
+    "Q8": "release signer/root lifecycle and forward rollback",
+    "Q9": "code rollback, provider loss, retention and PITR rejection",
+    "Q10": "deployed bootstrap-to-uninstall composition"
+  },
+  "proofStatusAtAcceptance": {
+    "designAcceptance": "PASS",
+    "Q1": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q2": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q3": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q4": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q5": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q6": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q7": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q8": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q9": "NOT_YET_EXECUTED_FOR_D0039",
+    "Q10": "NOT_YET_EXECUTED_FOR_D0039"
+  },
+  "boundary": "No source, Android, provider, migration, rollback or deployed-product proof is promoted from ACR review or this acceptance record."
+}

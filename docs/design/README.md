@@ -33,5 +33,7 @@
 | D0035 | r1 | draft | tdev Self-Hosting and tmcp Retirement | `docs/design/0035-tdev-self-hosting-and-tmcp-retirement.md` |
 | D0036 | r1 | verified | Single Development Route and Provenance Compaction | `docs/design/0036-single-development-route-provenance-compaction.md` |
 | D0037 | r1 | verified | Final-MVP Repository Shape and Qualification Boundary | `docs/design/0037-final-mvp-repository-shape.md` |
+| D0038 | r1 | verified | Default Executor Capacity Policy | `docs/design/0038-default-executor-capacity-policy.md` |
+| D0039 | r1 | accepted | D0027 Deployment Realization | `docs/design/0039-d0027-deployment-realization.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

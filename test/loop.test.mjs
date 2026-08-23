@@ -45,6 +45,57 @@ test('capacity one and capacity N share graph semantics and canonical digest', a
   assert.deepEqual(serial.snapshot.canonicalTree, parallel.snapshot.canonicalTree);
 });
 
+test('omitted capacity defaults to 8 while explicit 1 remains the same model', async () => {
+  const tasks = Array.from({ length: 9 }, (_, index) => ({
+    id: `t${index}`,
+    claims: [{ mode: 'write', resource: `candidate:t${index}/**` }],
+    input: { path: `t${index}.txt` },
+  }));
+  const plan = planWithWork(tasks, { 'base.txt': 'base' });
+  const barrierExecutor = (metrics, releaseAt) => {
+    let release;
+    const gate = new Promise((resolve) => { release = resolve; });
+    return async ({ baseDigest, task }) => {
+      metrics.active += 1;
+      metrics.max = Math.max(metrics.max, metrics.active);
+      if (metrics.active === releaseAt) release();
+      await gate;
+      metrics.active -= 1;
+      return {
+        kind: 'changeset',
+        baseDigest,
+        writes: [{ path: task.input.path, content: task.id }],
+      };
+    };
+  };
+
+  const defaultMetrics = { active: 0, max: 0 };
+  const serialMetrics = { active: 0, max: 0 };
+  const explicitEightMetrics = { active: 0, max: 0 };
+  const defaultResult = await runCase(
+    new CaseEngine({ caseId: 'default-capacity-eight', plan }),
+    barrierExecutor(defaultMetrics, 8),
+  );
+  const serialResult = await runCase(
+    new CaseEngine({ caseId: 'explicit-capacity-one', plan }),
+    controlledExecutor(serialMetrics),
+    { capacity: 1 },
+  );
+  const explicitEightResult = await runCase(
+    new CaseEngine({ caseId: 'explicit-capacity-eight', plan }),
+    barrierExecutor(explicitEightMetrics, 8),
+    { capacity: 8 },
+  );
+
+  assert.equal(defaultMetrics.max, 8);
+  assert.equal(serialMetrics.max, 1);
+  assert.equal(explicitEightMetrics.max, 8);
+  assert.equal(defaultResult.snapshot.canonicalDigest, serialResult.snapshot.canonicalDigest);
+  assert.equal(defaultResult.snapshot.canonicalDigest, explicitEightResult.snapshot.canonicalDigest);
+  assert.deepEqual(defaultResult.snapshot.canonicalTree, serialResult.snapshot.canonicalTree);
+  assert.deepEqual(defaultResult.snapshot.canonicalTree, explicitEightResult.snapshot.canonicalTree);
+});
+
 test('overlapping write claims serialize while disjoint writes overlap', async () => {
   const conflictingPlan = planWithWork([
     { id: 'a', claims: [{ mode: 'write', resource: 'candidate:shared/**' }] },

@@ -12,7 +12,7 @@ import { globalClaimsForTask } from './claims.mjs';
 import { NONTERMINAL_ATTEMPT_STATES, TERMINAL_ATTEMPT_STATES } from './state.mjs';
 
 function normalizeCapacity(value) {
-  const capacity = value ?? 1;
+  const capacity = value ?? 8;
   if (!Number.isSafeInteger(capacity) || capacity < 1) {
     throw new ContractError('invalid_capacity', 'Executor capacity must be a positive safe integer');
   }

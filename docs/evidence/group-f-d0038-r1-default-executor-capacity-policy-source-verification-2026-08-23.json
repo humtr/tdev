@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "repository": "humtr/tdev",
+  "design": "D0038",
+  "revision": 1,
+  "verificationDate": "2026-08-23",
+  "sourceBase": "development@9b78b5487591730754d9708e205d41367f510afc",
+  "scope": "source/runtime default-capacity policy and current Termux Node execution environment; provider/deployed composition excluded",
+  "implementation": {
+    "runner": "src/runner.mjs omitted capacity normalizes to 8; explicit positive safe integers unchanged",
+    "operationsOwner": "docs/OPERATIONS.md declares default 8 and explicit 1 same-model degeneration",
+    "qualificationOwner": "docs/QUALIFICATION.md adds default-capacity falsifier",
+    "permanentTest": "test/loop.test.mjs proves omitted=>8 concurrent admissions and canonical equivalence with explicit 1 and explicit 8"
+  },
+  "focusedValidation": {
+    "jobId": "job_crj_53acd03ebb",
+    "command": "node --test test/loop.test.mjs test/stress.test.mjs",
+    "tests": 21,
+    "pass": 21,
+    "fail": 0,
+    "defaultObservedMaxConcurrent": 8,
+    "explicitOneObservedMaxConcurrent": 1,
+    "explicitEightObservedMaxConcurrent": 8,
+    "canonicalEquivalent": true
+  },
+  "sourceGate": {
+    "jobId": "job_crk_2c51815d5d",
+    "profile": "portable",
+    "authority": "tmcp project registry revision 9",
+    "exitCode": 0,
+    "tests": 478,
+    "pass": 478,
+    "fail": 0,
+    "docs": "PASS",
+    "syntax": "PASS",
+    "demo": "PASS",
+    "durableDemo": "PASS"
+  },
+  "failedFalsifierHistory": {
+    "jobId": "job_crg_0848595da3",
+    "classification": "test-observer defect, not product semantic failure",
+    "finding": "microtask-based helper completed too quickly to observe the admitted width and reported max 2",
+    "correction": "barrier-based executor holds admitted work until eight are simultaneously active",
+    "correctedBy": "job_crj_53acd03ebb"
+  },
+  "proofBoundaries": {
+    "sourceRuntimePolicy": "PASS",
+    "currentTermuxNodeExecution": "PASS for source test execution only",
+    "physicalAndroidResourcePressureProfile": "NOT_CLAIMED_BY_THIS_EVIDENCE",
+    "D0020LiveProviderAggregateInteraction": "NOT_CLAIMED_BY_THIS_EVIDENCE",
+    "D0039ProviderAndDeployedComposition": "NOT_CLAIMED_BY_THIS_EVIDENCE"
+  }
+}
