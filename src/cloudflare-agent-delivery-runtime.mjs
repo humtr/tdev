@@ -235,6 +235,10 @@ export class AgentDeliveryRuntimeService {
       if (url.pathname !== AGENT_DELIVERY_WEBSOCKET_PATH || !['GET', 'POST'].includes(request.method)) {
         return agentDeliveryJsonResponse(404, { error: { code: 'agent_delivery_not_found' } });
       }
+      if (request.method === 'GET' && ((request.headers.get('upgrade') ?? '').toLowerCase() !== 'websocket' ||
+          !websocketProtocols(request).includes(AGENT_DELIVERY_WEBSOCKET_PROTOCOL))) {
+        fail('invalid_agent_connect_request', 'Agent WebSocket upgrade is missing the required application protocol');
+      }
       const agentId = requiredQueryText(url.searchParams, 'agentId');
       return await this.#route(agentId).fetch(request);
     } catch (error) {
