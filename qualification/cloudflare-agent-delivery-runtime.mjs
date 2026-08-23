@@ -225,6 +225,30 @@ function rpcShape(input) {
     runtime_probe: [[], []],
     d0039_workers_crypto_probe: [['vectors'], []],
     d0039_security_readback: [[], []],
+    read_installable_agent: [[], []],
+    issue_installable_agent_connect_challenge: [['request'], ['nowMs']],
+    migrate_installable_agent_route: [['request'], []],
+    register_installable_agent: [['request'], []],
+    record_installable_agent_genesis_evidence: [['request'], []],
+    accept_legacy_predecessor_quiescence: [['request'], []],
+    initial_activate_installable_agent: [['request'], []],
+    fail_installable_agent_genesis: [['request'], []],
+    record_installable_agent_transaction_evidence: [['request'], []],
+    mutate_installable_agent_trust: [['request'], []],
+    begin_credential_rotation: [['request'], []],
+    commit_credential_rotation: [['request'], []],
+    revoke_installable_agent_credential: [['request'], []],
+    begin_base_stop: [['request'], []],
+    complete_base_stop: [['request'], []],
+    prepare_base_start: [['request'], []],
+    commit_base_start: [['request'], []],
+    begin_package_activation: [['request'], []],
+    commit_package_activation: [['request'], []],
+    begin_installable_agent_replacement: [['request'], []],
+    commit_installable_agent_replacement: [['request'], []],
+    begin_installable_agent_uninstall: [['request'], []],
+    complete_installable_agent_uninstall: [['request'], []],
+    compact_installable_agent_management_receipts: [['request'], []],
     initialize: [[], ['initialization']],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
@@ -415,6 +439,58 @@ export class D0020QualificationAgentDeliveryDOHost {
           legacyHmacPresent: typeof this.env?.TDEV_AGENT_DELIVERY_AUTH_KEY === 'string',
           secretValues: 'excluded',
         };
+      } else if (operation === 'read_installable_agent') {
+        result = this.host.readInstallableAgent({ routeBinding });
+      } else if (operation === 'issue_installable_agent_connect_challenge') {
+        result = this.host.issueInstallableAgentConnectChallenge({
+          routeBinding,
+          request: input.request,
+          ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }),
+        });
+      } else if (operation === 'migrate_installable_agent_route') {
+        result = this.host.migrateInstallableAgentRoute({ routeBinding, request: input.request });
+      } else if (operation === 'register_installable_agent') {
+        result = await this.host.registerInstallableAgent({ routeBinding, request: input.request });
+      } else if (operation === 'record_installable_agent_genesis_evidence') {
+        result = this.host.recordInstallableAgentGenesisEvidence({ routeBinding, request: input.request });
+      } else if (operation === 'accept_legacy_predecessor_quiescence') {
+        result = this.host.acceptLegacyPredecessorQuiescence({ routeBinding, request: input.request });
+      } else if (operation === 'initial_activate_installable_agent') {
+        result = await this.host.initialActivateInstallableAgent({ routeBinding, request: input.request });
+      } else if (operation === 'fail_installable_agent_genesis') {
+        result = await this.host.failInstallableAgentGenesis({ routeBinding, request: input.request });
+      } else if (operation === 'record_installable_agent_transaction_evidence') {
+        result = this.host.recordInstallableAgentTransactionEvidence({ routeBinding, request: input.request });
+      } else if (operation === 'mutate_installable_agent_trust') {
+        result = await this.host.mutateInstallableAgentTrust({ routeBinding, request: input.request });
+      } else if (operation === 'begin_credential_rotation') {
+        result = await this.host.beginCredentialRotation({ routeBinding, request: input.request });
+      } else if (operation === 'commit_credential_rotation') {
+        result = await this.host.commitCredentialRotation({ routeBinding, request: input.request });
+      } else if (operation === 'revoke_installable_agent_credential') {
+        result = await this.host.revokeInstallableAgentCredential({ routeBinding, request: input.request });
+      } else if (operation === 'begin_base_stop') {
+        result = await this.host.beginBaseStop({ routeBinding, request: input.request });
+      } else if (operation === 'complete_base_stop') {
+        result = await this.host.completeBaseStop({ routeBinding, request: input.request });
+      } else if (operation === 'prepare_base_start') {
+        result = await this.host.prepareBaseStart({ routeBinding, request: input.request });
+      } else if (operation === 'commit_base_start') {
+        result = await this.host.commitBaseStart({ routeBinding, request: input.request });
+      } else if (operation === 'begin_package_activation') {
+        result = await this.host.beginPackageActivation({ routeBinding, request: input.request });
+      } else if (operation === 'commit_package_activation') {
+        result = await this.host.commitPackageActivation({ routeBinding, request: input.request });
+      } else if (operation === 'begin_installable_agent_replacement') {
+        result = await this.host.beginInstallableAgentReplacement({ routeBinding, request: input.request });
+      } else if (operation === 'commit_installable_agent_replacement') {
+        result = await this.host.commitInstallableAgentReplacement({ routeBinding, request: input.request });
+      } else if (operation === 'begin_installable_agent_uninstall') {
+        result = await this.host.beginInstallableAgentUninstall({ routeBinding, request: input.request });
+      } else if (operation === 'complete_installable_agent_uninstall') {
+        result = await this.host.completeInstallableAgentUninstall({ routeBinding, request: input.request });
+      } else if (operation === 'compact_installable_agent_management_receipts') {
+        result = this.host.compactInstallableAgentManagementReceipts({ routeBinding, request: input.request });
       } else if (operation === 'initialize') {
         result = this.host.initializeRoute({ routeBinding, ...(input.initialization === undefined ? {} : { initialization: input.initialization }) });
       } else if (operation === 'read') {

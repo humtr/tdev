@@ -233,3 +233,107 @@ test('qualification mode and secret bindings fail closed before a service become
     (error) => error?.code === 'invalid_qualification_config',
   );
 });
+
+
+test('qualification DO host exposes D0039 installable-Agent operations only through the actual route-bound production host', async () => {
+  const calls = [];
+  const record = (method) => (input) => {
+    calls.push({ method, input: structuredClone(input) });
+    return { method };
+  };
+  const host = {
+    durableObjectId: 'do-agent-d0039',
+    config: {
+      placement: {
+        deployment: 'qualification',
+        environment: 'nonproduction',
+        workerScript: 'tdev-d0020-qualification',
+        className: 'AgentDeliveryRuntimeDO',
+        namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+        jurisdiction: 'global',
+      },
+    },
+    readInstallableAgent: record('readInstallableAgent'),
+    issueInstallableAgentConnectChallenge: record('issueInstallableAgentConnectChallenge'),
+    migrateInstallableAgentRoute: record('migrateInstallableAgentRoute'),
+    registerInstallableAgent: record('registerInstallableAgent'),
+    recordInstallableAgentGenesisEvidence: record('recordInstallableAgentGenesisEvidence'),
+    acceptLegacyPredecessorQuiescence: record('acceptLegacyPredecessorQuiescence'),
+    initialActivateInstallableAgent: record('initialActivateInstallableAgent'),
+    failInstallableAgentGenesis: record('failInstallableAgentGenesis'),
+    recordInstallableAgentTransactionEvidence: record('recordInstallableAgentTransactionEvidence'),
+    mutateInstallableAgentTrust: record('mutateInstallableAgentTrust'),
+    beginCredentialRotation: record('beginCredentialRotation'),
+    commitCredentialRotation: record('commitCredentialRotation'),
+    revokeInstallableAgentCredential: record('revokeInstallableAgentCredential'),
+    beginBaseStop: record('beginBaseStop'),
+    completeBaseStop: record('completeBaseStop'),
+    prepareBaseStart: record('prepareBaseStart'),
+    commitBaseStart: record('commitBaseStart'),
+    beginPackageActivation: record('beginPackageActivation'),
+    commitPackageActivation: record('commitPackageActivation'),
+    beginInstallableAgentReplacement: record('beginInstallableAgentReplacement'),
+    commitInstallableAgentReplacement: record('commitInstallableAgentReplacement'),
+    beginInstallableAgentUninstall: record('beginInstallableAgentUninstall'),
+    completeInstallableAgentUninstall: record('completeInstallableAgentUninstall'),
+    compactInstallableAgentManagementReceipts: record('compactInstallableAgentManagementReceipts'),
+  };
+  const qualification = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } },
+    baseEnv(),
+    { host },
+  );
+  const request = { fixture: true, managementProof: { profile: 'opaque-production-proof' } };
+  const operations = [
+    ['migrate_installable_agent_route', 'migrateInstallableAgentRoute'],
+    ['register_installable_agent', 'registerInstallableAgent'],
+    ['record_installable_agent_genesis_evidence', 'recordInstallableAgentGenesisEvidence'],
+    ['accept_legacy_predecessor_quiescence', 'acceptLegacyPredecessorQuiescence'],
+    ['initial_activate_installable_agent', 'initialActivateInstallableAgent'],
+    ['fail_installable_agent_genesis', 'failInstallableAgentGenesis'],
+    ['record_installable_agent_transaction_evidence', 'recordInstallableAgentTransactionEvidence'],
+    ['mutate_installable_agent_trust', 'mutateInstallableAgentTrust'],
+    ['begin_credential_rotation', 'beginCredentialRotation'],
+    ['commit_credential_rotation', 'commitCredentialRotation'],
+    ['revoke_installable_agent_credential', 'revokeInstallableAgentCredential'],
+    ['begin_base_stop', 'beginBaseStop'],
+    ['complete_base_stop', 'completeBaseStop'],
+    ['prepare_base_start', 'prepareBaseStart'],
+    ['commit_base_start', 'commitBaseStart'],
+    ['begin_package_activation', 'beginPackageActivation'],
+    ['commit_package_activation', 'commitPackageActivation'],
+    ['begin_installable_agent_replacement', 'beginInstallableAgentReplacement'],
+    ['commit_installable_agent_replacement', 'commitInstallableAgentReplacement'],
+    ['begin_installable_agent_uninstall', 'beginInstallableAgentUninstall'],
+    ['complete_installable_agent_uninstall', 'completeInstallableAgentUninstall'],
+    ['compact_installable_agent_management_receipts', 'compactInstallableAgentManagementReceipts'],
+  ];
+  for (const [operation, method] of operations) {
+    const response = await qualification.qualificationInvoke({ operation, agentId: 'agent-one', routeGeneration: 7, request });
+    assert.equal(response.ok, true, operation);
+    assert.equal(response.result.method, method, operation);
+  }
+  const read = await qualification.qualificationInvoke({ operation: 'read_installable_agent', agentId: 'agent-one', routeGeneration: 7 });
+  assert.equal(read.ok, true);
+  const challenge = await qualification.qualificationInvoke({
+    operation: 'issue_installable_agent_connect_challenge', agentId: 'agent-one', routeGeneration: 7, request, nowMs: 1234,
+  });
+  assert.equal(challenge.ok, true);
+
+  for (const call of calls) {
+    assert.equal(call.input.routeBinding.agentId, 'agent-one');
+    assert.equal(call.input.routeBinding.routeGeneration, 7);
+    assert.equal(call.input.routeBinding.durableObjectId, 'do-agent-d0039');
+  }
+  assert.deepEqual(calls.find((call) => call.method === 'registerInstallableAgent').input.request, request);
+  assert.equal(calls.find((call) => call.method === 'issueInstallableAgentConnectChallenge').input.nowMs, 1234);
+
+  const injected = await qualification.qualificationInvoke({
+    operation: 'register_installable_agent',
+    agentId: 'agent-one',
+    routeGeneration: 7,
+    routeBinding: { durableObjectId: 'caller-chosen' },
+    request,
+  });
+  assert.equal(injected.ok, false);
+});
