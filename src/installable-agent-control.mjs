@@ -16,6 +16,12 @@ import {
 } from './canonical.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
 import {
+  normalizeAndroidSourceLineageId,
+  normalizeConnectPossessionContext,
+  parseInstallableAgentConnectRequestId,
+  parseInstallableAgentCredentialRef,
+} from './installable-agent-security.mjs';
+import {
   LocalAgentRuntime,
   LocalAgentWebSocketTransport,
   createLocalExecutionStartError,
@@ -28,7 +34,7 @@ import { termuxInstallableAgentServiceLayout } from './installable-agent-termux-
 import { verifyInstallableAgentRelease } from './installable-agent-package.mjs';
 
 export const INSTALLABLE_AGENT_CONTROL_PROFILE = 'tdev.installable-agent-control.v1';
-export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 1;
+export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 2;
 export const INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE = 'tdev.installable-agent-control-connection.v1';
 export const INSTALLABLE_AGENT_TOOL_PROFILES_PROFILE = 'tdev.installable-agent-tool-profiles.v1';
 export const INSTALLABLE_AGENT_TOOL_PROFILES_SCHEMA_VERSION = 1;
@@ -65,7 +71,7 @@ export function normalizeInstallableAgentControlConfig(input) {
   assertRecordShape(input, [
     'schemaVersion', 'profile', 'agentId', 'routeGeneration', 'executorId', 'executorEpoch', 'agentDeliveryUrl',
     'stateDirectory', 'credentialRef', 'installableAgentTuple', 'protocolMetadataDigest', 'reportedCapacity',
-  ], ['reconnectDelayMs'], 'installable Agent control config');
+  ], ['reconnectDelayMs', 'androidSourceLineageId'], 'installable Agent control config');
   if (input.schemaVersion !== 1 || input.profile !== INSTALLABLE_AGENT_CONTROL_PROFILE) {
     fail('installable_agent_control_config_incompatible', 'Installable Agent control config profile/schema is unsupported');
   }
@@ -78,7 +84,17 @@ export function normalizeInstallableAgentControlConfig(input) {
     fail('invalid_installable_agent_control_config', 'agentDeliveryUrl must be ws/wss without embedded credentials or fragment');
   }
   const stateDirectory = absolutePath(input.stateDirectory, 'stateDirectory');
-  const credentialRef = absolutePath(input.credentialRef, 'credentialRef');
+  let credentialRef;
+  let androidSourceLineageId = null;
+  if (typeof input.credentialRef === 'string' && input.credentialRef.startsWith('androidkeystore://')) {
+    parseInstallableAgentCredentialRef(input.credentialRef);
+    credentialRef = input.credentialRef;
+    if (input.androidSourceLineageId === undefined) fail('invalid_installable_agent_control_config', 'AndroidKeyStore control config requires pinned androidSourceLineageId');
+    androidSourceLineageId = normalizeAndroidSourceLineageId(input.androidSourceLineageId);
+  } else {
+    credentialRef = absolutePath(input.credentialRef, 'credentialRef');
+    if (input.androidSourceLineageId !== undefined) fail('invalid_installable_agent_control_config', 'Legacy file credential cannot carry Android source-lineage authority');
+  }
   const installableAgentTuple = normalizeInstallableAgentDataPlaneTuple(input.installableAgentTuple);
   assertDigest(input.protocolMetadataDigest, 'protocolMetadataDigest');
   assertSafeInteger(input.reportedCapacity, 'reportedCapacity', { min: 0, max: 1024 });
@@ -94,6 +110,7 @@ export function normalizeInstallableAgentControlConfig(input) {
     agentDeliveryUrl: endpoint.toString(),
     stateDirectory,
     credentialRef,
+    ...(androidSourceLineageId === null ? {} : { androidSourceLineageId }),
     installableAgentTuple,
     protocolMetadataDigest: input.protocolMetadataDigest,
     reportedCapacity: input.reportedCapacity,
@@ -209,6 +226,7 @@ function initialConnectionState() {
     authorityClaim: 'subordinate_transport_recovery_only',
     revision: 0,
     lastConnectionEpoch: 0,
+    lastConnectRequestSequence: 0,
     pending: null,
   };
 }
@@ -235,16 +253,39 @@ async function readConnectionState(filePath) {
   let value;
   try { value = strictJsonParse(bytes.toString('utf8').trimEnd(), { maxBytes: MAX_CONFIG_BYTES }); }
   catch (cause) { fail('installable_agent_control_state_corrupt', 'Control connection state is not bounded JSON', {}, { cause }); }
-  assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'pending'], [], 'installable Agent control connection state');
+  if (value?.schemaVersion === 1) {
+    assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'pending'], [], 'legacy installable Agent control connection state');
+    if (value.profile !== INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE || value.authorityClaim !== 'subordinate_transport_recovery_only' ||
+        !Number.isSafeInteger(value.revision) || value.revision < 0 || !Number.isSafeInteger(value.lastConnectionEpoch) || value.lastConnectionEpoch < 0 ||
+        value.pending !== null) {
+      fail('installable_agent_control_state_corrupt', 'Legacy control state can migrate only from a terminal no-pending point');
+    }
+    return {
+      schemaVersion: INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION,
+      profile: INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE,
+      authorityClaim: 'subordinate_transport_recovery_only',
+      revision: value.revision,
+      lastConnectionEpoch: value.lastConnectionEpoch,
+      lastConnectRequestSequence: 0,
+      pending: null,
+    };
+  }
+  assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'lastConnectRequestSequence', 'pending'], [], 'installable Agent control connection state');
   if (value.schemaVersion !== INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION || value.profile !== INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE ||
       value.authorityClaim !== 'subordinate_transport_recovery_only' || !Number.isSafeInteger(value.revision) || value.revision < 0 ||
-      !Number.isSafeInteger(value.lastConnectionEpoch) || value.lastConnectionEpoch < 0) {
+      !Number.isSafeInteger(value.lastConnectionEpoch) || value.lastConnectionEpoch < 0 ||
+      !Number.isSafeInteger(value.lastConnectRequestSequence) || value.lastConnectRequestSequence < 0) {
     fail('installable_agent_control_state_corrupt', 'Control connection state identity is invalid');
   }
   if (value.pending !== null) {
     assertRecordShape(value.pending, ['expectedConnectionEpoch', 'connectRequestId', 'connectionId'], [], 'pending control connection');
     assertSafeInteger(value.pending.expectedConnectionEpoch, 'pending expectedConnectionEpoch', { min: 0 });
-    assertIdentifier(value.pending.connectRequestId, 'pending connectRequestId');
+    if (value.pending.connectRequestId.startsWith('c1:')) {
+      const sequence = parseInstallableAgentConnectRequestId(value.pending.connectRequestId);
+      if (sequence !== value.lastConnectRequestSequence) fail('installable_agent_control_state_corrupt', 'Pending c1 sequence must equal the local durable request high-water');
+    } else {
+      assertIdentifier(value.pending.connectRequestId, 'pending connectRequestId');
+    }
     assertIdentifier(value.pending.connectionId, 'pending connectionId');
     if (value.pending.expectedConnectionEpoch !== value.lastConnectionEpoch) fail('installable_agent_control_state_corrupt', 'Pending connection predecessor mismatches last connected epoch');
   }
@@ -257,6 +298,7 @@ function identifierFromDigest(value) {
 }
 
 function newPendingConnection(config, state) {
+  const d0039 = config.credentialRef.startsWith('androidkeystore://');
   const seed = {
     agentId: config.agentId,
     routeGeneration: config.routeGeneration,
@@ -266,9 +308,16 @@ function newPendingConnection(config, state) {
     expectedConnectionEpoch: state.lastConnectionEpoch,
     localRevision: state.revision + 1,
   };
+  let connectRequestId;
+  if (d0039) {
+    if (state.lastConnectRequestSequence === Number.MAX_SAFE_INTEGER) fail('installable_agent_connect_sequence_exhausted', 'Local c1 connect request sequence is exhausted');
+    connectRequestId = `c1:${state.lastConnectRequestSequence + 1}`;
+  } else {
+    connectRequestId = identifierFromDigest({ kind: 'installable-agent-connect-request', ...seed });
+  }
   return Object.freeze({
     expectedConnectionEpoch: state.lastConnectionEpoch,
-    connectRequestId: identifierFromDigest({ kind: 'installable-agent-connect-request', ...seed }),
+    connectRequestId,
     connectionId: identifierFromDigest({ kind: 'installable-agent-connection', ...seed }),
   });
 }
@@ -292,6 +341,8 @@ export async function createInstallableAgentControlProcess({
   webSocketFactory = undefined,
   supervisorClient = undefined,
   credentialLoader = readCredentialFile,
+  credentialAdapter = null,
+  challengeClient = null,
 } = {}) {
   const resolvedPackageRoot = absolutePath(packageRoot, 'packageRoot');
   const normalizedConfig = normalizeInstallableAgentControlConfig(config);
@@ -303,7 +354,21 @@ export async function createInstallableAgentControlProcess({
     fail('installable_agent_profile_unsupported', 'Installed package target does not match this control process');
   }
   const toolProfiles = await loadReleaseToolProfiles(resolvedPackageRoot, release);
-  const authKey = await credentialLoader(normalizedConfig.credentialRef);
+  const d0039Credential = normalizedConfig.credentialRef.startsWith('androidkeystore://');
+  let authKey = null;
+  if (d0039Credential) {
+    if (credentialAdapter === null || typeof credentialAdapter.verifySourceLineage !== 'function' ||
+        typeof credentialAdapter.readPublicVerifier !== 'function' || typeof credentialAdapter.signPossession !== 'function') {
+      fail('installable_agent_keystore_adapter_unconfigured', 'D0039 control requires the package-owned AndroidKeyStore credential adapter');
+    }
+    if (challengeClient === null || typeof challengeClient.issue !== 'function') {
+      fail('installable_agent_challenge_client_unconfigured', 'D0039 control requires the deployment-owned possession challenge client');
+    }
+    await credentialAdapter.verifySourceLineage(normalizedConfig.androidSourceLineageId);
+    await credentialAdapter.readPublicVerifier(normalizedConfig.credentialRef);
+  } else {
+    authKey = await credentialLoader(normalizedConfig.credentialRef);
+  }
   const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory: normalizedConfig.stateDirectory });
   const serviceClient = supervisorClient ?? new InstallableAgentSupervisorServiceClient({ socketPath: layout.socketPath });
   const baseExecutionAdapter = createInstallableAgentSupervisorServiceExecutionAdapter({
@@ -344,15 +409,39 @@ export async function createInstallableAgentControlProcess({
     let state = await readConnectionState(connectionStatePath);
     if (state.pending === null) {
       state.pending = newPendingConnection(normalizedConfig, state);
+      if (d0039Credential) state.lastConnectRequestSequence = parseInstallableAgentConnectRequestId(state.pending.connectRequestId);
       state.revision += 1;
       await atomicWriteJson(connectionStatePath, state);
     }
     const pending = state.pending;
+    let possessionEnvelope = null;
+    if (d0039Credential) {
+      const challengeRequest = {
+        agentId: normalizedConfig.agentId,
+        routeGeneration: normalizedConfig.routeGeneration,
+        expectedConnectionEpoch: pending.expectedConnectionEpoch,
+        connectRequestId: pending.connectRequestId,
+        connectionId: pending.connectionId,
+        executorId: normalizedConfig.executorId,
+        executorEpoch: normalizedConfig.executorEpoch,
+        protocolMetadataDigest: normalizedConfig.protocolMetadataDigest,
+        installableAgentTuple: canonicalClone(normalizedConfig.installableAgentTuple),
+      };
+      const challengeResponse = await challengeClient.issue(canonicalClone(challengeRequest));
+      const challenge = normalizeConnectPossessionContext(challengeResponse?.challenge ?? challengeResponse);
+      possessionEnvelope = await credentialAdapter.signPossession({
+        credentialRef: normalizedConfig.credentialRef,
+        context: challenge,
+        expectedCredentialKeyId: challenge.credentialKeyId,
+        androidSourceLineageId: normalizedConfig.androidSourceLineageId,
+      });
+    }
     const identity = await transport.connect({
       expectedConnectionEpoch: pending.expectedConnectionEpoch,
       connectRequestId: pending.connectRequestId,
       connectionId: pending.connectionId,
       protocolMetadataDigest: normalizedConfig.protocolMetadataDigest,
+      possessionEnvelope,
     });
     state = await readConnectionState(connectionStatePath);
     if (state.pending === null || canonicalJson(state.pending) !== canonicalJson(pending)) {
@@ -394,6 +483,7 @@ export async function createInstallableAgentControlProcess({
         profile: INSTALLABLE_AGENT_CONTROL_PROFILE,
         connected: transport.socket !== null,
         lastConnectionEpoch: state.lastConnectionEpoch,
+        lastConnectRequestSequence: state.lastConnectRequestSequence,
         pendingConnect: state.pending === null ? null : canonicalClone(state.pending),
         executorId: normalizedConfig.executorId,
         executorEpoch: normalizedConfig.executorEpoch,

@@ -16,6 +16,7 @@ import {
   normalizeAgentRouteBinding,
 } from './agent-delivery-authority.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
+import { decodeBase64Url, encodeBase64Url } from './installable-agent-security.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
@@ -23,11 +24,13 @@ export const AGENT_DELIVERY_DO_CLASS_NAME = 'AgentDeliveryRuntimeDO';
 export const AGENT_DELIVERY_WEBSOCKET_PATH = '/agent-delivery/v1/connect';
 export const AGENT_DELIVERY_WEBSOCKET_PROTOCOL = 'tdev-agent-v1';
 export const AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX = 'tdev-auth.';
+export const AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX = 'tdev-possession.';
 export const AGENT_DELIVERY_SOCKET_TAG = 'tdev-d0020-agent-delivery';
 export const CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES = 32 * 1024 * 1024;
 export const AGENT_DELIVERY_MAX_ATTACHMENT_BYTES = 1024;
 
 const MAX_BINDING_BYTES = 2048;
+const MAX_POSSESSION_ENVELOPE_BYTES = 8192;
 const MIN_AUTH_KEY_BYTES = 32;
 const MAX_AUTH_KEY_BYTES = 512;
 const PROVIDER_JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
@@ -73,13 +76,39 @@ function jurisdictionBinding(env) {
   return value;
 }
 
-function requiredAuthKey(env) {
+function optionalAuthKey(env) {
+  const raw = env?.TDEV_AGENT_DELIVERY_AUTH_KEY;
+  if (raw === undefined || raw === null || raw === '') return null;
   const value = requiredTextBinding(env, 'TDEV_AGENT_DELIVERY_AUTH_KEY', MAX_AUTH_KEY_BYTES);
   const bytes = byteLength(value);
   if (bytes < MIN_AUTH_KEY_BYTES) {
     fail('invalid_agent_delivery_deployment_config', 'TDEV_AGENT_DELIVERY_AUTH_KEY is too short');
   }
   return value;
+}
+
+function websocketProtocols(request) {
+  const header = request.headers.get('sec-websocket-protocol') ?? '';
+  return header.length === 0 ? [] : header.split(',').map((value) => value.trim()).filter(Boolean);
+}
+
+function hasLegacyAgentAuth(request) {
+  const authorization = request.headers.get('authorization') ?? '';
+  if (authorization.startsWith('Bearer ')) return true;
+  return websocketProtocols(request).some((value) => value.startsWith(AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX));
+}
+
+function possessionEnvelopeFromRequest(request) {
+  const matches = websocketProtocols(request).filter((value) => value.startsWith(AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX));
+  if (matches.length !== 1) fail('agent_possession_required', 'Exactly one D0039 possession envelope protocol is required');
+  const encoded = matches[0].slice(AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX.length);
+  const bytes = decodeBase64Url(encoded, 'possession envelope protocol');
+  if (bytes.byteLength > MAX_POSSESSION_ENVELOPE_BYTES) fail('agent_possession_envelope_too_large', 'Possession envelope exceeds its wire bound');
+  let text;
+  try { text = textDecoder.decode(bytes); }
+  catch (cause) { fail('invalid_agent_possession_envelope', 'Possession envelope is not valid UTF-8', {}, { cause }); }
+  try { return strictJsonParse(text, { maxBytes: MAX_POSSESSION_ENVELOPE_BYTES }); }
+  catch (cause) { fail('invalid_agent_possession_envelope', 'Possession envelope is not strict bounded JSON', {}, { cause }); }
 }
 
 export function readAgentDeliveryRuntimeConfig(env) {
@@ -472,7 +501,9 @@ export class AgentDeliveryRuntimeDOHost {
     this.ctx = ctx;
     this.env = env;
     this.config = readAgentDeliveryRuntimeConfig(env);
-    this.authKey = requiredAuthKey(env);
+    this.authKey = optionalAuthKey(env);
+    this.now = options.now ?? (() => Date.now());
+    if (typeof this.now !== 'function') fail('invalid_agent_delivery_provider', 'Provider clock must be callable');
     const providerJurisdiction = ctx.id.jurisdiction ?? 'global';
     if (providerJurisdiction !== this.config.placement.jurisdiction) {
       fail('agent_route_binding_conflict', 'Agent delivery provider identity has the wrong jurisdiction', {
@@ -554,6 +585,14 @@ export class AgentDeliveryRuntimeDOHost {
     });
   }
 
+  async #invokeManagement(operation, method, input) {
+    const authority = this.#authority(input.routeBinding);
+    const route = authority.readInstallableAgent().installableAgent;
+    if (route.managementKeyId === null) return authority[method](input.request);
+    const ticket = await authority.verifyInstallableAgentManagementRequest({ operation, request: input.request });
+    return authority[method]({ ...input.request, managementProof: ticket });
+  }
+
   #bindingFromAttachment(attachment) {
     return createRuntimeAgentRouteBinding(this.env, {
       agentId: attachment.agentId,
@@ -577,14 +616,34 @@ export class AgentDeliveryRuntimeDOHost {
     return this.#authority(input.routeBinding).readInstallableAgent();
   }
 
+  issueInstallableAgentConnectChallenge(input) {
+    assertRecordShape(input, ['routeBinding', 'request'], ['nowMs'], 'D0039 connect challenge');
+    assertRecordShape(input.request, [
+      'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'connectionId',
+      'executorId', 'executorEpoch', 'protocolMetadataDigest', 'installableAgentTuple',
+    ], [], 'D0039 connect challenge request');
+    const requestBytes = byteLength(canonicalJson(input.request));
+    if (requestBytes > MAX_POSSESSION_ENVELOPE_BYTES) fail('agent_connect_request_too_large', 'D0039 connect challenge request exceeds 8192 bytes');
+    const request = canonicalClone(input.request);
+    request.requestDigest = computeAgentConnectRequestDigest(request);
+    const nonce = new Uint8Array(32);
+    crypto.getRandomValues(nonce);
+    const nowMs = input.nowMs ?? this.now();
+    assertSafeInteger(nowMs, 'nowMs', { min: 0 });
+    return this.#authority(input.routeBinding).issueInstallableAgentConnectChallenge(request, {
+      nowMs,
+      nonce: encodeBase64Url(nonce),
+    });
+  }
+
   migrateInstallableAgentRoute(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 route migration');
     return this.#authority(input.routeBinding).migrateInstallableAgentRoute(input.request);
   }
 
-  registerInstallableAgent(input) {
+  async registerInstallableAgent(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 register');
-    return this.#authority(input.routeBinding).registerInstallableAgent(input.request);
+    return this.#invokeManagement('register', 'registerInstallableAgent', input);
   }
 
   recordInstallableAgentGenesisEvidence(input) {
@@ -597,14 +656,14 @@ export class AgentDeliveryRuntimeDOHost {
     return this.#authority(input.routeBinding).acceptLegacyPredecessorQuiescence(input.request);
   }
 
-  initialActivateInstallableAgent(input) {
+  async initialActivateInstallableAgent(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 initial activation');
-    return this.#authority(input.routeBinding).initialActivateInstallableAgent(input.request);
+    return this.#invokeManagement('register', 'initialActivateInstallableAgent', input);
   }
 
-  failInstallableAgentGenesis(input) {
+  async failInstallableAgentGenesis(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 failed genesis');
-    return this.#authority(input.routeBinding).failInstallableAgentGenesis(input.request);
+    return this.#invokeManagement('register', 'failInstallableAgentGenesis', input);
   }
 
   recordInstallableAgentTransactionEvidence(input) {
@@ -612,74 +671,74 @@ export class AgentDeliveryRuntimeDOHost {
     return this.#authority(input.routeBinding).recordInstallableAgentTransactionEvidence(input.request);
   }
 
-  mutateInstallableAgentTrust(input) {
+  async mutateInstallableAgentTrust(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 trust mutation');
-    return this.#authority(input.routeBinding).mutateInstallableAgentTrust(input.request);
+    return this.#invokeManagement('trust', 'mutateInstallableAgentTrust', input);
   }
 
-  beginCredentialRotation(input) {
+  async beginCredentialRotation(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential rotation begin');
-    return this.#authority(input.routeBinding).beginCredentialRotation(input.request);
+    return this.#invokeManagement('credential_rotate', 'beginCredentialRotation', input);
   }
 
-  commitCredentialRotation(input) {
+  async commitCredentialRotation(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential rotation commit');
-    return this.#authority(input.routeBinding).commitCredentialRotation(input.request);
+    return this.#invokeManagement('credential_rotate', 'commitCredentialRotation', input);
   }
 
-  revokeInstallableAgentCredential(input) {
+  async revokeInstallableAgentCredential(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 credential revocation');
-    return this.#authority(input.routeBinding).revokeInstallableAgentCredential(input.request);
+    return this.#invokeManagement('credential_revoke', 'revokeInstallableAgentCredential', input);
   }
 
-  beginBaseStop(input) {
+  async beginBaseStop(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base stop begin');
-    return this.#authority(input.routeBinding).beginBaseStop(input.request);
+    return this.#invokeManagement('stop', 'beginBaseStop', input);
   }
 
-  completeBaseStop(input) {
+  async completeBaseStop(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base stop complete');
-    return this.#authority(input.routeBinding).completeBaseStop(input.request);
+    return this.#invokeManagement('stop', 'completeBaseStop', input);
   }
 
-  prepareBaseStart(input) {
+  async prepareBaseStart(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base start prepare');
-    return this.#authority(input.routeBinding).prepareBaseStart(input.request);
+    return this.#invokeManagement('start', 'prepareBaseStart', input);
   }
 
-  commitBaseStart(input) {
+  async commitBaseStart(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 base start commit');
-    return this.#authority(input.routeBinding).commitBaseStart(input.request);
+    return this.#invokeManagement('start', 'commitBaseStart', input);
   }
 
-  beginPackageActivation(input) {
+  async beginPackageActivation(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 package activation begin');
-    return this.#authority(input.routeBinding).beginPackageActivation(input.request);
+    return this.#invokeManagement('package', 'beginPackageActivation', input);
   }
 
-  commitPackageActivation(input) {
+  async commitPackageActivation(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 package activation commit');
-    return this.#authority(input.routeBinding).commitPackageActivation(input.request);
+    return this.#invokeManagement('package', 'commitPackageActivation', input);
   }
 
-  beginInstallableAgentReplacement(input) {
+  async beginInstallableAgentReplacement(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 replacement begin');
-    return this.#authority(input.routeBinding).beginInstallableAgentReplacement(input.request);
+    return this.#invokeManagement('replace', 'beginInstallableAgentReplacement', input);
   }
 
-  commitInstallableAgentReplacement(input) {
+  async commitInstallableAgentReplacement(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 replacement commit');
-    return this.#authority(input.routeBinding).commitInstallableAgentReplacement(input.request);
+    return this.#invokeManagement('replace', 'commitInstallableAgentReplacement', input);
   }
 
-  beginInstallableAgentUninstall(input) {
+  async beginInstallableAgentUninstall(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 uninstall begin');
-    return this.#authority(input.routeBinding).beginInstallableAgentUninstall(input.request);
+    return this.#invokeManagement('uninstall', 'beginInstallableAgentUninstall', input);
   }
 
-  completeInstallableAgentUninstall(input) {
+  async completeInstallableAgentUninstall(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 uninstall complete');
-    return this.#authority(input.routeBinding).completeInstallableAgentUninstall(input.request);
+    return this.#invokeManagement('uninstall', 'completeInstallableAgentUninstall', input);
   }
 
   compactInstallableAgentManagementReceipts(input) {
@@ -744,10 +803,20 @@ export class AgentDeliveryRuntimeDOHost {
     const agentId = requiredQueryText(url.searchParams, 'agentId');
     const routeGeneration = positiveQueryInteger(url.searchParams, 'routeGeneration');
     const principal = { agentId, routeGeneration };
-    await authorizeAgentRequest(request, this.authKey, principal);
     const routeBinding = createRuntimeAgentRouteBinding(this.env, { agentId, routeGeneration, durableObjectId: this.durableObjectId });
     const authority = this.#authority(routeBinding);
-    authority.read();
+    const routeState = authority.readInstallableAgent().installableAgent;
+    let possessionEnvelope = null;
+    if (routeState.state === 'LEGACY_D0020_ONLY') {
+      if (this.authKey === null) fail('agent_authentication_failed', 'Legacy D0020 Agent auth binding is absent');
+      if (websocketProtocols(request).some((value) => value.startsWith(AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX))) {
+        fail('agent_authentication_failed', 'Legacy D0020 connection cannot present D0039 possession authority');
+      }
+      await authorizeAgentRequest(request, this.authKey, principal);
+    } else {
+      if (hasLegacyAgentAuth(request)) fail('legacy_agent_auth_forbidden', 'Legacy HMAC/Bearer authority is permanently disabled after the first D0027 marker');
+      possessionEnvelope = possessionEnvelopeFromRequest(request);
+    }
     const connect = {
       agentId,
       routeGeneration,
@@ -762,7 +831,20 @@ export class AgentDeliveryRuntimeDOHost {
     if (installableAgentTuple !== null) connect.installableAgentTuple = installableAgentTuple;
     assertDigest(connect.protocolMetadataDigest, 'protocolMetadataDigest');
     connect.requestDigest = computeAgentConnectRequestDigest(connect);
-    const result = authority.connect(connect);
+    let result;
+    if (routeState.state === 'LEGACY_D0020_ONLY') {
+      result = authority.connect(connect);
+    } else {
+      if (installableAgentTuple === null) fail('agent_possession_required', 'D0027 WebSocket requires the exact current installable-Agent tuple');
+      const nowMs = this.now();
+      assertSafeInteger(nowMs, 'nowMs', { min: 0 });
+      const ticket = await authority.verifyInstallableAgentConnectPossession({
+        connectRequest: connect,
+        envelope: possessionEnvelope,
+        nowMs,
+      });
+      result = authority.connect(connect, { possessionTicket: ticket, nowMs });
+    }
     if (!['accepted', 'exact_replay'].includes(result.classification)) {
       fail('stale_connection_fence', 'Agent connection request is stale');
     }

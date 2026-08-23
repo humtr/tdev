@@ -14,6 +14,10 @@ import {
 } from './canonical.mjs';
 import { INSTALLABLE_AGENT_SUPERVISOR_SERVICE_PROTOCOL } from './installable-agent-supervisor-service.mjs';
 import { INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE } from './installable-agent-termux-service.mjs';
+import {
+  normalizeAndroidSourceLineageId,
+  parseInstallableAgentCredentialRef,
+} from './installable-agent-security.mjs';
 
 export const INSTALLABLE_AGENT_PACKAGE_PROFILE = 'tdev.installable-agent-package.v1';
 export const INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION = 1;
@@ -294,7 +298,7 @@ function ownerManagementRequest(request) {
 function normalizeControlConfigBase(input) {
   assertRecordShape(input, [
     'agentId', 'routeGeneration', 'executorId', 'executorEpoch', 'agentDeliveryUrl', 'credentialRef', 'protocolMetadataDigest', 'reportedCapacity',
-  ], ['reconnectDelayMs'], 'installable Agent control config base');
+  ], ['reconnectDelayMs', 'androidSourceLineageId'], 'installable Agent control config base');
   assertIdentifier(input.agentId, 'controlConfig.agentId');
   assertSafeInteger(input.routeGeneration, 'controlConfig.routeGeneration', { min: 1 });
   assertIdentifier(input.executorId, 'controlConfig.executorId');
@@ -305,8 +309,14 @@ function normalizeControlConfigBase(input) {
   if (!['ws:', 'wss:'].includes(endpoint.protocol) || endpoint.username || endpoint.password || endpoint.hash) {
     fail('invalid_installable_agent_control_config', 'controlConfig.agentDeliveryUrl must be ws/wss without embedded credentials or fragment');
   }
-  if (typeof input.credentialRef !== 'string' || !path.isAbsolute(input.credentialRef)) {
-    fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an absolute external reference');
+  if (typeof input.credentialRef !== 'string') fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be text');
+  if (input.credentialRef.startsWith('androidkeystore://')) {
+    parseInstallableAgentCredentialRef(input.credentialRef);
+    if (input.androidSourceLineageId === undefined) fail('invalid_installable_agent_control_config', 'AndroidKeyStore control config requires androidSourceLineageId');
+    normalizeAndroidSourceLineageId(input.androidSourceLineageId);
+  } else {
+    if (!path.isAbsolute(input.credentialRef)) fail('invalid_installable_agent_control_config', 'Legacy controlConfig.credentialRef must be an absolute external reference');
+    if (input.androidSourceLineageId !== undefined) fail('invalid_installable_agent_control_config', 'Legacy credential cannot carry Android source-lineage authority');
   }
   assertDigest(input.protocolMetadataDigest, 'controlConfig.protocolMetadataDigest');
   assertSafeInteger(input.reportedCapacity, 'controlConfig.reportedCapacity', { min: 0, max: 1024 });

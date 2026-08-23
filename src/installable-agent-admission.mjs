@@ -11,6 +11,15 @@ import {
   isPlainRecord,
   typedDigest,
 } from './canonical.mjs';
+import {
+  installableAgentCredentialKeyId,
+  installableAgentManagementKeyId,
+  installableAgentReleaseRootKeyId,
+  normalizeConnectPossessionContext,
+  normalizeEd25519PublicJwk,
+  normalizeRsa3072PublicJwk,
+  parseInstallableAgentConnectRequestId,
+} from './installable-agent-security.mjs';
 
 export const INSTALLABLE_AGENT_ADMISSION_PROFILE_V1 = 'tdev.installable-agent-admission.v1';
 export const INSTALLABLE_AGENT_ADMISSION_PROFILE_V2 = 'tdev.installable-agent-admission.v2';
@@ -300,6 +309,17 @@ export function createUnregisteredInstallableAgentState() {
     trustPolicyGenerationHighWater: 0,
     lifecycleGenerationHighWater: 0,
     managementRequestSequenceHighWater: 0,
+    managementKeyId: null,
+    managementPublicKey: null,
+    releaseRootKeyId: null,
+    releaseRootPublicKey: null,
+    currentCredentialKeyId: null,
+    currentCredentialPublicKey: null,
+    pendingCredentialKeyId: null,
+    pendingCredentialPublicKey: null,
+    connectRequestSequenceHighWater: 0,
+    possessionChallengeGenerationHighWater: 0,
+    possessionChallenge: null,
     managementReceipts: createRecord(),
     managementTombstones: createRecord(),
     predecessorQuiescenceReceipts: createRecord(),
@@ -314,7 +334,12 @@ function normalizeD0027AwareInstallableAgentState(value, limits, { profile, requ
     'credentialGenerationHighWater', 'packageActivationGenerationHighWater', 'trustPolicyGenerationHighWater',
     'lifecycleGenerationHighWater',
   ];
-  if (requestSequenceFloor) fields.push('managementRequestSequenceHighWater');
+  if (requestSequenceFloor) fields.push(
+    'managementRequestSequenceHighWater', 'managementKeyId', 'managementPublicKey',
+    'releaseRootKeyId', 'releaseRootPublicKey', 'currentCredentialKeyId', 'currentCredentialPublicKey',
+    'pendingCredentialKeyId', 'pendingCredentialPublicKey', 'connectRequestSequenceHighWater',
+    'possessionChallengeGenerationHighWater', 'possessionChallenge',
+  );
   fields.push('managementReceipts', 'managementTombstones', 'predecessorQuiescenceReceipts', 'pending', 'current');
   exactRecord(value, fields, [], 'installable Agent state');
   if (value.profile !== profile || !ROUTE_STATES.has(value.state) || value.state === 'LEGACY_D0020_ONLY') {
@@ -325,7 +350,56 @@ function normalizeD0027AwareInstallableAgentState(value, limits, { profile, requ
     'genesisGenerationHighWater', 'installationGenerationHighWater', 'credentialGenerationHighWater',
     'packageActivationGenerationHighWater', 'trustPolicyGenerationHighWater', 'lifecycleGenerationHighWater',
   ]) nonnegativeGeneration(value[field], `installableAgent.${field}`);
-  if (requestSequenceFloor) nonnegativeGeneration(value.managementRequestSequenceHighWater, 'installableAgent.managementRequestSequenceHighWater');
+  if (requestSequenceFloor) {
+    nonnegativeGeneration(value.managementRequestSequenceHighWater, 'installableAgent.managementRequestSequenceHighWater');
+    nonnegativeGeneration(value.connectRequestSequenceHighWater, 'installableAgent.connectRequestSequenceHighWater');
+    nonnegativeGeneration(value.possessionChallengeGenerationHighWater, 'installableAgent.possessionChallengeGenerationHighWater');
+    if ((value.managementKeyId === null) !== (value.managementPublicKey === null)) {
+      fail('invalid_installable_agent_state', 'Management key ID/public verifier must be present or absent together');
+    }
+    if (value.managementKeyId !== null) {
+      assertDigest(value.managementKeyId, 'installableAgent.managementKeyId');
+      const publicKey = normalizeEd25519PublicJwk(value.managementPublicKey, 'management public JWK');
+      if (installableAgentManagementKeyId(publicKey) !== value.managementKeyId) fail('invalid_installable_agent_state', 'Management key ID does not match its Ed25519 verifier');
+      value.managementPublicKey = canonicalClone(publicKey);
+    }
+    if ((value.releaseRootKeyId === null) !== (value.releaseRootPublicKey === null)) {
+      fail('invalid_installable_agent_state', 'Release-root key ID/public verifier must be present or absent together');
+    }
+    if (value.releaseRootKeyId !== null) {
+      assertDigest(value.releaseRootKeyId, 'installableAgent.releaseRootKeyId');
+      const publicKey = normalizeEd25519PublicJwk(value.releaseRootPublicKey, 'release-root public JWK');
+      if (installableAgentReleaseRootKeyId(publicKey) !== value.releaseRootKeyId) fail('invalid_installable_agent_state', 'Release-root key ID does not match its Ed25519 verifier');
+      value.releaseRootPublicKey = canonicalClone(publicKey);
+    }
+    if ((value.currentCredentialKeyId === null) !== (value.currentCredentialPublicKey === null)) {
+      fail('invalid_installable_agent_state', 'Current credential key ID/public verifier must be present or absent together');
+    }
+    if (value.currentCredentialKeyId !== null) {
+      assertDigest(value.currentCredentialKeyId, 'installableAgent.currentCredentialKeyId');
+      const publicKey = normalizeRsa3072PublicJwk(value.currentCredentialPublicKey);
+      if (installableAgentCredentialKeyId(publicKey) !== value.currentCredentialKeyId) fail('invalid_installable_agent_state', 'Current credential key ID does not match its RSA verifier');
+      value.currentCredentialPublicKey = canonicalClone(publicKey);
+    }
+    if ((value.pendingCredentialKeyId === null) !== (value.pendingCredentialPublicKey === null)) {
+      fail('invalid_installable_agent_state', 'Pending credential key ID/public verifier must be present or absent together');
+    }
+    if (value.pendingCredentialKeyId !== null) {
+      assertDigest(value.pendingCredentialKeyId, 'installableAgent.pendingCredentialKeyId');
+      const publicKey = normalizeRsa3072PublicJwk(value.pendingCredentialPublicKey);
+      if (installableAgentCredentialKeyId(publicKey) !== value.pendingCredentialKeyId) fail('invalid_installable_agent_state', 'Pending credential key ID does not match its RSA verifier');
+      value.pendingCredentialPublicKey = canonicalClone(publicKey);
+    }
+    if (value.possessionChallenge !== null) {
+      exactRecord(value.possessionChallenge, ['connectRequestId', 'context', 'currentTupleDigest'], [], 'installable Agent possession challenge');
+      parseInstallableAgentConnectRequestId(value.possessionChallenge.connectRequestId);
+      const context = normalizeConnectPossessionContext(value.possessionChallenge.context);
+      assertDigest(value.possessionChallenge.currentTupleDigest, 'installableAgent.possessionChallenge.currentTupleDigest');
+      if (context.challengeGeneration > value.possessionChallengeGenerationHighWater) {
+        fail('invalid_installable_agent_state', 'Live possession challenge exceeds its durable generation high-water');
+      }
+    }
+  }
   normalizeManagementMaps(value, limits);
   if (value.state === 'UNREGISTERED') {
     if (value.everCurrent || value.pending !== null || value.current !== null) {
@@ -375,6 +449,17 @@ function migrateInstallableAgentAdmissionV1ToV2(value, limits) {
   const managementRequestSequenceHighWater = maxSurvivingManagementRequestSequence(value);
   value.profile = INSTALLABLE_AGENT_ADMISSION_PROFILE_V2;
   value.managementRequestSequenceHighWater = managementRequestSequenceHighWater;
+  value.managementKeyId = null;
+  value.managementPublicKey = null;
+  value.releaseRootKeyId = null;
+  value.releaseRootPublicKey = null;
+  value.currentCredentialKeyId = null;
+  value.currentCredentialPublicKey = null;
+  value.pendingCredentialKeyId = null;
+  value.pendingCredentialPublicKey = null;
+  value.connectRequestSequenceHighWater = 0;
+  value.possessionChallengeGenerationHighWater = 0;
+  value.possessionChallenge = null;
   return value;
 }
 
@@ -405,6 +490,14 @@ export function installableAgentPredecessorView(value) {
     trustPolicyGenerationHighWater: value.trustPolicyGenerationHighWater,
     lifecycleGenerationHighWater: value.lifecycleGenerationHighWater,
     managementRequestSequenceHighWater: value.managementRequestSequenceHighWater,
+    managementKeyId: value.managementKeyId,
+    managementPublicKey: value.managementPublicKey,
+    releaseRootKeyId: value.releaseRootKeyId,
+    releaseRootPublicKey: value.releaseRootPublicKey,
+    currentCredentialKeyId: value.currentCredentialKeyId,
+    currentCredentialPublicKey: value.currentCredentialPublicKey,
+    pendingCredentialKeyId: value.pendingCredentialKeyId,
+    pendingCredentialPublicKey: value.pendingCredentialPublicKey,
     pending: value.pending,
     current: value.current,
   };

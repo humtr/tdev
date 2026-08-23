@@ -35,6 +35,8 @@ export {
   recordManagementResult,
   updateManagementResult,
 } from './installable-agent-admission.mjs';
+export * from './installable-agent-security.mjs';
+export * from './installable-agent-keystore.mjs';
 export {
   AGENT_DELIVERY_PROFILE,
   AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION,

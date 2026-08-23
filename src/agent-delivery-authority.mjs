@@ -33,6 +33,17 @@ import {
   recordManagementResult,
   updateManagementResult,
 } from './installable-agent-admission.mjs';
+import {
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_TTL_MS,
+  installableAgentCredentialKeyId,
+  normalizeConnectPossessionContext,
+  normalizeInstallableAgentRouteSecurity,
+  normalizeRsa3072PublicJwk,
+  parseInstallableAgentConnectRequestId,
+  verifyInstallableAgentConnectPossessionEnvelope,
+  verifyInstallableAgentManagementEnvelope,
+} from './installable-agent-security.mjs';
 
 export const AGENT_DELIVERY_PROFILE = 'tdev.agent-delivery-authority.v1';
 export const AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION = 3;
@@ -1034,6 +1045,9 @@ export class MemoryAgentDeliveryStore {
 }
 
 export class AgentDeliveryAuthority {
+  #verifiedPossessionTickets = new WeakSet();
+  #verifiedManagementTickets = new WeakSet();
+
   constructor({ store, routeBinding, verifyManagementProof = null, verifyInstallableAgentEvidence = null }) {
     if (!store || typeof store.load !== 'function' || typeof store.compareAndSwap !== 'function') {
       fail('invalid_agent_delivery_store', 'Agent delivery store must expose load() and compareAndSwap()');
@@ -1079,10 +1093,32 @@ export class AgentDeliveryAuthority {
     return deepFreeze(canonicalClone(outcome.result));
   }
 
-  #verifyManagement(operation, state, input, intentContent = null) {
-    if (this.verifyManagementProof === null) {
-      fail('management_authentication_unavailable', 'D0027 management verifier is not configured');
+  async verifyInstallableAgentManagementRequest({ operation, request }) {
+    const state = this.read();
+    if (state.installableAgent.managementKeyId === null || state.installableAgent.managementPublicKey === null) {
+      fail('management_authentication_unavailable', 'Concrete D0039 management verifier is not pinned for this route');
     }
+    assertBoundedText(operation, 'operation', state.limits.maxIdentifierBytes, { identifier: true });
+    assertBoundedText(request.managementRequestId, 'managementRequestId', state.limits.maxIdentifierBytes);
+    assertDigest(request.intentDigest, 'intentDigest');
+    assertDigest(request.expectedPredecessorDigest, 'expectedPredecessorDigest');
+    if (!Object.hasOwn(request, 'managementProof')) fail('management_authentication_failed', 'Management envelope is required');
+    const context = managementProofContext(operation, state.routeBinding, request, request.expectedPredecessorDigest);
+    await verifyInstallableAgentManagementEnvelope({
+      envelope: request.managementProof,
+      context,
+      managementPublicJwk: state.installableAgent.managementPublicKey,
+    });
+    const ticket = Object.freeze({
+      operation,
+      managementKeyId: state.installableAgent.managementKeyId,
+      context: canonicalClone(context),
+    });
+    this.#verifiedManagementTickets.add(ticket);
+    return ticket;
+  }
+
+  #verifyManagement(operation, state, input, intentContent = null) {
     assertBoundedText(input.managementRequestId, 'managementRequestId', state.limits.maxIdentifierBytes);
     assertDigest(input.intentDigest, 'intentDigest');
     assertDigest(input.expectedPredecessorDigest, 'expectedPredecessorDigest');
@@ -1092,6 +1128,19 @@ export class AgentDeliveryAuthority {
       if (input.intentDigest !== expectedIntentDigest) fail('management_intent_digest_mismatch', 'Management intent digest does not match canonical content');
     }
     const context = managementProofContext(operation, state.routeBinding, input, input.expectedPredecessorDigest);
+    if (state.installableAgent.managementKeyId !== null) {
+      const ticket = input.managementProof;
+      if (ticket === null || typeof ticket !== 'object' || !this.#verifiedManagementTickets.has(ticket) ||
+          ticket.operation !== operation || ticket.managementKeyId !== state.installableAgent.managementKeyId ||
+          canonicalJson(ticket.context) !== canonicalJson(context)) {
+        fail('management_authentication_failed', 'Concrete D0039 mutation requires a freshly verified Ed25519 management ticket');
+      }
+      this.#verifiedManagementTickets.delete(ticket);
+      return;
+    }
+    if (this.verifyManagementProof === null) {
+      fail('management_authentication_unavailable', 'D0027 management verifier is not configured');
+    }
     let accepted = false;
     try {
       accepted = this.verifyManagementProof(input.managementProof, context) === true;
@@ -1137,19 +1186,30 @@ export class AgentDeliveryAuthority {
   }
 
   migrateInstallableAgentRoute(input) {
-    exactRecord(input, ['migrationProfile'], [], 'D0027 legacy route migration');
+    exactRecord(input, ['migrationProfile'], ['routeSecurity'], 'D0027 legacy route migration');
     if (input.migrationProfile !== 'tdev.d0020-only-to-d0027-unregistered.v1') {
       fail('unsupported_installable_agent_migration', 'Unsupported D0027 route migration profile');
     }
+    const routeSecurity = input.routeSecurity === undefined ? null : normalizeInstallableAgentRouteSecurity(input.routeSecurity);
     return this.#mutate((state) => {
       if (state.installableAgent.state !== 'LEGACY_D0020_ONLY') {
         fail('installable_agent_migration_conflict', 'Only an explicit D0020-only predecessor can migrate to D0027 UNREGISTERED');
       }
       state.installableAgent = createUnregisteredInstallableAgentState();
+      if (routeSecurity !== null) {
+        state.installableAgent.managementKeyId = routeSecurity.managementKeyId;
+        state.installableAgent.managementPublicKey = canonicalClone(routeSecurity.managementPublicKey);
+        state.installableAgent.releaseRootKeyId = routeSecurity.releaseRootKeyId;
+        state.installableAgent.releaseRootPublicKey = canonicalClone(routeSecurity.releaseRootPublicKey);
+      }
       return { changed: true, result: {
         classification: 'accepted',
         state: 'UNREGISTERED',
         predecessorDigest: installableAgentPredecessorDigest(state.installableAgent),
+        ...(routeSecurity === null ? {} : {
+          managementKeyId: routeSecurity.managementKeyId,
+          releaseRootKeyId: routeSecurity.releaseRootKeyId,
+        }),
       } };
     });
   }
@@ -1158,9 +1218,11 @@ export class AgentDeliveryAuthority {
     exactRecord(input, [
       'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
       'credentialProvisioningId', 'packageManifestDigest', 'packageTrustSubjectDigest', 'trustStateDigest', 'trustSubjects',
-    ], [], 'D0027 register');
+    ], ['credentialPublicKey'], 'D0027 register');
+    const credentialPublicKey = input.credentialPublicKey === undefined ? null : normalizeRsa3072PublicJwk(input.credentialPublicKey);
     const intentContent = {
       credentialProvisioningId: input.credentialProvisioningId,
+      ...(credentialPublicKey === null ? {} : { credentialPublicKey }),
       packageManifestDigest: input.packageManifestDigest,
       packageTrustSubjectDigest: input.packageTrustSubjectDigest,
       trustStateDigest: input.trustStateDigest,
@@ -1176,6 +1238,8 @@ export class AgentDeliveryAuthority {
       if (state.installableAgent.state !== 'UNREGISTERED' || state.installableAgent.everCurrent) {
         fail('genesis_predecessor_conflict', 'First registration requires exact never-current UNREGISTERED state');
       }
+      const concreteSecurity = state.installableAgent.managementKeyId !== null || state.installableAgent.releaseRootKeyId !== null;
+      if (concreteSecurity && credentialPublicKey === null) fail('credential_verifier_required', 'D0039 registration requires the exact RSA-3072 public verifier');
       assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
       assertDigest(input.packageManifestDigest, 'packageManifestDigest');
       assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
@@ -1197,6 +1261,10 @@ export class AgentDeliveryAuthority {
         trustSubjects: canonicalClone(input.trustSubjects),
         lifecycleGeneration: nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration'),
       };
+      if (credentialPublicKey !== null) {
+        state.installableAgent.pendingCredentialKeyId = installableAgentCredentialKeyId(credentialPublicKey);
+        state.installableAgent.pendingCredentialPublicKey = canonicalClone(credentialPublicKey);
+      }
       const legacyPredecessors = legacyHeldPredecessors(state);
       const pendingDigest = installableAgentPendingDigest({
         routeBinding: state.routeBinding,
@@ -1412,6 +1480,12 @@ export class AgentDeliveryAuthority {
       };
       state.installableAgent.state = 'CURRENT';
       state.installableAgent.everCurrent = true;
+      state.installableAgent.currentCredentialKeyId = state.installableAgent.pendingCredentialKeyId;
+      state.installableAgent.currentCredentialPublicKey = state.installableAgent.pendingCredentialPublicKey === null
+        ? null
+        : canonicalClone(state.installableAgent.pendingCredentialPublicKey);
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
       state.installableAgent.pending = null;
       const result = {
         state: 'CURRENT',
@@ -1442,6 +1516,8 @@ export class AgentDeliveryAuthority {
         fail('stale_genesis_fence', 'Failed genesis transition targets a stale pending identity');
       }
       state.installableAgent.state = 'UNREGISTERED';
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
       state.installableAgent.pending = null;
       const result = {
         state: 'UNREGISTERED',
@@ -1543,8 +1619,12 @@ export class AgentDeliveryAuthority {
   beginCredentialRotation(input) {
     exactRecord(input, [
       'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof', 'credentialProvisioningId',
-    ], [], 'D0027 credential rotation begin');
-    const intentContent = { credentialProvisioningId: input.credentialProvisioningId };
+    ], ['credentialPublicKey'], 'D0027 credential rotation begin');
+    const credentialPublicKey = input.credentialPublicKey === undefined ? null : normalizeRsa3072PublicJwk(input.credentialPublicKey);
+    const intentContent = {
+      credentialProvisioningId: input.credentialProvisioningId,
+      ...(credentialPublicKey === null ? {} : { credentialPublicKey }),
+    };
     return this.#mutate((state) => {
       const current = requireInstallableCurrent(state, { executable: false });
       const known = state.installableAgent.managementReceipts[input.managementRequestId];
@@ -1552,7 +1632,13 @@ export class AgentDeliveryAuthority {
       const replay = managementRequestReplay(state.installableAgent, input, 'credential_rotate', state.limits);
       if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
       requireNoManagementTransaction(current);
+      const concreteSecurity = state.installableAgent.managementKeyId !== null || state.installableAgent.currentCredentialKeyId !== null;
+      if (concreteSecurity && credentialPublicKey === null) fail('credential_verifier_required', 'D0039 credential rotation requires the exact RSA-3072 public verifier');
       assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
+      if (credentialPublicKey !== null) {
+        state.installableAgent.pendingCredentialKeyId = installableAgentCredentialKeyId(credentialPublicKey);
+        state.installableAgent.pendingCredentialPublicKey = canonicalClone(credentialPublicKey);
+      }
       const credentialGeneration = nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration');
       current.managementTransaction = {
         type: 'credential_rotation',
@@ -1593,6 +1679,13 @@ export class AgentDeliveryAuthority {
       }
       current.credentialGeneration = transaction.candidate.credentialGeneration;
       current.credentialDisposition = 'active';
+      state.installableAgent.currentCredentialKeyId = state.installableAgent.pendingCredentialKeyId;
+      state.installableAgent.currentCredentialPublicKey = state.installableAgent.pendingCredentialPublicKey === null
+        ? null
+        : canonicalClone(state.installableAgent.pendingCredentialPublicKey);
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
+      state.installableAgent.possessionChallenge = null;
       current.managementTransaction = null;
       current.transitionReceiptDigest = d0027TransitionReceipt('credential_rotate', state, {
         managementRequestId: input.managementRequestId,
@@ -1622,6 +1715,11 @@ export class AgentDeliveryAuthority {
       const credentialGeneration = nextInstallableGeneration(state.installableAgent, 'credentialGenerationHighWater', 'credentialGeneration');
       current.credentialGeneration = credentialGeneration;
       current.credentialDisposition = 'revoked';
+      state.installableAgent.currentCredentialKeyId = null;
+      state.installableAgent.currentCredentialPublicKey = null;
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
+      state.installableAgent.possessionChallenge = null;
       current.transitionReceiptDigest = d0027TransitionReceipt('credential_revoke', state, {
         managementRequestId: input.managementRequestId,
         credentialGeneration,
@@ -1888,9 +1986,11 @@ export class AgentDeliveryAuthority {
     exactRecord(input, [
       'managementRequestId', 'intentDigest', 'expectedPredecessorDigest', 'managementProof',
       'credentialProvisioningId', 'packageManifestDigest', 'packageTrustSubjectDigest',
-    ], [], 'D0027 replacement begin');
+    ], ['credentialPublicKey'], 'D0027 replacement begin');
+    const credentialPublicKey = input.credentialPublicKey === undefined ? null : normalizeRsa3072PublicJwk(input.credentialPublicKey);
     const intentContent = {
       credentialProvisioningId: input.credentialProvisioningId,
+      ...(credentialPublicKey === null ? {} : { credentialPublicKey }),
       packageManifestDigest: input.packageManifestDigest,
       packageTrustSubjectDigest: input.packageTrustSubjectDigest,
     };
@@ -1901,7 +2001,13 @@ export class AgentDeliveryAuthority {
       const replay = managementRequestReplay(state.installableAgent, input, 'replace', state.limits);
       if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
       requireNoManagementTransaction(current);
+      const concreteSecurity = state.installableAgent.managementKeyId !== null || state.installableAgent.currentCredentialKeyId !== null;
+      if (concreteSecurity && credentialPublicKey === null) fail('credential_verifier_required', 'D0039 replacement requires the exact RSA-3072 public verifier');
       assertBoundedText(input.credentialProvisioningId, 'credentialProvisioningId', state.limits.maxIdentifierBytes, { identifier: true });
+      if (credentialPublicKey !== null) {
+        state.installableAgent.pendingCredentialKeyId = installableAgentCredentialKeyId(credentialPublicKey);
+        state.installableAgent.pendingCredentialPublicKey = canonicalClone(credentialPublicKey);
+      }
       assertDigest(input.packageManifestDigest, 'packageManifestDigest');
       assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
       if (current.trustSubjects[input.packageTrustSubjectDigest] !== 'active') fail('package_trust_denied', 'Replacement package requires an active trust subject');
@@ -1979,6 +2085,13 @@ export class AgentDeliveryAuthority {
       current.installationDisposition = 'active';
       current.credentialGeneration = transaction.candidate.credentialGeneration;
       current.credentialDisposition = 'active';
+      state.installableAgent.currentCredentialKeyId = state.installableAgent.pendingCredentialKeyId;
+      state.installableAgent.currentCredentialPublicKey = state.installableAgent.pendingCredentialPublicKey === null
+        ? null
+        : canonicalClone(state.installableAgent.pendingCredentialPublicKey);
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
+      state.installableAgent.possessionChallenge = null;
       current.packageActivationGeneration = transaction.candidate.packageActivationGeneration;
       current.packageDisposition = 'active';
       current.packageManifestDigest = transaction.candidate.packageManifestDigest;
@@ -2060,6 +2173,11 @@ export class AgentDeliveryAuthority {
       const finalLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
       current.installationDisposition = 'revoked';
       current.credentialDisposition = 'revoked';
+      state.installableAgent.currentCredentialKeyId = null;
+      state.installableAgent.currentCredentialPublicKey = null;
+      state.installableAgent.pendingCredentialKeyId = null;
+      state.installableAgent.pendingCredentialPublicKey = null;
+      state.installableAgent.possessionChallenge = null;
       current.packageDisposition = 'revoked';
       current.lifecycleGeneration = finalLifecycleGeneration;
       current.lifecycleDisposition = 'revoked';
@@ -2083,12 +2201,122 @@ export class AgentDeliveryAuthority {
     });
   }
 
-  connect(input) {
+  issueInstallableAgentConnectChallenge(input, { nowMs, nonce }) {
+    exactRecord(input, [
+      'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'requestDigest', 'connectionId',
+      'executorId', 'executorEpoch', 'protocolMetadataDigest', 'installableAgentTuple',
+    ], [], 'D0039 connect challenge request');
+    assertSafeInteger(nowMs, 'nowMs', { min: 0 });
+    return this.#mutate((state) => {
+      assertRouteInput(state, input);
+      if (state.installableAgent.state !== 'CURRENT' || state.installableAgent.currentCredentialKeyId === null ||
+          state.installableAgent.currentCredentialPublicKey === null) {
+        fail('agent_possession_unavailable', 'D0039 possession challenge requires exact CURRENT with a pinned RSA verifier');
+      }
+      const installableAgentTuple = assertInstallableAgentDataPlaneTuple(state.installableAgent, input.installableAgentTuple);
+      if (installableAgentTuple === null) fail('agent_possession_unavailable', 'D0039 possession challenge cannot target a legacy connection');
+      assertSafeInteger(input.expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
+      parseInstallableAgentConnectRequestId(input.connectRequestId);
+      for (const field of ['connectionId', 'executorId']) assertBoundedText(input[field], field, state.limits.maxIdentifierBytes, { identifier: true });
+      assertSafeInteger(input.executorEpoch, 'executorEpoch', { min: 1 });
+      assertDigest(input.protocolMetadataDigest, 'protocolMetadataDigest');
+      assertDigest(input.requestDigest, 'requestDigest');
+      const expectedDigest = computeAgentConnectRequestDigest(connectRequestContent(input));
+      if (input.requestDigest !== expectedDigest) fail('connect_digest_mismatch', 'Connect challenge request digest does not match canonical content');
+      const retained = state.connectReceipts[input.connectRequestId];
+      if (retained !== undefined) {
+        if (retained.requestDigest !== input.requestDigest) fail('connect_request_conflict', 'Connect request identity was reused with different content');
+        return { changed: false, result: { classification: 'exact_replay', receipt: canonicalClone(retained.receipt) } };
+      }
+      const tupleDigest = currentTupleDigest(state.installableAgent);
+      const live = state.installableAgent.possessionChallenge;
+      if (live !== null && live.context.expiresAtMs > nowMs && live.currentTupleDigest === tupleDigest) {
+        if (live.connectRequestId === input.connectRequestId && live.context.connectRequestDigest === input.requestDigest) {
+          return { changed: false, result: { classification: 'exact_replay', challenge: canonicalClone(live.context) } };
+        }
+        fail('agent_possession_challenge_conflict', 'Another possession challenge is live for the current credential');
+      }
+      const sequence = parseInstallableAgentConnectRequestId(input.connectRequestId);
+      const highWater = state.installableAgent.connectRequestSequenceHighWater;
+      if (sequence <= highWater) fail('stale_connect_request', 'Connect request sequence is already retired');
+      if (highWater === Number.MAX_SAFE_INTEGER) fail('connect_request_sequence_overflow', 'Connect request sequence cannot advance safely');
+      if (sequence !== highWater + 1) fail('connect_request_sequence_gap', 'Fresh connect request sequence must equal high-water plus one');
+      if (state.installableAgent.possessionChallengeGenerationHighWater === Number.MAX_SAFE_INTEGER) {
+        fail('possession_challenge_generation_overflow', 'Possession challenge generation cannot advance safely');
+      }
+      const challengeGeneration = state.installableAgent.possessionChallengeGenerationHighWater + 1;
+      const context = normalizeConnectPossessionContext({
+        profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+        agentId: state.routeBinding.agentId,
+        routeGeneration: state.routeBinding.routeGeneration,
+        challengeGeneration,
+        nonce,
+        credentialGeneration: state.installableAgent.current.credentialGeneration,
+        credentialKeyId: state.installableAgent.currentCredentialKeyId,
+        connectRequestDigest: input.requestDigest,
+        issuedAtMs: nowMs,
+        expiresAtMs: nowMs + INSTALLABLE_AGENT_CONNECT_POSSESSION_TTL_MS,
+      });
+      state.installableAgent.connectRequestSequenceHighWater = sequence;
+      state.installableAgent.possessionChallengeGenerationHighWater = challengeGeneration;
+      state.installableAgent.possessionChallenge = {
+        connectRequestId: input.connectRequestId,
+        context: canonicalClone(context),
+        currentTupleDigest: tupleDigest,
+      };
+      return { changed: true, result: { classification: 'accepted', challenge: canonicalClone(context) } };
+    });
+  }
+
+  async verifyInstallableAgentConnectPossession({ connectRequest, envelope, nowMs }) {
+    exactRecord(connectRequest, [
+      'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'requestDigest', 'connectionId',
+      'executorId', 'executorEpoch', 'protocolMetadataDigest', 'installableAgentTuple',
+    ], [], 'D0039 possession connect request');
+    assertSafeInteger(nowMs, 'nowMs', { min: 0 });
+    const state = this.read();
+    assertRouteInput(state, connectRequest);
+    if (state.installableAgent.state !== 'CURRENT' || state.installableAgent.currentCredentialKeyId === null ||
+        state.installableAgent.currentCredentialPublicKey === null) {
+      fail('agent_possession_unavailable', 'D0039 possession verification requires exact CURRENT with a pinned RSA verifier');
+    }
+    const tuple = assertInstallableAgentDataPlaneTuple(state.installableAgent, connectRequest.installableAgentTuple);
+    if (tuple === null) fail('agent_possession_unavailable', 'D0039 possession verification cannot target a legacy connection');
+    parseInstallableAgentConnectRequestId(connectRequest.connectRequestId);
+    const expectedDigest = computeAgentConnectRequestDigest(connectRequestContent(connectRequest));
+    if (connectRequest.requestDigest !== expectedDigest) fail('connect_digest_mismatch', 'Possession connect request digest does not match canonical content');
+    const live = state.installableAgent.possessionChallenge;
+    const tupleDigest = currentTupleDigest(state.installableAgent);
+    if (live === null || live.connectRequestId !== connectRequest.connectRequestId ||
+        live.context.connectRequestDigest !== connectRequest.requestDigest || live.currentTupleDigest !== tupleDigest) {
+      fail('agent_possession_challenge_stale', 'Possession proof does not target the exact live challenge/current tuple');
+    }
+    if (nowMs >= live.context.expiresAtMs) fail('agent_possession_challenge_expired', 'Possession challenge has expired');
+    await verifyInstallableAgentConnectPossessionEnvelope({
+      envelope,
+      context: live.context,
+      credentialPublicJwk: state.installableAgent.currentCredentialPublicKey,
+    });
+    const ticket = Object.freeze({
+      connectRequestId: connectRequest.connectRequestId,
+      requestDigest: connectRequest.requestDigest,
+      challengeGeneration: live.context.challengeGeneration,
+      currentTupleDigest: tupleDigest,
+      credentialKeyId: live.context.credentialKeyId,
+      expiresAtMs: live.context.expiresAtMs,
+    });
+    this.#verifiedPossessionTickets.add(ticket);
+    return ticket;
+  }
+
+  connect(input, { possessionTicket = null, nowMs = null } = {}) {
     exactRecord(input, [
       'agentId', 'routeGeneration', 'expectedConnectionEpoch', 'connectRequestId', 'requestDigest', 'connectionId',
       'executorId', 'executorEpoch', 'protocolMetadataDigest',
     ], ['socketIncarnationId', 'installableAgentTuple'], 'connect');
-    return this.#mutate((state) => {
+    const verifiedTicket = possessionTicket;
+    try {
+      return this.#mutate((state) => {
       assertRouteInput(state, input);
       const installableAgentTuple = assertInstallableAgentDataPlaneTuple(
         state.installableAgent,
@@ -2096,7 +2324,14 @@ export class AgentDeliveryAuthority {
         { allowLegacy: true },
       );
       assertSafeInteger(input.expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
-      for (const field of ['connectRequestId', 'connectionId', 'executorId']) {
+      const concretePossession = state.installableAgent.state === 'CURRENT' && state.installableAgent.currentCredentialKeyId !== null;
+      if (concretePossession) {
+        assertBoundedText(input.connectRequestId, 'connectRequestId', state.limits.maxIdentifierBytes);
+        parseInstallableAgentConnectRequestId(input.connectRequestId);
+      } else {
+        assertBoundedText(input.connectRequestId, 'connectRequestId', state.limits.maxIdentifierBytes, { identifier: true });
+      }
+      for (const field of ['connectionId', 'executorId']) {
         assertBoundedText(input[field], field, state.limits.maxIdentifierBytes, { identifier: true });
       }
       assertSafeInteger(input.executorEpoch, 'executorEpoch', { min: 1 });
@@ -2104,6 +2339,25 @@ export class AgentDeliveryAuthority {
       assertDigest(input.requestDigest, 'requestDigest');
       const expectedDigest = computeAgentConnectRequestDigest(connectRequestContent(input));
       if (input.requestDigest !== expectedDigest) fail('connect_digest_mismatch', 'Connect request digest does not match canonical content');
+
+      if (concretePossession) {
+        assertSafeInteger(nowMs, 'nowMs', { min: 0 });
+        if (verifiedTicket === null || typeof verifiedTicket !== 'object' || !this.#verifiedPossessionTickets.has(verifiedTicket)) {
+          fail('agent_possession_required', 'CURRENT D0039 connection requires a freshly verified possession ticket');
+        }
+        const live = state.installableAgent.possessionChallenge;
+        const tupleDigest = currentTupleDigest(state.installableAgent);
+        if (live === null || live.connectRequestId !== input.connectRequestId ||
+            live.context.connectRequestDigest !== input.requestDigest || live.currentTupleDigest !== tupleDigest ||
+            verifiedTicket.connectRequestId !== input.connectRequestId || verifiedTicket.requestDigest !== input.requestDigest ||
+            verifiedTicket.challengeGeneration !== live.context.challengeGeneration || verifiedTicket.currentTupleDigest !== tupleDigest ||
+            verifiedTicket.credentialKeyId !== state.installableAgent.currentCredentialKeyId ||
+            verifiedTicket.expiresAtMs !== live.context.expiresAtMs) {
+          fail('agent_possession_ticket_stale', 'Possession ticket no longer matches the exact live challenge/current credential');
+        }
+        if (nowMs >= live.context.expiresAtMs) fail('agent_possession_challenge_expired', 'Possession challenge expired before socket admission');
+        state.installableAgent.possessionChallenge = null;
+      }
 
       let socketIncarnationId = input.socketIncarnationId;
       if (socketIncarnationId !== undefined && socketIncarnationId !== null) {
@@ -2169,7 +2423,10 @@ export class AgentDeliveryAuthority {
       };
       pruneConnectReceipts(state);
       return { changed: true, result: { classification: 'accepted', receipt, socketIncarnationId } };
-    });
+      });
+    } finally {
+      if (verifiedTicket !== null && typeof verifiedTicket === 'object') this.#verifiedPossessionTickets.delete(verifiedTicket);
+    }
   }
 
   adoptLegacySocketIncarnation(input) {

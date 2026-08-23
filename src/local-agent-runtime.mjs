@@ -13,14 +13,17 @@ import {
 } from './canonical.mjs';
 import {
   AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX,
+  AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   deriveAgentPrincipalToken,
 } from './cloudflare-agent-delivery-runtime.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
+import { encodeBase64Url } from './installable-agent-security.mjs';
 
 export const LOCAL_AGENT_RUNTIME_PROFILE = 'tdev.local-agent-runtime.v1';
 export const LOCAL_AGENT_WEBSOCKET_PROTOCOL = AGENT_DELIVERY_WEBSOCKET_PROTOCOL;
 export const LOCAL_AGENT_AUTH_PROTOCOL_PREFIX = AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX;
+export const LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX = AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX;
 
 const DEFAULT_MAX_TRACKED_DELIVERIES = 1024;
 const DEFAULT_MAX_DISPATCH_ORDINALS = 8;
@@ -760,7 +763,7 @@ export class LocalAgentWebSocketTransport {
     if (!['ws:', 'wss:'].includes(url.protocol) || url.username || url.password || url.hash) {
       fail('invalid_local_agent_transport', 'Agent WebSocket endpoint must be ws/wss without embedded credentials or fragment');
     }
-    if (typeof authKey !== 'string' || authKey.length < 32) fail('invalid_local_agent_transport', 'Agent WebSocket auth key is missing or undersized');
+    if (authKey !== null && (typeof authKey !== 'string' || authKey.length < 32)) fail('invalid_local_agent_transport', 'Agent WebSocket auth key is invalid or undersized');
     if (typeof webSocketFactory !== 'function') fail('invalid_local_agent_transport', 'Agent WebSocket factory must be callable');
     if (typeof onServerFrame !== 'function') fail('invalid_local_agent_transport', 'Agent WebSocket server-frame handler must be callable');
     this.runtime = runtime;
@@ -772,7 +775,7 @@ export class LocalAgentWebSocketTransport {
     this.closePromise = null;
   }
 
-  async connect({ expectedConnectionEpoch, connectRequestId, connectionId, protocolMetadataDigest }) {
+  async connect({ expectedConnectionEpoch, connectRequestId, connectionId, protocolMetadataDigest, possessionEnvelope = null }) {
     assertSafeInteger(expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
     assertIdentifier(connectRequestId, 'connectRequestId');
     assertIdentifier(connectionId, 'connectionId');
@@ -791,11 +794,20 @@ export class LocalAgentWebSocketTransport {
     };
     if (this.runtime.installableAgentTuple !== null) Object.assign(query, this.runtime.installableAgentTuple);
     for (const [key, value] of Object.entries(query)) url.searchParams.set(key, String(value));
-    const token = await deriveAgentPrincipalToken(this.authKey, {
-      agentId: this.runtime.agentId,
-      routeGeneration: this.runtime.routeGeneration,
-    });
-    const socket = this.webSocketFactory(url.toString(), [LOCAL_AGENT_WEBSOCKET_PROTOCOL, `${LOCAL_AGENT_AUTH_PROTOCOL_PREFIX}${token}`]);
+    let authorityProtocol;
+    if (possessionEnvelope !== null) {
+      if (this.authKey !== null) fail('invalid_local_agent_transport', 'D0039 possession transport must not carry legacy HMAC authority');
+      const encoded = encodeBase64Url(new TextEncoder().encode(canonicalJson(possessionEnvelope)));
+      authorityProtocol = `${LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX}${encoded}`;
+    } else {
+      if (this.authKey === null) fail('local_agent_possession_required', 'Agent transport has neither D0039 possession proof nor legacy auth key');
+      const token = await deriveAgentPrincipalToken(this.authKey, {
+        agentId: this.runtime.agentId,
+        routeGeneration: this.runtime.routeGeneration,
+      });
+      authorityProtocol = `${LOCAL_AGENT_AUTH_PROTOCOL_PREFIX}${token}`;
+    }
+    const socket = this.webSocketFactory(url.toString(), [LOCAL_AGENT_WEBSOCKET_PROTOCOL, authorityProtocol]);
     if (!socket || typeof socket.addEventListener !== 'function' || typeof socket.send !== 'function') {
       fail('invalid_local_agent_transport', 'WebSocket factory returned an invalid socket');
     }
