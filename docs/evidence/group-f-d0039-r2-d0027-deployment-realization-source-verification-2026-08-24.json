@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0039-r2-d0027-deployment-realization-source-verification",
+  "observedAt": "2026-08-24T00:59:15+09:00",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0039",
+    "revision": 2,
+    "lifecycleAfterSourceClosure": "implementing",
+    "document": "docs/design/0039-d0027-deployment-realization.md"
+  },
+  "authority": {
+    "implementationSource": "development@4493fa11d2ea59a5813c8b75bca08c737dfb21a7",
+    "implementationBase": "development@9ce1aa3f2719526009c0d806ba23922a33e239b4",
+    "rootTaskId": "task_czd_f2279eca43",
+    "taskWorktreeId": "wt_d4f98cab1081e859",
+    "publicationMode": "non-force fast-forward development lineage",
+    "publicationJobId": "job_dac_75a895b5bd",
+    "providerReadbackJobId": "job_dad_18fcc9d7cd",
+    "providerReadbackSha": "4493fa11d2ea59a5813c8b75bca08c737dfb21a7"
+  },
+  "implementation": {
+    "singleOwner": "the existing per-route AgentDeliveryAuthority remains the sole route-current D0020/D0027 owner",
+    "managementCorrection": "canonical route-scoped m2:<seq> admission with managementRequestSequenceHighWater, retained exact replay before floor classification, fail-closed gap/stale/overflow and one stable request across D0027 multi-phase lifecycle transitions",
+    "durableVersion": "outer Agent-delivery schema remains 3; nested installable-Agent admission profile advances explicitly from v1 to v2 with fail-closed predecessor migration and no automatic downgrade",
+    "managementCrypto": "route-pinned Ed25519 management verifier with one-use verified tickets and no HMAC/data-plane/MCP substitution",
+    "connectPossession": "c1:<seq> replay floor plus one-shot RSA-3072 possession challenge using the pinned current credential verifier",
+    "localCustody": "Termux:API AndroidKeyStore RSA-3072 adapter stores only public verifier identity and deterministic non-secret credentialRef",
+    "releaseBootstrap": "Ed25519 release-root/delegation/release verification and independently authenticated bootstrap trust-capsule source machinery",
+    "providerFence": "first durable D0027 marker permanently rejects legacy HMAC/Bearer state-changing authority"
+  },
+  "q1FocusedValidation": {
+    "jobId": "job_d9f_efec67ac02",
+    "command": "node --test test/installable-agent-admission.test.mjs test/d0039-deployment-realization.test.mjs",
+    "tests": 19,
+    "pass": 19,
+    "fail": 0,
+    "explicitAddedBoundaries": [
+      "m2 numeric safe-integer overflow rejects without burning the request floor",
+      "management receipt storage pressure rejects new authority without advancing the request floor",
+      "c1 numeric safe-integer overflow rejects without burning connect authority",
+      "possession challenge-generation safe-integer overflow fails closed without state mutation",
+      "one stable m2 base-stop transaction survives authority reconstruction between phases and exact replay remains bound to the same request"
+    ]
+  },
+  "sourceGate": {
+    "install": {
+      "jobId": "job_d9j_49082e4ee4",
+      "profile": "portable-install",
+      "command": "npm ci --ignore-scripts --no-audit --no-fund",
+      "exitCode": 0
+    },
+    "check": {
+      "jobId": "job_d9k_6d3be2cf7d",
+      "profile": "portable",
+      "command": "npm run check",
+      "exitCode": 0,
+      "tests": 495,
+      "pass": 495,
+      "fail": 0,
+      "syntax": "PASS",
+      "documentationAuthority": "PASS",
+      "demo": "PASS",
+      "durableDemo": "PASS"
+    },
+    "coverage": {
+      "jobId": "job_d9l_46760156cf",
+      "command": "node --experimental-test-coverage --test test/*.test.mjs",
+      "exitCode": 0,
+      "tests": 495,
+      "pass": 495,
+      "fail": 0,
+      "allFiles": {
+        "linesPercent": 86.68,
+        "branchesPercent": 72.54,
+        "functionsPercent": 90.79
+      },
+      "artifactId": "artifact_gj_085a4ef2f9",
+      "artifactSha256": "4c09677d12f8b835d47bf26e3ec4f6fda336e3f023f85fb333d44fa5dc5afe87"
+    },
+    "diffIntegrity": {
+      "jobId": "job_d9n_bba8e42f66",
+      "command": "git diff --check",
+      "exitCode": 0,
+      "status": "PASS"
+    },
+    "validationAuthority": {
+      "owner": "docs/QUALIFICATION.md",
+      "tmcpProjectRegistryRevision": 9,
+      "registryDigest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98"
+    }
+  },
+  "q1SourceCanonical": {
+    "status": "PASS",
+    "proofLayer": "source/static",
+    "coveredPermanentTests": [
+      "test/installable-agent-admission.test.mjs",
+      "test/d0039-deployment-realization.test.mjs",
+      "test/installable-agent-security.test.mjs",
+      "test/installable-agent-keystore.test.mjs",
+      "test/cloudflare-agent-delivery-runtime.test.mjs"
+    ],
+    "claim": "D0039 Revision 2 source/canonical Q1 and the repository baseline source gate are green at the exact published implementation source; this does not promote any later proof layer."
+  },
+  "unverifiedLayers": {
+    "Q2WorkersCrypto": "unverified: no exact deployed Workers runtime crypto qualification was executed by this source gate",
+    "Q3PhysicalAndroidTermux": "unverified: source adapter tests do not prove real AndroidKeyStore custody, lineage, unattended signing or clone resistance on a fresh supported device",
+    "Q4FreshBootstrap": "unverified: no fresh-machine independent capsule-digest bootstrap through untrusted transport was executed",
+    "Q5LiveProviderIAM": "unverified: no fresh Cloudflare binding/version/namespace/route/IAM/private-key-separation readback was executed",
+    "Q6LiveMigration": "unverified: no live D0020-only to nested-v2 D0027 migration or HMAC-binding removal was executed",
+    "Q7ManagementLossCompromise": "unverified: source vectors do not prove operator-key loss/backup/compromise recovery on live provider state",
+    "Q8ReleaseLifecycle": "unverified: source vectors do not prove live signer replacement/revocation/root-loss/forward rollback",
+    "Q9RollbackProviderLossRetention": "unverified: no real provider-loss/recovery/PITR-rejection/retention campaign was executed",
+    "Q10DeployedComposition": "unverified: no fresh installed authenticated Agent was composed end to end with the live provider route"
+  },
+  "preservedBoundaries": [
+    "D0027 Revision 1 lifecycle/generation/fencing meaning remains unchanged",
+    "D0038 Revision 1 default-capacity policy remains unchanged",
+    "AgentDeliveryAuthority remains the sole route-current owner",
+    "no private management/release/credential key bytes enter repository or durable evidence",
+    "source publication does not imply provider, device, migration, rollback or deployed-product qualification"
+  ],
+  "conclusion": "D0039 Revision 2 is source-implemented and Q1/source-qualified at development@4493fa11d2ea59a5813c8b75bca08c737dfb21a7. The Design remains implementing while Q2-Q10 are pursued only on independently available authorized live surfaces."
+}

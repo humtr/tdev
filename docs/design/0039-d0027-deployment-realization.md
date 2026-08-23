@@ -1,6 +1,6 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 2
 - Class: 2
 - Decision date: 2026-08-23
@@ -10,6 +10,7 @@
 - Predecessor acceptance evidence: `docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json`
 - Reopen evidence: `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json`
 - Acceptance evidence: `docs/evidence/group-f-d0039-r2-management-request-correction-acceptance-2026-08-23.json`
+- Source verification evidence: `docs/evidence/group-f-d0039-r2-d0027-deployment-realization-source-verification-2026-08-24.json`
 - Scope: concrete private F-side realization of D0027 credential/verifier, clone-safe local key custody, package/release/bootstrap trust, Cloudflare binding/IAM, D0020-to-D0027 genesis migration, forward rollback/recovery/retention and proof-layer-separated qualification
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, D0027 substate in the existing per-route `AgentDeliveryAuthority`, Cloudflare Agent delivery adapter, installable Agent package/runtime and focused/permanent tests
 - Explicit non-goals: no D0027 owner-model revision; no MCP/D0023/D0024 identity dependency; no D0025 canonical Git-publication dependency; no D0028 runbook semantics; no second route/current registry; no broad D0026 completion claim; no authority-restoring PITR or same-name resource recreation; no secret/private-key bytes in repository/evidence/model-visible state
@@ -191,3 +192,11 @@ Supported predecessor handling is fail closed. Exact v1 `LEGACY_D0020_ONLY` may 
 The first persisted nested-v2 D0027-aware state is the durable rollback barrier. Code that understands only nested v1 must not be activated for that route afterward; no automatic v2-to-v1 data downgrade exists. Rollback must use code that strictly reads v2 and preserves the request high-water, or recover forward under separately authorized route cutover semantics.
 
 Revision 2 keeps the immutable route-scoped Ed25519 management key, `tdev.agent-management.v1` signature domain, RSA/AndroidKeyStore credential profile, release/bootstrap trust, provider/IAM shape, D0020 coexistence/genesis model and single `AgentDeliveryAuthority` owner from Revision 1. The fresh proof delta is limited to Q1 and the request-sequence/version crossings described in Q6-Q10; Q2-Q5 mechanism meaning is not reopened. Source implementation remains unauthorized until this Revision 2 acceptance and its WORKBOARD routing are committed on the current cumulative lineage.
+
+## 18. Revision 2 Q1 source implementation and publication
+
+D0039@r2 is `implementing` after its Q1 source boundary was completed and published. The exact implementation source is `development@4493fa11d2ea59a5813c8b75bca08c737dfb21a7`; publication was a non-force fast-forward from `development@9ce1aa3f2719526009c0d806ba23922a33e239b4`, and an independent provider reread observed the same `4493fa11d2ea59a5813c8b75bca08c737dfb21a7` remote head. Reusable source evidence is `docs/evidence/group-f-d0039-r2-d0027-deployment-realization-source-verification-2026-08-24.json`.
+
+The exact baseline source gate passed at that implementation source: bounded install succeeded, `npm run check` passed 495/495 tests together with syntax/documentation/demo/durable-demo, the complete coverage run passed 495/495 with observed all-file coverage of 86.68% lines, 72.54% branches and 90.79% functions, and `git diff --check` passed. Focused D0039/admission qualification passed 19/19, including explicit `m2` and `c1` safe-integer overflow, management replay-storage pressure and same-request multi-phase authority-restart vectors. These observations close Q1 only.
+
+Q2 through Q10 remain independent executable proof layers. No Workers-runtime crypto, physical AndroidKeyStore custody, fresh-machine bootstrap, live Cloudflare/IAM readback, live D0020-to-D0027 migration, management-key loss/compromise, live release lifecycle, provider-loss/retention or deployed end-to-end composition claim is promoted by Q1. The Design therefore remains `implementing` and keeps its current WORKBOARD routing while those authorized available surfaces are evaluated and executed.
