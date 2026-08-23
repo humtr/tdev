@@ -1,0 +1,107 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "group-f-d0039-r2-q3-prequalification-and-continuation-split",
+  "observedAt": "2026-08-23T16:43:41.259Z",
+  "repository": "humtr/tdev",
+  "design": {
+    "id": "D0039",
+    "revision": 2,
+    "lifecycle": "implementing",
+    "document": "docs/design/0039-d0027-deployment-realization.md"
+  },
+  "authority": {
+    "publishedAuthorityAtAdmission": "development@b0626a46ada04107d65a0f36f337f13c621cb0ba",
+    "rootTaskId": "task_czd_f2279eca43",
+    "taskWorktreeId": "wt_d4f98cab1081e859",
+    "worktreeHeadAtObservation": "b0626a46ada04107d65a0f36f337f13c621cb0ba"
+  },
+  "q3EnvironmentRecheck": {
+    "jobId": "job_ddk_0beffeebdf",
+    "environment": {
+      "platform": "android",
+      "arch": "arm64",
+      "node": "v26.4.0",
+      "termuxVersion": "0.119.0-beta.3",
+      "termuxApiCliPackage": "0.59.1-1",
+      "androidPackages": [
+        "com.termux",
+        "com.termux.api"
+      ]
+    },
+    "tmcpJobDirectCall": {
+      "termuxBatteryStatusExitCode": 124,
+      "termuxKeystoreListExitCode": 124,
+      "interpretation": "The tmcp Job shell did not receive the Termux:API callback within the bounded five-second probe."
+    },
+    "productShapedRunitCall": {
+      "termuxBatteryStatusExitCode": 0,
+      "termuxKeystoreListExitCode": 0,
+      "sensitiveOutputCaptured": false,
+      "cleanup": "The qualification-owned one-shot runit service and result file were removed by the probe trap.",
+      "interpretation": "Termux:API and the termux-keystore bridge are available from a real runit service context; the earlier tmcp-shell timeout is not evidence of a D0039 product-environment blocker."
+    },
+    "q3Disposition": "environment blocker withdrawn; Q3 itself remains unverified until real RSA-3072 generation/sign/readback/negative custody falsifiers execute through the production-shaped path"
+  },
+  "postQ1ImplementationFalsifier": {
+    "observationBatchJobId": "job_ddl_131698cdf5",
+    "controlReadJobId": "job_ddm_6a04d8afe4",
+    "keystoreReadJobId": "job_ddn_3f6bc01173",
+    "providerChallengeReadJobId": "job_ddo_99e3e7e8cf",
+    "facts": [
+      "TermuxAndroidKeyStoreCredential is implemented and requires an independent sourceLineageReader.",
+      "AgentDeliveryRuntimeDOHost implements issueInstallableAgentConnectChallenge against the sole AgentDeliveryAuthority.",
+      "createInstallableAgentControlProcess requires concrete credentialAdapter and challengeClient for androidkeystore credentials and fails closed when either is absent.",
+      "The direct tdev-agent-control CLI currently calls createInstallableAgentControlProcess with only packageRoot and config, so the production entrypoint does not assemble the D0039 credential/challenge dependencies."
+    ],
+    "failureCodeReachedByConstruction": "installable_agent_keystore_adapter_unconfigured",
+    "classification": "Class 1 bounded implementation defect under unchanged accepted D0039 Revision 2 semantics",
+    "designRevisionChangeRequired": false
+  },
+  "proofLayerStatus": {
+    "Q1": "historical source/canonical PASS remains valid for the exact vectors it executed, but it does not prove the missing production-entrypoint composition",
+    "Q2": "unverified",
+    "Q3": "unverified; environment bridge is usable through product-shaped runit, implementation wiring must be repaired before full Q3",
+    "Q4": "unverified",
+    "Q5": "unverified",
+    "Q6": "unverified",
+    "Q7": "unverified",
+    "Q8": "unverified",
+    "Q9": "unverified",
+    "Q10": "unverified"
+  },
+  "continuationSplit": {
+    "codexCandidate": {
+      "branch": "codex/d0039-r2-codeheavy-20260824",
+      "baseRule": "Create the candidate branch from the published commit that contains this evidence record.",
+      "owns": [
+        "D0039 code-heavy Class-1 repair of production AndroidKeyStore/source-lineage/challenge-client composition",
+        "D0039 permanent qualification executables and deterministic fixtures required to make Q2-Q10 executable without inventing new product semantics",
+        "additional clearly bounded Class-1 defects discovered while implementing or testing already accepted D0039/D0027/D0020 behavior",
+        "full source/focused validation and a reviewable candidate commit series on the isolated branch"
+      ],
+      "mustNotOwn": [
+        "new public MCP/D0023/D0024 contracts",
+        "new authentication, tenant, Git-publication, provider-topology, migration or rollback semantics not already accepted",
+        "canonical development publication or Design lifecycle closure",
+        "live secret-bearing provider or user-account mutation merely to make tests pass"
+      ]
+    },
+    "chatgptAcrApply": {
+      "owns": [
+        "fresh repository/provider authority rebinding and D0039 lifecycle control",
+        "review/integration of the Codex candidate only after its exact head is available and validated",
+        "live Android/Termux, Cloudflare/IAM, migration/rollback and deployed-composition proof after the required source candidate is integrated",
+        "proof-layer evidence, canonical non-force integration/publication and final D0039 lifecycle decision"
+      ],
+      "nonOverlapRule": "Before the Codex candidate is integrated or explicitly abandoned, do not independently mutate the code paths delegated above; read-only investigation and live observations that cannot conflict with the candidate remain allowed."
+    }
+  },
+  "preservedBoundaries": [
+    "D0039 Revision 2 product/security/migration meaning is unchanged.",
+    "D0027 Revision 1 and D0038 Revision 1 are not reopened by this implementation falsifier.",
+    "AgentDeliveryAuthority remains the sole route-current owner.",
+    "No secret or private-key value was captured by this evidence.",
+    "The Codex branch is an isolated candidate and never becomes repository authority by existence or name."
+  ],
+  "conclusion": "D0039 remains implementing. Q3 is not blocked by Termux:API itself, but the published production control entrypoint has a bounded wiring defect that must be repaired and re-source-qualified before full physical Q3 and later deployed composition can close."
+}
