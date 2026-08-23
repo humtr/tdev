@@ -4,6 +4,7 @@ import assert from 'node:assert/strict';
 import {
   AgentDeliveryAuthority,
   CaseEngine,
+  INSTALLABLE_AGENT_ADMISSION_PROFILE,
   MemoryAgentDeliveryStore,
   computeAgentActivationRequestDigest,
   computeAgentCapacityRequestDigest,
@@ -12,6 +13,8 @@ import {
   computeAgentReservationRequestDigest,
   computeInstallableAgentManagementIntentDigest,
   digest,
+  managementRequestReplay,
+  normalizeInstallableAgentState,
   typedDigest,
 } from '../src/index.mjs';
 import { planWithWork } from './helpers.mjs';
@@ -51,9 +54,30 @@ function createAuthority({ managementVerifier, evidenceVerifier, limits = {} } =
   return { authority, store, routeBinding };
 }
 
-function managementRequest(authority, operation, managementRequestId, content, { predecessorDigest, proof = MGMT_PROOF } = {}) {
+const MANAGEMENT_REQUEST_ALIASES = new WeakMap();
+
+function canonicalManagementRequestId(authority, requestedId) {
+  if (requestedId.startsWith('m2:')) return requestedId;
+  let aliases = MANAGEMENT_REQUEST_ALIASES.get(authority);
+  if (aliases === undefined) {
+    aliases = new Map();
+    MANAGEMENT_REQUEST_ALIASES.set(authority, aliases);
+  }
+  const existing = aliases.get(requestedId);
+  if (existing !== undefined) return existing;
+  const installableAgent = authority.readInstallableAgent().installableAgent;
+  const highWater = installableAgent.state === 'LEGACY_D0020_ONLY'
+    ? 0
+    : installableAgent.managementRequestSequenceHighWater;
+  const managementRequestId = `m2:${highWater + 1}`;
+  aliases.set(requestedId, managementRequestId);
+  return managementRequestId;
+}
+
+function managementRequest(authority, operation, requestedId, content, { predecessorDigest, proof = MGMT_PROOF } = {}) {
   const routeBinding = authority.read().routeBinding;
   const expectedPredecessorDigest = predecessorDigest ?? authority.readInstallableAgent().predecessorDigest;
+  const managementRequestId = canonicalManagementRequestId(authority, requestedId);
   return {
     managementRequestId,
     intentDigest: computeInstallableAgentManagementIntentDigest(operation, routeBinding, content),
@@ -341,6 +365,106 @@ test('bounded management receipt GC preserves non-resurrection after detail reti
   const installable = authority.readInstallableAgent().installableAgent;
   assert.equal(installable.managementReceipts[request.managementRequestId], undefined);
   assert.ok(installable.managementTombstones[request.managementRequestId]);
+  assert.equal(installable.managementRequestSequenceHighWater, 1);
+
+  const floorOnly = JSON.parse(JSON.stringify(installable));
+  floorOnly.managementReceipts = {};
+  floorOnly.managementTombstones = {};
+  expectCode(() => managementRequestReplay(floorOnly, {
+    managementRequestId: 'm2:1',
+    intentDigest: digest({ ancient: 'intent' }),
+    expectedPredecessorDigest: digest({ ancient: 'predecessor' }),
+  }, 'register', authority.read().limits), 'management_request_retired');
+});
+
+test('m2 sequencing is canonical, gap-safe, and failed mutations do not burn the durable request floor', () => {
+  const { authority } = createAuthority();
+  migrate(authority);
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 0);
+
+  const content = registrationContent('m2-sequence');
+  const first = managementRequest(authority, 'register', 'm2:1', content);
+  expectCode(() => authority.registerInstallableAgent({ ...first, managementRequestId: 'legacy-register-id' }), 'invalid_management_request_id');
+  expectCode(() => authority.registerInstallableAgent({ ...first, managementRequestId: 'm2:01' }), 'invalid_management_request_id');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 0);
+
+  const gap = managementRequest(authority, 'register', 'm2:2', content);
+  expectCode(() => authority.registerInstallableAgent(gap), 'management_request_gap');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 0);
+
+  const pending = authority.registerInstallableAgent(first);
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
+  assert.equal(authority.registerInstallableAgent(first).classification, 'exact_replay');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
+  stageGenesis(authority, pending);
+  authority.initialActivateInstallableAgent({
+    ...managementEnvelope(first),
+    pendingDigest: pending.pendingDigest,
+    genesisGeneration: pending.genesisGeneration,
+  });
+
+  const invalidStart = managementRequest(authority, 'start', 'm2:2', {
+    cause: 'base_start',
+    restartEligibleStopRequestId: null,
+  });
+  expectCode(() => authority.prepareBaseStart(managementEnvelope(invalidStart)), 'start_not_restart_eligible');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
+
+  const stop = managementRequest(authority, 'stop', 'm2:2', { cause: 'base_stop' });
+  authority.beginBaseStop(managementEnvelope(stop));
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
+});
+
+test('nested admission v1 migrates explicitly to v2 and imports only canonical surviving m2 sequence state', () => {
+  const { authority } = createAuthority();
+  const { request } = registerAndActivate(authority, 'nested-v2-migration');
+  const current = authority.readInstallableAgent().installableAgent;
+  assert.equal(authority.read().schemaVersion, 3);
+  assert.equal(current.profile, INSTALLABLE_AGENT_ADMISSION_PROFILE);
+  assert.equal(current.managementRequestSequenceHighWater, 1);
+  assert.equal(request.managementRequestId, 'm2:1');
+
+  const predecessorV1 = JSON.parse(JSON.stringify(current));
+  predecessorV1.profile = 'tdev.installable-agent-admission.v1';
+  delete predecessorV1.managementRequestSequenceHighWater;
+  const migrated = normalizeInstallableAgentState(predecessorV1, authority.read().limits);
+  assert.equal(migrated.profile, INSTALLABLE_AGENT_ADMISSION_PROFILE);
+  assert.equal(migrated.managementRequestSequenceHighWater, 1);
+  assert.ok(migrated.managementReceipts['m2:1']);
+
+  const legacyOnly = JSON.parse(JSON.stringify(current));
+  legacyOnly.profile = 'tdev.installable-agent-admission.v1';
+  delete legacyOnly.managementRequestSequenceHighWater;
+  const legacyReceipt = legacyOnly.managementReceipts['m2:1'];
+  delete legacyOnly.managementReceipts['m2:1'];
+  legacyOnly.managementReceipts['legacy-register'] = { ...legacyReceipt, managementRequestId: 'legacy-register' };
+  const migratedLegacy = normalizeInstallableAgentState(legacyOnly, authority.read().limits);
+  assert.equal(migratedLegacy.managementRequestSequenceHighWater, 0);
+  assert.ok(migratedLegacy.managementReceipts['legacy-register']);
+
+  const noncanonical = JSON.parse(JSON.stringify(current));
+  noncanonical.profile = 'tdev.installable-agent-admission.v1';
+  delete noncanonical.managementRequestSequenceHighWater;
+  const badReceipt = noncanonical.managementReceipts['m2:1'];
+  delete noncanonical.managementReceipts['m2:1'];
+  noncanonical.managementReceipts['m2:01'] = { ...badReceipt, managementRequestId: 'm2:01' };
+  expectCode(() => normalizeInstallableAgentState(noncanonical, authority.read().limits), 'invalid_installable_agent_state');
+
+  const missingFloorV2 = JSON.parse(JSON.stringify(current));
+  delete missingFloorV2.managementRequestSequenceHighWater;
+  assert.throws(() => normalizeInstallableAgentState(missingFloorV2, authority.read().limits));
+
+  const trustSubject = current.current.packageTrustSubjectDigest;
+  const packageRequest = managementRequest(authority, 'package', 'm2:2', {
+    transitionCause: 'package_update',
+    packageManifestDigest: digest({ package: 'migration-nonterminal' }),
+    packageTrustSubjectDigest: trustSubject,
+  });
+  authority.beginPackageActivation(packageRequest);
+  const nonterminalV1 = JSON.parse(JSON.stringify(authority.readInstallableAgent().installableAgent));
+  nonterminalV1.profile = 'tdev.installable-agent-admission.v1';
+  delete nonterminalV1.managementRequestSequenceHighWater;
+  expectCode(() => normalizeInstallableAgentState(nonterminalV1, authority.read().limits), 'unsupported_installable_agent_migration');
 });
 
 test('trust, credential, package and lifecycle generations advance independently without ABA', () => {
@@ -354,8 +478,11 @@ test('trust, credential, package and lifecycle generations advance independently
     trustSubjects: { [trustSubject]: 'active' },
     trustContinuesCurrentPackage: false,
   };
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
   const trustRequest = managementRequest(authority, 'trust', 'trust-v2', trustContent);
   authority.mutateInstallableAgentTrust(trustRequest);
+  assert.equal(trustRequest.managementRequestId, 'm2:2');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
   const afterTrust = authority.readInstallableAgent().installableAgent.current;
   assert.equal(afterTrust.trustPolicyGeneration, initial.trustPolicyGeneration + 1);
   assert.equal(afterTrust.credentialGeneration, initial.credentialGeneration);
@@ -363,10 +490,13 @@ test('trust, credential, package and lifecycle generations advance independently
 
   const credentialRequest = managementRequest(authority, 'credential_rotate', 'credential-v2', { credentialProvisioningId: 'credential-provisioning-v2' });
   const credentialPending = authority.beginCredentialRotation(credentialRequest);
+  assert.equal(credentialRequest.managementRequestId, 'm2:3');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.equal(credentialPending.credentialGeneration, initial.credentialGeneration + 1);
   evidence(authority, credentialRequest.managementRequestId, 'verifier_ready');
   evidence(authority, credentialRequest.managementRequestId, 'local_ready');
   authority.commitCredentialRotation(managementEnvelope(credentialRequest));
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   const afterCredential = authority.readInstallableAgent().installableAgent.current;
   assert.equal(afterCredential.credentialGeneration, initial.credentialGeneration + 1);
   assert.equal(afterCredential.packageActivationGeneration, initial.packageActivationGeneration);
@@ -378,11 +508,14 @@ test('trust, credential, package and lifecycle generations advance independently
   };
   const packageRequest = managementRequest(authority, 'package', 'package-forward-rollback', packageContent);
   const packagePending = authority.beginPackageActivation(packageRequest);
+  assert.equal(packageRequest.managementRequestId, 'm2:4');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 4);
   assert.equal(packagePending.packageActivationGeneration, initial.packageActivationGeneration + 1);
   evidence(authority, packageRequest.managementRequestId, 'package_verified');
   evidence(authority, packageRequest.managementRequestId, 'local_service_ready');
   evidence(authority, packageRequest.managementRequestId, 'positive_quiescence');
   authority.commitPackageActivation(managementEnvelope(packageRequest));
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 4);
   const afterPackage = authority.readInstallableAgent().installableAgent.current;
   assert.equal(afterPackage.packageActivationGeneration, initial.packageActivationGeneration + 1);
   assert.equal(afterPackage.trustPolicyGeneration, afterTrust.trustPolicyGeneration);
@@ -397,6 +530,8 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   const stopRequest = managementRequest(authority, 'stop', 'base-stop', { cause: 'base_stop' });
   const stopEnvelope = managementEnvelope(stopRequest);
   const stopPending = authority.beginBaseStop(stopEnvelope);
+  assert.equal(stopRequest.managementRequestId, 'm2:2');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
   const draining = authority.readInstallableAgent().installableAgent.current;
   assert.equal(draining.lifecycleDisposition, 'draining');
   assert.equal(draining.lifecycleCause, 'base_stop');
@@ -405,16 +540,20 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   evidence(authority, stopRequest.managementRequestId, 'positive_quiescence');
   evidence(authority, stopRequest.managementRequestId, 'service_stopped');
   const stopped = authority.completeBaseStop(stopEnvelope);
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
   assert.equal(stopped.restartEligible, true);
   assert.equal(authority.completeBaseStop(stopEnvelope).classification, 'exact_replay');
 
   const uninstallRequest = managementRequest(authority, 'uninstall', 'uninstall-stopped', { cause: 'uninstall' });
   const uninstallEnvelope = managementEnvelope(uninstallRequest);
   const uninstallDrain = authority.beginInstallableAgentUninstall(uninstallEnvelope);
+  assert.equal(uninstallRequest.managementRequestId, 'm2:3');
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.ok(uninstallDrain.lifecycleGeneration > stopped.lifecycleGeneration);
   evidence(authority, uninstallRequest.managementRequestId, 'positive_quiescence');
   evidence(authority, uninstallRequest.managementRequestId, 'service_stopped');
   const revoked = authority.completeInstallableAgentUninstall(uninstallEnvelope);
+  assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.ok(revoked.lifecycleGeneration > uninstallDrain.lifecycleGeneration);
   const final = authority.readInstallableAgent().installableAgent.current;
   assert.equal(final.lifecycleDisposition, 'revoked');

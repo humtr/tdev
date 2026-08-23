@@ -711,7 +711,7 @@ async function d0027ProviderDispatchFixture(tag) {
     trustSubjects: { [packageTrustSubjectDigest]: 'active' },
   };
   const registerRequest = {
-    managementRequestId: `register-${tag}`,
+    managementRequestId: 'm2:1',
     intentDigest: computeInstallableAgentManagementIntentDigest('register', routeBinding, registerContent),
     expectedPredecessorDigest: host.readInstallableAgent({ routeBinding }).predecessorDigest,
     managementProof: 'management-proof',
@@ -844,7 +844,7 @@ function d0027ProviderTrustFence(authority, tag) {
   };
   const state = authority.readInstallableAgent();
   authority.mutateInstallableAgentTrust({
-    managementRequestId: `trust-fence-${tag}`,
+    managementRequestId: 'm2:2',
     intentDigest: computeInstallableAgentManagementIntentDigest('trust', authority.read().routeBinding, content),
     expectedPredecessorDigest: state.predecessorDigest,
     managementProof: 'management-proof',

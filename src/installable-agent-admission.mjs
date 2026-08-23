@@ -12,7 +12,9 @@ import {
   typedDigest,
 } from './canonical.mjs';
 
-export const INSTALLABLE_AGENT_ADMISSION_PROFILE = 'tdev.installable-agent-admission.v1';
+export const INSTALLABLE_AGENT_ADMISSION_PROFILE_V1 = 'tdev.installable-agent-admission.v1';
+export const INSTALLABLE_AGENT_ADMISSION_PROFILE_V2 = 'tdev.installable-agent-admission.v2';
+export const INSTALLABLE_AGENT_ADMISSION_PROFILE = INSTALLABLE_AGENT_ADMISSION_PROFILE_V2;
 export const INSTALLABLE_AGENT_MANAGEMENT_PROOF_DOMAIN = 'tdev.agent-management.v1';
 export const INSTALLABLE_AGENT_EVIDENCE_DOMAIN = 'tdev.installable-agent-evidence.v1';
 export const INSTALLABLE_AGENT_DATA_PLANE_TUPLE_DOMAIN = 'tdev.installable-agent-data-plane-tuple.v1';
@@ -62,6 +64,59 @@ function positiveGeneration(value, label) {
 function nonnegativeGeneration(value, label) {
   assertSafeInteger(value, label, { min: 0 });
   return value;
+}
+
+function managementRequestSequence(requestId, { allowLegacy = false, stateValidation = false } = {}) {
+  if (typeof requestId !== 'string') {
+    fail(stateValidation ? 'invalid_installable_agent_state' : 'invalid_management_request_id', 'Management request identity must be canonical text');
+  }
+  if (!requestId.startsWith('m2:')) {
+    if (allowLegacy) return null;
+    fail('invalid_management_request_id', 'Fresh management request identity must use canonical m2:<seq>');
+  }
+  const sequenceText = requestId.slice(3);
+  if (!/^[1-9][0-9]*$/.test(sequenceText)) {
+    fail(stateValidation ? 'invalid_installable_agent_state' : 'invalid_management_request_id', 'm2 management request sequence is not canonical positive decimal');
+  }
+  const sequence = Number(sequenceText);
+  if (!Number.isSafeInteger(sequence) || sequence < 1 || `m2:${sequence}` !== requestId) {
+    fail(stateValidation ? 'invalid_installable_agent_state' : 'invalid_management_request_id', 'm2 management request sequence is outside the canonical safe-integer range');
+  }
+  return sequence;
+}
+
+export function parseInstallableAgentManagementRequestId(requestId) {
+  return managementRequestSequence(requestId);
+}
+
+function boundedManagementRequestId(value, label, limits, { stateValidation = true } = {}) {
+  if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) {
+    fail(stateValidation ? 'invalid_installable_agent_state' : 'invalid_management_request_id', `${label} must be non-empty text without NUL`);
+  }
+  if (new TextEncoder().encode(value).byteLength > limits.maxIdentifierBytes) {
+    fail('installable_agent_limit', `${label} exceeds its byte limit`, { maxIdentifierBytes: limits.maxIdentifierBytes });
+  }
+  if (value.startsWith('m2:')) managementRequestSequence(value, { stateValidation });
+  else assertIdentifier(value, label);
+  return value;
+}
+
+function maxSurvivingManagementRequestSequence(value) {
+  let maximum = 0;
+  const observe = (requestId) => {
+    if (requestId === null || requestId === undefined) return;
+    const sequence = managementRequestSequence(requestId, { allowLegacy: true, stateValidation: true });
+    if (sequence !== null) maximum = Math.max(maximum, sequence);
+  };
+  for (const [requestId, receipt] of Object.entries(value.managementReceipts ?? {})) {
+    observe(requestId);
+    observe(receipt?.managementRequestId);
+  }
+  for (const requestId of Object.keys(value.managementTombstones ?? {})) observe(requestId);
+  observe(value.pending?.managementRequestId);
+  observe(value.current?.managementTransaction?.managementRequestId);
+  observe(value.current?.restartEligibleStopRequestId);
+  return maximum;
 }
 
 function normalizeTrustSubjects(subjects, limits) {
@@ -116,14 +171,14 @@ function normalizeCurrent(current, limits) {
   if (!LIFECYCLE_DISPOSITIONS.has(current.lifecycleDisposition)) fail('invalid_installable_agent_state', 'Lifecycle disposition is invalid');
   boundedIdentifier(current.lifecycleCause, 'installableAgent.current.lifecycleCause', limits);
   if (typeof current.restartEligible !== 'boolean') fail('invalid_installable_agent_state', 'restartEligible must be boolean');
-  if (current.restartEligibleStopRequestId !== null) boundedIdentifier(current.restartEligibleStopRequestId, 'restartEligibleStopRequestId', limits);
+  if (current.restartEligibleStopRequestId !== null) boundedManagementRequestId(current.restartEligibleStopRequestId, 'restartEligibleStopRequestId', limits);
   assertDigest(current.transitionReceiptDigest, 'installableAgent.current.transitionReceiptDigest');
   if (current.managementTransaction !== null) {
     exactRecord(current.managementTransaction, [
       'type', 'managementRequestId', 'intentDigest', 'predecessorDigest', 'phase', 'candidate', 'readiness',
     ], [], 'installable Agent management transaction');
     boundedIdentifier(current.managementTransaction.type, 'managementTransaction.type', limits);
-    boundedIdentifier(current.managementTransaction.managementRequestId, 'managementTransaction.managementRequestId', limits);
+    boundedManagementRequestId(current.managementTransaction.managementRequestId, 'managementTransaction.managementRequestId', limits);
     assertDigest(current.managementTransaction.intentDigest, 'managementTransaction.intentDigest');
     assertDigest(current.managementTransaction.predecessorDigest, 'managementTransaction.predecessorDigest');
     boundedIdentifier(current.managementTransaction.phase, 'managementTransaction.phase', limits);
@@ -140,7 +195,7 @@ function normalizePending(pending, limits) {
     'candidate', 'readiness', 'legacyPredecessors',
   ], [], 'installable Agent genesis pending');
   positiveGeneration(pending.genesisGeneration, 'pending.genesisGeneration');
-  boundedIdentifier(pending.managementRequestId, 'pending.managementRequestId', limits);
+  boundedManagementRequestId(pending.managementRequestId, 'pending.managementRequestId', limits);
   assertDigest(pending.intentDigest, 'pending.intentDigest');
   assertDigest(pending.unregisteredPredecessorDigest, 'pending.unregisteredPredecessorDigest');
   assertDigest(pending.pendingDigest, 'pending.pendingDigest');
@@ -186,7 +241,7 @@ function normalizeManagementMaps(state, limits) {
     fail('installable_agent_limit', 'Management receipt state is invalid or unbounded');
   }
   for (const [requestId, receipt] of Object.entries(state.managementReceipts)) {
-    boundedIdentifier(requestId, 'managementRequestId', limits);
+    boundedManagementRequestId(requestId, 'managementRequestId', limits);
     exactRecord(receipt, [
       'operation', 'managementRequestId', 'intentDigest', 'predecessorDigest', 'resultDigest', 'result',
     ], [], 'installable Agent management receipt');
@@ -203,7 +258,7 @@ function normalizeManagementMaps(state, limits) {
     fail('installable_agent_limit', 'Management tombstone state is invalid or unbounded');
   }
   for (const [requestId, tombstone] of Object.entries(state.managementTombstones)) {
-    boundedIdentifier(requestId, 'management tombstone request id', limits);
+    boundedManagementRequestId(requestId, 'management tombstone request id', limits);
     exactRecord(tombstone, ['operation', 'intentDigest', 'predecessorDigest', 'resultDigest'], [], 'installable Agent management tombstone');
     boundedIdentifier(tombstone.operation, 'management tombstone operation', limits);
     for (const field of ['intentDigest', 'predecessorDigest', 'resultDigest']) assertDigest(tombstone[field], `management tombstone ${field}`);
@@ -228,14 +283,14 @@ function normalizeManagementMaps(state, limits) {
 
 export function createLegacyInstallableAgentState() {
   return {
-    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE,
+    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE_V1,
     state: 'LEGACY_D0020_ONLY',
   };
 }
 
 export function createUnregisteredInstallableAgentState() {
   return {
-    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE,
+    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE_V2,
     state: 'UNREGISTERED',
     everCurrent: false,
     genesisGenerationHighWater: 0,
@@ -244,6 +299,7 @@ export function createUnregisteredInstallableAgentState() {
     packageActivationGenerationHighWater: 0,
     trustPolicyGenerationHighWater: 0,
     lifecycleGenerationHighWater: 0,
+    managementRequestSequenceHighWater: 0,
     managementReceipts: createRecord(),
     managementTombstones: createRecord(),
     predecessorQuiescenceReceipts: createRecord(),
@@ -252,20 +308,16 @@ export function createUnregisteredInstallableAgentState() {
   };
 }
 
-export function normalizeInstallableAgentState(value, limits) {
-  if (!isPlainRecord(value)) fail('invalid_installable_agent_state', 'Installable Agent state must be a record');
-  if (value.state === 'LEGACY_D0020_ONLY') {
-    exactRecord(value, ['profile', 'state'], [], 'legacy installable Agent state');
-    if (value.profile !== INSTALLABLE_AGENT_ADMISSION_PROFILE) fail('invalid_installable_agent_state', 'Installable Agent profile mismatch');
-    return value;
-  }
-  exactRecord(value, [
+function normalizeD0027AwareInstallableAgentState(value, limits, { profile, requestSequenceFloor }) {
+  const fields = [
     'profile', 'state', 'everCurrent', 'genesisGenerationHighWater', 'installationGenerationHighWater',
     'credentialGenerationHighWater', 'packageActivationGenerationHighWater', 'trustPolicyGenerationHighWater',
-    'lifecycleGenerationHighWater', 'managementReceipts', 'managementTombstones', 'predecessorQuiescenceReceipts',
-    'pending', 'current',
-  ], [], 'installable Agent state');
-  if (value.profile !== INSTALLABLE_AGENT_ADMISSION_PROFILE || !ROUTE_STATES.has(value.state) || value.state === 'LEGACY_D0020_ONLY') {
+    'lifecycleGenerationHighWater',
+  ];
+  if (requestSequenceFloor) fields.push('managementRequestSequenceHighWater');
+  fields.push('managementReceipts', 'managementTombstones', 'predecessorQuiescenceReceipts', 'pending', 'current');
+  exactRecord(value, fields, [], 'installable Agent state');
+  if (value.profile !== profile || !ROUTE_STATES.has(value.state) || value.state === 'LEGACY_D0020_ONLY') {
     fail('invalid_installable_agent_state', 'Installable Agent route state/profile is invalid');
   }
   if (typeof value.everCurrent !== 'boolean') fail('invalid_installable_agent_state', 'everCurrent must be boolean');
@@ -273,6 +325,7 @@ export function normalizeInstallableAgentState(value, limits) {
     'genesisGenerationHighWater', 'installationGenerationHighWater', 'credentialGenerationHighWater',
     'packageActivationGenerationHighWater', 'trustPolicyGenerationHighWater', 'lifecycleGenerationHighWater',
   ]) nonnegativeGeneration(value[field], `installableAgent.${field}`);
+  if (requestSequenceFloor) nonnegativeGeneration(value.managementRequestSequenceHighWater, 'installableAgent.managementRequestSequenceHighWater');
   normalizeManagementMaps(value, limits);
   if (value.state === 'UNREGISTERED') {
     if (value.everCurrent || value.pending !== null || value.current !== null) {
@@ -305,7 +358,38 @@ export function normalizeInstallableAgentState(value, limits) {
   if (value.pending !== null && value.pending.genesisGeneration > value.genesisGenerationHighWater) {
     fail('invalid_installable_agent_state', 'genesisGeneration exceeds its high-water');
   }
+  if (requestSequenceFloor && maxSurvivingManagementRequestSequence(value) > value.managementRequestSequenceHighWater) {
+    fail('invalid_installable_agent_state', 'A surviving m2 management identity exceeds its durable request high-water');
+  }
   return value;
+}
+
+function migrateInstallableAgentAdmissionV1ToV2(value, limits) {
+  normalizeD0027AwareInstallableAgentState(value, limits, {
+    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE_V1,
+    requestSequenceFloor: false,
+  });
+  if (value.state === 'GENESIS_PENDING' || value.current?.managementTransaction !== null) {
+    fail('unsupported_installable_agent_migration', 'Nonterminal admission-v1 management state cannot migrate to admission-v2');
+  }
+  const managementRequestSequenceHighWater = maxSurvivingManagementRequestSequence(value);
+  value.profile = INSTALLABLE_AGENT_ADMISSION_PROFILE_V2;
+  value.managementRequestSequenceHighWater = managementRequestSequenceHighWater;
+  return value;
+}
+
+export function normalizeInstallableAgentState(value, limits) {
+  if (!isPlainRecord(value)) fail('invalid_installable_agent_state', 'Installable Agent state must be a record');
+  if (value.state === 'LEGACY_D0020_ONLY') {
+    exactRecord(value, ['profile', 'state'], [], 'legacy installable Agent state');
+    if (value.profile !== INSTALLABLE_AGENT_ADMISSION_PROFILE_V1) fail('invalid_installable_agent_state', 'Legacy installable Agent profile mismatch');
+    return value;
+  }
+  if (value.profile === INSTALLABLE_AGENT_ADMISSION_PROFILE_V1) migrateInstallableAgentAdmissionV1ToV2(value, limits);
+  return normalizeD0027AwareInstallableAgentState(value, limits, {
+    profile: INSTALLABLE_AGENT_ADMISSION_PROFILE_V2,
+    requestSequenceFloor: true,
+  });
 }
 
 export function installableAgentPredecessorView(value) {
@@ -320,6 +404,7 @@ export function installableAgentPredecessorView(value) {
     packageActivationGenerationHighWater: value.packageActivationGenerationHighWater,
     trustPolicyGenerationHighWater: value.trustPolicyGenerationHighWater,
     lifecycleGenerationHighWater: value.lifecycleGenerationHighWater,
+    managementRequestSequenceHighWater: value.managementRequestSequenceHighWater,
     pending: value.pending,
     current: value.current,
   };
@@ -380,7 +465,7 @@ export function assertInstallableAgentDataPlaneTuple(value, supplied, { allowLeg
 }
 
 export function managementRequestReplay(value, input, operation, limits) {
-  boundedIdentifier(input.managementRequestId, 'managementRequestId', limits);
+  boundedManagementRequestId(input.managementRequestId, 'managementRequestId', limits, { stateValidation: false });
   assertDigest(input.intentDigest, 'intentDigest');
   assertDigest(input.expectedPredecessorDigest, 'expectedPredecessorDigest');
   const receipt = value.managementReceipts[input.managementRequestId];
@@ -397,12 +482,24 @@ export function managementRequestReplay(value, input, operation, limits) {
     }
     fail('management_request_retired', 'Management request detail was safely compacted and cannot create new authority');
   }
+  const sequence = managementRequestSequence(input.managementRequestId);
+  nonnegativeGeneration(value.managementRequestSequenceHighWater, 'managementRequestSequenceHighWater');
+  if (sequence <= value.managementRequestSequenceHighWater) {
+    fail('management_request_retired', 'Management request sequence is already permanently burned and cannot create new authority');
+  }
+  if (value.managementRequestSequenceHighWater === Number.MAX_SAFE_INTEGER) {
+    fail('management_request_sequence_exhausted', 'Management request sequence cannot advance safely');
+  }
+  if (sequence !== value.managementRequestSequenceHighWater + 1) {
+    fail('management_request_gap', 'Fresh management request sequence must be exactly the durable high-water plus one');
+  }
   if (installableAgentPredecessorDigest(value) !== input.expectedPredecessorDigest) {
     fail('management_predecessor_conflict', 'Management request predecessor is stale');
   }
   if (Object.keys(value.managementReceipts).length >= limits.maxManagementReceipts) {
     fail('management_replay_capacity', 'Management receipt bound is full; compact safely before accepting new authority');
   }
+  value.managementRequestSequenceHighWater = sequence;
   return null;
 }
 
@@ -434,7 +531,7 @@ export function compactManagementReceipts(value, requestIds, limits) {
     fail('management_replay_capacity', 'Management tombstone bound cannot preserve non-reuse; compaction fails closed');
   }
   for (const requestId of unique) {
-    boundedIdentifier(requestId, 'management compaction request id', limits);
+    boundedManagementRequestId(requestId, 'management compaction request id', limits);
     const receipt = value.managementReceipts[requestId];
     if (!receipt) fail('unknown_management_request', 'Cannot compact an unknown management request');
     value.managementTombstones[requestId] = {

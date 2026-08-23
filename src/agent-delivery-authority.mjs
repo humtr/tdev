@@ -1083,7 +1083,7 @@ export class AgentDeliveryAuthority {
     if (this.verifyManagementProof === null) {
       fail('management_authentication_unavailable', 'D0027 management verifier is not configured');
     }
-    assertBoundedText(input.managementRequestId, 'managementRequestId', state.limits.maxIdentifierBytes, { identifier: true });
+    assertBoundedText(input.managementRequestId, 'managementRequestId', state.limits.maxIdentifierBytes);
     assertDigest(input.intentDigest, 'intentDigest');
     assertDigest(input.expectedPredecessorDigest, 'expectedPredecessorDigest');
     if (!Object.hasOwn(input, 'managementProof')) fail('management_authentication_failed', 'Management proof is required');
@@ -1183,7 +1183,7 @@ export class AgentDeliveryAuthority {
       if (!isPlainRecord(input.trustSubjects) || input.trustSubjects[input.packageTrustSubjectDigest] !== 'active') {
         fail('genesis_trust_conflict', 'Initial package trust subject must be explicitly active in the candidate trust state');
       }
-      const unregisteredPredecessorDigest = installableAgentPredecessorDigest(state.installableAgent);
+      const unregisteredPredecessorDigest = input.expectedPredecessorDigest;
       const genesisGeneration = nextInstallableGeneration(state.installableAgent, 'genesisGenerationHighWater', 'genesisGeneration');
       const candidate = {
         installationGeneration: nextInstallableGeneration(state.installableAgent, 'installationGenerationHighWater', 'installationGeneration'),
