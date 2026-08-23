@@ -18,7 +18,7 @@ import {
   deriveAgentPrincipalToken,
 } from './cloudflare-agent-delivery-runtime.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
-import { encodeBase64Url } from './installable-agent-security.mjs';
+import { encodeBase64Url, parseInstallableAgentConnectRequestId } from './installable-agent-security.mjs';
 
 export const LOCAL_AGENT_RUNTIME_PROFILE = 'tdev.local-agent-runtime.v1';
 export const LOCAL_AGENT_WEBSOCKET_PROTOCOL = AGENT_DELIVERY_WEBSOCKET_PROTOCOL;
@@ -777,7 +777,8 @@ export class LocalAgentWebSocketTransport {
 
   async connect({ expectedConnectionEpoch, connectRequestId, connectionId, protocolMetadataDigest, possessionEnvelope = null }) {
     assertSafeInteger(expectedConnectionEpoch, 'expectedConnectionEpoch', { min: 0 });
-    assertIdentifier(connectRequestId, 'connectRequestId');
+    if (possessionEnvelope === null) assertIdentifier(connectRequestId, 'connectRequestId');
+    else parseInstallableAgentConnectRequestId(connectRequestId);
     assertIdentifier(connectionId, 'connectionId');
     assertDigest(protocolMetadataDigest, 'protocolMetadataDigest');
     if (this.socket !== null) fail('local_transport_already_connected', 'Local Agent transport already owns a socket');

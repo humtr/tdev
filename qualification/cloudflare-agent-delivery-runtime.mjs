@@ -7,8 +7,20 @@ import {
   strictJsonParse,
 } from '../src/canonical.mjs';
 import {
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+  decodeBase64Url,
+  encodeBase64Url,
+  installableAgentCredentialKeyId,
+  installableAgentManagementKeyId,
+  installableAgentReleaseSignerKeyId,
+  normalizeConnectPossessionContext,
+  verifyEd25519SignedRecord,
+  verifyRsa3072SignedRecord,
+} from '../src/installable-agent-security.mjs';
+import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
+  AgentDeliveryRuntimeService,
   AgentDeliveryRuntimeDOHost,
   createRuntimeAgentRouteBinding,
   readAgentDeliveryRuntimeConfig,
@@ -22,6 +34,76 @@ const QUALIFICATION_RPC_SCHEMA_VERSION = 1;
 const MIN_TOKEN_BYTES = 32;
 const MAX_TOKEN_BYTES = 512;
 const textEncoder = new TextEncoder();
+
+function corruptedSignature(value, label) {
+  const bytes = decodeBase64Url(value, label);
+  bytes[0] ^= 0x01;
+  return encodeBase64Url(bytes);
+}
+
+async function requireCryptographicRejection(operation, label) {
+  try { await operation(); }
+  catch (error) {
+    if (error instanceof ContractError && error.code === 'signature_verification_failed') return;
+    throw error;
+  }
+  throw new ContractError('qualification_crypto_negative_vector_accepted', `${label} negative vector was accepted`);
+}
+
+export async function runInstallableAgentWorkersCryptoProbe(vectors) {
+  assertRecordShape(vectors, ['rsaPossession', 'management', 'release'], [], 'D0039 Workers crypto vectors');
+  assertRecordShape(vectors.rsaPossession, ['publicJwk', 'context', 'signature'], [], 'D0039 RSA possession vector');
+  assertRecordShape(vectors.management, ['publicJwk', 'record', 'signature'], [], 'D0039 management vector');
+  assertRecordShape(vectors.release, ['publicJwk', 'record', 'signature'], [], 'D0039 release vector');
+  const context = normalizeConnectPossessionContext(vectors.rsaPossession.context);
+  await verifyRsa3072SignedRecord({
+    domain: INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+    record: context,
+    signature: vectors.rsaPossession.signature,
+    publicJwk: vectors.rsaPossession.publicJwk,
+  });
+  await requireCryptographicRejection(() => verifyRsa3072SignedRecord({
+    domain: INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+    record: context,
+    signature: corruptedSignature(vectors.rsaPossession.signature, 'RSA qualification signature'),
+    publicJwk: vectors.rsaPossession.publicJwk,
+  }), 'RSA-3072 mutation');
+  await requireCryptographicRejection(() => verifyRsa3072SignedRecord({
+    domain: 'tdev.agent-management.v1',
+    record: context,
+    signature: vectors.rsaPossession.signature,
+    publicJwk: vectors.rsaPossession.publicJwk,
+  }), 'RSA domain confusion');
+
+  for (const [label, vector, domain] of [
+    ['management', vectors.management, 'tdev.agent-management.v1'],
+    ['release', vectors.release, 'tdev.installable-agent-release-statement.v1'],
+  ]) {
+    await verifyEd25519SignedRecord({ domain, record: vector.record, signature: vector.signature, publicJwk: vector.publicJwk });
+    await requireCryptographicRejection(() => verifyEd25519SignedRecord({
+      domain,
+      record: vector.record,
+      signature: corruptedSignature(vector.signature, `${label} qualification signature`),
+      publicJwk: vector.publicJwk,
+    }), `${label} mutation`);
+    await requireCryptographicRejection(() => verifyEd25519SignedRecord({
+      domain: label === 'management' ? 'tdev.installable-agent-release-statement.v1' : 'tdev.agent-management.v1',
+      record: vector.record,
+      signature: vector.signature,
+      publicJwk: vector.publicJwk,
+    }), `${label} domain confusion`);
+  }
+  return Object.freeze({
+    proofLayer: 'deployed_workers_runtime',
+    algorithms: Object.freeze({ rsa: 'RSASSA-PKCS1-v1_5/SHA-256/3072', management: 'Ed25519', release: 'Ed25519' }),
+    keyIds: Object.freeze({
+      credential: installableAgentCredentialKeyId(vectors.rsaPossession.publicJwk),
+      management: installableAgentManagementKeyId(vectors.management.publicJwk),
+      release: installableAgentReleaseSignerKeyId(vectors.release.publicJwk),
+    }),
+    negativeVectors: Object.freeze({ mutation: true, domainConfusion: true }),
+  });
+}
 
 function byteLength(value) {
   return textEncoder.encode(value).byteLength;
@@ -141,6 +223,8 @@ function rpcShape(input) {
   }
   const shapes = {
     runtime_probe: [[], []],
+    d0039_workers_crypto_probe: [['vectors'], []],
+    d0039_security_readback: [[], []],
     initialize: [[], ['initialization']],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
@@ -189,6 +273,7 @@ export class D0020QualificationService {
     this.token = requiredQualificationToken(env);
     this.runtimeConfig = readAgentDeliveryRuntimeConfig(env);
     this.namespace = assertNamespace(env?.TDEV_AGENT_DELIVERY, this.runtimeConfig.placement.jurisdiction);
+    this.runtimeService = new AgentDeliveryRuntimeService(env);
   }
 
   #route(agentId) {
@@ -213,12 +298,7 @@ export class D0020QualificationService {
     try {
       const url = new URL(request.url);
       if (url.pathname === AGENT_DELIVERY_WEBSOCKET_PATH) {
-        if (request.method !== 'GET' || (request.headers.get('upgrade') ?? '').toLowerCase() !== 'websocket' || !applicationProtocolOffered(request)) {
-          throw new ContractError('invalid_agent_connect_request', 'D0020 Agent WebSocket upgrade is missing the required application protocol');
-        }
-        const agentId = url.searchParams.get('agentId');
-        assertIdentifier(agentId, 'agentId');
-        return this.#route(agentId).stub.fetch(request);
+        return this.runtimeService.fetch(request);
       }
       if (url.pathname !== D0020_QUALIFICATION_PATH) {
         return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found', details: {} } });
@@ -282,15 +362,23 @@ export class D0020QualificationAgentDeliveryDOHost {
   }
 
   async fetch(request) {
-    if (!applicationProtocolOffered(request)) {
-      throw new ContractError('invalid_agent_connect_request', 'D0020 Agent WebSocket upgrade is missing the required application protocol');
+    try {
+      if (request.method === 'POST') {
+        const result = await this.host.acceptInstallableAgentConnectChallenge(request);
+        return jsonResponse(200, result);
+      }
+      if (!applicationProtocolOffered(request)) {
+        throw new ContractError('invalid_agent_connect_request', 'D0020 Agent WebSocket upgrade is missing the required application protocol');
+      }
+      const accepted = await this.host.acceptAgentWebSocket(request);
+      return new Response(null, {
+        status: 101,
+        webSocket: accepted.webSocket,
+        headers: { 'Sec-WebSocket-Protocol': AGENT_DELIVERY_WEBSOCKET_PROTOCOL },
+      });
+    } catch (error) {
+      return publicError(error);
     }
-    const accepted = await this.host.acceptAgentWebSocket(request);
-    return new Response(null, {
-      status: 101,
-      webSocket: accepted.webSocket,
-      headers: { 'Sec-WebSocket-Protocol': AGENT_DELIVERY_WEBSOCKET_PROTOCOL },
-    });
   }
 
   webSocketMessage(socket, message) {
@@ -313,6 +401,20 @@ export class D0020QualificationAgentDeliveryDOHost {
       if (operation === 'runtime_probe') {
         this.host.readRoute({ routeBinding });
         result = this.#runtimeFacts(routeBinding);
+      } else if (operation === 'd0039_workers_crypto_probe') {
+        this.host.readRoute({ routeBinding });
+        result = { ...await runInstallableAgentWorkersCryptoProbe(input.vectors), runtime: this.#runtimeFacts(routeBinding) };
+      } else if (operation === 'd0039_security_readback') {
+        const security = this.host.readInstallableAgent({ routeBinding }).installableAgent;
+        result = {
+          runtime: this.#runtimeFacts(routeBinding),
+          state: security.state,
+          managementKeyId: security.managementKeyId,
+          releaseRootKeyId: security.releaseRootKeyId,
+          currentCredentialKeyId: security.currentCredentialKeyId,
+          legacyHmacPresent: typeof this.env?.TDEV_AGENT_DELIVERY_AUTH_KEY === 'string',
+          secretValues: 'excluded',
+        };
       } else if (operation === 'initialize') {
         result = this.host.initializeRoute({ routeBinding, ...(input.initialization === undefined ? {} : { initialization: input.initialization }) });
       } else if (operation === 'read') {

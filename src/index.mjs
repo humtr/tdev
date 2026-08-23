@@ -37,6 +37,8 @@ export {
 } from './installable-agent-admission.mjs';
 export * from './installable-agent-security.mjs';
 export * from './installable-agent-keystore.mjs';
+export * from './installable-agent-android-source.mjs';
+export * from './installable-agent-challenge.mjs';
 export {
   AGENT_DELIVERY_PROFILE,
   AGENT_DELIVERY_SNAPSHOT_SCHEMA_VERSION,
@@ -59,12 +61,14 @@ export {
 export {
   AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX,
   AGENT_DELIVERY_DO_CLASS_NAME,
+  AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX,
   AGENT_DELIVERY_SOCKET_TAG,
   AGENT_DELIVERY_STORAGE_PROFILE,
   AGENT_DELIVERY_STORAGE_SCHEMA_VERSION,
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
+  AgentDeliveryRuntimeService,
   AgentDeliveryRuntimeDOHost,
   SqliteAgentDeliveryStore,
   createRuntimeAgentRouteBinding,
@@ -73,6 +77,7 @@ export {
 } from './cloudflare-agent-delivery-runtime.mjs';
 export {
   LOCAL_AGENT_AUTH_PROTOCOL_PREFIX,
+  LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX,
   LOCAL_AGENT_RUNTIME_PROFILE,
   LOCAL_AGENT_WEBSOCKET_PROTOCOL,
   LocalAgentRuntime,
@@ -101,8 +106,10 @@ export {
   INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH,
   INSTALLABLE_AGENT_TOOL_PROFILES_SCHEMA_VERSION,
   createInstallableAgentControlProcess,
+  createInstallableAgentControlProductionDependencies,
   normalizeInstallableAgentControlConfig,
   readInstallableAgentControlConfig,
+  runInstallableAgentControlCli,
 } from './installable-agent-control.mjs';
 export {
   INSTALLABLE_AGENT_SUPERVISOR_SERVICE_PROTOCOL,

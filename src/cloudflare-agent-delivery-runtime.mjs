@@ -17,6 +17,7 @@ import {
 } from './agent-delivery-authority.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
 import { decodeBase64Url, encodeBase64Url } from './installable-agent-security.mjs';
+import { INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES } from './installable-agent-challenge.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
@@ -30,7 +31,7 @@ export const CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES = 32 * 1024 * 1024;
 export const AGENT_DELIVERY_MAX_ATTACHMENT_BYTES = 1024;
 
 const MAX_BINDING_BYTES = 2048;
-const MAX_POSSESSION_ENVELOPE_BYTES = 8192;
+const MAX_POSSESSION_ENVELOPE_BYTES = INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES;
 const MIN_AUTH_KEY_BYTES = 32;
 const MAX_AUTH_KEY_BYTES = 512;
 const PROVIDER_JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
@@ -111,6 +112,65 @@ function possessionEnvelopeFromRequest(request) {
   catch (cause) { fail('invalid_agent_possession_envelope', 'Possession envelope is not strict bounded JSON', {}, { cause }); }
 }
 
+async function readBoundedChallengeRequest(request) {
+  const contentType = request.headers.get('content-type')?.split(';', 1)[0].trim().toLowerCase();
+  if (contentType !== 'application/json') fail('invalid_agent_connect_challenge_request', 'D0039 challenge endpoint requires application/json');
+  const declared = request.headers.get('content-length');
+  if (declared !== null && (!/^[0-9]+$/.test(declared) || Number(declared) > INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES)) {
+    fail('agent_connect_request_too_large', 'D0039 connect challenge request exceeds 8192 bytes');
+  }
+  if (request.body === null || typeof request.body.getReader !== 'function') {
+    fail('invalid_agent_connect_challenge_request', 'D0039 challenge endpoint requires a request body');
+  }
+  const reader = request.body.getReader();
+  const chunks = [];
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      const bytes = new Uint8Array(value);
+      total += bytes.byteLength;
+      if (total > INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES) {
+        await reader.cancel();
+        fail('agent_connect_request_too_large', 'D0039 connect challenge request exceeds 8192 bytes');
+      }
+      chunks.push(bytes);
+    }
+  } finally {
+    reader.releaseLock?.();
+  }
+  const body = new Uint8Array(total);
+  let offset = 0;
+  for (const chunk of chunks) {
+    body.set(chunk, offset);
+    offset += chunk.byteLength;
+  }
+  try { return strictJsonParse(body, { maxBytes: INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES }); }
+  catch (cause) { fail('invalid_agent_connect_challenge_request', 'D0039 challenge request is not strict bounded JSON', {}, { cause }); }
+}
+
+function agentDeliveryJsonResponse(status, body) {
+  return new Response(JSON.stringify(body), {
+    status,
+    headers: {
+      'cache-control': 'no-store',
+      'content-type': 'application/json; charset=utf-8',
+    },
+  });
+}
+
+function agentDeliveryErrorResponse(error) {
+  if (!(error instanceof ContractError)) {
+    return agentDeliveryJsonResponse(500, { error: { code: 'agent_delivery_provider_failure' } });
+  }
+  let status = 400;
+  if (error.code === 'agent_authentication_failed') status = 401;
+  else if (error.code.includes('stale') || error.code.includes('conflict')) status = 409;
+  else if (error.code === 'invalid_agent_delivery_deployment_config') status = 503;
+  return agentDeliveryJsonResponse(status, { error: { code: error.code } });
+}
+
 export function readAgentDeliveryRuntimeConfig(env) {
   const maxSnapshotBytes = positiveIntegerBinding(env, 'TDEV_AGENT_DELIVERY_MAX_SNAPSHOT_BYTES');
   const maxFrameBytes = positiveIntegerBinding(env, 'TDEV_AGENT_DELIVERY_MAX_FRAME_BYTES');
@@ -132,6 +192,55 @@ export function readAgentDeliveryRuntimeConfig(env) {
       jurisdiction: jurisdictionBinding(env),
     }),
   });
+}
+
+function resolveAgentDeliveryNamespace(env, jurisdiction) {
+  const namespace = env?.TDEV_AGENT_DELIVERY;
+  if (!namespace || typeof namespace.idFromName !== 'function' || typeof namespace.get !== 'function') {
+    fail('invalid_agent_delivery_deployment_config', 'Agent delivery Worker requires a Durable Object namespace binding');
+  }
+  if (jurisdiction === 'global') return namespace;
+  if (typeof namespace.jurisdiction !== 'function') {
+    fail('invalid_agent_delivery_deployment_config', 'Agent delivery namespace does not support the configured jurisdiction');
+  }
+  const scoped = namespace.jurisdiction(jurisdiction);
+  if (!scoped || typeof scoped.idFromName !== 'function' || typeof scoped.get !== 'function') {
+    fail('invalid_agent_delivery_deployment_config', 'Agent delivery jurisdiction namespace is invalid');
+  }
+  return scoped;
+}
+
+export class AgentDeliveryRuntimeService {
+  constructor(env) {
+    this.config = readAgentDeliveryRuntimeConfig(env);
+    this.namespace = resolveAgentDeliveryNamespace(env, this.config.placement.jurisdiction);
+  }
+
+  #route(agentId) {
+    assertIdentifier(agentId, 'agentId');
+    const id = this.namespace.idFromName(agentId);
+    if (!id || typeof id.toString !== 'function') fail('invalid_agent_delivery_provider', 'Agent delivery namespace returned an invalid identity');
+    const providerJurisdiction = id.jurisdiction ?? 'global';
+    if (providerJurisdiction !== this.config.placement.jurisdiction) {
+      fail('agent_route_binding_conflict', 'Agent delivery identity has the wrong jurisdiction');
+    }
+    const stub = this.namespace.get(id);
+    if (!stub || typeof stub.fetch !== 'function') fail('invalid_agent_delivery_provider', 'Agent delivery namespace returned an invalid stub');
+    return stub;
+  }
+
+  async fetch(request) {
+    try {
+      const url = new URL(request.url);
+      if (url.pathname !== AGENT_DELIVERY_WEBSOCKET_PATH || !['GET', 'POST'].includes(request.method)) {
+        return agentDeliveryJsonResponse(404, { error: { code: 'agent_delivery_not_found' } });
+      }
+      const agentId = requiredQueryText(url.searchParams, 'agentId');
+      return await this.#route(agentId).fetch(request);
+    } catch (error) {
+      return agentDeliveryErrorResponse(error);
+    }
+  }
 }
 
 function assertStorage(storage) {
@@ -634,6 +743,33 @@ export class AgentDeliveryRuntimeDOHost {
       nowMs,
       nonce: encodeBase64Url(nonce),
     });
+  }
+
+  async acceptInstallableAgentConnectChallenge(request) {
+    const url = new URL(request.url);
+    if (url.pathname !== AGENT_DELIVERY_WEBSOCKET_PATH || request.method !== 'POST') {
+      fail('invalid_agent_connect_challenge_request', 'D0039 challenge endpoint request is invalid');
+    }
+    if ((request.headers.get('authorization') ?? '') !== '' || (request.headers.get('sec-websocket-protocol') ?? '') !== '') {
+      fail('legacy_agent_auth_forbidden', 'D0039 challenge allocation does not accept legacy or WebSocket authority');
+    }
+    const queryNames = [...url.searchParams.keys()];
+    if (queryNames.length !== 2 || new Set(queryNames).size !== 2 ||
+        !queryNames.includes('agentId') || !queryNames.includes('routeGeneration')) {
+      fail('invalid_agent_connect_challenge_request', 'D0039 challenge endpoint query is ambiguous or contains unknown fields');
+    }
+    const agentId = requiredQueryText(url.searchParams, 'agentId');
+    const routeGeneration = positiveQueryInteger(url.searchParams, 'routeGeneration');
+    const challengeRequest = await readBoundedChallengeRequest(request);
+    if (challengeRequest?.agentId !== agentId || challengeRequest?.routeGeneration !== routeGeneration) {
+      fail('invalid_agent_connect_challenge_request', 'D0039 challenge route query and request body disagree');
+    }
+    const routeBinding = createRuntimeAgentRouteBinding(this.env, {
+      agentId,
+      routeGeneration,
+      durableObjectId: this.durableObjectId,
+    });
+    return this.issueInstallableAgentConnectChallenge({ routeBinding, request: challengeRequest });
   }
 
   migrateInstallableAgentRoute(input) {

@@ -7,16 +7,23 @@ import path from 'node:path';
 
 import {
   INSTALLABLE_AGENT_MANAGEMENT_PROTOCOL_PROFILE,
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+  INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+  INSTALLABLE_AGENT_KEYSTORE_ALIAS_PROFILE,
   INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
   INSTALLABLE_AGENT_PACKAGE_PROFILE,
   INSTALLABLE_AGENT_SUPERVISOR_SERVICE_PROTOCOL,
   INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,
   LOCAL_AGENT_AUTH_PROTOCOL_PREFIX,
+  LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX,
   LOCAL_AGENT_WEBSOCKET_PROTOCOL,
   InstallableAgentSupervisorServiceClient,
   canonicalJson,
+  computeAgentConnectRequestDigest,
   createInstallableAgentControlProcess,
   digest,
+  encodeBase64Url,
+  installableAgentCredentialRef,
 } from '../src/index.mjs';
 
 function sha256(bytes) {
@@ -288,5 +295,119 @@ test('package-owned tool profiles reject unknown profiles and Task argument inje
   ));
   assert.equal(injected.classification, 'not_started');
   assert.equal(injected.noHandle, true);
+  control.stop();
+});
+
+function d0039ControlConfig(fixture) {
+  return {
+    ...fixture.config,
+    credentialRef: installableAgentCredentialRef({
+      profile: INSTALLABLE_AGENT_KEYSTORE_ALIAS_PROFILE,
+      agentId: fixture.config.agentId,
+      routeGeneration: fixture.config.routeGeneration,
+      installationGeneration: fixture.installableAgentTuple.installationGeneration,
+      credentialGeneration: fixture.installableAgentTuple.credentialGeneration,
+    }),
+    androidSourceLineageId: 'd'.repeat(64),
+  };
+}
+
+function d0039ControlAdapters(config, { mismatch = null } = {}) {
+  const credentialKeyId = digest({ credential: 'control-d0039' });
+  const calls = { lineage: 0, readback: 0, challenges: [], signs: [] };
+  const credentialAdapter = {
+    async verifySourceLineage(lineage) { calls.lineage += 1; assert.equal(lineage, config.androidSourceLineageId); },
+    async readPublicVerifier(credentialRef) { calls.readback += 1; assert.equal(credentialRef, config.credentialRef); return { credentialKeyId }; },
+    async signPossession(input) {
+      calls.signs.push(input);
+      return {
+        profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+        keyId: credentialKeyId,
+        context: input.context,
+        signature: encodeBase64Url(Buffer.alloc(384, 9)),
+      };
+    },
+  };
+  const challengeClient = {
+    async issue(request) {
+      calls.challenges.push(request);
+      const challenge = {
+        profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
+        agentId: request.agentId,
+        routeGeneration: request.routeGeneration,
+        challengeGeneration: calls.challenges.length,
+        nonce: encodeBase64Url(Buffer.alloc(32, calls.challenges.length)),
+        credentialGeneration: request.installableAgentTuple.credentialGeneration,
+        credentialKeyId,
+        connectRequestDigest: computeAgentConnectRequestDigest(request),
+        issuedAtMs: calls.challenges.length,
+        expiresAtMs: 120000 + calls.challenges.length,
+      };
+      if (mismatch !== null) challenge[mismatch] = mismatch === 'routeGeneration' ? challenge[mismatch] + 1 : digest({ wrong: mismatch });
+      return { classification: 'accepted', challenge };
+    },
+  };
+  return { credentialAdapter, challengeClient, calls };
+}
+
+test('D0039 control composes lineage, verifier, fresh challenge, possession signature, and exact c1 retry without HMAC', async (t) => {
+  const fixture = await createControlFixture();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const config = d0039ControlConfig(fixture);
+  const adapters = d0039ControlAdapters(config);
+  const websocket = scriptedWebSocketFactory(['error', 'open']);
+  const control = await createInstallableAgentControlProcess({
+    packageRoot: fixture.packageRoot,
+    config,
+    prefix: fixture.prefix,
+    supervisorClient: fixture.supervisorClient,
+    webSocketFactory: websocket.factory,
+    credentialAdapter: adapters.credentialAdapter,
+    challengeClient: adapters.challengeClient,
+  });
+  await assert.rejects(control.connectOnce(), (error) => error?.code === 'local_transport_connect_failed');
+  await control.connectOnce();
+  assert.equal(adapters.calls.lineage, 1);
+  assert.equal(adapters.calls.readback, 1);
+  assert.equal(adapters.calls.challenges.length, 2);
+  assert.equal(adapters.calls.signs.length, 2);
+  assert.equal(adapters.calls.challenges[0].connectRequestId, 'c1:1');
+  assert.equal(adapters.calls.challenges[1].connectRequestId, 'c1:1');
+  assert.equal(adapters.calls.challenges[0].connectionId, adapters.calls.challenges[1].connectionId);
+  assert.equal(websocket.calls[1].protocols[1].startsWith(LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX), true);
+  assert.equal(websocket.calls[1].protocols.some((value) => value.startsWith(LOCAL_AGENT_AUTH_PROTOCOL_PREFIX)), false);
+  const stateText = await readFile(path.join(fixture.stateDirectory, 'control-connection.json'), 'utf8');
+  assert.equal(stateText.includes('private'), false);
+  assert.equal(JSON.parse(stateText).lastConnectRequestSequence, 1);
+  control.stop();
+});
+
+test('D0039 control fails closed for missing dependencies and a challenge not bound to the exact request', async (t) => {
+  const fixture = await createControlFixture();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const config = d0039ControlConfig(fixture);
+  await assert.rejects(
+    createInstallableAgentControlProcess({
+      packageRoot: fixture.packageRoot,
+      config,
+      prefix: fixture.prefix,
+      supervisorClient: fixture.supervisorClient,
+    }),
+    (error) => error?.code === 'installable_agent_keystore_adapter_unconfigured',
+  );
+  const adapters = d0039ControlAdapters(config, { mismatch: 'connectRequestDigest' });
+  const websocket = scriptedWebSocketFactory(['open']);
+  const control = await createInstallableAgentControlProcess({
+    packageRoot: fixture.packageRoot,
+    config,
+    prefix: fixture.prefix,
+    supervisorClient: fixture.supervisorClient,
+    webSocketFactory: websocket.factory,
+    credentialAdapter: adapters.credentialAdapter,
+    challengeClient: adapters.challengeClient,
+  });
+  await assert.rejects(control.connectOnce(), (error) => error?.code === 'installable_agent_challenge_mismatch');
+  assert.equal(adapters.calls.signs.length, 0);
+  assert.equal(websocket.calls.length, 0);
   control.stop();
 });

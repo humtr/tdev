@@ -31,6 +31,7 @@ import {
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
   AgentDeliveryRuntimeDOHost,
+  AgentDeliveryRuntimeService,
   SqliteAgentDeliveryStore,
   createRuntimeAgentRouteBinding,
   deriveAgentPrincipalToken,
@@ -191,6 +192,31 @@ function connectAuthority(authority, overrides = {}) {
   const content = connectContent(authority, overrides);
   return authority.connect({ ...content, requestDigest: computeAgentConnectRequestDigest(content) });
 }
+
+test('production Worker service routes POST challenge and GET upgrade through the sole Agent delivery route', async () => {
+  const forwarded = [];
+  const namespace = {
+    idFromName(agentId) {
+      assert.equal(agentId, 'agent-one');
+      return { jurisdiction: 'global', toString: () => 'do-agent-one' };
+    },
+    get() {
+      return { async fetch(request) { forwarded.push(request); return new Response('forwarded', { status: 202 }); } };
+    },
+  };
+  const service = new AgentDeliveryRuntimeService(env({ TDEV_AGENT_DELIVERY: namespace }));
+  const challenge = await service.fetch(new Request('https://qualification.example/agent-delivery/v1/connect?agentId=agent-one&routeGeneration=1', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: '{}',
+  }));
+  assert.equal(challenge.status, 202);
+  assert.equal(forwarded.length, 1);
+  assert.equal(forwarded[0].method, 'POST');
+  const missing = await service.fetch(new Request('https://qualification.example/other?agentId=agent-one', { method: 'POST' }));
+  assert.equal(missing.status, 404);
+  assert.equal(forwarded.length, 1);
+});
 
 function ed25519Pair() {
   const pair = generateKeyPairSync('ed25519');

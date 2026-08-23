@@ -2226,7 +2226,11 @@ export class AgentDeliveryAuthority {
       const retained = state.connectReceipts[input.connectRequestId];
       if (retained !== undefined) {
         if (retained.requestDigest !== input.requestDigest) fail('connect_request_conflict', 'Connect request identity was reused with different content');
-        return { changed: false, result: { classification: 'exact_replay', receipt: canonicalClone(retained.receipt) } };
+        if (retained.connectionEpoch !== state.lastConnectionEpoch || state.connection === null ||
+            state.connection.connectRequestId !== input.connectRequestId || state.connection.id !== retained.receipt.connectionId ||
+            state.connection.epoch !== retained.connectionEpoch) {
+          fail('stale_connect_request', 'Retained connect request no longer identifies the current connection');
+        }
       }
       const tupleDigest = currentTupleDigest(state.installableAgent);
       const live = state.installableAgent.possessionChallenge;
@@ -2238,9 +2242,13 @@ export class AgentDeliveryAuthority {
       }
       const sequence = parseInstallableAgentConnectRequestId(input.connectRequestId);
       const highWater = state.installableAgent.connectRequestSequenceHighWater;
-      if (sequence <= highWater) fail('stale_connect_request', 'Connect request sequence is already retired');
-      if (highWater === Number.MAX_SAFE_INTEGER) fail('connect_request_sequence_overflow', 'Connect request sequence cannot advance safely');
-      if (sequence !== highWater + 1) fail('connect_request_sequence_gap', 'Fresh connect request sequence must equal high-water plus one');
+      if (retained === undefined) {
+        if (sequence <= highWater) fail('stale_connect_request', 'Connect request sequence is already retired');
+        if (highWater === Number.MAX_SAFE_INTEGER) fail('connect_request_sequence_overflow', 'Connect request sequence cannot advance safely');
+        if (sequence !== highWater + 1) fail('connect_request_sequence_gap', 'Fresh connect request sequence must equal high-water plus one');
+      } else if (sequence !== highWater) {
+        fail('stale_connect_request', 'Retained connect request does not equal the current sequence high-water');
+      }
       if (state.installableAgent.possessionChallengeGenerationHighWater === Number.MAX_SAFE_INTEGER) {
         fail('possession_challenge_generation_overflow', 'Possession challenge generation cannot advance safely');
       }
@@ -2257,14 +2265,14 @@ export class AgentDeliveryAuthority {
         issuedAtMs: nowMs,
         expiresAtMs: nowMs + INSTALLABLE_AGENT_CONNECT_POSSESSION_TTL_MS,
       });
-      state.installableAgent.connectRequestSequenceHighWater = sequence;
+      if (retained === undefined) state.installableAgent.connectRequestSequenceHighWater = sequence;
       state.installableAgent.possessionChallengeGenerationHighWater = challengeGeneration;
       state.installableAgent.possessionChallenge = {
         connectRequestId: input.connectRequestId,
         context: canonicalClone(context),
         currentTupleDigest: tupleDigest,
       };
-      return { changed: true, result: { classification: 'accepted', challenge: canonicalClone(context) } };
+      return { changed: true, result: { classification: retained === undefined ? 'accepted' : 'exact_replay', challenge: canonicalClone(context) } };
     });
   }
 

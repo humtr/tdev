@@ -270,3 +270,44 @@ test('expired challenge never revives and its c1 sequence remains permanently re
   assert.equal(next.classification, 'accepted');
   assert.equal(next.challenge.challengeGeneration, 2);
 });
+
+test('lost connect response retries the exact c1 request with a fresh one-shot possession challenge', async () => {
+  const { authority, credential } = await createConcreteCurrent();
+  const request = connectRequest(authority, 'c1:1');
+  const first = authority.issueInstallableAgentConnectChallenge(request, {
+    nowMs: 100,
+    nonce: encodeBase64Url(Buffer.alloc(32, 20)),
+  }).challenge;
+  const firstEnvelope = {
+    profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+    keyId: installableAgentCredentialKeyId(credential.publicJwk),
+    context: first,
+    signature: signRsa(credential.privateKey, INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE, first),
+  };
+  const firstTicket = await authority.verifyInstallableAgentConnectPossession({ connectRequest: request, envelope: firstEnvelope, nowMs: 200 });
+  assert.equal(authority.connect(request, { possessionTicket: firstTicket, nowMs: 200 }).classification, 'accepted');
+
+  const retry = authority.issueInstallableAgentConnectChallenge(request, {
+    nowMs: 300,
+    nonce: encodeBase64Url(Buffer.alloc(32, 21)),
+  });
+  assert.equal(retry.classification, 'exact_replay');
+  assert.equal(retry.challenge.challengeGeneration, first.challengeGeneration + 1);
+  assert.notEqual(retry.challenge.nonce, first.nonce);
+  assert.equal(authority.readInstallableAgent().installableAgent.connectRequestSequenceHighWater, 1);
+
+  const retryEnvelope = {
+    profile: INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
+    keyId: installableAgentCredentialKeyId(credential.publicJwk),
+    context: retry.challenge,
+    signature: signRsa(credential.privateKey, INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE, retry.challenge),
+  };
+  const retryTicket = await authority.verifyInstallableAgentConnectPossession({ connectRequest: request, envelope: retryEnvelope, nowMs: 400 });
+  assert.equal(authority.connect(request, { possessionTicket: retryTicket, nowMs: 400 }).classification, 'exact_replay');
+  assert.equal(authority.read().lastConnectionEpoch, 1);
+  assert.equal(authority.readInstallableAgent().installableAgent.possessionChallenge, null);
+  await assert.rejects(
+    authority.verifyInstallableAgentConnectPossession({ connectRequest: request, envelope: retryEnvelope, nowMs: 401 }),
+    (error) => error?.code === 'agent_possession_challenge_stale',
+  );
+});

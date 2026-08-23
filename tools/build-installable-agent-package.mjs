@@ -32,6 +32,10 @@ const SOURCE_REVISION_RE = /^[0-9a-f]{40}$/;
 const SOURCE_FILES = [
   ['src/canonical.mjs', 'runtime'],
   ['src/installable-agent-admission.mjs', 'runtime'],
+  ['src/installable-agent-security.mjs', 'runtime-security'],
+  ['src/installable-agent-keystore.mjs', 'android-keystore-adapter'],
+  ['src/installable-agent-android-source.mjs', 'android-source-lineage-reader'],
+  ['src/installable-agent-challenge.mjs', 'agent-challenge-client'],
   ['src/agent-delivery-authority.mjs', 'runtime'],
   ['src/cloudflare-agent-delivery-runtime.mjs', 'runtime'],
   ['src/local-agent-runtime.mjs', 'runtime'],

@@ -15,12 +15,16 @@ import {
   strictJsonParse,
 } from './canonical.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
+import { computeAgentConnectRequestDigest } from './agent-delivery-authority.mjs';
 import {
   normalizeAndroidSourceLineageId,
   normalizeConnectPossessionContext,
   parseInstallableAgentConnectRequestId,
   parseInstallableAgentCredentialRef,
 } from './installable-agent-security.mjs';
+import { TermuxAndroidKeyStoreCredential } from './installable-agent-keystore.mjs';
+import { createTermuxAndroidSourceLineageReader } from './installable-agent-android-source.mjs';
+import { InstallableAgentConnectChallengeClient } from './installable-agent-challenge.mjs';
 import {
   LocalAgentRuntime,
   LocalAgentWebSocketTransport,
@@ -356,6 +360,7 @@ export async function createInstallableAgentControlProcess({
   const toolProfiles = await loadReleaseToolProfiles(resolvedPackageRoot, release);
   const d0039Credential = normalizedConfig.credentialRef.startsWith('androidkeystore://');
   let authKey = null;
+  let credentialVerifier = null;
   if (d0039Credential) {
     if (credentialAdapter === null || typeof credentialAdapter.verifySourceLineage !== 'function' ||
         typeof credentialAdapter.readPublicVerifier !== 'function' || typeof credentialAdapter.signPossession !== 'function') {
@@ -365,7 +370,7 @@ export async function createInstallableAgentControlProcess({
       fail('installable_agent_challenge_client_unconfigured', 'D0039 control requires the deployment-owned possession challenge client');
     }
     await credentialAdapter.verifySourceLineage(normalizedConfig.androidSourceLineageId);
-    await credentialAdapter.readPublicVerifier(normalizedConfig.credentialRef);
+    credentialVerifier = await credentialAdapter.readPublicVerifier(normalizedConfig.credentialRef);
   } else {
     authKey = await credentialLoader(normalizedConfig.credentialRef);
   }
@@ -429,6 +434,12 @@ export async function createInstallableAgentControlProcess({
       };
       const challengeResponse = await challengeClient.issue(canonicalClone(challengeRequest));
       const challenge = normalizeConnectPossessionContext(challengeResponse?.challenge ?? challengeResponse);
+      const requestDigest = computeAgentConnectRequestDigest(challengeRequest);
+      if (challenge.agentId !== normalizedConfig.agentId || challenge.routeGeneration !== normalizedConfig.routeGeneration ||
+          challenge.credentialGeneration !== normalizedConfig.installableAgentTuple.credentialGeneration ||
+          challenge.credentialKeyId !== credentialVerifier.credentialKeyId || challenge.connectRequestDigest !== requestDigest) {
+        fail('installable_agent_challenge_mismatch', 'Possession challenge does not bind the exact local connect request and current credential');
+      }
       possessionEnvelope = await credentialAdapter.signPossession({
         credentialRef: normalizedConfig.credentialRef,
         context: challenge,
@@ -493,6 +504,39 @@ export async function createInstallableAgentControlProcess({
   });
 }
 
+export function createInstallableAgentControlProductionDependencies(config) {
+  const normalizedConfig = normalizeInstallableAgentControlConfig(config);
+  if (!normalizedConfig.credentialRef.startsWith('androidkeystore://')) return Object.freeze({});
+  const credentialAdapter = new TermuxAndroidKeyStoreCredential({
+    sourceLineageReader: createTermuxAndroidSourceLineageReader(),
+  });
+  const challengeClient = new InstallableAgentConnectChallengeClient({ endpoint: normalizedConfig.agentDeliveryUrl });
+  return Object.freeze({ credentialAdapter, challengeClient });
+}
+
+export async function runInstallableAgentControlCli({
+  argv = process.argv.slice(2),
+  moduleUrl = import.meta.url,
+  readConfig = readInstallableAgentControlConfig,
+  createProcess = createInstallableAgentControlProcess,
+  createProductionDependencies = createInstallableAgentControlProductionDependencies,
+} = {}) {
+  const { configPath } = parseArgs(argv);
+  const config = await readConfig(configPath);
+  const packageRoot = path.dirname(path.dirname(fileURLToPath(moduleUrl)));
+  const dependencies = createProductionDependencies(config);
+  const control = await createProcess({ packageRoot, config, ...dependencies });
+  const stop = () => control.stop();
+  process.once('SIGINT', stop);
+  process.once('SIGTERM', stop);
+  try { await control.run(); }
+  finally {
+    process.removeListener('SIGINT', stop);
+    process.removeListener('SIGTERM', stop);
+  }
+  return control;
+}
+
 function parseArgs(argv) {
   let configPath = null;
   for (let index = 0; index < argv.length; index += 2) {
@@ -508,14 +552,7 @@ function parseArgs(argv) {
 const isDirect = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
 if (isDirect) {
   try {
-    const { configPath } = parseArgs(process.argv.slice(2));
-    const config = await readInstallableAgentControlConfig(configPath);
-    const packageRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
-    const control = await createInstallableAgentControlProcess({ packageRoot, config });
-    const stop = () => control.stop();
-    process.once('SIGINT', stop);
-    process.once('SIGTERM', stop);
-    await control.run();
+    await runInstallableAgentControlCli();
   } catch (cause) {
     process.stderr.write(`${canonicalJson({ error: cause?.code ?? 'installable_agent_control_failed', message: cause?.message ?? 'Installable Agent control process failed' })}\n`);
     process.exitCode = 1;
