@@ -1,5 +1,13 @@
 #!/usr/bin/env node
-import { strictJsonParse } from '../src/canonical.mjs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { assertDigest, strictJsonParse } from '../src/canonical.mjs';
+import {
+  QUALIFICATION_RPC_PROFILE,
+  createQualificationDeploymentBindingPlan,
+  normalizeQualificationDeploymentIdentity,
+  qualificationDeploymentIdentityDigest,
+} from './installable-agent-qualification-r3.mjs';
 
 const API_ROOT = 'https://api.cloudflare.com/client/v4';
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
@@ -12,7 +20,7 @@ function fail(code, message, details = undefined, options = undefined) {
 }
 
 function parseArgs(argv) {
-  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--zone-id', '--route-id', '--qualification-endpoint', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-jurisdiction']);
+  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--zone-id', '--route-id', '--qualification-endpoint', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction']);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
@@ -26,6 +34,11 @@ function parseArgs(argv) {
   const endpoint = new URL(values.get('--qualification-endpoint'));
   if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.hash) fail('cloudflare_readback_usage', 'qualification endpoint must be credential-free HTTPS');
   if (!/^[0-9a-f]{40}$/.test(values.get('--expected-source-sha'))) fail('cloudflare_readback_usage', 'expected source SHA is invalid');
+  try {
+    assertDigest(values.get('--expected-artifact-digest'), 'expected artifact digest');
+    assertDigest(values.get('--expected-artifact-manifest-digest'), 'expected artifact manifest digest');
+  } catch (cause) { fail('cloudflare_readback_usage', 'expected artifact digests are invalid', {}, { cause }); }
+  if (endpoint.pathname !== '/' || endpoint.search || endpoint.origin !== values.get('--qualification-endpoint')) fail('cloudflare_readback_usage', 'qualification endpoint must be an exact HTTPS origin');
   return Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]).concat([['route_generation', routeGeneration], ['qualification_endpoint', endpoint]]));
 }
 
@@ -58,22 +71,83 @@ function publicBinding(binding) {
   for (const name of ['name', 'type', 'namespace_id', 'class_name', 'script_name']) {
     if (typeof binding[name] === 'string') result[name] = binding[name];
   }
+  if (binding.type === 'plain_text' && typeof binding.text === 'string') result.text = binding.text;
   return result;
 }
 
 async function routeOwnerReadback(options, qualificationToken) {
   const endpoint = new URL(options.qualification_endpoint);
-  endpoint.pathname = '/qualification/d0020/v1';
+  endpoint.pathname = '/qualification/d0020/v2';
   endpoint.search = '';
   const response = await fetch(endpoint, {
     method: 'POST',
     redirect: 'error',
     headers: { authorization: `Bearer ${qualificationToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ operation: 'd0039_security_readback', agentId: options.agent_id, routeGeneration: options.route_generation }),
+    body: JSON.stringify({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0039_security_readback', agentId: options.agent_id, routeGeneration: options.route_generation }),
   });
   const body = await boundedJson(response, 'route-owner readback');
-  if (!response.ok || body?.ok !== true || body?.result?.secretValues !== 'excluded') fail('cloudflare_route_owner_readback_failed', 'route-owner security readback failed', { status: response.status });
+  if (!response.ok || body?.profile !== QUALIFICATION_RPC_PROFILE || body?.schemaVersion !== 2 || body?.ok !== true || body?.result?.secretValues !== 'excluded') fail('cloudflare_route_owner_readback_failed', 'route-owner security readback failed', { status: response.status });
   return body.result;
+}
+
+export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, namespace, route, owner, providerBindings }) {
+  if (!owner || typeof owner !== 'object' || Array.isArray(owner)) fail('cloudflare_readback_route_owner_mismatch', 'route-owner readback is invalid');
+  const identity = normalizeQualificationDeploymentIdentity(owner.deploymentIdentity);
+  const digest = qualificationDeploymentIdentityDigest(identity);
+  if (owner.deploymentIdentityDigest !== digest) fail('cloudflare_readback_route_owner_mismatch', 'route-owner deployment identity digest is invalid');
+  const expected = {
+    sourceSha: options.expected_source_sha,
+    artifactDigest: options.expected_artifact_digest,
+    artifactManifestDigest: options.expected_artifact_manifest_digest,
+    workerVersionId: activeVersionId,
+    accountId: options.account_id,
+    serviceName: options.script_name,
+    deployment: options.expected_deployment,
+    environment: options.expected_environment,
+    deploymentEpoch: options.expected_deployment_epoch,
+    stateChangingTrafficPercentage: 100,
+    qualificationEndpointOrigin: options.qualification_endpoint.origin,
+    routeId: options.route_id,
+    routePattern: route?.pattern,
+    workerScript: options.script_name,
+    namespaceId: namespace?.id,
+    namespace: options.namespace_name,
+    className: options.class_name,
+    jurisdiction: options.expected_jurisdiction,
+    agentId: options.agent_id,
+    routeGeneration: options.route_generation,
+  };
+  for (const [name, value] of Object.entries(expected)) {
+    if (identity[name] !== value) fail('cloudflare_readback_route_owner_mismatch', `provider/readback S/A/V/R mismatch at ${name}`, { name, expected: value, actual: identity[name] });
+  }
+  if (route?.script !== options.script_name) fail('cloudflare_readback_route_owner_mismatch', 'provider route is not bound to the expected Worker script');
+  if (!Array.isArray(providerBindings)) fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker bindings are unavailable');
+  const expectedBindingPlan = createQualificationDeploymentBindingPlan({
+    sourceSha: options.expected_source_sha,
+    artifactDigest: options.expected_artifact_digest,
+    artifactManifestDigest: options.expected_artifact_manifest_digest,
+    accountId: options.account_id,
+    serviceName: options.script_name,
+    deploymentEpoch: options.expected_deployment_epoch,
+    qualificationEndpointOrigin: options.qualification_endpoint.origin,
+    routeId: options.route_id,
+    routePattern: route?.pattern,
+    namespaceId: namespace?.id,
+  });
+  const plainText = new Map(providerBindings
+    .filter((binding) => binding?.type === 'plain_text' && typeof binding?.name === 'string' && typeof binding?.text === 'string')
+    .map((binding) => [binding.name, binding.text]));
+  for (const { name, text } of expectedBindingPlan.cloudflarePlainTextBindings) {
+    if (plainText.get(name) !== text) fail('cloudflare_readback_runtime_binding_invalid', `provider Worker plain-text binding mismatch at ${name}`, { name });
+  }
+  const runtime = owner.runtime;
+  if (runtime?.sourceSha !== identity.sourceSha || runtime?.workerVersionId !== identity.workerVersionId ||
+      runtime?.routeCurrentTupleDigest !== identity.routeCurrentTupleDigest || runtime?.routeVerifierDigest !== identity.routeVerifierDigest ||
+      runtime?.routeBinding?.agentId !== identity.agentId || runtime?.routeBinding?.routeGeneration !== identity.routeGeneration ||
+      runtime?.routeBinding?.durableObjectId !== identity.durableObjectId) {
+    fail('cloudflare_readback_route_owner_mismatch', 'route-owner runtime facts disagree with its deployment identity');
+  }
+  return Object.freeze({ identity, digest });
 }
 
 async function main() {
@@ -109,11 +183,14 @@ async function main() {
     ? namespaces.filter((entry) => entry?.name === options.namespace_name && entry?.class === options.class_name && entry?.script === options.script_name)
     : [];
   if (namespaceMatches.length !== 1) fail('cloudflare_readback_namespace_ambiguous', 'Exact Durable Object namespace readback is missing or ambiguous');
-  if (owner?.runtime?.sourceSha !== options.expected_source_sha || owner?.runtime?.workerScript !== options.script_name ||
-      owner?.runtime?.namespace !== options.namespace_name || owner?.runtime?.jurisdiction !== options.expected_jurisdiction ||
-      owner?.runtime?.routeBinding?.agentId !== options.agent_id || owner?.runtime?.routeBinding?.routeGeneration !== options.route_generation) {
-    fail('cloudflare_readback_route_owner_mismatch', 'Provider control-plane and route-owner readbacks disagree');
-  }
+  const deploymentJoin = validateD0039CloudflareIdentityJoin({
+    options,
+    activeVersionId: versionId,
+    namespace: namespaceMatches[0],
+    route,
+    owner,
+    providerBindings: bindings,
+  });
   const secretNames = Array.isArray(secrets) ? secrets.map((entry) => entry?.name).filter((name) => typeof name === 'string').sort() : [];
   process.stdout.write(`${JSON.stringify({
     classification: 'observed',
@@ -125,6 +202,8 @@ async function main() {
     activeVersionId: versionId,
     activeTrafficPercentage: 100,
     activeSourceSha: owner.runtime.sourceSha,
+    deploymentIdentity: deploymentJoin.identity,
+    deploymentIdentityDigest: deploymentJoin.digest,
     exportedClass: options.class_name,
     durableObjectBinding: doBinding[0],
     namespace: { id: namespaceMatches[0].id, name: namespaceMatches[0].name, class: namespaceMatches[0].class, script: namespaceMatches[0].script, useSqlite: namespaceMatches[0].use_sqlite },
@@ -140,8 +219,11 @@ async function main() {
   })}\n`);
 }
 
-try { await main(); }
-catch (error) {
-  process.stderr.write(`${JSON.stringify({ error: error?.code ?? 'cloudflare_readback_failed', message: error?.message ?? 'Q5 Cloudflare readback failed', details: error?.details ?? {} })}\n`);
-  process.exitCode = 1;
+const direct = process.argv[1] !== undefined && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (direct) {
+  try { await main(); }
+  catch (error) {
+    process.stderr.write(`${JSON.stringify({ error: error?.code ?? 'cloudflare_readback_failed', message: error?.message ?? 'Q5 Cloudflare readback failed', details: error?.details ?? {} })}\n`);
+    process.exitCode = 1;
+  }
 }

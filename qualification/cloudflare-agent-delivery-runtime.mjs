@@ -1,5 +1,6 @@
 import {
   ContractError,
+  assertDigest,
   assertIdentifier,
   assertRecordShape,
   assertSafeInteger,
@@ -25,12 +26,20 @@ import {
   createRuntimeAgentRouteBinding,
   readAgentDeliveryRuntimeConfig,
 } from '../src/cloudflare-agent-delivery-runtime.mjs';
+import {
+  QUALIFICATION_RPC_PROFILE,
+  READ_ONLY_QUALIFICATION_OPERATIONS,
+  assertExpectedDeploymentIdentity,
+  createQualificationDeploymentIdentity,
+  qualificationDeploymentIdentityDigest,
+  qualificationRouteVerifierDigest,
+} from './installable-agent-qualification-r3.mjs';
 
-export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v1';
+export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v2';
 export const D0020_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
 export const D0020_QUALIFICATION_MODE = 'enabled';
 
-const QUALIFICATION_RPC_SCHEMA_VERSION = 1;
+const QUALIFICATION_RPC_SCHEMA_VERSION = 2;
 const MIN_TOKEN_BYTES = 32;
 const MAX_TOKEN_BYTES = 512;
 const textEncoder = new TextEncoder();
@@ -265,27 +274,34 @@ function rpcShape(input) {
   };
   const shape = shapes[input.operation];
   if (!shape) throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is unsupported');
+  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) ? [] : ['expectedDeploymentIdentityDigest'];
   assertRecordShape(
     input,
-    ['operation', 'agentId', 'routeGeneration', ...shape[0]],
+    ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]],
     shape[1],
     `D0020 qualification ${input.operation}`,
   );
+  if (input.profile !== QUALIFICATION_RPC_PROFILE) {
+    throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-3 RPC profile');
+  }
   assertIdentifier(input.agentId, 'agentId');
   assertSafeInteger(input.routeGeneration, 'routeGeneration', { min: 1 });
+  if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)) {
+    assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
+  }
   return input.operation;
 }
 
 function unwrapQualificationRpc(response) {
-  assertRecordShape(response, ['schemaVersion', 'ok'], ['result', 'error'], 'D0020 qualification RPC response');
-  if (response.schemaVersion !== QUALIFICATION_RPC_SCHEMA_VERSION || typeof response.ok !== 'boolean') {
+  assertRecordShape(response, ['profile', 'schemaVersion', 'ok'], ['result', 'error'], 'D0020 qualification RPC response');
+  if (response.profile !== QUALIFICATION_RPC_PROFILE || response.schemaVersion !== QUALIFICATION_RPC_SCHEMA_VERSION || typeof response.ok !== 'boolean') {
     throw new ContractError('invalid_qualification_provider', 'D0020 qualification RPC response header is invalid');
   }
   if (response.ok) {
-    assertRecordShape(response, ['schemaVersion', 'ok', 'result'], [], 'D0020 qualification RPC success');
+    assertRecordShape(response, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0020 qualification RPC success');
     return response.result;
   }
-  assertRecordShape(response, ['schemaVersion', 'ok', 'error'], [], 'D0020 qualification RPC failure');
+  assertRecordShape(response, ['profile', 'schemaVersion', 'ok', 'error'], [], 'D0020 qualification RPC failure');
   assertRecordShape(response.error, ['code'], [], 'D0020 qualification RPC error');
   throw new ContractError(response.error.code, 'D0020 qualification authority rejected the operation');
 }
@@ -355,14 +371,51 @@ export class D0020QualificationAgentDeliveryDOHost {
       throw new ContractError('invalid_qualification_config', 'D0020 qualification source SHA binding is invalid');
     }
     const versionId = env?.TDEV_WORKER_VERSION?.id;
-    if (versionId !== undefined && (typeof versionId !== 'string' || versionId.length === 0 || versionId.length > 256)) {
-      throw new ContractError('invalid_qualification_config', 'D0020 qualification Worker version identity is invalid');
+    if (typeof versionId !== 'string' || versionId.length === 0 || versionId.length > 256 || versionId.includes('\0')) {
+      throw new ContractError('invalid_qualification_config', 'D0039 qualification requires the immutable Worker version identity');
     }
-    if (typeof this.host.durableObjectId !== 'string' || this.host.durableObjectId.length === 0) {
+    if (typeof this.host.durableObjectId !== 'string' || this.host.durableObjectId.length === 0 || this.host.durableObjectId.includes('\0')) {
       throw new ContractError('invalid_qualification_provider', 'D0020 Agent delivery host has no durable object identity');
     }
+    const requiredText = (name, max = 2048) => {
+      const value = env?.[name];
+      if (typeof value !== 'string' || value.length === 0 || value.length > max || value.includes('\0')) {
+        throw new ContractError('invalid_qualification_config', `D0039 qualification binding ${name} is invalid`);
+      }
+      return value;
+    };
+    const artifactDigest = requiredText('TDEV_D0039_ARTIFACT_DIGEST', 80);
+    const artifactManifestDigest = requiredText('TDEV_D0039_ARTIFACT_MANIFEST_DIGEST', 80);
+    assertDigest(artifactDigest, 'TDEV_D0039_ARTIFACT_DIGEST');
+    assertDigest(artifactManifestDigest, 'TDEV_D0039_ARTIFACT_MANIFEST_DIGEST');
+    const qualificationEndpointOrigin = requiredText('TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN');
+    let endpoint;
+    try { endpoint = new URL(qualificationEndpointOrigin); }
+    catch (cause) { throw new ContractError('invalid_qualification_config', 'D0039 qualification endpoint origin is invalid', {}, { cause }); }
+    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash || endpoint.origin !== qualificationEndpointOrigin) {
+      throw new ContractError('invalid_qualification_config', 'D0039 qualification endpoint must be a credential-free HTTPS origin');
+    }
+    if (env?.TDEV_D0039_STATE_CHANGING_TRAFFIC_PERCENTAGE !== '100') {
+      throw new ContractError('invalid_qualification_config', 'D0039 qualification state-changing traffic binding must be exactly 100 percent');
+    }
+    const serviceName = requiredText('TDEV_D0039_SERVICE_NAME');
+    if (serviceName !== this.host.config.placement.workerScript) {
+      throw new ContractError('invalid_qualification_config', 'D0039 qualification service binding must equal the deployed Worker script');
+    }
     this.sourceSha = sourceSha;
-    this.workerVersionId = versionId ?? null;
+    this.workerVersionId = versionId;
+    this.deploymentBinding = Object.freeze({
+      artifactDigest,
+      artifactManifestDigest,
+      accountId: requiredText('TDEV_D0039_ACCOUNT_ID'),
+      serviceName,
+      deploymentEpoch: requiredText('TDEV_D0039_DEPLOYMENT_EPOCH'),
+      stateChangingTrafficPercentage: 100,
+      qualificationEndpointOrigin,
+      routeId: requiredText('TDEV_D0039_ROUTE_ID'),
+      routePattern: requiredText('TDEV_D0039_ROUTE_PATTERN'),
+      namespaceId: requiredText('TDEV_D0039_NAMESPACE_ID'),
+    });
   }
 
   #binding(agentId, routeGeneration) {
@@ -373,16 +426,63 @@ export class D0020QualificationAgentDeliveryDOHost {
     });
   }
 
-  #runtimeFacts(routeBinding) {
+  #readRouteCurrent(routeBinding) {
+    const routeRead = this.host.readInstallableAgent({ routeBinding });
+    if (!routeRead || typeof routeRead !== 'object' || Array.isArray(routeRead) ||
+        !routeRead.installableAgent || typeof routeRead.installableAgent !== 'object' || Array.isArray(routeRead.installableAgent)) {
+      throw new ContractError('invalid_qualification_provider', 'D0039 route-current readback is unavailable');
+    }
+    assertDigest(routeRead.currentTupleDigest, 'currentTupleDigest');
+    const security = routeRead.installableAgent;
+    for (const name of ['managementKeyId', 'releaseRootKeyId', 'currentCredentialKeyId']) {
+      const value = security[name] ?? null;
+      if (value !== null && (typeof value !== 'string' || value.length === 0 || value.length > 512 || value.includes('\0'))) {
+        throw new ContractError('invalid_qualification_provider', `D0039 route-current ${name} is invalid`);
+      }
+    }
     return Object.freeze({
+      routeRead,
+      routeCurrentTupleDigest: routeRead.currentTupleDigest,
+      routeVerifierDigest: qualificationRouteVerifierDigest({
+        currentTupleDigest: routeRead.currentTupleDigest,
+        managementKeyId: security.managementKeyId ?? null,
+        releaseRootKeyId: security.releaseRootKeyId ?? null,
+        currentCredentialKeyId: security.currentCredentialKeyId ?? null,
+      }),
+    });
+  }
+
+  #runtimeFacts(routeBinding, routeCurrent = this.#readRouteCurrent(routeBinding)) {
+    return Object.freeze({
+      sourceSha: this.sourceSha,
+      artifactDigest: this.deploymentBinding.artifactDigest,
+      artifactManifestDigest: this.deploymentBinding.artifactManifestDigest,
+      workerVersionId: this.workerVersionId,
+      accountId: this.deploymentBinding.accountId,
+      serviceName: this.deploymentBinding.serviceName,
+      deployment: this.host.config.placement.deployment,
+      environment: this.host.config.placement.environment,
+      deploymentEpoch: this.deploymentBinding.deploymentEpoch,
+      stateChangingTrafficPercentage: this.deploymentBinding.stateChangingTrafficPercentage,
+      qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
+      routeId: this.deploymentBinding.routeId,
+      routePattern: this.deploymentBinding.routePattern,
       workerScript: this.host.config.placement.workerScript,
+      namespaceId: this.deploymentBinding.namespaceId,
       namespace: this.host.config.placement.namespace,
+      className: this.host.config.placement.className,
       jurisdiction: this.host.config.placement.jurisdiction,
       durableObjectId: this.host.durableObjectId,
+      routeCurrentTupleDigest: routeCurrent.routeCurrentTupleDigest,
+      routeVerifierDigest: routeCurrent.routeVerifierDigest,
       routeBinding,
-      sourceSha: this.sourceSha,
-      workerVersionId: this.workerVersionId,
     });
+  }
+
+  #deploymentIdentity(routeBinding, routeCurrent = this.#readRouteCurrent(routeBinding)) {
+    const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
+    const identity = createQualificationDeploymentIdentity({ runtimeFacts: runtime, routeBinding });
+    return Object.freeze({ runtime, identity, digest: qualificationDeploymentIdentityDigest(identity), routeCurrent });
   }
 
   async fetch(request) {
@@ -421,17 +521,32 @@ export class D0020QualificationAgentDeliveryDOHost {
     try {
       const operation = rpcShape(input);
       const routeBinding = this.#binding(input.agentId, input.routeGeneration);
+      let admitted = null;
+      if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation)) {
+        const routeCurrent = this.#readRouteCurrent(routeBinding);
+        const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
+        admitted = assertExpectedDeploymentIdentity({
+          expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest,
+          runtimeFacts: runtime,
+          routeBinding,
+        });
+      }
       let result;
       if (operation === 'runtime_probe') {
         this.host.readRoute({ routeBinding });
-        result = this.#runtimeFacts(routeBinding);
+        const observed = this.#deploymentIdentity(routeBinding);
+        result = { ...observed.runtime, deploymentIdentity: observed.identity, deploymentIdentityDigest: observed.digest };
       } else if (operation === 'd0039_workers_crypto_probe') {
         this.host.readRoute({ routeBinding });
-        result = { ...await runInstallableAgentWorkersCryptoProbe(input.vectors), runtime: this.#runtimeFacts(routeBinding) };
+        const observed = this.#deploymentIdentity(routeBinding);
+        result = { ...await runInstallableAgentWorkersCryptoProbe(input.vectors), runtime: observed.runtime, deploymentIdentity: observed.identity, deploymentIdentityDigest: observed.digest };
       } else if (operation === 'd0039_security_readback') {
-        const security = this.host.readInstallableAgent({ routeBinding }).installableAgent;
+        const observed = this.#deploymentIdentity(routeBinding);
+        const security = observed.routeCurrent.routeRead.installableAgent;
         result = {
-          runtime: this.#runtimeFacts(routeBinding),
+          runtime: observed.runtime,
+          deploymentIdentity: observed.identity,
+          deploymentIdentityDigest: observed.digest,
           state: security.state,
           managementKeyId: security.managementKeyId,
           releaseRootKeyId: security.releaseRootKeyId,
@@ -524,10 +639,11 @@ export class D0020QualificationAgentDeliveryDOHost {
         this.ctx.abort('tdev_d0020_qualification_abort_instance');
         throw new ContractError('qualification_abort_returned', 'D0020 Durable Object abort unexpectedly returned');
       }
-      return publicJsonClone({ schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result });
+      return publicJsonClone({ profile: QUALIFICATION_RPC_PROFILE, schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result });
     } catch (error) {
       if (!(error instanceof ContractError)) throw error;
       return {
+        profile: QUALIFICATION_RPC_PROFILE,
         schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION,
         ok: false,
         error: { code: error.code },

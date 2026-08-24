@@ -16,6 +16,11 @@ import {
   runInstallableAgentQualificationGate,
   validateInstallableAgentQualificationObservation,
 } from '../qualification/installable-agent-deployment-realization.mjs';
+import {
+  QUALIFICATION_DEPLOYMENT_PROFILE,
+  qualificationDeploymentIdentityDigest,
+  qualificationGateRequiredPrincipals,
+} from '../qualification/installable-agent-qualification-r3.mjs';
 
 function qualificationVectors() {
   const rsa = generateKeyPairSync('rsa', { modulusLength: 3072, publicExponent: 0x10001 });
@@ -64,42 +69,91 @@ test('Workers crypto probe verifies RSA-3072 and Ed25519 positive, mutation, and
   assert.match(result.keyIds.release, /^sha256:[0-9a-f]{64}$/);
 });
 
-function completeObservation(gate) {
-  const specification = INSTALLABLE_AGENT_QUALIFICATION_GATES[gate];
+const evidenceDigest = (character) => `sha256:${character.repeat(64)}`;
+
+function exactTarget() {
   return {
-    schemaVersion: 1,
+    profile: QUALIFICATION_DEPLOYMENT_PROFILE,
+    sourceSha: 'a'.repeat(40),
+    artifactDigest: evidenceDigest('1'),
+    artifactManifestDigest: evidenceDigest('2'),
+    workerVersionId: 'worker-v1',
+    accountId: 'account-one',
+    serviceName: 'qualification-service',
+    deployment: 'qualification',
+    environment: 'nonproduction',
+    deploymentEpoch: 'epoch-one',
+    stateChangingTrafficPercentage: 100,
+    qualificationEndpointOrigin: 'https://qualification.example',
+    routeId: 'route-one',
+    routePattern: 'qualification.example/*',
+    workerScript: 'qualification-service',
+    namespaceId: 'namespace-one',
+    namespace: 'qualification_AgentDeliveryRuntimeDO',
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    agentId: 'qualification-agent',
+    routeGeneration: 1,
+    durableObjectId: 'qualification-do',
+    routeCurrentTupleDigest: evidenceDigest('3'),
+    routeVerifierDigest: evidenceDigest('4'),
+  };
+}
+
+function completeObservation(gate) {
+  const target = exactTarget();
+  const targetDigest = qualificationDeploymentIdentityDigest(target);
+  return {
+    schemaVersion: 2,
     profile: INSTALLABLE_AGENT_QUALIFICATION_OBSERVATION_PROFILE,
+    qualificationRunId: `run-${gate}`,
+    runGeneration: 1,
     gate,
-    proofLayer: specification.proofLayer,
-    target: { sourceSha: 'a'.repeat(40), routeObjectId: 'qualification-route-object' },
-    checks: Object.fromEntries(specification.checks.map((name) => [name, true])),
-    ...(specification.events === undefined ? {} : { events: specification.events }),
+    target,
+    targetDigest,
+    deploymentIdentityDigest: targetDigest,
+    principalObservations: qualificationGateRequiredPrincipals(gate).map((principal, index) => ({
+      principal,
+      identityDigest: evidenceDigest(String((index + 5) % 10)),
+      freshnessDigest: evidenceDigest(String((index + 6) % 10)),
+      evidenceDigest: evidenceDigest(String((index + 7) % 10)),
+    })),
+    readSet: ['deployment-identity', 'direct-principal-observations'],
+    writeSet: [],
+    invalidationSet: [],
     secretValues: 'excluded',
   };
 }
 
-test('Q2-Q10 driver contract rejects incomplete checks, wrong lifecycle order, and secret-bearing target fields', async () => {
+test('Q2-Q10 driver contract requires strict evidence-v2 target identity and direct independent principals', async () => {
   const q10 = completeObservation('q10_deployed_composition');
   assert.equal(canonicalJson(await runInstallableAgentQualificationGate({ gate: q10.gate, driver: async () => q10 })), canonicalJson(q10));
 
-  const incomplete = completeObservation('q8_release_lifecycle');
-  incomplete.checks.signerRevocation = false;
+  const missingPrincipal = completeObservation('q8_release_lifecycle');
+  missingPrincipal.principalObservations = missingPrincipal.principalObservations.slice(1);
   assert.throws(
-    () => validateInstallableAgentQualificationObservation(incomplete.gate, incomplete),
-    (error) => error?.code === 'qualification_gate_incomplete' && error.details.failed.includes('signerRevocation'),
+    () => validateInstallableAgentQualificationObservation(missingPrincipal.gate, missingPrincipal),
+    (error) => error?.code === 'qualification_evidence_authenticator_missing',
   );
 
-  const reordered = completeObservation('q6_live_migration');
-  [reordered.events[1], reordered.events[2]] = [reordered.events[2], reordered.events[1]];
+  const wrongTarget = completeObservation('q6_live_migration');
+  wrongTarget.target = { ...wrongTarget.target, routeGeneration: 2 };
   assert.throws(
-    () => validateInstallableAgentQualificationObservation(reordered.gate, reordered),
-    (error) => error?.code === 'qualification_event_order_invalid',
+    () => validateInstallableAgentQualificationObservation(wrongTarget.gate, wrongTarget),
+    (error) => error?.code === 'qualification_evidence_target_mismatch',
   );
 
-  const leaked = completeObservation('q5_live_provider_iam');
-  leaked.target.apiToken = 'must-never-appear';
+  const legacyAllTrue = {
+    schemaVersion: 1,
+    profile: 'tdev.installable-agent-qualification-observation.v1',
+    gate: 'q5_live_provider_iam',
+    proofLayer: INSTALLABLE_AGENT_QUALIFICATION_GATES.q5_live_provider_iam.proofLayer,
+    target: { sourceSha: 'a'.repeat(40) },
+    checks: Object.fromEntries(INSTALLABLE_AGENT_QUALIFICATION_GATES.q5_live_provider_iam.checks.map((name) => [name, true])),
+    secretValues: 'excluded',
+  };
   assert.throws(
-    () => validateInstallableAgentQualificationObservation(leaked.gate, leaked),
-    (error) => error?.code === 'qualification_observation_contains_secret_field',
+    () => validateInstallableAgentQualificationObservation(legacyAllTrue.gate, legacyAllTrue),
+    (error) => error?.code === 'missing_keys' || error?.code === 'unexpected_keys' || error?.code === 'invalid_qualification_evidence',
   );
 });
