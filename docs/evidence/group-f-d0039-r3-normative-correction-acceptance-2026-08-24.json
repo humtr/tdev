@@ -1,0 +1,142 @@
+{
+  "schema": "tdev.design-acceptance-evidence.v1",
+  "design": "D0039",
+  "revision": 3,
+  "status": "accepted",
+  "date": "2026-08-24",
+  "repository": "humtr/tdev",
+  "acceptanceBase": {
+    "ref": "development",
+    "sha": "1e132a24c213463564990180567dac4bd19fb6eb",
+    "authorityMethod": "provider-first AGENTS.md / WORKBOARD.md persistent-v1 election; development was the unique published self-declared persistent-v1 candidate and its provider head was reread before owner mutation"
+  },
+  "predecessor": {
+    "revision": 2,
+    "statusAtAcceptanceBase": "implementing",
+    "acceptanceEvidence": "docs/evidence/group-f-d0039-r2-management-request-correction-acceptance-2026-08-23.json",
+    "sourceEvidence": "docs/evidence/group-f-d0039-r2-d0027-deployment-realization-source-verification-2026-08-24.json",
+    "q3ContinuationEvidence": "docs/evidence/group-f-d0039-r2-q3-prequalification-and-continuation-split-2026-08-24.json",
+    "preservationRule": "Revision-2 acceptance/source/Q1/Q3-continuation evidence remains immutable historical evidence for its exact claimed scope and is not promoted into Revision-3 proof."
+  },
+  "review": {
+    "coordinationRepository": "humtr/codex-skills",
+    "campaign": "tdev-20260824-d0039-normative-reopening-owner-correction-01",
+    "convergenceRef": "acr/tdev-20260824-d0039-normative-reopening-owner-correction-01/convergence",
+    "applicationReadiness": "READY",
+    "applicationMode": "owner-native semantic application; no wholesale Pro or Codex candidate merge"
+  },
+  "candidateDisposition": {
+    "proProposal": {
+      "ref": "pro/d0039-normative-correction-20260824",
+      "sha": "a9d7ee871a80f1c963e948e7487e9265d205b4b0",
+      "authority": "none",
+      "disposition": "review evidence only; original draft not copied wholesale"
+    },
+    "codeheavy": {
+      "ref": "codex/d0039-r2-codeheavy-20260824",
+      "sha": "75cfccd7f9a257ffe242fbbc7848965a67641e01",
+      "topology": "ancestor of acceptance base",
+      "disposition": "already integrated historically; do not replay"
+    },
+    "qualificationFollowup": {
+      "ref": "codex/d0039-r2-qualification-followup-20260824",
+      "sha": "37aa891804b9239cbff7866e6c4da34d8a09a008",
+      "authority": "none",
+      "disposition": "non-authoritative descendant; semantic-hunk review only, never wholesale merge"
+    }
+  },
+  "acceptedDecision": {
+    "designBoundary": "same D0039 owner family; D0027@r1 and D0038@r1 remain closed and unaffected",
+    "bootstrapTrust": "Q4 terminal trust uses independently delivered exact tdev.agent-bootstrap-trust-capsule.v2 digest plus authenticated executed runtime/verifier observation; candidate/self-issued digest is insufficient",
+    "evidenceAuthentication": "tdev.installable-agent-qualification-evidence.v2 requires gate-specific independent observers and exact run/identity epochs; an observation producer cannot be its sole authenticator",
+    "deploymentAdmission": "live qualification freezes and joins exact Q1-qualified source S, artifact A, immutable provider version V and active route/runtime identity R before Q2 or state-changing live gates",
+    "runtimeMutationFence": "tdev.installable-agent-qualification-rpc.v2 binds expectedDeploymentIdentityDigest and rejects mismatch before every product mutation",
+    "qualificationSemanticOwner": "docs/QUALIFICATION.md owns tdev.installable-agent-qualification-run.v1 and tdev.installable-agent-qualification-claim.v1 canonical semantics, transitions, CAS, claims, restart/reconciliation, cleanup, retention and rollback behavior",
+    "qualificationBackingOwner": "docs/DEPLOYMENT.md owns concrete durable backing and S/A/V/R deployment binding only",
+    "qualificationSecurityOwner": "docs/SECURITY.md owns trust, fencing and non-authority constraints",
+    "nonProductAuthority": "qualification coordination cannot authenticate, authorize, admit, elect, repair or restore product-current state",
+    "singleController": "exactly one qualification mutation controller owns a live mutation lane",
+    "noLiveTakeover": "timeout, lease expiry, disconnect, process disappearance, failed CAS, fresh request identity or higher run/claim generation alone never authorizes successor effects, cleanup, claim release or resource reuse",
+    "successorFence": "successor external/product/provider/device effects require durable positive predecessor exclusion/quiescence for the exact prior run and conflicting resource scope",
+    "q3Scope": "helpers that mutate AndroidKeyStore aliases, signing, runit services or package/device state are reversible mutating prequalification only and require exclusive claims; they cannot by themselves close Q3",
+    "q1SourceIdentity": "Revision 3 uses strict Model B: exact source/normative commit S runs full Q1; descendant E is reusable only when a checker already present in S proves protected bytes identical and every changed region is inside S-defined machine delimiters",
+    "class": "the first source/tool/runtime realization of the accepted Revision-3 trust, identity, persistence, deployment and verification contract is Class 2",
+    "newDesignStopLine": "stop and return through SDD.md if realization requires independent durable/public effect-admission authority, a second route-current registry, materially different owner model or independently decidable migration/cutover"
+  },
+  "ownerSynchronization": {
+    "design": {
+      "path": "docs/design/0039-d0027-deployment-realization.md",
+      "sha256": "f82a01cae1c0a28597f24cf7399fba4fac3fe4363c7cb6fb9c1c19ae71611212"
+    },
+    "security": {
+      "path": "docs/SECURITY.md",
+      "sha256": "d4c48cac4b471e5eef88dd49b2a2cbc501df71d57be99c7deaada0952849f6ff"
+    },
+    "deployment": {
+      "path": "docs/DEPLOYMENT.md",
+      "sha256": "2dd5d9b69e53304a46dccc89de1aa41b1e30bf3bd9566998e999cfe95d4972a5"
+    },
+    "qualification": {
+      "path": "docs/QUALIFICATION.md",
+      "sha256": "6f0ea0b1070033832fc5e47406b56affb39be960830ae087e00239545afac273"
+    },
+    "program": {
+      "path": "docs/development/PROGRAM.md",
+      "sha256": "e44795adf52d03096a518572606a237c2fcb4ef885c4e3904f4bf5a0c430ff49",
+      "maintainedDesignForeignKey": "D0039@r3"
+    },
+    "workboard": {
+      "path": "WORKBOARD.md",
+      "sha256": "3fec48fc9364c4cd747b0ceceb0236764e273ccdf1ce174f55f484b7cd358f97",
+      "runnable": "D0039@r3",
+      "selected": "D0039@r3"
+    },
+    "designIndex": {
+      "path": "docs/design/README.md",
+      "sha256": "aa9ec83fa6b1594586586e3bb7df6cedea885ff6b5dd3165f3be99660b051aa2",
+      "projection": "D0039 r3 accepted"
+    }
+  },
+  "acceptanceValidation": {
+    "status": "passed",
+    "registryRevision": 9,
+    "profile": "portable",
+    "command": "npm run check",
+    "jobs": [
+      {
+        "jobId": "job_eeh_88805f0596",
+        "status": "failed",
+        "reason": "pre-acceptance owner synchronization incomplete; documentation authority rejected QUALIFICATION commit-ledger contamination and stale PROGRAM D0039 revision before product tests could complete"
+      },
+      {
+        "jobId": "job_efk_ea86c474f6",
+        "status": "passed",
+        "exitCode": 0,
+        "testsPassed": 505,
+        "testsFailed": 0,
+        "demo": "passed",
+        "durableDemo": "passed"
+      }
+    ]
+  },
+  "unexecutedLayers": [
+    "Revision-3 Class-2 source/tool/runtime realization",
+    "Revision-3 Q1 executable source proof at exact S",
+    "Revision-3 exact artifact A / immutable provider version V / active route identity R admission",
+    "Q2 provider Workers crypto/runtime proof",
+    "Q3 complete physical Android/Termux proof",
+    "Q4 fresh authenticated executed bootstrap proof",
+    "Q5 live provider/IAM/deployment-admission proof",
+    "Q6 live migration proof",
+    "Q7 management loss/compromise proof",
+    "Q8 release lifecycle proof",
+    "Q9 provider loss/retention proof",
+    "Q10 deployed composition proof"
+  ],
+  "publicationAtEvidenceCreation": {
+    "providerRef": "development",
+    "providerSha": "1e132a24c213463564990180567dac4bd19fb6eb",
+    "revision3Published": false
+  },
+  "secretsRecorded": false
+}

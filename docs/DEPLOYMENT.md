@@ -287,6 +287,20 @@ A target-claim adapter must:
 - define liveness/expiry without weakening fencing;
 - avoid storing duplicate Case lifecycle state.
 
+### D0039 Revision-3 qualification deployment contract
+
+Accepted D0039@r3 separates repository publication from deployed qualification identity. Live qualification binds `S` (exact Q1-qualified source), `A` (exact build/release artifact and manifest from S), `V` (one immutable provider Worker version binding S/A), and `R` (the active provider route/runtime identity: account/service, deployment/config epoch, 100-percent state-changing traffic ownership, route, namespace/class/jurisdiction, Durable Object and route-current verifier bindings). Admission is `S -> A -> V -> deployment/cutover -> 100-percent writer -> provider readback -> route-owner readback -> exact S/A/V/R join`. Git publication, a source SHA, artifact digest, Worker version, route or route-owner self-report proves only its own layer.
+
+Before any qualification credential/token is transmitted, the endpoint origin must be derived from and match the admitted provider route. Provider active-version identity, route-owner runtime version and the deployment/config epoch must agree in one stable observation; mixed/canary state-changing writers and cross-epoch joins fail closed. The deployment-admission portion of Q5 is therefore a prerequisite for Q2 and every state-changing live qualification gate.
+
+The deployed Revision-3 mutation surface uses `tdev.installable-agent-qualification-rpc.v2` and carries the same immutable `expectedDeploymentIdentityDigest` over admitted S/A/V/R as the deployed runtime binding. Authentication and strict parsing occur first; the exact server-observable deployment identity is then checked before every product mutation. Old RPC/bootstrap profiles cannot silently downgrade into Revision-3 terminal proof.
+
+Concrete durable storage/binding for `tdev.installable-agent-qualification-run.v1` and `tdev.installable-agent-qualification-claim.v1` is deployment-owned realization of the semantic protocol in `QUALIFICATION.md`, not a new product owner. The selected backing must durably preserve PREPARED-before-dispatch, strict predecessor-record CAS, monotonically non-reused run/claim generations, deterministic all-or-none shared-read/exclusive-mutation claims, restart enumeration, reconciliation obligations, cleanup state, retained tombstones/generation high-water and fail-closed corruption/loss behavior. Restart reconciliation precedes progress or resource release.
+
+Deployment admits exactly one qualification mutation controller per live mutation lane and provides no automatic live-takeover mechanism. Timeout/expiry/disconnect/process disappearance/CAS failure/new generation alone cannot transfer effect rights or free resources. Positive predecessor exclusion/quiescence recorded by the QUALIFICATION-owned protocol is required before successor effects or reuse. The first durable Revision-3 run/claim v1 material is a tooling rollback barrier; tooling that does not understand that fence cannot resume the campaign or recreate its coordination state as if fresh.
+
+The bootstrap executor/runtime plus the profile-specific primitive that proves verified bytes are the executed bytes are deployment prerequisites for Q4. If concrete realization of any of these requirements would introduce an independent public/durable effect-admission authority, a second product-current registry, a materially different owner model or an independently decidable migration/cutover, stop and return through `SDD.md` rather than adding it as deployment detail.
+
 ## 10. Publication lane
 
 D0011's local Git adapter implements the publication separation after semantic Promotion:

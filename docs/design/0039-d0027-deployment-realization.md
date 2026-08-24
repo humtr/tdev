@@ -1,20 +1,20 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `implementing`
-- Revision: 2
+- Status: `accepted`
+- Revision: 3
 - Class: 2
-- Decision date: 2026-08-23
-- Acceptance base: `development@64900718b36387fe8577069bd5309c863363cfae`
-- Trigger: user-directed application of ACR campaign `tdev-20260823-d0039-management-request-correction-01`, convergence `acr/tdev-20260823-d0039-management-request-correction-01/convergence`
-- Predecessor revision: D0039@r1, accepted from `development@9b78b5487591730754d9708e205d41367f510afc`
-- Predecessor acceptance evidence: `docs/evidence/group-f-d0039-r1-d0027-deployment-realization-acceptance-2026-08-23.json`
-- Reopen evidence: `docs/evidence/group-f-d0039-r1-management-request-lifecycle-falsifier-2026-08-23.json`
-- Acceptance evidence: `docs/evidence/group-f-d0039-r2-management-request-correction-acceptance-2026-08-23.json`
-- Source verification evidence: `docs/evidence/group-f-d0039-r2-d0027-deployment-realization-source-verification-2026-08-24.json`
-- Q3 prequalification/continuation evidence: `docs/evidence/group-f-d0039-r2-q3-prequalification-and-continuation-split-2026-08-24.json`
-- Scope: concrete private F-side realization of D0027 credential/verifier, clone-safe local key custody, package/release/bootstrap trust, Cloudflare binding/IAM, D0020-to-D0027 genesis migration, forward rollback/recovery/retention and proof-layer-separated qualification
-- Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, D0027 substate in the existing per-route `AgentDeliveryAuthority`, Cloudflare Agent delivery adapter, installable Agent package/runtime and focused/permanent tests
-- Explicit non-goals: no D0027 owner-model revision; no MCP/D0023/D0024 identity dependency; no D0025 canonical Git-publication dependency; no D0028 runbook semantics; no second route/current registry; no broad D0026 completion claim; no authority-restoring PITR or same-name resource recreation; no secret/private-key bytes in repository/evidence/model-visible state
+- Decision date: 2026-08-24
+- Acceptance base: `development@1e132a24c213463564990180567dac4bd19fb6eb`
+- Trigger: user-directed application of ACR campaign `tdev-20260824-d0039-normative-reopening-owner-correction-01`, convergence `acr/tdev-20260824-d0039-normative-reopening-owner-correction-01/convergence`
+- Predecessor revision: D0039@r2, maintained as `implementing` at the acceptance base
+- Predecessor acceptance evidence: `docs/evidence/group-f-d0039-r2-management-request-correction-acceptance-2026-08-23.json`
+- Predecessor source evidence: `docs/evidence/group-f-d0039-r2-d0027-deployment-realization-source-verification-2026-08-24.json`
+- Predecessor Q3 continuation evidence: `docs/evidence/group-f-d0039-r2-q3-prequalification-and-continuation-split-2026-08-24.json`
+- Acceptance evidence: `docs/evidence/group-f-d0039-r3-normative-correction-acceptance-2026-08-24.json`
+- Scope: same D0039 deployment-realization owner family, corrected for authenticated executed bootstrap closure, authenticated gate evidence, exact source/artifact/provider/route admission, mutation-bound runtime identity, crash-persistent qualification reconciliation and strict qualification-controller fencing
+- Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, D0039 qualification RPC/profile and proof tooling, and the existing D0027 substate in the per-route `AgentDeliveryAuthority`
+- Preserved owners: D0027@r1 remains the installable authenticated local-Agent owner; D0038@r1 remains the executor-capacity owner; `AgentDeliveryAuthority` remains the sole route-current product owner
+- Explicit non-goals: no new product credential/trust/current-state owner; no second route-current registry; no qualification authority that can authorize or elect product state; no wholesale candidate merge; no Q2-Q10 proof promotion; no secret/private-key bytes in repository/evidence/model-visible state
 
 ## 1. One-line definition
 
@@ -211,3 +211,71 @@ The same Q3 prequalification exposed a bounded production-wiring defect after th
 The historical Q1 evidence remains a valid source/canonical observation for the vectors it actually executed, but it is not promoted into proof that the concrete D0039 control entrypoint was fully composed. D0039 remains `implementing`. Repair must wire the already-selected Termux AndroidKeyStore adapter, independent installed-package signing-certificate lineage readback and deployment-owned challenge transport into the real package/control path, add permanent focused coverage, rerun the affected source gate, and only then continue full Q3/Q2-Q10 proof.
 
 For the next implementation slice, code-heavy repair and permanent qualification machinery are isolated to candidate branch `codex/d0039-r2-codeheavy-20260824`, created from the published commit carrying this handoff evidence. That branch is a candidate only and cannot elect repository authority. Until it is integrated or explicitly abandoned, a resumed `@acr 적용` controller must not independently mutate those delegated code paths; it may fresh-bind authority, inspect/review the candidate, gather non-conflicting read-only/live evidence, then own canonical integration/publication and the real device/provider/migration/deployed proof layers after the source candidate is accepted.
+
+## 20. Revision 3 normative correction and acceptance boundary
+
+Revision 3 preserves Sections 1–19 as predecessor design and historical proof for the scopes they actually established. Where this section conflicts with earlier D0039 text, this section controls Revision 3. D0027@r1 and D0038@r1 are not reopened. The existing per-route `AgentDeliveryAuthority` remains the sole product-current owner; qualification coordination can fence a qualification campaign but cannot authenticate, authorize, admit, elect, repair or restore product state.
+
+### 20.1 Authenticated executed bootstrap closure
+
+Fresh-bootstrap Q4 uses one exact `tdev.agent-bootstrap-trust-capsule.v2` digest as the sole product bootstrap trust anchor. The exact digest must arrive over an authenticated operator channel independent of the capsule, verifier, runtime, package/archive, repository checkout and release transport under test, and it must be established before any untrusted transport value is consulted. An unavailable authenticated channel leaves Q4 unqualified rather than falling back to a candidate/self-issued digest.
+
+The capsule binds `tdev.agent-bootstrap-execution.v1`: exact runtime profile/platform/architecture and full runtime SHA-256, exact self-contained verifier SHA-256, an exact sorted builtin-module allowlist, `networkAllowed=false`, `environmentInheritance=false`, and a private-empty working-directory profile. The declared OS kernel/filesystem/process primitives and exact bootstrap executor are environmental TCB, not product trust anchors. The executor must positively preserve `verified bytes == executed bytes`, use bounded regular non-symlink inputs, reject archive/path/device/FIFO ambiguity, prevent hash-to-exec replacement, use absolute runtime identity with no inherited `PATH`/cwd/loader hooks, admit only an exact environment allowlist, and forbid network, download, compiler/package resolution and ambient repository imports. Any runtime/verifier/module/execution-policy change requires a new capsule identity and independently authenticated digest. Capsule v1 cannot terminally satisfy Revision-3 Q4.
+
+### 20.2 Authenticated evidence profiles
+
+Terminal evidence uses `tdev.installable-agent-qualification-evidence.v2`; a driver assertion, all-true check object, schema shape or self-issued file cannot close a gate. Relevant observations bind a fresh `qualificationRunId`/run generation and target digest; exact source `S`, artifact `A`, immutable provider version `V` and active route/runtime identity `R`; route/namespace/DO and generation; package/release/install/credential/trust/lifecycle generations; stable mutation identity and authoritative receipt/current tuple; device/profile and independently read source lineage where applicable; nonce or stable deployment epoch; observer/authenticator principals; and evidence read/write/invalidation sets.
+
+Minimum terminal observers are gate-specific: Q2 joins provider control-plane version readback with route-owner runtime response at the provider-bound endpoint; Q3 joins physical-device observation, independent Termux/Termux:API signing-certificate lineage and AndroidKeyStore possession proof; Q4 joins the independent operator digest channel with authenticated executor/runtime/verifier observation; Q5 joins provider control plane, route-owner runtime and cross-principal IAM observations; Q6 joins management-authenticated receipts, route-current readback and provider writer/HMAC observations; Q7 joins management signer where available, route-current receipts and provider recovery/retirement observations; Q8 joins release-root/delegated signatures, exact artifact bytes and route trust/package receipts; Q9 joins provider loss/recovery with old/new route evidence and retained floors/tombstones; Q10 joins compatible authenticated Q2–Q9 evidence with current provider/route, physical credential possession and Case/Agent delivery evidence. An observation producer cannot be its sole authenticator, and evidence replayed under another run/deployment/route/device/current epoch is stale.
+
+### 20.3 Exact source, artifact, provider and route admission
+
+Live qualification distinguishes `S` = exact source commit that passed Q1, `A` = exact build/release artifact and manifest produced from S, `V` = immutable provider Worker version binding S/A, and `R` = active provider route/runtime identity including account/service, deployment/config epoch, 100-percent state-changing traffic ownership, route, namespace/class/jurisdiction, Durable Object identity and route-current verifier bindings. Admission is strictly `S -> A -> V -> deployment/cutover -> 100-percent state-changing writer -> provider readback -> route-owner readback -> exact S/A/V/R join`. No individual SHA, artifact, Worker version, deployed bytes, route or self-report substitutes for the join.
+
+The deployment-admission portion of Q5 precedes Q2 and every state-changing live gate. The qualification endpoint origin is derived from and matched to the admitted provider route before any qualification credential/token transmission. Provider active-version identity and route-owner version identity must agree inside one stable deployment epoch; observations from different epochs cannot be spliced.
+
+### 20.4 Mutation-bound runtime identity fence and effect reconciliation
+
+State-changing qualification uses `tdev.installable-agent-qualification-rpc.v2`. Every mutation request carries `expectedDeploymentIdentityDigest`, the typed digest of `tdev.installable-agent-qualification-deployment.v1` over admitted S/A/V/R. The deployed Worker carries the same immutable identity. After request authentication and strict parsing but before every product mutation, the server reconstructs its observable runtime/route identity and compares it with the request/admitted identity. Mismatch fails as `qualification_runtime_identity_mismatch` with positively established zero product effect. A separate preflight does not authorize a later mutation; post-effect mismatch detection is too late. Mixed/canary state-changing writers, unknown deployment epoch, old RPC profile or stale client fail closed without mutation fallback.
+
+The stable mutation identity is the full tuple `(agentId, routeGeneration, managementRequestId, operation, intentDigest, originalExpectedPredecessorDigest, expectedDeploymentIdentityDigest)`. Each state-changing operation has an owner-specific reconciliation descriptor covering all durable phases, authoritative reread, receipt/floor/current/tombstone predicates, positive zero-effect predicate, safe retry/resume/stop/cleanup and receipt-compaction behavior. Reconciliation distinguishes `NOT_ADMITTED`, `ADMITTED_IN_PROGRESS`, `TERMINAL_APPLIED`, `CONFLICT_DIFFERENT_EFFECT` and `STILL_AMBIGUOUS`. `ADMITTED_IN_PROGRESS` is not terminal success; `STILL_AMBIGUOUS` blocks retry and dependent progress. Once dispatch may have occurred, timeout, connection loss, unreadable/oversized/truncated/invalid response, response-authentication failure, unproven non-2xx, parser failure or controller death is ambiguous and never authorizes a new request identity. Cleanup and rollback mutations follow the same rule.
+
+### 20.5 Persistent qualification journal, claims and no-live-takeover
+
+`docs/QUALIFICATION.md` is the canonical semantic owner of `tdev.installable-agent-qualification-run.v1` and `tdev.installable-agent-qualification-claim.v1`, including canonical encoding/validation, namespace and identities, legal state transitions, compare-and-swap preconditions, resource-key derivation, claim modes/conflicts, generation allocation, restart enumeration, reconciliation, cleanup, retention/compaction, corruption/loss behavior and rollback/migration rules. `docs/DEPLOYMENT.md` owns only the concrete durable backing and deployment binding; `docs/SECURITY.md` owns the trust, fencing and non-authority constraints.
+
+Before any external/product/provider/device mutation, the controller durably records `PREPARED` with run identity `(qualificationRunId, runGeneration)`, exact target/S/A/V/R identity, complete stable mutation identity, resource claims and expected predecessor digest/revision. Updates use strict compare-and-swap against the exact predecessor record. The forward state family is `PREPARED -> DISPATCHED -> RECONCILING -> TERMINAL_NOT_ADMITTED|TERMINAL_APPLIED|TERMINAL_CONFLICT -> CLEANUP_PENDING -> CLEAN`; in-progress or ambiguous outcomes remain nonterminal `RECONCILING`.
+
+Resource claims are deterministic and acquired all-or-none as `shared_read` or `exclusive_mutation`. Each resource key has a monotonically increasing, never-reused `claimGeneration`; stale generations cannot mutate or release later claims. There is exactly one qualification mutation controller for a live mutation lane. **There is no automatic live takeover.** Lease timeout/expiry, controller disconnect, process disappearance, failed CAS, a fresh request identity or a higher run/claim generation alone never authorizes successor external/product/provider/device effects, cleanup, claim release or resource reuse. Before any successor effect, the qualification journal must contain positive predecessor exclusion/quiescence for the exact prior run and claimed-resource scope under the QUALIFICATION protocol. If that proof is unavailable, the lane remains blocked.
+
+Restart deterministically enumerates every nonterminal run/claim and reconciles them before new mutation, progress, cleanup or claim release. Compaction is allowed only after `CLEAN` and retains enough run tombstones and per-resource claim-generation high-water to prevent identity/generation reuse. Corrupt, missing or totally lost coordination state fails closed for the affected run/resources and cannot recreate product authority. The first durable v1 run/claim material is a tooling rollback barrier: older tooling that does not understand the v1 fence cannot resume that campaign or silently recreate its ledger.
+
+If safe recovery would require the journal/claim store to become an independently durable/public effect-admission authority, a second route-current registry, a new product credential/trust owner, a materially different owner model or an independently decidable migration/cutover, D0039 implementation stops and returns through `SDD.md` for a new Design.
+
+### 20.6 Evidence invalidation and Q3 scope
+
+Evidence records its identity epoch, read set, mutation write set and invalidation events. Q6 mutation invalidates affected pre-Q6 route/request-floor/HMAC observations and requires reread; Q7 higher-route compromise recovery invalidates old-route evidence for final composition; Q8 signer/delegation/trust/package changes invalidate evidence bound to replaced identities; destructive Q9 does not compose silently with the destroyed provider/route instance; Q10 is operationally last on the exact final lane and its terminal cleanup destroys those live prerequisites. Read-only lanes may run concurrently only after exact identities are frozen and resource sets are disjoint.
+
+A Q3 helper that creates/deletes AndroidKeyStore aliases, signs, creates or controls runit services, or changes package/device state is reversible **mutating prequalification**, not non-destructive terminal proof. It requires exclusive device/service/alias claims. Its output may establish only an observed or positive subset; complete Q3 still requires the accepted negative custody/source/reinstall/clone/API/fallback falsifiers. Cleanup ambiguity remains `CLEANUP_PENDING` and blocks lane reuse.
+
+### 20.7 Exact Q1 source identity and optional evidence descendant
+
+Revision 3 uses Model B: exact final source/normative commit `S` runs the complete Q1/source gate; an optional descendant `E` may add evidence/current-status projection only when a repository-owned deterministic checker already present in S proves every protected path byte-identical and every changed path/region inside an exact machine-delimited allowlist fixed by S. The checker emits the changed-path/region manifest. Allowed E-only changes are newly created immutable `docs/evidence/**`, derived `docs/design/README.md`, and machine-delimited current-status/provenance regions explicitly owned by S. `src/**`, `native/**`, `qualification/**`, `test/**`, `tools/**`, package/lock inputs and SECURITY/DEPLOYMENT/QUALIFICATION meaning remain byte-identical.
+
+If S lacks the required checker or delimiters, or any changed path/region is unknown/non-allowlisted, no evidence-descendant exception exists: the descendant becomes a new S and the full Q1/source gate reruns. Evidence always names `qualifiedSource = S` and, when used, `publishedEvidenceDescendant = E`; E is never described as the SHA that ran Q1.
+
+### 20.8 Selective integration and provenance
+
+`codex/d0039-r2-codeheavy-20260824@75cfccd7f9a257ffe242fbbc7848965a67641e01` is already an ancestor of the acceptance base and must not be replayed. `codex/d0039-r2-qualification-followup-20260824@37aa891804b9239cbff7866e6c4da34d8a09a008` is a non-authoritative descendant and must not be merged wholesale. Integration is by semantic hunk with a non-product provenance ledger recording candidate ref@sha/commit/path/hunk, target owner, disposition, copied/rewritten/rejected result, target path, focused tests, rationale and resulting commit.
+
+Bounded regular-file/web-response reads, catalogs/structural validators, crypto vectors/bounds and unchanged-owner fail-closed hardening may be copied only after owner-native review. Arbitrary-driver terminal qualification is rejected. Q4 terminal execution, generic scenario orchestration, mutation-bound qualification RPC, terminal Q2/Q5 binding and Q6-Q10 command claim paths are reimplemented against this accepted contract. Q3 candidate helpers remain prequalification only.
+
+### 20.9 Owner synchronization, class and proof ordering
+
+Acceptance requires SECURITY to own the independent bootstrap trust/TCB distinction, evidence-authentication principals and no-live-takeover trust boundary; DEPLOYMENT to own exact S/A/V/R realization, endpoint/provider binding and the concrete durable run/claim backing; and QUALIFICATION to own the run/claim protocol, per-gate evidence matrix, reconciliation outcomes, invalidation DAG, Q3 scope, strict Q1 S/E checker and selective-integration provenance semantics.
+
+This Revision-3 decision and the **first source/tool/runtime realization** of its trust, identity, persistence, deployment and verification contract are Class 2. Only later repair that demonstrably preserves an already accepted Revision-3 contract may classify as Class 1. Editorial/current-status projection with no meaning change remains Class 0. Any uncertainty about trust, identity, persistence, migration/recovery or verification classifies upward under `SDD.md`.
+
+After this acceptance and owner synchronization, implementation order is: fresh-bind current authority/candidates; realize accepted Revision-3 semantics as Class 2; complete product/source/normative commit S; run the full Q1 source gate plus focused Revision-3 falsifiers at exact S; use optional E only when the strict mechanical checker permits it; publish by fresh non-force predecessor fencing and provider reread; build exact A, deploy immutable V, establish active R and the S/A/V/R admission; then execute Q2-Q10 only through the durable journal/claims, authenticated evidence profiles, reconciliation and invalidation rules. Missing provider/device/operator resources remain `unverified`, never PASS.
+
+Revision-2 acceptance/source/Q1/Q3-continuation evidence remains immutable historical evidence for its exact claimed scope and is not rewritten or promoted into Revision-3 proof. Revision 3 is accepted by this owner correction; source implementation and Q1 are not yet complete at the acceptance boundary.
