@@ -192,7 +192,23 @@ async function main() {
     const archiveName = `tdev-installable-agent-${targetKey}-${sourceRevision}.tgz`;
     const archivePath = path.join(outputDirectory, archiveName);
     await rm(archivePath, { force: true });
-    const tarResult = spawnSync('tar', ['-czf', archivePath, '-C', stageRoot, '.'], { cwd: root, encoding: 'utf8' });
+    const tarArguments = [
+      '--sort=name',
+      '--mtime=@0',
+      '--owner=0',
+      '--group=0',
+      '--numeric-owner',
+      '--format=ustar',
+      '--mode=u+rwX,go+rX,go-w',
+      '-czf', archivePath,
+      '-C', stageRoot,
+      '.',
+    ];
+    const tarResult = spawnSync('tar', tarArguments, {
+      cwd: root,
+      encoding: 'utf8',
+      env: { ...process.env, LC_ALL: 'C', TZ: 'UTC' },
+    });
     if (tarResult.error || tarResult.status !== 0) fail(`tar package build failed: ${(tarResult.stderr ?? '').trim()}`);
     const archiveBytes = await readFile(archivePath);
     const artifact = {
