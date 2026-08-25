@@ -1,0 +1,207 @@
+name: D0039 R4 bootstrap and exact-source Q1
+
+on:
+  pull_request:
+    branches:
+      - development
+    types:
+      - opened
+      - reopened
+
+permissions:
+  contents: write
+
+jobs:
+  bootstrap-q1:
+    if: github.head_ref == 'chatgpt/d0039-r4-source-20260825'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout clean R4 lineage
+        uses: actions/checkout@v4
+        with:
+          ref: chatgpt/d0039-r4-source-20260825
+          fetch-depth: 0
+
+      - name: Configure isolated integration lane
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name humtr
+          git config user.email 272709831+humtr@users.noreply.github.com
+          git fetch origin chatgpt/d0039-r4-workers-dev-20260825
+          test "$(git merge-base d2e4d4d67cbf34b4c6c11fa2e68951ef3c5a0285 HEAD)" = d2e4d4d67cbf34b4c6c11fa2e68951ef3c5a0285
+
+      - name: Synchronize Revision-4 normative owners
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          def insert_before(path, anchor, section, marker):
+              p = Path(path)
+              text = p.read_text()
+              if marker in text:
+                  return
+              if text.count(anchor) != 1:
+                  raise SystemExit(f'{path}: expected one anchor, got {text.count(anchor)}')
+              p.write_text(text.replace(anchor, section + '\n' + anchor, 1))
+
+          insert_before(
+              'docs/SECURITY.md',
+              '\n## 15. Source-layer non-claims\n',
+              '''\n## 14.5 D0039 Revision-4 workers.dev ingress trust boundary\n\nAccepted D0039@r4 preserves the Revision-3 qualification trust/controller boundary while replacing only the unavailable Cloudflare Zone-route ingress identity for the isolated non-production qualification substrate. The admitted provider ingress is exactly one `workers.dev` production hostname derived from fresh account-subdomain readback plus the exact Worker service name. `workers.dev` is a provider-routing locator only: it is not a credential, signer, product-current owner, recovery authority or evidence authenticator.\n\nBefore a qualification bearer token is transmitted, provider control-plane readback must establish the account workers.dev subdomain, the exact Worker `enabled=true` state and `previews_enabled=false`, and derive the sole admitted origin `https://<worker>.<account-subdomain>.workers.dev`. Alternate caller-supplied origins, preview URLs, redirects, Zone routes and Custom Domains cannot substitute for that identity. Preview URLs stay disabled so the admitted public ingress set does not silently expand beyond R.\n\nRevision-4 provider IAM minimum authority is `Workers Scripts Write` on the exact account; Zone-route write authority is not required by this deployment identity. A distinct IAM observer still reads the provider token policy through the provider token's user/account token namespace. That policy observation proves only the provider/IAM principal separation it directly observes. It does not prove management/release private-key custody or that signer principals lack provider privilege; terminal Q5 requires independent non-secret evidence for those accepted separations.\n\nThe mutation fence advances only the nested deployment identity to `tdev.installable-agent-qualification-deployment.v2`. The existing authenticated qualification RPC remains v2. Every state-changing request still fails before product mutation when its expected deployment digest disagrees with exact runtime S/A/V/R; qualification journal claims remain coordination fences with no live-takeover or product-authority semantics.\n''',
+              '## 14.5 D0039 Revision-4 workers.dev ingress trust boundary',
+          )
+
+          insert_before(
+              'docs/DEPLOYMENT.md',
+              '\n## 10. Publication lane\n',
+              '''\n### D0039 Revision-4 workers.dev qualification deployment contract\n\nD0039@r4 preserves Revision-3 `S -> A -> V -> deployment/cutover -> 100-percent writer -> provider readback -> route-owner readback -> exact join`, but R no longer depends on a Cloudflare Zone. For the current isolated non-production qualification substrate, R binds the exact account/service/deployment epoch, one immutable active Worker version at 100 percent state-changing traffic, account workers.dev subdomain, exact `<worker>.<subdomain>.workers.dev` hostname, Worker subdomain `enabled=true`, `previews_enabled=false`, Durable Object namespace/class/jurisdiction, exact route-current Durable Object identity and public verifier bindings.\n\nProvider admission reads `GET /accounts/{account}/workers/subdomain` and `GET /accounts/{account}/workers/scripts/{script}/subdomain` before transmitting the qualification bearer token. The only admitted endpoint is the credential-free origin derived from those provider observations. A missing subdomain, disabled workers.dev, enabled previews, hostname/origin mismatch, redirect, mixed active versions, ambiguous namespace/class or provider/route-owner identity drift blocks Q5. There is no Zone-route, Custom Domain, preview URL or stale predecessor fallback.\n\nThe deployed runtime binds `tdev.installable-agent-qualification-deployment.v2` facts as immutable plain-text configuration: S/A digests, account/service, deployment epoch, 100-percent writer, exact workers.dev account subdomain/hostname/enabled/previews state, namespace ID and qualification origin. Revision-3 `TDEV_D0039_ROUTE_ID` and `TDEV_D0039_ROUTE_PATTERN` are not Revision-4 compatibility bindings. Old deployment-identity-v1 code cannot authorize Revision-4 mutation.\n\nThe provider/deploy token requires effective `Workers Scripts Write` on the exact account. That permission is sufficient for the Worker deployment/version/subdomain readback and workers.dev enable/preview configuration used by this profile; `Workers Routes Write` is not a Revision-4 minimum. A separate IAM observer token uses the appropriate API-token-read namespace to read the provider token policy. Provider/IAM token evidence never substitutes for independent management/release signer custody/privilege evidence. Secret values are excluded from deployment/evidence; only required secret names may be inventoried.\n\nBefore any provider mutation, the Revision-3 qualification run/claim journal still records PREPARED with the exact Revision-4 target and exclusive provider resource claim. Ambiguous deploy/subdomain mutation outcomes reconcile by authoritative provider reread; a fresh version, configuration write, cleanup or lane takeover is never guessed. The workers.dev correction introduces no second effect-admission or product-current authority.\n''',
+              '### D0039 Revision-4 workers.dev qualification deployment contract',
+          )
+
+          insert_before(
+              'docs/QUALIFICATION.md',
+              '\n## 3. Qualification layers\n',
+              '''\n### D0039 Revision-4 workers.dev deployment-realization proof profile\n\nD0039@r4 inherits the Revision-3 authenticated evidence, run/claim journal, reconciliation, no-live-takeover and Q2-Q10 proof-layer rules. The exact source/normative commit S must rerun the complete baseline source gate because Revision 4 changes deployment identity and provider/IAM proof semantics. Q1 additionally falsifies strict deployment-identity-v2 shape, exact DNS-label workers.dev hostname/origin derivation, rejection of legacy Zone-route fields, workers.dev-disabled and preview-enabled states, provider/route-owner drift, and the Revision-4 least-privilege IAM rule.\n\nRevision-4 Q5 provider observation must independently read the account workers.dev subdomain and the target Worker's subdomain configuration, establish `enabled=true` and `previews_enabled=false`, derive the exact production hostname/origin, prove one active V owns 100 percent of state-changing traffic, prove the expected Worker/class/namespace/jurisdiction and immutable S/A/config bindings, inventory secret names without values, then call the route-owner readback only at that admitted origin. Provider and route-owner deployment-identity-v2 digests must exact-join in one stable epoch.\n\nThe Q5 IAM observation uses a distinct token principal and proves effective `Workers Scripts Write` on the exact account plus the appropriate API-token-read authority for observing the provider token policy. Zone-route permission is neither required nor credited. Terminal Q5 still requires independent evidence that provider deployment authority has no management/release private keys and that management/release signers do not hold provider deployment privilege; Cloudflare token-policy self-description cannot prove those external custody facts.\n\nRevision-4 uses strict source-equivalence Model B with `qualification/d0039-r4-source-equivalence.mjs` and the machine-delimited `D0039-R4-CURRENT-STATUS` WORKBOARD region. An evidence descendant may add only canonical `docs/evidence/group-f-d0039-r4-*.json` files and modify only that bounded status region. Any other changed path or status escape creates a new S and requires the full source gate again. Q2-Q10 remain unverified until executed on the exact admitted Revision-4 deployment.\n''',
+              '### D0039 Revision-4 workers.dev deployment-realization proof profile',
+          )
+          PY
+          git add docs/SECURITY.md docs/DEPLOYMENT.md docs/QUALIFICATION.md
+          git diff --cached --check
+          git commit -m 'Synchronize D0039 R4 normative owners'
+
+      - name: Integrate reviewed R4 implementation slice
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout origin/chatgpt/d0039-r4-workers-dev-20260825 -- \
+            qualification/cloudflare-agent-delivery-runtime.mjs \
+            qualification/d0039-r4-source-equivalence.mjs \
+            qualification/installable-agent-cloudflare-iam-readback-r4.mjs \
+            qualification/installable-agent-cloudflare-readback.mjs \
+            qualification/installable-agent-deployment-realization.mjs \
+            qualification/installable-agent-qualification-r4.mjs \
+            test/d0039-r4-deployment-realization.test.mjs \
+            test/d0039-r4-source-equivalence.test.mjs \
+            test/installable-agent-cloudflare-iam-readback-r4.test.mjs \
+            test/installable-agent-cloudflare-readback.test.mjs \
+            test/installable-agent-qualification-r4.test.mjs
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('qualification/installable-agent-qualification-r4.mjs')
+          s = p.read_text()
+          old = """function expectedWorkersDevHostname(workerScript, accountSubdomain) {\n  boundedString(workerScript, 'workerScript');\n  assertWorkersDevAccountSubdomain(accountSubdomain);\n  const hostname = `${workerScript}.${accountSubdomain}.workers.dev`;\n"""
+          new = """function expectedWorkersDevHostname(workerScript, accountSubdomain) {\n  boundedString(workerScript, 'workerScript', 63);\n  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(workerScript)) {\n    throw new ContractError('invalid_qualification_identity', 'workerScript must be one workers.dev-compatible DNS label');\n  }\n  assertWorkersDevAccountSubdomain(accountSubdomain);\n  const hostname = `${workerScript}.${accountSubdomain}.workers.dev`;\n"""
+          if s.count(old) != 1:
+              raise SystemExit(f'qualification worker label patch count={s.count(old)}')
+          p.write_text(s.replace(old, new, 1))
+
+          p = Path('qualification/installable-agent-cloudflare-readback.mjs')
+          s = p.read_text()
+          old = """  if (typeof scriptName !== 'string' || scriptName.length === 0 || scriptName.length > 128 || !/^[a-z0-9-]+$/.test(scriptName)) {\n    fail('cloudflare_readback_workers_dev_invalid', 'Worker script name is not a bounded lowercase workers.dev label');\n  }\n"""
+          new = """  if (typeof scriptName !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(scriptName)) {\n    fail('cloudflare_readback_workers_dev_invalid', 'Worker script name is not one workers.dev-compatible DNS label');\n  }\n"""
+          if s.count(old) != 1:
+              raise SystemExit(f'readback worker label patch count={s.count(old)}')
+          p.write_text(s.replace(old, new, 1))
+
+          p = Path('test/installable-agent-qualification-r4.test.mjs')
+          s = p.read_text()
+          extra = """\n\ntest('Revision-4 binding rejects workers.dev-incompatible Worker DNS labels', () => {\n  const { runtimeFacts } = fixture();\n  for (const serviceName of ['-bad-worker', 'bad-worker-', 'a'.repeat(64)]) {\n    assert.throws(\n      () => createQualificationDeploymentBindingPlan({\n        sourceSha: runtimeFacts.sourceSha,\n        artifactDigest: runtimeFacts.artifactDigest,\n        artifactManifestDigest: runtimeFacts.artifactManifestDigest,\n        accountId: runtimeFacts.accountId,\n        serviceName,\n        deploymentEpoch: runtimeFacts.deploymentEpoch,\n        qualificationEndpointOrigin: `https://${serviceName}.humtr.workers.dev`,\n        workersDevAccountSubdomain: 'humtr',\n        namespaceId: runtimeFacts.namespaceId,\n      }),\n      (error) => error?.code === 'invalid_qualification_identity',\n    );\n  }\n});\n"""
+          if "workers.dev-incompatible Worker DNS labels" not in s:
+              p.write_text(s + extra)
+
+          p = Path('test/installable-agent-cloudflare-readback.test.mjs')
+          s = p.read_text()
+          extra = """\n\ntest('Q5 workers.dev ingress rejects invalid Worker DNS labels', () => {\n  for (const scriptName of ['-bad-worker', 'bad-worker-', 'a'.repeat(64)]) {\n    assert.throws(\n      () => normalizeD0039WorkersDevIngress({\n        scriptName,\n        accountSubdomainResult: { subdomain: 'humtr' },\n        workerSubdomainResult: { enabled: true, previews_enabled: false },\n      }),\n      (error) => error?.code === 'cloudflare_readback_workers_dev_invalid',\n    );\n  }\n});\n"""
+          if "invalid Worker DNS labels" not in s:
+              p.write_text(s + extra)
+
+          p = Path('WORKBOARD.md')
+          s = p.read_text()
+          old = "- D0039@r3 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-3 D0027 deployment-realization correction"
+          if s.count(old) != 2:
+              raise SystemExit(f'WORKBOARD runnable/selected R3 count={s.count(old)}')
+          s = s.replace(old, "- D0039@r4 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-4 workers.dev deployment-realization correction")
+          marker = '<!-- D0039-R4-CURRENT-STATUS:BEGIN -->'
+          if marker not in s:
+              anchor = '<!-- D0039-R3-CURRENT-STATUS:END -->'
+              if s.count(anchor) != 1:
+                  raise SystemExit('WORKBOARD R3 status anchor missing or duplicated')
+              block = """\n<!-- D0039-R4-CURRENT-STATUS:BEGIN -->\n- D0039@r4 is accepted from `development@d2e4d4d67cbf34b4c6c11fa2e68951ef3c5a0285` as the same-owner workers.dev ingress correction. Revision-3 source/Q1 and partial Q5 evidence remain immutable history only. This source commit contains the Revision-4 owner synchronization, deployment-identity-v2/provider/IAM implementation and permanent focused falsifiers; Q1 evidence is not yet projected in this source-status region. Q2-Q10 remain unverified and no Revision-4 provider mutation is claimed.\n<!-- D0039-R4-CURRENT-STATUS:END -->\n"""
+              s = s.replace(anchor, anchor + block, 1)
+          p.write_text(s)
+          PY
+
+          rm .github/workflows/d0039-r4-bootstrap-q1.yml
+          node --check qualification/installable-agent-qualification-r4.mjs
+          node --check qualification/installable-agent-cloudflare-readback.mjs
+          node --check qualification/installable-agent-cloudflare-iam-readback-r4.mjs
+          node --check qualification/cloudflare-agent-delivery-runtime.mjs
+          node --check qualification/d0039-r4-source-equivalence.mjs
+          node --check qualification/installable-agent-deployment-realization.mjs
+          git add WORKBOARD.md qualification test .github/workflows/d0039-r4-bootstrap-q1.yml
+          git diff --cached --check
+          git commit -m 'Implement D0039 R4 workers.dev admission'
+          echo "SOURCE_SHA=$(git rev-parse HEAD)" >> "$GITHUB_ENV"
+          echo "SOURCE_TREE=$(git rev-parse HEAD^{tree})" >> "$GITHUB_ENV"
+          echo "SOURCE_PARENT=$(git rev-parse HEAD^)" >> "$GITHUB_ENV"
+
+      - name: Verify exact source identity
+        shell: bash
+        run: |
+          set -euo pipefail
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test "$(git rev-parse HEAD^{tree})" = "$SOURCE_TREE"
+          test -z "$(git status --porcelain)"
+          git checkout --detach "$SOURCE_SHA"
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+
+      - name: Install exact source dependencies
+        shell: bash
+        run: npm ci --ignore-scripts --no-audit --no-fund
+
+      - name: Baseline source gate
+        shell: bash
+        run: npm run check
+
+      - name: Complete exact-source coverage gate
+        shell: bash
+        run: |
+          set -euo pipefail
+          node --experimental-test-coverage --test test/*.test.mjs 2>&1 | tee "$RUNNER_TEMP/d0039-r4-q1-coverage.txt"
+
+      - name: Diff and worktree integrity
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check "$SOURCE_PARENT" "$SOURCE_SHA"
+          test -z "$(git status --porcelain)"
+          printf '%s\n' \
+            "source_sha=$SOURCE_SHA" \
+            "source_tree=$SOURCE_TREE" \
+            "source_parent=$SOURCE_PARENT" \
+            "workflow_run_id=$GITHUB_RUN_ID" \
+            "workflow_job=$GITHUB_JOB" \
+            > "$RUNNER_TEMP/d0039-r4-q1-source.txt"
+
+      - name: Publish qualified source candidate
+        shell: bash
+        run: |
+          set -euo pipefail
+          git checkout chatgpt/d0039-r4-source-20260825
+          test "$(git rev-parse HEAD)" = "$SOURCE_SHA"
+          git push origin HEAD:refs/heads/chatgpt/d0039-r4-source-20260825
+
+      - name: Upload exact-source Q1 evidence payload
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0039-r4-q1-${{ env.SOURCE_SHA }}
+          path: |
+            ${{ runner.temp }}/d0039-r4-q1-coverage.txt
+            ${{ runner.temp }}/d0039-r4-q1-source.txt
+          if-no-files-found: error
