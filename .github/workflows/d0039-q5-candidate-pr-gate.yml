@@ -16,39 +16,46 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: 1e0ee228895895643a3835af3b3a6ff197376f80
+          fetch-depth: 2
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - name: Record exact source identity
         run: |
           set -o pipefail
+          OUT="$RUNNER_TEMP/q1-source-gate.txt"
           {
-            echo "verified_source_sha=$(git rev-parse HEAD)"
-            echo "verified_tree_sha=$(git rev-parse 'HEAD^{tree}')"
-            echo "verified_parent_sha=$(git rev-parse 'HEAD^')"
-          } | tee q1-source-gate.txt
-          test "$(git rev-parse HEAD)" = "1e0ee228895895643a3835af3b3a6ff197376f80"
+            echo "verified_source_sha=$(git rev-parse --verify HEAD)"
+            echo "verified_tree_sha=$(git rev-parse --verify 'HEAD^{tree}')"
+            echo "verified_parent_sha=$(git rev-parse --verify 'HEAD^')"
+          } | tee "$OUT"
+          test "$(git rev-parse --verify HEAD)" = "1e0ee228895895643a3835af3b3a6ff197376f80"
       - run: npm ci --ignore-scripts --no-audit --no-fund
       - name: Run static checks
         run: |
           set -o pipefail
-          npm run check 2>&1 | tee -a q1-source-gate.txt
+          OUT="$RUNNER_TEMP/q1-source-gate.txt"
+          echo "phase=npm_run_check" | tee -a "$OUT"
+          npm run check 2>&1 | tee -a "$OUT"
       - name: Run full test coverage
         run: |
           set -o pipefail
-          node --experimental-test-coverage --test test/*.test.mjs 2>&1 | tee -a q1-source-gate.txt
+          OUT="$RUNNER_TEMP/q1-source-gate.txt"
+          echo "phase=full_test_coverage" | tee -a "$OUT"
+          node --experimental-test-coverage --test test/*.test.mjs 2>&1 | tee -a "$OUT"
       - name: Verify clean diff and worktree
         run: |
           set -o pipefail
-          git diff --check 2>&1 | tee -a q1-source-gate.txt
-          echo "git_diff_check=PASS" | tee -a q1-source-gate.txt
-          git status --short | tee -a q1-source-gate.txt
+          OUT="$RUNNER_TEMP/q1-source-gate.txt"
+          git diff --check 2>&1 | tee -a "$OUT"
+          echo "git_diff_check=PASS" | tee -a "$OUT"
+          git status --short | tee -a "$OUT"
           test -z "$(git status --short)"
-          echo "worktree_after_verification=clean" | tee -a q1-source-gate.txt
+          echo "worktree_after_verification=clean" | tee -a "$OUT"
       - name: Upload exact-source Q1 output
         if: always()
         uses: actions/upload-artifact@v4
         with:
           name: d0039-q1-exact-source-output
-          path: q1-source-gate.txt
+          path: ${{ runner.temp }}/q1-source-gate.txt
           retention-days: 7
