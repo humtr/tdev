@@ -19,7 +19,36 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+      - name: Record exact source identity
+        run: |
+          set -o pipefail
+          {
+            echo "verified_source_sha=$(git rev-parse HEAD)"
+            echo "verified_tree_sha=$(git rev-parse 'HEAD^{tree}')"
+            echo "verified_parent_sha=$(git rev-parse 'HEAD^')"
+          } | tee q1-source-gate.txt
+          test "$(git rev-parse HEAD)" = "1e0ee228895895643a3835af3b3a6ff197376f80"
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - run: npm run check
-      - run: node --experimental-test-coverage --test test/*.test.mjs
-      - run: git diff --check
+      - name: Run static checks
+        run: |
+          set -o pipefail
+          npm run check 2>&1 | tee -a q1-source-gate.txt
+      - name: Run full test coverage
+        run: |
+          set -o pipefail
+          node --experimental-test-coverage --test test/*.test.mjs 2>&1 | tee -a q1-source-gate.txt
+      - name: Verify clean diff and worktree
+        run: |
+          set -o pipefail
+          git diff --check 2>&1 | tee -a q1-source-gate.txt
+          echo "git_diff_check=PASS" | tee -a q1-source-gate.txt
+          git status --short | tee -a q1-source-gate.txt
+          test -z "$(git status --short)"
+          echo "worktree_after_verification=clean" | tee -a q1-source-gate.txt
+      - name: Upload exact-source Q1 output
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0039-q1-exact-source-output
+          path: q1-source-gate.txt
+          retention-days: 7
