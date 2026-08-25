@@ -20,7 +20,7 @@ import {
   QUALIFICATION_DEPLOYMENT_PROFILE,
   qualificationDeploymentIdentityDigest,
   qualificationGateRequiredPrincipals,
-} from '../qualification/installable-agent-qualification-r3.mjs';
+} from '../qualification/installable-agent-qualification-r4.mjs';
 
 function qualificationVectors() {
   const rsa = generateKeyPairSync('rsa', { modulusLength: 3072, publicExponent: 0x10001 });
@@ -84,9 +84,12 @@ function exactTarget() {
     environment: 'nonproduction',
     deploymentEpoch: 'epoch-one',
     stateChangingTrafficPercentage: 100,
-    qualificationEndpointOrigin: 'https://qualification.example',
-    routeId: 'route-one',
-    routePattern: 'qualification.example/*',
+    qualificationEndpointOrigin: 'https://qualification-service.humtr.workers.dev',
+    ingressKind: 'workers_dev',
+    workersDevAccountSubdomain: 'humtr',
+    workersDevHostname: 'qualification-service.humtr.workers.dev',
+    workersDevEnabled: true,
+    workersDevPreviewsEnabled: false,
     workerScript: 'qualification-service',
     namespaceId: 'namespace-one',
     namespace: 'qualification_AgentDeliveryRuntimeDO',

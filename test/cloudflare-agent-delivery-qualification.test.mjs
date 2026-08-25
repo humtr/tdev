@@ -11,7 +11,7 @@ import {
   QUALIFICATION_RPC_PROFILE,
   qualificationDeploymentIdentityDigest,
   qualificationRouteVerifierDigest,
-} from '../qualification/installable-agent-qualification-r3.mjs';
+} from '../qualification/installable-agent-qualification-r4.mjs';
 import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
@@ -42,9 +42,12 @@ function baseEnv(overrides = {}) {
     TDEV_D0039_SERVICE_NAME: 'tdev-d0020-qualification',
     TDEV_D0039_DEPLOYMENT_EPOCH: 'epoch-one',
     TDEV_D0039_STATE_CHANGING_TRAFFIC_PERCENTAGE: '100',
-    TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN: 'https://qualification.example',
-    TDEV_D0039_ROUTE_ID: 'route-one',
-    TDEV_D0039_ROUTE_PATTERN: 'qualification.example/*',
+    TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN: 'https://tdev-d0020-qualification.humtr.workers.dev',
+    TDEV_D0039_INGRESS_KIND: 'workers_dev',
+    TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN: 'humtr',
+    TDEV_D0039_WORKERS_DEV_HOSTNAME: 'tdev-d0020-qualification.humtr.workers.dev',
+    TDEV_D0039_WORKERS_DEV_ENABLED: 'true',
+    TDEV_D0039_WORKERS_DEV_PREVIEWS_ENABLED: 'false',
     TDEV_D0039_NAMESPACE_ID: 'namespace-one',
     ...overrides,
   };
@@ -88,8 +91,11 @@ function expectedDeploymentDigest({
     deploymentEpoch: env.TDEV_D0039_DEPLOYMENT_EPOCH,
     stateChangingTrafficPercentage: 100,
     qualificationEndpointOrigin: env.TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN,
-    routeId: env.TDEV_D0039_ROUTE_ID,
-    routePattern: env.TDEV_D0039_ROUTE_PATTERN,
+    ingressKind: env.TDEV_D0039_INGRESS_KIND,
+    workersDevAccountSubdomain: env.TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN,
+    workersDevHostname: env.TDEV_D0039_WORKERS_DEV_HOSTNAME,
+    workersDevEnabled: true,
+    workersDevPreviewsEnabled: false,
     workerScript: env.TDEV_WORKER_SCRIPT,
     namespaceId: env.TDEV_D0039_NAMESPACE_ID,
     namespace: env.TDEV_AGENT_DELIVERY_NAMESPACE,

@@ -33,7 +33,7 @@ import {
   createQualificationDeploymentIdentity,
   qualificationDeploymentIdentityDigest,
   qualificationRouteVerifierDigest,
-} from './installable-agent-qualification-r3.mjs';
+} from './installable-agent-qualification-r4.mjs';
 
 export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v2';
 export const D0020_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
@@ -182,30 +182,20 @@ async function readRequest(request) {
   }
   const declaredLength = request.headers.get('content-length');
   if (declaredLength !== null && (!/^[0-9]+$/.test(declaredLength) || Number(declaredLength) > D0020_QUALIFICATION_MAX_REQUEST_BYTES)) {
-    throw new ContractError('qualification_request_too_large', 'D0020 qualification request exceeds its byte limit', {
-      maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES,
-    });
+    throw new ContractError('qualification_request_too_large', 'D0020 qualification request exceeds its byte limit', { maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES });
   }
   const bytes = new Uint8Array(await request.arrayBuffer());
   if (bytes.byteLength > D0020_QUALIFICATION_MAX_REQUEST_BYTES) {
-    throw new ContractError('qualification_request_too_large', 'D0020 qualification request exceeds its byte limit', {
-      maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES,
-    });
+    throw new ContractError('qualification_request_too_large', 'D0020 qualification request exceeds its byte limit', { maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES });
   }
-  try {
-    return strictJsonParse(bytes, { maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES });
-  } catch (cause) {
-    throw new ContractError('qualification_invalid_request', 'D0020 qualification request body is invalid', {}, { cause });
-  }
+  try { return strictJsonParse(bytes, { maxBytes: D0020_QUALIFICATION_MAX_REQUEST_BYTES }); }
+  catch (cause) { throw new ContractError('qualification_invalid_request', 'D0020 qualification request body is invalid', {}, { cause }); }
 }
 
 function jsonResponse(status, body) {
   return new Response(JSON.stringify(body), {
     status,
-    headers: {
-      'cache-control': 'no-store',
-      'content-type': 'application/json; charset=utf-8',
-    },
+    headers: { 'cache-control': 'no-store', 'content-type': 'application/json; charset=utf-8' },
   });
 }
 
@@ -217,19 +207,12 @@ function errorStatus(code) {
 }
 
 function publicError(error) {
-  if (error instanceof ContractError) {
-    return jsonResponse(errorStatus(error.code), {
-      ok: false,
-      error: { code: error.code, details: error.details },
-    });
-  }
+  if (error instanceof ContractError) return jsonResponse(errorStatus(error.code), { ok: false, error: { code: error.code, details: error.details } });
   return jsonResponse(500, { ok: false, error: { code: 'qualification_provider_failure', details: {} } });
 }
 
 function rpcShape(input) {
-  if (!input || typeof input.operation !== 'string') {
-    throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is invalid');
-  }
+  if (!input || typeof input.operation !== 'string') throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is invalid');
   const shapes = {
     runtime_probe: [[], []],
     d0039_workers_crypto_probe: [['vectors'], []],
@@ -275,20 +258,11 @@ function rpcShape(input) {
   const shape = shapes[input.operation];
   if (!shape) throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is unsupported');
   const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) ? [] : ['expectedDeploymentIdentityDigest'];
-  assertRecordShape(
-    input,
-    ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]],
-    shape[1],
-    `D0020 qualification ${input.operation}`,
-  );
-  if (input.profile !== QUALIFICATION_RPC_PROFILE) {
-    throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-3 RPC profile');
-  }
+  assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], shape[1], `D0020 qualification ${input.operation}`);
+  if (input.profile !== QUALIFICATION_RPC_PROFILE) throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-4 RPC profile');
   assertIdentifier(input.agentId, 'agentId');
   assertSafeInteger(input.routeGeneration, 'routeGeneration', { min: 1 });
-  if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)) {
-    assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
-  }
+  if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)) assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
   return input.operation;
 }
 
@@ -319,16 +293,11 @@ export class D0020QualificationService {
   #route(agentId) {
     assertIdentifier(agentId, 'agentId');
     const id = this.namespace.idFromName(agentId);
-    if (!id || typeof id.toString !== 'function') {
-      throw new ContractError('invalid_qualification_provider', 'Agent delivery namespace returned an invalid identity');
-    }
+    if (!id || typeof id.toString !== 'function') throw new ContractError('invalid_qualification_provider', 'Agent delivery namespace returned an invalid identity');
     const providerJurisdiction = id.jurisdiction ?? 'global';
-    if (providerJurisdiction !== this.runtimeConfig.placement.jurisdiction) {
-      throw new ContractError('invalid_qualification_provider', 'Agent delivery identity has the wrong jurisdiction');
-    }
+    if (providerJurisdiction !== this.runtimeConfig.placement.jurisdiction) throw new ContractError('invalid_qualification_provider', 'Agent delivery identity has the wrong jurisdiction');
     const stub = this.namespace.get(id);
-    if (!stub || (typeof stub !== 'object' && typeof stub !== 'function') ||
-        typeof stub.fetch !== 'function' || typeof stub.qualificationInvoke !== 'function') {
+    if (!stub || (typeof stub !== 'object' && typeof stub !== 'function') || typeof stub.fetch !== 'function' || typeof stub.qualificationInvoke !== 'function') {
       throw new ContractError('invalid_qualification_provider', 'Agent delivery namespace returned an invalid stub');
     }
     return { id, stub };
@@ -337,51 +306,33 @@ export class D0020QualificationService {
   async fetch(request) {
     try {
       const url = new URL(request.url);
-      if (url.pathname === AGENT_DELIVERY_WEBSOCKET_PATH) {
-        return this.runtimeService.fetch(request);
-      }
-      if (url.pathname !== D0020_QUALIFICATION_PATH) {
-        return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found', details: {} } });
-      }
-      if (request.method !== 'POST') {
-        return jsonResponse(405, { ok: false, error: { code: 'qualification_method_not_allowed', details: {} } });
-      }
+      if (url.pathname === AGENT_DELIVERY_WEBSOCKET_PATH) return this.runtimeService.fetch(request);
+      if (url.pathname !== D0020_QUALIFICATION_PATH) return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found', details: {} } });
+      if (request.method !== 'POST') return jsonResponse(405, { ok: false, error: { code: 'qualification_method_not_allowed', details: {} } });
       await authorizeQualificationRequest(request, this.token);
       const input = await readRequest(request);
       rpcShape(input);
       const result = unwrapQualificationRpc(await this.#route(input.agentId).stub.qualificationInvoke(publicJsonClone(input)));
       return jsonResponse(200, { ok: true, result });
-    } catch (error) {
-      return publicError(error);
-    }
+    } catch (error) { return publicError(error); }
   }
 }
 
 export class D0020QualificationAgentDeliveryDOHost {
   constructor(ctx, env, options = {}) {
     requiredQualificationMode(env);
-    if (!ctx || typeof ctx.abort !== 'function') {
-      throw new ContractError('invalid_qualification_config', 'D0020 qualification requires Durable Object abort support');
-    }
+    if (!ctx || typeof ctx.abort !== 'function') throw new ContractError('invalid_qualification_config', 'D0020 qualification requires Durable Object abort support');
     this.ctx = ctx;
     this.env = env;
     this.host = options.host ?? new AgentDeliveryRuntimeDOHost(ctx, env);
     const sourceSha = env?.TDEV_SOURCE_SHA;
-    if (typeof sourceSha !== 'string' || !/^[0-9a-f]{40}$/.test(sourceSha)) {
-      throw new ContractError('invalid_qualification_config', 'D0020 qualification source SHA binding is invalid');
-    }
+    if (typeof sourceSha !== 'string' || !/^[0-9a-f]{40}$/.test(sourceSha)) throw new ContractError('invalid_qualification_config', 'D0020 qualification source SHA binding is invalid');
     const versionId = env?.TDEV_WORKER_VERSION?.id;
-    if (typeof versionId !== 'string' || versionId.length === 0 || versionId.length > 256 || versionId.includes('\0')) {
-      throw new ContractError('invalid_qualification_config', 'D0039 qualification requires the immutable Worker version identity');
-    }
-    if (typeof this.host.durableObjectId !== 'string' || this.host.durableObjectId.length === 0 || this.host.durableObjectId.includes('\0')) {
-      throw new ContractError('invalid_qualification_provider', 'D0020 Agent delivery host has no durable object identity');
-    }
+    if (typeof versionId !== 'string' || versionId.length === 0 || versionId.length > 256 || versionId.includes('\0')) throw new ContractError('invalid_qualification_config', 'D0039 qualification requires the immutable Worker version identity');
+    if (typeof this.host.durableObjectId !== 'string' || this.host.durableObjectId.length === 0 || this.host.durableObjectId.includes('\0')) throw new ContractError('invalid_qualification_provider', 'D0020 Agent delivery host has no durable object identity');
     const requiredText = (name, max = 2048) => {
       const value = env?.[name];
-      if (typeof value !== 'string' || value.length === 0 || value.length > max || value.includes('\0')) {
-        throw new ContractError('invalid_qualification_config', `D0039 qualification binding ${name} is invalid`);
-      }
+      if (typeof value !== 'string' || value.length === 0 || value.length > max || value.includes('\0')) throw new ContractError('invalid_qualification_config', `D0039 qualification binding ${name} is invalid`);
       return value;
     };
     const artifactDigest = requiredText('TDEV_D0039_ARTIFACT_DIGEST', 80);
@@ -392,16 +343,18 @@ export class D0020QualificationAgentDeliveryDOHost {
     let endpoint;
     try { endpoint = new URL(qualificationEndpointOrigin); }
     catch (cause) { throw new ContractError('invalid_qualification_config', 'D0039 qualification endpoint origin is invalid', {}, { cause }); }
-    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash || endpoint.origin !== qualificationEndpointOrigin) {
-      throw new ContractError('invalid_qualification_config', 'D0039 qualification endpoint must be a credential-free HTTPS origin');
-    }
-    if (env?.TDEV_D0039_STATE_CHANGING_TRAFFIC_PERCENTAGE !== '100') {
-      throw new ContractError('invalid_qualification_config', 'D0039 qualification state-changing traffic binding must be exactly 100 percent');
-    }
+    if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash || endpoint.origin !== qualificationEndpointOrigin) throw new ContractError('invalid_qualification_config', 'D0039 qualification endpoint must be a credential-free HTTPS origin');
+    if (env?.TDEV_D0039_STATE_CHANGING_TRAFFIC_PERCENTAGE !== '100') throw new ContractError('invalid_qualification_config', 'D0039 qualification state-changing traffic binding must be exactly 100 percent');
     const serviceName = requiredText('TDEV_D0039_SERVICE_NAME');
-    if (serviceName !== this.host.config.placement.workerScript) {
-      throw new ContractError('invalid_qualification_config', 'D0039 qualification service binding must equal the deployed Worker script');
-    }
+    if (serviceName !== this.host.config.placement.workerScript) throw new ContractError('invalid_qualification_config', 'D0039 qualification service binding must equal the deployed Worker script');
+    const ingressKind = requiredText('TDEV_D0039_INGRESS_KIND', 64);
+    if (ingressKind !== 'workers_dev') throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 ingress kind must be workers_dev');
+    const workersDevAccountSubdomain = requiredText('TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN', 63);
+    const workersDevHostname = requiredText('TDEV_D0039_WORKERS_DEV_HOSTNAME', 253);
+    if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(workersDevAccountSubdomain)) throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 account workers.dev subdomain is invalid');
+    if (workersDevHostname !== `${serviceName}.${workersDevAccountSubdomain}.workers.dev`) throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 workers.dev hostname does not match service/account identity');
+    if (env?.TDEV_D0039_WORKERS_DEV_ENABLED !== 'true' || env?.TDEV_D0039_WORKERS_DEV_PREVIEWS_ENABLED !== 'false') throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 requires workers.dev enabled and preview URLs disabled');
+    if (qualificationEndpointOrigin !== `https://${workersDevHostname}`) throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 qualification origin must equal the exact workers.dev Worker origin');
     this.sourceSha = sourceSha;
     this.workerVersionId = versionId;
     this.deploymentBinding = Object.freeze({
@@ -412,33 +365,29 @@ export class D0020QualificationAgentDeliveryDOHost {
       deploymentEpoch: requiredText('TDEV_D0039_DEPLOYMENT_EPOCH'),
       stateChangingTrafficPercentage: 100,
       qualificationEndpointOrigin,
-      routeId: requiredText('TDEV_D0039_ROUTE_ID'),
-      routePattern: requiredText('TDEV_D0039_ROUTE_PATTERN'),
+      ingressKind,
+      workersDevAccountSubdomain,
+      workersDevHostname,
+      workersDevEnabled: true,
+      workersDevPreviewsEnabled: false,
       namespaceId: requiredText('TDEV_D0039_NAMESPACE_ID'),
     });
   }
 
   #binding(agentId, routeGeneration) {
-    return createRuntimeAgentRouteBinding(this.env, {
-      agentId,
-      routeGeneration,
-      durableObjectId: this.host.durableObjectId,
-    });
+    return createRuntimeAgentRouteBinding(this.env, { agentId, routeGeneration, durableObjectId: this.host.durableObjectId });
   }
 
   #readRouteCurrent(routeBinding) {
     const routeRead = this.host.readInstallableAgent({ routeBinding });
-    if (!routeRead || typeof routeRead !== 'object' || Array.isArray(routeRead) ||
-        !routeRead.installableAgent || typeof routeRead.installableAgent !== 'object' || Array.isArray(routeRead.installableAgent)) {
+    if (!routeRead || typeof routeRead !== 'object' || Array.isArray(routeRead) || !routeRead.installableAgent || typeof routeRead.installableAgent !== 'object' || Array.isArray(routeRead.installableAgent)) {
       throw new ContractError('invalid_qualification_provider', 'D0039 route-current readback is unavailable');
     }
     assertDigest(routeRead.currentTupleDigest, 'currentTupleDigest');
     const security = routeRead.installableAgent;
     for (const name of ['managementKeyId', 'releaseRootKeyId', 'currentCredentialKeyId']) {
       const value = security[name] ?? null;
-      if (value !== null && (typeof value !== 'string' || value.length === 0 || value.length > 512 || value.includes('\0'))) {
-        throw new ContractError('invalid_qualification_provider', `D0039 route-current ${name} is invalid`);
-      }
+      if (value !== null && (typeof value !== 'string' || value.length === 0 || value.length > 512 || value.includes('\0'))) throw new ContractError('invalid_qualification_provider', `D0039 route-current ${name} is invalid`);
     }
     return Object.freeze({
       routeRead,
@@ -465,8 +414,11 @@ export class D0020QualificationAgentDeliveryDOHost {
       deploymentEpoch: this.deploymentBinding.deploymentEpoch,
       stateChangingTrafficPercentage: this.deploymentBinding.stateChangingTrafficPercentage,
       qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
-      routeId: this.deploymentBinding.routeId,
-      routePattern: this.deploymentBinding.routePattern,
+      ingressKind: this.deploymentBinding.ingressKind,
+      workersDevAccountSubdomain: this.deploymentBinding.workersDevAccountSubdomain,
+      workersDevHostname: this.deploymentBinding.workersDevHostname,
+      workersDevEnabled: this.deploymentBinding.workersDevEnabled,
+      workersDevPreviewsEnabled: this.deploymentBinding.workersDevPreviewsEnabled,
       workerScript: this.host.config.placement.workerScript,
       namespaceId: this.deploymentBinding.namespaceId,
       namespace: this.host.config.placement.namespace,
@@ -491,31 +443,15 @@ export class D0020QualificationAgentDeliveryDOHost {
         const result = await this.host.acceptInstallableAgentConnectChallenge(request);
         return jsonResponse(200, result);
       }
-      if (!applicationProtocolOffered(request)) {
-        throw new ContractError('invalid_agent_connect_request', 'D0020 Agent WebSocket upgrade is missing the required application protocol');
-      }
+      if (!applicationProtocolOffered(request)) throw new ContractError('invalid_agent_connect_request', 'D0020 Agent WebSocket upgrade is missing the required application protocol');
       const accepted = await this.host.acceptAgentWebSocket(request);
-      return new Response(null, {
-        status: 101,
-        webSocket: accepted.webSocket,
-        headers: { 'Sec-WebSocket-Protocol': AGENT_DELIVERY_WEBSOCKET_PROTOCOL },
-      });
-    } catch (error) {
-      return publicError(error);
-    }
+      return new Response(null, { status: 101, webSocket: accepted.webSocket, headers: { 'Sec-WebSocket-Protocol': AGENT_DELIVERY_WEBSOCKET_PROTOCOL } });
+    } catch (error) { return publicError(error); }
   }
 
-  webSocketMessage(socket, message) {
-    return this.host.webSocketMessage(socket, message);
-  }
-
-  webSocketClose(socket) {
-    return this.host.webSocketClose(socket);
-  }
-
-  webSocketError(socket) {
-    return this.host.webSocketError(socket);
-  }
+  webSocketMessage(socket, message) { return this.host.webSocketMessage(socket, message); }
+  webSocketClose(socket) { return this.host.webSocketClose(socket); }
+  webSocketError(socket) { return this.host.webSocketError(socket); }
 
   async qualificationInvoke(input) {
     try {
@@ -525,11 +461,7 @@ export class D0020QualificationAgentDeliveryDOHost {
       if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation)) {
         const routeCurrent = this.#readRouteCurrent(routeBinding);
         const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
-        admitted = assertExpectedDeploymentIdentity({
-          expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest,
-          runtimeFacts: runtime,
-          routeBinding,
-        });
+        admitted = assertExpectedDeploymentIdentity({ expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest, runtimeFacts: runtime, routeBinding });
       }
       let result;
       if (operation === 'runtime_probe') {
@@ -557,11 +489,7 @@ export class D0020QualificationAgentDeliveryDOHost {
       } else if (operation === 'read_installable_agent') {
         result = this.host.readInstallableAgent({ routeBinding });
       } else if (operation === 'issue_installable_agent_connect_challenge') {
-        result = this.host.issueInstallableAgentConnectChallenge({
-          routeBinding,
-          request: input.request,
-          ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }),
-        });
+        result = this.host.issueInstallableAgentConnectChallenge({ routeBinding, request: input.request, ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }) });
       } else if (operation === 'migrate_installable_agent_route') {
         result = this.host.migrateInstallableAgentRoute({ routeBinding, request: input.request });
       } else if (operation === 'register_installable_agent') {
@@ -623,11 +551,7 @@ export class D0020QualificationAgentDeliveryDOHost {
       } else if (operation === 'grant_command') {
         result = this.host.grantCommand({ routeBinding, deliveryId: input.deliveryId, ...(input.dispatchOrdinal === undefined ? {} : { dispatchOrdinal: input.dispatchOrdinal }) });
       } else if (operation === 'close_undispatched_delivery') {
-        result = this.host.closeUndispatchedDelivery({
-          routeBinding,
-          deliveryId: input.deliveryId,
-          ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }),
-        });
+        result = this.host.closeUndispatchedDelivery({ routeBinding, deliveryId: input.deliveryId, ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }) });
       } else if (operation === 'bind_terminal_case_receipt') {
         result = this.host.bindTerminalCaseReceipt({ routeBinding, request: input.request, nowMs: input.nowMs });
       } else if (operation === 'reacquire_delivery_admission') {
@@ -642,12 +566,7 @@ export class D0020QualificationAgentDeliveryDOHost {
       return publicJsonClone({ profile: QUALIFICATION_RPC_PROFILE, schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: true, result });
     } catch (error) {
       if (!(error instanceof ContractError)) throw error;
-      return {
-        profile: QUALIFICATION_RPC_PROFILE,
-        schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION,
-        ok: false,
-        error: { code: error.code },
-      };
+      return { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: QUALIFICATION_RPC_SCHEMA_VERSION, ok: false, error: { code: error.code } };
     }
   }
 }

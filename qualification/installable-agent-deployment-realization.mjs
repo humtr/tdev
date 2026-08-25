@@ -6,7 +6,7 @@ import {
   QUALIFICATION_EVIDENCE_PROFILE,
   qualificationGateRequiredPrincipals,
   validateTerminalQualificationEvidence,
-} from './installable-agent-qualification-r3.mjs';
+} from './installable-agent-qualification-r4.mjs';
 
 export const INSTALLABLE_AGENT_QUALIFICATION_OBSERVATION_PROFILE = QUALIFICATION_EVIDENCE_PROFILE;
 
@@ -25,7 +25,7 @@ const GATES = Object.freeze({
   }),
   q5_live_provider_iam: Object.freeze({
     proofLayer: 'live_provider_control_plane',
-    checks: ['accountBound', 'workerServiceBound', 'activeSourceBound', 'writerTraffic100Percent', 'durableObjectClassExported', 'namespaceBindingBound', 'jurisdictionBound', 'routeObjectBound', 'ingressBound', 'publicVerifierFingerprintsBound', 'legacyHmacInventory', 'deploymentManagementIamSeparated', 'releaseProviderIamSeparated', 'secretValuesExcluded'],
+    checks: ['accountBound', 'workerServiceBound', 'activeSourceBound', 'writerTraffic100Percent', 'durableObjectClassExported', 'namespaceBindingBound', 'jurisdictionBound', 'workersDevAccountSubdomainBound', 'workersDevIngressBound', 'previewIngressDisabled', 'ingressBound', 'publicVerifierFingerprintsBound', 'legacyHmacInventory', 'deploymentManagementIamSeparated', 'releaseProviderIamSeparated', 'secretValuesExcluded'],
   }),
   q6_live_migration: Object.freeze({
     proofLayer: 'live_provider_migration',
