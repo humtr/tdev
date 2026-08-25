@@ -159,13 +159,18 @@ async function main() {
   }
   const account = encodeURIComponent(options.account_id);
   const script = encodeURIComponent(options.script_name);
-  const [deploymentsResult, namespaces, secrets, route, owner] = await Promise.all([
+  const [providerPrincipal, deploymentsResult, namespaces, secrets, route, owner] = await Promise.all([
+    cloudflareGet(apiToken, `/accounts/${account}/tokens/verify`, 'provider account-token verification'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/deployments`, 'Worker deployments'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/durable_objects/namespaces?per_page=1000`, 'Durable Object namespaces'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/secrets`, 'Worker secret inventory'),
     cloudflareGet(apiToken, `/zones/${encodeURIComponent(options.zone_id)}/workers/routes/${encodeURIComponent(options.route_id)}`, 'Worker route'),
     routeOwnerReadback(options, qualificationToken),
   ]);
+  if (providerPrincipal === null || typeof providerPrincipal !== 'object' || Array.isArray(providerPrincipal) ||
+      typeof providerPrincipal.id !== 'string' || providerPrincipal.id.length === 0 || providerPrincipal.status !== 'active') {
+    fail('cloudflare_readback_provider_principal_invalid', 'provider Cloudflare principal must be one active account-owned API token');
+  }
   const deployments = deploymentsResult?.deployments;
   if (!Array.isArray(deployments) || deployments.length === 0) fail('cloudflare_readback_deployment_invalid', 'Worker has no deployment readback');
   const deployment = deployments[0];
@@ -197,6 +202,7 @@ async function main() {
     gate: 'q5_live_provider_iam',
     proofLayer: 'live_provider_control_plane_partial',
     accountId: options.account_id,
+    providerPrincipal: { tokenType: 'account_api_token', tokenId: providerPrincipal.id, tokenStatus: providerPrincipal.status },
     workerScript: options.script_name,
     deploymentId: deployment.id,
     activeVersionId: versionId,
@@ -214,7 +220,7 @@ async function main() {
     publicVerifierFingerprints: { managementKeyId: owner.managementKeyId, releaseRootKeyId: owner.releaseRootKeyId, currentCredentialKeyId: owner.currentCredentialKeyId },
     legacyHmac: { runtimePresent: owner.legacyHmacPresent, bindingNamePresent: secretNames.includes('TDEV_AGENT_DELIVERY_AUTH_KEY') },
     secretBindingNames: secretNames,
-    iamSeparation: 'requires_controller_cross_principal_readback',
+    iamSeparation: 'requires_distinct_account_token_policy_readback',
     secretValues: 'excluded',
   })}\n`);
 }
