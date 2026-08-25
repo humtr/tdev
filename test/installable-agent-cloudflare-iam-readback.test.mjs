@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { validateD0039CloudflareIamObservation } from '../qualification/installable-agent-cloudflare-iam-readback.mjs';
+import { validateD0039CloudflareProviderPrincipal } from '../qualification/installable-agent-cloudflare-readback.mjs';
 
 const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
 const ZONE_ID = 'fedcba9876543210fedcba9876543210';
@@ -164,5 +165,30 @@ test('Q5 IAM readback rejects provider detail substitution', () => {
   assert.throws(
     () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_token_identity_mismatch',
+  );
+});
+
+test('Q5 provider principal accepts an active account-owned API token', () => {
+  assert.deepEqual(
+    validateD0039CloudflareProviderPrincipal({ tokenKind: 'account', verification: { id: PROVIDER_TOKEN_ID, status: 'active' } }),
+    { tokenKind: 'account', tokenId: PROVIDER_TOKEN_ID, tokenStatus: 'active' },
+  );
+});
+
+test('Q5 provider principal accepts an active user API token', () => {
+  assert.deepEqual(
+    validateD0039CloudflareProviderPrincipal({ tokenKind: 'user', verification: { id: PROVIDER_TOKEN_ID, status: 'active' } }),
+    { tokenKind: 'user', tokenId: PROVIDER_TOKEN_ID, tokenStatus: 'active' },
+  );
+});
+
+test('Q5 provider principal rejects inactive or unknown token identities', () => {
+  assert.throws(
+    () => validateD0039CloudflareProviderPrincipal({ tokenKind: 'user', verification: { id: PROVIDER_TOKEN_ID, status: 'disabled' } }),
+    (error) => error?.code === 'cloudflare_readback_provider_principal_invalid',
+  );
+  assert.throws(
+    () => validateD0039CloudflareProviderPrincipal({ tokenKind: 'service', verification: { id: PROVIDER_TOKEN_ID, status: 'active' } }),
+    (error) => error?.code === 'cloudflare_readback_provider_principal_invalid',
   );
 });
