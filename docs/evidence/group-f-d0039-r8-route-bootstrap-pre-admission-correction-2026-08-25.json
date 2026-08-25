@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "secretValues": "excluded",
   "classification": "d0039_r8_route_bootstrap_pre_admission_correction",
-  "observedAtUtc": "2026-08-25T23:50:50Z",
+  "observedAtUtc": "2026-08-25T23:53:12Z",
   "design": {
     "id": "D0039",
     "revision": 8,
@@ -75,5 +75,14 @@
     "archiveDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
     "releaseManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
     "deterministicDoubleBuild": "PASS"
+  },
+  "repositoryPublication": {
+    "branch": "development",
+    "publishedEvidenceRef": "48199c46fa292d9ed974387ec3f38f985920abb7",
+    "testedSourceRef": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "expectedPredecessor": "d4d0c1f26894ee73d73f631dab0249d9a13c66b5",
+    "observedVia": "git ls-remote origin refs/heads/development",
+    "nonForceAncestry": "PASS",
+    "mainRefObserved": "b86287b84375e2aeb833cf775371a7808a1239cf"
   }
 }
