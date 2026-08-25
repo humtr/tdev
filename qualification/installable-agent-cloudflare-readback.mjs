@@ -231,6 +231,9 @@ async function main() {
     legacyHmac: { runtimePresent: owner.legacyHmacPresent, bindingNamePresent: secretNames.includes('TDEV_AGENT_DELIVERY_AUTH_KEY') },
     secretBindingNames: secretNames,
     iamSeparation: 'requires_cross_principal_token_policy_readback',
+    authoritySeparation: 'unverified',
+    privateKeyCustody: 'unverified',
+    terminalQ5: false,
     secretValues: 'excluded',
   })}\n`);
 }
