@@ -6,7 +6,7 @@ import {
   QUALIFICATION_EVIDENCE_PROFILE,
   qualificationGateRequiredPrincipals,
   validateTerminalQualificationEvidence,
-} from './installable-agent-qualification-r4.mjs';
+} from './installable-agent-qualification-r6.mjs';
 
 export const INSTALLABLE_AGENT_QUALIFICATION_OBSERVATION_PROFILE = QUALIFICATION_EVIDENCE_PROFILE;
 
@@ -52,6 +52,25 @@ const GATES = Object.freeze({
 });
 
 export const INSTALLABLE_AGENT_QUALIFICATION_GATES = Object.freeze(canonicalClone(GATES));
+
+const DAG = Object.freeze({
+  q2_workers_crypto: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: null, isolatedPrequalificationEligible: false, isolatedScenarioEligible: false, invalidatesAdmission: false, requiresFreshReadmissionBeforeDependentMutation: false, compositionRole: 'canonical_or_rerun' }),
+  q3_physical_android_termux: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: 'isolated_physical_prequalification', isolatedPrequalificationEligible: true, isolatedScenarioEligible: false, invalidatesAdmission: false, requiresFreshReadmissionBeforeDependentMutation: false, compositionRole: 'compatible_physical_lineage' }),
+  q4_fresh_bootstrap: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: 'isolated_fresh_bootstrap_prequalification', isolatedPrequalificationEligible: true, isolatedScenarioEligible: false, invalidatesAdmission: false, requiresFreshReadmissionBeforeDependentMutation: false, compositionRole: 'compatible_fresh_scenario' }),
+  q5_live_provider_iam: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: 'provider_substrate', isolatedPrequalificationEligible: false, isolatedScenarioEligible: false, invalidatesAdmission: false, requiresFreshReadmissionBeforeDependentMutation: false, compositionRole: 'provider_then_route_admission' }),
+  q6_live_migration: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: 'fresh_route_bootstrap', isolatedPrequalificationEligible: false, isolatedScenarioEligible: false, invalidatesAdmission: true, requiresFreshReadmissionBeforeDependentMutation: true, compositionRole: 'bounded_bootstrap_then_admitted_migration' }),
+  q7_management_loss_compromise: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: null, isolatedPrequalificationEligible: false, isolatedScenarioEligible: true, invalidatesAdmission: true, requiresFreshReadmissionBeforeDependentMutation: true, compositionRole: 'canonical_or_sibling_scenario' }),
+  q8_release_lifecycle: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: null, isolatedPrequalificationEligible: false, isolatedScenarioEligible: true, invalidatesAdmission: true, requiresFreshReadmissionBeforeDependentMutation: true, compositionRole: 'canonical_or_sibling_scenario' }),
+  q9_rollback_provider_loss_retention: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: null, isolatedPrequalificationEligible: false, isolatedScenarioEligible: true, invalidatesAdmission: true, requiresFreshReadmissionBeforeDependentMutation: true, compositionRole: 'canonical_or_sibling_scenario' }),
+  q10_deployed_composition: Object.freeze({ terminalEvidenceRequiresAdmittedDeployment: true, preAdmissionPhase: null, isolatedPrequalificationEligible: false, isolatedScenarioEligible: false, invalidatesAdmission: false, requiresFreshReadmissionBeforeDependentMutation: false, compositionRole: 'latest_surviving_exact_lane' }),
+});
+
+export const INSTALLABLE_AGENT_QUALIFICATION_DAG = Object.freeze(canonicalClone(DAG));
+
+export function qualificationGateExecutionPolicy(gate) {
+  if (DAG[gate] === undefined) fail('qualification_gate_unknown', 'Unknown installable Agent qualification gate', { gate });
+  return Object.freeze(canonicalClone(DAG[gate]));
+}
 
 function fail(code, message, details = undefined) {
   const error = new Error(message);
