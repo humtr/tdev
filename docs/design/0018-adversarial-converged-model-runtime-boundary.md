@@ -8,7 +8,7 @@
 - Independent Pro package reviewed: reported chain through `5adcc98ce39a99d7adf80bd39e40ffa38a76693a` (commit objects absent from the current repository; package provenance only)
 - Accepted implementation scope: exact committed-Event observation, exact live-controller fencing, pre/post-publication and pre-execution authority checks, exact checkpoint-revision drain, and runtime-slot retention through predecessor cleanup/settlement; no model-process warm pool
 - Production implementation: `73d404bdc24eac8337019738ba074c2a1fea4861` — bounded C1-C4 repair plus accepted checkpoint-before-live-control handshake alignment
-- Executable review falsifiers: `bench/d0018-adversarial-convergence-falsifier.mjs` and `bench/d0018-warm-runtime-qualification.mjs`
+- Executable review falsifiers: `qualification/model-runtime-adversarial-falsifier.mjs` and `qualification/model-runtime-warm-host.mjs`
 - Final adversarial evidence: `docs/evidence/group-e-d0018-final-adversarial-qualification-2026-08-12.json` (`70f6fe7bdfe2554cbc79068ab55b51d31dc93bbbaf22e02eca640881fc973033`)
 - Production verification evidence: `docs/evidence/group-e-d0018-production-verification-2026-08-13.json` (`2a1f53043c326ada9618d54ffc8d114b1666f2c25986226637287190948216b7`)
 

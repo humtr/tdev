@@ -123,6 +123,17 @@ Before provider dispatch, the controller binds the exact intent, stable mutation
 
 Revision-5 Q1 must include the R4 journal mismatch regression plus intent/final-target substitution denial, unknown-field/profile rejection, v1 migration barriers and ambiguous-provider-effect claim retention/no-duplicate-effect vectors. Exact Revision-5 S reruns the complete source gate and constructs a new deterministic A. An evidence descendant is reusable only through the S-owned `qualification/d0039-r5-source-equivalence.mjs` checker and the bounded `D0039-R5-CURRENT-STATUS` WORKBOARD region; other semantic/source changes create a new S.
 
+### D0039 Revision-6 qualification DAG and route-bootstrap fence
+
+D0039@r6 corrects the live R5 circularity: final route-bound Q5 admission cannot be required before the only D0027 state-changing genesis transaction that can create CURRENT. Qualification is an explicit dependency/invalidation DAG, not numeric Q-order. After exact R6 Q1 S/A, isolated Q3 physical and Q4 bootstrap prequalification may run in parallel with Q5-P provider substrate when claims are disjoint. Q5-P establishes authoritative provider-applied S/A/V/IAM. A strict `tdev.installable-agent-qualification-route-bootstrap.v1` target then fences only the exact fresh-route D0027 UNREGISTERED -> GENESIS_PENDING -> CURRENT transaction. After CURRENT, Q5-R constructs final deployment-v2.
+
+Coordination advances to strict run/store v3 with exactly `provider_deployment_intent`, `route_bootstrap` and `admitted_deployment` target kinds. Nonterminal v2 state is never silently interpreted as v3. The retained R5 provider-deploy run must first be reconciled with v2 tooling: if authoritative provider readback still proves the exact dispatched effect, that **operation** may terminalize/clean without claiming final Q5. R5 provider replay remains forbidden. Because R6 semantic source changes require new S/A, the active R5 V is an exact predecessor, not an R6 final V; any required R6 provider deploy uses a new stable mutation identity after Q1 and fresh predecessor reread.
+
+Every Q7-Q9 state-changing operation declares read/write/invalidation sets. A mutation that changes any deployment-v2 field or dependent proof invalidates the prior admitted epoch; fresh provider + route-owner readback must construct a new admitted deployment before the next dependent mutation. Destructive/conflicting Q7-Q9 scenarios may run on isolated sibling qualification lanes in parallel, but a destroyed/divergent sibling never composes as canonical current state. Q10 runs last on the latest surviving exact lane. Capacity 1 is the same DAG serialized.
+
+Source/local-runtime/provider/device/deployed-product evidence remain separate. Current D0018 semantic runtime qualification may be used to parallelize isolated source/runtime falsifiers, but it cannot promote provider/device state.
+
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

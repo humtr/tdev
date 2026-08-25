@@ -1,198 +1,219 @@
 # Design 0039 — D0027 Deployment Realization
 
 - Status: `accepted`
-- Revision: 5
+- Revision: 6
 - Class: 2
 - Decision date: 2026-08-25
-- Acceptance base: `development@77be2a65db5318af621b5e6b157680cd7baf3803`
-- Trigger: executable Revision-4 application falsifier proved that the durable qualification journal rejects the accepted deployment-identity-v2 target while Cloudflare creates immutable Worker version `V` only after the first provider mutation
-- Predecessor revision: D0039@r4, accepted and source-qualified through exact Q1 plus deterministic artifact A, but not live-provider mutated
-- Predecessor maintained text: `development@77be2a65db5318af621b5e6b157680cd7baf3803:docs/design/0039-d0027-deployment-realization.md`
-- Predecessor source evidence: `docs/evidence/group-f-d0039-r4-s2-q1-exact-a-2026-08-25.json`
-- Falsifier evidence: `docs/evidence/group-f-d0039-r5-provider-version-journal-falsifier-2026-08-25.json`
-- Acceptance evidence: `docs/evidence/group-f-d0039-r5-provider-generated-version-admission-acceptance-2026-08-25.json`
-- Scope: same D0039 deployment-realization owner family; repair the qualification coordination target/version boundary so provider mutation is fenced by exact pre-dispatch intent and exact predecessor provider state, while final state-changing qualification remains fenced by the unchanged admitted deployment identity v2
-- Affected owners: `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, D0039 qualification journal/target tooling, focused qualification tests, derived Design/program routing and bounded WORKBOARD current status
-- Preserved owners: `docs/SECURITY.md` trust/secret/no-takeover meaning is unchanged; D0027@r1 remains the installable authenticated local-Agent owner; D0038@r1 remains the executor-capacity owner; the per-route `AgentDeliveryAuthority` remains the sole product-current owner
-- Explicit non-goals: no new product-current/effect authority; no alternate provider; no Zone Route or Custom Domain; no weakening of CAS, claims, ambiguity reconciliation, signer custody or no-live-takeover; no caller-invented Worker version; no Q2-Q10 proof promotion; no secret/private-key bytes in repository/evidence/model-visible state
+- Acceptance base: `development@7d629fb644808c5aa1428f1da55da28643a8c009`
+- Trigger: executable Revision-5 Q5 application reached exact provider-applied S/A/V state but proved that the selected D0027 route is still `UNREGISTERED`; the accepted final-Q5-before-any-Q6-mutation rule therefore requires a CURRENT route before allowing the only transaction that can create that CURRENT route
+- Predecessor revision: D0039@r5, accepted and source-qualified, with one exact provider effect applied and retained fail-closed in reconciliation
+- Predecessor maintained text: `development@7d629fb644808c5aa1428f1da55da28643a8c009:docs/design/0039-d0027-deployment-realization.md`
+- Trigger evidence: `docs/evidence/group-f-d0039-r5-q5-provider-applied-route-owner-blocked-2026-08-25.json`
+- Acceptance evidence: `docs/evidence/group-f-d0039-r6-qualification-dag-route-bootstrap-acceptance-2026-08-25.json`
+- Scope: same D0039 deployment-realization owner family; remove the Q5/Q6 circular dependency, replace the apparent Q1-Q10 serial queue with an explicit dependency/invalidation DAG, add a narrowly bounded route-bootstrap qualification target, separate operation-run terminality from gate closure, and require fresh re-admission after identity-changing Q7-Q9 mutations
+- Affected owners: `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, D0039 qualification target/journal tooling and tests, derived Design/program routing and bounded WORKBOARD current status
+- Preserved owners: D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains the sole route-current/effect-admission owner; D0038 remains executor-capacity owner; qualification coordination remains non-product authority
+- Explicit non-goals: no second route owner; no alternate provider/ingress; no caller-invented provider version/current tuple; no weakening of claims/CAS/reconciliation/no-live-takeover; no replay of the existing R5 provider effect; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
 
 ## 1. One-line definition
 
-Realize D0027 on the accepted exact `workers.dev` ingress by fencing the first provider deployment effect with a durable exact deployment intent, resolving provider-generated `V` only by authoritative readback, and requiring the unchanged exact deployment identity v2 before Q2 or any state-changing product/device qualification.
+Realize D0027 through an explicit qualification DAG: qualify exact S/A, establish provider-applied S/A/V, authorize only the exact fresh-route genesis transaction from an authenticated UNREGISTERED predecessor, join the resulting CURRENT route into final deployment-v2, and re-admit after every later mutation that invalidates that identity before composing Q10.
 
-## 2. Revision inheritance and historical preservation
+## 2. Executed Revision-5 falsifier
 
-Revision 5 is a same-Design correction under `SDD.md`. The problem remains D0027 deployment realization; the selected Cloudflare account/Worker/Durable Object owner family, `workers.dev` ingress, S/A/V/R admission, D0027 generation model, D0020 route-current authority, credential/trust scheme, release scheme and final proof layers do not change.
+Revision 5 correctly separated the pre-provider deployment intent from provider-generated V. Its live application then reached a stronger falsifier:
 
-Revision-4 source `S2 = e151d722d7dd8eb3e6cf9172bf45f56eb5ef67a4`, its exact Q1 observations and deterministic A remain immutable historical evidence for Revision 4 only. Because Revision 5 changes the Design, QUALIFICATION/DEPLOYMENT meaning and qualification source, they cannot be promoted into Revision-5 Q1 or A. Revision 5 requires a new exact source S, complete Q1, and a newly constructed deterministic A.
+- one provider-deploy run was durably PREPARED and dispatched exactly once;
+- authoritative Cloudflare readback observed V `166d691a-630a-4fd3-af44-dd5076b323eb` at 100 percent on the exact workers.dev ingress with exact R5 S/A/configuration;
+- independent IAM readback was available;
+- the retained exact D0027 route `d0039-q6-bounded-final-20260824`, generation 1, was `UNREGISTERED` with no `currentTupleDigest`;
+- `d0039_security_readback` therefore failed closed with `invalid_digest`;
+- D0027 owns `UNREGISTERED -> GENESIS_PENDING -> CURRENT`, and only its state-changing registration/genesis transaction may create the first CURRENT tuple.
 
-Revision 5 preserves without relaxation:
+R5 simultaneously required final provider plus route-owner S/A/V/R admission before any Q6 state-changing mutation. That is a cycle, not a missing credential or transient provider failure. The provider request is not retried or rolled back to hide this result.
 
-- exact `workers.dev` account subdomain, hostname, `enabled=true`, `previews_enabled=false` and no Zone/Custom-Domain fallback;
-- final `tdev.installable-agent-qualification-deployment.v2` as the mutation-bound S/A/V/R identity after provider admission;
-- one existing per-route `AgentDeliveryAuthority` as sole product-current owner;
-- exact management/release/credential trust and signer-custody boundaries;
-- one qualification mutation controller, exclusive claims, strict CAS, restart reconciliation and no automatic live takeover;
-- Q2-Q10 as independent executable proof layers.
+A second sequencing defect is also normative: existing qualification text already says Q7/Q8/Q9 invalidate route/package/trust/provider observations that earlier Q5 evidence read. Therefore `Q5 once -> Q6 -> Q7 -> Q8 -> Q9 -> Q10` cannot be a sound immutable evidence chain even if initial genesis already existed.
 
-## 3. Executed falsifier and correction boundary
+## 3. Revision inheritance and exact R5 disposition
 
-At exact authority `development@77be2a65db5318af621b5e6b157680cd7baf3803`, the generic durable journal imports Revision-3 `normalizeQualificationDeploymentIdentity`. A focused executable falsifier passed a valid Revision-4 deployment-v2 value into `FileQualificationJournal.prepareRun()` and observed `unexpected_keys` / `Revision-3 qualification deployment identity has unexpected or missing keys`. Therefore the accepted R4 target cannot enter PREPARED at all.
+Revision 6 preserves all durable R5 facts and does not promote them into R6 proof:
 
-Independently, the repository Cloudflare provider adapter performs the Worker upload first and then reads the provider-created Worker version. The immutable Worker version ID `V` is consequently not a caller-known pre-dispatch fact for the first Worker mutation. Revision 4 simultaneously said that PREPARED carries exact S/A/V/R before provider mutation and that the implementation should record exact intended facts available at that stage before creating V. Those statements are incompatible on the selected provider.
+- R5 exact tested source `S5 = 431b5f48d01f99c166ed1e6ec64a5271932716da` and its deterministic A remain immutable R5 evidence;
+- the currently active R5 provider V remains a real provider predecessor, not an R6 final V;
+- the R5 provider-deploy request must never be replayed as a retry of the same stable mutation identity;
+- the R5 v2 run may leave `RECONCILING` only after v2-capable authoritative reread proves that its intended **provider effect** is applied. That transition may terminalize/clean the provider-deploy operation, but it does not close Q5 or create an admitted deployment;
+- because R6 changes Design/qualification source, R6 requires a new exact S6, a complete Q1 gate and a new deterministic A6. If exact provider runtime binding must name S6/A6, a later R6 provider deployment is a new mutation identity against the freshly reread R5 provider predecessor, not a retry of the R5 effect.
 
-No Cloudflare/provider mutation and no qualification-token transmission occurred while discovering this defect. The correction therefore changes coordination/admission semantics forward; no operational rollback is required.
+Operation-run terminality and qualification-gate closure are distinct. `TERMINAL_APPLIED` means that the run's intended external mutation was authoritatively observed; it does not mean every proof gate that depends on that effect is closed.
 
-## 4. Two exact target classes
+## 4. Qualification coordination v3
 
-Revision 5 defines two different, non-substitutable target classes.
-
-### 4.1 Pre-provider deployment intent
-
-The first provider effect uses strict profile:
+Revision 6 advances the strict coordination union because a third mutation target is required:
 
 ```text
+tdev.installable-agent-qualification-run.v3
+tdev.installable-agent-qualification-store.v3
+tdev.installable-agent-qualification-claim.v1
 tdev.installable-agent-qualification-deployment-intent.v1
-```
-
-It contains only exact facts that are positively knowable before dispatch:
-
-- exact Revision-5 S and A/archive/manifest digests;
-- exact Cloudflare account and Worker service/script name;
-- deployment/environment/epoch chosen by the qualification controller;
-- fresh account `workers.dev` subdomain and exact derived desired hostname/origin;
-- required ingress kind `workers_dev`, desired `enabled=true`, desired `previews_enabled=false`;
-- exact intended Worker class/namespace/jurisdiction and immutable plain-text deployment-binding digest;
-- exact digest of the authoritative pre-dispatch provider snapshot for the target Worker/resources, including whether the target service is absent or the exact predecessor deployment/version/configuration that exists;
-- the authoritative reread method identity used after ambiguous dispatch.
-
-The intent deliberately contains no provider-generated Worker version ID, no invented active deployment ID, no route-owner current tuple and no Durable Object route identity that has not yet been observed. Missing pre-dispatch facts remain a blocker; unknown provider-generated outputs are not replaced with placeholders.
-
-### 4.2 Final admitted deployment identity
-
-After provider effect reconciliation and independent provider plus route-owner readback, the final identity remains exactly:
-
-```text
+tdev.installable-agent-qualification-route-bootstrap.v1
 tdev.installable-agent-qualification-deployment.v2
 ```
 
-Its Revision-4 strict shape and meaning are unchanged: exact S/A/V, account/service, deployment/environment/epoch, 100-percent state-changing traffic, exact workers.dev ingress, Worker/namespace/class/jurisdiction, Agent route generation/Durable Object identity and route-current/verifier digests.
+Run/store v3 accepts exactly three target kinds:
 
-A deployment intent is never accepted as `expectedDeploymentIdentityDigest`, never closes Q5, and never authorizes Q2 or a state-changing product/device qualification RPC.
+1. `provider_deployment_intent` — only `provider_deploy` may mutate against it;
+2. `route_bootstrap` — only the bounded initial D0027 route-bootstrap transaction may mutate against it;
+3. `admitted_deployment` — all ordinary state-changing product/device qualification requires it.
 
-## 5. Durable qualification run/store version and migration fence
+Unknown target kinds/profiles/fields fail closed. A deployment intent or route-bootstrap target is never accepted as `expectedDeploymentIdentityDigest`, terminal Q5 identity, Q2 runtime identity or an ordinary Q7-Q9 mutation fence.
 
-Because the durable run target meaning changes from one deployment-identity shape to a strict tagged union, Revision 5 advances the coordination format rather than silently reinterpreting v1 bytes:
+No nonterminal v2 state is silently reinterpreted as v3. The currently retained R5 v2 provider run is first reconciled with v2 semantics. After every v2 run/claim/controller is positively terminal/quiescent, a supported v2->v3 migration preserves genesis provenance, tombstones, controller/resource generation high-water and replay/no-takeover barriers. Missing/corrupt/ambiguous state blocks migration.
 
-```text
-tdev.installable-agent-qualification-run.v2
-tdev.installable-agent-qualification-store.v2
-```
+## 5. Exact route-bootstrap target
 
-The claim profile remains `tdev.installable-agent-qualification-claim.v1`; claim key/generation/exclusive-holder meaning is unchanged. Controller identity, legal run states, strict predecessor-record CAS, tombstones, high-water and cleanup semantics remain unchanged unless the v2 implementation must version a concrete record solely to preserve strict decoding.
-
-Run v2 carries an explicit target kind and a strict target value:
+The strict profile is:
 
 ```text
-provider_deployment_intent -> deployment-intent.v1 only
-admitted_deployment        -> deployment.v2 only
+tdev.installable-agent-qualification-route-bootstrap.v1
 ```
 
-`provider_deploy` is the only state-changing operation allowed to PREPARE a `provider_deployment_intent`. Product/device state-changing operations require `admitted_deployment`. Read-only provider/admission observations may use the final admitted identity when it already exists. Unknown target kinds/profiles fail closed.
+It represents only facts knowable after authoritative provider application and before first D0027 CURRENT election:
 
-There is no implicit v1->v2 reinterpretation and no v2->v1 downgrade. If the configured predecessor store is v1 and contains a nonterminal run, live claim, or mutation controller, v2 admission is blocked until the predecessor obligations are positively reconciled under v1-capable tooling. A migration of a fully quiescent v1 store is allowed only through an explicit validated migration that preserves genesis provenance, tombstones, controller/claim generation high-water and every replay/resource-reuse barrier. If that preservation cannot be proven, migration is blocked rather than starting a fresh store over the old path.
+- exact R6 S/A/archive/manifest identities;
+- exact Cloudflare account, Worker/service, workers.dev hostname/origin and deployment epoch;
+- authoritative active provider V/deployment/configuration digest and 100-percent-writer observation digest;
+- exact Worker namespace ID/name, D0027 class and jurisdiction;
+- exact D0020/D0027 route binding `(agentId, routeGeneration)`;
+- authoritative exact route predecessor state `UNREGISTERED`, predecessor/current-state digest and management-request high-water/floor facts required by D0027;
+- one controller-selected stable route-bootstrap transaction identity/request identity;
+- exact provider and route-owner reread method identities;
+- the exact qualification resource claims that fence the route/provider/device state touched by this transaction.
 
-## 6. Provider deployment effect and ambiguity
+The target deliberately has no caller-invented first-route tuple, credential generation, package generation, trust generation or lifecycle generation. Those product-owner outputs are admitted only from authoritative route-owner readback.
 
-Before the first Worker mutation, the controller must:
+The `route_bootstrap` operation authorizes only the existing D0027 fresh-route transaction family needed to reach or fail genesis safely: legacy-route migration when required, register, genesis evidence/quiescence staging, first `initial_activate`, and bounded fail-genesis/reconciliation paths. It does **not** authorize ordinary start/stop, credential rotation, package activation, replacement, uninstall, arbitrary higher-route recovery or provider redeploy.
 
-1. freshly read the exact provider predecessor state and workers.dev account subdomain;
-2. construct exact Revision-5 S and deterministic A;
-3. construct the strict deployment-intent target and predecessor-provider-state digest;
-4. acquire the global qualification mutation lane plus exact affected provider-resource claims;
-5. durably PREPARE run.v2 with the intent, stable mutation identity and authoritative reread identity;
-6. transition to DISPATCHED immediately before issuing the provider effect.
+`AgentDeliveryAuthority` remains the sole product-current owner throughout. The qualification target grants no route-current authority; it is only an external-effect fence around an already-owned D0027 transaction.
 
-After dispatch, timeout, disconnect, malformed response, uncertain non-2xx, controller failure or any other unknown outcome remains ambiguous. The controller enters/reconstructs RECONCILING and reads the provider using the pre-bound authoritative method. It may classify only positive not-admitted/applied/conflict evidence; it does not mint a new request, create a second V, overwrite resources, release claims or transfer control merely because time passed.
+## 6. Q1-Q10 is a dependency/invalidation DAG, not a numeric serial queue
 
-A returned/upload-response Worker version is not authoritative by itself. The generated V is accepted only when provider control-plane reread shows the exact intended S/A/configuration on one immutable version and the intended deployment state. That observation becomes input to final S/A/V/R admission, not a retroactive pre-dispatch fact.
+The Q labels remain proof categories. Their number is not a scheduling primitive.
 
-## 7. Exact S/A/V/R admission and Q5
+### 6.1 Canonical surviving lane
 
-The final admission sequence remains:
+The minimum canonical lane is:
 
 ```text
-S -> A -> PREPARED deployment intent -> provider effect/reconciliation -> V
-  -> deployment/cutover -> exactly 100% state-changing writer
-  -> provider readback -> route-owner readback -> exact S/A/V/R join
+Q1(S6/A6)
+  -> Q5-P provider substrate (intent -> one R6 provider effect if required -> authoritative V6/100%/IAM)
+  -> Q6-B route bootstrap from exact UNREGISTERED predecessor
+  -> Q5-R0 final provider + CURRENT route join => admitted deployment D0
+  -> Q2 runtime crypto/readback against D0
+  -> Q7 mutation family -> fresh re-admission D7
+  -> Q8 mutation family -> fresh re-admission D8
+  -> Q9 surviving recovery/retention family -> fresh re-admission D9
+  -> Q10 final composition on D9
 ```
 
-The deployment-admission portion of Q5 still precedes Q2 and every state-changing product/device qualification. Provider active-version identity and route-owner runtime version must agree in one stable deployment/config epoch. Mixed/canary state-changing writers, alternate hostnames, redirects, preview ingress, stale predecessor endpoints and cross-epoch joins fail closed.
+`Q5-P` and `Q5-R` are two phases of the Q5 proof category, not new public Design IDs. Q6-B is the initial route-bootstrap subset of Q6 that is expressly permitted before final Q5-R because otherwise no CURRENT route can exist.
 
-Provider and IAM observation remain Revision-4 meaning: deploy principal needs effective Workers Scripts Write on the exact account; a distinct IAM observer reads the provider-token policy; signer private-key custody/privilege separation requires separate evidence and is not inferred from Cloudflare token policy.
+### 6.2 Parallel lanes
 
-## 8. Qualification journal, no-live-takeover and non-authority
+After Q1 closes, independent work may proceed concurrently when resource claims and proof owners are disjoint:
 
-The legal run-state family remains:
+- Q3 physical Android/Termux package/keystore prequalification may run on isolated qualification-owned local state;
+- Q4 fresh bootstrap/capsule prequalification may run on an isolated fresh profile;
+- Q5-P provider substrate may run on its exact provider lane;
+- source/runtime falsifiers and read-only analyses may run in sibling Task-owned worktrees/runtime slots.
+
+Parallel prequalification does not turn isolated state into final deployed-product evidence. Capacity one remains the same DAG executed serially.
+
+Q7/Q8/Q9 destructive or conflicting scenarios may also run in parallel **only on isolated sibling qualification routes/instances**. Their evidence is scenario evidence; a destroyed or divergent sibling identity cannot be composed as the current identity of the canonical surviving lane.
+
+## 7. Evidence invalidation and re-admission checkpoints
+
+An admitted deployment is epoch-bound, not timeless. Every state-changing qualification operation declares the fields/resources it reads and writes and the evidence it invalidates.
+
+- Q6 bootstrap writes the first CURRENT route and invalidates pre-Q6 route/request-floor/HMAC/final-route observations.
+- Q7 higher-route/management recovery, credential revocation/rotation or equivalent current-tuple change invalidates the prior route-bound deployment admission and any dependent runtime observation.
+- Q8 package/trust/release/lifecycle changes invalidate admissions and local-machine evidence bound to replaced package/trust/credential identities.
+- Q9 provider loss/rollback/retention/reinstall/replacement may invalidate provider V, route, package or instance identity. A destructive instance cannot later be called the final current instance.
+
+After any mutation that changes a field of deployment-v2 or a proof read by the next dependent gate, the controller performs fresh authoritative provider + route-owner readback and constructs a new exact deployment-v2 epoch before the next dependent state-changing mutation. Stale admissions are rejected rather than silently reused.
+
+Q2/Q3/Q4 evidence is rerun or retained according to its explicit read/invalidation set. Q10 composes only mutually compatible evidence for the latest surviving final lane plus separately labeled failure-scenario evidence.
+
+## 8. Corrected Q1-Q10 proof meanings
+
+- **Q1 source/canonical:** new exact R6 S6, complete current source gate, complete coverage/diff/cleanliness checks required by the current owner, and deterministic A6. R5 source-equivalence cannot promote semantic R6 changes.
+- **Q2 Workers crypto/runtime:** requires a current admitted deployment epoch; provider V and route-owner runtime binding must exact-join. It may run after Q5-R0 and must rerun if later mutation invalidates its read set.
+- **Q3 physical Android/Termux:** isolated prequalification may run in parallel after Q1. Final claims name exact package/device/keystore lineage and are invalidated by relevant Q8/Q9 replacement.
+- **Q4 fresh bootstrap:** isolated fresh-machine/capsule/bootstrap evidence may run in parallel after Q1. It remains a fresh-scenario proof and is not promoted into current-route state without the exact final join it actually observed.
+- **Q5 live provider/IAM:** Q5-P establishes exact provider-applied S/A/V plus IAM; Q5-R establishes each final route-bound deployment epoch after a CURRENT route exists. Neither half alone is terminal Q5.
+- **Q6 live migration:** its initial fresh-route bootstrap subset is fenced by route-bootstrap.v1 between Q5-P and Q5-R0. Later ordinary/migration mutations require the latest admitted deployment and invalidate it when they change identity.
+- **Q7 management loss/compromise:** canonical-lane mutation is serialized under claims and followed by re-admission; independent destructive/higher-route scenarios may use sibling lanes.
+- **Q8 release lifecycle:** package/trust/credential/lifecycle changes use the latest admission, preserve generation monotonicity and are followed by re-admission when identity changes.
+- **Q9 provider loss/retention/rollback:** destructive variants use isolated siblings or explicitly recover/reinstall into a new surviving identity, then re-admit. Destroyed-instance evidence is never current-state evidence.
+- **Q10 deployed composition:** last on the latest surviving exact lane. It binds the current S/A/V/R epoch and only compatible Q2-Q9 evidence; it does not flatten mutually exclusive histories into one state.
+
+## 9. Runtime-test lane and repository-path correction
+
+Historical runtime branch `tmcp/d0018-runtime-boundary-recovery@b9e260391e56c82b6ca6c9ab7965664396da1069` is evidence, not authority. Its production repair `73d404bdc24eac8337019738ba074c2a1fea4861` is an ancestor of the R6 acceptance base. D0037 moved permanent D0018 falsifiers from `bench/d0018-*` to semantic paths:
 
 ```text
-PREPARED -> DISPATCHED -> RECONCILING
-  -> TERMINAL_NOT_ADMITTED | TERMINAL_APPLIED | TERMINAL_CONFLICT
-  -> CLEANUP_PENDING -> CLEAN
+qualification/model-runtime-adversarial-falsifier.mjs
+qualification/model-runtime-warm-host.mjs
 ```
 
-`STILL_AMBIGUOUS` and admitted-in-progress outcomes remain nonterminal. Exactly one mutation controller owns a live mutation lane. Timeout, expiry, disconnect, process disappearance, CAS failure, a new request identity or a higher generation never grants successor effect rights. Positive predecessor exclusion/quiescence remains required before takeover, cleanup, claim release or resource reuse.
+Current-head revalidation at the acceptance base passed the adversarial path (all 27 reference cases plus current-source cancellation cases) and the full warm-host path. The successful warm-host run completed in 230696 ms. An earlier 180000 ms outer runner deadline produced a false timeout even though the historical official warm qualification also required about 181 seconds; therefore whole-suite wall-clock deadlines are runner plumbing and must retain margin beyond the harness internal semantic timeout/cancellation guards. This lane is suitable for isolated parallel source/runtime qualification and defect discovery. It does not prove Cloudflare/provider/device layers and never authorizes reuse of an old runtime branch as repository authority.
 
-Qualification coordination is still non-product authority. Neither deployment intent, run/store state, Cloudflare deployment state nor the qualification controller can elect product-current Agent state or recover a lost `AgentDeliveryAuthority` route.
+The stale D0018 maintained-path pointer is corrected as derived documentation drift under already-verified D0037; no D0018 product/runtime semantics change.
 
-## 9. Q1-Q10 acceptance delta
+## 10. R5-to-R6 operational continuation
 
-No proof layer promotes another.
+The existing provider state is preserved while R6 source is qualified.
 
-- **Q1 source/canonical:** rerun all inherited R4 source gates plus explicit journal/target integration: valid final deployment-v2 target is accepted by run/store v2; valid deployment-intent is accepted without V; provider-deploy rejects final-target substitution; non-provider state-changing operations reject intent-target substitution; target kind/profile unknown fields fail closed; v1 nonterminal state blocks migration; any supported quiescent-v1 migration preserves tombstones/high-water/replay barriers; ambiguous provider-deploy reconciliation retains claims and blocks duplicate effects.
-- **Q2 Workers crypto:** unchanged and blocked until final exact deployment-v2 admission.
-- **Q3 physical Android/Termux:** unchanged.
-- **Q4 fresh bootstrap:** unchanged.
-- **Q5 live provider/IAM:** unchanged final workers.dev/provider/route-owner/IAM/custody requirements, but its first provider effect is now fenced by deployment-intent.v1 rather than an impossible pre-known V.
-- **Q6 live migration:** unchanged product migration semantics; all state-changing qualification is fenced by the final admitted deployment-v2 identity.
-- **Q7 management loss/compromise:** unchanged.
-- **Q8 release lifecycle:** unchanged.
-- **Q9 rollback/provider-loss/retention:** unchanged product/provider recovery requirements; coordination-store v1/v2 migration is additionally fail-closed as Section 5 specifies.
-- **Q10 deployed composition:** unchanged and bound to the final exact Revision-5 deployment-v2 identity.
+1. Freshly reread current remote authority and the R5 provider/journal state.
+2. Under exact v2 semantics, reconcile the existing R5 `provider_deploy` run. If authoritative readback still proves the exact dispatched provider effect, terminalize/clean that operation without claiming final Q5. Any ambiguity keeps it blocked.
+3. Only after v2 coordination is quiescent, migrate the qualification store to v3 preserving all replay/high-water/tombstone barriers.
+4. Establish exact S6/A6 from Q1.
+5. Freshly reread the active R5 provider V as the predecessor. If R6 final runtime binding requires S6/A6, PREPARE one new R6 provider intent with a new stable mutation identity and perform at most one fenced provider effect; reconcile V6 by authoritative readback.
+6. Build route-bootstrap.v1 from the exact provider-applied R6 state plus the exact UNREGISTERED route predecessor and claims.
+7. Execute/reconcile only the bounded D0027 bootstrap transaction. Unknown outcome remains blocked with claims retained; no blind retry/takeover.
+8. After authoritative CURRENT readback, construct Q5-R0 deployment-v2 and continue the DAG.
 
-Revision-4 Q1/A evidence is historical only. Revision-5 Q1 and A start unverified.
+A provider V from R5 may be the predecessor of R6 deployment, but it is never renamed into an R6 final V without exact R6 S/A binding proof.
 
-## 10. Deployment, rollback and failure behavior
+## 11. Source implementation order
 
-The target remains the isolated non-production qualification substrate. No provider mutation is admitted until run/store v2 and deployment-intent source behavior pass Revision-5 Q1 at exact S and a new A is constructed from S.
+1. accept/publish this Revision-6 owner correction and synchronize QUALIFICATION/DEPLOYMENT/SECURITY/PROGRAM/WORKBOARD;
+2. implement strict route-bootstrap.v1 plus run/store v3 target union and v2-quiescent migration;
+3. implement operation/target substitution denials and the operation-run-terminal-vs-gate-closure distinction;
+4. implement R5 provider-run reconciliation/cleanup without provider replay;
+5. add DAG/invalidation/re-admission helpers/checks and focused falsifiers;
+6. rerun current D0018 adversarial/warm-host runtime qualifications through semantic paths;
+7. establish exact S6 and complete Q1 + deterministic A6;
+8. only then consider live R6 provider/route work under fresh authority/provider/credential/claim preflight.
 
-If preflight cannot establish exact account subdomain, target service/predecessor state, intended namespace/class/jurisdiction or the required provider-resource claim identity, provider deployment is not dispatched. If provider effect becomes ambiguous, only authoritative reread/reconciliation can advance it. If final readback cannot form one exact deployment-v2 identity, Q5 remains unverified and Q2/product mutation remains blocked.
+No live Q6-Q10 mutation is authorized merely by acceptance of this Design. The source gate and the exact R6 external-effect fences must exist first.
 
-Coordination rollback never means forgetting a durable v2 barrier. Tooling that understands only v1 cannot resume a v2 campaign. Product-state rollback remains forward-only under D0027 and still requires an admitted provider/runtime identity.
+## 12. Acceptance matrix and cheapest falsifiers
 
-## 11. Exact source and evidence descendant
+| Area | Required acceptance |
+| --- | --- |
+| circularity | fresh UNREGISTERED route no longer requires a nonexistent CURRENT tuple before its exact bootstrap transaction |
+| target separation | provider intent, route bootstrap and admitted deployment are strict non-substitutable target kinds |
+| run/store migration | nonterminal v2 blocks v3; quiescent migration preserves replay/high-water/tombstone/controller barriers |
+| R5 preservation | exact R5 provider effect is never replayed; operation-level applied reconciliation does not claim Q5 |
+| DAG | Q labels are dependency/invalidation gates, not a numeric serial queue; capacity one is valid degeneration |
+| re-admission | Q7-Q9 identity changes make stale deployment epochs unusable until fresh provider+route readback joins a new epoch |
+| destructive scenarios | destroyed/divergent sibling evidence cannot become canonical current identity |
+| product authority | AgentDeliveryAuthority remains sole route-current/effect owner; qualification targets grant no product authority |
+| runtime path | current semantic D0018 adversarial and warm-host falsifiers remain runnable; outer suite deadlines are not confused with semantic timeout guards; historical branch/path names are not treated as current authority |
+| proof layers | source/runtime experiments do not promote provider/device/deployed-product state |
 
-Revision 5 uses strict Model B. One exact final source/normative commit `S` runs the complete Q1/source gate and builds the new deterministic A. `S` must contain a repository-owned `qualification/d0039-r5-source-equivalence.mjs` checker and a machine-delimited `D0039-R5-CURRENT-STATUS` WORKBOARD region before an evidence descendant may reuse S.
+Cheapest falsifiers include: route-bootstrap accepted without an authoritative UNREGISTERED predecessor; ordinary operation accepted on route-bootstrap target; R5 provider effect replayed with the same mutation identity; v2 nonterminal state silently read as v3; stale D0 accepted after a Q7/Q8/Q9 identity change; Q10 joining a destroyed sibling; or an old `bench/d0018-*` path treated as the current runtime executable.
 
-An optional evidence descendant may add only newly created immutable `docs/evidence/group-f-d0039-r5-*.json` and modify only the bounded R5 status region. Any `qualification/**`, `test/**`, product/tool/package input, Design, DEPLOYMENT, QUALIFICATION, PROGRAM or routing-semantic change creates a new S and reruns full Q1. R3/R4 evidence/checkers remain immutable historical namespaces.
+## 13. Completion boundary
 
-## 12. Owner synchronization and implementation order
-
-This accepted revision authorizes only the following forward correction:
-
-1. synchronize QUALIFICATION and DEPLOYMENT with the two-target/run-store-v2 meaning and update current routing/derived Design references to D0039@r5;
-2. implement strict deployment-intent normalization/digest and run/store-v2 target dispatch without changing final deployment-v2 identity;
-3. implement the explicit v1 migration barrier and only the safe quiescent migration behavior that can preserve all retained fences;
-4. add focused executable falsifiers including the exact R4 journal mismatch regression and provider-generated-V sequencing;
-5. add the R5 source-equivalence checker/status region;
-6. establish exact source S, run full Q1, construct and verify new deterministic A;
-7. only then reacquire needed provider/IAM/route-owner credentials through secret references and execute the fenced workers.dev Q5 admission;
-8. continue Q2-Q10 only on the final admitted deployment-v2 identity.
-
-If implementation requires a second product/effect authority, cannot preserve v1 durable barriers, changes final deployment-v2 runtime identity, needs another ingress/provider/trust root, or changes D0027/D0020 ownership, stop at the affected SDD boundary instead of widening Revision 5.
-
-## 13. Acceptance status
-
-Revision 5 is accepted on exact base `development@77be2a65db5318af621b5e6b157680cd7baf3803` from the executable journal mismatch and provider-version sequencing evidence. Acceptance changes contract meaning only. No Revision-5 source/Q1/A, run/store-v2 migration, Cloudflare mutation, final Q5, signer custody or Q2-Q10 proof is claimed yet.
-
-The next admissible Class-2 action is the bounded Revision-5 qualification coordination/source correction above. Provider credentials are intentionally not requested or used until that source gate is green.
+Revision 6 is accepted, not verified. Verification requires published source implementation, complete exact Q1/A6, executable target/migration/re-admission falsifiers and the required provider/device/operator proof layers. No current R5 provider observation, local runtime pass or source-only test is promoted into final R6 Q5/Q6-Q10 completion.

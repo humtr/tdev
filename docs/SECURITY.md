@@ -294,3 +294,7 @@ A source-layer qualification does not by itself prove:
 - hostile-storage authenticity;
 - resistance to all resource exhaustion;
 - production incident response or key rotation.
+
+### D0039 Revision-6 route-bootstrap security boundary
+
+The R6 route-bootstrap qualification target grants no product-current authority. The existing per-route D0020/D0027 `AgentDeliveryAuthority` remains the only owner that can elect CURRENT. Qualification may fence only an exact authenticated fresh-route genesis transaction from a positively observed UNREGISTERED predecessor; caller-invented CURRENT tuples/generations are forbidden. Ordinary management, credential, package, trust, replacement, uninstall and higher-route recovery operations require the latest admitted deployment, not the bootstrap target. Ambiguous bootstrap retains claims and blocks retry/takeover. Re-admission after Q7-Q9 identity changes is readback/evidence, not a second authority. Secret/private-key values remain excluded.

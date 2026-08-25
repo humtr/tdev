@@ -357,3 +357,11 @@ Before cutting a source artifact, run the complete current baseline source gate 
 For a Git checkout, independently inspect repository cleanliness/publication preconditions required by the development workflow. Archive-only validation may omit `.git`, but that does not waive checkout publication gates when Git state is part of the release path. Confirm that no generated/cache/runtime directory or secret material is included in a development artifact.
 
 Run `npm run bench` only when the affected release claims or investigates the corresponding performance path. Benchmark timing is observational evidence with its workload/environment identity; it has no implicit production SLO or generic pass/fail threshold.
+
+### D0039 Revision-6 provider/bootstrap/re-admission deployment fence
+
+Revision 6 splits deployment realization into provider substrate, bounded route bootstrap and final/repeated route-bound admission. Provider substrate is established by deployment-intent plus authoritative provider V/100-percent/IAM readback. The exact route bootstrap target contains the provider-applied S/A/V/configuration observation plus an authoritative exact UNREGISTERED route predecessor and stable bootstrap transaction identity; it authorizes only the D0027 genesis transaction family needed to reach or fail CURRENT safely. It is not a product-current identity and cannot fence ordinary Q7-Q9 mutation.
+
+Final `tdev.installable-agent-qualification-deployment.v2` is constructed only after CURRENT exists. It is epoch-bound: any Q7/Q8/Q9 mutation that changes provider/route/package/trust/credential/lifecycle fields invalidates the prior admission and requires fresh provider + route-owner readback before the next dependent state-changing operation. R5 V is preserved as the exact provider predecessor/falsifier. The retained R5 provider-deploy run may be reconciled/cleaned as an applied provider operation only; it is never replayed and never renamed into R6 Q5. After R6 Q1, any S6/A6 provider update is a new mutation identity against a fresh predecessor snapshot.
+
+Run/store v3 may start only after exact v2 state is positively quiescent and its migration preserves provenance, tombstones and controller/resource generation high-water. Unknown/ambiguous provider or route-bootstrap outcomes retain claims and block retry/takeover.
