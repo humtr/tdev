@@ -1,4 +1,4 @@
-name: D0039 Q5 candidate exact-source gate
+name: D0039 Q5 exact integration source gate
 
 on:
   pull_request:
@@ -15,7 +15,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: b94f938f08b02e606804f007c31edc7ed9706d5f
+          ref: 1e0ee228895895643a3835af3b3a6ff197376f80
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
