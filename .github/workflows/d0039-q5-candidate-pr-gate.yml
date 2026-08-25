@@ -22,23 +22,23 @@ jobs:
         run: npm run syntax
       - name: docs-check
         run: npm run docs:check
-      - name: new-iam-readback-tests
-        continue-on-error: true
-        run: node --test test/installable-agent-cloudflare-iam-readback.test.mjs
-      - name: new-provider-principal-tests
-        continue-on-error: true
-        run: node --test test/installable-agent-cloudflare-provider-principal.test.mjs
-      - name: existing-cloudflare-readback-tests
-        continue-on-error: true
-        run: node --test test/installable-agent-cloudflare-readback.test.mjs
-      - name: baseline-tests-without-new-files
+      - name: baseline-plus-iam-parallel
         continue-on-error: true
         shell: bash
         run: |
           mapfile -t files < <(find test -maxdepth 1 -name '*.test.mjs' \
-            ! -name 'installable-agent-cloudflare-iam-readback.test.mjs' \
             ! -name 'installable-agent-cloudflare-provider-principal.test.mjs' | sort)
           node --test "${files[@]}"
+      - name: baseline-plus-provider-parallel
+        continue-on-error: true
+        shell: bash
+        run: |
+          mapfile -t files < <(find test -maxdepth 1 -name '*.test.mjs' \
+            ! -name 'installable-agent-cloudflare-iam-readback.test.mjs' | sort)
+          node --test "${files[@]}"
+      - name: full-tests-concurrency-2
+        continue-on-error: true
+        run: node --test --test-concurrency=2 test/*.test.mjs
       - name: full-tests-serial
         continue-on-error: true
         run: node --test --test-concurrency=1 test/*.test.mjs
