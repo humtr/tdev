@@ -11,6 +11,7 @@ import {
 
 const API_ROOT = 'https://api.cloudflare.com/client/v4';
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
+const TOKEN_KINDS = Object.freeze(new Set(['account', 'user']));
 
 function fail(code, message, details = undefined, options = undefined) {
   const error = new Error(message, options);
@@ -20,7 +21,7 @@ function fail(code, message, details = undefined, options = undefined) {
 }
 
 function parseArgs(argv) {
-  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--zone-id', '--route-id', '--qualification-endpoint', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction']);
+  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--zone-id', '--route-id', '--qualification-endpoint', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
@@ -39,6 +40,7 @@ function parseArgs(argv) {
     assertDigest(values.get('--expected-artifact-manifest-digest'), 'expected artifact manifest digest');
   } catch (cause) { fail('cloudflare_readback_usage', 'expected artifact digests are invalid', {}, { cause }); }
   if (endpoint.pathname !== '/' || endpoint.search || endpoint.origin !== values.get('--qualification-endpoint')) fail('cloudflare_readback_usage', 'qualification endpoint must be an exact HTTPS origin');
+  if (!TOKEN_KINDS.has(values.get('--provider-token-kind'))) fail('cloudflare_readback_usage', 'provider token kind must be account or user');
   return Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]).concat([['route_generation', routeGeneration], ['qualification_endpoint', endpoint]]));
 }
 
@@ -88,6 +90,15 @@ async function routeOwnerReadback(options, qualificationToken) {
   const body = await boundedJson(response, 'route-owner readback');
   if (!response.ok || body?.profile !== QUALIFICATION_RPC_PROFILE || body?.schemaVersion !== 2 || body?.ok !== true || body?.result?.secretValues !== 'excluded') fail('cloudflare_route_owner_readback_failed', 'route-owner security readback failed', { status: response.status });
   return body.result;
+}
+
+export function validateD0039CloudflareProviderPrincipal({ tokenKind, verification }) {
+  if (!TOKEN_KINDS.has(tokenKind)) fail('cloudflare_readback_provider_principal_invalid', 'provider token kind must be account or user');
+  if (verification === null || typeof verification !== 'object' || Array.isArray(verification) ||
+      typeof verification.id !== 'string' || verification.id.length === 0 || verification.id.length > 128 || verification.id.includes('\0') || verification.status !== 'active') {
+    fail('cloudflare_readback_provider_principal_invalid', 'provider Cloudflare principal must be one active API token');
+  }
+  return Object.freeze({ tokenKind, tokenId: verification.id, tokenStatus: verification.status });
 }
 
 export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, namespace, route, owner, providerBindings }) {
@@ -159,18 +170,16 @@ async function main() {
   }
   const account = encodeURIComponent(options.account_id);
   const script = encodeURIComponent(options.script_name);
-  const [providerPrincipal, deploymentsResult, namespaces, secrets, route, owner] = await Promise.all([
-    cloudflareGet(apiToken, `/accounts/${account}/tokens/verify`, 'provider account-token verification'),
+  const providerVerifyPath = options.provider_token_kind === 'account' ? `/accounts/${account}/tokens/verify` : '/user/tokens/verify';
+  const [providerVerification, deploymentsResult, namespaces, secrets, route, owner] = await Promise.all([
+    cloudflareGet(apiToken, providerVerifyPath, 'provider API-token verification'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/deployments`, 'Worker deployments'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/durable_objects/namespaces?per_page=1000`, 'Durable Object namespaces'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/secrets`, 'Worker secret inventory'),
     cloudflareGet(apiToken, `/zones/${encodeURIComponent(options.zone_id)}/workers/routes/${encodeURIComponent(options.route_id)}`, 'Worker route'),
     routeOwnerReadback(options, qualificationToken),
   ]);
-  if (providerPrincipal === null || typeof providerPrincipal !== 'object' || Array.isArray(providerPrincipal) ||
-      typeof providerPrincipal.id !== 'string' || providerPrincipal.id.length === 0 || providerPrincipal.status !== 'active') {
-    fail('cloudflare_readback_provider_principal_invalid', 'provider Cloudflare principal must be one active account-owned API token');
-  }
+  const providerPrincipal = validateD0039CloudflareProviderPrincipal({ tokenKind: options.provider_token_kind, verification: providerVerification });
   const deployments = deploymentsResult?.deployments;
   if (!Array.isArray(deployments) || deployments.length === 0) fail('cloudflare_readback_deployment_invalid', 'Worker has no deployment readback');
   const deployment = deployments[0];
@@ -202,7 +211,7 @@ async function main() {
     gate: 'q5_live_provider_iam',
     proofLayer: 'live_provider_control_plane_partial',
     accountId: options.account_id,
-    providerPrincipal: { tokenType: 'account_api_token', tokenId: providerPrincipal.id, tokenStatus: providerPrincipal.status },
+    providerPrincipal,
     workerScript: options.script_name,
     deploymentId: deployment.id,
     activeVersionId: versionId,
@@ -220,7 +229,7 @@ async function main() {
     publicVerifierFingerprints: { managementKeyId: owner.managementKeyId, releaseRootKeyId: owner.releaseRootKeyId, currentCredentialKeyId: owner.currentCredentialKeyId },
     legacyHmac: { runtimePresent: owner.legacyHmacPresent, bindingNamePresent: secretNames.includes('TDEV_AGENT_DELIVERY_AUTH_KEY') },
     secretBindingNames: secretNames,
-    iamSeparation: 'requires_distinct_account_token_policy_readback',
+    iamSeparation: 'requires_cross_principal_token_policy_readback',
     secretValues: 'excluded',
   })}\n`);
 }
