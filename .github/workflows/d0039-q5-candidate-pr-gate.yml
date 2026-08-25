@@ -18,37 +18,6 @@ jobs:
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: syntax
-        run: npm run syntax
-      - name: docs-check
-        run: npm run docs:check
-      - name: baseline-plus-iam-parallel
-        continue-on-error: true
-        shell: bash
-        run: |
-          mapfile -t files < <(find test -maxdepth 1 -name '*.test.mjs' \
-            ! -name 'installable-agent-cloudflare-provider-principal.test.mjs' | sort)
-          node --test "${files[@]}"
-      - name: baseline-plus-provider-parallel
-        continue-on-error: true
-        shell: bash
-        run: |
-          mapfile -t files < <(find test -maxdepth 1 -name '*.test.mjs' \
-            ! -name 'installable-agent-cloudflare-iam-readback.test.mjs' | sort)
-          node --test "${files[@]}"
-      - name: full-tests-concurrency-2
-        continue-on-error: true
-        run: node --test --test-concurrency=2 test/*.test.mjs
-      - name: full-tests-serial
-        continue-on-error: true
-        run: node --test --test-concurrency=1 test/*.test.mjs
-      - name: unit-tests
-        run: npm test
-      - name: demo
-        run: npm run demo --silent
-      - name: durable-demo
-        run: npm run durable-demo --silent
-      - name: coverage
-        run: node --experimental-test-coverage --test test/*.test.mjs
-      - name: diff-check
-        run: git diff --check
+      - run: npm run check
+      - run: node --experimental-test-coverage --test test/*.test.mjs
+      - run: git diff --check
