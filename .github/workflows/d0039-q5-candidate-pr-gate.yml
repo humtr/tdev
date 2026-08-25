@@ -31,6 +31,17 @@ jobs:
       - name: existing-cloudflare-readback-tests
         continue-on-error: true
         run: node --test test/installable-agent-cloudflare-readback.test.mjs
+      - name: baseline-tests-without-new-files
+        continue-on-error: true
+        shell: bash
+        run: |
+          mapfile -t files < <(find test -maxdepth 1 -name '*.test.mjs' \
+            ! -name 'installable-agent-cloudflare-iam-readback.test.mjs' \
+            ! -name 'installable-agent-cloudflare-provider-principal.test.mjs' | sort)
+          node --test "${files[@]}"
+      - name: full-tests-serial
+        continue-on-error: true
+        run: node --test --test-concurrency=1 test/*.test.mjs
       - name: unit-tests
         run: npm test
       - name: demo
