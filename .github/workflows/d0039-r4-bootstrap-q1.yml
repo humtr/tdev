@@ -122,10 +122,12 @@ jobs:
 
           p = Path('WORKBOARD.md')
           s = p.read_text()
-          old = "- D0039@r3 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-3 D0027 deployment-realization correction"
-          if s.count(old) != 2:
-              raise SystemExit(f'WORKBOARD runnable/selected R3 count={s.count(old)}')
-          s = s.replace(old, "- D0039@r4 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-4 workers.dev deployment-realization correction")
+          old_runnable = "- D0039@r3 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-3 D0027 deployment-realization correction"
+          old_selected = "- D0039@r3 — implement and qualify the accepted Revision-3 D0027 deployment-realization correction"
+          if s.count(old_runnable) != 1 or s.count(old_selected) != 1:
+              raise SystemExit(f'WORKBOARD R3 routing count runnable={s.count(old_runnable)} selected={s.count(old_selected)}')
+          s = s.replace(old_runnable, "- D0039@r4 — `docs/design/0039-d0027-deployment-realization.md` — implement and qualify the accepted Revision-4 workers.dev deployment-realization correction", 1)
+          s = s.replace(old_selected, "- D0039@r4 — implement and qualify the accepted Revision-4 workers.dev deployment-realization correction", 1)
           marker = '<!-- D0039-R4-CURRENT-STATUS:BEGIN -->'
           if marker not in s:
               anchor = '<!-- D0039-R3-CURRENT-STATUS:END -->'
