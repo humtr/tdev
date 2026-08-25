@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { validateD0039CloudflareIamSeparation } from '../qualification/installable-agent-cloudflare-iam-readback.mjs';
+import { validateD0039CloudflareIamObservation } from '../qualification/installable-agent-cloudflare-iam-readback.mjs';
 
 const ACCOUNT_ID = '0123456789abcdef0123456789abcdef';
 const ZONE_ID = 'fedcba9876543210fedcba9876543210';
@@ -74,28 +74,32 @@ function userFixture() {
 }
 
 test('Q5 IAM readback accepts account token provider with All zones in one account resource encoding', () => {
-  const observed = validateD0039CloudflareIamSeparation(accountFixture());
+  const observed = validateD0039CloudflareIamObservation(accountFixture());
   assert.equal(observed.classification, 'observed');
-  assert.equal(observed.proofLayer, 'live_iam_control_plane');
+  assert.equal(observed.proofLayer, 'live_iam_control_plane_partial');
   assert.equal(observed.providerPrincipal.tokenKind, 'account');
   assert.equal(observed.iamPrincipal.tokenKind, 'account');
   assert.equal(observed.providerPrincipal.tokenId, PROVIDER_TOKEN_ID);
   assert.equal(observed.iamPrincipal.tokenId, IAM_TOKEN_ID);
   assert.match(observed.observationDigest, /^sha256:[0-9a-f]{64}$/);
+  assert.equal(observed.observerSeparation, 'distinct_api_token_principals');
+  assert.equal(observed.authoritySeparation, 'unverified');
+  assert.equal(observed.privateKeyCustody, 'unverified');
+  assert.equal(observed.terminalQ5, false);
   assert.equal(observed.secretValues, 'excluded');
 });
 
 test('Q5 IAM readback supports user token providers and Cloudflare Edit permission aliases', () => {
-  const observed = validateD0039CloudflareIamSeparation(userFixture());
+  const observed = validateD0039CloudflareIamObservation(userFixture());
   assert.equal(observed.providerPrincipal.tokenKind, 'user');
   assert.equal(observed.iamPrincipal.observedReadPermission, 'API Tokens Read');
-  assert.equal(observed.separation, 'distinct_api_token_principals');
+  assert.equal(observed.observerSeparation, 'distinct_api_token_principals');
 });
 
 test('Q5 IAM readback permits a user-token IAM observer to inspect an account-owned provider principal', () => {
   const value = accountFixture();
   value.iamTokenKind = 'user';
-  const observed = validateD0039CloudflareIamSeparation(value);
+  const observed = validateD0039CloudflareIamObservation(value);
   assert.equal(observed.providerPrincipal.tokenKind, 'account');
   assert.equal(observed.iamPrincipal.tokenKind, 'user');
   assert.equal(observed.iamPrincipal.observedReadPermission, 'Account API Tokens Read');
@@ -105,7 +109,7 @@ test('Q5 IAM readback rejects one token self-attesting both provider and IAM obs
   const value = accountFixture();
   value.iamTokenVerify = { id: PROVIDER_TOKEN_ID, status: 'active' };
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_principal_not_independent',
   );
 });
@@ -116,7 +120,7 @@ test('Q5 IAM readback rejects provider principals without target-zone route depl
     policy('allow', 'scripts-write', { [`com.cloudflare.api.account.${ACCOUNT_ID}`]: '*' }, ACCOUNT_GROUPS),
   ], 'tdev-d0039-provider');
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_provider_permission_missing',
   );
 });
@@ -129,7 +133,7 @@ test('Q5 IAM readback honors explicit deny over allow for the observed target re
     policy('deny', 'routes-write', { [`com.cloudflare.api.account.zone.${ZONE_ID}`]: '*' }, ACCOUNT_GROUPS),
   ], 'tdev-d0039-provider');
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_provider_permission_missing',
   );
 });
@@ -140,7 +144,7 @@ test('Q5 IAM readback rejects a permission name with the wrong Cloudflare resour
     ? { ...group, scopes: ['com.cloudflare.api.account'] }
     : group);
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_permission_catalog_invalid',
   );
 });
@@ -149,7 +153,7 @@ test('Q5 IAM readback rejects namespace-mismatched IAM read authority', () => {
   const value = userFixture();
   value.observedReadPermission = 'Account API Tokens Read';
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_observer_permission_missing',
   );
 });
@@ -158,7 +162,7 @@ test('Q5 IAM readback rejects provider detail substitution', () => {
   const value = accountFixture();
   value.providerTokenDetails = { ...value.providerTokenDetails, id: '33333333333333333333333333333333' };
   assert.throws(
-    () => validateD0039CloudflareIamSeparation(value),
+    () => validateD0039CloudflareIamObservation(value),
     (error) => error?.code === 'cloudflare_iam_token_identity_mismatch',
   );
 });
