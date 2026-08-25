@@ -18,6 +18,11 @@ const EXPECTATIONS_PATH = 'docs/evidence/group-e-d0018-warm-runtime-expectations
 const WORKER_PATH = 'qualification/model-runtime-warm-host-worker.mjs';
 const CONVERGENCE_PATH = 'qualification/model-runtime-adversarial-falsifier.mjs';
 const GUARD_MS = 10_000;
+// Normal fresh-process attempts must tolerate bounded CPU contention from other
+// isolated qualification lanes. This is deliberately separate from the explicit
+// 50ms timeout falsifier below and from the outer whole-suite runner deadline.
+const NORMAL_TRANSPORT_TIMEOUT_MS = 30_000;
+const CASE_GUARD_MS = 45_000;
 const CONFIGURED_ENV = 'qualified-host-environment';
 const CALLER_SECRET_KEY = 'TDEV_D0018_CALLER_SECRET';
 const EXPECTED_SEEDS = [11, 29, 47, 83];
@@ -150,7 +155,7 @@ function makeExecutor(root, workerPath, options = {}) {
       modelArgs: options.modelArgs ?? [workerPath],
       modelEnvironment: options.modelEnvironment ?? { TDEV_D0018_CONFIGURED: CONFIGURED_ENV },
       modelWorkingDirectory: root,
-      timeoutMs: options.timeoutMs ?? 10_000,
+      timeoutMs: options.timeoutMs ?? NORMAL_TRANSPORT_TIMEOUT_MS,
       contextCache: options.contextCache,
       modelRunner: options.modelRunner,
       observation: options.observation ?? ((entry) => observations.push(entry)),
@@ -165,7 +170,7 @@ async function runCaseOnce({ caseId, plan, executor, capacity = 1, cancelDelayMs
     const timer = setTimeout(() => engine.cancelTask('model', `scheduled-cancel-${cancelDelayMs}`), cancelDelayMs);
     timer.unref?.();
   }
-  const report = await withGuard(running, `runCase ${caseId}`, 20_000);
+  const report = await withGuard(running, `runCase ${caseId}`, CASE_GUARD_MS);
   return {
     report,
     acceptedResult: report.snapshot.taskStates.model.acceptedResult,

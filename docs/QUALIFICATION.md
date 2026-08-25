@@ -135,6 +135,8 @@ Every Q7-Q9 state-changing operation declares read/write/invalidation sets. A mu
 
 Source/local-runtime/provider/device/deployed-product evidence remain separate. Current D0018 semantic runtime qualification may be used to parallelize isolated source/runtime falsifiers, but it cannot promote provider/device state.
 
+Parallel qualification lanes must also separate **semantic timeout falsifiers** from **normal-path scheduling budgets** and from the **outer whole-suite wall-clock deadline**. An exact-S6 parallel trial exposed that D0018 warm-host normal fresh-process attempts used a 10s transport budget while a concurrent full source gate saturated the same Termux host; W23 then produced a false `model_transport_timeout` despite correct isolation semantics. The warm qualification normal path therefore carries an explicit bounded contention margin, while the dedicated 50ms transport-timeout falsifier remains unchanged. This is qualification scheduling policy only; it does not weaken production retry/fencing/cancellation semantics or promote trusted-local runtime evidence into provider/device proof.
+
 
 ## 3. Qualification layers
 
