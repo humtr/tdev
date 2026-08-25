@@ -33,6 +33,7 @@ const SOURCE_FILES = [
   ['src/canonical.mjs', 'runtime'],
   ['src/installable-agent-admission.mjs', 'runtime'],
   ['src/installable-agent-security.mjs', 'runtime-security'],
+  ['src/installable-agent-bootstrap-executor.mjs', 'bootstrap-executor'],
   ['src/installable-agent-keystore.mjs', 'android-keystore-adapter'],
   ['src/installable-agent-android-source.mjs', 'android-source-lineage-reader'],
   ['src/installable-agent-challenge.mjs', 'agent-challenge-client'],

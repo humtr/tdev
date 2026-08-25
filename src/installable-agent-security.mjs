@@ -15,7 +15,19 @@ export const INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE = 'tdev.agent-connect-
 export const INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE = 'tdev.agent-connect-possession-envelope.v1';
 export const INSTALLABLE_AGENT_RELEASE_DELEGATION_PROFILE = 'tdev.release-delegation.v1';
 export const INSTALLABLE_AGENT_RELEASE_STATEMENT_PROFILE = 'tdev.installable-agent-release-statement.v1';
-export const INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_PROFILE = 'tdev.agent-bootstrap-trust-capsule.v1';
+export const INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_PROFILE = 'tdev.agent-bootstrap-trust-capsule.v2';
+export const INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_LEGACY_PROFILE = 'tdev.agent-bootstrap-trust-capsule.v1';
+export const INSTALLABLE_AGENT_BOOTSTRAP_EXECUTION_PROFILE = 'tdev.agent-bootstrap-execution.v1';
+export const INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_PLATFORM = 'android';
+export const INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_ARCHITECTURE = 'arm64';
+export const INSTALLABLE_AGENT_BOOTSTRAP_WORKING_DIRECTORY_PROFILE = 'private-empty-v1';
+export const INSTALLABLE_AGENT_BOOTSTRAP_OPERATOR_DIGEST_SOURCE = 'authenticated-operator-channel';
+export const INSTALLABLE_AGENT_BOOTSTRAP_ALLOWED_BUILTIN_MODULES = Object.freeze([
+  'node:crypto',
+  'node:fs',
+  'node:path',
+  'node:zlib',
+]);
 export const INSTALLABLE_AGENT_KEYSTORE_ALIAS_PROFILE = 'tdev.agent-keystore-alias.v1';
 export const INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE = 'tdev.d0039-route-security.v1';
 export const INSTALLABLE_AGENT_KEYSTORE_CREDENTIAL_REF_PREFIX = 'androidkeystore://com.termux.api/';
@@ -364,15 +376,112 @@ export async function verifyInstallableAgentReleaseStatement({ delegation, state
   return Object.freeze({ signerKeyId: signer.keyId, statement: normalizedStatement, archiveSha256: archiveDigest });
 }
 
+function normalizeBootstrapText(value, label) {
+  if (typeof value !== 'string' || value.length === 0 || value.includes('\0')) fail('invalid_bootstrap_execution', String(label) + ' is invalid');
+  return value;
+}
+
+export function normalizeBootstrapExecution(input) {
+  assertRecordShape(input, [
+    'profile', 'runtimeProfile', 'runtimeSha256', 'runtimePlatform', 'runtimeArchitecture', 'verifierProfile', 'verifierSha256',
+    'allowedBuiltinModules', 'networkAllowed', 'environmentInheritance', 'workingDirectoryProfile',
+  ], [], 'bootstrap execution');
+  if (input.profile !== INSTALLABLE_AGENT_BOOTSTRAP_EXECUTION_PROFILE) fail('invalid_bootstrap_execution', 'Bootstrap execution profile is unsupported');
+  const runtimeProfile = normalizeBootstrapText(input.runtimeProfile, 'bootstrap runtime profile');
+  const verifierProfile = normalizeBootstrapText(input.verifierProfile, 'bootstrap verifier profile');
+  if (!RAW_SHA256_RE.test(input.runtimeSha256)) fail('invalid_bootstrap_execution', 'Bootstrap runtime SHA-256 is invalid');
+  if (!RAW_SHA256_RE.test(input.verifierSha256)) fail('invalid_bootstrap_execution', 'Bootstrap verifier SHA-256 is invalid');
+  if (input.runtimePlatform !== INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_PLATFORM) {
+    fail('invalid_bootstrap_execution', 'Bootstrap runtime platform is not the admitted Android target');
+  }
+  if (input.runtimeArchitecture !== INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_ARCHITECTURE) {
+    fail('invalid_bootstrap_execution', 'Bootstrap runtime architecture is not the admitted arm64 target');
+  }
+  if (!Array.isArray(input.allowedBuiltinModules)) {
+    fail('invalid_bootstrap_execution', 'Bootstrap builtin closure must be a list');
+  }
+  const allowedBuiltins = new Set(INSTALLABLE_AGENT_BOOTSTRAP_ALLOWED_BUILTIN_MODULES);
+  let previousBuiltin = null;
+  const allowedBuiltinModules = input.allowedBuiltinModules.map((builtin) => {
+    if (typeof builtin !== 'string' || !allowedBuiltins.has(builtin)) {
+      fail('invalid_bootstrap_execution', 'Bootstrap builtin closure contains an unadmitted module');
+    }
+    if (previousBuiltin !== null && previousBuiltin >= builtin) {
+      fail('invalid_bootstrap_execution', 'Bootstrap builtin closure must be unique and sorted');
+    }
+    previousBuiltin = builtin;
+    return builtin;
+  });
+  if (input.networkAllowed !== false) fail('invalid_bootstrap_execution', 'Bootstrap execution must have network disabled');
+  if (input.environmentInheritance !== false) fail('invalid_bootstrap_execution', 'Bootstrap execution must inherit zero environment variables');
+  if (input.workingDirectoryProfile !== INSTALLABLE_AGENT_BOOTSTRAP_WORKING_DIRECTORY_PROFILE) {
+    fail('invalid_bootstrap_execution', 'Bootstrap execution must use a private empty working directory');
+  }
+  return Object.freeze(canonicalClone({
+    profile: INSTALLABLE_AGENT_BOOTSTRAP_EXECUTION_PROFILE,
+    runtimeProfile,
+    runtimeSha256: input.runtimeSha256,
+    runtimePlatform: INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_PLATFORM,
+    runtimeArchitecture: INSTALLABLE_AGENT_BOOTSTRAP_RUNTIME_ARCHITECTURE,
+    verifierProfile,
+    verifierSha256: input.verifierSha256,
+    allowedBuiltinModules,
+    networkAllowed: false,
+    environmentInheritance: false,
+    workingDirectoryProfile: INSTALLABLE_AGENT_BOOTSTRAP_WORKING_DIRECTORY_PROFILE,
+  }));
+}
+
+export function inspectBootstrapVerifierBuiltinClosure(verifierBytes, allowedBuiltinModules = INSTALLABLE_AGENT_BOOTSTRAP_ALLOWED_BUILTIN_MODULES) {
+  const sourceBytes = asBytes(verifierBytes, 'bootstrap verifier');
+  let source;
+  try {
+    source = new TextDecoder('utf-8', { fatal: true }).decode(sourceBytes);
+  } catch (cause) {
+    fail('invalid_bootstrap_verifier', 'Bootstrap verifier must be valid UTF-8 source', {}, { cause });
+  }
+  if (/\bimport\s*\(/u.test(source)) fail('bootstrap_verifier_dynamic_import', 'Bootstrap verifier must not use dynamic imports');
+  if (/\brequire\s*\(\s*[^'"\s]/u.test(source) || /\b(?:createRequire|require\.resolve|module\.require|process\.mainModule)\s*\(/u.test(source)) {
+    fail('bootstrap_verifier_dynamic_require', 'Bootstrap verifier must not use dynamic or ambient require calls');
+  }
+  if (/\b(?:eval|Function|process\.binding)\s*\(/u.test(source)) {
+    fail('bootstrap_verifier_dynamic_code', 'Bootstrap verifier must not use dynamic code or ambient native bindings');
+  }
+  if (/\b(?:fetch|WebSocket|XMLHttpRequest|process\.dlopen)\s*\(/u.test(source)) {
+    fail('bootstrap_verifier_network_closure', 'Bootstrap verifier contains a network-capable or native-loading call');
+  }
+  const allowed = new Set(allowedBuiltinModules);
+  const imported = [];
+  const staticImportPatterns = [
+    /\bimport\s*['"]([^'"]+)['"]/gu,
+    /\bfrom\s*['"]([^'"]+)['"]/gu,
+    /\brequire\s*\(\s*['"]([^'"]+)['"]\s*\)/gu,
+  ];
+  for (const pattern of staticImportPatterns) {
+    for (const match of source.matchAll(pattern)) {
+      const specifier = match[1];
+      if (!specifier.startsWith('node:') || !allowed.has(specifier)) {
+        fail('bootstrap_verifier_import_not_allowed', 'Bootstrap verifier import ' + specifier + ' is outside the authenticated builtin closure');
+      }
+      imported.push(specifier);
+    }
+  }
+  const closure = [...new Set(imported)].sort();
+  return Object.freeze(closure);
+}
+
 export function normalizeBootstrapTrustCapsule(input) {
+  if (input?.profile === INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_LEGACY_PROFILE) {
+    fail('invalid_bootstrap_capsule', 'Bootstrap capsule v1 is historical and cannot be migrated or used for R7 Q4');
+  }
   assertRecordShape(input, [
     'profile', 'routeBinding', 'managementKeyId', 'managementPublicKey', 'releaseRootKeyId', 'releaseRootPublicKey',
-    'initialTrustPolicyGeneration', 'initialDelegationDigest', 'bootstrapVerifierProfile', 'bootstrapVerifierSha256',
+    'initialTrustPolicyGeneration', 'initialDelegationDigest', 'execution',
   ], [], 'bootstrap trust capsule');
   if (input.profile !== INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_PROFILE) fail('invalid_bootstrap_capsule', 'Bootstrap capsule profile is unsupported');
   assertRecordShape(input.routeBinding, ['provider', 'namespace', 'durableObjectId', 'agentId', 'routeGeneration', 'jurisdiction'], [], 'bootstrap route binding');
   for (const field of ['provider', 'namespace', 'durableObjectId', 'agentId', 'jurisdiction']) {
-    if (typeof input.routeBinding[field] !== 'string' || input.routeBinding[field].length === 0 || input.routeBinding[field].includes('\0')) fail('invalid_bootstrap_capsule', `Bootstrap route ${field} is invalid`);
+    if (typeof input.routeBinding[field] !== 'string' || input.routeBinding[field].length === 0 || input.routeBinding[field].includes('\0')) fail('invalid_bootstrap_capsule', 'Bootstrap route ' + field + ' is invalid');
   }
   assertIdentifier(input.routeBinding.agentId, 'bootstrap route agentId');
   assertSafeInteger(input.routeBinding.routeGeneration, 'bootstrap route routeGeneration', { min: 1 });
@@ -383,9 +492,18 @@ export function normalizeBootstrapTrustCapsule(input) {
   if (input.managementKeyId !== managementKeyId || input.releaseRootKeyId !== releaseRootKeyId) fail('bootstrap_key_identity_mismatch', 'Bootstrap key identity does not match the supplied public verifier');
   assertSafeInteger(input.initialTrustPolicyGeneration, 'bootstrap initialTrustPolicyGeneration', { min: 1 });
   assertDigest(input.initialDelegationDigest, 'bootstrap initialDelegationDigest');
-  if (typeof input.bootstrapVerifierProfile !== 'string' || input.bootstrapVerifierProfile.length === 0 || input.bootstrapVerifierProfile.includes('\0')) fail('invalid_bootstrap_capsule', 'Bootstrap verifier profile is invalid');
-  if (typeof input.bootstrapVerifierSha256 !== 'string' || !RAW_SHA256_RE.test(input.bootstrapVerifierSha256)) fail('invalid_bootstrap_capsule', 'Bootstrap verifier SHA-256 is invalid');
-  return Object.freeze(canonicalClone({ ...input, managementKeyId, managementPublicKey, releaseRootKeyId, releaseRootPublicKey }));
+  const execution = normalizeBootstrapExecution(input.execution);
+  return Object.freeze(canonicalClone({
+    profile: INSTALLABLE_AGENT_BOOTSTRAP_CAPSULE_PROFILE,
+    routeBinding: input.routeBinding,
+    managementKeyId,
+    managementPublicKey,
+    releaseRootKeyId,
+    releaseRootPublicKey,
+    initialTrustPolicyGeneration: input.initialTrustPolicyGeneration,
+    initialDelegationDigest: input.initialDelegationDigest,
+    execution,
+  }));
 }
 
 export function bootstrapTrustCapsuleBytes(input) {
@@ -396,13 +514,52 @@ export async function bootstrapTrustCapsuleSha256(input) {
   return rawSha256Hex(bootstrapTrustCapsuleBytes(input), 'bootstrap trust capsule');
 }
 
-export async function verifyBootstrapTrustCapsule({ capsule, expectedCapsuleSha256, bootstrapVerifierBytes }) {
+export async function verifyBootstrapTrustCapsule({ capsule, expectedCapsuleSha256, runtimeBytes, verifierBytes, bootstrapVerifierBytes }) {
   if (typeof expectedCapsuleSha256 !== 'string' || !RAW_SHA256_RE.test(expectedCapsuleSha256)) fail('invalid_bootstrap_capsule_digest', 'Expected bootstrap capsule digest must be raw lowercase SHA-256');
   const normalized = normalizeBootstrapTrustCapsule(capsule);
   if (await bootstrapTrustCapsuleSha256(normalized) !== expectedCapsuleSha256) fail('bootstrap_capsule_digest_mismatch', 'Bootstrap capsule bytes do not match the independently authenticated digest');
-  const verifierDigest = await rawSha256Hex(bootstrapVerifierBytes, 'bootstrap verifier');
-  if (verifierDigest !== normalized.bootstrapVerifierSha256) fail('bootstrap_verifier_mismatch', 'Bootstrap verifier bytes do not match the capsule');
+  const admittedVerifierBytes = verifierBytes ?? bootstrapVerifierBytes;
+  if (runtimeBytes !== undefined) {
+    const runtimeDigest = await rawSha256Hex(runtimeBytes, 'bootstrap runtime');
+    if (runtimeDigest !== normalized.execution.runtimeSha256) fail('bootstrap_runtime_mismatch', 'Bootstrap runtime bytes do not match the capsule');
+  }
+  if (admittedVerifierBytes !== undefined) {
+    const verifierDigest = await rawSha256Hex(admittedVerifierBytes, 'bootstrap verifier');
+    if (verifierDigest !== normalized.execution.verifierSha256) fail('bootstrap_verifier_mismatch', 'Bootstrap verifier bytes do not match the capsule');
+  }
   return normalized;
+}
+
+export async function verifyBootstrapExecutionClosure({
+  capsule,
+  expectedCapsuleSha256,
+  runtimeBytes,
+  verifierBytes,
+  executedRuntimeBytes,
+  executedVerifierBytes,
+  executionObservation,
+}) {
+  if (runtimeBytes === undefined || verifierBytes === undefined) fail('missing_bootstrap_execution_bytes', 'Bootstrap execution verification requires the complete admitted runtime and verifier bytes');
+  if (executedRuntimeBytes === undefined || executedVerifierBytes === undefined) fail('missing_bootstrap_executed_bytes', 'Bootstrap execution verification requires the complete bytes actually executed');
+  if (executionObservation === undefined) fail('missing_bootstrap_execution_observation', 'Bootstrap execution verification requires an exact executor observation');
+  const normalized = await verifyBootstrapTrustCapsule({ capsule, expectedCapsuleSha256, runtimeBytes, verifierBytes });
+  const observed = normalizeBootstrapExecution(executionObservation);
+  const observedBuiltinClosure = inspectBootstrapVerifierBuiltinClosure(verifierBytes, normalized.execution.allowedBuiltinModules);
+  if (canonicalJson(observedBuiltinClosure) !== canonicalJson(normalized.execution.allowedBuiltinModules)) {
+    fail('bootstrap_builtin_closure_mismatch', 'Verifier imports do not match the capsule builtin closure');
+  }
+  if (canonicalJson(observed) !== canonicalJson(normalized.execution)) {
+    fail('bootstrap_execution_observation_mismatch', 'Executor observation does not match the capsule execution contract');
+  }
+  const executedRuntimeDigest = await rawSha256Hex(executedRuntimeBytes, 'executed bootstrap runtime');
+  if (executedRuntimeDigest !== normalized.execution.runtimeSha256) {
+    fail('bootstrap_executed_runtime_mismatch', 'Runtime bytes verified before launch are not the bytes actually executed');
+  }
+  const executedVerifierDigest = await rawSha256Hex(executedVerifierBytes, 'executed bootstrap verifier');
+  if (executedVerifierDigest !== normalized.execution.verifierSha256) {
+    fail('bootstrap_executed_verifier_mismatch', 'Verifier bytes verified before launch are not the bytes actually executed');
+  }
+  return Object.freeze({ capsule: normalized, execution: observed });
 }
 
 export function normalizeAndroidSourceLineageId(value) {
