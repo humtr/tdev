@@ -18,6 +18,10 @@ import {
   FileQualificationJournal,
   qualificationRunRecordDigest,
 } from '../qualification/installable-agent-qualification-journal.mjs';
+import {
+  QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+  qualificationRunTargetDigest,
+} from '../qualification/installable-agent-qualification-r5.mjs';
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
 const CONTROLLER_A = digest('a');
@@ -48,6 +52,39 @@ function target(overrides = {}) {
     workerScript: 'tdev-d0020-qualification',
     namespaceId: 'namespace-one',
     namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    agentId: 'agent-one',
+    routeGeneration: 7,
+    durableObjectId: 'do-agent-one',
+    routeCurrentTupleDigest: digest('a'),
+    routeVerifierDigest: digest('b'),
+    ...overrides,
+  };
+}
+
+function journalTarget(overrides = {}) {
+  return {
+    profile: 'tdev.installable-agent-qualification-deployment.v2',
+    sourceSha: '1234567890abcdef1234567890abcdef12345678',
+    artifactDigest: ARTIFACT,
+    artifactManifestDigest: digest('0'),
+    workerVersionId: 'worker-v1',
+    accountId: 'account-one',
+    serviceName: 'tdev-d0039-r5-qualification',
+    deployment: 'qualification',
+    environment: 'nonproduction',
+    deploymentEpoch: 'epoch-one',
+    stateChangingTrafficPercentage: 100,
+    qualificationEndpointOrigin: 'https://tdev-d0039-r5-qualification.humtr.workers.dev',
+    ingressKind: 'workers_dev',
+    workersDevAccountSubdomain: 'humtr',
+    workersDevHostname: 'tdev-d0039-r5-qualification.humtr.workers.dev',
+    workersDevEnabled: true,
+    workersDevPreviewsEnabled: false,
+    workerScript: 'tdev-d0039-r5-qualification',
+    namespaceId: 'namespace-one',
+    namespace: 'tdev-d0039-r5-qualification_AgentDeliveryRuntimeDO',
     className: 'AgentDeliveryRuntimeDO',
     jurisdiction: 'global',
     agentId: 'agent-one',
@@ -203,7 +240,8 @@ test('qualification journal admits concurrent shared reads but exclusive claims 
     qualificationRunId: 'read-one',
     runGeneration: 1,
     controllerIdentityDigest: CONTROLLER_A,
-    target: target(),
+    targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+    target: journalTarget(),
     stableMutationIdentityDigest: digest('6'),
     intendedOperation: 'read',
     authoritativeRereadDigest: REREAD,
@@ -214,7 +252,8 @@ test('qualification journal admits concurrent shared reads but exclusive claims 
     qualificationRunId: 'read-two',
     runGeneration: 1,
     controllerIdentityDigest: CONTROLLER_B,
-    target: target(),
+    targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+    target: journalTarget(),
     stableMutationIdentityDigest: digest('7'),
     intendedOperation: 'read',
     authoritativeRereadDigest: REREAD,
@@ -231,7 +270,8 @@ test('qualification journal admits concurrent shared reads but exclusive claims 
       qualificationRunId: 'mutation-conflict',
       runGeneration: 1,
       controllerIdentityDigest: CONTROLLER_A,
-      target: target(),
+      targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+      target: journalTarget(),
       stableMutationIdentityDigest: MUTATION,
       intendedOperation: 'register_installable_agent',
       authoritativeRereadDigest: REREAD,
@@ -254,7 +294,8 @@ test('mutation run requires durable PREPARED, exact CAS, reconciliation and CLEA
     qualificationRunId: 'mutation-one',
     runGeneration: 1,
     controllerIdentityDigest: CONTROLLER_A,
-    target: target(),
+    targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+    target: journalTarget(),
     stableMutationIdentityDigest: MUTATION,
     intendedOperation: 'register_installable_agent',
     authoritativeRereadDigest: REREAD,
@@ -262,7 +303,7 @@ test('mutation run requires durable PREPARED, exact CAS, reconciliation and CLEA
   });
   const prepared = state.runs['mutation-one:1'];
   assert.equal(prepared.state, 'PREPARED');
-  assert.equal(prepared.targetDigest, qualificationDeploymentIdentityDigest(target()));
+  assert.equal(prepared.targetDigest, qualificationRunTargetDigest(QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT, journalTarget()));
 
   await assert.rejects(
     journal.transitionRun({
@@ -312,7 +353,8 @@ test('mutation run requires durable PREPARED, exact CAS, reconciliation and CLEA
     qualificationRunId: 'mutation-two',
     runGeneration: 1,
     controllerIdentityDigest: CONTROLLER_A,
-    target: target(),
+    targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+    target: journalTarget(),
     stableMutationIdentityDigest: digest('9'),
     intendedOperation: 'register_installable_agent',
     authoritativeRereadDigest: REREAD,
@@ -330,7 +372,8 @@ test('mutation controller has no automatic live takeover and positive exclusion 
     qualificationRunId: 'takeover-run',
     runGeneration: 1,
     controllerIdentityDigest: CONTROLLER_A,
-    target: target(),
+    targetKind: QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT,
+    target: journalTarget(),
     stableMutationIdentityDigest: MUTATION,
     intendedOperation: 'register_installable_agent',
     authoritativeRereadDigest: REREAD,

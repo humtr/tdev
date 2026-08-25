@@ -18,12 +18,14 @@ import {
   QUALIFICATION_GLOBAL_MUTATION_RESOURCE_TYPE,
   QUALIFICATION_RUN_PROFILE,
   READ_ONLY_QUALIFICATION_OPERATIONS,
-  normalizeQualificationDeploymentIdentity,
-  qualificationDeploymentIdentityDigest,
+  assertQualificationTargetForOperation,
+  normalizeQualificationRunTarget,
+  qualificationRunTargetDigest,
   resourceClaimKey,
-} from './installable-agent-qualification-r3.mjs';
+} from './installable-agent-qualification-r5.mjs';
 
-export const QUALIFICATION_STORE_PROFILE = 'tdev.installable-agent-qualification-store.v1';
+export const QUALIFICATION_STORE_PROFILE = 'tdev.installable-agent-qualification-store.v2';
+export const LEGACY_QUALIFICATION_STORE_PROFILE = 'tdev.installable-agent-qualification-store.v1';
 export const QUALIFICATION_CONTROLLER_PROFILE = 'tdev.installable-agent-qualification-controller.v1';
 const CLAIM_BUCKET_PROFILE = 'tdev.installable-agent-qualification-claim-bucket.v1';
 const TOMBSTONE_PROFILE = 'tdev.installable-agent-qualification-tombstone.v1';
@@ -74,7 +76,7 @@ export function qualificationRunRecordDigest(run) { validateRun(run); return run
 function freshStore(genesisEvidenceDigest) {
   return {
     profile: QUALIFICATION_STORE_PROFILE,
-    schemaVersion: 1,
+    schemaVersion: 2,
     genesisEvidenceDigest,
     revision: 1,
     journalSequence: 0,
@@ -85,6 +87,34 @@ function freshStore(genesisEvidenceDigest) {
     claimHighWater: {},
     tombstones: {},
   };
+}
+
+function validateLegacyQuiescentStore(store) {
+  assertRecordShape(store, [
+    'profile', 'schemaVersion', 'genesisEvidenceDigest', 'revision', 'journalSequence', 'mutationController',
+    'controllerHighWater', 'runs', 'claims', 'claimHighWater', 'tombstones',
+  ], [], 'legacy qualification store');
+  if (store.profile !== LEGACY_QUALIFICATION_STORE_PROFILE || store.schemaVersion !== 1) {
+    throw new ContractError('unsupported_qualification_store', 'Unsupported legacy qualification store profile/version');
+  }
+  assertDigest(store.genesisEvidenceDigest, 'genesisEvidenceDigest');
+  assertSafeInteger(store.revision, 'store.revision', { min: 1 });
+  assertSafeInteger(store.journalSequence, 'store.journalSequence', { min: 0 });
+  assertSafeInteger(store.controllerHighWater, 'store.controllerHighWater', { min: 0 });
+  for (const field of ['runs', 'claims', 'claimHighWater', 'tombstones']) {
+    if (store[field] === null || typeof store[field] !== 'object' || Array.isArray(store[field])) {
+      throw new ContractError('corrupt_qualification_store', `${field} must be a record`);
+    }
+  }
+  if (store.mutationController !== null || Object.keys(store.runs).length !== 0 || Object.keys(store.claims).length !== 0) {
+    throw new ContractError('qualification_store_migration_blocked', 'Legacy qualification store has surviving controller/run/claim obligations and requires positive v1 reconciliation');
+  }
+  for (const [resourceKeyValue, highWater] of Object.entries(store.claimHighWater)) {
+    assertDigest(resourceKeyValue, 'claimHighWater resourceKey');
+    assertSafeInteger(highWater, `claimHighWater.${resourceKeyValue}`, { min: 1 });
+  }
+  for (const [key, tombstone] of Object.entries(store.tombstones)) validateTombstone(tombstone, key);
+  return store;
 }
 
 function validateController(value) {
@@ -140,7 +170,7 @@ function validateClaimBucket(value, resourceKeyValue) {
 function validateRun(value) {
   assertRecordShape(value, [
     'profile', 'qualificationRunId', 'runGeneration', 'controllerIdentityDigest', 'journalSequence', 'state',
-    'target', 'targetDigest', 'stableMutationIdentityDigest', 'intendedOperation', 'authoritativeRereadDigest',
+    'targetKind', 'target', 'targetDigest', 'stableMutationIdentityDigest', 'intendedOperation', 'authoritativeRereadDigest',
     'predecessorRecordDigest', 'reconciliationOutcome', 'cleanupEvidenceDigest', 'predecessorExclusionEvidenceDigest', 'claims',
   ], [], 'qualification run');
   if (value.profile !== QUALIFICATION_RUN_PROFILE) throw new ContractError('corrupt_qualification_store', 'Unsupported qualification run profile');
@@ -149,9 +179,10 @@ function validateRun(value) {
   assertDigest(value.controllerIdentityDigest, 'run.controllerIdentityDigest');
   assertSafeInteger(value.journalSequence, 'run.journalSequence', { min: 0 });
   assertState(value.state);
-  const target = normalizeQualificationDeploymentIdentity(value.target);
+  const target = normalizeQualificationRunTarget(value.targetKind, value.target);
+  assertQualificationTargetForOperation({ targetKind: value.targetKind, intendedOperation: value.intendedOperation });
   assertDigest(value.targetDigest, 'targetDigest');
-  if (qualificationDeploymentIdentityDigest(target) !== value.targetDigest) throw new ContractError('corrupt_qualification_store', 'Run target digest mismatch');
+  if (qualificationRunTargetDigest(value.targetKind, target) !== value.targetDigest) throw new ContractError('corrupt_qualification_store', 'Run target digest mismatch');
   assertDigest(value.stableMutationIdentityDigest, 'stableMutationIdentityDigest');
   boundedString(value.intendedOperation, 'intendedOperation', 256);
   assertDigest(value.authoritativeRereadDigest, 'authoritativeRereadDigest');
@@ -200,7 +231,7 @@ function validateStore(store) {
     'profile', 'schemaVersion', 'genesisEvidenceDigest', 'revision', 'journalSequence', 'mutationController',
     'controllerHighWater', 'runs', 'claims', 'claimHighWater', 'tombstones',
   ], [], 'qualification store');
-  if (store.profile !== QUALIFICATION_STORE_PROFILE || store.schemaVersion !== 1) throw new ContractError('unsupported_qualification_store', 'Unsupported qualification store profile/version');
+  if (store.profile !== QUALIFICATION_STORE_PROFILE || store.schemaVersion !== 2) throw new ContractError('unsupported_qualification_store', 'Unsupported qualification store profile/version');
   assertDigest(store.genesisEvidenceDigest, 'genesisEvidenceDigest');
   assertSafeInteger(store.revision, 'store.revision', { min: 1 });
   assertSafeInteger(store.journalSequence, 'store.journalSequence', { min: 0 });
@@ -300,9 +331,53 @@ export class FileQualificationJournal {
     let store;
     try { store = strictJsonParse(bytes, { maxBytes: STORE_MAX_BYTES }); }
     catch (error) { throw new ContractError('corrupt_qualification_store', 'Qualification store JSON is invalid', {}, { cause: error }); }
+    if (store?.profile === LEGACY_QUALIFICATION_STORE_PROFILE && store?.schemaVersion === 1) {
+      throw new ContractError('qualification_store_migration_required', 'Legacy qualification coordination state requires explicit Revision-5 migration');
+    }
     validateStore(store);
     if (`${canonicalJson(store)}\n` !== bytes.toString('utf8')) throw new ContractError('noncanonical_qualification_store', 'Qualification store bytes are not canonical');
     return publicJsonClone(store);
+  }
+
+  async migrateQuiescentV1({ expectedStoreRevision }) {
+    assertSafeInteger(expectedStoreRevision, 'expectedStoreRevision', { min: 1 });
+    await fs.mkdir(this.root, { recursive: true, mode: 0o700 });
+    let lock;
+    try { lock = await fs.open(this.lockPath, 'wx', 0o600); }
+    catch (error) {
+      if (error?.code === 'EEXIST') throw new ContractError('qualification_controller_busy', 'Qualification journal mutation lock exists; no automatic takeover is allowed');
+      throw error;
+    }
+    try {
+      let bytes;
+      try { bytes = await fs.readFile(this.statePath); }
+      catch (error) { throw new ContractError('qualification_store_unavailable', 'Qualification store is missing or unreadable', {}, { cause: error }); }
+      let legacy;
+      try { legacy = strictJsonParse(bytes, { maxBytes: STORE_MAX_BYTES }); }
+      catch (error) { throw new ContractError('corrupt_qualification_store', 'Qualification store JSON is invalid', {}, { cause: error }); }
+      validateLegacyQuiescentStore(legacy);
+      if (`${canonicalJson(legacy)}\n` !== bytes.toString('utf8')) throw new ContractError('noncanonical_qualification_store', 'Qualification store bytes are not canonical');
+      if (legacy.revision !== expectedStoreRevision) {
+        throw new ContractError('qualification_store_conflict', 'Qualification store revision CAS mismatch before v1-to-v2 migration', {
+          expectedStoreRevision,
+          actualStoreRevision: legacy.revision,
+        });
+      }
+      const next = {
+        ...publicJsonClone(legacy),
+        profile: QUALIFICATION_STORE_PROFILE,
+        schemaVersion: 2,
+        revision: legacy.revision + 1,
+        journalSequence: legacy.journalSequence + 1,
+      };
+      validateStore(next);
+      await this.#replace(next);
+      return publicJsonClone(next);
+    } finally {
+      await lock.close();
+      await fs.unlink(this.lockPath).catch(() => {});
+      await this.#syncRoot().catch(() => {});
+    }
   }
 
   async clearRetainedWriterLock({ expectedStoreRevision, predecessorExclusionEvidenceDigest }) {
@@ -426,6 +501,7 @@ export class FileQualificationJournal {
     qualificationRunId,
     runGeneration,
     controllerIdentityDigest,
+    targetKind,
     target,
     stableMutationIdentityDigest,
     intendedOperation,
@@ -438,8 +514,9 @@ export class FileQualificationJournal {
     assertDigest(stableMutationIdentityDigest, 'stableMutationIdentityDigest');
     boundedString(intendedOperation, 'intendedOperation', 256);
     assertDigest(authoritativeRereadDigest, 'authoritativeRereadDigest');
-    const normalizedTarget = normalizeQualificationDeploymentIdentity(target);
-    const targetDigest = qualificationDeploymentIdentityDigest(normalizedTarget);
+    assertQualificationTargetForOperation({ targetKind, intendedOperation });
+    const normalizedTarget = normalizeQualificationRunTarget(targetKind, target);
+    const targetDigest = qualificationRunTargetDigest(targetKind, normalizedTarget);
     const normalizedClaims = normalizeClaims(claims);
     const mutationRequired = !READ_ONLY_QUALIFICATION_OPERATIONS.has(intendedOperation) || normalizedClaims.some((claim) => claim.mode === 'exclusive_mutation');
     if (mutationRequired && !normalizedClaims.some((claim) => claim.resourceType === QUALIFICATION_GLOBAL_MUTATION_RESOURCE_TYPE && claim.resourceIdentity === QUALIFICATION_GLOBAL_MUTATION_RESOURCE && claim.mode === 'exclusive_mutation')) {
@@ -486,6 +563,7 @@ export class FileQualificationJournal {
         controllerIdentityDigest,
         journalSequence: store.journalSequence,
         state: 'PREPARED',
+        targetKind,
         target: publicJsonClone(normalizedTarget),
         targetDigest,
         stableMutationIdentityDigest,
