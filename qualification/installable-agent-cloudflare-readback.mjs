@@ -7,7 +7,7 @@ import {
   createQualificationDeploymentBindingPlan,
   normalizeQualificationDeploymentIdentity,
   qualificationDeploymentIdentityDigest,
-} from './installable-agent-qualification-r3.mjs';
+} from './installable-agent-qualification-r4.mjs';
 
 const API_ROOT = 'https://api.cloudflare.com/client/v4';
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
@@ -21,7 +21,7 @@ function fail(code, message, details = undefined, options = undefined) {
 }
 
 function parseArgs(argv) {
-  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--zone-id', '--route-id', '--qualification-endpoint', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
+  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
@@ -32,16 +32,13 @@ function parseArgs(argv) {
   if ([...allowed].some((flag) => !values.has(flag))) fail('cloudflare_readback_usage', 'all Q5 Cloudflare readback arguments are required');
   const routeGeneration = Number(values.get('--route-generation'));
   if (!Number.isSafeInteger(routeGeneration) || routeGeneration < 1 || String(routeGeneration) !== values.get('--route-generation')) fail('cloudflare_readback_usage', 'route generation is invalid');
-  const endpoint = new URL(values.get('--qualification-endpoint'));
-  if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.hash) fail('cloudflare_readback_usage', 'qualification endpoint must be credential-free HTTPS');
   if (!/^[0-9a-f]{40}$/.test(values.get('--expected-source-sha'))) fail('cloudflare_readback_usage', 'expected source SHA is invalid');
   try {
     assertDigest(values.get('--expected-artifact-digest'), 'expected artifact digest');
     assertDigest(values.get('--expected-artifact-manifest-digest'), 'expected artifact manifest digest');
   } catch (cause) { fail('cloudflare_readback_usage', 'expected artifact digests are invalid', {}, { cause }); }
-  if (endpoint.pathname !== '/' || endpoint.search || endpoint.origin !== values.get('--qualification-endpoint')) fail('cloudflare_readback_usage', 'qualification endpoint must be an exact HTTPS origin');
   if (!TOKEN_KINDS.has(values.get('--provider-token-kind'))) fail('cloudflare_readback_usage', 'provider token kind must be account or user');
-  return Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]).concat([['route_generation', routeGeneration], ['qualification_endpoint', endpoint]]));
+  return Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]).concat([['route_generation', routeGeneration]]));
 }
 
 async function boundedJson(response, label) {
@@ -77,10 +74,34 @@ function publicBinding(binding) {
   return result;
 }
 
-async function routeOwnerReadback(options, qualificationToken) {
-  const endpoint = new URL(options.qualification_endpoint);
+export function normalizeD0039WorkersDevIngress({ scriptName, accountSubdomainResult, workerSubdomainResult }) {
+  if (typeof scriptName !== 'string' || scriptName.length === 0 || scriptName.length > 128 || !/^[a-z0-9-]+$/.test(scriptName)) {
+    fail('cloudflare_readback_workers_dev_invalid', 'Worker script name is not a bounded lowercase workers.dev label');
+  }
+  const accountSubdomain = accountSubdomainResult?.subdomain;
+  if (typeof accountSubdomain !== 'string' || !/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?$/.test(accountSubdomain)) {
+    fail('cloudflare_readback_workers_dev_invalid', 'Cloudflare account workers.dev subdomain readback is invalid');
+  }
+  if (workerSubdomainResult?.enabled !== true || workerSubdomainResult?.previews_enabled !== false) {
+    fail('cloudflare_readback_workers_dev_invalid', 'D0039 Revision-4 requires workers.dev enabled and preview URLs disabled', {
+      enabled: workerSubdomainResult?.enabled ?? null,
+      previewsEnabled: workerSubdomainResult?.previews_enabled ?? null,
+    });
+  }
+  const hostname = `${scriptName}.${accountSubdomain}.workers.dev`;
+  return Object.freeze({
+    ingressKind: 'workers_dev',
+    accountSubdomain,
+    hostname,
+    enabled: true,
+    previewsEnabled: false,
+    origin: `https://${hostname}`,
+  });
+}
+
+async function routeOwnerReadback(options, qualificationToken, qualificationOrigin) {
+  const endpoint = new URL(qualificationOrigin);
   endpoint.pathname = '/qualification/d0020/v2';
-  endpoint.search = '';
   const response = await fetch(endpoint, {
     method: 'POST',
     redirect: 'error',
@@ -101,8 +122,11 @@ export function validateD0039CloudflareProviderPrincipal({ tokenKind, verificati
   return Object.freeze({ tokenKind, tokenId: verification.id, tokenStatus: verification.status });
 }
 
-export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, namespace, route, owner, providerBindings }) {
+export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, namespace, workersDev, owner, providerBindings }) {
   if (!owner || typeof owner !== 'object' || Array.isArray(owner)) fail('cloudflare_readback_route_owner_mismatch', 'route-owner readback is invalid');
+  if (!workersDev || workersDev.ingressKind !== 'workers_dev' || workersDev.enabled !== true || workersDev.previewsEnabled !== false) {
+    fail('cloudflare_readback_workers_dev_invalid', 'workers.dev provider ingress observation is invalid');
+  }
   const identity = normalizeQualificationDeploymentIdentity(owner.deploymentIdentity);
   const digest = qualificationDeploymentIdentityDigest(identity);
   if (owner.deploymentIdentityDigest !== digest) fail('cloudflare_readback_route_owner_mismatch', 'route-owner deployment identity digest is invalid');
@@ -117,9 +141,12 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
     environment: options.expected_environment,
     deploymentEpoch: options.expected_deployment_epoch,
     stateChangingTrafficPercentage: 100,
-    qualificationEndpointOrigin: options.qualification_endpoint.origin,
-    routeId: options.route_id,
-    routePattern: route?.pattern,
+    qualificationEndpointOrigin: workersDev.origin,
+    ingressKind: 'workers_dev',
+    workersDevAccountSubdomain: workersDev.accountSubdomain,
+    workersDevHostname: workersDev.hostname,
+    workersDevEnabled: true,
+    workersDevPreviewsEnabled: false,
     workerScript: options.script_name,
     namespaceId: namespace?.id,
     namespace: options.namespace_name,
@@ -131,7 +158,6 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
   for (const [name, value] of Object.entries(expected)) {
     if (identity[name] !== value) fail('cloudflare_readback_route_owner_mismatch', `provider/readback S/A/V/R mismatch at ${name}`, { name, expected: value, actual: identity[name] });
   }
-  if (route?.script !== options.script_name) fail('cloudflare_readback_route_owner_mismatch', 'provider route is not bound to the expected Worker script');
   if (!Array.isArray(providerBindings)) fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker bindings are unavailable');
   const expectedBindingPlan = createQualificationDeploymentBindingPlan({
     sourceSha: options.expected_source_sha,
@@ -140,9 +166,8 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
     accountId: options.account_id,
     serviceName: options.script_name,
     deploymentEpoch: options.expected_deployment_epoch,
-    qualificationEndpointOrigin: options.qualification_endpoint.origin,
-    routeId: options.route_id,
-    routePattern: route?.pattern,
+    qualificationEndpointOrigin: workersDev.origin,
+    workersDevAccountSubdomain: workersDev.accountSubdomain,
     namespaceId: namespace?.id,
   });
   const plainText = new Map(providerBindings
@@ -153,6 +178,7 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
   }
   const runtime = owner.runtime;
   if (runtime?.sourceSha !== identity.sourceSha || runtime?.workerVersionId !== identity.workerVersionId ||
+      runtime?.workersDevHostname !== identity.workersDevHostname || runtime?.qualificationEndpointOrigin !== identity.qualificationEndpointOrigin ||
       runtime?.routeCurrentTupleDigest !== identity.routeCurrentTupleDigest || runtime?.routeVerifierDigest !== identity.routeVerifierDigest ||
       runtime?.routeBinding?.agentId !== identity.agentId || runtime?.routeBinding?.routeGeneration !== identity.routeGeneration ||
       runtime?.routeBinding?.durableObjectId !== identity.durableObjectId) {
@@ -171,15 +197,16 @@ async function main() {
   const account = encodeURIComponent(options.account_id);
   const script = encodeURIComponent(options.script_name);
   const providerVerifyPath = options.provider_token_kind === 'account' ? `/accounts/${account}/tokens/verify` : '/user/tokens/verify';
-  const [providerVerification, deploymentsResult, namespaces, secrets, route, owner] = await Promise.all([
+  const [providerVerification, deploymentsResult, namespaces, secrets, accountSubdomainResult, workerSubdomainResult] = await Promise.all([
     cloudflareGet(apiToken, providerVerifyPath, 'provider API-token verification'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/deployments`, 'Worker deployments'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/durable_objects/namespaces?per_page=1000`, 'Durable Object namespaces'),
     cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/secrets`, 'Worker secret inventory'),
-    cloudflareGet(apiToken, `/zones/${encodeURIComponent(options.zone_id)}/workers/routes/${encodeURIComponent(options.route_id)}`, 'Worker route'),
-    routeOwnerReadback(options, qualificationToken),
+    cloudflareGet(apiToken, `/accounts/${account}/workers/subdomain`, 'account workers.dev subdomain'),
+    cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/subdomain`, 'Worker workers.dev configuration'),
   ]);
   const providerPrincipal = validateD0039CloudflareProviderPrincipal({ tokenKind: options.provider_token_kind, verification: providerVerification });
+  const workersDev = normalizeD0039WorkersDevIngress({ scriptName: options.script_name, accountSubdomainResult, workerSubdomainResult });
   const deployments = deploymentsResult?.deployments;
   if (!Array.isArray(deployments) || deployments.length === 0) fail('cloudflare_readback_deployment_invalid', 'Worker has no deployment readback');
   const deployment = deployments[0];
@@ -187,7 +214,10 @@ async function main() {
     fail('cloudflare_readback_mixed_writers', 'Active Worker deployment is not one 100-percent version');
   }
   const versionId = deployment.versions[0].version_id;
-  const version = await cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/versions/${encodeURIComponent(versionId)}`, 'Worker version');
+  const [version, owner] = await Promise.all([
+    cloudflareGet(apiToken, `/accounts/${account}/workers/scripts/${script}/versions/${encodeURIComponent(versionId)}`, 'Worker version'),
+    routeOwnerReadback(options, qualificationToken, workersDev.origin),
+  ]);
   const bindings = Array.isArray(version?.resources?.bindings) ? version.resources.bindings.map(publicBinding).filter(Boolean) : [];
   const doBinding = bindings.filter((binding) => binding.name === 'TDEV_AGENT_DELIVERY' && /durable_object/i.test(binding.type ?? ''));
   if (doBinding.length !== 1 || !containsNamedExport(version?.resources?.script_runtime?.exports ?? version?.resources?.script?.exports ?? {}, options.class_name)) {
@@ -201,7 +231,7 @@ async function main() {
     options,
     activeVersionId: versionId,
     namespace: namespaceMatches[0],
-    route,
+    workersDev,
     owner,
     providerBindings: bindings,
   });
@@ -211,7 +241,6 @@ async function main() {
     gate: 'q5_live_provider_iam',
     proofLayer: 'live_provider_control_plane_partial',
     accountId: options.account_id,
-    zoneId: options.zone_id,
     providerPrincipal,
     workerScript: options.script_name,
     deploymentId: deployment.id,
@@ -224,9 +253,8 @@ async function main() {
     durableObjectBinding: doBinding[0],
     namespace: { id: namespaceMatches[0].id, name: namespaceMatches[0].name, class: namespaceMatches[0].class, script: namespaceMatches[0].script, useSqlite: namespaceMatches[0].use_sqlite },
     jurisdiction: owner.runtime.jurisdiction,
-    route: { id: options.route_id, pattern: route?.pattern ?? null, script: route?.script ?? null },
+    ingress: workersDev,
     routeBinding: owner.runtime.routeBinding,
-    ingress: options.qualification_endpoint.origin,
     publicVerifierFingerprints: { managementKeyId: owner.managementKeyId, releaseRootKeyId: owner.releaseRootKeyId, currentCredentialKeyId: owner.currentCredentialKeyId },
     legacyHmac: { runtimePresent: owner.legacyHmacPresent, bindingNamePresent: secretNames.includes('TDEV_AGENT_DELIVERY_AUTH_KEY') },
     secretBindingNames: secretNames,
