@@ -137,6 +137,14 @@ Source/local-runtime/provider/device/deployed-product evidence remain separate. 
 
 Parallel qualification lanes must also separate **semantic timeout falsifiers** from **normal-path scheduling budgets** and from the **outer whole-suite wall-clock deadline**. An exact-S6 parallel trial exposed that D0018 warm-host normal fresh-process attempts used a 10s transport budget while a concurrent full source gate saturated the same Termux host; W23 then produced a false `model_transport_timeout` despite correct isolation semantics. The warm qualification normal path therefore carries an explicit bounded contention margin, while the dedicated 50ms transport-timeout falsifier remains unchanged. This is qualification scheduling policy only; it does not weaken production retry/fencing/cancellation semantics or promote trusted-local runtime evidence into provider/device proof.
 
+### D0039 Revision-7 Q4 executed-bootstrap qualification
+
+R7 preserves the R6 DAG and replaces only Q4's incomplete source realization. Source Q1 must now prove strict capsule-v2/execution-v1 normalization, exact legacy-v1 rejection/non-use, independently supplied digest separation and an executor/verifier path that authenticates the complete runtime bytes and exact verifier bytes actually executed. The verifier child starts with zero inherited environment in a private positively empty cwd; the authenticated verifier may import exactly `node:crypto`, `node:fs`, `node:path` and `node:zlib`, with relative/package/dynamic/native loading and network-capable closure rejected.
+
+The permanent fresh-bootstrap qualification must distinguish three layers: (1) candidate/transport self-consistency, which is never terminal trust; (2) source/local executor proof, including stable-handle verified-bytes-equal-executed-bytes, environment/cwd/import/network and archive/signature/tamper falsifiers; and (3) terminal Q4, which additionally requires an independently authenticated operator principal/channel that established the exact capsule-v2 digest before untrusted transport input was consulted. Absence of layer 3 is recorded as blocked/unverified even when layers 1-2 pass.
+
+Historical `codex/d0039-r2-qualification-followup-20260824` may supply selectively revalidated transport/archive/tamper mechanics only. Its v1 capsule and non-executed verifier model are explicit regression fixtures, not implementation authority. Any R7 Design/source change creates fresh S7/Q1/A7; R6 source-equivalence cannot be used across this revision.
+
 
 ## 3. Qualification layers
 

@@ -1,23 +1,22 @@
 # Design 0039 — D0027 Deployment Realization
 
 - Status: `accepted`
-- Revision: 6
+- Revision: 7
 - Class: 2
-- Decision date: 2026-08-25
-- Acceptance base: `development@7d629fb644808c5aa1428f1da55da28643a8c009`
-- Trigger: executable Revision-5 Q5 application reached exact provider-applied S/A/V state but proved that the selected D0027 route is still `UNREGISTERED`; the accepted final-Q5-before-any-Q6-mutation rule therefore requires a CURRENT route before allowing the only transaction that can create that CURRENT route
-- Predecessor revision: D0039@r5, accepted and source-qualified, with one exact provider effect applied and retained fail-closed in reconciliation
-- Predecessor maintained text: `development@7d629fb644808c5aa1428f1da55da28643a8c009:docs/design/0039-d0027-deployment-realization.md`
-- Trigger evidence: `docs/evidence/group-f-d0039-r5-q5-provider-applied-route-owner-blocked-2026-08-25.json`
-- Acceptance evidence: `docs/evidence/group-f-d0039-r6-qualification-dag-route-bootstrap-acceptance-2026-08-25.json`
-- Scope: same D0039 deployment-realization owner family; remove the Q5/Q6 circular dependency, replace the apparent Q1-Q10 serial queue with an explicit dependency/invalidation DAG, add a narrowly bounded route-bootstrap qualification target, separate operation-run terminality from gate closure, and require fresh re-admission after identity-changing Q7-Q9 mutations
-- Affected owners: `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, `docs/SECURITY.md`, D0039 qualification target/journal tooling and tests, derived Design/program routing and bounded WORKBOARD current status
-- Preserved owners: D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains the sole route-current/effect-admission owner; D0038 remains executor-capacity owner; qualification coordination remains non-product authority
-- Explicit non-goals: no second route owner; no alternate provider/ingress; no caller-invented provider version/current tuple; no weakening of claims/CAS/reconciliation/no-live-takeover; no replay of the existing R5 provider effect; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
+- Decision date: 2026-08-26
+- Acceptance base: `development@cdd4da01b920ebb01aeff720e1a1814c34b5a0ed`
+- Trigger: isolated Revision-6 Q4 application revalidation proved that maintained SECURITY requires `tdev.agent-bootstrap-trust-capsule.v2` over the bytes actually executed, while current production normalization/verifier code and the historical fresh-bootstrap harness still implement only capsule v1 and verifier-entry hashing without an authenticated runtime/builtin/environment execution closure
+- Predecessor revision: D0039@r6, accepted and source-qualified at exact S6 with the qualification DAG, route-bootstrap fence, run/store v3 and re-admission semantics preserved unchanged
+- Predecessor maintained text: `development@cdd4da01b920ebb01aeff720e1a1814c34b5a0ed:docs/design/0039-d0027-deployment-realization.md`
+- Trigger/acceptance evidence: `docs/evidence/group-f-d0039-r7-q4-executed-bootstrap-contract-acceptance-2026-08-26.json`
+- Scope: same D0039 deployment-realization owner family; preserve the Revision-6 Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 DAG and correct only the Q4 bootstrap trust payload/execution contract, its legacy-v1 non-use rule, operator-channel boundary and executable falsifiers
+- Affected owners: `docs/SECURITY.md`, `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, bootstrap capsule/executor/verifier source and tests, derived Design/program routing and bounded WORKBOARD current status
+- Preserved owners: all Revision-6 provider/route coordination meanings; D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains sole route-current/effect-admission owner; D0038 remains executor-capacity owner; qualification coordination remains non-product authority
+- Explicit non-goals: no change to the Revision-6 dependency/invalidation DAG; no second route owner; no provider/route/device effect in the Revision-7 source phase; no capsule-v1 reinterpretation or downgrade; no candidate/self-issued Q4 trust anchor; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
 
 ## 1. One-line definition
 
-Realize D0027 through an explicit qualification DAG: qualify exact S/A, establish provider-applied S/A/V, authorize only the exact fresh-route genesis transaction from an authenticated UNREGISTERED predecessor, join the resulting CURRENT route into final deployment-v2, and re-admit after every later mutation that invalidates that identity before composing Q10.
+Realize D0027 through the preserved Revision-6 qualification DAG while making Q4 authenticate one exact capsule-v2 execution closure: independently supplied capsule digest, exact runtime bytes, exact self-contained verifier bytes, exact permitted builtin set, empty inherited environment, private empty working directory and declared environmental executor TCB.
 
 ## 2. Executed Revision-5 falsifier
 
@@ -214,6 +213,74 @@ No live Q6-Q10 mutation is authorized merely by acceptance of this Design. The s
 
 Cheapest falsifiers include: route-bootstrap accepted without an authoritative UNREGISTERED predecessor; ordinary operation accepted on route-bootstrap target; R5 provider effect replayed with the same mutation identity; v2 nonterminal state silently read as v3; stale D0 accepted after a Q7/Q8/Q9 identity change; Q10 joining a destroyed sibling; or an old `bench/d0018-*` path treated as the current runtime executable.
 
-## 13. Completion boundary
+## 13. Preserved Revision-6 completion boundary
 
-Revision 6 is accepted, not verified. Verification requires published source implementation, complete exact Q1/A6, executable target/migration/re-admission falsifiers and the required provider/device/operator proof layers. No current R5 provider observation, local runtime pass or source-only test is promoted into final R6 Q5/Q6-Q10 completion.
+Revision 6 established the dependency/invalidation DAG and its source realization. Revision 7 does not weaken or reorder it. R6 source/runtime evidence remains immutable predecessor evidence only; because Revision 7 changes normative/source bootstrap meaning, a fresh exact S7, complete Q1 and deterministic A7 are required before new live R7 provider/route/device progression.
+
+## 14. Revision-7 Q4 authenticated executed-bootstrap contract
+
+### 14.1 Executed falsifier and lifecycle decision
+
+During the first R6 live continuation, the retained R5 provider operation was authoritatively reconciled without replay and its quiescent coordination state migrated v2 -> v3 with high-water/tombstones preserved. Disjoint Q3 and Q4 prequalification lanes were then opened. Before Q4 performed any bootstrap/product mutation, source inspection falsified the maintained Q4 realization: `src/installable-agent-security.mjs` still names `tdev.agent-bootstrap-trust-capsule.v1` and authenticates only capsule bytes plus verifier entry bytes. The historical non-authoritative qualification-followup harness adds useful independent-digest, archive and tamper checks but also uses v1 and never executes an authenticated runtime/verifier closure.
+
+Maintained SECURITY already requires capsule v2 and the bytes actually executed, but the exact durable v2 schema was not carried into maintained Design authority. Per SDD this is a same-owner **new D0039 revision**, not a Class-1 string change and not a new Design. The R6 DAG remains authoritative and unchanged.
+
+### 14.2 Exact capsule-v2 schema
+
+The canonical capsule has exactly these top-level fields and no others:
+
+```text
+profile = tdev.agent-bootstrap-trust-capsule.v2
+routeBinding
+managementKeyId
+managementPublicKey
+releaseRootKeyId
+releaseRootPublicKey
+initialTrustPolicyGeneration
+initialDelegationDigest
+execution
+```
+
+The inherited route/key/trust fields retain their previous strict meanings. `execution` is one exact record:
+
+```text
+profile = tdev.agent-bootstrap-execution.v1
+runtimeProfile
+runtimeSha256
+runtimePlatform
+runtimeArchitecture
+verifierProfile
+verifierSha256
+allowedBuiltinModules
+networkAllowed = false
+environmentInheritance = false
+workingDirectoryProfile = private-empty-v1
+```
+
+`runtimeSha256` and `verifierSha256` are raw lowercase SHA-256 values over the complete runtime executable and self-contained verifier module bytes actually admitted for execution. `allowedBuiltinModules` is a sorted, duplicate-free exact list of `node:` standard-module specifiers. The current product verifier profile may use only `node:crypto`, `node:fs`, `node:path` and `node:zlib`; relative/package/repository imports, dynamic imports, native addons, child-process/worker creation and any other module are outside the closure. `runtimePlatform` and `runtimeArchitecture` bind the exact observed execution platform/architecture; the current D0027 target remains Android/arm64.
+
+`environmentInheritance=false` has one unambiguous current meaning: the verifier child inherits **zero** environment variables. There is no implicit PATH, HOME, NODE_OPTIONS, NODE_PATH, loader/preload setting or candidate-selected environment allowlist. Any future need to admit environment variables changes the execution profile/capsule identity and returns through the owner lifecycle. `networkAllowed=false` is mandatory; the execution context supplies no network-capable global or module outside the authenticated closure.
+
+### 14.3 Independent anchor and environmental TCB
+
+The raw SHA-256 of the exact canonical capsule-v2 bytes is the sole Q4 product trust anchor. It must be established by an authenticated operator channel before any value from the release/candidate transport is consulted. A digest emitted by the candidate, copied from the same archive/repository/CDN/GitHub transport or merely stored in another file path is not independent authentication. The consumer communications product remains deployment-owned; absence of a positively authenticated operator channel leaves terminal Q4 unverified.
+
+The OS kernel, filesystem/process primitives and exact bootstrap executor used to open/hash/launch the runtime are declared environmental TCB, not product trust anchors. Terminal evidence identifies their profile/observation. The executor must bind verified bytes to executed bytes by a stable-handle/immutable-staging primitive proven for the claimed platform; path check-then-exec alone is insufficient.
+
+### 14.4 Execution and transport rules
+
+The executor must read capsule, verifier, signatures and archive as bounded regular non-symlink inputs through stable handles; reject links, devices/FIFOs, duplicate archive paths, non-normal/absolute/traversal paths, unsupported entries and extraction escape; verify the complete runtime bytes before launch; execute the exact verified verifier bytes with only the exact allowed builtin modules; reject dynamic/package/relative/native loading; use an absolute/stable runtime identity; start with an exact empty environment and a new positively empty private working directory; and prohibit network, runtime download, compiler invocation, package resolution, ambient repository imports and candidate-selected helpers. Verifier stdout/stderr remain diagnostics until a bounded canonical result is returned.
+
+The verifier itself must authenticate the capsule-rooted management/release/delegation identities, signed release statement, archive digest, manifest and every extracted file before installation/current election. Ambient tdev source may orchestrate or observe the executor but cannot replace the capsule/runtime/verifier trust decision.
+
+### 14.5 Version/migration/rollback rule
+
+Capsule v1 is historical predecessor material only. There is **no v1 -> v2 reinterpretation or automatic migration** and no terminal R7 Q4 claim may consume a v1 capsule. No accepted terminal live Q4 state exists that needs product-state migration. A fresh v2 capsule and independently authenticated digest are required for R7. Rollback/downgrade from v2 to v1 is forbidden for terminal qualification. Any runtime, verifier, allowed-builtin set, runtime platform/architecture or execution-policy change creates a new v2 capsule identity and requires a newly independently authenticated capsule digest.
+
+### 14.6 Q4 falsifiers and proof boundary
+
+Source qualification must permanently cover: v1 rejection; unknown/duplicate/unsorted builtin entries; wrong runtime/verifier digest; wrong platform/architecture; non-empty inherited environment; non-private/non-empty cwd; relative/package/dynamic/native import attempts; network-capable closure attempts; runtime/verifier replacement between verification and execution; digest file inside the untrusted transport; candidate/self-issued digest; symlink/special-file transport inputs; archive duplicate/traversal/link/tamper; signer/delegation/release/archive/manifest/file tamper; and executor crash/ambiguous cleanup. A source/local pass closes only the source/executor proof layer. Terminal Q4 still requires a positively authenticated independent operator digest channel plus observation of the exact executor/runtime/verifier process.
+
+## 15. Revision-7 completion boundary
+
+Revision 7 is accepted, not verified. Implementation requires a fresh exact S7/Q1/A7 and executable capsule-v2 normalization, independent-channel fresh-bootstrap executor/verifier and the falsifiers above. Q3 and Q4 may still run in parallel with Q5-P only after S7/A7 and only on disjoint resources exactly as R6 specifies. Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 remains unchanged. No R5/R6 provider observation, R6 source/runtime pass or historical qualification branch is promoted into R7 terminal proof.

@@ -279,6 +279,14 @@ Before qualification authority is sent to the route owner, provider readback mus
 
 Revision-4 provider IAM minimum authority is `Workers Scripts Write` on the exact account. Zone-route authority is not required or credited. A distinct IAM observer reads provider-token policy, but Cloudflare token policy does not prove management/release private-key custody or signer absence of provider privilege; terminal Q5 retains those independent separation proofs.
 
+## 14.6 D0039 Revision-7 executed bootstrap closure
+
+D0039@r7 makes the already-required Revision-3 Q4 executed-closure meaning exact. Terminal R7 Q4 accepts only canonical `tdev.agent-bootstrap-trust-capsule.v2` with one nested `tdev.agent-bootstrap-execution.v1` record binding complete runtime executable bytes, exact Android/arm64 execution identity, exact self-contained verifier bytes, sorted exact permitted `node:` builtin closure, `networkAllowed=false`, `environmentInheritance=false` and `workingDirectoryProfile=private-empty-v1`. The current verifier closure is limited to `node:crypto`, `node:fs`, `node:path` and `node:zlib`. Empty inheritance means exactly zero child environment variables, not a candidate-defined allowlist.
+
+The capsule-v2 raw SHA-256 remains the sole product bootstrap trust anchor and must arrive through an authenticated operator channel independent of every release/candidate transport value. Capsule v1 is historical only and cannot be reinterpreted, migrated or downgraded into terminal R7 Q4. Changing runtime/verifier/builtin/platform/architecture/execution policy requires a new v2 capsule identity and new independently authenticated digest.
+
+The OS/filesystem/process primitives and exact bootstrap executor are declared environmental TCB and are identified in terminal evidence. The executor must prove verified bytes equal executed bytes using a stable-handle/immutable-staging primitive; path check-then-exec is insufficient. It launches the authenticated runtime without inherited environment or ambient cwd, in a new private empty cwd, with no network/runtime download/compiler/package resolution/ambient repository imports or candidate-selected helper authority. Only the authenticated verifier running under that closure may make the capsule/release/archive/file decision; orchestration code and evidence producers cannot self-authenticate it.
+
 ## 15. Source-layer non-claims
 
 A source-layer qualification does not by itself prove:
