@@ -22,6 +22,15 @@ jobs:
         run: npm run syntax
       - name: docs-check
         run: npm run docs:check
+      - name: new-iam-readback-tests
+        continue-on-error: true
+        run: node --test test/installable-agent-cloudflare-iam-readback.test.mjs
+      - name: new-provider-principal-tests
+        continue-on-error: true
+        run: node --test test/installable-agent-cloudflare-provider-principal.test.mjs
+      - name: existing-cloudflare-readback-tests
+        continue-on-error: true
+        run: node --test test/installable-agent-cloudflare-readback.test.mjs
       - name: unit-tests
         run: npm test
       - name: demo
