@@ -1,4 +1,4 @@
-name: D0039 Q5 candidate exact-source diagnostic
+name: D0039 Q5 candidate exact-source gate
 
 on:
   pull_request:
@@ -15,39 +15,11 @@ jobs:
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: 9738aeb5cb9210a2daefefc80978f2460a93ce77
+          ref: b94f938f08b02e606804f007c31edc7ed9706d5f
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
       - run: npm ci --ignore-scripts --no-audit --no-fund
-      - name: syntax
-        run: npm run syntax
-      - name: docs-check
-        run: npm run docs:check
-      - name: capture-unit-tests
-        shell: bash
-        run: |
-          set +e
-          npm test > unit-test.log 2>&1
-          status=$?
-          echo "$status" > unit-test.exit
-          exit 0
-      - name: upload-unit-test-log
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: d0039-q5-unit-test-log
-          path: |
-            unit-test.log
-            unit-test.exit
-          if-no-files-found: error
-      - name: enforce-unit-test-result
-        run: test "$(cat unit-test.exit)" = "0"
-      - name: demo
-        run: npm run demo --silent
-      - name: durable-demo
-        run: npm run durable-demo --silent
-      - name: coverage
-        run: node --experimental-test-coverage --test test/*.test.mjs
-      - name: diff-check
-        run: git diff --check
+      - run: npm run check
+      - run: node --experimental-test-coverage --test test/*.test.mjs
+      - run: git diff --check
