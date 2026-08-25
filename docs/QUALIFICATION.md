@@ -111,6 +111,18 @@ Q5 reads account and Worker subdomain state, establishes the exact production ho
 
 Revision 4 uses `qualification/d0039-r4-source-equivalence.mjs` and the bounded `D0039-R4-CURRENT-STATUS` WORKBOARD region. An evidence descendant may add only canonical `docs/evidence/group-f-d0039-r4-*.json` plus that bounded status change. Every other changed path makes a new S. Q2-Q10 remain unverified until executed on the exact admitted R4 deployment.
 
+### D0039 Revision-5 provider-generated-version qualification coordination
+
+D0039@r5 preserves the final Revision-4 `tdev.installable-agent-qualification-deployment.v2` S/A/V/R identity but corrects the pre-provider mutation target. The first provider deployment effect is PREPARED against strict `tdev.installable-agent-qualification-deployment-intent.v1`, containing only exact pre-dispatch S/A, account/service, desired workers.dev/configuration, intended Worker/namespace/class/jurisdiction bindings and an authoritative predecessor-provider-state digest. Provider-generated Worker version/deployment/route-owner outputs are absent rather than guessed.
+
+The durable coordination format advances to `tdev.installable-agent-qualification-run.v2` and `tdev.installable-agent-qualification-store.v2`; `tdev.installable-agent-qualification-claim.v1` keeps its existing meaning. Run v2 carries an explicit target kind: `provider_deployment_intent` accepts only deployment-intent.v1 and is valid for the provider-deploy mutation; `admitted_deployment` accepts only final deployment.v2 and is required for state-changing product/device qualification. A deployment intent cannot be used as `expectedDeploymentIdentityDigest`, terminal Q5 target or a Q2-Q10 product mutation fence.
+
+No v1 coordination bytes are silently reinterpreted. A v1 store with a nonterminal run, live claim or mutation controller blocks v2 migration until positively reconciled by v1-capable tooling. A supported quiescent migration must preserve genesis provenance, tombstones and controller/claim generation high-water/replay barriers; otherwise it fails closed. There is no automatic v2->v1 downgrade.
+
+Before provider dispatch, the controller binds the exact intent, stable mutation identity, affected provider-resource claims and authoritative reread method, then enters DISPATCHED. Any unknown outcome remains RECONCILING. The generated V is accepted only from authoritative provider reread proving the intended S/A/configuration; response content alone does not authorize dependent work. Final provider plus route-owner readback constructs the unchanged deployment-v2 identity, and Q2/state-changing product or device qualification remains blocked until that final identity exact-joins under Q5.
+
+Revision-5 Q1 must include the R4 journal mismatch regression plus intent/final-target substitution denial, unknown-field/profile rejection, v1 migration barriers and ambiguous-provider-effect claim retention/no-duplicate-effect vectors. Exact Revision-5 S reruns the complete source gate and constructs a new deterministic A. An evidence descendant is reusable only through the S-owned `qualification/d0039-r5-source-equivalence.mjs` checker and the bounded `D0039-R5-CURRENT-STATUS` WORKBOARD region; other semantic/source changes create a new S.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

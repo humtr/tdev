@@ -309,6 +309,16 @@ Provider admission reads the account and target-Worker subdomain APIs before rou
 
 Provider/deploy requires effective `Workers Scripts Write` on the exact account; a separate IAM observer uses the appropriate API-token-read namespace. Secret values remain excluded. Every provider mutation still requires the Revision-3 PREPARED run/claim fence and exact target; ambiguous provider effects reconcile by authoritative reread, never by a guessed retry or takeover.
 
+### D0039 Revision-5 provider-generated-version deployment fence
+
+Revision 5 corrects only what the first provider mutation can bind before dispatch. Cloudflare creates the immutable Worker version after upload, so provider deployment uses strict `tdev.installable-agent-qualification-deployment-intent.v1` rather than pretending V/R are pre-known. The intent binds exact S/A, account/service, deployment/environment/epoch, fresh workers.dev subdomain and desired exact origin, required ingress settings, intended Worker/namespace/class/jurisdiction bindings, immutable deployment-binding digest and the digest of the exact pre-dispatch provider predecessor snapshot. It contains no invented provider-generated identity.
+
+Durable coordination for this meaning is `tdev.installable-agent-qualification-run.v2` in `tdev.installable-agent-qualification-store.v2`; claim-v1 resource/generation meaning is preserved. Before the provider effect, the exact intent, stable mutation identity, authoritative reread identity, global mutation lane and exact provider-resource claims are PREPARED. DISPATCH precedes the network effect. Unknown outcomes remain RECONCILING and retain claims/controller ownership until authoritative provider reread proves not-admitted/applied/conflict; timeout or a new version/request never permits guessed retry or takeover.
+
+A returned upload version is not itself admission evidence. Provider readback must establish the generated V and exact intended S/A/configuration, followed by 100-percent writer, workers.dev, namespace/class and route-owner readback. Only then is final `tdev.installable-agent-qualification-deployment.v2` formed and allowed to fence Q2 or state-changing product/device qualification.
+
+Store v1 bytes are not reinterpreted. A v1 store with surviving nonterminal run/controller/claim blocks v2 migration. Any supported quiescent migration must preserve genesis provenance, tombstones and controller/claim high-water/replay barriers; otherwise deployment remains blocked. Tooling that understands only v1 cannot resume v2 state and there is no automatic downgrade.
+
 ## 10. Publication lane
 
 D0011's local Git adapter implements the publication separation after semantic Promotion:
