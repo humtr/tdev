@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "secretValues": "excluded",
   "classification": "d0039_r8_route_bootstrap_pre_admission_correction",
-  "observedAtUtc": "2026-08-25T23:27:01Z",
+  "observedAtUtc": "2026-08-25T23:50:50Z",
   "design": {
     "id": "D0039",
     "revision": 8,
@@ -10,12 +10,15 @@
     "predecessorRevision": 7
   },
   "authority": {
-    "developmentRef": "d4d0c1f26894ee73d73f631dab0249d9a13c66b5",
+    "developmentRef": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
     "r7SourceSha": "0f64da1542e8b17fef636d1d4d1658cc216da88e",
     "r7Evidence": [
       "docs/evidence/group-f-d0039-r7-q6b-live-runtime-guard-readback-2026-08-25.json",
       "docs/evidence/group-f-d0039-r7-q6b-route-bootstrap-readback-blocked-2026-08-25.json"
-    ]
+    ],
+    "r8SourceSha": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "r8TestedParentSha": "d4d0c1f26894ee73d73f631dab0249d9a13c66b5",
+    "r8TestedTreeSha": "33928a58389aba9ec51a2379adc66e4c36c57ee8"
   },
   "trigger": {
     "routeState": "UNREGISTERED",
@@ -35,9 +38,17 @@
     "sourcePhaseExternalMutation": false
   },
   "implementationStatus": {
-    "focusedSourceFalsifiers": "PASS",
-    "completeQ1SourceGate": "PENDING",
-    "deterministicA8": "PENDING",
+    "focusedSourceFalsifiers": "PASS_route_dispatch_stale_predecessor_request_mismatch_async_release_root_context",
+    "completeQ1SourceGate": "PASS_npm_run_check_571_of_571",
+    "coverage": {
+      "testsPassed": 571,
+      "testsTotal": 571,
+      "lineBasisPoints": 8524,
+      "branchBasisPoints": 7163,
+      "functionBasisPoints": 8856,
+      "command": "node --experimental-test-coverage --test test/*.test.mjs"
+    },
+    "deterministicA8": "PASS_double_build_byte_identical",
     "deployedRouteBootstrap": "UNVERIFIED",
     "independentQ4OperatorChannel": "UNVERIFIED"
   },
@@ -54,8 +65,15 @@
   "proofBoundaries": {
     "r7Q1A7": "historical predecessor evidence",
     "r7Q5P": "retained provider-substrate evidence only",
-    "r8": "implementation/focused source layer only",
+    "r8": "source/Q1/A8 and focused falsifiers only",
     "q4": "independent operator channel and terminal fresh bootstrap unverified",
     "q6bAndLater": "not executed"
+  },
+  "artifact": {
+    "archiveFile": "tdev-installable-agent-android-arm64-2fed68c582ceee31546ece08f4c7a9a6d7194941.tgz",
+    "archiveBytes": 115970,
+    "archiveDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
+    "releaseManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
+    "deterministicDoubleBuild": "PASS"
   }
 }
