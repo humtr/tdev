@@ -271,6 +271,14 @@ The qualification run journal and resource-claim ledger are coordination fences 
 
 Corrupt or lost qualification coordination state fails closed for the affected lane and does not authorize recreation or takeover. If safe recovery requires an independently durable/public effect-admission authority, a second route-current registry, a new credential/trust owner or another independently decidable security/cutover authority, implementation must return through `SDD.md` for a new Design.
 
+## 14.5 D0039 Revision-4 workers.dev ingress trust boundary
+
+D0039@r4 preserves the Revision-3 trust/controller boundary while replacing only the unavailable Zone-route ingress identity for the isolated non-production qualification substrate. R is one exact `workers.dev` production hostname derived from fresh account-subdomain readback plus the exact Worker service name. It is a provider locator, never a credential, signer, product-current owner, recovery authority or evidence authenticator.
+
+Before qualification authority is sent to the route owner, provider readback must establish the account workers.dev subdomain, target Worker `enabled=true`, `previews_enabled=false`, and the exact origin `https://<worker>.<account-subdomain>.workers.dev`. Alternate origins, redirects, preview URLs, Zone routes and Custom Domains cannot substitute. The mutation fence uses `tdev.installable-agent-qualification-deployment.v2`; the authenticated qualification RPC remains v2 and identity mismatch still fails before product mutation.
+
+Revision-4 provider IAM minimum authority is `Workers Scripts Write` on the exact account. Zone-route authority is not required or credited. A distinct IAM observer reads provider-token policy, but Cloudflare token policy does not prove management/release private-key custody or signer absence of provider privilege; terminal Q5 retains those independent separation proofs.
+
 ## 15. Source-layer non-claims
 
 A source-layer qualification does not by itself prove:

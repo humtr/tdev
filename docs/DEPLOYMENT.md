@@ -301,6 +301,14 @@ Deployment admits exactly one qualification mutation controller per live mutatio
 
 The bootstrap executor/runtime plus the profile-specific primitive that proves verified bytes are the executed bytes are deployment prerequisites for Q4. If concrete realization of any of these requirements would introduce an independent public/durable effect-admission authority, a second product-current registry, a materially different owner model or an independently decidable migration/cutover, stop and return through `SDD.md` rather than adding it as deployment detail.
 
+### D0039 Revision-4 workers.dev qualification deployment contract
+
+Revision 4 preserves `S -> A -> V -> deployment/cutover -> 100-percent writer -> provider readback -> route-owner readback -> exact join`, but R no longer requires a Zone. R binds account/service/deployment epoch, one active Worker version at 100 percent state-changing traffic, fresh account workers.dev subdomain, exact `<worker>.<subdomain>.workers.dev` hostname, `enabled=true`, `previews_enabled=false`, Durable Object namespace/class/jurisdiction, exact route-current Durable Object identity and public verifier bindings.
+
+Provider admission reads the account and target-Worker subdomain APIs before route-owner qualification. Missing/changed subdomain, disabled workers.dev, enabled previews, origin mismatch, redirect, mixed active versions, ambiguous namespace/class or provider/route-owner identity drift blocks admission. Revision-3 route ID/pattern bindings are absent from deployment identity v2 and cannot authorize Revision-4 mutation.
+
+Provider/deploy requires effective `Workers Scripts Write` on the exact account; a separate IAM observer uses the appropriate API-token-read namespace. Secret values remain excluded. Every provider mutation still requires the Revision-3 PREPARED run/claim fence and exact target; ambiguous provider effects reconcile by authoritative reread, never by a guessed retry or takeover.
+
 ## 10. Publication lane
 
 D0011's local Git adapter implements the publication separation after semantic Promotion:

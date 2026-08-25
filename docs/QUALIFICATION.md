@@ -103,6 +103,14 @@ Selective candidate integration is semantic-hunk based, never wholesale. The pro
 
 The first source/tool/runtime realization of these accepted trust, identity, persistence, deployment and verification rules is Class 2 and must pass the full source gate plus focused Revision-3 falsifiers at exact S before Q1 can close. Q2-Q10 remain separate provider/device/operator proof layers; absent execution is `unverified`, never an inherited PASS. If the qualification protocol would need an independent public/durable effect-admission authority or other owner-model/cutover expansion, stop at a new-Design boundary under `SDD.md`.
 
+### D0039 Revision-4 workers.dev deployment-realization proof profile
+
+D0039@r4 inherits Revision-3 authenticated evidence, journal/claims, reconciliation, no-live-takeover and Q2-Q10 separation. Exact S reruns the complete source gate. Q1 additionally falsifies deployment-identity-v2 shape, workers.dev hostname/origin derivation, legacy Zone-route fields, disabled workers.dev, enabled previews, provider/route-owner drift and the Revision-4 least-privilege IAM rule.
+
+Q5 reads account and Worker subdomain state, establishes the exact production hostname/origin, one active V at 100 percent state-changing traffic, Worker/class/namespace/jurisdiction and immutable S/A/config bindings, inventories secret names without values, and only then reads the route owner at that origin. Provider and route-owner deployment-v2 digests must exact-join in one stable epoch. IAM uses a distinct observer and proves account-scoped Workers Scripts Write; signer custody/privilege separation remains independently evidenced.
+
+Revision 4 uses `qualification/d0039-r4-source-equivalence.mjs` and the bounded `D0039-R4-CURRENT-STATUS` WORKBOARD region. An evidence descendant may add only canonical `docs/evidence/group-f-d0039-r4-*.json` plus that bounded status change. Every other changed path makes a new S. Q2-Q10 remain unverified until executed on the exact admitted R4 deployment.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:
