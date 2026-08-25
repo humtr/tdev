@@ -211,6 +211,7 @@ async function main() {
     gate: 'q5_live_provider_iam',
     proofLayer: 'live_provider_control_plane_partial',
     accountId: options.account_id,
+    zoneId: options.zone_id,
     providerPrincipal,
     workerScript: options.script_name,
     deploymentId: deployment.id,
