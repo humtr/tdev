@@ -24,8 +24,25 @@ jobs:
         run: npm run syntax
       - name: docs-check
         run: npm run docs:check
-      - name: unit-tests
-        run: npm test
+      - name: capture-unit-tests
+        shell: bash
+        run: |
+          set +e
+          npm test > unit-test.log 2>&1
+          status=$?
+          echo "$status" > unit-test.exit
+          exit 0
+      - name: upload-unit-test-log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0039-q5-unit-test-log
+          path: |
+            unit-test.log
+            unit-test.exit
+          if-no-files-found: error
+      - name: enforce-unit-test-result
+        run: test "$(cat unit-test.exit)" = "0"
       - name: demo
         run: npm run demo --silent
       - name: durable-demo
