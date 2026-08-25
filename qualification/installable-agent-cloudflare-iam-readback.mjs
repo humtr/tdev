@@ -56,6 +56,10 @@ function normalizeTokenKind(value, label = 'token kind') {
   return value;
 }
 
+function compareText(left, right) {
+  return left < right ? -1 : left > right ? 1 : 0;
+}
+
 function parseArgs(argv) {
   const allowed = new Set(['--account-id', '--zone-id', '--provider-token-id', '--provider-token-kind', '--iam-token-kind']);
   const values = new Map();
@@ -135,7 +139,7 @@ function normalizePermissionGroups(groups) {
     if (!Array.isArray(group.scopes) || group.scopes.length === 0) {
       fail('cloudflare_iam_permission_catalog_invalid', `permission group ${index} scopes are invalid`);
     }
-    const scopes = group.scopes.map((scope, scopeIndex) => boundedString(scope, `permission group ${index} scope ${scopeIndex}`, 256)).sort();
+    const scopes = group.scopes.map((scope, scopeIndex) => boundedString(scope, `permission group ${index} scope ${scopeIndex}`, 256)).sort(compareText);
     if (new Set(scopes).size !== scopes.length) {
       fail('cloudflare_iam_permission_catalog_invalid', `permission group ${index} scopes are duplicated`);
     }
@@ -162,7 +166,7 @@ function normalizeResources(resources, label) {
     fail('cloudflare_iam_policy_invalid', `${label} resources are invalid`);
   }
   const normalized = {};
-  const keys = Object.keys(resources).sort();
+  const keys = Object.keys(resources).sort(compareText);
   if (keys.length === 0) fail('cloudflare_iam_policy_invalid', `${label} resources are empty`);
   for (const key of keys) {
     boundedString(key, `${label} resource key`, 512);
@@ -175,7 +179,7 @@ function normalizeResources(resources, label) {
       fail('cloudflare_iam_policy_invalid', `${label} resource ${key} is invalid`);
     }
     const nested = {};
-    const nestedKeys = Object.keys(value).sort();
+    const nestedKeys = Object.keys(value).sort(compareText);
     if (nestedKeys.length === 0) fail('cloudflare_iam_policy_invalid', `${label} nested resource ${key} is empty`);
     for (const nestedKey of nestedKeys) {
       boundedString(nestedKey, `${label} nested resource key`, 512);
@@ -205,7 +209,7 @@ function normalizePolicy(policy, label) {
       id: boundedString(group.id, `${label} permission group ${index} id`, 128),
       name: optionalBoundedString(group.name, `${label} permission group ${index} name`, 256),
     });
-  }).sort((left, right) => left.id.localeCompare(right.id));
+  }).sort((left, right) => compareText(left.id, right.id));
   if (new Set(permissionGroups.map((group) => group.id)).size !== permissionGroups.length) {
     fail('cloudflare_iam_policy_invalid', `${label} permission groups are duplicated`);
   }
@@ -296,7 +300,7 @@ function publicProviderPolicyObservation(token, tokenKind, accountId) {
   });
 }
 
-export function validateD0039CloudflareIamSeparation({
+export function validateD0039CloudflareIamObservation({
   accountId,
   zoneId,
   providerTokenId,
@@ -352,8 +356,11 @@ export function validateD0039CloudflareIamSeparation({
   return Object.freeze({
     classification: 'observed',
     gate: 'q5_live_provider_iam',
-    proofLayer: 'live_iam_control_plane',
-    separation: 'distinct_api_token_principals',
+    proofLayer: 'live_iam_control_plane_partial',
+    observerSeparation: 'distinct_api_token_principals',
+    authoritySeparation: 'unverified',
+    privateKeyCustody: 'unverified',
+    terminalQ5: false,
     accountId,
     zoneId,
     providerPrincipal: providerObservation,
@@ -370,7 +377,7 @@ export function validateD0039CloudflareIamSeparation({
   });
 }
 
-export async function readD0039CloudflareIamSeparation({ accountId, zoneId, providerTokenId, providerTokenKind, iamTokenKind, iamApiToken }) {
+export async function readD0039CloudflareIamObservation({ accountId, zoneId, providerTokenId, providerTokenKind, iamTokenKind, iamApiToken }) {
   boundedString(accountId, 'account id', 128);
   boundedString(zoneId, 'zone id', 128);
   boundedString(providerTokenId, 'provider token id', 128);
@@ -387,7 +394,7 @@ export async function readD0039CloudflareIamSeparation({ accountId, zoneId, prov
     cloudflareGet(iamApiToken, providerNamespace.tokenPath(providerTokenId), 'provider token policy readback'),
     cloudflareGet(iamApiToken, providerNamespace.permissionGroupsPath, 'provider token permission-group catalog'),
   ]);
-  return validateD0039CloudflareIamSeparation({
+  return validateD0039CloudflareIamObservation({
     accountId,
     zoneId,
     providerTokenId,
@@ -403,7 +410,7 @@ export async function readD0039CloudflareIamSeparation({ accountId, zoneId, prov
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   const iamApiToken = process.env.CLOUDFLARE_IAM_API_TOKEN;
-  const observed = await readD0039CloudflareIamSeparation({ ...options, iamApiToken });
+  const observed = await readD0039CloudflareIamObservation({ ...options, iamApiToken });
   process.stdout.write(`${canonicalJson(observed)}\n`);
 }
 
