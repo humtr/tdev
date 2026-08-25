@@ -1,0 +1,101 @@
+name: D0039 R4 runtime patch
+on:
+  push:
+    branches:
+      - chatgpt/d0039-r4-workers-dev-20260825
+permissions:
+  contents: write
+jobs:
+  patch:
+    if: github.event.head_commit.message != 'Apply D0039 R4 runtime identity patch'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: chatgpt/d0039-r4-workers-dev-20260825
+          fetch-depth: 2
+      - name: Patch runtime identity
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('qualification/cloudflare-agent-delivery-runtime.mjs')
+          s = p.read_text()
+          old = "} from './installable-agent-qualification-r3.mjs';"
+          new = "} from './installable-agent-qualification-r4.mjs';"
+          if s.count(old) != 1:
+              raise SystemExit(f'import patch count={s.count(old)}')
+          s = s.replace(old, new)
+          old = """    this.deploymentBinding = Object.freeze({
+      artifactDigest,
+      artifactManifestDigest,
+      accountId: requiredText('TDEV_D0039_ACCOUNT_ID'),
+      serviceName,
+      deploymentEpoch: requiredText('TDEV_D0039_DEPLOYMENT_EPOCH'),
+      stateChangingTrafficPercentage: 100,
+      qualificationEndpointOrigin,
+      routeId: requiredText('TDEV_D0039_ROUTE_ID'),
+      routePattern: requiredText('TDEV_D0039_ROUTE_PATTERN'),
+      namespaceId: requiredText('TDEV_D0039_NAMESPACE_ID'),
+    });
+"""
+          new = """    const ingressKind = requiredText('TDEV_D0039_INGRESS_KIND', 64);
+    if (ingressKind !== 'workers_dev') {
+      throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 ingress kind must be workers_dev');
+    }
+    const workersDevAccountSubdomain = requiredText('TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN', 63);
+    const workersDevHostname = requiredText('TDEV_D0039_WORKERS_DEV_HOSTNAME', 253);
+    if (env?.TDEV_D0039_WORKERS_DEV_ENABLED !== 'true' || env?.TDEV_D0039_WORKERS_DEV_PREVIEWS_ENABLED !== 'false') {
+      throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 requires workers.dev enabled and preview URLs disabled');
+    }
+    if (qualificationEndpointOrigin !== `https://${workersDevHostname}`) {
+      throw new ContractError('invalid_qualification_config', 'D0039 Revision-4 qualification origin must equal the exact workers.dev Worker origin');
+    }
+    this.deploymentBinding = Object.freeze({
+      artifactDigest,
+      artifactManifestDigest,
+      accountId: requiredText('TDEV_D0039_ACCOUNT_ID'),
+      serviceName,
+      deploymentEpoch: requiredText('TDEV_D0039_DEPLOYMENT_EPOCH'),
+      stateChangingTrafficPercentage: 100,
+      qualificationEndpointOrigin,
+      ingressKind,
+      workersDevAccountSubdomain,
+      workersDevHostname,
+      workersDevEnabled: true,
+      workersDevPreviewsEnabled: false,
+      namespaceId: requiredText('TDEV_D0039_NAMESPACE_ID'),
+    });
+"""
+          if s.count(old) != 1:
+              raise SystemExit(f'constructor patch count={s.count(old)}')
+          s = s.replace(old, new)
+          old = """      qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
+      routeId: this.deploymentBinding.routeId,
+      routePattern: this.deploymentBinding.routePattern,
+      workerScript: this.host.config.placement.workerScript,
+"""
+          new = """      qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
+      ingressKind: this.deploymentBinding.ingressKind,
+      workersDevAccountSubdomain: this.deploymentBinding.workersDevAccountSubdomain,
+      workersDevHostname: this.deploymentBinding.workersDevHostname,
+      workersDevEnabled: this.deploymentBinding.workersDevEnabled,
+      workersDevPreviewsEnabled: this.deploymentBinding.workersDevPreviewsEnabled,
+      workerScript: this.host.config.placement.workerScript,
+"""
+          if s.count(old) != 1:
+              raise SystemExit(f'runtime facts patch count={s.count(old)}')
+          s = s.replace(old, new)
+          p.write_text(s)
+          PY
+          node --check qualification/cloudflare-agent-delivery-runtime.mjs
+          git diff --check
+      - name: Commit runtime identity patch
+        shell: bash
+        run: |
+          git config user.name humtr
+          git config user.email 272709831+humtr@users.noreply.github.com
+          git add qualification/cloudflare-agent-delivery-runtime.mjs
+          git diff --cached --quiet && exit 0
+          git commit -m 'Apply D0039 R4 runtime identity patch'
+          git push origin HEAD:chatgpt/d0039-r4-workers-dev-20260825
