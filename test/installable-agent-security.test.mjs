@@ -62,6 +62,16 @@ function expectCode(code) {
   return (error) => error?.code === code;
 }
 
+async function withZeroCoverageEnvironment(callback) {
+  const coverage = process.env.NODE_V8_COVERAGE;
+  delete process.env.NODE_V8_COVERAGE;
+  try {
+    return await callback();
+  } finally {
+    if (coverage !== undefined) process.env.NODE_V8_COVERAGE = coverage;
+  }
+}
+
 test('canonical key and base64url profiles reject alternate encodings', () => {
   assert.deepEqual([...decodeBase64Url('AQID')], [1, 2, 3]);
   assert.throws(() => decodeBase64Url('AQID='), expectCode('invalid_base64url'));
@@ -371,14 +381,14 @@ test('bootstrap executor runs only the operator-anchored staged closure', async 
   };
   try {
     const capsuleDigest = await bootstrapTrustCapsuleSha256(capsule);
-    const result = await executeBootstrapVerifier({
+    const result = await withZeroCoverageEnvironment(() => executeBootstrapVerifier({
       capsule,
       expectedCapsuleSha256: capsuleDigest,
       runtimePath: process.execPath,
       verifierPath,
       timeoutMs: 10_000,
       capsuleDigestSource: INSTALLABLE_AGENT_BOOTSTRAP_OPERATOR_DIGEST_SOURCE,
-    });
+    }));
     assert.equal(result.profile, 'tdev.agent-bootstrap-executor.v1');
     assert.equal(result.process.code, 0);
     assert.deepEqual(JSON.parse(result.process.stdout), { env: [], cwd: JSON.parse(result.process.stdout).cwd });
