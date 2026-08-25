@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r7_q6b_route_bootstrap_readback_blocked",
+  "observedAtUtc": "2026-08-25T22:35:16Z",
+  "design": { "id": "D0039", "revision": 7, "status": "accepted" },
+  "source": {
+    "qualifiedSourceSha": "0f64da1542e8b17fef636d1d4d1658cc216da88e",
+    "artifactDigest": "sha256:a286c5c3c7d88e725ecf2dced4a3005e31a6eb93c8b1de191ca0736fbd3a7ead",
+    "artifactManifestDigest": "sha256:26f02682a96162a294cc86cfa136e0a28d9442c91161fdb3ddbe3e8dc00b5168",
+    "authority": "S7/A7 exact source and artifact remain the bound qualification authority",
+    "guardReferences": [
+      { "file": "qualification/cloudflare-agent-delivery-runtime.mjs", "lines": "381-401", "fact": "#readRouteCurrent requires a digest-shaped currentTupleDigest" },
+      { "file": "qualification/cloudflare-agent-delivery-runtime.mjs", "lines": "456-464", "fact": "every non-read-only qualification operation reads and validates route current before dispatch" },
+      { "file": "qualification/cloudflare-agent-delivery-runtime.mjs", "lines": "321-327", "fact": "the production qualification DO host constructs AgentDeliveryRuntimeDOHost without verifier options" },
+      { "file": "src/cloudflare-agent-delivery-runtime.mjs", "lines": "607-631", "fact": "management and installable-evidence verifier callbacks default to null" },
+      { "file": "src/agent-delivery-authority.mjs", "lines": "1153-1159", "fact": "genesis evidence fails closed when its verifier is not configured" }
+    ]
+  },
+  "provider": {
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "activeDeploymentId": "0aa57594-f177-49f0-a05f-b91d7cff4ce7",
+    "activeVersionId": "b5e9fe5e-79ee-4088-b6da-0de81973a0e7",
+    "activeTrafficPercentage": 100,
+    "sourceSha": "0f64da1542e8b17fef636d1d4d1658cc216da88e",
+    "artifactDigest": "sha256:a286c5c3c7d88e725ecf2dced4a3005e31a6eb93c8b1de191ca0736fbd3a7ead",
+    "artifactManifestDigest": "sha256:26f02682a96162a294cc86cfa136e0a28d9442c91161fdb3ddbe3e8dc00b5168",
+    "workersDevHostname": "tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "readback": "Cloudflare deployments endpoint HTTP 200; exactly one version at 100 percent"
+  },
+  "routeOwner": {
+    "endpointOrigin": "https://tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "operation": "read_installable_agent",
+    "agentId": "d0039-q6-bounded-final-20260824",
+    "routeGeneration": 1,
+    "httpStatus": 200,
+    "rpcOk": true,
+    "twoReadsStable": true,
+    "state": "UNREGISTERED",
+    "predecessorDigest": "sha256:94e1e3aa717ae788a68337fb346aa6bd9bca7b992939b1f4409e84cda2e8ac81",
+    "currentTupleDigest": null,
+    "currentTuplePresent": false,
+    "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+    "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+    "currentCredentialKeyId": null,
+    "managementRequestSequenceHighWater": 1,
+    "secretValues": "excluded"
+  },
+  "q4": {
+    "independentAuthenticatedOperatorChannel": "not_observed",
+    "sourceLocalExecutor": "qualified",
+    "terminalQ4": false,
+    "reason": "No independent authenticated operator principal or fresh capsule digest channel was present in the bounded environment/path scan; local markers and repository transport are not terminal Q4 evidence."
+  },
+  "q6bContract": {
+    "targetProfile": "tdev.installable-agent-qualification-route-bootstrap.v1",
+    "targetKind": "route_bootstrap",
+    "routePredecessorRequired": "UNREGISTERED",
+    "unregisteredIsValidBootstrapPredecessor": true,
+    "allowedSuboperations": [
+      "migrate_installable_agent_route",
+      "register_installable_agent",
+      "record_installable_agent_genesis_evidence",
+      "accept_legacy_predecessor_quiescence",
+      "initial_activate_installable_agent",
+      "fail_installable_agent_genesis"
+    ],
+    "executionAdmission": "blocked_before_mutation",
+    "reason": "The exact route predecessor is available, but the deployed qualification dispatcher requires a non-null currentTupleDigest before every non-read-only operation. The Q6-B bootstrap mutation was therefore not invoked."
+  },
+  "qualificationRuntimeGuard": {
+    "localNonMutatingDryRun": "PASS",
+    "dryRunOperation": "register_installable_agent",
+    "dryRunRouteState": "UNREGISTERED",
+    "dryRunResult": "invalid_digest",
+    "hostDispatchAttempted": false,
+    "providerStateChangingCall": false,
+    "evidenceVerifierWiring": "source shows null by default and production qualification host supplies no callback; genesis evidence cannot be accepted until an authorized verifier is wired"
+  },
+  "dag": {
+    "completed": ["Q1", "A7", "Q3", "Q5-P"],
+    "next": "Q6-B",
+    "blockedBy": ["Q4 independent authenticated operator channel", "S7 deployed route-bootstrap pre-dispatch guard", "authorized genesis-evidence verifier/proofs"],
+    "notExecuted": ["Q6-B mutation", "Q5-R0", "Q2", "Q7", "Q8", "Q9", "Q10"]
+  },
+  "rollback": {
+    "automaticRollback": false,
+    "previousProviderWriterPreserved": {
+      "deploymentId": "dcc21cc2-26b1-4061-b966-6e2ae9a7894a",
+      "versionId": "166d691a-630a-4fd3-af44-dd5076b323eb",
+      "sourceSha": "431b5f48d01f99c166ed1e6ec64a5271932716da"
+    },
+    "rule": "No provider retry, route mutation or rollback without a corrected authorized source/runtime path, fresh predecessor/claims and explicit gate admission."
+  },
+  "safety": {
+    "routeMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "providerRetryPerformed": false,
+    "providerRollbackPerformed": false,
+    "secretsReadOrChanged": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "q1": "verified_exact_source_and_artifact",
+    "q3": "verified_physical_android_termux_and_local_package_lane",
+    "q4": "source_local_only_terminal_operator_channel_unverified",
+    "q5p": "verified_provider_worker_admission_and_cross_principal_iam_readback",
+    "q5": "nonterminal_route_bootstrap_predecessor_readback_only",
+    "q6b": "blocked_before_state-changing_dispatch",
+    "q2ThroughQ10AfterQ5p": "not_executed"
+  }
+}
