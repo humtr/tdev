@@ -4,6 +4,7 @@ import { generateKeyPairSync, sign } from 'node:crypto';
 
 import {
   AgentDeliveryAuthority,
+  canonicalJson,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
   INSTALLABLE_AGENT_MANAGEMENT_ENVELOPE_PROFILE,
@@ -15,6 +16,7 @@ import {
   encodeBase64Url,
   installableAgentCredentialKeyId,
   installableAgentManagementKeyId,
+  installableAgentReleaseRootKeyId,
   managementProofContext,
   signedRecordBytes,
 } from '../src/index.mjs';
@@ -72,9 +74,9 @@ async function concreteRequest(authority, operation, request, management) {
   return { ...request, managementProof: ticket };
 }
 
-function stageGenesis(authority, pending) {
+async function stageGenesis(authority, pending) {
   for (const type of ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
-    authority.recordInstallableAgentGenesisEvidence({
+    await authority.recordInstallableAgentGenesisEvidence({
       pendingDigest: pending.pendingDigest,
       genesisGeneration: pending.genesisGeneration,
       type,
@@ -90,7 +92,11 @@ async function createConcreteCurrent() {
   const authority = new AgentDeliveryAuthority({
     store,
     routeBinding,
-    verifyInstallableAgentEvidence: (proof) => proof === EVIDENCE_PROOF,
+    verifyInstallableAgentEvidence: async (proof, context) => {
+      assert.equal(context.releaseRootKeyId, installableAgentReleaseRootKeyId(releaseRoot.publicJwk));
+      assert.equal(canonicalJson(context.releaseRootPublicKey), canonicalJson(releaseRoot.publicJwk));
+      return proof === EVIDENCE_PROOF;
+    },
   });
   authority.initialize();
   const management = edPair();
@@ -121,7 +127,7 @@ async function createConcreteCurrent() {
     ...content,
   };
   const registered = authority.registerInstallableAgent(await concreteRequest(authority, 'register', register, management));
-  stageGenesis(authority, registered);
+  await stageGenesis(authority, registered);
   authority.initialActivateInstallableAgent(await concreteRequest(authority, 'register', {
     managementRequestId: register.managementRequestId,
     intentDigest: register.intentDigest,

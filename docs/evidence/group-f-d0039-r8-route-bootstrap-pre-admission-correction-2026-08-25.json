@@ -1,0 +1,61 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r8_route_bootstrap_pre_admission_correction",
+  "observedAtUtc": "2026-08-25T23:27:01Z",
+  "design": {
+    "id": "D0039",
+    "revision": 8,
+    "status": "implementing",
+    "predecessorRevision": 7
+  },
+  "authority": {
+    "developmentRef": "d4d0c1f26894ee73d73f631dab0249d9a13c66b5",
+    "r7SourceSha": "0f64da1542e8b17fef636d1d4d1658cc216da88e",
+    "r7Evidence": [
+      "docs/evidence/group-f-d0039-r7-q6b-live-runtime-guard-readback-2026-08-25.json",
+      "docs/evidence/group-f-d0039-r7-q6b-route-bootstrap-readback-blocked-2026-08-25.json"
+    ]
+  },
+  "trigger": {
+    "routeState": "UNREGISTERED",
+    "currentTupleDigest": null,
+    "runtimeProbe": {
+      "httpStatus": 400,
+      "errorCode": "invalid_digest",
+      "stateChangingRpc": false
+    },
+    "productionEvidenceVerifier": "unconfigured",
+    "interpretation": "The current guard blocks the six bounded bootstrap operations before dispatch, and genesis evidence cannot be authenticated by the default production host."
+  },
+  "approvedCorrection": {
+    "routeBootstrapAdmission": "exactly six D0027 genesis operations may use route-bootstrap.v1 from a fresh UNREGISTERED/null-current read",
+    "ordinaryMutationFence": "all other state-changing operations retain expectedDeploymentIdentityDigest/current-route admission",
+    "evidenceVerifier": "tdev.installable-agent-evidence-envelope.v1 signed by the persisted release-root key under tdev.installable-agent-evidence.v1",
+    "sourcePhaseExternalMutation": false
+  },
+  "implementationStatus": {
+    "focusedSourceFalsifiers": "PASS",
+    "completeQ1SourceGate": "PENDING",
+    "deterministicA8": "PENDING",
+    "deployedRouteBootstrap": "UNVERIFIED",
+    "independentQ4OperatorChannel": "UNVERIFIED"
+  },
+  "safety": {
+    "providerStateChangingCall": false,
+    "routeMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "providerRetryPerformed": false,
+    "providerRollbackPerformed": false,
+    "secretsReadOrChanged": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "r7Q1A7": "historical predecessor evidence",
+    "r7Q5P": "retained provider-substrate evidence only",
+    "r8": "implementation/focused source layer only",
+    "q4": "independent operator channel and terminal fresh bootstrap unverified",
+    "q6bAndLater": "not executed"
+  }
+}

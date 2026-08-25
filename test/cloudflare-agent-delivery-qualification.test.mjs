@@ -13,6 +13,14 @@ import {
   qualificationRouteVerifierDigest,
 } from '../qualification/installable-agent-qualification-r4.mjs';
 import {
+  QUALIFICATION_ROUTE_BOOTSTRAP_PROFILE,
+} from '../qualification/installable-agent-qualification-r6.mjs';
+import {
+  qualificationRouteAuthoritativeReadbackDigest,
+  qualificationRouteBootstrapDigest,
+  qualificationRouteBootstrapRequestDigest,
+} from '../qualification/installable-agent-qualification-r8.mjs';
+import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
 } from '../src/cloudflare-agent-delivery-runtime.mjs';
@@ -59,9 +67,10 @@ function routeRead({
   managementKeyId = null,
   releaseRootKeyId = null,
   currentCredentialKeyId = null,
+  managementRequestSequenceHighWater = 0,
 } = {}) {
   return {
-    installableAgent: { state, managementKeyId, releaseRootKeyId, currentCredentialKeyId },
+    installableAgent: { state, managementKeyId, releaseRootKeyId, currentCredentialKeyId, managementRequestSequenceHighWater },
     predecessorDigest: 'sha256:dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd',
     currentTuple: null,
     currentTupleDigest,
@@ -377,12 +386,6 @@ test('qualification DO host exposes D0039 installable-Agent operations only thro
   );
   const request = { fixture: true, managementProof: { profile: 'opaque-production-proof' } };
   const operations = [
-    ['migrate_installable_agent_route', 'migrateInstallableAgentRoute'],
-    ['register_installable_agent', 'registerInstallableAgent'],
-    ['record_installable_agent_genesis_evidence', 'recordInstallableAgentGenesisEvidence'],
-    ['accept_legacy_predecessor_quiescence', 'acceptLegacyPredecessorQuiescence'],
-    ['initial_activate_installable_agent', 'initialActivateInstallableAgent'],
-    ['fail_installable_agent_genesis', 'failInstallableAgentGenesis'],
     ['record_installable_agent_transaction_evidence', 'recordInstallableAgentTransactionEvidence'],
     ['mutate_installable_agent_trust', 'mutateInstallableAgentTrust'],
     ['begin_credential_rotation', 'beginCredentialRotation'],
@@ -418,12 +421,11 @@ test('qualification DO host exposes D0039 installable-Agent operations only thro
     assert.equal(call.input.routeBinding.routeGeneration, 7);
     assert.equal(call.input.routeBinding.durableObjectId, 'do-agent-d0039');
   }
-  assert.deepEqual(calls.find((call) => call.method === 'registerInstallableAgent').input.request, request);
   assert.equal(calls.find((call) => call.method === 'issueInstallableAgentConnectChallenge').input.nowMs, 1234);
 
   const injected = await qualification.qualificationInvoke({
     profile: QUALIFICATION_RPC_PROFILE,
-    operation: 'register_installable_agent',
+    operation: 'begin_base_stop',
     agentId: 'agent-one',
     routeGeneration: 7,
     expectedDeploymentIdentityDigest: expectedDeploymentDigest({ routeGeneration: 7, durableObjectId: 'do-agent-d0039' }),
@@ -435,7 +437,7 @@ test('qualification DO host exposes D0039 installable-Agent operations only thro
   const callCountBeforeMismatch = calls.length;
   const mismatch = await qualification.qualificationInvoke({
     profile: QUALIFICATION_RPC_PROFILE,
-    operation: 'register_installable_agent',
+    operation: 'begin_base_stop',
     agentId: 'agent-one',
     routeGeneration: 7,
     expectedDeploymentIdentityDigest: 'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
@@ -444,4 +446,146 @@ test('qualification DO host exposes D0039 installable-Agent operations only thro
   assert.equal(mismatch.ok, false);
   assert.equal(mismatch.error.code, 'qualification_runtime_identity_mismatch');
   assert.equal(calls.length, callCountBeforeMismatch);
+});
+
+
+test('route-bootstrap operations admit an UNREGISTERED predecessor without a CURRENT tuple', async () => {
+  const calls = [];
+  const record = (method) => (input) => {
+    calls.push({ method, input: structuredClone(input) });
+    return { method };
+  };
+  const env = baseEnv();
+  const predecessor = routeRead({ currentTupleDigest: null });
+  const host = {
+    durableObjectId: 'do-agent-one',
+    config: {
+      placement: {
+        deployment: 'qualification',
+        environment: 'nonproduction',
+        workerScript: 'tdev-d0020-qualification',
+        className: 'AgentDeliveryRuntimeDO',
+        namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+        jurisdiction: 'global',
+      },
+    },
+    readInstallableAgent() { return predecessor; },
+    migrateInstallableAgentRoute: record('migrateInstallableAgentRoute'),
+    registerInstallableAgent: record('registerInstallableAgent'),
+    recordInstallableAgentGenesisEvidence: record('recordInstallableAgentGenesisEvidence'),
+    acceptLegacyPredecessorQuiescence: record('acceptLegacyPredecessorQuiescence'),
+    initialActivateInstallableAgent: record('initialActivateInstallableAgent'),
+    failInstallableAgentGenesis: record('failInstallableAgentGenesis'),
+  };
+  const routeBinding = { agentId: 'agent-one', routeGeneration: 7 };
+  const transactionId = 'd0039-route-bootstrap-one';
+  const requestDigest = qualificationRouteBootstrapRequestDigest({ transactionId, routeBinding });
+  const target = {
+    profile: QUALIFICATION_ROUTE_BOOTSTRAP_PROFILE,
+    sourceSha: env.TDEV_SOURCE_SHA,
+    artifactDigest: ARTIFACT_DIGEST,
+    artifactManifestDigest: ARTIFACT_MANIFEST_DIGEST,
+    accountId: env.TDEV_D0039_ACCOUNT_ID,
+    serviceName: env.TDEV_D0039_SERVICE_NAME,
+    deploymentEpoch: env.TDEV_D0039_DEPLOYMENT_EPOCH,
+    qualificationEndpointOrigin: env.TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN,
+    workersDevAccountSubdomain: env.TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN,
+    workersDevHostname: env.TDEV_D0039_WORKERS_DEV_HOSTNAME,
+    workerScript: env.TDEV_WORKER_SCRIPT,
+    workerVersionId: env.TDEV_WORKER_VERSION.id,
+    activeDeploymentId: 'deployment-one',
+    activeTrafficPercentage: 100,
+    providerConfigurationDigest: 'sha256:eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee',
+    providerWriterObservationDigest: 'sha256:ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff',
+    namespaceId: env.TDEV_D0039_NAMESPACE_ID,
+    namespace: env.TDEV_AGENT_DELIVERY_NAMESPACE,
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    routePredecessorState: 'UNREGISTERED',
+    routePredecessorStateDigest: predecessor.predecessorDigest,
+    managementRequestSequenceHighWater: predecessor.installableAgent.managementRequestSequenceHighWater,
+    routeBootstrapTransactionId: transactionId,
+    routeBootstrapRequestDigest: requestDigest,
+    providerAuthoritativeRereadDigest: 'sha256:1111111111111111111111111111111111111111111111111111111111111111',
+    routeAuthoritativeRereadDigest: qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: predecessor }),
+  };
+  const targetDigest = qualificationRouteBootstrapDigest(target);
+  const qualification = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } },
+    env,
+    { host },
+  );
+  const response = await qualification.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'register_installable_agent',
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    routeBootstrapTarget: target,
+    routeBootstrapTargetDigest: targetDigest,
+    routeBootstrapTransactionId: transactionId,
+    routeBootstrapRequestDigest: requestDigest,
+    request: { fixture: true },
+  });
+  assert.equal(response.ok, true);
+  assert.equal(response.result.method, 'registerInstallableAgent');
+  assert.equal(calls.length, 1);
+
+  const currentPredecessor = routeRead();
+  const blockedHost = { ...host, readInstallableAgent() { return currentPredecessor; } };
+  const blocked = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } },
+    env,
+    { host: blockedHost },
+  );
+  const blockedResponse = await blocked.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'register_installable_agent',
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    routeBootstrapTarget: target,
+    routeBootstrapTargetDigest: targetDigest,
+    routeBootstrapTransactionId: transactionId,
+    routeBootstrapRequestDigest: requestDigest,
+    request: { fixture: true },
+  });
+  assert.equal(blockedResponse.ok, false);
+  assert.equal(blockedResponse.error.code, 'qualification_route_bootstrap_predecessor_invalid');
+
+  const changedPredecessor = { ...predecessor, predecessorDigest: 'sha256:9999999999999999999999999999999999999999999999999999999999999999' };
+  const staleHost = { ...host, readInstallableAgent() { return changedPredecessor; } };
+  const stale = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } },
+    env,
+    { host: staleHost },
+  );
+  const staleResponse = await stale.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'register_installable_agent',
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    routeBootstrapTarget: target,
+    routeBootstrapTargetDigest: targetDigest,
+    routeBootstrapTransactionId: transactionId,
+    routeBootstrapRequestDigest: requestDigest,
+    request: { fixture: true },
+  });
+  assert.equal(staleResponse.ok, false);
+  assert.equal(staleResponse.error.code, 'qualification_route_bootstrap_predecessor_mismatch');
+
+  const wrongRequest = qualificationRouteBootstrapRequestDigest({ transactionId: 'd0039-route-bootstrap-two', routeBinding });
+  const requestMismatch = await qualification.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'register_installable_agent',
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    routeBootstrapTarget: target,
+    routeBootstrapTargetDigest: targetDigest,
+    routeBootstrapTransactionId: 'd0039-route-bootstrap-two',
+    routeBootstrapRequestDigest: wrongRequest,
+    request: { fixture: true },
+  });
+  assert.equal(requestMismatch.ok, false);
+  assert.equal(requestMismatch.error.code, 'qualification_route_bootstrap_request_mismatch');
 });

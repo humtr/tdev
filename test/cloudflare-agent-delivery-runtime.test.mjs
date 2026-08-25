@@ -851,7 +851,7 @@ async function d0027ProviderDispatchFixture(tag) {
   registerRequest.managementProof = concreteManagementEnvelope(routeBinding, 'register', registerRequest, management);
   const pending = await host.registerInstallableAgent({ routeBinding, request: registerRequest });
   for (const type of ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
-    host.recordInstallableAgentGenesisEvidence({ routeBinding, request: {
+    await host.recordInstallableAgentGenesisEvidence({ routeBinding, request: {
       pendingDigest: pending.pendingDigest,
       genesisGeneration: pending.genesisGeneration,
       type,

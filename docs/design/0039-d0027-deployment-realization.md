@@ -1,18 +1,18 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `accepted`
-- Revision: 7
+- Status: `implementing`
+- Revision: 8
 - Class: 2
-- Decision date: 2026-08-26
-- Acceptance base: `development@cdd4da01b920ebb01aeff720e1a1814c34b5a0ed`
-- Trigger: isolated Revision-6 Q4 application revalidation proved that maintained SECURITY requires `tdev.agent-bootstrap-trust-capsule.v2` over the bytes actually executed, while current production normalization/verifier code and the historical fresh-bootstrap harness still implement only capsule v1 and verifier-entry hashing without an authenticated runtime/builtin/environment execution closure
-- Predecessor revision: D0039@r6, accepted and source-qualified at exact S6 with the qualification DAG, route-bootstrap fence, run/store v3 and re-admission semantics preserved unchanged
-- Predecessor maintained text: `development@cdd4da01b920ebb01aeff720e1a1814c34b5a0ed:docs/design/0039-d0027-deployment-realization.md`
-- Trigger/acceptance evidence: `docs/evidence/group-f-d0039-r7-q4-executed-bootstrap-contract-acceptance-2026-08-26.json`
-- Scope: same D0039 deployment-realization owner family; preserve the Revision-6 Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 DAG and correct only the Q4 bootstrap trust payload/execution contract, its legacy-v1 non-use rule, operator-channel boundary and executable falsifiers
-- Affected owners: `docs/SECURITY.md`, `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, bootstrap capsule/executor/verifier source and tests, derived Design/program routing and bounded WORKBOARD current status
+- Decision date: 2026-08-25
+- Acceptance base: `development@d4d0c1f26894ee73d73f631dab0249d9a13c66b5`
+- Trigger: fresh Revision-7 Q6-B revalidation proved that the retained `UNREGISTERED` route has no `currentTupleDigest`, while the qualification runtime still forces every state-changing operation through the route-current guard; the production host also supplies no installable-Agent genesis-evidence verifier callback. This leaves the already-authorized six-operation route bootstrap and authenticated evidence path fail-closed before any state-changing dispatch
+- Predecessor revision: D0039@r7, accepted and source-qualified at exact S7/A7 with the Q4 executed-bootstrap contract and the Revision-6 qualification DAG preserved unchanged
+- Predecessor maintained text: `development@d4d0c1f26894ee73d73f631dab0249d9a13c66b5:docs/design/0039-d0027-deployment-realization.md`
+- Trigger/acceptance evidence: `docs/evidence/group-f-d0039-r7-q6b-live-runtime-guard-readback-2026-08-25.json`, `docs/evidence/group-f-d0039-r7-q6b-route-bootstrap-readback-blocked-2026-08-25.json`, and `docs/evidence/group-f-d0039-r8-route-bootstrap-pre-admission-correction-2026-08-25.json`
+- Scope: same D0039 deployment-realization owner family; preserve the Revision-7 Q4 contract and the Revision-6 Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 DAG, and correct only qualification route-bootstrap pre-admission, release-root evidence verification and their executable falsifiers
+- Affected owners: `docs/SECURITY.md`, `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, `src/agent-delivery-authority.mjs`, `src/cloudflare-agent-delivery-runtime.mjs`, qualification runtime/target validators and tests, derived Design/program routing and bounded WORKBOARD current status
 - Preserved owners: all Revision-6 provider/route coordination meanings; D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains sole route-current/effect-admission owner; D0038 remains executor-capacity owner; qualification coordination remains non-product authority
-- Explicit non-goals: no change to the Revision-6 dependency/invalidation DAG; no second route owner; no provider/route/device effect in the Revision-7 source phase; no capsule-v1 reinterpretation or downgrade; no candidate/self-issued Q4 trust anchor; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
+- Explicit non-goals: no change to the Q4 contract or dependency/invalidation DAG; no second route owner; no provider/route/device/product effect in the Revision-8 source phase; no ordinary-operation bypass; no evidence-proof fallback when the release-root verifier is unavailable; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
 
 ## 1. One-line definition
 
@@ -284,3 +284,54 @@ Source qualification must permanently cover: v1 rejection; unknown/duplicate/uns
 ## 15. Revision-7 completion boundary
 
 Revision 7 is accepted, not verified. Implementation requires a fresh exact S7/Q1/A7 and executable capsule-v2 normalization, independent-channel fresh-bootstrap executor/verifier and the falsifiers above. Q3 and Q4 may still run in parallel with Q5-P only after S7/A7 and only on disjoint resources exactly as R6 specifies. Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 remains unchanged. No R5/R6 provider observation, R6 source/runtime pass or historical qualification branch is promoted into R7 terminal proof.
+
+
+## 16. Revision-8 route-bootstrap pre-admission and evidence-verifier correction
+
+### 16.1 Executed falsifier and same-owner decision
+
+The fresh R7 Q6-B readback is a valid `UNREGISTERED` predecessor with a stable predecessor digest and null `currentTupleDigest`. The qualification runtime nevertheless calls `#readRouteCurrent` before every non-read-only operation, so `runtime_probe` and the six D0027 genesis operations fail closed before dispatch. Independent source/runtime inspection also shows that the production `AgentDeliveryRuntimeDOHost` is constructed without an installable-Agent evidence verifier. This is a qualification-admission and deployment-wiring defect, not permission to invent a CURRENT tuple or to mutate another route.
+
+D0039@r8 is a same-owner Class-2 correction. It does not reopen the R7 capsule contract and does not revise the DAG. It adds one fail-closed route-bootstrap admission path and one authenticated evidence-verifier wiring contract; all other state-changing operations retain the admitted-deployment guard.
+
+### 16.2 Exact route-bootstrap admission
+
+The existing `tdev.installable-agent-qualification-route-bootstrap.v1` target remains the only pre-CURRENT target. Exactly these six operations may use it:
+
+```text
+migrate_installable_agent_route
+register_installable_agent
+record_installable_agent_genesis_evidence
+accept_legacy_predecessor_quiescence
+initial_activate_installable_agent
+fail_installable_agent_genesis
+```
+
+A route-bootstrap RPC must carry `routeBootstrapTarget`, its canonical `routeBootstrapTargetDigest`, `routeBootstrapTransactionId` and `routeBootstrapRequestDigest`. The target is checked against the exact runtime S/A/manifest/V/account/service/epoch/origin/workers.dev/namespace/class/jurisdiction binding, the route `(agentId, routeGeneration)`, and a fresh authoritative route read. That read must contain `state=UNREGISTERED`, `currentTuple=null`, `currentTupleDigest=null`, the predecessor digest, key identifiers and the nonnegative management-request high-water. The target must bind the same predecessor digest, high-water and a canonical route-authoritative reread digest.
+
+The request digest is domain-separated over the stable transaction identity and route binding. It intentionally does not include the target digest because the target itself contains the request digest and is canonically covered by `routeBootstrapTargetDigest`; the two independently checked digests therefore avoid a circular definition while binding both the transaction identity and every target claim. A current tuple or a changed predecessor fails closed. Only the six operations above bypass the current-deployment guard; ordinary management, credential, package, trust, replacement, uninstall and recovery operations still require `expectedDeploymentIdentityDigest` and the current route identity.
+
+### 16.3 Authenticated genesis-evidence verifier
+
+The production qualification host supplies an async verifier for the exact `tdev.installable-agent-evidence-envelope.v1` record with fields `profile`, `keyId`, `context` and `signature`. The context must equal the canonical D0027 evidence context, including the route binding, evidence digest/type and the persisted release-root key ID/public key. The verifier recomputes the release-root key ID and verifies the Ed25519 signature under `tdev.installable-agent-evidence.v1`. A missing release-root key, missing callback, malformed envelope, context mismatch or failed signature remains a hard denial. Evidence verification occurs before the authority compare-and-swap; concurrent revision changes therefore fail rather than creating a second writer or silently accepting stale evidence. Proof envelopes and private key material are not persisted as new authority.
+
+### 16.4 Rollback, acceptance and proof boundary
+
+R8 source qualification changes no provider, route, device or product state. Deployment of the corrected qualification Worker must be a new exact S/A/V observation and must preserve the existing R7 provider version as the rollback boundary. Q4 still requires the independently authenticated operator capsule-v2 digest and executed-bootstrap observation; the source verifier wiring cannot satisfy that independent channel. After a deployed route-bootstrap readback proves the six-operation path, Q6-B may proceed under the retained claims. Until then Q4, Q6-B, Q5-R0 and Q2-Q10 remain nonterminal, with no blind retry, provider rollback, replacement route, or ordinary product mutation.
+
+### 16.5 R8 acceptance matrix
+
+| Area | Required acceptance |
+| --- | --- |
+| pre-CURRENT admission | exact `UNREGISTERED`/null-current read is accepted only for the six bounded genesis operations |
+| target binding | S/A/manifest/V/account/service/epoch/origin/workers.dev/namespace/class/jurisdiction, route, predecessor, high-water and readback digests match exactly |
+| request identity | transaction and route identity are canonical and jointly bound with the full target digest without circular hashing |
+| ordinary operations | every non-bootstrap mutation still requires the current admitted deployment identity |
+| evidence authentication | production host wires release-root Ed25519 evidence verification; unavailable/malformed/mismatched proof fails closed |
+| authority separation | qualification remains a fence; `AgentDeliveryAuthority` alone owns route CURRENT and state transitions |
+| rollback/safety | source phase performs no external mutation and keeps the R7 provider version as rollback boundary |
+| proof layers | source/focused tests do not promote Q4 independent channel, deployed Q6-B, Q5-R0 or later DAG evidence |
+
+## 17. Revision-8 completion boundary
+
+Revision 8 is implementing. The current source/focused falsifiers cover the pre-CURRENT dispatch and async verifier contract, but the complete Q1 source gate, deployed route-bootstrap path and independent Q4 operator channel remain outstanding. A failed deployment/readback retains claims and returns to the exact R8 source/ref without retrying an ambiguous provider effect. Only a fresh Q1/A8 and independently observed deployed route-bootstrap path may advance Q6-B; only after CURRENT exists may the final Q5-R0 admission and later DAG gates run.

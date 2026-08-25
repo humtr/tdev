@@ -1093,6 +1093,18 @@ export class AgentDeliveryAuthority {
     return deepFreeze(canonicalClone(outcome.result));
   }
 
+  async #mutateAsync(mutator) {
+    const current = this.read();
+    const mutable = canonicalClone(current);
+    const outcome = await mutator(mutable);
+    if (!isPlainRecord(outcome) || typeof outcome.changed !== 'boolean') fail('invalid_agent_delivery_mutation', 'Mutation must return changed/result');
+    if (!outcome.changed) return deepFreeze(canonicalClone(outcome.result));
+    mutable.revision = current.revision + 1;
+    normalizeSnapshot(mutable, this.routeBinding);
+    this.store.compareAndSwap(this.agentId, current.revision, mutable);
+    return deepFreeze(canonicalClone(outcome.result));
+  }
+
   async verifyInstallableAgentManagementRequest({ operation, request }) {
     const state = this.read();
     if (state.installableAgent.managementKeyId === null || state.installableAgent.managementPublicKey === null) {
@@ -1150,16 +1162,21 @@ export class AgentDeliveryAuthority {
     if (!accepted) fail('management_authentication_failed', 'Independent D0027 management proof was denied');
   }
 
-  #verifyInstallableEvidence(type, state, input, details) {
+  async #verifyInstallableEvidence(type, state, input, details) {
     if (this.verifyInstallableAgentEvidence === null) {
       fail('installable_agent_evidence_authentication_unavailable', 'D0027 evidence verifier is not configured');
     }
     assertDigest(input.evidenceDigest, 'evidenceDigest');
     if (!Object.hasOwn(input, 'evidenceProof')) fail('installable_agent_evidence_authentication_failed', 'Installable Agent evidence proof is required');
-    const context = evidenceProofContext(type, state.routeBinding, { ...details, evidenceDigest: input.evidenceDigest });
+    const context = evidenceProofContext(type, state.routeBinding, {
+      ...details,
+      evidenceDigest: input.evidenceDigest,
+      releaseRootKeyId: state.installableAgent.releaseRootKeyId,
+      releaseRootPublicKey: state.installableAgent.releaseRootPublicKey,
+    });
     let accepted = false;
     try {
-      accepted = this.verifyInstallableAgentEvidence(input.evidenceProof, context) === true;
+      accepted = await this.verifyInstallableAgentEvidence(input.evidenceProof, context) === true;
     } catch {
       accepted = false;
     }
@@ -1303,7 +1320,7 @@ export class AgentDeliveryAuthority {
     });
   }
 
-  recordInstallableAgentGenesisEvidence(input) {
+  async recordInstallableAgentGenesisEvidence(input) {
     exactRecord(input, ['pendingDigest', 'genesisGeneration', 'type', 'evidenceDigest', 'evidenceProof'], [], 'D0027 genesis evidence');
     normalizeGenesisEvidenceType(input.type);
     const readinessKey = {
@@ -1314,7 +1331,7 @@ export class AgentDeliveryAuthority {
       local_service_ready: 'localServiceReady',
     }[input.type];
     if (readinessKey === undefined) fail('invalid_genesis_evidence', 'Evidence type is not a genesis staging receipt');
-    return this.#mutate((state) => {
+    return this.#mutateAsync(async (state) => {
       if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) {
         fail('genesis_not_pending', 'Genesis evidence requires GENESIS_PENDING state');
       }
@@ -1329,7 +1346,7 @@ export class AgentDeliveryAuthority {
         if (existing !== input.evidenceDigest) fail('genesis_evidence_conflict', 'Genesis readiness identity changed after first acceptance');
         return { changed: false, result: { classification: 'exact_replay', type: input.type, evidenceDigest: existing } };
       }
-      this.#verifyInstallableEvidence(input.type, state, input, {
+      await this.#verifyInstallableEvidence(input.type, state, input, {
         pendingDigest: pending.pendingDigest,
         genesisGeneration: pending.genesisGeneration,
         candidate: pending.candidate,
@@ -1339,13 +1356,13 @@ export class AgentDeliveryAuthority {
     });
   }
 
-  acceptLegacyPredecessorQuiescence(input) {
+  async acceptLegacyPredecessorQuiescence(input) {
     exactRecord(input, [
       'pendingDigest', 'genesisGeneration', 'deliveryId', 'executorId', 'executorEpoch', 'evidenceRevision',
       'evidenceDigest', 'proofClass', 'receiptDigest', 'proofEvidenceDigest', 'evidenceProof',
     ], [], 'legacy D0020 predecessor quiescence');
     normalizePositiveQuiescenceProofClass(input.proofClass);
-    return this.#mutate((state) => {
+    return this.#mutateAsync(async (state) => {
       if (state.installableAgent.state !== 'GENESIS_PENDING' || state.installableAgent.pending === null) {
         fail('genesis_not_pending', 'Legacy predecessor quiescence requires GENESIS_PENDING state');
       }
@@ -1389,7 +1406,7 @@ export class AgentDeliveryAuthority {
           delivery.localEvidenceRevision !== input.evidenceRevision || delivery.lastEvidenceDigest !== input.evidenceDigest) {
         fail('stale_predecessor_quiescence_evidence', 'D0020 predecessor slot/evidence changed before quiescence acceptance');
       }
-      this.#verifyInstallableEvidence('positive_quiescence', state, { ...input, evidenceDigest: input.proofEvidenceDigest }, {
+      await this.#verifyInstallableEvidence('positive_quiescence', state, { ...input, evidenceDigest: input.proofEvidenceDigest }, {
         pendingDigest: pending.pendingDigest,
         deliveryId: input.deliveryId,
         executorId: input.executorId,
@@ -1543,12 +1560,12 @@ export class AgentDeliveryAuthority {
     });
   }
 
-  recordInstallableAgentTransactionEvidence(input) {
+  async recordInstallableAgentTransactionEvidence(input) {
     exactRecord(input, ['managementRequestId', 'type', 'evidenceDigest', 'evidenceProof'], [], 'D0027 management transaction evidence');
     normalizeGenesisEvidenceType(input.type);
     const readinessKey = transactionReadinessKey(input.type);
     if (readinessKey === null) fail('invalid_installable_agent_transaction_evidence', 'Unsupported management transaction evidence type');
-    return this.#mutate((state) => {
+    return this.#mutateAsync(async (state) => {
       const current = requireInstallableCurrent(state, { executable: false });
       const transaction = current.managementTransaction;
       if (transaction === null || transaction.managementRequestId !== input.managementRequestId) {
@@ -1562,7 +1579,7 @@ export class AgentDeliveryAuthority {
         if (existing !== input.evidenceDigest) fail('management_transaction_evidence_conflict', 'Readiness evidence changed after first acceptance');
         return { changed: false, result: { classification: 'exact_replay', type: input.type, evidenceDigest: existing } };
       }
-      this.#verifyInstallableEvidence(input.type, state, input, {
+      await this.#verifyInstallableEvidence(input.type, state, input, {
         managementRequestId: transaction.managementRequestId,
         transactionType: transaction.type,
         phase: transaction.phase,

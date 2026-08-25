@@ -27,6 +27,10 @@ function expectCode(fn, code) {
   assert.throws(fn, (error) => error?.code === code);
 }
 
+async function expectCodeAsync(fn, code) {
+  await assert.rejects(fn, (error) => error?.code === code);
+}
+
 function binding() {
   return {
     agentId: 'd0027-agent',
@@ -112,9 +116,9 @@ function migrate(authority) {
   return authority.migrateInstallableAgentRoute({ migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1' });
 }
 
-function stageGenesis(authority, pending, types = ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
+async function stageGenesis(authority, pending, types = ['bootstrap_trust', 'package_verified', 'verifier_ready', 'local_ready', 'local_service_ready']) {
   for (const type of types) {
-    authority.recordInstallableAgentGenesisEvidence({
+    await authority.recordInstallableAgentGenesisEvidence({
       pendingDigest: pending.pendingDigest,
       genesisGeneration: pending.genesisGeneration,
       type,
@@ -124,12 +128,12 @@ function stageGenesis(authority, pending, types = ['bootstrap_trust', 'package_v
   }
 }
 
-function registerAndActivate(authority, tag = 'one') {
+async function registerAndActivate(authority, tag = 'one') {
   migrate(authority);
   const content = registrationContent(tag);
   const request = managementRequest(authority, 'register', `register-${tag}`, content);
   const registered = authority.registerInstallableAgent(request);
-  stageGenesis(authority, registered);
+  await stageGenesis(authority, registered);
   const activated = authority.initialActivateInstallableAgent({
     managementRequestId: request.managementRequestId,
     intentDigest: request.intentDigest,
@@ -262,8 +266,8 @@ function makeDelivery(authority, tag = 'one') {
   return { engine, attempt, delivery, authorization };
 }
 
-function evidence(authority, managementRequestId, type, tag = type) {
-  return authority.recordInstallableAgentTransactionEvidence({
+async function evidence(authority, managementRequestId, type, tag = type) {
+  return await authority.recordInstallableAgentTransactionEvidence({
     managementRequestId,
     type,
     evidenceDigest: digest({ managementRequestId, type, tag }),
@@ -271,7 +275,7 @@ function evidence(authority, managementRequestId, type, tag = type) {
   });
 }
 
-test('management auth denial mutates nothing and stable register replay conflicts on changed intent or predecessor', () => {
+test('management auth denial mutates nothing and stable register replay conflicts on changed intent or predecessor', async () => {
   const { authority } = createAuthority();
   migrate(authority);
   const content = registrationContent('auth');
@@ -295,7 +299,7 @@ test('management auth denial mutates nothing and stable register replay conflict
   expectCode(() => authority.registerInstallableAgent({ ...request, expectedPredecessorDigest: digest({ stale: true }) }), 'management_request_conflict');
 });
 
-test('genesis remains non-executable, failed candidates never reuse generations, and exact initial_activate wins once', () => {
+test('genesis remains non-executable, failed candidates never reuse generations, and exact initial_activate wins once', async () => {
   const { authority } = createAuthority();
   migrate(authority);
   const firstContent = registrationContent('failed');
@@ -343,7 +347,7 @@ test('genesis remains non-executable, failed candidates never reuse generations,
   assert.ok(second.candidate.packageActivationGeneration > first.candidate.packageActivationGeneration);
   assert.ok(second.candidate.trustPolicyGeneration > first.candidate.trustPolicyGeneration);
   assert.ok(second.candidate.lifecycleGeneration > first.candidate.lifecycleGeneration);
-  stageGenesis(authority, second);
+  await stageGenesis(authority, second);
   const activationInput = {
     managementRequestId: secondRequest.managementRequestId,
     intentDigest: secondRequest.intentDigest,
@@ -357,9 +361,9 @@ test('genesis remains non-executable, failed candidates never reuse generations,
   assert.equal(authority.readInstallableAgent().installableAgent.state, 'CURRENT');
 });
 
-test('bounded management receipt GC preserves non-resurrection after detail retirement', () => {
+test('bounded management receipt GC preserves non-resurrection after detail retirement', async () => {
   const { authority } = createAuthority({ limits: { maxManagementReceipts: 4, maxManagementTombstones: 4 } });
-  const { request } = registerAndActivate(authority, 'gc');
+  const { request } = await registerAndActivate(authority, 'gc');
   authority.compactInstallableAgentManagementReceipts({ requestIds: [request.managementRequestId] });
   expectCode(() => authority.registerInstallableAgent(request), 'management_request_retired');
   const installable = authority.readInstallableAgent().installableAgent;
@@ -377,7 +381,7 @@ test('bounded management receipt GC preserves non-resurrection after detail reti
   }, 'register', authority.read().limits), 'management_request_retired');
 });
 
-test('m2 sequencing is canonical, gap-safe, and failed mutations do not burn the durable request floor', () => {
+test('m2 sequencing is canonical, gap-safe, and failed mutations do not burn the durable request floor', async () => {
   const { authority } = createAuthority();
   migrate(authority);
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 0);
@@ -396,7 +400,7 @@ test('m2 sequencing is canonical, gap-safe, and failed mutations do not burn the
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
   assert.equal(authority.registerInstallableAgent(first).classification, 'exact_replay');
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
-  stageGenesis(authority, pending);
+  await stageGenesis(authority, pending);
   authority.initialActivateInstallableAgent({
     ...managementEnvelope(first),
     pendingDigest: pending.pendingDigest,
@@ -435,7 +439,7 @@ function strictAdmissionV1Snapshot(current) {
   return predecessor;
 }
 
-test('m2 numeric overflow and management receipt storage pressure fail closed without burning the request floor', () => {
+test('m2 numeric overflow and management receipt storage pressure fail closed without burning the request floor', async () => {
   const { authority } = createAuthority({ limits: { maxManagementReceipts: 1, maxManagementTombstones: 4 } });
   migrate(authority);
   const content = registrationContent('q1-overflow-capacity');
@@ -445,7 +449,7 @@ test('m2 numeric overflow and management receipt storage pressure fail closed wi
 
   const first = managementRequest(authority, 'register', 'm2:1', content);
   const pending = authority.registerInstallableAgent(first);
-  stageGenesis(authority, pending);
+  await stageGenesis(authority, pending);
   authority.initialActivateInstallableAgent({
     ...managementEnvelope(first),
     pendingDigest: pending.pendingDigest,
@@ -464,9 +468,9 @@ test('m2 numeric overflow and management receipt storage pressure fail closed wi
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 1);
 });
 
-test('nested admission v1 migrates explicitly to v2 and imports only canonical surviving m2 sequence state', () => {
+test('nested admission v1 migrates explicitly to v2 and imports only canonical surviving m2 sequence state', async () => {
   const { authority } = createAuthority();
-  const { request } = registerAndActivate(authority, 'nested-v2-migration');
+  const { request } = await registerAndActivate(authority, 'nested-v2-migration');
   const current = authority.readInstallableAgent().installableAgent;
   assert.equal(authority.read().schemaVersion, 3);
   assert.equal(current.profile, INSTALLABLE_AGENT_ADMISSION_PROFILE);
@@ -508,9 +512,9 @@ test('nested admission v1 migrates explicitly to v2 and imports only canonical s
   expectCode(() => normalizeInstallableAgentState(nonterminalV1, authority.read().limits), 'unsupported_installable_agent_migration');
 });
 
-test('trust, credential, package and lifecycle generations advance independently without ABA', () => {
+test('trust, credential, package and lifecycle generations advance independently without ABA', async () => {
   const { authority } = createAuthority();
-  registerAndActivate(authority, 'generations');
+  await registerAndActivate(authority, 'generations');
   const initial = authority.readInstallableAgent().installableAgent.current;
 
   const trustSubject = initial.packageTrustSubjectDigest;
@@ -534,8 +538,8 @@ test('trust, credential, package and lifecycle generations advance independently
   assert.equal(credentialRequest.managementRequestId, 'm2:3');
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.equal(credentialPending.credentialGeneration, initial.credentialGeneration + 1);
-  evidence(authority, credentialRequest.managementRequestId, 'verifier_ready');
-  evidence(authority, credentialRequest.managementRequestId, 'local_ready');
+  await evidence(authority, credentialRequest.managementRequestId, 'verifier_ready');
+  await evidence(authority, credentialRequest.managementRequestId, 'local_ready');
   authority.commitCredentialRotation(managementEnvelope(credentialRequest));
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   const afterCredential = authority.readInstallableAgent().installableAgent.current;
@@ -552,9 +556,9 @@ test('trust, credential, package and lifecycle generations advance independently
   assert.equal(packageRequest.managementRequestId, 'm2:4');
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 4);
   assert.equal(packagePending.packageActivationGeneration, initial.packageActivationGeneration + 1);
-  evidence(authority, packageRequest.managementRequestId, 'package_verified');
-  evidence(authority, packageRequest.managementRequestId, 'local_service_ready');
-  evidence(authority, packageRequest.managementRequestId, 'positive_quiescence');
+  await evidence(authority, packageRequest.managementRequestId, 'package_verified');
+  await evidence(authority, packageRequest.managementRequestId, 'local_service_ready');
+  await evidence(authority, packageRequest.managementRequestId, 'positive_quiescence');
   authority.commitPackageActivation(managementEnvelope(packageRequest));
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 4);
   const afterPackage = authority.readInstallableAgent().installableAgent.current;
@@ -563,9 +567,9 @@ test('trust, credential, package and lifecycle generations advance independently
   assert.ok(afterPackage.lifecycleGeneration > initial.lifecycleGeneration);
 });
 
-test('base stop fences before quiescence, start is restart-only, and uninstall from stopped owns newer drain and final revoke', () => {
+test('base stop fences before quiescence, start is restart-only, and uninstall from stopped owns newer drain and final revoke', async () => {
   const { authority } = createAuthority();
-  registerAndActivate(authority, 'lifecycle');
+  await registerAndActivate(authority, 'lifecycle');
   const initialGeneration = authority.readInstallableAgent().installableAgent.current.lifecycleGeneration;
 
   const stopRequest = managementRequest(authority, 'stop', 'base-stop', { cause: 'base_stop' });
@@ -578,8 +582,8 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   assert.equal(draining.lifecycleCause, 'base_stop');
   assert.ok(stopPending.lifecycleGeneration > initialGeneration);
   expectCode(() => authority.completeBaseStop(stopEnvelope), 'stop_not_quiesced');
-  evidence(authority, stopRequest.managementRequestId, 'positive_quiescence');
-  evidence(authority, stopRequest.managementRequestId, 'service_stopped');
+  await evidence(authority, stopRequest.managementRequestId, 'positive_quiescence');
+  await evidence(authority, stopRequest.managementRequestId, 'service_stopped');
   const stopped = authority.completeBaseStop(stopEnvelope);
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
   assert.equal(stopped.restartEligible, true);
@@ -591,8 +595,8 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   assert.equal(uninstallRequest.managementRequestId, 'm2:3');
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.ok(uninstallDrain.lifecycleGeneration > stopped.lifecycleGeneration);
-  evidence(authority, uninstallRequest.managementRequestId, 'positive_quiescence');
-  evidence(authority, uninstallRequest.managementRequestId, 'service_stopped');
+  await evidence(authority, uninstallRequest.managementRequestId, 'positive_quiescence');
+  await evidence(authority, uninstallRequest.managementRequestId, 'service_stopped');
   const revoked = authority.completeInstallableAgentUninstall(uninstallEnvelope);
   assert.equal(authority.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 3);
   assert.ok(revoked.lifecycleGeneration > uninstallDrain.lifecycleGeneration);
@@ -603,9 +607,9 @@ test('base stop fences before quiescence, start is restart-only, and uninstall f
   assert.equal(revoked.deletionBarrier, 'authority_revoked_replay_fences_retained');
 });
 
-test('one stable m2 base-stop transaction survives authority restart between phases and exact replay stays bound to the same request', () => {
+test('one stable m2 base-stop transaction survives authority restart between phases and exact replay stays bound to the same request', async () => {
   const { authority, store, routeBinding } = createAuthority();
-  registerAndActivate(authority, 'same-id-restart');
+  await registerAndActivate(authority, 'same-id-restart');
   const stopRequest = managementRequest(authority, 'stop', 'same-id-stop', { cause: 'base_stop' });
   const stopEnvelope = managementEnvelope(stopRequest);
   const draining = authority.beginBaseStop(stopEnvelope);
@@ -621,8 +625,8 @@ test('one stable m2 base-stop transaction survives authority restart between pha
   const replayedDrain = restarted.beginBaseStop(stopEnvelope);
   assert.equal(replayedDrain.classification, 'exact_replay');
   assert.equal(restarted.readInstallableAgent().installableAgent.current.managementTransaction.managementRequestId, stopRequest.managementRequestId);
-  evidence(restarted, stopRequest.managementRequestId, 'positive_quiescence', 'same-id-restart-quiescence');
-  evidence(restarted, stopRequest.managementRequestId, 'service_stopped', 'same-id-restart-stopped');
+  await evidence(restarted, stopRequest.managementRequestId, 'positive_quiescence', 'same-id-restart-quiescence');
+  await evidence(restarted, stopRequest.managementRequestId, 'service_stopped', 'same-id-restart-stopped');
   const stopped = restarted.completeBaseStop(stopEnvelope);
   assert.equal(stopped.phase, 'completed');
   assert.equal(restarted.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
@@ -638,9 +642,9 @@ test('one stable m2 base-stop transaction survives authority restart between pha
   assert.equal(restartedAgain.readInstallableAgent().installableAgent.managementRequestSequenceHighWater, 2);
 });
 
-test('completed base_stop is the only restart predecessor and start elects a new active lifecycle generation', () => {
+test('completed base_stop is the only restart predecessor and start elects a new active lifecycle generation', async () => {
   const { authority } = createAuthority();
-  registerAndActivate(authority, 'restart');
+  await registerAndActivate(authority, 'restart');
   const directStartContent = { cause: 'base_start', restartEligibleStopRequestId: null };
   const directStart = managementRequest(authority, 'start', 'direct-start', directStartContent);
   expectCode(() => authority.prepareBaseStart(managementEnvelope(directStart)), 'start_not_restart_eligible');
@@ -648,24 +652,24 @@ test('completed base_stop is the only restart predecessor and start elects a new
   const stopRequest = managementRequest(authority, 'stop', 'restart-stop', { cause: 'base_stop' });
   const stopEnvelope = managementEnvelope(stopRequest);
   authority.beginBaseStop(stopEnvelope);
-  evidence(authority, stopRequest.managementRequestId, 'positive_quiescence');
-  evidence(authority, stopRequest.managementRequestId, 'service_stopped');
+  await evidence(authority, stopRequest.managementRequestId, 'positive_quiescence');
+  await evidence(authority, stopRequest.managementRequestId, 'service_stopped');
   const stopped = authority.completeBaseStop(stopEnvelope);
   const startContent = { cause: 'base_start', restartEligibleStopRequestId: stopRequest.managementRequestId };
   const startRequest = managementRequest(authority, 'start', 'restart-start', startContent);
   const startEnvelope = managementEnvelope(startRequest);
   const prepared = authority.prepareBaseStart(startEnvelope);
   assert.ok(prepared.lifecycleGeneration > stopped.lifecycleGeneration);
-  evidence(authority, startRequest.managementRequestId, 'local_service_ready');
+  await evidence(authority, startRequest.managementRequestId, 'local_service_ready');
   const started = authority.commitBaseStart(startEnvelope);
   assert.equal(started.phase, 'committed');
   assert.equal(authority.readInstallableAgent().installableAgent.current.lifecycleDisposition, 'active');
   assert.equal(authority.readInstallableAgent().installableAgent.current.restartEligible, false);
 });
 
-test('J3 fence-first prevents emission; admission-first is one-shot and remains replayable after a later fence', () => {
+test('J3 fence-first prevents emission; admission-first is one-shot and remains replayable after a later fence', async () => {
   const first = createAuthority().authority;
-  registerAndActivate(first, 'j3-fence-first');
+  await registerAndActivate(first, 'j3-fence-first');
   connectCurrent(first, 'j3-fence-first');
   const old = makeDelivery(first, 'j3-fence-first');
   expectCode(() => first.claimFirstSend({
@@ -691,7 +695,7 @@ test('J3 fence-first prevents emission; admission-first is one-shot and remains 
   assert.equal(firstSends, 0);
 
   const second = createAuthority().authority;
-  registerAndActivate(second, 'j3-admission-first');
+  await registerAndActivate(second, 'j3-admission-first');
   connectCurrent(second, 'j3-admission-first');
   const admitted = makeDelivery(second, 'j3-admission-first');
   let sends = 0;
@@ -716,9 +720,9 @@ test('J3 fence-first prevents emission; admission-first is one-shot and remains 
   assert.equal(sends, 1);
 });
 
-test('J3 ambiguous first send never produces a second maySend and reconnect cannot revive predecessor authorization', () => {
+test('J3 ambiguous first send never produces a second maySend and reconnect cannot revive predecessor authorization', async () => {
   const { authority } = createAuthority();
-  registerAndActivate(authority, 'j3-ambiguous');
+  await registerAndActivate(authority, 'j3-ambiguous');
   connectCurrent(authority, 'j3-ambiguous-1');
   const admitted = makeDelivery(authority, 'j3-ambiguous');
   const admissionInput = {
@@ -753,7 +757,7 @@ test('J3 ambiguous first send never produces a second maySend and reconnect cann
   expectCode(() => authority.grantCommand(admitted.delivery.deliveryId, 2), 'dispatch_replay_unsafe');
 });
 
-test('legacy D0020 held slot blocks initial activation until exact positive quiescence proof releases only that slot', () => {
+test('legacy D0020 held slot blocks initial activation until exact positive quiescence proof releases only that slot', async () => {
   const { authority } = createAuthority();
   connectCurrent(authority, 'legacy-held');
   const legacy = makeDelivery(authority, 'legacy-held');
@@ -765,7 +769,7 @@ test('legacy D0020 held slot blocks initial activation until exact positive quie
   const pending = authority.registerInstallableAgent(request);
   assert.equal(pending.predecessorQuiescenceRequired, true);
   assert.equal(authority.readInstallableAgent().installableAgent.pending.legacyPredecessors.length, 1);
-  stageGenesis(authority, pending);
+  await stageGenesis(authority, pending);
   const activateInput = {
     managementRequestId: request.managementRequestId,
     intentDigest: request.intentDigest,
@@ -790,7 +794,7 @@ test('legacy D0020 held slot blocks initial activation until exact positive quie
     proofEvidenceDigest: digest({ proof: 'stale' }),
     evidenceProof: EVIDENCE_PROOF,
   };
-  expectCode(() => authority.acceptLegacyPredecessorQuiescence(stale), 'predecessor_quiescence_scope_mismatch');
+  await expectCodeAsync(() => authority.acceptLegacyPredecessorQuiescence(stale), 'predecessor_quiescence_scope_mismatch');
   assert.equal(authority.read().deliveries[legacy.delivery.deliveryId].slotHeld, true);
 
   const receiptDigest = typedDigest('tdev.installable-agent-predecessor-quiescence.v1', {
@@ -817,16 +821,16 @@ test('legacy D0020 held slot blocks initial activation until exact positive quie
     proofEvidenceDigest: digest({ proof: 'positive-quiescence', receiptDigest }),
     evidenceProof: EVIDENCE_PROOF,
   };
-  const accepted = authority.acceptLegacyPredecessorQuiescence(exact);
+  const accepted = await authority.acceptLegacyPredecessorQuiescence(exact);
   assert.equal(accepted.slotReleased, true);
   assert.equal(authority.read().deliveries[legacy.delivery.deliveryId].slotHeld, false);
-  assert.equal(authority.acceptLegacyPredecessorQuiescence(exact).classification, 'exact_replay');
+  assert.equal((await authority.acceptLegacyPredecessorQuiescence(exact)).classification, 'exact_replay');
   assert.equal(authority.initialActivateInstallableAgent(activateInput).state, 'CURRENT');
 });
 
-test('replacement requires fresh clone-safe evidence and stale copied current tuple cannot self-elect after replacement', () => {
+test('replacement requires fresh clone-safe evidence and stale copied current tuple cannot self-elect after replacement', async () => {
   const { authority } = createAuthority();
-  registerAndActivate(authority, 'replace-source');
+  await registerAndActivate(authority, 'replace-source');
   connectCurrent(authority, 'replace-source');
   const oldTuple = authority.readInstallableAgent().currentTuple;
   const oldConnectionEpoch = authority.read().lastConnectionEpoch;
@@ -839,7 +843,7 @@ test('replacement requires fresh clone-safe evidence and stale copied current tu
   const request = managementRequest(authority, 'replace', 'replace-current-installation', content);
   authority.beginInstallableAgentReplacement(request);
   for (const type of ['package_verified', 'verifier_ready', 'local_ready', 'local_service_ready', 'positive_quiescence', 'clone_safe_activation']) {
-    evidence(authority, request.managementRequestId, type);
+    await evidence(authority, request.managementRequestId, type);
   }
   const committed = authority.commitInstallableAgentReplacement(managementEnvelope(request));
   const newTuple = committed.currentTuple;
@@ -864,9 +868,9 @@ test('replacement requires fresh clone-safe evidence and stale copied current tu
   assert.equal(connected.classification, 'accepted');
 });
 
-test('secret/proof values never enter durable D0027 semantic state', () => {
+test('secret/proof values never enter durable D0027 semantic state', async () => {
   const { authority } = createAuthority();
-  const { request } = registerAndActivate(authority, 'secret-exclusion');
+  const { request } = await registerAndActivate(authority, 'secret-exclusion');
   const snapshotText = JSON.stringify(authority.read());
   assert.equal(snapshotText.includes(MGMT_PROOF), false);
   assert.equal(snapshotText.includes(EVIDENCE_PROOF), false);

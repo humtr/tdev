@@ -1,6 +1,7 @@
 import {
   ContractError,
   assertDigest,
+  canonicalJson,
   assertIdentifier,
   assertRecordShape,
   assertSafeInteger,
@@ -13,11 +14,13 @@ import {
   encodeBase64Url,
   installableAgentCredentialKeyId,
   installableAgentManagementKeyId,
+  installableAgentReleaseRootKeyId,
   installableAgentReleaseSignerKeyId,
   normalizeConnectPossessionContext,
   verifyEd25519SignedRecord,
   verifyRsa3072SignedRecord,
 } from '../src/installable-agent-security.mjs';
+import { INSTALLABLE_AGENT_EVIDENCE_DOMAIN } from '../src/installable-agent-admission.mjs';
 import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
@@ -34,6 +37,7 @@ import {
   qualificationDeploymentIdentityDigest,
   qualificationRouteVerifierDigest,
 } from './installable-agent-qualification-r4.mjs';
+import { admitQualificationRouteBootstrap } from './installable-agent-qualification-r8.mjs';
 
 export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v2';
 export const D0020_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
@@ -43,6 +47,38 @@ const QUALIFICATION_RPC_SCHEMA_VERSION = 2;
 const MIN_TOKEN_BYTES = 32;
 const MAX_TOKEN_BYTES = 512;
 const textEncoder = new TextEncoder();
+const ROUTE_BOOTSTRAP_OPERATIONS = new Set([
+  'migrate_installable_agent_route',
+  'register_installable_agent',
+  'record_installable_agent_genesis_evidence',
+  'accept_legacy_predecessor_quiescence',
+  'initial_activate_installable_agent',
+  'fail_installable_agent_genesis',
+]);
+const INSTALLABLE_AGENT_EVIDENCE_PROOF_PROFILE = 'tdev.installable-agent-evidence-envelope.v1';
+
+function verifyQualificationEvidenceProof(proof, context) {
+  try {
+    assertRecordShape(proof, ['profile', 'keyId', 'context', 'signature'], [], 'D0039 installable-Agent evidence proof');
+    if (proof.profile !== INSTALLABLE_AGENT_EVIDENCE_PROOF_PROFILE ||
+        context.releaseRootPublicKey === null ||
+        context.releaseRootPublicKey === undefined ||
+        context.releaseRootKeyId === null ||
+        context.releaseRootKeyId !== installableAgentReleaseRootKeyId(context.releaseRootPublicKey) ||
+        proof.keyId !== context.releaseRootKeyId ||
+        canonicalJson(proof.context) !== canonicalJson(context)) {
+      return false;
+    }
+    return verifyEd25519SignedRecord({
+      domain: INSTALLABLE_AGENT_EVIDENCE_DOMAIN,
+      record: context,
+      signature: proof.signature,
+      publicJwk: context.releaseRootPublicKey,
+    }).then(() => true, () => false);
+  } catch {
+    return false;
+  }
+}
 
 function corruptedSignature(value, label) {
   const bytes = decodeBase64Url(value, label);
@@ -257,12 +293,23 @@ function rpcShape(input) {
   };
   const shape = shapes[input.operation];
   if (!shape) throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is unsupported');
-  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) ? [] : ['expectedDeploymentIdentityDigest'];
-  assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], shape[1], `D0020 qualification ${input.operation}`);
+  const routeBootstrap = ROUTE_BOOTSTRAP_OPERATIONS.has(input.operation);
+  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)
+    ? []
+    : routeBootstrap
+      ? ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest']
+      : ['expectedDeploymentIdentityDigest'];
+  assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], shape[1], 'D0020 qualification ' + input.operation);
   if (input.profile !== QUALIFICATION_RPC_PROFILE) throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-4 RPC profile');
   assertIdentifier(input.agentId, 'agentId');
   assertSafeInteger(input.routeGeneration, 'routeGeneration', { min: 1 });
-  if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)) assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
+  if (routeBootstrap) {
+    assertIdentifier(input.routeBootstrapTransactionId, 'routeBootstrapTransactionId');
+    assertDigest(input.routeBootstrapTargetDigest, 'routeBootstrapTargetDigest');
+    assertDigest(input.routeBootstrapRequestDigest, 'routeBootstrapRequestDigest');
+  } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)) {
+    assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
+  }
   return input.operation;
 }
 
@@ -324,7 +371,7 @@ export class D0020QualificationAgentDeliveryDOHost {
     if (!ctx || typeof ctx.abort !== 'function') throw new ContractError('invalid_qualification_config', 'D0020 qualification requires Durable Object abort support');
     this.ctx = ctx;
     this.env = env;
-    this.host = options.host ?? new AgentDeliveryRuntimeDOHost(ctx, env);
+    this.host = options.host ?? new AgentDeliveryRuntimeDOHost(ctx, env, { verifyInstallableAgentEvidence: verifyQualificationEvidenceProof });
     const sourceSha = env?.TDEV_SOURCE_SHA;
     if (typeof sourceSha !== 'string' || !/^[0-9a-f]{40}$/.test(sourceSha)) throw new ContractError('invalid_qualification_config', 'D0020 qualification source SHA binding is invalid');
     const versionId = env?.TDEV_WORKER_VERSION?.id;
@@ -376,6 +423,37 @@ export class D0020QualificationAgentDeliveryDOHost {
 
   #binding(agentId, routeGeneration) {
     return createRuntimeAgentRouteBinding(this.env, { agentId, routeGeneration, durableObjectId: this.host.durableObjectId });
+  }
+
+  #routeBootstrapAdmission(operation, routeBinding, input) {
+    const routeRead = this.host.readInstallableAgent({ routeBinding });
+    const placement = this.host.config.placement;
+    return admitQualificationRouteBootstrap({
+      operation,
+      routeBinding,
+      runtimeBinding: {
+        sourceSha: this.sourceSha,
+        artifactDigest: this.deploymentBinding.artifactDigest,
+        artifactManifestDigest: this.deploymentBinding.artifactManifestDigest,
+        workerVersionId: this.workerVersionId,
+        accountId: this.deploymentBinding.accountId,
+        serviceName: this.deploymentBinding.serviceName,
+        deploymentEpoch: this.deploymentBinding.deploymentEpoch,
+        qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
+        workersDevAccountSubdomain: this.deploymentBinding.workersDevAccountSubdomain,
+        workersDevHostname: this.deploymentBinding.workersDevHostname,
+        workerScript: placement.workerScript,
+        namespaceId: this.deploymentBinding.namespaceId,
+        namespace: placement.namespace,
+        className: placement.className,
+        jurisdiction: placement.jurisdiction,
+      },
+      routeRead,
+      routeBootstrapTarget: input.routeBootstrapTarget,
+      routeBootstrapTargetDigest: input.routeBootstrapTargetDigest,
+      routeBootstrapTransactionId: input.routeBootstrapTransactionId,
+      routeBootstrapRequestDigest: input.routeBootstrapRequestDigest,
+    });
   }
 
   #readRouteCurrent(routeBinding) {
@@ -458,7 +536,9 @@ export class D0020QualificationAgentDeliveryDOHost {
       const operation = rpcShape(input);
       const routeBinding = this.#binding(input.agentId, input.routeGeneration);
       let admitted = null;
-      if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation)) {
+      if (ROUTE_BOOTSTRAP_OPERATIONS.has(operation)) {
+        admitted = this.#routeBootstrapAdmission(operation, routeBinding, input);
+      } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation)) {
         const routeCurrent = this.#readRouteCurrent(routeBinding);
         const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
         admitted = assertExpectedDeploymentIdentity({ expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest, runtimeFacts: runtime, routeBinding });
@@ -495,15 +575,15 @@ export class D0020QualificationAgentDeliveryDOHost {
       } else if (operation === 'register_installable_agent') {
         result = await this.host.registerInstallableAgent({ routeBinding, request: input.request });
       } else if (operation === 'record_installable_agent_genesis_evidence') {
-        result = this.host.recordInstallableAgentGenesisEvidence({ routeBinding, request: input.request });
+        result = await this.host.recordInstallableAgentGenesisEvidence({ routeBinding, request: input.request });
       } else if (operation === 'accept_legacy_predecessor_quiescence') {
-        result = this.host.acceptLegacyPredecessorQuiescence({ routeBinding, request: input.request });
+        result = await this.host.acceptLegacyPredecessorQuiescence({ routeBinding, request: input.request });
       } else if (operation === 'initial_activate_installable_agent') {
         result = await this.host.initialActivateInstallableAgent({ routeBinding, request: input.request });
       } else if (operation === 'fail_installable_agent_genesis') {
         result = await this.host.failInstallableAgentGenesis({ routeBinding, request: input.request });
       } else if (operation === 'record_installable_agent_transaction_evidence') {
-        result = this.host.recordInstallableAgentTransactionEvidence({ routeBinding, request: input.request });
+        result = await this.host.recordInstallableAgentTransactionEvidence({ routeBinding, request: input.request });
       } else if (operation === 'mutate_installable_agent_trust') {
         result = await this.host.mutateInstallableAgentTrust({ routeBinding, request: input.request });
       } else if (operation === 'begin_credential_rotation') {

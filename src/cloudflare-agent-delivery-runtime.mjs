@@ -786,12 +786,12 @@ export class AgentDeliveryRuntimeDOHost {
     return this.#invokeManagement('register', 'registerInstallableAgent', input);
   }
 
-  recordInstallableAgentGenesisEvidence(input) {
+  async recordInstallableAgentGenesisEvidence(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 genesis evidence');
     return this.#authority(input.routeBinding).recordInstallableAgentGenesisEvidence(input.request);
   }
 
-  acceptLegacyPredecessorQuiescence(input) {
+  async acceptLegacyPredecessorQuiescence(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 legacy predecessor quiescence');
     return this.#authority(input.routeBinding).acceptLegacyPredecessorQuiescence(input.request);
   }
@@ -806,7 +806,7 @@ export class AgentDeliveryRuntimeDOHost {
     return this.#invokeManagement('register', 'failInstallableAgentGenesis', input);
   }
 
-  recordInstallableAgentTransactionEvidence(input) {
+  async recordInstallableAgentTransactionEvidence(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'D0027 transaction evidence');
     return this.#authority(input.routeBinding).recordInstallableAgentTransactionEvidence(input.request);
   }
