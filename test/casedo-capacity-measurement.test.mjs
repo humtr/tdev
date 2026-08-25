@@ -8,7 +8,10 @@ const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url))
 const benchmark = path.join(repositoryRoot, 'qualification', 'cloudflare-casedo-capacity-measurement.mjs');
 
 function run(mode, taskCount, acceptedResults) {
-  const result = spawnSync(process.execPath, [benchmark, mode, String(taskCount), String(acceptedResults)], {
+  // The benchmark reserves stderr for newline-delimited JSON progress. Node 22
+  // emits an ExperimentalWarning for node:sqlite on that same stream unless
+  // process warnings are disabled for this protocol-bearing child process.
+  const result = spawnSync(process.execPath, ['--no-warnings', benchmark, mode, String(taskCount), String(acceptedResults)], {
     cwd: repositoryRoot,
     encoding: 'utf8',
     timeout: 30000,
