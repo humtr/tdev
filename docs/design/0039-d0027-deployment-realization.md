@@ -1,18 +1,18 @@
 # Design 0039 — D0027 Deployment Realization
 
 - Status: `implementing`
-- Revision: 8
+- Revision: 9
 - Class: 2
-- Decision date: 2026-08-25
-- Acceptance base: `development@d4d0c1f26894ee73d73f631dab0249d9a13c66b5`
-- Trigger: fresh Revision-7 Q6-B revalidation proved that the retained `UNREGISTERED` route has no `currentTupleDigest`, while the qualification runtime still forces every state-changing operation through the route-current guard; the production host also supplies no installable-Agent genesis-evidence verifier callback. This leaves the already-authorized six-operation route bootstrap and authenticated evidence path fail-closed before any state-changing dispatch
-- Predecessor revision: D0039@r7, accepted and source-qualified at exact S7/A7 with the Q4 executed-bootstrap contract and the Revision-6 qualification DAG preserved unchanged
-- Predecessor maintained text: `development@d4d0c1f26894ee73d73f631dab0249d9a13c66b5:docs/design/0039-d0027-deployment-realization.md`
-- Trigger/acceptance evidence: `docs/evidence/group-f-d0039-r7-q6b-live-runtime-guard-readback-2026-08-25.json`, `docs/evidence/group-f-d0039-r7-q6b-route-bootstrap-readback-blocked-2026-08-25.json`, and `docs/evidence/group-f-d0039-r8-route-bootstrap-pre-admission-correction-2026-08-25.json`
-- Scope: same D0039 deployment-realization owner family; preserve the Revision-7 Q4 contract and the Revision-6 Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 DAG, and correct only qualification route-bootstrap pre-admission, release-root evidence verification and their executable falsifiers
-- Affected owners: `docs/SECURITY.md`, `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, `src/agent-delivery-authority.mjs`, `src/cloudflare-agent-delivery-runtime.mjs`, qualification runtime/target validators and tests, derived Design/program routing and bounded WORKBOARD current status
-- Preserved owners: all Revision-6 provider/route coordination meanings; D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains sole route-current/effect-admission owner; D0038 remains executor-capacity owner; qualification coordination remains non-product authority
-- Explicit non-goals: no change to the Q4 contract or dependency/invalidation DAG; no second route owner; no provider/route/device/product effect in the Revision-8 source phase; no ordinary-operation bypass; no evidence-proof fallback when the release-root verifier is unavailable; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state
+- Decision date: 2026-08-26
+- Acceptance base: `development@c92c8819d7a45ec46ad0d0822177fb496cded327`
+- Trigger: the Revision-8 application-only falsifier showed that `register_installable_agent` is admitted from `UNREGISTERED` and moves D0027 to `GENESIS_PENDING`, while the next same-genesis `record_installable_agent_genesis_evidence` operation is denied before host dispatch because the shared qualification fence requires another fresh `UNREGISTERED` read
+- Predecessor revision: D0039@r8, reopened after the `UNREGISTERED -> GENESIS_PENDING` continuation falsifier while preserving its source/Q4 proof records
+- Predecessor maintained text: `development@c92c8819d7a45ec46ad0d0822177fb496cded327:docs/design/0039-d0027-deployment-realization.md`
+- Trigger/acceptance evidence: `docs/evidence/group-f-d0039-r8-q4-terminal-q6b-sequence-falsifier-2026-08-26.json`, `docs/evidence/group-f-d0039-r8-route-owner-pre-current-readback-2026-08-26.json`, and `docs/evidence/group-f-d0039-r8-q5p-provider-readback-2026-08-26.json`
+- Scope: same D0039 deployment-realization owner family; preserve the Revision-7 Q4 contract, the Revision-8 evidence-verifier contract and the Revision-6 Q5-P -> Q6-B -> Q5-R0 -> Q2 -> Q7/re-admit -> Q8/re-admit -> Q9/re-admit -> Q10 DAG, and correct only the qualification route-bootstrap admission fence for the exact D0027 pending-genesis continuation and exact register replay/reconciliation
+- Affected owners: `docs/SECURITY.md`, `docs/QUALIFICATION.md`, `docs/DEPLOYMENT.md`, `src/cloudflare-agent-delivery-runtime.mjs`, qualification runtime/target validators and tests, derived Design/PROGRAM routing and bounded WORKBOARD current status
+- Preserved owners: D0027@r1 remains the installable authenticated local-Agent lifecycle owner; D0020 `AgentDeliveryAuthority` remains the sole route-current/effect-admission owner; D0038 remains executor-capacity owner; Q4 and the qualification DAG remain unchanged; qualification coordination remains non-product authority
+- Explicit non-goals: no new route/state owner; no change to Q4 or Q5/Q6 DAG meaning; no provider/route/device/product effect during Design acceptance or source qualification; no ordinary-operation bypass; no evidence-proof fallback; no proof-layer promotion; no secret/private-key bytes in repository/evidence/model-visible state. Live Q6-B mutation remains a separate fresh admission/readback gate.
 
 ## 1. One-line definition
 
@@ -334,4 +334,132 @@ R8 source qualification changes no provider, route, device or product state. Dep
 
 ## 17. Revision-8 completion boundary
 
-Revision 8 is implementing. Exact S8 `development@2fed68c582ceee31546ece08f4c7a9a6d7194941` and deterministic A8 are now source-qualified: 571/571 tests passed, coverage was 85.24% line / 71.63% branch / 88.56% function, and the two A8 builds were byte-identical. The deployed route-bootstrap path and independent Q4 operator channel remain outstanding. A failed deployment/readback retains claims and returns to the exact R8 source/ref without retrying an ambiguous provider effect. Only an independently observed deployed route-bootstrap path may advance Q6-B; only after CURRENT exists may the final Q5-R0 admission and later DAG gates run.
+The preserved Revision-8 source record remains exact S8 `development@2fed68c582ceee31546ece08f4c7a9a6d7194941` with deterministic A8 source qualification: 571/571 tests passed, coverage was 85.24% line / 71.63% branch / 88.56% function, and the two A8 builds were byte-identical. The deployed pre-CURRENT route readback and the independent Q4 operator execution record are separate proof-layer observations; they do not by themselves close the D0039 lifecycle.
+
+The later stateful Q6-B falsifier reaches the R8 admission meaning: `register_installable_agent` is admitted from `UNREGISTERED` and changes the authoritative state to `GENESIS_PENDING`, while the next `record_installable_agent_genesis_evidence` request is denied before host dispatch because the R8 route-bootstrap guard requires another fresh `UNREGISTERED` read. This conflicts with D0027's retained contract that the same exact pending genesis identity stages subordinate evidence and effects before `initial_activate` elects `CURRENT`. The observed facts are recorded in `docs/evidence/group-f-d0039-r8-q4-terminal-q6b-sequence-falsifier-2026-08-26.json` and the deployed pre-CURRENT observation in `docs/evidence/group-f-d0039-r8-route-owner-pre-current-readback-2026-08-26.json`.
+
+Under `SDD.md`, the affected R8 admission scope was reopened. The user-approved owner decision is now recorded as D0039@r9, a same-owner Class-2 correction. R8 remains immutable historical meaning for its exact scope; its source/Q4 records are not silently rewritten as R9 proof. Until R9 source qualification and the later deployed admission/readback gates pass, Q6-B, Q5-R0 and the dependent Q2-Q10 gates remain nonterminal.
+
+The Q4 proof-layer record remains separate: the maintained evidence records the independently authenticated operator digest fixed before executor-artifact consultation and the exact executed runtime/verifier closure, while the operator-owned artifact directory and its generation process are not reclassified here beyond the evidence actually observed. A failed deployment/readback retains claims and returns to the exact R8 source/ref without retrying an ambiguous provider effect.
+
+## 18. Revision-9 transaction-bound `GENESIS_PENDING` continuation admission
+
+### 18.1 Same-owner decision and preserved boundaries
+
+Revision 9 is the deliberate same-owner Class-2 correction for the R8
+stateful falsifier. The core problem remains D0039 deployment-realization
+qualification, the qualification owner remains a non-product fence, and D0027
+remains the sole owner of `UNREGISTERED -> GENESIS_PENDING -> CURRENT` state,
+pending identity, candidate generations, management receipts and durable
+effects. No new Design or second route/state authority is introduced.
+
+R9 preserves the R7 Q4 execution/trust contract, the R6 qualification DAG, the
+R8 release-root evidence verifier and the R8 initial `UNREGISTERED` admission
+path. R9 changes only the pre-CURRENT admission projection so that it can
+represent the exact D0027 pending transaction after the first register has
+committed. The target is an observation/fence: it describes D0027 state and
+never creates, elects, allocates or assigns D0027 state.
+
+### 18.2 Phase U and phase P
+
+Phase U retains `tdev.installable-agent-qualification-route-bootstrap.v1`.
+It admits only the existing bounded operations against a fresh authoritative
+`UNREGISTERED`/null-current route read and preserves the exact R8 target,
+predecessor, high-water and provider/runtime binding rules.
+
+Phase P introduces the exact target profile
+`tdev.installable-agent-qualification-route-bootstrap.v2` with
+`routeBootstrapPhase=GENESIS_PENDING_CONTINUATION`. It is legal only for the
+same D0027 pending transaction and these operations:
+
+```text
+register_installable_agent              # exact replay/reconciliation only
+record_installable_agent_genesis_evidence
+accept_legacy_predecessor_quiescence
+initial_activate_installable_agent
+fail_installable_agent_genesis
+```
+
+The phase-P target contains provider/runtime/route binding plus these distinct
+facts:
+
+- `genesisPredecessorDigest`: the original authoritative `UNREGISTERED`
+  predecessor consumed by D0027 register;
+- `pendingDigest`: D0027's authoritative pending identity, including its
+  candidate and transaction content; qualification does not calculate or
+  allocate it;
+- `genesisGeneration`, `pendingManagementRequestId` and `pendingIntentDigest`:
+  the exact D0027 pending identity fields;
+- `routePredecessorStateDigest`: the current authoritative route readback
+  predecessor digest for the `GENESIS_PENDING` state;
+- `pendingReadbackDigest`: a canonical digest of the current authoritative
+  pending read, including the route, state, key IDs, high-water and pending
+  identity; and
+- `routeBootstrapRequestDigest`: a domain-separated digest over the exact
+  subordinate operation, transaction identity, route binding and request body
+  received by qualification.
+
+The target contains no caller-supplied candidate tuple or newly assigned
+generation. Every pending field is compared with a fresh D0027
+`read_installable_agent` observation immediately before host dispatch.
+
+### 18.3 Exact replay and fail-closed predicates
+
+For phase P, qualification first requires a fresh authoritative
+`GENESIS_PENDING` read with null current tuple/digest and a non-null pending
+identity. It then requires exact equality of the target's pending fields and
+the fresh pending readback digest. The request must match the target's
+operation and request digest.
+
+`register_installable_agent` is permitted in phase P only as exact
+replay/reconciliation of the original request: the request's
+`managementRequestId`, `intentDigest` and `expectedPredecessorDigest` must
+match the pending identity and original `genesisPredecessorDigest`, and the
+complete received request must have the same request digest. This permits a
+committed register whose response was lost to resume without minting another
+candidate or generation.
+
+Evidence, predecessor-quiescence, initial-activation and fail-genesis
+operations must bind the exact pending digest and generation. Initial
+activation and fail-genesis additionally bind the pending management request,
+intent and original predecessor as required by D0027. D0027 remains the final
+authority for operation-specific management proof, readiness, quiescence,
+replay and CAS behavior.
+
+Qualification denies before host dispatch on an unrelated pending transaction,
+changed intent, wrong management request, wrong generation, stale pending or
+readback digest, changed route/provider binding, competing registration,
+failed/terminal pending identity, non-exact replay, current tuple presence or
+caller-invented candidate state. An exact D0027 replay remains the only
+exception to the pending continuation operation fence.
+
+### 18.4 Mutation and proof boundary
+
+Design acceptance and R9 source qualification perform no provider, route,
+device or product mutation. They prove only the qualification/admission
+projection and its local fail-closed behavior. Live Q6-B may be attempted only
+after a fresh exact S/A/V/provider/route admission and the separately required
+Q4/Q5 predecessor gates authorize it. A successful source/test result does not
+close Q6-B, Q5-R0, D0039, Group F or MVP.
+
+R9 does not automatically invalidate Q4. The existing Q4 proof may be retained
+only after an invalidation check confirms that the exact capsule, runtime,
+verifier and archive identities authenticated by Q4 are unchanged. If any of
+those bytes change, fresh Q4 evidence is required. R9's changed admission
+semantics themselves require fresh focused source qualification; prior S8
+source identity is not automatically promoted through post-S8 source/tool/test
+changes.
+
+### 18.5 R9 acceptance matrix
+
+| Area | Required acceptance |
+| --- | --- |
+| lifecycle | R8 is recorded as reopened history and R9 is the accepted/implementing same-owner correction |
+| authority separation | D0027 alone creates/owns pending identity and state; qualification only observes and fences it |
+| phase U | R8 `UNREGISTERED` initial admission remains byte/semantic compatible |
+| phase P | exact `GENESIS_PENDING` read, null-current tuple and matching pending readback are required |
+| identity | original predecessor, pending digest, generation, management request, intent, route and request digest match exactly |
+| replay | original register exact replay/reconciliation is admitted; changed or competing register is denied |
+| operation fence | only the five D0027-valid phase-P operations are permitted; ordinary operations retain current-deployment admission |
+| mutation boundary | Design/source qualification performs no external mutation; live Q6-B has separate fresh gates |
+| proof boundary | R9 source tests do not promote Q4, deployed Q6-B, Q5-R0 or later DAG evidence |

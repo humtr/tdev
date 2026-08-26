@@ -35,6 +35,11 @@ import {
   resourceClaimKey,
   validateTerminalQualificationEvidence,
 } from './installable-agent-qualification-r5.mjs';
+import {
+  QUALIFICATION_ROUTE_BOOTSTRAP_V2_PROFILE,
+  normalizeQualificationRouteBootstrapV2,
+  qualificationRouteBootstrapV2Digest,
+} from './installable-agent-qualification-r9-target.mjs';
 
 export {
   QUALIFICATION_CLAIM_PROFILE,
@@ -189,14 +194,22 @@ export function assertQualificationRouteBootstrapSuboperation(operation) {
 
 export function normalizeQualificationRunTarget(targetKind, target) {
   if (targetKind === QUALIFICATION_TARGET_KIND_PROVIDER_DEPLOYMENT_INTENT) return normalizeQualificationDeploymentIntent(target);
-  if (targetKind === QUALIFICATION_TARGET_KIND_ROUTE_BOOTSTRAP) return normalizeQualificationRouteBootstrap(target);
+  if (targetKind === QUALIFICATION_TARGET_KIND_ROUTE_BOOTSTRAP) {
+    return target?.profile === QUALIFICATION_ROUTE_BOOTSTRAP_V2_PROFILE
+      ? normalizeQualificationRouteBootstrapV2(target)
+      : normalizeQualificationRouteBootstrap(target);
+  }
   if (targetKind === QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT) return normalizeQualificationDeploymentIdentity(target);
   throw new ContractError('invalid_qualification_target_kind', 'Unknown Revision-6 qualification target kind');
 }
 
 export function qualificationRunTargetDigest(targetKind, target) {
   if (targetKind === QUALIFICATION_TARGET_KIND_PROVIDER_DEPLOYMENT_INTENT) return qualificationDeploymentIntentDigest(target);
-  if (targetKind === QUALIFICATION_TARGET_KIND_ROUTE_BOOTSTRAP) return qualificationRouteBootstrapDigest(target);
+  if (targetKind === QUALIFICATION_TARGET_KIND_ROUTE_BOOTSTRAP) {
+    return target?.profile === QUALIFICATION_ROUTE_BOOTSTRAP_V2_PROFILE
+      ? qualificationRouteBootstrapV2Digest(target)
+      : qualificationRouteBootstrapDigest(target);
+  }
   if (targetKind === QUALIFICATION_TARGET_KIND_ADMITTED_DEPLOYMENT) return qualificationDeploymentIdentityDigest(target);
   throw new ContractError('invalid_qualification_target_kind', 'Unknown Revision-6 qualification target kind');
 }

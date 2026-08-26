@@ -37,7 +37,7 @@ import {
   qualificationDeploymentIdentityDigest,
   qualificationRouteVerifierDigest,
 } from './installable-agent-qualification-r4.mjs';
-import { admitQualificationRouteBootstrap } from './installable-agent-qualification-r8.mjs';
+import { admitQualificationRouteBootstrap } from './installable-agent-qualification-r9.mjs';
 
 export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v2';
 export const D0020_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
@@ -453,6 +453,7 @@ export class D0020QualificationAgentDeliveryDOHost {
       routeBootstrapTargetDigest: input.routeBootstrapTargetDigest,
       routeBootstrapTransactionId: input.routeBootstrapTransactionId,
       routeBootstrapRequestDigest: input.routeBootstrapRequestDigest,
+      routeBootstrapRequest: input.request,
     });
   }
 
