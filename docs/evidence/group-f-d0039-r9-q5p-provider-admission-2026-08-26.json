@@ -1,0 +1,133 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r9_q5p_provider_admission_and_route_pre_current_readback",
+  "observedAtUtc": "2026-08-26T18:44:48.711Z",
+  "completedAtUtc": "2026-08-26T18:44:57.285Z",
+  "design": { "id": "D0039", "revision": 9, "status": "implementing" },
+  "repository": {
+    "developmentAtObservation": "144bca3c8aab3855dc6828031caf600823c2b7bc",
+    "worktreeCleanBeforeReadback": true
+  },
+  "source": {
+    "qualifiedSourceSha": "144bca3c8aab3855dc6828031caf600823c2b7bc",
+    "artifactDigest": "sha256:a0add4a9b1015fe675ae77cf4fcf96497b4b54c1f1173fc120d5dadb2f572cfe",
+    "artifactManifestDigest": "sha256:835645da3f6b51fb7a2e56d7cb5418bcf1985d78b3cba38b727e35f57b0ec4a1",
+    "moduleDigest": "sha256:c4be9e8097bea133c78d57d83068d091b42c2ea988cd386cc271a691b4636bf2",
+    "moduleCount": 15,
+    "sourceQ1": "PASS",
+    "artifactAndroidArm64": "PASS",
+    "deterministicDoubleBuild": "PASS"
+  },
+  "artifact": {
+    "archiveFile": "tdev-installable-agent-android-arm64-144bca3c8aab3855dc6828031caf600823c2b7bc.tgz",
+    "archiveBytes": 115971,
+    "archiveDigest": "sha256:a0add4a9b1015fe675ae77cf4fcf96497b4b54c1f1173fc120d5dadb2f572cfe",
+    "releaseManifestDigest": "sha256:835645da3f6b51fb7a2e56d7cb5418bcf1985d78b3cba38b727e35f57b0ec4a1",
+    "profile": "tdev.installable-agent-package.v1",
+    "target": { "platform": "android", "arch": "arm64" },
+    "deterministicDoubleBuild": "PASS"
+  },
+  "provider": {
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "activeDeploymentId": "e9eb280d-37b8-4d0f-afcf-f83ec6eca454",
+    "activeVersionId": "b5b76375-5948-4bbd-a691-28dc668617fc",
+    "activeTrafficPercentage": 100,
+    "sourceSha": "144bca3c8aab3855dc6828031caf600823c2b7bc",
+    "artifactDigest": "sha256:a0add4a9b1015fe675ae77cf4fcf96497b4b54c1f1173fc120d5dadb2f572cfe",
+    "artifactManifestDigest": "sha256:835645da3f6b51fb7a2e56d7cb5418bcf1985d78b3cba38b727e35f57b0ec4a1",
+    "deploymentEpoch": "d0039-r9-q5p-20260826T182636Z",
+    "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "namespace": "tdev-d0020-qualification-clean-a_AgentDeliveryRuntimeDO",
+    "className": "AgentDeliveryRuntimeDO",
+    "jurisdiction": "global",
+    "workersDevAccountSubdomain": "humtr",
+    "workersDevEnabled": true,
+    "workersDevPreviewsEnabled": false,
+    "workersDevHostname": "tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "providerTokenKind": "account",
+    "providerTokenStatus": "active",
+    "providerConfigurationDigest": "sha256:670f52cf7ecbc3afafb377a7dd557ae2841ef7a3c5a426ad731ec5a223cf32a7",
+    "providerWriterObservationDigest": "sha256:28a048a5ea48b9cf6d0c7eb0503768a1906e0f2034720c80d7e70070704ad1f5",
+    "bindingChecks": {
+      "sourceArtifactManifest": true,
+      "namespaceClassJurisdiction": true,
+      "singleHundredPercentWriter": true,
+      "workersDevIngress": true,
+      "routeBindingUnchanged": true
+    }
+  },
+  "predecessor": {
+    "providerStateDigest": "sha256:3b9c19a48a517466cc7b2c53419f6d37f4342c2e390f31199f95943caefdddca",
+    "routeBinding": { "agentId": "d0039-q6-bounded-final-20260824", "routeGeneration": 1 },
+    "routeState": "UNREGISTERED",
+    "routeCurrentTuplePresent": false,
+    "routeCurrentTupleDigest": null,
+    "routePredecessorDigest": "sha256:94e1e3aa717ae788a68337fb346aa6bd9bca7b992939b1f4409e84cda2e8ac81",
+    "routeAuthoritativeRereadDigest": "sha256:4434d527a0682d774932dd2d8b16857439ce1dd58d2e7a79548d71ef9b1462e5",
+    "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+    "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+    "currentCredentialKeyId": null,
+    "managementRequestSequenceHighWater": 1,
+    "twoReadsStable": true
+  },
+  "dispatch": {
+    "qualificationRunId": "d0039-r9-q5p-20260826-2",
+    "runGeneration": 1,
+    "providerEffect": "one Worker script upload after exact predecessor reread",
+    "duplicateProviderEffectIssued": false,
+    "providerRetryPerformed": false,
+    "providerResponseReconciledByFreshReadback": true,
+    "activeVersionObservedByReadback": true,
+    "journalState": "CLEAN",
+    "controllerReleased": true
+  },
+  "iam": {
+    "providerTokenReadback": "active",
+    "independentObservationDigest": "sha256:2d600e922093e68d9ea9a142184388ccc8b970d3c01f8227d5b629e9da4e95ba",
+    "independentPrincipalDigest": "sha256:1cae064fc3817edd32aeb505470b95dd8571bb1088571842c8ace53df31abb90",
+    "authoritySeparation": "observed_distinct_principal"
+  },
+  "routeReadback": {
+    "currentSecurityReadback": { "status": 400, "operation": "d0039_security_readback", "meaning": "current tuple is absent and the current-bound guard fails closed" },
+    "preCurrentReadback": "PASS",
+    "operation": "read_installable_agent",
+    "twoReadsStable": true,
+    "secretValues": "excluded"
+  },
+  "q4": {
+    "priorProofLayer": "retained_original_authenticated_q4_execution",
+    "currentR9ArchiveJoin": "UNKNOWN_full_prior_archive_identity_not_recorded",
+    "rerunOrRegenerationPerformed": false,
+    "protectedOperatorSurfaceRead": false
+  },
+  "q5": {
+    "q5p": "provider_substrate_and_exact_s_a_v_readback_pass",
+    "terminalFullQ5": false,
+    "routeOwnerPreCurrentReadback": "pass",
+    "q6b": "not_executed",
+    "q5r0AndLaterDag": "not_executed"
+  },
+  "safety": {
+    "providerMutationPerformed": true,
+    "providerMutationCount": 1,
+    "routeMutationPerformed": false,
+    "credentialMutationPerformed": false,
+    "secretMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "providerRollbackPerformed": false,
+    "secretValuesExposed": false,
+    "operatorPrivateMaterialExposed": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "q1": "verified_exact_published_source_and_android_arm64_artifact",
+    "q4": "retained_at_original_proof_layer; current_r9_archive_join_unknown",
+    "q5p": "verified_provider_worker_s_a_v_and_distinct_iam_observation",
+    "preCurrentRouteOwner": "verified_live_stable_unregistered_double_read",
+    "q6bStateChangingTransaction": "not_executed",
+    "q5r0AndLaterDag": "not_executed"
+  }
+}
