@@ -404,7 +404,7 @@ D0017 is **accepted** with this exact scope:
 
 The separately scoped D0017 production task has now implemented exactly this accepted contract at `eea429100d4bc6b6e9e6b74a29da2fbcdecc53db` and independently verified the trusted-local source path under the qualification recorded below. This does not reopen or redesign the accepted contract.
 
-D0018 is now the downstream Group E boundary and owns warm executor/process/provider lifecycle and the final real executor/provider boundary. D0022 remains conditional. Group E remains active because D0018 and the final Group E exit review/checkpoint are still open; **Group F must not be created from D0017 verification alone.**
+At the time of this Design decision, D0018 was the downstream Group E boundary and owned warm executor/process/provider lifecycle and the final real executor/provider boundary; D0022 remained conditional. The Group E implementation and exit/checkpoint were subsequently completed and are retained as historical provenance. Current `WORKBOARD.md` records Group E completed and Group F current. D0017 verification alone did not create Group F and does not replace the current Group-F authority.
 
 ## 18. Production implementation verification
 

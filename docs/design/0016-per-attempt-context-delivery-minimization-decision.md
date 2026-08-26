@@ -291,7 +291,7 @@ D0016 does not itself:
 
 ## 16. Follow-on gates
 
-Expected follow-on after the decision:
+The following was the expected follow-on sequence as recorded when this decision was accepted; current routing and completion state are owned by `WORKBOARD.md` and `LINEAGE.md`.
 
 - D0017 if a new context-delivery contract is selected;
 - D0018 for the accepted model executor/provider runtime boundary;
