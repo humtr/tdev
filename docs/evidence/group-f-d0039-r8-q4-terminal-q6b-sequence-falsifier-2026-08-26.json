@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r8_q4_terminal_q6b_sequence_falsifier",
+  "observedAtUtc": "2026-08-26T04:56:03.045Z",
+  "design": {
+    "id": "D0039",
+    "revision": 8,
+    "statusAtObservation": "implementing"
+  },
+  "repository": {
+    "developmentAtObservation": "d60ecff5e9436adbaa217d1df89cfbedb61164fa",
+    "deployedSourceIsNotRepositoryHead": true,
+    "workingTreeCleanBeforeEvidenceUpdate": true
+  },
+  "q4": {
+    "terminal": true,
+    "operatorAnchorSource": "direct_user_independent_session_handoff",
+    "operatorAnchorFixedBeforeArtifactConsult": true,
+    "capsuleSha256": "19b2b0fedf55158aa9e41a9f42203415bae73be37441d007c5bb1d8904b95e84",
+    "capsuleDigestSource": "authenticated-operator-channel",
+    "executorProfile": "tdev.agent-bootstrap-executor.v1",
+    "runtimeSha256": "d682000d9f5d887ec66de1ed68d9616c7a9d064bca9ae9d8c46725a00912cbc6",
+    "verifierSha256": "8043ff811c891b797df4b751fcb15ef0d752c3e9e6a395783dfcd986fb9d1277",
+    "processCode": 0,
+    "processSignal": null,
+    "stdoutBytes": 0,
+    "stderrBytes": 0,
+    "inheritedEnvironment": false,
+    "environmentVariableCount": 0,
+    "workingDirectoryProfile": "private-empty-v1",
+    "workingDirectoryEmpty": true,
+    "fixturePayload": {
+      "recoveredFromExactArchive": true,
+      "archiveDecodedOffset": 195,
+      "bytes": 96,
+      "sha256": "739204d7862b737a732603f9b78f3e52fe0512053cd3a3e0aed01270c6ba2e62"
+    },
+    "executorJobId": "job_fzj_5d6398cc2a"
+  },
+  "freshPreQ6bReadback": {
+    "observedAtUtc": "2026-08-26T04:51:29.106Z",
+    "jobId": "job_fyh_35d0c1f89c",
+    "qualifiedSourceSha": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "activeVersionId": "1dd66ffe-97ab-43b2-904a-b6514ad8576b",
+    "activeDeploymentId": "820a02de-af17-4a06-9411-61a0551809db",
+    "state": "UNREGISTERED",
+    "predecessorDigest": "sha256:94e1e3aa717ae788a68337fb346aa6bd9bca7b992939b1f4409e84cda2e8ac81",
+    "currentTuplePresent": false,
+    "currentTupleDigest": null,
+    "managementRequestSequenceHighWater": 1,
+    "routeAuthoritativeRereadDigest": "sha256:4434d527a0682d774932dd2d8b16857439ce1dd58d2e7a79548d71ef9b1462e5",
+    "twoReadsStable": true,
+    "providerOrRouteMutationPerformed": false
+  },
+  "q6bSequenceFalsifier": {
+    "jobId": "job_fz3_f5c84dd04b",
+    "localOnly": true,
+    "externalMutationPerformed": false,
+    "initialState": "UNREGISTERED",
+    "firstOperation": "register_installable_agent",
+    "firstOperationAdmitted": true,
+    "stateAfterFirstOperation": "GENESIS_PENDING",
+    "secondOperation": "record_installable_agent_genesis_evidence",
+    "secondOperationAdmitted": false,
+    "secondOperationError": "qualification_route_bootstrap_predecessor_invalid",
+    "hostCallsObserved": [
+      "register"
+    ],
+    "conclusion": "The maintained R8 route-bootstrap admission rereads and requires UNREGISTERED before every bootstrap RPC, so the positive genesis continuation cannot proceed after register mutates the route to GENESIS_PENDING."
+  },
+  "authorityConflict": {
+    "designSection": "D0039 r8 section 16.2",
+    "normativeFacts": [
+      "Exactly six genesis operations are permitted to use the route-bootstrap target.",
+      "A route-bootstrap RPC is checked against a fresh authoritative route read that must be UNREGISTERED with null current tuple/digest.",
+      "The design does not define a transaction-bound GENESIS_PENDING continuation admission after register."
+    ],
+    "classification": "owner_correction_required_before_q6b_mutation",
+    "silentImplementationPatchAllowed": false
+  },
+  "q6b": {
+    "mutationAdmitted": false,
+    "mutationExecuted": false,
+    "routeStillUnregistered": true,
+    "reason": "Local sequence falsifier reaches the maintained R8 admission meaning before any live state-changing dispatch."
+  },
+  "safety": {
+    "providerMutationPerformed": false,
+    "routeMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "credentialMutationPerformed": false,
+    "secretMutationPerformed": false,
+    "secretValuesExposed": false,
+    "operatorPrivateMaterialExposed": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "terminalQ4": "verified",
+    "freshPreQ6bProviderRouteReadback": "verified",
+    "q6bPositiveGenesisSequence": "falsified_before_live_mutation",
+    "q5r0AndLaterDag": "not_executed"
+  }
+}
