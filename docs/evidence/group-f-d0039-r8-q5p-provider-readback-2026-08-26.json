@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r8_q5p_provider_substrate_readback",
+  "observedAtUtc": "2026-08-26T00:36:32.000Z",
+  "design": { "id": "D0039", "revision": 8, "status": "implementing" },
+  "source": {
+    "qualifiedSourceSha": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "artifactDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
+    "artifactManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
+    "moduleDigestSent": "sha256:c6d8a3e00a4af794dbeb8ba71126b2899cec4e052997dd0af1fea9487ccef4c3",
+    "moduleCount": 13,
+    "sourceQ1": "PASS",
+    "artifactA8": "PASS"
+  },
+  "artifact": {
+    "archiveDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
+    "releaseManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
+    "target": { "platform": "android", "arch": "arm64" },
+    "deterministicDoubleBuild": "PASS"
+  },
+  "provider": {
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "activeDeploymentId": "820a02de-af17-4a06-9411-61a0551809db",
+    "activeVersionId": "1dd66ffe-97ab-43b2-904a-b6514ad8576b",
+    "activeVersionNumber": 88,
+    "activeTrafficPercentage": 100,
+    "sourceSha": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "artifactDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
+    "artifactManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
+    "deploymentEpoch": "d0039-r8-q5p-20260826T003138Z",
+    "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "namespace": "tdev-d0020-qualification-clean-a_AgentDeliveryRuntimeDO",
+    "className": "AgentDeliveryRuntimeDO",
+    "jurisdiction": "global",
+    "compatibilityDate": "2026-08-20",
+    "compatibilityFlags": ["nodejs_compat"],
+    "workersDevAccountSubdomain": "humtr",
+    "workersDevEnabled": true,
+    "workersDevPreviewsEnabled": false,
+    "workersDevHostname": "tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "durableObjectExport": { "type": "durable-object", "storage": "sqlite" },
+    "bindingChecks": {
+      "sourceArtifactManifest": true,
+      "namespaceClassJurisdiction": true,
+      "singleHundredPercentWriter": true,
+      "workersDevIngress": true,
+      "routeBindingUnchanged": true
+    }
+  },
+  "predecessor": {
+    "activeDeploymentId": "0aa57594-f177-49f0-a05f-b91d7cff4ce7",
+    "activeVersionId": "b5e9fe5e-79ee-4088-b6da-0de81973a0e7",
+    "activeVersionNumber": 87,
+    "sourceSha": "0f64da1542e8b17fef636d1d4d1658cc216da88e",
+    "rollbackBoundaryRetained": true
+  },
+  "dispatch": {
+    "providerEffect": "one PUT upload after exact predecessor reread",
+    "duplicateProviderEffectIssued": false,
+    "providerRetryPerformed": false,
+    "providerResponseWasReconciledByFreshReadback": true
+  },
+  "iam": {
+    "providerTokenReadback": "active",
+    "independentObserver": "not rerun in this evidence",
+    "authoritySeparation": "unverified"
+  },
+  "q4": {
+    "terminalIndependentOperatorChannel": "unverified",
+    "operatorMaterial": "pending",
+    "codexRole": "executor_observer_only"
+  },
+  "q5": {
+    "q5p": "provider_substrate_readback_pass",
+    "terminalFullQ5": false,
+    "routeOwnerReadback": "unverified",
+    "q6b": "not_executed"
+  },
+  "safety": {
+    "routeMutationPerformed": false,
+    "routeReplacementPerformed": false,
+    "secretMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "providerRollbackPerformed": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "q1": "verified_exact_source_and_artifact",
+    "q4": "operator_channel_unverified",
+    "q5p": "verified_provider_worker_s_a_v_config_readback",
+    "q5": "nonterminal_route_owner_unverified",
+    "q6b": "not_executed",
+    "q5r0AndLaterDag": "not_executed"
+  }
+}
