@@ -42,7 +42,7 @@ const EXPECTED_COLUMNS = Object.freeze({
     ['placement_json', 'TEXT', 1, 0],
   ],
 });
-const MODULE_SPECIFIER_PATTERN = /(?:import|export)\s+(?:[^'";]*?\sfrom\s*)?['"]([^'"]+)['"]/g;
+const MODULE_SPECIFIER_PATTERN = /^\s*(?:import|export)\s+(?:[^'";]*?\sfrom\s*)?['"]([^'"]+)['"]/gmu;
 
 export class CloudflareQualificationError extends Error {
   constructor(code, message, details = {}, options = undefined) {

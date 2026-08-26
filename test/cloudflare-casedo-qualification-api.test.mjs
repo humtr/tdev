@@ -120,6 +120,13 @@ test('D0019 Worker module collector closes only the static qualification depende
   assert.match(workerModuleDigest(modules), /^sha256:[0-9a-f]{64}$/);
 });
 
+test('Worker module collector ignores import words inside source strings', () => {
+  const modules = collectWorkerModules(process.cwd(), 'qualification/cloudflare-agent-delivery-worker.mjs');
+  assert.equal(modules.has('qualification/cloudflare-agent-delivery-worker.mjs'), true);
+  assert.equal(modules.has('src/installable-agent-security.mjs'), true);
+  assert.equal(modules.has(' + specifier + \\n'), false);
+});
+
 function metadataFixture(overrides = {}) {
   return buildQualificationWorkerMetadata({
     scriptName: 'tdev-d0019-qualification-a',
