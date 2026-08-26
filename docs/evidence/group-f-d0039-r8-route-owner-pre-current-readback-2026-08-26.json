@@ -1,0 +1,84 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r8_route_owner_pre_current_readback",
+  "observedAtUtc": "2026-08-26T03:53:33.376Z",
+  "design": { "id": "D0039", "revision": 8, "status": "implementing" },
+  "repository": {
+    "developmentAtObservation": "ceefdc0b3a607e69d4e191566794412ea49ee5d8",
+    "observationWorktreeDirtyOnlyForQualificationCleanup": true,
+    "deployedSourceIsNotRepositoryHead": true
+  },
+  "deployed": {
+    "qualifiedSourceSha": "2fed68c582ceee31546ece08f4c7a9a6d7194941",
+    "artifactDigest": "sha256:1a68a2496a22d4216c66789af356db848d9b4ad7dd90381c37ed241bce847fbc",
+    "artifactManifestDigest": "sha256:8357cc2775907cc29290afdb1844a4af037b18f0155b296cf9e4dd82609c64af",
+    "deploymentEpoch": "d0039-r8-q5p-20260826T003138Z",
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "activeDeploymentId": "820a02de-af17-4a06-9411-61a0551809db",
+    "activeVersionId": "1dd66ffe-97ab-43b2-904a-b6514ad8576b",
+    "activeTrafficPercentage": 100,
+    "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "namespace": "tdev-d0020-qualification-clean-a_AgentDeliveryRuntimeDO",
+    "className": "AgentDeliveryRuntimeDO",
+    "jurisdiction": "global",
+    "workersDevHostname": "tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "workersDevEnabled": true,
+    "workersDevPreviewsEnabled": false,
+    "providerTokenStatus": "active"
+  },
+  "routeOwner": {
+    "readbackMode": "unregistered",
+    "operation": "read_installable_agent",
+    "agentId": "d0039-q6-bounded-final-20260824",
+    "routeGeneration": 1,
+    "twoReadsStable": true,
+    "state": "UNREGISTERED",
+    "predecessorDigest": "sha256:94e1e3aa717ae788a68337fb346aa6bd9bca7b992939b1f4409e84cda2e8ac81",
+    "currentTuplePresent": false,
+    "currentTupleDigest": null,
+    "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+    "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+    "currentCredentialKeyId": null,
+    "managementRequestSequenceHighWater": 1,
+    "routeAuthoritativeRereadDigest": "sha256:4434d527a0682d774932dd2d8b16857439ce1dd58d2e7a79548d71ef9b1462e5"
+  },
+  "tooling": {
+    "helper": "qualification/installable-agent-cloudflare-readback.mjs",
+    "explicitMode": "--route-readback-mode unregistered",
+    "currentModePreserved": true,
+    "automaticFallbackAdded": false,
+    "preCurrentReader": "read_installable_agent",
+    "currentBoundReader": "d0039_security_readback",
+    "focusedRegression": "PASS_6_of_6"
+  },
+  "q4": {
+    "independentAuthenticatedOperatorChannel": "unverified",
+    "terminalQ4": false,
+    "repositorySideOperatorDigestGeneration": "not_accepted_as_independent_authentication"
+  },
+  "q6b": {
+    "predecessorReadback": "verified",
+    "mutationAdmitted": false,
+    "mutationExecuted": false,
+    "reason": "Q4 independent authenticated operator evidence remains outstanding"
+  },
+  "safety": {
+    "providerMutationPerformed": false,
+    "routeMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "credentialMutationPerformed": false,
+    "secretMutationPerformed": false,
+    "secretValuesExposed": false,
+    "unrelatedResourcesPreserved": true
+  },
+  "proofBoundaries": {
+    "q5pProviderSubstrate": "retained exact S8/A8/V88 evidence",
+    "preCurrentRouteOwner": "verified_live_double_read",
+    "q4IndependentOperator": "unverified",
+    "q6bStateChangingTransaction": "not_executed",
+    "q5r0AndLaterDag": "not_executed"
+  }
+}

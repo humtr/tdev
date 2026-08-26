@@ -8,10 +8,12 @@ import {
   normalizeQualificationDeploymentIdentity,
   qualificationDeploymentIdentityDigest,
 } from './installable-agent-qualification-r4.mjs';
+import { qualificationRouteAuthoritativeReadbackDigest } from './installable-agent-qualification-r8.mjs';
 
 const API_ROOT = 'https://api.cloudflare.com/client/v4';
 const MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 const TOKEN_KINDS = Object.freeze(new Set(['account', 'user']));
+const ROUTE_READBACK_MODES = Object.freeze(new Set(['current', 'unregistered']));
 
 function fail(code, message, details = undefined, options = undefined) {
   const error = new Error(message, options);
@@ -21,15 +23,16 @@ function fail(code, message, details = undefined, options = undefined) {
 }
 
 function parseArgs(argv) {
-  const allowed = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
+  const required = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
+  const allowed = new Set([...required, '--route-readback-mode']);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
     const value = argv[index + 1];
-    if (!allowed.has(flag) || value === undefined || values.has(flag)) fail('cloudflare_readback_usage', 'Q5 readback arguments are missing, duplicated, or unknown');
+    if (!allowed.has(flag) || value === undefined || values.has(flag)) fail('cloudflare_readback_usage', 'Cloudflare readback arguments are missing, duplicated, or unknown');
     values.set(flag, value);
   }
-  if ([...allowed].some((flag) => !values.has(flag))) fail('cloudflare_readback_usage', 'all Q5 Cloudflare readback arguments are required');
+  if ([...required].some((flag) => !values.has(flag))) fail('cloudflare_readback_usage', 'all required Cloudflare readback arguments must be supplied');
   const routeGeneration = Number(values.get('--route-generation'));
   if (!Number.isSafeInteger(routeGeneration) || routeGeneration < 1 || String(routeGeneration) !== values.get('--route-generation')) fail('cloudflare_readback_usage', 'route generation is invalid');
   if (!/^[0-9a-f]{40}$/.test(values.get('--expected-source-sha'))) fail('cloudflare_readback_usage', 'expected source SHA is invalid');
@@ -38,7 +41,12 @@ function parseArgs(argv) {
     assertDigest(values.get('--expected-artifact-manifest-digest'), 'expected artifact manifest digest');
   } catch (cause) { fail('cloudflare_readback_usage', 'expected artifact digests are invalid', {}, { cause }); }
   if (!TOKEN_KINDS.has(values.get('--provider-token-kind'))) fail('cloudflare_readback_usage', 'provider token kind must be account or user');
-  return Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]).concat([['route_generation', routeGeneration]]));
+  const routeReadbackMode = values.get('--route-readback-mode') ?? 'current';
+  if (!ROUTE_READBACK_MODES.has(routeReadbackMode)) fail('cloudflare_readback_usage', 'route readback mode must be current or unregistered');
+  const parsed = Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]));
+  parsed.route_generation = routeGeneration;
+  parsed.route_readback_mode = routeReadbackMode;
+  return parsed;
 }
 
 async function boundedJson(response, label) {
@@ -99,18 +107,35 @@ export function normalizeD0039WorkersDevIngress({ scriptName, accountSubdomainRe
   });
 }
 
-async function routeOwnerReadback(options, qualificationToken, qualificationOrigin) {
+async function routeOwnerRpc(options, qualificationToken, qualificationOrigin, operation) {
   const endpoint = new URL(qualificationOrigin);
   endpoint.pathname = '/qualification/d0020/v2';
   const response = await fetch(endpoint, {
     method: 'POST',
     redirect: 'error',
     headers: { authorization: `Bearer ${qualificationToken}`, 'content-type': 'application/json' },
-    body: JSON.stringify({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0039_security_readback', agentId: options.agent_id, routeGeneration: options.route_generation }),
+    body: JSON.stringify({ profile: QUALIFICATION_RPC_PROFILE, operation, agentId: options.agent_id, routeGeneration: options.route_generation }),
   });
   const body = await boundedJson(response, 'route-owner readback');
-  if (!response.ok || body?.profile !== QUALIFICATION_RPC_PROFILE || body?.schemaVersion !== 2 || body?.ok !== true || body?.result?.secretValues !== 'excluded') fail('cloudflare_route_owner_readback_failed', 'route-owner security readback failed', { status: response.status });
+  if (!response.ok || body === null || typeof body !== 'object' || Array.isArray(body) || body.ok !== true || !Object.hasOwn(body, 'result')) {
+    fail('cloudflare_route_owner_readback_failed', 'route-owner readback failed', { status: response.status, operation });
+  }
   return body.result;
+}
+
+async function routeOwnerReadback(options, qualificationToken, qualificationOrigin) {
+  if (options.route_readback_mode === 'current') {
+    const result = await routeOwnerRpc(options, qualificationToken, qualificationOrigin, 'd0039_security_readback');
+    if (result?.secretValues !== 'excluded') fail('cloudflare_route_owner_readback_failed', 'route-owner security readback did not exclude secret values');
+    return result;
+  }
+  const routeBinding = { agentId: options.agent_id, routeGeneration: options.route_generation };
+  const first = await routeOwnerRpc(options, qualificationToken, qualificationOrigin, 'read_installable_agent');
+  const firstDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: first });
+  const second = await routeOwnerRpc(options, qualificationToken, qualificationOrigin, 'read_installable_agent');
+  const secondDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: second });
+  if (firstDigest !== secondDigest) fail('cloudflare_route_owner_readback_unstable', 'UNREGISTERED route-owner reread changed between authoritative observations');
+  return Object.freeze({ first, second, routeAuthoritativeRereadDigest: firstDigest });
 }
 
 export function validateD0039CloudflareProviderPrincipal({ tokenKind, verification }) {
@@ -120,6 +145,27 @@ export function validateD0039CloudflareProviderPrincipal({ tokenKind, verificati
     fail('cloudflare_readback_provider_principal_invalid', 'provider Cloudflare principal must be one active API token');
   }
   return Object.freeze({ tokenKind, tokenId: verification.id, tokenStatus: verification.status });
+}
+
+function validateProviderBindings({ options, namespace, workersDev, providerBindings }) {
+  if (!Array.isArray(providerBindings)) fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker bindings are unavailable');
+  const expectedBindingPlan = createQualificationDeploymentBindingPlan({
+    sourceSha: options.expected_source_sha,
+    artifactDigest: options.expected_artifact_digest,
+    artifactManifestDigest: options.expected_artifact_manifest_digest,
+    accountId: options.account_id,
+    serviceName: options.script_name,
+    deploymentEpoch: options.expected_deployment_epoch,
+    qualificationEndpointOrigin: workersDev.origin,
+    workersDevAccountSubdomain: workersDev.accountSubdomain,
+    namespaceId: namespace?.id,
+  });
+  const plainText = new Map(providerBindings
+    .filter((binding) => binding?.type === 'plain_text' && typeof binding?.name === 'string' && typeof binding?.text === 'string')
+    .map((binding) => [binding.name, binding.text]));
+  for (const { name, text } of expectedBindingPlan.cloudflarePlainTextBindings) {
+    if (plainText.get(name) !== text) fail('cloudflare_readback_runtime_binding_invalid', `provider Worker plain-text binding mismatch at ${name}`, { name });
+  }
 }
 
 export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, namespace, workersDev, owner, providerBindings }) {
@@ -158,24 +204,7 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
   for (const [name, value] of Object.entries(expected)) {
     if (identity[name] !== value) fail('cloudflare_readback_route_owner_mismatch', `provider/readback S/A/V/R mismatch at ${name}`, { name, expected: value, actual: identity[name] });
   }
-  if (!Array.isArray(providerBindings)) fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker bindings are unavailable');
-  const expectedBindingPlan = createQualificationDeploymentBindingPlan({
-    sourceSha: options.expected_source_sha,
-    artifactDigest: options.expected_artifact_digest,
-    artifactManifestDigest: options.expected_artifact_manifest_digest,
-    accountId: options.account_id,
-    serviceName: options.script_name,
-    deploymentEpoch: options.expected_deployment_epoch,
-    qualificationEndpointOrigin: workersDev.origin,
-    workersDevAccountSubdomain: workersDev.accountSubdomain,
-    namespaceId: namespace?.id,
-  });
-  const plainText = new Map(providerBindings
-    .filter((binding) => binding?.type === 'plain_text' && typeof binding?.name === 'string' && typeof binding?.text === 'string')
-    .map((binding) => [binding.name, binding.text]));
-  for (const { name, text } of expectedBindingPlan.cloudflarePlainTextBindings) {
-    if (plainText.get(name) !== text) fail('cloudflare_readback_runtime_binding_invalid', `provider Worker plain-text binding mismatch at ${name}`, { name });
-  }
+  validateProviderBindings({ options, namespace, workersDev, providerBindings });
   const runtime = owner.runtime;
   if (runtime?.sourceSha !== identity.sourceSha || runtime?.workerVersionId !== identity.workerVersionId ||
       runtime?.workersDevHostname !== identity.workersDevHostname || runtime?.qualificationEndpointOrigin !== identity.qualificationEndpointOrigin ||
@@ -185,6 +214,26 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
     fail('cloudflare_readback_route_owner_mismatch', 'route-owner runtime facts disagree with its deployment identity');
   }
   return Object.freeze({ identity, digest });
+}
+
+export function validateD0039CloudflareRouteBootstrapJoin({ options, activeVersionId, namespace, workersDev, owner, providerBindings }) {
+  if (typeof activeVersionId !== 'string' || activeVersionId.length === 0 || activeVersionId.includes('\0')) {
+    fail('cloudflare_readback_deployment_invalid', 'active Worker version identity is invalid');
+  }
+  if (!owner || typeof owner !== 'object' || Array.isArray(owner) || !owner.first || !owner.second) {
+    fail('cloudflare_readback_route_owner_mismatch', 'UNREGISTERED route-owner readback is invalid');
+  }
+  if (!workersDev || workersDev.ingressKind !== 'workers_dev' || workersDev.enabled !== true || workersDev.previewsEnabled !== false) {
+    fail('cloudflare_readback_workers_dev_invalid', 'workers.dev provider ingress observation is invalid');
+  }
+  validateProviderBindings({ options, namespace, workersDev, providerBindings });
+  const routeBinding = { agentId: options.agent_id, routeGeneration: options.route_generation };
+  const firstDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: owner.first });
+  const secondDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: owner.second });
+  if (firstDigest !== secondDigest || owner.routeAuthoritativeRereadDigest !== firstDigest) {
+    fail('cloudflare_route_owner_readback_unstable', 'UNREGISTERED route-owner observations do not share one canonical reread digest');
+  }
+  return Object.freeze({ activeVersionId, routeAuthoritativeRereadDigest: firstDigest, routeRead: owner.first, twoReadsStable: true });
 }
 
 async function main() {
@@ -227,15 +276,54 @@ async function main() {
     ? namespaces.filter((entry) => entry?.name === options.namespace_name && entry?.class === options.class_name && entry?.script === options.script_name)
     : [];
   if (namespaceMatches.length !== 1) fail('cloudflare_readback_namespace_ambiguous', 'Exact Durable Object namespace readback is missing or ambiguous');
-  const deploymentJoin = validateD0039CloudflareIdentityJoin({
-    options,
-    activeVersionId: versionId,
-    namespace: namespaceMatches[0],
-    workersDev,
-    owner,
-    providerBindings: bindings,
-  });
+  const namespace = namespaceMatches[0];
   const secretNames = Array.isArray(secrets) ? secrets.map((entry) => entry?.name).filter((name) => typeof name === 'string').sort() : [];
+  if (options.route_readback_mode === 'unregistered') {
+    const joined = validateD0039CloudflareRouteBootstrapJoin({ options, activeVersionId: versionId, namespace, workersDev, owner, providerBindings: bindings });
+    const security = joined.routeRead.installableAgent;
+    process.stdout.write(`${JSON.stringify({
+      classification: 'observed',
+      gate: 'q6b_route_bootstrap_predecessor_readback',
+      proofLayer: 'live_provider_route_owner_pre_current',
+      readbackMode: 'unregistered',
+      accountId: options.account_id,
+      providerPrincipal,
+      workerScript: options.script_name,
+      deploymentId: deployment.id,
+      activeVersionId: versionId,
+      activeTrafficPercentage: 100,
+      activeSourceSha: options.expected_source_sha,
+      artifactDigest: options.expected_artifact_digest,
+      artifactManifestDigest: options.expected_artifact_manifest_digest,
+      deploymentEpoch: options.expected_deployment_epoch,
+      exportedClass: options.class_name,
+      durableObjectBinding: doBinding[0],
+      namespace: { id: namespace.id, name: namespace.name, class: namespace.class, script: namespace.script, useSqlite: namespace.use_sqlite },
+      jurisdiction: options.expected_jurisdiction,
+      ingress: workersDev,
+      routeBinding: { agentId: options.agent_id, routeGeneration: options.route_generation },
+      routeOwner: {
+        operation: 'read_installable_agent',
+        state: security.state,
+        predecessorDigest: joined.routeRead.predecessorDigest,
+        currentTuplePresent: joined.routeRead.currentTuple !== null,
+        currentTupleDigest: joined.routeRead.currentTupleDigest,
+        managementKeyId: security.managementKeyId ?? null,
+        releaseRootKeyId: security.releaseRootKeyId ?? null,
+        currentCredentialKeyId: security.currentCredentialKeyId ?? null,
+        managementRequestSequenceHighWater: security.managementRequestSequenceHighWater,
+        routeAuthoritativeRereadDigest: joined.routeAuthoritativeRereadDigest,
+        twoReadsStable: joined.twoReadsStable,
+      },
+      secretBindingNames: secretNames,
+      q4IndependentOperatorChannel: 'unverified',
+      q6bMutationExecuted: false,
+      terminalQ5: false,
+      secretValues: 'excluded',
+    })}\n`);
+    return;
+  }
+  const deploymentJoin = validateD0039CloudflareIdentityJoin({ options, activeVersionId: versionId, namespace, workersDev, owner, providerBindings: bindings });
   process.stdout.write(`${JSON.stringify({
     classification: 'observed',
     gate: 'q5_live_provider_iam',
@@ -251,7 +339,7 @@ async function main() {
     deploymentIdentityDigest: deploymentJoin.digest,
     exportedClass: options.class_name,
     durableObjectBinding: doBinding[0],
-    namespace: { id: namespaceMatches[0].id, name: namespaceMatches[0].name, class: namespaceMatches[0].class, script: namespaceMatches[0].script, useSqlite: namespaceMatches[0].use_sqlite },
+    namespace: { id: namespace.id, name: namespace.name, class: namespace.class, script: namespace.script, useSqlite: namespace.use_sqlite },
     jurisdiction: owner.runtime.jurisdiction,
     ingress: workersDev,
     routeBinding: owner.runtime.routeBinding,

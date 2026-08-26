@@ -9,7 +9,9 @@ import {
 import {
   normalizeD0039WorkersDevIngress,
   validateD0039CloudflareIdentityJoin,
+  validateD0039CloudflareRouteBootstrapJoin,
 } from '../qualification/installable-agent-cloudflare-readback.mjs';
+import { qualificationRouteAuthoritativeReadbackDigest } from '../qualification/installable-agent-qualification-r8.mjs';
 
 const digest = (character) => `sha256:${character.repeat(64)}`;
 
@@ -112,6 +114,58 @@ function fixture() {
   ];
   return { options, activeVersionId, namespace, workersDev, owner, providerBindings };
 }
+
+function unregisteredFixture() {
+  const value = fixture();
+  const routeRead = {
+    installableAgent: {
+      state: 'UNREGISTERED',
+      managementKeyId: 'management-key',
+      releaseRootKeyId: 'release-key',
+      currentCredentialKeyId: null,
+      managementRequestSequenceHighWater: 1,
+    },
+    predecessorDigest: digest('d'),
+    currentTuple: null,
+    currentTupleDigest: null,
+  };
+  const routeBinding = { agentId: value.options.agent_id, routeGeneration: value.options.route_generation };
+  const routeAuthoritativeRereadDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead });
+  return {
+    ...value,
+    owner: {
+      first: routeRead,
+      second: structuredClone(routeRead),
+      routeAuthoritativeRereadDigest,
+    },
+  };
+}
+
+test('R8 pre-CURRENT cross-read joins exact provider bindings with a stable UNREGISTERED route-owner reread', () => {
+  const value = unregisteredFixture();
+  const joined = validateD0039CloudflareRouteBootstrapJoin(value);
+  assert.equal(joined.twoReadsStable, true);
+  assert.equal(joined.routeRead.currentTuple, null);
+  assert.equal(joined.routeRead.currentTupleDigest, null);
+  assert.equal(joined.routeAuthoritativeRereadDigest, value.owner.routeAuthoritativeRereadDigest);
+});
+
+test('R8 pre-CURRENT cross-read rejects route-owner drift and non-null CURRENT identity', () => {
+  const drift = unregisteredFixture();
+  drift.owner.second.installableAgent.managementRequestSequenceHighWater = 2;
+  assert.throws(
+    () => validateD0039CloudflareRouteBootstrapJoin(drift),
+    (error) => error?.code === 'cloudflare_route_owner_readback_unstable',
+  );
+
+  const current = unregisteredFixture();
+  current.owner.first.currentTuple = { profile: 'unexpected-current' };
+  current.owner.first.currentTupleDigest = digest('e');
+  assert.throws(
+    () => validateD0039CloudflareRouteBootstrapJoin(current),
+    (error) => error?.code === 'qualification_route_bootstrap_predecessor_invalid',
+  );
+});
 
 test('Q5 cross-read joins exact provider bindings, Worker version, workers.dev ingress and route-owner S/A/V/R identity', () => {
   const value = fixture();
