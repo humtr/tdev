@@ -385,3 +385,13 @@ R8 source work itself performs no provider or route mutation. A deployment attem
 R9's source and Design acceptance phase performs no provider, route, device or product mutation. Its phase-P target is constructed from a fresh authoritative D0027 `GENESIS_PENDING` read and exact provider/runtime/route binding; it is not a replacement route owner and cannot create or elect pending/CURRENT state. The target separately carries the original `UNREGISTERED` predecessor, D0027 pending identity and current pending readback digest.
 
 Live Q6-B may use the phase-P fence only after a new exact S/A/V/provider/route admission and the required Q4/Q5 predecessor gates authorize the operation. Exact original register response-loss replay may be reconciled; changed or competing register identities remain denied. A source/test pass does not promote Q4, Q5-R0, Q6-B, later DAG, deployment, migration or rollback evidence. Existing Q4 evidence is retained only after explicit invalidation analysis of its capsule/runtime/verifier/archive identities.
+
+The source-level adapter `qualification/installable-agent-r9-phase-driver.mjs`
+provides an owner-preserving implementation seam for this boundary. It binds
+only an already-authorized RPC callback and separate opaque management and
+release-root Ed25519 signer handles. The adapter derives phase-U/P targets from
+fresh route reads, forwards no private key or token bytes, and never supplies a
+generic credential broker, a new route/effect authority or a blind retry path.
+The adapter itself is not a live deployment or Q6-B observation; concrete
+deployment wiring must remain deployment-owned and must satisfy the existing
+signer-custody and provider-admission contract.

@@ -318,3 +318,12 @@ The genesis-evidence envelope is `tdev.installable-agent-evidence-envelope.v1`. 
 R9 adds no qualification-owned state machine. Its v2 route-bootstrap target is a readback projection of the D0027 authoritative `GENESIS_PENDING` identity and is valid only when a fresh route read proves null CURRENT state plus the exact pending digest, generation, management request, intent, original `UNREGISTERED` predecessor and pending readback digest. Qualification must not mint a candidate tuple, allocate a generation, assign a pending digest or elect CURRENT.
 
 The phase-P operation set is limited to exact original `register_installable_agent` replay/reconciliation, genesis evidence, predecessor quiescence, initial activation and fail-genesis. Register replay requires the original management request/intent/predecessor and complete request digest; a changed or competing register is denied. All other stale, unrelated, failed, current-state or caller-invented identities fail before host dispatch. D0027 remains the sole state/effect authority and its own management-proof, readiness, replay and CAS predicates remain authoritative.
+
+The owner-preserving phase-driver adapter is permitted to compose this boundary
+only through injected opaque capabilities. Its signer callbacks receive public
+key IDs, signature domains and canonical public records, and its RPC callback
+is supplied by the authorized deployment/operator plane. It cannot inspect or
+persist private-key/token bytes, mint pending/current identity, authenticate a
+provider, elect route state, retry an ambiguous effect or take over recovery.
+Adding a signer-custody owner, trust registry, route authority or durable effect
+authority remains an SDD/new-Design decision rather than an adapter change.

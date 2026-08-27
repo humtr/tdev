@@ -450,6 +450,32 @@ semantics themselves require fresh focused source qualification; prior S8
 source identity is not automatically promoted through post-S8 source/tool/test
 changes.
 
+### 18.4.1 Owner-preserving phase-driver adapter
+
+The source-level phase-driver adapter in
+`qualification/installable-agent-r9-phase-driver.mjs` is a composition of the
+accepted R9 qualification contract, not a new authority. It accepts an
+already-authorized RPC callback and two opaque Ed25519 signer handles: one for
+the persisted management key identity and one for the persisted release-root
+key identity. A signer callback receives only its public key ID, signature
+domain and canonical public record; private-key bytes, tokens and credential
+lookup are outside this module.
+
+The adapter performs the R9 sequencing locally: two stable authoritative reads
+before phase U, one state-changing register dispatch, a fresh pending read
+before every phase-P operation, exact pending identity binding, and stable
+CURRENT readback after activation. It never creates D0027 state, acquires a
+credential, retries an ambiguous state-changing call, or performs provider,
+route, device or product mutation by itself. Exact original register replay is
+opt-in and requires the complete original request plus its canonical
+transaction-bound request digest; changed or competing requests fail closed.
+
+This adapter is a reusable implementation seam only. It is not evidence of a
+live signer, RPC transport, provider deployment or Q6-B execution. Deployment
+must bind it only to existing authorized signer/dispatch capabilities without
+introducing a new custody, trust, route or effect authority. A capability that
+would introduce such an owner returns to the SDD/new-Design decision boundary.
+
 ### 18.5 R9 acceptance matrix
 
 | Area | Required acceptance |
@@ -458,8 +484,9 @@ changes.
 | authority separation | D0027 alone creates/owns pending identity and state; qualification only observes and fences it |
 | phase U | R8 `UNREGISTERED` initial admission remains byte/semantic compatible |
 | phase P | exact `GENESIS_PENDING` read, null-current tuple and matching pending readback are required |
+| phase driver | injected authorized RPC plus separate opaque management/release-root signers; no private bytes, credential lookup, blind retry or new authority |
 | identity | original predecessor, pending digest, generation, management request, intent, route and request digest match exactly |
-| replay | original register exact replay/reconciliation is admitted; changed or competing register is denied |
+| replay | original complete register request and transaction-bound request digest are required; replay is explicit and changed or competing register is denied |
 | operation fence | only the five D0027-valid phase-P operations are permitted; ordinary operations retain current-deployment admission |
 | mutation boundary | Design/source qualification performs no external mutation; live Q6-B has separate fresh gates |
 | proof boundary | R9 source tests do not promote Q4, deployed Q6-B, Q5-R0 or later DAG evidence |
