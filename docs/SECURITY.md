@@ -327,3 +327,7 @@ persist private-key/token bytes, mint pending/current identity, authenticate a
 provider, elect route state, retry an ambiguous effect or take over recovery.
 Adding a signer-custody owner, trust registry, route authority or durable effect
 authority remains an SDD/new-Design decision rather than an adapter change.
+The optional qualification transport helper is likewise endpoint-bound: it
+accepts only the R9 operation set, obtains the qualification token through an
+injected secret-preserving provider, sends it only to the exact workers.dev
+origin, and never exposes the token or retries an effect.

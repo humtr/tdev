@@ -475,6 +475,11 @@ live signer, RPC transport, provider deployment or Q6-B execution. Deployment
 must bind it only to existing authorized signer/dispatch capabilities without
 introducing a new custody, trust, route or effect authority. A capability that
 would introduce such an owner returns to the SDD/new-Design decision boundary.
+The same module exposes `createR9QualificationRpc` for the existing
+`/qualification/d0020/v2` endpoint; it accepts a secret-preserving token
+provider, fixes the exact credential-free workers.dev origin, permits only the
+R9 phase operation set, and performs no retry. This is transport wiring, not a
+new credential or authority owner.
 
 ### 18.5 R9 acceptance matrix
 

@@ -3,11 +3,14 @@ import assert from 'node:assert/strict';
 
 import {
   R9_EVIDENCE_ENVELOPE_PROFILE,
+  R9_QUALIFICATION_RPC_PATH,
+  createR9QualificationRpc,
   createOpaqueEd25519Signer,
   runR9PhaseP,
   runR9PhaseU,
 } from '../qualification/installable-agent-r9-phase-driver.mjs';
 import { qualificationRouteBootstrapV2RequestDigest } from '../qualification/installable-agent-qualification-r9-target.mjs';
+import { QUALIFICATION_RPC_PROFILE } from '../qualification/installable-agent-qualification-r4.mjs';
 
 const digest = (hex) => `sha256:${hex.repeat(64)}`;
 const MANAGEMENT_KEY_ID = digest('a');
@@ -285,6 +288,68 @@ test('R9 phase-P rejects a changed replay digest or secret-bearing envelope befo
     (error) => error?.code === 'unexpected_keys',
   );
   assert.equal(rpcCalls.length, 0);
+});
+
+test('R9 qualification RPC binds the exact workers.dev endpoint and keeps the token inside the request closure', async () => {
+  const token = 't'.repeat(32);
+  let tokenCalls = 0;
+  let fetchCalls = 0;
+  const rpc = createR9QualificationRpc({
+    qualificationEndpointOrigin: 'https://tdev-d0020-qualification.humtr.workers.dev',
+    workersDevHostname: 'tdev-d0020-qualification.humtr.workers.dev',
+    tokenProvider: () => {
+      tokenCalls += 1;
+      return token;
+    },
+    fetchImpl: async (url, options) => {
+      fetchCalls += 1;
+      assert.equal(url.pathname, R9_QUALIFICATION_RPC_PATH);
+      assert.equal(options.headers.authorization, `Bearer ${token}`);
+      assert.equal(options.headers['content-type'], 'application/json');
+      return new Response(JSON.stringify({
+        profile: QUALIFICATION_RPC_PROFILE,
+        schemaVersion: 2,
+        ok: true,
+        result: unregisteredRead(),
+      }), { status: 200, headers: { 'content-type': 'application/json' } });
+    },
+  });
+  const result = await rpc({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'read_installable_agent',
+    agentId: routeBinding().agentId,
+    routeGeneration: routeBinding().routeGeneration,
+  });
+  assert.equal(result.installableAgent.state, 'UNREGISTERED');
+  assert.equal(tokenCalls, 1);
+  assert.equal(fetchCalls, 1);
+});
+
+test('R9 qualification RPC rejects non-phase operations and non-exact origins before network use', async () => {
+  let fetchCalls = 0;
+  const rpc = createR9QualificationRpc({
+    qualificationEndpointOrigin: 'https://tdev-d0020-qualification.humtr.workers.dev',
+    workersDevHostname: 'tdev-d0020-qualification.humtr.workers.dev',
+    tokenProvider: () => 't'.repeat(32),
+    fetchImpl: async () => {
+      fetchCalls += 1;
+      throw new Error('must not fetch');
+    },
+  });
+  await assert.rejects(
+    rpc({ profile: QUALIFICATION_RPC_PROFILE, operation: 'runtime_probe', agentId: 'agent-one', routeGeneration: 1 }),
+    (error) => error?.code === 'r9_phase_driver_operation_forbidden',
+  );
+  assert.equal(fetchCalls, 0);
+  assert.throws(
+    () => createR9QualificationRpc({
+      qualificationEndpointOrigin: 'https://evil.example',
+      workersDevHostname: 'tdev-d0020-qualification.humtr.workers.dev',
+      tokenProvider: () => 't'.repeat(32),
+      fetchImpl: async () => new Response(),
+    }),
+    (error) => error?.code === 'r9_phase_driver_endpoint_invalid',
+  );
 });
 
 test('R9 phase-U never retries a state-changing call after transport failure', async () => {

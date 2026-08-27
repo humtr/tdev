@@ -392,6 +392,10 @@ only an already-authorized RPC callback and separate opaque management and
 release-root Ed25519 signer handles. The adapter derives phase-U/P targets from
 fresh route reads, forwards no private key or token bytes, and never supplies a
 generic credential broker, a new route/effect authority or a blind retry path.
-The adapter itself is not a live deployment or Q6-B observation; concrete
-deployment wiring must remain deployment-owned and must satisfy the existing
-signer-custody and provider-admission contract.
+Its `createR9QualificationRpc` helper may bind the existing
+`/qualification/d0020/v2` endpoint through a token-provider callback, but fixes
+the exact credential-free workers.dev origin, permits only the bounded R9
+operation set, and performs no retry. The adapter itself is not a live
+deployment or Q6-B observation; concrete deployment wiring must remain
+deployment-owned and must satisfy the existing signer-custody and
+provider-admission contract.

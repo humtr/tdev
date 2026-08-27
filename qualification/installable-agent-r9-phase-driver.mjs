@@ -6,6 +6,7 @@ import {
   assertSafeInteger,
   canonicalJson,
   publicJsonClone,
+  strictJsonParse,
 } from '../src/canonical.mjs';
 import {
   INSTALLABLE_AGENT_EVIDENCE_DOMAIN,
@@ -39,9 +40,20 @@ import {
 
 export const R9_PHASE_DRIVER_PROFILE = 'tdev.d0039-r9-phase-driver.v1';
 export const R9_EVIDENCE_ENVELOPE_PROFILE = 'tdev.installable-agent-evidence-envelope.v1';
+export const R9_QUALIFICATION_RPC_PATH = '/qualification/d0020/v2';
 
-function fail(code, message, details = undefined) {
-  throw new ContractError(code, message, details);
+const R9_PHASE_OPERATIONS = new Set([
+  'read_installable_agent',
+  'register_installable_agent',
+  'record_installable_agent_genesis_evidence',
+  'accept_legacy_predecessor_quiescence',
+  'initial_activate_installable_agent',
+  'fail_installable_agent_genesis',
+]);
+const R9_MAX_RPC_RESPONSE_BYTES = 4 * 1024 * 1024;
+
+function fail(code, message, details = undefined, options = undefined) {
+  throw new ContractError(code, message, details, options);
 }
 
 function boundedText(value, label, max = 2048) {
@@ -94,6 +106,82 @@ export function createOpaqueEd25519Signer(input) {
       return normalizeSignature(signature, 'R9 opaque signer signature');
     },
   });
+}
+
+function normalizeQualificationOrigin(origin, workersDevHostname) {
+  boundedText(origin, 'R9 qualification endpoint origin', 512);
+  boundedText(workersDevHostname, 'R9 workers.dev hostname', 253);
+  if (!/^[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.workers\.dev$/.test(workersDevHostname)) {
+    fail('r9_phase_driver_endpoint_invalid', 'R9 qualification endpoint hostname is not a workers.dev identity');
+  }
+  let endpoint;
+  try { endpoint = new URL(origin); }
+  catch { fail('r9_phase_driver_endpoint_invalid', 'R9 qualification endpoint origin is invalid'); }
+  if (endpoint.protocol !== 'https:' || endpoint.username || endpoint.password || endpoint.pathname !== '/' || endpoint.search || endpoint.hash || endpoint.origin !== origin || endpoint.hostname !== workersDevHostname) {
+    fail('r9_phase_driver_endpoint_invalid', 'R9 qualification endpoint must be the exact credential-free workers.dev origin');
+  }
+  endpoint.pathname = R9_QUALIFICATION_RPC_PATH;
+  return endpoint;
+}
+
+function normalizeQualificationToken(value) {
+  if (typeof value !== 'string' || value.includes('\0')) {
+    fail('r9_phase_driver_token_invalid', 'R9 qualification token provider returned an invalid token');
+  }
+  const bytes = new TextEncoder().encode(value).byteLength;
+  if (bytes < 32 || bytes > 512) fail('r9_phase_driver_token_invalid', 'R9 qualification token provider returned an invalid token');
+  return value;
+}
+
+async function boundedRpcJson(response) {
+  if (response === null || typeof response !== 'object' || typeof response.arrayBuffer !== 'function') {
+    fail('r9_phase_driver_rpc_invalid', 'R9 qualification RPC returned an invalid response');
+  }
+  const declared = response.headers?.get?.('content-length');
+  if (declared !== null && declared !== undefined && (!/^[0-9]+$/.test(declared) || Number(declared) > R9_MAX_RPC_RESPONSE_BYTES)) {
+    fail('r9_phase_driver_rpc_response_too_large', 'R9 qualification RPC response exceeds its byte bound');
+  }
+  const bytes = new Uint8Array(await response.arrayBuffer());
+  if (bytes.byteLength > R9_MAX_RPC_RESPONSE_BYTES) fail('r9_phase_driver_rpc_response_too_large', 'R9 qualification RPC response exceeds its byte bound');
+  try { return strictJsonParse(bytes, { maxBytes: R9_MAX_RPC_RESPONSE_BYTES }); }
+  catch { fail('r9_phase_driver_rpc_response_invalid', 'R9 qualification RPC response is not bounded canonical JSON'); }
+}
+
+/**
+ * Create the exact existing qualification-route transport used by the R9
+ * phase adapter. The token provider is the only credential input and is
+ * called inside the request closure; the token is never returned, cloned,
+ * logged or included in an error. Only the bounded R9 operation set can be
+ * sent, and this transport performs no retry.
+ */
+export function createR9QualificationRpc({ qualificationEndpointOrigin, workersDevHostname, tokenProvider, fetchImpl = globalThis.fetch }) {
+  const endpoint = normalizeQualificationOrigin(qualificationEndpointOrigin, workersDevHostname);
+  if (typeof tokenProvider !== 'function') fail('r9_phase_driver_token_invalid', 'R9 qualification token provider is not callable');
+  if (typeof fetchImpl !== 'function') fail('r9_phase_driver_rpc_invalid', 'R9 qualification fetch implementation is not callable');
+  return async function r9QualificationRpc(input) {
+    if (input === null || typeof input !== 'object' || Array.isArray(input) || !R9_PHASE_OPERATIONS.has(input.operation)) {
+      fail('r9_phase_driver_operation_forbidden', 'R9 qualification RPC operation is outside the phase driver set');
+    }
+    const requestBody = canonicalJson(publicJsonClone(input));
+    const token = normalizeQualificationToken(await tokenProvider());
+    let response;
+    try {
+      response = await fetchImpl(new URL(endpoint.href), {
+        method: 'POST',
+        redirect: 'error',
+        headers: { authorization: `Bearer ${token}`, 'content-type': 'application/json' },
+        body: requestBody,
+      });
+    } catch (cause) {
+      fail('r9_phase_driver_rpc_failed', 'R9 qualification RPC transport failed', undefined, { cause });
+    }
+    const body = await boundedRpcJson(response);
+    if (!response.ok || body?.profile !== QUALIFICATION_RPC_PROFILE || body.schemaVersion !== 2 || body.ok !== true || !Object.hasOwn(body, 'result')) {
+      const code = typeof body?.error?.code === 'string' ? body.error.code : 'r9_phase_driver_rpc_failed';
+      fail(code, 'R9 qualification RPC rejected the operation', { status: response.status });
+    }
+    return publicJsonClone(body.result);
+  };
 }
 
 function rpcInput(operation, routeBinding, fields = {}) {
