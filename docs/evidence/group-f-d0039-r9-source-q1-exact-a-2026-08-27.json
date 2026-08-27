@@ -1,0 +1,93 @@
+{
+  "artifact": {
+    "archiveBytes": 115971,
+    "archiveFile": "tdev-installable-agent-android-arm64-490e2206f8fbbfc219ce6950335fa4e942195dc9.tgz",
+    "archiveSha256": "sha256:2f1e296320716e43d9d60dd93733a31e42668279c4f188d58654ed52c36ef8bf",
+    "buildRuns": [
+      "/data/data/com.termux/files/home/.local/state/tdev-d0039-r9/android-arm64-490e2206/run-a",
+      "/data/data/com.termux/files/home/.local/state/tdev-d0039-r9/android-arm64-490e2206/run-b"
+    ],
+    "deterministicDoubleBuild": "PASS",
+    "profile": "tdev.installable-agent-package.v1",
+    "releaseManifestDigest": "sha256:08c0f4167ceb5e793b1a7f38a847a030567b978fe3c55823b659bf02624e2e47",
+    "target": { "arch": "arm64", "platform": "android" },
+    "worktreeAfterBuild": "clean"
+  },
+  "classification": "d0039_r9_source_q1_exact_a_current_authority",
+  "design": { "id": "D0039", "revision": 9, "status": "implementing" },
+  "implementation": {
+    "routeBootstrapProfile": "tdev.installable-agent-qualification-route-bootstrap.v2",
+    "routeBootstrapPhase": "GENESIS_PENDING_CONTINUATION",
+    "sourceAndLocalExecutor": "source_layer_only",
+    "q4Reclassified": false,
+    "externalMutationPerformed": false
+  },
+  "proofBoundaries": {
+    "q1SourceQualification": "PASS",
+    "aAndroidArm64DeterministicArtifact": "PASS",
+    "sourceAndLocalExecutor": "PASS_source_and_local_test_layer_only",
+    "currentProviderExactSourceJoin": "UNKNOWN",
+    "q4": "not_reclassified",
+    "q5pAndLaterDag": "not_executed",
+    "q6bStateChangingTransaction": "not_executed",
+    "secretValues": "excluded"
+  },
+  "providerComparison": {
+    "currentProviderSourceSha": "4f8d4e8531ac53a152d5dfc090a46b65a803e3ba",
+    "currentProviderArtifactDigest": "sha256:4ecadea5ca60b59088f84aa002b130d7100fa5736ed4c1f27a57f57cb5f78be0",
+    "currentProviderArtifactManifestDigest": "sha256:50a587ec1590bbc852dc81f2212251589b31ee8fad313b0babf3821d9c97db6a",
+    "currentSourceArtifactDigest": "sha256:2f1e296320716e43d9d60dd93733a31e42668279c4f188d58654ed52c36ef8bf",
+    "currentSourceArtifactManifestDigest": "sha256:08c0f4167ceb5e793b1a7f38a847a030567b978fe3c55823b659bf02624e2e47",
+    "artifactMatch": false,
+    "manifestMatch": false,
+    "automaticR9SourceEquivalence": "not_established",
+    "phaseUAdmission": "blocked_until_exact_current_source_provider_join"
+  },
+  "q1": {
+    "portableInstall": "PASS_npm_ci",
+    "baselineCheck": "PASS_npm_run_check",
+    "coverageCheck": "PASS_node_experimental_test_coverage",
+    "coverage": {
+      "branchBasisPoints": 7160,
+      "functionBasisPoints": 8863,
+      "lineBasisPoints": 8514,
+      "scale": "basis_points"
+    },
+    "gitDiffCheck": "PASS",
+    "tests": { "cancelled": 0, "failed": 0, "passed": 578, "skipped": 0, "todo": 0, "total": 578 },
+    "worktreeAfterVerification": "clean"
+  },
+  "repositoryRefReadback": {
+    "branch": "development",
+    "observedSha": "490e2206f8fbbfc219ce6950335fa4e942195dc9",
+    "observedVia": "git ls-remote origin refs/heads/development"
+  },
+  "safety": {
+    "credentialMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "operatorPrivateMaterialExposed": false,
+    "phasePDispatched": false,
+    "phaseUDispatched": false,
+    "productMutationPerformed": false,
+    "providerMutationPerformed": false,
+    "routeMutationPerformed": false,
+    "secretMutationPerformed": false,
+    "secretValuesExposed": false
+  },
+  "schemaVersion": 1,
+  "testedParentSha": "4f8d4e8531ac53a152d5dfc090a46b65a803e3ba",
+  "testedSourceSha": "490e2206f8fbbfc219ce6950335fa4e942195dc9",
+  "testedTreeSha": "09afbea2d82ee3e6a04779b77817006b562b9358",
+  "unverifiedProofLayers": [
+    "q2_workers_crypto",
+    "q3_physical_android_termux_terminal",
+    "q4_current_r9_archive_join",
+    "q5_live_provider_iam_exact_current_source",
+    "q6_live_route_bootstrap_and_migration",
+    "q7_management_loss_compromise",
+    "q8_release_lifecycle",
+    "q9_provider_loss_retention",
+    "q10_deployed_composition"
+  ],
+  "verifiedAtUtc": "2026-08-27T04:51:31.823Z"
+}
