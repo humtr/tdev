@@ -1,14 +1,14 @@
 # Design 0039 — D0027 Deployment Realization
 
 - Status: `implementing`
-- Revision: 10
+- Revision: 11
 - Class: 2
 - Decision date: 2026-08-28
-- Acceptance base: `development@ca6b7eb48135309daac425181fc0b396627ba5b8`
-- Predecessor revision: D0039@r9, maintained as `implementing` at the acceptance base
-- Trigger: user-directed owner correction after a fresh, read-only R1-to-R9 scope audit found that real D0027 deployment invariants had become over-coupled to a separately decidable qualification control-plane and that R8 had expanded the original offline release-root role into a live genesis-evidence signer without a separate least-authority decision
-- Acceptance evidence: `docs/evidence/group-f-d0039-r10-owner-boundary-correction-acceptance-2026-08-28.json`
-- Source evidence: `docs/evidence/group-f-d0039-r10-source-q1-2026-08-28.json` — exact tested source `development@a26e894aecb68b55f60617ecb91aab2c111fad55`; source/Q1 only
+- Acceptance base: `development@d05d54123b408ff0c15726c165ca227499a1d9b7`
+- Predecessor revision: D0039@r10, maintained as `implementing` at the acceptance base
+- Trigger: post-D0040 live preflight proved that the cumulative deployed source is now `25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367`, its deterministic Android/arm64 artifact differs from the historical R10 `a26e894…` artifact, and the live Worker still carries historical R9 artifact/manifest/epoch bindings; therefore R10's S/A/provider ticket cannot authorize a current live phase-U
+- Acceptance evidence: `docs/evidence/group-f-d0039-r11-cumulative-source-provider-realignment-acceptance-2026-08-28.json`
+- Predecessor source evidence: `docs/evidence/group-f-d0039-r10-source-q1-2026-08-28.json` — historical exact R10 source `development@a26e894aecb68b55f60617ecb91aab2c111fad55`; R11 requires fresh/current cumulative S/A qualification at `25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367`
 - Scope: preserve the private D0027 credential/trust/provider/genesis realization, R9 transaction-bound `GENESIS_PENDING` continuation and exact replay semantics, while restoring qualification/evidence ownership boundaries and removing the persisted release-root key as D0039's mandatory live genesis-evidence signer
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, the installable-Agent evidence verification seam, qualification host/phase-driver implementation and focused tests
 - Preserved owners: D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains the sole route-current/effect owner; D0032 keeps `docs/QUALIFICATION.md` as the sole verification-method owner; D0037 keeps `qualification/` as a non-product executable boundary; D0038 remains the executor-capacity owner
@@ -34,7 +34,7 @@ The correction therefore narrows D0039 to one coherent problem again: concrete p
 
 ## 3. Product invariants retained unchanged
 
-R10 preserves the surviving D0039 product decisions unless this section explicitly narrows an ownership mistake.
+R11 preserves the surviving D0039 product decisions from R10 unless this revision explicitly realigns a stale source/artifact/provider identity.
 
 ### 3.1 Management identity and replay
 
@@ -202,4 +202,14 @@ Historical revision identities remain recoverable from Git and their immutable e
 | R8 | pre-CURRENT admission and async authenticated evidence-before-CAS survive; mandatory release-root evidence signer is superseded |
 | R9 | exact transaction-bound `GENESIS_PENDING` continuation and register replay survive unchanged |
 
-R10 is the maintained accepted meaning. Earlier Design/evidence text is historical evidence for the revision that produced it and does not override this owner.
+## 13. Revision-11 cumulative source/artifact/provider realignment
+
+R11 is a same-owner correction, not a new provider subsystem. D0040 completion changed the cumulative runtime source to exact `S11 = 25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367`. Exact double build from S11 produces Android/arm64 `A11 = sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956`, 116820 bytes, with release-manifest digest `sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307`; it is not byte-identical to the historical R10 artifact from `a26e894…`.
+
+The current Worker already runs S11 and the verified D0040 public verifier identity, but its D0039 artifact/manifest/deployment-epoch bindings are historical R9 values. Those facts cannot be mixed into one route-bootstrap ticket. Before live phase-U, provider realization must therefore replace the D0039 S/A/manifest/epoch/version admission on the existing Worker while preserving the same Worker/service identity, `AgentDeliveryRuntimeDO` namespace, secret-binding identities, D0040 public verifier identity and stable D0027 `UNREGISTERED` predecessor. Any need to replace those preserved owners/resources returns through SDD rather than being hidden in this revision.
+
+Fresh Q4 must execute against exact A11. Historical Q4 and the historical R10 A are evidence only. The independent operator must establish the canonical capsule-v2 raw digest before consulting candidate/release transport; this controller cannot self-issue that anchor. Provider-substrate preparation and fresh Q4 may proceed independently while they are effect-disjoint, but phase-U remains forbidden until both fresh A11-bound Q4 and exact S11/A11/V/provider/route/D0040 admission are PASS.
+
+R11 changes no management, credential, release, D0040, route-current, pending-continuation or replay semantics. Phase-U remains one exact register dispatch from fresh `UNREGISTERED`; ambiguous outcome is reconciled by authoritative route readback before any replay. If and only if phase-U commits `GENESIS_PENDING`, phase-P is constructed from the authoritative pending identity and exact original register transaction, and every evidence receipt uses the responsible evidence-specific observation plus a D0040-authenticated proof.
+
+R11 is the maintained accepted meaning. Earlier Design/evidence text remains historical evidence for the revision that produced it and does not override this owner.

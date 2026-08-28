@@ -34,7 +34,7 @@
 | D0036 | r1 | verified | Single Development Route and Provenance Compaction | `docs/design/0036-single-development-route-provenance-compaction.md` |
 | D0037 | r1 | verified | Final-MVP Repository Shape and Qualification Boundary | `docs/design/0037-final-mvp-repository-shape.md` |
 | D0038 | r1 | verified | Default Executor Capacity Policy | `docs/design/0038-default-executor-capacity-policy.md` |
-| D0039 | r10 | implementing | D0027 Deployment Realization | `docs/design/0039-d0027-deployment-realization.md` |
+| D0039 | r11 | implementing | D0027 Deployment Realization | `docs/design/0039-d0027-deployment-realization.md` |
 | D0040 | r1 | verified | Installable Agent Evidence Attestation Authority | `docs/design/0040-installable-agent-evidence-attestation-authority.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

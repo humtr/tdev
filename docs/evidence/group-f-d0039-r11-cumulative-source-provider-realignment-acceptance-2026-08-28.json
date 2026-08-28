@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r11_cumulative_source_provider_realignment_acceptance",
+  "observedAtUtc": "2026-08-28T04:38:00Z",
+  "design": {"id":"D0039","revision":11,"statusAfterEvidence":"implementing","predecessor":"D0039@r10"},
+  "repository": {
+    "name": "humtr/tdev",
+    "acceptanceBase": "development@d05d54123b408ff0c15726c165ca227499a1d9b7",
+    "r10Source": "a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "currentCumulativeSource": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "currentCumulativeSourceReason": "verified D0040 evidence-attestation implementation and pre-CURRENT readback wiring"
+  },
+  "falsifier": {
+    "summary": "D0040 completion changed the cumulative deployed source from R10 a26e894 to 25b6afc; rebuilding the Android/arm64 package from exact 25b6afc produces a different deterministic artifact, while the live Worker still carries historical R9 artifact/manifest/epoch bindings. Therefore the R10 a26/A ticket and current provider substrate cannot form one exact S/A/V/provider/route admission.",
+    "sourceDeltaScope": [
+      "qualification/cloudflare-agent-delivery-runtime.mjs",
+      "qualification/installable-agent-qualification-r3.mjs",
+      "src/cloudflare-agent-delivery-runtime.mjs",
+      "src/installable-agent-security.mjs",
+      "test/cloudflare-agent-delivery-qualification.test.mjs",
+      "test/d0040-evidence-attestation.test.mjs"
+    ],
+    "sourceDeltaClassification": "D0040 authentication/verifier/readback only; D0039 core owner family unchanged",
+    "r10Artifact": {"sha256":"sha256:a413f0248bddc96b7f67d11b884f96e615e7ab2884d857a263f9af7de018efdd","bytes":115953,"releaseManifestDigest":"sha256:c3f5dd4ae9769c6e3a4a223ab175a695fae606e6397017e2e1c9b9f662531400"},
+    "candidateR11Artifact": {"source":"25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367","doubleBuildByteIdentical":true,"sha256":"sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956","bytes":116820,"releaseManifestDigest":"sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307","sameAsR10Artifact":false,"jobId":"job_hjt_1126f45686"}
+  },
+  "freshProviderObservation": {
+    "script": "tdev-d0020-qualification-clean-a",
+    "sourceSha": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "d0040KeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "artifactBinding": "sha256:2f1e2963512e3836418b23f81606d0e04807e9c73da23c5afaac7c6b961a6de5",
+    "artifactManifestBinding": "sha256:ce97a69486c27b619c3d66f5c0a55c1e35f37d98483a256898bae20f21bc6760",
+    "deploymentEpoch": "d0039-r9-q5p-20260827T0846Z",
+    "routeState": "UNREGISTERED",
+    "pending": null,
+    "current": null,
+    "routeTwoReadsStable": true,
+    "providerOrRouteMutationPerformed": false
+  },
+  "q4Observation": {
+    "historicalQ4RetainedOnlyAsHistory": true,
+    "freshR11OperatorAnchorPresent": false,
+    "historicalProtectedOperatorContentsRead": false,
+    "conclusion": "R11 Q4 must execute against the exact new R11 artifact through a fresh independently authenticated operator channel; the controller cannot self-issue the anchor."
+  },
+  "decision": {
+    "kind": "same_design_new_revision",
+    "reason": "same private D0027 deployment-realization problem, responsibility boundary and owner family; correction realigns cumulative source/artifact/provider identities after D0040 rather than creating an independent provider subsystem",
+    "r11Source": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "r11ArtifactSha256": "sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+    "r11ManifestDigest": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307",
+    "providerReplacementScope": "same existing Worker/service, same AgentDeliveryRuntimeDO namespace, same secret binding identities, same D0040 public verifier identity; replace only exact current D0039 S/A/manifest/epoch/code/version admission as required by provider readback",
+    "q4Rule": "fresh independent-operator Q4 must bind the exact R11 artifact",
+    "phaseURule": "forbidden until fresh R11 Q4 and fresh exact R11 provider/runtime/route admission are both PASS",
+    "phasePRule": "only after authoritative GENESIS_PENDING readback, exact original register transaction, and evidence-specific D0040 proofs"
+  },
+  "preserved": {
+    "d0027Owner": true,
+    "d0020RouteCurrentOwner": true,
+    "d0040VerifiedBoundary": true,
+    "r10OwnerCorrection": true,
+    "r9PendingContinuation": true,
+    "r7ExecutedBootstrapSemantics": true,
+    "noGenericQualificationControlPlane": true,
+    "noNewCredentialAuthority": true
+  },
+  "notExecuted": ["fresh Q4","provider replacement","phase-U","phase-P","D0027 route/current mutation"]
+}

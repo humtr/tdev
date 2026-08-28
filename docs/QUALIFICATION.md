@@ -181,6 +181,12 @@ For any evidence-reuse decision, require a positive invalidation/join relation b
 
 The surviving dependency rule is semantic: after any mutation that changes a fact read by a dependent proof, reread/re-admit that fact before the dependent operation. Q10 composes only mutually compatible authenticated evidence. This is a qualification-method rule, not a new product state machine.
 
+### D0039 Revision-11 cumulative-source admission
+
+Revision 11 invalidates the historical R10 S/A live ticket because D0040 completion changed the cumulative source and therefore the exact package bytes. The maintained D0039 revision owns the exact current S/A/manifest identity; QUALIFICATION owns how that identity is proved, not a mutable commit or result ledger. Source qualification, deterministic A construction, provider/runtime admission and Q4 remain distinct evidence layers.
+
+Before phase-U, two independent gates are conjunctive: (1) fresh independently operator-anchored Q4 over the exact maintained artifact A, and (2) fresh provider/runtime/route admission joining the exact maintained S/A/current immutable Worker version/provider bindings/verified D0040 public verifier and two stable authoritative `UNREGISTERED` route reads. Historical R9 bindings, historical R10 A and D0040 verification alone are not substitutes. Provider-substrate replacement is zero D0027 route/current effect and must preserve existing service/namespace/secret identities.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

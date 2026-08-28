@@ -408,6 +408,14 @@ The optional phase driver is non-product sequencing. It may bind an authorized R
 
 Historical qualification run/store/claim/controller and provider-intent/version machinery is not a D0027 deployment compatibility requirement under R10. Historical records remain evidence. Any future bounded qualification reuse must positively admit its exact predecessor state; a reusable durable qualification control-plane or its own migration/cutover requires a separate accepted Design. Before any future live phase-U, reread the exact published R10 S/A/provider/route and establish Q4 plus the authorized evidence-proof path; prior R9 provider/readback evidence is historical and cannot be a standing mutation ticket.
 
+### D0039 Revision-11 cumulative source/artifact/provider realignment
+
+D0039 Revision 11 keeps the Revision-10 provider owner and narrows the next live substrate update to one exact cumulative identity. The maintained D0039 revision selects one exact cumulative source S and the deterministic Android/arm64 artifact A built from that same S. Provider admission must bind that exact S/A pair, a fresh immutable Worker version, the existing `tdev-d0020-qualification-clean-a` service/Workers.dev ingress, the existing `AgentDeliveryRuntimeDO` namespace, unchanged secret-binding identities and the verified D0040 public verifier identity. Historical R9 artifact/manifest/epoch bindings and the R10 `a26e894…` artifact are not current tickets.
+
+The provider replacement may update only the current D0039 source/artifact/manifest/deployment-epoch/code/version binding on that existing service while preserving the named Worker, Durable Object namespace, secret identities, D0040 verifier and D0027 route predecessor. A need to replace those preserved resources or authorities returns through SDD. Provider preparation never substitutes for Q4 and never authorizes phase-U by itself.
+
+Fresh Q4 is artifact-bound to the exact Revision-11 artifact and requires its independent operator anchor before untrusted candidate/release transport is consulted. Phase-U remains forbidden until both fresh Q4 and fresh provider/runtime/route admission are PASS. Phase-P remains post-`GENESIS_PENDING` only and is built from authoritative pending readback plus the exact original register transaction.
+
 ### D0040 Revision-1 evidence-attestation deployment boundary
 
 A deployment that accepts D0027 installable-Agent evidence must configure one D0040 Ed25519 attestor public key/ID in the injected evidence verifier and bind that exact public identity into the immutable deployment/runtime configuration observed by provider admission. The key is not stored in D0027 route/current state and introduces no D0027 state-schema migration. Missing verifier configuration, missing public key, key-ID mismatch, v1/v2 profile confusion, canonical-context mismatch or signature failure must deny before D0027 CAS.
