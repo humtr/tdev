@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0040_r1_producer_custody_qualification",
+  "observedAtUtc": "2026-08-28T04:21:26Z",
+  "design": {
+    "id": "D0040",
+    "revision": 1,
+    "statusAfterEvidence": "verified",
+    "verificationScope": "evidence-attestation authentication identity, envelope, secret-preserving custody/producer boundary and deployed public verifier binding only; evidence semantics and per-evidence observation truth remain with their existing owners"
+  },
+  "repository": {
+    "name": "humtr/tdev",
+    "authorityAtQualification": "development@399f3d0e0526ccc08d43fe304797fa23c45233cc",
+    "exactSourceQ1": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "sourceEvidence": "docs/evidence/group-f-d0040-r1-precurrent-readback-source-q1-correction-2026-08-28.json",
+    "deployedAttestorEvidence": "docs/evidence/group-f-d0040-r1-deployed-attestor-admission-2026-08-28.json"
+  },
+  "attestor": {
+    "privateCustody": "protected_operator_owned",
+    "operatorDirectoryMode": "0700",
+    "privateKeyFileMode": "0600",
+    "privateBytesModelVisible": false,
+    "privateBytesRepositoryVisible": false,
+    "privateBytesProviderVisible": false,
+    "privateBytesTaskOrLogVisible": false,
+    "sameUidBoundaryIsKernelSandbox": false,
+    "keyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "publicJwk": {
+      "crv": "Ed25519",
+      "kty": "OKP",
+      "x": "A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE"
+    }
+  },
+  "producer": {
+    "profile": "tdev.d0040-package-verified-producer.v1",
+    "producerSha256": "sha256:88c34bb82f2ca7b131da88fa4f092e9f83615b101f099b98f98aa054627aa3d0",
+    "evidenceType": "package_verified",
+    "observerSourceSha": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "observerExactSourceTree": true,
+    "genericSignerBrokerCreated": false,
+    "callerSuppliedDigestAccepted": false,
+    "callerSuppliedContextAccepted": false,
+    "privateKeyReadOrdering": "after authoritative package observation, candidate/context construction and public identity validation",
+    "evidenceSemanticsOwner": "external_existing_evidence_specific_owner"
+  },
+  "authoritativeObservation": {
+    "method": "verifyInstallableAgentRelease against protected exact 25b6afc observer source snapshot",
+    "packageSourceRevision": "a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "packageArchiveSha256": "sha256:a413f0248bddc96b7f67d11b884f96e615e7ab2884d857a263f9af7de018efdd",
+    "packageManifestDigest": "sha256:c3f5dd4ae9769c6e3a4a223ab175a695fae606e6397017e2e1c9b9f662531400",
+    "historicalR10ArtifactJoin": "PASS"
+  },
+  "positiveFalsifier": {
+    "jobId": "job_hgh_b07b07610a",
+    "result": "PASS",
+    "evidenceDigest": "sha256:92707dd548d6a7420fd9d17c5569d880bd82f1653104d081f9e1b1269aedcac3",
+    "contextDigest": "sha256:145b79c8a6fa1d04db5716397d521e2664d208e27c5536c9263803ae5b99fe44",
+    "signatureBytes": 64,
+    "publicEnvelopeOutputSha256": "sha256:4dd2bbdf71cef8f0d5172052b922bc64ccc0a5b5ce4965c3954108be9ebf1758",
+    "publicKeyEnvelopeVerification": "PASS",
+    "rawSignatureRecordedInRepository": false
+  },
+  "negativeFalsifiers": [
+    {"case": "caller_supplied_evidence_digest", "result": "DENIED", "code": "producer_input_shape", "stdoutBytes": 0},
+    {"case": "caller_supplied_context", "result": "DENIED", "code": "producer_input_shape", "stdoutBytes": 0},
+    {"case": "candidate_package_manifest_substitution", "result": "DENIED", "code": "candidate_package_mismatch", "stdoutBytes": 0},
+    {"case": "inactive_package_trust_subject", "result": "DENIED", "code": "producer_input_invalid", "stdoutBytes": 0},
+    {"case": "tampered_package_observation", "result": "DENIED", "code": "installable_agent_package_file_mismatch", "stdoutBytes": 0},
+    {"case": "digest_context_only", "result": "DENIED", "code": "producer_input_shape", "stdoutBytes": 0}
+  ],
+  "freshProviderRuntimeReadback": {
+    "jobId": "job_hh2_6d69548733",
+    "result": "PASS",
+    "script": "tdev-d0020-qualification-clean-a",
+    "sourceSha": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "workerVersionId": "c3020196-7b25-48c1-8b34-85dbd72d6e6c",
+    "namespace": "0dad69baa7154d00949f88c8b8dbf94a",
+    "className": "AgentDeliveryRuntimeDO",
+    "attestorConfigured": true,
+    "attestorKeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "routeTwoReadsStable": true,
+    "routeState": "UNREGISTERED",
+    "pending": null,
+    "current": null,
+    "currentTupleDigest": null,
+    "d0027MutationPerformed": false
+  },
+  "acceptance": {
+    "ownerBoundary": "PASS",
+    "keySeparation": "PASS",
+    "strictV2Envelope": "PASS_source_q1",
+    "receiverContextBinding": "PASS_source_q1_and_positive_falsifier",
+    "leastPrivilege": "PASS",
+    "producerDigestOnlyDenial": "PASS",
+    "evidenceSpecificObservationRequired": "PASS",
+    "verifierZeroEffectDenial": "PASS_source_q1",
+    "d0027DurableStateUnchanged": "PASS",
+    "rotationRemainsDeploymentConfig": "PASS_source_contract",
+    "q4Separation": "PASS",
+    "proofLayerSeparation": "PASS",
+    "d0040TerminalVerification": true
+  },
+  "outOfScopeNotPromoted": {
+    "allEightEvidenceSemanticObservations": "owned_and_qualified_by_their_responsible_evidence_methods_when_used",
+    "d0039Q4": "NOT_EXECUTED",
+    "d0039Q6b": "NOT_EXECUTED",
+    "d0039PhaseU": "NOT_EXECUTED",
+    "d0039PhaseP": "NOT_EXECUTED",
+    "finalDeployedProduct": "NOT_PROMOTED"
+  }
+}
