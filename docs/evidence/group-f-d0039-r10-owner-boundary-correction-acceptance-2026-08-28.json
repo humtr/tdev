@@ -1,0 +1,64 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r10_owner_boundary_correction_acceptance",
+  "observedAtUtc": "2026-08-28T00:03:39Z",
+  "design": {
+    "id": "D0039",
+    "revision": 10,
+    "status": "accepted",
+    "predecessorRevision": 9
+  },
+  "authority": {
+    "repository": "humtr/tdev",
+    "developmentRef": "ca6b7eb48135309daac425181fc0b396627ba5b8",
+    "localHeadMatchedRemote": true,
+    "worktreeCleanBeforeCorrection": true,
+    "independentAuditTask": "task_gt7_3444e10743",
+    "independentAuditVerdict": "scope_growth_mixed_real_invariants_and_overcoupled_qualification_control_plane"
+  },
+  "observedFacts": {
+    "d0027Genesis": "UNREGISTERED -> GENESIS_PENDING -> CURRENT is one AgentDeliveryAuthority-owned transaction and exact response-loss continuation resumes the same pending identity",
+    "genericEvidenceVerifierPreR8": true,
+    "d0032QualificationOwner": "docs/QUALIFICATION.md",
+    "d0037QualificationDirectoryRole": "non_product_executable_navigation_boundary",
+    "r1ReleaseRootRole": "offline release root signs release delegation; delegated release signers sign release statements",
+    "r8Expansion": "persisted release-root key was newly selected as direct signer for genesis-evidence envelopes",
+    "r9PhaseDriverRole": "non-product qualification sequencer/transport helper",
+    "q4ArchiveJoinRole": "evidence reuse optimization, not product functionality"
+  },
+  "acceptedCorrection": {
+    "sameDesignReason": "D0039 remains the concrete private D0027 deployment-realization owner; revision 10 removes over-broad qualification ownership rather than selecting a new product owner",
+    "productOwner": "AgentDeliveryAuthority remains sole D0027 pending/current/effect owner",
+    "management": "R2 m2 request identity/replay floor preserved",
+    "bootstrap": "R7 executed-bootstrap closure preserved",
+    "pendingContinuation": "R8 phase-U initial admission and R9 transaction-bound GENESIS_PENDING continuation/exact register replay preserved",
+    "evidenceAuthentication": "canonical context is authenticated by an injected asynchronous verifier before CAS; missing/rejected proof denies with zero effect",
+    "releaseRoot": "offline release root is no longer the mandatory live genesis-evidence signer",
+    "qualificationOwnership": "docs/QUALIFICATION.md owns verification methods; qualification executables remain non-product tooling and historical run/store/claim/controller machinery is not D0039 product state",
+    "phaseDriver": "may sequence authorized RPC/management signing and forward externally supplied evidence proofs; may not select or manufacture evidence signing authority",
+    "q4Reuse": "reuse only with positive invalidation/join proof; bounded fresh rerun preferred when cheaper"
+  },
+  "sourceImplementation": {
+    "status": "not_started_at_acceptance",
+    "requiredNext": "generic evidence-verifier and phase-driver source correction followed by focused and complete source qualification"
+  },
+  "safety": {
+    "providerMutationPerformed": false,
+    "routeMutationPerformed": false,
+    "deviceMutationPerformed": false,
+    "productMutationPerformed": false,
+    "phaseUPerformed": false,
+    "phasePPerformed": false,
+    "secretsReadOrChanged": false,
+    "protectedOperatorSurfaceRead": false,
+    "historicalEvidenceRewritten": false
+  },
+  "proofBoundaries": {
+    "acceptance": "repository owner/Design decision only",
+    "source": "unverified for R10 until implementation gate runs",
+    "q4": "prior proof remains historical; R10 reuse/rerun unresolved",
+    "providerAndRoute": "prior R9 observations remain historical and cannot authorize R10 live mutation",
+    "q6bAndLater": "not executed"
+  }
+}

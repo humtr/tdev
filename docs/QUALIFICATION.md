@@ -163,8 +163,21 @@ Live pre-CURRENT route-owner qualification must use the authoritative `read_inst
 
 Only those six operations bypass the current-deployment guard. Ordinary management, credential, package, trust, replacement, uninstall and recovery mutations still require `expectedDeploymentIdentityDigest` and a fresh current route read. Unknown fields/profiles, changed predecessor, current tuple presence, target/runtime mismatch, request mismatch, stale readback or unavailable provider data fail closed before dispatch.
 
-Genesis evidence now uses an async `tdev.installable-agent-evidence-envelope.v1` signed by the persisted release-root Ed25519 key over the canonical D0027 evidence context. The default qualification host wires this verifier; a missing callback/key, malformed envelope, key-id/context mismatch or failed signature is a denial. Verification completes before CAS, so no concurrent stale evidence can become authoritative. This source contract proves only the qualification/adaptor layer: independent Q4 operator authentication, deployed route-bootstrap behavior and Q5-R0/Q2-Q10 remain separate gates.
+Genesis evidence in R8 used an async `tdev.installable-agent-evidence-envelope.v1` signed by the persisted release-root Ed25519 key over the canonical D0027 evidence context. That concrete signer choice is historical R8 meaning. Verification-before-CAS and fail-closed proof authentication survive; R10 supersedes the mandatory release-root signer choice.
 
+### D0039 Revision-10 owner-corrected deployment-realization proof profile
+
+R10 preserves the product falsifiers for management authentication/replay, independently authenticated executed bootstrap, exact provider/route binding, phase-U `UNREGISTERED` admission, transaction-bound `GENESIS_PENDING` continuation, exact original-register replay, evidence-before-CAS and final deployed composition. The authoritative D0027 owner, not qualification tooling, creates pending/current state.
+
+Genesis evidence qualification now requires an **opaque authenticated proof plus an injected verifier** that binds the exact canonical route/pending/evidence context. The proof producer cannot be its sole authenticator. Missing proof/verifier, malformed input, context mismatch or authentication failure must be rejected before CAS with zero product effect. R10 does not select the offline release root as the mandatory live evidence signer; the concrete proof mechanism is a SECURITY/DEPLOYMENT concern and any new custody/trust/effect owner requires its own Design.
+
+The R3-R6 qualification run/store/claim/controller formats, provider-intent/version coordination, store migrations, repeated-admission plumbing and revision-specific source-equivalence tools are preserved as historical/non-product qualification mechanics, not D0039 product state or a ROADMAP exit. Top-level `qualification/` remains a non-product executable boundary under D0037. A bounded proof run may use those tools only when freshly admitted by the current method/deployment owner; reusable durable control ownership, takeover or migration is independently decidable and cannot be inferred from D0039.
+
+The R9 phase driver is optional sequencing scaffolding. Focused source qualification must prove that it performs stable phase-U/P reads, exact pending/request binding, management signing, forwarding of already-produced evidence proofs and no blind retry, while proving that it does not choose an evidence signer, inspect secret bytes or mint product identity.
+
+For any evidence-reuse decision, require a positive invalidation/join relation between the observation and the candidate identity. If that relation cannot be established within the bounded reuse method, execute the applicable proof method against the candidate instead of extending product or durable qualification state solely to preserve a prior observation. Evidence produced at one proof layer is admissible only for claims that the layer's method explicitly proves.
+
+The surviving dependency rule is semantic: after any mutation that changes a fact read by a dependent proof, reread/re-admit that fact before the dependent operation. Q10 composes only mutually compatible authenticated evidence. This is a qualification-method rule, not a new product state machine.
 
 ## 3. Qualification layers
 

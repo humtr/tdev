@@ -331,3 +331,11 @@ The optional qualification transport helper is likewise endpoint-bound: it
 accepts only the R9 operation set, obtains the qualification token through an
 injected secret-preserving provider, sends it only to the exact workers.dev
 origin, and never exposes the token or retries an effect.
+
+### D0039 Revision-10 owner-corrected evidence and qualification boundary
+
+R10 preserves the D0027 route-current owner, R7 executed-bootstrap closure, R8 pre-CURRENT admission and R9 pending-continuation/replay semantics, but corrects two ownership expansions from the qualification path.
+
+First, genesis evidence remains untrusted until an injected asynchronous verifier positively authenticates the exact canonical D0027 route/pending/evidence context before CAS. Missing verifier configuration, missing proof, malformed proof, context mismatch or authentication failure denies the mutation with zero durable effect. D0039 no longer defines the route-persisted **offline release-root private key** as the universal live signer for those evidence records. The release root retains its release-trust role of signing delegation; delegated release signers retain their release-statement role. A concrete genesis-evidence proof mechanism must be authorized by the responsible SECURITY/DEPLOYMENT owner and must not let an evidence producer self-authenticate, leak private bytes, or acquire management/provider/route authority by implication. A new signer-custody owner, trust registry or effect-admission authority requires a separate Class-2 decision.
+
+Second, qualification run/store/claim/controller state and the R9 phase-driver/transport are non-product proof machinery. They cannot become authentication credentials, product readiness, route-current state, recovery authority or a generic durable mutation lane merely because historical D0039 revisions used them. `docs/QUALIFICATION.md` owns the method; D0037's `qualification/` boundary owns executable placement only. Existing historical bytes/evidence remain preserved and are not automatically migrated or promoted. If reusable durable qualification-control ownership is later required, return through `SDD.md` instead of re-expanding D0039.

@@ -399,3 +399,11 @@ operation set, and performs no retry. The adapter itself is not a live
 deployment or Q6-B observation; concrete deployment wiring must remain
 deployment-owned and must satisfy the existing signer-custody and
 provider-admission contract.
+
+### D0039 Revision-10 owner-corrected deployment boundary
+
+R10 keeps the concrete D0027 deployment target and exact provider/route readback rules, but no longer requires deployment to expose the offline release-root signing capability to the live genesis-evidence path. The production route owner still receives only a proof plus an injected verifier result; proof verification completes before CAS and failure is zero-effect. The concrete proof producer/verifier is deployment-owned and must already be authorized for the evidence purpose without adding a new custody, trust, route or effect owner. R10 acceptance/source work provisions no new signer, secret, broker or provider resource.
+
+The optional phase driver is non-product sequencing. It may bind an authorized RPC callback, the existing management-signing capability and already-produced opaque evidence proofs. It must not obtain credentials, call the offline release root to manufacture evidence, choose a signer authority, retry an ambiguous effect or own recovery. The workers.dev helper remains optional endpoint-bound transport only.
+
+Historical qualification run/store/claim/controller and provider-intent/version machinery is not a D0027 deployment compatibility requirement under R10. Historical records remain evidence. Any future bounded qualification reuse must positively admit its exact predecessor state; a reusable durable qualification control-plane or its own migration/cutover requires a separate accepted Design. Before any future live phase-U, reread the exact published R10 S/A/provider/route and establish Q4 plus the authorized evidence-proof path; prior R9 provider/readback evidence is historical and cannot be a standing mutation ticket.
