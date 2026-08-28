@@ -2,7 +2,6 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 
 import {
-  R9_EVIDENCE_ENVELOPE_PROFILE,
   R9_QUALIFICATION_RPC_PATH,
   createR9QualificationRpc,
   createOpaqueEd25519Signer,
@@ -15,6 +14,7 @@ import { QUALIFICATION_RPC_PROFILE } from '../qualification/installable-agent-qu
 const digest = (hex) => `sha256:${hex.repeat(64)}`;
 const MANAGEMENT_KEY_ID = digest('a');
 const RELEASE_ROOT_KEY_ID = digest('b');
+const EVIDENCE_PROOF = Object.freeze({ profile: 'fixture.external-evidence.v1', proofDigest: digest('b') });
 const PREDECESSOR = digest('c');
 const PENDING = digest('d');
 const INTENT = digest('e');
@@ -185,9 +185,8 @@ test('R9 phase-U builds an exact management envelope after stable UNREGISTERED r
   assert.equal(Object.hasOwn(calls[0], 'privateKey'), false);
 });
 
-test('R9 phase-P signs release-root evidence only after fresh pending reads and reaches stable CURRENT', async () => {
+test('R9 phase-P forwards externally supplied evidence proof only after fresh pending reads and reaches stable CURRENT', async () => {
   const managementCalls = [];
-  const releaseCalls = [];
   let state = 'pending';
   const rpcCalls = [];
   const rpc = async (input) => {
@@ -209,8 +208,7 @@ test('R9 phase-P signs release-root evidence only after fresh pending reads and 
     transactionId: 'r9-driver-one',
     registerRequest: originalRegisterRequest(),
     managementSigner: signer(MANAGEMENT_KEY_ID, managementCalls),
-    releaseRootSigner: signer(RELEASE_ROOT_KEY_ID, releaseCalls),
-    evidence: [{ type: 'bootstrap_trust', evidenceDigest: digest('a') }],
+    evidence: [{ type: 'bootstrap_trust', evidenceDigest: digest('a'), evidenceProof: EVIDENCE_PROOF }],
   });
 
   assert.equal(result.phase, 'P');
@@ -219,10 +217,8 @@ test('R9 phase-P signs release-root evidence only after fresh pending reads and 
   assert.equal(rpcCalls.filter((input) => input.operation === 'initial_activate_installable_agent').length, 1);
   const evidenceCall = rpcCalls.find((input) => input.operation === 'record_installable_agent_genesis_evidence');
   assert.equal(evidenceCall.routeBootstrapTarget.profile, 'tdev.installable-agent-qualification-route-bootstrap.v2');
-  assert.equal(evidenceCall.request.evidenceProof.profile, R9_EVIDENCE_ENVELOPE_PROFILE);
-  assert.equal(evidenceCall.request.evidenceProof.keyId, RELEASE_ROOT_KEY_ID);
-  assert.equal(releaseCalls.length, 1);
-  assert.equal(releaseCalls[0].domain, 'tdev.installable-agent-evidence.v1');
+  assert.deepEqual(evidenceCall.request.evidenceProof, EVIDENCE_PROOF);
+  assert.equal(result.events.find((event) => event.operation === 'record_installable_agent_genesis_evidence').proofKind, 'external-evidence');
   assert.equal(managementCalls.length, 1);
   assert.equal(managementCalls[0].domain, 'tdev.agent-management.v1');
 });
@@ -250,7 +246,6 @@ test('R9 phase-P performs only an exact original register replay when explicitly
       request,
     }),
     managementSigner: signer(MANAGEMENT_KEY_ID, []),
-    releaseRootSigner: signer(RELEASE_ROOT_KEY_ID, []),
     replayRegister: true,
     activate: false,
   });
@@ -281,11 +276,32 @@ test('R9 phase-P rejects a changed replay digest or secret-bearing envelope befo
         request,
       }),
       managementSigner: signer(MANAGEMENT_KEY_ID, []),
-      releaseRootSigner: signer(RELEASE_ROOT_KEY_ID, []),
       replayRegister: true,
       activate: false,
     }),
     (error) => error?.code === 'unexpected_keys',
+  );
+  assert.equal(rpcCalls.length, 0);
+});
+
+test('R9 phase-P rejects evidence descriptors without an externally produced proof before RPC', async () => {
+  const rpcCalls = [];
+  await assert.rejects(
+    runR9PhaseP({
+      rpc: async (input) => {
+        rpcCalls.push(input);
+        return pendingRead();
+      },
+      routeBinding: routeBinding(),
+      runtimeBinding: runtimeBinding(),
+      providerBinding: providerBinding(),
+      transactionId: 'r9-driver-missing-proof',
+      registerRequest: originalRegisterRequest(),
+      managementSigner: signer(MANAGEMENT_KEY_ID, []),
+      evidence: [{ type: 'bootstrap_trust', evidenceDigest: digest('a') }],
+      activate: false,
+    }),
+    (error) => error?.code === 'unexpected_keys' || error?.code === 'r9_phase_driver_evidence_proof_invalid',
   );
   assert.equal(rpcCalls.length, 0);
 });

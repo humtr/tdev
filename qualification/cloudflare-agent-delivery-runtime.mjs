@@ -1,7 +1,6 @@
 import {
   ContractError,
   assertDigest,
-  canonicalJson,
   assertIdentifier,
   assertRecordShape,
   assertSafeInteger,
@@ -14,13 +13,11 @@ import {
   encodeBase64Url,
   installableAgentCredentialKeyId,
   installableAgentManagementKeyId,
-  installableAgentReleaseRootKeyId,
   installableAgentReleaseSignerKeyId,
   normalizeConnectPossessionContext,
   verifyEd25519SignedRecord,
   verifyRsa3072SignedRecord,
 } from '../src/installable-agent-security.mjs';
-import { INSTALLABLE_AGENT_EVIDENCE_DOMAIN } from '../src/installable-agent-admission.mjs';
 import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
@@ -55,31 +52,6 @@ const ROUTE_BOOTSTRAP_OPERATIONS = new Set([
   'initial_activate_installable_agent',
   'fail_installable_agent_genesis',
 ]);
-const INSTALLABLE_AGENT_EVIDENCE_PROOF_PROFILE = 'tdev.installable-agent-evidence-envelope.v1';
-
-function verifyQualificationEvidenceProof(proof, context) {
-  try {
-    assertRecordShape(proof, ['profile', 'keyId', 'context', 'signature'], [], 'D0039 installable-Agent evidence proof');
-    if (proof.profile !== INSTALLABLE_AGENT_EVIDENCE_PROOF_PROFILE ||
-        context.releaseRootPublicKey === null ||
-        context.releaseRootPublicKey === undefined ||
-        context.releaseRootKeyId === null ||
-        context.releaseRootKeyId !== installableAgentReleaseRootKeyId(context.releaseRootPublicKey) ||
-        proof.keyId !== context.releaseRootKeyId ||
-        canonicalJson(proof.context) !== canonicalJson(context)) {
-      return false;
-    }
-    return verifyEd25519SignedRecord({
-      domain: INSTALLABLE_AGENT_EVIDENCE_DOMAIN,
-      record: context,
-      signature: proof.signature,
-      publicJwk: context.releaseRootPublicKey,
-    }).then(() => true, () => false);
-  } catch {
-    return false;
-  }
-}
-
 function corruptedSignature(value, label) {
   const bytes = decodeBase64Url(value, label);
   bytes[0] ^= 0x01;
@@ -371,7 +343,9 @@ export class D0020QualificationAgentDeliveryDOHost {
     if (!ctx || typeof ctx.abort !== 'function') throw new ContractError('invalid_qualification_config', 'D0020 qualification requires Durable Object abort support');
     this.ctx = ctx;
     this.env = env;
-    this.host = options.host ?? new AgentDeliveryRuntimeDOHost(ctx, env, { verifyInstallableAgentEvidence: verifyQualificationEvidenceProof });
+    this.host = options.host ?? new AgentDeliveryRuntimeDOHost(ctx, env, {
+      verifyInstallableAgentEvidence: options.verifyInstallableAgentEvidence ?? null,
+    });
     const sourceSha = env?.TDEV_SOURCE_SHA;
     if (typeof sourceSha !== 'string' || !/^[0-9a-f]{40}$/.test(sourceSha)) throw new ContractError('invalid_qualification_config', 'D0020 qualification source SHA binding is invalid');
     const versionId = env?.TDEV_WORKER_VERSION?.id;

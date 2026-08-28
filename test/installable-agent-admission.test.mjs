@@ -128,6 +128,35 @@ async function stageGenesis(authority, pending, types = ['bootstrap_trust', 'pac
   }
 }
 
+test('genesis evidence verifier receives canonical pending evidence context without release-root signer identity', async () => {
+  let observedContext = null;
+  const { authority } = createAuthority({
+    evidenceVerifier(proof, context) {
+      observedContext = structuredClone(context);
+      return proof === EVIDENCE_PROOF;
+    },
+  });
+  migrate(authority);
+  const content = registrationContent('generic-evidence-context');
+  const request = managementRequest(authority, 'register', 'generic-evidence-context', content);
+  const pending = authority.registerInstallableAgent(request);
+  const evidenceDigest = digest({ type: 'bootstrap_trust', pendingDigest: pending.pendingDigest });
+  await authority.recordInstallableAgentGenesisEvidence({
+    pendingDigest: pending.pendingDigest,
+    genesisGeneration: pending.genesisGeneration,
+    type: 'bootstrap_trust',
+    evidenceDigest,
+    evidenceProof: EVIDENCE_PROOF,
+  });
+  assert.equal(observedContext.domain, 'tdev.installable-agent-evidence.v1');
+  assert.equal(observedContext.type, 'bootstrap_trust');
+  assert.equal(observedContext.pendingDigest, pending.pendingDigest);
+  assert.equal(observedContext.genesisGeneration, pending.genesisGeneration);
+  assert.equal(observedContext.evidenceDigest, evidenceDigest);
+  assert.equal(Object.hasOwn(observedContext, 'releaseRootKeyId'), false);
+  assert.equal(Object.hasOwn(observedContext, 'releaseRootPublicKey'), false);
+});
+
 async function registerAndActivate(authority, tag = 'one') {
   migrate(authority);
   const content = registrationContent(tag);

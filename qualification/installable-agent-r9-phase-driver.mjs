@@ -9,10 +9,8 @@ import {
   strictJsonParse,
 } from '../src/canonical.mjs';
 import {
-  INSTALLABLE_AGENT_EVIDENCE_DOMAIN,
   INSTALLABLE_AGENT_MANAGEMENT_PROOF_DOMAIN,
   computeInstallableAgentManagementIntentDigest,
-  evidenceProofContext,
   managementProofContext,
 } from '../src/installable-agent-admission.mjs';
 import {
@@ -39,7 +37,6 @@ import {
 } from './installable-agent-qualification-r9-target.mjs';
 
 export const R9_PHASE_DRIVER_PROFILE = 'tdev.d0039-r9-phase-driver.v1';
-export const R9_EVIDENCE_ENVELOPE_PROFILE = 'tdev.installable-agent-evidence-envelope.v1';
 export const R9_QUALIFICATION_RPC_PATH = '/qualification/d0020/v2';
 
 const R9_PHASE_OPERATIONS = new Set([
@@ -334,28 +331,6 @@ async function makeManagementEnvelope(routeBinding, request, signer) {
   });
 }
 
-async function makeEvidenceEnvelope(routeBinding, security, type, details, signer) {
-  const normalized = normalizeSigner(signer, 'R9 release-root signer');
-  if (security.releaseRootKeyId === null || normalized.keyId !== security.releaseRootKeyId) {
-    fail('r9_phase_driver_signer_identity_mismatch', 'R9 release-root signer does not match the authoritative pending route');
-  }
-  if (security.releaseRootPublicKey === null || typeof security.releaseRootPublicKey !== 'object') {
-    fail('r9_phase_driver_release_root_unavailable', 'R9 pending route has no release-root public verifier');
-  }
-  const context = evidenceProofContext(type, routeBinding, {
-    ...details,
-    releaseRootKeyId: security.releaseRootKeyId,
-    releaseRootPublicKey: security.releaseRootPublicKey,
-  });
-  const signature = await normalized.sign({ domain: INSTALLABLE_AGENT_EVIDENCE_DOMAIN, record: context });
-  return Object.freeze({
-    profile: R9_EVIDENCE_ENVELOPE_PROFILE,
-    keyId: normalized.keyId,
-    context: publicJsonClone(context),
-    signature: normalizeSignature(signature, 'R9 release-root signature'),
-  });
-}
-
 function makePhaseUTarget({ runtimeBinding, providerBinding, routeBinding, readback, transactionId }) {
   const requestDigest = qualificationRouteBootstrapRequestDigest({ transactionId, routeBinding });
   const target = createQualificationRouteBootstrap({
@@ -482,16 +457,28 @@ function assertPendingRequestIdentity(request, pending, security = undefined) {
   }
 }
 
+function normalizeOpaqueEvidenceProof(value, label) {
+  if (value === null || value === undefined) {
+    fail('r9_phase_driver_evidence_proof_invalid', `${label} requires an externally produced evidence proof`);
+  }
+  try { return publicJsonClone(value); }
+  catch { fail('r9_phase_driver_evidence_proof_invalid', `${label} evidence proof is not public JSON`); }
+}
+
 function normalizeEvidenceDescriptor(value) {
-  assertRecordShape(value, ['type', 'evidenceDigest'], [], 'R9 evidence descriptor');
+  assertRecordShape(value, ['type', 'evidenceDigest', 'evidenceProof'], [], 'R9 evidence descriptor');
   boundedText(value.type, 'R9 evidence type', 128);
   assertDigest(value.evidenceDigest, 'R9 evidenceDigest');
-  return value;
+  return Object.freeze({
+    type: value.type,
+    evidenceDigest: value.evidenceDigest,
+    evidenceProof: normalizeOpaqueEvidenceProof(value.evidenceProof, 'R9 evidence descriptor'),
+  });
 }
 
 function normalizeQuiescenceDescriptor(value) {
   assertRecordShape(value, [
-    'deliveryId', 'executorId', 'executorEpoch', 'evidenceRevision', 'evidenceDigest', 'proofClass', 'receiptDigest', 'proofEvidenceDigest',
+    'deliveryId', 'executorId', 'executorEpoch', 'evidenceRevision', 'evidenceDigest', 'proofClass', 'receiptDigest', 'proofEvidenceDigest', 'evidenceProof',
   ], [], 'R9 quiescence descriptor');
   assertDigest(value.deliveryId, 'R9 quiescence deliveryId');
   boundedText(value.executorId, 'R9 quiescence executorId');
@@ -501,7 +488,10 @@ function normalizeQuiescenceDescriptor(value) {
   boundedText(value.proofClass, 'R9 quiescence proofClass', 128);
   assertDigest(value.receiptDigest, 'R9 quiescence receiptDigest');
   assertDigest(value.proofEvidenceDigest, 'R9 quiescence proofEvidenceDigest');
-  return value;
+  return Object.freeze({
+    ...publicJsonClone(value),
+    evidenceProof: normalizeOpaqueEvidenceProof(value.evidenceProof, 'R9 quiescence descriptor'),
+  });
 }
 
 /**
@@ -509,7 +499,7 @@ function normalizeQuiescenceDescriptor(value) {
  * state-changing operation. A transport error is allowed to escape so the
  * caller can reconcile; no state-changing operation is blindly retried.
  */
-export async function runR9PhaseP({ rpc, routeBinding, runtimeBinding, providerBinding, transactionId, registerRequest = null, registerRequestDigest, managementSigner, releaseRootSigner, evidence = [], quiescence = [], activate = true, replayRegister = false }) {
+export async function runR9PhaseP({ rpc, routeBinding, runtimeBinding, providerBinding, transactionId, registerRequest = null, registerRequestDigest, managementSigner, evidence = [], quiescence = [], activate = true, replayRegister = false }) {
   if (typeof rpc !== 'function') fail('r9_phase_driver_rpc_invalid', 'R9 phase driver rpc is not callable');
   const binding = normalizeRouteBinding(routeBinding);
   boundedText(transactionId, 'R9 route bootstrap transactionId');
@@ -552,25 +542,20 @@ export async function runR9PhaseP({ rpc, routeBinding, runtimeBinding, providerB
 
   for (const descriptor of evidence.map(normalizeEvidenceDescriptor)) {
     const readback = await stableRead(rpc, binding, 'GENESIS_PENDING');
-    const { security, pending } = assertPendingRouteRead(readback.first);
+    const { pending } = assertPendingRouteRead(readback.first);
     const request = {
       pendingDigest: pending.pendingDigest,
       genesisGeneration: pending.genesisGeneration,
       type: descriptor.type,
       evidenceDigest: descriptor.evidenceDigest,
-      evidenceProof: await makeEvidenceEnvelope(binding, security, descriptor.type, {
-        pendingDigest: pending.pendingDigest,
-        genesisGeneration: pending.genesisGeneration,
-        candidate: readback.first.installableAgent.pending?.candidate,
-        evidenceDigest: descriptor.evidenceDigest,
-      }, releaseRootSigner),
+      evidenceProof: descriptor.evidenceProof,
     };
-    await invokePending('record_installable_agent_genesis_evidence', request, 'release-root');
+    await invokePending('record_installable_agent_genesis_evidence', request, 'external-evidence');
   }
 
   for (const descriptor of quiescence.map(normalizeQuiescenceDescriptor)) {
     const readback = await stableRead(rpc, binding, 'GENESIS_PENDING');
-    const { security, pending } = assertPendingRouteRead(readback.first);
+    const { pending } = assertPendingRouteRead(readback.first);
     const request = {
       pendingDigest: pending.pendingDigest,
       genesisGeneration: pending.genesisGeneration,
@@ -582,19 +567,9 @@ export async function runR9PhaseP({ rpc, routeBinding, runtimeBinding, providerB
       proofClass: descriptor.proofClass,
       receiptDigest: descriptor.receiptDigest,
       proofEvidenceDigest: descriptor.proofEvidenceDigest,
-      evidenceProof: await makeEvidenceEnvelope(binding, security, 'positive_quiescence', {
-        pendingDigest: pending.pendingDigest,
-        deliveryId: descriptor.deliveryId,
-        executorId: descriptor.executorId,
-        executorEpoch: descriptor.executorEpoch,
-        evidenceRevision: descriptor.evidenceRevision,
-        priorEvidenceDigest: descriptor.evidenceDigest,
-        proofClass: descriptor.proofClass,
-        receiptDigest: descriptor.receiptDigest,
-        evidenceDigest: descriptor.proofEvidenceDigest,
-      }, releaseRootSigner),
+      evidenceProof: descriptor.evidenceProof,
     };
-    await invokePending('accept_legacy_predecessor_quiescence', request, 'release-root');
+    await invokePending('accept_legacy_predecessor_quiescence', request, 'external-evidence');
   }
 
   if (!activate) {

@@ -4,7 +4,6 @@ import { generateKeyPairSync, sign } from 'node:crypto';
 
 import {
   AgentDeliveryAuthority,
-  canonicalJson,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
   INSTALLABLE_AGENT_MANAGEMENT_ENVELOPE_PROFILE,
@@ -16,7 +15,6 @@ import {
   encodeBase64Url,
   installableAgentCredentialKeyId,
   installableAgentManagementKeyId,
-  installableAgentReleaseRootKeyId,
   managementProofContext,
   signedRecordBytes,
 } from '../src/index.mjs';
@@ -93,8 +91,9 @@ async function createConcreteCurrent() {
     store,
     routeBinding,
     verifyInstallableAgentEvidence: async (proof, context) => {
-      assert.equal(context.releaseRootKeyId, installableAgentReleaseRootKeyId(releaseRoot.publicJwk));
-      assert.equal(canonicalJson(context.releaseRootPublicKey), canonicalJson(releaseRoot.publicJwk));
+      assert.equal(context.domain, 'tdev.installable-agent-evidence.v1');
+      assert.equal(Object.hasOwn(context, 'releaseRootKeyId'), false);
+      assert.equal(Object.hasOwn(context, 'releaseRootPublicKey'), false);
       return proof === EVIDENCE_PROOF;
     },
   });

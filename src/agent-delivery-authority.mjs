@@ -1171,8 +1171,6 @@ export class AgentDeliveryAuthority {
     const context = evidenceProofContext(type, state.routeBinding, {
       ...details,
       evidenceDigest: input.evidenceDigest,
-      releaseRootKeyId: state.installableAgent.releaseRootKeyId,
-      releaseRootPublicKey: state.installableAgent.releaseRootPublicKey,
     });
     let accepted = false;
     try {
