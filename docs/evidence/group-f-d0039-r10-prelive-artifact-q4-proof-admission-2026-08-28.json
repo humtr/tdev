@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r10_prelive_artifact_q4_proof_admission",
+  "observedAtUtc": "2026-08-28T01:00:19Z",
+  "design": {
+    "id": "D0039",
+    "revision": 10,
+    "status": "implementing"
+  },
+  "repository": {
+    "repository": "humtr/tdev",
+    "authoritativeRef": "development",
+    "observedHead": "82635ec4d72c560ae83b4622bff747c38ccd584c",
+    "remoteMatched": true,
+    "worktreeCleanBeforeEvidenceWrite": true
+  },
+  "source": {
+    "exactQ1TestedSource": "a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "sourceEvidence": "docs/evidence/group-f-d0039-r10-source-q1-2026-08-28.json",
+    "sourcePromotion": "none; this evidence/status descendant is not a new Q1-tested source"
+  },
+  "artifact": {
+    "constructionJobId": "job_h1r_5f758494cf",
+    "constructionTarget": "task-owned isolated worktree wt_686ed161f03c1825 at exact Q1-tested source",
+    "profile": "tdev.installable-agent-package.v1",
+    "target": {
+      "platform": "android",
+      "arch": "arm64"
+    },
+    "archiveFile": "tdev-installable-agent-android-arm64-a26e894aecb68b55f60617ecb91aab2c111fad55.tgz",
+    "archiveBytes": 115953,
+    "archiveSha256": "sha256:a413f0248bddc96b7f67d11b884f96e615e7ab2884d857a263f9af7de018efdd",
+    "releaseManifestDigest": "sha256:c3f5dd4ae9769c6e3a4a223ab175a695fae606e6397017e2e1c9b9f662531400",
+    "releaseManifestFileSha256": "sha256:ff3679b6efbee18456fc1098c205eaa0fb9fed3e94c61e41bc38c93ef4fb4ac8",
+    "deterministicDoubleBuild": true,
+    "artifactJsonByteIdentical": true,
+    "releaseManifestByteIdentical": true,
+    "worktreeCleanBeforeAndAfter": true
+  },
+  "q4ReuseAssessment": {
+    "historicalTerminalEvidence": "docs/evidence/group-f-d0039-r8-q4-terminal-q6b-sequence-falsifier-2026-08-26.json",
+    "historicalCapsuleSha256": "19b2b0fedf55158aa9e41a9f42203415bae73be37441d007c5bb1d8904b95e84",
+    "historicalRuntimeSha256": "d682000d9f5d887ec66de1ed68d9616c7a9d064bca9ae9d8c46725a00912cbc6",
+    "historicalVerifierSha256": "8043ff811c891b797df4b751fcb15ef0d752c3e9e6a395783dfcd986fb9d1277",
+    "historicalExecutedArchiveFullIdentityRecordedInTerminalQ4": false,
+    "currentArtifactIsNewExactSourceArtifact": true,
+    "positiveUnchangedArchiveJoinEstablished": false,
+    "reuseAdmitted": false,
+    "decision": "R10 requires a bounded fresh Q4 rather than new archive-join/product/control-plane machinery"
+  },
+  "freshQ4": {
+    "terminalContract": "capsule-v2 raw SHA-256 fixed by an authenticated operator channel independent of release/candidate transport before untrusted transport consultation; Android/arm64 exact runtime/verifier bytes must equal executed bytes under the bounded executor",
+    "repositorySideOrCandidateSelfAuthenticationAccepted": false,
+    "currentControllerMaySelfIssueIndependentDigest": false,
+    "protectedHistoricalOperatorSurfaceRead": false,
+    "terminalExecutionPerformed": false,
+    "status": "awaiting_fresh_independent_operator_capsule_digest_and_current_verifier_handoff"
+  },
+  "genesisEvidenceProof": {
+    "agentDeliveryAuthorityVerifierSeam": "present; opaque evidenceProof plus canonical route/pending/evidence context, injected async verifier, fail closed before CAS",
+    "phaseDriver": "forwards externally produced opaque evidenceProof and does not select or manufacture a signer",
+    "currentRepositorySelectedConcreteProducer": false,
+    "currentQualificationRuntimeSelectedConcreteVerifierBinding": false,
+    "alreadyAuthorizedProducerDiscovered": false,
+    "automaticReuseOfManagementReleaseOrOperatorSigningAuthority": false,
+    "decision": "No current owner-authorized producer/verifier binding was found. Creating or selecting a new signer-custody/trust/effect-admission owner is a Class-2 SDD decision under R10 rather than implementation detail."
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "productMutation": false,
+    "runtimeCutover": false,
+    "phaseU": false,
+    "phaseP": false,
+    "q6b": false,
+    "secretReadOrChange": false,
+    "protectedOperatorSurfaceRead": false
+  },
+  "proofBoundaries": {
+    "r10DeterministicArtifact": "PASS for exact Q1-tested source a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "q4": "not promoted; historical reuse is not admitted and fresh independent-operator execution remains required",
+    "genesisEvidenceProofProducerVerifier": "not admitted; current known path returns through SDD before any new trust/custody owner is created",
+    "providerAdmission": "not freshly observed or promoted for R10",
+    "q6bPhaseUPhaseP": "not executed",
+    "q5r0AndQ2Q10": "not executed"
+  }
+}
