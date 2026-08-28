@@ -1,6 +1,6 @@
 # Design 0039 — D0027 Deployment Realization
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 10
 - Class: 2
 - Decision date: 2026-08-28
@@ -8,6 +8,7 @@
 - Predecessor revision: D0039@r9, maintained as `implementing` at the acceptance base
 - Trigger: user-directed owner correction after a fresh, read-only R1-to-R9 scope audit found that real D0027 deployment invariants had become over-coupled to a separately decidable qualification control-plane and that R8 had expanded the original offline release-root role into a live genesis-evidence signer without a separate least-authority decision
 - Acceptance evidence: `docs/evidence/group-f-d0039-r10-owner-boundary-correction-acceptance-2026-08-28.json`
+- Source evidence: `docs/evidence/group-f-d0039-r10-source-q1-2026-08-28.json` — exact tested source `development@a26e894aecb68b55f60617ecb91aab2c111fad55`; source/Q1 only
 - Scope: preserve the private D0027 credential/trust/provider/genesis realization, R9 transaction-bound `GENESIS_PENDING` continuation and exact replay semantics, while restoring qualification/evidence ownership boundaries and removing the persisted release-root key as D0039's mandatory live genesis-evidence signer
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, the installable-Agent evidence verification seam, qualification host/phase-driver implementation and focused tests
 - Preserved owners: D0027@r1 remains the installable authenticated local-Agent owner; D0020 `AgentDeliveryAuthority` remains the sole route-current/effect owner; D0032 keeps `docs/QUALIFICATION.md` as the sole verification-method owner; D0037 keeps `qualification/` as a non-product executable boundary; D0038 remains the executor-capacity owner

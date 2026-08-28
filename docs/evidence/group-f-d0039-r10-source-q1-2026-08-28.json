@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r10_source_q1",
+  "observedAtUtc": "2026-08-28T00:24:12Z",
+  "design": {
+    "id": "D0039",
+    "revision": 10,
+    "statusAfterEvidence": "implementing",
+    "acceptanceCommit": "ba8ee68022e7b16721b7db7a0f812f8fc1b03c02",
+    "acceptanceEvidence": "docs/evidence/group-f-d0039-r10-owner-boundary-correction-acceptance-2026-08-28.json"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "testedCommit": "a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "tree": "52fad8333656fd113a206914d6e454dcbb06a134",
+    "parent": "ba8ee68022e7b16721b7db7a0f812f8fc1b03c02",
+    "remoteMatchedBeforeValidation": true,
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "agentDeliveryAuthority": "canonical genesis-evidence verifier context remains route/pending/evidence-bound but no longer embeds releaseRootKeyId or releaseRootPublicKey",
+    "qualificationHost": "removed the hard-coded persisted-release-root evidence verifier; the host now accepts only an explicitly injected verifier and otherwise fails evidence mutation closed",
+    "phaseDriver": "removed releaseRootSigner/evidence-envelope manufacture; phase P requires and forwards an externally produced public evidenceProof while preserving fresh pending reads, management signing, exact replay and no blind retry",
+    "tests": "added generic evidence-context and externally supplied proof coverage; historical realization fixtures no longer require release-root identity inside the evidence context",
+    "preserved": [
+      "route-persisted releaseRootKeyId/public key as release-trust state",
+      "R2 m2 management authentication and replay floor",
+      "R7 executed-bootstrap closure",
+      "R8 phase-U UNREGISTERED admission",
+      "R9 exact GENESIS_PENDING continuation and original-register replay",
+      "AgentDeliveryAuthority as sole D0027 pending/current/effect owner"
+    ]
+  },
+  "validation": {
+    "jobId": "job_gzk_c0b69f4368",
+    "profile": "portable",
+    "command": "npm run check",
+    "planDigest": "f99c5adf067f76d4b54d7ba6f481ddb3ab4251e6030632000da9397f5d5091da",
+    "validationProfileAuthority": {
+      "source": "project_registry",
+      "projectRevision": 9,
+      "digest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98"
+    },
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0039@r10 groups=8 gates=15",
+    "tests": {
+      "total": 587,
+      "passed": 587,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "durationMs": 109154
+  },
+  "artifact": {
+    "r10DeploymentArtifactConstructed": false,
+    "status": "unverified",
+    "reason": "owner-correction source gate did not construct or promote a new deterministic Android/arm64 deployment artifact"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "productMutation": false,
+    "phaseU": false,
+    "phaseP": false,
+    "q6b": false,
+    "secretReadOrChange": false,
+    "protectedOperatorSurfaceRead": false
+  },
+  "proofBoundaries": {
+    "q1Source": "PASS for exact tested source a26e894aecb68b55f60617ecb91aab2c111fad55",
+    "evidenceStatusDescendant": "not a Q1-tested source and receives no implicit source-equivalence promotion",
+    "q4": "historical R8 proof is not promoted; R10 requires positive reuse/invalidation proof or a bounded fresh method",
+    "providerAdmission": "unverified for R10",
+    "evidenceProofProducerVerifier": "not yet selected/admitted for live R10 deployment",
+    "q6bPhaseUP": "not executed",
+    "q5r0AndQ2Q10": "not executed"
+  }
+}
