@@ -7,7 +7,8 @@
 - Acceptance base: `development@fffd5c83ce4e8f2bb92cf9db7dc5526715121a75`
 - Trigger: D0039@r10 pre-live admission established the exact R10 artifact but found no already-authorized concrete producer/verifier for the existing `tdev.installable-agent-evidence.v1` proof seam; R10 requires a separate SDD decision before creating or selecting signer custody/trust authority
 - Acceptance evidence: `docs/evidence/group-f-d0040-r1-evidence-attestation-authority-acceptance-2026-08-28.json`
-- Source evidence: `docs/evidence/group-f-d0040-r1-source-q1-2026-08-28.json` — exact tested source `development@7cb3af495916aecb18359a0f0b732343f487669e`; source/Q1 only
+- Initial source evidence: `docs/evidence/group-f-d0040-r1-source-q1-2026-08-28.json` — exact tested source `development@7cb3af495916aecb18359a0f0b732343f487669e`; retained historical source/Q1
+- Source evidence: `docs/evidence/group-f-d0040-r1-precurrent-readback-source-q1-correction-2026-08-28.json` — current exact tested source `development@25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367`; clean 591/591 source/Q1 correction adding only the dedicated pre-CURRENT public-attestor readback while preserving D0039 CURRENT-bound readers
 - Scope: the cryptographic authentication identity, proof envelope, least-authority signer/observer boundary, verifier configuration and deployment binding used by the existing D0027 installable-Agent evidence-verification seam
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, installable-Agent security/admission verifier wiring and focused tests during later implementation
 - Preserved owners: D0027 owns evidence types, route/pending/current state and CAS; D0039 owns private D0027 deployment realization and Q4/Q5/Q6 sequencing; QUALIFICATION owns proof methods; DEPLOYMENT owns concrete runtime/provider binding; D0020/D0027 `AgentDeliveryAuthority` remains sole route-current/effect owner

@@ -1,0 +1,96 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0040_r1_precurrent_readback_source_q1_correction",
+  "observedAtUtc": "2026-08-28T02:15:01Z",
+  "design": {
+    "id": "D0040",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "initialSourceEvidence": "docs/evidence/group-f-d0040-r1-source-q1-2026-08-28.json"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "testedCommit": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "tree": "9925dc3c66c5fa516a275b0e975e8aa336c74dd6",
+    "parent": "124cf9bd7c7fedc61fd6d50f1c10adc8dc867991",
+    "initialQualifiedCommit": "7cb3af495916aecb18359a0f0b732343f487669e",
+    "remotePredecessorMatchedBeforePublication": true,
+    "publishedNonForceFastForward": true,
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "correction": {
+    "trigger": "live deployed-attestor verification showed that runtime_probe and d0039_security_readback correctly remain CURRENT-bound and reject the legitimate UNREGISTERED/null-current predecessor with invalid_digest, so D0040 needed its own pre-CURRENT public-verifier readback rather than weakening D0039 identity semantics",
+    "method": "add read-only d0040_evidence_attestor_readback returning only actual routed DO/runtime source, Worker version, placement and public evidence-attestor identity without route-current reads, D0039 deployment-identity construction or D0027 mutation",
+    "preservedSemantics": "runtime_probe, d0039_security_readback and qualificationRouteVerifierDigest remain unchanged and CURRENT-bound",
+    "focusedRegression": "new pre-CURRENT D0040 readback succeeds with zero route-current reads while both preserved CURRENT-bound probes continue to fail invalid_digest on the same UNREGISTERED/null-current fixture"
+  },
+  "validation": {
+    "jobId": "job_hbk_b044010aae",
+    "profile": "portable",
+    "command": "npm run check",
+    "validationProfileAuthority": {
+      "source": "project_registry",
+      "projectRevision": 9,
+      "digest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98"
+    },
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=2 selected=D0040@r1 groups=8 gates=16",
+    "tests": {
+      "total": 591,
+      "passed": 591,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "currentOperatorProviderObservation": {
+    "providerTarget": "tdev-d0020-qualification-clean-a",
+    "intermediateDeployedSource": "7cb3af495916aecb18359a0f0b732343f487669e",
+    "publicAttestorKeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "publicAttestorJwk": {
+      "crv": "Ed25519",
+      "kty": "OKP",
+      "x": "A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE"
+    },
+    "secretBindingNames": [
+      "TDEV_AGENT_DELIVERY_AUTH_KEY",
+      "TDEV_D0020_QUALIFICATION_TOKEN"
+    ],
+    "durableObjectClass": "AgentDeliveryRuntimeDO",
+    "durableObjectNamespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "routeState": "UNREGISTERED",
+    "routePending": null,
+    "routeCurrentTuple": null,
+    "routeCurrentTupleDigest": null,
+    "routePredecessorDigest": "sha256:94e1e3aa717ae788a68337fb346aa6bd9bca7b992939b1f4409e84cda2e8ac81",
+    "twoReadsStable": true,
+    "observationJobId": "job_hbn_5dda4be03d"
+  },
+  "securityBoundaries": {
+    "dedicatedPrivateAttestorProvisioned": true,
+    "privateAttestorBytesModelVisible": false,
+    "privateAttestorBytesRepositoryVisible": false,
+    "genericSignerBrokerCreated": false,
+    "managementKeyReuse": false,
+    "releaseRootReuse": false,
+    "q4OperatorAnchorReuse": false,
+    "providerCredentialReuseAsAttestor": false
+  },
+  "proofBoundaries": {
+    "d0040SourceQ1": "PASS for exact tested source 25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "initialSourceQ1": "retained as historical exact-source evidence for 7cb3af495916aecb18359a0f0b732343f487669e",
+    "d0040ProviderRuntimeReadback": "not yet terminal for corrected source; intermediate public binding exists on 7cb3af495916aecb18359a0f0b732343f487669e and must be redeployed/read back on 25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "d0040ProducerQualification": "not promoted by source correction",
+    "d0039Q4": "independent and still requires bounded fresh operator-anchored execution",
+    "d0039Q6bPhaseUP": "not executed"
+  }
+}
