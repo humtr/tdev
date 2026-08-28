@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r12_route_provisioning_class1_source_verification",
+  "observedAtUtc": "2026-08-28T09:15:02Z",
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "statusAfterEvidence": "implementing",
+    "changeClass": 1,
+    "revisionIncremented": false,
+    "reason": "the accepted R12 contract already requires a separately initialized/migrated fresh qualification route; this source repair only makes the current v2 qualification RPC capable of executing that unchanged contract"
+  },
+  "repository": {
+    "name": "humtr/tdev",
+    "r12AcceptanceCommit": "df73ee345ed7d84a9621f6e6bdd61d586dfb1558",
+    "exactTestedSource": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "sourceCommitMessage": "fix: admit D0039 R12 fresh route provisioning",
+    "worktreeCleanBeforeAndAfterExactGate": true,
+    "publicationStateAtObservation": "clean local descendant of current development; intended for one non-force fast-forward together with this evidence descendant"
+  },
+  "implementationFalsifier": {
+    "summary": "The v2 qualification RPC had a circular fresh-route admission defect: initialize was treated as an ordinary CURRENT-bound mutation while migrate_installable_agent_route was classified as an R8/R9 route-bootstrap operation that requires an already-UNREGISTERED predecessor. The accepted product state machine instead requires ABSENT -> D0020 LEGACY_D0020_ONLY -> D0027 UNREGISTERED before route bootstrap.",
+    "historicalV1BypassRejected": true,
+    "rejectedReason": "reusing the historical direct v1 qualification path would weaken the current v2 admission boundary rather than repair it",
+    "productStateMachineChanged": false,
+    "d0020RouteOwnerChanged": false,
+    "d0027OwnerChanged": false,
+    "newCustodyOwnerCreated": false
+  },
+  "sourceDelta": {
+    "paths": [
+      "qualification/cloudflare-agent-delivery-runtime.mjs",
+      "qualification/installable-agent-qualification-r6.mjs",
+      "qualification/installable-agent-r12-route-provisioning.mjs",
+      "test/cloudflare-agent-delivery-qualification.test.mjs"
+    ],
+    "productSrcChanged": false,
+    "qualificationBoundaryOnly": true,
+    "newProvisioningProfile": "tdev.installable-agent-qualification-route-provisioning.v1",
+    "operations": ["initialize", "migrate_installable_agent_route"],
+    "initializePredecessor": "ABSENT with server-side null-to-snapshot CAS; an already initialized route is rejected and must be reconciled by readback",
+    "migrationPredecessor": "fresh authoritative LEGACY_D0020_ONLY/current-null readback bound by predecessor and canonical readback digests",
+    "runtimeFence": "exact current source/artifact/manifest/Worker/account/service/epoch/workers.dev/DO binding plus deployed D0040 attestor key",
+    "oldBootstrapTargetForProvisioning": "explicitly rejected",
+    "ambiguousEffectRule": "no blind retry; authoritative route readback must reconcile before any possible replay"
+  },
+  "verification": {
+    "exactSourcePortableGate": {
+      "jobId": "job_iew_8144f6ad2a",
+      "command": "npm run check",
+      "tests": 592,
+      "passed": 592,
+      "failed": 0,
+      "documentationAuthority": "F development frontier=1 selected=D0039@r12 groups=8 gates=16",
+      "worktreeCleanBeforeAndAfter": true
+    },
+    "focusedRegression": {
+      "result": "PASS",
+      "coverage": [
+        "R12 ABSENT initialization admits exactly the fresh effect and rejects an already initialized predecessor",
+        "R12 LEGACY_D0020_ONLY migration admits the exact predecessor and rejects stale UNREGISTERED substitution",
+        "R8/R9 route-bootstrap target cannot authorize R12 provisioning",
+        "existing R9 phase and no-blind-retry behavior remains passing"
+      ]
+    }
+  },
+  "artifact": {
+    "source": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "profile": "tdev.installable-agent-package.v1",
+    "target": {"platform":"android","arch":"arm64"},
+    "doubleBuildByteIdentical": true,
+    "doubleBuildJobId": "job_ife_a596104aa2",
+    "bytes": 116820,
+    "sha256": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "releaseManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d",
+    "artifactJsonSha256": "sha256:e3642980cfa607d4296b1ea7cbb9fd06d39eaf83b85728d4b14a3141bb1b0f86",
+    "releaseManifestFileSha256": "sha256:1a9c453b0400a6ecb21293f5b994c7c8f33840186185cdb5e3883e31cd6b1922",
+    "predecessorA11": {
+      "source": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+      "sha256": "sha256:1038db26d8ab2e1b1f4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+      "releaseManifestDigest": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307"
+    },
+    "sameAsA11": false,
+    "note": "The source repair is qualification-only, but the installable package release manifest binds the exact sourceRevision; therefore the maintained exact-S/A admission must use this new archive identity."
+  },
+  "proofInvalidation": {
+    "r11ProviderAdmission": "historical predecessor evidence only; the live Worker must be realigned to exact 466a454/A12 before R12 provisioning mutation",
+    "r11Q4": "historical A11-bound PASS only; it does not authenticate the new A12 archive identity and must be rerun with a fresh independent operator anchor",
+    "d0040": "verified owner boundary remains valid, but provider/runtime readback must freshly prove the same D0040 public identity in the new immutable Worker version",
+    "lostKeyRoute": "remains unusable predecessor evidence and is not mutated"
+  },
+  "revisionChurnBoundary": {
+    "newD0039Revision": false,
+    "automaticR13": false,
+    "class1Reason": "no accepted decision, owner, durable product state, custody lifecycle, migration owner or recovery contract changed",
+    "newDesignStillRequiredIf": [
+      "reusable or cross-route signer/custody service",
+      "management-key recovery or backup/restore lifecycle",
+      "management-key rotation subsystem",
+      "independent custody registry or authority",
+      "separately decidable migration or cutover"
+    ]
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "credentialOrSecretMutation": false,
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED"
+  },
+  "nextGate": "fast-forward exact source/evidence to development; realign the existing Worker/service to exact S12/A12 while preserving DO/secrets/D0040; rerun independent A12-bound Q4; only then provision the one fresh R12 route with protected management/release custody and two stable UNREGISTERED readbacks"
+}
