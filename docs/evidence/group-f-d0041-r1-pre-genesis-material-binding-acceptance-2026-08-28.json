@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0041_r1_pre_genesis_material_binding_acceptance",
+  "observedAtUtc": "2026-08-28T13:40:15Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "acceptanceBase": "effeb3c2b6182645e414cf8941ac5b85835e2c02",
+    "remoteMatchedBase": true,
+    "worktreeCleanAtDecision": true
+  },
+  "trigger": {
+    "d0039Revision": 12,
+    "routeAdmissionEvidence": "docs/evidence/group-f-d0039-r12-fresh-route-custody-admission-2026-08-28.json",
+    "fact": "R12 fresh route/custody admission is PASS, but current owners do not define enough concrete pre-genesis material identity to assemble an owner-valid concrete-security phase-U register request without guessing credentialProvisioningId and release-trust projection semantics."
+  },
+  "observedExistingSeams": {
+    "register": "D0027 register requires credentialProvisioningId, packageManifestDigest, packageTrustSubjectDigest, trustStateDigest, trustSubjects and, for D0039 concrete security, an exact RSA-3072 credential public verifier before it atomically allocates the next pending generations.",
+    "predecessor": "The authoritative predecessor view exposes every generation high-water needed to project the one next candidate from an UNREGISTERED route.",
+    "keystore": "TermuxAndroidKeyStoreCredential already derives a deterministic route/generation-bound alias, provisions RSA-3072 idempotently by exact alias readback, returns only the public verifier/credential reference, and supports exact-alias deletion.",
+    "q3": "Historical physical Q3 proved the Android/Termux/keystore path with credentialMutation=not_requested; it did not leave a current R12 credential.",
+    "releaseTrust": "D0039 already selects an offline route release root plus root-signed tdev.release-delegation.v1 delegated signers; the existing verifier enforces signer disposition and exact package subject authorization.",
+    "missing": "No production owner derives credentialProvisioningId or projects a verified release delegation into D0027 trustSubjects/packageTrustSubjectDigest/trustStateDigest. Historical tests/live probes used synthetic values and are not authority for the missing rule."
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "reason": "The missing stable identifier/digest/trust projection plus pre-dispatch orphan/reconciliation lifecycle is independently decidable security/identity meaning. Guessing it inside D0039 phase-U would violate SDD; extending D0039 again would also recreate the revision-churn boundary R12 explicitly stopped for independently reusable lifecycle semantics.",
+    "designId": "D0041",
+    "revision": 1,
+    "status": "accepted"
+  },
+  "decision": {
+    "scope": "pre-genesis material identity, projection, preparation and reconciliation only",
+    "credentialPreparationProfile": "tdev.agent-credential-provisioning.v1",
+    "credentialProvisioningId": "cp1.<64 lowercase hex>, where the suffix is typedDigest(profile, exact normalized preparation record) without the sha256: prefix",
+    "credentialAlias": "reuse the existing tdev Agent keystore alias record bound to agentId/routeGeneration/projected installationGeneration/projected credentialGeneration",
+    "credentialAuthority": "prepared AndroidKeyStore material is a non-authoritative candidate until D0027 commits the exact phase-U register transaction",
+    "trustSubjects": "map every root-verified normalized release-delegation signer keyId to its exact active/retired/revoked disposition",
+    "packageTrustSubjectDigest": "the exact verified release-statement signerKeyId; it must be active and authorized for the exact package release subject under the same delegation",
+    "trustStateDigest": "typedDigest(tdev.release-delegation.v1, normalized root-verified release delegation), exactly the SHA-256 identity of the same domain-NUL-canonical-record bytes authenticated by the release-root signature",
+    "reconciliation": "fresh authoritative route readback must still match the preparation predecessor/high-waters before dispatch; ambiguous register effects are reconciled by exact route/pending identity before any replay, remint or cleanup"
+  },
+  "preservedOwners": {
+    "d0027": "sole route/pending/current/generation/CAS authority",
+    "d0039": "provider/Q4/phase-U/phase-P orchestration and concrete deployment realization",
+    "d0040": "evidence-attestation authentication only",
+    "security": "abstract trust and key-separation policy",
+    "deployment": "physical AndroidKeyStore/release-material wiring",
+    "qualification": "proof methods and observations"
+  },
+  "rejectedAlternatives": {
+    "syntheticTrustDigest": "digest({trustSubjects}) is not the root-authenticated release-delegation identity and has no current owner authorization",
+    "syntheticReleaseKeyDigest": "historical digest({releaseKey: ...}) live-probe values are evidence artifacts, not product trust-state authority",
+    "randomProvisioningId": "would not encode stable predecessor/candidate correlation and complicates retry/orphan reconciliation",
+    "serverGeneratedCredential": "D0039 selected the supported Termux:API AndroidKeyStore RSA-3072 credential; a server-side substitute violates that realization",
+    "phaseUFirst": "register cannot safely precede candidate public-verifier preparation because concrete-security admission requires that verifier in the request"
+  },
+  "externalEffects": {
+    "credentialProvisioned": false,
+    "credentialDeleted": false,
+    "releaseDelegationCreated": false,
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "phaseU": false,
+    "phaseP": false
+  },
+  "next": "Route accepted D0041@r1 for source implementation and qualification. Keep D0039@r12 implementing but remove it from the runnable frontier until D0041 proves owner-valid pre-genesis material assembly; phase-U/P remain forbidden meanwhile."
+}

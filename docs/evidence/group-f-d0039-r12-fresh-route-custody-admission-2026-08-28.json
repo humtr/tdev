@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r12_fresh_route_custody_admission",
+  "observedAtUtc": "2026-08-28T11:19:29.715Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "authorityHead": "effeb3c2b6182645e414cf8941ac5b85835e2c02",
+    "sourceSha": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "artifactDigest": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "artifactManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d"
+  },
+  "route": {
+    "agentId": "d0039-r12-custody-20260828-3631c5a4",
+    "routeGeneration": 1,
+    "durableObjectId": "88bd5d3c42876252317034b6031382ce8617fb54afad4f8a1a313c12e230360c",
+    "state": "UNREGISTERED",
+    "currentTupleDigest": null,
+    "managementRequestSequenceHighWater": 0,
+    "authoritativeReadDigest": "sha256:f3fbbee496d73f0bd7903e5fbe8153e608e58fd8357b8f2caac2b1ad0dd69f32",
+    "stableReadCount": 2
+  },
+  "custody": {
+    "directoryMode": "0700",
+    "privateFileMode": "0600",
+    "management": {
+      "keyId": "sha256:918273fb803694ab3d46f5f0106804a70beb6d83645328eca299377ea9bd383c",
+      "publicJwk": {"crv":"Ed25519","kty":"OKP","x":"ZeYIj7jX_xXPmlBCaY6srIhSyWfhSk2jceXdpKNgi_4"},
+      "opaqueSignerDomain": "tdev.agent-management.v1",
+      "positiveSignatureVerification": true,
+      "wrongDomainRejected": true
+    },
+    "releaseRoot": {
+      "keyId": "sha256:de139404ab2e099c7c46c758bc728d168cb71838cf2ecf7258f6ec0282f34a7a",
+      "publicJwk": {"crv":"Ed25519","kty":"OKP","x":"MRjGRDJdI1mdtIOWRpciYNhIwIKbVifFk0ytZpxxLPE"}
+    },
+    "privateBytesPrinted": false,
+    "secretValuesPrinted": false
+  },
+  "provisioning": {
+    "initializationTransactionId": "r12-init-48634c4485c604833a3cac18",
+    "migrationTransactionId": "r12-migrate-0ca43d12e6e42c3662cf70ca",
+    "migrationProfile": "tdev.d0020-only-to-d0027-unregistered.v1",
+    "migrationRequestDigest": "sha256:348688f241482004ba61dfa809d51cedd002e607ce4afa1e05e84b49dc3ac5e2",
+    "migrationTargetDigest": "sha256:b7a98cb0b8463e5242fb0542f9ad6152fa77ef40aa3b1d76a718aca7c29fb246",
+    "legacyPredecessorDigest": "sha256:093e4c8bee15e5feea3000087a24d83fc8a2d57ff8e90e69bc84d66f619b1150",
+    "legacyAuthoritativeRereadDigest": "sha256:6b6c2e3480f48b86262179d0b65cabcfd0ba023c98c244c25406835867bc2b99",
+    "unregisteredPredecessorDigest": "sha256:7cedeac98c177b3e8352fb49a9bee9296512675b4066f130fdce6659dd774aaf"
+  },
+  "provider": {
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "deploymentId": "e21ef1a2-1dcb-4795-9686-9ada9079fa4c",
+    "versionId": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+    "versionNumber": 95,
+    "trafficPercent": 100,
+    "deploymentEpoch": "d0039-r12-q5p-20260828T092505Z",
+    "durableObjectClass": "AgentDeliveryRuntimeDO",
+    "durableObjectNamespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "d0040EvidenceAttestorKeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "secretBindingNames": ["TDEV_AGENT_DELIVERY_AUTH_KEY", "TDEV_D0020_QUALIFICATION_TOKEN"]
+  },
+  "predecessorPreservation": {
+    "agentId": "d0039-q6-bounded-final-20260824",
+    "routeGeneration": 1,
+    "state": "UNREGISTERED",
+    "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+    "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+    "managementRequestSequenceHighWater": 1,
+    "unchanged": true
+  },
+  "externalEffects": {
+    "routeInitializedOnce": true,
+    "migrationDispatchedOnce": true,
+    "migrationTransportAmbiguous": false,
+    "phaseU": false,
+    "phaseP": false
+  },
+  "sourceJobs": ["job_ism_89a0b9a0d7", "job_isn_dce37c7260", "job_iso_3319cf5dbb"],
+  "result": "PASS",
+  "next": "R12 fresh route/custody admission is closed. Do not execute phase-U until owner-valid pre-genesis credential and release-trust material binding is defined and qualified."
+}
