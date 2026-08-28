@@ -1,0 +1,146 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r11_fresh_q4_post_admission",
+  "observedAtUtc": "2026-08-28T06:30:11Z",
+  "design": {
+    "id": "D0039",
+    "revision": 11,
+    "statusAfterEvidence": "implementing"
+  },
+  "repository": {
+    "name": "humtr/tdev",
+    "authorityAtObservation": "development@dd53ce887c36764a8356f57fade76b66de5eda3b",
+    "exactSource": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "sourcePortableGate": "591/591 PASS",
+    "artifactSha256": "sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+    "artifactBytes": 116820,
+    "releaseManifestDigest": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307"
+  },
+  "q4": {
+    "terminal": true,
+    "operatorChannelKind": "separate_direct-user-authorized_tmcp_root_task",
+    "operatorTaskId": "task_hsm_efaa7110c0",
+    "operatorTaskPermissions": [
+      "shell.execute"
+    ],
+    "operatorEpoch": "a821ced7d0ebfc197c41d86d1419b7dd",
+    "channelKeyId": "sha256:c5dd4c1c1a6ccd39acf6c5d05ab21d0cc978ff943ed797c222f1f458dd089424",
+    "channelPublicJwk": {
+      "crv": "Ed25519",
+      "kty": "OKP",
+      "x": "sabvRPdddEmDwNckzpfS-At9nmd1q5HShx7YcaGZlpA"
+    },
+    "preAnchorBoundary": {
+      "candidateArtifactIdentitySupplied": false,
+      "candidatePathSupplied": false,
+      "sourceRevisionSupplied": false,
+      "providerReadbackSupplied": false,
+      "historicalQ4ContentsRead": false,
+      "stablePublicProtocolAndReleaseSubjectOnly": true,
+      "capsuleDigestGeneratedAfterOperatorTaskAdmission": true,
+      "sameUidOsIsolationClaimed": false
+    },
+    "phase1JobId": "job_hsm_e7b15c0972",
+    "handoffVerificationJobId": "job_hsr_e6a86d5a94",
+    "phase2JobId": "job_hsx_4cb64b8932",
+    "executorJobId": "job_ht5_ead0468e76",
+    "capsuleProfile": "tdev.agent-bootstrap-trust-capsule.v2",
+    "executionProfile": "tdev.agent-bootstrap-execution.v1",
+    "executorProfile": "tdev.agent-bootstrap-executor.v1",
+    "capsuleSha256": "94344c9c8a5cd23628adc73298ae7b1c54c8fb66633fe75cfc384c0a8bdc7ed2",
+    "runtimeSha256": "1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "verifierSha256": "86aea2e11fa62e7fdfaef5a1a21ee0449ed87f62a41bc7fcdb6c977ebcaa1470",
+    "releaseSignerKeyId": "sha256:a4be441146b26389f6d6e8e5702911c26225c8d5e391ce83bbd2953554efddcf",
+    "releaseStatementDigest": "sha256:78e2624d425ec1ef0a3e70b75ac23a365f53140f05e1610bdb627ba7be3910af",
+    "releaseSubject": {
+      "packageProfile": "tdev.installable-agent-package.v1",
+      "capabilityProfile": "tdev.agent.termux.pidfd.v1",
+      "serviceHostProfile": "tdev.agent.termux.runit.v1",
+      "targetPlatform": "android",
+      "targetArch": "arm64"
+    },
+    "allowedBuiltinModules": [
+      "node:crypto",
+      "node:fs",
+      "node:path",
+      "node:zlib"
+    ],
+    "networkAllowed": false,
+    "inheritedEnvironment": false,
+    "environmentVariableCount": 0,
+    "workingDirectoryProfile": "private-empty-v1",
+    "workingDirectoryEmpty": true,
+    "processCode": 0,
+    "processSignal": null,
+    "stdoutBytes": 0,
+    "stderrBytes": 0
+  },
+  "abandonedFreshOperatorAttempts": [
+    {
+      "attempt": "v1",
+      "terminalPromoted": false,
+      "reason": "pre-anchor verifier used a non-product release-manifest digest formula; the fresh anchor was preserved as predecessor evidence and not modified or promoted"
+    },
+    {
+      "attempt": "v2",
+      "terminalPromoted": false,
+      "reason": "pre-anchor delegation encoded the wrong stable service-host release subject; the fresh anchor was preserved as predecessor evidence and not modified or promoted"
+    }
+  ],
+  "postQ4Admission": {
+    "jobId": "job_htn_c7a858bcf0",
+    "result": "PASS",
+    "provider": {
+      "script": "tdev-d0020-qualification-clean-a",
+      "deploymentEpoch": "d0039-r11-q5p-20260828T044811Z",
+      "activeDeploymentId": "375aafd9-1d73-4d7b-8655-1a73a01e696c",
+      "activeVersionId": "451de12e-bf85-4540-b355-37723e96d823",
+      "activeVersionNumber": 94,
+      "activeTrafficPercentage": 100,
+      "sourceBinding": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+      "artifactBinding": "sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+      "manifestBinding": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307",
+      "secretBindingNames": [
+        "TDEV_AGENT_DELIVERY_AUTH_KEY",
+        "TDEV_D0020_QUALIFICATION_TOKEN"
+      ],
+      "durableObjectClass": "AgentDeliveryRuntimeDO",
+      "durableObjectNamespaceId": "0dad69baa7154d00949f88c8b8dbf94a"
+    },
+    "d0040": {
+      "configured": true,
+      "keyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+      "publicJwk": {
+        "crv": "Ed25519",
+        "kty": "OKP",
+        "x": "A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE"
+      },
+      "runtimeSourceSha": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+      "runtimeWorkerVersionId": "451de12e-bf85-4540-b355-37723e96d823",
+      "twoReadbacksMatched": true
+    },
+    "routeOwner": {
+      "agentId": "d0039-q6-bounded-final-20260824",
+      "routeGeneration": 1,
+      "state": "UNREGISTERED",
+      "pending": null,
+      "current": null,
+      "currentTupleDigest": null,
+      "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+      "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+      "managementRequestSequenceHighWater": 1,
+      "twoReadsStable": true
+    }
+  },
+  "proof": {
+    "freshA11BoundQ4": "PASS",
+    "postQ4ProviderRuntimeRouteAdmission": "PASS",
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED",
+    "d0027MutationPerformed": false,
+    "secretValuesExposed": false,
+    "operatorPrivateMaterialExposed": false,
+    "unrelatedResourcesPreserved": true
+  }
+}
