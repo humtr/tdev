@@ -16,7 +16,13 @@ import {
   normalizeAgentRouteBinding,
 } from './agent-delivery-authority.mjs';
 import { normalizeInstallableAgentDataPlaneTuple } from './installable-agent-admission.mjs';
-import { decodeBase64Url, encodeBase64Url } from './installable-agent-security.mjs';
+import {
+  createInstallableAgentEvidenceAttestationVerifier,
+  decodeBase64Url,
+  encodeBase64Url,
+  installableAgentEvidenceAttestorKeyId,
+  normalizeEd25519PublicJwk,
+} from './installable-agent-security.mjs';
 import { INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES } from './installable-agent-challenge.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
@@ -34,6 +40,7 @@ const MAX_BINDING_BYTES = 2048;
 const MAX_POSSESSION_ENVELOPE_BYTES = INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES;
 const MIN_AUTH_KEY_BYTES = 32;
 const MAX_AUTH_KEY_BYTES = 512;
+const MAX_EVIDENCE_ATTESTOR_PUBLIC_JWK_BYTES = 1024;
 const PROVIDER_JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder('utf-8', { fatal: true });
@@ -86,6 +93,35 @@ function optionalAuthKey(env) {
     fail('invalid_agent_delivery_deployment_config', 'TDEV_AGENT_DELIVERY_AUTH_KEY is too short');
   }
   return value;
+}
+
+function optionalEvidenceAttestor(env) {
+  const rawPublicJwk = env?.TDEV_D0040_EVIDENCE_ATTESTOR_PUBLIC_JWK;
+  const rawKeyId = env?.TDEV_D0040_EVIDENCE_ATTESTOR_KEY_ID;
+  const absentPublicJwk = rawPublicJwk === undefined || rawPublicJwk === null || rawPublicJwk === '';
+  const absentKeyId = rawKeyId === undefined || rawKeyId === null || rawKeyId === '';
+  if (absentPublicJwk && absentKeyId) return null;
+  if (absentPublicJwk || absentKeyId) {
+    fail('invalid_agent_delivery_deployment_config', 'D0040 evidence-attestor public JWK and key ID must be configured together');
+  }
+  const publicJwkText = requiredTextBinding(env, 'TDEV_D0040_EVIDENCE_ATTESTOR_PUBLIC_JWK', MAX_EVIDENCE_ATTESTOR_PUBLIC_JWK_BYTES);
+  let parsed;
+  try {
+    parsed = strictJsonParse(publicJwkText, { maxBytes: MAX_EVIDENCE_ATTESTOR_PUBLIC_JWK_BYTES });
+  } catch (cause) {
+    fail('invalid_agent_delivery_deployment_config', 'D0040 evidence-attestor public JWK must be strict bounded JSON', {}, { cause });
+  }
+  const publicJwk = normalizeEd25519PublicJwk(parsed, 'D0040 evidence-attestor public JWK');
+  if (canonicalJson(publicJwk) !== publicJwkText) {
+    fail('invalid_agent_delivery_deployment_config', 'D0040 evidence-attestor public JWK binding must be canonical JSON');
+  }
+  const keyId = installableAgentEvidenceAttestorKeyId(publicJwk);
+  const configuredKeyId = requiredTextBinding(env, 'TDEV_D0040_EVIDENCE_ATTESTOR_KEY_ID', 80);
+  assertDigest(configuredKeyId, 'TDEV_D0040_EVIDENCE_ATTESTOR_KEY_ID');
+  if (configuredKeyId !== keyId) {
+    fail('invalid_agent_delivery_deployment_config', 'D0040 evidence-attestor key ID does not match its public JWK');
+  }
+  return Object.freeze({ keyId, publicJwk });
 }
 
 function websocketProtocols(request) {
@@ -615,6 +651,7 @@ export class AgentDeliveryRuntimeDOHost {
     this.env = env;
     this.config = readAgentDeliveryRuntimeConfig(env);
     this.authKey = optionalAuthKey(env);
+    this.evidenceAttestor = optionalEvidenceAttestor(env);
     this.now = options.now ?? (() => Date.now());
     if (typeof this.now !== 'function') fail('invalid_agent_delivery_provider', 'Provider clock must be callable');
     const providerJurisdiction = ctx.id.jurisdiction ?? 'global';
@@ -628,7 +665,14 @@ export class AgentDeliveryRuntimeDOHost {
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
     this.webSocketPairFactory = options.webSocketPairFactory ?? (() => new WebSocketPair());
     this.verifyManagementProof = options.verifyManagementProof ?? null;
-    this.verifyInstallableAgentEvidence = options.verifyInstallableAgentEvidence ?? null;
+    this.verifyInstallableAgentEvidence = options.verifyInstallableAgentEvidence ?? (
+      this.evidenceAttestor === null
+        ? null
+        : createInstallableAgentEvidenceAttestationVerifier({
+            publicJwk: this.evidenceAttestor.publicJwk,
+            keyId: this.evidenceAttestor.keyId,
+          })
+    );
     ctx.blockConcurrencyWhile(async () => {
       if (typeof this.store.initialize === 'function') this.store.initialize();
       const legacyGroups = new Map();

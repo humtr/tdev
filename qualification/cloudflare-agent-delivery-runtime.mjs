@@ -484,6 +484,24 @@ export class D0020QualificationAgentDeliveryDOHost {
     });
   }
 
+  #evidenceAttestationVerifierReadback() {
+    const attestor = this.host.evidenceAttestor ?? null;
+    if (attestor === null) {
+      return Object.freeze({
+        profile: 'tdev.installable-agent-evidence-attestor-runtime.v1',
+        configured: false,
+        keyId: null,
+        publicJwk: null,
+      });
+    }
+    return Object.freeze({
+      profile: 'tdev.installable-agent-evidence-attestor-runtime.v1',
+      configured: true,
+      keyId: attestor.keyId,
+      publicJwk: publicJsonClone(attestor.publicJwk),
+    });
+  }
+
   #deploymentIdentity(routeBinding, routeCurrent = this.#readRouteCurrent(routeBinding)) {
     const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
     const identity = createQualificationDeploymentIdentity({ runtimeFacts: runtime, routeBinding });
@@ -522,7 +540,12 @@ export class D0020QualificationAgentDeliveryDOHost {
       if (operation === 'runtime_probe') {
         this.host.readRoute({ routeBinding });
         const observed = this.#deploymentIdentity(routeBinding);
-        result = { ...observed.runtime, deploymentIdentity: observed.identity, deploymentIdentityDigest: observed.digest };
+        result = {
+          ...observed.runtime,
+          evidenceAttestationVerifier: this.#evidenceAttestationVerifierReadback(),
+          deploymentIdentity: observed.identity,
+          deploymentIdentityDigest: observed.digest,
+        };
       } else if (operation === 'd0039_workers_crypto_probe') {
         this.host.readRoute({ routeBinding });
         const observed = this.#deploymentIdentity(routeBinding);
@@ -538,6 +561,7 @@ export class D0020QualificationAgentDeliveryDOHost {
           managementKeyId: security.managementKeyId,
           releaseRootKeyId: security.releaseRootKeyId,
           currentCredentialKeyId: security.currentCredentialKeyId,
+          evidenceAttestationVerifier: this.#evidenceAttestationVerifierReadback(),
           legacyHmacPresent: typeof this.env?.TDEV_AGENT_DELIVERY_AUTH_KEY === 'string',
           secretValues: 'excluded',
         };

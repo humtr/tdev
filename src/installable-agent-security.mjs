@@ -35,6 +35,9 @@ export const INSTALLABLE_AGENT_MANAGEMENT_KEY_DOMAIN = 'tdev.agent-management-pu
 export const INSTALLABLE_AGENT_CREDENTIAL_KEY_DOMAIN = 'tdev.agent-credential-public-key.v1';
 export const INSTALLABLE_AGENT_RELEASE_ROOT_KEY_DOMAIN = 'tdev.release-root-public-key.v1';
 export const INSTALLABLE_AGENT_RELEASE_SIGNER_KEY_DOMAIN = 'tdev.release-signer-public-key.v1';
+export const INSTALLABLE_AGENT_EVIDENCE_ATTESTATION_ENVELOPE_PROFILE = 'tdev.installable-agent-evidence-envelope.v2';
+export const INSTALLABLE_AGENT_EVIDENCE_ATTESTOR_KEY_DOMAIN = 'tdev.installable-agent-evidence-attestor-public-key.v1';
+export const INSTALLABLE_AGENT_EVIDENCE_ATTESTATION_SIGNATURE_DOMAIN = 'tdev.installable-agent-evidence-attestation.v1';
 export const INSTALLABLE_AGENT_CONNECT_POSSESSION_TTL_MS = 120000;
 export const INSTALLABLE_AGENT_CONNECT_POSSESSION_NONCE_BYTES = 32;
 export const INSTALLABLE_AGENT_RSA_SIGNATURE_BYTES = 384;
@@ -149,6 +152,10 @@ export function installableAgentReleaseSignerKeyId(publicJwk) {
   return typedDigest(INSTALLABLE_AGENT_RELEASE_SIGNER_KEY_DOMAIN, normalizeEd25519PublicJwk(publicJwk, 'release-signer public JWK'));
 }
 
+export function installableAgentEvidenceAttestorKeyId(publicJwk) {
+  return typedDigest(INSTALLABLE_AGENT_EVIDENCE_ATTESTOR_KEY_DOMAIN, normalizeEd25519PublicJwk(publicJwk, 'evidence-attestor public JWK'));
+}
+
 export function normalizeInstallableAgentRouteSecurity(input) {
   assertRecordShape(input, ['profile', 'managementPublicKey', 'releaseRootPublicKey'], [], 'D0039 route security');
   if (input.profile !== INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE) fail('invalid_route_security', 'D0039 route security profile is unsupported');
@@ -190,6 +197,57 @@ export async function verifyEd25519SignedRecord({ domain, record, signature, pub
   const valid = await subtleCrypto().verify({ name: 'Ed25519' }, key, signatureBytes, signedRecordBytes(domain, record));
   if (!valid) fail('signature_verification_failed', 'Ed25519 signature verification failed');
   return true;
+}
+
+export function normalizeInstallableAgentEvidenceAttestationEnvelope(input, expectedContext, attestorPublicJwk) {
+  assertRecordShape(input, ['profile', 'keyId', 'context', 'signature'], [], 'installable-Agent evidence attestation envelope');
+  if (input.profile !== INSTALLABLE_AGENT_EVIDENCE_ATTESTATION_ENVELOPE_PROFILE) {
+    fail('invalid_installable_agent_evidence_attestation', 'Installable-Agent evidence attestation profile is unsupported');
+  }
+  const publicJwk = normalizeEd25519PublicJwk(attestorPublicJwk, 'evidence-attestor public JWK');
+  const keyId = installableAgentEvidenceAttestorKeyId(publicJwk);
+  if (input.keyId !== keyId || canonicalJson(input.context) !== canonicalJson(expectedContext)) {
+    fail('installable_agent_evidence_attestation_mismatch', 'Evidence attestation key/context does not match the receiver-constructed D0027 context');
+  }
+  const signature = encodeBase64Url(decodeBase64Url(input.signature, 'evidence attestation signature'));
+  if (decodeBase64Url(signature).byteLength !== INSTALLABLE_AGENT_ED25519_SIGNATURE_BYTES) {
+    fail('invalid_ed25519_signature', 'Evidence attestation signature is not 64 bytes');
+  }
+  return Object.freeze({
+    profile: INSTALLABLE_AGENT_EVIDENCE_ATTESTATION_ENVELOPE_PROFILE,
+    keyId,
+    context: canonicalClone(input.context),
+    signature,
+  });
+}
+
+export async function verifyInstallableAgentEvidenceAttestationEnvelope({ envelope, context, attestorPublicJwk }) {
+  const normalized = normalizeInstallableAgentEvidenceAttestationEnvelope(envelope, context, attestorPublicJwk);
+  await verifyEd25519SignedRecord({
+    domain: INSTALLABLE_AGENT_EVIDENCE_ATTESTATION_SIGNATURE_DOMAIN,
+    record: normalized.context,
+    signature: normalized.signature,
+    publicJwk: attestorPublicJwk,
+  });
+  return Object.freeze({ keyId: normalized.keyId, context: canonicalClone(normalized.context) });
+}
+
+export function createInstallableAgentEvidenceAttestationVerifier({ publicJwk, keyId = undefined }) {
+  const normalizedPublicJwk = normalizeEd25519PublicJwk(publicJwk, 'evidence-attestor public JWK');
+  const derivedKeyId = installableAgentEvidenceAttestorKeyId(normalizedPublicJwk);
+  if (keyId !== undefined && keyId !== derivedKeyId) {
+    fail('installable_agent_evidence_attestation_mismatch', 'Configured evidence-attestor key ID does not match its public key');
+  }
+  const verifier = async (proof, context) => {
+    await verifyInstallableAgentEvidenceAttestationEnvelope({
+      envelope: proof,
+      context,
+      attestorPublicJwk: normalizedPublicJwk,
+    });
+    return true;
+  };
+  Object.defineProperty(verifier, 'evidenceAttestorKeyId', { value: derivedKeyId, enumerable: true });
+  return Object.freeze(verifier);
 }
 
 export async function verifyRsa3072SignedRecord({ domain, record, signature, publicJwk }) {
