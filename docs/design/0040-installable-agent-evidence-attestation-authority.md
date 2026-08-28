@@ -1,12 +1,13 @@
 # Design 0040 — Installable Agent Evidence Attestation Authority
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-28
 - Acceptance base: `development@fffd5c83ce4e8f2bb92cf9db7dc5526715121a75`
 - Trigger: D0039@r10 pre-live admission established the exact R10 artifact but found no already-authorized concrete producer/verifier for the existing `tdev.installable-agent-evidence.v1` proof seam; R10 requires a separate SDD decision before creating or selecting signer custody/trust authority
 - Acceptance evidence: `docs/evidence/group-f-d0040-r1-evidence-attestation-authority-acceptance-2026-08-28.json`
+- Source evidence: `docs/evidence/group-f-d0040-r1-source-q1-2026-08-28.json` — exact tested source `development@7cb3af495916aecb18359a0f0b732343f487669e`; source/Q1 only
 - Scope: the cryptographic authentication identity, proof envelope, least-authority signer/observer boundary, verifier configuration and deployment binding used by the existing D0027 installable-Agent evidence-verification seam
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, installable-Agent security/admission verifier wiring and focused tests during later implementation
 - Preserved owners: D0027 owns evidence types, route/pending/current state and CAS; D0039 owns private D0027 deployment realization and Q4/Q5/Q6 sequencing; QUALIFICATION owns proof methods; DEPLOYMENT owns concrete runtime/provider binding; D0020/D0027 `AgentDeliveryAuthority` remains sole route-current/effect owner

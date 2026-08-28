@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0040_r1_source_q1",
+  "observedAtUtc": "2026-08-28T01:39:14Z",
+  "design": {
+    "id": "D0040",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "acceptanceCommit": "d8e8a3c57530dbae62e2824bf14b905722b0e874",
+    "acceptanceEvidence": "docs/evidence/group-f-d0040-r1-evidence-attestation-authority-acceptance-2026-08-28.json"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "testedCommit": "7cb3af495916aecb18359a0f0b732343f487669e",
+    "tree": "dddf8678e47212cb87e4b90c245b8d01ea5550a1",
+    "parent": "d8e8a3c57530dbae62e2824bf14b905722b0e874",
+    "remoteMatchedBeforePublication": true,
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "securityPrimitive": "dedicated D0040 Ed25519 attestor key-ID/signature domains plus strict evidence-envelope.v2 normalization and verification over the exact receiver-constructed tdev.installable-agent-evidence.v1 context",
+    "runtimeBinding": "production AgentDeliveryRuntimeDOHost accepts only canonical public attestor JWK plus matching derived key ID as deployment configuration and constructs the injected D0027 evidence verifier; absent configuration preserves fail-closed no-verifier behavior",
+    "qualificationReadback": "runtime_probe and d0039_security_readback expose only public D0040 verifier configured/keyId/publicJwk readback without changing the legacy D0039 deployment identity",
+    "durableState": "no D0040 field, key, generation or trust record was added to D0027 AgentDeliveryAuthority route/pending/current state",
+    "tests": "v2 positive verification plus historical-v1, wrong-key, wrong-domain, context/type substitution, malformed proof, missing/partial/mismatched runtime config, and D0027 zero-effect denial coverage"
+  },
+  "validation": {
+    "jobId": "job_h7s_eecd1cc6dc",
+    "profile": "portable",
+    "command": "npm run check",
+    "planDigest": "9f1a7f1ede9e209700ca021ea566623987c4b5919e36b63037d9b5c6687d7355",
+    "validationProfileAuthority": {
+      "source": "project_registry",
+      "projectRevision": 9,
+      "digest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98"
+    },
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=2 selected=D0040@r1 groups=8 gates=16",
+    "tests": {
+      "total": 590,
+      "passed": 590,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "securityBoundaries": {
+    "privateAttestorGeneratedOrRead": false,
+    "genericSignerBrokerCreated": false,
+    "managementKeyReuse": false,
+    "releaseRootReuse": false,
+    "delegatedReleaseSignerReuse": false,
+    "agentCredentialReuse": false,
+    "q4OperatorAnchorReuse": false,
+    "providerCredentialReuse": false,
+    "historicalV1AcceptedAsV2": false
+  },
+  "externalEffects": {
+    "signerProvisioned": false,
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "productMutation": false,
+    "runtimeCutover": false,
+    "q4Executed": false,
+    "q6b": false,
+    "phaseU": false,
+    "phaseP": false,
+    "secretReadOrChange": false,
+    "protectedOperatorSurfaceRead": false
+  },
+  "proofBoundaries": {
+    "d0040SourceQ1": "PASS for exact tested source 7cb3af495916aecb18359a0f0b732343f487669e",
+    "d0040DeployedCustodyProducer": "unverified; no real private attestor capability provisioned or bound",
+    "d0040ProviderRuntimeReadback": "unverified for a real deployed attestor identity",
+    "d0039Q4": "independent and still requires bounded fresh operator-anchored execution",
+    "d0039ProviderAdmission": "not promoted by D0040 source proof",
+    "d0039Q6bPhaseUP": "not executed"
+  }
+}
