@@ -1,0 +1,89 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r12_management_custody_falsifier_acceptance",
+  "observedAtUtc": "2026-08-28T06:56:00Z",
+  "repository": {
+    "name": "humtr/tdev",
+    "acceptanceBase": "development@8b93dcb1e224ece12338a6d05bf2cdfb7b56e3cb"
+  },
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "predecessorRevision": 11,
+    "status": "implementing",
+    "classification": "same_design_new_revision"
+  },
+  "falsifier": {
+    "route": {
+      "agentId": "d0039-q6-bounded-final-20260824",
+      "routeGeneration": 1,
+      "durableObjectId": "72068b8cdbafff08dafac6fbcdbd6a242ae2125abea357bab0d11ac9794295de",
+      "currentState": "UNREGISTERED",
+      "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+      "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+      "managementRequestSequenceHighWater": 1
+    },
+    "creatingTaskId": "task_czd_f2279eca43",
+    "creatingJobId": "job_djf_031cc607b9",
+    "creatingSource": "1e132a24c213463564990180567dac4bd19fb6eb",
+    "creatingJobFacts": {
+      "managementKeyGeneration": "process_local_generateKeyPairSync_ed25519",
+      "releaseRootKeyGeneration": "process_local_generateKeyPairSync_ed25519",
+      "publicJwksPersistedIntoRoute": true,
+      "privateKeyDispositionReported": "memory-only-not-emitted",
+      "processTerminal": true
+    },
+    "currentCustodySearch": {
+      "matchingManagementPrivateKeyFound": false,
+      "protectedHistoricalQ4ContentsRead": false,
+      "plainLocalStateConfigPrivateKeyScan": "no matching d390 key; only unrelated D0040 attestor Ed25519 private identity observed",
+      "r9LocalState": "journal/artifact/provider-admission material only; no matching private signer",
+      "termuxKeystore": "installed but its supported RSA/EC key types cannot contain the required Ed25519 management identity",
+      "repositoryEvidence": "public route key IDs only; no durable private custody locator",
+      "historicalTaskProvenance": "creating Job positively proves private keys were memory-only and not emitted"
+    },
+    "conclusion": "retained qualification route is cryptographically unusable for authenticated phase-U; lost private key cannot be recovered or substituted"
+  },
+  "acceptedCorrection": {
+    "preserveLostKeyRoute": true,
+    "inPlaceKeyRecoveryOrRotation": false,
+    "replacementLane": "fresh isolated non-production qualification route",
+    "managementCustody": "deployment/operator-owned durable protected Ed25519 private material from route inception",
+    "releaseRootCustody": "deployment/operator-owned durable protected Ed25519 private material retaining offline/delegation role",
+    "privateDirectoryMode": "0700",
+    "privateFileMode": "0600",
+    "managementSigningSurface": "opaque domain-limited tdev.agent-management.v1 signer only",
+    "genericSignerBroker": false,
+    "revisionBoundary": {
+      "sameOwnerReason": "management/release material provisioning is already deployment-owned D0027 realization; this correction only makes the retained capability survive the bounded qualification-route lifetime",
+      "oneBoundedReplacementRoute": true,
+      "independentCustodyLifecycleIntroduced": false,
+      "implementationDefectWithoutContractChange": "Class-1 repair where SDD permits; do not increment D0039 automatically",
+      "newDesignTriggers": [
+        "reusable or cross-route signer/custody service",
+        "management-key recovery or backup/restore lifecycle",
+        "management-key rotation subsystem",
+        "independent custody registry or authority",
+        "separately decidable migration or cutover"
+      ],
+      "automaticR13ForThoseTriggers": false
+    },
+    "d0027RouteOwnerChanged": false,
+    "d0040Changed": false,
+    "sourceArtifactChanged": false,
+    "q4Invalidated": false,
+    "q4Reason": "R11 terminal Q4 binds A11 capsule/runtime/verifier/archive identity and does not depend on the live D0027 qualification-route identity",
+    "routeAdmissionInvalidated": true,
+    "nextGate": "provision replacement route and protected custody, then fresh S11/A11/current-Worker/D0040/new-route admission before phase-U"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "productMutation": false,
+    "credentialOrSecretMutation": false,
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED"
+  }
+}
