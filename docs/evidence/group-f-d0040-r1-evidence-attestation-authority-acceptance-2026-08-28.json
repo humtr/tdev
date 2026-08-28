@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0040_r1_evidence_attestation_authority_acceptance",
+  "observedAtUtc": "2026-08-28T01:10:30Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "acceptanceBase": "fffd5c83ce4e8f2bb92cf9db7dc5526715121a75",
+    "remoteMatchedBase": true,
+    "worktreeCleanAtDecision": true
+  },
+  "trigger": {
+    "d0039Revision": 10,
+    "preliveEvidence": "docs/evidence/group-f-d0039-r10-prelive-artifact-q4-proof-admission-2026-08-28.json",
+    "fact": "D0039 R10 has a generic fail-closed evidence verifier seam but no current owner-authorized concrete evidence proof producer/verifier binding"
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "reason": "selecting a new signer-custody/trust identity is independently decidable from D0039 private deployment realization and materially changes the owner model; D0039 R10 explicitly requires return through SDD for this boundary",
+    "designId": "D0040",
+    "revision": 1,
+    "status": "accepted"
+  },
+  "observedExistingSeam": {
+    "domain": "tdev.installable-agent-evidence.v1",
+    "receiver": "AgentDeliveryAuthority",
+    "verification": "injected async verifier runs before CAS; missing/rejected proof has zero durable effect",
+    "currentTypes": [
+      "bootstrap_trust",
+      "package_verified",
+      "verifier_ready",
+      "local_ready",
+      "local_service_ready",
+      "positive_quiescence",
+      "service_stopped",
+      "clone_safe_activation"
+    ]
+  },
+  "decision": {
+    "identity": "dedicated Ed25519 installable-Agent evidence-attestation identity",
+    "keyIdDomain": "tdev.installable-agent-evidence-attestor-public-key.v1",
+    "signatureDomain": "tdev.installable-agent-evidence-attestation.v1",
+    "envelopeProfile": "tdev.installable-agent-evidence-envelope.v2",
+    "envelopeFields": ["profile", "keyId", "context", "signature"],
+    "publicBinding": "deployment/runtime verifier configuration and provider admission identity, not D0027 route-current durable state",
+    "privateCustody": "dedicated secret-preserving deployment/operator capability; no private bytes in Worker/DO/Agent/repository/evidence/Task/model-visible state",
+    "producerConstraint": "not a generic signing oracle; caller-provided evidenceDigest alone cannot obtain signature; responsible evidence-specific authoritative observation is required before signing"
+  },
+  "rejectedReuse": {
+    "managementKey": "would collapse state-mutation and evidence-authentication independence",
+    "releaseRoot": "R10 restores offline delegation role and forbids mandatory live evidence signing",
+    "delegatedReleaseSigner": "owns release statements, not runtime/readiness/quiescence truth",
+    "agentCredential": "candidate-controlled credential cannot independently authenticate all candidate readiness",
+    "q4OperatorAnchor": "separate pre-transport bootstrap trust role; ongoing signing would change lifecycle/exposure",
+    "providerIamQualificationCredential": "transport/provider authorization is not evidence authenticity",
+    "unsignedDigest": "integrity identity is not authentication"
+  },
+  "preservedOwners": {
+    "d0027": "evidence types, semantics, route/pending/current state and CAS",
+    "d0039": "private deployment realization, Q4/Q5/Q6 and phase-U/P admission sequencing",
+    "qualification": "proof methods and evidence-specific observation qualification",
+    "deployment": "runtime/provider configuration, public-key binding and secret-preserving real producer wiring",
+    "routeCurrent": "D0020/D0027 AgentDeliveryAuthority remains sole route-current/effect owner"
+  },
+  "externalEffects": {
+    "signerProvisioned": false,
+    "secretReadOrGenerated": false,
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "productMutation": false,
+    "q4Executed": false,
+    "phaseU": false,
+    "phaseP": false
+  },
+  "next": "route D0040@r1 for source implementation and qualification; D0039@r10 remains implementing and separately awaits fresh Q4 plus later D0040 deployed binding"
+}
