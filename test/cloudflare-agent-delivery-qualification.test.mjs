@@ -248,6 +248,81 @@ test('qualification DO host derives route binding from the actual Durable Object
   assert.equal(reads.length, 1);
 });
 
+test('D0040 public attestor readback remains available pre-CURRENT without weakening CURRENT-bound probes', async () => {
+  const publicJwk = { crv: 'Ed25519', kty: 'OKP', x: 'A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE' };
+  const keyId = 'sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1';
+  let routeReads = 0;
+  let currentRouteReads = 0;
+  const host = {
+    durableObjectId: 'do-agent-one',
+    evidenceAttestor: { keyId, publicJwk },
+    config: {
+      placement: {
+        deployment: 'qualification',
+        environment: 'nonproduction',
+        workerScript: 'tdev-d0020-qualification',
+        className: 'AgentDeliveryRuntimeDO',
+        namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+        jurisdiction: 'global',
+      },
+    },
+    readRoute() { currentRouteReads += 1; return { revision: 1 }; },
+    readInstallableAgent() {
+      routeReads += 1;
+      return routeRead({ currentTupleDigest: null, state: 'UNREGISTERED' });
+    },
+  };
+  const ctx = { abort() { throw new Error('unexpected abort'); } };
+  const qualification = new D0020QualificationAgentDeliveryDOHost(ctx, baseEnv(), { host });
+
+  const readback = await qualification.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'd0040_evidence_attestor_readback',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+  });
+  assert.equal(readback.ok, true);
+  assert.deepEqual(readback.result, {
+    sourceSha: baseEnv().TDEV_SOURCE_SHA,
+    workerVersionId: baseEnv().TDEV_WORKER_VERSION.id,
+    deployment: 'qualification',
+    environment: 'nonproduction',
+    workerScript: 'tdev-d0020-qualification',
+    namespace: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    durableObjectId: 'do-agent-one',
+    evidenceAttestationVerifier: {
+      profile: 'tdev.installable-agent-evidence-attestor-runtime.v1',
+      configured: true,
+      keyId,
+      publicJwk,
+    },
+  });
+  assert.equal(routeReads, 0);
+  assert.equal(currentRouteReads, 0);
+
+  const runtimeProbe = await qualification.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'runtime_probe',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+  });
+  assert.equal(runtimeProbe.ok, false);
+  assert.equal(runtimeProbe.error.code, 'invalid_digest');
+
+  const securityReadback = await qualification.qualificationInvoke({
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'd0039_security_readback',
+    agentId: 'agent-one',
+    routeGeneration: 1,
+  });
+  assert.equal(securityReadback.ok, false);
+  assert.equal(securityReadback.error.code, 'invalid_digest');
+  assert.equal(routeReads, 2);
+  assert.equal(currentRouteReads, 1);
+});
+
 test('qualification DO host exposes bounded Revision-2 terminal-delivery transitions without caller-chosen route authority', async () => {
   const calls = [];
   const host = {

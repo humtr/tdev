@@ -223,6 +223,7 @@ function rpcShape(input) {
   if (!input || typeof input.operation !== 'string') throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is invalid');
   const shapes = {
     runtime_probe: [[], []],
+    d0040_evidence_attestor_readback: [[], []],
     d0039_workers_crypto_probe: [['vectors'], []],
     d0039_security_readback: [[], []],
     read_installable_agent: [[], []],
@@ -537,7 +538,21 @@ export class D0020QualificationAgentDeliveryDOHost {
         admitted = assertExpectedDeploymentIdentity({ expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest, runtimeFacts: runtime, routeBinding });
       }
       let result;
-      if (operation === 'runtime_probe') {
+      if (operation === 'd0040_evidence_attestor_readback') {
+        const placement = this.host.config.placement;
+        result = {
+          sourceSha: this.sourceSha,
+          workerVersionId: this.workerVersionId,
+          deployment: placement.deployment,
+          environment: placement.environment,
+          workerScript: placement.workerScript,
+          namespace: placement.namespace,
+          className: placement.className,
+          jurisdiction: placement.jurisdiction,
+          durableObjectId: this.host.durableObjectId,
+          evidenceAttestationVerifier: this.#evidenceAttestationVerifierReadback(),
+        };
+      } else if (operation === 'runtime_probe') {
         this.host.readRoute({ routeBinding });
         const observed = this.#deploymentIdentity(routeBinding);
         result = {

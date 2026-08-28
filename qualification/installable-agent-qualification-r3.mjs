@@ -20,6 +20,7 @@ export const QUALIFICATION_ROUTE_VERIFIER_PROFILE = 'tdev.installable-agent-qual
 
 export const READ_ONLY_QUALIFICATION_OPERATIONS = Object.freeze(new Set([
   'runtime_probe',
+  'd0040_evidence_attestor_readback',
   'd0039_workers_crypto_probe',
   'd0039_security_readback',
   'read_installable_agent',
