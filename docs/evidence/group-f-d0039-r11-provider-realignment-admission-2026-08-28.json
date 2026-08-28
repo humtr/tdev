@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r11_provider_realign_admission",
+  "observedAtUtc": "2026-08-28T04:49:19Z",
+  "design": {
+    "id": "D0039",
+    "revision": 11,
+    "statusAfterEvidence": "implementing"
+  },
+  "repository": {
+    "name": "humtr/tdev",
+    "authorityAtAdmission": "development@2e1e652be0353dd6c0ff2df570a16c5fb38c6b3f",
+    "exactSource": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "sourcePortableGate": "591/591 PASS",
+    "artifactSha256": "sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+    "artifactBytes": 116820,
+    "releaseManifestDigest": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307",
+    "artifactDoubleBuildByteIdentical": true,
+    "acceptanceEvidence": "docs/evidence/group-f-d0039-r11-cumulative-source-provider-realignment-acceptance-2026-08-28.json"
+  },
+  "provider": {
+    "service": "cloudflare-workers",
+    "script": "tdev-d0020-qualification-clean-a",
+    "origin": "https://tdev-d0020-qualification-clean-a.humtr.workers.dev",
+    "deploymentEpoch": "d0039-r11-q5p-20260828T044811Z",
+    "activeDeploymentId": "375aafd9-1d73-4d7b-8655-1a73a01e696c",
+    "activeVersionId": "451de12e-bf85-4540-b355-37723e96d823",
+    "activeVersionNumber": 94,
+    "activeTrafficPercentage": 100,
+    "moduleCount": 15,
+    "artifactBinding": "sha256:1038db26d8ab2e1b1f1b4f1e2d0f237965f55915a87f44f591a832e8e0665956",
+    "artifactManifestBinding": "sha256:39d69f90cf05d85b9560f0dde5fe92b10c83309b65d944c9122a814ee23ea307",
+    "sourceBinding": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "secretBindingNames": [
+      "TDEV_AGENT_DELIVERY_AUTH_KEY",
+      "TDEV_D0020_QUALIFICATION_TOKEN"
+    ],
+    "durableObject": {
+      "className": "AgentDeliveryRuntimeDO",
+      "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+      "storage": "sqlite"
+    },
+    "providerMutationCount": 1,
+    "providerWriteAmbiguous": false,
+    "blindRetryPerformed": false
+  },
+  "writeAndReconciliation": {
+    "singlePutJobId": "job_hl3_d07eedfd17",
+    "singlePutEffectApplied": true,
+    "singlePutCommandExit": 1,
+    "singlePutPostWriteAssertion": "active version/readback join failed during immediate post-upload observation",
+    "secondPutPerformed": false,
+    "reconciliationJobId": "job_hl4_cdfbcb3b70",
+    "reconciliationResult": "PASS",
+    "reconciliationMeaning": "authoritative provider settings/deployment/version plus two runtime D0040 reads converged on the same new immutable version; the initial command failure was a read-after-write timing mismatch, not an upload failure"
+  },
+  "d0040": {
+    "configured": true,
+    "keyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1",
+    "publicJwk": {
+      "crv": "Ed25519",
+      "kty": "OKP",
+      "x": "A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE"
+    },
+    "runtimeSourceSha": "25b6afcbcaa6e3b4d2ff8cf1502cbd23dc5f6367",
+    "runtimeWorkerVersionId": "451de12e-bf85-4540-b355-37723e96d823",
+    "twoReadbacksMatched": true
+  },
+  "routeOwner": {
+    "agentId": "d0039-q6-bounded-final-20260824",
+    "routeGeneration": 1,
+    "state": "UNREGISTERED",
+    "pending": null,
+    "current": null,
+    "currentTupleDigest": null,
+    "managementKeyId": "sha256:d390678e13d13dc4c206c89017b15bb0a68c78de1d7b6d94181eed5f0035e43f",
+    "releaseRootKeyId": "sha256:9c1381cd4630c64847b63bb4120d14e8703cb86e58f9c16bc7ce9ff22759df50",
+    "managementRequestSequenceHighWater": 1,
+    "twoReadsStableAfterProviderMutation": true,
+    "routeStateMutationPerformed": false
+  },
+  "proof": {
+    "sourceModuleEquivalenceTo25b6": "PASS",
+    "exactSourceArtifactJoin": "PASS",
+    "providerSettingsExactIdentity": "PASS",
+    "activeDeploymentVersionJoin": "PASS",
+    "runtimeVersionJoin": "PASS",
+    "d0040PublicVerifierPreservation": "PASS",
+    "secretBindingIdentityPreservation": "PASS",
+    "durableObjectPreservation": "PASS",
+    "routePredecessorPreservation": "PASS",
+    "providerRuntimeRouteAdmission": "PASS",
+    "freshQ4": "PENDING_independent_operator",
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED",
+    "d0027MutationPerformed": false
+  }
+}
