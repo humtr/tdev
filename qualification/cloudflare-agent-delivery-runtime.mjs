@@ -35,6 +35,10 @@ import {
   qualificationRouteVerifierDigest,
 } from './installable-agent-qualification-r4.mjs';
 import { admitQualificationRouteBootstrap } from './installable-agent-qualification-r9.mjs';
+import {
+  QUALIFICATION_ROUTE_PROVISIONING_OPERATIONS,
+  admitQualificationRouteProvisioning,
+} from './installable-agent-r12-route-provisioning.mjs';
 
 export const D0020_QUALIFICATION_PATH = '/qualification/d0020/v2';
 export const D0020_QUALIFICATION_MAX_REQUEST_BYTES = 1024 * 1024;
@@ -44,8 +48,8 @@ const QUALIFICATION_RPC_SCHEMA_VERSION = 2;
 const MIN_TOKEN_BYTES = 32;
 const MAX_TOKEN_BYTES = 512;
 const textEncoder = new TextEncoder();
+const ROUTE_PROVISIONING_OPERATIONS = new Set(QUALIFICATION_ROUTE_PROVISIONING_OPERATIONS);
 const ROUTE_BOOTSTRAP_OPERATIONS = new Set([
-  'migrate_installable_agent_route',
   'register_installable_agent',
   'record_installable_agent_genesis_evidence',
   'accept_legacy_predecessor_quiescence',
@@ -266,17 +270,27 @@ function rpcShape(input) {
   };
   const shape = shapes[input.operation];
   if (!shape) throw new ContractError('qualification_unknown_operation', 'D0020 qualification operation is unsupported');
+  const routeProvisioning = ROUTE_PROVISIONING_OPERATIONS.has(input.operation);
   const routeBootstrap = ROUTE_BOOTSTRAP_OPERATIONS.has(input.operation);
+  if (routeProvisioning && ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest'].some((key) => Object.hasOwn(input, key))) {
+    throw new ContractError('qualification_route_bootstrap_operation_forbidden', 'R12 route provisioning cannot be authorized by an R8/R9 route-bootstrap target');
+  }
   const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation)
     ? []
-    : routeBootstrap
-      ? ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest']
-      : ['expectedDeploymentIdentityDigest'];
+    : routeProvisioning
+      ? ['routeProvisioningTarget', 'routeProvisioningTargetDigest', 'routeProvisioningTransactionId', 'routeProvisioningRequestDigest']
+      : routeBootstrap
+        ? ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest']
+        : ['expectedDeploymentIdentityDigest'];
   assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], shape[1], 'D0020 qualification ' + input.operation);
   if (input.profile !== QUALIFICATION_RPC_PROFILE) throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-4 RPC profile');
   assertIdentifier(input.agentId, 'agentId');
   assertSafeInteger(input.routeGeneration, 'routeGeneration', { min: 1 });
-  if (routeBootstrap) {
+  if (routeProvisioning) {
+    assertIdentifier(input.routeProvisioningTransactionId, 'routeProvisioningTransactionId');
+    assertDigest(input.routeProvisioningTargetDigest, 'routeProvisioningTargetDigest');
+    assertDigest(input.routeProvisioningRequestDigest, 'routeProvisioningRequestDigest');
+  } else if (routeBootstrap) {
     assertIdentifier(input.routeBootstrapTransactionId, 'routeBootstrapTransactionId');
     assertDigest(input.routeBootstrapTargetDigest, 'routeBootstrapTargetDigest');
     assertDigest(input.routeBootstrapRequestDigest, 'routeBootstrapRequestDigest');
@@ -398,6 +412,49 @@ export class D0020QualificationAgentDeliveryDOHost {
 
   #binding(agentId, routeGeneration) {
     return createRuntimeAgentRouteBinding(this.env, { agentId, routeGeneration, durableObjectId: this.host.durableObjectId });
+  }
+
+  #routeProvisioningAdmission(operation, routeBinding, input) {
+    const placement = this.host.config.placement;
+    const attestor = this.#evidenceAttestationVerifierReadback();
+    if (!attestor.configured || attestor.keyId === null) {
+      throw new ContractError('invalid_qualification_config', 'D0039 R12 route provisioning requires the configured D0040 evidence attestor');
+    }
+    const routeRead = operation === 'migrate_installable_agent_route'
+      ? this.host.readInstallableAgent({ routeBinding })
+      : null;
+    const payload = operation === 'initialize' ? (input.initialization ?? {}) : input.request;
+    return admitQualificationRouteProvisioning({
+      operation,
+      routeBinding,
+      runtimeBinding: {
+        sourceSha: this.sourceSha,
+        artifactDigest: this.deploymentBinding.artifactDigest,
+        artifactManifestDigest: this.deploymentBinding.artifactManifestDigest,
+        workerVersionId: this.workerVersionId,
+        accountId: this.deploymentBinding.accountId,
+        serviceName: this.deploymentBinding.serviceName,
+        deployment: routeBinding.deployment,
+        environment: routeBinding.environment,
+        deploymentEpoch: this.deploymentBinding.deploymentEpoch,
+        qualificationEndpointOrigin: this.deploymentBinding.qualificationEndpointOrigin,
+        workersDevAccountSubdomain: this.deploymentBinding.workersDevAccountSubdomain,
+        workersDevHostname: this.deploymentBinding.workersDevHostname,
+        workerScript: placement.workerScript,
+        namespaceId: this.deploymentBinding.namespaceId,
+        namespace: placement.namespace,
+        className: placement.className,
+        jurisdiction: placement.jurisdiction,
+        durableObjectId: routeBinding.durableObjectId,
+      },
+      evidenceAttestorKeyId: attestor.keyId,
+      routeRead,
+      routeProvisioningTarget: input.routeProvisioningTarget,
+      routeProvisioningTargetDigest: input.routeProvisioningTargetDigest,
+      routeProvisioningTransactionId: input.routeProvisioningTransactionId,
+      routeProvisioningRequestDigest: input.routeProvisioningRequestDigest,
+      payload,
+    });
   }
 
   #routeBootstrapAdmission(operation, routeBinding, input) {
@@ -530,7 +587,9 @@ export class D0020QualificationAgentDeliveryDOHost {
       const operation = rpcShape(input);
       const routeBinding = this.#binding(input.agentId, input.routeGeneration);
       let admitted = null;
-      if (ROUTE_BOOTSTRAP_OPERATIONS.has(operation)) {
+      if (ROUTE_PROVISIONING_OPERATIONS.has(operation)) {
+        admitted = this.#routeProvisioningAdmission(operation, routeBinding, input);
+      } else if (ROUTE_BOOTSTRAP_OPERATIONS.has(operation)) {
         admitted = this.#routeBootstrapAdmission(operation, routeBinding, input);
       } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation)) {
         const routeCurrent = this.#readRouteCurrent(routeBinding);
@@ -630,6 +689,9 @@ export class D0020QualificationAgentDeliveryDOHost {
         result = this.host.compactInstallableAgentManagementReceipts({ routeBinding, request: input.request });
       } else if (operation === 'initialize') {
         result = this.host.initializeRoute({ routeBinding, ...(input.initialization === undefined ? {} : { initialization: input.initialization }) });
+        if (result?.deduplicated !== false) {
+          throw new ContractError('qualification_route_provisioning_predecessor_invalid', 'Fresh route initialization observed an already initialized route; reconcile by authoritative readback instead of replay');
+        }
       } else if (operation === 'read') {
         result = this.host.readRoute({ routeBinding });
       } else if (operation === 'reserve') {

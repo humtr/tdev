@@ -21,6 +21,12 @@ import {
   qualificationRouteBootstrapRequestDigest,
 } from '../qualification/installable-agent-qualification-r8.mjs';
 import {
+  QUALIFICATION_ROUTE_PROVISIONING_PROFILE,
+  qualificationLegacyRouteAuthoritativeReadbackDigest,
+  qualificationRouteProvisioningRequestDigest,
+  qualificationRouteProvisioningTargetDigest,
+} from '../qualification/installable-agent-r12-route-provisioning.mjs';
+import {
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
 } from '../src/cloudflare-agent-delivery-runtime.mjs';
@@ -521,6 +527,154 @@ test('qualification DO host exposes D0039 installable-Agent operations only thro
   assert.equal(mismatch.ok, false);
   assert.equal(mismatch.error.code, 'qualification_runtime_identity_mismatch');
   assert.equal(calls.length, callCountBeforeMismatch);
+});
+
+
+test('R12 route provisioning fences ABSENT initialization and LEGACY_D0020_ONLY migration before UNREGISTERED bootstrap', async () => {
+  const env = baseEnv();
+  const keyId = 'sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1';
+  const publicJwk = { crv: 'Ed25519', kty: 'OKP', x: 'A5T3RIA4mBzLDInNiSTjhHc1TxgGZ8TDJkUGlpnyAYE' };
+  const routeBinding = { agentId: 'agent-r12', routeGeneration: 1 };
+  const durableObjectId = 'do-agent-r12';
+  const runtimeFields = {
+    sourceSha: env.TDEV_SOURCE_SHA,
+    artifactDigest: ARTIFACT_DIGEST,
+    artifactManifestDigest: ARTIFACT_MANIFEST_DIGEST,
+    workerVersionId: env.TDEV_WORKER_VERSION.id,
+    accountId: env.TDEV_D0039_ACCOUNT_ID,
+    serviceName: env.TDEV_D0039_SERVICE_NAME,
+    deployment: 'qualification',
+    environment: 'nonproduction',
+    deploymentEpoch: env.TDEV_D0039_DEPLOYMENT_EPOCH,
+    qualificationEndpointOrigin: env.TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN,
+    workersDevAccountSubdomain: env.TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN,
+    workersDevHostname: env.TDEV_D0039_WORKERS_DEV_HOSTNAME,
+    workerScript: env.TDEV_WORKER_SCRIPT,
+    namespaceId: env.TDEV_D0039_NAMESPACE_ID,
+    namespace: env.TDEV_AGENT_DELIVERY_NAMESPACE,
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    durableObjectId,
+  };
+  const hostConfig = {
+    placement: {
+      deployment: 'qualification',
+      environment: 'nonproduction',
+      workerScript: env.TDEV_WORKER_SCRIPT,
+      className: 'AgentDeliveryRuntimeDO',
+      namespace: env.TDEV_AGENT_DELIVERY_NAMESPACE,
+      jurisdiction: 'global',
+    },
+  };
+
+  let initializeCalls = 0;
+  const initializeHost = {
+    durableObjectId,
+    evidenceAttestor: { keyId, publicJwk },
+    config: hostConfig,
+    initializeRoute() {
+      initializeCalls += 1;
+      return { deduplicated: initializeCalls > 1, snapshot: { revision: 0 } };
+    },
+  };
+  const initializeTransactionId = 'r12-route-provisioning-initialize-1';
+  const initializeRequestDigest = qualificationRouteProvisioningRequestDigest({
+    operation: 'initialize', transactionId: initializeTransactionId, routeBinding, payload: {},
+  });
+  const initializeTarget = {
+    profile: QUALIFICATION_ROUTE_PROVISIONING_PROFILE,
+    operation: 'initialize',
+    ...runtimeFields,
+    evidenceAttestorKeyId: keyId,
+    ...routeBinding,
+    predecessorState: 'ABSENT',
+    predecessorDigest: null,
+    routeAuthoritativeRereadDigest: null,
+    provisioningTransactionId: initializeTransactionId,
+    provisioningRequestDigest: initializeRequestDigest,
+  };
+  const initializeQualification = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } }, env, { host: initializeHost },
+  );
+  const initializeInput = {
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'initialize',
+    ...routeBinding,
+    routeProvisioningTarget: initializeTarget,
+    routeProvisioningTargetDigest: qualificationRouteProvisioningTargetDigest(initializeTarget),
+    routeProvisioningTransactionId: initializeTransactionId,
+    routeProvisioningRequestDigest: initializeRequestDigest,
+  };
+  const initialized = await initializeQualification.qualificationInvoke(initializeInput);
+  assert.equal(initialized.ok, true);
+  assert.equal(initialized.result.deduplicated, false);
+  const repeatedInitialize = await initializeQualification.qualificationInvoke(initializeInput);
+  assert.equal(repeatedInitialize.ok, false);
+  assert.equal(repeatedInitialize.error.code, 'qualification_route_provisioning_predecessor_invalid');
+  assert.equal(initializeCalls, 2);
+
+  const legacyRead = {
+    installableAgent: { profile: 'tdev.installable-agent-admission.v1', state: 'LEGACY_D0020_ONLY' },
+    predecessorDigest: 'sha256:3434343434343434343434343434343434343434343434343434343434343434',
+    currentTuple: null,
+    currentTupleDigest: null,
+  };
+  const migrationRequest = { migrationProfile: 'tdev.installable-agent-admission-migration.v2' };
+  const migrationTransactionId = 'r12-route-provisioning-migrate-1';
+  const migrationRequestDigest = qualificationRouteProvisioningRequestDigest({
+    operation: 'migrate_installable_agent_route', transactionId: migrationTransactionId, routeBinding, payload: migrationRequest,
+  });
+  const migrationTarget = {
+    profile: QUALIFICATION_ROUTE_PROVISIONING_PROFILE,
+    operation: 'migrate_installable_agent_route',
+    ...runtimeFields,
+    evidenceAttestorKeyId: keyId,
+    ...routeBinding,
+    predecessorState: 'LEGACY_D0020_ONLY',
+    predecessorDigest: legacyRead.predecessorDigest,
+    routeAuthoritativeRereadDigest: qualificationLegacyRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: legacyRead }),
+    provisioningTransactionId: migrationTransactionId,
+    provisioningRequestDigest: migrationRequestDigest,
+  };
+  let migrationCalls = 0;
+  const migrationHost = {
+    durableObjectId,
+    evidenceAttestor: { keyId, publicJwk },
+    config: hostConfig,
+    readInstallableAgent() { return legacyRead; },
+    migrateInstallableAgentRoute() { migrationCalls += 1; return { state: 'UNREGISTERED' }; },
+  };
+  const migrationQualification = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } }, env, { host: migrationHost },
+  );
+  const migrationInput = {
+    profile: QUALIFICATION_RPC_PROFILE,
+    operation: 'migrate_installable_agent_route',
+    ...routeBinding,
+    routeProvisioningTarget: migrationTarget,
+    routeProvisioningTargetDigest: qualificationRouteProvisioningTargetDigest(migrationTarget),
+    routeProvisioningTransactionId: migrationTransactionId,
+    routeProvisioningRequestDigest: migrationRequestDigest,
+    request: migrationRequest,
+  };
+  const migrated = await migrationQualification.qualificationInvoke(migrationInput);
+  assert.equal(migrated.ok, true);
+  assert.equal(migrated.result.state, 'UNREGISTERED');
+  assert.equal(migrationCalls, 1);
+
+  const staleHost = {
+    ...migrationHost,
+    readInstallableAgent() {
+      return { ...legacyRead, installableAgent: { profile: 'tdev.installable-agent-admission.v2', state: 'UNREGISTERED' } };
+    },
+  };
+  const staleQualification = new D0020QualificationAgentDeliveryDOHost(
+    { abort() { throw new Error('unexpected abort'); } }, env, { host: staleHost },
+  );
+  const stale = await staleQualification.qualificationInvoke(migrationInput);
+  assert.equal(stale.ok, false);
+  assert.equal(stale.error.code, 'qualification_route_provisioning_predecessor_invalid');
+  assert.equal(migrationCalls, 1);
 });
 
 

@@ -75,7 +75,6 @@ export const QUALIFICATION_ROUTE_BOOTSTRAP_PROFILE = 'tdev.installable-agent-qua
 export const QUALIFICATION_TARGET_KIND_ROUTE_BOOTSTRAP = 'route_bootstrap';
 export const QUALIFICATION_ROUTE_BOOTSTRAP_OPERATION = 'route_bootstrap';
 export const QUALIFICATION_ROUTE_BOOTSTRAP_SUBOPERATIONS = Object.freeze([
-  'migrate_installable_agent_route',
   'register_installable_agent',
   'record_installable_agent_genesis_evidence',
   'accept_legacy_predecessor_quiescence',
