@@ -1,0 +1,102 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0041_r1_pre_genesis_source_verification",
+  "observedAtUtc": "2026-08-31T01:38:27Z",
+  "design": {
+    "id": "D0041",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "acceptanceEvidence": "docs/evidence/group-f-d0041-r1-pre-genesis-material-binding-acceptance-2026-08-28.json",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "supported-Termux physical candidate preparation and authoritative reconciliation"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "remoteDevelopmentAtResume": "0e91db5fc68a3c6d39830d5aaccf416bf8e198b2",
+    "testedCommit": "ff993ae675cac6dc1202e9b596118527d779d55b",
+    "tree": "3715e705598579034411865f432bb2d27cbc757e",
+    "parent": "0e91db5fc68a3c6d39830d5aaccf416bf8e198b2",
+    "commitMessage": "Implement D0041 pre-genesis material binding",
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true,
+    "publicationStateAtObservation": "clean local descendant of freshly observed development; intended for one non-force fast-forward together with this evidence descendant"
+  },
+  "implementation": {
+    "credentialPreparation": "strict tdev.agent-credential-provisioning.v1 projection binds agent/route, canonical m2 request identity, exact authoritative predecessor digest, next installation/credential generations and the existing deterministic AndroidKeyStore alias",
+    "provisioningIdentity": "cp1.<64hex> is derived from typedDigest(tdev.agent-credential-provisioning.v1, normalized preparation record)",
+    "releaseTrustProjection": "the current route-scoped release root verifies tdev.release-delegation.v1 and the exact release statement/package; all delegated signer key IDs project to exact active|retired|revoked dispositions, the verified active release signer becomes packageTrustSubjectDigest and the typed normalized delegation digest becomes trustStateDigest",
+    "preparer": "qualification/installable-agent-d0041-pre-genesis-preparer.mjs is no-dispatch: release verification precedes key side effects, AndroidKeyStore provision/readback must reconcile, and a second authoritative route read must reproduce the exact predecessor/root/next-trust projection before candidate registration material is returned",
+    "ambiguityRule": "stale or ambiguous post-provision state fails reconciliation and does not authorize blind key deletion, replay, remint, D0027 register or phase-U/P dispatch",
+    "authorityBoundary": "D0027 remains the sole durable route/register/generation/CAS authority; D0041 creates no second credential, release, route or trust authority"
+  },
+  "sourceDelta": {
+    "paths": [
+      "src/installable-agent-pre-genesis.mjs",
+      "qualification/installable-agent-d0041-pre-genesis-preparer.mjs",
+      "src/index.mjs",
+      "test/d0041-pre-genesis-material-binding.test.mjs",
+      "test/d0041-pre-genesis-preparer.test.mjs",
+      "docs/design/0041-installable-agent-pre-genesis-material-binding.md",
+      "docs/design/README.md",
+      "WORKBOARD.md",
+      "docs/SECURITY.md",
+      "docs/DEPLOYMENT.md",
+      "docs/development/PROGRAM.md"
+    ],
+    "newDurableProductState": false,
+    "newProviderState": false,
+    "newRouteState": false,
+    "newSigningRole": false
+  },
+  "validation": {
+    "jobId": "job_jkj_5abbf0e34c",
+    "profile": "portable",
+    "command": "npm run check",
+    "planDigest": "1100dc29dc2f7d4989e2abd2e087f30fc3f18aee70b514f5190f37008b7a0af6",
+    "validationProfileAuthority": {
+      "source": "project_registry",
+      "projectRevision": 9,
+      "digest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98"
+    },
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0041@r1 groups=8 gates=17",
+    "tests": {
+      "total": 596,
+      "passed": 596,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "focusedCoverage": {
+    "credentialCorrelation": "PASS — deterministic m2/high-water+1/credentialRef/cp1 and predecessor substitution denial",
+    "releaseProjection": "PASS — root-verified next-generation delegation, complete signer dispositions, active package signer and wrong-generation denial",
+    "preparerSuccess": "PASS — two authoritative reads, exact AndroidKeyStore verifier reconciliation and no dispatch authority",
+    "staleAfterProvision": "PASS — changed authoritative predecessor requires reconciliation and does not blindly delete the candidate key"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "credentialProvisioned": false,
+    "secretReadOrChange": false,
+    "d0027Register": false,
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "d0041Source": "PASS for exact tested source ff993ae675cac6dc1202e9b596118527d779d55b",
+    "d0041PhysicalCandidatePreparation": "UNVERIFIED — no physical AndroidKeyStore candidate was provisioned by this source proof",
+    "d0041AuthoritativePhysicalReconciliation": "UNVERIFIED",
+    "d0039PhaseUPhaseP": "DISABLED and NOT_EXECUTED until D0041 physical proof passes",
+    "providerOrDeploymentAdmission": "not promoted by this source proof"
+  },
+  "nextGate": "execute one separately bounded supported-Termux physical candidate-preparation proof using the no-dispatch D0041 preparer against a freshly rebound never-current UNREGISTERED authoritative route and exact route-scoped release material; reread the public AndroidKeyStore verifier and authoritative route, retain ambiguous candidates for reconciliation, and do not dispatch D0027 register or D0039 phase-U/P during this proof"
+}
