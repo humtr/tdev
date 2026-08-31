@@ -1,6 +1,6 @@
 # Design 0041 — Installable Agent Pre-Genesis Material Binding
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-28
