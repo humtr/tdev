@@ -1,0 +1,113 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0041_r1_supported_termux_physical_candidate_preparation",
+  "observedAtUtc": "2026-09-01T11:30:58.889Z",
+  "design": {
+    "id": "D0041",
+    "revision": 1,
+    "sourceCommit": "ff993ae675cac6dc1202e9b596118527d779d55b",
+    "sourceEvidence": "docs/evidence/group-f-d0041-r1-pre-genesis-source-verification-2026-08-31.json",
+    "physicalProofResult": "PASS",
+    "physicalProofClosesDesign": true
+  },
+  "repository": {
+    "physicalObservationHead": "29cd087a1b8c74d14cc2af62635c79297b1294d6",
+    "evidenceBase": "18d7e9d0004cdc07edef3ff6b6bf4132ab0ee6d2",
+    "interveningChange": "docs/development/PROGRAM.md planning-only refresh; D0041 source and product/runtime semantics unchanged",
+    "evidenceBaseCleanBeforeRecording": true
+  },
+  "proofJobs": {
+    "candidatePreparation": "job_k89_ca09317a3f",
+    "postPreparationSecureHardwareReadback": "job_k8a_94c680af93",
+    "postPreparationProviderRouteReconciliation": "job_k8b_85b250dcf8",
+    "canonicalHeadSecureHardwareReadback": "job_kdm_6abb31b124",
+    "canonicalHeadRouteReleasePackageReadback": "job_kdq_9cc12079e7"
+  },
+  "device": {
+    "platform": "android",
+    "arch": "arm64",
+    "androidSourceLineageId": "228fb2cfe90831c1499ec3ccaf61e96e8e1ce70766b9474672ce427334d41c42",
+    "credentialRef": "androidkeystore://com.termux.api/tdev.a1.gm6fFTftt0hx_vVWFVqa3luRI-K5_1gnbUZ_ka9vGFM",
+    "credentialKeyId": "sha256:bf9093d13d77576b8cef680886a88b36aff95d9bc8db636d9604a1fb381ec5af",
+    "exactAliasCount": 1,
+    "insideSecureHardware": true,
+    "userAuthenticationRequired": false,
+    "privateKeyExportAttempted": false,
+    "privateKeyExported": false
+  },
+  "candidate": {
+    "profile": "tdev.agent-credential-provisioning.v1",
+    "agentId": "d0039-r12-custody-20260828-3631c5a4",
+    "routeGeneration": 1,
+    "managementRequestId": "m2:1",
+    "expectedPredecessorDigest": "sha256:7cedeac98c177b3e8352fb49a9bee9296512675b4066f130fdce6659dd774aaf",
+    "installationGeneration": 1,
+    "credentialGeneration": 1,
+    "provisioningDigest": "sha256:b00b0edca0a45ca39f4a00aabd1d6fac856bbd3ef4ede3921b7b31e537c6625e",
+    "credentialProvisioningId": "cp1.b00b0edca0a45ca39f4a00aabd1d6fac856bbd3ef4ede3921b7b31e537c6625e",
+    "authority": "non_authoritative_candidate_until_exact_D0027_register_commit"
+  },
+  "releaseTrust": {
+    "releaseRootKeyId": "sha256:de139404ab2e099c7c46c758bc728d168cb71838cf2ecf7258f6ec0282f34a7a",
+    "signerKeyId": "sha256:0de5959df3f9ebb3bf334e50291c77697649d6ef6634dc37476c33973f2f48e4",
+    "trustPolicyGeneration": 1,
+    "delegationDigest": "sha256:95a49fd38ea3af5a2d779d9d66cdbb530345f7f8da14ac69b35d83925f1f08f0",
+    "releaseStatementDigest": "sha256:a0bdb7735c811fda6039d1fc345ee3bd769629bc069cac071966652284400638",
+    "trustStateDigest": "sha256:52579cca5abe440c38d012b01113b9dcf47d91f2d708bcd02567dcc8133d8236",
+    "trustSubjects": {
+      "sha256:0de5959df3f9ebb3bf334e50291c77697649d6ef6634dc37476c33973f2f48e4": "active"
+    }
+  },
+  "package": {
+    "source": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "archiveDigest": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "archiveBytes": 116820,
+    "releaseManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d"
+  },
+  "authoritativeReconciliation": {
+    "state": "UNREGISTERED",
+    "everCurrent": false,
+    "pending": null,
+    "current": null,
+    "currentTuple": null,
+    "predecessorDigest": "sha256:7cedeac98c177b3e8352fb49a9bee9296512675b4066f130fdce6659dd774aaf",
+    "routeAuthoritativeReadbackDigest": "sha256:f3fbbee496d73f0bd7903e5fbe8153e608e58fd8357b8f2caac2b1ad0dd69f32",
+    "twoReadsStable": true,
+    "highWaters": {
+      "installation": 0,
+      "credential": 0,
+      "trustPolicy": 0,
+      "managementRequestSequence": 0
+    },
+    "sameReleaseRoot": true
+  },
+  "providerReconciliation": {
+    "script": "tdev-d0020-qualification-clean-a",
+    "deploymentId": "e21ef1a2-1dcb-4795-9686-9ada9079fa4c",
+    "versionId": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+    "trafficPercent": 100,
+    "d0040KeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1"
+  },
+  "externalEffects": {
+    "candidateCredentialProvisioned": true,
+    "candidateStillPresent": true,
+    "candidateRemintedAfterSuccess": false,
+    "candidateDeleted": false,
+    "providerMutation": false,
+    "routeMutation": false,
+    "d0027Register": false,
+    "phaseU": "NOT_EXECUTED",
+    "phaseP": "NOT_EXECUTED",
+    "secretValuePrinted": false,
+    "privateKeyBytesPrinted": false
+  },
+  "conclusion": {
+    "d0041SourceGate": "PASS",
+    "d0041PhysicalCandidatePreparation": "PASS",
+    "d0041AuthoritativePhysicalReconciliation": "PASS",
+    "candidateDisposition": "retain exact non-authoritative AndroidKeyStore candidate for the next owner-valid D0039 transaction; do not remint or delete while the authoritative predecessor remains exact",
+    "nextOwner": "D0039@r12",
+    "nextAction": "fresh provider/Q4/route admission under D0039@r12, then at most one exact phase-U register dispatch if admission remains PASS; reconcile authoritative route before any replay and enter phase-P only from exact committed GENESIS_PENDING"
+  }
+}

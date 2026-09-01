@@ -1,12 +1,13 @@
 # Design 0041 — Installable Agent Pre-Genesis Material Binding
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-08-28
 - Acceptance base: `development@effeb3c2b6182645e414cf8941ac5b85835e2c02`
 - Trigger: D0039@r12 completed its fresh isolated route/custody admission, then phase-U application revalidation proved that current owners do not define the stable credential-provisioning identity or the release-delegation-to-D0027 trust projection needed to assemble the concrete-security register request without guessing
 - Acceptance evidence: `docs/evidence/group-f-d0041-r1-pre-genesis-material-binding-acceptance-2026-08-28.json`
+- Verification evidence: `docs/evidence/group-f-d0041-r1-supported-termux-physical-candidate-preparation-2026-09-01.json`
 - Trigger evidence: `docs/evidence/group-f-d0039-r12-fresh-route-custody-admission-2026-08-28.json`
 - Scope: exact non-authoritative pre-genesis credential identity/preparation plus root-verified release-trust projection and reconciliation required before D0039 phase-U may dispatch
 - Affected owners: `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, installable-Agent security/keystore/qualification helpers and focused tests during later implementation
@@ -246,3 +247,5 @@ Rejected. This is independently decidable identity/trust/orphan-lifecycle meanin
 ## 13. Proof boundary
 
 Acceptance authorizes only later source implementation/qualification after WORKBOARD routing. It does not provision a new Agent credential, create a release delegation, mutate provider or route state, dispatch phase-U/P, reinterpret the retained lost-key predecessor route, or promote any prior Q3/Q4 evidence beyond its original proof layer.
+
+Verification closed on 2026-09-01 after the exact source-qualified preparer provisioned one deterministic RSA-3072 AndroidKeyStore candidate on supported Termux, reread the same secure-hardware public verifier, and reconciled two stable authoritative `UNREGISTERED` predecessor reads plus the same release-root/delegation/package projection without D0027 register, provider mutation or phase-U/P. The exact candidate remains non-authoritative and retained for D0039@r12; its private key remains inside AndroidKeyStore.

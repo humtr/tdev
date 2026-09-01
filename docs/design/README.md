@@ -36,6 +36,6 @@
 | D0038 | r1 | verified | Default Executor Capacity Policy | `docs/design/0038-default-executor-capacity-policy.md` |
 | D0039 | r12 | implementing | D0027 Deployment Realization | `docs/design/0039-d0027-deployment-realization.md` |
 | D0040 | r1 | verified | Installable Agent Evidence Attestation Authority | `docs/design/0040-installable-agent-evidence-attestation-authority.md` |
-| D0041 | r1 | implementing | Installable Agent Pre-Genesis Material Binding | `docs/design/0041-installable-agent-pre-genesis-material-binding.md` |
+| D0041 | r1 | verified | Installable Agent Pre-Genesis Material Binding | `docs/design/0041-installable-agent-pre-genesis-material-binding.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.
