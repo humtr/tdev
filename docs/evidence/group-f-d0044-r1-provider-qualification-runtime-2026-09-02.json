@@ -1,0 +1,118 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_runtime_partial_blocked",
+  "observedAtUtc": "2026-09-02T12:29:33Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "diagnose the isolated delivery Durable Object provider failure, then rerun the complete D0044 generation-1-to-generation-2 qualification"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "196352095919a5ba0699b26e1bad438a38a5de19",
+    "sourceShaBinding": "196352095919a5ba0699b26e1bad438a38a5de19",
+    "sourceProof": "docs/evidence/group-f-d0044-r1-provider-qualification-surface-source-verification-2026-09-02.json",
+    "worktreeCleanBeforeProviderActions": false,
+    "worktreeCleanAfterProviderActions": false,
+    "uncommittedFilesAfterProviderActions": [
+      "qualification/d0044-provider-deploy-run.mjs",
+      "qualification/d0044-provider-runtime-run.mjs",
+      "docs/evidence/group-f-d0044-r1-provider-qualification-runtime-2026-09-02.json"
+    ]
+  },
+  "provider": {
+    "accountSubdomain": "humtr",
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "preflightTargetAbsent": true,
+    "sourceSha": "196352095919a5ba0699b26e1bad438a38a5de19",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:35fd9e2a6a7ab61cb0fa438b59e683e823df61591c48eac815dadcf084ed85d9",
+    "artifactManifestDigest": "sha256:484711f88b8ea21089e171a32529bdc8353632019cd71d8dabd5333ecb3b8ccb",
+    "latestDeployment": {
+      "id": "54f44a01-a2a9-4571-aa2a-4ef3e6d948a5",
+      "versionId": "4988919a-5c0f-43c4-b577-7bc01bfe91c6",
+      "trafficPercentage": 100,
+      "triggeredBy": "secret",
+      "createdOn": "2026-09-02T12:20:25.588285Z"
+    },
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "durableObjects": {
+      "delivery": {
+        "namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2",
+        "className": "AgentDeliveryRuntimeDO",
+        "useSqlite": true
+      },
+      "election": {
+        "namespaceId": "5f5e1733b60e408ba339ee01981e981f",
+        "className": "AgentRouteElectionRuntimeDO",
+        "useSqlite": true
+      },
+      "distinctNamespaces": true
+    },
+    "attestor": {
+      "configured": true,
+      "keyId": "sha256:7b7934fbd43a221cc9493ba850a978092bba5e537a84a980c877bc2a2152a54f"
+    },
+    "secretBinding": "TDEV_D0020_QUALIFICATION_TOKEN"
+  },
+  "qualification": {
+    "agentId": "d0044-provider-elected-20260902",
+    "routeGeneration": 1,
+    "routeHostKeyDerived": true,
+    "unauthorizedRequest": {
+      "status": 401,
+      "code": "qualification_unauthorized",
+      "result": "PASS"
+    },
+    "freshElectionReadBeforeGenesis": {
+      "status": 200,
+      "result": null,
+      "resultMeaning": "PASS — no election record was present before genesis"
+    },
+    "d0040EvidenceAttestorReadback": {
+      "status": 400,
+      "code": "qualification_provider_failure",
+      "detailsExcluded": true,
+      "result": "BLOCKED — delivery Durable Object qualification RPC failed before attestor readback"
+    },
+    "standbyInitialization": "NOT_EXECUTED",
+    "electionGenesis": "NOT_EXECUTED",
+    "generationReadback": "NOT_EXECUTED",
+    "activationOrCutover": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false
+  },
+  "externalEffects": {
+    "isolatedWorkerDeployment": true,
+    "isolatedDurableObjectNamespacesCreated": true,
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false,
+    "deliveryRouteStateMutation": false,
+    "electionGenesisMutation": false,
+    "recoveryPrivateKeyGeneratedForLiveUse": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "source": "PASS for exact source 196352095919a5ba0699b26e1bad438a38a5de19",
+    "isolatedProviderDeployment": "PASS — exact source deployed to a newly isolated workers.dev Worker with two distinct SQLite Durable Object namespaces",
+    "providerAuthenticationAndFreshElectionAbsence": "PASS",
+    "d0040AndDeliveryRuntime": "BLOCKED at HTTP 400 qualification_provider_failure",
+    "standbyGenesisAndHigherGenerationCutover": "UNVERIFIED and not attempted after the D0040 boundary",
+    "canonicalD0039": "untouched"
+  },
+  "failure": {
+    "stage": "d0040_evidence_attestor_readback",
+    "httpStatus": 400,
+    "code": "qualification_provider_failure",
+    "detailsExcluded": true,
+    "safeInterpretation": "The isolated delivery Durable Object RPC did not return a qualification result; the failure is not promoted to a source or semantic defect without provider diagnostics."
+  },
+  "nextGate": "Obtain an explicitly authorized diagnostic source deployment or provider runtime diagnostics for the isolated delivery Durable Object, then rerun D0044 from a fresh target/agent identity; do not import or cut over canonical D0039 R12."
+}
