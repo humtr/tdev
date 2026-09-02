@@ -44,6 +44,10 @@ async function main() {
     profile, routeHostKey: predecessorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'activate_route', agentId, routeGeneration: 1, electionState: election },
   });
-  process.stdout.write(`${JSON.stringify({ status: 'resume_activation_complete', agentId, successorHostKey, electionDigest: agentRouteElectionDigest(election), activated, successorDisposition: successor.disposition, staleActivation: { status: stale.status, code: stale.body?.error?.code ?? null }, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
+  const predecessor = assertOk('read predecessor generation after stale activation', await invoke(token, '/qualification/d0044/delivery/v1', {
+    profile, routeHostKey: predecessorHostKey,
+    rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 1 },
+  }));
+  process.stdout.write(`${JSON.stringify({ status: 'resume_activation_complete', agentId, successorHostKey, electionDigest: agentRouteElectionDigest(election), electionCurrentRoute: election.currentRoute, activated, successorDisposition: successor.disposition, successorStateDigest: successor.stateDigest ?? null, predecessorDisposition: predecessor.disposition, predecessorStateDigest: predecessor.stateDigest ?? null, staleActivation: { status: stale.status, code: stale.body?.error?.code ?? null }, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
 }
 main().catch((error) => { process.stderr.write(`${JSON.stringify({ status: 'failed', code: error?.code ?? 'd0044_provider_cutover_resume_failed', message: error?.message ?? String(error) })}\n`); process.exitCode = 1; });
