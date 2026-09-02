@@ -158,6 +158,19 @@ async function invokeElection(stub, operation, agentId, payload) {
   }
 }
 
+function unwrapDeliveryRpc(response) {
+  assertRecordShape(response, ['profile', 'schemaVersion', 'ok'], ['result', 'error'], 'D0020 qualification RPC response');
+  if (response.profile !== QUALIFICATION_RPC_PROFILE || response.schemaVersion !== 2 || typeof response.ok !== 'boolean') fail('invalid_qualification_provider', 'D0020 qualification RPC response header is invalid');
+  if (response.ok) {
+    assertRecordShape(response, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0020 qualification RPC success');
+    return response.result;
+  }
+  assertRecordShape(response, ['profile', 'schemaVersion', 'ok', 'error'], [], 'D0020 qualification RPC failure');
+  assertRecordShape(response.error, ['code'], [], 'D0020 qualification RPC error');
+  throw new ContractError(response.error.code, 'D0020 qualification authority rejected the operation');
+}
+
+
 export class D0044ProviderQualificationService {
   constructor(env) {
     if (env?.TDEV_D0020_QUALIFICATION_MODE !== 'enabled' || env?.TDEV_ENVIRONMENT !== 'qualification' || env?.TDEV_AGENT_ROUTE_MODE !== 'elected_v1') {
@@ -187,7 +200,7 @@ export class D0044ProviderQualificationService {
         const input = deliveryInput(body);
         const stub = namespaceStub(this.env.TDEV_AGENT_DELIVERY, input.routeHostKey, 'delivery');
         if (typeof stub.qualificationInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose qualification RPC');
-        const result = await stub.qualificationInvoke(input.rpc);
+        const result = unwrapDeliveryRpc(await stub.qualificationInvoke(input.rpc));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
       }
       return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found' } });

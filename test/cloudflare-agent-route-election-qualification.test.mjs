@@ -94,13 +94,33 @@ test('D0044 delivery qualification routes only to the deterministic generation h
   };
   const accepted = await service.fetch(request(D0044_DELIVERY_QUALIFICATION_PATH, body));
   assert.equal(accepted.status, 200);
-  assert.deepEqual((await accepted.json()).result.result, { operation: 'read_route_generation' });
+  assert.deepEqual((await accepted.json()).result, { operation: 'read_route_generation' });
   assert.deepEqual(calls, [routeHostKey]);
   assert.deepEqual(JSON.parse(JSON.stringify(invocations)), [body.rpc]);
 
   const denied = await service.fetch(request(D0044_DELIVERY_QUALIFICATION_PATH, { ...body, routeHostKey: 'agent-generation' }));
   assert.equal(denied.status, 400);
   assert.deepEqual(calls, [routeHostKey]);
+});
+
+test('D0044 delivery qualification unwraps structured authority failures', async () => {
+  const calls = [];
+  const stub = {
+    async qualificationInvoke() {
+      return { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: 2, ok: false, error: { code: 'agent_route_generation_missing' } };
+    },
+  };
+  const service = new D0044ProviderQualificationService(env({ TDEV_AGENT_DELIVERY: namespaceFor(stub, calls) }));
+  const agentId = 'agent-generation';
+  const routeGeneration = 1;
+  const response = await service.fetch(request(D0044_DELIVERY_QUALIFICATION_PATH, {
+    profile: D0044_PROVIDER_QUALIFICATION_PROFILE,
+    routeHostKey: agentRouteHostKey({ agentId, routeGeneration }),
+    rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration },
+  }));
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { ok: false, error: { code: 'agent_route_generation_missing' } });
+  assert.equal(calls.length, 1);
 });
 
 test('D0044 qualification rejects malformed or unsupported requests before provider access', async () => {
