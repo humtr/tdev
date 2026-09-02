@@ -48,6 +48,7 @@ const DELIVERY_OPERATIONS = new Set([
   'runtime_probe',
   'initialize',
   'initialize_route_generation',
+  'migrate_installable_agent_route',
   'prepare_legacy_route_import',
   'seal_legacy_route_import',
   'begin_route_draining',
