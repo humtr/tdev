@@ -57,6 +57,6 @@ async function main() {
     profile, routeHostKey: predecessorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 1 },
   }));
-  process.stdout.write(`${JSON.stringify({ status: 'resume_activation_complete', agentId, successorHostKey, electionDigest: agentRouteElectionDigest(election), electionCurrentRoute: election.currentRoute, activated, successorDisposition: successor.disposition, successorStateDigest: successor.stateDigest ?? null, predecessorDisposition: predecessor.disposition, predecessorStateDigest: predecessor.stateDigest ?? null, staleActivation: { status: stale.status, code: stale.body?.error?.code ?? null }, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ status: 'resume_activation_complete', agentId, successorHostKey, electionDigest: agentRouteElectionDigest(election), electionCurrentRoute: election.currentRoute, activated, successorDisposition: successor.disposition, successorReadback: successor, predecessorDisposition: predecessor.disposition, predecessorReadback: predecessor, staleActivation: { status: stale.status, code: stale.body?.error?.code ?? null }, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
 }
 main().catch((error) => { process.stderr.write(`${JSON.stringify({ status: 'failed', code: error?.code ?? 'd0044_provider_cutover_resume_failed', message: error?.message ?? String(error) })}\n`); process.exitCode = 1; });
