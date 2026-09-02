@@ -65,6 +65,16 @@ function assertOk(label, response) {
   return response.body.result;
 }
 
+async function invokeWithAuthPropagation(token, path, body, label) {
+  let response = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    response = await invoke(token, path, body);
+    if (response.status !== 401) return response;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`${label} authentication propagation failed after bounded retry`);
+}
+
 function routeBinding({ namespaceId, durableObjectId }) {
   return {
     agentId,
@@ -134,14 +144,14 @@ async function main() {
   const electionBefore = assertOk('election read before genesis', electionBeforeResponse);
   if (electionBefore !== null) throw new Error('isolated election target was not absent before genesis');
 
-  const constructorDiagnostic = assertOk('delivery constructor diagnostic', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const constructorDiagnostic = assertOk('delivery constructor diagnostic', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('d0044_constructor_diagnostic'),
   }));
   if (constructorDiagnostic?.constructed !== true) throw new Error(`delivery constructor diagnostic reported failure: ${JSON.stringify(constructorDiagnostic?.failure ?? {})}`);
 
-  const d0040 = assertOk('delivery attestor readback', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const d0040 = assertOk('delivery attestor readback', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('d0040_evidence_attestor_readback'),
@@ -213,7 +223,7 @@ async function main() {
     provisioningTransactionId: transactionId,
     provisioningRequestDigest: routeProvisioningRequestDigest,
   };
-  const initializeResult = assertOk('delivery initialize', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const initializeResult = assertOk('delivery initialize', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('initialize', {
@@ -254,17 +264,17 @@ async function main() {
     agentId,
     payload: {},
   }));
-  const routeRead = assertOk('delivery route read', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const routeRead = assertOk('delivery route read', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('read'),
   }));
-  const generationRead = assertOk('delivery generation read', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const generationRead = assertOk('delivery generation read', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('read_route_generation'),
   }));
-  const blockedActivation = await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const blockedActivation = await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('activate_route', { electionState: electionAfter }),
