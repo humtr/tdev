@@ -1,0 +1,69 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_surface_source_verification",
+  "observedAtUtc": "2026-09-02T10:31:18Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "isolated Cloudflare provider/runtime legacy-import and higher-generation cutover qualification"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "1963520",
+    "tree": "2138ff7e0f632b5137be5e333f65c20f9c500233",
+    "parent": "bce22bca1f94b92c76e0489b0e7a96043fb3e1d8",
+    "commitMessage": "feat: expose isolated D0044 provider qualification lane",
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "electionQualification": "strict token-authenticated endpoint with seven explicit election-owner RPCs and no dynamic method dispatch",
+    "deliveryQualification": "strict token-authenticated endpoint bound to one deterministic generation host key and bounded D0020 setup/readback/disposition operations",
+    "workerIntegration": "qualification-only paths are selected before the existing D0020 endpoint; other ingress remains unchanged",
+    "providerBoundary": "qualification bearer controls the isolated test lane while recovery signatures and positive exclusion/standby evidence remain authoritative"
+  },
+  "validation": {
+    "profile": "portable",
+    "command": "npm run check",
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0044@r1 groups=8 gates=19",
+    "tests": {
+      "total": 610,
+      "passed": 610,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "focusedCoverage": {
+    "qualificationAuthenticationBeforeRouting": "PASS",
+    "electionOperationAllowlist": "PASS",
+    "generationHostKeyBinding": "PASS",
+    "malformedAndUnsupportedInputNoProviderLookup": "PASS",
+    "existingD0044ElectionFirstRoutingRegression": "PASS"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "recoveryKeyGeneratedForLiveUse": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "d0044Source": "PASS for exact tested source 1963520",
+    "isolatedProviderRuntime": "UNVERIFIED — the newly isolated Worker has not yet been deployed",
+    "legacyImportMigration": "SOURCE-WIRED BUT PROVIDER-UNVERIFIED",
+    "d0039Q7Q8Q9": "UNVERIFIED and not promoted by D0044 source"
+  },
+  "nextGate": "deploy the exact source to the preflight-verified isolated Worker and execute the D0044 provider/runtime sequence without touching canonical D0039 R12"
+}
