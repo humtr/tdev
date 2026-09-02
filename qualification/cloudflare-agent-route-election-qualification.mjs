@@ -6,7 +6,7 @@ import {
   publicJsonClone,
   strictJsonParse,
 } from '../src/canonical.mjs';
-import { agentRouteHostKey } from '../src/agent-route-election.mjs';
+import { AGENT_ROUTE_LEGACY_HOST_PROFILE, agentRouteHostKey } from '../src/agent-route-election.mjs';
 import { QUALIFICATION_RPC_PROFILE } from './installable-agent-qualification-r4.mjs';
 
 export const D0044_PROVIDER_QUALIFICATION_PROFILE = 'tdev.agent-route-election-qualification.v1';
@@ -51,6 +51,20 @@ const DELIVERY_OPERATIONS = new Set([
   'begin_route_draining',
   'retire_route',
   'activate_route',
+]);
+const LEGACY_IMPORT_OPERATIONS = new Set([
+  'd0044_constructor_diagnostic',
+  'd0040_evidence_attestor_readback',
+  'read_installable_agent',
+  'read_route_generation',
+  'read',
+  'runtime_probe',
+  'initialize',
+  'migrate_installable_agent_route',
+  'prepare_legacy_route_import',
+  'seal_legacy_route_import',
+  'begin_route_draining',
+  'retire_route',
 ]);
 
 function fail(code, message) {
@@ -199,7 +213,14 @@ function deliveryInput(body) {
   assertSafeInteger(body.rpc.routeGeneration, 'routeGeneration', { min: 1 });
   if (!DELIVERY_OPERATIONS.has(body.rpc.operation)) fail('qualification_unknown_operation', 'D0044 delivery operation is unsupported');
   const expectedHostKey = agentRouteHostKey({ agentId: body.rpc.agentId, routeGeneration: body.rpc.routeGeneration });
-  if (body.routeHostKey !== expectedHostKey) fail('agent_route_host_key_mismatch', 'D0044 delivery host key is not generation-bound');
+  const legacyImportHost = body.rpc.routeGeneration === 1 &&
+    body.routeHostKey === body.rpc.agentId && LEGACY_IMPORT_OPERATIONS.has(body.rpc.operation);
+  if (body.routeHostKey !== expectedHostKey && !legacyImportHost) {
+    fail('agent_route_host_key_mismatch', 'D0044 delivery host key is not generation-bound');
+  }
+  if (legacyImportHost && body.routeHostKey !== body.rpc.agentId) {
+    fail('agent_route_host_key_mismatch', `${AGENT_ROUTE_LEGACY_HOST_PROFILE} host identity is invalid`);
+  }
   return body;
 }
 
