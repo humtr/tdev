@@ -1,0 +1,71 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_route_generation_runtime_source_verification",
+  "observedAtUtc": "2026-09-02T07:52:46Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "isolated Cloudflare provider/runtime legacy-import and higher-generation cutover qualification"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "ff9f7ba3cdb2c79f10b2f9c9ca4445c7f0ddffd1",
+    "tree": "9495b7d4e01eca55d14535f7bbe172fd445e41eb",
+    "parent": "b0553392caf5395784822a44b84b997dad1e5538",
+    "commitMessage": "feat: wire durable D0044 route generation runtime",
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "generationOwner": "separate bounded canonical SQLite route-generation record with revision/CAS reconstruction and one-way disposition delegation",
+    "deliveryAdmission": "elected Delivery Durable Object checks the full immutable route-binding digest and permits executable connection, reservation, activation, dispatch and Agent-frame paths only for ACTIVE",
+    "legacyMigration": "generation state is available in explicit legacy mode for pending import, sealing and later elected-mode switch; missing state is never inferred as legacy in elected mode",
+    "qualificationRpc": "isolated qualification RPC exposes generation readback, initialization, import, drain, retirement and activation operations",
+    "deploymentOwners": "DEPLOYMENT and SECURITY document the generation table, identity-only embedded binding and fail-closed admission boundary"
+  },
+  "validation": {
+    "profile": "portable",
+    "command": "npm run check",
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0044@r1 groups=8 gates=19",
+    "tests": {
+      "total": 607,
+      "passed": 607,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "focusedCoverage": {
+    "electedRouteBindingExcludesElectionMetadata": "PASS",
+    "generationMissingBlocksExecutableAdmission": "PASS",
+    "activeGenerationReachesD0039Verifier": "PASS",
+    "sqliteGenerationCasReconstructionAndCorruption": "PASS",
+    "qualificationGenerationRpcShape": "PASS",
+    "legacyModeRegression": "PASS"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "recoveryKeyGeneratedForLiveUse": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "d0044Source": "PASS for exact tested source ff9f7ba3cdb2c79f10b2f9c9ca4445c7f0ddffd1",
+    "isolatedProviderRuntime": "UNVERIFIED — no Cloudflare credentials or lane bindings were present in this session",
+    "legacyImportMigration": "SOURCE-WIRED BUT PROVIDER-UNVERIFIED",
+    "d0039Q7Q8Q9": "UNVERIFIED and not promoted by D0044 source"
+  },
+  "nextGate": "provide an isolated Cloudflare lane and least-privilege provider credentials, then execute the D0044 provider/runtime qualification including SQLite reconstruction and legacy import/cutover crash points without touching canonical D0039 R12"
+}
