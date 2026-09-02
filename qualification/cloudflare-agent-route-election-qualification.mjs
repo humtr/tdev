@@ -26,6 +26,7 @@ const ELECTION_OPERATIONS = Object.freeze(new Set([
   'recordAgentRoutePredecessorExclusion',
   'recordAgentRouteSuccessorStandby',
   'commitAgentRouteCutover',
+  'commitAgentRouteCutoverResponseLoss',
 ]));
 
 const ELECTION_PAYLOAD_SHAPES = Object.freeze({
@@ -37,6 +38,7 @@ const ELECTION_PAYLOAD_SHAPES = Object.freeze({
   recordAgentRoutePredecessorExclusion: [['cutoverRequestId', 'predecessorExclusionDigest'], []],
   recordAgentRouteSuccessorStandby: [['cutoverRequestId', 'successorStandbyDigest'], []],
   commitAgentRouteCutover: [['cutoverRequestId'], []],
+  commitAgentRouteCutoverResponseLoss: [['cutoverRequestId'], []],
 });
 
 const DELIVERY_OPERATIONS = new Set([
@@ -238,6 +240,7 @@ async function invokeElection(stub, operation, agentId, payload) {
     case 'recordAgentRoutePredecessorExclusion': return stub.recordAgentRoutePredecessorExclusion(agentId, payload);
     case 'recordAgentRouteSuccessorStandby': return stub.recordAgentRouteSuccessorStandby(agentId, payload);
     case 'commitAgentRouteCutover': return stub.commitAgentRouteCutover(agentId, payload);
+    case 'commitAgentRouteCutoverResponseLoss': return stub.commitAgentRouteCutoverResponseLoss(agentId, payload);
     default: fail('qualification_unknown_operation', 'D0044 election operation is unsupported');
   }
 }

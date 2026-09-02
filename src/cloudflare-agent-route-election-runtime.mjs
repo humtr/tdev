@@ -45,6 +45,7 @@ export class SqliteAgentRouteElectionStore {
 
 export class AgentRouteElectionRuntimeDOHost {
   constructor(ctx, env = {}) {
+    this.ctx = ctx;
     this.store = new SqliteAgentRouteElectionStore(ctx?.storage, { maxSnapshotBytes: Number(env.TDEV_AGENT_ROUTE_ELECTION_MAX_SNAPSHOT_BYTES ?? DEFAULT_MAX_BYTES) });
   }
   #authority(agentId) { return new DurableAgentRouteElectionAuthority({ agentId, store: this.store }); }
@@ -55,4 +56,10 @@ export class AgentRouteElectionRuntimeDOHost {
   async recordAgentRoutePredecessorExclusion(agentId, input) { return publicJsonClone(await this.#authority(agentId).recordPredecessorExclusion(canonicalClone(input))); }
   async recordAgentRouteSuccessorStandby(agentId, input) { return publicJsonClone(await this.#authority(agentId).recordSuccessorStandby(canonicalClone(input))); }
   async commitAgentRouteCutover(agentId, input) { return publicJsonClone(await this.#authority(agentId).commitCutover(canonicalClone(input))); }
+  async commitAgentRouteCutoverResponseLoss(agentId, input) {
+    const result = await this.#authority(agentId).commitCutover(canonicalClone(input));
+    if (!this.ctx || typeof this.ctx.abort !== 'function') fail('invalid_agent_route_election_storage', 'Election response-loss qualification requires Durable Object abort support');
+    this.ctx.abort('tdev_d0044_qualification_abort_after_commit');
+    throw new ContractError('qualification_abort_returned', 'Election response-loss abort unexpectedly returned');
+  }
 }
