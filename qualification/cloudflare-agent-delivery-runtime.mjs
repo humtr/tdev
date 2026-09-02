@@ -69,6 +69,7 @@ const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'd0044_pitr_get_current_bookmark',
   'd0044_pitr_clear_storage',
   'd0044_pitr_clear_generation_state',
+  'd0044_pitr_reinitialize_generation_state',
   'd0044_pitr_restore_next_session',
 ]);
 function corruptedSignature(value, label) {
@@ -280,6 +281,7 @@ function rpcShape(input) {
     d0044_pitr_get_current_bookmark: [[], []],
     d0044_pitr_clear_storage: [[], []],
     d0044_pitr_clear_generation_state: [[], []],
+    d0044_pitr_reinitialize_generation_state: [['state'], []],
     d0044_pitr_restore_next_session: [['bookmark'], []],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
@@ -776,6 +778,9 @@ export class D0020QualificationAgentDeliveryDOHost {
           this.ctx.storage.sql.exec('DELETE FROM agent_route_generation_state WHERE agent_id = ?', routeBinding.agentId);
         });
         result = { classification: 'generation_state_cleared', beforeStateDigest: before === null ? null : digest(before), routeGeneration: routeBinding.routeGeneration };
+      } else if (operation === 'd0044_pitr_reinitialize_generation_state') {
+        const state = input.state;
+        result = this.host.initializeRouteGeneration({ routeBinding, state });
       } else if (operation === 'd0044_pitr_restore_next_session') {
         if (typeof this.ctx.storage?.onNextSessionRestoreBookmark !== 'function') {
           throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR restore API is unavailable');
