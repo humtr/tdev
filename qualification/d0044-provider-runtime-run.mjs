@@ -105,9 +105,11 @@ async function main() {
   if (!deliveryNamespaceId || !electionNamespaceId) throw new Error('D0044 namespace bindings are incomplete');
 
   const qualificationToken = process.env.TDEV_D0044_QUALIFICATION_TOKEN ?? randomBytes(32).toString('hex');
-  await client.request('PUT', client.accountPath(`/workers/scripts/${scriptName}/secrets`), {
-    json: { name: 'TDEV_D0020_QUALIFICATION_TOKEN', text: qualificationToken, type: 'secret_text' },
-  });
+  if (process.env.TDEV_D0044_SKIP_TOKEN_UPDATE !== 'true') {
+    await client.request('PUT', client.accountPath(`/workers/scripts/${scriptName}/secrets`), {
+      json: { name: 'TDEV_D0020_QUALIFICATION_TOKEN', text: qualificationToken, type: 'secret_text' },
+    });
+  }
 
   const denied = await invoke('not-the-qualification-token', '/qualification/d0044/election/v1', {
     profile: 'tdev.agent-route-election-qualification.v1',

@@ -137,7 +137,7 @@ async function main() {
   const { publicKey } = generateKeyPairSync('ed25519');
   const attestorJwk = publicKey.export({ format: 'jwk' });
   const attestorKeyId = installableAgentEvidenceAttestorKeyId(attestorJwk);
-  const qualificationToken = randomBytes(32).toString('hex');
+  const qualificationToken = process.env.TDEV_D0044_QUALIFICATION_TOKEN ?? randomBytes(32).toString('hex');
 
   let delivery;
   let election;
