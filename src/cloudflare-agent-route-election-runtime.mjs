@@ -62,4 +62,13 @@ export class AgentRouteElectionRuntimeDOHost {
     this.ctx.abort('tdev_d0044_qualification_abort_after_commit');
     throw new ContractError('qualification_abort_returned', 'Election response-loss abort unexpectedly returned');
   }
+  async d0044CommitAgentRouteCutoverReplayDiagnostic(agentId, input) {
+    try {
+      const result = await this.#authority(agentId).commitCutover(canonicalClone(input));
+      if (result?.classification !== 'exact_replay') return { ok: false, error: { code: 'd0044_replay_not_exact', classification: result?.classification ?? null } };
+      return { ok: true, result: publicJsonClone(result) };
+    } catch (error) {
+      return { ok: false, error: { name: typeof error?.name === 'string' ? error.name : 'Error', code: typeof error?.code === 'string' ? error.code : null, message: typeof error?.message === 'string' ? error.message.slice(0, 256) : null } };
+    }
+  }
 }
