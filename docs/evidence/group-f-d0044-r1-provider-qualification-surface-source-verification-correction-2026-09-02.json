@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_surface_source_verification_correction",
+  "observedAtUtc": "2026-09-02T13:15:00Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "isolated Cloudflare provider/runtime legacy-import and higher-generation cutover qualification"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "e6f790ee01918735e3541e77d84cbaa0df3c2d7c",
+    "sourceShaBinding": "e6f790ee01918735e3541e77d84cbaa0df3c2d7c",
+    "tree": "f4a5b181d9ae25257107379f72aed257c23795d3",
+    "parent": "95ed3b4b68f2654c84d3c2cc777618280b9e851a",
+    "commitMessage": "fix: unwrap D0044 delivery authority responses",
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "deliveryQualification": "unwraps the D0020 qualification RPC v2 envelope once before exposing the D0044 provider result and preserves structured authority error codes",
+    "regressionCoverage": "success and structured failure envelopes are covered at the D0044 delivery boundary"
+  },
+  "validation": {
+    "profile": "portable",
+    "commands": [
+      "npm ci --ignore-scripts --no-audit --no-fund",
+      "npm run check",
+      "node --experimental-test-coverage --test test/*.test.mjs",
+      "git diff --check"
+    ],
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0044@r1 groups=8 gates=19",
+    "tests": {
+      "total": 611,
+      "passed": 611,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line": 85.62,
+      "branch": 71.43,
+      "function": 88.3
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "focusedCoverage": {
+    "generationHostKeyBinding": "PASS",
+    "deliveryRpcSuccessUnwrap": "PASS",
+    "deliveryRpcStructuredFailureUnwrap": "PASS",
+    "malformedAndUnsupportedInputNoProviderLookup": "PASS",
+    "existingD0044ElectionFirstRoutingRegression": "PASS"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "qualificationTokenRotation": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "d0044Source": "PASS for exact tested source e6f790ee01918735e3541e77d84cbaa0df3c2d7c",
+    "isolatedProviderRuntime": "UNVERIFIED — this correction has not been deployed to the isolated Worker",
+    "priorProviderFailure": "The previously deployed source remains blocked at HTTP 400 qualification_provider_failure before D0040 attestor readback",
+    "canonicalD0039": "untouched"
+  },
+  "nextGate": "with renewed explicit authorization for one qualification-token rotation, deploy this exact source to the isolated Worker and rerun D0044 from a fresh target/agent identity; do not import or cut over canonical D0039 R12"
+}
