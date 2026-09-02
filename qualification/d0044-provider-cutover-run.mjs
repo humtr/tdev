@@ -22,7 +22,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-import-20260902-r16';
+const agentId = 'd0044-provider-import-20260902-r17';
 const profile = 'tdev.agent-route-election-qualification.v1';
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
 
@@ -73,10 +73,16 @@ function targetBase({ settings, d0040, deliveryNamespaceId, routeGeneration, ope
   };
   return { target, requestDigest };
 }
-async function d0040(token, hostKey, routeGeneration) {
-  return assertOk(`D0040 readback generation ${routeGeneration}`, await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
-    profile, routeHostKey: hostKey, rpc: deliveryRpc(routeGeneration, 'd0040_evidence_attestor_readback'),
-  }, 'D0040 readback'));
+async function d0040(token, hostKey, routeGeneration, expectedSourceSha = null) {
+  let result = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    result = assertOk(`D0040 readback generation ${routeGeneration}`, await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
+      profile, routeHostKey: hostKey, rpc: deliveryRpc(routeGeneration, 'd0040_evidence_attestor_readback'),
+    }, 'D0040 readback'));
+    if (expectedSourceSha === null || result.sourceSha === expectedSourceSha) return result;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`D0040 source propagation failed for generation ${routeGeneration}`);
 }
 async function initializeRoute({ token, settings, deliveryNamespaceId, hostKey, routeGeneration, d0040Result, generation }) {
   const initialization = {};
@@ -134,7 +140,8 @@ async function main() {
   const legacyHostKey = agentId;
   const generation1 = 1;
   const generation2 = 2;
-  const d0040Legacy = await d0040(qualificationToken, legacyHostKey, generation1);
+  const expectedSourceSha = requiredBinding(settings, 'TDEV_SOURCE_SHA');
+  const d0040Legacy = await d0040(qualificationToken, legacyHostKey, generation1, expectedSourceSha);
   const binding1 = routeBinding({ routeGeneration: generation1, namespaceId: deliveryNamespaceId, durableObjectId: d0040Legacy.durableObjectId });
   const migrationRequest = { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1', routeSecurity: { profile: INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE, managementPublicKey, releaseRootPublicKey } };
   const local1 = new AgentDeliveryAuthority({ store: new MemoryAgentDeliveryStore(), routeBinding: binding1 });
@@ -152,7 +159,7 @@ async function main() {
   const legacyRuntime = await runtimeProbe(qualificationToken, legacyHostKey, generation1);
   const generation1Read = await readGeneration(qualificationToken, legacyHostKey, generation1);
   const generation2HostKey = agentRouteHostKey({ agentId, routeGeneration: generation2 });
-  const d0040Successor = await d0040(qualificationToken, generation2HostKey, generation2);
+  const d0040Successor = await d0040(qualificationToken, generation2HostKey, generation2, expectedSourceSha);
   const binding2 = routeBinding({ routeGeneration: generation2, namespaceId: deliveryNamespaceId, durableObjectId: d0040Successor.durableObjectId });
   const local2 = new AgentDeliveryAuthority({ store: new MemoryAgentDeliveryStore(), routeBinding: binding2 });
   const snapshot2 = local2.initialize({}).snapshot;
