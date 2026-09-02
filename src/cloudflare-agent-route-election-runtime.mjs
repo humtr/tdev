@@ -52,7 +52,7 @@ export class AgentRouteElectionRuntimeDOHost {
   async createAgentRouteGenesis(agentId, input) { return publicJsonClone(await this.#authority(agentId).createGenesis(canonicalClone(input))); }
   async importLegacyAgentRoute(agentId, input) { return publicJsonClone(await this.#authority(agentId).importLegacy(canonicalClone(input))); }
   async prepareAgentRouteCutover(agentId, input) { return publicJsonClone(await this.#authority(agentId).prepareCutover(canonicalClone(input))); }
-  recordAgentRoutePredecessorExclusion(agentId, input) { return publicJsonClone(this.#authority(agentId).recordPredecessorExclusion(canonicalClone(input))); }
-  recordAgentRouteSuccessorStandby(agentId, input) { return publicJsonClone(this.#authority(agentId).recordSuccessorStandby(canonicalClone(input))); }
-  commitAgentRouteCutover(agentId, input) { return publicJsonClone(this.#authority(agentId).commitCutover(canonicalClone(input))); }
+  async recordAgentRoutePredecessorExclusion(agentId, input) { return publicJsonClone(await this.#authority(agentId).recordPredecessorExclusion(canonicalClone(input))); }
+  async recordAgentRouteSuccessorStandby(agentId, input) { return publicJsonClone(await this.#authority(agentId).recordSuccessorStandby(canonicalClone(input))); }
+  async commitAgentRouteCutover(agentId, input) { return publicJsonClone(await this.#authority(agentId).commitCutover(canonicalClone(input))); }
 }
