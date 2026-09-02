@@ -4,6 +4,7 @@ import {
   D0020QualificationService,
 } from './cloudflare-agent-delivery-runtime.mjs';
 import { AgentRouteElectionRuntimeDOHost } from '../src/cloudflare-agent-route-election-runtime.mjs';
+import { D0044ProviderQualificationService } from './cloudflare-agent-route-election-qualification.mjs';
 
 export class AgentDeliveryRuntimeDO extends DurableObject {
   constructor(ctx, env) {
@@ -48,6 +49,10 @@ export class AgentRouteElectionRuntimeDO extends DurableObject {
 
 export default {
   fetch(request, env) {
+    const pathname = new URL(request.url).pathname;
+    if (pathname === '/qualification/d0044/election/v1' || pathname === '/qualification/d0044/delivery/v1') {
+      return new D0044ProviderQualificationService(env).fetch(request);
+    }
     return new D0020QualificationService(env).fetch(request);
   },
 };
