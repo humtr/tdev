@@ -223,7 +223,7 @@ async function main() {
     provisioningTransactionId: transactionId,
     provisioningRequestDigest: routeProvisioningRequestDigest,
   };
-  const initializeResult = assertOk('delivery initialize', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
+  const initializeResponse = await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
     rpc: deliveryRpc('initialize', {
@@ -234,7 +234,28 @@ async function main() {
       routeProvisioningTransactionId: transactionId,
       routeProvisioningRequestDigest,
     }),
-  }));
+  });
+  let initializeResult;
+  if (initializeResponse.status === 200 && initializeResponse.body?.ok === true) {
+    initializeResult = initializeResponse.body.result;
+  } else if (initializeResponse.body?.error?.code === 'agent_route_generation_already_initialized') {
+    const reconciledRoute = assertOk('delivery initialize route reconciliation', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
+      profile,
+      routeHostKey,
+      rpc: deliveryRpc('read'),
+    }));
+    const reconciledGeneration = assertOk('delivery initialize generation reconciliation', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
+      profile,
+      routeHostKey,
+      rpc: deliveryRpc('read_route_generation'),
+    }));
+    if (digest(reconciledRoute) !== digest(snapshot) || digest(reconciledGeneration) !== generationDigest) {
+      throw new Error('delivery initialize reconciliation observed a different route or generation identity');
+    }
+    initializeResult = { deduplicated: false, reconciled: true };
+  } else {
+    initializeResult = assertOk('delivery initialize', initializeResponse);
+  }
   if (initializeResult?.deduplicated !== false) throw new Error('delivery initialize did not create a fresh route');
 
   const genesisNonce = digest({ nonce: randomBytes(32).toString('hex') });
