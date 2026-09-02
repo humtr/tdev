@@ -69,6 +69,7 @@ const LEGACY_IMPORT_OPERATIONS = new Set([
   'seal_legacy_route_import',
   'begin_route_draining',
   'retire_route',
+  'activate_route',
 ]);
 
 function fail(code, message) {
