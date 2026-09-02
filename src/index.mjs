@@ -36,6 +36,7 @@ export {
   updateManagementResult,
 } from './installable-agent-admission.mjs';
 export * from './installable-agent-security.mjs';
+export * from './agent-route-election.mjs';
 export * from './installable-agent-pre-genesis.mjs';
 export * from './installable-agent-bootstrap-executor.mjs';
 export * from './installable-agent-keystore.mjs';
