@@ -1,0 +1,124 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.group-f.d0039-r12-q3-isolated-lane-availability-blocker.v1",
+  "classification": "BLOCKED_EXTERNAL_PHYSICAL_LANE",
+  "scope": "r12_q3_remaining_falsifier_lane_availability_only",
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "status": "implementing",
+    "terminalQ3": false
+  },
+  "repository": {
+    "observationCheckoutHead": "2d1d47348a1d10924facb9bc5954b54287e0a2a9",
+    "branch": "development",
+    "deployedProductSourceSha": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "deployedArtifactDigest": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "releaseManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d"
+  },
+  "boundIdentity": {
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "currentCredentialKeyId": "sha256:bf9093d13d77576b8cef680886a88b36aff95d9bc8db636d9604a1fb381ec5af",
+    "androidSourceLineageId": "228fb2cfe90831c1499ec3ccaf61e96e8e1ce70766b9474672ce427334d41c42"
+  },
+  "currentPhysicalLaneObservation": {
+    "platform": "android",
+    "architecture": "arm64",
+    "androidMajor": 16,
+    "deviceModel": "SM-S928N",
+    "termuxVersion": "0.119.0-beta.3",
+    "currentAndroidUser": 0,
+    "canonicalTermuxPackageVisible": true,
+    "canonicalTermuxApiPackageVisible": true,
+    "otherAndroidUserAccess": "probe_denied_before_cross_user_readback_android.permission.INTERACT_ACROSS_USERS_FULL",
+    "adbClientAvailable": false,
+    "wirelessAdbListenerObserved": false,
+    "rishAvailable": false,
+    "shizukuBridgeObserved": false,
+    "actualRootSuObserved": false,
+    "sacrificialLaneAccessibleFromCurrentSession": false,
+    "otherAndroidUserProbeId": 150,
+    "otherAndroidUserExistenceAuthoritativelyReadable": false
+  },
+  "historicalEvidenceAudit": {
+    "r6DedicatedQ3Task": {
+      "taskId": "task_fpx_bea4947b38",
+      "continuityKey": "humtr/tdev:d0039-r6:q3-physical-prequalification:2026-08-26",
+      "disposition": "paused_before_any_physical_q3_mutation",
+      "artifactCount": 0,
+      "reusableForR12RemainingFalsifiers": false,
+      "reason": "task pause record explicitly states no AndroidKeyStore alias or product/device mutation executed after the Q4 source/security falsifier"
+    },
+    "r7ProviderAdmissionEvidence": {
+      "path": "docs/evidence/group-f-d0039-r7-q5p-provider-admission-2026-08-25.json",
+      "introducingCommit": "0982e7be25dfe3fbcebf6872c035147a4786d199",
+      "q3ObservedMeanings": [
+        "physical Termux/Termux:API lineage",
+        "Termux:API runit availability",
+        "AndroidKeyStore public inventory without private export",
+        "no file-key fallback"
+      ],
+      "credentialMutation": "not_requested",
+      "currentFiveFalsifiersEnumeratedOrProven": false,
+      "reusableForR12TerminalQ3": false
+    }
+  },
+  "supplementalNegativeProbe": {
+    "localSummaryPathClass": "home_local_state_non_repository",
+    "localSummarySha256": "sha256:683c7a07e72aed8a53107045edd58eb41b1686e4170d23e1ad3859e067ac5ec8",
+    "result": "different pinned lineage rejected with android_source_lineage_mismatch and exact lineage rebound passed",
+    "countsAsSourceSwitchFailsClosed": false,
+    "reason": "the official source-family switch falsifier requires the physical Termux and Termux:API signer lineages themselves to differ; this probe left the installed pair unchanged"
+  },
+  "q3CheckStatus": {
+    "alreadyBoundedPass": [
+      "termuxLineagePinned",
+      "termuxApiLineagePinned",
+      "rsa3072Generated",
+      "unattendedSign",
+      "publicJwkInterop",
+      "aliasLossFailsClosed",
+      "noFileKeyFallback"
+    ],
+    "remainingUnverified": [
+      "missingApiFailsClosed",
+      "sourceSwitchFailsClosed",
+      "reinstallLossFailsClosed",
+      "deviceReplacementFailsClosed",
+      "cloneResistance"
+    ],
+    "terminalGateStatus": "unverified"
+  },
+  "continuation": {
+    "requiredNextCapability": "independently_accessible_supported_android_sacrificial_or_isolated_lane",
+    "preserveCanonicalCurrentRoute": true,
+    "preserveCanonicalCurrentCredential": true,
+    "preserveCanonicalTermuxAndTermuxApiInstallation": true,
+    "doNotReplayPhaseUOrPhaseP": true,
+    "doNotSimulatePhysicalFalsifiersWithInjectedSourceAdapters": true,
+    "terminalQ3PromotionAuthorized": false
+  },
+  "mutationBoundary": {
+    "repositoryProductSourceMutated": false,
+    "canonicalCurrentCredentialMutated": false,
+    "canonicalRouteMutated": false,
+    "providerMutated": false,
+    "termuxOrTermuxApiInstallationMutated": false,
+    "androidUserOrProfileMutated": false,
+    "phaseUReplay": false,
+    "phasePReplay": false
+  },
+  "secretValues": "excluded",
+  "privateKeyBytes": "excluded",
+  "observedAtUtc": "2026-09-02T03:37:11Z",
+  "auditProvenance": {
+    "controllerTaskId": "task_kfl_03ed3601a7",
+    "historicalR6Q3TaskContextJobId": "job_kzn_1038cece5d",
+    "historicalR7EvidenceGitTraceJobId": "job_l02_0df139d4b3",
+    "currentAndroidLaneInventoryJobId": "job_kz4_8e78ce357c",
+    "crossUserProbeJobId": "job_kzf_0190dc89f4",
+    "privilegeBridgeInventoryJobId": "job_kzg_1b0a1160fb",
+    "rootCapabilityInventoryJobId": "job_kzh_c5a86b9c4c",
+    "supplementalPinnedLineageNegativeJobId": "job_kzb_aff1c06192"
+  }
+}
