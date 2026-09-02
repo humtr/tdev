@@ -14,7 +14,7 @@ const repositoryRoot = new URL('..', import.meta.url).pathname.replace(/\/$/, ''
 const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
-const sourceSha = 'e6f790e9c6d638abfb22d7af9d1e68273a9e4fd1';
+const sourceSha = 'e6f790ee01918735e3541e77d84cbaa0df3c2d7c';
 const deploymentEpoch = 'd0044-r1-provider-20260902';
 const apiOrigin = 'https://api.cloudflare.com/client/v4';
 
