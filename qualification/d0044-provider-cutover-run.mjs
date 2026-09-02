@@ -136,10 +136,13 @@ async function main() {
   const generation2 = 2;
   const d0040Legacy = await d0040(qualificationToken, legacyHostKey, generation1);
   const binding1 = routeBinding({ routeGeneration: generation1, namespaceId: deliveryNamespaceId, durableObjectId: d0040Legacy.durableObjectId });
-  const local1 = new AgentDeliveryAuthority({ store: new MemoryAgentDeliveryStore(), routeBinding: binding1 });
-  const snapshot1 = local1.initialize({}).snapshot;
-  const legacyGeneration = AgentRouteGenerationAuthority.legacy({ routeBinding: { agentId, routeGeneration: generation1 }, routeBindingDigest: agentRouteBindingDigest(binding1), routeStateDigest: digest(snapshot1) }).read();
-  await initializeRoute({ token: qualificationToken, settings, deliveryNamespaceId, hostKey: legacyHostKey, routeGeneration: generation1, d0040Result: d0040Legacy, generation: legacyGeneration });
+  await initializeRoute({ token: qualificationToken, settings, deliveryNamespaceId, hostKey: legacyHostKey, routeGeneration: generation1, d0040Result: d0040Legacy, generation: undefined });
+  const migrationRequest = { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1', routeSecurity: { profile: INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE, managementPublicKey, releaseRootPublicKey } };
+  await migrateRoute({ token: qualificationToken, settings, deliveryNamespaceId, hostKey: legacyHostKey, routeGeneration: generation1, d0040Result: d0040Legacy, request: migrationRequest });
+  const legacyRuntime = await runtimeProbe(qualificationToken, legacyHostKey, generation1);
+  const legacySnapshot = await readRoute(qualificationToken, legacyHostKey, generation1);
+  const legacyGeneration = AgentRouteGenerationAuthority.legacy({ routeBinding: { agentId, routeGeneration: generation1 }, routeBindingDigest: agentRouteBindingDigest(binding1), routeStateDigest: digest(legacySnapshot) }).read();
+  await initializeGeneration({ token: qualificationToken, hostKey: legacyHostKey, routeGeneration: generation1, state: legacyGeneration, expectedDeploymentIdentityDigest: legacyRuntime.deploymentIdentityDigest });
   const importRecord = { profile: AGENT_ROUTE_ELECTION_IMPORT_PROFILE, agentId, routeGeneration: generation1, routeBindingDigest: agentRouteBindingDigest(binding1), routeHostProfile: AGENT_ROUTE_LEGACY_HOST_PROFILE, routeHostKey: legacyHostKey, currentRouteStateDigest: legacyGeneration.routeStateDigest, electionAuthorityIdentity, recoveryKeyId, recoveryPublicKey };
   const recoverySignature = signRecord(importRecord, recovery);
   const managementSignature = signRecord(importRecord, management);
@@ -147,9 +150,6 @@ async function main() {
   const imported = assertOk('election legacy import', await invoke(qualificationToken, '/qualification/d0044/election/v1', { profile, operation: 'importLegacyAgentRoute', agentId, payload: { record: importRecord, recoverySignature, managementSignature, managementPublicJwk: managementPublicKey } }));
   const electionImported = assertOk('read imported election', await invoke(qualificationToken, '/qualification/d0044/election/v1', { profile, operation: 'readAgentRouteElection', agentId, payload: {} }));
   const sealedImport = assertOk('seal legacy import', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', { profile, routeHostKey: legacyHostKey, rpc: deliveryRpc(generation1, 'seal_legacy_route_import', { electionState: electionImported }) }, 'seal legacy import'));
-  const migrationRequest = { migrationProfile: 'tdev.d0020-only-to-d0027-unregistered.v1', routeSecurity: { profile: INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE, managementPublicKey, releaseRootPublicKey } };
-  await migrateRoute({ token: qualificationToken, settings, deliveryNamespaceId, hostKey: legacyHostKey, routeGeneration: generation1, d0040Result: d0040Legacy, request: migrationRequest });
-  const legacyRuntime = await runtimeProbe(qualificationToken, legacyHostKey, generation1);
   const generation1Read = await readGeneration(qualificationToken, legacyHostKey, generation1);
   const generation2HostKey = agentRouteHostKey({ agentId, routeGeneration: generation2 });
   const d0040Successor = await d0040(qualificationToken, generation2HostKey, generation2);
