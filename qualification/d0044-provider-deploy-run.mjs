@@ -15,7 +15,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const reuseExisting = process.argv.includes('--reuse-existing');
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
-const sourceSha = 'dcb4f2e5c80636512c44dbb9e16e113d441135bc';
+const sourceSha = 'bc5c6e583037c13f8868f7e9a10386a93d69cb1d';
 const deploymentEpoch = 'd0044-r1-provider-20260902';
 const apiOrigin = 'https://api.cloudflare.com/client/v4';
 
