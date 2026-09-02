@@ -239,7 +239,7 @@ export class D0044ProviderQualificationService {
           return jsonResponse(200, { ok: true, result: publicJsonClone({ ...diagnostic.result, ...(pipeline === null ? {} : { pipeline }) }) });
         }
         if (typeof stub.qualificationInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose qualification RPC');
-        const result = unwrapDeliveryRpc(await stub.qualificationInvoke(input.rpc));
+        const result = unwrapDeliveryRpc(await stub.qualificationInvoke(publicJsonClone(input.rpc)));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
       }
       return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found' } });
