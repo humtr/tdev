@@ -1,0 +1,148 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_generation2_response_loss_replay",
+  "observedAtUtc": "2026-09-02T21:41:44Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "provider-loss/recovery crash points and predecessor PITR/same-name non-resurrection"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "validationCommit": "1261a667d23a2b892438656948723cf5dcfaa725",
+    "deployedWorkerSourceCommit": "5067b8121ec858e1a19758a36e59058cf21e744f",
+    "validation": {
+      "commands": [
+        "npm run check",
+        "git diff --check"
+      ],
+      "success": true,
+      "tests": {
+        "total": 612,
+        "passed": 612,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "syntax": "PASS",
+      "documentation": "PASS",
+      "demo": "PASS",
+      "durableDemo": "PASS",
+      "cleanDiff": true
+    }
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "r25",
+    "sourceSha": "5067b8121ec858e1a19758a36e59058cf21e744f",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:7c25c4ba1613d04d51d889677d57a0271a0073a56183b5f55a1d4a904913315e",
+    "artifactManifestDigest": "sha256:c30e0417cb62bdc5873a2798b918f812f85a8f55f766b4f35dcadc1a2276b07e",
+    "attestorKeyId": "sha256:624ee08ef8861db1416e94aed1bc5af9cd2c4c3c12e751e27e810f268c360c66",
+    "trafficPercentage": 100,
+    "latestObservedDeployment": {
+      "id": "8d69ba9e-4a9e-4844-8657-bd28b86c66f9",
+      "versionId": "dae45b1d-0e3f-4e3d-8a80-2ce57d972c50",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {
+        "namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2",
+        "className": "AgentDeliveryRuntimeDO",
+        "useSqlite": true
+      },
+      "election": {
+        "namespaceId": "5f5e1733b60e408ba339ee01981e981f",
+        "className": "AgentRouteElectionRuntimeDO",
+        "useSqlite": true
+      },
+      "distinctNamespaces": true
+    },
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-provider-response-loss-20260903-r25",
+    "legacyGeneration": {
+      "routeGeneration": 1,
+      "routeHostProfile": "legacy_agent_id_v1",
+      "importStages": {
+        "pendingAttachment": "PASS",
+        "dualAuthorizedElectionCreation": "PASS",
+        "sealedAttachment": "PASS",
+        "sealedAttachmentReadback": "PASS"
+      },
+      "electionDigest": "sha256:7d446e51d6a7c8d3f230263668b07c5497838c570c924bfe90ed4cc080759bce",
+      "attachmentDigest": "sha256:2fc6b57f368a62a82a89f74ab4cd456ae7e2e10d1788be4ae158bf5024425574",
+      "disposition": "RETIRED"
+    },
+    "cutover": {
+      "cutoverRequestId": "rc1:1",
+      "responseLoss": {
+        "status": 400,
+        "code": "qualification_provider_failure",
+        "transportError": null,
+        "meaning": "provider returned an ambiguous error after the durable election commit"
+      },
+      "replay": {
+        "classification": "exact_replay",
+        "resultClassification": "applied",
+        "activationReceiptDigest": "sha256:cfcad76edb664bd3614e106e7ba0fbd08c620135859d5d0d3425b7a5cd3a4d88",
+        "currentRouteGeneration": 2,
+        "currentRouteBindingDigest": "sha256:6d53e6f2f3db0845e6a3a2d4efc28ea8494d8c57514b64c5154b7829e30f2c7c",
+        "electionActiveCutoverAfterReplay": null,
+        "cutoverRequestSequenceHighWater": 1
+      },
+      "successorActivationReadback": "PASS — generation 2 was ACTIVE after a fresh election reread",
+      "stalePredecessorActivation": {
+        "status": 400,
+        "code": "agent_route_not_standby"
+      }
+    },
+    "successorGeneration": {
+      "routeGeneration": 2,
+      "disposition": "ACTIVE",
+      "activationReceiptDigest": "sha256:cfcad76edb664bd3614e106e7ba0fbd08c620135859d5d0d3425b7a5cd3a4d88"
+    },
+    "invariants": {
+      "strictNextGeneration": true,
+      "predecessorRetired": true,
+      "successorActive": true,
+      "exactReplay": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedWorkerDeployment": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "qualificationTokenRotated": true,
+    "legacyImportMutation": true,
+    "generation2CutoverMutation": true,
+    "responseLossCrashPointReplay": true,
+    "providerLossRecovery": "NOT_EXECUTED",
+    "predecessorPitrOrSameNameNonResurrection": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "source": "PASS — exact 612/612 gate",
+    "providerDeployment": "PASS — isolated workers.dev Worker at 100% with distinct SQLite namespaces",
+    "legacyImportAndGeneration2Cutover": "PASS",
+    "responseLossAndExactReplay": "PASS — durable commit survived an ambiguous provider error and exact replay returned the same receipt",
+    "providerLossRecoveryAndNonResurrection": "UNVERIFIED",
+    "predecessorPitrOrSameNameNonResurrection": "UNVERIFIED",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated r2/r3/r5/r6/r9-r24 attempts were retained without reset, force-rewrite or deletion.",
+  "nextGate": "Run only the isolated provider-loss/recovery crash-point and predecessor PITR/same-name non-resurrection proofs; do not import or cut over canonical D0039 R12."
+}
