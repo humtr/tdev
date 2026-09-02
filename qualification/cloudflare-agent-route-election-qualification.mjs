@@ -73,6 +73,14 @@ function publicError(error) {
   return jsonResponse(status, { ok: false, error: { code } });
 }
 
+function rpcJsonClone(value) {
+  let encoded;
+  try { encoded = JSON.stringify(value); }
+  catch (cause) { throw new ContractError('invalid_qualification_provider', 'D0044 provider RPC result is not JSON-serializable', {}, { cause }); }
+  if (typeof encoded !== 'string') fail('invalid_qualification_provider', 'D0044 provider RPC result is not JSON-serializable');
+  return strictJsonParse(encoded, { maxBytes: MAX_REQUEST_BYTES });
+}
+
 function diagnosticFailure(error) {
   const name = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(error.name) ? error.name : 'unknown';
   const code = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code) ? error.code : null;
@@ -84,7 +92,7 @@ async function diagnoseElectionPipeline(stub, input) {
     const raw = await stub.readAgentRouteElection(input.agentId);
     pipeline.rpcReturned = true;
     try {
-      publicJsonClone(raw);
+      rpcJsonClone(raw);
       pipeline.cloneSucceeded = true;
     } catch (error) {
       pipeline.cloneFailure = diagnosticFailure(error);
@@ -105,7 +113,7 @@ async function diagnoseDeliveryPipeline(stub, input) {
       const result = unwrapDeliveryRpc(raw);
       pipeline.unwrapSucceeded = true;
       try {
-        publicJsonClone(result);
+        rpcJsonClone(result);
         pipeline.cloneSucceeded = true;
       } catch (error) {
         pipeline.cloneFailure = diagnosticFailure(error);
@@ -252,7 +260,7 @@ export class D0044ProviderQualificationService {
           return jsonResponse(200, { ok: true, result: publicJsonClone({ ...diagnostic.result, pipeline }) });
         }
         const result = await invokeElection(stub, input.operation, input.agentId, publicJsonClone(input.payload));
-        return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
+        return jsonResponse(200, { ok: true, result: rpcJsonClone(result) });
       }
       if (url.pathname === D0044_DELIVERY_QUALIFICATION_PATH) {
         const input = deliveryInput(body);
@@ -267,7 +275,7 @@ export class D0044ProviderQualificationService {
         }
         if (typeof stub.qualificationInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose qualification RPC');
         const result = unwrapDeliveryRpc(await stub.qualificationInvoke(publicJsonClone(input.rpc)));
-        return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
+        return jsonResponse(200, { ok: true, result: rpcJsonClone(result) });
       }
       return jsonResponse(404, { ok: false, error: { code: 'qualification_not_found' } });
     } catch (error) {
