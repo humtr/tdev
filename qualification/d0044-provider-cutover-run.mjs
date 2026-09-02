@@ -22,7 +22,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-import-20260902-r13';
+const agentId = 'd0044-provider-import-20260902-r14';
 const profile = 'tdev.agent-route-election-qualification.v1';
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
 
@@ -81,7 +81,7 @@ async function d0040(token, hostKey, routeGeneration) {
 async function initializeRoute({ token, settings, deliveryNamespaceId, hostKey, routeGeneration, d0040Result, generation }) {
   const initialization = {};
   const transactionId = `d0044-init-${routeGeneration}-${randomBytes(8).toString('hex')}`;
-  const payload = generation === undefined ? { initialization } : { initialization, generation };
+  const payload = generation === undefined ? initialization : { initialization, generation };
   const { target, requestDigest } = targetBase({ settings, d0040: d0040Result, deliveryNamespaceId, routeGeneration, operation: 'initialize', transactionId, requestPayload: payload, predecessorState: 'ABSENT', predecessorDigest: null, routeAuthoritativeRereadDigest: null });
   const result = assertOk(`initialize generation ${routeGeneration}`, await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
     profile,
