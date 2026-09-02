@@ -48,6 +48,8 @@ const DELIVERY_OPERATIONS = new Set([
   'runtime_probe',
   'initialize',
   'initialize_route_generation',
+  'prepare_legacy_route_import',
+  'seal_legacy_route_import',
   'begin_route_draining',
   'retire_route',
   'activate_route',
