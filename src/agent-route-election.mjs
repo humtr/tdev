@@ -217,7 +217,7 @@ export function normalizeAgentRouteCutoverIntent(input) {
   return Object.freeze(canonicalClone(input));
 }
 
-async function verifyAgentRouteRecoverySignedRecord({ record, signature, publicJwk }) {
+export async function verifyAgentRouteRecoverySignedRecord({ record, signature, publicJwk }) {
   const normalizedPublicKey = normalizedRecoveryPublicKey(publicJwk);
   await verifyEd25519SignedRecord({ domain: record.profile, record, signature, publicJwk: normalizedPublicKey });
   return Object.freeze({ recoveryKeyId: agentRouteRecoveryKeyId(normalizedPublicKey) });
@@ -663,4 +663,53 @@ export class AgentRouteElectionAuthority {
     if (this.state.activeCutover.intent.cutoverRequestId !== cutoverRequestId) fail('agent_route_cutover_request_conflict', 'Cutover request ID does not match the active transaction');
     return this.state.activeCutover;
   }
+}
+
+export class MemoryAgentRouteElectionStore {
+  constructor() { this.records = new Map(); }
+  load(agentId) {
+    const record = this.records.get(agentId);
+    return record === undefined ? null : canonicalClone(record);
+  }
+  compareAndSwap(agentId, expectedRevision, state) {
+    const current = this.records.get(agentId);
+    const actualRevision = current === undefined ? null : current.revision;
+    if (actualRevision !== expectedRevision) fail('agent_route_election_revision_conflict', 'Election state revision changed');
+    this.records.set(agentId, { revision: expectedRevision === null ? 0 : expectedRevision + 1, state: canonicalClone(state) });
+  }
+}
+
+export class DurableAgentRouteElectionAuthority {
+  constructor({ agentId, store, maxRecentReceipts = DEFAULT_MAX_RECENT_RECEIPTS }) {
+    assertIdentifier(agentId, 'agentId');
+    if (!store || typeof store.load !== 'function' || typeof store.compareAndSwap !== 'function') fail('invalid_agent_route_election_store', 'Election store must expose load and compareAndSwap');
+    this.agentId = agentId;
+    this.store = store;
+    this.maxRecentReceipts = maxRecentReceipts;
+  }
+  read() {
+    const record = this.store.load(this.agentId);
+    if (record === null) return null;
+    assertSafeInteger(record.revision, 'election store revision', { min: 0 });
+    const state = normalizeAgentRouteElectionState(record.state, { maxRecentReceipts: this.maxRecentReceipts });
+    if (state.agentId !== this.agentId) fail('agent_route_election_store_corrupt', 'Election store key and state agent identity disagree');
+    return Object.freeze(canonicalClone(state));
+  }
+  async #mutate(method, input) {
+    const record = this.store.load(this.agentId);
+    const expectedRevision = record === null ? null : record.revision;
+    const priorState = record === null ? null : normalizeAgentRouteElectionState(record.state, { maxRecentReceipts: this.maxRecentReceipts });
+    const authority = new AgentRouteElectionAuthority({ state: priorState, maxRecentReceipts: this.maxRecentReceipts });
+    const result = await authority[method](input);
+    const nextState = authority.read();
+    if (nextState?.agentId !== this.agentId) fail('agent_route_election_store_key_mismatch', 'Mutation targets a different Agent election owner');
+    if (canonicalJson(priorState) !== canonicalJson(nextState)) this.store.compareAndSwap(this.agentId, expectedRevision, nextState);
+    return result;
+  }
+  createGenesis(input) { return this.#mutate('createGenesis', input); }
+  importLegacy(input) { return this.#mutate('importLegacy', input); }
+  prepareCutover(input) { return this.#mutate('prepareCutover', input); }
+  recordPredecessorExclusion(input) { return this.#mutate('recordPredecessorExclusion', input); }
+  recordSuccessorStandby(input) { return this.#mutate('recordSuccessorStandby', input); }
+  commitCutover(input) { return this.#mutate('commitCutover', input); }
 }

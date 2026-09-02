@@ -37,6 +37,7 @@ function baseEnv(overrides = {}) {
     TDEV_WORKER_SCRIPT: 'tdev-d0020-qualification',
     TDEV_AGENT_DELIVERY_NAMESPACE: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
     TDEV_AGENT_DELIVERY_JURISDICTION: 'global',
+    TDEV_AGENT_ROUTE_MODE: 'legacy_v1',
     TDEV_AGENT_DELIVERY_AUTH_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef',
     TDEV_D0020_QUALIFICATION_MODE: 'enabled',
     TDEV_D0020_QUALIFICATION_TOKEN: 'qualification-token-0123456789abcdef0123456789abcdef',

@@ -3,6 +3,9 @@ import assert from 'node:assert/strict';
 import { generateKeyPairSync, sign } from 'node:crypto';
 
 import {
+  AGENT_ROUTE_ELECTION_GENESIS_PROFILE,
+  AGENT_ROUTE_GENERATION_HOST_PROFILE,
+  AgentRouteElectionAuthority,
   AgentDeliveryAuthority,
   CaseEngine,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
@@ -19,6 +22,8 @@ import {
   computeInstallableAgentManagementIntentDigest,
   digest,
   encodeBase64Url,
+  agentRouteHostKey,
+  agentRouteRecoveryKeyId,
   installableAgentManagementKeyId,
   managementProofContext,
   signedRecordBytes,
@@ -55,6 +60,7 @@ function env(overrides = {}) {
     TDEV_WORKER_SCRIPT: 'tdev-d0020-qualification',
     TDEV_AGENT_DELIVERY_NAMESPACE: 'tdev-d0020-qualification_AgentDeliveryRuntimeDO',
     TDEV_AGENT_DELIVERY_JURISDICTION: 'global',
+    TDEV_AGENT_ROUTE_MODE: 'legacy_v1',
     TDEV_AGENT_DELIVERY_AUTH_KEY: '0123456789abcdef0123456789abcdef0123456789abcdef',
     ...overrides,
   };
@@ -216,6 +222,57 @@ test('production Worker service routes POST challenge and GET upgrade through th
   const missing = await service.fetch(new Request('https://qualification.example/other?agentId=agent-one', { method: 'POST' }));
   assert.equal(missing.status, 404);
   assert.equal(forwarded.length, 1);
+});
+
+test('D0044 elected Worker resolves election first and never falls back or selects a non-current host', async () => {
+  const pair = generateKeyPairSync('ed25519');
+  const publicJwk = pair.publicKey.export({ format: 'jwk' });
+  const agentId = 'agent-elected';
+  const routeHostKey = agentRouteHostKey({ agentId, routeGeneration: 1 });
+  const genesis = {
+    profile: AGENT_ROUTE_ELECTION_GENESIS_PROFILE,
+    agentId,
+    routeGeneration: 1,
+    routeBindingDigest: digest({ route: 1 }),
+    routeHostProfile: AGENT_ROUTE_GENERATION_HOST_PROFILE,
+    routeHostKey,
+    electionAuthorityIdentity: digest({ election: agentId }),
+    recoveryKeyId: agentRouteRecoveryKeyId(publicJwk),
+    recoveryPublicKey: publicJwk,
+    standbyRouteDigest: digest({ standby: true }),
+    genesisNonce: digest({ nonce: true }),
+  };
+  const election = new AgentRouteElectionAuthority();
+  await election.createGenesis({ genesis, signature: encodeBase64Url(sign(null, signedRecordBytes(genesis.profile, genesis), pair.privateKey)) });
+  const calls = [];
+  let electionState = election.read();
+  const electionNamespace = {
+    idFromName(value) { calls.push(`election-id:${value}`); return { jurisdiction: 'global', toString: () => 'election-do' }; },
+    get() { return { async readAgentRouteElection(value) { calls.push(`election-read:${value}`); return electionState; } }; },
+  };
+  const deliveryNamespace = {
+    idFromName(value) { calls.push(`delivery-id:${value}`); return { jurisdiction: 'global', toString: () => 'delivery-do' }; },
+    get() { return { async fetch() { calls.push('delivery-fetch'); return new Response('ok', { status: 202 }); } }; },
+  };
+  const service = new AgentDeliveryRuntimeService(env({
+    TDEV_AGENT_ROUTE_MODE: 'elected_v1',
+    TDEV_AGENT_ROUTE_ELECTION_NAMESPACE: 'election-test',
+    TDEV_AGENT_ROUTE_ELECTION: electionNamespace,
+    TDEV_AGENT_DELIVERY: deliveryNamespace,
+  }));
+  const current = await service.fetch(new Request(`https://example.test/agent-delivery/v1/connect?agentId=${agentId}&routeGeneration=1`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }));
+  assert.equal(current.status, 202);
+  assert.deepEqual(calls, [`election-id:${agentId}`, `election-read:${agentId}`, `delivery-id:${routeHostKey}`, 'delivery-fetch']);
+
+  calls.length = 0;
+  const stale = await service.fetch(new Request(`https://example.test/agent-delivery/v1/connect?agentId=${agentId}&routeGeneration=2`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }));
+  assert.equal(stale.status, 400);
+  assert.deepEqual(calls, [`election-id:${agentId}`, `election-read:${agentId}`]);
+
+  calls.length = 0; electionState = null;
+  const missing = await service.fetch(new Request(`https://example.test/agent-delivery/v1/connect?agentId=${agentId}&routeGeneration=1`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }));
+  assert.equal(missing.status, 400);
+  assert.deepEqual(calls, [`election-id:${agentId}`, `election-read:${agentId}`]);
 });
 
 function ed25519Pair() {

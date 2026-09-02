@@ -37,6 +37,8 @@ export {
 } from './installable-agent-admission.mjs';
 export * from './installable-agent-security.mjs';
 export * from './agent-route-election.mjs';
+export * from './agent-route-generation.mjs';
+export * from './cloudflare-agent-route-election-runtime.mjs';
 export * from './installable-agent-pre-genesis.mjs';
 export * from './installable-agent-bootstrap-executor.mjs';
 export * from './installable-agent-keystore.mjs';
@@ -64,6 +66,7 @@ export {
 export {
   AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX,
   AGENT_DELIVERY_DO_CLASS_NAME,
+  AGENT_ROUTE_ELECTION_DO_CLASS_NAME,
   AGENT_DELIVERY_POSSESSION_PROTOCOL_PREFIX,
   AGENT_DELIVERY_SOCKET_TAG,
   AGENT_DELIVERY_STORAGE_PROFILE,

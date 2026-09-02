@@ -61,6 +61,7 @@ function runtimeEnv(overrides = {}) {
     TDEV_WORKER_SCRIPT: 'tdev-d0040-test',
     TDEV_AGENT_DELIVERY_NAMESPACE: 'd0040-test-namespace',
     TDEV_AGENT_DELIVERY_JURISDICTION: 'global',
+    TDEV_AGENT_ROUTE_MODE: 'legacy_v1',
     ...overrides,
   };
 }

@@ -187,6 +187,12 @@ Revision 11 invalidates the historical R10 S/A live ticket because D0040 complet
 
 Before phase-U, two independent gates are conjunctive: (1) fresh independently operator-anchored Q4 over the exact maintained artifact A, and (2) fresh provider/runtime/route admission joining the exact maintained S/A/current immutable Worker version/provider bindings/verified D0040 public verifier and two stable authoritative `UNREGISTERED` route reads. Historical R9 bindings, historical R10 A and D0040 verification alone are not substitutes. Provider-substrate replacement is zero D0027 route/current effect and must preserve existing service/namespace/secret identities.
 
+### D0044 route election and higher-generation cutover gates
+
+At the source/model layer, deterministic tests must falsify strict recovery/host/attachment/genesis/import/cutover schemas; independent recovery and management signatures for legacy import; create-once genesis/import; one-live-cutover, exact replay, sequence/generation high-waters and bounded receipt reconstruction; successor substitution and stale/gap requests; one-way `STANDBY -> ACTIVE` and `ACTIVE -> DRAINING -> RETIRED` dispositions; positive lost-owner quiescence plus provider-exclusion structure; and durable CAS conflict. Elected Worker tests must prove election is read before any delivery-host lookup, only the exact current generation selects the stored host key, and missing/corrupt/non-current election state performs no legacy or alternative host lookup. The complete baseline source gate remains required on the exact source identity.
+
+Provider/runtime qualification is separate. On an isolated supported lane it must prove distinct election/delivery Durable Object identities and SQLite reconstruction; fresh elected generation 1; positive executable work and quiescence; prepared generation 2 at the deterministic host; predecessor retirement or the exact lost-owner two-proof alternative; atomic election; activation-receipt reconciliation after response loss; stale-generation denial before host access; exclusion of stale deployed writers; and non-resurrection after predecessor PITR/same-name recreation. Legacy migration separately proves the pending attachment, dual-authorized election creation, sealed attachment and mode switch, including crashes between every stage. No source result authorizes canonical D0039 import/cutover or closes D0039 Q7/Q8/Q9.
+
 ## 3. Qualification layers
 
 Keep proof layers separate:

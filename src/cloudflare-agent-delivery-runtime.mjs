@@ -24,10 +24,12 @@ import {
   normalizeEd25519PublicJwk,
 } from './installable-agent-security.mjs';
 import { INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES } from './installable-agent-challenge.mjs';
+import { normalizeAgentRouteElectionState } from './agent-route-election.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
 export const AGENT_DELIVERY_DO_CLASS_NAME = 'AgentDeliveryRuntimeDO';
+export const AGENT_ROUTE_ELECTION_DO_CLASS_NAME = 'AgentRouteElectionRuntimeDO';
 export const AGENT_DELIVERY_WEBSOCKET_PATH = '/agent-delivery/v1/connect';
 export const AGENT_DELIVERY_WEBSOCKET_PROTOCOL = 'tdev-agent-v1';
 export const AGENT_DELIVERY_AUTH_PROTOCOL_PREFIX = 'tdev-auth.';
@@ -42,6 +44,7 @@ const MIN_AUTH_KEY_BYTES = 32;
 const MAX_AUTH_KEY_BYTES = 512;
 const MAX_EVIDENCE_ATTESTOR_PUBLIC_JWK_BYTES = 1024;
 const PROVIDER_JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
+const AGENT_ROUTE_MODES = new Set(['legacy_v1', 'elected_v1']);
 const textEncoder = new TextEncoder();
 const textDecoder = new TextDecoder('utf-8', { fatal: true });
 
@@ -216,9 +219,12 @@ export function readAgentDeliveryRuntimeConfig(env) {
       cloudflareReceiveCeilingBytes: CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
     });
   }
+  const routeMode = requiredTextBinding(env, 'TDEV_AGENT_ROUTE_MODE');
+  if (!AGENT_ROUTE_MODES.has(routeMode)) fail('invalid_agent_delivery_deployment_config', 'TDEV_AGENT_ROUTE_MODE is unsupported');
   return Object.freeze({
     maxSnapshotBytes,
     maxFrameBytes,
+    routeMode,
     placement: Object.freeze({
       deployment: requiredTextBinding(env, 'TDEV_DEPLOYMENT'),
       environment: requiredTextBinding(env, 'TDEV_ENVIRONMENT'),
@@ -226,6 +232,10 @@ export function readAgentDeliveryRuntimeConfig(env) {
       className: AGENT_DELIVERY_DO_CLASS_NAME,
       namespace: requiredTextBinding(env, 'TDEV_AGENT_DELIVERY_NAMESPACE'),
       jurisdiction: jurisdictionBinding(env),
+      ...(routeMode === 'elected_v1' ? {
+        electionClassName: AGENT_ROUTE_ELECTION_DO_CLASS_NAME,
+        electionNamespace: requiredTextBinding(env, 'TDEV_AGENT_ROUTE_ELECTION_NAMESPACE'),
+      } : {}),
     }),
   });
 }
@@ -250,11 +260,13 @@ export class AgentDeliveryRuntimeService {
   constructor(env) {
     this.config = readAgentDeliveryRuntimeConfig(env);
     this.namespace = resolveAgentDeliveryNamespace(env, this.config.placement.jurisdiction);
+    this.electionNamespace = this.config.routeMode === 'elected_v1'
+      ? resolveAgentRouteElectionNamespace(env, this.config.placement.jurisdiction)
+      : null;
   }
 
-  #route(agentId) {
-    assertIdentifier(agentId, 'agentId');
-    const id = this.namespace.idFromName(agentId);
+  #route(routeHostKey) {
+    const id = this.namespace.idFromName(routeHostKey);
     if (!id || typeof id.toString !== 'function') fail('invalid_agent_delivery_provider', 'Agent delivery namespace returned an invalid identity');
     const providerJurisdiction = id.jurisdiction ?? 'global';
     if (providerJurisdiction !== this.config.placement.jurisdiction) {
@@ -263,6 +275,25 @@ export class AgentDeliveryRuntimeService {
     const stub = this.namespace.get(id);
     if (!stub || typeof stub.fetch !== 'function') fail('invalid_agent_delivery_provider', 'Agent delivery namespace returned an invalid stub');
     return stub;
+  }
+
+  async #resolveRoute(agentId, routeGeneration) {
+    assertIdentifier(agentId, 'agentId');
+    if (this.config.routeMode === 'legacy_v1') {
+      if (routeGeneration !== 1) fail('agent_route_not_elected', 'Legacy routing admits only generation 1');
+      return this.#route(agentId);
+    }
+    const id = this.electionNamespace.idFromName(agentId);
+    if (!id || typeof id.toString !== 'function') fail('invalid_agent_route_election_provider', 'Election namespace returned an invalid identity');
+    const stub = this.electionNamespace.get(id);
+    if (!stub || typeof stub.readAgentRouteElection !== 'function') fail('invalid_agent_route_election_provider', 'Election namespace returned an invalid RPC stub');
+    const raw = await stub.readAgentRouteElection(agentId);
+    if (raw === null) fail('agent_route_election_missing', 'Elected routing requires a positive election record');
+    const election = normalizeAgentRouteElectionState(raw);
+    if (election.agentId !== agentId) fail('agent_route_election_mismatch', 'Election owner returned a different Agent identity');
+    if (routeGeneration < election.currentRoute.routeGeneration) fail('stale_route_generation', 'Request route generation is below the elected generation');
+    if (routeGeneration !== election.currentRoute.routeGeneration) fail('agent_route_not_elected', 'Request route generation is not current');
+    return this.#route(election.currentRoute.routeHostKey);
   }
 
   async fetch(request) {
@@ -276,11 +307,24 @@ export class AgentDeliveryRuntimeService {
         fail('invalid_agent_connect_request', 'Agent WebSocket upgrade is missing the required application protocol');
       }
       const agentId = requiredQueryText(url.searchParams, 'agentId');
-      return await this.#route(agentId).fetch(request);
+      const routeGeneration = positiveQueryInteger(url.searchParams, 'routeGeneration');
+      return await (await this.#resolveRoute(agentId, routeGeneration)).fetch(request);
     } catch (error) {
       return agentDeliveryErrorResponse(error);
     }
   }
+}
+
+function resolveAgentRouteElectionNamespace(env, jurisdiction) {
+  const namespace = env?.TDEV_AGENT_ROUTE_ELECTION;
+  if (!namespace || typeof namespace.idFromName !== 'function' || typeof namespace.get !== 'function') {
+    fail('invalid_agent_delivery_deployment_config', 'Elected mode requires a separate election Durable Object namespace');
+  }
+  if (jurisdiction === 'global') return namespace;
+  if (typeof namespace.jurisdiction !== 'function') fail('invalid_agent_delivery_deployment_config', 'Election namespace does not support configured jurisdiction');
+  const scoped = namespace.jurisdiction(jurisdiction);
+  if (!scoped || typeof scoped.idFromName !== 'function' || typeof scoped.get !== 'function') fail('invalid_agent_delivery_deployment_config', 'Election jurisdiction namespace is invalid');
+  return scoped;
 }
 
 function assertStorage(storage) {

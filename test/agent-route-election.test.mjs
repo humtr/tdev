@@ -9,7 +9,11 @@ import {
   AGENT_ROUTE_ELECTION_IMPORT_PROFILE,
   AGENT_ROUTE_GENERATION_HOST_PROFILE,
   AGENT_ROUTE_LEGACY_HOST_PROFILE,
+  AGENT_ROUTE_PREDECESSOR_EXCLUSION_PROFILE,
+  AgentRouteGenerationAuthority,
   AgentRouteElectionAuthority,
+  DurableAgentRouteElectionAuthority,
+  MemoryAgentRouteElectionStore,
   agentRouteElectionDigest,
   agentRouteHostKey,
   agentRouteRecoveryKeyId,
@@ -315,4 +319,92 @@ test('D0044 cutover rejects stale/gap/substituted election state and compacted r
   const badHost = structuredClone(authority.read());
   badHost.recentReceipts[0].result.currentRoute.routeHostKey = agentRouteHostKey({ agentId: badHost.agentId, routeGeneration: 2 });
   assert.throws(() => new AgentRouteElectionAuthority({ state: badHost, maxRecentReceipts: 1 }), expectCode('agent_route_generation_host_mismatch'));
+});
+
+test('D0044 durable election owner survives reconstruction and CAS-conflicting writers fail closed', async () => {
+  const recovery = ed25519Pair();
+  const store = new MemoryAgentRouteElectionStore();
+  const agentId = 'agent-route-durable';
+  const genesis = genesisRecord({ recovery, agentId });
+  const first = new DurableAgentRouteElectionAuthority({ agentId, store });
+  await first.createGenesis({ genesis, signature: signRecord(recovery.privateKey, genesis) });
+  const reconstructed = new DurableAgentRouteElectionAuthority({ agentId, store });
+  assert.equal(agentRouteElectionDigest(reconstructed.read()), agentRouteElectionDigest(first.read()));
+
+  const stale = store.load(agentId);
+  const intent = cutoverIntent({ read: () => reconstructed.read() });
+  await reconstructed.prepareCutover({ intent, signature: signRecord(recovery.privateKey, intent) });
+  assert.throws(() => store.compareAndSwap(agentId, stale.revision, stale.state), expectCode('agent_route_election_revision_conflict'));
+});
+
+test('D0044 legacy import, draining, retirement, election and successor activation are one-way', async () => {
+  const recovery = ed25519Pair();
+  const management = ed25519Pair();
+  const record = legacyImportRecord({ recovery, agentId: 'agent-route-generation-flow' });
+  const predecessor = AgentRouteGenerationAuthority.legacy({
+    routeBinding: { agentId: record.agentId, routeGeneration: 1 },
+    routeBindingDigest: record.routeBindingDigest,
+    routeStateDigest: record.currentRouteStateDigest,
+  });
+  await predecessor.prepareLegacyImport({
+    record,
+    recoverySignature: signRecord(recovery.privateKey, record),
+    managementSignature: signRecord(management.privateKey, record),
+    managementPublicJwk: management.publicJwk,
+  });
+  const election = new AgentRouteElectionAuthority();
+  await election.importLegacy({
+    record,
+    recoverySignature: signRecord(recovery.privateKey, record),
+    managementSignature: signRecord(management.privateKey, record),
+    managementPublicJwk: management.publicJwk,
+  });
+  predecessor.sealLegacyImport({ electionState: election.read() });
+
+  const intent = cutoverIntent(election);
+  await election.prepareCutover({ intent, signature: signRecord(recovery.privateKey, intent) });
+  await predecessor.beginDraining({ intent, signature: signRecord(recovery.privateKey, intent) });
+  assert.throws(() => predecessor.assertExecutable(), expectCode('agent_route_not_active'));
+  const exclusion = {
+    profile: AGENT_ROUTE_PREDECESSOR_EXCLUSION_PROFILE,
+    kind: 'retired_owner',
+    agentId: record.agentId,
+    routeGeneration: 1,
+    routeBindingDigest: record.routeBindingDigest,
+    routeHostProfile: record.routeHostProfile,
+    routeHostKey: record.routeHostKey,
+    cutoverRequestId: intent.cutoverRequestId,
+    cutoverIntentDigest: digest(intent),
+    positiveQuiescenceDigest: digest({ quiescent: true }),
+    providerExclusionDigest: null,
+    providerDeploymentEpochDigest: digest({ epoch: 1 }),
+  };
+  const retired = predecessor.retire({ exclusion });
+  election.recordPredecessorExclusion({ cutoverRequestId: intent.cutoverRequestId, predecessorExclusionDigest: retired.predecessorExclusionDigest });
+
+  const attachment = normalizeAgentRouteElectionAttachment({
+    profile: AGENT_ROUTE_ELECTION_ATTACHMENT_PROFILE,
+    agentId: record.agentId,
+    routeGeneration: 2,
+    routeBindingDigest: intent.successorRouteBindingDigest,
+    routeHostProfile: intent.successorRouteHostProfile,
+    routeHostKey: intent.successorRouteHostKey,
+    electionAuthorityIdentity: record.electionAuthorityIdentity,
+    recoveryKeyId: record.recoveryKeyId,
+    recoveryPublicKey: record.recoveryPublicKey,
+  });
+  const successor = AgentRouteGenerationAuthority.electedStandby({
+    routeBinding: { agentId: record.agentId, routeGeneration: 2 },
+    routeBindingDigest: intent.successorRouteBindingDigest,
+    routeStateDigest: digest({ fresh: true }),
+    attachment,
+  });
+  assert.throws(() => successor.assertExecutable(), expectCode('agent_route_not_active'));
+  const standbyDigest = digest(successor.read());
+  election.recordSuccessorStandby({ cutoverRequestId: intent.cutoverRequestId, successorStandbyDigest: standbyDigest });
+  election.commitCutover({ cutoverRequestId: intent.cutoverRequestId });
+  successor.activate({ electionState: election.read() });
+  successor.assertExecutable();
+  assert.throws(() => predecessor.assertExecutable(), expectCode('agent_route_not_active'));
+  await assert.rejects(predecessor.beginDraining({ intent, signature: signRecord(recovery.privateKey, intent) }), expectCode('agent_route_retired'));
 });
