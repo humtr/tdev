@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "classification": "d0044_r1_agent_route_higher_generation_cutover_acceptance",
+  "observedAtUtc": "2026-09-02T03:56:52Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "acceptanceBase": "26b598465333f8aa5100772281286a316831d0f3",
+    "remoteMatchedBase": true,
+    "worktreeCleanAtDecision": true
+  },
+  "trigger": {
+    "source": "docs/evidence/group-f-d0039-r12-higher-route-cutover-design-trigger-2026-09-02.json",
+    "fact": "D0039 Q7/Q8/Q9 require an actual strictly-higher D0020 route cutover, while verified D0020 explicitly supports initial immutable binding only and the current Worker maps physical owners by agentId alone."
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "designId": "D0044",
+    "revision": 1,
+    "status": "accepted",
+    "reason": "The missing capability introduces a single route-current election owner, independent recovery trust root, route-generation physical selection, predecessor retirement/exclusion and successor activation semantics. It is reusable across Q7/Q8/Q9 and was explicitly reserved as a future Class-2 D0020 concern."
+  },
+  "decision": {
+    "scope": "stable-agent higher-generation route election/cutover only",
+    "electionOwner": "exactly one durable AgentRouteElectionAuthority per agentId; it owns current route generation/high-water, recovery verifier, cutover request floor, one live cutover and bounded replay/tombstone summaries only",
+    "recoveryAuthority": "immutable offline Ed25519 route-recovery root independent from management/release/HMAC/provider/D0040 authority; no in-place recovery-root rotation",
+    "successorGeneration": "exact routeGenerationHighWater + 1",
+    "successorHost": "D0044-created route hosts use deterministic generation-bound rh1.<64hex>; explicit imported legacy generation 1 may retain host key agentId",
+    "ingress": "elected mode resolves election first, requires authenticated request generation equal current, then resolves exact host key; no missing-election legacy fallback",
+    "predecessor": "available predecessor enters one-way DRAINING then RETIRED after positive quiescence; unavailable/lost predecessor requires both positive physical quiescence and exact provider exclusion",
+    "successor": "distinct route owner initialized STANDBY with immutable election attachment; no predecessor handles/state; executable only after exact election activation receipt",
+    "electionCommit": "single atomic current-generation advance after predecessor exclusion/quiescence and successor standby; old generation never becomes current again; crash may cause availability gap but never rollback/split brain",
+    "legacyImport": "strict tdev.agent-route-election-import.v1: exact legacy generation-1 binding/host/current-state jointly signed by existing route management authority and recovery root, reconciled route-pending -> election-created -> attachment-sealed before elected routing may enable; no rollback or absence inference",
+    "providerLossScope": "route-object loss/corruption recoverable only while independent election authority and provider control plane needed for positive exclusion survive; election-authority/whole-provider-account loss remains fail-closed",
+    "d0039Consumption": "D0044 supplies only the higher-route primitive; D0039 still performs fresh successor D0027 realization and terminal Q7/Q8/Q9 evidence on isolated/canonical lanes as authorized",
+    "freshElectionGenesis": "strict tdev.agent-route-election-genesis.v1: recovery-root-signed exact generation-1 standby route, accepted only from truly absent zero-high-water election state; emits first activation receipt and is create-once"
+  },
+  "preservedOwners": {
+    "d0019": "Case semantic authority unchanged",
+    "d0020PerGeneration": "connection/delivery/capacity owner remains one immutable route generation",
+    "d0027": "installation/credential/package/trust/lifecycle owner unchanged",
+    "d0039": "deployment and Q-gate orchestration unchanged",
+    "d0040": "evidence authentication only",
+    "d0041": "pre-genesis material binding only"
+  },
+  "rejectedAlternatives": {
+    "inRouteKeyReplacement": "would erase management/release compromise boundary",
+    "reuseExistingTrustPrincipal": "management/release compromise is the trigger and HMAC/provider/D0040 belong to different authority domains",
+    "generationAwareHostWithoutElection": "would allow multiple physical owners without one durable current-generation fact",
+    "sameObjectRewrite": "violates immutable per-generation AgentRouteBinding",
+    "missingElectionMeansLegacy": "would recreate authority after partial migration/election loss",
+    "pitrOrSameName": "cannot restore semantic authority or safety floors",
+    "dualWrite": "creates split-brain delivery/capacity authority",
+    "d0039R13": "independently reusable D0020 cutover semantics must not be hidden in the D0039 realization revision chain"
+  },
+  "implementationOrder": [
+    "pure identities/state/replay authority",
+    "per-generation standby/draining/retired fence",
+    "generation-aware Worker route selector plus separate election DO",
+    "explicit legacy import and cutover reconciliation",
+    "complete exact-source gate",
+    "isolated provider generation-1-to-2 qualification",
+    "return to D0039 Q7/Q8/Q9"
+  ],
+  "externalEffects": {
+    "recoveryPrivateKeyGenerated": false,
+    "providerMutation": false,
+    "routeMutation": false,
+    "canonicalRouteImported": false,
+    "canonicalRouteCutover": false,
+    "deviceMutation": false,
+    "credentialMutation": false,
+    "phaseUReplay": false,
+    "phasePReplay": false,
+    "q7Executed": false,
+    "q8Executed": false,
+    "q9Executed": false
+  },
+  "next": "Route D0044@r1 for source implementation and the complete source gate only. Do not import/cut over the canonical D0039 route or execute live provider cutover before source qualification."
+}

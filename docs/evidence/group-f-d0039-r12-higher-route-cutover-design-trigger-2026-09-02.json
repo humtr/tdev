@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "classification": "d0039_r12_higher_route_cutover_design_trigger",
+  "observedAtUtc": "2026-09-02T03:56:52Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "ref": "development",
+    "observationHead": "26b598465333f8aa5100772281286a316831d0f3",
+    "worktreeCleanBeforeDecision": true
+  },
+  "d0039": {
+    "design": "D0039",
+    "revision": 12,
+    "status": "implementing",
+    "currentRoute": {
+      "agentId": "d0039-r12-custody-20260828-3631c5a4",
+      "routeGeneration": 1,
+      "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4"
+    },
+    "q7RequiredMeaning": [
+      "management request replay/floors",
+      "total management-key loss fails closed",
+      "management-key compromise recovers only by higher-route cutover"
+    ],
+    "q8RequiredMeaning": [
+      "release-root loss fails closed for signer-set change",
+      "release-root compromise recovers only by higher-route cutover"
+    ],
+    "q9RequiredMeaning": [
+      "PITR/same-name recreation never restores authority",
+      "route/provider-loss recovery requires fresh higher-route cutover"
+    ],
+    "q3": "independently blocked on inaccessible sacrificial physical Android lane; not changed by this trigger",
+    "q6": "unverified; canonical CURRENT not mutated for evidence"
+  },
+  "d0020ObservedGap": {
+    "maintainedDesign": "docs/design/0020-agent-connection-delivery-and-aggregate-capacity.md",
+    "stableAgentId": true,
+    "routeBindingImmutablePerGeneration": true,
+    "secondDifferentWritableBindingIsConflict": true,
+    "liveRouteMigrationCutoverStatus": "explicitly_unsupported_fail_closed",
+    "maintainedDesignClassificationForFutureMove": "separate_class_2_election_cutover_contract",
+    "sourceUnsupportedRouteMoveError": "route_migration_unsupported",
+    "differentGenerationOnExistingOwner": "route_generation_mismatch"
+  },
+  "runtimeObservedGap": {
+    "agentPrincipalTokenBindsRouteGeneration": true,
+    "connectAndDeliveryContextsBindRouteGeneration": true,
+    "providerRouteSelector": "namespace.idFromName(agentId)",
+    "physicalOwnerSelectionBindsRouteGeneration": false,
+    "durableRouteBindingRejectsDifferentGeneration": true,
+    "conclusion": "authentication distinguishes generations but current provider routing has no durable successor-election/current-generation owner"
+  },
+  "historicalAudit": {
+    "originalD0039R1R2ManagementCompromise": "route retirement/quiescence plus separately authorized D0020 strictly-higher route cutover with fresh key; no in-route replacement",
+    "originalD0039R1R2ReleaseRootCompromise": "route retirement plus higher route generation; no in-route root replacement",
+    "originalD0039R1R2ProviderLoss": "canonical route-object loss/corruption fails closed; recovery requires separately authorized higher route after predecessor quiescence",
+    "existingAcceptedHigherRouteImplementationFound": false
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "designId": "D0044",
+    "revision": 1,
+    "reason": "new route-current election owner, independent recovery trust root, generation-aware provider hosting and crash-safe cutover are independently decidable security/identity/persistence/deployment semantics explicitly reserved by D0020 and forbidden from being hidden in D0039 R13"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "canonicalRouteCutover": false,
+    "deviceMutation": false,
+    "credentialMutation": false,
+    "recoveryPrivateKeyGenerated": false,
+    "phaseUReplay": false,
+    "phasePReplay": false,
+    "q7Executed": false,
+    "q8Executed": false,
+    "q9Executed": false
+  },
+  "next": "Accept and route D0044@r1 for source-only implementation/qualification. Keep D0039@r12 implementing but out of the runnable frontier while this higher-route dependency is implemented; Q3 remains independently blocked."
+}
