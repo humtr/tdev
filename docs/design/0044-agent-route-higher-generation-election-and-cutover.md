@@ -1,6 +1,6 @@
 # Design 0044 — Agent Route Higher-Generation Election and Cutover
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-09-02

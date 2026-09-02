@@ -37,6 +37,6 @@
 | D0039 | r12 | implementing | D0027 Deployment Realization | `docs/design/0039-d0027-deployment-realization.md` |
 | D0040 | r1 | verified | Installable Agent Evidence Attestation Authority | `docs/design/0040-installable-agent-evidence-attestation-authority.md` |
 | D0041 | r1 | verified | Installable Agent Pre-Genesis Material Binding | `docs/design/0041-installable-agent-pre-genesis-material-binding.md` |
-| D0044 | r1 | accepted | Agent Route Higher-Generation Election and Cutover | `docs/design/0044-agent-route-higher-generation-election-and-cutover.md` |
+| D0044 | r1 | implementing | Agent Route Higher-Generation Election and Cutover | `docs/design/0044-agent-route-higher-generation-election-and-cutover.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

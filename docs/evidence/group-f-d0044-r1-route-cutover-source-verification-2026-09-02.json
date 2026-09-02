@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_route_cutover_source_verification",
+  "observedAtUtc": "2026-09-02T05:45:09Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "isolated Cloudflare provider/runtime legacy-import and higher-generation cutover qualification"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "0801424aab789da37aba67780f3b959d211ecf77",
+    "tree": "d082f6fce20172f089c7b3f6371ba432b1566a1d",
+    "parent": "d11e7c8a6a358908f744f6c6b8dea07d22787cb8",
+    "commitMessage": "feat: complete D0044 route cutover source",
+    "worktreeCleanBeforeValidation": true,
+    "worktreeCleanAfterValidation": true
+  },
+  "implementation": {
+    "electionOwner": "strict recovery-signed genesis/import/cutover authority with durable CAS wrapper, bounded replay receipts and permanent generation/request floors",
+    "routeGeneration": "immutable attachment and one-way STANDBY/ACTIVE/DRAINING/RETIRED reconciliation; retirement and activation receipts are exact-election bound",
+    "workerRouting": "explicit legacy_v1/elected_v1 modes; elected ingress reads the separate election owner and rejects missing/stale/non-current generations before delivery-host lookup",
+    "providerStorage": "separate AgentRouteElectionRuntimeDO host and bounded canonical SQLite election store",
+    "owners": "SECURITY, DEPLOYMENT and QUALIFICATION contain the maintained trust, rollout and proof-layer boundaries"
+  },
+  "validation": {
+    "profile": "portable",
+    "command": "npm run check",
+    "exitCode": 0,
+    "success": true,
+    "syntax": "PASS",
+    "documentationAuthority": "PASS — F development frontier=1 selected=D0044@r1 groups=8 gates=19",
+    "tests": {
+      "total": 605,
+      "passed": 605,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "focusedCoverage": {
+    "routeIdentitiesAndReplay": "PASS",
+    "durableCasAndReconstruction": "PASS",
+    "legacyImportAndOneWayDisposition": "PASS",
+    "successorActivationAndPredecessorNonResurrection": "PASS",
+    "electionFirstNoFallbackWorkerRouting": "PASS"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "routeMutation": false,
+    "deviceMutation": false,
+    "recoveryKeyGeneratedForLiveUse": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "d0044Source": "PASS for exact tested source 0801424aab789da37aba67780f3b959d211ecf77",
+    "isolatedProviderRuntime": "UNVERIFIED",
+    "legacyImportMigration": "UNVERIFIED",
+    "d0039Q7Q8Q9": "UNVERIFIED and not promoted by D0044 source"
+  },
+  "nextGate": "supply a separately isolated Cloudflare lane and least-privilege provider credentials, then execute D0044 provider/runtime qualification without importing or cutting over the canonical D0039 R12 route"
+}
