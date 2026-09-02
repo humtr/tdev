@@ -8,6 +8,7 @@ import {
 import { AgentDeliveryAuthority, MemoryAgentDeliveryStore, agentRouteBindingDigest } from '../src/agent-delivery-authority.mjs';
 import { digest, typedDigest } from '../src/canonical.mjs';
 import {
+  AGENT_ROUTE_ACTIVATION_RECEIPT_PROFILE,
   AGENT_ROUTE_ELECTION_GENESIS_PROFILE,
   AGENT_ROUTE_GENERATION_HOST_PROFILE,
   agentRouteElectionAttachmentDigest,
@@ -30,7 +31,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-elected-20260902-r4';
+const agentId = 'd0044-provider-elected-20260902-r5';
 const routeGeneration = 1;
 const routeHostKey = agentRouteHostKey({ agentId, routeGeneration });
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
@@ -295,10 +296,35 @@ async function main() {
     routeHostKey,
     rpc: deliveryRpc('read_route_generation'),
   }));
+  const runtimeProbe = assertOk('delivery runtime probe', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
+    profile,
+    routeHostKey,
+    rpc: deliveryRpc('runtime_probe'),
+  }));
+  const staleAgentId = `${agentId}-stale`;
+  const staleRouteHostKey = agentRouteHostKey({ agentId: staleAgentId, routeGeneration });
+  const staleElection = structuredClone(electionAfter);
+  staleElection.agentId = staleAgentId;
+  const staleActivationReceiptDigest = typedDigest(AGENT_ROUTE_ACTIVATION_RECEIPT_PROFILE, {
+    kind: 'genesis',
+    agentId: staleAgentId,
+    routeGeneration,
+    routeBindingDigest: bindingDigest,
+    routeHostProfile: AGENT_ROUTE_GENERATION_HOST_PROFILE,
+    routeHostKey: staleRouteHostKey,
+    intentDigest: staleElection.recentReceipts[0].intentDigest,
+  });
+  staleElection.currentRoute.routeHostKey = staleRouteHostKey;
+  staleElection.currentRoute.activationReceiptDigest = staleActivationReceiptDigest;
+  for (const receipt of staleElection.recentReceipts) {
+    receipt.result.currentRoute.routeHostKey = staleRouteHostKey;
+    receipt.result.currentRoute.activationReceiptDigest = staleActivationReceiptDigest;
+    receipt.result.activationReceiptDigest = staleActivationReceiptDigest;
+  }
   const blockedActivation = await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
-    rpc: deliveryRpc('activate_route', { electionState: electionAfter }),
+    rpc: deliveryRpc('activate_route', { electionState: staleElection, expectedDeploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest }),
   });
   process.stdout.write(`${JSON.stringify({
     status: 'qualified_partial',
@@ -317,6 +343,7 @@ async function main() {
       className: d0040.className,
       jurisdiction: d0040.jurisdiction,
       durableObjectId,
+      runtimeProbeDeploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest,
       attestorKeyId: d0040.evidenceAttestationVerifier?.keyId ?? null,
     },
     election: {
