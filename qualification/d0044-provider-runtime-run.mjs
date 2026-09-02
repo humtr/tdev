@@ -104,7 +104,7 @@ async function main() {
   const accountId = requiredBinding(settings, 'TDEV_D0039_ACCOUNT_ID');
   if (!deliveryNamespaceId || !electionNamespaceId) throw new Error('D0044 namespace bindings are incomplete');
 
-  const qualificationToken = randomBytes(32).toString('hex');
+  const qualificationToken = process.env.TDEV_D0044_QUALIFICATION_TOKEN ?? randomBytes(32).toString('hex');
   await client.request('PUT', client.accountPath(`/workers/scripts/${scriptName}/secrets`), {
     json: { name: 'TDEV_D0020_QUALIFICATION_TOKEN', text: qualificationToken, type: 'secret_text' },
   });
