@@ -26,7 +26,11 @@ async function main() {
   await client.request('PUT', client.accountPath(`/workers/scripts/${scriptName}/secrets`), { json: { name: 'TDEV_D0020_QUALIFICATION_TOKEN', text: token, type: 'secret_text' } });
   const election = assertOk('read committed election', await invoke(token, '/qualification/d0044/election/v1', { profile, operation: 'readAgentRouteElection', agentId, payload: {} }));
   const successorHostKey = agentRouteHostKey({ agentId, routeGeneration: 2 });
-  const activated = assertOk('activate successor', await invoke(token, '/qualification/d0044/delivery/v1', {
+  const successorBefore = assertOk('read successor before activation', await invoke(token, '/qualification/d0044/delivery/v1', {
+    profile, routeHostKey: successorHostKey,
+    rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 2 },
+  }));
+  const activated = successorBefore.disposition === 'ACTIVE' ? { classification: 'already_active' } : assertOk('activate successor', await invoke(token, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey: successorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'activate_route', agentId, routeGeneration: 2, electionState: election },
