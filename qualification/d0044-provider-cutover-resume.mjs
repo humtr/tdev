@@ -15,6 +15,15 @@ async function invoke(token, path, body) {
   let parsed; try { parsed = await response.json(); } catch { parsed = { ok: false, error: { code: 'invalid_json_response' } }; }
   return { status: response.status, body: parsed };
 }
+async function invokeWithAuthPropagation(token, path, body, label) {
+  let response = null;
+  for (let attempt = 0; attempt < 120; attempt += 1) {
+    response = await invoke(token, path, body);
+    if (response.status !== 401) return response;
+    await new Promise((resolve) => setTimeout(resolve, 500));
+  }
+  throw new Error(`${label} authentication propagation failed`);
+}
 function assertOk(label, response) {
   if (response.status !== 200 || response.body?.ok !== true) throw new Error(`${label} failed: ${response.body?.error?.code ?? `http_${response.status}`}`);
   return response.body.result;
@@ -24,9 +33,9 @@ async function main() {
   const client = new CloudflareApiClient(loadCloudflareCredentials(envFile));
   const token = randomBytes(32).toString('hex');
   await client.request('PUT', client.accountPath(`/workers/scripts/${scriptName}/secrets`), { json: { name: 'TDEV_D0020_QUALIFICATION_TOKEN', text: token, type: 'secret_text' } });
-  const election = assertOk('read committed election', await invoke(token, '/qualification/d0044/election/v1', { profile, operation: 'readAgentRouteElection', agentId, payload: {} }));
+  const election = assertOk('read committed election', await invokeWithAuthPropagation(token, '/qualification/d0044/election/v1', { profile, operation: 'readAgentRouteElection', agentId, payload: {} }, 'read committed election'));
   const successorHostKey = agentRouteHostKey({ agentId, routeGeneration: 2 });
-  const successorBefore = assertOk('read successor before activation', await invoke(token, '/qualification/d0044/delivery/v1', {
+  const successorBefore = assertOk('read successor before activation', await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
     profile, routeHostKey: successorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 2 },
   }));
@@ -35,7 +44,7 @@ async function main() {
     routeHostKey: successorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'activate_route', agentId, routeGeneration: 2, electionState: election },
   }));
-  const successor = assertOk('read successor generation', await invoke(token, '/qualification/d0044/delivery/v1', {
+  const successor = assertOk('read successor generation', await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
     profile, routeHostKey: successorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 2 },
   }));
@@ -44,7 +53,7 @@ async function main() {
     profile, routeHostKey: predecessorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'activate_route', agentId, routeGeneration: 1, electionState: election },
   });
-  const predecessor = assertOk('read predecessor generation after stale activation', await invoke(token, '/qualification/d0044/delivery/v1', {
+  const predecessor = assertOk('read predecessor generation after stale activation', await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
     profile, routeHostKey: predecessorHostKey,
     rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'read_route_generation', agentId, routeGeneration: 1 },
   }));
