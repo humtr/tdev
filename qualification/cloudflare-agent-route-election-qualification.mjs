@@ -78,6 +78,23 @@ function diagnosticFailure(error) {
   const code = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code) ? error.code : null;
   return { name, code };
 }
+async function diagnoseElectionPipeline(stub, input) {
+  const pipeline = { rpcReturned: false, cloneSucceeded: false };
+  try {
+    const raw = await stub.readAgentRouteElection(input.agentId);
+    pipeline.rpcReturned = true;
+    try {
+      publicJsonClone(raw);
+      pipeline.cloneSucceeded = true;
+    } catch (error) {
+      pipeline.cloneFailure = diagnosticFailure(error);
+    }
+  } catch (error) {
+    pipeline.rpcFailure = diagnosticFailure(error);
+  }
+  return pipeline;
+}
+
 
 async function diagnoseDeliveryPipeline(stub, input) {
   const pipeline = { rpcReturned: false, unwrapSucceeded: false, cloneSucceeded: false };
@@ -231,7 +248,8 @@ export class D0044ProviderQualificationService {
           const diagnostic = await stub.d0044ElectionDiagnosticInvoke(input.agentId);
           assertRecordShape(diagnostic, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0044 election diagnostic response');
           if (diagnostic.profile !== D0044_PROVIDER_DIAGNOSTIC_PROFILE || diagnostic.schemaVersion !== 1 || diagnostic.ok !== true) fail('invalid_qualification_provider', 'D0044 election diagnostic response header is invalid');
-          return jsonResponse(200, { ok: true, result: publicJsonClone(diagnostic.result) });
+          const pipeline = await diagnoseElectionPipeline(stub, input);
+          return jsonResponse(200, { ok: true, result: publicJsonClone({ ...diagnostic.result, pipeline }) });
         }
         const result = await invokeElection(stub, input.operation, input.agentId, publicJsonClone(input.payload));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
