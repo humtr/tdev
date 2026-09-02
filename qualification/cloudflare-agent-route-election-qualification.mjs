@@ -19,6 +19,7 @@ const MAX_TOKEN_BYTES = 512;
 
 const ELECTION_OPERATIONS = Object.freeze(new Set([
   'readAgentRouteElection',
+  'd0044_election_diagnostic',
   'createAgentRouteGenesis',
   'importLegacyAgentRoute',
   'prepareAgentRouteCutover',
@@ -28,6 +29,7 @@ const ELECTION_OPERATIONS = Object.freeze(new Set([
 ]));
 
 const ELECTION_PAYLOAD_SHAPES = Object.freeze({
+  d0044_election_diagnostic: [[], []],
   readAgentRouteElection: [[], []],
   createAgentRouteGenesis: [['genesis', 'signature'], []],
   importLegacyAgentRoute: [['record', 'recoverySignature', 'managementSignature', 'managementPublicJwk'], []],
@@ -224,6 +226,13 @@ export class D0044ProviderQualificationService {
       if (url.pathname === D0044_ELECTION_QUALIFICATION_PATH) {
         const input = electionInput(body);
         const stub = namespaceStub(this.env.TDEV_AGENT_ROUTE_ELECTION, input.agentId, 'election');
+        if (input.operation === 'd0044_election_diagnostic') {
+          if (typeof stub.d0044ElectionDiagnosticInvoke !== 'function') fail('invalid_qualification_provider', 'Election namespace does not expose D0044 diagnostic RPC');
+          const diagnostic = await stub.d0044ElectionDiagnosticInvoke(input.agentId);
+          assertRecordShape(diagnostic, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0044 election diagnostic response');
+          if (diagnostic.profile !== D0044_PROVIDER_DIAGNOSTIC_PROFILE || diagnostic.schemaVersion !== 1 || diagnostic.ok !== true) fail('invalid_qualification_provider', 'D0044 election diagnostic response header is invalid');
+          return jsonResponse(200, { ok: true, result: publicJsonClone(diagnostic.result) });
+        }
         const result = await invokeElection(stub, input.operation, input.agentId, publicJsonClone(input.payload));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
       }
