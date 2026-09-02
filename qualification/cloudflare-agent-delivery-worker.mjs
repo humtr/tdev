@@ -6,10 +6,24 @@ import {
 import { AgentRouteElectionRuntimeDOHost } from '../src/cloudflare-agent-route-election-runtime.mjs';
 import { D0044ProviderQualificationService } from './cloudflare-agent-route-election-qualification.mjs';
 
+const D0044_PROVIDER_DIAGNOSTIC_PROFILE = 'tdev.d0044-provider-diagnostic.v1';
+
+function diagnosticFailure(error) {
+  const name = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(error.name) ? error.name : 'unknown';
+  const code = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code) ? error.code : null;
+  return Object.freeze({ name, code });
+}
+
 export class AgentDeliveryRuntimeDO extends DurableObject {
   constructor(ctx, env) {
     super(ctx, env);
-    this.qualification = new D0020QualificationAgentDeliveryDOHost(ctx, env);
+    this.qualification = null;
+    this.qualificationConstructionFailure = null;
+    try {
+      this.qualification = new D0020QualificationAgentDeliveryDOHost(ctx, env);
+    } catch (error) {
+      this.qualificationConstructionFailure = diagnosticFailure(error);
+    }
   }
 
   fetch(request) {
@@ -18,6 +32,17 @@ export class AgentDeliveryRuntimeDO extends DurableObject {
 
   qualificationInvoke(input) {
     return this.qualification.qualificationInvoke(input);
+  }
+
+  d0044DiagnosticInvoke() {
+    return {
+      profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+      schemaVersion: 1,
+      ok: true,
+      result: this.qualificationConstructionFailure === null
+        ? { constructed: true }
+        : { constructed: false, failure: this.qualificationConstructionFailure },
+    };
   }
 
   webSocketMessage(socket, message) {

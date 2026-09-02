@@ -132,6 +132,13 @@ async function main() {
   const electionBefore = assertOk('election read before genesis', electionBeforeResponse);
   if (electionBefore !== null) throw new Error('isolated election target was not absent before genesis');
 
+  const constructorDiagnostic = assertOk('delivery constructor diagnostic', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
+    profile,
+    routeHostKey,
+    rpc: deliveryRpc('d0044_constructor_diagnostic'),
+  }));
+  if (constructorDiagnostic?.constructed !== true) throw new Error(`delivery constructor diagnostic reported failure: ${JSON.stringify(constructorDiagnostic?.failure ?? {})}`);
+
   const d0040 = assertOk('delivery attestor readback', await invoke(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,

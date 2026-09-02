@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 
 import {
   D0044_DELIVERY_QUALIFICATION_PATH,
+  D0044_PROVIDER_DIAGNOSTIC_PROFILE,
   D0044_ELECTION_QUALIFICATION_PATH,
   D0044_PROVIDER_QUALIFICATION_PROFILE,
   D0044ProviderQualificationService,
@@ -120,6 +121,29 @@ test('D0044 delivery qualification unwraps structured authority failures', async
   }));
   assert.equal(response.status, 400);
   assert.deepEqual(await response.json(), { ok: false, error: { code: 'agent_route_generation_missing' } });
+  assert.equal(calls.length, 1);
+});
+
+test('D0044 delivery qualification exposes only bounded constructor diagnostics', async () => {
+  const calls = [];
+  const stub = {
+    d0044DiagnosticInvoke() {
+      return {
+        profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+        schemaVersion: 1,
+        ok: true,
+        result: { constructed: false, failure: { name: 'ContractError', code: 'invalid_agent_delivery_storage' } },
+      };
+    },
+  };
+  const service = new D0044ProviderQualificationService(env({ TDEV_AGENT_DELIVERY: namespaceFor(stub, calls) }));
+  const response = await service.fetch(request(D0044_DELIVERY_QUALIFICATION_PATH, {
+    profile: D0044_PROVIDER_QUALIFICATION_PROFILE,
+    routeHostKey: agentRouteHostKey({ agentId: 'agent-diagnostic', routeGeneration: 1 }),
+    rpc: { profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_constructor_diagnostic', agentId: 'agent-diagnostic', routeGeneration: 1 },
+  }));
+  assert.equal(response.status, 200);
+  assert.deepEqual(await response.json(), { ok: true, result: { constructed: false, failure: { name: 'ContractError', code: 'invalid_agent_delivery_storage' } } });
   assert.equal(calls.length, 1);
 });
 

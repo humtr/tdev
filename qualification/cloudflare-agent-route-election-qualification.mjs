@@ -10,6 +10,7 @@ import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 import { QUALIFICATION_RPC_PROFILE } from './installable-agent-qualification-r4.mjs';
 
 export const D0044_PROVIDER_QUALIFICATION_PROFILE = 'tdev.agent-route-election-qualification.v1';
+export const D0044_PROVIDER_DIAGNOSTIC_PROFILE = 'tdev.d0044-provider-diagnostic.v1';
 export const D0044_ELECTION_QUALIFICATION_PATH = '/qualification/d0044/election/v1';
 export const D0044_DELIVERY_QUALIFICATION_PATH = '/qualification/d0044/delivery/v1';
 const MAX_REQUEST_BYTES = 1024 * 1024;
@@ -37,6 +38,7 @@ const ELECTION_PAYLOAD_SHAPES = Object.freeze({
 });
 
 const DELIVERY_OPERATIONS = new Set([
+  'd0044_constructor_diagnostic',
   'd0040_evidence_attestor_readback',
   'read_installable_agent',
   'read_route_generation',
@@ -199,6 +201,13 @@ export class D0044ProviderQualificationService {
       if (url.pathname === D0044_DELIVERY_QUALIFICATION_PATH) {
         const input = deliveryInput(body);
         const stub = namespaceStub(this.env.TDEV_AGENT_DELIVERY, input.routeHostKey, 'delivery');
+        if (input.rpc.operation === 'd0044_constructor_diagnostic') {
+          if (typeof stub.d0044DiagnosticInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose D0044 diagnostic RPC');
+          const diagnostic = await stub.d0044DiagnosticInvoke();
+          assertRecordShape(diagnostic, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0044 diagnostic response');
+          if (diagnostic.profile !== D0044_PROVIDER_DIAGNOSTIC_PROFILE || diagnostic.schemaVersion !== 1 || diagnostic.ok !== true) fail('invalid_qualification_provider', 'D0044 diagnostic response header is invalid');
+          return jsonResponse(200, { ok: true, result: publicJsonClone(diagnostic.result) });
+        }
         if (typeof stub.qualificationInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose qualification RPC');
         const result = unwrapDeliveryRpc(await stub.qualificationInvoke(input.rpc));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
