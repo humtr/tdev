@@ -1,0 +1,190 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.group-f.d0039-r12-current-genesis-q2-q5-evidence.v1",
+  "classification": "PASS",
+  "observedAtUtc": "2026-09-02T01:26:31.877Z",
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "status": "implementing",
+    "terminalClosure": false
+  },
+  "repository": {
+    "observationCheckoutHead": "06bd7854ea983df6a79a46bf967099a38d874fd6",
+    "branch": "development",
+    "productSourceSha": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "artifactDigest": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "artifactBytes": 116820,
+    "releaseManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d"
+  },
+  "deployment": {
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "workerScript": "tdev-d0020-qualification-clean-a",
+    "activeDeploymentId": "e21ef1a2-1dcb-4795-9686-9ada9079fa4c",
+    "activeVersionId": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+    "activeTrafficPercentage": 100,
+    "runtimeNamespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+    "deploymentIdentityDigest": "sha256:f5c235a912a31c1fcfbda8c7fddb3aeb5496bb54419caf6eb2e9a00dd2433a7c"
+  },
+  "route": {
+    "agentId": "d0039-r12-custody-20260828-3631c5a4",
+    "routeGeneration": 1,
+    "state": "CURRENT",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "managementKeyId": "sha256:918273fb803694ab3d46f5f0106804a70beb6d83645328eca299377ea9bd383c",
+    "releaseRootKeyId": "sha256:de139404ab2e099c7c46c758bc728d168cb71838cf2ecf7258f6ec0282f34a7a",
+    "currentCredentialKeyId": "sha256:bf9093d13d77576b8cef680886a88b36aff95d9bc8db636d9604a1fb381ec5af",
+    "credentialProvisioningId": "cp1.b00b0edca0a45ca39f4a00aabd1d6fac856bbd3ef4ede3921b7b31e537c6625e",
+    "evidenceAttestorKeyId": "sha256:c9108b2999e786291ca0aead3a6f99972ba9e4061ba0da623e427576d7267cc1"
+  },
+  "predecessorEvidence": {
+    "docs/evidence/group-f-d0039-r12-provider-q4-admission-2026-08-28.json": {
+      "sha256": "sha256:98fbd38c608cb1bd004e4aad4de45044640535646a65d9252ec3bcd889da8743",
+      "bytes": 3924
+    },
+    "docs/evidence/group-f-d0039-r12-fresh-route-custody-admission-2026-08-28.json": {
+      "sha256": "sha256:18a09a35601487bc0ea4a80399ef73677db6eafd4672a1e102c0f97267a8818d",
+      "bytes": 3989
+    },
+    "docs/evidence/group-f-d0041-r1-supported-termux-physical-candidate-preparation-2026-09-01.json": {
+      "sha256": "sha256:9da1afd0ea80dc5f4a57c291ce1d11a440b4652723fbf0764c7f773b056aa1e3",
+      "bytes": 5276
+    }
+  },
+  "phaseU": {
+    "classification": "PASS",
+    "observedAtUtc": "2026-09-01T22:50:40.361Z",
+    "transactionId": "d0039-r12-phase-u-20260901-kf3",
+    "managementRequestId": "m2:1",
+    "registerDispatchCount": 1,
+    "resultState": "GENESIS_PENDING",
+    "genesisGeneration": 1,
+    "pendingDigest": "sha256:bf95fd5a645cc1fae1f7e232f4c515829dbe6d72c789bcf11bf00b937310fac5",
+    "unregisteredPredecessorDigest": "sha256:7cedeac98c177b3e8352fb49a9bee9296512675b4066f130fdce6659dd774aaf",
+    "intentDigest": "sha256:2666c09711cc0366cb29b68d11dc620d55ed4fd95a9b9295c19ea51a8e9fbaed",
+    "reconciliationStable": true,
+    "replayPerformed": false,
+    "publicResultSha256": "sha256:95f3999fc9df721de8d4d1c6c6e27888c9c3b3e5fe72489f136c6dee1d36823b"
+  },
+  "phaseP": {
+    "classification": "PASS",
+    "observedAtUtc": "2026-09-02T00:12:49.556Z",
+    "phasePId": "d0039-r12-phase-p-20260902-kfl",
+    "transactionId": "d0039-r12-phase-u-20260901-kf3",
+    "mutationDispatchCount": 6,
+    "authenticatedEvidenceTypes": [
+      "bootstrap_trust",
+      "local_ready",
+      "local_service_ready",
+      "package_verified",
+      "verifier_ready"
+    ],
+    "authenticatedEvidenceDigests": {
+      "bootstrap_trust": "sha256:91121e99ffbd1870beec75ff9ab02a45cc2770dcdee62ae10baa2d52a1bc0748",
+      "package_verified": "sha256:0631a4619688d4a62719bbd1790a1fbd161fe77c3be9e5fea8bb87606d2024cc",
+      "verifier_ready": "sha256:4ac0002f3d116282bc18dc2b5ba71a786637279343d9863a933583f1559c6fdb",
+      "local_ready": "sha256:9d4cc87a8cb5eebb3571a90455b776cc26a038700cc4f62deda76d7689a246be",
+      "local_service_ready": "sha256:bf712201bef360f0f8affda5bbceb6d599eb2e9b9973c0137969a9f2ce5a4ac1"
+    },
+    "activationCause": "initial_activate",
+    "transitionReceiptDigest": "sha256:4ad45e2e865b4b476b6104a70a45c6f703eaaef1b59a7ef4dcdc6642428ec4ec",
+    "finalState": "CURRENT",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "stableFinalReadCount": 4,
+    "replayPerformed": false,
+    "publicResultSha256": "sha256:a3a3a301f4651a2d348c609ba43d720605e49c43e968d55ee991a2a3d2c26e76",
+    "publicEvidenceSha256": "sha256:2f7cba0a1d9b8dfb98b31a686201a465e320efd5fc337f7ff64843eeea6a3fed"
+  },
+  "terminalQ4": {
+    "status": "terminal_pass",
+    "evidencePath": "docs/evidence/group-f-d0039-r12-provider-q4-admission-2026-08-28.json"
+  },
+  "terminalQ5": {
+    "status": "terminal_pass",
+    "qualificationRunId": "d0039-r12-q5-20260902-kfl",
+    "observedAtUtc": "2026-09-02T01:17:41.016Z",
+    "deploymentIdentityDigest": "sha256:f5c235a912a31c1fcfbda8c7fddb3aeb5496bb54419caf6eb2e9a00dd2433a7c",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "principalNames": [
+      "deployment_operator_custody",
+      "iam_control_plane",
+      "provider_control_plane",
+      "route_owner_runtime"
+    ],
+    "observerSeparation": "distinct_api_token_principals",
+    "authorityIdentitiesDistinct": true,
+    "resultSha256": "sha256:2a791a8457357899fde451bfa064e4a1fd6063074288f4d8400ce6a96396513a",
+    "observationsSha256": "sha256:a8a79b29a9e24d70c41922537b03ad036fa08d818221ba5b62c8bfee9c5ced3c"
+  },
+  "terminalQ2": {
+    "status": "terminal_pass",
+    "qualificationRunId": "d0039-r12-q2-20260902-kfl",
+    "observedAtUtc": "2026-09-02T01:26:31.877Z",
+    "deploymentIdentityDigest": "sha256:f5c235a912a31c1fcfbda8c7fddb3aeb5496bb54419caf6eb2e9a00dd2433a7c",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "principalNames": [
+      "provider_control_plane",
+      "route_owner_runtime"
+    ],
+    "checks": [
+      "domainConfusionRejected",
+      "ed25519ManagementVerify",
+      "ed25519ReleaseVerify",
+      "mutatedSignatureRejected",
+      "rsa3072PublicJwkImport",
+      "sha256withRsaVerify"
+    ],
+    "proofLayer": "deployed_workers_runtime",
+    "algorithms": {
+      "management": "Ed25519",
+      "release": "Ed25519",
+      "rsa": "RSASSA-PKCS1-v1_5/SHA-256/3072"
+    },
+    "negativeVectors": {
+      "domainConfusion": true,
+      "mutation": true
+    },
+    "vectorKeyPolicy": "ephemeral-memory-only-not-product-identity",
+    "resultSha256": "sha256:334150652cdbb4809526238f7e6a8228b412d9d58e21d8a5e8667a77bfa760f4",
+    "observationsSha256": "sha256:0bc4f311fe7b3267eaa626229227cae95ec3366cbdc1b0ec261b98a8b3e3461b"
+  },
+  "focusedValidation": {
+    "jobId": "job_kpl_c768199de6",
+    "result": "PASS",
+    "testsPassed": 26,
+    "testsFailed": 0
+  },
+  "terminalGateStatus": {
+    "q2": "terminal_pass",
+    "q3": "unverified",
+    "q4": "terminal_pass",
+    "q5": "terminal_pass",
+    "q6": "unverified",
+    "q7": "unverified",
+    "q8": "unverified",
+    "q9": "unverified",
+    "q10": "unverified"
+  },
+  "q6Boundary": {
+    "status": "unverified",
+    "reason": "phase-U/P genesis evidence proves only a subset of Q6 live-migration semantics; the canonical route is already CURRENT and must not be mutated merely to manufacture missing qualification evidence",
+    "missingOrUnprovenChecks": [
+      "nestedV1TerminalImport",
+      "requestFloorInitializedOrImported",
+      "invalidPredecessorRejected",
+      "crashRestartReconciled",
+      "heldSlotQuiescence",
+      "hmacRejectedAfterMarker",
+      "hmacBindingRemoved",
+      "firstV2WriteRollbackBarrier"
+    ]
+  },
+  "continuation": {
+    "selectedNextGate": "q3_physical_android_termux",
+    "phaseUReplayAuthorized": false,
+    "phasePReplayAuthorized": false,
+    "canonicalCurrentRouteMustRemainUntouchedByQ6EvidenceManufacture": true
+  },
+  "secretValues": "excluded",
+  "privateKeyBytes": "excluded"
+}

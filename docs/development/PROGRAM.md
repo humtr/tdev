@@ -75,7 +75,7 @@ D0022? -------+                 +----> D0042? --------+----> D0023 + D0024
 
 `?` marks an evidence-activated conditional gate or a provisional future Design ID, not implementation authorization. D0042 and D0043 remain planning foreign keys until `SDD.md` is satisfied by accepted maintained Design records.
 
-The current runnable line is deliberately not changed by this graph refresh: `WORKBOARD.md` remains authoritative for D0041@r1 physical proof, and only after that proof passes may D0039@r12 resume. D0042/D0043 planning must not interrupt or fork that active line.
+The current runnable line remains owned only by `WORKBOARD.md`: D0041@r1 has completed its physical pre-genesis dependency and control has returned to D0039@r12 for the remaining realization gates. D0042/D0043 planning must not interrupt or fork that active line.
 
 Research may proceed ahead of an implementation dependency when it does not choose an unresolved authority/security/migration contract by implication. Canonical repository mutation/publication remains governed by the development workflow and current WORKBOARD route.
 
