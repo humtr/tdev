@@ -20,7 +20,7 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 ## Selected next action
 
-- D0044@r1 — diagnose and rerun the separately isolated provider/runtime gate after the exact source deployment reached the new Worker and distinct SQLite election/delivery namespaces. Authentication and fresh-election absence passed, but the first delivery Durable Object D0040 attestor readback returned HTTP 400 `qualification_provider_failure`; standby initialization, genesis, generation-2 cutover and activation were therefore not attempted. The qualification token was rotated once with its value excluded from evidence. Never import or cut over the canonical D0039 R12 route merely to satisfy this gate.
+- D0044@r1 — deploy the source-boundary correction and rerun the separately isolated provider/runtime gate from a fresh target/agent identity. The prior deployment reached the new Worker and distinct SQLite election/delivery namespaces; authentication and fresh-election absence passed, but the first delivery Durable Object D0040 attestor readback returned HTTP 400 `qualification_provider_failure`. The correction now unwraps the D0020 RPC v2 envelope exactly once, but deployment/rerun is waiting for renewed explicit authorization for one fresh qualification-token rotation because the prior token value was intentionally excluded. Standby initialization, genesis, generation-2 cutover and activation remain unverified and must not be attempted on the canonical D0039 R12 route.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
