@@ -616,6 +616,9 @@ export class AgentRouteElectionAuthority {
   }
 
   commitCutover({ cutoverRequestId }) {
+    parseAgentRouteCutoverRequestId(cutoverRequestId);
+    const retained = this.#receipt('cutover', cutoverRequestId);
+    if (retained !== null) return replayResult(retained);
     const active = this.#requireActiveCutover(cutoverRequestId);
     if (active.phase !== 'READY_TO_COMMIT' || active.predecessorExclusionDigest === null || active.successorStandbyDigest === null) {
       fail('agent_route_cutover_not_ready', 'Cutover requires both predecessor exclusion/quiescence and exact successor standby evidence before election');

@@ -255,6 +255,10 @@ test('D0044 cutover burns exactly one next generation after both predecessor exc
   assert.equal(authority.read().activeCutover, null);
   assert.equal(authority.read().currentRoute.routeHostKey, intent.successorRouteHostKey);
 
+  const committedReplay = authority.commitCutover({ cutoverRequestId: 'rc1:1' });
+  assert.equal(committedReplay.classification, 'exact_replay');
+  assert.deepEqual(committedReplay.result, applied);
+
   const wrongReplaySigner = ed25519Pair();
   await assert.rejects(
     authority.prepareCutover({ intent, signature: signRecord(wrongReplaySigner.privateKey, intent) }),
