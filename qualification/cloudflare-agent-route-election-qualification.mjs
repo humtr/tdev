@@ -71,6 +71,35 @@ function publicError(error) {
   return jsonResponse(status, { ok: false, error: { code } });
 }
 
+function diagnosticFailure(error) {
+  const name = typeof error?.name === 'string' && /^[A-Za-z][A-Za-z0-9_$]{0,63}$/.test(error.name) ? error.name : 'unknown';
+  const code = typeof error?.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code) ? error.code : null;
+  return { name, code };
+}
+
+async function diagnoseDeliveryPipeline(stub, input) {
+  const pipeline = { rpcReturned: false, unwrapSucceeded: false, cloneSucceeded: false };
+  try {
+    const raw = await stub.qualificationInvoke({ ...input.rpc, operation: 'd0040_evidence_attestor_readback' });
+    pipeline.rpcReturned = true;
+    try {
+      const result = unwrapDeliveryRpc(raw);
+      pipeline.unwrapSucceeded = true;
+      try {
+        publicJsonClone(result);
+        pipeline.cloneSucceeded = true;
+      } catch (error) {
+        pipeline.cloneFailure = diagnosticFailure(error);
+      }
+    } catch (error) {
+      pipeline.unwrapFailure = diagnosticFailure(error);
+    }
+  } catch (error) {
+    pipeline.rpcFailure = diagnosticFailure(error);
+  }
+  return pipeline;
+}
+
 function tokenBytes(token) {
   return typeof token === 'string' ? new TextEncoder().encode(token).byteLength : 0;
 }
@@ -206,7 +235,8 @@ export class D0044ProviderQualificationService {
           const diagnostic = await stub.d0044DiagnosticInvoke(input.rpc.agentId, input.rpc.routeGeneration);
           assertRecordShape(diagnostic, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0044 diagnostic response');
           if (diagnostic.profile !== D0044_PROVIDER_DIAGNOSTIC_PROFILE || diagnostic.schemaVersion !== 1 || diagnostic.ok !== true) fail('invalid_qualification_provider', 'D0044 diagnostic response header is invalid');
-          return jsonResponse(200, { ok: true, result: publicJsonClone(diagnostic.result) });
+          const pipeline = typeof stub.qualificationInvoke === 'function' ? await diagnoseDeliveryPipeline(stub, input) : null;
+          return jsonResponse(200, { ok: true, result: publicJsonClone({ ...diagnostic.result, ...(pipeline === null ? {} : { pipeline }) }) });
         }
         if (typeof stub.qualificationInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose qualification RPC');
         const result = unwrapDeliveryRpc(await stub.qualificationInvoke(input.rpc));
