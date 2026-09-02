@@ -231,6 +231,7 @@ function rpcShape(input) {
     d0039_workers_crypto_probe: [['vectors'], []],
     d0039_security_readback: [[], []],
     read_installable_agent: [[], []],
+    read_route_generation: [[], []],
     issue_installable_agent_connect_challenge: [['request'], ['nowMs']],
     migrate_installable_agent_route: [['request'], []],
     register_installable_agent: [['request'], []],
@@ -254,7 +255,13 @@ function rpcShape(input) {
     begin_installable_agent_uninstall: [['request'], []],
     complete_installable_agent_uninstall: [['request'], []],
     compact_installable_agent_management_receipts: [['request'], []],
-    initialize: [[], ['initialization']],
+    initialize: [[], ['initialization', 'generation']],
+    initialize_route_generation: [['state'], []],
+    prepare_legacy_route_import: [['record', 'recoverySignature', 'managementSignature', 'managementPublicJwk'], []],
+    seal_legacy_route_import: [['electionState'], []],
+    begin_route_draining: [['intent', 'signature'], []],
+    retire_route: [['exclusion'], []],
+    activate_route: [['electionState'], []],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
     release_reservation: [['request', 'nowMs'], []],
@@ -423,7 +430,12 @@ export class D0020QualificationAgentDeliveryDOHost {
     const routeRead = operation === 'migrate_installable_agent_route'
       ? this.host.readInstallableAgent({ routeBinding })
       : null;
-    const payload = operation === 'initialize' ? (input.initialization ?? {}) : input.request;
+    const payload = operation === 'initialize'
+      ? (input.generation === undefined ? (input.initialization ?? {}) : {
+        initialization: input.initialization ?? {},
+        generation: input.generation,
+      })
+      : input.request;
     return admitQualificationRouteProvisioning({
       operation,
       routeBinding,
@@ -641,6 +653,8 @@ export class D0020QualificationAgentDeliveryDOHost {
         };
       } else if (operation === 'read_installable_agent') {
         result = this.host.readInstallableAgent({ routeBinding });
+      } else if (operation === 'read_route_generation') {
+        result = this.host.readRouteGeneration({ routeBinding });
       } else if (operation === 'issue_installable_agent_connect_challenge') {
         result = this.host.issueInstallableAgentConnectChallenge({ routeBinding, request: input.request, ...(input.nowMs === undefined ? {} : { nowMs: input.nowMs }) });
       } else if (operation === 'migrate_installable_agent_route') {
@@ -688,12 +702,28 @@ export class D0020QualificationAgentDeliveryDOHost {
       } else if (operation === 'compact_installable_agent_management_receipts') {
         result = this.host.compactInstallableAgentManagementReceipts({ routeBinding, request: input.request });
       } else if (operation === 'initialize') {
-        result = this.host.initializeRoute({ routeBinding, ...(input.initialization === undefined ? {} : { initialization: input.initialization }) });
+        result = this.host.initializeRoute({
+          routeBinding,
+          ...(input.initialization === undefined ? {} : { initialization: input.initialization }),
+          ...(input.generation === undefined ? {} : { generation: input.generation }),
+        });
         if (result?.deduplicated !== false) {
           throw new ContractError('qualification_route_provisioning_predecessor_invalid', 'Fresh route initialization observed an already initialized route; reconcile by authoritative readback instead of replay');
         }
       } else if (operation === 'read') {
         result = this.host.readRoute({ routeBinding });
+      } else if (operation === 'initialize_route_generation') {
+        result = this.host.initializeRouteGeneration({ routeBinding, state: input.state });
+      } else if (operation === 'prepare_legacy_route_import') {
+        result = await this.host.prepareLegacyRouteImport({ routeBinding, record: input.record, recoverySignature: input.recoverySignature, managementSignature: input.managementSignature, managementPublicJwk: input.managementPublicJwk });
+      } else if (operation === 'seal_legacy_route_import') {
+        result = this.host.sealLegacyRouteImport({ routeBinding, electionState: input.electionState });
+      } else if (operation === 'begin_route_draining') {
+        result = await this.host.beginRouteDraining({ routeBinding, intent: input.intent, signature: input.signature });
+      } else if (operation === 'retire_route') {
+        result = this.host.retireRoute({ routeBinding, exclusion: input.exclusion });
+      } else if (operation === 'activate_route') {
+        result = this.host.activateRoute({ routeBinding, electionState: input.electionState });
       } else if (operation === 'reserve') {
         result = this.host.reserve({ routeBinding, request: input.request, nowMs: input.nowMs });
       } else if (operation === 'release_reservation') {

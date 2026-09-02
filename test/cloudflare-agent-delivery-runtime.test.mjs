@@ -7,12 +7,16 @@ import {
   AGENT_ROUTE_GENERATION_HOST_PROFILE,
   AgentRouteElectionAuthority,
   AgentDeliveryAuthority,
+  AgentRouteGenerationAuthority,
   CaseEngine,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_ENVELOPE_PROFILE,
   INSTALLABLE_AGENT_CONNECT_POSSESSION_PROFILE,
   INSTALLABLE_AGENT_MANAGEMENT_ENVELOPE_PROFILE,
   INSTALLABLE_AGENT_ROUTE_SECURITY_PROFILE,
   MemoryAgentDeliveryStore,
+  MemoryAgentRouteGenerationStore,
+  SqliteAgentRouteGenerationStore,
+  agentRouteBindingDigest,
   canonicalJson,
   computeAgentActivationRequestDigest,
   computeAgentCapacityRequestDigest,
@@ -73,6 +77,7 @@ function route(runtimeEnv = env(), agentId = 'agent-one', routeGeneration = 1, d
 class FakeSqliteStorage {
   constructor() {
     this.row = null;
+    this.generationRow = null;
     this.sql = {
       exec: (statement, ...bindings) => this.#exec(statement, bindings),
     };
@@ -86,6 +91,8 @@ class FakeSqliteStorage {
     const sql = statement.replace(/\s+/g, ' ').trim();
     let rows = [];
     if (sql.startsWith('CREATE TABLE IF NOT EXISTS agent_delivery_state')) {
+      rows = [];
+    } else if (sql.startsWith('CREATE TABLE IF NOT EXISTS agent_route_generation_state')) {
       rows = [];
     } else if (sql === 'SELECT * FROM agent_delivery_state WHERE agent_id = ?') {
       rows = this.row !== null && this.row.agent_id === bindings[0] ? [{ ...this.row }] : [];
@@ -108,6 +115,30 @@ class FakeSqliteStorage {
         revision,
         snapshot_json: snapshotJson,
         snapshot_bytes: snapshotBytes,
+        storage_profile: storageProfile,
+        storage_schema_version: storageSchemaVersion,
+      };
+    } else if (sql === 'SELECT * FROM agent_route_generation_state WHERE agent_id = ?') {
+      rows = this.generationRow !== null && this.generationRow.agent_id === bindings[0] ? [{ ...this.generationRow }] : [];
+    } else if (sql.startsWith('INSERT INTO agent_route_generation_state(')) {
+      const [agentId, revision, stateJson, stateBytes, storageProfile, storageSchemaVersion] = bindings;
+      if (this.generationRow !== null) throw new Error('duplicate fake generation row');
+      this.generationRow = {
+        agent_id: agentId,
+        revision,
+        state_json: stateJson,
+        state_bytes: stateBytes,
+        storage_profile: storageProfile,
+        storage_schema_version: storageSchemaVersion,
+      };
+    } else if (sql.startsWith('UPDATE agent_route_generation_state SET')) {
+      const [revision, stateJson, stateBytes, storageProfile, storageSchemaVersion, agentId] = bindings;
+      if (this.generationRow === null || this.generationRow.agent_id !== agentId) throw new Error('missing fake generation row');
+      this.generationRow = {
+        agent_id: agentId,
+        revision,
+        state_json: stateJson,
+        state_bytes: stateBytes,
         storage_profile: storageProfile,
         storage_schema_version: storageSchemaVersion,
       };
@@ -273,6 +304,55 @@ test('D0044 elected Worker resolves election first and never falls back or selec
   const missing = await service.fetch(new Request(`https://example.test/agent-delivery/v1/connect?agentId=${agentId}&routeGeneration=1`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' }));
   assert.equal(missing.status, 400);
   assert.deepEqual(calls, [`election-id:${agentId}`, `election-read:${agentId}`]);
+});
+
+test('D0044 elected Delivery host requires a durable generation owner before executable admission and reconstructs it', async () => {
+  const runtimeEnv = env({
+    TDEV_AGENT_ROUTE_MODE: 'elected_v1',
+    TDEV_AGENT_ROUTE_ELECTION_NAMESPACE: 'tdev-route-election-test',
+  });
+  const deliveryStore = new MemoryAgentDeliveryStore();
+  const generationStore = new MemoryAgentRouteGenerationStore();
+  const ctx = new FakeDurableObjectContext();
+  const host = new AgentDeliveryRuntimeDOHost(ctx, runtimeEnv, {
+    store: deliveryStore,
+    generationStore,
+    webSocketPairFactory: pairFactory(),
+  });
+  const routeBinding = route(runtimeEnv, 'agent-generation-owner', 1, 'do-agent-one');
+  const request = {
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    expectedConnectionEpoch: 0,
+    connectRequestId: 'connect-generation-1',
+    connectionId: 'connection-generation-1',
+    executorId: 'executor-generation',
+    executorEpoch: 1,
+    protocolMetadataDigest: digest({ protocol: 'generation-test' }),
+    installableAgentTuple: null,
+  };
+  expectCode(() => host.issueInstallableAgentConnectChallenge({ routeBinding, request }), 'agent_route_generation_missing');
+
+  const delivery = new AgentDeliveryAuthority({ store: deliveryStore, routeBinding });
+  const initialized = delivery.initialize();
+  const generation = AgentRouteGenerationAuthority.legacy({
+    routeBinding: { agentId: routeBinding.agentId, routeGeneration: routeBinding.routeGeneration },
+    routeBindingDigest: agentRouteBindingDigest(routeBinding),
+    routeStateDigest: digest(initialized.snapshot),
+  }).read();
+  const initializedGeneration = host.initializeRouteGeneration({ routeBinding, state: generation });
+  assert.equal(initializedGeneration.deduplicated, false);
+  assert.throws(
+    () => host.issueInstallableAgentConnectChallenge({ routeBinding, request }),
+    (error) => error?.code === 'agent_possession_unavailable',
+  );
+
+  const reconstructed = new AgentDeliveryRuntimeDOHost(ctx, runtimeEnv, {
+    store: deliveryStore,
+    generationStore,
+    webSocketPairFactory: pairFactory(),
+  });
+  assert.deepEqual(reconstructed.readRouteGeneration({ routeBinding }), generation);
 });
 
 function ed25519Pair() {
@@ -446,6 +526,26 @@ test('SQLite Agent delivery store rejects durable byte/accounting corruption', (
   new AgentDeliveryAuthority({ store, routeBinding: route(runtimeEnv) }).initialize();
   storage.row.snapshot_bytes += 1;
   expectCode(() => store.load('agent-one'), 'agent_delivery_store_corrupt');
+});
+
+test('D0044 SQLite generation store preserves canonical state across reconstruction and rejects stale CAS', () => {
+  const runtimeEnv = env({ TDEV_AGENT_ROUTE_MODE: 'elected_v1', TDEV_AGENT_ROUTE_ELECTION_NAMESPACE: 'election-test' });
+  const storage = new FakeSqliteStorage();
+  const store = new SqliteAgentRouteGenerationStore(storage);
+  const binding = route(runtimeEnv);
+  const state = AgentRouteGenerationAuthority.legacy({
+    routeBinding: { agentId: binding.agentId, routeGeneration: binding.routeGeneration },
+    routeBindingDigest: agentRouteBindingDigest(binding),
+    routeStateDigest: digest({ routeState: 'initial' }),
+  }).read();
+  store.compareAndSwap(binding.agentId, null, state);
+  assert.deepEqual(store.load(binding.agentId).state, state);
+  assert.throws(
+    () => store.compareAndSwap(binding.agentId, null, state),
+    (error) => error?.code === 'agent_route_generation_revision_conflict',
+  );
+  storage.generationRow.state_bytes += 1;
+  expectCode(() => store.load(binding.agentId), 'agent_route_generation_store_corrupt');
 });
 
 test('Hibernation reconstruction reattaches current socket without synthetic epoch change', async () => {

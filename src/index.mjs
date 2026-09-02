@@ -82,6 +82,14 @@ export {
   readAgentDeliveryRuntimeConfig,
 } from './cloudflare-agent-delivery-runtime.mjs';
 export {
+  AGENT_ROUTE_GENERATION_DEFAULT_MAX_SNAPSHOT_BYTES,
+  AGENT_ROUTE_GENERATION_STORAGE_PROFILE,
+  AGENT_ROUTE_GENERATION_STORAGE_SCHEMA_VERSION,
+  DurableAgentRouteGenerationAuthority,
+  MemoryAgentRouteGenerationStore,
+  SqliteAgentRouteGenerationStore,
+} from './cloudflare-agent-route-generation-runtime.mjs';
+export {
   LOCAL_AGENT_AUTH_PROTOCOL_PREFIX,
   LOCAL_AGENT_POSSESSION_PROTOCOL_PREFIX,
   LOCAL_AGENT_RUNTIME_PROFILE,

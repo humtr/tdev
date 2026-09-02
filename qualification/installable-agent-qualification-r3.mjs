@@ -24,6 +24,7 @@ export const READ_ONLY_QUALIFICATION_OPERATIONS = Object.freeze(new Set([
   'd0039_workers_crypto_probe',
   'd0039_security_readback',
   'read_installable_agent',
+  'read_route_generation',
   'read',
 ]));
 

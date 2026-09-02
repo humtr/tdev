@@ -7,6 +7,7 @@ import {
   canonicalClone,
   canonicalJson,
   digest,
+  deepFreeze,
   strictJsonParse,
 } from './canonical.mjs';
 import {
@@ -25,6 +26,11 @@ import {
 } from './installable-agent-security.mjs';
 import { INSTALLABLE_AGENT_CONNECT_CHALLENGE_MAX_BYTES } from './installable-agent-challenge.mjs';
 import { normalizeAgentRouteElectionState } from './agent-route-election.mjs';
+import {
+  DurableAgentRouteGenerationAuthority,
+  SqliteAgentRouteGenerationStore,
+} from './cloudflare-agent-route-generation-runtime.mjs';
+import { agentRouteBindingDigest } from './agent-delivery-authority.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
@@ -449,19 +455,24 @@ export class SqliteAgentDeliveryStore {
   }
 }
 
+function deliveryRoutePlacement(config) {
+  const { electionClassName, electionNamespace, ...placement } = config.placement;
+  return placement;
+}
+
 export function createRuntimeAgentRouteBinding(env, { agentId, routeGeneration, durableObjectId }) {
   const config = readAgentDeliveryRuntimeConfig(env);
   return normalizeAgentRouteBinding({
     agentId,
     routeGeneration,
-    ...config.placement,
+    ...deliveryRoutePlacement(config),
     durableObjectId,
   });
 }
 
 function assertRuntimeRouteBinding(input, config, durableObjectId) {
   const binding = normalizeAgentRouteBinding(input);
-  const expected = { ...config.placement, durableObjectId };
+  const expected = { ...deliveryRoutePlacement(config), durableObjectId };
   for (const [key, value] of Object.entries(expected)) {
     if (binding[key] !== value) {
       fail('agent_route_binding_conflict', `Agent delivery provider host rejected routeBinding.${key}`, {
@@ -707,6 +718,11 @@ export class AgentDeliveryRuntimeDOHost {
     }
     this.durableObjectId = ctx.id.toString();
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
+    this.generationStore = options.generationStore ?? (
+      typeof ctx.storage?.transactionSync === 'function' && typeof ctx.storage?.sql?.exec === 'function'
+        ? new SqliteAgentRouteGenerationStore(ctx.storage)
+        : null
+    );
     this.webSocketPairFactory = options.webSocketPairFactory ?? (() => new WebSocketPair());
     this.verifyManagementProof = options.verifyManagementProof ?? null;
     this.verifyInstallableAgentEvidence = options.verifyInstallableAgentEvidence ?? (
@@ -786,6 +802,43 @@ export class AgentDeliveryRuntimeDOHost {
     });
   }
 
+  #generationAuthority(routeBinding) {
+    if (this.generationStore === null) fail('agent_route_generation_unavailable', 'Route-generation storage is unavailable');
+    const binding = assertRuntimeRouteBinding(routeBinding, this.config, this.durableObjectId);
+    return new DurableAgentRouteGenerationAuthority({ agentId: binding.agentId, store: this.generationStore });
+  }
+
+  #assertRouteExecutable(routeBinding) {
+    if (this.config.routeMode === 'legacy_v1') return;
+    const binding = assertRuntimeRouteBinding(routeBinding, this.config, this.durableObjectId);
+    const authority = this.#generationAuthority(binding);
+    const state = authority.read();
+    if (state === null) fail('agent_route_generation_missing', 'Elected routing requires durable route-generation state');
+    if (state.routeBinding.routeGeneration !== binding.routeGeneration || state.routeBindingDigest !== agentRouteBindingDigest(binding)) {
+      fail('agent_route_generation_mismatch', 'Route-generation state does not bind the exact provider route');
+    }
+    authority.assertExecutable();
+  }
+
+  #initializeRouteGeneration(routeBinding, snapshot, input) {
+    if (input === undefined) {
+      if (this.config.routeMode === 'elected_v1') fail('agent_route_generation_initialization_required', 'Elected route initialization requires explicit route-generation state');
+      return null;
+    }
+    const binding = assertRuntimeRouteBinding(routeBinding, this.config, this.durableObjectId);
+    const state = canonicalClone(input);
+    if (state.routeBindingDigest !== agentRouteBindingDigest(binding)) {
+      fail('agent_route_generation_mismatch', 'Route-generation state does not bind the exact route binding');
+    }
+    if (state.routeBinding?.routeGeneration !== binding.routeGeneration || state.routeBinding?.agentId !== binding.agentId) {
+      fail('agent_route_generation_mismatch', 'Route-generation state contains a conflicting route binding');
+    }
+    if (state.routeStateDigest !== digest(snapshot)) {
+      fail('agent_route_state_mismatch', 'Route-generation state does not bind the initialized delivery snapshot');
+    }
+    return this.#generationAuthority(binding).initialize(state);
+  }
+
   async #invokeManagement(operation, method, input) {
     const authority = this.#authority(input.routeBinding);
     const route = authority.readInstallableAgent().installableAgent;
@@ -803,13 +856,56 @@ export class AgentDeliveryRuntimeDOHost {
   }
 
   initializeRoute(input) {
-    assertRecordShape(input, ['routeBinding'], ['initialization'], 'Agent delivery route initialization');
-    return this.#authority(input.routeBinding).initialize(input.initialization ?? {});
+    assertRecordShape(input, ['routeBinding'], ['initialization', 'generation'], 'Agent delivery route initialization');
+    const result = this.#authority(input.routeBinding).initialize(input.initialization ?? {});
+    const generation = this.#initializeRouteGeneration(input.routeBinding, result.snapshot, input.generation);
+    return generation === null ? result : deepFreeze({ ...result, generation });
   }
 
   readRoute(input) {
     assertRecordShape(input, ['routeBinding'], [], 'Agent delivery route read');
     return this.#authority(input.routeBinding).read();
+  }
+
+  readRouteGeneration(input) {
+    assertRecordShape(input, ['routeBinding'], [], 'Agent route-generation read');
+    return this.#generationAuthority(input.routeBinding).read();
+  }
+
+  initializeRouteGeneration(input) {
+    assertRecordShape(input, ['routeBinding', 'state'], [], 'Agent route-generation initialization');
+    const snapshot = this.#authority(input.routeBinding).read();
+    return this.#initializeRouteGeneration(input.routeBinding, snapshot, input.state);
+  }
+
+  async prepareLegacyRouteImport(input) {
+    assertRecordShape(input, ['routeBinding', 'record', 'recoverySignature', 'managementSignature', 'managementPublicJwk'], [], 'Agent legacy route import preparation');
+    return this.#generationAuthority(input.routeBinding).prepareLegacyImport({
+      record: input.record,
+      recoverySignature: input.recoverySignature,
+      managementSignature: input.managementSignature,
+      managementPublicJwk: input.managementPublicJwk,
+    });
+  }
+
+  sealLegacyRouteImport(input) {
+    assertRecordShape(input, ['routeBinding', 'electionState'], [], 'Agent legacy route import sealing');
+    return this.#generationAuthority(input.routeBinding).sealLegacyImport({ electionState: input.electionState });
+  }
+
+  async beginRouteDraining(input) {
+    assertRecordShape(input, ['routeBinding', 'intent', 'signature'], [], 'Agent route draining');
+    return this.#generationAuthority(input.routeBinding).beginDraining({ intent: input.intent, signature: input.signature });
+  }
+
+  retireRoute(input) {
+    assertRecordShape(input, ['routeBinding', 'exclusion'], [], 'Agent route retirement');
+    return this.#generationAuthority(input.routeBinding).retire({ exclusion: input.exclusion });
+  }
+
+  activateRoute(input) {
+    assertRecordShape(input, ['routeBinding', 'electionState'], [], 'Agent route activation');
+    return this.#generationAuthority(input.routeBinding).activate({ electionState: input.electionState });
   }
 
   readInstallableAgent(input) {
@@ -825,6 +921,7 @@ export class AgentDeliveryRuntimeDOHost {
     ], [], 'D0039 connect challenge request');
     const requestBytes = byteLength(canonicalJson(input.request));
     if (requestBytes > MAX_POSSESSION_ENVELOPE_BYTES) fail('agent_connect_request_too_large', 'D0039 connect challenge request exceeds 8192 bytes');
+    this.#assertRouteExecutable(input.routeBinding);
     const request = canonicalClone(input.request);
     request.requestDigest = computeAgentConnectRequestDigest(request);
     const nonce = new Uint8Array(32);
@@ -861,6 +958,7 @@ export class AgentDeliveryRuntimeDOHost {
       routeGeneration,
       durableObjectId: this.durableObjectId,
     });
+    this.#assertRouteExecutable(routeBinding);
     return this.issueInstallableAgentConnectChallenge({ routeBinding, request: challengeRequest });
   }
 
@@ -976,36 +1074,43 @@ export class AgentDeliveryRuntimeDOHost {
 
   reserve(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider reservation');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).reserve(input.request, { nowMs: input.nowMs });
   }
 
   releaseReservation(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider reservation release');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).releaseReservation(input.request, { nowMs: input.nowMs });
   }
 
   expireReservation(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider reservation expiry');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).expireReservation(input.request, { nowMs: input.nowMs });
   }
 
   rollReservationWindow(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider reservation rollover');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).rollReservationWindow(input.request, { nowMs: input.nowMs });
   }
 
   activateDelivery(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider activation');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).activateDelivery(input.request, { nowMs: input.nowMs });
   }
 
   grantCommand(input) {
     assertRecordShape(input, ['routeBinding', 'deliveryId'], ['dispatchOrdinal'], 'Agent delivery provider grant command');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).grantCommand(input.deliveryId, input.dispatchOrdinal ?? 1);
   }
 
   closeUndispatchedDelivery(input) {
     assertRecordShape(input, ['routeBinding', 'deliveryId'], ['nowMs'], 'Agent delivery provider close undispatched');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).closeUndispatchedDelivery(
       input.deliveryId,
       input.nowMs === undefined ? {} : { nowMs: input.nowMs },
@@ -1014,11 +1119,13 @@ export class AgentDeliveryRuntimeDOHost {
 
   bindTerminalCaseReceipt(input) {
     assertRecordShape(input, ['routeBinding', 'request', 'nowMs'], [], 'Agent delivery provider terminal Case receipt');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).bindTerminalCaseReceipt(input.request, { nowMs: input.nowMs });
   }
 
   reacquireDeliveryAdmission(input) {
     assertRecordShape(input, ['routeBinding', 'request'], [], 'Agent delivery provider reacquire admission');
+    this.#assertRouteExecutable(input.routeBinding);
     return this.#authority(input.routeBinding).reacquireDeliveryAdmission(input.request);
   }
 
@@ -1032,6 +1139,7 @@ export class AgentDeliveryRuntimeDOHost {
     const routeGeneration = positiveQueryInteger(url.searchParams, 'routeGeneration');
     const principal = { agentId, routeGeneration };
     const routeBinding = createRuntimeAgentRouteBinding(this.env, { agentId, routeGeneration, durableObjectId: this.durableObjectId });
+    this.#assertRouteExecutable(routeBinding);
     const authority = this.#authority(routeBinding);
     const routeState = authority.readInstallableAgent().installableAgent;
     let possessionEnvelope = null;
@@ -1135,6 +1243,7 @@ export class AgentDeliveryRuntimeDOHost {
 
   sendAuthorizedDispatch(input) {
     assertRecordShape(input, ['routeBinding', 'authorization', 'executableBody'], [], 'Agent delivery provider dispatch send');
+    this.#assertRouteExecutable(input.routeBinding);
     const authority = this.#authority(input.routeBinding);
     const authorizationResult = authority.authorizeDispatch(input.authorization);
     const authorization = authorizationResult.authorization;
@@ -1239,6 +1348,7 @@ export class AgentDeliveryRuntimeDOHost {
     try {
       const attachment = attachmentFromSocket(socket);
       const routeBinding = this.#bindingFromAttachment(attachment);
+      this.#assertRouteExecutable(routeBinding);
       const authority = this.#authority(routeBinding);
       authority.reattachConnection(connectionIdentityFromAttachment(attachment));
       const frame = decodeFrame(message, this.config.maxFrameBytes);
