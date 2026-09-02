@@ -224,7 +224,7 @@ export class D0044ProviderQualificationService {
       if (url.pathname === D0044_ELECTION_QUALIFICATION_PATH) {
         const input = electionInput(body);
         const stub = namespaceStub(this.env.TDEV_AGENT_ROUTE_ELECTION, input.agentId, 'election');
-        const result = await invokeElection(stub, input.operation, input.agentId, input.payload);
+        const result = await invokeElection(stub, input.operation, input.agentId, publicJsonClone(input.payload));
         return jsonResponse(200, { ok: true, result: publicJsonClone(result) });
       }
       if (url.pathname === D0044_DELIVERY_QUALIFICATION_PATH) {
