@@ -206,7 +206,7 @@ function deliveryInput(body) {
     fail('invalid_agent_route_host_key', 'D0044 routeHostKey is invalid');
   }
   assertRecordShape(body.rpc, ['profile', 'operation', 'agentId', 'routeGeneration'], [
-    'expectedDeploymentIdentityDigest', 'initialization', 'generation', 'state', 'request', 'nowMs', 'electionState', 'intent', 'signature', 'exclusion', 'routeProvisioningTarget', 'routeProvisioningTargetDigest', 'routeProvisioningTransactionId', 'routeProvisioningRequestDigest',
+    'expectedDeploymentIdentityDigest', 'initialization', 'generation', 'state', 'request', 'nowMs', 'electionState', 'intent', 'signature', 'exclusion', 'record', 'recoverySignature', 'managementSignature', 'managementPublicJwk', 'routeProvisioningTarget', 'routeProvisioningTargetDigest', 'routeProvisioningTransactionId', 'routeProvisioningRequestDigest',
   ], 'D0044 delivery qualification RPC');
   if (body.rpc.profile !== QUALIFICATION_RPC_PROFILE) fail('invalid_qualification_rpc_profile', 'D0020 qualification profile is unsupported');
   assertIdentifier(body.rpc.agentId, 'agentId');
