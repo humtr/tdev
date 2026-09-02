@@ -19,7 +19,10 @@ import {
 import { AgentRouteGenerationAuthority } from '../src/agent-route-generation.mjs';
 import { encodeBase64Url, signedRecordBytes } from '../src/installable-agent-security.mjs';
 import {
+  createQualificationDeploymentIdentity,
   QUALIFICATION_RPC_PROFILE,
+  qualificationDeploymentIdentityDigest,
+  qualificationRouteVerifierDigest,
 } from './installable-agent-qualification-r4.mjs';
 import {
   QUALIFICATION_ROUTE_PROVISIONING_PROFILE,
@@ -296,12 +299,43 @@ async function main() {
     routeHostKey,
     rpc: deliveryRpc('read_route_generation'),
   }));
-  const runtimeProbe = assertOk('delivery runtime probe', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
-    profile,
-    routeHostKey,
-    rpc: deliveryRpc('runtime_probe'),
-  }));
   const staleAgentId = `${agentId}-stale`;
+  const expectedDeploymentIdentity = createQualificationDeploymentIdentity({
+    runtimeFacts: {
+      sourceSha: d0040.sourceSha,
+      artifactDigest,
+      artifactManifestDigest,
+      workerVersionId: d0040.workerVersionId,
+      accountId,
+      serviceName: scriptName,
+      deployment: scriptName,
+      environment: 'qualification',
+      deploymentEpoch,
+      stateChangingTrafficPercentage: 100,
+      qualificationEndpointOrigin: origin,
+      ingressKind: 'workers_dev',
+      workersDevAccountSubdomain: accountSubdomain,
+      workersDevHostname: `${scriptName}.${accountSubdomain}.workers.dev`,
+      workersDevEnabled: true,
+      workersDevPreviewsEnabled: false,
+      workerScript: scriptName,
+      namespaceId: deliveryNamespaceId,
+      namespace: deliveryNamespaceId,
+      className: 'AgentDeliveryRuntimeDO',
+      jurisdiction: 'global',
+      durableObjectId,
+      routeCurrentTupleDigest: routeRead.currentTupleDigest,
+      routeVerifierDigest: qualificationRouteVerifierDigest({
+        currentTupleDigest: routeRead.currentTupleDigest,
+        managementKeyId: routeRead.installableAgent?.managementKeyId ?? null,
+        releaseRootKeyId: routeRead.installableAgent?.releaseRootKeyId ?? null,
+        currentCredentialKeyId: routeRead.installableAgent?.currentCredentialKeyId ?? null,
+      }),
+      routeBinding: routeBindingValue,
+    },
+    routeBinding: routeBindingValue,
+  });
+  const expectedDeploymentIdentityDigest = qualificationDeploymentIdentityDigest(expectedDeploymentIdentity);
   const staleRouteHostKey = agentRouteHostKey({ agentId: staleAgentId, routeGeneration });
   const staleElection = structuredClone(electionAfter);
   staleElection.agentId = staleAgentId;
@@ -324,7 +358,7 @@ async function main() {
   const blockedActivation = await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
-    rpc: deliveryRpc('activate_route', { electionState: staleElection, expectedDeploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest }),
+    rpc: deliveryRpc('activate_route', { electionState: staleElection, expectedDeploymentIdentityDigest }),
   });
   process.stdout.write(`${JSON.stringify({
     status: 'qualified_partial',
@@ -343,7 +377,7 @@ async function main() {
       className: d0040.className,
       jurisdiction: d0040.jurisdiction,
       durableObjectId,
-      runtimeProbeDeploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest,
+      expectedDeploymentIdentityDigest,
       attestorKeyId: d0040.evidenceAttestationVerifier?.keyId ?? null,
     },
     election: {
