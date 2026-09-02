@@ -8,7 +8,6 @@ import {
 import { AgentDeliveryAuthority, MemoryAgentDeliveryStore, agentRouteBindingDigest } from '../src/agent-delivery-authority.mjs';
 import { digest, typedDigest } from '../src/canonical.mjs';
 import {
-  AGENT_ROUTE_ACTIVATION_RECEIPT_PROFILE,
   AGENT_ROUTE_ELECTION_GENESIS_PROFILE,
   AGENT_ROUTE_GENERATION_HOST_PROFILE,
   agentRouteElectionAttachmentDigest,
@@ -19,10 +18,7 @@ import {
 import { AgentRouteGenerationAuthority } from '../src/agent-route-generation.mjs';
 import { encodeBase64Url, signedRecordBytes } from '../src/installable-agent-security.mjs';
 import {
-  createQualificationDeploymentIdentity,
   QUALIFICATION_RPC_PROFILE,
-  qualificationDeploymentIdentityDigest,
-  qualificationRouteVerifierDigest,
 } from './installable-agent-qualification-r4.mjs';
 import {
   QUALIFICATION_ROUTE_PROVISIONING_PROFILE,
@@ -34,7 +30,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-elected-20260902-r6';
+const agentId = 'd0044-provider-elected-20260902-r7';
 const routeGeneration = 1;
 const routeHostKey = agentRouteHostKey({ agentId, routeGeneration });
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
@@ -299,66 +295,10 @@ async function main() {
     routeHostKey,
     rpc: deliveryRpc('read_route_generation'),
   }));
-  const staleAgentId = `${agentId}-stale`;
-  const expectedDeploymentIdentity = createQualificationDeploymentIdentity({
-    runtimeFacts: {
-      sourceSha: d0040.sourceSha,
-      artifactDigest,
-      artifactManifestDigest,
-      workerVersionId: d0040.workerVersionId,
-      accountId,
-      serviceName: scriptName,
-      deployment: scriptName,
-      environment: 'qualification',
-      deploymentEpoch,
-      stateChangingTrafficPercentage: 100,
-      qualificationEndpointOrigin: origin,
-      ingressKind: 'workers_dev',
-      workersDevAccountSubdomain: accountSubdomain,
-      workersDevHostname: `${scriptName}.${accountSubdomain}.workers.dev`,
-      workersDevEnabled: true,
-      workersDevPreviewsEnabled: false,
-      workerScript: scriptName,
-      namespaceId: deliveryNamespaceId,
-      namespace: deliveryNamespaceId,
-      className: 'AgentDeliveryRuntimeDO',
-      jurisdiction: 'global',
-      durableObjectId,
-      routeCurrentTupleDigest: routeRead.currentTupleDigest,
-      routeVerifierDigest: qualificationRouteVerifierDigest({
-        currentTupleDigest: routeRead.currentTupleDigest,
-        managementKeyId: routeRead.installableAgent?.managementKeyId ?? null,
-        releaseRootKeyId: routeRead.installableAgent?.releaseRootKeyId ?? null,
-        currentCredentialKeyId: routeRead.installableAgent?.currentCredentialKeyId ?? null,
-      }),
-      routeBinding: routeBindingValue,
-    },
-    routeBinding: routeBindingValue,
-  });
-  const expectedDeploymentIdentityDigest = qualificationDeploymentIdentityDigest(expectedDeploymentIdentity);
-  const staleRouteHostKey = agentRouteHostKey({ agentId: staleAgentId, routeGeneration });
-  const staleElection = structuredClone(electionAfter);
-  staleElection.agentId = staleAgentId;
-  const staleActivationReceiptDigest = typedDigest(AGENT_ROUTE_ACTIVATION_RECEIPT_PROFILE, {
-    kind: 'genesis',
-    agentId: staleAgentId,
-    routeGeneration,
-    routeBindingDigest: bindingDigest,
-    routeHostProfile: AGENT_ROUTE_GENERATION_HOST_PROFILE,
-    routeHostKey: staleRouteHostKey,
-    intentDigest: staleElection.recentReceipts[0].intentDigest,
-  });
-  staleElection.currentRoute.routeHostKey = staleRouteHostKey;
-  staleElection.currentRoute.activationReceiptDigest = staleActivationReceiptDigest;
-  for (const receipt of staleElection.recentReceipts) {
-    receipt.result.currentRoute.routeHostKey = staleRouteHostKey;
-    receipt.result.currentRoute.activationReceiptDigest = staleActivationReceiptDigest;
-    receipt.result.activationReceiptDigest = staleActivationReceiptDigest;
-  }
   const blockedActivation = await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
     profile,
     routeHostKey,
-    rpc: deliveryRpc('activate_route', { electionState: staleElection, expectedDeploymentIdentityDigest }),
+    rpc: deliveryRpc('activate_route', { electionState: electionAfter }),
   });
   process.stdout.write(`${JSON.stringify({
     status: 'qualified_partial',
@@ -377,7 +317,6 @@ async function main() {
       className: d0040.className,
       jurisdiction: d0040.jurisdiction,
       durableObjectId,
-      expectedDeploymentIdentityDigest,
       attestorKeyId: d0040.evidenceAttestationVerifier?.keyId ?? null,
     },
     election: {
