@@ -102,7 +102,7 @@ test('D0044 delivery qualification routes only to the deterministic generation h
   const denied = await service.fetch(request(D0044_DELIVERY_QUALIFICATION_PATH, {
     ...body,
     routeHostKey: 'agent-generation',
-    rpc: { ...body.rpc, operation: 'activate_route' },
+    rpc: { ...body.rpc, operation: 'reserve' },
   }));
   assert.equal(denied.status, 400);
   assert.deepEqual(calls, [routeHostKey]);
