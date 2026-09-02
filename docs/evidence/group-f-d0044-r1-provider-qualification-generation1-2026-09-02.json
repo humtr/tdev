@@ -1,0 +1,143 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_generation1_partial",
+  "observedAtUtc": "2026-09-02T16:29:44Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "isolated provider qualification of legacy import and higher-generation cutover/recovery crash points"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "testedCommit": "b52426b636b218453ab2f0bf5f3f647b8d97e746",
+    "tree": "d777f8c7934b36463241a4cfc7498652efb67c73",
+    "parent": "937aba5ce17cc1676b8e60a7d8de0faadd146543",
+    "sourceBinding": "b52426b636b218453ab2f0bf5f3f647b8d97e746",
+    "implementation": [
+      "Election Durable Object RPC methods return public JSON-clone values across the Cloudflare boundary.",
+      "D0044 qualification sanitizes Cloudflare RPC proxy symbol metadata through JSON serialization followed by strictJsonParse before response validation."
+    ]
+  },
+  "validation": {
+    "commands": [
+      "npm run check",
+      "node --experimental-test-coverage --test test/*.test.mjs",
+      "git diff --check"
+    ],
+    "success": true,
+    "tests": {
+      "total": 612,
+      "passed": 612,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0,
+      "todo": 0
+    },
+    "coverage": {
+      "line": 85.51,
+      "branch": 71.41,
+      "function": 88.2
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "cleanExactSource": true
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "reusedExistingTarget": true,
+    "sourceSha": "b52426b636b218453ab2f0bf5f3f647b8d97e746",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:130bbff87c353b04189c9dfea70c49269628dc460e12fc50292f5bdcfcb3364f",
+    "artifactManifestDigest": "sha256:498bba5c8b9a81e7ff3a662c16427281fb8c8ec0c0401cd41672c6b904f4f648",
+    "deployment": {
+      "id": "c3a0fb0e-0ada-43c9-a8ba-c2b1742ef6aa",
+      "versionId": "ce57b746-07df-476d-a923-89ba1493cefd",
+      "trafficPercentage": 100,
+      "triggeredBy": "secret"
+    },
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "durableObjects": {
+      "delivery": {
+        "namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2",
+        "className": "AgentDeliveryRuntimeDO",
+        "useSqlite": true
+      },
+      "election": {
+        "namespaceId": "5f5e1733b60e408ba339ee01981e981f",
+        "className": "AgentRouteElectionRuntimeDO",
+        "useSqlite": true
+      },
+      "distinctNamespaces": true
+    },
+    "attestorKeyId": "sha256:f57a207bfb1629d007de3f79d67d4ce7304db824139866e1b9c1a30a6847084e",
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-provider-elected-20260902-r4",
+    "routeGeneration": 1,
+    "routeHostKey": "rh1.3c708683e7351bace34faddabc2d92b689ecce87d2e1a99992e4ea26b127436c",
+    "unauthorizedBeforeRouting": {
+      "status": 401,
+      "code": "qualification_unauthorized"
+    },
+    "freshElectionAbsentBeforeGenesis": {
+      "status": 200,
+      "result": null
+    },
+    "constructorDiagnostic": "PASS",
+    "d0040EvidenceAttestorReadback": "PASS",
+    "standbyInitialization": "PASS — fresh generation initialized and read back",
+    "electionGenesis": {
+      "classification": "applied",
+      "activationReceiptDigest": "sha256:8522984e3a2a3005dc0aad59b11d6d33dca5e2dcf85977914fc5e0dcb31b345a"
+    },
+    "electionStateReadback": {
+      "status": "PASS",
+      "stateDigest": "sha256:53df4bb67deefba599b5d629c41ea0a6f931eabc7ef2203f80fcacd02bfb14fe"
+    },
+    "deliveryRouteReadback": {
+      "state": "LEGACY_D0020_ONLY",
+      "durableObjectId": "31310f9d7f94085a55c25239088e9a887172e719a01ff86f0c1816ec35dfb721"
+    },
+    "generationReadback": {
+      "disposition": "STANDBY",
+      "stateDigest": "sha256:f4a66c318c4473c3ab5d7b20857c19e4a39ac899171063f7ddb7709982a23316"
+    },
+    "staleActivationAdmission": {
+      "status": 400,
+      "code": "unexpected_keys",
+      "meaning": "D0020 mutation admission rejected the request before activation because no deployment identity digest was supplied; no activation state mutation occurred"
+    },
+    "canonicalD0039ImportOrCutover": false
+  },
+  "externalEffects": {
+    "isolatedWorkerDeployment": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "deliveryStandbyRouteMutation": true,
+    "electionGenesisMutation": true,
+    "qualificationTokenRotated": true,
+    "generation2Cutover": "NOT_EXECUTED",
+    "legacyImport": "NOT_EXECUTED",
+    "providerLossRecovery": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "orphanedQualificationLanes": "Earlier isolated r2/r3/r5 attempts and the r6 binding-mismatch attempt were preserved and not reused; no lane was force-reset or deleted.",
+  "proofBoundaries": {
+    "source": "PASS for exact b52426b636b218453ab2f0bf5f3f647b8d97e746",
+    "providerDeployment": "PASS — exact source deployed at 100% workers.dev traffic with distinct SQLite election/delivery namespaces",
+    "generation1ElectionAndStandby": "PASS on fresh r4 lane",
+    "generation2CutoverAndLegacyImport": "UNVERIFIED",
+    "activation": "Only stale/malformed admission was proven blocked; positive activation and cutover remain unexecuted",
+    "canonicalD0039": "untouched"
+  },
+  "nextGate": "Run D0044 legacy-import and generation-2 cutover/recovery crash-point qualification on a separately fresh isolated lane; do not import or cut over canonical D0039 R12."
+}
