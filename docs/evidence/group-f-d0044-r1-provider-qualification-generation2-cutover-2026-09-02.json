@@ -1,0 +1,158 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_generation2_cutover_partial",
+  "observedAtUtc": "2026-09-02T21:21:21Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "response-loss and crash-point replay, provider-loss/recovery, predecessor non-resurrection and final D0039 consumption"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "validationCommit": "122fae862de98d094ae7882a7f13c7fca0abb44d",
+    "deployedWorkerSourceCommit": "f3feae1f6da3f83ebcea17f2397c7c08b2c81b65",
+    "deployedWorkerSemanticPathsUnchangedSinceSource": true,
+    "validation": {
+      "commands": [
+        "npm run check",
+        "git diff --check"
+      ],
+      "success": true,
+      "tests": {
+        "total": 612,
+        "passed": 612,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "syntax": "PASS",
+      "documentation": "PASS",
+      "demo": "PASS",
+      "durableDemo": "PASS",
+      "cleanDiff": true
+    }
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "r20",
+    "sourceSha": "f3feae1f6da3f83ebcea17f2397c7c08b2c81b65",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:dcbdf819ac04b49b52bf56a536237b11bb189c216c8341895223aaa9eaaa601d",
+    "artifactManifestDigest": "sha256:8b0b509a9972cafaed433d5218792d2bba7194b7cf03c94bd0bd127bd782574d",
+    "attestorKeyId": "sha256:0b18f22db661c154cb541de49a4de65f9fa6748f9dfee6b262b04f3287d2c7a5",
+    "trafficPercentage": 100,
+    "latestObservedDeployment": {
+      "id": "e45b0b48-95d6-4ad4-9bb8-7a74dd926f67",
+      "versionId": "54918624-15d8-4c8a-848d-ad82a4556457",
+      "strategy": "percentage",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {
+        "namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2",
+        "className": "AgentDeliveryRuntimeDO",
+        "useSqlite": true
+      },
+      "election": {
+        "namespaceId": "5f5e1733b60e408ba339ee01981e981f",
+        "className": "AgentRouteElectionRuntimeDO",
+        "useSqlite": true
+      },
+      "distinctNamespaces": true
+    },
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-provider-import-20260902-r20",
+    "legacyGeneration": {
+      "routeGeneration": 1,
+      "routeHostProfile": "legacy_agent_id_v1",
+      "routeHostKey": "d0044-provider-import-20260902-r20",
+      "importStages": {
+        "pendingAttachment": "PASS — prepare_legacy_route_import",
+        "dualAuthorizedElectionCreation": "PASS — importLegacyAgentRoute",
+        "sealedAttachment": "PASS — seal_legacy_route_import",
+        "sealedAttachmentReadback": "PASS"
+      },
+      "routeBindingDigest": "sha256:784ab6ef28d46e1e3b452fb32276ca7c06faef7484f3f181fe0a2c07c78a6066",
+      "routeStateDigest": "sha256:757a9bf747a0481d6b4cccd0066e33013d0aff8f795af3f64a247f00287460f3",
+      "disposition": "RETIRED",
+      "retirementReceiptDigest": "sha256:f7555fa9198b68be6e1df5fe5d68f002f9d6e48b808cacaec0c37eb28c045365"
+    },
+    "successorGeneration": {
+      "routeGeneration": 2,
+      "routeHostProfile": "generation_key_v1",
+      "routeHostKey": "rh1.262b7973e95d6b3d1647277930da2d3809e372ebb7c9977fa7cfae80fc80005c",
+      "routeBindingDigest": "sha256:e9536831e6e1c4eddfe6b565d39b816d0d1ad3d5bb898f58e31da424edc6835e",
+      "routeStateDigest": "sha256:3d881061075ba7e261bb892f99dd896f8c9c74c8f07defd2063294f361eef515",
+      "attachmentStatus": "SEALED",
+      "disposition": "ACTIVE",
+      "activationReceiptDigest": "sha256:78272228152d5976d3598c4c1860e22ede29bdbe82dca6abb5062cb4801745fc"
+    },
+    "election": {
+      "stateDigest": "sha256:47a4cb03539b218b2529c0592ce1b4a00fa6b1ce0d680c61be104a04232b962e",
+      "currentRouteGeneration": 2,
+      "currentRouteHostProfile": "generation_key_v1",
+      "currentRouteHostKey": "rh1.262b7973e95d6b3d1647277930da2d3809e372ebb7c9977fa7cfae80fc80005c",
+      "currentRouteBindingDigest": "sha256:e9536831e6e1c4eddfe6b565d39b816d0d1ad3d5bb898f58e31da424edc6835e",
+      "currentActivationReceiptDigest": "sha256:78272228152d5976d3598c4c1860e22ede29bdbe82dca6abb5062cb4801745fc"
+    },
+    "cutover": {
+      "cutoverRequestId": "rc1:1",
+      "predecessorDraining": "PASS",
+      "positiveQuiescence": "PASS — activeSocketCount 0 and heldCapacityCount 0",
+      "predecessorRetirement": "PASS",
+      "predecessorExclusionRecorded": "PASS",
+      "successorStandbyRecorded": "PASS",
+      "atomicElectionCommit": "PASS",
+      "successorActivationReconciliation": "PASS — authoritative readback was already ACTIVE and was not reactivated",
+      "stalePredecessorActivation": {
+        "status": 400,
+        "code": "agent_route_not_standby",
+        "meaning": "retired generation cannot be reactivated or become current"
+      }
+    },
+    "invariants": {
+      "strictNextGeneration": true,
+      "oneCurrentRoute": true,
+      "predecessorRetired": true,
+      "successorActive": true,
+      "canonicalD0039ImportOrCutover": false
+    }
+  },
+  "externalEffects": {
+    "isolatedWorkerDeployment": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "qualificationTokenRotated": true,
+    "legacyImportMutation": true,
+    "generation2CutoverMutation": true,
+    "responseLossCrashPointReplay": "NOT_EXECUTED",
+    "providerLossRecovery": "NOT_EXECUTED",
+    "predecessorPitrOrSameNameNonResurrection": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "source": "PASS — current exact 612/612 gate",
+    "providerDeployment": "PASS — isolated workers.dev Worker at 100% with distinct SQLite namespaces",
+    "legacyImport": "PASS for pending attachment, dual-authorized election creation and sealed attachment on r20",
+    "generation2Cutover": "PASS for predecessor quiescence/retirement, atomic election and successor ACTIVE readback",
+    "staleGeneration": "PASS — retired predecessor activation denied with agent_route_not_standby",
+    "responseLossAndCrashPoints": "UNVERIFIED",
+    "providerLossRecoveryAndNonResurrection": "UNVERIFIED",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated r2/r3/r5/r6/r9-r19 attempts were retained without reset, force-rewrite or deletion.",
+  "nextGate": "Run isolated response-loss/activation-replay, provider-loss/recovery crash-point and predecessor PITR/same-name non-resurrection proofs; do not import or cut over canonical D0039 R12."
+}
