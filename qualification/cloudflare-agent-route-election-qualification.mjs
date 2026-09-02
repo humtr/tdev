@@ -203,7 +203,7 @@ export class D0044ProviderQualificationService {
         const stub = namespaceStub(this.env.TDEV_AGENT_DELIVERY, input.routeHostKey, 'delivery');
         if (input.rpc.operation === 'd0044_constructor_diagnostic') {
           if (typeof stub.d0044DiagnosticInvoke !== 'function') fail('invalid_qualification_provider', 'Delivery namespace does not expose D0044 diagnostic RPC');
-          const diagnostic = await stub.d0044DiagnosticInvoke();
+          const diagnostic = await stub.d0044DiagnosticInvoke(input.rpc.agentId, input.rpc.routeGeneration);
           assertRecordShape(diagnostic, ['profile', 'schemaVersion', 'ok', 'result'], [], 'D0044 diagnostic response');
           if (diagnostic.profile !== D0044_PROVIDER_DIAGNOSTIC_PROFILE || diagnostic.schemaVersion !== 1 || diagnostic.ok !== true) fail('invalid_qualification_provider', 'D0044 diagnostic response header is invalid');
           return jsonResponse(200, { ok: true, result: publicJsonClone(diagnostic.result) });

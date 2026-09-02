@@ -5,6 +5,7 @@ import {
 } from './cloudflare-agent-delivery-runtime.mjs';
 import { AgentRouteElectionRuntimeDOHost } from '../src/cloudflare-agent-route-election-runtime.mjs';
 import { D0044ProviderQualificationService } from './cloudflare-agent-route-election-qualification.mjs';
+import { QUALIFICATION_RPC_PROFILE } from './installable-agent-qualification-r4.mjs';
 
 const D0044_PROVIDER_DIAGNOSTIC_PROFILE = 'tdev.d0044-provider-diagnostic.v1';
 
@@ -34,15 +35,60 @@ export class AgentDeliveryRuntimeDO extends DurableObject {
     return this.qualification.qualificationInvoke(input);
   }
 
-  d0044DiagnosticInvoke() {
-    return {
-      profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
-      schemaVersion: 1,
-      ok: true,
-      result: this.qualificationConstructionFailure === null
-        ? { constructed: true }
-        : { constructed: false, failure: this.qualificationConstructionFailure },
-    };
+  async d0044DiagnosticInvoke(agentId, routeGeneration) {
+    if (this.qualificationConstructionFailure !== null) {
+      return {
+        profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+        schemaVersion: 1,
+        ok: true,
+        result: { constructed: false, failure: this.qualificationConstructionFailure },
+      };
+    }
+    try {
+      const response = await this.qualification.qualificationInvoke({
+        profile: QUALIFICATION_RPC_PROFILE,
+        operation: 'd0040_evidence_attestor_readback',
+        agentId,
+        routeGeneration,
+      });
+      if (response?.ok === true) {
+        const result = response.result;
+        return {
+          profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+          schemaVersion: 1,
+          ok: true,
+          result: {
+            constructed: true,
+            qualificationInvoke: {
+              ok: true,
+              resultKeys: result && typeof result === 'object' && !Array.isArray(result) ? Object.keys(result).sort() : [],
+            },
+          },
+        };
+      }
+      return {
+        profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+        schemaVersion: 1,
+        ok: true,
+        result: {
+          constructed: true,
+          qualificationInvoke: {
+            ok: false,
+            errorCode: typeof response?.error?.code === 'string' ? response.error.code : null,
+          },
+        },
+      };
+    } catch (error) {
+      return {
+        profile: D0044_PROVIDER_DIAGNOSTIC_PROFILE,
+        schemaVersion: 1,
+        ok: true,
+        result: {
+          constructed: true,
+          qualificationInvoke: { ok: false, failure: diagnosticFailure(error) },
+        },
+      };
+    }
   }
 
   webSocketMessage(socket, message) {
