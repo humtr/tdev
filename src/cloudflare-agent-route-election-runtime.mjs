@@ -58,9 +58,8 @@ export class AgentRouteElectionRuntimeDOHost {
   async commitAgentRouteCutover(agentId, input) { return publicJsonClone(await this.#authority(agentId).commitCutover(canonicalClone(input))); }
   async commitAgentRouteCutoverResponseLoss(agentId, input) {
     const result = await this.#authority(agentId).commitCutover(canonicalClone(input));
-    if (!this.ctx || typeof this.ctx.abort !== 'function') fail('invalid_agent_route_election_storage', 'Election response-loss qualification requires Durable Object abort support');
-    this.ctx.abort('tdev_d0044_qualification_abort_after_commit');
-    throw new ContractError('qualification_abort_returned', 'Election response-loss abort unexpectedly returned');
+    if (result?.classification !== 'applied') throw new ContractError('d0044_response_loss_not_fresh', 'Response-loss qualification requires a fresh committed cutover');
+    throw new Error('tdev_d0044_qualification_response_lost_after_commit');
   }
   async d0044CommitAgentRouteCutoverReplayDiagnostic(agentId, input) {
     try {
