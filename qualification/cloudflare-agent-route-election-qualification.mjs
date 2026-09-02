@@ -58,6 +58,9 @@ const DELIVERY_OPERATIONS = new Set([
   'begin_route_draining',
   'retire_route',
   'activate_route',
+  'd0044_pitr_get_current_bookmark',
+  'd0044_pitr_clear_storage',
+  'd0044_pitr_restore_next_session',
 ]);
 const LEGACY_IMPORT_OPERATIONS = new Set([
   'd0044_constructor_diagnostic',
@@ -74,6 +77,9 @@ const LEGACY_IMPORT_OPERATIONS = new Set([
   'begin_route_draining',
   'retire_route',
   'activate_route',
+  'd0044_pitr_get_current_bookmark',
+  'd0044_pitr_clear_storage',
+  'd0044_pitr_restore_next_session',
 ]);
 
 function fail(code, message) {

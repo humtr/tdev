@@ -65,6 +65,9 @@ const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'begin_route_draining',
   'retire_route',
   'activate_route',
+  'd0044_pitr_get_current_bookmark',
+  'd0044_pitr_clear_storage',
+  'd0044_pitr_restore_next_session',
 ]);
 function corruptedSignature(value, label) {
   const bytes = decodeBase64Url(value, label);
@@ -272,6 +275,9 @@ function rpcShape(input) {
     begin_route_draining: [['intent', 'signature'], []],
     retire_route: [['exclusion'], []],
     activate_route: [['electionState'], []],
+    d0044_pitr_get_current_bookmark: [[], []],
+    d0044_pitr_clear_storage: [[], []],
+    d0044_pitr_restore_next_session: [['bookmark'], []],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
     release_reservation: [['request', 'nowMs'], []],
@@ -735,6 +741,43 @@ export class D0020QualificationAgentDeliveryDOHost {
         result = this.host.retireRoute({ routeBinding, exclusion: input.exclusion });
       } else if (operation === 'activate_route') {
         result = this.host.activateRoute({ routeBinding, electionState: input.electionState });
+      } else if (operation === 'd0044_pitr_get_current_bookmark') {
+        if (typeof this.ctx.storage?.getCurrentBookmark !== 'function') {
+          throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR current-bookmark API is unavailable');
+        }
+        const bookmark = await this.ctx.storage.getCurrentBookmark();
+        if (typeof bookmark !== 'string' || bookmark.length === 0 || bookmark.length > 256 || bookmark.includes(String.fromCharCode(0))) {
+          throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR provider returned an invalid current bookmark');
+        }
+        result = { classification: 'current_bookmark', bookmark };
+      } else if (operation === 'd0044_pitr_clear_storage') {
+        if (typeof this.ctx.storage?.getCurrentBookmark !== 'function' || typeof this.ctx.storage?.deleteAll !== 'function') {
+          throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR storage-clear API is unavailable');
+        }
+        const beforeBookmark = await this.ctx.storage.getCurrentBookmark();
+        if (typeof beforeBookmark !== 'string' || beforeBookmark.length === 0 || beforeBookmark.length > 256 || beforeBookmark.includes(String.fromCharCode(0))) {
+          throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR provider returned an invalid pre-clear bookmark');
+        }
+        await this.ctx.storage.deleteAll();
+        const afterBookmark = await this.ctx.storage.getCurrentBookmark();
+        if (typeof afterBookmark !== 'string' || afterBookmark.length === 0 || afterBookmark.length > 256 || afterBookmark.includes(String.fromCharCode(0))) {
+          throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR provider returned an invalid post-clear bookmark');
+        }
+        result = { classification: 'storage_cleared', beforeBookmark, afterBookmark };
+      } else if (operation === 'd0044_pitr_restore_next_session') {
+        if (typeof this.ctx.storage?.onNextSessionRestoreBookmark !== 'function') {
+          throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR restore API is unavailable');
+        }
+        const bookmark = input.bookmark;
+        if (typeof bookmark !== 'string' || bookmark.length === 0 || bookmark.length > 256 || bookmark.includes(String.fromCharCode(0))) {
+          throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR restore bookmark is invalid');
+        }
+        const undoBookmark = await this.ctx.storage.onNextSessionRestoreBookmark(bookmark);
+        if (typeof undoBookmark !== 'string' || undoBookmark.length === 0 || undoBookmark.length > 256 || undoBookmark.includes(String.fromCharCode(0))) {
+          throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR provider returned an invalid undo bookmark');
+        }
+        this.ctx.abort('tdev_d0044_qualification_pitr_restore');
+        throw new ContractError('d0044_pitr_abort_returned', 'D0044 PITR restore abort unexpectedly returned');
       } else if (operation === 'reserve') {
         result = this.host.reserve({ routeBinding, request: input.request, nowMs: input.nowMs });
       } else if (operation === 'release_reservation') {
