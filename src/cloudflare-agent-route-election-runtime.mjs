@@ -1,4 +1,4 @@
-import { ContractError, assertIdentifier, canonicalClone, canonicalJson, strictJsonParse } from './canonical.mjs';
+import { ContractError, assertIdentifier, canonicalClone, canonicalJson, publicJsonClone, strictJsonParse } from './canonical.mjs';
 import { DurableAgentRouteElectionAuthority } from './agent-route-election.mjs';
 
 export const AGENT_ROUTE_ELECTION_STORAGE_PROFILE = 'tdev.agent-route-election.cloudflare-sqlite.v1';
@@ -48,11 +48,11 @@ export class AgentRouteElectionRuntimeDOHost {
     this.store = new SqliteAgentRouteElectionStore(ctx?.storage, { maxSnapshotBytes: Number(env.TDEV_AGENT_ROUTE_ELECTION_MAX_SNAPSHOT_BYTES ?? DEFAULT_MAX_BYTES) });
   }
   #authority(agentId) { return new DurableAgentRouteElectionAuthority({ agentId, store: this.store }); }
-  readAgentRouteElection(agentId) { return this.#authority(agentId).read(); }
-  createAgentRouteGenesis(agentId, input) { return this.#authority(agentId).createGenesis(canonicalClone(input)); }
-  importLegacyAgentRoute(agentId, input) { return this.#authority(agentId).importLegacy(canonicalClone(input)); }
-  prepareAgentRouteCutover(agentId, input) { return this.#authority(agentId).prepareCutover(canonicalClone(input)); }
-  recordAgentRoutePredecessorExclusion(agentId, input) { return this.#authority(agentId).recordPredecessorExclusion(canonicalClone(input)); }
-  recordAgentRouteSuccessorStandby(agentId, input) { return this.#authority(agentId).recordSuccessorStandby(canonicalClone(input)); }
-  commitAgentRouteCutover(agentId, input) { return this.#authority(agentId).commitCutover(canonicalClone(input)); }
+  readAgentRouteElection(agentId) { return publicJsonClone(this.#authority(agentId).read()); }
+  async createAgentRouteGenesis(agentId, input) { return publicJsonClone(await this.#authority(agentId).createGenesis(canonicalClone(input))); }
+  async importLegacyAgentRoute(agentId, input) { return publicJsonClone(await this.#authority(agentId).importLegacy(canonicalClone(input))); }
+  async prepareAgentRouteCutover(agentId, input) { return publicJsonClone(await this.#authority(agentId).prepareCutover(canonicalClone(input))); }
+  recordAgentRoutePredecessorExclusion(agentId, input) { return publicJsonClone(this.#authority(agentId).recordPredecessorExclusion(canonicalClone(input))); }
+  recordAgentRouteSuccessorStandby(agentId, input) { return publicJsonClone(this.#authority(agentId).recordSuccessorStandby(canonicalClone(input))); }
+  commitAgentRouteCutover(agentId, input) { return publicJsonClone(this.#authority(agentId).commitCutover(canonicalClone(input))); }
 }
