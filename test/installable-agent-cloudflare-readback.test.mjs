@@ -20,6 +20,7 @@ function fixture() {
     account_id: 'account-one',
     script_name: 'tdev-d0039-r4-qualification',
     namespace_name: 'tdev-d0039-r4-qualification_AgentDeliveryRuntimeDO',
+    expected_runtime_namespace: 'namespace-one',
     class_name: 'AgentDeliveryRuntimeDO',
     agent_id: 'agent-one',
     route_generation: 7,
@@ -65,7 +66,7 @@ function fixture() {
     workersDevPreviewsEnabled: false,
     workerScript: options.script_name,
     namespaceId: namespace.id,
-    namespace: options.namespace_name,
+    namespace: options.expected_runtime_namespace,
     className: options.class_name,
     jurisdiction: options.expected_jurisdiction,
     agentId: options.agent_id,
@@ -110,6 +111,7 @@ function fixture() {
   });
   const providerBindings = [
     ...plan.cloudflarePlainTextBindings,
+    { name: 'TDEV_AGENT_DELIVERY_NAMESPACE', type: 'plain_text', text: options.expected_runtime_namespace },
     { name: 'TDEV_AGENT_DELIVERY', type: 'durable_object_namespace', namespace_id: namespace.id, class_name: options.class_name, script_name: options.script_name },
   ];
   return { options, activeVersionId, namespace, workersDev, owner, providerBindings };
@@ -185,6 +187,14 @@ test('Q5 cross-read rejects provider version or immutable binding drift', () => 
     binding.name === 'TDEV_D0039_DEPLOYMENT_EPOCH' ? { ...binding, text: 'epoch-two' } : binding);
   assert.throws(
     () => validateD0039CloudflareIdentityJoin(bindingDrift),
+    (error) => error?.code === 'cloudflare_readback_runtime_binding_invalid',
+  );
+
+  const namespaceDrift = fixture();
+  namespaceDrift.providerBindings = namespaceDrift.providerBindings.map((binding) =>
+    binding.name === 'TDEV_AGENT_DELIVERY_NAMESPACE' ? { ...binding, text: 'namespace-two' } : binding);
+  assert.throws(
+    () => validateD0039CloudflareIdentityJoin(namespaceDrift),
     (error) => error?.code === 'cloudflare_readback_runtime_binding_invalid',
   );
 });

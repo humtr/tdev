@@ -24,7 +24,7 @@ function fail(code, message, details = undefined, options = undefined) {
 
 function parseArgs(argv) {
   const required = new Set(['--account-id', '--script-name', '--namespace-name', '--class-name', '--agent-id', '--route-generation', '--expected-source-sha', '--expected-artifact-digest', '--expected-artifact-manifest-digest', '--expected-deployment-epoch', '--expected-deployment', '--expected-environment', '--expected-jurisdiction', '--provider-token-kind']);
-  const allowed = new Set([...required, '--route-readback-mode']);
+  const allowed = new Set([...required, '--route-readback-mode', '--expected-runtime-namespace']);
   const values = new Map();
   for (let index = 0; index < argv.length; index += 2) {
     const flag = argv[index];
@@ -46,6 +46,7 @@ function parseArgs(argv) {
   const parsed = Object.fromEntries([...values].map(([key, value]) => [key.slice(2).replaceAll('-', '_'), value]));
   parsed.route_generation = routeGeneration;
   parsed.route_readback_mode = routeReadbackMode;
+  parsed.expected_runtime_namespace = values.get('--expected-runtime-namespace') ?? values.get('--namespace-name');
   return parsed;
 }
 
@@ -80,6 +81,24 @@ function publicBinding(binding) {
   }
   if (binding.type === 'plain_text' && typeof binding.text === 'string') result.text = binding.text;
   return result;
+}
+
+function expectedRuntimeNamespace(options) {
+  return options.expected_runtime_namespace ?? options.namespace_name;
+}
+
+function validateRuntimeNamespaceBinding({ options, providerBindings }) {
+  if (!Array.isArray(providerBindings)) fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker bindings are unavailable');
+  const matches = providerBindings.filter((binding) =>
+    binding?.name === 'TDEV_AGENT_DELIVERY_NAMESPACE' && binding?.type === 'plain_text' && typeof binding?.text === 'string');
+  const expected = expectedRuntimeNamespace(options);
+  if (matches.length !== 1 || matches[0].text !== expected) {
+    fail('cloudflare_readback_runtime_binding_invalid', 'provider Worker runtime namespace binding mismatch', {
+      expected,
+      observed: matches.length === 1 ? matches[0].text : null,
+      matches: matches.length,
+    });
+  }
 }
 
 export function normalizeD0039WorkersDevIngress({ scriptName, accountSubdomainResult, workerSubdomainResult }) {
@@ -195,7 +214,7 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
     workersDevPreviewsEnabled: false,
     workerScript: options.script_name,
     namespaceId: namespace?.id,
-    namespace: options.namespace_name,
+    namespace: expectedRuntimeNamespace(options),
     className: options.class_name,
     jurisdiction: options.expected_jurisdiction,
     agentId: options.agent_id,
@@ -205,6 +224,7 @@ export function validateD0039CloudflareIdentityJoin({ options, activeVersionId, 
     if (identity[name] !== value) fail('cloudflare_readback_route_owner_mismatch', `provider/readback S/A/V/R mismatch at ${name}`, { name, expected: value, actual: identity[name] });
   }
   validateProviderBindings({ options, namespace, workersDev, providerBindings });
+  validateRuntimeNamespaceBinding({ options, providerBindings });
   const runtime = owner.runtime;
   if (runtime?.sourceSha !== identity.sourceSha || runtime?.workerVersionId !== identity.workerVersionId ||
       runtime?.workersDevHostname !== identity.workersDevHostname || runtime?.qualificationEndpointOrigin !== identity.qualificationEndpointOrigin ||
@@ -227,6 +247,7 @@ export function validateD0039CloudflareRouteBootstrapJoin({ options, activeVersi
     fail('cloudflare_readback_workers_dev_invalid', 'workers.dev provider ingress observation is invalid');
   }
   validateProviderBindings({ options, namespace, workersDev, providerBindings });
+  validateRuntimeNamespaceBinding({ options, providerBindings });
   const routeBinding = { agentId: options.agent_id, routeGeneration: options.route_generation };
   const firstDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: owner.first });
   const secondDigest = qualificationRouteAuthoritativeReadbackDigest({ routeBinding, routeRead: owner.second });
