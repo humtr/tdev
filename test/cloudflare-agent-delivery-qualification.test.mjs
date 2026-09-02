@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { digest } from '../src/canonical.mjs';
 
 import {
   D0020QualificationAgentDeliveryDOHost,
@@ -828,23 +829,28 @@ test('D0044 qualification PITR controls require provider APIs, clear only this o
       async getCurrentBookmark() { calls.push('getCurrentBookmark'); return bookmark; },
       async deleteAll() { calls.push('deleteAll'); bookmark = 'bookmark-after-clear'; },
       async onNextSessionRestoreBookmark(value) { calls.push(['restore', value]); return 'bookmark-undo'; },
+      transactionSync(callback) { calls.push('transactionSync'); return callback(); },
+      sql: { exec(statement, agentId) { calls.push(['sql', statement, agentId]); } },
     },
     abort(reason) { calls.push(['abort', reason]); throw new Error('injected abort'); },
   };
   const host = {
     durableObjectId: 'do-agent-one',
     config: { placement: { deployment: 'qualification', environment: 'nonproduction', workerScript: 'tdev-d0020-qualification', className: 'AgentDeliveryRuntimeDO', namespace: 'qualification', jurisdiction: 'global' } },
+    readRouteGeneration() { calls.push('readRouteGeneration'); return { profile: 'tdev.agent-route-generation.v1', disposition: 'RETIRED' }; },
   };
   const qualification = new D0020QualificationAgentDeliveryDOHost(ctx, baseEnv(), { host });
   const current = await qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_get_current_bookmark', agentId: 'agent-one', routeGeneration: 1 });
   assert.deepEqual(current, { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: 2, ok: true, result: { classification: 'current_bookmark', bookmark: 'bookmark-current' } });
   const cleared = await qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_clear_storage', agentId: 'agent-one', routeGeneration: 1 });
   assert.deepEqual(cleared, { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: 2, ok: true, result: { classification: 'storage_cleared', beforeBookmark: 'bookmark-current', afterBookmark: 'bookmark-after-clear' } });
+  const generationCleared = await qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_clear_generation_state', agentId: 'agent-one', routeGeneration: 1 });
+  assert.deepEqual(generationCleared.result, { classification: 'generation_state_cleared', beforeStateDigest: digest({ profile: 'tdev.agent-route-generation.v1', disposition: 'RETIRED' }), routeGeneration: 1 });
   await assert.rejects(
     () => qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_restore_next_session', agentId: 'agent-one', routeGeneration: 1, bookmark: 'bookmark-after-clear' }),
     (error) => error?.message === 'injected abort',
   );
-  assert.deepEqual(calls, ['getCurrentBookmark', 'getCurrentBookmark', 'deleteAll', 'getCurrentBookmark', ['restore', 'bookmark-after-clear'], ['abort', 'tdev_d0044_qualification_pitr_restore']]);
+  assert.deepEqual(calls, ['getCurrentBookmark', 'getCurrentBookmark', 'deleteAll', 'getCurrentBookmark', 'readRouteGeneration', 'transactionSync', ['sql', 'DELETE FROM agent_route_generation_state WHERE agent_id = ?', 'agent-one'], ['restore', 'bookmark-after-clear'], ['abort', 'tdev_d0044_qualification_pitr_restore']]);
   const invalid = await qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_restore_next_session', agentId: 'agent-one', routeGeneration: 1, bookmark: '' });
   assert.deepEqual(invalid, { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: 2, ok: false, error: { code: 'd0044_pitr_invalid_bookmark' } });
 });

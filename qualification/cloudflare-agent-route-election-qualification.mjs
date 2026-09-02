@@ -60,6 +60,7 @@ const DELIVERY_OPERATIONS = new Set([
   'activate_route',
   'd0044_pitr_get_current_bookmark',
   'd0044_pitr_clear_storage',
+  'd0044_pitr_clear_generation_state',
   'd0044_pitr_restore_next_session',
 ]);
 const LEGACY_IMPORT_OPERATIONS = new Set([
@@ -79,6 +80,7 @@ const LEGACY_IMPORT_OPERATIONS = new Set([
   'activate_route',
   'd0044_pitr_get_current_bookmark',
   'd0044_pitr_clear_storage',
+  'd0044_pitr_clear_generation_state',
   'd0044_pitr_restore_next_session',
 ]);
 

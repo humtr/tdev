@@ -1,5 +1,6 @@
 import {
   ContractError,
+  digest,
   assertDigest,
   assertIdentifier,
   assertRecordShape,
@@ -67,6 +68,7 @@ const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'activate_route',
   'd0044_pitr_get_current_bookmark',
   'd0044_pitr_clear_storage',
+  'd0044_pitr_clear_generation_state',
   'd0044_pitr_restore_next_session',
 ]);
 function corruptedSignature(value, label) {
@@ -277,6 +279,7 @@ function rpcShape(input) {
     activate_route: [['electionState'], []],
     d0044_pitr_get_current_bookmark: [[], []],
     d0044_pitr_clear_storage: [[], []],
+    d0044_pitr_clear_generation_state: [[], []],
     d0044_pitr_restore_next_session: [['bookmark'], []],
     read: [[], []],
     reserve: [['request', 'nowMs'], []],
@@ -764,6 +767,15 @@ export class D0020QualificationAgentDeliveryDOHost {
           throw new ContractError('d0044_pitr_invalid_bookmark', 'D0044 PITR provider returned an invalid post-clear bookmark');
         }
         result = { classification: 'storage_cleared', beforeBookmark, afterBookmark };
+      } else if (operation === 'd0044_pitr_clear_generation_state') {
+        if (typeof this.ctx.storage?.transactionSync !== 'function' || typeof this.ctx.storage?.sql?.exec !== 'function') {
+          throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR generation-state API is unavailable');
+        }
+        const before = this.host.readRouteGeneration({ routeBinding });
+        this.ctx.storage.transactionSync(() => {
+          this.ctx.storage.sql.exec('DELETE FROM agent_route_generation_state WHERE agent_id = ?', routeBinding.agentId);
+        });
+        result = { classification: 'generation_state_cleared', beforeStateDigest: before === null ? null : digest(before), routeGeneration: routeBinding.routeGeneration };
       } else if (operation === 'd0044_pitr_restore_next_session') {
         if (typeof this.ctx.storage?.onNextSessionRestoreBookmark !== 'function') {
           throw new ContractError('d0044_pitr_unsupported', 'D0044 PITR restore API is unavailable');
