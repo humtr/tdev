@@ -12,6 +12,7 @@ import { installableAgentEvidenceAttestorKeyId } from '../src/installable-agent-
 
 const repositoryRoot = new URL('..', import.meta.url).pathname.replace(/\/$/, '');
 const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
+const reuseExisting = process.argv.includes('--reuse-existing');
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const sourceSha = 'e6f790ee01918735e3541e77d84cbaa0df3c2d7c';
@@ -123,8 +124,11 @@ async function main() {
   const namespacesBefore = await listNamespaces(client);
   const scriptMatches = existing.found ? 1 : 0;
   const namespaceMatches = namespacesBefore.filter((item) => item?.script === scriptName);
-  if (scriptMatches !== 0 || namespaceMatches.length !== 0) {
+  if (!reuseExisting && (scriptMatches !== 0 || namespaceMatches.length !== 0)) {
     throw new Error(`refusing to overwrite pre-existing isolated target: script=${scriptMatches} namespaces=${namespaceMatches.length}`);
+  }
+  if (reuseExisting && (!existing.found || scriptMatches !== 1 || namespaceMatches.length !== 2)) {
+    throw new Error(`refusing to reuse an incomplete isolated target: script=${scriptMatches} namespaces=${namespaceMatches.length}`);
   }
   const modules = collectWorkerModules(repositoryRoot, 'qualification/cloudflare-agent-delivery-worker.mjs');
   const moduleDigest = workerModuleDigest(modules);
@@ -135,10 +139,13 @@ async function main() {
   const attestorKeyId = installableAgentEvidenceAttestorKeyId(attestorJwk);
   const qualificationToken = randomBytes(32).toString('hex');
 
-  await putWorker(client, metadataFor({ moduleDigest, attestorJwk, attestorKeyId, artifactManifestDigest }), modules);
-  let namespaces = await listNamespaces(client);
-  const delivery = namespaces.filter((item) => item?.script === scriptName && item?.class === 'AgentDeliveryRuntimeDO');
-  const election = namespaces.filter((item) => item?.script === scriptName && item?.class === 'AgentRouteElectionRuntimeDO');
+  let delivery;
+  let election;
+  if (!reuseExisting) await putWorker(client, metadataFor({ moduleDigest, attestorJwk, attestorKeyId, artifactManifestDigest }), modules);
+  const namespaces = await listNamespaces(client);
+  const namespaceCandidates = reuseExisting ? namespaceMatches : namespaces.filter((item) => item?.script === scriptName);
+  delivery = namespaceCandidates.filter((item) => item?.class === 'AgentDeliveryRuntimeDO');
+  election = namespaceCandidates.filter((item) => item?.class === 'AgentRouteElectionRuntimeDO');
   if (delivery.length !== 1 || election.length !== 1 || delivery[0].use_sqlite !== true || election[0].use_sqlite !== true) {
     throw new Error(`namespace bootstrap did not produce exactly one SQLite namespace per class: delivery=${delivery.length} election=${election.length}`);
   }
@@ -153,6 +160,7 @@ async function main() {
   process.stdout.write(`${JSON.stringify({
     status: 'deployed',
     scriptName,
+    reusedExistingTarget: reuseExisting,
     sourceSha,
     moduleCount: modules.size,
     moduleDigest,
