@@ -177,7 +177,7 @@ async function main() {
     recoveryPublicKey,
   };
   const generation = AgentRouteGenerationAuthority.electedStandby({
-    routeBinding: routeBindingValue,
+    routeBinding: { agentId, routeGeneration },
     routeBindingDigest: bindingDigest,
     routeStateDigest: digest(snapshot),
     attachment,
