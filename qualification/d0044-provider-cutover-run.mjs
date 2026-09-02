@@ -22,7 +22,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-import-20260902-r19';
+const agentId = 'd0044-provider-import-20260902-r20';
 const profile = 'tdev.agent-route-election-qualification.v1';
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
 
@@ -75,11 +75,16 @@ function targetBase({ settings, d0040, deliveryNamespaceId, routeGeneration, ope
 }
 async function d0040(token, hostKey, routeGeneration, expectedSourceSha = null) {
   let result = null;
+  let prior = null;
   for (let attempt = 0; attempt < 120; attempt += 1) {
     result = assertOk(`D0040 readback generation ${routeGeneration}`, await invokeWithAuthPropagation(token, '/qualification/d0044/delivery/v1', {
       profile, routeHostKey: hostKey, rpc: deliveryRpc(routeGeneration, 'd0040_evidence_attestor_readback'),
     }, 'D0040 readback'));
-    if (expectedSourceSha === null || result.sourceSha === expectedSourceSha) return result;
+    const sourceMatches = expectedSourceSha === null || result.sourceSha === expectedSourceSha;
+    const stable = prior !== null && prior.sourceSha === result.sourceSha && prior.workerVersionId === result.workerVersionId &&
+      prior.evidenceAttestationVerifier?.keyId === result.evidenceAttestationVerifier?.keyId;
+    if (sourceMatches && stable) return result;
+    prior = result;
     await new Promise((resolve) => setTimeout(resolve, 500));
   }
   throw new Error(`D0040 source propagation failed for generation ${routeGeneration}`);
