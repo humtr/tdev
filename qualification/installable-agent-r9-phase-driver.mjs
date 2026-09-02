@@ -173,7 +173,9 @@ export function createR9QualificationRpc({ qualificationEndpointOrigin, workersD
       fail('r9_phase_driver_rpc_failed', 'R9 qualification RPC transport failed', undefined, { cause });
     }
     const body = await boundedRpcJson(response);
-    if (!response.ok || body?.profile !== QUALIFICATION_RPC_PROFILE || body.schemaVersion !== 2 || body.ok !== true || !Object.hasOwn(body, 'result')) {
+    const successShape = body !== null && typeof body === 'object' && !Array.isArray(body) &&
+      body.ok === true && Object.hasOwn(body, 'result') && Object.keys(body).length === 2;
+    if (!response.ok || !successShape) {
       const code = typeof body?.error?.code === 'string' ? body.error.code : 'r9_phase_driver_rpc_failed';
       fail(code, 'R9 qualification RPC rejected the operation', { status: response.status });
     }

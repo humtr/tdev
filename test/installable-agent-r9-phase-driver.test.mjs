@@ -323,8 +323,6 @@ test('R9 qualification RPC binds the exact workers.dev endpoint and keeps the to
       assert.equal(options.headers.authorization, `Bearer ${token}`);
       assert.equal(options.headers['content-type'], 'application/json');
       return new Response(JSON.stringify({
-        profile: QUALIFICATION_RPC_PROFILE,
-        schemaVersion: 2,
         ok: true,
         result: unregisteredRead(),
       }), { status: 200, headers: { 'content-type': 'application/json' } });
@@ -339,6 +337,29 @@ test('R9 qualification RPC binds the exact workers.dev endpoint and keeps the to
   assert.equal(result.installableAgent.state, 'UNREGISTERED');
   assert.equal(tokenCalls, 1);
   assert.equal(fetchCalls, 1);
+});
+
+test('R9 qualification RPC rejects the internal Durable Object envelope at the public HTTP boundary', async () => {
+  const rpc = createR9QualificationRpc({
+    qualificationEndpointOrigin: 'https://tdev-d0020-qualification.humtr.workers.dev',
+    workersDevHostname: 'tdev-d0020-qualification.humtr.workers.dev',
+    tokenProvider: () => 't'.repeat(32),
+    fetchImpl: async () => new Response(JSON.stringify({
+      profile: QUALIFICATION_RPC_PROFILE,
+      schemaVersion: 2,
+      ok: true,
+      result: unregisteredRead(),
+    }), { status: 200, headers: { 'content-type': 'application/json' } }),
+  });
+  await assert.rejects(
+    rpc({
+      profile: QUALIFICATION_RPC_PROFILE,
+      operation: 'read_installable_agent',
+      agentId: routeBinding().agentId,
+      routeGeneration: routeBinding().routeGeneration,
+    }),
+    (error) => error?.code === 'r9_phase_driver_rpc_failed',
+  );
 });
 
 test('R9 qualification RPC rejects non-phase operations and non-exact origins before network use', async () => {
