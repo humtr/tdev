@@ -1,0 +1,138 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.group-f.d0039-r12-q3-current-positive-alias-loss-prequalification-evidence.v1",
+  "classification": "PASS",
+  "scope": "bounded_q3_physical_positive_plus_alias_loss_prequalification_only",
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "status": "implementing",
+    "terminalQ3": false
+  },
+  "repository": {
+    "observationCheckoutHead": "a756f1c3e136047e4f162b9aebd3c2e1be8955b5",
+    "branch": "development",
+    "deployedProductSourceSha": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+    "deployedArtifactDigest": "sha256:c5e70f7babd742a77f263ecf0612e0a4a5b5ee81d146f08c211ebd34854b751d",
+    "releaseManifestDigest": "sha256:7adc6ffdc5b58c70ab34c230f5953b8556c6bcc258fd6b8a49f190c934da085d",
+    "qualificationHelper": {
+      "path": "qualification/installable-agent-termux-keystore.mjs",
+      "repositorySha256": "sha256:4099404bbde8cc4b4c88b68beb12cba3226334a491765890f9e39adf39ad99d7",
+      "repositorySourceChangedByThisEvidence": false,
+      "physicallyExecutedTemporaryPathClass": "termux_prefix_tmp_one_shot_not_repository_source",
+      "physicallyExecutedTemporarySha256": "sha256:4c0c10191107ba9d03615ecd14bf19d7d1fa2332202526343dfcad9d13f433ba",
+      "temporaryDelta": [
+        "absolute_import_relocation_for_termux_tmp_execution",
+        "post_delete_readPublicVerifier_requires_agent_keystore_alias_unavailable",
+        "aliasLossFailsClosed_result_field"
+      ],
+      "classification": "temporary_non_repository_physical_falsifier_adapter",
+      "deployedProductIdentityChanged": false,
+      "qualificationMeaning": "one_shot_physical_alias_loss_falsifier_only"
+    }
+  },
+  "boundIdentity": {
+    "deploymentIdentityDigest": "sha256:f5c235a912a31c1fcfbda8c7fddb3aeb5496bb54419caf6eb2e9a00dd2433a7c",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4",
+    "currentCredentialKeyId": "sha256:bf9093d13d77576b8cef680886a88b36aff95d9bc8db636d9604a1fb381ec5af",
+    "androidSourceLineageId": "228fb2cfe90831c1499ec3ccaf61e96e8e1ce70766b9474672ce427334d41c42"
+  },
+  "freshPreAdmission": {
+    "q5ResultSha256": "sha256:ceeab3a3ec25a3b1f5d593abf7674006a49150f1d939c391cf3857b3355c92b9",
+    "q5ObservationsSha256": "sha256:c1fae0d9ffae1f8d167ffb9402e7210dca5043a7a9f3078d311bad6dc9e52666",
+    "q5ObservedAtUtc": "2026-09-02T01:53:38.554Z",
+    "deploymentIdentityDigest": "sha256:f5c235a912a31c1fcfbda8c7fddb3aeb5496bb54419caf6eb2e9a00dd2433a7c",
+    "currentTupleDigest": "sha256:36b80d827827cef904760061a795805ab21df0a8718de06f6cced5425cfc94a4"
+  },
+  "retainedCurrentCredentialPositive": {
+    "preAliasResultSha256": "sha256:90cc70961ba6aad900fbd6bdfe099252ddca6595d7ac0c45d19d71711defbd7a",
+    "postAliasResultSha256": "sha256:90cc70961ba6aad900fbd6bdfe099252ddca6595d7ac0c45d19d71711defbd7a",
+    "credentialKeyId": "sha256:bf9093d13d77576b8cef680886a88b36aff95d9bc8db636d9604a1fb381ec5af",
+    "proofLayer": "physical_android_termux_service",
+    "unattendedSign": "rsa3072_sha256withrsa_interoperable",
+    "keyInventoryCountBefore": 3,
+    "keyInventoryCountAfter": 3,
+    "cleanup": "not_requested",
+    "privateKeyExport": "absent",
+    "fileKeyFallback": "absent"
+  },
+  "ephemeralAliasLoss": {
+    "resultSha256": "sha256:9d747b9314aa4f89ab37c3c1a497316a02ab66f14030ab1b235557706e862514",
+    "ephemeralCredentialKeyId": "sha256:894665426b46d7d0d842f2263f60ee983fd3b8a29570333e9b486c66f79d1ddf",
+    "distinctFromCurrentCredential": true,
+    "proofLayer": "physical_android_termux_service",
+    "unattendedSign": "rsa3072_sha256withrsa_interoperable",
+    "ephemeralCredentialDeletedBeforeResult": true,
+    "aliasLossFailsClosed": true,
+    "privateKeyExport": "absent",
+    "fileKeyFallback": "absent"
+  },
+  "exclusiveJournal": {
+    "runId": "d0039-r12-q3-alias-loss-20260902-kfl",
+    "resourceClaimCount": 4,
+    "transitions": [
+      "PREPARED",
+      "DISPATCHED",
+      "RECONCILING",
+      "TERMINAL_APPLIED",
+      "CLEANUP_PENDING",
+      "CLEAN"
+    ],
+    "cleanupEvidenceDigest": "sha256:28389127fec9397fc247ebdd539792f85e91e16f1596e0c4529daad1129e70e4",
+    "journalStoreRevision": 9,
+    "journalSequence": 8,
+    "journalStateSha256": "sha256:2944a905556f1300bc59aa4401223a87a2ca8e207676f6b214e2ab069a7e6234",
+    "controllerReleased": true,
+    "liveRunCount": 0,
+    "liveClaimBucketCount": 0,
+    "tombstoneCount": 1,
+    "serviceResidueCount": 0,
+    "tempResidueCount": 0
+  },
+  "q3CheckStatus": {
+    "provenByThisBoundedEvidence": [
+      "termuxLineagePinned",
+      "termuxApiLineagePinned",
+      "rsa3072Generated",
+      "unattendedSign",
+      "publicJwkInterop",
+      "aliasLossFailsClosed",
+      "noFileKeyFallback"
+    ],
+    "remainingUnverified": [
+      "missingApiFailsClosed",
+      "sourceSwitchFailsClosed",
+      "reinstallLossFailsClosed",
+      "deviceReplacementFailsClosed",
+      "cloneResistance"
+    ],
+    "terminalGateStatus": "unverified"
+  },
+  "mutationBoundary": {
+    "ephemeralAndroidKeyStoreAliasOnly": true,
+    "oneShotRunitServiceOnly": true,
+    "canonicalCurrentCredentialMutated": false,
+    "canonicalRouteMutated": false,
+    "providerMutated": false,
+    "deployedProductMutated": false,
+    "termuxOrTermuxApiInstallationMutated": false,
+    "phaseUReplay": false,
+    "phasePReplay": false,
+    "repositorySourceMutated": false,
+    "qualificationHelperPersisted": false
+  },
+  "continuation": {
+    "selectedNextGate": "q3_physical_android_termux",
+    "requiredIsolatedFalsifiers": [
+      "missingApiFailsClosed",
+      "sourceSwitchFailsClosed",
+      "reinstallLossFailsClosed",
+      "deviceReplacementFailsClosed",
+      "cloneResistance"
+    ],
+    "preserveCurrentRouteCredentialAndTermuxInstallation": true,
+    "terminalQ3PromotionAuthorized": false
+  },
+  "secretValues": "excluded",
+  "privateKeyBytes": "excluded"
+}
