@@ -119,7 +119,7 @@ async function main() {
 
   const profile = 'tdev.agent-route-election-qualification.v1';
   let electionBeforeResponse = null;
-  for (let attempt = 0; attempt < 20; attempt += 1) {
+  for (let attempt = 0; attempt < 120; attempt += 1) {
     electionBeforeResponse = await invoke(qualificationToken, '/qualification/d0044/election/v1', {
       profile,
       operation: 'readAgentRouteElection',
