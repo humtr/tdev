@@ -56,9 +56,15 @@ const ROUTE_BOOTSTRAP_OPERATIONS = new Set([
   'initial_activate_installable_agent',
   'fail_installable_agent_genesis',
 ]);
-const D0044_ROUTE_IMPORT_OPERATIONS = new Set([
+// D0044 route-generation control-plane mutations carry their own recovery,
+// election and predecessor/successor proofs. They must remain usable while a
+// legacy D0020 route has no D0027 current tuple for the ordinary S/A/V/R guard.
+const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'prepare_legacy_route_import',
   'seal_legacy_route_import',
+  'begin_route_draining',
+  'retire_route',
+  'activate_route',
 ]);
 function corruptedSignature(value, label) {
   const bytes = decodeBase64Url(value, label);
@@ -286,8 +292,8 @@ function rpcShape(input) {
   if (routeProvisioning && ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest'].some((key) => Object.hasOwn(input, key))) {
     throw new ContractError('qualification_route_bootstrap_operation_forbidden', 'R12 route provisioning cannot be authorized by an R8/R9 route-bootstrap target');
   }
-  const d0044RouteImport = D0044_ROUTE_IMPORT_OPERATIONS.has(input.operation);
-  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) || d0044RouteImport
+  const d0044RouteGeneration = D0044_ROUTE_GENERATION_OPERATIONS.has(input.operation);
+  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) || d0044RouteGeneration
     ? []
     : routeProvisioning
       ? ['routeProvisioningTarget', 'routeProvisioningTargetDigest', 'routeProvisioningTransactionId', 'routeProvisioningRequestDigest']
@@ -306,7 +312,7 @@ function rpcShape(input) {
     assertIdentifier(input.routeBootstrapTransactionId, 'routeBootstrapTransactionId');
     assertDigest(input.routeBootstrapTargetDigest, 'routeBootstrapTargetDigest');
     assertDigest(input.routeBootstrapRequestDigest, 'routeBootstrapRequestDigest');
-  } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) && !d0044RouteImport) {
+  } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) && !d0044RouteGeneration) {
     assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
   }
   return input.operation;
@@ -608,7 +614,7 @@ export class D0020QualificationAgentDeliveryDOHost {
         admitted = this.#routeProvisioningAdmission(operation, routeBinding, input);
       } else if (ROUTE_BOOTSTRAP_OPERATIONS.has(operation)) {
         admitted = this.#routeBootstrapAdmission(operation, routeBinding, input);
-      } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation) && !D0044_ROUTE_IMPORT_OPERATIONS.has(operation)) {
+      } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation) && !D0044_ROUTE_GENERATION_OPERATIONS.has(operation)) {
         const routeCurrent = this.#readRouteCurrent(routeBinding);
         const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
         admitted = assertExpectedDeploymentIdentity({ expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest, runtimeFacts: runtime, routeBinding });
