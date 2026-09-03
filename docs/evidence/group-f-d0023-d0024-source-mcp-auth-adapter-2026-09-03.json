@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_d0024_source_mcp_auth_adapter_checkpoint",
+  "observedAtUtc": "2026-09-03T09:52:13Z",
+  "route": {
+    "repository": "humtr/tdev",
+    "branch": "development",
+    "baseBeforeCheckpoint": "eb25ccf2dab9d96317e14c8d5e4540983b8e7ed4",
+    "sourceCommit": "4235e5962cc5d70860809a204524f8c052396c1b"
+  },
+  "designs": [
+    {
+      "id": "D0023",
+      "revision": 1,
+      "status": "accepted",
+      "surfaceProfile": "tdev.mcp.surface.v1",
+      "transport": "https-streamable-http",
+      "route": "/mcp"
+    },
+    {
+      "id": "D0024",
+      "revision": 1,
+      "status": "accepted",
+      "authProfile": "tdev.mcp.auth.cloudflare-access-managed-oauth.v1",
+      "jwtVerifierProfile": "tdev.mcp.auth.cloudflare-access-jwt-rs256.v1"
+    }
+  ],
+  "source": {
+    "modules": [
+      "src/mcp-surface.mjs",
+      "src/mcp-auth.mjs",
+      "src/mcp-auth-jwt.mjs",
+      "src/mcp-development-adapter.mjs",
+      "src/claim-ledger.mjs",
+      "src/index.mjs"
+    ],
+    "toolCount": 11,
+    "strictParser": true,
+    "duplicateJsonMemberRejection": true,
+    "unsafeNumberAndInvalidUtf8Rejection": true,
+    "batchRejected": true,
+    "requestAndResponseByteBounds": true,
+    "ownerContextRequiredForDevelopmentUnit": true,
+    "mcpOwnedSchedulerQueueProcessClaimCanonicalOrGitWriter": false,
+    "auth": {
+      "resourceAndIssuerBinding": true,
+      "audienceAndTimeValidation": true,
+      "accessAssertionHeader": "cf-access-jwt-assertion",
+      "jwksHttpsRs256Verification": true,
+      "unknownKidRefreshOnce": true,
+      "tenantAuthorizationBeforeOwner": true,
+      "credentialValuesLogged": false
+    },
+    "projections": {
+      "case": "bounded metadata and optional canonical tree",
+      "promotion": "bounded digest/metadata and optional canonical tree",
+      "context": "manifest maxContextBytes",
+      "candidate": "manifest maxCandidateBytes",
+      "events": "bounded page"
+    }
+  },
+  "verification": {
+    "focusedTests": {
+      "test/mcp-surface.test.mjs": { "passed": 7, "failed": 0 },
+      "test/mcp-auth-jwt.test.mjs": { "passed": 1, "failed": 0 }
+    },
+    "fullNpmTest": { "passed": 636, "failed": 0, "cancelled": 0 },
+    "syntax": "passed",
+    "docsCheck": "passed",
+    "diffCheck": "passed"
+  },
+  "proofBoundaries": {
+    "source": "PASS - strict stateless MCP surface, Access auth/JWKS adapter, owner composition and focused/full source tests",
+    "provider": "OPEN - existing tdev.humtr.workers.dev/mcp is a separate prequalification OAuth experiment with no current D0019/D0042/D0043 owner bindings",
+    "mcpClient": "OPEN - no current web ChatGPT initialize/tools/call qualification",
+    "termuxPhysicalExecution": "OPEN - source/local runner evidence does not prove physical Agent process execution",
+    "deployedProduct": "OPEN - no public production endpoint claim",
+    "tmcpComparison": "DEFERRED - additive D0045 work after first tdev path"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false,
+    "userDiagnosticsModified": false
+  },
+  "preservedUntrackedUserFiles": [
+    "qualification/d0044-provider-response-loss-r22-resume.mjs",
+    "qualification/d0044-provider-response-loss-r23-resume.mjs"
+  ]
+}
