@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.development-operation-profiles.v1",
+  "profiles": {
+    "tdev.model.repository.execute.v1": {
+      "kind": "model_repository",
+      "executable": { "kind": "configured_runtime", "name": "release-bound-model-runtime" },
+      "argv": [],
+      "environment": {},
+      "filesystem": "immutable_repository",
+      "network": "none",
+      "limits": {
+        "timeoutMs": 30000,
+        "maxInputBytes": 262144,
+        "maxOutputBytes": 4194304,
+        "maxFileBytes": 16777216,
+        "maxWorkspaceBytes": 67108864,
+        "cancelGraceMs": 1000
+      },
+      "cleanupDomain": "warden_process_group"
+    },
+    "tdev.repository.context.prepare.v1": {
+      "kind": "repository_context",
+      "executable": { "kind": "built_in", "name": "git-immutable-context" },
+      "argv": [],
+      "environment": {},
+      "filesystem": "immutable_repository",
+      "network": "none",
+      "limits": {
+        "timeoutMs": 30000,
+        "maxInputBytes": 262144,
+        "maxOutputBytes": 4194304,
+        "maxFileBytes": 16777216,
+        "maxWorkspaceBytes": 67108864,
+        "cancelGraceMs": 1000
+      },
+      "cleanupDomain": "warden_process_group"
+    },
+    "tdev.repository.validate.v1": {
+      "kind": "repository_validation",
+      "executable": { "kind": "configured_runtime", "name": "release-bound-validation-runtime" },
+      "argv": [],
+      "environment": {},
+      "filesystem": "candidate_workspace",
+      "network": "none",
+      "limits": {
+        "timeoutMs": 60000,
+        "maxInputBytes": 262144,
+        "maxOutputBytes": 4194304,
+        "maxFileBytes": 16777216,
+        "maxWorkspaceBytes": 67108864,
+        "cancelGraceMs": 1000
+      },
+      "cleanupDomain": "warden_process_group"
+    }
+  }
+}

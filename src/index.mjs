@@ -164,6 +164,19 @@ export {
 } from './d1-case-placement.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
+  DEVELOPMENT_OPERATION_PROFILE,
+  DEVELOPMENT_OPERATION_SCHEMA_VERSION,
+  DEVELOPMENT_OPERATION_REQUEST_DOMAIN,
+  DEVELOPMENT_OPERATION_CAPABILITY_DOMAIN,
+  DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES,
+  DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES,
+  normalizeDevelopmentOperationManifest,
+  normalizeDevelopmentOperationRequest,
+  developmentOperationManifestDigest,
+  developmentOperationCapabilityId,
+  executeDevelopmentOperation,
+} from './development-operation-profile.mjs';
+export {
   CASE_AGENT_DRIVE_PROFILE,
   CASE_AGENT_DRIVE_SCHEMA_VERSION,
   CASE_AGENT_DRIVE_REQUEST_DOMAIN,
