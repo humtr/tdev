@@ -71,6 +71,7 @@ const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'd0044_pitr_clear_generation_state',
   'd0044_pitr_reinitialize_generation_state',
   'd0044_pitr_restore_next_session',
+  'abort_instance',
 ]);
 // D0044's isolated provider lane also drives one real delivery through the
 // legacy D0020 data-plane before a D0027 CURRENT tuple exists. These operations

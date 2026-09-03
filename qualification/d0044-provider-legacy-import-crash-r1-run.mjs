@@ -141,6 +141,15 @@ async function discardResponse(token, path, body, label) {
   }
   throw new Error(`${label} authentication propagation failed`);
 }
+async function abortDelivery(token, label) {
+  return discardResponse(token, '/qualification/d0044/delivery/v1', { profile, routeHostKey: agentId, rpc: rpc(1, 'abort_instance') }, label);
+}
+async function abortElection(token, label) {
+  return discardResponse(token, '/qualification/d0044/election/v1', { profile, operation: 'd0044_abort_instance', agentId, payload: {} }, label);
+}
+function crashObserved(observation) {
+  return observation?.responseDiscarded === true && observation?.status !== 200;
+}
 async function routedConnect(routeGeneration) {
   const response = await fetch(`${origin}/agent-delivery/v1/connect?agentId=${encodeURIComponent(agentId)}&routeGeneration=${routeGeneration}`, {
     method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}',
@@ -165,6 +174,7 @@ async function main() {
   const snapshot = local.initialize({}).snapshot;
   const legacy = AgentRouteGenerationAuthority.legacy({ routeBinding: { agentId, routeGeneration: 1 }, routeBindingDigest: agentRouteBindingDigest(route), routeStateDigest: digest(snapshot) }).read();
   const initialized = await initialize({ token, settings, namespaceId: deliveryNamespaceId, d0040Result, generation: legacy });
+  const initializationCrash = await abortDelivery(token, 'abort after route initialization');
   const recovery = generateKeyPairSync('ed25519');
   const management = generateKeyPairSync('ed25519');
   const recoveryPublicKey = recovery.publicKey.export({ format: 'jwk' });
@@ -186,22 +196,29 @@ async function main() {
   const managementSignature = signRecord(record, management);
   const prepareRequest = { profile, routeHostKey: agentId, rpc: rpc(1, 'prepare_legacy_route_import', { record, recoverySignature, managementSignature, managementPublicJwk: managementPublicKey }) };
   const prepareResponseLoss = await discardResponse(token, '/qualification/d0044/delivery/v1', prepareRequest, 'prepare legacy import');
+  const prepareCrash = await abortDelivery(token, 'abort after pending attachment');
   const pending = await readGeneration(token);
   const importRequest = { profile, operation: 'importLegacyAgentRoute', agentId, payload: { record, recoverySignature, managementSignature, managementPublicJwk: managementPublicKey } };
   const importResponseLoss = await discardResponse(token, '/qualification/d0044/election/v1', importRequest, 'election legacy import');
+  const importCrash = await abortElection(token, 'abort after election import');
   const election = await readElection(token);
   const sealRequest = { profile, routeHostKey: agentId, rpc: rpc(1, 'seal_legacy_route_import', { electionState: election }) };
   const sealResponseLoss = await discardResponse(token, '/qualification/d0044/delivery/v1', sealRequest, 'seal legacy import');
+  const sealCrash = await abortDelivery(token, 'abort after sealed attachment');
   const sealed = await readGeneration(token);
   const staleGenerationProbe = await routedConnect(2);
   const electedLegacyProbe = await routedConnect(1);
   const invariants = {
     initializedFresh: initialized.deduplicated === false,
+    initializationCrash: crashObserved(initializationCrash),
     prepareResponseDiscarded: prepareResponseLoss.responseDiscarded === true,
+    prepareCrash: crashObserved(prepareCrash),
     pendingAttachmentReconciled: pending.attachmentStatus === 'PENDING' && pending.disposition === 'ACTIVE',
     importResponseDiscarded: importResponseLoss.responseDiscarded === true,
+    importCrash: crashObserved(importCrash),
     electionCreated: election.currentRoute?.routeGeneration === 1 && election.currentRoute?.routeHostProfile === AGENT_ROUTE_LEGACY_HOST_PROFILE,
     sealResponseDiscarded: sealResponseLoss.responseDiscarded === true,
+    sealCrash: crashObserved(sealCrash),
     sealedAttachmentReconciled: sealed.attachmentStatus === 'SEALED' && sealed.disposition === 'ACTIVE' && sealed.activationReceiptDigest === election.currentRoute.activationReceiptDigest,
     electedModeBound: settings.bindings.find((item) => item?.name === 'TDEV_AGENT_ROUTE_MODE')?.text === 'elected_v1',
     staleGenerationDeniedBeforeHost: staleGenerationProbe.status === 400 && staleGenerationProbe.code === 'agent_route_not_elected',
@@ -209,6 +226,6 @@ async function main() {
     noCanonicalD0039Mutation: true,
   };
   if (!Object.values(invariants).every(Boolean)) throw new Error(`legacy import crash-boundary invariant failed ${JSON.stringify(invariants)}`);
-  process.stdout.write(`${JSON.stringify({ status: 'qualified_legacy_import_response_loss_reconciliation', scriptName, origin, agentId, sourceSha: binding(settings, 'TDEV_SOURCE_SHA'), route: { routeGeneration: 1, routeHostProfile: AGENT_ROUTE_LEGACY_HOST_PROFILE, routeHostKey: agentId, bindingDigest: agentRouteBindingDigest(route) }, stages: { initialized, prepareResponseLoss, pending: { disposition: pending.disposition, attachmentStatus: pending.attachmentStatus, attachmentDigest: pending.attachment === null ? null : digest(pending.attachment) }, importResponseLoss, election: { digest: agentRouteElectionDigest(election), currentRoute: election.currentRoute }, sealResponseLoss, sealed: { disposition: sealed.disposition, attachmentStatus: sealed.attachmentStatus, activationReceiptDigest: sealed.activationReceiptDigest } }, ingress: { electedMode: 'elected_v1', staleGenerationProbe, electedLegacyProbe }, invariants, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
+  process.stdout.write(`${JSON.stringify({ status: 'qualified_legacy_import_crash_reconstruction', scriptName, origin, agentId, sourceSha: binding(settings, 'TDEV_SOURCE_SHA'), route: { routeGeneration: 1, routeHostProfile: AGENT_ROUTE_LEGACY_HOST_PROFILE, routeHostKey: agentId, bindingDigest: agentRouteBindingDigest(route) }, stages: { initialized, initializationCrash, prepareResponseLoss, prepareCrash, pending: { disposition: pending.disposition, attachmentStatus: pending.attachmentStatus, attachmentDigest: pending.attachment === null ? null : digest(pending.attachment) }, importResponseLoss, importCrash, election: { digest: agentRouteElectionDigest(election), currentRoute: election.currentRoute }, sealResponseLoss, sealCrash, sealed: { disposition: sealed.disposition, attachmentStatus: sealed.attachmentStatus, activationReceiptDigest: sealed.activationReceiptDigest } }, ingress: { electedMode: 'elected_v1', staleGenerationProbe, electedLegacyProbe }, invariants, secretValues: 'excluded', qualificationTokenRotated: true }, null, 2)}\n`);
 }
 main().catch((error) => { process.stderr.write(`${JSON.stringify({ status: 'failed', code: error?.code ?? 'd0044_legacy_import_crash_failed', message: error?.message ?? String(error) })}\n`); process.exitCode = 1; });

@@ -28,6 +28,7 @@ const ELECTION_OPERATIONS = Object.freeze(new Set([
   'commitAgentRouteCutover',
   'commitAgentRouteCutoverResponseLoss',
   'd0044CommitAgentRouteCutoverReplayDiagnostic',
+  'd0044_abort_instance',
 ]));
 
 const ELECTION_PAYLOAD_SHAPES = Object.freeze({
@@ -41,6 +42,7 @@ const ELECTION_PAYLOAD_SHAPES = Object.freeze({
   commitAgentRouteCutover: [['cutoverRequestId'], []],
   commitAgentRouteCutoverResponseLoss: [['cutoverRequestId'], []],
   d0044CommitAgentRouteCutoverReplayDiagnostic: [['cutoverRequestId'], []],
+  d0044_abort_instance: [[], []],
 });
 
 const DELIVERY_OPERATIONS = new Set([
@@ -73,6 +75,7 @@ const DELIVERY_OPERATIONS = new Set([
   'd0044_pitr_clear_generation_state',
   'd0044_pitr_reinitialize_generation_state',
   'd0044_pitr_restore_next_session',
+  'abort_instance',
 ]);
 const LEGACY_IMPORT_OPERATIONS = new Set([
   'd0044_constructor_diagnostic',
@@ -94,6 +97,7 @@ const LEGACY_IMPORT_OPERATIONS = new Set([
   'd0044_pitr_clear_generation_state',
   'd0044_pitr_reinitialize_generation_state',
   'd0044_pitr_restore_next_session',
+  'abort_instance',
 ]);
 
 function fail(code, message) {
@@ -264,6 +268,9 @@ async function invokeElection(stub, operation, agentId, payload) {
     case 'commitAgentRouteCutover': return stub.commitAgentRouteCutover(agentId, payload);
     case 'commitAgentRouteCutoverResponseLoss': return stub.commitAgentRouteCutoverResponseLoss(agentId, payload);
     case 'd0044CommitAgentRouteCutoverReplayDiagnostic': return stub.d0044CommitAgentRouteCutoverReplayDiagnostic(agentId, payload);
+    case 'd0044_abort_instance':
+      if (typeof stub.d0044AbortInstance !== 'function') fail('invalid_qualification_provider', 'Election namespace does not expose D0044 abort RPC');
+      return stub.d0044AbortInstance(agentId);
     default: fail('qualification_unknown_operation', 'D0044 election operation is unsupported');
   }
 }

@@ -118,6 +118,7 @@ export class AgentRouteElectionRuntimeDO extends DurableObject {
   commitAgentRouteCutover(agentId, input) { return this.election.commitAgentRouteCutover(agentId, input); }
   commitAgentRouteCutoverResponseLoss(agentId, input) { return this.election.commitAgentRouteCutoverResponseLoss(agentId, input); }
   d0044CommitAgentRouteCutoverReplayDiagnostic(agentId, input) { return this.election.d0044CommitAgentRouteCutoverReplayDiagnostic(agentId, input); }
+  d0044AbortInstance(agentId) { return this.election.d0044AbortInstance(agentId); }
   d0044ElectionDiagnosticInvoke(agentId) {
     try {
       const result = this.election.readAgentRouteElection(agentId);
