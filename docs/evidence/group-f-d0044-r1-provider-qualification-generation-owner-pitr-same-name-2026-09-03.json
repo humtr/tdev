@@ -1,0 +1,149 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_qualification_generation_owner_pitr_same_name",
+  "observedAtUtc": "2026-09-03T00:03:00Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "remainingProofLayer": "provider account-loss/recovery crash points and full namespace/provider retention loss"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "validationCommit": "93229d22627125129858559ad9ba221cebad4923",
+    "deployedWorkerSourceCommit": "93229d22627125129858559ad9ba221cebad4923",
+    "validation": {
+      "commands": [
+        "npm run check",
+        "git diff --check"
+      ],
+      "success": true,
+      "tests": {
+        "total": 613,
+        "passed": 613,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "syntax": "PASS",
+      "documentation": "PASS",
+      "demo": "PASS",
+      "durableDemo": "PASS",
+      "cleanDiff": true
+    }
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "r31",
+    "sourceSha": "93229d22627125129858559ad9ba221cebad4923",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:54daa8da459324336d7573cd56471637bc3731e01b3c8b3ef9570e1870fc6581",
+    "artifactManifestDigest": "sha256:36cdf1da12bcabaccf8c681e047833988c083f52c1d84054b910f7cf2bbc0ab2",
+    "attestorKeyId": "sha256:5617766604a4117057029643fd704ddedbcbd2d1f74f64aead3cf881a5a29bc9",
+    "trafficPercentage": 100,
+    "latestObservedDeployment": {
+      "id": "17932158-bc19-48e9-855b-86a7c04ff4f6",
+      "versionId": "777a7905-b860-449b-98a8-801bf745e468",
+      "triggeredBy": "upload",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {
+        "namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2",
+        "className": "AgentDeliveryRuntimeDO",
+        "useSqlite": true
+      },
+      "election": {
+        "namespaceId": "5f5e1733b60e408ba339ee01981e981f",
+        "className": "AgentRouteElectionRuntimeDO",
+        "useSqlite": true
+      },
+      "distinctNamespaces": true
+    },
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-provider-pitr-clean-20260903-r31",
+    "generation1": {
+      "routeGeneration": 1,
+      "dispositionBeforeReset": "ACTIVE",
+      "dispositionAfterRestore": "ACTIVE"
+    },
+    "generationOwnerReset": {
+      "operation": "d0044_pitr_clear_generation_state",
+      "status": 200,
+      "classification": "generation_state_cleared",
+      "beforeStateDigest": "sha256:92d1d131d63d446587ecf52d1f8675e00de64f094048dc7d4338bb875de8a1ff",
+      "readAfterClearWasNull": true
+    },
+    "sameNameReinitialization": {
+      "operation": "d0044_pitr_reinitialize_generation_state",
+      "status": 200,
+      "staleIngress": {
+        "status": 409,
+        "code": "stale_route_generation"
+      },
+      "meaning": "same-name predecessor generation owner was recreated but could not self-elect"
+    },
+    "pitrRestore": {
+      "operation": "d0044_pitr_restore_next_session",
+      "responseStatus": 400,
+      "responseCode": "qualification_provider_failure",
+      "bookmarkDigestBeforeReset": "sha256:72804b47ca8c4d3592e86b5d32952245de058de007a986bc8fa005c7f5af2a58",
+      "bookmarkDigestAfterReinitialization": "sha256:62244b7ebaefcac55774fb229238c6e14a52158cf593842c4e09218240932546",
+      "postRestoreReadbackDisposition": "ACTIVE",
+      "meaning": "provider abort made the restore response ambiguous; authoritative readback confirmed the restored generation"
+    },
+    "electionFirst": {
+      "staleAfterReset": {
+        "status": 409,
+        "code": "stale_route_generation"
+      },
+      "staleAfterReinitialization": {
+        "status": 409,
+        "code": "stale_route_generation"
+      },
+      "staleAfterRestore": {
+        "status": 409,
+        "code": "stale_route_generation"
+      }
+    },
+    "invariants": {
+      "generationResetAccepted": true,
+      "sameNameReinitializationAccepted": true,
+      "sameNameRecreationCannotSelfElect": true,
+      "restoreRequestAccepted": true,
+      "postRestoreGenerationReadback": true,
+      "electionFirstStaleDenial": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedWorkerDeployment": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "qualificationTokenRotated": true,
+    "generationOwnerResetAndReinit": true,
+    "providerAccountLossRecovery": "NOT_EXECUTED",
+    "fullNamespaceDeletionOrRetentionLoss": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "source": "PASS - exact 613/613 gate",
+    "providerDeployment": "PASS - isolated workers.dev Worker at 100% with distinct SQLite namespaces",
+    "generationOwnerPitrAndSameNameNonResurrection": "PASS - reset/reinit/restore readback remained stale to election generation 2",
+    "providerAccountLossRecovery": "UNVERIFIED",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated lanes were retained without reset, force-rewrite or deletion.",
+  "nextGate": "Run only isolated provider account-loss/recovery crash-point proof; do not import or cut over canonical D0039 R12."
+}
