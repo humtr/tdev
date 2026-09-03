@@ -72,6 +72,21 @@ const D0044_ROUTE_GENERATION_OPERATIONS = new Set([
   'd0044_pitr_reinitialize_generation_state',
   'd0044_pitr_restore_next_session',
 ]);
+// D0044's isolated provider lane also drives one real delivery through the
+// legacy D0020 data-plane before a D0027 CURRENT tuple exists. These operations
+// are bearer-gated by the qualification Worker and never relax product ingress.
+const D0044_QUALIFICATION_DATA_PLANE_OPERATIONS = new Set([
+  'reserve',
+  'release_reservation',
+  'expire_reservation',
+  'roll_reservation_window',
+  'activate_delivery',
+  'grant_command',
+  'close_undispatched_delivery',
+  'bind_terminal_case_receipt',
+  'reacquire_delivery_admission',
+  'send_dispatch',
+]);
 function corruptedSignature(value, label) {
   const bytes = decodeBase64Url(value, label);
   bytes[0] ^= 0x01;
@@ -304,14 +319,16 @@ function rpcShape(input) {
     throw new ContractError('qualification_route_bootstrap_operation_forbidden', 'R12 route provisioning cannot be authorized by an R8/R9 route-bootstrap target');
   }
   const d0044RouteGeneration = D0044_ROUTE_GENERATION_OPERATIONS.has(input.operation);
-  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) || d0044RouteGeneration
+  const d0044QualificationDataPlane = D0044_QUALIFICATION_DATA_PLANE_OPERATIONS.has(input.operation);
+  const mutationKeys = READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) || d0044RouteGeneration || d0044QualificationDataPlane
     ? []
     : routeProvisioning
       ? ['routeProvisioningTarget', 'routeProvisioningTargetDigest', 'routeProvisioningTransactionId', 'routeProvisioningRequestDigest']
       : routeBootstrap
         ? ['routeBootstrapTarget', 'routeBootstrapTargetDigest', 'routeBootstrapTransactionId', 'routeBootstrapRequestDigest']
         : ['expectedDeploymentIdentityDigest'];
-  assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], shape[1], 'D0020 qualification ' + input.operation);
+  const optionalKeys = d0044QualificationDataPlane ? [...shape[1], 'expectedDeploymentIdentityDigest'] : shape[1];
+  assertRecordShape(input, ['profile', 'operation', 'agentId', 'routeGeneration', ...mutationKeys, ...shape[0]], optionalKeys, 'D0020 qualification ' + input.operation);
   if (input.profile !== QUALIFICATION_RPC_PROFILE) throw new ContractError('invalid_qualification_rpc_profile', 'D0039 qualification requires the Revision-4 RPC profile');
   assertIdentifier(input.agentId, 'agentId');
   assertSafeInteger(input.routeGeneration, 'routeGeneration', { min: 1 });
@@ -323,7 +340,7 @@ function rpcShape(input) {
     assertIdentifier(input.routeBootstrapTransactionId, 'routeBootstrapTransactionId');
     assertDigest(input.routeBootstrapTargetDigest, 'routeBootstrapTargetDigest');
     assertDigest(input.routeBootstrapRequestDigest, 'routeBootstrapRequestDigest');
-  } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) && !d0044RouteGeneration) {
+  } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(input.operation) && !d0044RouteGeneration && !d0044QualificationDataPlane) {
     assertDigest(input.expectedDeploymentIdentityDigest, 'expectedDeploymentIdentityDigest');
   }
   return input.operation;
@@ -625,7 +642,7 @@ export class D0020QualificationAgentDeliveryDOHost {
         admitted = this.#routeProvisioningAdmission(operation, routeBinding, input);
       } else if (ROUTE_BOOTSTRAP_OPERATIONS.has(operation)) {
         admitted = this.#routeBootstrapAdmission(operation, routeBinding, input);
-      } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation) && !D0044_ROUTE_GENERATION_OPERATIONS.has(operation)) {
+      } else if (!READ_ONLY_QUALIFICATION_OPERATIONS.has(operation) && !D0044_ROUTE_GENERATION_OPERATIONS.has(operation) && !D0044_QUALIFICATION_DATA_PLANE_OPERATIONS.has(operation)) {
         const routeCurrent = this.#readRouteCurrent(routeBinding);
         const runtime = this.#runtimeFacts(routeBinding, routeCurrent);
         admitted = assertExpectedDeploymentIdentity({ expectedDeploymentIdentityDigest: input.expectedDeploymentIdentityDigest, runtimeFacts: runtime, routeBinding });
