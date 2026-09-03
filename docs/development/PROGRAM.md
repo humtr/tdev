@@ -37,8 +37,9 @@ Completed Design narrative, test counts, benchmark values, commit SHAs and evide
 | D0041@r1 | F/H | maintained Design foreign key: `docs/design/0041-installable-agent-pre-genesis-material-binding.md` | consumes D0027 predecessor/generation authority, D0039 route/release-root custody and D0040 only where evidence authentication is later composed; owns no provider or route mutation | required dependency before D0039@r12 phase-U may resume | deterministic predecessor-bound `cp1` identity, alias/trust substitution and stale-after-provision reconciliation failures; exit is source-qualified credential/release-trust projection plus a separate supported-Termux physical candidate-preparation proof with no D0027 dispatch | Android/Termux keystore/source-lineage and exact release-root/delegated-signer material only for the physical proof layer |
 | D0042 | F/G | provisional label | D0019 Case authority, D0020 AgentDeliveryAuthority and D0027 route/current/dispatch boundaries; acceptance must choose exactly one durable owner rather than adding another semantic queue | provisionally required before a supported endpoint may assume autonomous progress if fresh Class-2 revalidation confirms the currently observed missing Case-drive owner | kill/restart the candidate owner around ready/reserved/attempt-start/dispatch/result boundaries and prove level-triggered re-drive plus authoritative reconciliation without duplicate dispatch authority or invented success; exit is one durable owner that connects Case readiness to Agent delivery while preserving existing owners | Cloudflare DO/runtime evidence only where deployed drive ownership is claimed |
 | D0043 | D/F/H | provisional label | D0027 local Agent, the selected repository/model executor, validation path and D0025 publication boundary; D0035 consumes the resulting bounded self-development effects | required before D0035 unless fresh Class-2 revalidation proves an existing typed profile already covers repository preparation, model execution and validation without unrestricted shell | disable unrestricted shell and execute one typed repository-prepare -> model-execute -> validate -> result/publication-candidate path with exact repository/context identity plus argv/environment/filesystem/network/resource/fencing/cancellation bounds; exit is a bounded operation profile, not a general shell and not semantic authority | supported local machine/model/Git credentials and validation tooling as selected |
+| D0045@r1 | C/D/F/G/H | maintained Design foreign key: `docs/design/0045-tdev-tmcp-mcp-development-path-comparative-qualification.md` | candidate comparison requires the tdev-native D0042/D0043 path if accepted plus supported D0023/D0024 MCP/auth; publication comparison additionally requires D0025; D0035 consumes the result without treating it as tmcp-disabled proof | required comparative adoption gate before D0035 retirement verification; implementation remains unrunnable until `WORKBOARD.md` selects it after prerequisites | freeze a client-stratified equivalent-work manifest before candidate results, then pair Codex and later supported web ChatGPT tmcp/tdev MCP runs; exit requires non-inferior correctness/safety plus predeclared material improvements in latency, throughput/parallelism, efficiency and fault recovery after complete-corpus remediation reruns | exact supported clients, both MCP services, model/Agent/runtime observation and isolated Git/provider refs as exercised |
 | D0028 | H | provisional label | deployed mandatory components and their recovery/rollback owners | required bounded operations gate | selected component outage with detection, bounded degradation and verified recovery/rollback; exit is actionable runbooks/observation without telemetry becoming semantic authority | operator/provider access needed to exercise recovery safely |
-| D0035@r1 | F/G/H | maintained Design foreign key: `docs/design/0035-tdev-self-hosting-and-tmcp-retirement.md` | supported paths selected by D0020 and D0023-D0028, plus provisional D0042/D0043 boundaries if accepted after fresh Class-2 revalidation, plus every activated D0021/D0022 conditional gate used by the final deployment | required self-hosting/tmcp-retirement gate before final qualification; lifecycle authorization remains owned by the Design | disable the tmcp operational plane, then use tdev-owned MCP/Case/Task/Agent/validation/Promotion/Git paths to produce and provider-reread one real tdev successor with representative failure reconciliation; exit is independent evidence that no required step used tmcp | supported client, machine/Agent, GitHub and provider access plus an operator-controlled tmcp disable observation |
+| D0035@r1 | F/G/H | maintained Design foreign key: `docs/design/0035-tdev-self-hosting-and-tmcp-retirement.md` | supported paths selected by D0020 and D0023-D0028, plus provisional D0042/D0043 boundaries if accepted after fresh Class-2 revalidation, D0045 comparative adoption evidence and every activated D0021/D0022 conditional gate used by the final deployment | required self-hosting/tmcp-retirement gate before final qualification; lifecycle authorization remains owned by the Design | disable the tmcp operational plane, then use tdev-owned MCP/Case/Task/Agent/validation/Promotion/Git paths to produce and provider-reread one real tdev successor with representative failure reconciliation; exit is independent evidence that no required step used tmcp; D0045 superiority does not substitute for this absence proof | supported client, machine/Agent, GitHub and provider access plus an operator-controlled tmcp disable observation |
 | D0029 | H | provisional label | D0035@r1 plus all mandatory A-H exits and every activated conditional gate | required final gate | deterministic deployed success/failure/security/recovery/migration/rollback matrix before any load/SLO experiment; exit is accepted Level-4 evidence | unavoidable provider/account/client actions documented and independently verified |
 
 A future accepted Design may merge/split/reorder provisional rows when one authority decision makes the existing boundary wrong. Update this program relation only through the applicable SDD classification; a Design number is never authorization by itself.
@@ -63,21 +64,37 @@ D0022? -------+                 +----> D0042? --------+----> D0023 + D0024
                                          v
                                        D0028
                                          |
-                         D0042? ---------+
-                         D0043? ---------+
-                                         |
-                                         v
-                                     D0035@r1
-                                         |
-                                         v
-                                       D0029
+                         D0042? ---------+------+
+                         D0043? ---------+      |
+                         D0023 + D0024 ----------+----> D0045@r1
+                         D0025 ------------------+         |
+                                                           v
+                                                       D0035@r1
+                                                           |
+                                                           v
+                                                         D0029
 ```
 
-`?` marks an evidence-activated conditional gate or a provisional future Design ID, not implementation authorization. D0042 and D0043 remain planning foreign keys until `SDD.md` is satisfied by accepted maintained Design records.
+`?` marks an evidence-activated conditional gate or a provisional future Design ID, not implementation authorization. D0042 and D0043 remain planning foreign keys until `SDD.md` is satisfied by accepted maintained Design records. D0045 is accepted planning authority but is not runnable until `WORKBOARD.md` explicitly routes it after the compared paths exist.
 
-The current runnable line remains owned only by `WORKBOARD.md`: D0041@r1 has completed its physical pre-genesis dependency and control has returned to D0039@r12 for the remaining realization gates. D0042/D0043 planning must not interrupt or fork that active line.
+The current runnable line remains owned only by `WORKBOARD.md`. D0042/D0043/D0045 planning must not interrupt or fork that active line; a later routing transition must rebind the actual current Design revisions and prerequisites rather than infer readiness from this graph.
 
 Research may proceed ahead of an implementation dependency when it does not choose an unresolved authority/security/migration contract by implication. Canonical repository mutation/publication remains governed by the development workflow and current WORKBOARD route.
+
+### 3.1 Functional adoption checkpoints and reporting boundary
+
+The user-facing adoption route groups many small reviewable changes into functional checkpoints. It is a forward plan, not current routing and not permission to skip an accepted Design or validation gate.
+
+| Checkpoint | Functional exit | Included forward work |
+| --- | --- | --- |
+| P0 — authority convergence | the current routed Design is accurately qualified, normally published and independently reread at one exact `development` successor | finish the current D0044 evidence/source/publication debt and preserve unrelated state; this is a prerequisite barrier, not the first tdev product claim |
+| P1 — tdev-native trial admission | one real non-documentation-only tdev development unit starts from exact published authority and reaches a fully validated isolated Promotion/publication candidate through tdev-owned Case/Task/Attempt and authenticated Agent execution | accept and implement D0042/D0043 as evidence requires; exercise restart, validation-failure and no-unauthorized-canonical-effect paths; an internal qualification ingress may precede supported MCP |
+| P2 — supported MCP trial | the same class of development unit can be submitted, observed, cancelled and reconciled through supported authenticated tdev MCP by the selected current client | D0023/D0024 plus exact current-client/provider qualification |
+| P2-X — paired comparative adoption | client-matched tmcp/tdev MCP runs over one frozen candidate-only corpus satisfy D0045 correctness, speed, throughput/parallelism, efficiency and recovery gates after continuous remediation | Codex stratum first; supported web ChatGPT stratum repeats later without cross-client pooling |
+| P3 — fenced publication comparison | a real isolated Git successor is published/reconciled by each eligible path under equivalent expected-predecessor, authorization-denial and response-loss conditions, and tdev meets the frozen D0045 publication profile | D0025 plus the publication stage of D0045; canonical `development` use remains separately authorized |
+| P4 — self-hosting and retirement | one deployed tdev release develops, validates, promotes and publishes its real successor while tmcp remains independently observed disabled | D0026/D0028, D0035 and all activated final-path prerequisites; D0045 evidence supports adoption but never replaces the tmcp-disabled proof |
+
+Small commits, tests, fixes, evidence writes and safe internal reruns remain execution units, not user-facing completion units. Within one selected checkpoint the implementer continues through those units and reruns the complete applicable gate. Handoff occurs only when the whole functional exit passes or an exact authority, safety or unavailable external-resource blocker prevents further in-scope progress.
 
 ## 4. Current unresolved decision questions
 

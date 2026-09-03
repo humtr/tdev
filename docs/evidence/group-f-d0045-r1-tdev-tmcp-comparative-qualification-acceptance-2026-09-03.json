@@ -1,0 +1,97 @@
+{
+  "schemaVersion": 1,
+  "classification": "d0045_r1_tdev_tmcp_mcp_development_path_comparative_qualification_acceptance",
+  "observedAtUtc": "2026-09-03T02:07:08Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "bce22bca1f94b92c76e0489b0e7a96043fb3e1d8"
+    },
+    "localDecisionBase": "bc1776c37fa6b0dbb67cde9d28882025396d6d9d",
+    "localDecisionBaseDescendsFromPublishedAuthority": true,
+    "publicationStateAtDecision": "LOCAL_AHEAD",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "trigger": {
+    "source": "direct_user_decision",
+    "decision": "Add a paired tmcp-versus-tdev MCP development-path comparison and continuous remediation loop without replacing the existing qualification methods.",
+    "clientOrder": [
+      "Codex",
+      "supported web ChatGPT"
+    ],
+    "targetDimensions": [
+      "correctness_and_safety",
+      "performance",
+      "efficiency",
+      "end_to_end_speed",
+      "parallel_execution",
+      "stability_and_recovery"
+    ]
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "designId": "D0045",
+    "revision": 1,
+    "status": "accepted",
+    "reason": "The decision adds a separately falsifiable comparative acceptance method, client/path equivalence boundary, metric families, frozen-manifest rule and feedback gate. It changes verification meaning but introduces no product runtime authority by acceptance alone."
+  },
+  "repositoryFacts": {
+    "tdevProductShapedDevelopmentAdmissionExists": false,
+    "currentCliCommands": [
+      "demo",
+      "durable-demo"
+    ],
+    "d0042StatusInProgram": "provisional",
+    "d0043StatusInProgram": "provisional",
+    "d0023StatusInProgram": "provisional",
+    "d0024StatusInProgram": "provisional",
+    "d0025StatusInProgram": "provisional",
+    "componentBenchmarksExist": true,
+    "endToEndTmcpTdevMcpComparatorExists": false,
+    "d0035OwnsIndependenceNotComparativeSuperiority": true
+  },
+  "acceptedDecision": {
+    "owner": "D0045 owns comparative qualification meaning only; existing product and runtime owners remain unchanged.",
+    "matrix": [
+      "Codex -> MCP -> tmcp versus Codex -> MCP -> tdev",
+      "supported web ChatGPT -> MCP -> tmcp versus supported web ChatGPT -> MCP -> tdev"
+    ],
+    "pairing": "Comparisons are valid only within one client stratum from the same immutable repository base and equivalent semantic objective, validation and effect bounds.",
+    "corpus": "Frozen deterministic, real-source, legal-parallel, conflicting/dependent and controlled-failure development workloads on isolated candidates/refs.",
+    "metrics": "Correctness/safety, end-to-end latency, throughput, useful parallel overlap, per-success operation/byte/resource/interaction efficiency, stability and recovery remain separately visible.",
+    "antiCherryPicking": "Calibration is non-qualifying; workload, order, repetitions, exclusions, formulas and numeric thresholds freeze before candidate results.",
+    "improvementLoop": "Attribute each failure to the responsible owner, classify and implement the correction under SDD, then rerun the complete frozen corpus rather than only the failed sample.",
+    "reportBoundary": "Small reviewable commits remain required, but user-facing completion is the whole comparative checkpoint PASS or an exact irresolvable authority/external-resource/safety blocker.",
+    "d0035Relationship": "A verified D0045 result may support adoption and D0035 planning but never proves tmcp was disabled or that self-hosting is independent."
+  },
+  "preservedOwners": {
+    "caseAuthority": "D0019",
+    "agentDeliveryAndExecution": "D0020/D0027",
+    "mcpSurfaceAndSecurity": "D0023/D0024",
+    "gitPublication": "D0025",
+    "caseRedriveIfAccepted": "D0042",
+    "boundedDevelopmentOperationsIfAccepted": "D0043",
+    "tmcpRetirement": "D0035",
+    "qualificationMethod": "docs/QUALIFICATION.md",
+    "currentRouting": "WORKBOARD.md"
+  },
+  "externalEffects": {
+    "implementation": false,
+    "benchmarkExecution": false,
+    "mcpMutation": false,
+    "providerMutation": false,
+    "agentMutation": false,
+    "gitPublication": false,
+    "tmcpShutdown": false,
+    "currentD0044OrD0039RoutingChanged": false
+  },
+  "unknowns": [
+    "exact first real-development workload corpus",
+    "measured variance and practical noise floor per client/runtime profile",
+    "numeric material-improvement thresholds to freeze after calibration and before candidate trials",
+    "exact immutable tmcp comparator version/profile",
+    "first measured tdev bottleneck owner"
+  ],
+  "next": "Keep D0044 as the current selected gate. After the current route reaches an authorized scheduling boundary and D0042/D0043 plus D0023/D0024 prerequisites exist, route D0045 explicitly before implementing or executing its comparator."
+}

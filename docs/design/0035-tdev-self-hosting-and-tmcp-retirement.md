@@ -6,7 +6,7 @@
 - Decision date: 2026-08-17
 - Active cumulative lineage: resolved from `WORKBOARD.md`; drafted from `group/f-cloudflare-runtime@05cfe7a98b79c4941fa4ddf62ec2ed51ee2d2da7`
 - Trigger: direct user decision that completed tdev replaces tmcp for normal development/operation and tmcp becomes disabled legacy infrastructure
-- Affected owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/WORKFLOW.md`, `docs/QUALIFICATION.md`, `docs/MCP.md`, `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md`, local-Agent/runtime owners, Git publication owners, derived Design index
+- Affected owners: `docs/ROADMAP.md`, `docs/development/PROGRAM.md`, `docs/development/WORKFLOW.md`, `docs/QUALIFICATION.md`, `docs/MCP.md`, `docs/DEPLOYMENT.md`, `docs/OPERATIONS.md`, local-Agent/runtime owners, Git publication owners, D0045 comparative qualification, derived Design index
 - Product/runtime semantics: proposes a new final-MVP self-hosting/retirement requirement; this draft authorizes no runtime, provider, deployment, Agent or tmcp mutation
 - Explicit non-goals: no GitHub replacement; no tmcp shutdown during design work; no activation or implementation of D0020-D0029; no duplication of Case/Task/Attempt authority in Agent, MCP, Git or tmcp; no deletion or rewriting of tmcp historical state
 
@@ -174,7 +174,7 @@ Automatic or assumed tmcp reactivation is not a rollback strategy. If emergency 
 
 D0035 is intentionally late and compositional.
 
-Research and acceptance refinement may occur earlier, but verification of the retirement claim requires the supported paths selected by D0020, D0023, D0024, D0025, D0026, D0027 and D0028, plus every activated D0021/D0022 conditional path that the final deployment actually depends on.
+Research and acceptance refinement may occur earlier, but verification of the retirement claim requires the supported paths selected by D0020, D0023, D0024, D0025, D0026, D0027 and D0028, a verified D0045 comparative-adoption result, plus every activated D0021/D0022 conditional path that the final deployment actually depends on. D0045 proves only its exact tmcp/tdev comparison profile; it never substitutes for the independent observation that tmcp is disabled throughout the D0035 run.
 
 The maintained Design lifecycle, not the numeric ID, determines implementation authorization. D0035 must not activate or pre-choose unresolved lower-layer owner, provider, security, migration or rollback decisions.
 
@@ -185,6 +185,7 @@ After D0035 verification, D0029 can consume the retirement result as one prerequ
 | Gate | Required result |
 | --- | --- |
 | prerequisite closure | every mandatory lower-layer owner used by the supported self-hosting path is accepted/implemented/verified to the level required by its own gate; activated conditional gates are included |
+| comparative adoption | exact D0045 evidence establishes the predeclared client-stratified tdev-over-tmcp development-path profile without correctness/security/cleanup regression; this is adoption evidence, not tmcp-disabled evidence |
 | tmcp disabled | independent machine/runtime observation proves the legacy tmcp operational service/control path is disabled before the integrated run begins and remains unavailable through completion |
 | exact authority | self-development starts from the exact published tdev authority resolved by the supported repository-authority procedure, not a default branch, stale checkout, tool branch or remembered SHA |
 | tdev-native control | self-development work is created, admitted, fenced, cancelled/reconciled and completed only through tdev-owned Case/Task/Attempt/MCP semantics |
@@ -224,6 +225,7 @@ D0035 verification evidence should record exact immutable identities rather than
 - PlanRevision, Task, Attempt, accepted-result and Promotion identities sufficient to prove the executed path;
 - validation profile/method identity and result;
 - Git publication intent, expected predecessor, observed remote outcome and reconciliation evidence;
+- exact D0045 comparison generation, client strata, immutable manifest/threshold identity and observed pass evidence consumed as adoption proof;
 - tmcp-disabled machine/runtime observation before, during and after the integrated run;
 - exact failure/recovery evidence reused from prerequisite gates, including its environment/profile compatibility with the integrated path.
 
