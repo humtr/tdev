@@ -244,6 +244,8 @@ export class DevelopmentUnitRunner {
       const dispatchEnvelope = deepFreeze({
         caseId,
         driveRequestId,
+        taskId: task.id,
+        attemptId: invocation.attempt.id,
         payload: canonicalClone(payload),
         operationRequest,
         invocation: {

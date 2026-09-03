@@ -135,6 +135,8 @@ test('P1 source checkpoint drives context, model, validation, and Promotion thro
   assert.equal(driven.classification, 'accepted');
   assert.equal(agent.calls.authorize.length, 3);
   assert.equal(agent.calls.dispatch.length, 3);
+  assert.equal(agent.calls.dispatch[0].taskId, DEVELOPMENT_UNIT_CONTEXT_TASK_ID);
+  assert.equal(agent.calls.dispatch[0].attemptId, `${DEVELOPMENT_UNIT_CONTEXT_TASK_ID}.1`);
   assert.equal(agent.calls.context.length, 1);
   assert.equal(agent.calls.model.length, 1);
   assert.equal(agent.calls.model[0].contextReferenceId, 'context-p1');
