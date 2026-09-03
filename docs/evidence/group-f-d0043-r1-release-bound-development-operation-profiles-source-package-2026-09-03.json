@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r1_release_bound_development_operation_profiles_source_package",
+  "observedAtUtc": "2026-09-03T17:45:00Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "0a2c452ab74b433c2ab8ff0b265f2865ec192dab",
+    "trackedWorktreeAfterVerification": "clean",
+    "unrelatedUntrackedPreserved": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "decision": {
+    "design": "D0043@r1",
+    "packageProfile": "tdev.installable-agent-package.v1",
+    "developmentOperationProfile": "tdev.development-operation-profiles.v1",
+    "releaseManifestBinding": {
+      "relativePath": "config/development-operation-profiles.json",
+      "sha256": "93210493e6591f8f6d21c333ec241e7f1420faf2d65288d7cc43e10df19b5037"
+    },
+    "operationManifestDigest": "sha256:e9ae2b2041b86bf97818726c81b5c13c9885bef7fba957c1f18b9f7aa29121a9",
+    "capabilities": {
+      "tdev.model.repository.execute.v1": "sha256:69d3bd851d3f4963564a48dae7b63ad191b51a85316bdd74e58ec1e29a8881a1",
+      "tdev.repository.context.prepare.v1": "sha256:c9d76aa038917445ad364ae5821145c792ce4dcb90a9d1ecfd99f5bfeef227c5",
+      "tdev.repository.validate.v1": "sha256:fb03bd509c13f9dd30fc09424e1307b8340e132f33e9cd8779354030250f8e29"
+    },
+    "agentIdentityAdvertisesReleaseCapabilities": true,
+    "legacyDiagnosticProfilePreserved": true
+  },
+  "artifact": {
+    "target": {
+      "platform": "android",
+      "arch": "arm64"
+    },
+    "archive": {
+      "file": "tdev-installable-agent-android-arm64-0a2c452ab74b433c2ab8ff0b265f2865ec192dab.tgz",
+      "sha256": "71eedd35a66c083e2d6cdf0c395c0752c9416e63391eaedea708b7008b434c81",
+      "bytes": 119283
+    },
+    "releaseManifestDigest": "sha256:16dfed1359ac844a5844c102e0d3199f499c328478c6747ba0ea6299151c474e",
+    "archiveContainsDevelopmentOperationManifest": true,
+    "archiveContainsDiagnosticToolManifest": true,
+    "builderDeterministic": true
+  },
+  "verification": {
+    "focusedTests": {
+      "command": "node --test test/installable-agent-package.test.mjs test/installable-agent-control.test.mjs test/local-agent-runtime.test.mjs test/installable-agent-package-build.test.mjs",
+      "total": 30,
+      "passed": 30,
+      "failed": 0
+    },
+    "fullSourceGate": {
+      "command": "npm test",
+      "total": 628,
+      "passed": 628,
+      "failed": 0
+    },
+    "syntax": {
+      "command": "npm run syntax",
+      "passed": true
+    },
+    "documentation": {
+      "command": "npm run docs:check",
+      "passed": true,
+      "frontier": 5,
+      "selected": "D0023@r1"
+    }
+  },
+  "proofBoundaries": {
+    "source": "PASS - release manifest hash binding, strict profile loading and local identity capability projection",
+    "package": "PASS - deterministic Android/arm64 archive and exact payload inclusion",
+    "termuxPhysical": "not claimed",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "openDebts": [
+    "configured model and validation executables are not yet mapped to a real Termux workspace/process adapter",
+    "D0027 physical Agent execution and positive cleanup evidence remain unqualified",
+    "D0023 MCP source adapter and D0024 auth adapter are not yet implemented",
+    "Cloudflare deployment, Access policy/client registration and public HTTPS URL remain unqualified"
+  ],
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "credentialMutation": false,
+    "canonicalPublication": false,
+    "gitPublication": false
+  }
+}
