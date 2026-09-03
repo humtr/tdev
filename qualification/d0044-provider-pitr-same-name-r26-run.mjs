@@ -22,7 +22,7 @@ const envFile = process.argv[2] ?? '/data/data/com.termux/files/home/.config/tde
 const scriptName = 'tdev-d0044-qualification-20260902';
 const accountSubdomain = 'humtr';
 const origin = `https://${scriptName}.${accountSubdomain}.workers.dev`;
-const agentId = 'd0044-provider-pitr-clean-20260903-r41';
+const agentId = process.env.TDEV_D0044_AGENT_ID ?? 'd0044-provider-pitr-clean-20260903-r41';
 const profile = 'tdev.agent-route-election-qualification.v1';
 const electionOwnerIdentityDomain = 'tdev.agent-route-election-authority.v1';
 
