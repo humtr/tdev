@@ -1,0 +1,67 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_r1_versioned_stateless_mcp_surface_acceptance",
+  "observedAtUtc": "2026-09-03T09:00:00Z",
+  "design": {
+    "id": "D0023",
+    "revision": 1,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@2b99f09280a06ab52a8ea04934afc3ae3d538f4e"
+  },
+  "decision": {
+    "profile": "tdev.mcp.surface.v1",
+    "transport": "https-streamable-http",
+    "path": "/mcp",
+    "stateless": true,
+    "strictCanonicalParsing": true,
+    "duplicateMemberRejection": true,
+    "boundedInputsAndOutputs": true,
+    "stableMutationRequestIdentity": true,
+    "sameRequestReplay": true,
+    "reconcilingPreserved": true,
+    "mcpOwnedScheduler": false,
+    "mcpOwnedQueue": false,
+    "mcpOwnedProcessOrClaim": false,
+    "mcpOwnedCanonicalWriter": false,
+    "mcpOwnedGitWriter": false,
+    "tools": [
+      "case_create",
+      "case_get",
+      "case_events_get",
+      "case_run_or_resume",
+      "task_cancel",
+      "attempt_reconcile",
+      "claim_conflicts_get",
+      "promotion_get",
+      "development_context_get",
+      "development_unit_start",
+      "development_unit_get"
+    ],
+    "developmentUnitRequiresOwnerContextReference": true,
+    "callerMaySelectShellPathOrCredential": false
+  },
+  "preservedOwners": {
+    "caseTaskAttemptResultPromotion": "D0019",
+    "agentDeliveryAndLocalProcess": "D0020/D0027",
+    "caseDrive": "D0042",
+    "typedOperations": "D0043",
+    "authenticationAndTenant": "D0024",
+    "gitPublication": "D0025"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - versioned stateless surface, owner mappings, bounded schemas and response-loss semantics fixed",
+    "source": "not executed by this acceptance record",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "termux": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

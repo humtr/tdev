@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0024_r1_chatgpt_access_managed_oauth_acceptance",
+  "observedAtUtc": "2026-09-03T09:00:00Z",
+  "design": {
+    "id": "D0024",
+    "revision": 1,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@2b99f09280a06ab52a8ea04934afc3ae3d538f4e"
+  },
+  "decision": {
+    "profile": "tdev.mcp.auth.cloudflare-access-managed-oauth.v1",
+    "providerCandidate": "cloudflare_access_managed_oauth",
+    "transportResourceExact": true,
+    "issuerAndAudienceExact": true,
+    "oauthVersion": "2.1",
+    "authorizationCodeFlow": true,
+    "pkceMethod": "S256",
+    "registrationModeMustBeSelectedAndProven": true,
+    "tokenAssertionHeader": "Cf-Access-Jwt-Assertion",
+    "tenantIsolationRequired": true,
+    "localAgentCredentialSeparate": true,
+    "refreshReevaluatesPolicy": true,
+    "jwksRotationFailClosed": true,
+    "customBrokerFallbackOnlyAfterFalsifier": true,
+    "serviceTokenIsHeadlessOnly": true
+  },
+  "preservedOwners": {
+    "mcpSurface": "D0023",
+    "caseTaskAttemptResultPromotion": "D0019",
+    "agentDeliveryAndLocalProcess": "D0020/D0027",
+    "typedOperations": "D0043",
+    "gitPublication": "D0025"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - authentication, resource binding, tenant isolation and credential separation contract fixed",
+    "source": "not executed by this acceptance record",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "termux": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

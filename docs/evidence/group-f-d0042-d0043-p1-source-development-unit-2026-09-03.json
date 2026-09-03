@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0042_d0043_p1_source_development_unit_vertical",
+  "observedAtUtc": "2026-09-03T17:10:25Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "2b99f09280a06ab52a8ea04934afc3ae3d538f4e",
+    "trackedWorktreeAfterVerification": "clean",
+    "unrelatedUntrackedPreserved": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "checkpoint": {
+    "name": "P1 tdev-native trial admission source composition",
+    "profile": "tdev.development-unit.v1",
+    "ownerChain": [
+      "D0042 CaseAgentDriveAuthority",
+      "D0043 typed operation profiles",
+      "D0019 Case/Task/Attempt/Promotion"
+    ],
+    "taskOrder": [
+      "context",
+      "model",
+      "validate",
+      "promote"
+    ],
+    "positivePath": {
+      "context": "exact repositoryCommitOid/baseDigest/objectFormat observation accepted",
+      "model": "authenticated Agent dispatch returned a result-only changeset",
+      "validate": "named validation profile returned passed=true",
+      "promote": "internal Promotion accepted the deterministic candidate tree",
+      "terminal": "Case succeeded and subsequent drive quiesced"
+    },
+    "negativePath": {
+      "validationPassedFalse": "required validation failed",
+      "canonicalTree": "remained at the base tree",
+      "promotion": "blocked by the terminal validation dependency",
+      "drive": "returned reconciling without a success receipt"
+    },
+    "capabilityAdmission": "sha256 release/profile capability IDs are required through Case grant, Workspace policy, and Agent executor intersection",
+    "canonicalMutation": "only the internal Promotion Task changed the Case canonical candidate; ordinary operations returned isolated results"
+  },
+  "verification": {
+    "focusedTest": {
+      "command": "node --test test/development-unit.test.mjs",
+      "total": 2,
+      "passed": 2,
+      "failed": 0
+    },
+    "fullSourceGate": {
+      "command": "npm test",
+      "total": 628,
+      "passed": 628,
+      "failed": 0
+    },
+    "documentation": {
+      "command": "npm run docs:check",
+      "passed": true,
+      "observed": "documentation-authority ok: F development frontier=3 selected=D0042@r1 groups=8 gates=20"
+    },
+    "syntax": {
+      "command": "npm run syntax",
+      "passed": true
+    },
+    "demos": {
+      "demo": {
+        "command": "npm run demo --silent",
+        "passed": true,
+        "caseState": "succeeded",
+        "maxConcurrent": 2
+      },
+      "durableDemo": {
+        "command": "npm run durable-demo --silent",
+        "passed": true,
+        "caseState": "succeeded",
+        "persistedRevision": 7
+      }
+    }
+  },
+  "proofBoundaries": {
+    "sourceComposition": "PASS - source-local P1 Case/Agent/typed-operation/validation/Promotion path",
+    "localTermuxAgentPackage": "not claimed - release package binding and physical process/cleanup proof remain",
+    "providerRuntime": "not claimed",
+    "supportedMcpClient": "not claimed",
+    "cloudflareAccessOAuth": "not claimed",
+    "gitPublication": "not claimed",
+    "tmcpComparison": "not claimed - D0045 is later and additive"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "credentialMutation": false,
+    "canonicalGitPublication": false,
+    "tmcpMutation": false
+  },
+  "openDebts": [
+    "bind development-operation-profiles.json into the installable Agent release identity",
+    "compose a real local D0027 Agent/process executor and physical cleanup evidence",
+    "accept and implement the strict D0023 MCP surface",
+    "accept and qualify D0024 ChatGPT-compatible authentication/discovery",
+    "deploy and test a public HTTPS Streamable HTTP /mcp endpoint before user connection instructions"
+  ]
+}
