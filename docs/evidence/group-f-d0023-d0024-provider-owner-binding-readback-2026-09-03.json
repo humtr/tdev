@@ -1,0 +1,88 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_d0024_provider_owner_binding_readback_blocked",
+  "observedAtUtc": "2026-09-03T10:03:57Z",
+  "sourceCommit": "4235e5962cc5d70860809a204524f8c052396c1b",
+  "provider": {
+    "accountTokenStatus": "active",
+    "workersDevAccountSubdomain": "humtr",
+    "tdevWorker": {
+      "scriptName": "tdev",
+      "workersDevEnabled": true,
+      "previewsEnabled": false,
+      "bindings": [
+        { "name": "EXPERIMENT_BUNDLE_SHA256", "type": "plain_text", "valueExcluded": true },
+        { "name": "EXPERIMENT_SOURCE_SHA", "type": "plain_text", "valueExcluded": true },
+        { "name": "MCP_RESOURCE", "type": "plain_text", "valueExcluded": true }
+      ],
+      "durableObjectBindings": [],
+      "exports": []
+    },
+    "availableOwnerLikeWorkers": [
+      {
+        "scriptName": "tdev-d0020-composition-case-r1",
+        "role": "qualification_case_owner",
+        "environment": "qualification",
+        "caseDurableObjectBinding": true,
+        "agentDeliveryBinding": false,
+        "workersDevEnabled": false
+      },
+      {
+        "scriptName": "tdev-d0020-qualification-clean-a",
+        "role": "qualification_agent_delivery_owner",
+        "environment": "qualification",
+        "caseDurableObjectBinding": false,
+        "agentDeliveryBinding": true,
+        "workersDevEnabled": true
+      }
+    ],
+    "qualificationNamespacesPresent": true,
+    "productionTdevCaseDriveAgentCompositionPresent": false
+  },
+  "publicReadback": {
+    "origin": "https://tdev.humtr.workers.dev",
+    "mcpStatus": 401,
+    "mcpResourceMetadataStatus": 200,
+    "resource": "https://tdev.humtr.workers.dev/mcp",
+    "authorizationServers": ["https://humtr.cloudflareaccess.com"],
+    "standardProtectedResourceMetadataStatus": 404,
+    "authorizationServerMetadataStatus": 404,
+    "accessAuthorizationMetadata": {
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "authorizationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/authorization",
+      "tokenEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/token",
+      "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration",
+      "jwksUri": "https://humtr.cloudflareaccess.com/cdn-cgi/access/certs",
+      "pkce": ["S256"]
+    }
+  },
+  "accessApplications": [
+    {
+      "id": "12911bc3-4b69-4a45-a9b3-26a654bf96f8",
+      "name": "tdev ChatGPT MCP OAuth experiment",
+      "domain": "tdev.humtr.workers.dev/mcp",
+      "type": "self_hosted",
+      "sessionDuration": "24h"
+    },
+    {
+      "id": "5cf54f52-c9b0-4f22-94da-05ac1965887b",
+      "name": "tdev ChatGPT MCP legacy fresh 20260824",
+      "domain": "tdev-legacy-fresh-20260824.humtr.workers.dev/mcp",
+      "type": "self_hosted",
+      "sessionDuration": "24h"
+    }
+  ],
+  "result": {
+    "providerOwnerBinding": "BLOCKED - no deployed Worker currently binds D0023 to D0019 Case, D0042 drive and D0043 Agent operation owners",
+    "existingTdevEndpoint": "not a completion endpoint; it is a prequalification OAuth experiment",
+    "nextGate": "create a separately authorized provider composition with exact owner bindings, then perform immutable deployment/readback before offering the URL to a client"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "credentialMutation": false,
+    "ownerDataMutation": false,
+    "logsOrSecretsRead": false
+  }
+}
