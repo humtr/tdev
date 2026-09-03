@@ -1,5 +1,6 @@
 export {
   ContractError,
+  assertCapabilityIdentifier,
   DEFAULT_JSON_LIMITS,
   canonicalClone,
   canonicalJson,
@@ -186,6 +187,16 @@ export {
   computeCaseAgentDriveRequestDigest,
   caseAgentDriveRecordDigest,
 } from './case-agent-drive.mjs';
+export {
+  DEVELOPMENT_UNIT_PROFILE,
+  DEVELOPMENT_UNIT_CONTEXT_TASK_ID,
+  DEVELOPMENT_UNIT_MODEL_TASK_ID,
+  DEVELOPMENT_UNIT_VALIDATION_TASK_ID,
+  DEVELOPMENT_UNIT_PROMOTION_TASK_ID,
+  DevelopmentUnitRunner,
+  defineDevelopmentUnitPlan,
+  createDevelopmentUnitOperationExecutor,
+} from './development-unit.mjs';
 export {
   GIT_PROJECTION_CANDIDATE_DOMAIN,
   GIT_PROJECTION_PROFILE,

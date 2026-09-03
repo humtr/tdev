@@ -210,13 +210,13 @@ export async function executeDevelopmentOperation({
     : selected.kind === 'model_repository' ? modelExecutor
       : validationExecutor;
   if (typeof callback !== 'function') fail('development_operation_executor_unconfigured', `No executor is configured for ${selected.kind}`);
-  const result = await callback(deepFreeze({
+  const executionContext = deepFreeze({
     profile: normalizedRequest.profile,
     kind: selected.kind,
     input: normalizedRequest.input,
     limits: selected.limits,
-    signal,
-  }));
+  });
+  const result = await callback({ ...executionContext, signal });
   assertSignal(signal);
   return deepFreeze({
     profile: normalizedRequest.profile,

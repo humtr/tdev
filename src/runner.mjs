@@ -1,6 +1,7 @@
 import {
   ContractError,
   assertIdentifier,
+  assertCapabilityIdentifier,
   assertRecordShape,
   canonicalClone,
   clone,
@@ -24,7 +25,7 @@ function normalizeCapabilities(input) {
   if (!Array.isArray(input)) {
     throw new ContractError('invalid_executor_capabilities', 'Executor capabilities must be an array');
   }
-  const capabilities = input.map((value, index) => assertIdentifier(value, `executorCapabilities[${index}]`)).sort(compareText);
+  const capabilities = input.map((value, index) => assertCapabilityIdentifier(value, `executorCapabilities[${index}]`)).sort(compareText);
   for (let index = 1; index < capabilities.length; index += 1) {
     if (capabilities[index] === capabilities[index - 1]) {
       throw new ContractError('duplicate_executor_capability', `Duplicate executor capability: ${capabilities[index]}`);

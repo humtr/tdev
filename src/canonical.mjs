@@ -571,6 +571,11 @@ export function assertIdentifier(value, label = 'identifier') {
   return value;
 }
 
+export function assertCapabilityIdentifier(value, label = 'capability') {
+  if (typeof value === "string" && /^sha256:[0-9a-f]{64}$/.test(value)) return value;
+  return assertIdentifier(value, label);
+}
+
 export function assertSafeInteger(value, label, { min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER } = {}) {
   if (!Number.isSafeInteger(value) || value < min || value > max) {
     throw new ContractError('invalid_integer', `${label} must be a safe integer between ${min} and ${max}`);

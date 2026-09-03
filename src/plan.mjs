@@ -1,6 +1,7 @@
 import {
   ContractError,
   assertIdentifier,
+  assertCapabilityIdentifier,
   assertRecordShape,
   canonicalClone,
   canonicalJson,
@@ -19,13 +20,13 @@ import { validateTree } from './promotion.mjs';
 const EFFECT_CLASSES = new Set(['result-only', 'idempotent-external', 'reconcilable-external']);
 const RESULT_KINDS = new Set(WORK_RESULT_KINDS);
 
-function normalizeStringArray(values, label, { max, identifier = true } = {}) {
+function normalizeStringArray(values, label, { max, identifier = true, capability = false } = {}) {
   if (!Array.isArray(values)) throw new ContractError('invalid_array', `${label} must be an array`);
   if (max !== undefined && values.length > max) {
     throw new ContractError('array_limit_exceeded', `${label} exceeds ${max} entries`);
   }
   const normalized = values.map((value) => {
-    if (identifier) assertIdentifier(value, label);
+    if (identifier) (capability ? assertCapabilityIdentifier : assertIdentifier)(value, label);
     else if (typeof value !== 'string' || value.length === 0) throw new ContractError('invalid_string', `${label} must contain non-empty strings`);
     return value;
   });
@@ -171,6 +172,7 @@ export function definePlan(input, options = {}) {
     const execution = normalizeExecution(rawTask.execution, kind, caseContract.limits);
     const requiredCapabilities = normalizeStringArray(rawTask.requiredCapabilities ?? [], `requiredCapabilities:${rawTask.id}`, {
       max: 1_000,
+      capability: true,
     });
 
     if (kind === 'work') {

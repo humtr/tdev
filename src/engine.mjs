@@ -2,6 +2,7 @@ import {
   ContractError,
   assertDigest,
   assertIdentifier,
+  assertCapabilityIdentifier,
   assertRecordShape,
   assertSafeInteger,
   assertScalarString,
@@ -88,7 +89,7 @@ function normalizeExecutorIdentity(input) {
   if (capabilities.length > 1_000) {
     throw new ContractError('authority_limit_exceeded', 'executor.capabilities exceeds 1000 entries');
   }
-  const normalizedCapabilities = capabilities.map((capability) => assertIdentifier(capability, 'executor capability')).sort(compareText);
+  const normalizedCapabilities = capabilities.map((capability) => assertCapabilityIdentifier(capability, 'executor capability')).sort(compareText);
   for (let index = 1; index < normalizedCapabilities.length; index += 1) {
     if (normalizedCapabilities[index] === normalizedCapabilities[index - 1]) {
       throw new ContractError('duplicate_executor_capability', `Duplicate executor capability: ${normalizedCapabilities[index]}`);
@@ -97,9 +98,9 @@ function normalizeExecutorIdentity(input) {
   return deepFreeze({ id: identity.id, epoch, capabilities: normalizedCapabilities });
 }
 
-function assertIdentifierArray(values, label, { sorted = false, unique = true } = {}) {
+function assertIdentifierArray(values, label, { sorted = false, unique = true, capability = false } = {}) {
   if (!Array.isArray(values)) throw new ContractError('invalid_array', `${label} must be an array`);
-  const normalized = values.map((value, index) => assertIdentifier(value, `${label}[${index}]`));
+  const normalized = values.map((value, index) => (capability ? assertCapabilityIdentifier : assertIdentifier)(value, `${label}[${index}]`));
   if (unique && new Set(normalized).size !== normalized.length) {
     throw new ContractError('duplicate_array_item', `${label} contains duplicate identifiers`);
   }
@@ -636,7 +637,7 @@ function assertAttemptInvariant(engine, attemptId) {
   assertSafeInteger(attempt.ordinal, `Attempt ${attemptId}.ordinal`, { min: 1 });
   assertIdentifier(attempt.executorId, `Attempt ${attemptId}.executorId`);
   assertSafeInteger(attempt.executorEpoch, `Attempt ${attemptId}.executorEpoch`, { min: 1 });
-  assertIdentifierArray(attempt.executorCapabilities, `Attempt ${attemptId}.executorCapabilities`, { sorted: true });
+  assertIdentifierArray(attempt.executorCapabilities, `Attempt ${attemptId}.executorCapabilities`, { sorted: true, capability: true });
   if (attempt.executorCapabilities.length > 1_000) {
     throw new ContractError('authority_limit_exceeded', `Attempt ${attemptId} has too many executor capabilities`);
   }
@@ -1512,7 +1513,7 @@ export class CaseEngine {
     if (!Array.isArray(missingCapabilities)) {
       throw new ContractError('invalid_authority', 'missingCapabilities must be an array');
     }
-    missingCapabilities.forEach((capability, index) => assertIdentifier(capability, `missingCapabilities[${index}]`));
+    missingCapabilities.forEach((capability, index) => assertCapabilityIdentifier(capability, `missingCapabilities[${index}]`));
     const missing = [...new Set(missingCapabilities ?? [])].sort(compareText);
     const authorityError = normalizeError({
       code: 'authority_denied',
@@ -2466,7 +2467,7 @@ export class CaseEngine {
       assertSafeInteger(attempt.ordinal, `Attempt ${attemptId}.ordinal`, { min: 1 });
       assertIdentifier(attempt.executorId, `Attempt ${attemptId}.executorId`);
       assertSafeInteger(attempt.executorEpoch, `Attempt ${attemptId}.executorEpoch`, { min: 1 });
-      assertIdentifierArray(attempt.executorCapabilities, `Attempt ${attemptId}.executorCapabilities`, { sorted: true });
+      assertIdentifierArray(attempt.executorCapabilities, `Attempt ${attemptId}.executorCapabilities`, { sorted: true, capability: true });
       if (attempt.executorCapabilities.length > 1_000) {
         throw new ContractError('authority_limit_exceeded', `Attempt ${attemptId} has too many executor capabilities`);
       }

@@ -2,6 +2,7 @@ import path from 'node:path';
 import {
   ContractError,
   assertIdentifier,
+  assertCapabilityIdentifier,
   assertRecordShape,
   assertSafeInteger,
   assertScalarString,
@@ -38,14 +39,14 @@ export const DEFAULT_PATH_POLICY = deepFreeze({
   deniedPrefixes: ['.git', '.tdev'],
 });
 
-function normalizeStringSet(values, label, { allowWildcard = true, max = 1_000 } = {}) {
+function normalizeStringSet(values, label, { allowWildcard = true, max = 1_000, capability = false } = {}) {
   if (values === undefined) return [];
   if (!Array.isArray(values)) throw new ContractError('invalid_authority', `${label} must be an array`);
   if (values.length > max) throw new ContractError('authority_limit_exceeded', `${label} exceeds ${max} entries`);
   const normalized = values.map((value) => {
     assertScalarString(value, label);
     if (allowWildcard && value === '*') return value;
-    assertIdentifier(value, label);
+    (capability ? assertCapabilityIdentifier : assertIdentifier)(value, label);
     return value;
   }).sort(compareText);
   for (let index = 1; index < normalized.length; index += 1) {
@@ -154,8 +155,8 @@ export function normalizeCaseContract(input = {}) {
   assertRecordShape(input, [], ['caseGrant', 'workspacePolicy', 'pathPolicy', 'limits'], 'caseContract');
   const limits = normalizeLimits(input.limits ?? {});
   const contract = {
-    caseGrant: normalizeStringSet(input.caseGrant ?? [], 'caseGrant'),
-    workspacePolicy: normalizeStringSet(input.workspacePolicy ?? [], 'workspacePolicy'),
+    caseGrant: normalizeStringSet(input.caseGrant ?? [], 'caseGrant', { capability: true }),
+    workspacePolicy: normalizeStringSet(input.workspacePolicy ?? [], 'workspacePolicy', { capability: true }),
     pathPolicy: normalizePathPolicy(input.pathPolicy ?? {}, limits),
     limits,
   };
@@ -168,8 +169,8 @@ function allows(set, capability) {
 }
 
 export function authorityDecision(requiredCapabilities, caseContract, executorCapabilities = []) {
-  const required = normalizeStringSet(requiredCapabilities ?? [], 'requiredCapabilities', { allowWildcard: false });
-  const executor = normalizeStringSet(executorCapabilities ?? [], 'executorCapabilities');
+  const required = normalizeStringSet(requiredCapabilities ?? [], 'requiredCapabilities', { allowWildcard: false, capability: true });
+  const executor = normalizeStringSet(executorCapabilities ?? [], 'executorCapabilities', { capability: true });
   const missing = required.filter((capability) =>
     !allows(caseContract.caseGrant, capability) ||
     !allows(caseContract.workspacePolicy, capability) ||
