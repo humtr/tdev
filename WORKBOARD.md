@@ -16,21 +16,21 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
-- D0023@r1 — `docs/design/0023-versioned-stateless-tdev-mcp-surface.md` — implement the strict stateless HTTPS `/mcp` projection/command adapter over D0019/D0042/D0043 owners; provider and current-client proof remain separate.
-- D0024@r1 — `docs/design/0024-chatgpt-cloudflare-access-managed-oauth.md` — implement the fail-closed OAuth/resource/tenant adapter and Cloudflare Access Managed OAuth harness; no public endpoint is claimed until provider/client evidence.
+- D0023@r1 — `docs/design/0023-versioned-stateless-tdev-mcp-surface.md` — source adapter is implemented and source-qualified; bind it to D0019/D0042/D0043 provider owners, with provider and current-client proof separate.
+- D0024@r1 — `docs/design/0024-chatgpt-cloudflare-access-managed-oauth.md` — source auth/resource/tenant adapter and Cloudflare Access Managed OAuth harness are implemented and source-qualified; no public endpoint is claimed until provider/client evidence.
 - D0039@r12 — `docs/design/0039-d0027-deployment-realization.md` — consume the source/provider-qualified D0044 higher-generation successor-election/cutover primitive through separately isolated Q7/Q8/Q9 scenarios; canonical R12 remains untouched.
 - D0042@r1 — `docs/design/0042-case-agent-drive-and-redrive.md` — source implementation is present; continue release/runtime qualification of the durable level-triggered Case-to-Agent drive/re-drive owner without duplicating Case readiness or Agent delivery authority.
 - D0043@r1 — `docs/design/0043-bounded-development-operation-profiles.md` — source implementation is present; bind the typed repository/model/validation catalog to the installable Agent release before physical local execution.
 
 ## Selected next action
 
-- D0023@r1 — implement the strict stateless HTTPS `/mcp` projection/command adapter first. D0024@r1 runs in parallel at the source/harness boundary for the selected Cloudflare Access Managed OAuth flow; neither acceptance claims provider deployment or current ChatGPT support.
+- D0023@r1 — bind the source-qualified stateless `/mcp` adapter to the accepted provider owner composition and prepare a read-only deployment/readback gate. D0024@r1 remains composed for the Cloudflare Access Managed OAuth boundary; neither acceptance claims provider deployment or current ChatGPT support.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
 ## Live carry-forward constraints
 
-- P1 source checkpoint is bound to `development@0a2c452ab74b433c2ab8ff0b265f2865ec192dab`: D0042/D0043 implementation and the development-unit vertical path are source-tested; D0043 release/package binding is source-qualified, while physical local Agent execution, D0023/D0024 source adapters, provider deployment and current-client proof remain open.
+- P1 source checkpoint is bound to `development@0a2c452ab74b433c2ab8ff0b265f2865ec192dab`: D0042/D0043 implementation, the development-unit vertical path, D0023 stateless MCP surface, and D0024 Access auth/JWKS adapter are source-tested; D0043 release/package binding is source-qualified, while physical local Agent execution, provider owner bindings/deployment, public HTTPS readback, and current-client proof remain open.
 - D0023@r1 and D0024@r1 are accepted on the same P1 base with acceptance records `docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json` and `docs/evidence/group-f-d0024-r1-chatgpt-access-managed-oauth-acceptance-2026-09-03.json`; acceptance is design authorization only and has no external/provider/credential mutation.
 - D0043@r1 source/package release binding is qualified at `development@0a2c452ab74b433c2ab8ff0b265f2865ec192dab`: archive `tdev-installable-agent-android-arm64-0a2c452ab74b433c2ab8ff0b265f2865ec192dab.tgz` and operation capability digests are recorded in `docs/evidence/group-f-d0043-r1-release-bound-development-operation-profiles-source-package-2026-09-03.json`; physical Termux process execution remains open.
 - Group E is completed; its semantic/history record remains retained in current Design/evidence/history owners, while the former `group/e-context-delivery` provider ref was retired under verified D0036 after its content, consumer and reachability barrier closed. D0017 production source remains verified on its declared supported-Termux source scope; D0018 production source/runtime remains verified on its declared supported-Termux trusted-local scope.

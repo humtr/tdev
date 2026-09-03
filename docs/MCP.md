@@ -80,3 +80,7 @@ MCP completion requires all of:
 - explicit migration and rollback plan.
 
 Until then, MCP remains a documented but **final-MVP-open** boundary. Source completion must not be confused with MCP/product completion.
+
+### Source composition boundary
+
+The source realization uses `src/mcp-surface.mjs` for the versioned Streamable HTTP/JSON-RPC adapter, `src/mcp-auth.mjs` for the resource/issuer/tenant contract, `src/mcp-auth-jwt.mjs` for issuer-bound Cloudflare Access RS256/JWKS verification, and `src/mcp-development-adapter.mjs` for owner-issued context composition into D0042/D0043. These modules are adapters over the named owners, not new scheduler, queue, process, claim, canonical-tree, Git, credential or provider authorities. Source, provider, current-client, and physical-Termux qualification remain separate evidence layers; the presence of a source adapter does not itself claim a public endpoint or web ChatGPT success.

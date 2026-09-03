@@ -1,4 +1,38 @@
 export {
+  MCP_AUTH_PROFILE,
+  MCP_AUTH_SCHEMA_VERSION,
+  MCP_AUTH_MANIFEST_DOMAIN,
+  MCP_AUTH_ASSERTION_HEADER,
+  MCP_AUTH_RESOURCE_METADATA_PATHS,
+  MCP_AUTH_SERVER_METADATA_PATH,
+  normalizeMcpAuthManifest,
+  createMcpAuthManifest,
+  validateMcpProtectedResourceMetadata,
+  validateMcpAuthorizationServerMetadata,
+  mcpAuthProtectedResourceMetadata,
+  McpAccessAuthenticator,
+  createMcpAccessAuthenticator,
+} from './mcp-auth.mjs';
+export { createCloudflareAccessAssertionVerifier, MCP_ACCESS_JWT_PROFILE, MCP_ACCESS_JWT_MAX_BYTES, MCP_ACCESS_JWKS_MAX_BYTES } from './mcp-auth-jwt.mjs';
+export { createDevelopmentUnitStartAdapter } from './mcp-development-adapter.mjs';
+export {
+  MCP_SURFACE_PROFILE,
+  MCP_SURFACE_SCHEMA_VERSION,
+  MCP_SURFACE_MANIFEST_DOMAIN,
+  MCP_SURFACE_PATH,
+  MCP_SURFACE_PROTOCOL_VERSION,
+  MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS,
+  MCP_SURFACE_MAX_REQUEST_BYTES,
+  MCP_SURFACE_MAX_RESPONSE_BYTES,
+  MCP_SURFACE_MAX_EVENTS_PAGE,
+  MCP_SURFACE_TOOL_DEFINITIONS,
+  normalizeMcpSurfaceManifest,
+  createMcpSurfaceManifest,
+  TdevMcpSurface,
+  createTdevMcpSurface,
+  createTdevMcpWorker,
+} from './mcp-surface.mjs';
+export {
   ContractError,
   assertCapabilityIdentifier,
   DEFAULT_JSON_LIMITS,

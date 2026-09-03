@@ -370,6 +370,25 @@ export class ClaimLedger {
       .map(publicLease);
   }
 
+  conflictsForClaims(claims) {
+    const normalizedClaims = normalizeClaims(claims, { maxClaims: this.maxClaimsPerLease });
+    const conflicts = [...this.claimIndex.conflicts(normalizedClaims)]
+      .map((token) => this.leasesByToken[token])
+      .filter(Boolean)
+      .map((lease) => ({
+        token: lease.token,
+        generation: lease.generation,
+        caseId: lease.caseId,
+        taskId: lease.taskId,
+        attemptId: lease.attemptId,
+      }))
+      .sort((left, right) =>
+        compareText(left.caseId, right.caseId) ||
+        compareText(left.taskId, right.taskId) ||
+        compareText(left.attemptId, right.attemptId));
+    return deepFreeze({ revision: this.revision, conflicts });
+  }
+
   waitForChange(observedRevision, options = {}) {
     assertRecordShape(options, [], ['signal'], 'ClaimLedger wait options');
     assertSafeInteger(observedRevision, 'observed claim ledger revision', { min: 0 });
