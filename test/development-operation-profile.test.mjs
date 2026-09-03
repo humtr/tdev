@@ -11,7 +11,7 @@ import {
 import { ContractError, digest } from '../src/canonical.mjs';
 
 const manifest = {
-  schemaVersion: 1,
+  schemaVersion: 2,
   profile: DEVELOPMENT_OPERATION_PROFILE,
   profiles: {
     'context.v1': {
@@ -26,23 +26,28 @@ const manifest = {
     },
     'model.v1': {
       kind: 'model_repository',
-      executable: { kind: 'configured_runtime', name: 'release-bound-model-runtime' },
-      argv: [],
+      executable: { kind: 'configured_runtime', name: 'codex' },
+      argv: ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'],
       environment: {},
       filesystem: 'immutable_repository',
-      network: 'none',
+      network: 'openai-codex-trusted-local',
       limits: { timeoutMs: 1000, maxInputBytes: 16_384, maxOutputBytes: 65_536, maxFileBytes: 1_048_576, maxWorkspaceBytes: 2_097_152, cancelGraceMs: 0 },
       cleanupDomain: 'warden_process_group',
+      credentialMode: 'codex_saved_cli_auth',
+      disclosureProfile: 'tdev.openai-codex-full-context.trusted-local.v1',
+      binding: { profile: 'tdev.model.codex-exec.v1', outputSchemaPath: 'config/codex-changeset-output.schema.json' },
     },
     'validate.v1': {
       kind: 'repository_validation',
-      executable: { kind: 'configured_runtime', name: 'release-bound-validation-runtime' },
-      argv: [],
+      executable: { kind: 'configured_runtime', name: 'npm' },
+      argv: ['run', 'check'],
       environment: {},
       filesystem: 'candidate_workspace',
       network: 'none',
       limits: { timeoutMs: 1000, maxInputBytes: 16_384, maxOutputBytes: 65_536, maxFileBytes: 1_048_576, maxWorkspaceBytes: 2_097_152, cancelGraceMs: 0 },
       cleanupDomain: 'warden_process_group',
+      credentialMode: 'none',
+      binding: { profile: 'tdev.validation.npm-check.v1', validationCommand: 'npm run check' },
     },
   },
 };

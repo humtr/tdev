@@ -1,23 +1,30 @@
 {
-  "schemaVersion": 1,
-  "profile": "tdev.development-operation-profiles.v1",
+  "schemaVersion": 2,
+  "profile": "tdev.development-operation-profiles.v2",
   "profiles": {
     "tdev.model.repository.execute.v1": {
       "kind": "model_repository",
-      "executable": { "kind": "configured_runtime", "name": "release-bound-model-runtime" },
-      "argv": [],
+      "executable": { "kind": "configured_runtime", "name": "codex" },
+      "argv": ["exec", "--ephemeral", "--json", "--sandbox", "read-only", "--ignore-user-config"],
       "environment": {},
       "filesystem": "immutable_repository",
-      "network": "none",
+      "network": "openai-codex-trusted-local",
       "limits": {
-        "timeoutMs": 30000,
+        "timeoutMs": 300000,
         "maxInputBytes": 262144,
         "maxOutputBytes": 4194304,
         "maxFileBytes": 16777216,
         "maxWorkspaceBytes": 67108864,
-        "cancelGraceMs": 1000
+        "cancelGraceMs": 2000
       },
-      "cleanupDomain": "warden_process_group"
+      "cleanupDomain": "warden_process_group",
+      "credentialMode": "codex_saved_cli_auth",
+      "disclosureProfile": "tdev.openai-codex-full-context.trusted-local.v1",
+      "binding": {
+        "profile": "tdev.model.codex-exec.v1",
+        "outputSchemaPath": "config/codex-changeset-output.schema.json",
+        "outputSchemaSha256": "sha256:a3362d7f8f3b531d60adf3e67a7b6ea17c682771780863a0416ddfab4140dd84"
+      }
     },
     "tdev.repository.context.prepare.v1": {
       "kind": "repository_context",
@@ -27,31 +34,38 @@
       "filesystem": "immutable_repository",
       "network": "none",
       "limits": {
-        "timeoutMs": 30000,
+        "timeoutMs": 300000,
         "maxInputBytes": 262144,
         "maxOutputBytes": 4194304,
         "maxFileBytes": 16777216,
         "maxWorkspaceBytes": 67108864,
-        "cancelGraceMs": 1000
+        "cancelGraceMs": 2000
       },
-      "cleanupDomain": "warden_process_group"
+      "cleanupDomain": "warden_process_group",
+      "credentialMode": "none",
+      "binding": { "profile": "tdev.repository.context.prepare.v1" }
     },
     "tdev.repository.validate.v1": {
       "kind": "repository_validation",
-      "executable": { "kind": "configured_runtime", "name": "release-bound-validation-runtime" },
-      "argv": [],
+      "executable": { "kind": "configured_runtime", "name": "npm" },
+      "argv": ["run", "check"],
       "environment": {},
       "filesystem": "candidate_workspace",
       "network": "none",
       "limits": {
-        "timeoutMs": 60000,
+        "timeoutMs": 300000,
         "maxInputBytes": 262144,
         "maxOutputBytes": 4194304,
         "maxFileBytes": 16777216,
         "maxWorkspaceBytes": 67108864,
-        "cancelGraceMs": 1000
+        "cancelGraceMs": 2000
       },
-      "cleanupDomain": "warden_process_group"
+      "cleanupDomain": "warden_process_group",
+      "credentialMode": "none",
+      "binding": {
+        "profile": "tdev.validation.npm-check.v1",
+        "validationCommand": "npm run check"
+      }
     }
   }
 }

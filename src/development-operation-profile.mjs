@@ -14,8 +14,8 @@ import {
   typedDigest,
 } from './canonical.mjs';
 
-export const DEVELOPMENT_OPERATION_PROFILE = 'tdev.development-operation-profiles.v1';
-export const DEVELOPMENT_OPERATION_SCHEMA_VERSION = 1;
+export const DEVELOPMENT_OPERATION_PROFILE = 'tdev.development-operation-profiles.v2';
+export const DEVELOPMENT_OPERATION_SCHEMA_VERSION = 2;
 export const DEVELOPMENT_OPERATION_REQUEST_DOMAIN = 'tdev.development-operation-request.v1';
 export const DEVELOPMENT_OPERATION_CAPABILITY_DOMAIN = 'tdev.development-operation-capability.v1';
 export const DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES = 256 * 1024;
@@ -24,7 +24,9 @@ export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
 const EXECUTABLE_KINDS = new Set(['built_in', 'configured_runtime']);
 const FILESYSTEM_MODES = new Set(['immutable_repository', 'candidate_workspace']);
-const NETWORK_MODES = new Set(['none']);
+const NETWORK_MODES = new Set(['none', 'openai-codex-trusted-local']);
+const CREDENTIAL_MODES = new Set(['none', 'codex_saved_cli_auth']);
+const DISCLOSURE_PROFILES = new Set(['tdev.openai-codex-full-context.trusted-local.v1']);
 
 function fail(code, message, details = undefined) {
   throw new ContractError(code, message, details);
@@ -43,7 +45,7 @@ function normalizeLimits(input, label) {
     'timeoutMs', 'maxInputBytes', 'maxOutputBytes', 'maxFileBytes', 'maxWorkspaceBytes', 'cancelGraceMs',
   ], [], label);
   return deepFreeze({
-    timeoutMs: assertSafeInteger(input.timeoutMs, `${label}.timeoutMs`, { min: 100, max: 60_000 }),
+    timeoutMs: assertSafeInteger(input.timeoutMs, `${label}.timeoutMs`, { min: 100, max: 600_000 }),
     maxInputBytes: assertSafeInteger(input.maxInputBytes, `${label}.maxInputBytes`, { min: 1, max: DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES }),
     maxOutputBytes: assertSafeInteger(input.maxOutputBytes, `${label}.maxOutputBytes`, { min: 1, max: 4 * 1024 * 1024 }),
     maxFileBytes: assertSafeInteger(input.maxFileBytes, `${label}.maxFileBytes`, { min: 1, max: 16 * 1024 * 1024 }),
@@ -61,26 +63,63 @@ function normalizeExecutable(input, label) {
 function normalizeProfile(input, name) {
   assertRecordShape(input, [
     'kind', 'executable', 'argv', 'environment', 'filesystem', 'network', 'limits', 'cleanupDomain',
-  ], [], `operation profile ${name}`);
+  ], ['credentialMode', 'disclosureProfile', 'binding'], `operation profile ${name}`);
   if (!OPERATION_KINDS.has(input.kind)) fail('development_operation_kind_unsupported', `Operation profile ${name} kind is unsupported`);
   const executable = normalizeExecutable(input.executable, `operation profile ${name}.executable`);
   if (!Array.isArray(input.argv) || input.argv.length > 32) fail('development_operation_argv_invalid', `Operation profile ${name}.argv is invalid`);
   const argv = input.argv.map((value, index) => boundedText(value, `operation profile ${name}.argv[${index}]`, 4096));
   if (!isPlainRecord(input.environment) || Object.keys(input.environment).length !== 0) {
-    fail('development_operation_environment_denied', `Operation profile ${name} must have an empty release-bound environment in Revision 1`);
+    fail('development_operation_environment_denied', `Operation profile ${name} must use the explicit empty release-bound environment`);
   }
   if (!FILESYSTEM_MODES.has(input.filesystem)) fail('development_operation_filesystem_unsupported', `Operation profile ${name}.filesystem is unsupported`);
   if (!NETWORK_MODES.has(input.network)) fail('development_operation_network_denied', `Operation profile ${name}.network is unsupported`);
   if (input.cleanupDomain !== 'warden_process_group') fail('development_operation_cleanup_unsupported', `Operation profile ${name}.cleanupDomain is unsupported`);
+  const credentialMode = input.credentialMode ?? 'none';
+  if (!CREDENTIAL_MODES.has(credentialMode)) fail('development_operation_credential_mode_unsupported', `Operation profile ${name}.credentialMode is unsupported`);
+  const disclosureProfile = input.disclosureProfile ?? null;
+  if (disclosureProfile !== null && !DISCLOSURE_PROFILES.has(disclosureProfile)) {
+    fail('development_operation_disclosure_unsupported', `Operation profile ${name}.disclosureProfile is unsupported`);
+  }
+  if (input.kind === 'model_repository') {
+    if (input.network !== 'openai-codex-trusted-local' || credentialMode !== 'codex_saved_cli_auth' || disclosureProfile !== 'tdev.openai-codex-full-context.trusted-local.v1') {
+      fail('development_operation_model_binding_invalid', `Operation profile ${name} must use the trusted-local Codex binding`);
+    }
+    if (argv.length !== 6 || canonicalJson(argv) !== canonicalJson(['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'])) {
+      fail('development_operation_model_arguments_invalid', `Operation profile ${name} must use the fixed Codex exec argument template`);
+    }
+  } else if (input.network !== 'none' || credentialMode !== 'none' || disclosureProfile !== null) {
+    fail('development_operation_non_model_binding_invalid', `Operation profile ${name} cannot admit model network or credentials`);
+  }
+  let binding = null;
+  if (input.binding !== undefined && input.binding !== null) {
+    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand'], `operation profile ${name}.binding`);
+    assertIdentifier(input.binding.profile, `operation profile ${name}.binding.profile`);
+    for (const field of ['outputSchemaPath', 'model', 'reasoningEffort', 'validationCommand']) {
+      if (input.binding[field] !== undefined && input.binding[field] !== null) boundedText(input.binding[field], `operation profile ${name}.binding.${field}`, 4096);
+    }
+    if (input.binding.outputSchemaSha256 !== undefined && input.binding.outputSchemaSha256 !== null) {
+      assertDigest(input.binding.outputSchemaSha256, `operation profile ${name}.binding.outputSchemaSha256`);
+    }
+    binding = canonicalClone(input.binding);
+  }
+  if (input.kind === 'model_repository' && (binding === null || binding.profile !== 'tdev.model.codex-exec.v1' || typeof binding.outputSchemaPath !== 'string')) {
+    fail('development_operation_model_binding_invalid', `Operation profile ${name} must bind the release-owned Codex output schema`);
+  }
+  if (input.kind === 'repository_validation' && (argv.length !== 2 || canonicalJson(argv) !== canonicalJson(['run', 'check']) || binding === null || binding.profile !== 'tdev.validation.npm-check.v1' || binding.validationCommand !== 'npm run check')) {
+    fail('development_operation_validation_binding_invalid', `Operation profile ${name} must bind the fixed npm check validator`);
+  }
   return deepFreeze({
     kind: input.kind,
     executable,
     argv: Object.freeze(argv),
-    environment: Object.freeze({}),
+    environment: Object.freeze(canonicalClone(input.environment)),
     filesystem: input.filesystem,
     network: input.network,
     limits: normalizeLimits(input.limits, `operation profile ${name}.limits`),
     cleanupDomain: input.cleanupDomain,
+    credentialMode,
+    disclosureProfile,
+    binding,
   });
 }
 

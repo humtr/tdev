@@ -156,7 +156,7 @@ export function createMcpSurfaceManifest({ buildDigest = digest({ source: 'unbou
   protocolVersions = MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS, ownerProfiles = {
     case: 'tdev.case.repository.v1',
     drive: 'tdev.case-agent-drive.v1',
-    operation: 'tdev.development-operation-profiles.v1',
+    operation: 'tdev.development-operation-profiles.v2',
     developmentUnit: 'tdev.development-unit.v1',
   }, limits = {
     maxRequestBytes: MCP_SURFACE_MAX_REQUEST_BYTES,

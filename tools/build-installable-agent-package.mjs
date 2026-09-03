@@ -10,6 +10,7 @@ import {
   INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
   INSTALLABLE_AGENT_PACKAGE_PROFILE,
   INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
+  INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH,
   INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION,
   INSTALLABLE_AGENT_MANAGEMENT_JOURNAL_SCHEMA_VERSION,
   INSTALLABLE_AGENT_MANAGEMENT_PROTOCOL_PROFILE,
@@ -40,7 +41,19 @@ const SOURCE_FILES = [
   ['src/installable-agent-challenge.mjs', 'agent-challenge-client'],
   ['src/agent-delivery-authority.mjs', 'runtime'],
   ['src/cloudflare-agent-delivery-runtime.mjs', 'runtime'],
+  ['src/agent-route-election.mjs', 'runtime'],
+  ['src/agent-route-generation.mjs', 'runtime'],
+  ['src/cloudflare-agent-route-generation-runtime.mjs', 'runtime'],
   ['src/local-agent-runtime.mjs', 'runtime'],
+  ['src/development-operation-profile.mjs', 'development-runtime'],
+  ['src/development-runtime.mjs', 'development-runtime'],
+  ['src/git-projection.mjs', 'development-runtime'],
+  ['src/policy.mjs', 'development-runtime'],
+  ['src/promotion.mjs', 'development-runtime'],
+  ['src/repository-model-transport.mjs', 'development-runtime'],
+  ['src/results.mjs', 'development-runtime'],
+  ['src/selected-context-delivery.mjs', 'development-runtime'],
+  ['src/semantic-authority.mjs', 'development-runtime'],
   ['src/installable-agent-supervisor.mjs', 'runtime'],
   ['src/installable-agent-warden.mjs', 'runtime'],
   ['src/installable-agent-supervisor-service.mjs', 'package-service'],
@@ -50,6 +63,7 @@ const SOURCE_FILES = [
   ['src/installable-agent-control.mjs', 'agent-control'],
   [INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH, 'package-tool-profiles'],
   [INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH, 'package-development-operation-profiles'],
+  [INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH, 'package-development-operation-output-schema'],
   ['native/installable-agent-supervisor/manifest.json', 'native-helper-manifest'],
 ];
 
@@ -185,6 +199,10 @@ async function main() {
       developmentOperationProfiles: {
         relativePath: INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
         sha256: files[INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH].sha256,
+      },
+      developmentOperationOutputSchema: {
+        relativePath: INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH,
+        sha256: files[INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH].sha256,
       },
       helperAbi: {
         profile: nativeManifest.profile,

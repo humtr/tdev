@@ -1,0 +1,22 @@
+{
+  "type": "object",
+  "properties": {
+    "kind": { "const": "changeset" },
+    "baseDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+    "writes": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "content": { "type": ["string", "null"] }
+        },
+        "required": ["path", "content"],
+        "additionalProperties": false
+      }
+    },
+    "evidence": { "type": ["object", "null"] }
+  },
+  "required": ["kind", "baseDigest", "writes"],
+  "additionalProperties": false
+}

@@ -21,6 +21,7 @@ import {
 
 export const INSTALLABLE_AGENT_PACKAGE_PROFILE = 'tdev.installable-agent-package.v1';
 export const INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH = 'config/development-operation-profiles.json';
+export const INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH = 'config/codex-changeset-output.schema.json';
 export const INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION = 1;
 export const INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION = 1;
 export const INSTALLABLE_AGENT_MANAGEMENT_JOURNAL_SCHEMA_VERSION = 1;
@@ -83,8 +84,8 @@ function normalizeFileEntry(relativePath, entry) {
 export function normalizeInstallableAgentReleaseManifest(manifest) {
   assertRecordShape(manifest, [
     'schemaVersion', 'profile', 'sourceRevision', 'target', 'runtime', 'stateSchemas', 'protocols', 'capabilityProfile',
-    'serviceHostProfile', 'configurationSchemaDigest', 'toolProfiles', 'helperAbi', 'files',
-  ], ['developmentOperationProfiles'], 'installable Agent release manifest');
+  'serviceHostProfile', 'configurationSchemaDigest', 'toolProfiles', 'helperAbi', 'files',
+  ], ['developmentOperationProfiles', 'developmentOperationOutputSchema'], 'installable Agent release manifest');
   if (manifest.schemaVersion !== INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION || manifest.profile !== INSTALLABLE_AGENT_PACKAGE_PROFILE) {
     fail('installable_agent_package_manifest_incompatible', 'Installable Agent release manifest profile/schema is unsupported');
   }
@@ -117,6 +118,13 @@ export function normalizeInstallableAgentReleaseManifest(manifest) {
       fail('invalid_installable_agent_package_manifest', 'development-operation-profile binding is invalid');
     }
   }
+  if (manifest.developmentOperationOutputSchema !== undefined) {
+    assertRecordShape(manifest.developmentOperationOutputSchema, ['relativePath', 'sha256'], [], 'package development-operation-output-schema binding');
+    const outputSchemaPath = assertSafeRelativePath(manifest.developmentOperationOutputSchema.relativePath, 'developmentOperationOutputSchema.relativePath');
+    if (outputSchemaPath !== manifest.developmentOperationOutputSchema.relativePath || !FILE_DIGEST_RE.test(manifest.developmentOperationOutputSchema.sha256)) {
+      fail('invalid_installable_agent_package_manifest', 'development-operation-output-schema binding is invalid');
+    }
+  }
   assertRecordShape(manifest.helperAbi, ['profile', 'abiVersion', 'relativePath', 'sha256'], [], 'package helper ABI');
   if (typeof manifest.helperAbi.profile !== 'string' || !Number.isSafeInteger(manifest.helperAbi.abiVersion) || manifest.helperAbi.abiVersion < 1 ||
       !FILE_DIGEST_RE.test(manifest.helperAbi.sha256)) fail('invalid_installable_agent_package_manifest', 'helper ABI binding is invalid');
@@ -139,6 +147,10 @@ export function normalizeInstallableAgentReleaseManifest(manifest) {
   if (manifest.developmentOperationProfiles !== undefined &&
       (!files[manifest.developmentOperationProfiles.relativePath] || files[manifest.developmentOperationProfiles.relativePath].sha256 !== manifest.developmentOperationProfiles.sha256)) {
     fail('installable_agent_package_manifest_incompatible', 'development-operation-profile digest is not bound by package files');
+  }
+  if (manifest.developmentOperationOutputSchema !== undefined &&
+      (!files[manifest.developmentOperationOutputSchema.relativePath] || files[manifest.developmentOperationOutputSchema.relativePath].sha256 !== manifest.developmentOperationOutputSchema.sha256)) {
+    fail('installable_agent_package_manifest_incompatible', 'development-operation-output-schema digest is not bound by package files');
   }
   return canonicalClone({ ...manifest, files });
 }
