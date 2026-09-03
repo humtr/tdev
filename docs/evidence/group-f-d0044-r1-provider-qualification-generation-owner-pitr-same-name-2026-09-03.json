@@ -12,7 +12,7 @@
   },
   "source": {
     "repository": "humtr/tdev",
-    "validationCommit": "93229d22627125129858559ad9ba221cebad4923",
+    "validationCommit": "b33902a3caa643b577a76de373de6c6a698bd00e",
     "deployedWorkerSourceCommit": "93229d22627125129858559ad9ba221cebad4923",
     "validation": {
       "commands": [
