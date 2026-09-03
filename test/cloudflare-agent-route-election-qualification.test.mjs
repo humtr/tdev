@@ -51,6 +51,10 @@ test('D0044 election qualification authenticates before routing and invokes only
       invocations.push({ operation: 'readAgentRouteElection', agentId });
       return null;
     },
+    async d0044AbortInstance(agentId) {
+      invocations.push({ operation: 'd0044_abort_instance', agentId });
+      throw new Error('injected abort');
+    },
   };
   const service = new D0044ProviderQualificationService(env({ TDEV_AGENT_ROUTE_ELECTION: namespaceFor(stub, calls) }));
   const denied = await service.fetch(request(D0044_ELECTION_QUALIFICATION_PATH, {
@@ -73,6 +77,20 @@ test('D0044 election qualification authenticates before routing and invokes only
   assert.deepEqual(await accepted.json(), { ok: true, result: null });
   assert.deepEqual(calls, ['agent-one']);
   assert.deepEqual(invocations, [{ operation: 'readAgentRouteElection', agentId: 'agent-one' }]);
+
+  const crashed = await service.fetch(request(D0044_ELECTION_QUALIFICATION_PATH, {
+    profile: D0044_PROVIDER_QUALIFICATION_PROFILE,
+    operation: 'd0044_abort_instance',
+    agentId: 'agent-one',
+    payload: {},
+  }));
+  assert.equal(crashed.status, 400);
+  assert.deepEqual(await crashed.json(), { ok: false, error: { code: 'qualification_provider_failure' } });
+  assert.deepEqual(calls, ['agent-one', 'agent-one']);
+  assert.deepEqual(invocations, [
+    { operation: 'readAgentRouteElection', agentId: 'agent-one' },
+    { operation: 'd0044_abort_instance', agentId: 'agent-one' },
+  ]);
 });
 
 test('D0044 delivery qualification routes only to the deterministic generation host key', async () => {

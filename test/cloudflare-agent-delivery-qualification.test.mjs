@@ -857,3 +857,19 @@ test('D0044 qualification PITR controls require provider APIs, clear only this o
   const invalid = await qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'd0044_pitr_restore_next_session', agentId: 'agent-one', routeGeneration: 1, bookmark: '' });
   assert.deepEqual(invalid, { profile: QUALIFICATION_RPC_PROFILE, schemaVersion: 2, ok: false, error: { code: 'd0044_pitr_invalid_bookmark' } });
 });
+
+test('D0044 delivery abort hook is qualification-only and aborts after a fresh route read', async () => {
+  const calls = [];
+  const ctx = { abort(reason) { calls.push(['abort', reason]); throw new Error('injected abort'); } };
+  const host = {
+    durableObjectId: 'do-agent-abort',
+    config: { placement: { deployment: 'qualification', environment: 'nonproduction', workerScript: 'tdev-d0020-qualification', className: 'AgentDeliveryRuntimeDO', namespace: 'qualification', jurisdiction: 'global' } },
+    readRoute() { calls.push('readRoute'); return {}; },
+  };
+  const qualification = new D0020QualificationAgentDeliveryDOHost(ctx, baseEnv(), { host });
+  await assert.rejects(
+    () => qualification.qualificationInvoke({ profile: QUALIFICATION_RPC_PROFILE, operation: 'abort_instance', agentId: 'agent-one', routeGeneration: 1 }),
+    (error) => error?.message === 'injected abort',
+  );
+  assert.deepEqual(calls, ['readRoute', ['abort', 'tdev_d0020_qualification_abort_instance']]);
+});
