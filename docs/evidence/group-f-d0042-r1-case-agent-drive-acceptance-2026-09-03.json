@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0042_r1_case_agent_drive_acceptance",
+  "observedAtUtc": "2026-09-03T07:15:00Z",
+  "design": {
+    "id": "D0042",
+    "revision": 1,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@62a37cca3ade0007c204de10c8bdc6b26b0ddca4"
+  },
+  "decision": {
+    "owner": "CaseAgentDriveAuthority",
+    "profile": "tdev.case-agent-drive.v1",
+    "durableFacts": [
+      "caller drive request identity",
+      "reconciliation cursor",
+      "owner receipt digests"
+    ],
+    "forbiddenFacts": [
+      "Task readiness cache",
+      "semantic queue",
+      "Agent capacity authority",
+      "process handle",
+      "wall-clock deadline"
+    ],
+    "levelTriggered": true,
+    "sameRequestReplay": true,
+    "freshOwnerReadBeforeAction": true,
+    "ambiguousEffectNeverGuessed": true
+  },
+  "preservedOwners": {
+    "case": "D0019",
+    "agentDelivery": "D0020/D0027",
+    "publication": "D0025",
+    "operationCatalog": "D0043"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - owner, durable record, replay, restart and no-second-queue contract fixed",
+    "source": "not executed by this acceptance record",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false
+  }
+}

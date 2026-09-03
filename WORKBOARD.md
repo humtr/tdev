@@ -17,10 +17,12 @@ A mutable remote head is not stored here as timeless authority. Re-read the prov
 Each entry is a foreign key to one maintained Design revision, not a copied Design status. Validation resolves the referenced Design owner before the gate may run. The section may contain zero, one or many entries; parallel-runnable entries do not imply that one Task must implement them together.
 
 - D0039@r12 — `docs/design/0039-d0027-deployment-realization.md` — consume the source/provider-qualified D0044 higher-generation successor-election/cutover primitive through separately isolated Q7/Q8/Q9 scenarios; canonical R12 remains untouched.
+- D0042@r1 — `docs/design/0042-case-agent-drive-and-redrive.md` — implement the durable level-triggered Case-to-Agent drive/re-drive owner for P1 without duplicating Case readiness or Agent delivery authority.
+- D0043@r1 — `docs/design/0043-bounded-development-operation-profiles.md` — implement the release-bound typed repository/model/validation operation catalog required by P1.
 
 ## Selected next action
 
-- D0039@r12 — consume D0044's isolated higher-generation primitive in separately isolated Q7/Q8/Q9 scenarios, with fresh source/provider identity binding and no canonical R12 mutation. D0044's positive-work/quiescence, stale-writer exclusion, legacy-import crash, generation cutover, response-loss replay, PITR/same-name and reversible workers.dev ingress-recovery evidence remains retained; whole provider-account/election-authority loss remains fail-closed and outside D0044, and Q3's independent physical-lane blocker remains unchanged.
+- D0042@r1 — implement the durable level-triggered Case-to-Agent drive/re-drive owner for P1. D0039 Q7~Q9 source composition is recorded, while its unqualified provider/runtime layers remain a retained debt; no canonical route mutation.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 

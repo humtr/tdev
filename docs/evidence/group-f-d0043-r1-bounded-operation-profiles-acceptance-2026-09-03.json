@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r1_bounded_operation_profiles_acceptance",
+  "observedAtUtc": "2026-09-03T07:15:00Z",
+  "design": {
+    "id": "D0043",
+    "revision": 1,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@62a37cca3ade0007c204de10c8bdc6b26b0ddca4"
+  },
+  "decision": {
+    "profile": "tdev.development-operation-profiles.v1",
+    "operations": [
+      "tdev.repository.context.prepare.v1",
+      "tdev.model.repository.execute.v1",
+      "tdev.repository.validate.v1"
+    ],
+    "releaseBoundExecutable": true,
+    "callerSelectedArgv": false,
+    "callerSelectedEnvironment": false,
+    "callerSelectedFilesystemRoot": false,
+    "defaultNetwork": "none",
+    "resultOnlyModelChanges": true,
+    "promotionOnlyCanonicalWriter": true,
+    "positiveCleanupRequired": true
+  },
+  "preservedOwners": {
+    "caseAndPromotion": "D0019",
+    "agentDeliveryAndProcess": "D0020/D0027",
+    "repositoryAndModelTransport": "D0013/D0014",
+    "publication": "D0025",
+    "redrive": "D0042"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - typed catalog and least-authority boundary fixed",
+    "source": "not executed by this acceptance record",
+    "termux": "not claimed",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false
+  }
+}
