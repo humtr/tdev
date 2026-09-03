@@ -1,7 +1,7 @@
 {
   "type": "object",
   "properties": {
-    "kind": { "const": "changeset" },
+    "kind": { "type": "string", "const": "changeset" },
     "baseDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
     "writes": {
       "type": "array",
@@ -15,8 +15,8 @@
         "additionalProperties": false
       }
     },
-    "evidence": { "type": ["object", "null"] }
+    "evidence": { "type": "null" }
   },
-  "required": ["kind", "baseDigest", "writes"],
+  "required": ["kind", "baseDigest", "writes", "evidence"],
   "additionalProperties": false
 }

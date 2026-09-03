@@ -24,7 +24,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKSPACE_ROOT = '/data/data/com.termux/files/usr/tmp';
 const CODEX_EXECUTABLE = '/data/data/com.termux/files/usr/bin/codex';
 const NPM_EXECUTABLE = '/data/data/com.termux/files/usr/bin/npm';
-const CODEX_HOME = '/data/data/com.termux/files/home/.codex';
+const CODEX_HOME = process.env.CODEX_HOME ?? null;
 const PRESERVED_PATHS = [
   'qualification/d0044-provider-response-loss-r22-resume.mjs',
   'qualification/d0044-provider-response-loss-r23-resume.mjs',
@@ -143,6 +143,7 @@ async function workspaceEntries() {
 async function main() {
   await assertExecutable(CODEX_EXECUTABLE, 'Codex executable');
   await assertExecutable(NPM_EXECUTABLE, 'npm executable');
+  if (CODEX_HOME === null) fail('m0_codex_home_missing', 'CODEX_HOME must identify the saved-auth root for the physical M0 run');
   await assertDirectory(CODEX_HOME, 'Codex saved-auth root');
   const beforeCheckout = await assertM0Checkout();
   const preservedBefore = await preservedFiles();

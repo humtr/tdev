@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ContractError, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
+import { codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
@@ -9,6 +10,11 @@ const changeset = { kind: 'changeset', baseDigest, writes: [] };
 function eventStream(...events) {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`, 'utf8');
 }
+
+test('D0043 Termux Codex launcher keeps profile CODEX_HOME under the real Termux home', () => {
+  assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex-profiles/uvec'), '/data/data/com.termux/files/home');
+  assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex'), '/data/data/com.termux/files/home');
+});
 
 test('D0043 Codex JSONL accepts one strict terminal result and preserves usage separately', () => {
   assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config']);
@@ -29,6 +35,7 @@ test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed termina
       { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },
     ), 'codex_terminal_output_duplicate'],
     [Buffer.from('{"type":"item.completed","item":\n', 'utf8'), 'codex_jsonl_malformed'],
+    [eventStream({ type: 'item.completed', item: { type: 'command_execution', status: 'failed', exit_code: 1 } }), 'codex_command_execution_failed'],
     [eventStream({ type: 'turn.failed', error: { message: 'provider failure' } }), 'codex_provider_failed'],
   ];
   for (const [bytes, code] of cases) {

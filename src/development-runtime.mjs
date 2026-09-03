@@ -62,6 +62,13 @@ function positiveBound(value, label, max = Number.MAX_SAFE_INTEGER) {
   return assertSafeInteger(value, label, { min: 1, max });
 }
 
+export function codexLauncherHome(codexHome) {
+  const profileParent = path.dirname(codexHome);
+  return path.basename(profileParent) === '.codex-profiles'
+    ? path.dirname(profileParent)
+    : profileParent;
+}
+
 function runtimeEnvironment({ executable, codexHome = null, extra = {} } = {}) {
   const directories = [path.dirname(executable), path.dirname(process.execPath), '/system/bin', '/system/xbin'];
   const environment = {
@@ -77,7 +84,7 @@ function runtimeEnvironment({ executable, codexHome = null, extra = {} } = {}) {
   };
   if (codexHome !== null) {
     environment.CODEX_HOME = codexHome;
-    environment.HOME = path.dirname(codexHome);
+    environment.HOME = codexLauncherHome(codexHome);
   }
   return Object.freeze(environment);
 }
@@ -152,6 +159,11 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
     try { event = strictJsonParse(line, { maxBytes }); }
     catch (cause) { fail('codex_jsonl_malformed', `Codex JSONL event ${index} is invalid`, {}, { cause }); }
     if (!isPlainRecord(event) || typeof event.type !== 'string') fail('codex_jsonl_malformed', `Codex JSONL event ${index} has no type`);
+    if (event.type === 'item.completed' && event.item?.type === 'command_execution' && event.item.status === 'failed') {
+      fail('codex_command_execution_failed', 'Codex could not execute a required repository inspection command', {
+        exitCode: Number.isSafeInteger(event.item.exit_code) ? event.item.exit_code : null,
+      });
+    }
     if (event.type === 'error' || event.type === 'turn.failed') fail('codex_provider_failed', 'Codex reported a failed turn', { eventType: event.type });
     if (event.type === 'turn.completed') usage = safeUsage(event.usage);
     if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
