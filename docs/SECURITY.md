@@ -183,6 +183,24 @@ D0018 keeps this trusted-local boundary and selects no external provider. The ac
 
 Full-context transfer remains a data-minimization gap because D0017 deliberately preserves the complete semantic repository context. Before any external provider is admitted, a separate contract must define minimum-necessary deterministic selection or an explicit full-context disclosure policy, auditability, redaction and secret handling, authentication, request/token limits, retry billing, hostile-provider assumptions, privacy, residency and data-egress policy. No D0014/D0017/D0018 local-runtime measurement is represented as provider token, billing, privacy or model-quality evidence.
 
+### 9.5 D0043 Revision-2 trusted-local Codex boundary
+
+D0043 Revision 2 selects `tdev.openai-codex-full-context.trusted-local.v1` as an explicit, single-user full-context disclosure profile for the first tdev trial. It admits only the complete bounded regular UTF-8 tracked content of one exact published tdev commit and the bounded Task instruction to the user's authenticated Codex service. Mutable index/worktree state, untracked files, repository-external paths, inherited environment and Git, Cloudflare, MCP or Agent credentials are outside the profile. The exact repository/account/profile eligibility, commit and context digest are deployment inputs/readback; caller input cannot upgrade another repository or profile into this disclosure.
+
+The release-bound `tdev.model.codex-exec.v1` process is a trusted deployment component, invoked ephemerally with a read-only sandbox, fixed model/configuration, JSONL events and a release-owned output schema. Its saved CLI authentication may be consumed by Codex itself, but tdev adapters never read, copy, persist, log or forward the credential. Context preparation and validation remain credential-free and `network:none`; only this model profile receives the named `openai-codex-trusted-local` network mode.
+
+Codex output is untrusted data until strict schema, base, path, size and result validation passes. Codex cannot materialize or write the canonical tree: tdev creates only a disposable candidate and D0019 Promotion remains the sole canonical writer. One Attempt permits one outer model-process launch; timeout, disconnect, response loss or unknown billing/effect never authorizes blind replay or invented success.
+
+The trial makes no provider retention, training, privacy, residency, billing, hostile-provider authenticity, endpoint-level egress isolation, multi-tenant or hostile-local-code claim. Those facts remain the user's provider-account terms or explicit unknowns. Wider support requires a later accepted security boundary and evidence rather than reinterpretation of the trusted-local profile.
+
+### 9.6 D0046 isolated MCP trial composition boundary
+
+D0046 composes, but does not merge, the D0023/D0024 ingress, D0019 Case owner, D0042 drive owner and D0020/D0027 Agent path. The new `tdev-mcp-trial` Worker authenticates and authorizes one fixed principal/tenant before any owner lookup; request data cannot select a tenant, provider script/class/namespace, D1 database, Case prefix, Agent/route, repository, executable, model, validation profile, credential or network mode. Its trial-local `CaseAgentDriveRuntimeDO` stores only D0042 intent/cursors and cannot cache readiness, capacity or Task lifecycle.
+
+Web Access credentials terminate at the ingress, Agent credentials terminate at D0020/D0027, and Codex saved authentication remains local to the D0043 process. None substitutes for another or enters Task/Case/drive/result/evidence/model-visible state. The first trial configures no canonical-tree or Git-publication capability, uses fresh trial-scoped identities in the existing qualified owner namespaces, and leaves the old `tdev.humtr.workers.dev` experiment untouched.
+
+Cloudflare Access Managed OAuth remains subject to D0024's exact current-client falsifier. A discovery, registration, resource, issuer, audience, tenant, refresh or revocation mismatch fails before owner mutation and returns through SDD; it never authorizes a shared bearer, Agent credential or undocumented-header bypass. Source/provider preflight precedes one bounded web-client attempt so repeated probing cannot substitute for an accepted security contract.
+
 ## 10. External effects
 
 Exactly-once execution is not promised. Safe handling is limited to:

@@ -452,3 +452,34 @@ The election namespace/class is a distinct durable owner from every `AgentDelive
 
 Each Delivery Durable Object also persists one `tdev.agent-route-generation.cloudflare-sqlite.v1` record in the same SQLite object. Its route-binding digest is checked against the immutable Delivery binding before every elected executable admission; missing, mismatched, `STANDBY`, `DRAINING` or `RETIRED` state fails closed before connection, reservation, activation, dispatch or Agent-frame mutation. Generation setup and legacy-import reconciliation may run while the route is not executable, and cleanup/readback remain available for quiescence evidence. The generation table uses a separate revision/CAS fence and is never inferred from a missing row.
 The isolated qualification deployment may expose `/qualification/d0044/election/v1` and `/qualification/d0044/delivery/v1` only while `TDEV_ENVIRONMENT=qualification`, `TDEV_D0020_QUALIFICATION_MODE=enabled` and `TDEV_AGENT_ROUTE_MODE=elected_v1`. The first endpoint maps a strict allowlist to the election Durable Object; the second addresses one exact generation-bound `rh1.*` delivery object, with the exact generation-1 `agentId` host admitted only for the explicitly allowlisted legacy-import reconciliation operations. Both require the existing qualification bearer secret and perform no canonical D0039 route import or cutover.
+
+### D0043 Revision-2 supported-Termux Codex operation binding
+
+The Revision-2 installable-Agent manifest binds one exact `tdev.development-operation-profiles.v2` package identity. For `tdev.model.codex-exec.v1` it records the absolute Codex executable, executable digest and observed version, literal non-interactive/ephemeral/JSON/read-only/ignore-user-config arguments, release-owned output-schema digest, exact model and reasoning settings where selectable, explicit environment, private exact-base working root, named `openai-codex-trusted-local` network mode, timeout, input/output/process limits and cleanup policy. The saved-authentication root is a deployment-owned local reference visible only to the Codex process; neither its path nor credential bytes enter Task, Case, package manifest, evidence or Worker state.
+
+The same release binds `tdev.validation.npm-check.v1` to the absolute installed npm identity and literal `run check` arguments, a secret-free explicit environment, `network:none`, a disposable candidate root and finite limits. The exact published repository commit, D0013 context digest, `tdev.openai-codex-full-context.trusted-local.v1` eligibility and validator/package-script digest are read back before launch. Mutable/untracked/external paths and a changed validator configuration fail admission.
+
+Before activation, deployment proves the exact executable/help capabilities and saved-login availability without reading credential bytes, builds and verifies the new package/release digest, positively quiesces the affected Agent route, installs/activates through D0027, then rereads the exact current package/capability identity. M0 performs one real non-documentation Codex ChangeSet and fixed validation on physical Termux. Source/package construction, `codex login status` or a diagnostic subprocess alone does not qualify the release.
+
+Rollback before any Attempt is normal package rollback after exact predecessor and quiescence readback. Once an Attempt/candidate exists, retain the Revision-2 reader and operation receipts until the Case is terminal and process/workspace cleanup is positive. Timeout, response loss or unknown provider effect never authorizes a second outer Codex launch. A missing/expired login disables model admission; deployment does not solicit or transport authentication through MCP.
+
+### D0046 isolated user-experience trial deployment
+
+The first ingress is a new Worker service `tdev-mcp-trial` with public resource `https://tdev-mcp-trial.humtr.workers.dev/mcp`. Deployment refuses to overwrite a preexisting conflicting service. It leaves the existing `tdev` OAuth experiment, canonical D0039 route, D0044 lane and Git refs untouched.
+
+The immutable trial manifest binds:
+
+- a cross-script `TDEV_CASE_AUTHORITY` Durable Object binding to `tdev-d0020-composition-case-r1` / `CaseRuntimeDO`;
+- a cross-script `TDEV_AGENT_DELIVERY` Durable Object binding to `tdev-d0020-qualification-clean-a` / `AgentDeliveryRuntimeDO`;
+- a new trial-local SQLite `TDEV_CASE_AGENT_DRIVE` namespace exporting `CaseAgentDriveRuntimeDO`;
+- `TDEV_CASE_PLACEMENT` to the same exact D1 database identity used by the selected Case owner;
+- exact D0023 surface, D0024 auth, D0042 drive, D0043 release/capability, principal/tenant, Agent/route, fresh Case-prefix and immutable-repository profile digests;
+- no canonical target, Git publisher or alternate owner/script/preview binding.
+
+Provider activation is forbidden until D0043 M0 passes and a fresh provider observation matches the expected predecessor resources. Upload creates one immutable version, binds the new drive namespace and Access application/resource generation, disables preview/alternate writers, then independently rereads service/version/traffic, exports, cross-script DO bindings, D1 identity, compatibility flags, Access policy/resource/issuer/audience/registration metadata and standard well-known responses. A missing, duplicate, aliased or mismatched binding keeps traffic disabled.
+
+M1 then performs a bounded machine/provider lifecycle and one candidate-path preflight without using web ChatGPT as a retry loop. Only after those results are green may the handoff disclose the exact read-back URL, supported authentication identity and connection steps, D0023 tool-set fingerprint, expected base/profile and disable/rollback procedure. The user is responsible only for adding/authenticating the MCP connection and submitting the M2 development objective.
+
+Before a live trial Case, rollback disables Access/traffic and restores the read-back prior trial version or removes only new empty trial resources after positive absence/quiescence evidence. After a Case exists, keep the Worker/drive schema readable until terminal owner receipts and Agent/process/candidate cleanup are positive. Provider ambiguity recovers forward or remains disabled; it never authorizes blind delete/redeploy.
+
+H1-H4 qualify recovery, security lifecycle, reproducible deployment and legal parallelism against the frozen successful M2 corpus. H5 alone may promote the composition to the stable `tdev.humtr.workers.dev/mcp` resource. Stable cutover requires exact old/new Access resource generations, owner/quiescence compatibility, provider traffic/version readback, supported-client reconnection and a proven rollback/disable outcome; the trial URL itself makes no production or final-MVP claim.

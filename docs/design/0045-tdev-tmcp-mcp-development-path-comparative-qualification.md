@@ -9,9 +9,9 @@
 - Trigger: direct user decision to add, without replacing the existing qualification methods, a paired cross-validation and improvement loop demonstrating that development work submitted through tdev MCP is materially better than equivalent work submitted through tmcp MCP in representative performance, efficiency, speed, parallel execution and stability profiles
 - Acceptance evidence: `docs/evidence/group-f-d0045-r1-tdev-tmcp-comparative-qualification-acceptance-2026-09-03.json`
 - Affected owners: `docs/development/PROGRAM.md`, `docs/QUALIFICATION.md`, D0035 prerequisite planning and the derived Design index
-- Preserved owners: D0019 remains the only Case semantic owner; D0020/D0027 remain Agent delivery/execution owners; D0023/D0024 own the supported MCP and security surface; D0025 owns Git publication; D0042, if accepted, owns Case re-drive; D0043, if accepted, owns bounded development operations; D0035 owns tmcp-retirement readiness
+- Preserved owners: D0019 remains the only Case semantic owner; D0020/D0027 remain Agent delivery/execution owners; D0023/D0024 own the supported MCP and security surface; D0025 owns Git publication; D0042 owns Case re-drive; D0043@r2 owns bounded development operations; D0046 owns the prerequisite independently usable tdev MCP path; D0035 owns tmcp-retirement readiness
 - Product/runtime semantics: no product command, schema, state, authority, retry, security or deployment behavior changes merely by accepting this comparison plan
-- Explicit non-goals: no claim that tdev currently outperforms tmcp; no replacement of correctness/security/recovery qualification; no comparison between different clients as though it isolated the execution path; no production SLO; no canonical-ref race between the two paths; no tmcp shutdown; no current D0044/D0039 route change; no implementation before later `WORKBOARD.md` routing
+- Explicit non-goals: no claim that tdev currently outperforms tmcp; no replacement of correctness/security/recovery qualification; no comparison between different clients as though it isolated the execution path; no production SLO; no canonical-ref race between the two paths; no tmcp shutdown; no D0044/D0039 route mutation; no implementation before later `WORKBOARD.md` routing
 
 ## 1. One-line definition
 
@@ -168,10 +168,10 @@ freeze -> paired run -> independently validate -> phase/metric attribution
 
 Likely attribution includes:
 
-- ready-work delay or restart re-drive -> D0042 if accepted;
+- ready-work delay or restart re-drive -> D0042;
 - MCP round-trip/projection overhead -> D0023;
 - authentication/reconnect overhead -> D0024;
-- repository preparation, model transport or validation operation cost -> D0043 if accepted and the existing repository/model executor owners;
+- repository preparation, model transport or validation operation cost -> D0043@r2 and the existing repository/model executor owners;
 - Agent delivery/reconnect/duplicate behavior -> D0020/D0027/D0044 as applicable;
 - Git publication/reconciliation -> D0025;
 - an optimization that changes none of those contracts -> Class 1 at the existing owner;
@@ -254,14 +254,13 @@ Rejected. D0035 owns tmcp-disabled self-hosting independence. A system may be in
 
 ## 15. Planned ordering and checkpoint integration
 
-1. Complete and publish the current D0044 route-owned work without changing its selected gate.
-2. At a later authorized routing boundary, accept/implement the required D0042/D0043 owners and prove one real tdev-native development unit reaches a validated isolated candidate.
-3. Implement and qualify the supported D0023/D0024 tdev MCP/authenticated client path.
-4. Route D0045 and implement only the neutral manifest, instrumentation, tmcp/tdev adapters, independent validator and evidence writer needed for candidate-only paired trials.
-5. Run the Codex stratum, attribute gaps, continuously correct authorized tdev owners and rerun the full frozen corpus until PASS.
+1. Complete D0043@r2 M0 and D0046 M1/M2/H1-H5 so one real supported web ChatGPT tdev path is independently usable and hardened at its declared single-user scope.
+2. Freeze the exact D0046 source/client/model/Agent/provider/base/validation profile that becomes the tdev side of the first comparison generation.
+3. Route D0045 and implement only the neutral manifest, instrumentation, tmcp/tdev adapters, independent validator and evidence writer needed for candidate-only paired trials.
+4. Run the Codex stratum, attribute gaps, continuously correct authorized tdev owners and rerun the full frozen corpus until PASS.
+5. Repeat the supported web ChatGPT stratum through the selected authenticated MCP paths without pooling it with Codex.
 6. After D0025, extend the same comparison generation or a newly frozen successor generation to isolated Git-publication conflict/response-loss rows.
-7. Repeat the supported web ChatGPT stratum through the selected authenticated MCP path.
-8. Let D0035 consume the verified comparison as adoption evidence, while independently proving the complete tmcp-disabled self-hosting run.
+7. Let D0035 consume the verified comparison as adoption evidence, while independently proving the complete tmcp-disabled self-hosting run.
 
 ## 16. Proof boundary
 

@@ -40,8 +40,9 @@
 | D0040 | r1 | verified | Installable Agent Evidence Attestation Authority | `docs/design/0040-installable-agent-evidence-attestation-authority.md` |
 | D0041 | r1 | verified | Installable Agent Pre-Genesis Material Binding | `docs/design/0041-installable-agent-pre-genesis-material-binding.md` |
 | D0042 | r1 | accepted | Durable Case-to-Agent Drive and Re-drive | `docs/design/0042-case-agent-drive-and-redrive.md` |
-| D0043 | r1 | accepted | Bounded Typed Development Operation Profiles | `docs/design/0043-bounded-development-operation-profiles.md` |
+| D0043 | r2 | accepted | Bounded Typed Development Operation Profiles | `docs/design/0043-bounded-development-operation-profiles.md` |
 | D0044 | r1 | implementing | Agent Route Higher-Generation Election and Cutover | `docs/design/0044-agent-route-higher-generation-election-and-cutover.md` |
 | D0045 | r1 | accepted | tdev/tmcp MCP Development-Path Comparative Qualification | `docs/design/0045-tdev-tmcp-mcp-development-path-comparative-qualification.md` |
+| D0046 | r1 | accepted | Minimum Viable tdev MCP Experiential Path | `docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

@@ -215,6 +215,22 @@ Monitor cache status, materialization producers/waiters, Git commands/stdout byt
 
 The trusted-local full-context operating profile includes D0017 selected-context resolution. D0018 defines `warm-host-qualified-model-attempt-fresh`: the executor host may retain only D0014's bounded immutable preparation/cache while every Attempt gets fresh D0017 authorization/carrier/request state, controller/deadline and model process. The runtime must propagate committed terminal Events as non-authoritative wake hints to exact live controls, recheck authority around publication/preparation/spawn, acknowledge only the exact persisted checkpoint revision, drain newer revisions before dependent dispatch, and retain runtime capacity until predecessor cleanup/settlement. No periodic polling scheduler, second semantic queue or lower-layer retry is authorized. The profile includes no deterministic ContextSlice, persistent/shared CAS, same-model-process warm pool, locality scheduler, tokenizer or external provider API. Provider-facing execution must first close minimum-necessary egress, redaction/secrets, authentication, tokenizer/accounting, request limits, retry billing/failure semantics, privacy/residency and hostile-provider assumptions.
 
+### D0043 Revision-2 bounded Codex and validation operation
+
+The first provider-facing operation catalog is `tdev.development-operation-profiles.v2`. Repository preparation remains an exact immutable D0013/D0017 read. `tdev.model.codex-exec.v1` launches one release-bound non-interactive Codex process per Attempt with fixed model/configuration, explicit environment, `openai-codex-trusted-local` network mode, read-only/ephemeral execution, bounded JSONL and one release-owned terminal output schema. The caller supplies only the bounded instruction and already-admitted exact context identity; it cannot choose executable, arguments, environment, cwd, model, network, authentication or repository.
+
+The matching disclosure profile explicitly permits the bounded tracked UTF-8 content of that one published tdev commit to reach the user's Codex service. It excludes mutable/untracked/external files and credentials. The adapter accepts only one schema/base/path/size-valid ChangeSet, then tdev materializes that output in a disposable candidate. Codex never writes the candidate or canonical tree.
+
+`tdev.validation.npm-check.v1` runs installed npm with literal `run check` in the disposable candidate, secret-free and `network:none`. Its result is preserved even when false. A model or validation failure cannot be converted to Promotion, and no Git adapter is configured for the minimum trial.
+
+Do not retry an unknown model launch. Timeout, disconnect or response loss retains the same Attempt and reconciliation state; a later semantic retry is owned only by the existing Case policy after the prior process/effect boundary is resolved. Saved Codex login is local deployment state consumed by Codex itself and is never accepted from MCP or Task input.
+
+### D0046 minimum MCP operation sequence
+
+The first experiential sequence is `M0 physical Termux candidate -> M1 isolated provider preflight -> M2 supported web ChatGPT candidate`. The `tdev-mcp-trial` ingress authenticates first, creates or reads only fresh trial-scoped Cases, and delegates `case_run_or_resume` to one durable D0042 drive owner. Every drive step rereads D0019 Case and D0020 Agent owners; ingress/drive memory cannot establish readiness, delivery, process or completion.
+
+The sequence terminates at a validated isolated candidate projection. The current-client connection may reconnect and replay only the original request/drive identity. Worker upload, authentication, `initialize`, `tools/list`, Case creation or model start is not operation completion. The user-visible result is the exact base, terminal validation state and inspectable candidate/diff with independent proof of no canonical/Git effect.
+
 ### Command mutation
 
 Use `repository.command(caseId, envelope, { claimValidator })` for receipt-backed state commands. Any command that starts an Attempt with a lease, accepts its result, or resolves a successful reconciliation must have access to the live claim owner.

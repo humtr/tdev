@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_minimum_viable_tdev_mcp_experiential_path_acceptance",
+  "observedAtUtc": "2026-09-03T12:10:13Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "069be884f0cb160ee8584c7b79ab333d232a1c2f"
+    },
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@069be884f0cb160ee8584c7b79ab333d232a1c2f"
+  },
+  "trigger": {
+    "source": "direct_user_requirement",
+    "decision": "Secure the shortest safe route to a real web ChatGPT-to-tdev-to-Termux development result first, then harden the proven path; internal source/package milestones are not the user-visible completion boundary.",
+    "firstGoal": "The user connects one read-back MCP URL, submits one real non-documentation development objective and receives one validated inspectable candidate produced by the Termux Agent."
+  },
+  "sdd": {
+    "classification": "class_2_new_design",
+    "reason": "The decision selects a new public Worker and MCP resource, cross-script Durable Object composition, D0042 provider placement, fixed tenant/Agent/repository profile, deployment/cutover order and user-experienced acceptance method."
+  },
+  "failureAnalysis": [
+    {
+      "class": "physical_execution_gap",
+      "evidence": "D0043 Revision-1 package evidence records unbound model/validation executables and no physical Termux claim.",
+      "repairOwner": "D0043 Revision 2"
+    },
+    {
+      "class": "provider_composition_authority_gap",
+      "evidence": "The existing tdev Worker has no D0019/D0042/D0043 bindings; current Case and Agent Workers are separate qualification owners.",
+      "repairOwner": "D0046 Revision 1"
+    },
+    {
+      "class": "completion_reporting_gap",
+      "evidence": "Prior routing selected internal source/provider sub-gates without a Design-owned user-visible endpoint/result handoff boundary.",
+      "repairOwner": "D0046 Section 11 and PROGRAM functional checkpoints"
+    }
+  ],
+  "providerFacts": {
+    "existingTdevResource": "https://tdev.humtr.workers.dev/mcp",
+    "existingTdevMeaning": "prequalification OAuth experiment; not the completion endpoint",
+    "existingTdevOwnerBindingsPresent": false,
+    "caseOwnerService": "tdev-d0020-composition-case-r1",
+    "caseOwnerClass": "CaseRuntimeDO",
+    "agentOwnerService": "tdev-d0020-qualification-clean-a",
+    "agentOwnerClass": "AgentDeliveryRuntimeDO",
+    "durableDriveProviderHostPresent": false,
+    "sourceEvidence": "docs/evidence/group-f-d0023-d0024-provider-owner-binding-readback-2026-09-03.json"
+  },
+  "acceptedDecision": {
+    "trialService": "tdev-mcp-trial",
+    "trialResource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "ingress": "D0023 Streamable HTTP MCP plus D0024 Cloudflare Access authentication",
+    "caseBinding": "cross-script binding to the existing qualification CaseRuntimeDO owner",
+    "agentBinding": "cross-script binding to the existing qualification AgentDeliveryRuntimeDO owner",
+    "driveBinding": "new trial-local SQLite CaseAgentDriveRuntimeDO hosting D0042",
+    "placementBinding": "the exact same D1 placement database as the bound Case owner",
+    "identityProfile": "one release-owned principal/tenant/Agent/route/repository/operation manifest with no caller substitution",
+    "firstEffectClass": "validated isolated candidate only; no canonical-tree or Git mutation",
+    "sequence": [
+      "M0 physical Termux Codex/validation candidate",
+      "M1 isolated provider composition and machine/provider preflight",
+      "M2 one planned current web ChatGPT connection and real development run",
+      "H1-H5 recovery, security, deployment, parallelism and stable-cutover hardening",
+      "D0045 tmcp comparison later"
+    ],
+    "clientAttemptBudgetRule": "Do not use repeated ad hoc ChatGPT/Access probing. Preflight lower layers first, capture the smallest current-client falsifier once, correct its owner, then make one new bounded attempt.",
+    "userActions": [
+      "add the read-back MCP URL and authenticate",
+      "submit the real development objective and inspect the candidate"
+    ],
+    "reportBoundary": "Handoff only when M0/M1 are user-ready with exact connection data, when the real candidate passes, or when an exact irreducible blocker remains."
+  },
+  "preservedOwners": {
+    "caseSemantics": "D0019",
+    "agentDeliveryAndExecution": "D0020/D0027",
+    "mcpSurface": "D0023",
+    "mcpAuthentication": "D0024",
+    "caseRedrive": "D0042",
+    "typedTermuxOperations": "D0043",
+    "gitPublication": "D0025",
+    "comparativeQualification": "D0045",
+    "currentRouting": "WORKBOARD.md"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - minimum topology, sequencing, user handoff and hardening boundary fixed",
+    "source": "not executed by this acceptance record",
+    "physicalTermux": "not claimed",
+    "providerDeployment": "not claimed",
+    "currentClient": "not claimed",
+    "experientialPath": "not claimed",
+    "stableProduction": "not claimed",
+    "comparativeSuperiority": "not claimed"
+  },
+  "externalEffects": {
+    "implementation": false,
+    "modelInvocation": false,
+    "mcpClientAttempt": false,
+    "providerMutation": false,
+    "credentialMutation": false,
+    "agentMutation": false,
+    "caseMutation": false,
+    "gitPublication": false,
+    "existingTdevWorkerMutation": false
+  },
+  "next": "Select D0043 Revision 2 as the cheapest first falsifier, continue directly through D0046 M1 after physical PASS, and stop for user action only when the exact trial URL and connection handoff are ready."
+}

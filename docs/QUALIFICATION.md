@@ -193,9 +193,41 @@ At the source/model layer, deterministic tests must falsify strict recovery/host
 
 Provider/runtime qualification is separate. On an isolated supported lane it must prove distinct election/delivery Durable Object identities and SQLite reconstruction; fresh elected generation 1; positive executable work and quiescence; prepared generation 2 at the deterministic host; predecessor retirement or the exact lost-owner two-proof alternative; atomic election; activation-receipt reconciliation after response loss; stale-generation denial before host access; exclusion of stale deployed writers; and non-resurrection after predecessor PITR/same-name recreation. Legacy migration separately proves the pending attachment, dual-authorized election creation, sealed attachment and mode switch, including crashes between every stage. No source result authorizes canonical D0039 import/cutover or closes D0039 Q7/Q8/Q9.
 
+### D0043 Revision-2 real Termux development-operation gates
+
+At the source/static layer, prove the exact `tdev.development-operation-profiles.v2`, `tdev.model.codex-exec.v1`, `tdev.validation.npm-check.v1` and `tdev.openai-codex-full-context.trusted-local.v1` schemas/digests. Negative fixtures must reject caller executable/argv/environment/cwd/model/network/credential/path substitution, unknown profiles, mutable/untracked/external context, changed validator scripts, malformed/duplicate/missing JSONL terminal output, base/path/size mismatch and any canonical/Git capability. The complete baseline source gate remains required.
+
+At the package/local-runtime layer, record the exact supported Termux/Android profile, package/release digest, absolute Codex/npm identities and versions, literal arguments, model/reasoning configuration where observable, output-schema digest, explicit environment/network modes and process/resource/cleanup limits. Verify saved-login availability without reading credential bytes. The evidence must distinguish one outer Codex process from any directly observed internal provider calls/usage and retain unknown retry/billing facts rather than estimate them.
+
+M0 requires one real non-documentation source objective from one exact published tdev commit. The physical Agent must prepare the exact context, invoke one read-only ephemeral Codex process, accept one schema-valid relative-path ChangeSet, materialize only a disposable candidate, run the fixed npm validation and return the candidate/result through the normal Attempt path. Independently compare the canonical checkout/index/ref before/after, validate the candidate objective and focused regression, prove required validation PASS, process-group disappearance, capacity release and no credential/log/evidence leakage. A diagnostic process, canned output, documentation-only edit or source/package test cannot substitute.
+
+Force at least model timeout/cancel, malformed terminal output, validation failure and lost outer response. Each must retain the same Attempt identity, produce no blind second Codex launch, preserve exact failure/unknown truth and leave no unauthorized canonical/Git effect. Revision-1 source/package evidence remains historical and cannot qualify Revision 2.
+
+### D0046 minimum tdev MCP experiential-path gates
+
+D0046 qualification is ordered M0 -> M1 -> M2. M0 is the D0043 physical gate above. Do not spend a final web ChatGPT attempt while M0 is absent or failing.
+
+At the source/composition layer, prove one strict release manifest binds D0023/D0024 ingress, cross-script Case and Agent Durable Object facades, one SQLite `CaseAgentDriveRuntimeDO`, the same exact Case D1 placement, and fixed principal/tenant/Agent/route/repository/operation identities. Negative tests deny alternate script/class/namespace/D1/tenant/Case-prefix/Agent/repository/profile inputs before owner lookup, prove the ingress stores no Case/readiness/delivery/process truth and verify no canonical/Git adapter is configured.
+
+M1 provider/runtime evidence must identify the immutable `tdev-mcp-trial` version and exact `https://tdev-mcp-trial.humtr.workers.dev/mcp` resource, provider-read back every Worker/DO/D1/Access binding and traffic/preview writer, reconstruct the drive DO across restart, reach the exact Case and Agent owners, and complete one bounded machine/provider candidate preflight through the same route. Provider response loss is reconciled by exact version/config/owner readback. The existing `tdev` experiment, D0039/D0044 lanes and unrelated Case/route data must remain unchanged.
+
+Before M2, verify standard protected-resource and authorization-server metadata, resource/issuer/audience/registration/PKCE/claim mapping, tool-set fingerprint, denial redaction and the documented disable/rollback action with a machine client/harness where that proves the same layer. Then produce a complete user handoff containing the exact read-back URL, authentication/connection instructions, expected identity/tools/base/profile and disable/rollback state.
+
+M2 current-client evidence begins only when the user adds/authenticates that URL. Supported web ChatGPT must initialize, list the exact tools, submit one new real non-documentation objective and observe the same Case to terminal validated candidate/diff. Independently bind the client observation to exact request, Case, drive, Attempt, repository commit/context, Agent route/release, model/validation profile and Worker/Access generation. Prove no duplicate Case/Attempt/process, cross-tenant access, canonical checkout/ref change, Git effect or credential disclosure.
+
+Do not run repeated ad hoc ChatGPT/Access probes. One failing client interaction records the smallest discovery, registration, authentication, authorization or tool falsifier plus exact zero/present/unknown effects. Correct the responsible D0023/D0024/D0046 owner under SDD, re-run all cheaper gates, and only then make one new bounded client attempt.
+
+Following an accepted M2 evidence record, freeze that exact path as the regression corpus.
+
+H1 forces Worker/drive/Agent restart, response loss, reconnect, cancellation and cleanup; H2 covers wrong resource/issuer/audience/tenant plus refresh/revocation/JWKS/policy rotation and secret scans; H3 covers fresh deploy, writer exclusion, rollback and forward recovery; H4 proves legal width-2/4 and selected-normal-capacity overlap without result-order dependence; H5 proves exact stable-resource cutover/supported-client reconnect/rollback if stable promotion is selected.
+
+Each hardening layer remains separately evidenced and cannot rewrite the M2 observation.
+
+Source, package, upload, readback, authentication, initialize or tools/list alone is not the user-experienced PASS. Report M0/M1 completion internally and continue; the user-facing boundaries are the complete ready-to-connect handoff, M2 PASS, a later whole hardening/comparison checkpoint, or an exact blocker that cannot be resolved within accepted authority.
+
 ### D0045 tdev/tmcp MCP development-path comparative qualification
 
-D0045 owns the comparative pass meaning; this file owns the stable method. Comparative evidence never replaces semantic, source, provider, security, migration, recovery, publication or D0035 tmcp-disabled evidence. A favorable benchmark is invalid when one path receives a different repository base, client/model profile, objective, context, validation set, effect class or failure schedule.
+D0045 begins only after D0046 M2 is independently usable. It owns the comparative pass meaning; this file owns the stable method. Comparative evidence never replaces semantic, source, provider, security, migration, recovery, publication or D0035 tmcp-disabled evidence. A favorable benchmark is invalid when one path receives a different repository base, client/model profile, objective, context, validation set, effect class or failure schedule.
 
 Run paired comparisons separately for `Codex -> MCP -> tmcp` versus `Codex -> MCP -> tdev`, then for `supported web ChatGPT -> MCP -> tmcp` versus `supported web ChatGPT -> MCP -> tdev`. Do not pool or directly contrast different client strata as execution-path evidence. Each pair uses one immutable published repository base, equivalent non-secret work/context/bounds, isolated worktree/ref/Case identities, the same declared Agent/machine/provider profile and an independent candidate/outcome observer. Neither system's self-reported timing or status is sufficient by itself.
 

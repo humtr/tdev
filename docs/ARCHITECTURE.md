@@ -243,6 +243,25 @@ Receipt identity stays exactly D0010: `typedDigest('tdev.case-command.v1', canon
 
 The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` logical profile, normalized/chunked state, a finite deployment-qualified Case capacity budget, and compatible old/new schema/API overlap or a fail-closed rollout barrier. D0019 explicitly forbids an initial migration of an existing local Case. New qualified Cases may be born only after placement election. Any later existing-Case move requires a separate cutover owner that fences the old writer before activating the destination; two writable copies are never a supported topology. Production/provider qualification of this boundary requires live placement, eviction/response-loss, capacity, rollout and deployment-lifecycle evidence; current status belongs to the maintained Design and exact evidence.
 
+## 9.6 D0043/D0046 development-path composition boundary
+
+D0043 adds no semantic owner. Its Revision-2 catalog binds repository preparation, one fresh Codex model process, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it.
+
+D0046 adds one provider-composition layer, not a replacement runtime:
+
+```text
+web ChatGPT -> D0023/D0024 trial ingress
+                     |-> D0019 CaseRuntimeDO
+                     |-> D0042 CaseAgentDriveRuntimeDO
+                                  |-> D0020 AgentDeliveryRuntimeDO
+                                                |-> D0027 Termux Agent
+                                                          |-> D0043 Codex/validation
+```
+
+The ingress is stateless command/projection code. The drive DO owns only durable level-triggered intent/cursors. Cross-script bindings select the already-owned Case and Agent authorities, and the common D1 binding selects Case placement; none is a new semantic cache or queue. One immutable deployment manifest fixes the principal/tenant, Case prefix, Agent/route, repository, operation release and provider objects so request data cannot redirect an edge.
+
+The first composition intentionally has no Git/publication edge and uses an isolated public Worker name. Stable endpoint cutover, broader tenancy, publication, comparison and self-hosting remain later independently authorized edges. A source diagram or successful HTTP response never proves those owners are deployed or that a current client reached a validated candidate.
+
 ## 10. Architectural stop gates
 
 A new adapter or optimization is rejected when it:

@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r2_real_termux_codex_operation_binding_acceptance",
+  "observedAtUtc": "2026-09-03T12:10:13Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "069be884f0cb160ee8584c7b79ab333d232a1c2f"
+    },
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 2,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@069be884f0cb160ee8584c7b79ab333d232a1c2f",
+    "predecessor": {
+      "revision": 1,
+      "acceptanceBase": "development@62a37cca3ade0007c204de10c8bdc6b26b0ddca4",
+      "acceptanceEvidence": "docs/evidence/group-f-d0043-r1-bounded-operation-profiles-acceptance-2026-09-03.json",
+      "sourcePackageEvidence": "docs/evidence/group-f-d0043-r1-release-bound-development-operation-profiles-source-package-2026-09-03.json"
+    }
+  },
+  "trigger": {
+    "source": "minimum_path_failure_analysis",
+    "finding": "Revision 1 stops at release-bound placeholder executable names and explicitly leaves physical Termux execution unqualified, while its model network mode cannot reach the authenticated remote model used by the installed Codex client.",
+    "requiredOutcome": "Bind one real non-interactive Codex model runtime and one fixed validation runtime without granting arbitrary shell, caller-selected execution or canonical-tree authority."
+  },
+  "sdd": {
+    "classification": "class_2_design_revision",
+    "reason": "The real model executable, saved-authentication use, provider-network mode, output schema, candidate materialization and physical acceptance boundary change the D0043 credential/network/runtime contract."
+  },
+  "repositoryAndMachineObservations": {
+    "revision1Manifest": "config/development-operation-profiles.json",
+    "revision1ModelExecutable": "configured_runtime",
+    "revision1ModelNetworkMode": "none",
+    "revision1ValidationExecutable": "configured_runtime",
+    "revision1PhysicalTermuxClaim": false,
+    "installedCodex": {
+      "path": "/data/data/com.termux/files/usr/bin/codex",
+      "version": "codex-cli 0.150.1",
+      "loginStatus": "Logged in using ChatGPT",
+      "credentialBytesObserved": false
+    },
+    "installedTools": [
+      "node",
+      "git",
+      "npm"
+    ]
+  },
+  "externalEngineeringReferences": [
+    {
+      "owner": "OpenAI",
+      "url": "https://learn.chatgpt.com/docs/non-interactive-mode",
+      "usedFor": "codex exec non-interactive, ephemeral, explicit sandbox, JSONL and output-schema capabilities"
+    },
+    {
+      "owner": "OpenAI",
+      "url": "https://learn.chatgpt.com/docs/auth",
+      "usedFor": "local saved authentication reuse and authentication mode boundary"
+    }
+  ],
+  "acceptedDecision": {
+    "catalog": "tdev.development-operation-profiles.v2",
+    "modelRuntimeProfile": "tdev.model.codex-exec.v1",
+    "modelProcess": "release/deployment-bound codex exec with ephemeral JSONL, read-only sandbox, ignored user configuration except saved authentication, release-owned output schema and deployment-bound model configuration",
+    "modelNetworkMode": "openai-codex-trusted-local",
+    "contextAndValidationNetworkMode": "none",
+    "credentialBoundary": "Codex may reuse the user's existing saved CLI authentication; tdev does not read, copy, serialize, log or forward credential bytes.",
+    "disclosureProfile": "tdev.openai-codex-full-context.trusted-local.v1",
+    "disclosureBoundary": "The complete bounded regular UTF-8 tracked content of one exact published tdev commit and admitted instruction may reach the user's Codex service; mutable worktree/index, untracked/external paths, inherited environment and Git/provider/Agent/MCP credentials are excluded.",
+    "providerPolicyBoundary": "Provider retention, training, privacy, residency, billing and hostile-provider authenticity remain user-account/provider terms and are not tdev claims.",
+    "retryBoundary": "One outer Codex launch per Attempt; timeout, disconnect, response loss or unknown provider billing/effect never authorizes blind replay.",
+    "resultBoundary": "Codex returns one schema-valid relative-path ChangeSet; tdev materializes only a disposable candidate and Promotion remains the sole canonical writer.",
+    "validationProfile": "tdev.validation.npm-check.v1",
+    "validationBinding": "installed npm plus literal run check, finite bounds, explicit secret-free environment and disposable candidate root",
+    "supportedScope": "single-user trusted-local Termux trial",
+    "releaseRule": "v2 manifest, adapter, schema and validator alter the installable-Agent package identity and require fresh source/package/physical qualification plus quiescent activation"
+  },
+  "preservedOwners": {
+    "caseAndPromotion": "D0019",
+    "agentDeliveryAndProcess": "D0020/D0027",
+    "repositoryAndModelTransport": "D0013/D0014",
+    "publication": "D0025",
+    "redrive": "D0042",
+    "publicMcpComposition": "D0046"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - real runtime, network, saved-authentication and result-only boundaries fixed",
+    "revision1SourcePackage": "historical PASS only for its declared placeholder-bound source/package layer",
+    "revision2Source": "not executed by this acceptance record",
+    "physicalTermux": "not claimed",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "unknowns": [
+    "exact model and reasoning identifier admitted by the authenticated account at execution time",
+    "provider latency and rate limits",
+    "positive endpoint-level egress isolation capability on the selected Android/Termux environment"
+  ],
+  "externalEffects": {
+    "implementation": false,
+    "modelInvocation": false,
+    "credentialMutation": false,
+    "agentMutation": false,
+    "providerMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false
+  },
+  "next": "Route D0043 Revision 2, implement the real bounded Codex/validation bindings, and prove a physical Termux candidate before spending the final web ChatGPT trial."
+}

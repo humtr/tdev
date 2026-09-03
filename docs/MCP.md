@@ -26,21 +26,23 @@ Every state-changing MCP operation must map to a stable command envelope with:
 
 Response loss is handled by replaying the same request ID and payload. MCP must return the stored response receipt rather than synthesizing a new lifecycle decision.
 
-## 3. Candidate final-MVP tool surface
+## 3. Versioned v1 tool surface
 
-A later accepted MCP Design may expose tools equivalent to:
+D0023 accepts one exact `tdev.mcp.surface.v1` tool set:
 
 - `case_create`;
 - `case_get`;
 - `case_events_get`;
+- `case_run_or_resume`;
 - `task_cancel`;
 - `attempt_reconcile`;
-- `case_run_or_resume`;
 - `claim_conflicts_get`;
-- `artifact_get`;
-- `promotion_get`.
+- `promotion_get`;
+- `development_context_get`;
+- `development_unit_start`;
+- `development_unit_get`.
 
-Names and schemas are not accepted public contracts yet. They require a separate design, generated schemas, negative fixtures, versioning, and current-client evidence.
+Their exact order and strict input schemas are owned by D0023 and the versioned surface manifest. Source acceptance does not claim provider deployment or current-client support; incompatible additions, removals or semantic reinterpretations require a later accepted revision rather than an alias.
 
 ## 4. Projection rules
 
@@ -84,3 +86,11 @@ Until then, MCP remains a documented but **final-MVP-open** boundary. Source com
 ### Source composition boundary
 
 The source realization uses `src/mcp-surface.mjs` for the versioned Streamable HTTP/JSON-RPC adapter, `src/mcp-auth.mjs` for the resource/issuer/tenant contract, `src/mcp-auth-jwt.mjs` for issuer-bound Cloudflare Access RS256/JWKS verification, and `src/mcp-development-adapter.mjs` for owner-issued context composition into D0042/D0043. These modules are adapters over the named owners, not new scheduler, queue, process, claim, canonical-tree, Git, credential or provider authorities. Source, provider, current-client, and physical-Termux qualification remain separate evidence layers; the presence of a source adapter does not itself claim a public endpoint or web ChatGPT success.
+
+### D0046 minimum experiential route
+
+The first supported candidate path is the isolated `https://tdev-mcp-trial.humtr.workers.dev/mcp` resource selected by D0046. The endpoint is not offered to the user until exact source, physical-Termux and provider preflight passes and provider readback matches the release manifest. Its Worker remains stateless across requests except for the separately bound D0042 `CaseAgentDriveRuntimeDO`; Case, readiness, Task/Attempt/result, Agent delivery/process and candidate truth remain with their existing owners.
+
+The first user-visible PASS requires supported web ChatGPT to authenticate, submit one real non-documentation development unit and receive its validated isolated candidate/diff. `initialize`, `tools/list`, authentication, Worker upload or source/package success alone is not this PASS. The complete handoff includes the exact read-back URL, authentication/connection instructions, tool-set fingerprint and disable/rollback status. The only planned user actions are connection/authentication and the development objective.
+
+No Git/publication adapter is configured for this first route. Reconnect or response loss reuses the original request/Case/drive identity and rereads the owners. Repeated ad hoc ChatGPT probing is not a compatibility method: after lower-layer preflight, record the smallest failing current-client interaction once, correct its D0023/D0024/D0046 owner, then perform one new bounded attempt.
