@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_ingress_loss_recovery_current_source_correction",
+  "observedAtUtc": "2026-09-03T03:59:07Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "supportedMeaning": "isolated workers.dev ingress loss is reversible while the Worker and election authority remain readable",
+    "wholeProviderAccountOrElectionAuthorityLoss": "outside D0044; fail-closed and not promoted"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "deployedWorkerSourceCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "runnerCommit": "c1ffb87b7cea178a0a4177659b79b50fcdaf9b51",
+    "runnerPath": "qualification/d0044-provider-ingress-loss-recovery-r1-run.mjs",
+    "runnerSha256": "sha256:f0fff160d4619ae99f3c947d0523a4104acf1b4818ae54807338fa4894326893",
+    "workerSemanticSourceUnchangedAfterDeployment": true
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "current-r1",
+    "sourceSha": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:0dc715d6679290945b854f4b7ae62b5bd18dc641e5987171840e78b9f8a87765d",
+    "artifactManifestDigest": "sha256:dd2a24984c0ab146a3612bff2675437ac3204b75b7a81fb7b9ce90edb444db9d",
+    "latestObservedDeployment": {
+      "id": "74a2e539-5d4f-414f-bc1c-f2b89dd9eb0d",
+      "versionId": "dfc613a3-554a-438d-9693-1016a6c26f1c",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {"namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2", "className": "AgentDeliveryRuntimeDO", "useSqlite": true},
+      "election": {"namespaceId": "5f5e1733b60e408ba339ee01981e981f", "className": "AgentRouteElectionRuntimeDO", "useSqlite": true},
+      "distinctNamespaces": true,
+      "namespaceDeletion": false
+    },
+    "workersDev": {"before": {"enabled": true, "previewsEnabled": false}, "after": {"enabled": true, "previewsEnabled": false}},
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-provider-pitr-clean-20260903-r41",
+    "workersDev": {
+      "disableResponse": {"status": 200, "enabled": false},
+      "disabledIngress": {"status": 404, "contentType": "text/html; charset=UTF-8"},
+      "enableResponse": {"status": 200, "enabled": true},
+      "recoveredIngress": {"status": 401, "contentType": "application/json; charset=utf-8", "code": "qualification_unauthorized", "meaning": "reachable again; request intentionally lacked bearer"}
+    },
+    "authoritativeRecoveryReadback": {"status": 200, "ok": true, "currentRouteGeneration": 2, "electionStateDigest": "recorded-but-secret-free"},
+    "invariants": {
+      "disabledByProvider": true,
+      "ingressUnavailableDuringLoss": true,
+      "reenabledByProvider": true,
+      "ingressRecovered": true,
+      "electionReadableAfterRecovery": true,
+      "finalWorkersDevEnabled": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedWorkersDevIngressToggle": true,
+    "qualificationTokenRotated": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "providerAccountOrElectionAuthorityLoss": "NOT EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "isolatedWorkersDevIngressLossRecovery": "PASS - reversible disable/enable, 404 during loss, 401 after recovery without bearer, and election generation-2 readback",
+    "wholeProviderAccountOrElectionAuthorityLoss": "OUTSIDE D0044; not executed and fail-closed",
+    "canonicalD0039": "untouched"
+  },
+  "relationToHistoricalEvidence": "This current-source correction supplements, and does not overwrite, group-f-d0044-r1-provider-ingress-loss-recovery-2026-09-03.json."
+}

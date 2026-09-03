@@ -1,0 +1,105 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_cutover_pitr_same_name",
+  "observedAtUtc": "2026-09-03T04:03:20Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "supportedMeaning": "a strictly higher route generation is elected only after predecessor exclusion, and same-name generation-owner recreation remains stale to the election authority",
+    "wholeProviderAccountOrElectionAuthorityLoss": "outside D0044; fail-closed and not promoted"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "deployedWorkerSourceCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "runnerCommit": "77c26413f8286ac7f9c1f97d3a38cc49bd7c58a2",
+    "runnerPath": "qualification/d0044-provider-pitr-same-name-r26-run.mjs",
+    "runnerSha256": "sha256:1e7b0b403cb06b769b2367d79ad8bb199f8335fc5dff36d4d1b71e8427024630",
+    "workerSemanticSourceUnchangedAfterDeployment": true
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "current-r1",
+    "sourceSha": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:0dc715d6679290945b854f4b7ae62b5bd18dc641e5987171840e78b9f8a87765d",
+    "artifactManifestDigest": "sha256:dd2a24984c0ab146a3612bff2675437ac3204b75b7a81fb7b9ce90edb444db9d",
+    "latestObservedDeployment": {
+      "id": "74a2e539-5d4f-414f-bc1c-f2b89dd9eb0d",
+      "versionId": "dfc613a3-554a-438d-9693-1016a6c26f1c",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {"namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2", "className": "AgentDeliveryRuntimeDO", "useSqlite": true},
+      "election": {"namespaceId": "5f5e1733b60e408ba339ee01981e981f", "className": "AgentRouteElectionRuntimeDO", "useSqlite": true},
+      "distinctNamespaces": true,
+      "namespaceDeletion": false
+    },
+    "workersDev": {"enabled": true, "previewsEnabled": false},
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-pitr-final-20260903c",
+    "legacyImport": {
+      "routeHostProfile": "legacy_agent_id_v1",
+      "routeHostKey": "d0044-pitr-final-20260903c",
+      "preparedAttachmentDigest": "sha256:ff70db91984f32a2a333ef335ab6c6913d7f950ac17ed25c981113453e426f44",
+      "importDigest": "sha256:08b9a13e195c43daa1db8806996978b6d3979a2a8dbc694546fcefb4cdb2ec11",
+      "importedActivationReceiptDigest": "sha256:27f6a66b18c1e2b641b6d90694e5c232983042a43dc4ac528deaf48f3d581f38",
+      "routeBindingDigest": "sha256:0f9dcd0eb27d352dd56484723cf62ebfe3672153e66b3c7a588aa22a43010fb8",
+      "sealedElectionDigest": "sha256:3c7b3713be813c2faaa81781c95e33fa871aebb479115a60afccd2ab8584aac4"
+    },
+    "cutover": {
+      "requestId": "rc1:1",
+      "intentDigest": "sha256:3117227c541849d6138ed5fd63e11b3a61629b0a44ac5570a69630771e20a1bd",
+      "predecessorGeneration": 1,
+      "predecessorRouteBindingDigest": "sha256:0f9dcd0eb27d352dd56484723cf62ebfe3672153e66b3c7a588aa22a43010fb8",
+      "predecessorExclusionDigest": "sha256:d87a409bffe831a89572cb411bfcb0a84240ce699e3d2f0ee959ce4c387d1aea",
+      "successorGeneration": 2,
+      "successorRouteBindingDigest": "sha256:f3afaf0c7cebba0f3a82b763fa9e4d2bf0278b6f0ae7c8ffcefdab66bda0ae66",
+      "successorStandbyDigest": "sha256:6d836ab35a1a2ea29987607fb37bce28a78318e7b42a5262a5bd77bd09f571a4",
+      "activationReceiptDigest": "sha256:c581c4cf8582f1eeb72f8f86ec324d1e04f1b121efedc5a51897b2ce857ec2f3",
+      "electionDigestAfter": "sha256:3d87bb83cb3faa55c5f2a2ab844faa431dd056883e4a52eb4706b1b1b4fee54d",
+      "predecessorDisposition": "RETIRED",
+      "successorDisposition": "ACTIVE",
+      "staleActivation": {"status": 400, "code": "agent_route_not_standby"}
+    },
+    "pitr": {
+      "preResetBookmarkDigest": "sha256:b5bc111e61bb54efd927816b2b96565d25fdae9f3a4a1535919ab60f38ad275b",
+      "clearResponse": {"status": 200, "classification": "generation_state_cleared", "beforeStateDigest": "sha256:03b443bfa84e96b7d0183f34039e52c10c145b00937dea4325c74a9e01bcb421"},
+      "sameNameRecreatedDisposition": "RETIRED",
+      "staleAfterRecreate": {"status": 409, "code": "stale_route_generation"},
+      "restoreResponse": {"status": 400, "code": "qualification_provider_failure", "meaning": "provider abort made the response ambiguous; final authoritative readback remained RETIRED"},
+      "finalDisposition": "RETIRED"
+    },
+    "invariants": {
+      "strictNextGeneration": true,
+      "predecessorRetiredBeforeReset": true,
+      "successorActive": true,
+      "electionFirstStaleAfterRecreate": true,
+      "sameNameRecreationCannotSelfElect": true,
+      "predecessorRestored": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedGenerationImportCutoverAndPitr": true,
+    "qualificationTokenRotated": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "providerAccountOrElectionAuthorityLoss": "NOT EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "generationCutover": "PASS - predecessor was excluded before successor generation 2 activation; stale predecessor activation was denied",
+    "pitrAndSameNameNonResurrection": "PASS - reset/recreate/ambiguous restore remained RETIRED and stale to election generation 2",
+    "providerAccountOrElectionAuthorityLoss": "OUTSIDE D0044; not executed and fail-closed",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated lanes and the two pre-existing untracked response-loss diagnostics were retained without reset, force-rewrite or deletion."
+}

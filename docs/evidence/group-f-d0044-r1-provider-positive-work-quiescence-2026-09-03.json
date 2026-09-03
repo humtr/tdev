@@ -1,0 +1,117 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_positive_executable_work_quiescence",
+  "observedAtUtc": "2026-09-03T04:02:01Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "supportedMeaning": "an elected higher-generation route can admit one real executable delivery and reconcile to quiescence on the isolated provider lane",
+    "wholeProviderAccountOrElectionAuthorityLoss": "outside D0044; fail-closed and not promoted"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "deployedWorkerSourceCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "runnerCommit": "2ce2c1f9667b694af871561e387e2ea0c0e0a4a0",
+    "runnerPath": "qualification/d0044-provider-positive-work-run.mjs",
+    "runnerSha256": "sha256:f3e7085aae2739aa7690ed8f35c3024bdfbbf634a886545fc3531a44db13573b",
+    "laterValidationCommits": ["dcd0a01", "e936d9e"],
+    "workerSemanticSourceUnchangedAfterDeployment": true
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "current-r1",
+    "sourceSha": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:0dc715d6679290945b854f4b7ae62b5bd18dc641e5987171840e78b9f8a87765d",
+    "artifactManifestDigest": "sha256:dd2a24984c0ab146a3612bff2675437ac3204b75b7a81fb7b9ce90edb444db9d",
+    "attestorKeyId": "sha256:e22e4ab4744ddc35418b18f5a9d32e3e22366edaef46b44ef3e6d63a2246b384",
+    "latestObservedDeployment": {
+      "id": "74a2e539-5d4f-414f-bc1c-f2b89dd9eb0d",
+      "versionId": "dfc613a3-554a-438d-9693-1016a6c26f1c",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "runWorkerVersionId": "2ef81de2-1685-4422-a675-5983bb5c5e37",
+    "durableObjects": {
+      "delivery": {"namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2", "className": "AgentDeliveryRuntimeDO", "useSqlite": true},
+      "election": {"namespaceId": "5f5e1733b60e408ba339ee01981e981f", "className": "AgentRouteElectionRuntimeDO", "useSqlite": true},
+      "distinctNamespaces": true,
+      "namespaceDeletion": false
+    },
+    "workersDev": {"enabled": true, "previewsEnabled": false},
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false,
+    "runVersionMayBeSupersededBySecretTriggeredDeployment": true
+  },
+  "qualification": {
+    "agentId": "d0044-positive-d22ba316f1c73323",
+    "routeGeneration": 1,
+    "routeHostKey": "rh1.89c4d8f8c7b7a9ffcd3dc8ea16897e895f61374ed2a83ed59cfc6a02805fd292",
+    "routeBindingDigest": "sha256:f616527d479d449e7ed3d285d6820b48de133039f8579a97722c868a73755748",
+    "election": {
+      "authorityIdentity": "sha256:c56a2b563f21e67e59429b87ed8a214a9452d88e34b11bcb84a64bd80e42d2c0",
+      "recoveryKeyId": "sha256:75def9004fefcda03f44c7b2a2f981495d4a2b88436bfddbe39a585b9f3b5b80",
+      "attachmentDigest": "sha256:0e93e12943af3a8a7b0094de6f4f1ef32372b03a2c020c880d5cf685a6a7d4c0",
+      "generationDigest": "sha256:a8dcc146c1af31c336a7bfb3f1b4bcb838b40998218d697be29a90c6e83c9f94",
+      "activationReceiptDigest": "sha256:4497f32776bdb31e6af67f0eb383c46e507103c12f93c15956b8f202d9a0f962",
+      "stateDigest": "sha256:5cebde3470c7f5aea9ec68d131224c7a37d74454668b6cd8a95a2a1e8bb021f1"
+    },
+    "execution": {
+      "caseId": "d0044-positive-case-d22ba316f1c73323",
+      "planRevisionId": "d0044-positive-plan-v1",
+      "planDigest": "sha256:28dc02e89744f24163988126e03efcbe24a3d7e30fe7a1ab0f684ca978a5e8de",
+      "taskId": "positive-work-d22ba316f1c73323",
+      "attemptId": "positive-work-d22ba316f1c73323.1",
+      "executorId": "d0044-executor-d22ba316f1c73323",
+      "executorEpoch": 1,
+      "fencingTokenDigest": "sha256:90e2af6eb921279ae4e5b5a45daaeafe103601b0aca4949cbd9a1eeb306545a6",
+      "dispatch": {"received": true, "dispatchOrdinal": 1, "wireBodyDigest": "sha256:905e38a0a686832e5899d4258e3af8b9ddf7cb695fa562c7b3f6d581d83bfe8c"},
+      "evidenceRevisions": [
+        {"revision": 1, "classification": "monotonic_refinement", "execution": "started", "cleanup": "held", "effect": "unknown", "slotReleased": false},
+        {"revision": 2, "classification": "monotonic_refinement", "execution": "completed", "cleanup": "cleanup_complete", "effect": "not_applied", "slotReleased": true}
+      ],
+      "localOperation": {"operation": "write_and_verify_temp_sentinel", "roundTrip": true, "cleanup": true},
+      "resultHandoff": {"acknowledged": true, "resultDigest": "sha256:3434450189baf82cb52acbd47cf0382c5a224e46a5031c90513406302e09d33a", "commandType": "accept_result"},
+      "caseResultAcceptedLocally": true
+    },
+    "quiescence": {
+      "profile": "tdev.agent-route-positive-quiescence.v1",
+      "routeStateDigest": "sha256:a48725f66426837612430d2b11a7ea4ea5b68e930bfc862be57321bba6d21116",
+      "activeSocketCount": 0,
+      "heldCapacityCount": 0,
+      "observedAfter": "socket_close_and_delivery_cleanup",
+      "digest": "sha256:95b3b282c35431a172e79ad5495f5b06a3d8988cf2338373de34a9f3c8f74163"
+    },
+    "invariants": {
+      "unauthorizedBeforeRouting": true,
+      "freshElectionAbsentBeforeGenesis": true,
+      "electedGenerationExecutedWork": true,
+      "dispatchReceived": true,
+      "resultAccepted": true,
+      "cleanupComplete": true,
+      "quiescentNoSockets": true,
+      "quiescentNoHeldCapacity": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedWorkerDeliveryAndTemporarySentinel": true,
+    "isolatedDurableObjectState": true,
+    "qualificationTokenAndDeliveryAuthRotated": true,
+    "canonicalD0039ImportOrCutover": false,
+    "providerAccountOrElectionAuthorityLoss": "NOT_EXECUTED",
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "isolatedPositiveExecutableWork": "PASS - elected generation admitted a real dispatch, local write/verify/cleanup, result handoff and accepted result",
+    "quiescence": "PASS - fresh authoritative read observed zero active sockets and zero held capacity",
+    "staleDeployedWriterExclusion": "covered separately by generation cutover/PITR evidence; this run does not claim an old deployed version traffic split",
+    "wholeProviderAccountOrElectionAuthorityLoss": "OUTSIDE D0044; not executed and fail-closed",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated lanes and the two pre-existing untracked response-loss diagnostics were retained without reset, force-rewrite or deletion."
+}

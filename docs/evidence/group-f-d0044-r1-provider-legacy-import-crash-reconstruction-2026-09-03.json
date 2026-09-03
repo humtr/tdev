@@ -1,0 +1,110 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_provider_legacy_import_crash_reconstruction",
+  "observedAtUtc": "2026-09-03T04:02:40Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false,
+    "supportedMeaning": "legacy import remains recoverable when the qualification Durable Object aborts between initialization, prepare, import and seal, with fresh readback deciding truth",
+    "wholeProviderAccountOrElectionAuthorityLoss": "outside D0044; fail-closed and not promoted"
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "deployedWorkerSourceCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "runnerCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "runnerPath": "qualification/d0044-provider-legacy-import-crash-r1-run.mjs",
+    "runnerSha256": "sha256:11ae170daa9a15817a74b057d3cb2d1b3a4b225832063cb1e6677805f2297c58",
+    "workerSemanticSourceUnchangedAfterDeployment": true
+  },
+  "provider": {
+    "scriptName": "tdev-d0044-qualification-20260902",
+    "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+    "isolatedLane": "current-r1",
+    "sourceSha": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "moduleCount": 21,
+    "moduleDigest": "sha256:0dc715d6679290945b854f4b7ae62b5bd18dc641e5987171840e78b9f8a87765d",
+    "artifactManifestDigest": "sha256:dd2a24984c0ab146a3612bff2675437ac3204b75b7a81fb7b9ce90edb444db9d",
+    "latestObservedDeployment": {
+      "id": "74a2e539-5d4f-414f-bc1c-f2b89dd9eb0d",
+      "versionId": "dfc613a3-554a-438d-9693-1016a6c26f1c",
+      "triggeredBy": "secret",
+      "percentage": 100
+    },
+    "durableObjects": {
+      "delivery": {"namespaceId": "7ae2f8f315fc4fcf9ece1509941e96a2", "className": "AgentDeliveryRuntimeDO", "useSqlite": true},
+      "election": {"namespaceId": "5f5e1733b60e408ba339ee01981e981f", "className": "AgentRouteElectionRuntimeDO", "useSqlite": true},
+      "distinctNamespaces": true,
+      "namespaceDeletion": false
+    },
+    "workersDev": {"enabled": true, "previewsEnabled": false},
+    "qualificationTokenRotated": true,
+    "qualificationTokenValueRecorded": false
+  },
+  "qualification": {
+    "agentId": "d0044-legacy-import-crash-final-20260903c",
+    "route": {
+      "routeGeneration": 1,
+      "routeHostProfile": "legacy_agent_id_v1",
+      "routeHostKey": "d0044-legacy-import-crash-final-20260903c",
+      "bindingDigest": "sha256:bc0c44f189f72ddadd302a0e6d0249c031b5a2dd0484c1ae5677da8f9513540b"
+    },
+    "abortBoundary": {
+      "operation": "d0044_abort_instance",
+      "mechanism": "qualification-only Durable Object ctx.abort followed by fresh HTTP/DO readback",
+      "scope": "isolated qualification Worker instance; not provider-account or control-plane loss"
+    },
+    "stages": {
+      "initialized": {"fresh": true, "installableAgentState": "LEGACY_D0020_ONLY", "generationDisposition": "ACTIVE", "attachmentStatus": "NONE", "routeStateDigest": "sha256:137c2aaf57b25b85dc245b7386bed84332e28257fc6fe71ca8599038fabbf328"},
+      "initializationCrash": {"status": 400, "responseDiscarded": true},
+      "prepareResponseLoss": {"status": 200, "responseDiscarded": true},
+      "prepareCrash": {"status": 400, "responseDiscarded": true},
+      "pendingReadback": {"disposition": "ACTIVE", "attachmentStatus": "PENDING", "attachmentDigest": "sha256:0ee34a2703a9d417cc281d5b8302098c4ccc99776b689b15f40da2512e9ac426"},
+      "importResponseLoss": {"status": 200, "responseDiscarded": true},
+      "importCrash": {"status": 400, "responseDiscarded": true},
+      "electionReadback": {"digest": "sha256:c6f2b235be8e85c586dd6f5e378e685027bd1984448dd2d1849d9ae757471707", "currentRoute": {"routeGeneration": 1, "routeHostProfile": "legacy_agent_id_v1", "routeBindingDigest": "sha256:bc0c44f189f72ddadd302a0e6d0249c031b5a2dd0484c1ae5677da8f9513540b", "activationReceiptDigest": "sha256:d8644062590bce257bf29269174bb7b95ed0de6aa146f9963353893565130d99"}},
+      "sealResponseLoss": {"status": 200, "responseDiscarded": true},
+      "sealCrash": {"status": 400, "responseDiscarded": true},
+      "sealedReadback": {"disposition": "ACTIVE", "attachmentStatus": "SEALED", "activationReceiptDigest": "sha256:d8644062590bce257bf29269174bb7b95ed0de6aa146f9963353893565130d99"}
+    },
+    "ingress": {
+      "electedMode": "elected_v1",
+      "staleGenerationProbe": {"status": 400, "code": "agent_route_not_elected"},
+      "electedLegacyProbe": {"status": 400, "code": "invalid_agent_connect_challenge_request"}
+    },
+    "invariants": {
+      "initializedFresh": true,
+      "initializationCrash": true,
+      "prepareResponseDiscarded": true,
+      "prepareCrash": true,
+      "pendingAttachmentReconciled": true,
+      "importResponseDiscarded": true,
+      "importCrash": true,
+      "electionCreated": true,
+      "sealResponseDiscarded": true,
+      "sealCrash": true,
+      "sealedAttachmentReconciled": true,
+      "electedModeBound": true,
+      "staleGenerationDeniedBeforeHost": true,
+      "legacyCurrentIngressSelectedByElection": true,
+      "noCanonicalD0039Mutation": true
+    }
+  },
+  "externalEffects": {
+    "isolatedDurableObjectAbortAndReconciliation": true,
+    "qualificationTokenRotated": true,
+    "existingDurableObjectNamespacesPreserved": true,
+    "providerAccountOrElectionAuthorityLoss": "NOT_EXECUTED",
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "proofBoundaries": {
+    "legacyImportCrashBoundaries": "PASS - response loss plus actual qualification-only abort after initialization, prepare, import and seal, each followed by fresh authoritative readback",
+    "staleWriterExclusion": "PASS for stale generation denial before host and stale ingress selection; this is not an old deployed-version traffic-split claim",
+    "wholeProviderAccountOrElectionAuthorityLoss": "OUTSIDE D0044; not executed and fail-closed",
+    "canonicalD0039": "untouched"
+  },
+  "preservedQualificationLanes": "Earlier isolated lanes and the two pre-existing untracked response-loss diagnostics were retained without reset, force-rewrite or deletion."
+}
