@@ -2,6 +2,8 @@ import { spawn as nodeSpawn } from 'node:child_process';
 import {
   ContractError,
   assertScalarString,
+  assertCapabilityIdentifier,
+  compareText,
   assertDigest,
   assertIdentifier,
   assertRecordShape,
@@ -164,6 +166,7 @@ export class LocalAgentRuntime {
     agentId,
     routeGeneration,
     executor,
+    capabilities = [],
     emit,
     executionAdapter,
     installableAgentTuple = null,
@@ -176,6 +179,12 @@ export class LocalAgentRuntime {
     this.agentId = agentId;
     this.routeGeneration = routeGeneration;
     this.executor = assertExecutorTuple(executor);
+    if (!Array.isArray(capabilities)) fail('invalid_local_agent_capabilities', 'Local Agent capabilities must be an array');
+    const normalizedCapabilities = capabilities.map((capability, index) => assertCapabilityIdentifier(capability, 'local Agent capability[' + index + ']')).sort(compareText);
+    for (let index = 1; index < normalizedCapabilities.length; index += 1) {
+      if (normalizedCapabilities[index] === normalizedCapabilities[index - 1]) fail('duplicate_local_agent_capability', 'Local Agent capabilities must be unique');
+    }
+    this.capabilities = Object.freeze(normalizedCapabilities);
     this.installableAgentTuple = installableAgentTuple === null ? null : normalizeInstallableAgentDataPlaneTuple(installableAgentTuple);
     this.socketIncarnationId = null;
     if (typeof emit !== 'function') fail('invalid_local_agent_runtime', 'Local Agent runtime requires an evidence transport emitter');
@@ -212,6 +221,7 @@ export class LocalAgentRuntime {
       connectionEpoch: this.connection?.epoch ?? null,
       executorId: this.executor.id,
       executorEpoch: this.executor.epoch,
+      capabilities: this.capabilities,
       capacityRevision: this.capacityRevision,
     };
     if (this.installableAgentTuple !== null) identity.installableAgentTuple = canonicalClone(this.installableAgentTuple);

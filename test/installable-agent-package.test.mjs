@@ -49,8 +49,11 @@ async function createPackageFixture() {
   await writeFile(path.join(packageRoot, 'src', 'runtime.mjs'), runtime);
   await writeFile(path.join(packageRoot, 'native', 'helper', 'pidfd-control.node'), helper);
   await writeFile(path.join(packageRoot, 'config', 'installable-agent-tool-profiles.json'), toolProfiles);
+  const developmentOperationProfiles = await readFile(new URL('../config/development-operation-profiles.json', import.meta.url));
+  await writeFile(path.join(packageRoot, 'config', 'development-operation-profiles.json'), developmentOperationProfiles);
   const files = {
     'config/installable-agent-tool-profiles.json': { sha256: sha256(toolProfiles), bytes: toolProfiles.byteLength, role: 'package-tool-profiles' },
+    'config/development-operation-profiles.json': { sha256: sha256(developmentOperationProfiles), bytes: developmentOperationProfiles.byteLength, role: 'package-development-operation-profiles' },
     'native/helper/pidfd-control.node': { sha256: sha256(helper), bytes: helper.byteLength, role: 'native-pidfd-helper' },
     'src/runtime.mjs': { sha256: sha256(runtime), bytes: runtime.byteLength, role: 'runtime' },
   };
@@ -72,6 +75,10 @@ async function createPackageFixture() {
     toolProfiles: {
       relativePath: 'config/installable-agent-tool-profiles.json',
       sha256: sha256(toolProfiles),
+    },
+    developmentOperationProfiles: {
+      relativePath: 'config/development-operation-profiles.json',
+      sha256: sha256(developmentOperationProfiles),
     },
     helperAbi: {
       profile: 'tdev.agent.termux.pidfd.v1',
@@ -143,7 +150,8 @@ test('release verification binds every package byte and rejects tampering', asyn
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   const verified = await verifyInstallableAgentRelease({ packageRoot: fixture.packageRoot });
   assert.equal(verified.manifest.sourceRevision, 'a'.repeat(40));
-  assert.equal(verified.verifiedFiles, 3);
+  assert.equal(verified.verifiedFiles, 4);
+  assert.equal(verified.manifest.developmentOperationProfiles.relativePath, 'config/development-operation-profiles.json');
   await writeFile(path.join(fixture.packageRoot, 'src', 'runtime.mjs'), 'tampered\n');
   await assert.rejects(
     verifyInstallableAgentRelease({ packageRoot: fixture.packageRoot }),

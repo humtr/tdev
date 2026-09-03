@@ -9,6 +9,7 @@ import {
   INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
   INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
   INSTALLABLE_AGENT_PACKAGE_PROFILE,
+  INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
   INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION,
   INSTALLABLE_AGENT_MANAGEMENT_JOURNAL_SCHEMA_VERSION,
   INSTALLABLE_AGENT_MANAGEMENT_PROTOCOL_PROFILE,
@@ -48,6 +49,7 @@ const SOURCE_FILES = [
   ['src/installable-agent-package-cli.mjs', 'package-management-cli'],
   ['src/installable-agent-control.mjs', 'agent-control'],
   [INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH, 'package-tool-profiles'],
+  [INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH, 'package-development-operation-profiles'],
   ['native/installable-agent-supervisor/manifest.json', 'native-helper-manifest'],
 ];
 
@@ -179,6 +181,10 @@ async function main() {
       toolProfiles: {
         relativePath: INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH,
         sha256: files[INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH].sha256,
+      },
+      developmentOperationProfiles: {
+        relativePath: INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
+        sha256: files[INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH].sha256,
       },
       helperAbi: {
         profile: nativeManifest.profile,

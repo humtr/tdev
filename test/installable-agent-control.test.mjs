@@ -60,8 +60,11 @@ async function createControlFixture() {
   const profiles = Buffer.from(`${canonicalJson(toolProfilesDocument())}\n`);
   await writeFile(path.join(packageRoot, 'native', 'helper', 'pidfd-control.node'), helper);
   await writeFile(path.join(packageRoot, 'config', 'installable-agent-tool-profiles.json'), profiles);
+  const developmentOperationProfiles = await readFile(new URL('../config/development-operation-profiles.json', import.meta.url));
+  await writeFile(path.join(packageRoot, 'config', 'development-operation-profiles.json'), developmentOperationProfiles);
   const files = {
     'config/installable-agent-tool-profiles.json': { sha256: sha256(profiles), bytes: profiles.byteLength, role: 'package-tool-profiles' },
+    'config/development-operation-profiles.json': { sha256: sha256(developmentOperationProfiles), bytes: developmentOperationProfiles.byteLength, role: 'package-development-operation-profiles' },
     'native/helper/pidfd-control.node': { sha256: sha256(helper), bytes: helper.byteLength, role: 'native-pidfd-helper' },
   };
   const manifest = {
@@ -88,6 +91,10 @@ async function createControlFixture() {
     toolProfiles: {
       relativePath: 'config/installable-agent-tool-profiles.json',
       sha256: sha256(profiles),
+    },
+    developmentOperationProfiles: {
+      relativePath: 'config/development-operation-profiles.json',
+      sha256: sha256(developmentOperationProfiles),
     },
     helperAbi: {
       profile: 'tdev.agent.termux.pidfd.v1',
@@ -216,6 +223,9 @@ test('control reconnect reuses one durable connect identity after response loss 
     },
     webSocketFactory: websocket.factory,
   });
+
+  assert.equal(control.developmentOperationCapabilities.length, 3);
+  assert.deepEqual(control.runtime.identity().capabilities, control.developmentOperationCapabilities);
 
   await assert.rejects(control.connectOnce(), (error) => error?.code === 'local_transport_connect_failed');
   const pendingText = await readFile(path.join(fixture.stateDirectory, 'control-connection.json'), 'utf8');

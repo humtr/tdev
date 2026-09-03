@@ -36,6 +36,11 @@ import {
 } from './installable-agent-supervisor-service.mjs';
 import { termuxInstallableAgentServiceLayout } from './installable-agent-termux-service.mjs';
 import { verifyInstallableAgentRelease } from './installable-agent-package.mjs';
+import {
+  developmentOperationCapabilityId,
+  developmentOperationManifestDigest,
+  normalizeDevelopmentOperationManifest,
+} from './development-operation-profile.mjs';
 
 export const INSTALLABLE_AGENT_CONTROL_PROFILE = 'tdev.installable-agent-control.v1';
 export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 2;
@@ -47,6 +52,7 @@ export const INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH = 'config/installable
 const MAX_CONFIG_BYTES = 1024 * 1024;
 const MAX_CREDENTIAL_BYTES = 16 * 1024;
 const MAX_TOOL_PROFILE_BYTES = 1024 * 1024;
+const MAX_DEVELOPMENT_OPERATION_PROFILE_BYTES = 256 * 1024;
 const MAX_ARGUMENT_BYTES = 64 * 1024;
 const DEFAULT_RECONNECT_DELAY_MS = 1000;
 
@@ -204,6 +210,20 @@ async function loadReleaseToolProfiles(packageRoot, release) {
   return normalizeToolProfiles(parsed);
 }
 
+async function loadReleaseDevelopmentOperationProfiles(packageRoot, release) {
+  const binding = release.manifest.developmentOperationProfiles;
+  if (binding === undefined) return null;
+  const relativePath = binding.relativePath;
+  const bytes = await readFile(path.join(packageRoot, ...relativePath.split('/')));
+  if (bytes.byteLength > MAX_DEVELOPMENT_OPERATION_PROFILE_BYTES || sha256(bytes) !== binding.sha256) {
+    fail('installable_agent_development_operation_profiles_mismatch', 'Package-owned development-operation manifest does not match release binding');
+  }
+  let parsed;
+  try { parsed = strictJsonParse(bytes.toString('utf8'), { maxBytes: MAX_DEVELOPMENT_OPERATION_PROFILE_BYTES }); }
+  catch (cause) { fail('installable_agent_development_operation_profiles_invalid', 'Development-operation manifest is not bounded JSON', {}, { cause }); }
+  return normalizeDevelopmentOperationManifest(parsed);
+}
+
 function resolveToolProfile(toolProfiles, executableBody) {
   assertRecordShape(executableBody, ['profile', 'arguments'], [], 'installable Agent executableBody');
   assertIdentifier(executableBody.profile, 'executableBody.profile');
@@ -358,6 +378,10 @@ export async function createInstallableAgentControlProcess({
     fail('installable_agent_profile_unsupported', 'Installed package target does not match this control process');
   }
   const toolProfiles = await loadReleaseToolProfiles(resolvedPackageRoot, release);
+  const developmentOperationProfiles = await loadReleaseDevelopmentOperationProfiles(resolvedPackageRoot, release);
+  const developmentOperationProfilesDigest = developmentOperationProfiles === null ? null : developmentOperationManifestDigest(developmentOperationProfiles);
+  const developmentOperationCapabilities = developmentOperationProfiles === null ? [] : Object.keys(developmentOperationProfiles.profiles).map((profile) =>
+    developmentOperationCapabilityId(developmentOperationProfiles, profile)).sort();
   const d0039Credential = normalizedConfig.credentialRef.startsWith('androidkeystore://');
   let authKey = null;
   let credentialVerifier = null;
@@ -394,6 +418,7 @@ export async function createInstallableAgentControlProcess({
     agentId: normalizedConfig.agentId,
     routeGeneration: normalizedConfig.routeGeneration,
     executor: { id: normalizedConfig.executorId, epoch: normalizedConfig.executorEpoch },
+    capabilities: developmentOperationCapabilities,
     installableAgentTuple: normalizedConfig.installableAgentTuple,
     executionAdapter,
     emit: async (frame) => {
@@ -484,6 +509,8 @@ export async function createInstallableAgentControlProcess({
     profile: INSTALLABLE_AGENT_CONTROL_PROFILE,
     releaseManifestDigest: release.manifestDigest,
     toolProfilesDigest: digest(toolProfiles),
+    developmentOperationProfilesDigest,
+    developmentOperationCapabilities: Object.freeze([...developmentOperationCapabilities]),
     runtime,
     connectOnce,
     run,
@@ -499,6 +526,8 @@ export async function createInstallableAgentControlProcess({
         executorId: normalizedConfig.executorId,
         executorEpoch: normalizedConfig.executorEpoch,
         installationGeneration: normalizedConfig.installableAgentTuple.installationGeneration,
+        developmentOperationProfilesDigest,
+        developmentOperationCapabilities: Object.freeze([...developmentOperationCapabilities]),
       });
     },
   });
