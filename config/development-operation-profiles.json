@@ -23,7 +23,8 @@
       "binding": {
         "profile": "tdev.model.codex-exec.v1",
         "outputSchemaPath": "config/codex-changeset-output.schema.json",
-        "outputSchemaSha256": "sha256:a3362d7f8f3b531d60adf3e67a7b6ea17c682771780863a0416ddfab4140dd84"
+        "outputSchemaSha256": "sha256:a3362d7f8f3b531d60adf3e67a7b6ea17c682771780863a0416ddfab4140dd84",
+        "contextExcludedPaths": ["native/installable-agent-supervisor/android-arm64/pidfd-control.node"]
       }
     },
     "tdev.repository.context.prepare.v1": {

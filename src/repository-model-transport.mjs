@@ -190,6 +190,22 @@ function normalizeLimits(input = {}) {
   });
 }
 
+function normalizeExcludedPaths(input) {
+  if (input === undefined) return Object.freeze([]);
+  if (!Array.isArray(input) || input.length > 128) {
+    throw new ContractError('invalid_repository_excluded_paths', 'excludedPaths must be a bounded array');
+  }
+  const paths = input.map((value, index) => validateRelativePath(value, {
+    requireNfc: true,
+    deniedPrefixes: ['.git', '.tdev'],
+    maxPathBytes: DEFAULT_LIMITS.maxPathBytes,
+  })).sort(compareText);
+  for (let index = 1; index < paths.length; index += 1) {
+    if (paths[index] === paths[index - 1]) throw new ContractError('duplicate_repository_excluded_path', `excludedPaths repeats ${paths[index]}`);
+  }
+  return Object.freeze(paths);
+}
+
 class ContextPreparationCache {
   #entries = new Map();
   #retainedBytes = 0;
@@ -492,6 +508,7 @@ function contextIdentity(input) {
     semanticBaseDigest: input.semanticBaseDigest,
     fileCount: input.fileCount,
     contentBytes: input.contentBytes,
+    excludedPaths: input.excludedPaths,
     files: input.files.map(({ path: filePath, mode, blobOid, byteLength }) => ({
       path: filePath,
       mode,
@@ -742,6 +759,7 @@ export class GitRepositoryModelExecutor {
     modelRunner = runModelSubprocess,
     observation = null,
     limits = {},
+    excludedPaths = undefined,
     contextCache = undefined,
   }) {
     this.repositoryPath = normalizeRepositoryPath(repositoryPath);
@@ -760,6 +778,7 @@ export class GitRepositoryModelExecutor {
     this.#observation = observation;
     this.#environment = freeze(normalizeEnvironment(modelEnvironment));
     this.#limits = normalizeLimits(limits);
+    this.excludedPaths = normalizeExcludedPaths(excludedPaths);
     const cacheConfiguration = normalizeContextCache(contextCache);
     this.#contextCache = cacheConfiguration === null
       ? null
@@ -814,16 +833,25 @@ export class GitRepositoryModelExecutor {
       objectFormat,
       this.#limits,
     );
-    if (requestLimit !== null && listing.contentBytes >= requestLimit) {
+    const excludedSet = new Set(this.excludedPaths);
+    const listedPaths = new Set(listing.rows.map((row) => row.path));
+    for (const excludedPath of this.excludedPaths) {
+      if (!listedPaths.has(excludedPath)) {
+        throw new ContractError('repository_excluded_path_missing', `Configured excluded path is absent from the bound commit: ${excludedPath}`);
+      }
+    }
+    const rows = listing.rows.filter((row) => !excludedSet.has(row.path));
+    const contentBytes = rows.reduce((sum, row) => sum + row.byteLength, 0);
+    if (requestLimit !== null && contentBytes >= requestLimit) {
       throw new ContractError('model_request_limit_exceeded', `Model request exceeds ${requestLimit} bytes`, {
-        requestBytesLowerBound: listing.contentBytes,
+        requestBytesLowerBound: contentBytes,
       });
     }
-    const uniqueBlobOids = [...new Set(listing.rows.map((row) => row.blobOid))];
+    const uniqueBlobOids = [...new Set(rows.map((row) => row.blobOid))];
     const batchInput = uniqueBlobOids.length === 0
       ? Buffer.alloc(0)
       : Buffer.from(`${uniqueBlobOids.join('\n')}\n`, 'ascii');
-    const blobs = listing.rows.length === 0
+    const blobs = rows.length === 0
       ? {
         files: [],
         tree: Object.create(null),
@@ -832,7 +860,7 @@ export class GitRepositoryModelExecutor {
       }
       : parseBatchBlobs(
         await this.#git(['cat-file', '--batch'], batchInput, signal, gitMetrics),
-        listing.rows,
+        rows,
         objectFormat,
       );
     throwIfAborted(signal, 'Model transport was aborted after repository blob loading');
@@ -857,7 +885,8 @@ export class GitRepositoryModelExecutor {
       treeOid,
       semanticBaseDigest,
       fileCount: blobs.files.length,
-      contentBytes: listing.contentBytes,
+      contentBytes,
+      excludedPaths: this.excludedPaths,
       files: blobs.files,
     });
     const descriptor = deepFreeze({
@@ -877,11 +906,12 @@ export class GitRepositoryModelExecutor {
       filesBytes,
       retainedBytes: estimatePreparationBytes(files, descriptorBytes, filesBytes),
       contextEncodingBytes: descriptorBytes.length + filesBytes.length,
-      logicalBlobCount: listing.rows.length,
-      logicalContentBytes: listing.contentBytes,
+      excludedPaths: this.excludedPaths,
+      logicalBlobCount: rows.length,
+      logicalContentBytes: contentBytes,
       uniqueBlobCount: blobs.uniqueBlobCount,
       uniqueContentBytes: blobs.uniqueContentBytes,
-      validationOperations: listing.rows.length,
+      validationOperations: rows.length,
       hashBytes: Buffer.byteLength(semanticJson, 'utf8'),
       scanDurationMs,
       gitMetrics,
@@ -939,6 +969,7 @@ export class GitRepositoryModelExecutor {
     return {
       descriptor: acquired.preparation.descriptor,
       files: acquired.preparation.files,
+      excludedPaths: acquired.preparation.excludedPaths,
       scanDurationMs: acquired.contextMaterializations === 1
         ? acquired.preparation.scanDurationMs
         : 0,

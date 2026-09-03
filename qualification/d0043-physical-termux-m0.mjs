@@ -92,6 +92,7 @@ async function trackedTree(commitOid) {
   const uniqueOids = [...new Set(rows.map((row) => row.blobOid))];
   const batch = uniqueOids.length === 0 ? Buffer.alloc(0) : await git(['cat-file', '--batch'], Buffer.from(`${uniqueOids.join('\n')}\n`, 'ascii'));
   const contentByOid = new Map();
+  const excludedOids = new Set();
   let offset = 0;
   for (const oid of uniqueOids) {
     const headerEnd = batch.indexOf(0x0a, offset);
@@ -102,17 +103,22 @@ async function trackedTree(commitOid) {
     const start = headerEnd + 1;
     const end = start + size;
     if (end >= batch.length || batch[end] !== 0x0a) fail('m0_git_blob_invalid', 'Git blob batch content is truncated');
-    contentByOid.set(oid, decodeUtf8(batch.subarray(start, end), `Git blob ${oid}`));
+    try { contentByOid.set(oid, decodeUtf8(batch.subarray(start, end), `Git blob ${oid}`)); }
+    catch (cause) {
+      if (cause?.code !== 'm0_non_utf8_repository') throw cause;
+      excludedOids.add(oid);
+    }
     offset = end + 1;
   }
   if (offset !== batch.length) fail('m0_git_blob_invalid', 'Git blob batch has trailing bytes');
   const tree = {};
   for (const row of rows) {
+    if (excludedOids.has(row.blobOid)) continue;
     const content = contentByOid.get(row.blobOid);
     if (content === undefined || Buffer.byteLength(content, 'utf8') !== row.byteLength) fail('m0_git_blob_invalid', 'Git blob size does not match tree metadata', { path: row.path });
     tree[row.path] = content;
   }
-  return validateTree(tree);
+  return { tree: validateTree(tree), excludedPaths: rows.filter((row) => excludedOids.has(row.blobOid)).map((row) => row.path).sort() };
 }
 
 async function assertExecutable(filePath, label) {
@@ -141,7 +147,8 @@ async function main() {
   const beforeCheckout = await assertM0Checkout();
   const preservedBefore = await preservedFiles();
   const commitOid = beforeCheckout.head;
-  const baseTree = await trackedTree(commitOid);
+  const tracked = await trackedTree(commitOid);
+  const baseTree = tracked.tree;
   const baseDigest = digest(baseTree);
   const manifest = strictJsonParse(await readFile(path.join(ROOT, 'config', 'development-operation-profiles.json')));
   const profileNames = {
@@ -150,6 +157,8 @@ async function main() {
     validation: 'tdev.repository.validate.v1',
   };
   const capabilityByProfile = Object.fromEntries(Object.values(profileNames).map((profile) => [profile, developmentOperationCapabilityId(manifest, profile)]));
+  const expectedExcludedPaths = manifest.profiles[profileNames.model].binding.contextExcludedPaths ?? [];
+  if (JSON.stringify(tracked.excludedPaths) !== JSON.stringify(expectedExcludedPaths)) fail('m0_context_exclusion_mismatch', 'The published repository binary exclusion does not match the release binding', { observed: tracked.excludedPaths, expected: expectedExcludedPaths });
   const capabilities = Object.values(capabilityByProfile).sort();
   const caseContract = { caseGrant: capabilities, workspacePolicy: capabilities };
   const workspaceBefore = await workspaceEntries();

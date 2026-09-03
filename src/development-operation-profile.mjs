@@ -13,6 +13,7 @@ import {
   isPlainRecord,
   typedDigest,
 } from './canonical.mjs';
+import { validateRelativePath } from './policy.mjs';
 
 export const DEVELOPMENT_OPERATION_PROFILE = 'tdev.development-operation-profiles.v2';
 export const DEVELOPMENT_OPERATION_SCHEMA_VERSION = 2;
@@ -92,7 +93,7 @@ function normalizeProfile(input, name) {
   }
   let binding = null;
   if (input.binding !== undefined && input.binding !== null) {
-    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand'], `operation profile ${name}.binding`);
+    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths'], `operation profile ${name}.binding`);
     assertIdentifier(input.binding.profile, `operation profile ${name}.binding.profile`);
     for (const field of ['outputSchemaPath', 'model', 'reasoningEffort', 'validationCommand']) {
       if (input.binding[field] !== undefined && input.binding[field] !== null) boundedText(input.binding[field], `operation profile ${name}.binding.${field}`, 4096);
@@ -101,6 +102,16 @@ function normalizeProfile(input, name) {
       assertDigest(input.binding.outputSchemaSha256, `operation profile ${name}.binding.outputSchemaSha256`);
     }
     binding = canonicalClone(input.binding);
+    if (input.binding.contextExcludedPaths !== undefined) {
+      if (!Array.isArray(input.binding.contextExcludedPaths) || input.binding.contextExcludedPaths.length > 128) {
+        fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths is invalid`);
+      }
+      const excludedPaths = input.binding.contextExcludedPaths.map((value) => validateRelativePath(boundedText(value, `operation profile ${name}.binding.contextExcludedPaths`, 4096))).sort(compareText);
+      for (let index = 1; index < excludedPaths.length; index += 1) {
+        if (excludedPaths[index] === excludedPaths[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths contains a duplicate`);
+      }
+      binding.contextExcludedPaths = excludedPaths;
+    }
   }
   if (input.kind === 'model_repository' && (binding === null || binding.profile !== 'tdev.model.codex-exec.v1' || typeof binding.outputSchemaPath !== 'string')) {
     fail('development_operation_model_binding_invalid', `Operation profile ${name} must bind the release-owned Codex output schema`);
