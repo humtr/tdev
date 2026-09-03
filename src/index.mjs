@@ -164,6 +164,16 @@ export {
 } from './d1-case-placement.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
+  CASE_AGENT_DRIVE_PROFILE,
+  CASE_AGENT_DRIVE_SCHEMA_VERSION,
+  CASE_AGENT_DRIVE_REQUEST_DOMAIN,
+  CASE_AGENT_DRIVE_MAX_PAYLOAD_BYTES,
+  CaseAgentDriveAuthority,
+  MemoryCaseAgentDriveStore,
+  computeCaseAgentDriveRequestDigest,
+  caseAgentDriveRecordDigest,
+} from './case-agent-drive.mjs';
+export {
   GIT_PROJECTION_CANDIDATE_DOMAIN,
   GIT_PROJECTION_PROFILE,
   GIT_PUBLICATION_RECEIPT_DOMAIN,
