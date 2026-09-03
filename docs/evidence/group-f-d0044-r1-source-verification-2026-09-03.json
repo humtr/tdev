@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0044_r1_source_verification",
+  "observedAtUtc": "2026-09-03T04:13:00Z",
+  "design": {
+    "id": "D0044",
+    "revision": 1,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "deployedWorkerSourceCommit": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8",
+    "evidenceCheckpointBeforeThisRecord": "24473ab2be7dd9c463e47ccb638da891e1e6bc90",
+    "workerSemanticSourceUnchangedAfterDeployment": true,
+    "semanticDiffObservation": "284f77af1840c1b0d1b4a545bda25c70c8f26bd8..24473ab2be7dd9c463e47ccb638da891e1e6bc90 contains only the deployment source binding and focused qualification tests; deployed Worker modules remain source-bound to 284f77af.",
+    "validation": {
+      "commands": [
+        "npm ci --ignore-scripts --no-audit --no-fund",
+        "npm run check",
+        "node --experimental-test-coverage --test test/*.test.mjs",
+        "git diff --check"
+      ],
+      "npmCi": {"success": true, "message": "up to date"},
+      "check": {
+        "success": true,
+        "tests": {"total": 614, "passed": 614, "failed": 0, "cancelled": 0, "skipped": 0, "todo": 0},
+        "syntax": "PASS",
+        "documentation": "PASS",
+        "demo": "PASS",
+        "durableDemo": "PASS"
+      },
+      "coverage": {"success": true, "tests": {"total": 614, "passed": 614, "failed": 0}, "allFiles": {"lines": 85.50, "branches": 71.42, "functions": 88.10}},
+      "diffCheck": "PASS",
+      "preEvidenceCandidate": "24473ab2be7dd9c463e47ccb638da891e1e6bc90"
+    }
+  },
+  "proofBoundaries": {
+    "source": "PASS - install, syntax, documentation, complete 614/614 test gate, demo, durable-demo, coverage and diff integrity",
+    "provider": "not promoted by this source-layer record; see the isolated provider evidence records",
+    "deployedProduct": "not claimed",
+    "providerAccountOrElectionAuthorityLoss": "OUTSIDE D0044; not executed and fail-closed",
+    "canonicalD0039": "untouched"
+  },
+  "externalEffects": {
+    "sourceValidation": false,
+    "providerMutation": false,
+    "deviceMutation": false,
+    "canonicalD0039ImportOrCutover": false,
+    "d0039Q7Q8Q9": "NOT_EXECUTED"
+  },
+  "preservedQualificationLanes": "The two pre-existing untracked response-loss diagnostics were not staged, modified or deleted."
+}
