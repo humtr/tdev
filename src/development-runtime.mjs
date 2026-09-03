@@ -392,7 +392,7 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
     calls,
     emitted,
     authorize: async (request) => { calls.authorize.push(canonicalClone(request)); return true; },
-    observe: async () => ({ available: true, runtime: localRuntime.identity(), emittedFrames: emitted.length }),
+    observe: async () => ({ available: true }),
     dispatch: async (request) => {
       const { signal: _signal, ...observableRequest } = request;
       calls.dispatch.push(canonicalClone(observableRequest));
