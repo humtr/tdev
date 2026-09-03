@@ -564,7 +564,7 @@ async function main() {
     }, 'activate delivery'));
     if (activationResult.classification !== 'accepted') throw new Error(`delivery activation was not accepted: ${JSON.stringify(activationResult)}`);
 
-    const dispatchPromise = session.waitFor((message) => message?.type === 'dispatch' && message.payload?.deliveryId === deliveryId, 'dispatch frame');
+    const dispatchPromise = session.waitFor((message) => message?.type === 'dispatch' && message?.deliveryId === deliveryId, 'dispatch frame');
     const grantCommand = assertOk('grant dispatch command', await invokeWithAuthPropagation(qualificationToken, '/qualification/d0044/delivery/v1', {
       profile,
       routeHostKey,
@@ -589,7 +589,7 @@ async function main() {
       throw new Error(`dispatch was not physically admitted: ${JSON.stringify(dispatchResult)}`);
     }
     dispatchFrame = await dispatchPromise;
-    const wire = dispatchFrame.payload;
+    const wire = dispatchFrame;
     for (const [field, expected] of [['deliveryId', deliveryId], ['caseId', caseId], ['taskId', taskId], ['attemptId', attempt.id], ['executorId', executorId], ['executorEpoch', executorEpoch], ['fencingToken', attempt.fencingToken]]) {
       if (wire[field] !== expected) throw new Error(`dispatch wire ${field} identity mismatch`);
     }
@@ -721,8 +721,8 @@ async function main() {
       fencingToken: attempt.fencingToken,
       dispatch: {
         received: dispatchFrame !== null,
-        dispatchOrdinal: dispatchFrame?.payload?.dispatchOrdinal ?? null,
-        wireBodyDigest: dispatchFrame === null ? null : digest(dispatchFrame.payload.executableBody),
+        dispatchOrdinal: dispatchFrame?.dispatchOrdinal ?? null,
+        wireBodyDigest: dispatchFrame === null ? null : digest(dispatchFrame.executableBody),
       },
       evidence,
       localOperation: localExecution,
