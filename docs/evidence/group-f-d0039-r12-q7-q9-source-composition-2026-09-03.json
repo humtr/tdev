@@ -1,0 +1,77 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0039_r12_q7_q9_source_composition",
+  "observedAtUtc": "2026-09-03T07:05:08Z",
+  "design": {
+    "id": "D0039",
+    "revision": 12,
+    "statusAfterEvidence": "implementing",
+    "sourceProofClosesDesign": false
+  },
+  "source": {
+    "repository": "humtr/tdev",
+    "candidateCommit": "6fe8cd140b9eb8bdcb153972433564be660f8cbc",
+    "qualification": "qualification/d0039-r12-q7-q9-source-composition.mjs",
+    "test": "test/d0039-r12-q7-q9-source-composition.test.mjs",
+    "validation": {
+      "syntax": "PASS",
+      "documentation": "PASS",
+      "tests": {
+        "total": 615,
+        "passed": 615,
+        "failed": 0,
+        "cancelled": 0,
+        "skipped": 0,
+        "todo": 0
+      },
+      "demo": "PASS",
+      "durableDemo": "PASS",
+      "diffCheck": "PASS"
+    }
+  },
+  "q7": {
+    "managementCompromiseDenied": true,
+    "higherRouteReason": "management_key_compromise",
+    "predecessorDisposition": "RETIRED",
+    "successorDisposition": "ACTIVE",
+    "cutoverCommitted": true,
+    "predecessorRetired": true,
+    "successorActivated": true,
+    "freshD0027Current": true
+  },
+  "q8": {
+    "higherRouteReason": "release_root_compromise",
+    "rootReplacementDenied": true,
+    "freshSuccessorReleaseRoot": true
+  },
+  "q9": {
+    "staleGenerationDenied": true,
+    "staleLookupNotCalled": true,
+    "currentHostSelectedOnlyAfterElection": true,
+    "reconstructedElectionDigest": "sha256:cef495ccc1aefaba52ce9210daa6c896c54756d61f3a3726aefa13b859fdb8b9",
+    "durableSnapshotRetained": true,
+    "noPitrOrSameNameAuthorityRestore": true
+  },
+  "invariants": {
+    "strictNextGeneration": true,
+    "noDualCurrentRoutes": true,
+    "freshSuccessorD0027State": true,
+    "noCanonicalD0039Mutation": true
+  },
+  "proofBoundaries": {
+    "source": "PASS - isolated higher-generation Q7/Q8/Q9 composition and complete 615/615 source gate",
+    "providerRuntime": "not promoted by this record",
+    "securityClient": "not promoted by this record",
+    "physicalAndroid": "not promoted by this record",
+    "deployedProduct": "not claimed",
+    "canonicalD0039": "untouched"
+  },
+  "externalEffects": {
+    "sourceValidation": false,
+    "providerMutation": false,
+    "deviceMutation": false,
+    "canonicalD0039ImportOrCutover": false
+  },
+  "preservedQualificationLanes": "The two pre-existing untracked response-loss diagnostics were not staged, modified or deleted."
+}
