@@ -340,7 +340,7 @@ async function writeCandidateWorkspace({ repositoryPath, commitOid, tree, baseTr
 }
 
 export class LocalDevelopmentOperationRuntime {
-  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null } = {}) {
+  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, observation = null } = {}) {
     this.manifest = normalizeDevelopmentOperationManifest(manifest);
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
@@ -349,7 +349,7 @@ export class LocalDevelopmentOperationRuntime {
     if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, codexArguments: modelProfile.argv });
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
     this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs });
     this.candidates = new Map();
     this.disposed = false;

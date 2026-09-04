@@ -1,11 +1,13 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { ContractError, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { CodexExecRepositoryModelExecutor, buildCodexPrompt, codexLauncherHome } from '../src/development-runtime.mjs';
+import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
+const operationManifest = JSON.parse(readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
 
 function eventStream(...events) {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`, 'utf8');
@@ -60,4 +62,18 @@ test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed termina
   for (const [bytes, code] of cases) {
     assert.throws(() => parseCodexJsonl(bytes), (error) => error instanceof ContractError && error.code === code);
   }
+});
+
+test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation sink', () => {
+  const observation = () => {};
+  const runtime = new LocalDevelopmentOperationRuntime({
+    manifest: operationManifest,
+    repositoryPath: '/tmp/tdev-repository',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp/codex-home',
+    outputSchemaPath: '/tmp/codex-schema.json',
+    npmExecutable: '/tmp/npm',
+    observation,
+  });
+  assert.equal(runtime.codex.observation, observation);
 });
