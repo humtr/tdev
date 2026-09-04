@@ -301,7 +301,9 @@ function summarizeValidationOutput(bytes) {
   catch { summary.failureLineCount = 1; summary.failureClasses.push('non_utf8'); return summary; }
   for (const line of text.split("\n")) {
     const cleanLine = line.replace(/\u001b\[[0-?]*[ -\/]*[@-~]/gu, '');
-    if (!/(?:^|\s)(?:not ok|fail(?:ed|ure)?|error|npm ERR!|✖|AssertionError)(?:\b|:)/iu.test(cleanLine)) continue;
+    // Match runner/error records, not ordinary test names such as
+    // "fails closed" that happen to contain the word "fail".
+    if (!/(?:^\s*not ok\b|^\s*✖\b|^\s*npm ERR!\b|^\s*(?:AssertionError|(?:Type|Range|Reference|Syntax)?Error)(?:\s*\[[^\]]+\])?:)/u.test(cleanLine)) continue;
     summary.failureLineCount += 1;
     if (summary.failureClasses.length < 8) summary.failureClasses.push(classifyDiagnosticText(cleanLine));
     if (summary.failurePreviews.length < 8) summary.failurePreviews.push(sanitizeDiagnosticText(cleanLine));
