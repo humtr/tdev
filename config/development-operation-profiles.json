@@ -5,7 +5,7 @@
     "tdev.model.repository.execute.v1": {
       "kind": "model_repository",
       "executable": { "kind": "configured_runtime", "name": "codex" },
-      "argv": ["exec", "--ephemeral", "--json", "--sandbox", "read-only", "--ignore-user-config"],
+      "argv": ["exec", "--ephemeral", "--json", "--ignore-user-config"],
       "environment": {},
       "filesystem": "immutable_repository",
       "network": "openai-codex-trusted-local",
@@ -21,7 +21,8 @@
       "credentialMode": "codex_saved_cli_auth",
       "disclosureProfile": "tdev.openai-codex-full-context.trusted-local.v1",
       "binding": {
-        "profile": "tdev.model.codex-exec.v1",
+        "profile": "tdev.model.codex-exec-no-bwrap.v1",
+        "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
         "outputSchemaPath": "config/codex-changeset-output.schema.json",
         "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7",
         "contextExcludedPaths": ["native/d0030/android-arm64/rename-noreplace-helper", "native/immutable-journal-publication/android-arm64/rename-noreplace-helper", "native/installable-agent-supervisor/android-arm64/pidfd-control.node"]

@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ContractError, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { codexLauncherHome } from '../src/development-runtime.mjs';
+import { CodexExecRepositoryModelExecutor, codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
@@ -16,8 +16,12 @@ test('D0043 Termux Codex launcher keeps profile CODEX_HOME under the real Termux
   assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex'), '/data/data/com.termux/files/home');
 });
 
+test('D0043 runtime rejects provider sandbox arguments', () => {
+  assert.throws(() => new CodexExecRepositoryModelExecutor({ repositoryPath: '/tmp/repo', codexExecutable: '/tmp/codex', codexHome: '/tmp/codex-home', outputSchemaPath: '/tmp/schema.json', codexArguments: ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'] }), (error) => error instanceof ContractError && error.code === 'development_runtime_arguments_invalid');
+});
+
 test('D0043 Codex JSONL accepts one strict terminal result and preserves usage separately', () => {
-  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config']);
+  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--ignore-user-config']);
   const parsed = parseCodexJsonl(eventStream(
     { type: 'thread.started', thread_id: 'thread-test' },
     { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },

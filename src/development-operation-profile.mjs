@@ -21,6 +21,9 @@ export const DEVELOPMENT_OPERATION_REQUEST_DOMAIN = 'tdev.development-operation-
 export const DEVELOPMENT_OPERATION_CAPABILITY_DOMAIN = 'tdev.development-operation-capability.v1';
 export const DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES = 256 * 1024;
 export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
+export const CODEX_MODEL_BINDING_PROFILE = 'tdev.model.codex-exec-no-bwrap.v1';
+export const CODEX_EXECUTION_BOUNDARY = 'tdev.disposable-exact-base-no-bwrap.v1';
+export const CODEX_OPERATION_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--ignore-user-config']);
 
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
 const EXECUTABLE_KINDS = new Set(['built_in', 'configured_runtime']);
@@ -85,7 +88,7 @@ function normalizeProfile(input, name) {
     if (input.network !== 'openai-codex-trusted-local' || credentialMode !== 'codex_saved_cli_auth' || disclosureProfile !== 'tdev.openai-codex-full-context.trusted-local.v1') {
       fail('development_operation_model_binding_invalid', `Operation profile ${name} must use the trusted-local Codex binding`);
     }
-    if (argv.length !== 6 || canonicalJson(argv) !== canonicalJson(['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'])) {
+    if (argv.length !== CODEX_OPERATION_ARGUMENTS.length || canonicalJson(argv) !== canonicalJson(CODEX_OPERATION_ARGUMENTS)) {
       fail('development_operation_model_arguments_invalid', `Operation profile ${name} must use the fixed Codex exec argument template`);
     }
   } else if (input.network !== 'none' || credentialMode !== 'none' || disclosureProfile !== null) {
@@ -93,7 +96,7 @@ function normalizeProfile(input, name) {
   }
   let binding = null;
   if (input.binding !== undefined && input.binding !== null) {
-    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths'], `operation profile ${name}.binding`);
+    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths', 'executionBoundary'], `operation profile ${name}.binding`);
     assertIdentifier(input.binding.profile, `operation profile ${name}.binding.profile`);
     for (const field of ['outputSchemaPath', 'model', 'reasoningEffort', 'validationCommand']) {
       if (input.binding[field] !== undefined && input.binding[field] !== null) boundedText(input.binding[field], `operation profile ${name}.binding.${field}`, 4096);
@@ -113,7 +116,7 @@ function normalizeProfile(input, name) {
       binding.contextExcludedPaths = excludedPaths;
     }
   }
-  if (input.kind === 'model_repository' && (binding === null || binding.profile !== 'tdev.model.codex-exec.v1' || typeof binding.outputSchemaPath !== 'string')) {
+  if (input.kind === 'model_repository' && (binding === null || binding.profile !== CODEX_MODEL_BINDING_PROFILE || binding.executionBoundary !== CODEX_EXECUTION_BOUNDARY || typeof binding.outputSchemaPath !== 'string')) {
     fail('development_operation_model_binding_invalid', `Operation profile ${name} must bind the release-owned Codex output schema`);
   }
   if (input.kind === 'repository_validation' && (argv.length !== 2 || canonicalJson(argv) !== canonicalJson(['run', 'check']) || binding === null || binding.profile !== 'tdev.validation.npm-check.v1' || binding.validationCommand !== 'npm run check')) {
