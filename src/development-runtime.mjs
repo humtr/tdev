@@ -117,7 +117,8 @@ export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextRefer
     "Inspect the exact Git repository in the current working directory using read-only commands only.",
     "The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.",
     "Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.",
-    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible. The returned writes array MUST be non-empty for an implementation instruction: inspect the files, construct complete replacements, and put those replacements in the JSON result. Do not report that you changed files unless the writes array contains the changes.",
+    "Read-only applies to shell commands only. The JSON ChangeSet is the implementation channel and must contain the actual edits.",
+    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible. The returned writes array MUST be non-empty for an implementation instruction: inspect the named files, construct complete replacements, and put those replacements in the JSON result. A no-op is invalid even when the existing tests pass. Do not report that you changed files unless the writes array contains the changes.",
     "Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.",
     "The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).",
     "repositoryCommitOid=" + repositoryCommitOid,
@@ -283,6 +284,22 @@ function summarizeCodexProcessOutput(bytes) {
   return summary;
 }
 
+function summarizeValidationOutput(bytes) {
+  const summary = { failureLineCount: 0, failureClasses: [], failurePreviews: [] };
+  if (!Buffer.isBuffer(bytes)) return summary;
+  let text;
+  try { text = UTF8_DECODER.decode(bytes); }
+  catch { summary.failureLineCount = 1; summary.failureClasses.push('non_utf8'); return summary; }
+  for (const line of text.split("\n")) {
+    const cleanLine = line.replace(/\u001b\[[0-?]*[ -\/]*[@-~]/gu, '');
+    if (!/(?:^|\s)(?:not ok|fail(?:ed|ure)?|error|npm ERR!|✖|AssertionError)(?:\b|:)/iu.test(cleanLine)) continue;
+    summary.failureLineCount += 1;
+    if (summary.failureClasses.length < 8) summary.failureClasses.push(classifyDiagnosticText(cleanLine));
+    if (summary.failurePreviews.length < 8) summary.failurePreviews.push(sanitizeDiagnosticText(cleanLine));
+  }
+  return summary;
+}
+
 function normalizedChangeSet(result, baseDigest, evidence) {
   if (!isPlainRecord(result)) fail('codex_changeset_invalid', 'Codex terminal output must be a ChangeSet record');
   try {
@@ -418,6 +435,7 @@ export class NpmCheckValidationExecutor {
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
     const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
     const passed = processResult.code === 0 && processResult.signal === null;
+    const outputSummary = summarizeValidationOutput(processResult.stdout);
     safeObservation(this.observation, {
       runtimeProfile: NPM_CHECK_VALIDATION_PROFILE,
       executionBoundary: CODEX_EXECUTION_BOUNDARY,
@@ -431,8 +449,11 @@ export class NpmCheckValidationExecutor {
       stderrBytes: processResult.stderrBytes,
       stderrClass: typeof processResult.stderrClass === "string" ? processResult.stderrClass : null,
       durationMs: processResult.durationMs,
+      stdoutFailureLineCount: outputSummary.failureLineCount,
+      stdoutFailureClasses: outputSummary.failureClasses,
+      stdoutFailurePreviews: outputSummary.failurePreviews,
     });
-    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs } });
+    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, stdoutFailureLineCount: outputSummary.failureLineCount, stdoutFailureClasses: outputSummary.failureClasses, stdoutFailurePreviews: outputSummary.failurePreviews } });
   }
 }
 

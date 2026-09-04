@@ -115,7 +115,7 @@ function summarizeCaseSnapshot(snapshot) {
 function summarizeOperationObservation(observation) {
   if (!observation || typeof observation !== "object") return null;
   const summary = {};
-  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "exitCode", "signal", "stderrClass", "stdoutEventTypes", "stdoutItemTypes", "stdoutErrorCodes", "stdoutErrorKeys", "stdoutErrorDetailClasses", "stdoutErrorMessageLengths", "stdoutErrorMessagePreviews", "stdoutEventCount", "stdoutTruncated", "stdoutMalformedEvents", "stdoutTerminalAgentMessages", "stdoutTurnCompleted", "stdoutTurnFailed", "stdoutErrorEvents", "stdoutFailedCommandExecutions", "stdoutFailedCommandExitCodes", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
+  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "exitCode", "signal", "stderrClass", "stdoutEventTypes", "stdoutItemTypes", "stdoutErrorCodes", "stdoutErrorKeys", "stdoutErrorDetailClasses", "stdoutErrorMessageLengths", "stdoutErrorMessagePreviews", "stdoutFailureLineCount", "stdoutFailureClasses", "stdoutFailurePreviews", "stdoutEventCount", "stdoutTruncated", "stdoutMalformedEvents", "stdoutTerminalAgentMessages", "stdoutTurnCompleted", "stdoutTurnFailed", "stdoutErrorEvents", "stdoutFailedCommandExecutions", "stdoutFailedCommandExitCodes", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
     if (Object.hasOwn(observation, key)) summary[key] = observation[key];
   }
   return summary;
@@ -128,6 +128,7 @@ function summarizeAgentFrames(frames) {
     payloadKeys: frame?.payload && typeof frame.payload === "object" ? Object.keys(frame.payload).sort() : [],
     resultKind: typeof frame?.payload?.resultEnvelope?.result?.kind === "string" ? frame.payload.resultEnvelope.result.kind : null,
     resultWriteCount: Array.isArray(frame?.payload?.resultEnvelope?.result?.writes) ? frame.payload.resultEnvelope.result.writes.length : null,
+    resultWritePaths: Array.isArray(frame?.payload?.resultEnvelope?.result?.writes) ? frame.payload.resultEnvelope.result.writes.slice(0, 8).map((write) => typeof write?.path === "string" ? write.path : null) : null,
   }));
 }
 
@@ -245,7 +246,7 @@ async function main() {
     baseTree,
     repositoryCommitOid: commitOid,
     objectFormat: 'sha1',
-    instruction: 'Implement one minimal non-documentation source objective. In src/development-runtime.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/development-runtime.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
+    instruction: 'Implement one minimal non-documentation source objective. You must return exactly two non-empty writes, one for each named file; a no-op ChangeSet is invalid. In src/development-runtime.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, preserving all existing source. In test/development-runtime.test.mjs add a focused node:test asserting that exact exported value, preserving all existing tests. Inspect both current files first, then return their complete replacement text in the ChangeSet; the JSON result is the only implementation channel. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],

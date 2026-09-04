@@ -30,6 +30,8 @@ test('D0043 prompt requires result-only implementation while clone stays clean',
   assert.match(prompt, /Do not mutate files directly/);
   assert.match(prompt, /MUST implement the requested source change in the returned ChangeSet/);
   assert.match(prompt, /never substitute an empty ChangeSet/);
+  assert.match(prompt, /Read-only applies to shell commands only/);
+  assert.match(prompt, /A no-op is invalid/);
   assert.doesNotMatch(prompt, /Do not edit files,/);
 });
 
