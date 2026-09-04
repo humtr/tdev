@@ -27,7 +27,7 @@ const manifest = {
     'model.v1': {
       kind: 'model_repository',
       executable: { kind: 'configured_runtime', name: 'codex' },
-      argv: ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'],
+      argv: ['exec', '--ephemeral', '--json', '--ignore-user-config'],
       environment: {},
       filesystem: 'immutable_repository',
       network: 'openai-codex-trusted-local',
@@ -35,7 +35,7 @@ const manifest = {
       cleanupDomain: 'warden_process_group',
       credentialMode: 'codex_saved_cli_auth',
       disclosureProfile: 'tdev.openai-codex-full-context.trusted-local.v1',
-      binding: { profile: 'tdev.model.codex-exec.v1', outputSchemaPath: 'config/codex-changeset-output.schema.json' },
+      binding: { profile: 'tdev.model.codex-exec-no-bwrap.v1', executionBoundary: 'tdev.disposable-exact-base-no-bwrap.v1', outputSchemaPath: 'config/codex-changeset-output.schema.json' },
     },
     'validate.v1': {
       kind: 'repository_validation',
@@ -58,10 +58,20 @@ const baseDigest = digest({ base: 'tree' });
 test('D0043 manifest is versioned, deterministic, and exposes only fixed release-bound profiles', () => {
   const normalized = normalizeDevelopmentOperationManifest(manifest);
   assert.equal(Object.keys(normalized.profiles['model.v1'].environment).length, 0);
+  assert.equal(normalized.profiles['model.v1'].binding.executionBoundary, 'tdev.disposable-exact-base-no-bwrap.v1');
   assert.equal(developmentOperationManifestDigest(manifest), developmentOperationManifestDigest(normalized));
   for (const profile of Object.keys(normalized.profiles)) {
     assert.match(developmentOperationCapabilityId(normalized, profile), /^sha256:[0-9a-f]{64}$/);
   }
+});
+
+test('D0043 rejects the predecessor sandbox argument template and missing execution boundary', () => {
+  const legacy = structuredClone(manifest);
+  legacy.profiles['model.v1'].argv = ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'];
+  assert.throws(() => normalizeDevelopmentOperationManifest(legacy), (error) => error instanceof ContractError && error.code === 'development_operation_model_arguments_invalid');
+  const missingBoundary = structuredClone(manifest);
+  delete missingBoundary.profiles['model.v1'].binding.executionBoundary;
+  assert.throws(() => normalizeDevelopmentOperationManifest(missingBoundary), (error) => error instanceof ContractError && error.code === 'development_operation_model_binding_invalid');
 });
 
 test('D0043 requests select typed inputs and reject caller executable authority', () => {

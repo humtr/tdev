@@ -10,6 +10,7 @@ import {
   assertSafeInteger,
   assertScalarString,
   canonicalClone,
+  canonicalJson,
   deepFreeze,
   digest,
   isPlainRecord,
@@ -21,18 +22,21 @@ import { validateTree } from './promotion.mjs';
 import { runGitCommand } from './git-projection.mjs';
 import { runModelSubprocess, GitRepositoryModelExecutor } from './repository-model-transport.mjs';
 import {
+  CODEX_MODEL_BINDING_PROFILE,
+  CODEX_EXECUTION_BOUNDARY,
+  CODEX_OPERATION_ARGUMENTS,
   developmentOperationCapabilityId,
   executeDevelopmentOperation,
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
 import { LocalAgentRuntime } from './local-agent-runtime.mjs';
 
-export const CODEX_EXEC_MODEL_PROFILE = 'tdev.model.codex-exec.v1';
+export const CODEX_EXEC_MODEL_PROFILE = CODEX_MODEL_BINDING_PROFILE;
 export const CODEX_DISCLOSURE_PROFILE = 'tdev.openai-codex-full-context.trusted-local.v1';
 export const NPM_CHECK_VALIDATION_PROFILE = 'tdev.validation.npm-check.v1';
 export const DEVELOPMENT_OPERATION_RESULT_PROFILE = 'tdev.development-operation-result.v1';
 
-export const CODEX_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config']);
+export const CODEX_ARGUMENTS = CODEX_OPERATION_ARGUMENTS;
 const CODEX_MAX_PROMPT_BYTES = 16 * 1024 * 1024;
 const CODEX_MAX_RESPONSE_BYTES = 8 * 1024 * 1024;
 const CODEX_MAX_STDERR_BYTES = 64 * 1024;
@@ -113,6 +117,11 @@ async function checkedGit({ repositoryPath, args, signal }) {
   return result.stdout;
 }
 
+async function assertCleanClone({ repositoryPath, signal }) {
+  const status = (await checkedGit({ repositoryPath, signal, args: ['status', '--porcelain=v1', '--untracked-files=all', '--ignored=matching'] })).toString('utf8');
+  if (status.length !== 0) fail('development_runtime_clone_mutated', 'Codex modified the disposable exact-base repository', { status: status.slice(0, 8192) });
+}
+
 async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal }) {
   const parent = workspaceRoot === undefined || workspaceRoot === null ? os.tmpdir() : absolutePath(workspaceRoot, 'workspaceRoot');
   await mkdir(parent, { recursive: true, mode: 0o700 });
@@ -189,7 +198,7 @@ function normalizedChangeSet(result, baseDigest, evidence) {
 }
 
 export class CodexExecRepositoryModelExecutor {
-  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
+  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.codexExecutable = absolutePath(codexExecutable, 'codexExecutable');
     this.codexHome = absolutePath(codexHome, 'codexHome');
@@ -197,6 +206,8 @@ export class CodexExecRepositoryModelExecutor {
     this.outputSchemaSha256 = outputSchemaSha256 === null ? null : assertDigest(outputSchemaSha256, 'outputSchemaSha256');
     this.model = model === null ? null : boundedText(model, 'model', 256);
     this.reasoningEffort = reasoningEffort === null ? null : boundedText(reasoningEffort, 'reasoningEffort', 64);
+    if (!Array.isArray(codexArguments) || canonicalJson(codexArguments) !== canonicalJson(CODEX_OPERATION_ARGUMENTS)) fail('development_runtime_arguments_invalid', 'Codex arguments do not match the release-bound no-bwrap template');
+    this.codexArguments = Object.freeze([...codexArguments]);
     this.timeoutMs = positiveBound(timeoutMs, 'timeoutMs', 600_000);
     this.cancelGraceMs = assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
@@ -231,6 +242,7 @@ export class CodexExecRepositoryModelExecutor {
       const prompt = [
         'You are the release-bound tdev development worker.',
         'Inspect the exact Git repository in the current working directory using read-only commands only.',
+        'The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.',
         'Do not edit files, create commits, access network tools, read files outside the working directory, or reveal credentials.',
         'Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.',
         'The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).',
@@ -243,18 +255,19 @@ export class CodexExecRepositoryModelExecutor {
       ].join('\n');
       const input = Buffer.from(prompt, 'utf8');
       if (input.byteLength > CODEX_MAX_PROMPT_BYTES) fail('codex_prompt_limit_exceeded', 'Codex prompt exceeds its bound');
-      const args = [...CODEX_ARGUMENTS, '--output-schema', this.outputSchemaPath];
+      const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
       const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
       if (processResult.code !== 0) fail('codex_process_failed', 'Codex process exited unsuccessfully', { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes });
+      await assertCleanClone({ repositoryPath: clonePath, signal });
       const parsed = parseCodexJsonl(processResult.stdout, CODEX_MAX_RESPONSE_BYTES);
-      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage };
+      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage };
       const result = normalizedChangeSet(parsed.result, baseDigest, evidence);
       safeObservation(this.observation, { ...evidence, outcome: 'returned', totalDurationMs: Math.max(0, Math.round(performance.now() - started)) });
       return result;
     } catch (cause) {
-      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed' });
+      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed' });
       throw cause;
     } finally {
       await rm(clonePath, { recursive: true, force: true });
@@ -321,10 +334,10 @@ export class LocalDevelopmentOperationRuntime {
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
     const modelProfile = this.manifest.profiles['tdev.model.repository.execute.v1'];
     const validationProfile = this.manifest.profiles['tdev.repository.validate.v1'];
-    if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
+    if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot });
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, codexArguments: modelProfile.argv });
     this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs });
     this.candidates = new Map();
     this.disposed = false;
