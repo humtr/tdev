@@ -111,6 +111,24 @@ function assertContextReference(descriptor, value) {
   return expected;
 }
 
+export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextReferenceId: referenceId, contextDigest, contextFileCount, instruction } = {}) {
+  return [
+    "You are the release-bound tdev development worker.",
+    "Inspect the exact Git repository in the current working directory using read-only commands only.",
+    "The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.",
+    "Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.",
+    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible.",
+    "Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.",
+    "The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).",
+    "repositoryCommitOid=" + repositoryCommitOid,
+    "baseDigest=" + baseDigest,
+    "contextReferenceId=" + referenceId,
+    "contextDigest=" + contextDigest,
+    "contextFileCount=" + contextFileCount,
+    "instruction=" + instruction,
+  ].join("\n");
+}
+
 async function checkedGit({ repositoryPath, args, signal }) {
   const result = await runGitCommand({ repositoryPath, args, signal });
   if (result.code !== 0) fail('development_runtime_git_failed', `Git command failed: ${args[0]}`, { exitCode: result.code, signal: result.signal });
@@ -239,20 +257,14 @@ export class CodexExecRepositoryModelExecutor {
       if (this.outputSchemaSha256 !== null && schemaDigest !== this.outputSchemaSha256) {
         fail('codex_output_schema_mismatch', 'Codex output schema digest does not match the release binding', { expected: this.outputSchemaSha256, observed: schemaDigest });
       }
-      const prompt = [
-        'You are the release-bound tdev development worker.',
-        'Inspect the exact Git repository in the current working directory using read-only commands only.',
-        'The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.',
-        'Do not edit files, create commits, access network tools, read files outside the working directory, or reveal credentials.',
-        'Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.',
-        'The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).',
-        `repositoryCommitOid=${repositoryCommitOid}`,
-        `baseDigest=${baseDigest}`,
-        `contextReferenceId=${referenceId}`,
-        `contextDigest=${context.descriptor.contextDigest}`,
-        `contextFileCount=${context.descriptor.fileCount}`,
-        `instruction=${instruction}`,
-      ].join('\n');
+      const prompt = buildCodexPrompt({
+        repositoryCommitOid,
+        baseDigest,
+        contextReferenceId: referenceId,
+        contextDigest: context.descriptor.contextDigest,
+        contextFileCount: context.descriptor.fileCount,
+        instruction,
+      });
       const input = Buffer.from(prompt, 'utf8');
       if (input.byteLength > CODEX_MAX_PROMPT_BYTES) fail('codex_prompt_limit_exceeded', 'Codex prompt exceeds its bound');
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];

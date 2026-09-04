@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ContractError, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { CodexExecRepositoryModelExecutor, codexLauncherHome } from '../src/development-runtime.mjs';
+import { CodexExecRepositoryModelExecutor, buildCodexPrompt, codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
@@ -14,6 +14,21 @@ function eventStream(...events) {
 test('D0043 Termux Codex launcher keeps profile CODEX_HOME under the real Termux home', () => {
   assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex-profiles/uvec'), '/data/data/com.termux/files/home');
   assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex'), '/data/data/com.termux/files/home');
+});
+
+test('D0043 prompt requires result-only implementation while clone stays clean', () => {
+  const prompt = buildCodexPrompt({
+    repositoryCommitOid: 'a'.repeat(40),
+    baseDigest,
+    contextReferenceId: 'ctx-test',
+    contextDigest: 'sha256:' + 'b'.repeat(64),
+    contextFileCount: 2,
+    instruction: 'add source change',
+  });
+  assert.match(prompt, /Do not mutate files directly/);
+  assert.match(prompt, /MUST implement the requested source change in the returned ChangeSet/);
+  assert.match(prompt, /never substitute an empty ChangeSet/);
+  assert.doesNotMatch(prompt, /Do not edit files,/);
 });
 
 test('D0043 runtime rejects provider sandbox arguments', () => {

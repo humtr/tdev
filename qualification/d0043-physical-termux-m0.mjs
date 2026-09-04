@@ -222,6 +222,6 @@ async function main() {
 }
 
 main().catch((cause) => {
-  process.stderr.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'FAIL', code: cause?.code ?? 'm0_failed', message: cause?.message ?? String(cause) })}\n`);
+  process.stderr.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'FAIL', code: cause?.code ?? 'm0_failed', message: cause?.message ?? String(cause), details: cause?.details ?? null })}\n`);
   process.exitCode = 1;
 });
