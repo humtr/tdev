@@ -71,6 +71,66 @@ async function preservedFiles() {
   return result;
 }
 
+function summarizeError(error) {
+  if (!error || typeof error !== 'object') return null;
+  return {
+    code: typeof error.code === 'string' ? error.code : null,
+    certainty: error.certainty === 'not_applied' || error.certainty === 'unknown' ? error.certainty : null,
+    retryable: typeof error.retryable === 'boolean' ? error.retryable : null,
+  };
+}
+
+function summarizeCaseSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const taskStates = {};
+  for (const [taskId, state] of Object.entries(snapshot.taskStates ?? {})) {
+    taskStates[taskId] = {
+      state: typeof state?.state === 'string' ? state.state : null,
+      attemptIds: Array.isArray(state?.attemptIds) ? [...state.attemptIds] : [],
+      acceptedResultKind: typeof state?.acceptedResult?.kind === 'string' ? state.acceptedResult.kind : null,
+      acceptedResultDigest: typeof state?.acceptedResultDigest === 'string' ? state.acceptedResultDigest : null,
+      error: summarizeError(state?.error),
+    };
+  }
+  const attempts = {};
+  for (const [attemptId, attempt] of Object.entries(snapshot.attempts ?? {})) {
+    attempts[attemptId] = {
+      taskId: typeof attempt?.taskId === 'string' ? attempt.taskId : null,
+      ordinal: Number.isSafeInteger(attempt?.ordinal) ? attempt.ordinal : null,
+      state: typeof attempt?.state === 'string' ? attempt.state : null,
+      error: summarizeError(attempt?.error),
+      resultDigest: typeof attempt?.resultDigest === 'string' ? attempt.resultDigest : null,
+    };
+  }
+  return {
+    caseId: typeof snapshot.caseId === 'string' ? snapshot.caseId : null,
+    caseState: typeof snapshot.caseState === 'string' ? snapshot.caseState : null,
+    caseRevision: Number.isSafeInteger(snapshot.caseRevision) ? snapshot.caseRevision : null,
+    eventSequence: Number.isSafeInteger(snapshot.eventSequence) ? snapshot.eventSequence : null,
+    taskStates,
+    attempts,
+  };
+}
+
+function summarizeOperationObservation(observation) {
+  if (!observation || typeof observation !== "object") return null;
+  const summary = {};
+  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
+    if (Object.hasOwn(observation, key)) summary[key] = observation[key];
+  }
+  return summary;
+}
+
+function summarizeAgentFrames(frames) {
+  if (!Array.isArray(frames)) return [];
+  return frames.slice(0, 32).map((frame) => ({
+    type: typeof frame?.type === "string" ? frame.type : null,
+    payloadKeys: frame?.payload && typeof frame.payload === "object" ? Object.keys(frame.payload).sort() : [],
+    resultKind: typeof frame?.payload?.resultEnvelope?.result?.kind === "string" ? frame.payload.resultEnvelope.result.kind : null,
+    resultWriteCount: Array.isArray(frame?.payload?.resultEnvelope?.result?.writes) ? frame.payload.resultEnvelope.result.writes.length : null,
+  }));
+}
+
 function decodeUtf8(bytes, label) {
   try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
   catch (cause) { fail('m0_non_utf8_repository', `${label} is not UTF-8`, {}, { cause }); }
@@ -163,6 +223,7 @@ async function main() {
   const capabilities = Object.values(capabilityByProfile).sort();
   const caseContract = { caseGrant: capabilities, workspacePolicy: capabilities };
   const workspaceBefore = await workspaceEntries();
+  const runtimeObservations = [];
   const operationRuntime = new LocalDevelopmentOperationRuntime({
     manifest,
     repositoryPath: ROOT,
@@ -171,6 +232,7 @@ async function main() {
     outputSchemaPath: path.join(ROOT, 'config', 'codex-changeset-output.schema.json'),
     npmExecutable: NPM_EXECUTABLE,
     workspaceRoot: WORKSPACE_ROOT,
+    observation: (observation) => { if (runtimeObservations.length < 32) runtimeObservations.push(summarizeOperationObservation(observation)); },
   });
   const agent = createLocalDevelopmentAgent({ operationRuntime, agentId: 'agent-tdev-m0', executorId: 'executor-tdev-m0' });
   const repository = new CaseRepository(new MemorySnapshotStore());
@@ -193,7 +255,15 @@ async function main() {
   try {
     await runner.create({ caseId, plan, driveRequestId, payload: { objective: 'm0-physical-source-change' } });
     const driven = await runner.drive({ caseId, driveRequestId, payload: { objective: 'm0-physical-source-change' } });
-    if (driven.classification !== 'accepted') fail('m0_case_not_accepted', 'M0 development unit did not reach accepted terminal state', { driven });
+    if (driven.classification !== 'accepted') {
+      const failedSnapshot = await repository.store.load(caseId);
+      fail('m0_case_not_accepted', 'M0 development unit did not reach accepted terminal state', {
+        driven,
+        case: summarizeCaseSnapshot(failedSnapshot),
+        runtimeObservations,
+        agentFrames: summarizeAgentFrames(agent.emitted),
+      });
+    }
     candidate = await runner.candidate(caseId);
     const snapshot = await repository.store.load(caseId);
     const modelResult = snapshot.taskStates.model.acceptedResult;
