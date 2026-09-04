@@ -216,6 +216,7 @@ function classifyDiagnosticText(value) {
   if (/rate.?limit|quota|limit exceeded/u.test(text)) return "rate_limit";
   if (/model.{0,32}(not found|unsupported|unavailable)|unsupported.{0,32}model/u.test(text)) return "model";
   if (/schema|json|structured output/u.test(text)) return "schema";
+  if (/trust|trusted|untrusted|project directory|working directory|repository root/u.test(text)) return "trust";
   if (/network|connect|socket|websocket|http|dns|tls/u.test(text)) return "network";
   if (/invalid|malformed|bad request|request failed/u.test(text)) return "request";
   return "other";
