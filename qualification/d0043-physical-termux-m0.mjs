@@ -78,6 +78,7 @@ function summarizeError(error) {
   if (!error || typeof error !== 'object') return null;
   return {
     code: typeof error.code === 'string' ? error.code : null,
+    message: typeof error.message === 'string' ? error.message.slice(0, 256).replace(/\/data\/data\/\S+/gu, '<path>') : null,
     certainty: error.certainty === 'not_applied' || error.certainty === 'unknown' ? error.certainty : null,
     retryable: typeof error.retryable === 'boolean' ? error.retryable : null,
   };
