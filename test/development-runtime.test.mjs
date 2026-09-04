@@ -76,4 +76,5 @@ test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation si
     observation,
   });
   assert.equal(runtime.codex.observation, observation);
+  assert.equal(runtime.npm.observation, observation);
 });

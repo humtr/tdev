@@ -117,7 +117,7 @@ export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextRefer
     "Inspect the exact Git repository in the current working directory using read-only commands only.",
     "The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.",
     "Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.",
-    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible.",
+    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible. The returned writes array MUST be non-empty for an implementation instruction: inspect the files, construct complete replacements, and put those replacements in the JSON result. Do not report that you changed files unless the writes array contains the changes.",
     "Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.",
     "The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).",
     "repositoryCommitOid=" + repositoryCommitOid,
@@ -394,10 +394,12 @@ export class CodexExecRepositoryModelExecutor {
 }
 
 export class NpmCheckValidationExecutor {
-  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS } = {}) {
+  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, observation = null } = {}) {
     this.npmExecutable = absolutePath(npmExecutable, 'npmExecutable');
     this.timeoutMs = positiveBound(timeoutMs, 'timeoutMs', 600_000);
     this.cancelGraceMs = assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
+    if (observation !== null && typeof observation !== 'function') fail('development_runtime_observation_invalid', 'observation must be a function or null');
+    this.observation = observation;
     Object.freeze(this);
   }
 
@@ -408,6 +410,20 @@ export class NpmCheckValidationExecutor {
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
     const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
     const passed = processResult.code === 0 && processResult.signal === null;
+    safeObservation(this.observation, {
+      runtimeProfile: NPM_CHECK_VALIDATION_PROFILE,
+      executionBoundary: CODEX_EXECUTION_BOUNDARY,
+      sandboxMode: "none",
+      candidateTreeDigest,
+      validationProfile,
+      outcome: passed ? "passed" : "failed",
+      exitCode: Number.isSafeInteger(processResult.code) ? processResult.code : null,
+      signal: typeof processResult.signal === "string" ? processResult.signal : null,
+      stdoutBytes: processResult.stdoutBytes,
+      stderrBytes: processResult.stderrBytes,
+      stderrClass: typeof processResult.stderrClass === "string" ? processResult.stderrClass : null,
+      durationMs: processResult.durationMs,
+    });
     return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs } });
   }
 }
@@ -454,7 +470,7 @@ export class LocalDevelopmentOperationRuntime {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
     this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
-    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs });
+    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, observation });
     this.candidates = new Map();
     this.disposed = false;
   }
