@@ -1,0 +1,75 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r2_termux_shim_observation_correction",
+  "observedAtUtc": "2026-09-04T05:32:09Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "b0d9804904c46122a66b592fe79fe4d3af391e8c",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "b0d9804904c46122a66b592fe79fe4d3af391e8c",
+      "readback": "PASS"
+    },
+    "unrelatedUntrackedPreserved": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 2,
+    "status": "accepted",
+    "scope": "physical M0 runtime observation; no new acceptance claim",
+    "priorEvidencePreserved": "docs/evidence/group-f-d0043-r2-source-package-local-termux-2026-09-04.json"
+  },
+  "boundaryCorrection": {
+    "tdevSourceDirectBwrapInvocation": false,
+    "mcpSurfaceDirectBwrapInvocation": false,
+    "indirectCodexCliDependency": true,
+    "explanation": "The accepted D0043 r2 model profile fixes codex exec --sandbox read-only. The managed Termux Codex runtime may select its own fail-closed bwrap compatibility shim for that internal model-command sandbox. This is a Codex adapter dependency, not a tdev Agent/MCP command or authority."
+  },
+  "termuxRuntimeObservations": {
+    "managedCodexExecutable": "/data/data/com.termux/files/usr/bin/codex",
+    "managedPathBwrapBehavior": "Termux store shim rejects namespace/mount options instead of pretending to provide Linux isolation",
+    "managedPathBwrapSha256": "sha256:3e71a861f99d9659b34147b0d225bd425d669f2471884ab4a8d0c334b00e6584",
+    "nativeRuntimeShimBehavior": "The separately inspected native runtime exec shim forwards the command after -- and does not create a namespace",
+    "nativeRuntimeShimSha256": "sha256:1ebcb39c0a18a130d6d86cbd39684095a28d9df643a1f993cd3cbf32b3f3474a",
+    "nativeRuntimeReadOnlyProbe": {
+      "commands": [
+        "codex-path/bwrap --as-pid-1 -- /system/bin/true",
+        "codex-path/bwrap --ro-bind / / -- /system/bin/true"
+      ],
+      "exitCodes": [0, 0]
+    },
+    "codexReadOnlyCliHelpProbe": {
+      "command": "codex exec --ephemeral --json --sandbox read-only --ignore-user-config --help",
+      "exitCode": 0
+    }
+  },
+  "physicalM0Attempt": {
+    "status": "not_qualified",
+    "attempt": "new outer qualification launch after shim-boundary correction",
+    "command": "env CODEX_HOME=<saved-auth-root> node qualification/d0043-physical-termux-m0.mjs",
+    "reportedFailure": {
+      "code": "m0_case_not_accepted",
+      "details": "The qualification wrapper reported only the non-accepted drive classification; its nested case/validation details were not serialized. The lower-level cause remains unknown and is not inferred as bwrap."
+    },
+    "passEvidenceProduced": false,
+    "blindRetry": false
+  },
+  "externalEffects": {
+    "canonicalCheckoutIndexAndRefUnchanged": true,
+    "preservedUserFilesUnchanged": true,
+    "disposableDevelopmentWorkspaceResidue": "none_observed",
+    "providerMutation": false,
+    "mcpClientMutation": false,
+    "credentialBytesObserved": false
+  },
+  "correctedNext": {
+    "m0": "Keep D0043 M0 not qualified; diagnose the exact model/validation state before another provider Attempt.",
+    "design": "Do not install or require bwrap for tdev. If the target Termux path must avoid the Codex internal sandbox dependency, accept a Class-2 D0043 correction selecting a Termux trusted-local no-bwrap/result-supplied profile (or another explicitly owned isolation boundary) before implementation.",
+    "m1": "D0046 provider activation remains downstream of a qualified M0 under the current accepted route. Source-only M1 preparation may proceed in parallel; no endpoint handoff is claimed."
+  }
+}
