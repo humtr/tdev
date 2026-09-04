@@ -115,7 +115,7 @@ function summarizeCaseSnapshot(snapshot) {
 function summarizeOperationObservation(observation) {
   if (!observation || typeof observation !== "object") return null;
   const summary = {};
-  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "exitCode", "signal", "stderrClass", "stdoutEventTypes", "stdoutItemTypes", "stdoutErrorCodes", "stdoutEventCount", "stdoutTruncated", "stdoutMalformedEvents", "stdoutTerminalAgentMessages", "stdoutTurnCompleted", "stdoutTurnFailed", "stdoutErrorEvents", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
+  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "exitCode", "signal", "stderrClass", "stdoutEventTypes", "stdoutItemTypes", "stdoutErrorCodes", "stdoutErrorKeys", "stdoutErrorDetailClasses", "stdoutEventCount", "stdoutTruncated", "stdoutMalformedEvents", "stdoutTerminalAgentMessages", "stdoutTurnCompleted", "stdoutTurnFailed", "stdoutErrorEvents", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
     if (Object.hasOwn(observation, key)) summary[key] = observation[key];
   }
   return summary;

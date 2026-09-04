@@ -206,8 +206,23 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
   return { result, usage };
 }
 
+function classifyDiagnosticText(value) {
+  if (typeof value !== "string" || value.length === 0) return "empty";
+  const text = value.toLowerCase();
+  if (/bwrap|sandbox|namespace/u.test(text)) return "sandbox";
+  if (/approval|permission|confirm/u.test(text)) return "approval";
+  if (/401|403|unauthorized|authentication|login|token/u.test(text)) return "authentication";
+  if (/404|not found|unknown endpoint|endpoint/u.test(text)) return "endpoint";
+  if (/rate.?limit|quota|limit exceeded/u.test(text)) return "rate_limit";
+  if (/model.{0,32}(not found|unsupported|unavailable)|unsupported.{0,32}model/u.test(text)) return "model";
+  if (/schema|json|structured output/u.test(text)) return "schema";
+  if (/network|connect|socket|websocket|http|dns|tls/u.test(text)) return "network";
+  if (/invalid|malformed|bad request|request failed/u.test(text)) return "request";
+  return "other";
+}
+
 function summarizeCodexProcessOutput(bytes) {
-  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [] };
+  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [] };
   if (!Buffer.isBuffer(bytes)) return summary;
   let text;
   try { text = UTF8_DECODER.decode(bytes); }
@@ -231,7 +246,17 @@ function summarizeCodexProcessOutput(bytes) {
     if (event.type === "turn.completed") summary.turnCompleted = true;
     if (event.type === "turn.failed") summary.turnFailed = true;
     if (event.type === "error" || event.type === "turn.failed") summary.errorEvents += 1;
-    if (isPlainRecord(event.error) && typeof event.error.code === "string" && summary.errorCodes.length < 8) summary.errorCodes.push(event.error.code);
+    if (isPlainRecord(event.error)) {
+      for (const key of Object.keys(event.error).sort()) if (summary.errorKeys.length < 16) summary.errorKeys.push(key);
+      for (const key of ["code", "type", "message", "detail"]) {
+        if (typeof event.error[key] !== "string" || summary.errorDetailClasses.length >= 8) continue;
+        const classification = classifyDiagnosticText(event.error[key]);
+        summary.errorDetailClasses.push(classification);
+        if (key === "code" && summary.errorCodes.length < 8) summary.errorCodes.push(event.error[key]);
+      }
+    } else if (typeof event.error === "string" && summary.errorDetailClasses.length < 8) {
+      summary.errorDetailClasses.push(classifyDiagnosticText(event.error));
+    }
   }
   return summary;
 }
@@ -328,6 +353,8 @@ export class CodexExecRepositoryModelExecutor {
         stdoutEventTypes: Array.isArray(details.stdoutEventTypes) ? details.stdoutEventTypes.slice(0, 16) : [],
         stdoutItemTypes: Array.isArray(details.stdoutItemTypes) ? details.stdoutItemTypes.slice(0, 16) : [],
         stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : [],
+        stdoutErrorKeys: Array.isArray(details.errorKeys) ? details.errorKeys.slice(0, 16) : [],
+        stdoutErrorDetailClasses: Array.isArray(details.errorDetailClasses) ? details.errorDetailClasses.slice(0, 8) : [],
         stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : null,
         stdoutTruncated: details.truncated === true,
         stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : null,
