@@ -1,13 +1,14 @@
 # Design 0023 - Versioned Stateless tdev MCP Surface
 
-- Status: `accepted`
-- Revision: 2
+- Status: `implementing`
+- Revision: 3
 - Class: 2
 - Decision date: 2026-09-04
-- Acceptance base: `development@607cb0cc56a8598a1bf228ec8e36abbea2edcd5c`
-- Predecessor: D0023 Revision 1, accepted by `docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json`
-- Trigger: a fresh Developer-mode connection reported OAuth connected/used but exposed no app actions, falsifying the assumption that the Revision-1 initialize/tools-list contract was sufficient for the current ChatGPT MCP client
-- Acceptance evidence: `docs/evidence/group-f-d0023-r2-chatgpt-discovery-compatibility-acceptance-2026-09-04.json`
+- Acceptance base: `development@1a3d32f990c21caf7fefeb7c15f290357896e42a`
+- Predecessor: D0023 Revision 2, accepted by `docs/evidence/group-f-d0023-r2-chatgpt-discovery-compatibility-acceptance-2026-09-04.json`
+- Trigger: the fresh web ChatGPT trial now reports a red connection failure after OAuth rather than merely omitting actions; the deployed surface advertises only legacy initialize/tools/call while the current MCP revision uses request-scoped metadata and standard routing headers
+- Trigger evidence: user-reported connection failure plus the public endpoint's exact legacy-only surface manifest and authenticated-path protocol analysis; no owner mutation was observed
+- Acceptance evidence: pending source, provider and current-client requalification
 - Scope: one versioned, stateless MCP projection/command ingress for tdev Case, drive and development-unit operations
 - Affected owners: `src/`, `docs/MCP.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, the deployed MCP Worker and its generated schemas
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery and local-process authorities; D0042 remains Case-to-Agent drive/re-drive; D0043 remains typed operation admission; D0024 owns MCP authentication/tenant identity; D0025 owns Git publication
@@ -30,7 +31,7 @@ The supported external transport is HTTPS Streamable HTTP:
 - `GET` is allowed only when the selected MCP transport implementation requires a resumable event stream and must remain an owner-state projection, never a command channel;
 - other methods are rejected before owner access;
 - the Worker is stateless between requests; durable Case/drive state is read from the accepted owners;
-- the server negotiates only an explicitly supported MCP protocol-version set and rejects an unknown/future version without downgrade-by-convention. Revision 2 advertises the legacy initialize/tools/call versions `2025-03-26`, `2025-06-18` and `2025-11-25`; the distinct `2026-07-28` discovery lifecycle is not claimed until a separate adapter is accepted;
+- the server negotiates only an explicitly supported MCP protocol-version set and rejects an unknown/future version without downgrade-by-convention. Revision 3 is dual-era: it preserves the legacy initialize/tools/call versions `2025-03-26`, `2025-06-18` and `2025-11-25`, and adds a stateless `2026-07-28` adapter with `server/discover`, request-scoped `_meta`, `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` validation. The modern adapter never creates a session or reinterprets a legacy request;
 - JSON-RPC batch, notifications and tool calls follow the selected version's exact schema; unsupported message shapes fail closed.
 
 Every request is bounded before authentication-dependent owner dispatch. Duplicate JSON members, unsafe numbers, invalid UTF-8, sparse arrays, unknown top-level fields, oversized bodies and trailing data are rejected by the strict canonical parser. A JSON-RPC error is transport output, not a Case Event or receipt.
@@ -53,7 +54,7 @@ The Worker publishes one immutable surface manifest containing:
 - authentication profile ID from D0024;
 - owner adapter profile IDs for Case, drive, operation and Artifact projections.
 
-A changed tool name, required field, result meaning, authentication resource or owner mapping is a new surface revision. Revision 2 is an additive compatibility revision: the eleven tool names and input meanings remain unchanged, while each advertised descriptor now includes a human-readable `title`, an object `outputSchema` matching the structured result, and explicit MCP safety `annotations` (`readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`). A client cannot select an executable, path, environment, network policy, Agent identity, claim, credential or provider binding through a tool argument.
+A changed tool name, required field, result meaning, authentication resource or owner mapping is a new surface revision. Revision 3 is an additive protocol compatibility revision: the eleven tool names and input meanings remain unchanged, while the same descriptors are served to both eras. Legacy requests retain their initialize handshake; modern requests carry bounded per-request metadata, use the standard routing headers, return `resultType: complete` and private cache hints, and may call `server/discover` before `tools/list`. A client cannot select an executable, path, environment, network policy, Agent identity, claim, credential or provider binding through a tool argument.
 
 ## 5. Tool contract
 
@@ -134,7 +135,7 @@ A release/rollback that changes the surface manifest, schema, owner binding or a
 
 | Area | Required result |
 | --- | --- |
-| transport | each advertised legacy version completes `initialize`, `tools/list` and `tools/call` over HTTPS Streamable HTTP |
+| transport | each advertised legacy version completes `initialize`, `tools/list` and `tools/call`, and `2026-07-28` completes `server/discover`, `tools/list` and `tools/call` over HTTPS Streamable HTTP with required request metadata/header checks |
 | schemas | exact generated versioned schemas, titles, output schemas and safety annotations are returned; duplicate/unknown/unsafe/oversized input is rejected |
 | mutations | request identity, exact replay, stale revision and owner receipt behavior are proven |
 | projections | Case/Task/Attempt/Promotion/reconciliation states and digests remain exact and bounded |

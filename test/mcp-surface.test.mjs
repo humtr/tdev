@@ -45,6 +45,35 @@ function callRequest(method, params, { id = 1, assertion = 'valid', protocol = n
   });
 }
 
+function modernRequest(method, params = {}, { id = 1, assertion = 'valid', version = '2026-07-28', methodHeader = method, nameHeader = null } = {}) {
+  const headers = {
+    'content-type': 'application/json',
+    accept: 'application/json, text/event-stream',
+    'cf-access-jwt-assertion': assertion,
+    'mcp-protocol-version': version,
+    'mcp-method': methodHeader,
+  };
+  if (nameHeader !== null) headers['mcp-name'] = nameHeader;
+  return new Request('https://mcp.example.test/mcp', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      method,
+      params: {
+        ...params,
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': version,
+          'io.modelcontextprotocol/clientInfo': { name: 'modern-test-client', version: '1' },
+          'io.modelcontextprotocol/clientCapabilities': {},
+          ...(params._meta ?? {}),
+        },
+      },
+    }),
+  });
+}
+
 async function rpc(surface, request) {
   const response = await surface.fetch(request);
   const body = response.status === 202 ? null : await response.json();
@@ -85,8 +114,8 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
     resource: authManifest.mcpResource,
     authorization_servers: [authManifest.authorizationServerIssuer],
   });
-  assert.deepEqual(surfaceManifest.protocolVersions, ['2025-03-26', '2025-06-18', '2025-11-25']);
-  for (const protocolVersion of surfaceManifest.protocolVersions) {
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2025-03-26', '2025-06-18', '2025-11-25', '2026-07-28']);
+  for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {
     const initialized = await rpc(surface, callRequest('initialize', {
       protocolVersion,
       capabilities: {},
@@ -106,7 +135,19 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
     assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
     assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
   }
-  for (const protocolVersion of surfaceManifest.protocolVersions) {
+  const discovered = await rpc(surface, modernRequest('server/discover', {}, { id: 'discover-1' }));
+  assert.equal(discovered.response.status, 200);
+  assert.equal(discovered.body.result.resultType, 'complete');
+  assert.deepEqual(discovered.body.result.supportedVersions, surfaceManifest.protocolVersions);
+  assert.equal(discovered.body.result._meta['io.modelcontextprotocol/serverInfo'].name, 'tdev');
+
+  const modernListed = await rpc(surface, modernRequest('tools/list', {}, { id: 'list-1' }));
+  assert.equal(modernListed.response.status, 200);
+  assert.equal(modernListed.body.result.resultType, 'complete');
+  assert.equal(modernListed.body.result.tools.length, 11);
+  assert.equal(modernListed.body.result.cacheScope, 'private');
+
+  for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {
     const called = await rpc(surface, callRequest('tools/call', {
       name: 'claim_conflicts_get', arguments: { claims: [] },
     }, { protocol: protocolVersion, id: `call-${protocolVersion}` }));
@@ -114,6 +155,28 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
     assert.equal(called.body.result.isError, false);
     assert.deepEqual(called.body.result.structuredContent, { conflicts: [], revision: 0 });
   }
+  const modernCalled = await rpc(surface, modernRequest('tools/call', {
+    name: 'claim_conflicts_get', arguments: { claims: [] },
+  }, { id: 'call-modern', nameHeader: 'claim_conflicts_get' }));
+  assert.equal(modernCalled.response.status, 200);
+  assert.equal(modernCalled.body.result.resultType, 'complete');
+  assert.equal(modernCalled.body.result.isError, false);
+  assert.deepEqual(modernCalled.body.result.structuredContent, { conflicts: [], revision: 0 });
+});
+
+test('modern MCP metadata and routing headers fail closed before authorization on mismatch', async () => {
+  let authorizations = 0;
+  const surface = createSurface({ authorize: async () => { authorizations += 1; return true; } });
+  const mismatch = await rpc(surface, modernRequest('tools/list', {}, { methodHeader: 'tools/call' }));
+  assert.equal(mismatch.response.status, 400);
+  assert.equal(mismatch.body.error.code, -32020);
+  assert.equal(mismatch.body.error.data.code, 'mcp_header_mismatch');
+  assert.equal(authorizations, 0);
+  const unsupported = await rpc(surface, modernRequest('tools/list', {}, { version: '2027-01-01', methodHeader: 'tools/list' }));
+  assert.equal(unsupported.response.status, 400);
+  assert.equal(unsupported.body.error.code, -32022);
+  assert.deepEqual(unsupported.body.error.data.supported, surfaceManifest.protocolVersions);
+  assert.equal(authorizations, 0);
 });
 
 test('MCP case projection delegates to repository and tenant denial precedes owner access', async () => {

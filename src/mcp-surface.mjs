@@ -26,11 +26,17 @@ export const MCP_SURFACE_SCHEMA_VERSION = 1;
 export const MCP_SURFACE_MANIFEST_DOMAIN = 'tdev.mcp.surface-manifest.v1';
 export const MCP_SURFACE_PATH = '/mcp';
 export const MCP_SURFACE_PROTOCOL_VERSION = '2025-03-26';
-// Keep the original Streamable HTTP version as the compatibility baseline,
-// while advertising the two later legacy initialize/tools/call versions used
-// by current MCP clients. The modern 2026 protocol has a different discovery
-// lifecycle and is intentionally not claimed until its adapter is implemented.
+export const MCP_SURFACE_MODERN_PROTOCOL_VERSION = '2026-07-28';
+// Keep all initialize-era revisions for existing clients and add the current
+// request-scoped revision. The two eras have different lifecycle contracts;
+// the adapter selects one from the request and never silently downgrades it.
 export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([
+  MCP_SURFACE_PROTOCOL_VERSION,
+  '2025-06-18',
+  '2025-11-25',
+  MCP_SURFACE_MODERN_PROTOCOL_VERSION,
+]);
+const MCP_SURFACE_LEGACY_PROTOCOL_VERSIONS = new Set([
   MCP_SURFACE_PROTOCOL_VERSION,
   '2025-06-18',
   '2025-11-25',
@@ -290,17 +296,92 @@ function protocolHeader(request) {
   return value;
 }
 
+const MODERN_META_PROTOCOL_KEY = 'io.modelcontextprotocol/protocolVersion';
+const MODERN_META_CLIENT_INFO_KEY = 'io.modelcontextprotocol/clientInfo';
+const MODERN_META_CLIENT_CAPABILITIES_KEY = 'io.modelcontextprotocol/clientCapabilities';
+const MODERN_META_SERVER_INFO_KEY = 'io.modelcontextprotocol/serverInfo';
+
+function modernMetaVersion(rpc) {
+  const meta = rpc?.params?._meta;
+  return isPlainRecord(meta) && typeof meta[MODERN_META_PROTOCOL_KEY] === 'string'
+    ? meta[MODERN_META_PROTOCOL_KEY]
+    : null;
+}
+
+function modernRequestMeta(request, rpc, manifest) {
+  if (!isPlainRecord(rpc.params) || !isPlainRecord(rpc.params._meta)) {
+    fail('mcp_modern_metadata_required', 'Modern MCP requests require a bounded _meta object');
+  }
+  const meta = rpc.params._meta;
+  const requested = meta[MODERN_META_PROTOCOL_KEY];
+  const header = protocolHeader(request);
+  if (typeof requested !== 'string' || requested.length === 0 || header === null || header !== requested) {
+    fail('mcp_header_mismatch', 'MCP protocol metadata and header must contain one matching value', {
+      field: 'MCP-Protocol-Version',
+    });
+  }
+  if (!manifest.protocolVersions.includes(requested)) {
+    fail('mcp_protocol_unsupported', 'Requested MCP protocol version is not supported', {
+      requested,
+      supported: [...manifest.protocolVersions],
+    });
+  }
+  if (requested !== MCP_SURFACE_MODERN_PROTOCOL_VERSION) {
+    fail('mcp_protocol_unsupported', 'Modern request metadata uses an unsupported protocol era', {
+      requested,
+      supported: [...manifest.protocolVersions],
+    });
+  }
+  const clientInfo = meta[MODERN_META_CLIENT_INFO_KEY];
+  if (clientInfo !== undefined) {
+    if (!isPlainRecord(clientInfo)) fail('mcp_modern_metadata_invalid', 'Modern clientInfo must be a record');
+    assertRecordShape(
+      clientInfo,
+      ['name', 'version'],
+      ['title', 'websiteUrl', 'icons'],
+      'modern clientInfo',
+    );
+    assertScalarString(clientInfo.name, 'modern clientInfo.name');
+    assertScalarString(clientInfo.version, 'modern clientInfo.version');
+  }
+  const clientCapabilities = meta[MODERN_META_CLIENT_CAPABILITIES_KEY];
+  if (clientCapabilities !== undefined && !isPlainRecord(clientCapabilities)) {
+    fail('mcp_modern_metadata_invalid', 'Modern clientCapabilities must be a record');
+  }
+  return deepFreeze({
+    protocolVersion: requested,
+    clientInfo: clientInfo === undefined ? null : canonicalClone(clientInfo),
+    clientCapabilities: clientCapabilities === undefined ? {} : canonicalClone(clientCapabilities),
+  });
+}
+
+function modernHeaders(request, rpc) {
+  const method = request.headers.get('mcp-method');
+  if (method === null || method !== rpc.method) {
+    fail('mcp_header_mismatch', 'Mcp-Method must match the JSON-RPC method', { field: 'Mcp-Method' });
+  }
+  if (rpc.method === 'tools/call') {
+    const name = rpc.params?.name;
+    const headerName = request.headers.get('mcp-name');
+    if (typeof name !== 'string' || headerName === null || headerName !== name) {
+      fail('mcp_header_mismatch', 'Mcp-Name must match the tools/call name', { field: 'Mcp-Name' });
+    }
+  }
+}
+
 function safeErrorCode(error) {
   if (error instanceof ContractError && typeof error.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code)) return error.code;
   return 'mcp_internal_error';
 }
 
-function rpcError(id, code, message, dataCode = code) {
-  return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message, data: { code: dataCode } } };
+function rpcError(id, code, message, dataCode = code, details = {}) {
+  return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message, data: { code: dataCode, ...details } } };
 }
 
 function errorStatus(error) {
   const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return 404;
+  if (code === 'mcp_header_mismatch' || code === 'mcp_protocol_unsupported' || code === 'mcp_modern_metadata_required' || code === 'mcp_modern_metadata_invalid') return 400;
   if (code === 'mcp_authentication_failed' || code.startsWith('mcp_auth_') && (code.includes('issuer') || code.includes('audience') || code.includes('assertion'))) return 401;
   if (code === 'mcp_authorization_denied') return 403;
   if (code.includes('config') || code.includes('verifier_unavailable')) return 503;
@@ -310,10 +391,34 @@ function errorStatus(error) {
 
 function errorMessage(error) {
   const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return 'MCP method not found';
+  if (code === 'mcp_header_mismatch') return 'MCP request header mismatch';
+  if (code === 'mcp_protocol_unsupported') return 'MCP protocol version is not supported';
   if (code === 'mcp_internal_error') return 'MCP server error';
   if (code === 'mcp_authentication_failed' || code.startsWith('mcp_auth_')) return 'MCP authentication failed';
   if (code === 'mcp_authorization_denied') return 'MCP authorization denied';
   return 'MCP request rejected';
+}
+
+function rpcErrorCode(error) {
+  const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return -32601;
+  if (code === 'mcp_header_mismatch') return -32020;
+  if (code === 'mcp_protocol_unsupported') return -32022;
+  return -32000;
+}
+
+function rpcErrorDetails(error, manifest) {
+  const code = safeErrorCode(error);
+  if (code === 'mcp_protocol_unsupported') {
+    return {
+      code,
+      supported: [...manifest.protocolVersions],
+      ...(typeof error?.details?.requested === 'string' ? { requested: error.details.requested } : {}),
+    };
+  }
+  if (code === 'mcp_header_mismatch') return { code, field: error?.details?.field ?? null };
+  return { code };
 }
 
 function assertObject(value, label) {
@@ -654,7 +759,60 @@ export class TdevMcpSurface {
     };
   }
 
+  #modernServerInfo() {
+    return { name: 'tdev', version: this.manifest.surfaceDigest.slice('sha256:'.length, 'sha256:'.length + 12) };
+  }
+
+  async #modernRpc(request, rpc) {
+    if (!Object.hasOwn(rpc, 'id')) fail('mcp_modern_notification_unsupported', 'Modern Streamable HTTP does not accept client notifications');
+    modernRequestMeta(request, rpc, this.manifest);
+    modernHeaders(request, rpc);
+    const identity = await this.#authorize(request, rpc, rpc.method === 'tools/call' ? rpc.params?.name ?? 'tools/call' : rpc.method, rpc.params);
+    if (rpc.method === 'server/discover') {
+      assertRecordShape(rpc.params, ['_meta'], [], 'server/discover params');
+      return {
+        resultType: 'complete',
+        supportedVersions: [...this.manifest.protocolVersions],
+        capabilities: { tools: { listChanged: false } },
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+        instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
+        ttlMs: 0,
+        cacheScope: 'private',
+      };
+    }
+    if (rpc.method === 'tools/list') {
+      assertRecordShape(rpc.params, ['_meta'], ['cursor'], 'tools/list params');
+      if (rpc.params.cursor !== undefined) fail('mcp_cursor_unsupported', 'This stateless surface has no resumable tool cursor');
+      return {
+        resultType: 'complete',
+        tools: canonicalClone(this.manifest.tools),
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+        ttlMs: 0,
+        cacheScope: 'private',
+      };
+    }
+    if (rpc.method === 'tools/call') {
+      assertRecordShape(rpc.params, ['name', '_meta'], ['arguments'], 'tools/call params');
+      if (typeof rpc.params.name !== 'string' || !TOOL_NAMES.includes(rpc.params.name)) fail('mcp_tool_not_found', 'Requested MCP tool is not exposed');
+      const result = await this.#tool(rpc.params.name, rpc.params.arguments ?? {}, identity);
+      const structuredContent = canonicalClone(result);
+      return {
+        resultType: 'complete',
+        content: [{ type: 'text', text: canonicalJson(structuredContent) }],
+        structuredContent,
+        isError: false,
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+      };
+    }
+    fail('mcp_method_not_found', `Unknown MCP method ${rpc.method}`);
+  }
+
   async #rpc(request, rpc) {
+    const header = protocolHeader(request);
+    const metaVersion = modernMetaVersion(rpc);
+    const modern = metaVersion !== null || header === MCP_SURFACE_MODERN_PROTOCOL_VERSION ||
+      (header !== null && !MCP_SURFACE_LEGACY_PROTOCOL_VERSIONS.has(header));
+    if (modern) return this.#modernRpc(request, rpc);
     if (!Object.hasOwn(rpc, 'id')) {
       if (rpc.method !== 'notifications/initialized') fail('mcp_invalid_rpc', 'Only notifications/initialized is accepted without an id');
       await this.#authorize(request, rpc, 'notifications/initialized', rpc.params);
@@ -664,7 +822,6 @@ export class TdevMcpSurface {
       await this.#authorize(request, rpc, 'initialize', rpc.params);
       return this.#initialize(rpc, request);
     }
-    const header = protocolHeader(request);
     if (header === null || !this.manifest.protocolVersions.includes(header)) fail('mcp_protocol_required', 'A supported MCP-Protocol-Version header is required after initialize');
     const identity = await this.#authorize(request, rpc, rpc.method === 'tools/call' ? rpc.params?.name ?? 'tools/call' : rpc.method, rpc.params);
     if (rpc.method === 'tools/list') {
@@ -714,7 +871,7 @@ export class TdevMcpSurface {
       return jsonResponse(200, response, { 'mcp-protocol-version': rpc.method === 'initialize' ? rpc.params.protocolVersion : protocolHeader(request) });
     } catch (error) {
       const status = errorStatus(error);
-      const response = rpcError(rpc?.id, -32000, errorMessage(error), safeErrorCode(error));
+      const response = rpcError(rpc?.id, rpcErrorCode(error), errorMessage(error), safeErrorCode(error), rpcErrorDetails(error, this.manifest));
       const headers = {};
       if (status === 401) headers['www-authenticate'] = `Bearer resource="${this.auth.manifest?.mcpResource ?? ''}"`;
       return jsonResponse(status, response, headers);
