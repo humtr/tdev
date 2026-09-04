@@ -5,6 +5,7 @@ import { access, chmod, mkdir, open, readFile, rename, rm, stat, writeFile } fro
 import path from 'node:path';
 import { canonicalJson } from './canonical.mjs';
 import { InstallableAgentSupervisorServiceClient } from './installable-agent-supervisor-service.mjs';
+import { parseInstallableAgentCredentialRef } from './installable-agent-security.mjs';
 
 export const INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE = 'tdev.agent.termux.runit.v1';
 const DEFAULT_READY_WAIT_MS = 8_000;
@@ -140,7 +141,13 @@ function assertNonSecretControlConfig(value) {
     if (entry !== null && typeof entry === 'object') for (const [name, child] of Object.entries(entry)) visit(child, name);
   };
   visit(value);
-  if (typeof value.credentialRef !== 'string' || !path.isAbsolute(value.credentialRef)) {
+  if (typeof value.credentialRef !== 'string') {
+    fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an external reference');
+  }
+  if (value.credentialRef.startsWith('androidkeystore://')) {
+    try { parseInstallableAgentCredentialRef(value.credentialRef); }
+    catch (cause) { fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef AndroidKeyStore reference is invalid', { cause }); }
+  } else if (!path.isAbsolute(value.credentialRef)) {
     fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an absolute external reference');
   }
   return value;

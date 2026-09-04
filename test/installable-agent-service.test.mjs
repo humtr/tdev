@@ -235,6 +235,11 @@ test('Termux runit controller installs a package-owned absolute service definiti
   });
   assert.equal(activated.classification, 'running');
   assert.equal(running.get(layout.controlServicePath), true);
+  const androidKeyStoreActivated = await controller.activateControl({
+    stateDirectory,
+    controlConfig: { credentialRef: 'androidkeystore://com.termux.api/tdev.a1.gm6fFTftt0hx_vVWFVqa3luRI-K5_1gnbUZ_ka9vGFM', profile: 'fixture' },
+  });
+  assert.equal(androidKeyStoreActivated.classification, 'running');
   const quiesced = await controller.quiesceAndStop({ stateDirectory, drainRequestId: 'drain-service-one' });
   assert.equal(quiesced.classification, 'quiesced_and_stopped');
   assert.equal(quiesced.positiveQuiescence.liveOperations, 0);
