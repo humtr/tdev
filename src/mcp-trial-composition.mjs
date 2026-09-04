@@ -14,7 +14,9 @@ import {
 } from './canonical.mjs';
 import { MCP_AUTH_PROFILE } from './mcp-auth.mjs';
 import { createCasePlacement } from './casedo-authority.mjs';
+import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
+import { agentRouteHostKey } from './agent-route-election.mjs';
 
 /**
  * D0046's source-only composition boundary.  The Worker that imports this
@@ -63,16 +65,18 @@ function ownerPlacement(value, label, expectedClassName) {
 }
 
 function ownerBinding(value, label, expectedClassName) {
-  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration'], label);
+  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration', 'routeKey'], label);
   const placement = ownerPlacement(value.placement, `${label}.placement`, expectedClassName);
   for (const field of ['namespaceId', 'd1Binding', 'd1DatabaseId']) {
     if (value[field] !== undefined) boundedText(value[field], `${label}.${field}`, 512);
   }
+  if (value.routeKey !== undefined) boundedText(value.routeKey, `${label}.routeKey`, 256);
   return {
     placement,
     ...(value.namespaceId === undefined ? {} : { namespaceId: value.namespaceId }),
     ...(value.d1Binding === undefined ? {} : { d1Binding: value.d1Binding }),
     ...(value.d1DatabaseId === undefined ? {} : { d1DatabaseId: value.d1DatabaseId }),
+    ...(value.routeKey === undefined ? {} : { routeKey: value.routeKey }),
   };
 }
 
@@ -118,9 +122,15 @@ function normalizeManifestBody(input) {
   const caseOwner = ownerBinding(input.caseOwner, 'caseOwner', MCP_TRIAL_CASE_CLASS_NAME);
   const driveOwner = ownerBinding(input.driveOwner, 'driveOwner', MCP_TRIAL_DRIVE_CLASS_NAME);
   const agentOwner = ownerBinding(input.agentOwner, 'agentOwner', MCP_TRIAL_AGENT_CLASS_NAME);
-  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId'], 'agentOwner');
+  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId', 'routeKey'], 'agentOwner');
   assertIdentifier(input.agentOwner.agentId, 'agentOwner.agentId');
   assertSafeInteger(input.agentOwner.routeGeneration, 'agentOwner.routeGeneration', { min: 1 });
+  if (input.agentOwner.routeKey !== undefined && input.agentOwner.routeKey !== agentRouteHostKey({
+    agentId: input.agentOwner.agentId,
+    routeGeneration: input.agentOwner.routeGeneration,
+  })) {
+    fail('mcp_trial_agent_route_mismatch', 'agentOwner.routeKey must be the generation-bound route host key');
+  }
   const repository = input.repository;
   assertRecordShape(repository, [
     'commitOid', 'baseDigest', 'objectFormat', 'contextReference', 'context',
@@ -257,11 +267,12 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, driveRunner = null } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null } = {}) {
   const normalized = normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
   const driveNs = namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive');
   const agentNs = namespaceFor(agentNamespace, normalized.jurisdiction, 'Agent');
+  const placementAuthority = casePlacementDatabase === null ? null : new D1CasePlacementAuthority(casePlacementDatabase);
 
   function caseRoute(caseId) {
     assertCaseId(caseId, normalized.casePrefix);
@@ -279,6 +290,10 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async create({ caseId, plan, caseContract = {} } = {}) {
       assertCaseId(caseId, normalized.casePrefix);
       fixedPlanCheck(plan, normalized);
+      if (placementAuthority !== null) {
+        const routed = caseRoute(caseId);
+        await placementAuthority.elect({ placement: routed.placement });
+      }
       const result = await caseCall('initialize', caseId, { plan, caseContract });
       return caseEngineProjection(result.snapshot);
     },
@@ -328,10 +343,17 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       if (typeof method !== 'function') fail('mcp_trial_owner_unavailable', 'Case-Agent drive snapshot RPC is unavailable');
       return publicJsonClone(await method.call(route.stub, { caseId }));
     },
+    async advance(input = {}) {
+      if (!isPlainRecord(input)) fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance input must be a record');
+      const route = driveRoute(input.caseId);
+      const method = route.stub.advanceCaseAgentDrive;
+      if (typeof method !== 'function') fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance RPC is unavailable');
+      return publicJsonClone(await method.call(route.stub, canonicalClone(input)));
+    },
   });
 
   function agentRoute() {
-    const routed = routedStub(agentNs, normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent');
+    const routed = routedStub(agentNs, normalized.agentOwner.routeKey ?? normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent');
     const routeBinding = normalizeAgentRouteBinding({
       agentId: normalized.agentOwner.agentId,
       routeGeneration: normalized.agentOwner.routeGeneration,

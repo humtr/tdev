@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { ContractError, digest } from '../src/canonical.mjs';
+import { ContractError, canonicalClone, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, codexLauncherHome } from '../src/development-runtime.mjs';
+import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
@@ -79,4 +79,38 @@ test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation si
   });
   assert.equal(runtime.codex.observation, observation);
   assert.equal(runtime.npm.observation, observation);
+});
+
+test('D0043 development result envelope binds the activated Attempt fence', () => {
+  const template = {
+    caseId: 'case-runtime',
+    planRevisionId: 'plan-runtime',
+    planDigest: digest({ plan: 'runtime' }),
+    taskId: 'model',
+    attemptId: 'model.1',
+    executorId: 'executor-runtime',
+    executorEpoch: 2,
+    claimLeaseToken: null,
+    claimLeaseGeneration: null,
+    claimLeaseClaimsDigest: null,
+  };
+  const envelope = {
+    caseId: 'case-runtime',
+    taskId: 'model',
+    attemptId: 'model.1',
+    executorId: 'executor-runtime',
+    executorEpoch: 2,
+    fencingToken: digest({ fence: 'runtime' }),
+  };
+  const result = { profile: 'tdev.development-operation-profiles.v2', kind: 'model_repository', result: { kind: 'changeset' } };
+  assert.deepEqual(caseResultEnvelopeFromDispatch({ template, envelope, result }), {
+    ...template,
+    fencingToken: envelope.fencingToken,
+    result: canonicalClone(result),
+  });
+  assert.throws(() => caseResultEnvelopeFromDispatch({
+    template,
+    envelope: { ...envelope, attemptId: 'model.2' },
+    result,
+  }), (error) => error instanceof ContractError && error.code === 'development_runtime_result_identity_mismatch');
 });

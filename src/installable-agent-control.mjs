@@ -37,10 +37,15 @@ import {
 import { termuxInstallableAgentServiceLayout } from './installable-agent-termux-service.mjs';
 import { verifyInstallableAgentRelease } from './installable-agent-package.mjs';
 import {
+  DEVELOPMENT_OPERATION_PROFILE,
   developmentOperationCapabilityId,
   developmentOperationManifestDigest,
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
+import {
+  createLocalDevelopmentOperationExecutionAdapter,
+  LocalDevelopmentOperationRuntime,
+} from './development-runtime.mjs';
 
 export const INSTALLABLE_AGENT_CONTROL_PROFILE = 'tdev.installable-agent-control.v1';
 export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 2;
@@ -81,7 +86,10 @@ export function normalizeInstallableAgentControlConfig(input) {
   assertRecordShape(input, [
     'schemaVersion', 'profile', 'agentId', 'routeGeneration', 'executorId', 'executorEpoch', 'agentDeliveryUrl',
     'stateDirectory', 'credentialRef', 'installableAgentTuple', 'protocolMetadataDigest', 'reportedCapacity',
-  ], ['reconnectDelayMs', 'androidSourceLineageId'], 'installable Agent control config');
+  ], [
+    'reconnectDelayMs', 'androidSourceLineageId', 'developmentRepositoryPath', 'developmentCodexHome',
+    'developmentCodexExecutable', 'developmentNpmExecutable', 'developmentWorkspaceRoot',
+  ], 'installable Agent control config');
   if (input.schemaVersion !== 1 || input.profile !== INSTALLABLE_AGENT_CONTROL_PROFILE) {
     fail('installable_agent_control_config_incompatible', 'Installable Agent control config profile/schema is unsupported');
   }
@@ -110,6 +118,20 @@ export function normalizeInstallableAgentControlConfig(input) {
   assertSafeInteger(input.reportedCapacity, 'reportedCapacity', { min: 0, max: 1024 });
   const reconnectDelayMs = input.reconnectDelayMs ?? DEFAULT_RECONNECT_DELAY_MS;
   assertSafeInteger(reconnectDelayMs, 'reconnectDelayMs', { min: 100, max: 60_000 });
+  const developmentCore = ['developmentRepositoryPath', 'developmentCodexHome', 'developmentCodexExecutable', 'developmentNpmExecutable'];
+  const presentCore = developmentCore.filter((field) => input[field] !== undefined);
+  if (presentCore.length !== 0 && presentCore.length !== developmentCore.length) {
+    fail('invalid_installable_agent_control_config', 'D0043 development runtime paths must be configured as one complete binding');
+  }
+  for (const field of [...developmentCore, 'developmentWorkspaceRoot']) {
+    if (input[field] === undefined) continue;
+    if (!path.isAbsolute(input[field]) || input[field].includes('\0')) {
+      fail('invalid_installable_agent_control_config', `${field} must be an absolute path`);
+    }
+  }
+  if (input.developmentWorkspaceRoot !== undefined && presentCore.length === 0) {
+    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the complete D0043 runtime binding');
+  }
   return Object.freeze({
     schemaVersion: 1,
     profile: INSTALLABLE_AGENT_CONTROL_PROFILE,
@@ -125,6 +147,8 @@ export function normalizeInstallableAgentControlConfig(input) {
     protocolMetadataDigest: input.protocolMetadataDigest,
     reportedCapacity: input.reportedCapacity,
     reconnectDelayMs,
+    ...(presentCore.length === developmentCore.length ? Object.fromEntries(developmentCore.map((field) => [field, path.resolve(input[field])])) : {}),
+    ...(input.developmentWorkspaceRoot === undefined ? {} : { developmentWorkspaceRoot: path.resolve(input.developmentWorkspaceRoot) }),
   });
 }
 
@@ -382,6 +406,32 @@ export async function createInstallableAgentControlProcess({
   const developmentOperationProfilesDigest = developmentOperationProfiles === null ? null : developmentOperationManifestDigest(developmentOperationProfiles);
   const developmentOperationCapabilities = developmentOperationProfiles === null ? [] : Object.keys(developmentOperationProfiles.profiles).map((profile) =>
     developmentOperationCapabilityId(developmentOperationProfiles, profile)).sort();
+  let developmentRuntime = null;
+  let developmentExecutionAdapter = null;
+  const developmentRuntimeFields = [
+    normalizedConfig.developmentRepositoryPath,
+    normalizedConfig.developmentCodexHome,
+    normalizedConfig.developmentCodexExecutable,
+    normalizedConfig.developmentNpmExecutable,
+  ];
+  if (developmentRuntimeFields.some((value) => value !== undefined)) {
+    if (developmentOperationProfiles === null) fail('development_runtime_manifest_invalid', 'A configured D0043 runtime requires the package-owned operation manifest');
+    const outputBinding = release.manifest.developmentOperationOutputSchema;
+    if (outputBinding === undefined) fail('development_runtime_manifest_invalid', 'A configured D0043 runtime requires the package-owned output schema binding');
+    developmentRuntime = new LocalDevelopmentOperationRuntime({
+      manifest: developmentOperationProfiles,
+      repositoryPath: normalizedConfig.developmentRepositoryPath,
+      codexExecutable: normalizedConfig.developmentCodexExecutable,
+      codexHome: normalizedConfig.developmentCodexHome,
+      outputSchemaPath: path.join(resolvedPackageRoot, ...outputBinding.relativePath.split('/')),
+      npmExecutable: normalizedConfig.developmentNpmExecutable,
+      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces'),
+    });
+    developmentExecutionAdapter = createLocalDevelopmentOperationExecutionAdapter({
+      operationRuntime: developmentRuntime,
+      capabilities: developmentOperationCapabilities,
+    });
+  }
   const d0039Credential = normalizedConfig.credentialRef.startsWith('androidkeystore://');
   let authKey = null;
   let credentialVerifier = null;
@@ -406,6 +456,16 @@ export async function createInstallableAgentControlProcess({
   });
   const executionAdapter = Object.freeze({
     async start(input) {
+      if (input?.envelope?.executableBody?.profile === DEVELOPMENT_OPERATION_PROFILE) {
+        if (developmentExecutionAdapter === null) {
+          throw createLocalExecutionStartError(
+            'development_runtime_unconfigured',
+            'This Agent release has no host-bound D0043 development runtime configuration',
+            { phase: 'pre_handle' },
+          );
+        }
+        return developmentExecutionAdapter.start(input);
+      }
       const launch = resolveToolProfileBeforeHandle(toolProfiles, input.envelope.executableBody);
       const operation = await baseExecutionAdapter.start(input);
       let timer = setTimeout(() => { void operation.cancel().catch(() => {}); }, launch.timeoutMs);
@@ -514,7 +574,11 @@ export async function createInstallableAgentControlProcess({
     runtime,
     connectOnce,
     run,
-    stop() { stopped = true; transport.close(1000, 'control_stop'); },
+    stop() {
+      stopped = true;
+      transport.close(1000, 'control_stop');
+      if (developmentRuntime !== null) void developmentRuntime.dispose().catch(() => {});
+    },
     async status() {
       const state = await readConnectionState(connectionStatePath);
       return Object.freeze({

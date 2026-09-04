@@ -252,6 +252,10 @@ export {
   createMcpTrialAuthorization,
 } from './mcp-trial-composition.mjs';
 export {
+  McpTrialDevelopmentUnitRunner,
+  createMcpTrialDevelopmentUnitRunner,
+} from './mcp-trial-runner.mjs';
+export {
   DEVELOPMENT_UNIT_PROFILE,
   DEVELOPMENT_UNIT_CONTEXT_TASK_ID,
   DEVELOPMENT_UNIT_MODEL_TASK_ID,
@@ -270,6 +274,8 @@ export {
   CodexExecRepositoryModelExecutor,
   NpmCheckValidationExecutor,
   LocalDevelopmentOperationRuntime,
+  caseResultEnvelopeFromDispatch,
+  createLocalDevelopmentOperationExecutionAdapter,
   createLocalDevelopmentAgent,
 } from './development-runtime.mjs';
 export {
