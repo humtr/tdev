@@ -84,6 +84,11 @@ test('D0046 discovery metadata bypasses large repository initialization', async 
   assert.equal(authorizationMetadata.status, 200);
   const authorization = await authorizationMetadata.json();
   assert.equal(authorization.issuer, 'https://humtr.cloudflareaccess.com');
+  assert.deepEqual(authorization.response_types_supported, ['code']);
+  assert.deepEqual(authorization.response_modes_supported, ['query']);
+  assert.deepEqual(authorization.grant_types_supported, ['authorization_code', 'refresh_token']);
+  assert.deepEqual(authorization.token_endpoint_auth_methods_supported, ['client_secret_basic', 'client_secret_post', 'none']);
+  assert.equal(authorization.revocation_endpoint, 'https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/revoke');
   assert.equal(authorization.registration_endpoint, 'https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration');
   assert.deepEqual(authorization.code_challenge_methods_supported, ['S256']);
 });

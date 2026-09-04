@@ -28,6 +28,11 @@ export function cloudflareAccessAuthorizationServerMetadata(authManifest) {
     issuer: authManifest.authorizationServerIssuer,
     authorization_endpoint: `${issuer}/cdn-cgi/access/oauth/authorization`,
     token_endpoint: `${issuer}/cdn-cgi/access/oauth/token`,
+    response_types_supported: ['code'],
+    response_modes_supported: ['query'],
+    grant_types_supported: ['authorization_code', 'refresh_token'],
+    token_endpoint_auth_methods_supported: ['client_secret_basic', 'client_secret_post', 'none'],
+    revocation_endpoint: `${issuer}/cdn-cgi/access/oauth/revoke`,
     registration_endpoint: `${issuer}/cdn-cgi/access/oauth/registration`,
     code_challenge_methods_supported: ['S256'],
   }, authManifest);
