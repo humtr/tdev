@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r2_source_package_local_termux",
+  "observedAtUtc": "2026-09-04T05:05:56Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "538485648bf8cd5c3183bbca9ea53e79d03ef303",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "538485648bf8cd5c3183bbca9ea53e79d03ef303",
+      "readback": "PASS"
+    },
+    "trackedWorktreeAfterVerification": "clean",
+    "unrelatedUntrackedPreserved": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 2,
+    "status": "implementing",
+    "sourcePackageScope": "release-bound operation profiles and local installed-Agent package only"
+  },
+  "releaseBinding": {
+    "packageProfile": "tdev.installable-agent-package.v1",
+    "target": {
+      "platform": "android",
+      "arch": "arm64"
+    },
+    "developmentOperationProfiles": {
+      "relativePath": "config/development-operation-profiles.json",
+      "sha256": "sha256:0f745f4ae6270cbf4482f13c7cdef03c2f598f525fd04f51575999e4d0bc3baa"
+    },
+    "developmentOperationOutputSchema": {
+      "relativePath": "config/codex-changeset-output.schema.json",
+      "sha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7"
+    },
+    "archive": {
+      "file": "tdev-installable-agent-android-arm64-538485648bf8cd5c3183bbca9ea53e79d03ef303.tgz",
+      "sha256": "sha256:983ff2492257a7e922edb01c056722d961c42f5d82fa5384907afbe6bb9aaace",
+      "bytes": 171171
+    },
+    "archiveBuild": {
+      "command": "node tools/build-installable-agent-package.mjs --source-revision 538485648bf8cd5c3183bbca9ea53e79d03ef303",
+      "deterministicDoubleBuild": "PASS",
+      "releaseManifestDigest": "sha256:896e9c79230604761a80d8c2fa99c0141cb47ee4812f07c8ded2e4a4cfeb947e",
+      "releaseManifestFileSha256": "sha256:1c3f08aa4eec661cffce59ce8a387355f64269f2d20ca18f9eb93b4eb571727e",
+      "artifactFileSha256": "sha256:9044bffedc724ec8cd2e87b1503190965aa4783e5f30840d0209cc0f3d1a4aba"
+    }
+  },
+  "verification": {
+    "fullSourceGate": {
+      "command": "npm run check",
+      "status": "PASS",
+      "tests": {
+        "passed": 639,
+        "failed": 0,
+        "total": 639
+      },
+      "syntax": "PASS",
+      "documentation": "PASS",
+      "demo": "PASS",
+      "durableDemo": "PASS"
+    },
+    "packageLocalMachine": {
+      "command": "node qualification/installable-agent-package-termux.mjs --archive <bound-archive> --expected-source-revision 538485648bf8cd5c3183bbca9ea53e79d03ef303",
+      "status": "PASS",
+      "supervisorExecutionAndCleanup": "PASS",
+      "controlRestart": "PASS",
+      "secretPersistence": "absent_outside_external_reference"
+    },
+    "codexEnvironment": {
+      "version": "codex-cli 0.150.1",
+      "authMode": "chatgpt",
+      "storedChatgptTokens": true,
+      "credentialBytesObserved": false,
+      "providerHttpReachability": "HTTP 405",
+      "providerWebsocketHandshake": "HTTP 101"
+    }
+  },
+  "physicalM0": {
+    "status": "not_qualified",
+    "singleAttemptObserved": true,
+    "passEvidenceProduced": false,
+    "canonicalCheckoutIndexAndRefUnchanged": true,
+    "preservedUserFilesUnchanged": true,
+    "candidateWorkspaceCleanup": "observed_absent_after_exit",
+    "readOnlySandboxProbe": {
+      "command": "bwrap --as-pid-1 -- /system/bin/true",
+      "exitCode": 1,
+      "stderr": "bwrap-termux-compat: Linux bubblewrap sandbox is unavailable on Termux; namespace/mount isolation is not provided; refusing bwrap option '--as-pid-1'"
+    },
+    "reason": "The accepted D0043 read-only model boundary cannot be qualified on this Termux host while Linux namespace/mount isolation is unavailable. No full-access bypass or blind model retry was used."
+  },
+  "proofBoundaries": {
+    "source": "PASS - D0043 v2 real profile/schema adapter and fail-closed behavior",
+    "package": "PASS - deterministic Android/arm64 archive and local package service qualification",
+    "physicalTermuxCodexCandidate": "not qualified",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed",
+    "tmcpComparison": "not claimed - D0045 follows D0046 M2"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceCredentialMutation": false,
+    "canonicalTreeMutation": false,
+    "gitRefPublication": true,
+    "mcpClientMutation": false
+  },
+  "openDebts": [
+    "rebuild and rebind the package from the next evidence-bearing published source SHA",
+    "obtain a supported Linux namespace/mount read-only sandbox on the physical Agent host, or accept a separately designed D0043 revision for another isolation boundary",
+    "rerun one physical M0 candidate only after supported isolation and saved-auth usage are available",
+    "M1 tdev-mcp-trial provider composition and M2 supported web ChatGPT result remain downstream of physical M0"
+  ],
+  "next": "Continue D0043 M0 at the physical gate; do not activate D0046 M1 or offer an MCP URL until one real non-documentation ChangeSet passes fixed validation with positive cleanup and no canonical/Git effect."
+}
