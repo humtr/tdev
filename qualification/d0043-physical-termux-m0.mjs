@@ -274,8 +274,11 @@ async function main() {
     const validationResult = snapshot.taskStates.validate.acceptedResult;
     if (candidate.caseState !== 'succeeded' || validationResult?.passed !== true) fail('m0_validation_failed', 'M0 candidate did not pass fixed npm validation', { caseState: candidate.caseState, validation: validationResult });
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
+    const modelWrites = Array.isArray(modelResult?.writes) ? modelResult.writes : [];
+    const modelWritePaths = modelWrites.map((write) => write?.path).sort();
+    const expectedWritePaths = ['src/m0-physical-execution-profile.mjs', 'test/m0-physical-execution-profile.test.mjs'];
+    if (JSON.stringify(modelWritePaths) !== JSON.stringify(expectedWritePaths)) fail('m0_objective_scope_invalid', 'M0 ChangeSet writes outside the exact physical objective', { observed: modelWritePaths, expected: expectedWritePaths });
     if (!candidate.canonicalTree['src/m0-physical-execution-profile.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/m0-physical-execution-profile.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
-    for (const filePath of Object.keys(candidate.canonicalTree)) if (filePath.startsWith('docs/')) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
     const runtimeCandidate = operationRuntime.candidate(candidate.canonicalDigest);
     if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');
     await operationRuntime.dispose();
