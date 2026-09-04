@@ -206,6 +206,36 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
   return { result, usage };
 }
 
+function summarizeCodexProcessOutput(bytes) {
+  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [] };
+  if (!Buffer.isBuffer(bytes)) return summary;
+  let text;
+  try { text = UTF8_DECODER.decode(bytes); }
+  catch { summary.malformedEvents = 1; return summary; }
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const boundedLines = lines.slice(0, 64);
+  summary.eventCount = boundedLines.length;
+  summary.truncated = lines.length > boundedLines.length;
+  for (const line of boundedLines) {
+    let event;
+    try { event = strictJsonParse(line, { maxBytes: CODEX_MAX_RESPONSE_BYTES }); }
+    catch { summary.malformedEvents += 1; continue; }
+    if (!isPlainRecord(event) || typeof event.type !== "string") { summary.malformedEvents += 1; continue; }
+    if (summary.eventTypes.length < 16) summary.eventTypes.push(event.type);
+    const item = event.item;
+    if (isPlainRecord(item) && typeof item.type === "string") {
+      if (summary.itemTypes.length < 16) summary.itemTypes.push(item.type);
+      if (event.type === "item.completed" && item.type === "agent_message") summary.terminalAgentMessages += 1;
+    }
+    if (event.type === "turn.completed") summary.turnCompleted = true;
+    if (event.type === "turn.failed") summary.turnFailed = true;
+    if (event.type === "error" || event.type === "turn.failed") summary.errorEvents += 1;
+    if (isPlainRecord(event.error) && typeof event.error.code === "string" && summary.errorCodes.length < 8) summary.errorCodes.push(event.error.code);
+  }
+  return summary;
+}
+
 function normalizedChangeSet(result, baseDigest, evidence) {
   if (!isPlainRecord(result)) fail('codex_changeset_invalid', 'Codex terminal output must be a ChangeSet record');
   try {
@@ -271,7 +301,10 @@ export class CodexExecRepositoryModelExecutor {
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
       const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
-      if (processResult.code !== 0) fail('codex_process_failed', 'Codex process exited unsuccessfully', { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes });
+      if (processResult.code !== 0) {
+        const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
+        fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
+      }
       await assertCleanClone({ repositoryPath: clonePath, signal });
       const parsed = parseCodexJsonl(processResult.stdout, CODEX_MAX_RESPONSE_BYTES);
       const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage };
@@ -291,6 +324,17 @@ export class CodexExecRepositoryModelExecutor {
         signal: typeof details.signal === 'string' ? details.signal : null,
         stdoutBytes: Number.isSafeInteger(details.stdoutBytes) ? details.stdoutBytes : null,
         stderrBytes: Number.isSafeInteger(details.stderrBytes) ? details.stderrBytes : null,
+        stderrClass: typeof details.stderrClass === "string" ? details.stderrClass : null,
+        stdoutEventTypes: Array.isArray(details.stdoutEventTypes) ? details.stdoutEventTypes.slice(0, 16) : [],
+        stdoutItemTypes: Array.isArray(details.stdoutItemTypes) ? details.stdoutItemTypes.slice(0, 16) : [],
+        stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : [],
+        stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : null,
+        stdoutTruncated: details.truncated === true,
+        stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : null,
+        stdoutTerminalAgentMessages: Number.isSafeInteger(details.terminalAgentMessages) ? details.terminalAgentMessages : null,
+        stdoutTurnCompleted: details.turnCompleted === true,
+        stdoutTurnFailed: details.turnFailed === true,
+        stdoutErrorEvents: Number.isSafeInteger(details.errorEvents) ? details.errorEvents : null,
         outcome: cause?.code ?? 'codex_failed',
       });
       throw cause;

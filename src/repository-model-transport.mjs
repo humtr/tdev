@@ -611,6 +611,20 @@ function durationMs(start) {
   return Math.max(0, Math.round(performance.now() - start));
 }
 
+function classifyStderr(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length === 0) return 'empty';
+  let text;
+  try { text = fatalDecoder.decode(bytes).toLowerCase(); }
+  catch { return 'non_utf8'; }
+  if (/bwrap|sandbox|namespace/u.test(text)) return 'sandbox';
+  if (/approval|permission|confirm/u.test(text)) return 'approval';
+  if (/401|403|unauthorized|authentication|login/u.test(text)) return 'authentication';
+  if (/404|not found|unknown error/u.test(text)) return 'endpoint';
+  if (/model.{0,32}(not found|unsupported)|unsupported.{0,32}model/u.test(text)) return 'model';
+  if (/schema|json/u.test(text)) return 'schema';
+  return 'other';
+}
+
 export function runModelSubprocess({
   executable,
   args,
@@ -647,6 +661,7 @@ export function runModelSubprocess({
 
     const started = performance.now();
     const stdout = [];
+    const stderr = [];
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let terminalReason = null;
@@ -679,9 +694,11 @@ export function runModelSubprocess({
       }
       stdout.push(Buffer.from(chunk));
     });
-    child.stderr.on('data', (chunk) => {
+    child.stderr.on("data", (chunk) => {
+      const retainedBytes = Math.max(0, maxStderrBytes - stderrBytes);
+      if (retainedBytes > 0) stderr.push(Buffer.from(chunk.subarray(0, retainedBytes)));
       stderrBytes += chunk.length;
-      if (stderrBytes > maxStderrBytes) stop('stderr_limit');
+      if (stderrBytes > maxStderrBytes) stop("stderr_limit");
     });
     child.stdin.on('error', () => {});
     child.once('error', (cause) => {
@@ -708,6 +725,7 @@ export function runModelSubprocess({
         stdout: Buffer.concat(stdout),
         stdoutBytes,
         stderrBytes,
+        stderrClass: classifyStderr(Buffer.concat(stderr)),
         durationMs: durationMs(started),
       };
       if (terminalReason === 'aborted') {
