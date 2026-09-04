@@ -493,32 +493,7 @@ export class SqliteAgentResultHandoffStore {
     return sqlOneOrNull(this.sql, 'SELECT * FROM agent_result_handoff_state WHERE delivery_id = ?', deliveryId);
   }
 
-  #normalize(input) {
-    if (!input || typeof input !== 'object' || Array.isArray(input)) {
-      fail('invalid_agent_result_handoff', 'Result handoff must be a record');
-    }
-    assertRecordShape(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'deliveryId', 'handoff'], [], 'result handoff storage');
-    assertIdentifier(input.agentId, 'result handoff agentId');
-    assertSafeInteger(input.routeGeneration, 'result handoff routeGeneration', { min: 1 });
-    assertIdentifier(input.connectionId, 'result handoff connectionId');
-    assertSafeInteger(input.connectionEpoch, 'result handoff connectionEpoch', { min: 1 });
-    assertDigest(input.deliveryId, 'result handoff deliveryId');
-    if (!isPlainRecord(input.handoff)) fail('invalid_agent_result_handoff', 'Stored result handoff is not a record');
-    assertRecordShape(input.handoff, ['requestId', 'resultDigest', 'envelopeBytes', 'command'], [], 'result handoff');
-    assertIdentifier(input.handoff.requestId, 'result handoff requestId');
-    assertDigest(input.handoff.resultDigest, 'result handoff resultDigest');
-    assertSafeInteger(input.handoff.envelopeBytes, 'result handoff envelopeBytes', { min: 1 });
-    if (!isPlainRecord(input.handoff.command)) fail('invalid_agent_result_handoff', 'Result handoff command is not a record');
-    const text = canonicalJson(input.handoff);
-    const bytes = byteLength(text);
-    if (bytes > this.maxSnapshotBytes) {
-      fail('agent_result_handoff_storage_pressure', 'Result handoff exceeds the durable byte limit', {
-        requiredBytes: bytes,
-        maxSnapshotBytes: this.maxSnapshotBytes,
-      });
-    }
-    return { ...canonicalClone(input), text, bytes };
-  }
+  #normalize(input) { return normalizeResultHandoffStorage(input, this.maxSnapshotBytes); }
 
   put(input) {
     const normalized = this.#normalize(input);
@@ -576,6 +551,69 @@ export class SqliteAgentResultHandoffStore {
     }
     return canonicalClone(handoff);
   }
+}
+
+// Qualification/unit tests may inject the existing in-memory Agent delivery
+// store with a context that intentionally has no SQLite API.  This adapter is
+// not selected by a real provider host; it preserves the same bounded replay
+// and conflict contract for those non-provider compositions.
+export class MemoryAgentResultHandoffStore {
+  #entries = new Map();
+
+  initialize() {}
+
+  put(input) {
+    const normalized = normalizeResultHandoffStorage(input, 4 * 1024 * 1024);
+    const current = this.#entries.get(normalized.deliveryId);
+    if (current !== undefined) {
+      if (canonicalJson(current) !== canonicalJson(normalized)) {
+        fail('agent_result_handoff_conflict', 'Result handoff identity was reused with different content');
+      }
+      return { classification: 'exact_replay', handoff: canonicalClone(current.handoff) };
+    }
+    const stored = canonicalClone(normalized);
+    this.#entries.set(normalized.deliveryId, stored);
+    return { classification: 'accepted', handoff: canonicalClone(stored.handoff) };
+  }
+
+  load({ agentId, routeGeneration, deliveryId }) {
+    assertIdentifier(agentId, 'result handoff agentId');
+    assertSafeInteger(routeGeneration, 'result handoff routeGeneration', { min: 1 });
+    assertDigest(deliveryId, 'deliveryId');
+    const current = this.#entries.get(deliveryId);
+    if (current === undefined) return null;
+    if (current.agentId !== agentId || current.routeGeneration !== routeGeneration) {
+      fail('agent_result_handoff_store_corrupt', 'Stored result handoff crossed route identity');
+    }
+    return canonicalClone(current.handoff);
+  }
+}
+
+function normalizeResultHandoffStorage(input, maxSnapshotBytes) {
+  if (!input || typeof input !== 'object' || Array.isArray(input)) {
+    fail('invalid_agent_result_handoff', 'Result handoff must be a record');
+  }
+  assertRecordShape(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'deliveryId', 'handoff'], [], 'result handoff storage');
+  assertIdentifier(input.agentId, 'result handoff agentId');
+  assertSafeInteger(input.routeGeneration, 'result handoff routeGeneration', { min: 1 });
+  assertIdentifier(input.connectionId, 'result handoff connectionId');
+  assertSafeInteger(input.connectionEpoch, 'result handoff connectionEpoch', { min: 1 });
+  assertDigest(input.deliveryId, 'result handoff deliveryId');
+  if (!isPlainRecord(input.handoff)) fail('invalid_agent_result_handoff', 'Stored result handoff is not a record');
+  assertRecordShape(input.handoff, ['requestId', 'resultDigest', 'envelopeBytes', 'command'], [], 'result handoff');
+  assertIdentifier(input.handoff.requestId, 'result handoff requestId');
+  assertDigest(input.handoff.resultDigest, 'result handoff resultDigest');
+  assertSafeInteger(input.handoff.envelopeBytes, 'result handoff envelopeBytes', { min: 1 });
+  if (!isPlainRecord(input.handoff.command)) fail('invalid_agent_result_handoff', 'Result handoff command is not a record');
+  const text = canonicalJson(input.handoff);
+  const bytes = byteLength(text);
+  if (bytes > maxSnapshotBytes) {
+    fail('agent_result_handoff_storage_pressure', 'Result handoff exceeds the durable byte limit', {
+      requiredBytes: bytes,
+      maxSnapshotBytes,
+    });
+  }
+  return { ...canonicalClone(input), text, bytes };
 }
 
 function deliveryRoutePlacement(config) {
@@ -841,7 +879,12 @@ export class AgentDeliveryRuntimeDOHost {
     }
     this.durableObjectId = ctx.id.toString();
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
-    this.resultHandoffStore = options.resultHandoffStore ?? new SqliteAgentResultHandoffStore(ctx.storage, { maxSnapshotBytes: this.config.maxFrameBytes });
+    this.resultHandoffStore = options.resultHandoffStore ?? (
+      options.store !== undefined &&
+      (typeof ctx.storage?.transactionSync !== 'function' || typeof ctx.storage?.sql?.exec !== 'function')
+        ? new MemoryAgentResultHandoffStore()
+        : new SqliteAgentResultHandoffStore(ctx.storage, { maxSnapshotBytes: this.config.maxFrameBytes })
+    );
     this.generationStore = options.generationStore ?? (
       typeof ctx.storage?.transactionSync === 'function' && typeof ctx.storage?.sql?.exec === 'function'
         ? new SqliteAgentRouteGenerationStore(ctx.storage)

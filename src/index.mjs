@@ -113,6 +113,7 @@ export {
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
   AgentDeliveryRuntimeService,
   AgentDeliveryRuntimeDOHost,
+  MemoryAgentResultHandoffStore,
   SqliteAgentDeliveryStore,
   SqliteAgentResultHandoffStore,
   createRuntimeAgentRouteBinding,
