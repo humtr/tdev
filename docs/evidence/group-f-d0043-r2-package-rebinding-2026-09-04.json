@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r2_package_rebinding",
+  "observedAtUtc": "2026-09-04T05:09:11Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43",
+      "readback": "PASS"
+    },
+    "packageSourceCommit": "d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43",
+    "unrelatedUntrackedPreserved": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 2,
+    "proofLayer": "source/package/local-machine",
+    "physicalM0": "not claimed"
+  },
+  "artifact": {
+    "profile": "tdev.installable-agent-package.v1",
+    "target": {
+      "platform": "android",
+      "arch": "arm64"
+    },
+    "archive": {
+      "file": "tdev-installable-agent-android-arm64-d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43.tgz",
+      "sha256": "sha256:ff7c71503271dab447fbee5cb603100f69710eef3f33dad7d692e0e58f3789fe",
+      "bytes": 171171
+    },
+    "releaseManifestDigest": "sha256:d1ff2a35a9956fb8aba63ceb7fcd9525beda5bae26fed851af843603dedf76aa",
+    "releaseManifestFileSha256": "sha256:8780507d047a9c8bb4917d0c019c662b4f832128d0d3395038770959f0c66531",
+    "artifactFileSha256": "sha256:40e001e15c33e2e4912ba2389c772ac1a2cbbb6be1b52f452c78a95e7fd73eab",
+    "deterministicDoubleBuild": "PASS",
+    "builderCommand": "node tools/build-installable-agent-package.mjs --source-revision d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43"
+  },
+  "localMachineQualification": {
+    "command": "node qualification/installable-agent-package-termux.mjs --archive <bound-archive> --expected-source-revision d0d5efd8ae191b44ec9e552ed3cce87e3ca74d43",
+    "status": "PASS",
+    "supervisorExecutionAndCleanup": "PASS",
+    "controlRestart": "PASS",
+    "secretPersistence": "absent_outside_external_reference",
+    "providerAuthentication": "not claimed"
+  },
+  "sourceGateReuse": {
+    "sourceCommit": "538485648bf8cd5c3183bbca9ea53e79d03ef303",
+    "fullSourceGate": "PASS",
+    "tests": {
+      "passed": 639,
+      "failed": 0,
+      "total": 639
+    },
+    "reason": "d0d5efd adds only evidence; the implementation-bearing parent source gate remains unchanged and the package builder materializes the exact parent payload plus the new source identity."
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceCredentialMutation": false,
+    "canonicalTreeMutation": false,
+    "gitRefPublication": true,
+    "mcpClientMutation": false
+  },
+  "proofBoundaries": {
+    "source": "PASS - inherited D0043 r2 source gate",
+    "package": "PASS - exact d0d5efd Android/arm64 deterministic archive",
+    "localMachine": "PASS - package supervisor/control/restart/cleanup qualification",
+    "physicalTermuxCodexCandidate": "not qualified",
+    "provider": "not claimed",
+    "mcpClient": "not claimed"
+  },
+  "next": "M0-D remains the active gate. Obtain supported read-only Linux namespace/mount isolation and available saved-auth usage, then perform one physical candidate run from the exact published source without bypassing D0043 boundaries."
+}
