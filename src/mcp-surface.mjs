@@ -26,7 +26,15 @@ export const MCP_SURFACE_SCHEMA_VERSION = 1;
 export const MCP_SURFACE_MANIFEST_DOMAIN = 'tdev.mcp.surface-manifest.v1';
 export const MCP_SURFACE_PATH = '/mcp';
 export const MCP_SURFACE_PROTOCOL_VERSION = '2025-03-26';
-export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([MCP_SURFACE_PROTOCOL_VERSION]);
+// Keep the original Streamable HTTP version as the compatibility baseline,
+// while advertising the two later legacy initialize/tools/call versions used
+// by current MCP clients. The modern 2026 protocol has a different discovery
+// lifecycle and is intentionally not claimed until its adapter is implemented.
+export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([
+  MCP_SURFACE_PROTOCOL_VERSION,
+  '2025-06-18',
+  '2025-11-25',
+]);
 export const MCP_SURFACE_MAX_REQUEST_BYTES = 1024 * 1024;
 export const MCP_SURFACE_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 export const MCP_SURFACE_MAX_EVENTS_PAGE = 100;
@@ -63,18 +71,28 @@ const identifierSchema = Object.freeze({ type: 'string', pattern: '^[A-Za-z0-9][
 const digestSchema = Object.freeze({ type: 'string', pattern: '^sha256:[0-9a-f]{64}$' });
 const integerSchema = Object.freeze({ type: 'integer', minimum: 0 });
 
+const structuredObjectSchema = Object.freeze({ type: 'object', additionalProperties: true });
+const readOnlyAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const localMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const externalMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+const cancellationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
+
+function tool(name, title, description, inputSchema, annotations) {
+  return Object.freeze({ name, title, description, inputSchema, outputSchema: structuredObjectSchema, annotations });
+}
+
 export const MCP_SURFACE_TOOL_DEFINITIONS = Object.freeze([
-  { name: 'case_create', description: 'Create one immutable tdev Case from a compiled Plan.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, plan: { type: 'object' }, caseContract: { type: 'object' } }, ['requestId', 'caseId', 'plan']) },
-  { name: 'case_get', description: 'Read one bounded authoritative Case projection.', inputSchema: schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']) },
-  { name: 'case_events_get', description: 'Read a bounded committed Case Event page.', inputSchema: schema({ caseId: identifierSchema, afterSequence: integerSchema, limit: { type: 'integer', minimum: 1, maximum: MCP_SURFACE_MAX_EVENTS_PAGE } }, ['caseId']) },
-  { name: 'case_run_or_resume', description: 'Drive one existing Case through the authenticated Agent owner.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']) },
-  { name: 'task_cancel', description: 'Submit a receipt-backed Task cancellation to the Case owner.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, taskId: identifierSchema, reason: stringSchema, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'taskId']) },
-  { name: 'attempt_reconcile', description: 'Submit an exact external Attempt reconciliation decision.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']) },
-  { name: 'claim_conflicts_get', description: 'Read current ClaimLedger conflicts without acquiring a lease.', inputSchema: schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']) },
-  { name: 'promotion_get', description: 'Read the bounded Promotion/candidate projection for a Case.', inputSchema: schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']) },
-  { name: 'development_context_get', description: 'Read an owner-issued immutable repository context reference.', inputSchema: schema({ selector: stringSchema }, []) },
-  { name: 'development_unit_start', description: 'Start one typed development unit through the existing Case, Drive and Agent owners.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']) },
-  { name: 'development_unit_get', description: 'Read the bounded candidate projection for a development unit.', inputSchema: schema({ caseId: identifierSchema }, ['caseId']) },
+  tool('case_create', 'Create Case', 'Create one immutable tdev Case from a compiled Plan.', schema({ requestId: identifierSchema, caseId: identifierSchema, plan: { type: 'object' }, caseContract: { type: 'object' } }, ['requestId', 'caseId', 'plan']), localMutationAnnotations),
+  tool('case_get', 'Get Case', 'Read one bounded authoritative Case projection.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
+  tool('case_events_get', 'Get Case Events', 'Read a bounded committed Case Event page.', schema({ caseId: identifierSchema, afterSequence: integerSchema, limit: { type: 'integer', minimum: 1, maximum: MCP_SURFACE_MAX_EVENTS_PAGE } }, ['caseId']), readOnlyAnnotations),
+  tool('case_run_or_resume', 'Run or Resume Case', 'Drive one existing Case through the authenticated Agent owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']), externalMutationAnnotations),
+  tool('task_cancel', 'Cancel Task', 'Submit a receipt-backed Task cancellation to the Case owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, taskId: identifierSchema, reason: stringSchema, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'taskId']), cancellationAnnotations),
+  tool('attempt_reconcile', 'Reconcile Attempt', 'Submit an exact external Attempt reconciliation decision.', schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']), localMutationAnnotations),
+  tool('claim_conflicts_get', 'Get Claim Conflicts', 'Read current ClaimLedger conflicts without acquiring a lease.', schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']), readOnlyAnnotations),
+  tool('promotion_get', 'Get Promotion', 'Read the bounded Promotion/candidate projection for a Case.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
+  tool('development_context_get', 'Get Development Context', 'Read an owner-issued immutable repository context reference.', schema({ selector: stringSchema }, []), readOnlyAnnotations),
+  tool('development_unit_start', 'Start Development Unit', 'Start one typed development unit through the existing Case, Drive and Agent owners.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']), externalMutationAnnotations),
+  tool('development_unit_get', 'Get Development Unit', 'Read the bounded candidate projection for a development unit.', schema({ caseId: identifierSchema }, ['caseId']), readOnlyAnnotations),
 ]);
 
 function limitsBody(input) {
@@ -111,10 +129,16 @@ function manifestBody(input) {
   if (protocolVersions.length !== input.protocolVersions.length) fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
   if (!Array.isArray(input.tools) || input.tools.length !== TOOL_NAMES.length) fail('mcp_surface_tools_invalid', 'MCP surface tool set is incomplete');
   const tools = input.tools.map((tool, index) => {
-    assertRecordShape(tool, ['name', 'description', 'inputSchema'], [], `MCP surface tool ${index}`);
+    assertRecordShape(tool, ['name', 'title', 'description', 'inputSchema', 'outputSchema', 'annotations'], [], `MCP surface tool ${index}`);
     assertIdentifier(tool.name, `MCP surface tool ${index}.name`);
+    if (typeof tool.title !== 'string' || tool.title.length === 0) fail('mcp_surface_tools_invalid', 'MCP surface tool title is invalid');
     if (typeof tool.description !== 'string' || tool.description.length === 0) fail('mcp_surface_tools_invalid', 'MCP surface tool description is invalid');
     if (!isPlainRecord(tool.inputSchema)) fail('mcp_surface_tools_invalid', 'MCP surface tool inputSchema must be a record');
+    if (!isPlainRecord(tool.outputSchema)) fail('mcp_surface_tools_invalid', 'MCP surface tool outputSchema must be a record');
+    if (!isPlainRecord(tool.annotations)) fail('mcp_surface_tools_invalid', 'MCP surface tool annotations must be a record');
+    for (const name of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+      if (typeof tool.annotations[name] !== 'boolean') fail('mcp_surface_tools_invalid', `MCP surface tool annotation ${name} must be boolean`);
+    }
     return canonicalClone(tool);
   });
   const names = tools.map((tool) => tool.name);
@@ -617,7 +641,7 @@ export class TdevMcpSurface {
     }
     assertRecordShape(rpc.params, ['protocolVersion', 'capabilities', 'clientInfo'], [], 'initialize params');
     if (!isPlainRecord(rpc.params.capabilities) || !isPlainRecord(rpc.params.clientInfo)) fail('mcp_initialize_invalid', 'initialize capabilities/clientInfo must be records');
-    assertRecordShape(rpc.params.clientInfo, ['name', 'version'], [], 'initialize clientInfo');
+    assertRecordShape(rpc.params.clientInfo, ['name', 'version'], ['title', 'websiteUrl', 'icons'], 'initialize clientInfo');
     assertScalarString(rpc.params.clientInfo.name, 'initialize clientInfo.name');
     assertScalarString(rpc.params.clientInfo.version, 'initialize clientInfo.version');
     const header = protocolHeader(request);
@@ -626,6 +650,7 @@ export class TdevMcpSurface {
       protocolVersion: protocol,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'tdev', version: this.manifest.surfaceDigest.slice('sha256:'.length, 'sha256:'.length + 12) },
+      instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
     };
   }
 

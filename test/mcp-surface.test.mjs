@@ -77,7 +77,7 @@ test('D0024 auth profile binds resource/issuer and rejects wrong or expired asse
   );
 });
 
-test('MCP metadata and initialize/tools/list use one versioned stateless surface', async () => {
+test('MCP metadata and initialize/tools/list use the compatible versioned stateless surface', async () => {
   const surface = createSurface();
   const metadata = await surface.fetch(new Request('https://mcp.example.test/.well-known/oauth-protected-resource'));
   assert.equal(metadata.status, 200);
@@ -85,18 +85,27 @@ test('MCP metadata and initialize/tools/list use one versioned stateless surface
     resource: authManifest.mcpResource,
     authorization_servers: [authManifest.authorizationServerIssuer],
   });
-  const initialized = await rpc(surface, callRequest('initialize', {
-    protocolVersion: '2025-03-26',
-    capabilities: {},
-    clientInfo: { name: 'test-client', version: '1' },
-  }));
-  assert.equal(initialized.response.status, 200);
-  assert.equal(initialized.body.result.protocolVersion, '2025-03-26');
-  assert.equal(initialized.body.result.serverInfo.name, 'tdev');
-  const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-03-26' }));
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2025-03-26', '2025-06-18', '2025-11-25']);
+  for (const protocolVersion of surfaceManifest.protocolVersions) {
+    const initialized = await rpc(surface, callRequest('initialize', {
+      protocolVersion,
+      capabilities: {},
+      clientInfo: { name: 'test-client', version: '1', title: 'Test client' },
+    }, { protocol: protocolVersion }));
+    assert.equal(initialized.response.status, 200);
+    assert.equal(initialized.body.result.protocolVersion, protocolVersion);
+    assert.equal(initialized.body.result.serverInfo.name, 'tdev');
+    assert.match(initialized.body.result.instructions, /development_context_get/);
+  }
+  const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-11-25' }));
   assert.equal(listed.response.status, 200);
   assert.equal(listed.body.result.tools.length, 11);
   assert.equal(listed.body.result.tools.at(-1).name, 'development_unit_get');
+  for (const descriptor of listed.body.result.tools) {
+    assert.equal(typeof descriptor.title, 'string');
+    assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
+    assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
+  }
 });
 
 test('MCP case projection delegates to repository and tenant denial precedes owner access', async () => {

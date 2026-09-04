@@ -28,6 +28,10 @@ Response loss is handled by replaying the same request ID and payload. MCP must 
 
 ## 3. Versioned v1 tool surface
 
+D0023 accepts one exact `tdev.mcp.surface.v1` tool set over the legacy MCP initialize/tools/call protocol versions `2025-03-26`, `2025-06-18` and `2025-11-25`. The distinct `2026-07-28` discovery lifecycle is not claimed by this surface.
+
+Each advertised tool includes a stable human-readable `title`, explicit `inputSchema` and object `outputSchema`, plus the four MCP safety annotations `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. These are discovery metadata only: they do not add a new owner or bypass the existing authorization and operation gates.
+
 D0023 accepts one exact `tdev.mcp.surface.v1` tool set:
 
 - `case_create`;
