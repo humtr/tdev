@@ -77,8 +77,8 @@ test('D0024 auth profile binds resource/issuer and rejects wrong or expired asse
   );
 });
 
-test('MCP metadata and initialize/tools/list use the compatible versioned stateless surface', async () => {
-  const surface = createSurface();
+test('MCP metadata and initialize/tools/list/call use the compatible versioned stateless surface', async () => {
+  const surface = createSurface({ owners: { claimLedger: new ClaimLedger() } });
   const metadata = await surface.fetch(new Request('https://mcp.example.test/.well-known/oauth-protected-resource'));
   assert.equal(metadata.status, 200);
   assert.deepEqual(await metadata.json(), {
@@ -105,6 +105,14 @@ test('MCP metadata and initialize/tools/list use the compatible versioned statel
     assert.equal(typeof descriptor.title, 'string');
     assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
     assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
+  }
+  for (const protocolVersion of surfaceManifest.protocolVersions) {
+    const called = await rpc(surface, callRequest('tools/call', {
+      name: 'claim_conflicts_get', arguments: { claims: [] },
+    }, { protocol: protocolVersion, id: `call-${protocolVersion}` }));
+    assert.equal(called.response.status, 200);
+    assert.equal(called.body.result.isError, false);
+    assert.deepEqual(called.body.result.structuredContent, { conflicts: [], revision: 0 });
   }
 });
 
