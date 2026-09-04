@@ -43,6 +43,7 @@ const CODEX_MAX_STDERR_BYTES = 64 * 1024;
 const DEFAULT_OPERATION_TIMEOUT_MS = 300_000;
 const DEFAULT_CANCEL_GRACE_MS = 2_000;
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
+const TERMUX_PREFIX = '/data/data/com.termux/files/usr';
 
 function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
@@ -73,7 +74,7 @@ export function codexLauncherHome(codexHome) {
     : profileParent;
 }
 
-function runtimeEnvironment({ executable, codexHome = null, extra = {} } = {}) {
+function runtimeEnvironment({ executable, codexHome = null, temporaryDirectory = null, extra = {} } = {}) {
   const directories = [path.dirname(executable), path.dirname(process.execPath), '/system/bin', '/system/xbin'];
   const environment = {
     PATH: [...new Set(directories)].join(':'),
@@ -89,6 +90,14 @@ function runtimeEnvironment({ executable, codexHome = null, extra = {} } = {}) {
   if (codexHome !== null) {
     environment.CODEX_HOME = codexHome;
     environment.HOME = codexLauncherHome(codexHome);
+  }
+  // Termux launchers require these two platform variables, but inheriting the
+  // ambient process environment would re-open an unbounded caller-controlled
+  // environment.  Derive them only for the release-bound Termux executable
+  // family and point temporary files at the disposable operation root.
+  if (path.resolve(executable).startsWith(`${TERMUX_PREFIX}/`)) {
+    environment.PREFIX = TERMUX_PREFIX;
+    if (temporaryDirectory !== null) environment.TMPDIR = path.resolve(temporaryDirectory);
   }
   return Object.freeze(environment);
 }
@@ -365,7 +374,7 @@ export class CodexExecRepositoryModelExecutor {
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: clonePath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
       if (processResult.code !== 0) {
         const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
         fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
@@ -433,7 +442,7 @@ export class NpmCheckValidationExecutor {
     assertDigest(candidateTreeDigest, 'candidateTreeDigest');
     assertIdentifier(validationProfile, 'validationProfile');
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
-    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
     const passed = processResult.code === 0 && processResult.signal === null;
     const outputSummary = summarizeValidationOutput(processResult.stdout);
     safeObservation(this.observation, {
