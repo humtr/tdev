@@ -136,7 +136,9 @@ function manifestBody(input) {
   // the newest legacy revisions. Preserve the caller's explicit order rather
   // than sorting it away during manifest normalization.
   const protocolVersions = [...input.protocolVersions];
-  if (protocolVersions.length !== input.protocolVersions.length) fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
+  if (new Set(protocolVersions).size !== protocolVersions.length) {
+    fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
+  }
   if (!Array.isArray(input.tools) || input.tools.length !== TOOL_NAMES.length) fail('mcp_surface_tools_invalid', 'MCP surface tool set is incomplete');
   const tools = input.tools.map((tool, index) => {
     assertRecordShape(tool, ['name', 'title', 'description', 'inputSchema', 'outputSchema', 'annotations'], [], `MCP surface tool ${index}`);

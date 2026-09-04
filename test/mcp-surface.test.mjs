@@ -179,6 +179,17 @@ test('modern MCP metadata and routing headers fail closed before authorization o
   assert.equal(authorizations, 0);
 });
 
+test('surface manifest rejects duplicate protocol versions without changing negotiation order', () => {
+  assert.throws(
+    () => createMcpSurfaceManifest({
+      buildDigest: digest({ source: 'mcp-duplicate-version-test' }),
+      protocolVersions: ['2026-07-28', '2026-07-28'],
+    }),
+    (error) => error.code === 'mcp_surface_protocol_duplicate',
+  );
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26']);
+});
+
 test('MCP case projection delegates to repository and tenant denial precedes owner access', async () => {
   const repository = new CaseRepository(new MemorySnapshotStore());
   await repository.create({ caseId: 'case-a', plan: planWithWork([{ id: 'task-a' }], { 'README.md': '# base\n' }) });
