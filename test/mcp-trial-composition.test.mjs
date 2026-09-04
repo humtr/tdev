@@ -12,6 +12,7 @@ import {
   createMcpTrialOwnerFacades,
   digest,
   normalizeMcpTrialCompositionManifest,
+  agentRouteHostKey,
 } from '../src/index.mjs';
 
 const COMMIT = 'a'.repeat(40);
@@ -136,4 +137,30 @@ test('D0046 trial rejects canonical writers, resource substitution and context s
   const altered = manifest();
   altered.repository.context = { ...altered.repository.context, contextReferenceId: 'ctx-other' };
   assert.throws(() => normalizeMcpTrialCompositionManifest(altered), (error) => error?.code === 'mcp_trial_context_mismatch');
+});
+
+test('D0046 trial accepts bounded Cloudflare Access principal and tenant claims', () => {
+  const normalized = normalizeMcpTrialCompositionManifest(manifest({
+    identity: { principalId: 'user@example.com', tenantId: 'user@example.com' },
+  }));
+  assert.equal(normalized.identity.principalId, 'user@example.com');
+  assert.equal(normalized.identity.tenantId, 'user@example.com');
+});
+
+test('D0046 elected Agent route is generation-bound when a route host key is supplied', () => {
+  const agentId = 'agent-trial';
+  const routeGeneration = 3;
+  const routeKey = agentRouteHostKey({ agentId, routeGeneration });
+  const normalized = normalizeMcpTrialCompositionManifest(manifest({
+    agentOwner: {
+      ...manifest().agentOwner,
+      agentId,
+      routeGeneration,
+      routeKey,
+    },
+  }));
+  assert.equal(normalized.agentOwner.routeKey, routeKey);
+  assert.throws(() => normalizeMcpTrialCompositionManifest(manifest({
+    agentOwner: { ...manifest().agentOwner, routeGeneration, routeKey: 'agent-trial' },
+  })), (error) => error?.code === 'mcp_trial_agent_route_mismatch');
 });
