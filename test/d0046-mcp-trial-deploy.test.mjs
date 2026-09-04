@@ -11,6 +11,7 @@ import {
   buildTrialManifests,
   buildWorkerMetadata,
 } from '../qualification/d0046-mcp-trial-deploy.mjs';
+import { mcpDiscoveryResponse } from '../src/mcp-discovery.mjs';
 import { digest } from '../src/canonical.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
@@ -57,4 +58,32 @@ test('D0046 Access payload is the fixed ChatGPT managed-OAuth profile', () => {
   assert.equal(app.oauth_configuration.dynamic_client_registration.allow_any_on_localhost, false);
   assert.equal(app.oauth_configuration.dynamic_client_registration.allow_any_on_loopback, false);
   assert.deepEqual(accessPolicyPayload('11efca097a2e54ea53b457dcf9f36454').include, [{ cloudflare_account_member: { account_id: '11efca097a2e54ea53b457dcf9f36454' } }]);
+});
+
+test('D0046 discovery metadata bypasses large repository initialization', async () => {
+  const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
+  const manifests = buildTrialManifests({
+    sourceSha: SOURCE_SHA,
+    baseDigest: digest(BASE_TREE),
+    baseTree: BASE_TREE,
+    operationManifest: operation,
+    driveNamespace: 'drive-namespace',
+    accessAudience: 'access-audience',
+    identity: { principalId: 'user@example.com', tenantId: 'user@example.com' },
+    includeBaseTree: true,
+  });
+  const resource = mcpDiscoveryResponse(new Request(`${D0046_MCP_TRIAL_RESOURCE}`), manifests.auth);
+  assert.equal(resource, null, 'the MCP endpoint itself must continue through the normal application path');
+  const protectedMetadata = mcpDiscoveryResponse(new Request('https://tdev-mcp-trial.humtr.workers.dev/.well-known/oauth-protected-resource'), manifests.auth);
+  assert.equal(protectedMetadata.status, 200);
+  assert.deepEqual(await protectedMetadata.json(), {
+    resource: D0046_MCP_TRIAL_RESOURCE,
+    authorization_servers: ['https://humtr.cloudflareaccess.com'],
+  });
+  const authorizationMetadata = mcpDiscoveryResponse(new Request('https://tdev-mcp-trial.humtr.workers.dev/.well-known/oauth-authorization-server'), manifests.auth);
+  assert.equal(authorizationMetadata.status, 200);
+  const authorization = await authorizationMetadata.json();
+  assert.equal(authorization.issuer, 'https://humtr.cloudflareaccess.com');
+  assert.equal(authorization.registration_endpoint, 'https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration');
+  assert.deepEqual(authorization.code_challenge_methods_supported, ['S256']);
 });

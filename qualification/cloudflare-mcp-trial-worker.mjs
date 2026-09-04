@@ -8,10 +8,15 @@ import {
   createCloudflareAccessAssertionVerifier,
 } from '../src/mcp-auth-jwt.mjs';
 import {
+  MCP_AUTH_RESOURCE_METADATA_PATHS,
+  MCP_AUTH_SERVER_METADATA_PATH,
   createMcpAccessAuthenticator,
   normalizeMcpAuthManifest,
-  validateMcpAuthorizationServerMetadata,
 } from '../src/mcp-auth.mjs';
+import {
+  cloudflareAccessAuthorizationServerMetadata,
+  mcpDiscoveryResponse,
+} from '../src/mcp-discovery.mjs';
 import {
   createMcpSurfaceManifest,
   createTdevMcpWorker,
@@ -73,15 +78,20 @@ function diagnosticCode(error) {
     : 'mcp_config_unavailable';
 }
 
-function cloudflareAccessAuthorizationServerMetadata(authManifest) {
-  const issuer = authManifest.authorizationServerIssuer.replace(/\/$/u, '');
-  return validateMcpAuthorizationServerMetadata({
-    issuer: authManifest.authorizationServerIssuer,
-    authorization_endpoint: `${issuer}/cdn-cgi/access/oauth/authorization`,
-    token_endpoint: `${issuer}/cdn-cgi/access/oauth/token`,
-    registration_endpoint: `${issuer}/cdn-cgi/access/oauth/registration`,
-    code_challenge_methods_supported: ['S256'],
-  }, authManifest);
+function metadataFastPath(request, env) {
+  const url = new URL(request.url);
+  const protectedResource = MCP_AUTH_RESOURCE_METADATA_PATHS.includes(url.pathname);
+  const authorizationServer = url.pathname === MCP_AUTH_SERVER_METADATA_PATH;
+  if (!protectedResource && !authorizationServer) return null;
+  if (request.method !== 'GET') return jsonResponse(405, { error: { code: 'mcp_method_not_allowed' } });
+  try {
+    // Discovery must remain cheap and independently readable. It cannot force
+    // construction of the immutable repository tree or any Durable Object.
+    const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
+    return mcpDiscoveryResponse(request, authManifest);
+  } catch (error) {
+    return jsonResponse(503, { error: { code: diagnosticCode(error) } });
+  }
 }
 
 async function createTrialApplication(env) {
@@ -163,6 +173,8 @@ async function application(env) {
 
 export default {
   async fetch(request, env) {
+    const fastMetadata = metadataFastPath(request, env);
+    if (fastMetadata !== null) return fastMetadata;
     try {
       const worker = await application(env);
       return worker.fetch(request);
@@ -172,4 +184,4 @@ export default {
   },
 };
 
-export { CaseAgentDriveRuntimeDO };
+export { CaseAgentDriveRuntimeDO, metadataFastPath };
