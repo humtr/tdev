@@ -515,19 +515,37 @@ function relativeModuleSpecifiers(source) {
   return specifiers;
 }
 
-export function collectWorkerModules(repositoryRoot, mainModule = D0019_WORKER_MAIN_MODULE) {
+/**
+ * Collect the static Worker graph, allowing a deployment helper to replace one
+ * generated module without writing that generated payload into the repository.
+ * Overrides are keyed by the same POSIX-relative module name returned in the
+ * graph.  The replacement is still traversed for imports and is included in
+ * the digest/upload exactly like a file-backed module.
+ */
+export function collectWorkerModules(repositoryRoot, mainModule = D0019_WORKER_MAIN_MODULE, { overrides = {} } = {}) {
   const root = path.resolve(repositoryRoot);
+  if (overrides === null || typeof overrides !== 'object' || Array.isArray(overrides)) {
+    fail('invalid_worker_module_overrides', 'Worker module overrides must be a record');
+  }
   const pending = [mainModule];
   const modules = new Map();
   while (pending.length > 0) {
     const moduleName = pending.pop();
     if (modules.has(moduleName)) continue;
     if (!moduleName.endsWith('.mjs') || path.isAbsolute(moduleName)) fail('invalid_worker_module', `Worker module path is invalid: ${moduleName}`);
-    const absolute = path.resolve(root, moduleName);
-    const relative = path.relative(root, absolute);
-    if (relative.startsWith('..') || path.isAbsolute(relative)) fail('worker_module_escape', `Worker module escapes repository: ${moduleName}`);
-    const source = fs.readFileSync(absolute, 'utf8');
-    modules.set(moduleName.split(path.sep).join('/'), source);
+    const normalizedModuleName = moduleName.split(path.sep).join('/');
+    const override = Object.hasOwn(overrides, normalizedModuleName) ? overrides[normalizedModuleName] : undefined;
+    let source;
+    if (override !== undefined) {
+      if (typeof override !== 'string' || override.includes('\0')) fail('invalid_worker_module_override', `Worker module override is not bounded text: ${normalizedModuleName}`);
+      source = override;
+    } else {
+      const absolute = path.resolve(root, moduleName);
+      const relative = path.relative(root, absolute);
+      if (relative.startsWith('..') || path.isAbsolute(relative)) fail('worker_module_escape', `Worker module escapes repository: ${moduleName}`);
+      source = fs.readFileSync(absolute, 'utf8');
+    }
+    modules.set(normalizedModuleName, source);
     for (const specifier of relativeModuleSpecifiers(source)) {
       if (specifier.startsWith('.')) {
         const dependency = path.posix.normalize(path.posix.join(path.posix.dirname(moduleName), specifier));
@@ -536,6 +554,9 @@ export function collectWorkerModules(repositoryRoot, mainModule = D0019_WORKER_M
         fail('unsupported_worker_dependency', `Worker module uses unsupported bare dependency: ${specifier}`);
       }
     }
+  }
+  for (const name of Object.keys(overrides)) {
+    if (!modules.has(name.split(path.sep).join('/'))) fail('unused_worker_module_override', `Worker module override is not in the static graph: ${name}`);
   }
   return new Map([...modules.entries()].sort(([left], [right]) => left.localeCompare(right)));
 }

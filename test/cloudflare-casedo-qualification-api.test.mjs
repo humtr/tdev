@@ -127,6 +127,18 @@ test('Worker module collector ignores import words inside source strings', () =>
   assert.equal(modules.has(' + specifier + \\n'), false);
 });
 
+test('Worker module collector admits only graph-bound generated module overrides', () => {
+  const main = D0019_WORKER_MAIN_MODULE;
+  const original = collectWorkerModules(process.cwd(), main).get(main);
+  const replacement = original.replace('return this.qualification.qualificationInvoke(input);', 'return this.qualification.qualificationInvoke(input);\n');
+  const overridden = collectWorkerModules(process.cwd(), main, { overrides: { [main]: replacement } });
+  assert.equal(overridden.get(main), replacement);
+  assert.throws(
+    () => collectWorkerModules(process.cwd(), main, { overrides: { 'src/not-in-graph.mjs': 'export default {};' } }),
+    (error) => error?.code === 'unused_worker_module_override',
+  );
+});
+
 function metadataFixture(overrides = {}) {
   return buildQualificationWorkerMetadata({
     scriptName: 'tdev-d0019-qualification-a',

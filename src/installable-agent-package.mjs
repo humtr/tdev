@@ -42,6 +42,16 @@ export const INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA = Object.freeze({
     'protocolMetadataDigest',
     'reportedCapacity',
   ],
+  optionalNonSecret: [
+    // Host-bound paths for the accepted D0043 development operation adapter.
+    // They identify executables/auth-home/repository locations only; no
+    // credential material is carried in the control configuration.
+    'developmentRepositoryPath',
+    'developmentCodexHome',
+    'developmentCodexExecutable',
+    'developmentNpmExecutable',
+    'developmentWorkspaceRoot',
+  ],
   secretMaterial: 'external-reference-only',
   authority: 'subordinate-local-evidence-only',
 });
@@ -322,7 +332,10 @@ function ownerManagementRequest(request) {
 function normalizeControlConfigBase(input) {
   assertRecordShape(input, [
     'agentId', 'routeGeneration', 'executorId', 'executorEpoch', 'agentDeliveryUrl', 'credentialRef', 'protocolMetadataDigest', 'reportedCapacity',
-  ], ['reconnectDelayMs', 'androidSourceLineageId'], 'installable Agent control config base');
+  ], [
+    'reconnectDelayMs', 'androidSourceLineageId', 'developmentRepositoryPath', 'developmentCodexHome',
+    'developmentCodexExecutable', 'developmentNpmExecutable', 'developmentWorkspaceRoot',
+  ], 'installable Agent control config base');
   assertIdentifier(input.agentId, 'controlConfig.agentId');
   assertSafeInteger(input.routeGeneration, 'controlConfig.routeGeneration', { min: 1 });
   assertIdentifier(input.executorId, 'controlConfig.executorId');
@@ -345,6 +358,20 @@ function normalizeControlConfigBase(input) {
   assertDigest(input.protocolMetadataDigest, 'controlConfig.protocolMetadataDigest');
   assertSafeInteger(input.reportedCapacity, 'controlConfig.reportedCapacity', { min: 0, max: 1024 });
   if (input.reconnectDelayMs !== undefined) assertSafeInteger(input.reconnectDelayMs, 'controlConfig.reconnectDelayMs', { min: 100, max: 60_000 });
+  const developmentCore = ['developmentRepositoryPath', 'developmentCodexHome', 'developmentCodexExecutable', 'developmentNpmExecutable'];
+  const presentCore = developmentCore.filter((field) => input[field] !== undefined);
+  if (presentCore.length !== 0 && presentCore.length !== developmentCore.length) {
+    fail('invalid_installable_agent_control_config', 'D0043 development runtime paths must be configured as one complete binding');
+  }
+  for (const field of [...developmentCore, 'developmentWorkspaceRoot']) {
+    if (input[field] === undefined) continue;
+    if (typeof input[field] !== 'string' || !path.isAbsolute(input[field]) || input[field].includes('\0')) {
+      fail('invalid_installable_agent_control_config', `controlConfig.${field} must be an absolute path`);
+    }
+  }
+  if (input.developmentWorkspaceRoot !== undefined && presentCore.length === 0) {
+    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the complete D0043 runtime binding');
+  }
   return canonicalClone({ ...input, agentDeliveryUrl: endpoint.toString() });
 }
 
