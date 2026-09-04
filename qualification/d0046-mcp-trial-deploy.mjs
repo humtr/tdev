@@ -556,7 +556,12 @@ async function publicJson(url) {
 }
 
 async function publicMetadataReadback(auth) {
-  const resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/cloudflare-access-protected-resource/mcp`);
+  let resource = null;
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/cloudflare-access-protected-resource/mcp`);
+    if (resource.status === 200) break;
+    if (attempt < 14) await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
   if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'Cloudflare Access protected-resource metadata was not public', { status: resource.status });
   const validatedResource = validateMcpProtectedResourceMetadata(resource.body, auth);
   const authorization = await publicJson(`${D0046_ACCESS_ISSUER}/.well-known/oauth-authorization-server`);
@@ -591,6 +596,72 @@ function redactedIdentity(identity) {
     tenantDigest: sha256(identity.tenantId),
     claimMapping: { principalClaim: 'email', tenantClaim: 'email' },
   };
+}
+
+function deploymentResult({ sourceSha, base, artifact, bootstrap = null, manifests, accessApp, provider, publicReadback, absence = null, identity, driveNamespace, subdomainEnabled }) {
+  return Object.freeze({
+    status: 'deployed',
+    sourceSha,
+    scriptName: D0046_MCP_TRIAL_SCRIPT,
+    resource: D0046_MCP_TRIAL_RESOURCE,
+    origin: D0046_MCP_TRIAL_ORIGIN,
+    base: { commitOid: base.commitOid, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes, excludedPaths: base.excludedPaths },
+    artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest, modules: artifact.modules },
+    manifests: { compositionDigest: bootstrap?.composition?.manifestDigest ?? null, finalCompositionDigest: manifests.composition.manifestDigest, authProfileDigest: manifests.auth.profileDigest, operationDigest: manifests.operationDigest, surfaceDigest: manifests.surfaceDigest },
+    ownerBindings: { caseWorker: D0046_CASE_SCRIPT, caseNamespace: D0046_CASE_NAMESPACE, driveWorker: D0046_MCP_TRIAL_SCRIPT, driveNamespace, agentWorker: D0046_AGENT_SCRIPT, agentNamespace: D0046_AGENT_NAMESPACE, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE, agentId: manifests.composition.agentOwner.agentId, routeGeneration: manifests.composition.agentOwner.routeGeneration },
+    identity: redactedIdentity(identity),
+    access: { id: accessApp.id, audienceDigest: sha256(accessApp.aud), domain: accessApp.domain, policyCount: accessApp.policies.length, oauth: { issuer: D0046_ACCESS_ISSUER, jwksUri: D0046_ACCESS_JWKS_URI, dynamicRegistration: true, redirectUri: 'https://chatgpt.com/connector/oauth/*', pkce: 'S256' } },
+    provider: { absence, driveNamespace, worker: provider, publicReadback },
+    safety: { canonicalWriterEnabled: false, previewWritersEnabled: false, subdomainEnabled, rollback: { disableSubdomain: `POST /accounts/{account}/workers/scripts/${D0046_MCP_TRIAL_SCRIPT}/subdomain { enabled:false, previews_enabled:false }`, accessAppId: accessApp.id } },
+    secretValues: 'excluded',
+  });
+}
+
+export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
+  const sourceSha = assertTrackedSource(repositoryPath);
+  const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
+  const operationManifest = normalizedOperationManifest(rawOperation);
+  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, excludedPaths: modelBinding?.contextExcludedPaths ?? [] });
+  const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
+  const artifact = artifactManifest(modules);
+  const identity = identityManifest();
+  const credentials = loadCloudflareCredentials(envFile);
+  const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
+  await verifyExistingOwners(client);
+  const existing = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
+  assertOwnerMarker(existing.result, D0046_MCP_TRIAL_SCRIPT);
+  const namespaces = await listNamespaces(client);
+  const targetNamespaces = namespaces.filter((item) => item?.script === D0046_MCP_TRIAL_SCRIPT);
+  if (targetNamespaces.length !== 1 || targetNamespaces[0].class !== MCP_TRIAL_DRIVE_CLASS_NAME || targetNamespaces[0].use_sqlite !== true) {
+    fail('d0046_trial_namespace_ambiguous', 'Existing trial Worker does not have exactly one SQLite drive namespace', { matches: targetNamespaces.length });
+  }
+  const driveNamespace = assertNamespaceId(targetNamespaces[0].id, 'trial drive namespace');
+  const apps = await listAccessApps(client);
+  const appMatches = apps.filter((app) => app?.name === D0046_ACCESS_APP_NAME || app?.domain === D0046_MCP_TRIAL_DOMAIN);
+  if (appMatches.length !== 1) fail('d0046_access_readback_missing', 'Existing trial does not have exactly one matching Access application', { matches: appMatches.length });
+  const accessApp = validateAccessApplication((await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(appMatches[0].id)}`))).result, credentials.accountId);
+  const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
+  let subdomainEnabled = false;
+  try {
+    // The existing target is owned and isolated; this forward upload only
+    // rebinds it to the exact current source commit and generated base tree.
+    await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
+    await setSubdomain(client, true);
+    subdomainEnabled = true;
+    const provider = await workerReadback(client);
+    const readbackDriveNamespace = validateTrialWorkerSettings(provider.settings, provider.version, manifests, sourceSha, artifact);
+    if (readbackDriveNamespace !== driveNamespace) fail('d0046_drive_namespace_mismatch', 'Trial Worker readback drive namespace disagreed with existing namespace');
+    const publicReadback = await publicMetadataReadback(manifests.auth);
+    return deploymentResult({ sourceSha, base, artifact, manifests, accessApp, provider, publicReadback, absence: { workerAlreadyOwned: true, namespaceMatches: 1, accessAppMatches: 1 }, identity, driveNamespace, subdomainEnabled });
+  } catch (cause) {
+    if (subdomainEnabled) {
+      try { await setSubdomain(client, false); } catch (cleanupError) {
+        cause.details = { ...(cause.details ?? {}), safetyClosure: { code: cleanupError?.code ?? 'unknown' } };
+      }
+    }
+    throw cause;
+  }
 }
 
 export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
@@ -634,22 +705,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     if (matchingApps.length !== 1) fail('d0046_access_readback_missing', 'Trial Access application disappeared from list readback');
     const finalAccess = validateAccessApplication((await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(accessApp.id)}`))).result, credentials.accountId);
     const publicReadback = await publicMetadataReadback(manifests.auth);
-    return Object.freeze({
-      status: 'deployed',
-      sourceSha,
-      scriptName: D0046_MCP_TRIAL_SCRIPT,
-      resource: D0046_MCP_TRIAL_RESOURCE,
-      origin: D0046_MCP_TRIAL_ORIGIN,
-      base: { commitOid: base.commitOid, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes, excludedPaths: base.excludedPaths },
-      artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest, modules: artifact.modules },
-      manifests: { compositionDigest: bootstrap.composition.manifestDigest, finalCompositionDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).composition.manifestDigest, authProfileDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).auth.profileDigest, operationDigest: bootstrap.operationDigest, surfaceDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).surfaceDigest },
-      ownerBindings: { caseWorker: D0046_CASE_SCRIPT, caseNamespace: D0046_CASE_NAMESPACE, driveWorker: D0046_MCP_TRIAL_SCRIPT, driveNamespace, agentWorker: D0046_AGENT_SCRIPT, agentNamespace: D0046_AGENT_NAMESPACE, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE, agentId: bootstrap.composition.agentOwner.agentId, routeGeneration: bootstrap.composition.agentOwner.routeGeneration },
-      identity: redactedIdentity(identity),
-      access: { id: finalAccess.id, audienceDigest: sha256(finalAccess.aud), domain: finalAccess.domain, policyCount: finalAccess.policies.length, oauth: { issuer: D0046_ACCESS_ISSUER, jwksUri: D0046_ACCESS_JWKS_URI, dynamicRegistration: true, redirectUri: 'https://chatgpt.com/connector/oauth/*', pkce: 'S256' } },
-      provider: { absence, driveNamespace, worker: provider, publicReadback },
-      safety: { canonicalWriterEnabled: false, previewWritersEnabled: false, subdomainEnabled, rollback: { disableSubdomain: `POST /accounts/{account}/workers/scripts/${D0046_MCP_TRIAL_SCRIPT}/subdomain { enabled:false, previews_enabled:false }`, accessAppId: finalAccess.id } },
-      secretValues: 'excluded',
-    });
+    return deploymentResult({ sourceSha, base, artifact, bootstrap, manifests, accessApp: finalAccess, provider, publicReadback, absence, identity, driveNamespace, subdomainEnabled });
   } catch (cause) {
     if (subdomainEnabled) {
       try { await setSubdomain(client, false); } catch (cleanupError) {
@@ -662,15 +718,19 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
 
 async function main() {
   const args = process.argv.slice(2);
-  const allowed = new Set(['--apply', '--env-file']);
+  const allowed = new Set(['--apply', '--env-file', '--resume-existing']);
   let envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
   let envProvided = false;
   let apply = false;
+  let resumeExisting = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--apply') {
       if (apply) fail('d0046_cli_invalid', '--apply was repeated');
       apply = true;
+    } else if (arg === '--resume-existing') {
+      if (resumeExisting) fail('d0046_cli_invalid', '--resume-existing was repeated');
+      resumeExisting = true;
     } else if (arg === '--env-file') {
       if (index + 1 >= args.length || args[index + 1].startsWith('--')) fail('d0046_cli_invalid', '--env-file requires a path');
       if (envProvided) fail('d0046_cli_invalid', '--env-file was repeated');
@@ -681,7 +741,7 @@ async function main() {
     }
   }
   if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply');
-  const result = await deployMcpTrial({ envFile });
+  const result = resumeExisting ? await resumeMcpTrial({ envFile }) : await deployMcpTrial({ envFile });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
