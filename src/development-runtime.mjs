@@ -206,6 +206,15 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
   return { result, usage };
 }
 
+function sanitizeDiagnosticText(value) {
+  if (typeof value !== "string" || value.length === 0) return null;
+  return value.slice(0, 256)
+    .replace(/(?:https?|wss?):\/\/\S+/giu, "<url>")
+    .replace(/(?:bearer|token|secret|password|authorization|api.?key)[=: ]+\S+/giu, "<credential>")
+    .replace(/\/data\/data\/\S+/gu, "<path>")
+    .replace(/[A-Za-z0-9+_=-]{24,}/gu, "<opaque>");
+}
+
 function classifyDiagnosticText(value) {
   if (typeof value !== "string" || value.length === 0) return "empty";
   const text = value.toLowerCase();
@@ -223,7 +232,7 @@ function classifyDiagnosticText(value) {
 }
 
 function summarizeCodexProcessOutput(bytes) {
-  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [] };
+  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [], errorMessageLengths: [], errorMessagePreviews: [] };
   if (!Buffer.isBuffer(bytes)) return summary;
   let text;
   try { text = UTF8_DECODER.decode(bytes); }
@@ -250,13 +259,21 @@ function summarizeCodexProcessOutput(bytes) {
     if (isPlainRecord(event.error)) {
       for (const key of Object.keys(event.error).sort()) if (summary.errorKeys.length < 16) summary.errorKeys.push(key);
       for (const key of ["code", "type", "message", "detail"]) {
-        if (typeof event.error[key] !== "string" || summary.errorDetailClasses.length >= 8) continue;
-        const classification = classifyDiagnosticText(event.error[key]);
-        summary.errorDetailClasses.push(classification);
+        if (typeof event.error[key] !== "string") continue;
+        if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.error[key]));
+        if (summary.errorMessageLengths.length < 8 && key === "message") summary.errorMessageLengths.push(event.error[key].length);
+        if (summary.errorMessagePreviews.length < 4 && key === "message") summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.error[key]));
         if (key === "code" && summary.errorCodes.length < 8) summary.errorCodes.push(event.error[key]);
       }
-    } else if (typeof event.error === "string" && summary.errorDetailClasses.length < 8) {
-      summary.errorDetailClasses.push(classifyDiagnosticText(event.error));
+    } else if (typeof event.error === "string") {
+      if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.error));
+      if (summary.errorMessageLengths.length < 8) summary.errorMessageLengths.push(event.error.length);
+      if (summary.errorMessagePreviews.length < 4) summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.error));
+    }
+    if (typeof event.message === "string") {
+      if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.message));
+      if (summary.errorMessageLengths.length < 8) summary.errorMessageLengths.push(event.message.length);
+      if (summary.errorMessagePreviews.length < 4) summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.message));
     }
   }
   return summary;
@@ -356,6 +373,8 @@ export class CodexExecRepositoryModelExecutor {
         stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : [],
         stdoutErrorKeys: Array.isArray(details.errorKeys) ? details.errorKeys.slice(0, 16) : [],
         stdoutErrorDetailClasses: Array.isArray(details.errorDetailClasses) ? details.errorDetailClasses.slice(0, 8) : [],
+        stdoutErrorMessageLengths: Array.isArray(details.errorMessageLengths) ? details.errorMessageLengths.slice(0, 8) : [],
+        stdoutErrorMessagePreviews: Array.isArray(details.errorMessagePreviews) ? details.errorMessagePreviews.slice(0, 4) : [],
         stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : null,
         stdoutTruncated: details.truncated === true,
         stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : null,
