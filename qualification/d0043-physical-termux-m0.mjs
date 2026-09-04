@@ -22,7 +22,10 @@ import { runGitCommand } from '../src/git-projection.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKSPACE_ROOT = '/data/data/com.termux/files/usr/tmp';
-const CODEX_EXECUTABLE = '/data/data/com.termux/files/usr/bin/codex';
+// Qualification-only override: the installed legacy launcher may still select
+// its Termux bwrap shim. Production tdev keeps the release-bound executable;
+// this hook lets the physical gate use an externally supplied no-bwrap build.
+const CODEX_EXECUTABLE = process.env.TDEV_M0_CODEX_EXECUTABLE ?? '/data/data/com.termux/files/usr/bin/codex';
 const NPM_EXECUTABLE = '/data/data/com.termux/files/usr/bin/npm';
 const CODEX_HOME = process.env.CODEX_HOME ?? null;
 const PRESERVED_PATHS = [
