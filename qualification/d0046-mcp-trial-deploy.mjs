@@ -330,8 +330,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
     annotations: {
       'workers/message': `D0046 isolated MCP trial ${sourceSha}`,
       'workers/tag': 'tdev-d0046-r1-mcp-trial-v1',
-      'tdev/source-sha': sourceSha,
-      'tdev/bootstrap': bootstrap ? 'true' : 'false',
     },
     bindings,
     exports: {
