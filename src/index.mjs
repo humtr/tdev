@@ -106,12 +106,15 @@ export {
   AGENT_DELIVERY_SOCKET_TAG,
   AGENT_DELIVERY_STORAGE_PROFILE,
   AGENT_DELIVERY_STORAGE_SCHEMA_VERSION,
+  AGENT_RESULT_HANDOFF_STORAGE_PROFILE,
+  AGENT_RESULT_HANDOFF_STORAGE_SCHEMA_VERSION,
   AGENT_DELIVERY_WEBSOCKET_PATH,
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
   AgentDeliveryRuntimeService,
   AgentDeliveryRuntimeDOHost,
   SqliteAgentDeliveryStore,
+  SqliteAgentResultHandoffStore,
   createRuntimeAgentRouteBinding,
   deriveAgentPrincipalToken,
   readAgentDeliveryRuntimeConfig,
@@ -226,6 +229,27 @@ export {
   computeCaseAgentDriveRequestDigest,
   caseAgentDriveRecordDigest,
 } from './case-agent-drive.mjs';
+export {
+  CASE_AGENT_DRIVE_STORAGE_PROFILE,
+  CASE_AGENT_DRIVE_STORAGE_SCHEMA_VERSION,
+  CASE_AGENT_DRIVE_DO_CLASS_NAME,
+  CASE_AGENT_DRIVE_DEFAULT_MAX_SNAPSHOT_BYTES,
+  SqliteCaseAgentDriveStore,
+  CaseAgentDriveRuntimeDOHost,
+} from './cloudflare-case-agent-drive-runtime.mjs';
+export {
+  MCP_TRIAL_COMPOSITION_PROFILE,
+  MCP_TRIAL_COMPOSITION_SCHEMA_VERSION,
+  MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN,
+  MCP_TRIAL_COMPOSITION_RESOURCE,
+  MCP_TRIAL_AGENT_RPC_PROFILE,
+  MCP_TRIAL_CASE_CLASS_NAME,
+  MCP_TRIAL_DRIVE_CLASS_NAME,
+  MCP_TRIAL_AGENT_CLASS_NAME,
+  normalizeMcpTrialCompositionManifest,
+  createMcpTrialOwnerFacades,
+  createMcpTrialAuthorization,
+} from './mcp-trial-composition.mjs';
 export {
   DEVELOPMENT_UNIT_PROFILE,
   DEVELOPMENT_UNIT_CONTEXT_TASK_ID,

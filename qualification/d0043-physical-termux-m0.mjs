@@ -249,7 +249,7 @@ async function main() {
     baseTree,
     repositoryCommitOid: commitOid,
     objectFormat: 'sha1',
-    instruction: 'Implement one minimal non-documentation source objective. You must return exactly two non-empty writes, one for each named file; a no-op ChangeSet is invalid. In src/development-runtime.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, preserving all existing source. In test/development-runtime.test.mjs add a focused node:test asserting that exact exported value, preserving all existing tests. Inspect both current files first, then return their complete replacement text in the ChangeSet; the JSON result is the only implementation channel. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
+    instruction: 'Implement one minimal non-documentation source objective. You must return exactly two non-empty writes, one for each named file; a no-op ChangeSet is invalid. Create src/m0-physical-execution-profile.mjs exporting a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1. Create test/m0-physical-execution-profile.test.mjs containing one focused node:test that imports that export and asserts the exact value. Both files are new and small; return their complete contents in the ChangeSet. The JSON result is the only implementation channel. Do not modify existing files, docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],
@@ -274,7 +274,7 @@ async function main() {
     const validationResult = snapshot.taskStates.validate.acceptedResult;
     if (candidate.caseState !== 'succeeded' || validationResult?.passed !== true) fail('m0_validation_failed', 'M0 candidate did not pass fixed npm validation', { caseState: candidate.caseState, validation: validationResult });
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
-    if (!candidate.canonicalTree['src/development-runtime.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/development-runtime.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
+    if (!candidate.canonicalTree['src/m0-physical-execution-profile.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/m0-physical-execution-profile.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
     for (const filePath of Object.keys(candidate.canonicalTree)) if (filePath.startsWith('docs/')) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
     const runtimeCandidate = operationRuntime.candidate(candidate.canonicalDigest);
     if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');

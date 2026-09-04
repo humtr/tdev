@@ -264,6 +264,7 @@ function rpcShape(input) {
     d0039_security_readback: [[], []],
     read_installable_agent: [[], []],
     read_route_generation: [[], []],
+    read_result_handoff: [['deliveryId'], []],
     issue_installable_agent_connect_challenge: [['request'], ['nowMs']],
     migrate_installable_agent_route: [['request'], []],
     register_installable_agent: [['request'], []],
@@ -752,6 +753,8 @@ export class D0020QualificationAgentDeliveryDOHost {
         }
       } else if (operation === 'read') {
         result = this.host.readRoute({ routeBinding });
+      } else if (operation === 'read_result_handoff') {
+        result = this.host.readResultHandoff({ routeBinding, deliveryId: input.deliveryId });
       } else if (operation === 'initialize_route_generation') {
         result = this.host.initializeRouteGeneration({ routeBinding, state: input.state });
       } else if (operation === 'prepare_legacy_route_import') {

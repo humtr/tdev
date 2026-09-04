@@ -26,6 +26,7 @@ export const READ_ONLY_QUALIFICATION_OPERATIONS = Object.freeze(new Set([
   'read_installable_agent',
   'read_route_generation',
   'read',
+  'read_result_handoff',
 ]));
 
 const REQUIRED_GATE_PRINCIPALS = Object.freeze({
