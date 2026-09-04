@@ -279,7 +279,20 @@ export class CodexExecRepositoryModelExecutor {
       safeObservation(this.observation, { ...evidence, outcome: 'returned', totalDurationMs: Math.max(0, Math.round(performance.now() - started)) });
       return result;
     } catch (cause) {
-      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed' });
+      const details = cause?.details ?? {};
+      safeObservation(this.observation, {
+        runtimeProfile: CODEX_EXEC_MODEL_PROFILE,
+        executionBoundary: CODEX_EXECUTION_BOUNDARY,
+        sandboxMode: 'none',
+        repositoryCommitOid,
+        contextDigest: context.descriptor.contextDigest,
+        processStarts: details.processStarts === 0 ? 0 : 1,
+        exitCode: Number.isSafeInteger(details.exitCode) ? details.exitCode : null,
+        signal: typeof details.signal === 'string' ? details.signal : null,
+        stdoutBytes: Number.isSafeInteger(details.stdoutBytes) ? details.stdoutBytes : null,
+        stderrBytes: Number.isSafeInteger(details.stderrBytes) ? details.stderrBytes : null,
+        outcome: cause?.code ?? 'codex_failed',
+      });
       throw cause;
     } finally {
       await rm(clonePath, { recursive: true, force: true });
