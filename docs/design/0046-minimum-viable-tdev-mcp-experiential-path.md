@@ -145,7 +145,7 @@ The trial ends at an isolated validated candidate projection. Promotion may be e
 
 ## 8. Authentication, credentials and disclosure
 
-D0024 remains the authentication owner. The trial first uses Cloudflare Access Managed OAuth with exact resource, issuer, audience, registration mode, redirect, PKCE and verified claim mapping. Standard protected-resource/authorization metadata must be provider-read back before ChatGPT is asked to connect.
+D0024 remains the authentication owner. The trial first uses Cloudflare Access Managed OAuth with exact resource, issuer, audience, registration mode, redirect, PKCE and verified claim mapping. RFC 9728 protected-resource metadata for `/mcp` (`/.well-known/oauth-protected-resource/mcp`), its compatibility aliases, and authorization-server metadata must be provider-read back before ChatGPT is asked to connect.
 
 If the current ChatGPT client falsifies the selected Managed OAuth contract, the request stops before owner mutation and exact evidence reopens D0024. A revised client-compatible profile is designed and source/provider-preflighted before another web attempt; no permissive bearer-token fallback or undocumented header bypass is allowed.
 

@@ -30,6 +30,8 @@ Response loss is handled by replaying the same request ID and payload. MCP must 
 
 D0023 accepts one exact `tdev.mcp.surface.v1` tool set over both MCP protocol eras: modern request-metadata version `2026-07-28` is advertised first, followed by legacy initialize/tools/call versions `2025-11-25`, `2025-06-18` and `2025-03-26` as fallbacks. The modern path supports `server/discover`, per-request `_meta`, `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name`; it has no protocol session and does not reinterpret legacy requests.
 
+For an `/mcp` resource, protected-resource metadata is served at the RFC 9728 path `/.well-known/oauth-protected-resource/mcp`. The origin-root path and the Cloudflare Access-specific path remain read-only compatibility aliases; all successful metadata responses bind the exact `/mcp` resource and configured issuer.
+
 Each advertised tool includes a stable human-readable `title`, explicit `inputSchema` and object `outputSchema`, plus the four MCP safety annotations `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. These are discovery metadata only: they do not add a new owner or bypass the existing authorization and operation gates.
 
 D0023 accepts one exact `tdev.mcp.surface.v1` tool set:

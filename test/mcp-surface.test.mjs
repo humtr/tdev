@@ -212,7 +212,7 @@ test('authentication failures advertise the protected-resource metadata endpoint
   assert.equal(response.status, 401);
   assert.equal(
     response.headers.get('www-authenticate'),
-    'Bearer error="invalid_token", resource="https://mcp.example.test/mcp", resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource"',
+    'Bearer error="invalid_token", resource="https://mcp.example.test/mcp", resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource/mcp"',
   );
 });
 

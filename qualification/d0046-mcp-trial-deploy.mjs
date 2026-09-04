@@ -558,19 +558,28 @@ async function publicJson(url) {
 async function publicMetadataReadback(auth) {
   let resource = null;
   for (let attempt = 0; attempt < 15; attempt += 1) {
-    resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/cloudflare-access-protected-resource/mcp`);
+    resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource/mcp`);
     if (resource.status === 200) break;
     if (attempt < 14) await new Promise((resolve) => setTimeout(resolve, 2_000));
   }
-  if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'Cloudflare Access protected-resource metadata was not public', { status: resource.status });
+  if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'RFC 9728 path-specific protected-resource metadata was not public', { status: resource.status });
   const validatedResource = validateMcpProtectedResourceMetadata(resource.body, auth);
+  const rootResource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource`);
+  if (rootResource.status !== 200) fail('d0046_resource_metadata_alias_missing', 'Origin-root protected-resource metadata compatibility alias was not public', { status: rootResource.status });
+  const validatedRootResource = validateMcpProtectedResourceMetadata(rootResource.body, auth);
   const authorization = await publicJson(`${D0046_ACCESS_ISSUER}/.well-known/oauth-authorization-server`);
   if (authorization.status !== 200) fail('d0046_authorization_metadata_missing', 'Cloudflare Access authorization-server metadata was not public', { status: authorization.status });
   const validatedAuthorization = validateMcpAuthorizationServerMetadata(authorization.body, auth);
   const mcp = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/mcp`);
   if (![301, 302, 303, 307, 308, 401, 403].includes(mcp.status)) fail('d0046_mcp_edge_state_unexpected', 'Trial MCP endpoint did not show an expected Access-protected unauthenticated status', { status: mcp.status });
   return {
-    resource: { status: resource.status, resource: validatedResource.resource, authorizationServers: validatedResource.authorization_servers },
+    resource: {
+      status: resource.status,
+      path: '/.well-known/oauth-protected-resource/mcp',
+      resource: validatedResource.resource,
+      authorizationServers: validatedResource.authorization_servers,
+      rootAlias: { status: rootResource.status, resource: validatedRootResource.resource, authorizationServers: validatedRootResource.authorization_servers },
+    },
     authorization: { status: authorization.status, issuer: validatedAuthorization.issuer, authorizationEndpoint: validatedAuthorization.authorization_endpoint, tokenEndpoint: validatedAuthorization.token_endpoint, registrationEndpoint: validatedAuthorization.registration_endpoint ?? null, pkce: validatedAuthorization.code_challenge_methods_supported },
     mcpUnauthenticated: { status: mcp.status },
   };

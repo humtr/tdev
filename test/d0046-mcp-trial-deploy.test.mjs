@@ -80,6 +80,12 @@ test('D0046 discovery metadata bypasses large repository initialization', async 
     resource: D0046_MCP_TRIAL_RESOURCE,
     authorization_servers: ['https://humtr.cloudflareaccess.com'],
   });
+  const pathProtectedMetadata = mcpDiscoveryResponse(new Request('https://tdev-mcp-trial.humtr.workers.dev/.well-known/oauth-protected-resource/mcp'), manifests.auth);
+  assert.equal(pathProtectedMetadata.status, 200);
+  assert.deepEqual(await pathProtectedMetadata.json(), {
+    resource: D0046_MCP_TRIAL_RESOURCE,
+    authorization_servers: ['https://humtr.cloudflareaccess.com'],
+  });
   const authorizationMetadata = mcpDiscoveryResponse(new Request('https://tdev-mcp-trial.humtr.workers.dev/.well-known/oauth-authorization-server'), manifests.auth);
   assert.equal(authorizationMetadata.status, 200);
   const authorization = await authorizationMetadata.json();

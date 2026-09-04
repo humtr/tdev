@@ -429,7 +429,12 @@ function protectedResourceMetadataUrl(resource) {
   if (typeof resource !== 'string' || resource.length === 0) return null;
   try {
     const parsed = new URL(resource);
-    return `${parsed.origin}${MCP_AUTH_RESOURCE_METADATA_PATHS[0]}`;
+    // RFC 9728 derives the metadata location by inserting the well-known
+    // segment before the resource path.  mcpResource is normalized to /mcp
+    // by the auth manifest, so retain a deterministic standards location and
+    // leave the root/provider aliases available for compatibility discovery.
+    const resourcePath = parsed.pathname.replace(/^\/+|\/+$/gu, '');
+    return `${parsed.origin}/.well-known/oauth-protected-resource${resourcePath.length === 0 ? '' : `/${resourcePath}`}`;
   } catch {
     return null;
   }
