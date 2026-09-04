@@ -154,8 +154,10 @@ function normalizeManifestBody(input) {
   for (const field of ['contextProfile', 'modelProfile', 'validationProfile']) assertIdentifier(operation[field], `operation.${field}`);
   const identity = input.identity;
   assertRecordShape(identity, ['principalId', 'tenantId'], [], 'trial identity');
-  assertIdentifier(identity.principalId, 'identity.principalId');
-  assertIdentifier(identity.tenantId, 'identity.tenantId');
+  // Cloudflare Access supplies bounded email/UUID claim values; they are not
+  // restricted to the repository identifier grammar used for internal IDs.
+  boundedText(identity.principalId, 'identity.principalId', 256);
+  boundedText(identity.tenantId, 'identity.tenantId', 256);
   boundedText(input.casePrefix, 'casePrefix', 128);
   if (!/^[A-Za-z0-9][A-Za-z0-9._-]*$/u.test(input.casePrefix)) fail('mcp_trial_manifest_invalid', 'casePrefix is not an identifier prefix');
   if (input.authProfile !== MCP_AUTH_PROFILE) fail('mcp_trial_auth_profile_mismatch', 'Trial composition must use D0024 MCP auth');

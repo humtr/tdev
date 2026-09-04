@@ -139,6 +139,14 @@ test('D0046 trial rejects canonical writers, resource substitution and context s
   assert.throws(() => normalizeMcpTrialCompositionManifest(altered), (error) => error?.code === 'mcp_trial_context_mismatch');
 });
 
+test('D0046 trial accepts bounded Cloudflare Access principal and tenant claims', () => {
+  const normalized = normalizeMcpTrialCompositionManifest(manifest({
+    identity: { principalId: 'user@example.com', tenantId: 'user@example.com' },
+  }));
+  assert.equal(normalized.identity.principalId, 'user@example.com');
+  assert.equal(normalized.identity.tenantId, 'user@example.com');
+});
+
 test('D0046 elected Agent route is generation-bound when a route host key is supplied', () => {
   const agentId = 'agent-trial';
   const routeGeneration = 3;
