@@ -718,7 +718,7 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
       const resultEnvelope = completed?.completion?.resultEnvelope;
       if (!isPlainRecord(resultEnvelope) || resultEnvelope.caseId !== request.caseId ||
           resultEnvelope.taskId !== request.taskId || resultEnvelope.attemptId !== request.attemptId ||
-          resultEnvelope.executorId !== executor || resultEnvelope.executorEpoch !== invocation.attempt.executorEpoch ||
+          resultEnvelope.executorId !== executorId || resultEnvelope.executorEpoch !== invocation.attempt.executorEpoch ||
           resultEnvelope.fencingToken !== invocation.fencingToken || !isPlainRecord(resultEnvelope.result)) {
         fail('development_runtime_agent_result_invalid', 'Local Agent returned no fenced Case result envelope');
       }
