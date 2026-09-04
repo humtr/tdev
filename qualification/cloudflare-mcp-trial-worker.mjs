@@ -78,6 +78,40 @@ function diagnosticCode(error) {
     : 'mcp_config_unavailable';
 }
 
+function requestDiagnostic(request) {
+  const headers = request.headers;
+  const protocol = headers.get('mcp-protocol-version');
+  const method = headers.get('mcp-method');
+  const contentType = headers.get('content-type');
+  return {
+    path: new URL(request.url).pathname,
+    method: request.method,
+    cfRay: (headers.get('cf-ray') ?? '').slice(0, 64) || null,
+    hasAuthorization: headers.get('authorization') !== null,
+    hasAccessAssertion: headers.get('cf-access-jwt-assertion') !== null,
+    mcpProtocol: protocol === null ? null : protocol.slice(0, 64),
+    mcpMethod: method === null ? null : method.slice(0, 128),
+    mcpNamePresent: headers.get('mcp-name') !== null,
+    contentType: contentType === null ? null : contentType.split(';', 1)[0].trim().slice(0, 128),
+    acceptPresent: headers.get('accept') !== null,
+    originPresent: headers.get('origin') !== null,
+  };
+}
+
+function emitRequestDiagnostic(stage, request, fields = {}) {
+  if (typeof console?.log !== 'function') return;
+  try {
+    console.log(JSON.stringify({
+      profile: 'tdev.mcp.trial.request-diagnostic.v1',
+      stage,
+      ...requestDiagnostic(request),
+      ...fields,
+    }));
+  } catch {
+    // Diagnostics must never change the Worker response path.
+  }
+}
+
 function metadataFastPath(request, env) {
   const url = new URL(request.url);
   const protectedResource = MCP_AUTH_RESOURCE_METADATA_PATHS.includes(url.pathname);
@@ -173,13 +207,21 @@ async function application(env) {
 
 export default {
   async fetch(request, env) {
+    emitRequestDiagnostic('received', request);
     const fastMetadata = metadataFastPath(request, env);
-    if (fastMetadata !== null) return fastMetadata;
+    if (fastMetadata !== null) {
+      emitRequestDiagnostic('metadata', request, { status: fastMetadata.status });
+      return fastMetadata;
+    }
     try {
       const worker = await application(env);
-      return worker.fetch(request);
+      const response = await worker.fetch(request);
+      emitRequestDiagnostic('mcp', request, { status: response.status });
+      return response;
     } catch (error) {
-      return jsonResponse(503, { error: { code: diagnosticCode(error) } });
+      const code = diagnosticCode(error);
+      emitRequestDiagnostic('error', request, { status: 503, code });
+      return jsonResponse(503, { error: { code } });
     }
   },
 };

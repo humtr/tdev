@@ -114,7 +114,7 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
     resource: authManifest.mcpResource,
     authorization_servers: [authManifest.authorizationServerIssuer],
   });
-  assert.deepEqual(surfaceManifest.protocolVersions, ['2025-03-26', '2025-06-18', '2025-11-25', '2026-07-28']);
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26']);
   for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {
     const initialized = await rpc(surface, callRequest('initialize', {
       protocolVersion,
@@ -196,6 +196,24 @@ test('MCP case projection delegates to repository and tenant denial precedes own
   const deniedResult = await rpc(denied, callRequest('tools/call', { name: 'case_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26', assertion: 'tenant-b' }));
   assert.equal(deniedResult.response.status, 403);
   assert.equal(deniedResult.body.error.data.code, 'mcp_authorization_denied');
+});
+
+test('authentication failures advertise the protected-resource metadata endpoint', async () => {
+  const surface = createSurface({ auth: makeAuth() });
+  const request = new Request('https://mcp.example.test/mcp', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'mcp-protocol-version': '2025-03-26',
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }),
+  });
+  const response = await surface.fetch(request);
+  assert.equal(response.status, 401);
+  assert.equal(
+    response.headers.get('www-authenticate'),
+    'Bearer error="invalid_token", resource="https://mcp.example.test/mcp", resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource"',
+  );
 });
 
 test('strict parser rejects duplicate members, batches, and missing protocol before any owner call', async () => {

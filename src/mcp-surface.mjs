@@ -27,14 +27,15 @@ export const MCP_SURFACE_MANIFEST_DOMAIN = 'tdev.mcp.surface-manifest.v1';
 export const MCP_SURFACE_PATH = '/mcp';
 export const MCP_SURFACE_PROTOCOL_VERSION = '2025-03-26';
 export const MCP_SURFACE_MODERN_PROTOCOL_VERSION = '2026-07-28';
-// Keep all initialize-era revisions for existing clients and add the current
-// request-scoped revision. The two eras have different lifecycle contracts;
-// the adapter selects one from the request and never silently downgrades it.
+// Advertise the request-scoped revision first so a dual-era client has a
+// deterministic modern-first preference. Keep every initialize-era revision
+// for existing clients; the adapter selects one from each request and never
+// silently downgrades it.
 export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([
-  MCP_SURFACE_PROTOCOL_VERSION,
-  '2025-06-18',
-  '2025-11-25',
   MCP_SURFACE_MODERN_PROTOCOL_VERSION,
+  '2025-11-25',
+  '2025-06-18',
+  MCP_SURFACE_PROTOCOL_VERSION,
 ]);
 const MCP_SURFACE_LEGACY_PROTOCOL_VERSIONS = new Set([
   MCP_SURFACE_PROTOCOL_VERSION,
@@ -131,7 +132,10 @@ function manifestBody(input) {
       input.protocolVersions.some((value) => typeof value !== 'string' || value.length === 0)) {
     fail('mcp_surface_protocol_invalid', 'MCP surface protocolVersions must be a non-empty string array');
   }
-  const protocolVersions = [...new Set(input.protocolVersions)].sort();
+  // Array order is part of the negotiation preference: modern first, then
+  // the newest legacy revisions. Preserve the caller's explicit order rather
+  // than sorting it away during manifest normalization.
+  const protocolVersions = [...input.protocolVersions];
   if (protocolVersions.length !== input.protocolVersions.length) fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
   if (!Array.isArray(input.tools) || input.tools.length !== TOOL_NAMES.length) fail('mcp_surface_tools_invalid', 'MCP surface tool set is incomplete');
   const tools = input.tools.map((tool, index) => {
@@ -419,6 +423,16 @@ function rpcErrorDetails(error, manifest) {
   }
   if (code === 'mcp_header_mismatch') return { code, field: error?.details?.field ?? null };
   return { code };
+}
+
+function protectedResourceMetadataUrl(resource) {
+  if (typeof resource !== 'string' || resource.length === 0) return null;
+  try {
+    const parsed = new URL(resource);
+    return `${parsed.origin}${MCP_AUTH_RESOURCE_METADATA_PATHS[0]}`;
+  } catch {
+    return null;
+  }
 }
 
 function assertObject(value, label) {
@@ -873,7 +887,15 @@ export class TdevMcpSurface {
       const status = errorStatus(error);
       const response = rpcError(rpc?.id, rpcErrorCode(error), errorMessage(error), safeErrorCode(error), rpcErrorDetails(error, this.manifest));
       const headers = {};
-      if (status === 401) headers['www-authenticate'] = `Bearer resource="${this.auth.manifest?.mcpResource ?? ''}"`;
+      if (status === 401) {
+        const resource = this.auth.manifest?.mcpResource ?? '';
+        const metadata = protectedResourceMetadataUrl(resource);
+        headers['www-authenticate'] = [
+          'Bearer error="invalid_token"',
+          `resource="${resource}"`,
+          ...(metadata === null ? [] : [`resource_metadata="${metadata}"`]),
+        ].join(', ');
+      }
       return jsonResponse(status, response, headers);
     }
   }
