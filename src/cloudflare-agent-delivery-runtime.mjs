@@ -8,6 +8,7 @@ import {
   canonicalJson,
   digest,
   deepFreeze,
+  isPlainRecord,
   strictJsonParse,
 } from './canonical.mjs';
 import {
@@ -34,6 +35,8 @@ import { agentRouteBindingDigest } from './agent-delivery-authority.mjs';
 
 export const AGENT_DELIVERY_STORAGE_PROFILE = 'tdev.agent-delivery.cloudflare-sqlite.v1';
 export const AGENT_DELIVERY_STORAGE_SCHEMA_VERSION = 1;
+export const AGENT_RESULT_HANDOFF_STORAGE_PROFILE = 'tdev.agent-result-handoff.cloudflare-sqlite.v1';
+export const AGENT_RESULT_HANDOFF_STORAGE_SCHEMA_VERSION = 1;
 export const AGENT_DELIVERY_DO_CLASS_NAME = 'AgentDeliveryRuntimeDO';
 export const AGENT_ROUTE_ELECTION_DO_CLASS_NAME = 'AgentRouteElectionRuntimeDO';
 export const AGENT_DELIVERY_WEBSOCKET_PATH = '/agent-delivery/v1/connect';
@@ -455,6 +458,126 @@ export class SqliteAgentDeliveryStore {
   }
 }
 
+// Result handoff is delivery-owned evidence.  Keeping the validated
+// accept_result command in a separate compact table lets a stateless
+// composition Worker retrieve it after the WebSocket acknowledgement has
+// returned to the local Agent, without copying Case or Task state into the
+// MCP/drive layer.
+export class SqliteAgentResultHandoffStore {
+  constructor(storage, { maxSnapshotBytes = 4 * 1024 * 1024 } = {}) {
+    this.storage = assertStorage(storage);
+    if (!Number.isSafeInteger(maxSnapshotBytes) || maxSnapshotBytes < 1024) {
+      fail('invalid_agent_delivery_storage', 'Result-handoff snapshot byte limit is invalid');
+    }
+    this.sql = this.storage.sql;
+    this.maxSnapshotBytes = maxSnapshotBytes;
+  }
+
+  initialize() {
+    sqlExec(this.sql, `CREATE TABLE IF NOT EXISTS agent_result_handoff_state (
+      delivery_id TEXT PRIMARY KEY,
+      agent_id TEXT NOT NULL,
+      route_generation INTEGER NOT NULL,
+      connection_id TEXT NOT NULL,
+      connection_epoch INTEGER NOT NULL,
+      result_digest TEXT NOT NULL,
+      handoff_json TEXT NOT NULL,
+      handoff_bytes INTEGER NOT NULL,
+      storage_profile TEXT NOT NULL,
+      storage_schema_version INTEGER NOT NULL
+    )`);
+  }
+
+  #row(deliveryId) {
+    assertDigest(deliveryId, 'deliveryId');
+    return sqlOneOrNull(this.sql, 'SELECT * FROM agent_result_handoff_state WHERE delivery_id = ?', deliveryId);
+  }
+
+  #normalize(input) {
+    if (!input || typeof input !== 'object' || Array.isArray(input)) {
+      fail('invalid_agent_result_handoff', 'Result handoff must be a record');
+    }
+    assertRecordShape(input, ['agentId', 'routeGeneration', 'connectionId', 'connectionEpoch', 'deliveryId', 'handoff'], [], 'result handoff storage');
+    assertIdentifier(input.agentId, 'result handoff agentId');
+    assertSafeInteger(input.routeGeneration, 'result handoff routeGeneration', { min: 1 });
+    assertIdentifier(input.connectionId, 'result handoff connectionId');
+    assertSafeInteger(input.connectionEpoch, 'result handoff connectionEpoch', { min: 1 });
+    assertDigest(input.deliveryId, 'result handoff deliveryId');
+    if (!isPlainRecord(input.handoff)) fail('invalid_agent_result_handoff', 'Stored result handoff is not a record');
+    assertRecordShape(input.handoff, ['requestId', 'resultDigest', 'envelopeBytes', 'command'], [], 'result handoff');
+    assertIdentifier(input.handoff.requestId, 'result handoff requestId');
+    assertDigest(input.handoff.resultDigest, 'result handoff resultDigest');
+    assertSafeInteger(input.handoff.envelopeBytes, 'result handoff envelopeBytes', { min: 1 });
+    if (!isPlainRecord(input.handoff.command)) fail('invalid_agent_result_handoff', 'Result handoff command is not a record');
+    const text = canonicalJson(input.handoff);
+    const bytes = byteLength(text);
+    if (bytes > this.maxSnapshotBytes) {
+      fail('agent_result_handoff_storage_pressure', 'Result handoff exceeds the durable byte limit', {
+        requiredBytes: bytes,
+        maxSnapshotBytes: this.maxSnapshotBytes,
+      });
+    }
+    return { ...canonicalClone(input), text, bytes };
+  }
+
+  put(input) {
+    const normalized = this.#normalize(input);
+    return this.storage.transactionSync(() => {
+      const current = this.#row(normalized.deliveryId);
+      if (current !== null) {
+        if (current.agent_id !== normalized.agentId || Number(current.route_generation) !== normalized.routeGeneration ||
+            current.connection_id !== normalized.connectionId || Number(current.connection_epoch) !== normalized.connectionEpoch ||
+            current.result_digest !== normalized.handoff.resultDigest || current.handoff_json !== normalized.text) {
+          fail('agent_result_handoff_conflict', 'Result handoff identity was reused with different content');
+        }
+        return { classification: 'exact_replay', handoff: canonicalClone(normalized.handoff) };
+      }
+      this.sql.exec(`INSERT INTO agent_result_handoff_state(
+        delivery_id, agent_id, route_generation, connection_id, connection_epoch,
+        result_digest, handoff_json, handoff_bytes, storage_profile, storage_schema_version
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      normalized.deliveryId,
+      normalized.agentId,
+      normalized.routeGeneration,
+      normalized.connectionId,
+      normalized.connectionEpoch,
+      normalized.handoff.resultDigest,
+      normalized.text,
+      normalized.bytes,
+      AGENT_RESULT_HANDOFF_STORAGE_PROFILE,
+      AGENT_RESULT_HANDOFF_STORAGE_SCHEMA_VERSION);
+      return { classification: 'accepted', handoff: canonicalClone(normalized.handoff) };
+    });
+  }
+
+  load({ agentId, routeGeneration, deliveryId }) {
+    assertIdentifier(agentId, 'result handoff agentId');
+    assertSafeInteger(routeGeneration, 'result handoff routeGeneration', { min: 1 });
+    const row = this.#row(deliveryId);
+    if (row === null) return null;
+    if (row.agent_id !== agentId || Number(row.route_generation) !== routeGeneration ||
+        row.storage_profile !== AGENT_RESULT_HANDOFF_STORAGE_PROFILE ||
+        Number(row.storage_schema_version) !== AGENT_RESULT_HANDOFF_STORAGE_SCHEMA_VERSION) {
+      fail('agent_result_handoff_store_corrupt', 'Stored result handoff crossed route or schema identity');
+    }
+    const bytes = Number(row.handoff_bytes);
+    if (!Number.isSafeInteger(bytes) || bytes <= 0 || bytes > this.maxSnapshotBytes ||
+        typeof row.handoff_json !== 'string' || byteLength(row.handoff_json) !== bytes) {
+      fail('agent_result_handoff_store_corrupt', 'Stored result handoff byte accounting is invalid');
+    }
+    let handoff;
+    try {
+      handoff = strictJsonParse(row.handoff_json, { maxBytes: this.maxSnapshotBytes });
+    } catch (cause) {
+      fail('agent_result_handoff_store_corrupt', 'Stored result handoff is not bounded JSON', {}, { cause });
+    }
+    if (canonicalJson(handoff) !== row.handoff_json || !isPlainRecord(handoff) || handoff.resultDigest !== row.result_digest) {
+      fail('agent_result_handoff_store_corrupt', 'Stored result handoff is noncanonical or digest-inconsistent');
+    }
+    return canonicalClone(handoff);
+  }
+}
+
 function deliveryRoutePlacement(config) {
   const { electionClassName, electionNamespace, ...placement } = config.placement;
   return placement;
@@ -718,6 +841,7 @@ export class AgentDeliveryRuntimeDOHost {
     }
     this.durableObjectId = ctx.id.toString();
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
+    this.resultHandoffStore = options.resultHandoffStore ?? new SqliteAgentResultHandoffStore(ctx.storage, { maxSnapshotBytes: this.config.maxFrameBytes });
     this.generationStore = options.generationStore ?? (
       typeof ctx.storage?.transactionSync === 'function' && typeof ctx.storage?.sql?.exec === 'function'
         ? new SqliteAgentRouteGenerationStore(ctx.storage)
@@ -735,6 +859,7 @@ export class AgentDeliveryRuntimeDOHost {
     );
     ctx.blockConcurrencyWhile(async () => {
       if (typeof this.store.initialize === 'function') this.store.initialize();
+      if (typeof this.resultHandoffStore.initialize === 'function') this.resultHandoffStore.initialize();
       const legacyGroups = new Map();
       for (const socket of ctx.getWebSockets(AGENT_DELIVERY_SOCKET_TAG)) {
         try {
@@ -1344,6 +1469,17 @@ export class AgentDeliveryRuntimeDOHost {
     }
   }
 
+  readResultHandoff(input) {
+    assertRecordShape(input, ['routeBinding', 'deliveryId'], [], 'Agent delivery result handoff read');
+    this.#assertRouteExecutable(input.routeBinding);
+    const routeBinding = assertRuntimeRouteBinding(input.routeBinding, this.config, this.durableObjectId);
+    return this.resultHandoffStore.load({
+      agentId: routeBinding.agentId,
+      routeGeneration: routeBinding.routeGeneration,
+      deliveryId: input.deliveryId,
+    });
+  }
+
   async webSocketMessage(socket, message) {
     try {
       const attachment = attachmentFromSocket(socket);
@@ -1395,6 +1531,14 @@ export class AgentDeliveryRuntimeDOHost {
           connectionEpoch: attachment.connectionEpoch,
           deliveryId: frame.payload.deliveryId,
           resultEnvelope: frame.payload.resultEnvelope,
+        });
+        this.resultHandoffStore.put({
+          agentId: attachment.agentId,
+          routeGeneration: attachment.routeGeneration,
+          connectionId: attachment.connectionId,
+          connectionEpoch: attachment.connectionEpoch,
+          deliveryId: frame.payload.deliveryId,
+          handoff,
         });
         socket.send(canonicalJson({ type: 'result_handoff', handoff }));
         return handoff;

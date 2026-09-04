@@ -40,6 +40,7 @@ import {
   AGENT_DELIVERY_WEBSOCKET_PROTOCOL,
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
   AgentDeliveryRuntimeDOHost,
+  SqliteAgentResultHandoffStore,
   AgentDeliveryRuntimeService,
   SqliteAgentDeliveryStore,
   createRuntimeAgentRouteBinding,
@@ -78,6 +79,7 @@ class FakeSqliteStorage {
   constructor() {
     this.row = null;
     this.generationRow = null;
+    this.resultRow = null;
     this.sql = {
       exec: (statement, ...bindings) => this.#exec(statement, bindings),
     };
@@ -91,6 +93,8 @@ class FakeSqliteStorage {
     const sql = statement.replace(/\s+/g, ' ').trim();
     let rows = [];
     if (sql.startsWith('CREATE TABLE IF NOT EXISTS agent_delivery_state')) {
+      rows = [];
+    } else if (sql.startsWith('CREATE TABLE IF NOT EXISTS agent_result_handoff_state')) {
       rows = [];
     } else if (sql.startsWith('CREATE TABLE IF NOT EXISTS agent_route_generation_state')) {
       rows = [];
@@ -115,6 +119,23 @@ class FakeSqliteStorage {
         revision,
         snapshot_json: snapshotJson,
         snapshot_bytes: snapshotBytes,
+        storage_profile: storageProfile,
+        storage_schema_version: storageSchemaVersion,
+      };
+    } else if (sql === 'SELECT * FROM agent_result_handoff_state WHERE delivery_id = ?') {
+      rows = this.resultRow !== null && this.resultRow.delivery_id === bindings[0] ? [{ ...this.resultRow }] : [];
+    } else if (sql.startsWith('INSERT INTO agent_result_handoff_state(')) {
+      const [deliveryId, agentId, routeGeneration, connectionId, connectionEpoch, resultDigest, handoffJson, handoffBytes, storageProfile, storageSchemaVersion] = bindings;
+      if (this.resultRow !== null) throw new Error('duplicate fake result handoff row');
+      this.resultRow = {
+        delivery_id: deliveryId,
+        agent_id: agentId,
+        route_generation: routeGeneration,
+        connection_id: connectionId,
+        connection_epoch: connectionEpoch,
+        result_digest: resultDigest,
+        handoff_json: handoffJson,
+        handoff_bytes: handoffBytes,
         storage_profile: storageProfile,
         storage_schema_version: storageSchemaVersion,
       };
@@ -526,6 +547,36 @@ test('SQLite Agent delivery store rejects durable byte/accounting corruption', (
   new AgentDeliveryAuthority({ store, routeBinding: route(runtimeEnv) }).initialize();
   storage.row.snapshot_bytes += 1;
   expectCode(() => store.load('agent-one'), 'agent_delivery_store_corrupt');
+});
+
+test('Agent result handoff is durably readable after the local WebSocket acknowledgement', () => {
+  const storage = new FakeSqliteStorage();
+  const store = new SqliteAgentResultHandoffStore(storage, { maxSnapshotBytes: 64 * 1024 });
+  store.initialize();
+  const handoff = {
+    requestId: 'delivery-result-1',
+    resultDigest: digest({ result: 'candidate' }),
+    envelopeBytes: 128,
+    command: { type: 'accept_result', envelope: { result: 'candidate' } },
+  };
+  const input = {
+    agentId: 'agent-one',
+    routeGeneration: 1,
+    connectionId: 'connection-1',
+    connectionEpoch: 1,
+    deliveryId: digest({ delivery: 1 }),
+    handoff,
+  };
+  assert.equal(store.put(input).classification, 'accepted');
+  assert.equal(
+    canonicalJson(store.load({ agentId: 'agent-one', routeGeneration: 1, deliveryId: input.deliveryId })),
+    canonicalJson(handoff),
+  );
+  assert.equal(store.put(input).classification, 'exact_replay');
+  assert.throws(
+    () => store.put({ ...input, handoff: { ...handoff, requestId: 'delivery-result-2' } }),
+    (error) => error?.code === 'agent_result_handoff_conflict',
+  );
 });
 
 test('D0044 SQLite generation store preserves canonical state across reconstruction and rejects stale CAS', () => {
