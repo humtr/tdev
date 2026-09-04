@@ -232,7 +232,7 @@ function classifyDiagnosticText(value) {
 }
 
 function summarizeCodexProcessOutput(bytes) {
-  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [], errorMessageLengths: [], errorMessagePreviews: [] };
+  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [], errorMessageLengths: [], errorMessagePreviews: [], failedCommandExecutions: 0, failedCommandExitCodes: [] };
   if (!Buffer.isBuffer(bytes)) return summary;
   let text;
   try { text = UTF8_DECODER.decode(bytes); }
@@ -252,6 +252,10 @@ function summarizeCodexProcessOutput(bytes) {
     if (isPlainRecord(item) && typeof item.type === "string") {
       if (summary.itemTypes.length < 16) summary.itemTypes.push(item.type);
       if (event.type === "item.completed" && item.type === "agent_message") summary.terminalAgentMessages += 1;
+    }
+    if (event.type === "item.completed" && item?.type === "command_execution" && item.status === "failed") {
+      summary.failedCommandExecutions += 1;
+      if (summary.failedCommandExitCodes.length < 8 && Number.isSafeInteger(item.exit_code)) summary.failedCommandExitCodes.push(item.exit_code);
     }
     if (event.type === "turn.completed") summary.turnCompleted = true;
     if (event.type === "turn.failed") summary.turnFailed = true;
@@ -324,6 +328,7 @@ export class CodexExecRepositoryModelExecutor {
     const referenceId = assertContextReference(context.descriptor, contextReferenceId);
     const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal });
     const started = performance.now();
+    let processResult = null;
     try {
       const schemaBytes = await readFile(this.outputSchemaPath);
       const schemaDigest = `sha256:${createHash('sha256').update(schemaBytes).digest('hex')}`;
@@ -343,7 +348,7 @@ export class CodexExecRepositoryModelExecutor {
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
       if (processResult.code !== 0) {
         const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
         fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
@@ -356,32 +361,35 @@ export class CodexExecRepositoryModelExecutor {
       return result;
     } catch (cause) {
       const details = cause?.details ?? {};
+      const outputSummary = processResult === null ? {} : summarizeCodexProcessOutput(processResult.stdout);
       safeObservation(this.observation, {
         runtimeProfile: CODEX_EXEC_MODEL_PROFILE,
         executionBoundary: CODEX_EXECUTION_BOUNDARY,
         sandboxMode: 'none',
         repositoryCommitOid,
         contextDigest: context.descriptor.contextDigest,
-        processStarts: details.processStarts === 0 ? 0 : 1,
-        exitCode: Number.isSafeInteger(details.exitCode) ? details.exitCode : null,
+        processStarts: details.processStarts === 0 ? 0 : (processResult === null ? null : 1),
+        exitCode: Number.isSafeInteger(details.exitCode) ? details.exitCode : (Number.isSafeInteger(processResult?.code) ? processResult.code : null),
         signal: typeof details.signal === 'string' ? details.signal : null,
-        stdoutBytes: Number.isSafeInteger(details.stdoutBytes) ? details.stdoutBytes : null,
-        stderrBytes: Number.isSafeInteger(details.stderrBytes) ? details.stderrBytes : null,
-        stderrClass: typeof details.stderrClass === "string" ? details.stderrClass : null,
-        stdoutEventTypes: Array.isArray(details.stdoutEventTypes) ? details.stdoutEventTypes.slice(0, 16) : [],
-        stdoutItemTypes: Array.isArray(details.stdoutItemTypes) ? details.stdoutItemTypes.slice(0, 16) : [],
-        stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : [],
-        stdoutErrorKeys: Array.isArray(details.errorKeys) ? details.errorKeys.slice(0, 16) : [],
-        stdoutErrorDetailClasses: Array.isArray(details.errorDetailClasses) ? details.errorDetailClasses.slice(0, 8) : [],
-        stdoutErrorMessageLengths: Array.isArray(details.errorMessageLengths) ? details.errorMessageLengths.slice(0, 8) : [],
-        stdoutErrorMessagePreviews: Array.isArray(details.errorMessagePreviews) ? details.errorMessagePreviews.slice(0, 4) : [],
-        stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : null,
-        stdoutTruncated: details.truncated === true,
-        stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : null,
-        stdoutTerminalAgentMessages: Number.isSafeInteger(details.terminalAgentMessages) ? details.terminalAgentMessages : null,
-        stdoutTurnCompleted: details.turnCompleted === true,
-        stdoutTurnFailed: details.turnFailed === true,
-        stdoutErrorEvents: Number.isSafeInteger(details.errorEvents) ? details.errorEvents : null,
+        stdoutBytes: Number.isSafeInteger(details.stdoutBytes) ? details.stdoutBytes : (Number.isSafeInteger(processResult?.stdoutBytes) ? processResult.stdoutBytes : null),
+        stderrBytes: Number.isSafeInteger(details.stderrBytes) ? details.stderrBytes : (Number.isSafeInteger(processResult?.stderrBytes) ? processResult.stderrBytes : null),
+        stderrClass: typeof details.stderrClass === "string" ? details.stderrClass : (typeof processResult?.stderrClass === "string" ? processResult.stderrClass : null),
+        stdoutEventTypes: Array.isArray(details.stdoutEventTypes) ? details.stdoutEventTypes.slice(0, 16) : (Array.isArray(outputSummary.eventTypes) ? outputSummary.eventTypes.slice(0, 16) : []),
+        stdoutItemTypes: Array.isArray(details.stdoutItemTypes) ? details.stdoutItemTypes.slice(0, 16) : (Array.isArray(outputSummary.itemTypes) ? outputSummary.itemTypes.slice(0, 16) : []),
+        stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : (Array.isArray(outputSummary.errorCodes) ? outputSummary.errorCodes.slice(0, 8) : []),
+        stdoutErrorKeys: Array.isArray(details.errorKeys) ? details.errorKeys.slice(0, 16) : (Array.isArray(outputSummary.errorKeys) ? outputSummary.errorKeys.slice(0, 16) : []),
+        stdoutErrorDetailClasses: Array.isArray(details.errorDetailClasses) ? details.errorDetailClasses.slice(0, 8) : (Array.isArray(outputSummary.errorDetailClasses) ? outputSummary.errorDetailClasses.slice(0, 8) : []),
+        stdoutErrorMessageLengths: Array.isArray(details.errorMessageLengths) ? details.errorMessageLengths.slice(0, 8) : (Array.isArray(outputSummary.errorMessageLengths) ? outputSummary.errorMessageLengths.slice(0, 8) : []),
+        stdoutErrorMessagePreviews: Array.isArray(details.errorMessagePreviews) ? details.errorMessagePreviews.slice(0, 4) : (Array.isArray(outputSummary.errorMessagePreviews) ? outputSummary.errorMessagePreviews.slice(0, 4) : []),
+        stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : (Number.isSafeInteger(outputSummary.eventCount) ? outputSummary.eventCount : null),
+        stdoutTruncated: details.truncated === true || outputSummary.truncated === true,
+        stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : (Number.isSafeInteger(outputSummary.malformedEvents) ? outputSummary.malformedEvents : null),
+        stdoutTerminalAgentMessages: Number.isSafeInteger(details.terminalAgentMessages) ? details.terminalAgentMessages : (Number.isSafeInteger(outputSummary.terminalAgentMessages) ? outputSummary.terminalAgentMessages : null),
+        stdoutTurnCompleted: details.turnCompleted === true || outputSummary.turnCompleted === true,
+        stdoutTurnFailed: details.turnFailed === true || outputSummary.turnFailed === true,
+        stdoutErrorEvents: Number.isSafeInteger(details.errorEvents) ? details.errorEvents : (Number.isSafeInteger(outputSummary.errorEvents) ? outputSummary.errorEvents : null),
+        stdoutFailedCommandExecutions: Number.isSafeInteger(outputSummary.failedCommandExecutions) ? outputSummary.failedCommandExecutions : null,
+        stdoutFailedCommandExitCodes: Array.isArray(outputSummary.failedCommandExitCodes) ? outputSummary.failedCommandExitCodes.slice(0, 8) : [],
         outcome: cause?.code ?? 'codex_failed',
       });
       throw cause;
