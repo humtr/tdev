@@ -1,0 +1,98 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m1_modern_first_legacy_fallback_redeploy_provider_readback_pass",
+  "observedAtUtc": "2026-09-04T23:26:35Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "77f279f00b97b40fc1362ff082d89ec7ecde2b69",
+    "sourceGate": "npm run check PASS 661/661; docs:check PASS; git diff --check PASS",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M1 modern-first MCP surface with legacy fallback",
+    "scope": "advertise the current request-scoped MCP era first while retaining the initialize-era revisions and fail-closed negotiation"
+  },
+  "change": {
+    "problem": "The trial advertised and routed the older initialize-era surface without a deterministic current-era preference, and duplicate protocol entries could invalidate negotiation semantics.",
+    "repair": "The surface now advertises 2026-07-28 first, retains 2025-11-25, 2025-06-18 and 2025-03-26 as explicit legacy fallbacks, preserves that order in the manifest, validates modern metadata and routing headers, and rejects duplicate protocol versions before deployment.",
+    "tests": {
+      "focused": "10/10 PASS",
+      "complete": "661/661 PASS"
+    }
+  },
+  "trial": {
+    "scriptName": "tdev-mcp-trial",
+    "origin": "https://tdev-mcp-trial.humtr.workers.dev",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "environment": "qualification",
+    "jurisdiction": "global",
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false
+  },
+  "provider": {
+    "workerVersion": {
+      "id": "5d6690c4-e1a8-4303-b728-44a91010e7ec",
+      "number": 11,
+      "trafficPercentage": 100,
+      "sourceSha": "77f279f00b97b40fc1362ff082d89ec7ecde2b69"
+    },
+    "deploymentId": "4b3f1f7f-9552-400d-a2f3-87153939517a",
+    "publicReadback": {
+      "pathSpecificProtectedResourceMetadata": {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "originRootCompatibilityAlias": {
+        "path": "/.well-known/oauth-protected-resource",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "cloudflareAccessMetadata": {
+        "path": "/.well-known/cloudflare-access-protected-resource/mcp",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "unauthenticatedMcp": {
+        "status": 401,
+        "edge": true,
+        "workerDiagnosticEvent": false,
+        "resourceMetadataChallenge": "https://tdev-mcp-trial.humtr.workers.dev/.well-known/cloudflare-access-protected-resource/mcp"
+      },
+      "authorizationServerMetadata": {
+        "status": 200,
+        "issuer": "https://humtr.cloudflareaccess.com",
+        "pkce": ["S256"]
+      }
+    },
+    "workerTail": {
+      "available": true,
+      "diagnostics": "bounded method/path/status and protocol/auth booleans only; no request body or credential value",
+      "accessAuditLogHistory": "unavailable: current Cloudflare API token was rejected with 403 Authentication error because Access Audit Logs Read scope is not present"
+    }
+  },
+  "effects": {
+    "providerMutation": "one authorized upload to the existing isolated trial Worker",
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false
+  },
+  "proofBoundaries": {
+    "source": "PASS",
+    "modernAndLegacySurface": "PASS in local contract tests; modern current-era request path is first and all four advertised revisions are exercised",
+    "providerMetadata": "PASS",
+    "oauthAndAccess": "metadata and PKCE/resource preflight PASS; user token/policy admission not replayed here",
+    "currentChatGPTClient": "OPEN - authenticated Refresh/tool-list request still requires one fresh user-side Refresh while Worker Tail is armed",
+    "experientialM2": "OPEN - no real development objective or candidate yet"
+  },
+  "next": "With the fresh Worker Tail armed, perform one ChatGPT developer-mode Refresh. A Worker event proves Access admission and exposes only bounded protocol diagnostics; no Worker event means the failure is before the Worker and needs Access audit evidence or client-side raw trace rather than another MCP parser change."
+}
