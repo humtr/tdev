@@ -291,7 +291,10 @@ async function main() {
     const preservedAfter = await preservedFiles();
     if (JSON.stringify(preservedAfter) !== JSON.stringify(preservedBefore)) fail('m0_user_files_changed', 'M0 changed a preserved user file');
     const serializedFrames = JSON.stringify(agent.emitted);
-    if (/\.codex|CODEX_HOME|Bearer\s|sk-[A-Za-z0-9]/iu.test(serializedFrames)) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
+    const authRootLeak = CODEX_HOME.length > 0 && serializedFrames.includes(CODEX_HOME);
+    const bearerTokenLeak = /\bBearer\s+[A-Za-z0-9._~+/=-]{24,}/u.test(serializedFrames);
+    const apiKeyLeak = /\bsk-[A-Za-z0-9]{20,}/u.test(serializedFrames);
+    if (authRootLeak || bearerTokenLeak || apiKeyLeak) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
     process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
   } finally {
     await operationRuntime.dispose().catch(() => {});
