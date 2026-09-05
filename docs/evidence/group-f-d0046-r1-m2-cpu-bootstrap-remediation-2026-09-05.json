@@ -1,0 +1,79 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m2_cpu_bootstrap_remediation_provider_readback",
+  "observedAtUtc": "2026-09-05T00:34:00Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "bf1d79c7f6dc717ac7cb5e753086ff7527513165",
+    "sourceGate": "npm run check PASS 663/663; docs:check PASS; git diff --check PASS",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M2 current-client connection CPU-bootstrap remediation",
+    "scope": "remove whole-tree decoding from the MCP discovery/list bootstrap while preserving strict full-tree owner validation for development work"
+  },
+  "diagnosis": {
+    "priorTail": {
+      "requests": 2,
+      "method": "POST",
+      "path": "/mcp",
+      "status": 503,
+      "outcome": "exceededCpu",
+      "cfRays": ["a361008aafbdea23", "a36100a46d98ea30"],
+      "stage": "received",
+      "mcpProtocol": "2026-07-28",
+      "mcpMethod": "server/discover",
+      "hasAuthorization": false,
+      "hasAccessAssertion": true,
+      "acceptPresent": true,
+      "originPresent": false
+    },
+    "interpretation": "Access admitted the request and the modern MCP envelope was valid; the Worker exceeded its CPU budget while constructing the full application before MCP handling. The generated immutable base tree is approximately 7.8 MB semantic text and was previously decompressed and parsed on the discovery path."
+  },
+  "repair": {
+    "sourceCommit": "bf1d79c7f6dc717ac7cb5e753086ff7527513165",
+    "lightBootstrap": "The Worker now validates only the bounded composition/auth/operation bindings and surface digest before constructing MCP discovery/list; owner calls lazily single-flight the full application.",
+    "contextBoundary": "development_context_get returns a bounded commit/base-digest/reference projection; development_unit_start resolves the full tree through a separate internal resolver.",
+    "fullOwnerGuard": "The generated base-tree commit and digest are checked before full owner construction, and the original full manifest normalizer still verifies the injected tree digest."
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "workerVersion": {
+      "id": "08cd02ca-c576-4a61-a690-c6bca351a5a7",
+      "number": 12,
+      "trafficPercentage": 100,
+      "sourceSha": "bf1d79c7f6dc717ac7cb5e753086ff7527513165"
+    },
+    "usageModel": "standard",
+    "publicReadback": {
+      "pathSpecificProtectedResourceMetadata": 200,
+      "authorizationServerMetadata": 200,
+      "unauthenticatedMcp": 401
+    },
+    "tail": {
+      "armed": true,
+      "diagnostics": "bounded request method/path/status and protocol/auth booleans only"
+    }
+  },
+  "effects": {
+    "providerMutation": "one authorized upload to the existing isolated trial Worker",
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false
+  },
+  "proofBoundaries": {
+    "source": "PASS",
+    "providerDeployment": "PASS - version 12 is active at 100% with exact source binding",
+    "access": "PASS at the login layer from the separate observer audit readback",
+    "currentClientDiscovery": "OPEN - requires one post-repair authenticated ChatGPT Refresh while Tail is armed",
+    "experientialM2": "OPEN - no real development objective or candidate is claimed"
+  },
+  "next": "Correlate one fresh ChatGPT Refresh with the armed Tail; classify 200 discovery/list as the repaired M2 connection checkpoint, then exercise development_context_get before attempting a bounded development unit."
+}
