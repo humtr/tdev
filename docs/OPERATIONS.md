@@ -227,7 +227,7 @@ Do not retry an unknown model launch. Timeout, disconnect or response loss retai
 
 ### D0046 minimum MCP operation sequence
 
-The first experiential sequence is `M0 physical Termux candidate -> M1 isolated provider preflight -> M2 supported web ChatGPT candidate`. The `tdev-mcp-trial` ingress authenticates first, creates or reads only fresh trial-scoped Cases, and delegates `case_run_or_resume` to one durable D0042 drive owner. Every drive step rereads D0019 Case and D0020 Agent owners; ingress/drive memory cannot establish readiness, delivery, process or completion.
+The first experiential sequence is `M0 physical Termux candidate -> M1 isolated provider preflight -> M2 supported web ChatGPT candidate`. The `tdev-mcp-trial` ingress authenticates first, creates or reads only fresh trial-scoped Cases, and delegates tree-heavy repository/runner operations and `case_run_or_resume` through the one already-bound durable D0042 Drive owner. The Drive execution host uses its local cursor adapter and never recursively calls its own namespace; it is not a second semantic owner. Every drive step rereads D0019 Case and D0020 Agent owners; ingress/drive memory cannot establish readiness, delivery, process or completion.
 
 The sequence terminates at a validated isolated candidate projection. The current-client connection may reconnect and replay only the original request/drive identity. Worker upload, authentication, `initialize`, `tools/list`, Case creation or model start is not operation completion. The user-visible result is the exact base, terminal validation state and inspectable candidate/diff with independent proof of no canonical/Git effect.
 

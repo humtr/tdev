@@ -1,0 +1,53 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r2_free_plan_execution_placement_correction",
+  "observedAtUtc": "2026-09-05T00:00:00Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "sourceBeforeCorrection": "4ed795764636bdc590f687a0a9ef2c6a0981a384",
+    "designAcceptanceBase": "3c1c7b32568b9a0685cafe660e284a1808e5a981",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "predecessorRevision": 1,
+    "revision": 2,
+    "status": "accepted",
+    "trigger": "first authenticated development attempt reached the modern MCP surface but full owner calls produced repeated 502 responses; a guarded upload with custom CPU metadata was rejected by the account plan",
+    "decision": "keep the HTTP Worker light on Workers Free, delegate tree-heavy owner operations through the existing trial SQLite CaseAgentDriveRuntimeDO with a local cursor adapter, and return a bounded ChangeSet/diff candidate projection"
+  },
+  "falsifiers": {
+    "workerTail": {
+      "fullOwnerPath": "HTTP request entered after light discovery/tool-list success",
+      "observedOutcome": "exceededCpu",
+      "effect": "no trusted MCP response and no proven Case/Attempt result"
+    },
+    "providerUpload": {
+      "status": 400,
+      "code": 100328,
+      "messageClass": "custom CPU limits are unsupported on the Workers Free plan",
+      "providerMutation": false
+    },
+    "candidateProjection": {
+      "priorShape": "complete immutable canonicalTree",
+      "bound": "4 MiB MCP candidate projection",
+      "risk": "a successful full-tree candidate could exceed the public response bound"
+    }
+  },
+  "preservedInvariants": [
+    "D0019 remains the only Case/Task/Attempt/result authority",
+    "D0042 Drive state remains the only durable Case-to-Agent cursor owner",
+    "D0020/D0027 remain Agent delivery/process owners",
+    "the caller cannot select owner, repository, executable, operation profile or tenant",
+    "canonical and Git writers remain disabled"
+  ],
+  "proofBoundary": {
+    "designAcceptance": "accepted",
+    "sourceImplementation": "focused composition, runner, deploy-manifest and MCP-surface tests pass; touched modules pass node --check and git diff --check",
+    "providerDeployment": "open pending Free-compatible upload",
+    "currentClientExperientialM2": "open"
+  },
+  "next": "perform one guarded Free-compatible trial Worker redeploy/readback, then have the current client submit one fresh prefixed non-documentation objective"
+}

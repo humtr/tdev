@@ -1,16 +1,29 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 1
+- Revision: 2
 - Class: 2
 - Decision date: 2026-09-03
-- Acceptance base: `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`
-- Trigger: direct user requirement to stop treating source/package milestones as the development goal and instead reach the first real web ChatGPT -> tdev MCP -> Termux development result by the shortest safe route, then harden that working path
-- Acceptance evidence: `docs/evidence/group-f-d0046-r1-minimum-viable-tdev-mcp-experiential-path-acceptance-2026-09-03.json`
+- Acceptance base: `development@3c1c7b32568b9a0685cafe660e284a1808e5a981`
+- Predecessor revision: D0046 r1, accepted at `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`; its M1/M2 discovery evidence remains historical and is not rewritten.
+- Trigger: the first authenticated current-client development attempt reached the Worker but the full owner path repeatedly returned 502; Tail classified the underlying invocation as `exceededCpu`, and the subsequent Free-plan upload rejected custom `limits.cpu_ms` metadata. The first candidate projection also still included the complete immutable tree and could exceed the MCP response bound.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r2-free-plan-execution-placement-correction-2026-09-05.json`
 - Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
+
+## Revision 2 maintenance amendment — Free-plan execution placement and bounded candidate
+
+Revision 2 preserves the r1 problem boundary, owner family, single-user scope and M0 -> M1 -> M2 order. It corrects the provider execution boundary exposed by the first real development attempt:
+
+- The isolated ingress Worker must remain a light bootstrap on the account's Workers Free plan. It must not upload or declare a custom `limits.cpu_ms` value; that setting is a paid-plan capability and a deployment rejection is not a runtime fallback.
+- Owner operations that need the immutable generated repository tree (`development_unit_start`, Case repository reads/commands and runner readback) are dispatched through the already-bound trial-local `CaseAgentDriveRuntimeDO` RPC. The Durable Object constructs the full source-bound composition once per object and uses a local adapter for its own D0042 cursor calls; it must not call itself through a recursive namespace RPC. This is execution placement, not a second Case/Task/Attempt/Agent owner.
+- The HTTP Worker retains authentication, tenant/Case-prefix admission, protocol handling and bounded projections. The request body cannot choose the Durable Object, source tree, executable, operation profile or owner identity. Invalid Case prefixes fail before any Durable Object lookup.
+- `development_unit_get` returns an inspectable bounded ChangeSet/diff projection (`baseDigest`, `candidateDigest`, changed paths and bounded contents) plus lifecycle identity. It does not serialize the complete immutable candidate tree; the full tree remains internal to the owner path and can be reconstructed from the exact base plus diff.
+- `development_unit_start` returns bounded Case creation identity rather than an embedded semantic snapshot. Case/Drive/Agent receipts and full snapshots remain available only through their owner-bound read paths.
+
+The amendment is accepted under `SDD.md` as the maintained D0046 revision. It does not authorize a new Durable Object class, a canonical/Git writer, a permissive CPU setting, a caller-selected execution route or a multi-tenant/hostile-local-code claim. The fresh source/provider and current-client experiential gates remain open until one real candidate/result is observed.
 
 ## 1. One-line definition
 
