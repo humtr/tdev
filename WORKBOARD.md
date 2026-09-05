@@ -23,7 +23,7 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 ## Selected next action
 
-- D0046@r3 — M1 source-bound preflight and provider redeploy are PASS; now use the authenticated MCP surface once for `development_context_get`, one non-documentation `development_unit_start` and bounded candidate/result readback with context `tdev-context-78f47d5002f7`. Evidence: `docs/evidence/group-f-d0046-r3-m1-source-bound-preflight-2026-09-05.json`; do not claim the experiential path until an actual development result is independently observed.
+- D0046@r3 — M1 and the current-client Refresh/ingress checkpoint are PASS; Agent connection epoch 11 now reports effective capacity 1 after the scoped local executor-generation recovery. Evidence: `docs/evidence/group-f-d0046-r3-m2-refresh-agent-recovery-2026-09-05.json`. Next, use the authenticated MCP surface once for `development_context_get`, one new non-documentation `development_unit_start` and bounded candidate/result readback with context `tdev-context-78f47d5002f7`; do not claim the experiential path until an actual development result is independently observed.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
