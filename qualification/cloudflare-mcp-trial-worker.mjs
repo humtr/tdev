@@ -161,6 +161,7 @@ async function responseDiagnosticFields(response) {
     return {
       ...(typeof data?.code === 'string' ? { code: data.code.slice(0, 128) } : {}),
       ...(typeof data?.field === 'string' ? { field: data.field.slice(0, 128) } : {}),
+      ...(typeof error?.message === 'string' ? { message: error.message.slice(0, 256) } : {}),
     };
   } catch {
     return {};
