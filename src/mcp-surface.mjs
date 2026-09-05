@@ -314,6 +314,24 @@ function modernMetaVersion(rpc) {
     : null;
 }
 
+// MCP reserves the outer params object for transport metadata and method
+// arguments.  Hosted clients may add forward-compatible transport fields to
+// that envelope; require the fields that define the request, but do not treat
+// unrelated envelope extensions as a different protocol.  Tool arguments
+// remain strictly validated by validateToolArguments below.
+function requireRecordKeys(value, required, path) {
+  if (!isPlainRecord(value)) fail('invalid_record', `${path} must be a plain record`);
+  const missing = required.filter((key) => !Object.hasOwn(value, key));
+  if (missing.length > 0) {
+    fail('unexpected_keys', `${path} has unexpected or missing keys`, {
+      actual: Object.keys(value).sort(),
+      required: [...required].sort(),
+      missing: [...missing].sort(),
+    });
+  }
+  return value;
+}
+
 function modernRequestMeta(request, rpc, manifest) {
   if (!isPlainRecord(rpc.params) || !isPlainRecord(rpc.params._meta)) {
     fail('mcp_modern_metadata_required', 'Modern MCP requests require a bounded _meta object');
@@ -341,12 +359,7 @@ function modernRequestMeta(request, rpc, manifest) {
   const clientInfo = meta[MODERN_META_CLIENT_INFO_KEY];
   if (clientInfo !== undefined) {
     if (!isPlainRecord(clientInfo)) fail('mcp_modern_metadata_invalid', 'Modern clientInfo must be a record');
-    assertRecordShape(
-      clientInfo,
-      ['name', 'version'],
-      ['title', 'websiteUrl', 'icons'],
-      'modern clientInfo',
-    );
+    requireRecordKeys(clientInfo, ['name', 'version'], 'modern clientInfo');
     assertScalarString(clientInfo.name, 'modern clientInfo.name');
     assertScalarString(clientInfo.version, 'modern clientInfo.version');
   }
@@ -766,9 +779,9 @@ export class TdevMcpSurface {
     if (typeof protocol !== 'string' || !this.manifest.protocolVersions.includes(protocol)) {
       fail('mcp_protocol_unsupported', 'Requested MCP protocol version is not supported');
     }
-    assertRecordShape(rpc.params, ['protocolVersion', 'capabilities', 'clientInfo'], [], 'initialize params');
+    requireRecordKeys(rpc.params, ['protocolVersion', 'capabilities', 'clientInfo'], 'initialize params');
     if (!isPlainRecord(rpc.params.capabilities) || !isPlainRecord(rpc.params.clientInfo)) fail('mcp_initialize_invalid', 'initialize capabilities/clientInfo must be records');
-    assertRecordShape(rpc.params.clientInfo, ['name', 'version'], ['title', 'websiteUrl', 'icons'], 'initialize clientInfo');
+    requireRecordKeys(rpc.params.clientInfo, ['name', 'version'], 'initialize clientInfo');
     assertScalarString(rpc.params.clientInfo.name, 'initialize clientInfo.name');
     assertScalarString(rpc.params.clientInfo.version, 'initialize clientInfo.version');
     const header = protocolHeader(request);
@@ -791,7 +804,7 @@ export class TdevMcpSurface {
     modernHeaders(request, rpc);
     const identity = await this.#authorize(request, rpc, rpc.method === 'tools/call' ? rpc.params?.name ?? 'tools/call' : rpc.method, rpc.params);
     if (rpc.method === 'server/discover') {
-      assertRecordShape(rpc.params, ['_meta'], [], 'server/discover params');
+      requireRecordKeys(rpc.params, ['_meta'], 'server/discover params');
       return {
         resultType: 'complete',
         supportedVersions: [...this.manifest.protocolVersions],
@@ -803,7 +816,7 @@ export class TdevMcpSurface {
       };
     }
     if (rpc.method === 'tools/list') {
-      assertRecordShape(rpc.params, ['_meta'], ['cursor'], 'tools/list params');
+      requireRecordKeys(rpc.params, ['_meta'], 'tools/list params');
       if (rpc.params.cursor !== undefined) fail('mcp_cursor_unsupported', 'This stateless surface has no resumable tool cursor');
       return {
         resultType: 'complete',
@@ -814,7 +827,7 @@ export class TdevMcpSurface {
       };
     }
     if (rpc.method === 'tools/call') {
-      assertRecordShape(rpc.params, ['name', '_meta'], ['arguments'], 'tools/call params');
+      requireRecordKeys(rpc.params, ['name', '_meta'], 'tools/call params');
       if (typeof rpc.params.name !== 'string' || !TOOL_NAMES.includes(rpc.params.name)) fail('mcp_tool_not_found', 'Requested MCP tool is not exposed');
       const result = await this.#tool(rpc.params.name, rpc.params.arguments ?? {}, identity);
       const structuredContent = canonicalClone(result);

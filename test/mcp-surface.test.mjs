@@ -141,6 +141,11 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
   assert.deepEqual(discovered.body.result.supportedVersions, surfaceManifest.protocolVersions);
   assert.equal(discovered.body.result._meta['io.modelcontextprotocol/serverInfo'].name, 'tdev');
 
+  const discoveredWithForwardField = await rpc(surface, modernRequest('server/discover', {
+    clientTransportHint: 'chatgpt-hosted',
+  }, { id: 'discover-forward-field' }));
+  assert.equal(discoveredWithForwardField.response.status, 200);
+
   const modernListed = await rpc(surface, modernRequest('tools/list', {}, { id: 'list-1' }));
   assert.equal(modernListed.response.status, 200);
   assert.equal(modernListed.body.result.resultType, 'complete');
@@ -162,6 +167,14 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
   assert.equal(modernCalled.body.result.resultType, 'complete');
   assert.equal(modernCalled.body.result.isError, false);
   assert.deepEqual(modernCalled.body.result.structuredContent, { conflicts: [], revision: 0 });
+
+  const legacyInitializeWithForwardField = await rpc(surface, callRequest('initialize', {
+    protocolVersion: '2025-03-26',
+    capabilities: {},
+    clientInfo: { name: 'legacy-forward-field', version: '1' },
+    clientTransportHint: 'chatgpt-hosted',
+  }, { id: 'initialize-forward-field', protocol: '2025-03-26' }));
+  assert.equal(legacyInitializeWithForwardField.response.status, 200);
 });
 
 test('modern MCP metadata and routing headers fail closed before authorization on mismatch', async () => {
