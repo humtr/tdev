@@ -256,6 +256,7 @@ export {
 export {
   McpTrialDevelopmentUnitRunner,
   createMcpTrialDevelopmentUnitRunner,
+  resolveValidationOperationProfile,
 } from './mcp-trial-runner.mjs';
 export {
   DEVELOPMENT_UNIT_PROFILE,

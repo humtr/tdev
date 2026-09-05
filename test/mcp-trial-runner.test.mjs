@@ -13,10 +13,20 @@ import {
   defineDevelopmentUnitPlan,
   digest,
   normalizeDevelopmentOperationManifest,
+  resolveValidationOperationProfile,
 } from '../src/index.mjs';
 
 const COMMIT = 'a'.repeat(40);
 const BASE_TREE = { 'src/base.mjs': 'export const base = 1;\n' };
+
+test('D0046 resolves the public validation capability to one fixed operation profile', () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  assert.equal(resolveValidationOperationProfile(operationManifest, 'tdev.validation.npm-check.v1'), 'tdev.repository.validate.v1');
+  assert.equal(resolveValidationOperationProfile(operationManifest, 'tdev.repository.validate.v1'), 'tdev.repository.validate.v1');
+  assert.throws(() => resolveValidationOperationProfile(operationManifest, 'tdev.validation.unknown.v1'), { code: 'mcp_trial_validation_profile_invalid' });
+});
 
 function placement(workerScript, className, namespace) {
   return {

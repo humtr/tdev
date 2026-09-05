@@ -243,7 +243,24 @@ function reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrd
     .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)))[0] ?? null;
 }
 
-function operationRequest(view, taskId, payload) {
+/**
+ * Public development_unit_start accepts the named validation capability
+ * (for example tdev.validation.npm-check.v1), while the operation catalog
+ * keys the executable request by its repository-validation operation profile.
+ * Resolve that one fixed binding here and reject ambiguity; callers never gain
+ * executable/argv authority from the alias.
+ */
+export function resolveValidationOperationProfile(operationManifest, requestedProfile) {
+  const normalized = normalizeDevelopmentOperationManifest(operationManifest);
+  if (normalized.profiles[requestedProfile]?.kind === 'repository_validation') return requestedProfile;
+  const matches = Object.entries(normalized.profiles)
+    .filter(([, profile]) => profile.kind === 'repository_validation' && profile.binding?.profile === requestedProfile)
+    .map(([name]) => name);
+  if (matches.length !== 1) fail('mcp_trial_validation_profile_invalid', 'Validation profile did not resolve to exactly one fixed operation profile', { requestedProfile, matches });
+  return matches[0];
+}
+
+function operationRequest(view, taskId, payload, operationManifest) {
   const task = view.plan.tasksById[taskId];
   if (taskId === 'context') {
     return {
@@ -272,15 +289,15 @@ function operationRequest(view, taskId, payload) {
   if (taskId === 'validate') {
     const tree = candidateTree(view);
     return {
-      profile: task.input.profile,
+      profile: resolveValidationOperationProfile(operationManifest, task.input.profile),
       input: { candidateTreeDigest: digest(tree), validationProfile: task.input.validationProfile },
     };
   }
   fail('mcp_trial_task_unsupported', `Unsupported development Task ${taskId}`);
 }
 
-function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor } = {}) {
-  const operation = operationRequest(view, taskId, payload);
+function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor, operationManifest } = {}) {
+  const operation = operationRequest(view, taskId, payload, operationManifest);
   if (!Number.isSafeInteger(predictedAttemptOrdinal) || predictedAttemptOrdinal < 1) {
     fail('mcp_trial_attempt_identity_invalid', 'Executable body requires a positive predicted Attempt ordinal');
   }
@@ -487,6 +504,7 @@ export class McpTrialDevelopmentUnitRunner {
     const body = executableBody(view, taskId, payload, {
       predictedAttemptOrdinal,
       executor,
+      operationManifest: this.operationManifest,
     });
     const descriptor = preflightDescriptor(body, agentSnapshot, taskId);
     const reservationRequestId = requestId('reserve', { driveRequestId, taskId, predictedAttemptOrdinal });
