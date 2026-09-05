@@ -1,19 +1,30 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 2
+- Revision: 3
 - Class: 2
-- Decision date: 2026-09-03
-- Acceptance base: `development@3c1c7b32568b9a0685cafe660e284a1808e5a981`
-- Predecessor revision: D0046 r1, accepted at `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`; its M1/M2 discovery evidence remains historical and is not rewritten.
-- Trigger: the first authenticated current-client development attempt reached the Worker but the full owner path repeatedly returned 502; Tail classified the underlying invocation as `exceededCpu`, and the subsequent Free-plan upload rejected custom `limits.cpu_ms` metadata. The first candidate projection also still included the complete immutable tree and could exceed the MCP response bound.
-- Acceptance evidence: `docs/evidence/group-f-d0046-r2-free-plan-execution-placement-correction-2026-09-05.json`
+- Decision date: 2026-09-05
+- Acceptance base: `development@2cbf238082ba950e53eedbbd239c757f2b1af144`
+- Predecessor revision: D0046 r2, accepted at `development@3c1c7b32568b9a0685cafe660e284a1808e5a981`; its Free-plan placement evidence remains historical and is not rewritten.
+- Trigger: the first post-r2 real development-unit attempt read the immutable context successfully but `development_unit_start` returned 502. The deployed Case owner readback showed an 8 MiB authoritative-state budget, while exact local replay of the same source-bound base requires 11,419,628 bytes before Case birth. The underlying `casedo_capacity_exceeded` classification is deterministic from the current owner code and binding; no tail event for this attempt was available.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r3-case-capacity-correction-acceptance-2026-09-05.json`
 - Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
 
-## Revision 2 maintenance amendment — Free-plan execution placement and bounded candidate
+## Revision 3 maintenance amendment — Case capacity admission correction
+
+Revision 3 preserves the r2 execution placement, owner family, single-user scope, no-bwrap boundary and M0 -> M1 -> M2 order. It corrects the remaining provider admission defect exposed by the first real `development_unit_start` attempt:
+
+- The exact deployed trial source `42b0912e279908f2fdd72040020408f163a2cd2e` and base digest `sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42` require `11,419,628` authoritative bytes for the fresh Case state under the `CaseDOAuthority.authoritativeBytes` formula.
+- The existing `tdev-d0020-composition-case-r1` Worker currently advertises `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE=8388608`, so `CaseDOAuthority.#prepareState` rejects the plan before Case metadata/commit. The HTTP composition consequently exposes an upstream 502; the report's Case/candidate state remains unknown because the owner readback was unavailable.
+- Raise only that existing Case Worker plain-text binding to exactly `16,777,216` bytes, the already-qualified D0019 r2 budget. Preserve the existing CaseRuntimeDO namespace, D1 placement, source `e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626`, writer compatibility, qualification secret, trial bindings, canonical/Git exclusion and all durable owner semantics.
+- The correction is monotonic capacity admission, not a new owner, namespace, schema, retry path, CPU setting or fallback. Provider readback must prove the exact binding and secret-preserving owner identity before the next M2 client attempt.
+
+The acceptance record separates directly observed provider/config facts from the deterministic local inference and records the 502 attempt as an unchanged-effect, non-completion result. M1 capacity preflight is now a required gate: it must compare the measured requirement with the read-back Case budget and refuse activation when the budget is absent, below the requirement or ambiguous.
+
+## Revision 2 historical maintenance amendment — Free-plan execution placement and bounded candidate
 
 Revision 2 preserves the r1 problem boundary, owner family, single-user scope and M0 -> M1 -> M2 order. It corrects the provider execution boundary exposed by the first real development attempt:
 
@@ -138,7 +149,7 @@ If M0 fails, fix the D0043/runtime defect before spending more Cloudflare or web
 
 ### M1 - compose and preflight the isolated provider path
 
-Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path.
+Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path. Before that trial, compare the exact source-bound authoritative-byte requirement with the existing Case owner's read-back budget; reject an absent, ambiguous or undersized budget before any Case admission.
 
 No existing `tdev` Worker, canonical D0039 route, D0044 lane or stable Git ref is replaced in M1. A provider response loss is reconciled by version/config/readback; it is not retried blindly.
 
@@ -218,6 +229,7 @@ The first boundary is a deliberate user handoff, not implementation completion. 
 | --- | --- |
 | operation | D0043 Revision-2 real Codex ChangeSet plus fixed validation on physical Termux |
 | composition | exact read-back trial Worker, Case DO, drive DO, Agent DO and D1 bindings; no hidden in-memory owner |
+| capacity admission | exact source-bound base measurement is no greater than the read-back `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE`; the existing Case owner has at least `16,777,216` bytes, with no custom ingress CPU setting |
 | authentication | current web ChatGPT completes exact D0024 flow and one authorized tool call; cross-resource/tenant denial is zero-effect |
 | real development | one non-documentation source objective produces an inspectable validated candidate from one immutable published base |
 | result-only | Codex/ordinary Task cannot mutate canonical checkout or Git; only disposable candidate bytes appear |
@@ -232,11 +244,12 @@ Cheapest decisive falsifiers are:
 
 1. the installed Agent still runs a placeholder or diagnostic instead of real Codex and validation;
 2. the trial Worker cannot name one exact Case, drive and Agent owner set;
-3. ChatGPT authentication succeeds but the development task requires a manual out-of-band executor/edit;
-4. one request selects another tenant, Agent, executable, repository, model or validation command;
-5. response loss starts a second Case, Attempt or model process;
-6. the model or ordinary Task changes the canonical checkout/ref;
-7. a completion report is issued before the user-ready handoff or validated candidate.
+3. the existing Case owner budget is below the exact source-bound admission requirement or cannot be read back without ambiguity;
+4. ChatGPT authentication succeeds but the development task requires a manual out-of-band executor/edit;
+5. one request selects another tenant, Agent, executable, repository, model or validation command;
+6. response loss starts a second Case, Attempt or model process;
+7. the model or ordinary Task changes the canonical checkout/ref;
+8. a completion report is issued before the user-ready handoff or validated candidate.
 
 Any one blocks the affected claim and is corrected at its responsible owner before the complete M0-M2 path is rerun.
 

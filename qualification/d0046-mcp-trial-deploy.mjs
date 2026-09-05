@@ -53,6 +53,8 @@ export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
+export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
+export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const MAX_PUBLIC_RESPONSE_BYTES = 1024 * 1024;
@@ -429,6 +431,20 @@ function assertOwnerMarker(settings, scriptName) {
   }
 }
 
+export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
+  if (!Number.isSafeInteger(minimumBytes) || minimumBytes <= 0) fail('d0046_owner_capacity_invalid', 'Case capacity minimum must be a positive safe integer');
+  const binding = bindingByName(settings, 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE');
+  const raw = binding?.type === 'plain_text' ? binding.text : undefined;
+  if (typeof raw !== 'string' || !/^[1-9][0-9]*$/u.test(raw)) {
+    fail('d0046_owner_capacity_mismatch', 'Existing Case owner capacity binding was absent or not a canonical positive integer', { minimumBytes });
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < minimumBytes) {
+    fail('d0046_owner_capacity_mismatch', 'Existing Case owner capacity is below the source-bound admission minimum', { requiredBytes: minimumBytes, configuredBytes: Number.isSafeInteger(parsed) ? parsed : null });
+  }
+  return parsed;
+}
+
 async function verifyExistingOwners(client) {
   const [caseSettings, agentSettings, namespaces] = await Promise.all([
     workerSettings(client, D0046_CASE_SCRIPT),
@@ -439,6 +455,19 @@ async function verifyExistingOwners(client) {
   assertOwnerMarker(agentSettings.result, D0046_AGENT_SCRIPT);
   assertOwnerBinding(caseSettings.result, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
   assertOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertCaseOwnerCapacity(caseSettings.result, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
+  const caseSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA');
+  if (caseSource?.type !== 'plain_text' || caseSource.text !== 'e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626') {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner source identity was not the fixed D0020 composition source');
+  }
+  const writer = bindingByName(caseSettings.result, 'TDEV_CASEDO_WRITER_COMPATIBILITY_ID');
+  if (writer?.type !== 'plain_text' || writer.text !== 'd0020-composition-r1') {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner writer compatibility identity was not exact');
+  }
+  const qualificationSecret = bindingByName(caseSettings.result, 'TDEV_D0019_QUALIFICATION_TOKEN');
+  if (qualificationSecret?.type !== 'secret_text') {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner qualification secret binding was absent');
+  }
   const caseNs = namespaces.filter((item) => item?.script === D0046_CASE_SCRIPT && item?.class === MCP_TRIAL_CASE_CLASS_NAME);
   const agentNs = namespaces.filter((item) => item?.script === D0046_AGENT_SCRIPT && item?.class === MCP_TRIAL_AGENT_CLASS_NAME);
   if (caseNs.length !== 1 || agentNs.length !== 1 || caseNs[0].id !== D0046_CASE_NAMESPACE || agentNs[0].id !== D0046_AGENT_NAMESPACE || caseNs[0].use_sqlite !== true || agentNs[0].use_sqlite !== true) {

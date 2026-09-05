@@ -1,0 +1,131 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r3_case_capacity_correction_acceptance",
+  "observedAtUtc": "2026-09-05T05:06:28Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "designAcceptanceBase": "2cbf238082ba950e53eedbbd239c757f2b1af144",
+    "deployedTrialSource": "42b0912e279908f2fdd72040020408f163a2cd2e",
+    "deployedTrialBaseDigest": "sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "predecessorRevision": 2,
+    "revision": 3,
+    "status": "accepted",
+    "gate": "M1 Case-capacity admission correction before the next M2 attempt",
+    "trigger": "The current-client report reached development_context_get, then development_unit_start returned HTTP 502. The current Case owner readback was 8 MiB while exact replay of the same source-bound base requires more bytes before Case birth.",
+    "decision": "Raise only the existing Case owner's TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE binding to the already-qualified 16 MiB D0019 budget, preserve all owner identities and credentials, and require deterministic budget readback before another client attempt."
+  },
+  "clientAttempt": {
+    "caseId": "tdev-trial-smoke-20260905-k7m2q9",
+    "driveRequestId": "tdev-drive-smoke-20260905-k7m2q9",
+    "contextReferenceId": "tdev-context-42b0912e2799",
+    "startRequestId": "req-tdev-smoke-start-20260905-k7m2q9",
+    "status": 502,
+    "errorMessageClass": "Upstream or external service errors",
+    "caseState": "unknown - development_unit_start failed before owner readback",
+    "candidateDigest": null,
+    "changedPaths": null,
+    "canonicalOrGitCalls": false
+  },
+  "measurement": {
+    "method": "deterministic fresh-state replay using the deployed source-bound base and CaseDOAuthority.authoritativeBytes formula",
+    "sourceSha": "42b0912e279908f2fdd72040020408f163a2cd2e",
+    "fileCount": 500,
+    "semanticBytes": 7792294,
+    "compressedBytes": 1653687,
+    "planBytes": 7794509,
+    "snapshotBytes": 4867,
+    "semanticObjectCount": 3434,
+    "rawSemanticObjectBytes": 9651945,
+    "semanticObjectChunks": 3435,
+    "semanticObjectBytesIncludingRowOverhead": 11410409,
+    "requiredAuthoritativeBytes": 11419628,
+    "currentProviderBudget": 8388608,
+    "qualifiedBudget": 16777216,
+    "headroomAtQualifiedBudget": 5357588,
+    "formula": {
+      "metadataOverheadBytes": 4096,
+      "rowOverheadBytes": 256,
+      "chunkBytes": 262144,
+      "owner": "src/casedo-authority.mjs::CaseDOAuthority.#prepareState"
+    }
+  },
+  "providerReadbackBeforeCorrection": {
+    "caseWorker": {
+      "scriptName": "tdev-d0020-composition-case-r1",
+      "latestVersionId": "08b3463b-f0dd-4109-9baf-5f01b481f637",
+      "latestVersionNumber": 19,
+      "sourceSha": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "caseClass": "CaseRuntimeDO",
+      "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+      "writerCompatibilityId": "d0020-composition-r1",
+      "maxAuthoritativeBytesPerCase": 8388608,
+      "qualificationSecretBindingPresent": true
+    },
+    "trialWorker": {
+      "scriptName": "tdev-mcp-trial",
+      "sourceSha": "42b0912e279908f2fdd72040020408f163a2cd2e",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+    }
+  },
+  "diagnosis": {
+    "underlyingCode": "casedo_capacity_exceeded",
+    "classification": "deterministic inference, not a directly captured tail event",
+    "basis": [
+      "CaseDOAuthority checks authoritativeBytes in #prepareState before writing Case metadata or committing the initial state.",
+      "The exact measured requirement 11419628 exceeds the provider binding 8388608.",
+      "The reported 502 occurred at development_unit_start after context read and before candidate/result readback.",
+      "No tail event for this specific attempt was available, so the external 502 wrapper is not presented as direct tail evidence."
+    ]
+  },
+  "effects": {
+    "caseMetadataCommitted": "not observed; failed start had no owner readback",
+    "candidateMaterialized": false,
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "trialWorkerConfigMutation": false,
+    "caseWorkerConfigMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false,
+    "secretValuesRead": false
+  },
+  "acceptance": {
+    "status": "accepted",
+    "requiredCorrection": {
+      "target": "existing tdev-d0020-composition-case-r1",
+      "binding": "TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE",
+      "from": 8388608,
+      "to": 16777216,
+      "kind": "monotonic provider admission capacity only"
+    },
+    "preserved": [
+      "CaseRuntimeDO namespace and D1 placement",
+      "Case source and writer compatibility identity",
+      "qualification secret binding and value",
+      "trial Worker, Drive and Agent topology",
+      "canonical/Git writer exclusion",
+      "single-user trusted-local M0 scope and no-bwrap boundary"
+    ],
+    "postCorrectionReadback": [
+      "exact Case owner markers, source, namespace, class, D1 and writer",
+      "TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE=16777216",
+      "qualification secret binding present without secret-value disclosure",
+      "trial Worker and Access/preview state unchanged",
+      "one bounded M1 preflight before the next M2 client attempt"
+    ]
+  },
+  "proofBoundary": {
+    "design": "accepted D0046 r3",
+    "providerCorrection": "pending guarded mutation and independent readback",
+    "currentClientM2": "open - no candidate/result was observed",
+    "tmcpComparison": "not started"
+  },
+  "next": "Guard the existing Case Worker binding with exact owner/source preconditions, raise only its budget to 16 MiB, reread the provider configuration, run the capacity preflight and then allow one fresh bounded M2 client attempt."
+}
