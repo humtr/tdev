@@ -43,7 +43,7 @@ test('D0046 capacity correction changes one binding and inherits the secret', ()
   assert.deepEqual(patch.bindings.find((binding) => binding.name === 'TDEV_D0019_QUALIFICATION_TOKEN'), {
     name: 'TDEV_D0019_QUALIFICATION_TOKEN',
     type: 'inherit',
-    version_id: '08b3463b-f0dd-4109-9baf-5f01b481f637',
+    version_id: 'latest',
   });
   assert.equal(patch.bindings.length, before.bindings.length);
 });

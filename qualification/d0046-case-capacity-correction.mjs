@@ -115,7 +115,7 @@ export function assertCaseCapacityPrecondition(settings, { allowTarget = true } 
   return { state: 'ready', configuredBytes };
 }
 
-export function buildCaseCapacityPatchSettings(settings, latestVersionId) {
+export function buildCaseCapacityPatchSettings(settings, latestVersionId = 'latest') {
   const precondition = assertCaseCapacityPrecondition(settings);
   if (precondition.state === 'already-correct') return null;
   const versionId = positiveVersionId(latestVersionId);
@@ -125,7 +125,10 @@ export function buildCaseCapacityPatchSettings(settings, latestVersionId) {
         return { name: CASE_CAPACITY_BINDING, type: 'plain_text', text: String(D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) };
       }
       if (binding.name === CASE_SECRET_BINDING) {
-        return { name: CASE_SECRET_BINDING, type: 'inherit', version_id: versionId };
+        // The settings PATCH endpoint accepts only the literal `latest` for
+        // inherit bindings; the version readback above is still required as a
+        // deployment precondition and is retained in the result evidence.
+        return { name: CASE_SECRET_BINDING, type: 'inherit', version_id: 'latest' };
       }
       return structuredClone(binding);
     }),
