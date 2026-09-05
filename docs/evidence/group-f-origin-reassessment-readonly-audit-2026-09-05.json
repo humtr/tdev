@@ -1,0 +1,896 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "tdev.origin-reassessment.readonly-observations.v1",
+  "observedAt": "2026-09-05T14:24:09.226Z",
+  "scope": "Dated engineering evidence only; not current route, Design acceptance, implementation qualification or product authority.",
+  "secretValues": "excluded",
+  "repository": {
+    "repository": "humtr/tdev",
+    "publishedRefs": [
+      {
+        "ref": "refs/heads/codex/cloudflare-access-minimum-requirements-20260901",
+        "sha": "77f3c525726337366e57ebee1fab22ab96385f97"
+      },
+      {
+        "ref": "refs/heads/development",
+        "sha": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa"
+      },
+      {
+        "ref": "refs/heads/main",
+        "sha": "b86287b84375e2aeb833cf775371a7808a1239cf"
+      }
+    ],
+    "boundRef": "refs/heads/development",
+    "boundSha": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+    "selection": "unique self-declaring persistent-v1 candidate without live predecessor",
+    "localHead": "9f1bca3cf01f56b0229ab41bf18cc7cb1d60a294",
+    "publishedOnlyCommits": 0,
+    "localOnlyCommits": 72,
+    "statusBefore": "?? docs/evidence/group-f-d0046-r3-m2-case-drive-502-diagnostic-2026-09-05.json\n?? native/installable-agent-package/\n?? qualification/d0044-provider-response-loss-r22-resume.mjs\n?? qualification/d0044-provider-response-loss-r23-resume.mjs",
+    "runnableAtBoundSnapshot": [
+      "D0039@r12",
+      "D0043@r2",
+      "D0046@r1"
+    ],
+    "selectedAtBoundSnapshot": "D0043@r2"
+  },
+  "provider": {
+    "tdev-mcp-trial": {
+      "observedAt": "2026-09-05T14:24:10.015Z",
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+          "scriptName": "tdev-d0020-qualification-clean-a",
+          "className": "AgentDeliveryRuntimeDO"
+        },
+        {
+          "name": "TDEV_CASE_AGENT_DRIVE",
+          "type": "durable_object_namespace",
+          "namespaceId": "138b3b6fc20d4d8988b598c572aa39f7",
+          "className": "CaseAgentDriveRuntimeDO"
+        },
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "namespaceId": "3b3d5808028f4e74bcbc1dc22f0757fd",
+          "scriptName": "tdev-d0020-composition-case-r1",
+          "className": "CaseRuntimeDO"
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+        },
+        {
+          "name": "TDEV_D0046_ARTIFACT_DIGEST",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0046_ARTIFACT_MANIFEST_DIGEST",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0046_DEPLOYMENT_EPOCH",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0046_INGRESS_KIND",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0046_QUALIFICATION_MODE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_DEPLOYMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_ENVIRONMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_AGENT_ID",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_AGENT_NAMESPACE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_AGENT_ROUTE_GENERATION",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_AGENT_RPC_PROFILE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_AUTH_MANIFEST_JSON",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_BASE_DIGEST",
+          "type": "plain_text",
+          "text": "sha256:51891d0a2fe68ab6546c9b43e7e7120ff4e4fe15a0acd26839c50b74b5e2b921"
+        },
+        {
+          "name": "TDEV_MCP_CANONICAL_WRITER_ENABLED",
+          "type": "plain_text",
+          "text": "false"
+        },
+        {
+          "name": "TDEV_MCP_CASE_NAMESPACE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_DRIVE_NAMESPACE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_OPERATION_MANIFEST_JSON",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_PREVIEW_WRITERS_ENABLED",
+          "type": "plain_text",
+          "text": "false"
+        },
+        {
+          "name": "TDEV_MCP_REPOSITORY_COMMIT",
+          "type": "plain_text",
+          "text": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61"
+        },
+        {
+          "name": "TDEV_MCP_SURFACE_DIGEST",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_TRIAL_MANIFEST_JSON",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_MCP_TRIAL_RESOURCE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_SOURCE_SHA",
+          "type": "plain_text",
+          "text": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61"
+        },
+        {
+          "name": "TDEV_WORKER_SCRIPT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_WORKER_VERSION",
+          "type": "version_metadata"
+        }
+      ],
+      "limits": null,
+      "observability": null,
+      "logpush": false,
+      "deployments": [
+        {
+          "id": "574091a3-31bf-4890-a2c4-967118b9dd13",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "D0046 isolated MCP trial 78f47d5002f7f0fbeb3520...",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-09-05T06:01:44.585684Z"
+        }
+      ]
+    },
+    "tdev-d0020-composition-case-r1": {
+      "observedAt": "2026-09-05T14:24:10.311Z",
+      "bindings": [
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "namespaceId": "3b3d5808028f4e74bcbc1dc22f0757fd",
+          "className": "CaseRuntimeDO"
+        },
+        {
+          "name": "TDEV_CASEDO_JURISDICTION",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE",
+          "type": "plain_text",
+          "text": "16777216"
+        },
+        {
+          "name": "TDEV_CASEDO_NAMESPACE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_CASEDO_WRITER_COMPATIBILITY_ID",
+          "type": "plain_text",
+          "text": "d0020-composition-r1"
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+        },
+        {
+          "name": "TDEV_D0019_QUALIFICATION_MODE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0019_QUALIFICATION_TOKEN",
+          "type": "secret_text"
+        },
+        {
+          "name": "TDEV_DEPLOYMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_ENVIRONMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_SOURCE_SHA",
+          "type": "plain_text",
+          "text": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626"
+        },
+        {
+          "name": "TDEV_WORKER_SCRIPT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_WORKER_VERSION",
+          "type": "version_metadata"
+        }
+      ],
+      "limits": null,
+      "observability": null,
+      "logpush": false,
+      "deployments": [
+        {
+          "id": "3cf2e1d4-184e-4fa9-9c0a-2567f71e5c1a",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "Automatic deployment on upload.",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "ce96bc9d-4756-4b24-84c9-141522ba65da",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-09-05T05:24:03.358937Z"
+        }
+      ]
+    },
+    "tdev-d0020-qualification-clean-a": {
+      "observedAt": "2026-09-05T14:24:11.067Z",
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+          "className": "AgentDeliveryRuntimeDO"
+        },
+        {
+          "name": "TDEV_AGENT_DELIVERY_AUTH_KEY",
+          "type": "secret_text"
+        },
+        {
+          "name": "TDEV_AGENT_DELIVERY_JURISDICTION",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_AGENT_DELIVERY_MAX_FRAME_BYTES",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_AGENT_DELIVERY_MAX_SNAPSHOT_BYTES",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_AGENT_DELIVERY_NAMESPACE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0020_QUALIFICATION_MODE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0020_QUALIFICATION_TOKEN",
+          "type": "secret_text"
+        },
+        {
+          "name": "TDEV_D0039_ACCOUNT_ID",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_ARTIFACT_DIGEST",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_ARTIFACT_MANIFEST_DIGEST",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_DEPLOYMENT_EPOCH",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_INGRESS_KIND",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_NAMESPACE_ID",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_QUALIFICATION_ENDPOINT_ORIGIN",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_SERVICE_NAME",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_STATE_CHANGING_TRAFFIC_PERCENTAGE",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_WORKERS_DEV_ACCOUNT_SUBDOMAIN",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_WORKERS_DEV_ENABLED",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_WORKERS_DEV_HOSTNAME",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0039_WORKERS_DEV_PREVIEWS_ENABLED",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0040_EVIDENCE_ATTESTOR_KEY_ID",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_D0040_EVIDENCE_ATTESTOR_PUBLIC_JWK",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_DEPLOYMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_ENVIRONMENT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_SOURCE_SHA",
+          "type": "plain_text",
+          "text": "466a45473672c8b0296cc33d99a0b0c945fbe9ac"
+        },
+        {
+          "name": "TDEV_WORKER_SCRIPT",
+          "type": "plain_text"
+        },
+        {
+          "name": "TDEV_WORKER_VERSION",
+          "type": "version_metadata"
+        }
+      ],
+      "limits": null,
+      "observability": null,
+      "logpush": false,
+      "deployments": [
+        {
+          "id": "e21ef1a2-1dcb-4795-9686-9ada9079fa4c",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "D0039 R12 provider realignment 466a45473672c8b0...",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-08-28T09:25:06.185284Z"
+        }
+      ]
+    },
+    "tdev": {
+      "observedAt": "2026-09-05T14:24:11.351Z",
+      "bindings": [
+        {
+          "name": "EXPERIMENT_BUNDLE_SHA256",
+          "type": "plain_text"
+        },
+        {
+          "name": "EXPERIMENT_SOURCE_SHA",
+          "type": "plain_text"
+        },
+        {
+          "name": "MCP_RESOURCE",
+          "type": "plain_text"
+        }
+      ],
+      "limits": null,
+      "observability": {
+        "enabled": true,
+        "head_sampling_rate": 1,
+        "redact_query_string": false,
+        "logs": {
+          "enabled": true,
+          "head_sampling_rate": 1,
+          "persist": true,
+          "invocation_logs": true
+        },
+        "traces": {
+          "enabled": false,
+          "persist": true,
+          "head_sampling_rate": 1
+        }
+      },
+      "logpush": false,
+      "deployments": [
+        {
+          "id": "f5618b87-05e9-40af-ab4b-39a31c7100d3",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/triggered_by": "deployment"
+          },
+          "versions": [
+            {
+              "version_id": "2d2b51a0-c930-43ee-8372-771456f04e7f",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-08-24T09:03:47.442236Z"
+        }
+      ]
+    },
+    "publicReadback": [
+      {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "observedAt": "2026-09-05T14:24:12.285Z",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": [
+          "https://humtr.cloudflareaccess.com"
+        ],
+        "registrationEndpointPresent": false,
+        "bodyBytes": 122
+      },
+      {
+        "path": "/.well-known/oauth-authorization-server",
+        "observedAt": "2026-09-05T14:24:12.570Z",
+        "status": 200,
+        "issuer": "https://humtr.cloudflareaccess.com",
+        "registrationEndpointPresent": true,
+        "pkce": [
+          "S256"
+        ],
+        "bodyBytes": 679
+      },
+      {
+        "path": "/mcp",
+        "observedAt": "2026-09-05T14:24:12.893Z",
+        "status": 401,
+        "registrationEndpointPresent": false,
+        "bodyBytes": 195
+      }
+    ],
+    "casePlacement": {
+      "observedAt": "2026-09-05T14:24:13.381Z",
+      "queryKind": "SELECT only",
+      "caseId": "tdev-trial-m2-20260905-r3",
+      "results": [
+        {
+          "success": true,
+          "rows": [
+            {
+              "placement_generation": 1,
+              "placement_digest": "sha256:87351c4ae5c0613bb50b453d7e1b4db7607cbc04e4e5be3da8a3514c201550a1",
+              "placement_json": "{\"caseId\":\"tdev-trial-m2-20260905-r3\",\"className\":\"CaseRuntimeDO\",\"deployment\":\"qualification\",\"durableObjectId\":\"33473730f24b45fb6cf88edf115749d42ff1d3fab7829508e4b373c4b439e857\",\"environment\":\"qualification\",\"jurisdiction\":\"global\",\"namespace\":\"3b3d5808028f4e74bcbc1dc22f0757fd\",\"placementDigest\":\"sha256:87351c4ae5c0613bb50b453d7e1b4db7607cbc04e4e5be3da8a3514c201550a1\",\"placementGeneration\":1,\"workerScript\":\"tdev-d0020-composition-case-r1\"}"
+            }
+          ],
+          "rowsRead": 1,
+          "rowsWritten": 0
+        }
+      ],
+      "proofBoundary": "Placement existence is not proof of initialized Case authority, command commit or terminal receipt."
+    },
+    "caseQualificationCredentialLocated": false,
+    "agentRead": {
+      "observedAt": "2026-09-05T14:24:14.180Z",
+      "status": 200,
+      "ok": true,
+      "operation": "read",
+      "agentId": "d0039-r12-custody-20260828-3631c5a4",
+      "routeGeneration": 1,
+      "connectionEpoch": 18,
+      "executorEpoch": 2,
+      "capacity": {
+        "effectiveCapacity": 1,
+        "reportedCapacity": 1,
+        "revision": 6
+      },
+      "reservations": 0,
+      "deliveries": 0,
+      "installableState": "CURRENT",
+      "packageManifestDigest": "sha256:c3fb9932868c3ea15b5c6a71cc5a451de1dcba18349ac81904c25f825d9cd018"
+    }
+  },
+  "localRuntime": {
+    "codexVersion": "codex-cli 0.153.4",
+    "packageSourceRevision": "ca98b26979a44757b7643403b73b349c855846af",
+    "releaseManifestFileSha256": "sha256:7a2e7dd491c4e9608093cf20e838d7e57fcbc60c1d0a02e9ab17f1d690716ff1",
+    "files": [
+      {
+        "path": "src/development-runtime.mjs",
+        "sha256": "sha256:7c2b3b6eea258f847c7341ded89ea628c81966ccb9bba267b94a62434b4bfded",
+        "byteIdenticalToLocalHead": true
+      },
+      {
+        "path": "src/repository-model-transport.mjs",
+        "sha256": "sha256:2220eac4a05cbcc653736c57d4b861e82be92657de9cb70566966a229232155b",
+        "byteIdenticalToLocalHead": true
+      },
+      {
+        "path": "src/installable-agent-control.mjs",
+        "sha256": "sha256:75bd6f1c95eab363d1869403f3e6c59a24a068cf6c8e05dcd5318b017ed8ff6d",
+        "byteIdenticalToLocalHead": true
+      },
+      {
+        "path": "config/development-operation-profiles.json",
+        "sha256": "sha256:d003708bda1860c948bd1f94e3d8a2dbcf1ddf0c5bf8e8a359a78c54e36b867e",
+        "byteIdenticalToLocalHead": true
+      }
+    ],
+    "modelProfile": {
+      "argv": [
+        "exec",
+        "--ephemeral",
+        "--json",
+        "--ignore-user-config"
+      ],
+      "binding": {
+        "profile": "tdev.model.codex-exec-no-bwrap.v1",
+        "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
+        "model": "gpt-5.6-luna",
+        "outputSchemaPath": "config/codex-changeset-output.schema.json",
+        "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7",
+        "contextExcludedPaths": [
+          "native/d0030/android-arm64/rename-noreplace-helper",
+          "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+          "native/installable-agent-supervisor/android-arm64/pidfd-control.node"
+        ]
+      }
+    }
+  },
+  "priorLocalRecords": [
+    {
+      "path": "docs/evidence/group-f-d0043-r3-physical-m0-pass-2026-09-04.json",
+      "fileSha256": "sha256:419dbd386a591b0edb25f400aed318c84c38f4360f9f9f0eecc6025336547422",
+      "provenance": "Observed local record; absent from the bound published snapshot. Its claims are not fresh execution evidence.",
+      "recordedAt": "2026-09-04T16:30:01Z",
+      "claims": {
+        "testedCommit": "225bc59a3d09a06577ec7f4d6027ea3c577f169d",
+        "status": "PASS",
+        "validationPassed": true,
+        "modelProcessStarts": 1,
+        "proofBoundaries": {
+          "source": "PASS",
+          "physicalTermuxM0": "PASS",
+          "installableAgentProviderRebind": "not yet claimed",
+          "providerM1": "not yet claimed",
+          "mcpClientM2": "not yet claimed",
+          "tmcpComparison": "not claimed"
+        }
+      }
+    },
+    {
+      "path": "docs/evidence/group-f-d0046-r3-m1-source-bound-preflight-2026-09-05.json",
+      "fileSha256": "sha256:fe6901925de9c7345a46f4db29ac9f5564d980b8e2f8fa6cd681d2a653a85fec",
+      "provenance": "Observed local record; absent from the bound published snapshot. Its claims are not fresh execution evidence.",
+      "recordedAt": "2026-09-05T06:03:18Z",
+      "claims": {
+        "testedCommit": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+        "baseDigest": "sha256:51891d0a2fe68ab6546c9b43e7e7120ff4e4fe15a0acd26839c50b74b5e2b921",
+        "fileCount": 507,
+        "semanticBytes": 7853951,
+        "excludedPaths": [
+          "native/d0030/android-arm64/rename-noreplace-helper",
+          "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+          "native/installable-agent-supervisor/android-arm64/pidfd-control.node"
+        ],
+        "preflight": {
+          "status": "PASS",
+          "sourceBoundToLocalHead": true,
+          "contextReference": "tdev-context-78f47d5002f7",
+          "worstCaseInstructionBytes": 65536,
+          "worstCaseIdBytes": 128,
+          "snapshotBytes": 70404,
+          "snapshotChunks": 1,
+          "semanticObjectCount": 3493,
+          "semanticObjectBytesIncludingRowOverhead": 11532207,
+          "requiredAuthoritativeBytes": 11606963,
+          "configuredAuthoritativeBytes": 16777216,
+          "headroomBytes": 5170253,
+          "formulaOwner": "src/casedo-authority.mjs::CaseDOAuthority.#prepareState"
+        },
+        "effects": {
+          "trialRedeploy": "one authorized forward upload to the already-owned isolated Worker",
+          "caseCreated": false,
+          "caseDurableDataMutation": false,
+          "canonicalTreeMutation": false,
+          "gitRefMutation": false,
+          "agentCredentialMutation": false,
+          "secretValuesRead": false,
+          "accessApplicationMutation": false
+        },
+        "proofBoundary": {
+          "m0PhysicalTermux": "PASS from prior immutable evidence",
+          "m1ProviderAndSourceBoundPreflight": "PASS",
+          "m2CurrentClientDevelopmentResult": "OPEN - requires one fresh authenticated web ChatGPT tool call",
+          "tmcpComparison": "not started"
+        }
+      }
+    },
+    {
+      "path": "docs/evidence/group-f-d0046-r3-m2-refresh-agent-recovery-2026-09-05.json",
+      "fileSha256": "sha256:f6704a8c6bb4b67546c002565f71966d83025fe331cf31d1dfff243e53c2834a",
+      "provenance": "Observed local record; absent from the bound published snapshot. Its claims are not fresh execution evidence.",
+      "recordedAt": "2026-09-05T07:22:08Z",
+      "claims": {
+        "result": {
+          "currentClientRefresh": "PASS - two authenticated Worker POST /mcp requests returned HTTP 200 with no Worker exception",
+          "agentCapacityReadiness": "PASS - provider readback reports effective capacity 1",
+          "m2ExperientialDevelopment": "OPEN - development_context_get/development_unit_start/development_unit_get candidate evidence is still required"
+        },
+        "scopeNote": "This is an operational recovery observation. Automatic monotonic capacityRevision persistence across a fresh control-process restart remains a follow-up source/package correction; no such source claim is made here."
+      }
+    },
+    {
+      "path": "docs/evidence/group-f-d0046-r3-m2-case-drive-502-diagnostic-2026-09-05.json",
+      "fileSha256": "sha256:23ff086cd9dd87089c0145a814cb5f99be50515c0f42eb6b7e338b371bc7f92e",
+      "provenance": "Observed local record; absent from the bound published snapshot. Its claims are not fresh execution evidence.",
+      "recordedAt": "2026-09-05T08:28:42.748Z",
+      "retainedDiagnostic": {
+        "caseId": "tdev-trial-m2-20260905-r3",
+        "worker": {
+          "script": "tdev-mcp-trial",
+          "versionId": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+          "deploymentId": "574091a3-31bf-4890-a2c4-967118b9dd13",
+          "trafficPercent": 100,
+          "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp"
+        },
+        "tailEvents": [
+          {
+            "sequence": 1,
+            "receivedAt": "2026-09-05T08:27:48.090Z",
+            "completedAt": "2026-09-05T08:27:48.112Z",
+            "stage": "mcp",
+            "status": 200,
+            "cfRay": "a363db56be7ce9fc",
+            "hasAccessAssertion": true,
+            "mcpProtocol": "2026-07-28",
+            "mcpMethod": "tools/call",
+            "exceptions": []
+          },
+          {
+            "sequence": 3,
+            "receivedAt": "2026-09-05T08:27:54.431Z",
+            "completedAt": "2026-09-05T08:28:18.913Z",
+            "stage": "mcp",
+            "status": 500,
+            "errorCode": "mcp_internal_error",
+            "cfRay": "a363db807e7b38d5",
+            "hasAccessAssertion": true,
+            "mcpProtocol": "2026-07-28",
+            "mcpMethod": "tools/call",
+            "exceptions": []
+          },
+          {
+            "sequence": 4,
+            "receivedAt": "2026-09-05T08:28:19.402Z",
+            "completedAt": "2026-09-05T08:28:42.748Z",
+            "stage": "mcp",
+            "status": 500,
+            "errorCode": "mcp_internal_error",
+            "cfRay": "a363dc1cfd31f300",
+            "hasAccessAssertion": true,
+            "mcpProtocol": "2026-07-28",
+            "mcpMethod": "tools/call",
+            "exceptions": []
+          }
+        ],
+        "interpretation": {
+          "authenticationAndIngress": "observed_pass",
+          "agentCapacity": "observed_pass",
+          "casePlacement": "observed_and_stored",
+          "connector502": "outer_client_representation_of_worker_internal_500",
+          "failedBoundary": "downstream_case_or_drive_rpc_after_ingress",
+          "exactRemoteException": "unknown",
+          "completionClaim": false
+        },
+        "notes": [
+          "The current Worker masks non-ContractError cross-DO exceptions as mcp_internal_error; no underlying exception code or message was present in the Tail event.",
+          "The two failing requests took approximately 24.5s and 23.3s respectively.",
+          "No canonical checkout, Git ref, credential, or provider configuration was changed by this diagnostic.",
+          "A local source-bound Case initialization benchmark for this 507-file base measured 3493 semantic objects, 11541621 required bytes, and approximately 25709ms before load; this is a timing hypothesis, not a remote exception proof."
+        ]
+      }
+    }
+  ],
+  "sourceInspection": [
+    {
+      "id": "eager-git",
+      "path": "src/repository-model-transport.mjs",
+      "source": "9f1bca3cf01f56b0229ab41bf18cc7cb1d60a294",
+      "finding": "Loads all non-excluded blobs and materializes complete text/JSON representations before context preparation completes."
+    },
+    {
+      "id": "eager-worker",
+      "path": "qualification/mcp-trial-base-tree-builder.mjs",
+      "source": "9f1bca3cf01f56b0229ab41bf18cc7cb1d60a294",
+      "finding": "Builds and embeds a compressed full text tree for the exact deployment base."
+    },
+    {
+      "id": "eager-restore",
+      "path": "src/engine.mjs",
+      "source": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+      "finding": "Semantic restore hydrates and materializes the complete base before reconstructing its Plan."
+    },
+    {
+      "id": "full-capacity-scan",
+      "path": "src/casedo-authority.mjs",
+      "source": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+      "finding": "load/command capacity accounting aggregates stored objects/chunks."
+    },
+    {
+      "id": "cleanup-adapter",
+      "path": "src/development-runtime.mjs",
+      "source": "9f1bca3cf01f56b0229ab41bf18cc7cb1d60a294",
+      "finding": "Development execution runs outside the supervisor adapter; cleanup catches completion rejection and returns cleanupComplete true without an independent warden receipt."
+    },
+    {
+      "id": "exclusion-digest",
+      "path": "src/repository-model-transport.mjs",
+      "source": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+      "finding": "Excluded paths are removed before semanticBaseDigest is computed; scope is not merely a prompt-size choice."
+    }
+  ],
+  "hypotheses": [
+    "Eager context/composition and semantic reconstruction may exceed a provider resource budget; elapsed local or remote wall time is not CPU-limit proof."
+  ],
+  "unknowns": [
+    "Exact underlying exception and operation for the retained 502/500 requests.",
+    "Case initialization/command commit and terminal receipt for the retained failing Case.",
+    "Current authenticated ChatGPT development-tool success.",
+    "Current physical Codex candidate/validation success.",
+    "Positive warden cleanup for the real installed development path.",
+    "Supported 1GB repository behavior and full-context stress outcome.",
+    "Complete independent rerun of historical physical/provider qualification claims."
+  ],
+  "effects": {
+    "observationPhase": {
+      "caseCreated": false,
+      "caseCommandSent": false,
+      "modelStarted": false,
+      "providerConfigurationChanged": false,
+      "credentialChanged": false,
+      "canonicalCheckoutChanged": false,
+      "gitRefChanged": false
+    },
+    "recordingPhase": "Only this documentation/evidence file and its companion reports are written in an isolated worktree. Git publication is a subsequent separately verified action."
+  },
+  "originalAuditInMemoryProbe": {
+    "observedOn": "2026-09-05",
+    "source": "9f1bca3cf01f56b0229ab41bf18cc7cb1d60a294",
+    "path": "src/mcp-development-adapter.mjs",
+    "input": "'가'.repeat(21846)",
+    "instructionCodeUnits": 21846,
+    "instructionUtf8Bytes": 65538,
+    "comparisonBudgetBytes": 65536,
+    "contextResolverCalls": 1,
+    "caseCreationCalls": 0,
+    "providerCalls": 0,
+    "stopCode": "audit_context_resolver_reached",
+    "proofBoundary": "Confirms code-unit counting and resolver reachability only. A byte-limit repair must name the responsible contract before implementation."
+  },
+  "originalAuditProviderModuleJoin": {
+    "observedOn": "2026-09-05",
+    "script": "tdev-d0020-composition-case-r1",
+    "sourceMarker": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "retrieval": "GET script content/v2; selected module bytes compared against exact Git blobs",
+    "allSelectedByteIdentical": true,
+    "moduleSha256": {
+      "src/casedo-authority.mjs": "6aa553c711f46787d273986472204e6240a136ac37e166893e25afc314577cad",
+      "src/engine.mjs": "167ca2d1685e10c5594dc40be042c43fa8f09c32ceec0a59b065f16afa0fc78c",
+      "src/semantic-authority.mjs": "60869e1a9faa8b373a511172aed4723acaef9ce053a48fdb6960e469e1dee3e3",
+      "qualification/cloudflare-casedo-runtime.mjs": "7e82815764498fe77dd760a81a28a7d93f70d2bf7bfa502887f79969a4981ee6",
+      "qualification/cloudflare-casedo-worker.mjs": "777f1c0b772e11f52d274d591782d8dc8249341e038d9c439dba35b0f571c60e"
+    },
+    "proofBoundary": "Preserved result of the initial audit; not a fresh module download during report publication."
+  },
+  "immutableGitMetadata": [
+    {
+      "commit": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+      "method": "git ls-tree -r -l; metadata only, no full blob materialization",
+      "trackedEntries": 472,
+      "blobBytes": 7202634,
+      "nativeEntries": [
+        {
+          "path": "native/d0030/android-arm64/rename-noreplace-helper",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3c473decbd08b818bfebe64bd0cc57228046d9b1",
+          "bytes": 7728
+        },
+        {
+          "path": "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3c473decbd08b818bfebe64bd0cc57228046d9b1",
+          "bytes": 7728
+        },
+        {
+          "path": "native/installable-agent-supervisor/android-arm64/pidfd-control.node",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3f7a2bfe4fc6c03a29aa90ef0cce02718d12b6bf",
+          "bytes": 11632
+        }
+      ]
+    },
+    {
+      "commit": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+      "method": "git ls-tree -r -l; metadata only, no full blob materialization",
+      "trackedEntries": 510,
+      "blobBytes": 7611945,
+      "nativeEntries": [
+        {
+          "path": "native/d0030/android-arm64/rename-noreplace-helper",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3c473decbd08b818bfebe64bd0cc57228046d9b1",
+          "bytes": 7728
+        },
+        {
+          "path": "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3c473decbd08b818bfebe64bd0cc57228046d9b1",
+          "bytes": 7728
+        },
+        {
+          "path": "native/installable-agent-supervisor/android-arm64/pidfd-control.node",
+          "mode": "100755",
+          "kind": "blob",
+          "oid": "3f7a2bfe4fc6c03a29aa90ef0cce02718d12b6bf",
+          "bytes": 11632
+        }
+      ]
+    }
+  ]
+}
