@@ -25,6 +25,7 @@ import {
   createMcpTrialOwnerFacades,
   normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
+  namespaceFor,
 } from '../src/mcp-trial-composition.mjs';
 import {
   createMcpTrialDevelopmentUnitRunner,
@@ -184,7 +185,7 @@ function metadataFastPath(request, env) {
   }
 }
 
-async function createTrialApplication(env) {
+export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
   const configuredComposition = readJsonBinding(env, TRIAL_MANIFEST_BINDING);
   const baseTree = await loadMcpTrialBaseTree();
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
@@ -216,6 +217,7 @@ async function createTrialApplication(env) {
     driveNamespace: env.TDEV_CASE_AGENT_DRIVE,
     agentNamespace: env.TDEV_AGENT_DELIVERY,
     casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
+    driveOwnerOverride,
   });
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: facades.repository,
@@ -258,9 +260,8 @@ async function createTrialApplication(env) {
  * Construct the MCP surface from only the bounded environment manifests.  The
  * generated repository tree is intentionally not decoded here: ChatGPT's
  * modern discovery/list requests must be able to complete within the Worker
- * CPU budget.  Owner methods are single-flight lazy delegates to the full
- * application, so a real mutation still crosses the same strict composition
- * and owner validation boundary before it can run.
+ * CPU budget. Tree-heavy owner methods are delegated through the bound Drive
+ * Durable Object, so the ingress never constructs the full application.
  */
 async function createTrialLightApplication(env) {
   const configuredComposition = normalizeMcpTrialCompositionBinding(
@@ -295,59 +296,54 @@ async function createTrialLightApplication(env) {
     authorizationServerMetadata,
   });
 
-  let fullWorkerPromise = null;
-  const fullWorker = async () => {
-    if (fullWorkerPromise === null) fullWorkerPromise = application(env);
-    return fullWorkerPromise;
-  };
   const assertTrialCaseId = (caseId) => {
     if (typeof caseId !== 'string' || caseId.length === 0 || !caseId.startsWith(configuredComposition.casePrefix)) {
       throw configError('mcp_trial_case_scope_denied', 'Case identity is outside the fixed trial prefix');
     }
     return caseId;
   };
-  const invokeFull = async (property, method, args) => {
-    const worker = await fullWorker();
-    const owner = worker.surface[property];
-    if (!owner || typeof owner[method] !== 'function') {
-      throw configError('mcp_owner_unavailable', `Full trial owner ${property}.${method} is unavailable`);
+  const driveNs = namespaceFor(env.TDEV_CASE_AGENT_DRIVE, configuredComposition.jurisdiction, 'Case-Agent drive');
+  const invokeExecution = async (caseId, operation, input = {}) => {
+    assertTrialCaseId(caseId);
+    const id = driveNs.idFromName(caseId);
+    if (!id || typeof id.toString !== 'function' || (id.jurisdiction ?? 'global') !== configuredComposition.jurisdiction) {
+      throw configError('mcp_owner_unavailable', 'Trial execution Durable Object identity is invalid');
     }
-    return owner[method](...args);
-  };
-  const invokeFullOwner = async (name, args) => {
-    const worker = await fullWorker();
-    const owner = worker.surface.owners?.[name];
-    if (typeof owner !== 'function') {
-      throw configError('mcp_owner_unavailable', `Full trial owner ${name} is unavailable`);
+    const stub = driveNs.get(id);
+    if (!stub || typeof stub.executeMcpTrial !== 'function') {
+      throw configError('mcp_owner_unavailable', 'Trial execution Durable Object RPC is unavailable');
     }
-    return owner(...args);
+    return stub.executeMcpTrial({ operation, input });
   };
+  const caseSnapshotOwner = (snapshot) => Object.freeze({
+    snapshot: () => canonicalClone(snapshot),
+  });
   const repository = Object.freeze({
-    create: (input = {}) => {
+    create: async (input = {}) => {
       assertTrialCaseId(input?.caseId);
-      return invokeFull('repository', 'create', [input]);
+      return caseSnapshotOwner(await invokeExecution(input.caseId, 'repository.create', input));
     },
-    load: (caseId) => {
+    load: async (caseId) => {
       assertTrialCaseId(caseId);
-      return invokeFull('repository', 'load', [caseId]);
+      return caseSnapshotOwner(await invokeExecution(caseId, 'repository.load', { caseId }));
     },
-    command: (caseId, ...rest) => {
+    command: async (caseId, envelope) => {
       assertTrialCaseId(caseId);
-      return invokeFull('repository', 'command', [caseId, ...rest]);
+      return invokeExecution(caseId, 'repository.command', { caseId, envelope });
     },
   });
   const runner = Object.freeze({
     create: (input = {}) => {
       assertTrialCaseId(input?.caseId);
-      return invokeFull('developmentUnitRunner', 'create', [input]);
+      return invokeExecution(input.caseId, 'runner.create', input);
     },
     drive: (input = {}) => {
       assertTrialCaseId(input?.caseId);
-      return invokeFull('developmentUnitRunner', 'drive', [input]);
+      return invokeExecution(input.caseId, 'runner.drive', input);
     },
     candidate: (caseId) => {
       assertTrialCaseId(caseId);
-      return invokeFull('developmentUnitRunner', 'candidate', [caseId]);
+      return invokeExecution(caseId, 'runner.candidate', { caseId });
     },
   });
   const context = compactContext(configuredComposition);
@@ -364,7 +360,7 @@ async function createTrialLightApplication(env) {
     developmentUnitRunner: runner,
     developmentUnitStart: async (input = {}) => {
       assertTrialCaseId(input?.caseId);
-      return invokeFullOwner('developmentUnitStart', [input]);
+      return invokeExecution(input.caseId, 'developmentUnitStart', input);
     },
     developmentContextGet: async ({ selector = null } = {}) => {
       assertContextSelector(selector);
@@ -372,14 +368,7 @@ async function createTrialLightApplication(env) {
     },
     developmentContextResolve: async ({ selector = null, identity } = {}) => {
       assertContextSelector(selector);
-      // Resolve the full tree only for development_unit_start.  The full
-      // application repeats all manifest and generated-module checks before
-      // returning the internal resolver result.
-      const worker = await fullWorker();
-      const resolver = worker.surface.owners.developmentContextResolve
-        ?? worker.surface.owners.developmentContextGet;
-      if (typeof resolver !== 'function') throw configError('mcp_owner_unavailable', 'Full development context resolver is unavailable');
-      return resolver({ selector, identity });
+      throw configError('mcp_owner_unavailable', 'Full development context resolution is available only inside the execution Durable Object');
     },
     authorize: async ({ identity } = {}) => Boolean(
       identity?.principalId === configuredComposition.identity.principalId &&
@@ -394,15 +383,7 @@ async function createTrialLightApplication(env) {
   });
 }
 
-let applicationPromise = null;
 let lightApplicationPromise = null;
-
-async function application(env) {
-  if (applicationPromise === null) {
-    applicationPromise = Promise.resolve().then(() => createTrialApplication(env));
-  }
-  return applicationPromise;
-}
 
 async function lightApplication(env) {
   if (lightApplicationPromise === null) {

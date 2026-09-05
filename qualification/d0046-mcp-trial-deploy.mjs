@@ -50,12 +50,6 @@ export const D0046_CASE_PLACEMENT_DATABASE = 'ff868f84-4fa3-4d3d-9024-8a1eec7b0c
 export const D0046_ACCESS_APP_NAME = 'tdev MCP trial 20260904';
 export const D0046_CASE_PREFIX = 'tdev-trial-';
 export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
-// Full owner initialization validates the source-bound immutable repository
-// tree before it can create a Case/Drive/Agent attempt.  The trial runs on the
-// Standard usage model; make that bounded provider CPU budget explicit instead
-// of inheriting the 30-second default, which otherwise turns a safe owner
-// initialization into an opaque 1102/502 response.
-export const D0046_WORKER_CPU_LIMIT_MS = 300_000;
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
@@ -333,7 +327,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
     main_module: D0046_WORKER_MAIN_MODULE,
     compatibility_date: D0046_WORKER_COMPATIBILITY_DATE,
     compatibility_flags: ['nodejs_compat'],
-    limits: { cpu_ms: D0046_WORKER_CPU_LIMIT_MS },
     annotations: {
       'workers/message': `D0046 isolated MCP trial ${sourceSha}`,
       'workers/tag': 'tdev-d0046-r1-mcp-trial-v1',
@@ -508,7 +501,7 @@ function validateTrialWorkerSettings(settings, version, manifests, sourceSha, ar
   if (source?.type !== 'plain_text' || source.text !== sourceSha || base?.text !== manifests.composition.repository.baseDigest || artifactDigest?.text !== artifact.moduleDigest) fail('d0046_worker_binding_mismatch', 'Trial Worker source/base/artifact markers did not match');
   const runtime = version?.resources?.script_runtime ?? settings?.script_runtime ?? settings;
   if (runtime?.compatibility_date !== D0046_WORKER_COMPATIBILITY_DATE || !runtime?.compatibility_flags?.includes('nodejs_compat')) fail('d0046_worker_runtime_mismatch', 'Trial Worker runtime compatibility did not match');
-  if (runtime?.limits?.cpu_ms !== D0046_WORKER_CPU_LIMIT_MS) fail('d0046_worker_runtime_mismatch', 'Trial Worker CPU limit did not match the bounded Standard usage-model setting');
+  if (runtime?.limits?.cpu_ms !== undefined) fail('d0046_worker_runtime_mismatch', 'Trial Worker must not declare a custom CPU limit on the Workers Free plan');
   if (runtime?.exports?.CaseAgentDriveRuntimeDO?.type !== 'durable-object' || runtime?.exports?.CaseAgentDriveRuntimeDO?.storage !== 'sqlite') fail('d0046_worker_runtime_mismatch', 'Trial Worker did not expose the expected SQLite drive export');
   return drive.namespace_id;
 }

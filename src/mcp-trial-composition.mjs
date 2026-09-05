@@ -227,7 +227,7 @@ export function normalizeMcpTrialCompositionBinding(input) {
   return deepFreeze({ ...body, manifestDigest: input.manifestDigest });
 }
 
-function namespaceFor(namespace, jurisdiction, label) {
+export function namespaceFor(namespace, jurisdiction, label) {
   if (!namespace || typeof namespace.idFromName !== 'function' || typeof namespace.get !== 'function') {
     fail('mcp_trial_owner_unavailable', `${label} namespace binding is unavailable`);
   }
@@ -293,12 +293,25 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null } = {}) {
   const normalized = normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
-  const driveNs = namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive');
+  const driveNs = driveOwnerOverride === null
+    ? namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive')
+    : null;
   const agentNs = namespaceFor(agentNamespace, normalized.jurisdiction, 'Agent');
   const placementAuthority = casePlacementDatabase === null ? null : new D1CasePlacementAuthority(casePlacementDatabase);
+
+  if (driveOwnerOverride !== null) {
+    if (typeof driveOwnerOverride !== 'object' || Array.isArray(driveOwnerOverride) ||
+        typeof driveOwnerOverride.initializeCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.readCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.quiesceCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.snapshotCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.advanceCaseAgentDrive !== 'function') {
+      fail('mcp_trial_owner_unavailable', 'Injected Case-Agent drive owner must expose its complete local RPC contract');
+    }
+  }
 
   function caseRoute(caseId) {
     assertCaseId(caseId, normalized.casePrefix);
@@ -338,13 +351,14 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
   });
 
   function driveRoute(caseId) {
+    if (driveOwnerOverride !== null) fail('mcp_trial_owner_unavailable', 'Drive route lookup is unavailable for a local owner adapter');
     assertCaseId(caseId, normalized.casePrefix);
     const routed = routedStub(driveNs, caseId, normalized.jurisdiction, 'Case-Agent drive', { rpc: false });
     if (routed.id.toString() === '') fail('mcp_trial_owner_unavailable', 'Case-Agent drive identity is empty');
     return routed;
   }
 
-  const driveOwner = Object.freeze({
+  const driveOwner = driveOwnerOverride === null ? Object.freeze({
     async initialize({ caseId, driveRequestId, payload = {} } = {}) {
       const route = driveRoute(caseId);
       const method = route.stub.initializeCaseAgentDrive;
@@ -375,6 +389,28 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       const method = route.stub.advanceCaseAgentDrive;
       if (typeof method !== 'function') fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance RPC is unavailable');
       return publicJsonClone(await method.call(route.stub, canonicalClone(input)));
+    },
+  }) : Object.freeze({
+    async initialize({ caseId, driveRequestId, payload = {} } = {}) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.initializeCaseAgentDrive({ caseId, driveRequestId, payload }));
+    },
+    async read(caseId) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.readCaseAgentDrive({ caseId }));
+    },
+    async quiesce({ caseId, ...input } = {}) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.quiesceCaseAgentDrive({ caseId, ...input }));
+    },
+    async snapshot(caseId) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.snapshotCaseAgentDrive({ caseId }));
+    },
+    async advance(input = {}) {
+      if (!isPlainRecord(input)) fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance input must be a record');
+      assertCaseId(input.caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.advanceCaseAgentDrive(canonicalClone(input)));
     },
   });
 

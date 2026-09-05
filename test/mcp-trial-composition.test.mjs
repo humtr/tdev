@@ -144,6 +144,33 @@ test('D0046 owner facades route only fixed Case/Drive/Agent identities', async (
   assert.equal(MCP_TRIAL_AGENT_RPC_PROFILE, 'tdev.installable-agent-qualification-rpc.v2');
 });
 
+test('D0046 execution host can bind the existing Drive owner locally without a recursive namespace call', async () => {
+  const calls = [];
+  const localDrive = new class {
+    async initializeCaseAgentDrive(input) { calls.push(['initialize', input.caseId]); return { classification: 'accepted', caseId: input.caseId }; }
+    async readCaseAgentDrive(input) { calls.push(['read', input.caseId]); return { caseId: input.caseId, revision: 0 }; }
+    async quiesceCaseAgentDrive(input) { calls.push(['quiesce', input.caseId]); return { classification: 'quiesced', caseId: input.caseId }; }
+    async snapshotCaseAgentDrive(input) { calls.push(['snapshot', input.caseId]); return { caseId: input.caseId, revision: 0 }; }
+    async advanceCaseAgentDrive(input) { calls.push(['advance', input.caseId]); return { classification: 'accepted', caseId: input.caseId }; }
+  }();
+  const owners = createMcpTrialOwnerFacades({
+    manifest: manifest(),
+    caseNamespace: namespace('case', calls),
+    driveNamespace: null,
+    driveOwnerOverride: localDrive,
+    agentNamespace: namespace('agent', calls),
+  });
+  assert.equal((await owners.driveOwner.initialize({ caseId: 'trial-local', driveRequestId: 'drive-local' })).classification, 'accepted');
+  assert.equal((await owners.driveOwner.read('trial-local')).revision, 0);
+  assert.equal((await owners.driveOwner.advance({ caseId: 'trial-local', driveRequestId: 'drive-local', caseObservation: {}, agentObservation: {} })).classification, 'accepted');
+  assert.deepEqual(calls.filter((entry) => entry[0] === 'initialize' || entry[0] === 'read' || entry[0] === 'advance'), [
+    ['initialize', 'trial-local'],
+    ['read', 'trial-local'],
+    ['advance', 'trial-local'],
+  ]);
+  assert.equal(calls.some((entry) => String(entry[0]).startsWith('id:drive')), false);
+});
+
 test('D0046 public context is a bounded reference and full context stays resolver-internal', async () => {
   const owners = createMcpTrialOwnerFacades({
     manifest: manifest(),

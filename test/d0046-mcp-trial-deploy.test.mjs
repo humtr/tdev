@@ -6,7 +6,6 @@ import {
   D0046_ACCESS_APP_NAME,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
-  D0046_WORKER_CPU_LIMIT_MS,
   accessApplicationPayload,
   accessPolicyPayload,
   buildTrialManifests,
@@ -46,7 +45,7 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
   const boundComposition = JSON.parse(compositionBinding.text);
   assert.deepEqual(boundComposition.repository.context.baseTree, {});
   assert.equal(metadata.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE').namespace_id, 'drive-namespace');
-  assert.deepEqual(metadata.limits, { cpu_ms: D0046_WORKER_CPU_LIMIT_MS });
+  assert.equal(Object.hasOwn(metadata, 'limits'), false);
   assert.equal(metadata.exports.CaseAgentDriveRuntimeDO.storage, 'sqlite');
 });
 

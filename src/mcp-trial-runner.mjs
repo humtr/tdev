@@ -189,6 +189,20 @@ function candidateTree(view) {
   return promote(view.plan.baseTree, acceptedResults, view.plan.baseDigest, { caseContract: view.caseContract }).tree;
 }
 
+function candidateChanges(view) {
+  const changes = [];
+  for (const taskId of view.plan.taskOrder) {
+    const result = resultForTask(view, taskId);
+    if (!isPlainRecord(result) || result.kind !== 'changeset' || !Array.isArray(result.writes)) continue;
+    for (const write of result.writes) {
+      changes.push({ taskId, path: write.path, content: write.content });
+    }
+  }
+  changes.sort((left, right) => String(left.taskId).localeCompare(String(right.taskId)) ||
+    String(left.path).localeCompare(String(right.path)));
+  return changes;
+}
+
 function effectKey(view, taskId) {
   const engine = new CaseEngine({ caseId: view.snapshot.caseId, plan: view.plan, caseContract: view.caseContract });
   return engine.effectKey(taskId);
@@ -359,7 +373,19 @@ export class McpTrialDevelopmentUnitRunner {
     if (!isPlainRecord(plan)) fail('mcp_trial_plan_invalid', 'Trial runner requires a compiled Plan record');
     const created = await this.repository.create({ caseId, plan, caseContract: this.caseContract });
     const drive = await this.driveOwner.initialize({ caseId, driveRequestId, payload });
-    return deepFreeze({ caseId, planDigest: plan.planDigest, drive: canonicalClone(drive), created: canonicalClone(created?.snapshot?.() ?? created) });
+    const createdSnapshot = snapshotFromOwner(created, 'Case owner');
+    return deepFreeze({
+      caseId,
+      planDigest: plan.planDigest,
+      drive: canonicalClone(drive),
+      created: {
+        caseId: createdSnapshot.caseId,
+        caseState: createdSnapshot.caseState,
+        caseRevision: createdSnapshot.caseRevision,
+        planDigest: createdSnapshot.plan?.planDigest ?? plan.planDigest,
+        baseDigest: createdSnapshot.plan?.baseDigest ?? plan.baseDigest,
+      },
+    });
   }
 
   async #load(caseId) {
@@ -714,12 +740,19 @@ export class McpTrialDevelopmentUnitRunner {
 
   async candidate(caseId) {
     const view = await this.#load(caseId);
+    const tree = candidateTree(view);
+    const changes = candidateChanges(view);
     return deepFreeze({
       caseId,
       caseState: view.snapshot.caseState,
       caseRevision: view.snapshot.caseRevision,
-      canonicalTree: candidateTree(view),
-      canonicalDigest: view.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(candidateTree(view)),
+      baseDigest: view.plan.baseDigest,
+      candidateDigest: digest(tree),
+      candidateTreeBytes: new TextEncoder().encode(canonicalJson(tree)).byteLength,
+      changeCount: changes.length,
+      changedPaths: changes.map(({ path }) => path),
+      changes,
+      canonicalDigest: view.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(tree),
       planDigest: view.plan.planDigest,
     });
   }
