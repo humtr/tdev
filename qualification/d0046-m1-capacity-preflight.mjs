@@ -26,10 +26,10 @@ import { buildMcpTrialBaseTreeModule } from './mcp-trial-base-tree-builder.mjs';
 
 const DEFAULT_ENV_FILE = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
-const EXPECTED_SOURCE_SHA = '42b0912e279908f2fdd72040020408f163a2cd2e';
-const EXPECTED_BASE_DIGEST = 'sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42';
-const EXPECTED_CONTEXT_REFERENCE = 'tdev-context-42b0912e2799';
-const EXPECTED_CONTEXT_REVISION = 'tdev-mcp-42b0912e2799';
+const EXPECTED_SOURCE_SHA = '439ea71d8ed9095b1d0e2db8aa82a65c848bfe6d';
+const EXPECTED_BASE_DIGEST = 'sha256:c6f648b4678638951f27a5c17dd7b0ea3e4122c29954d705acebbf95b6b4a108';
+const EXPECTED_CONTEXT_REFERENCE = 'tdev-context-439ea71d8ed9';
+const EXPECTED_CONTEXT_REVISION = 'tdev-mcp-439ea71d8ed9';
 const MODEL_PROFILE = 'tdev.model.repository.execute.v1';
 const VALIDATION_OPERATION_PROFILE = 'tdev.repository.validate.v1';
 const VALIDATION_PROFILE = 'tdev.validation.npm-check.v1';
