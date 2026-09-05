@@ -149,6 +149,24 @@ function emitRequestDiagnostic(stage, request, fields = {}) {
   }
 }
 
+async function responseDiagnosticFields(response) {
+  if (!(response instanceof Response) || response.status < 400) return {};
+  try {
+    const clone = response.clone();
+    const text = await clone.text();
+    if (text.length === 0 || text.length > 16 * 1024) return {};
+    const body = JSON.parse(text);
+    const error = body?.error;
+    const data = error?.data;
+    return {
+      ...(typeof data?.code === 'string' ? { code: data.code.slice(0, 128) } : {}),
+      ...(typeof data?.field === 'string' ? { field: data.field.slice(0, 128) } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
 function metadataFastPath(request, env) {
   const url = new URL(request.url);
   const protectedResource = MCP_AUTH_RESOURCE_METADATA_PATHS.includes(url.pathname);
@@ -367,7 +385,7 @@ export default {
     try {
       const worker = await lightApplication(env);
       const response = await worker.fetch(request);
-      emitRequestDiagnostic('mcp', request, { status: response.status });
+      emitRequestDiagnostic('mcp', request, { status: response.status, ...(await responseDiagnosticFields(response)) });
       return response;
     } catch (error) {
       const code = diagnosticCode(error);
