@@ -23,7 +23,7 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 ## Selected next action
 
-- D0046@r3 — guard and raise only the existing Case owner's authoritative-byte budget to the qualified 16 MiB value, independently reread all owner bindings/secret presence, run the bounded capacity preflight, then use the authenticated modern MCP surface for one `development_context_get`, non-documentation `development_unit_start` and candidate/result readback. The discovery/tool-list connection checkpoint is recorded as PASS; do not claim the experiential path until an actual development result is independently observed.
+- D0046@r3 — run the bounded source-bound capacity preflight against the corrected Case owner, then use the authenticated modern MCP surface for one `development_context_get`, non-documentation `development_unit_start` and candidate/result readback. The provider correction/readback and discovery/tool-list connection checkpoint are PASS (provider evidence: `docs/evidence/group-f-d0046-r3-case-capacity-correction-provider-readback-2026-09-05.json`); do not claim the experiential path until an actual development result is independently observed.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
