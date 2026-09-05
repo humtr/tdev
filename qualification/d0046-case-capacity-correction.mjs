@@ -11,6 +11,7 @@ import {
   D0046_MIN_CASE_AUTHORITATIVE_BYTES,
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
 } from './d0046-mcp-trial-deploy.mjs';
+import { canonicalJson } from '../src/canonical.mjs';
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const CASE_SOURCE_SHA = 'e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626';
@@ -147,8 +148,8 @@ export function assertCaseCapacityReadback(settings, expectedBindings = undefine
     fail('d0046_case_capacity_readback', 'Case Worker capacity readback did not reach the qualified 16 MiB value', { configuredBytes });
   }
   if (expectedBindings !== undefined) {
-    const actual = JSON.stringify(redactedBindings(settings));
-    const expected = JSON.stringify(expectedBindings);
+    const actual = canonicalJson(redactedBindings(settings));
+    const expected = canonicalJson(expectedBindings);
     if (actual !== expected) fail('d0046_case_bindings_readback', 'Case Worker binding readback changed more than the guarded capacity binding');
   }
   return { configuredBytes, bindings: redactedBindings(settings) };
