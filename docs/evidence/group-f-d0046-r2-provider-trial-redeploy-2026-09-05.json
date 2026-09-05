@@ -62,7 +62,7 @@
     }
   },
   "proofBoundary": {
-    "source": "focused implementation tests, syntax and documentation checks PASS",
+    "source": "npm run check PASS (665/665 tests, syntax, docs:check, demo and durable-demo); git diff --check PASS",
     "providerDeployment": "PASS - version 18 is active at 100% with exact source and no custom CPU limit",
     "currentClientDiscovery": "OPEN - requires one fresh authenticated web ChatGPT connection/refresh",
     "experientialM2": "OPEN - no real non-documentation candidate/result is claimed"
