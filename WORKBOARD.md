@@ -23,7 +23,7 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 
 ## Selected next action
 
-- D0046@r3 — run the bounded source-bound capacity preflight against the corrected Case owner, then use the authenticated modern MCP surface for one `development_context_get`, non-documentation `development_unit_start` and candidate/result readback. The provider correction/readback and discovery/tool-list connection checkpoint are PASS (provider evidence: `docs/evidence/group-f-d0046-r3-case-capacity-correction-provider-readback-2026-09-05.json`); do not claim the experiential path until an actual development result is independently observed.
+- D0046@r3 — M1 source-bound preflight and provider redeploy are PASS; now use the authenticated MCP surface once for `development_context_get`, one non-documentation `development_unit_start` and bounded candidate/result readback with context `tdev-context-78f47d5002f7`. Evidence: `docs/evidence/group-f-d0046-r3-m1-source-bound-preflight-2026-09-05.json`; do not claim the experiential path until an actual development result is independently observed.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 
