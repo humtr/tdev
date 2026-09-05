@@ -1,0 +1,70 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r2_free_compatible_provider_trial_redeploy_readback",
+  "observedAtUtc": "2026-09-05T04:13:21Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "deployedSource": "42b0912e279908f2fdd72040020408f163a2cd2e",
+    "baseDigest": "sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42",
+    "fileCount": 500,
+    "semanticBytes": 7792294,
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 2,
+    "gate": "M1 Free-compatible provider redeploy/readback",
+    "executionPlacement": "tree-heavy repository/runner operations run through the existing trial SQLite Drive DO with a local D0042 cursor adapter",
+    "candidateBoundary": "development_unit_get returns base/candidate digests and bounded ChangeSet paths/contents, not the complete tree"
+  },
+  "artifact": {
+    "moduleCount": 34,
+    "moduleDigest": "sha256:64c5e7dadae0616309bf3356fa471c4852b88c339dd4252ab468b99eea2463ee",
+    "artifactManifestDigest": "sha256:2f0715f7888988a9c5136dc77c3d4dd69d19eff24799a63719a6b40a51d61e69"
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "origin": "https://tdev-mcp-trial.humtr.workers.dev",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "workerVersion": {
+      "id": "a6528269-7cd4-4eb4-a734-11847aed72c7",
+      "number": 18,
+      "trafficPercentage": 100
+    },
+    "deploymentId": "35a0c606-2c2a-4592-8f33-a8b64287967e",
+    "usageModel": "standard",
+    "customCpuLimit": false,
+    "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+    "ownerBindings": {
+      "caseWorker": "tdev-d0020-composition-case-r1",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "agentWorker": "tdev-d0020-qualification-clean-a",
+      "agentNamespace": "0dad69baa7154d00949f88c8b8dbf94a",
+      "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+    }
+  },
+  "publicReadback": {
+    "protectedResourceMetadata": 200,
+    "authorizationServerMetadata": 200,
+    "unauthenticatedMcp": 401
+  },
+  "safety": {
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false,
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseAgentCredentialMutation": false,
+    "rollback": {
+      "disableSubdomain": "POST /accounts/{account}/workers/scripts/tdev-mcp-trial/subdomain { enabled:false, previews_enabled:false }",
+      "accessApplicationId": "3a409320-586b-48cd-8c3b-b6c25bdcd728"
+    }
+  },
+  "proofBoundary": {
+    "source": "focused implementation tests, syntax and documentation checks PASS",
+    "providerDeployment": "PASS - version 18 is active at 100% with exact source and no custom CPU limit",
+    "currentClientDiscovery": "OPEN - requires one fresh authenticated web ChatGPT connection/refresh",
+    "experientialM2": "OPEN - no real non-documentation candidate/result is claimed"
+  }
+}
