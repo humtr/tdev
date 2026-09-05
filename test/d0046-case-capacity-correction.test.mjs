@@ -45,6 +45,7 @@ test('D0046 capacity correction changes one binding and inherits the secret', ()
     type: 'inherit',
     version_id: 'latest',
   });
+  assert.deepEqual(patch.exports, { CaseRuntimeDO: { type: 'durable-object', storage: 'sqlite' } });
   assert.equal(patch.bindings.length, before.bindings.length);
 });
 

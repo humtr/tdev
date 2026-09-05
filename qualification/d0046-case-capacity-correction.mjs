@@ -132,6 +132,11 @@ export function buildCaseCapacityPatchSettings(settings, latestVersionId = 'late
       }
       return structuredClone(binding);
     }),
+    // Settings PATCH runs the same Durable Object export reconciliation as a
+    // Worker upload, so retain the live provisioned class declaration.
+    exports: {
+      CaseRuntimeDO: { type: 'durable-object', storage: 'sqlite' },
+    },
   };
 }
 
