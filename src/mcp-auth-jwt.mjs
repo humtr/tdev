@@ -83,7 +83,12 @@ async function readBoundedJson(response, maxBytes, label) {
 
 function normalizeJwks(input) {
   if (!isPlainRecord(input)) fail('mcp_auth_jwks_invalid', 'Access JWKS must be a record');
-  assertRecordShape(input, ['keys'], [], 'Access JWKS');
+  // Cloudflare Access publishes the RSA JWK set together with its legacy
+  // certificate projections (`public_cert` and `public_certs`).  They are
+  // not used for verification, but are part of the current issuer response;
+  // reject unrelated fields while accepting these bounded compatibility
+  // projections.
+  assertRecordShape(input, ['keys'], ['public_cert', 'public_certs'], 'Access JWKS');
   if (!Array.isArray(input.keys) || input.keys.length === 0 || input.keys.length > 32) fail('mcp_auth_jwks_invalid', 'Access JWKS keys are invalid');
   const keys = input.keys.map(normalizeJwk);
   if (new Set(keys.map((key) => key.kid)).size !== keys.length) fail('mcp_auth_jwks_invalid', 'Access JWKS contains duplicate key IDs');
