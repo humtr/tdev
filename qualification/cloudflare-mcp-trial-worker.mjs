@@ -23,6 +23,7 @@ import {
 } from '../src/mcp-surface.mjs';
 import {
   createMcpTrialOwnerFacades,
+  normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
 } from '../src/mcp-trial-composition.mjs';
 import {
@@ -32,11 +33,16 @@ import {
   normalizeDevelopmentOperationManifest,
 } from '../src/development-operation-profile.mjs';
 import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mjs';
-import { loadMcpTrialBaseTree } from './mcp-trial-base-tree.mjs';
+import {
+  loadMcpTrialBaseTree,
+  MCP_TRIAL_BASE_COMMIT_OID,
+  MCP_TRIAL_BASE_DIGEST,
+} from './mcp-trial-base-tree.mjs';
 
 const TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
 const AUTH_MANIFEST_BINDING = 'TDEV_MCP_AUTH_MANIFEST_JSON';
 const OPERATION_MANIFEST_BINDING = 'TDEV_MCP_OPERATION_MANIFEST_JSON';
+const SURFACE_DIGEST_BINDING = 'TDEV_MCP_SURFACE_DIGEST';
 const MAX_CONFIG_BYTES = 8 * 1024 * 1024;
 
 function configError(code, message) {
@@ -60,6 +66,37 @@ function readJsonBinding(env, name, maxBytes = MAX_CONFIG_BYTES) {
   } catch (cause) {
     throw configError('mcp_config_unavailable', `${name} is not canonical bounded JSON`);
   }
+}
+
+function readDigestBinding(env, name) {
+  const value = env?.[name];
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) {
+    throw configError('mcp_config_unavailable', `${name} is not a valid digest binding`);
+  }
+  return value;
+}
+
+function assertGeneratedBaseBinding(composition) {
+  if (MCP_TRIAL_BASE_COMMIT_OID !== null && MCP_TRIAL_BASE_COMMIT_OID !== composition.repository.commitOid) {
+    throw configError('mcp_config_unavailable', 'Generated base-tree module commit does not match the trial composition');
+  }
+  if (MCP_TRIAL_BASE_DIGEST !== null && MCP_TRIAL_BASE_DIGEST !== composition.repository.baseDigest) {
+    throw configError('mcp_config_unavailable', 'Generated base-tree module digest does not match the trial composition');
+  }
+}
+
+function compactContext(composition) {
+  const context = composition.repository.context;
+  return Object.freeze({
+    revisionId: context.revisionId,
+    repositoryCommitOid: context.repositoryCommitOid,
+    objectFormat: context.objectFormat,
+    contextReferenceId: composition.repository.contextReference,
+    baseDigest: composition.repository.baseDigest,
+    ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
+    ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
+    ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
+  });
 }
 
 function jsonResponse(status, body) {
@@ -144,6 +181,7 @@ async function createTrialApplication(env) {
       context: { ...configuredComposition.repository.context, baseTree },
     },
   });
+  assertGeneratedBaseBinding(composition);
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
   if (authManifest.mcpResource !== composition.resource) {
@@ -191,18 +229,131 @@ async function createTrialApplication(env) {
       driveRunner: runner,
       developmentUnitRunner: runner,
       developmentContextGet: facades.contextOwner.developmentContextGet,
+      developmentContextResolve: facades.contextOwner.developmentContextResolve,
       authorize: facades.authorize,
     },
   });
 }
 
+/**
+ * Construct the MCP surface from only the bounded environment manifests.  The
+ * generated repository tree is intentionally not decoded here: ChatGPT's
+ * modern discovery/list requests must be able to complete within the Worker
+ * CPU budget.  Owner methods are single-flight lazy delegates to the full
+ * application, so a real mutation still crosses the same strict composition
+ * and owner validation boundary before it can run.
+ */
+async function createTrialLightApplication(env) {
+  const configuredComposition = normalizeMcpTrialCompositionBinding(
+    readJsonBinding(env, TRIAL_MANIFEST_BINDING),
+  );
+  assertGeneratedBaseBinding(configuredComposition);
+  const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
+  const operationManifest = normalizeDevelopmentOperationManifest(
+    readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024),
+  );
+  if (authManifest.mcpResource !== configuredComposition.resource) {
+    throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
+  }
+  if (configuredComposition.operation.manifestDigest !== digest(operationManifest)) {
+    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+  }
+  const buildDigest = digest({
+    profile: 'tdev.mcp.trial.build.v1',
+    compositionDigest: configuredComposition.manifestDigest,
+    authProfileDigest: authManifest.profileDigest,
+    operationManifestDigest: digest(operationManifest),
+  });
+  const surfaceManifest = createMcpSurfaceManifest({ buildDigest });
+  if (surfaceManifest.surfaceDigest !== readDigestBinding(env, SURFACE_DIGEST_BINDING)) {
+    throw configError('mcp_config_unavailable', 'MCP surface digest does not match the fixed deployment binding');
+  }
+  const verifier = createCloudflareAccessAssertionVerifier();
+  const authorizationServerMetadata = cloudflareAccessAuthorizationServerMetadata(authManifest);
+  const auth = createMcpAccessAuthenticator({
+    manifest: authManifest,
+    verifyAssertion: verifier,
+    authorizationServerMetadata,
+  });
+
+  let fullWorkerPromise = null;
+  const fullWorker = async () => {
+    if (fullWorkerPromise === null) fullWorkerPromise = application(env);
+    return fullWorkerPromise;
+  };
+  const invokeFull = async (property, method, args) => {
+    const worker = await fullWorker();
+    const owner = worker.surface[property];
+    if (!owner || typeof owner[method] !== 'function') {
+      throw configError('mcp_owner_unavailable', `Full trial owner ${property}.${method} is unavailable`);
+    }
+    return owner[method](...args);
+  };
+  const repository = Object.freeze({
+    create: (...args) => invokeFull('repository', 'create', args),
+    load: (...args) => invokeFull('repository', 'load', args),
+    command: (...args) => invokeFull('repository', 'command', args),
+  });
+  const runner = Object.freeze({
+    create: (...args) => invokeFull('developmentUnitRunner', 'create', args),
+    drive: (...args) => invokeFull('developmentUnitRunner', 'drive', args),
+    candidate: (...args) => invokeFull('developmentUnitRunner', 'candidate', args),
+  });
+  const context = compactContext(configuredComposition);
+  const assertContextSelector = (selector) => {
+    if (selector !== null && selector !== configuredComposition.repository.contextReference) {
+      const error = new Error('Context selector is outside the fixed trial reference');
+      error.code = 'mcp_trial_context_scope_denied';
+      throw error;
+    }
+  };
+  const owners = {
+    repository,
+    driveRunner: runner,
+    developmentUnitRunner: runner,
+    developmentContextGet: async ({ selector = null } = {}) => {
+      assertContextSelector(selector);
+      return context;
+    },
+    developmentContextResolve: async ({ selector = null, identity } = {}) => {
+      assertContextSelector(selector);
+      // Resolve the full tree only for development_unit_start.  The full
+      // application repeats all manifest and generated-module checks before
+      // returning the internal resolver result.
+      const worker = await fullWorker();
+      const resolver = worker.surface.owners.developmentContextResolve
+        ?? worker.surface.owners.developmentContextGet;
+      if (typeof resolver !== 'function') throw configError('mcp_owner_unavailable', 'Full development context resolver is unavailable');
+      return resolver({ selector, identity });
+    },
+    authorize: async ({ identity } = {}) => Boolean(
+      identity?.principalId === configuredComposition.identity.principalId &&
+      identity?.tenantId === configuredComposition.identity.tenantId,
+    ),
+  };
+  return createTdevMcpWorker({
+    manifest: surfaceManifest,
+    auth,
+    authorizationServerMetadata,
+    owners,
+  });
+}
+
 let applicationPromise = null;
+let lightApplicationPromise = null;
 
 async function application(env) {
   if (applicationPromise === null) {
     applicationPromise = Promise.resolve().then(() => createTrialApplication(env));
   }
   return applicationPromise;
+}
+
+async function lightApplication(env) {
+  if (lightApplicationPromise === null) {
+    lightApplicationPromise = Promise.resolve().then(() => createTrialLightApplication(env));
+  }
+  return lightApplicationPromise;
 }
 
 export default {
@@ -214,7 +365,7 @@ export default {
       return fastMetadata;
     }
     try {
-      const worker = await application(env);
+      const worker = await lightApplication(env);
       const response = await worker.fetch(request);
       emitRequestDiagnostic('mcp', request, { status: response.status });
       return response;

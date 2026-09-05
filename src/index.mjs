@@ -249,6 +249,7 @@ export {
   MCP_TRIAL_DRIVE_CLASS_NAME,
   MCP_TRIAL_AGENT_CLASS_NAME,
   normalizeMcpTrialCompositionManifest,
+  normalizeMcpTrialCompositionBinding,
   createMcpTrialOwnerFacades,
   createMcpTrialAuthorization,
 } from './mcp-trial-composition.mjs';

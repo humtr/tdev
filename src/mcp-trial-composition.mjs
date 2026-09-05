@@ -80,7 +80,7 @@ function ownerBinding(value, label, expectedClassName) {
   };
 }
 
-function normalizeContext(context, repository, label = 'repository.context') {
+function normalizeContext(context, repository, label = 'repository.context', { allowEmptyBaseTree = false } = {}) {
   if (!isPlainRecord(context)) fail('mcp_trial_context_invalid', `${label} must be a record`);
   assertRecordShape(context, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
@@ -93,7 +93,14 @@ function normalizeContext(context, repository, label = 'repository.context') {
   if (objectFormat !== repository.objectFormat) fail('mcp_trial_context_mismatch', `${label}.objectFormat is not the fixed repository format`);
   if (context.repositoryCommitOid !== repository.commitOid) fail('mcp_trial_context_mismatch', `${label}.repositoryCommitOid is not the fixed commit`);
   const baseTree = canonicalClone(context.baseTree);
-  if (digest(baseTree) !== repository.baseDigest) fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed base digest`);
+  // The deployment binding deliberately carries an empty context tree: the
+  // immutable tree is compiled into the Worker module and injected only when
+  // a full owner operation is actually needed.  An empty tree is accepted
+  // here solely by normalizeMcpTrialCompositionBinding; the normal manifest
+  // normalizer remains strict and always checks the semantic digest.
+  if (!(allowEmptyBaseTree && Object.keys(baseTree).length === 0) && digest(baseTree) !== repository.baseDigest) {
+    fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed base digest`);
+  }
   if (context.contextReferenceId !== repository.contextReference) {
     fail('mcp_trial_context_mismatch', `${label}.contextReferenceId is not the fixed context reference`);
   }
@@ -104,7 +111,7 @@ function normalizeContext(context, repository, label = 'repository.context') {
   };
 }
 
-function normalizeManifestBody(input) {
+function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   assertRecordShape(input, [
     'schemaVersion', 'profile', 'resource', 'workerScript', 'environment', 'jurisdiction',
     'caseOwner', 'driveOwner', 'agentOwner', 'repository', 'operation', 'identity',
@@ -144,7 +151,7 @@ function normalizeManifestBody(input) {
     baseDigest: repository.baseDigest,
     objectFormat: repository.objectFormat,
     contextReference: repository.contextReference,
-    context: normalizeContext(repository.context, repository),
+    context: normalizeContext(repository.context, repository, 'repository.context', { allowEmptyBaseTree }),
   };
   const operation = input.operation;
   assertRecordShape(operation, [
@@ -201,6 +208,23 @@ export function normalizeMcpTrialCompositionManifest(input) {
     fail('mcp_trial_manifest_digest_mismatch', 'Trial composition manifest digest does not match its fields');
   }
   return deepFreeze({ ...body, manifestDigest: expected });
+}
+
+/**
+ * Normalize the small environment binding used before the generated base-tree
+ * module is decoded.  The binding's manifestDigest still commits to the full
+ * composition (including the omitted tree), so it is retained as an opaque
+ * digest and rechecked by normalizeMcpTrialCompositionManifest once the tree
+ * is injected.  This function must never be used as a substitute for the
+ * full normalizer on owner operations.
+ */
+export function normalizeMcpTrialCompositionBinding(input) {
+  const body = normalizeManifestBody(input, { allowEmptyBaseTree: true });
+  assertDigest(input.manifestDigest, 'MCP trial composition manifestDigest');
+  if (Object.keys(body.repository.context.baseTree).length !== 0) {
+    fail('mcp_trial_binding_invalid', 'Trial composition binding must omit the immutable base tree');
+  }
+  return deepFreeze({ ...body, manifestDigest: input.manifestDigest });
 }
 
 function namespaceFor(namespace, jurisdiction, label) {
@@ -387,11 +411,32 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     identity?.principalId === normalized.identity.principalId && identity?.tenantId === normalized.identity.tenantId,
   );
 
-  const contextOwner = Object.freeze({
-    async developmentContextGet({ selector = null } = {}) {
+  function assertContextSelector(selector) {
       if (selector !== null && selector !== normalized.repository.contextReference) {
         fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
       }
+  }
+
+  const contextOwner = Object.freeze({
+    // Public MCP callers receive a bounded reference projection.  The full
+    // tree remains an internal resolver input for development_unit_start and
+    // is never copied into a discovery/context response.
+    async developmentContextGet({ selector = null } = {}) {
+      assertContextSelector(selector);
+      const context = normalized.repository.context;
+      return publicJsonClone({
+        revisionId: context.revisionId,
+        repositoryCommitOid: context.repositoryCommitOid,
+        objectFormat: context.objectFormat,
+        contextReferenceId: normalized.repository.contextReference,
+        baseDigest: normalized.repository.baseDigest,
+        ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
+        ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
+        ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
+      });
+    },
+    async developmentContextResolve({ selector = null } = {}) {
+      assertContextSelector(selector);
       return publicJsonClone(normalized.repository.context);
     },
   });

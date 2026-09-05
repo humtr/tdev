@@ -11,6 +11,7 @@ import {
   MCP_TRIAL_DRIVE_CLASS_NAME,
   createMcpTrialOwnerFacades,
   digest,
+  normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
   agentRouteHostKey,
 } from '../src/index.mjs';
@@ -100,6 +101,18 @@ test('D0046 trial manifest binds one fixed resource, owner set and immutable bas
   assert.match(normalized.manifestDigest, /^sha256:[0-9a-f]{64}$/u);
 });
 
+test('D0046 deployment binding accepts only the intentionally omitted base tree', () => {
+  const full = manifest();
+  const binding = normalizeMcpTrialCompositionBinding({
+    ...full,
+    repository: { ...full.repository, context: { ...full.repository.context, baseTree: {} } },
+    manifestDigest: 'sha256:' + 'b'.repeat(64),
+  });
+  assert.equal(binding.repository.context.baseTree && Object.keys(binding.repository.context.baseTree).length, 0);
+  assert.equal(binding.manifestDigest, 'sha256:' + 'b'.repeat(64));
+  assert.throws(() => normalizeMcpTrialCompositionBinding({ ...full, manifestDigest: 'sha256:' + 'b'.repeat(64) }), (error) => error?.code === 'mcp_trial_binding_invalid');
+});
+
 test('D0046 owner facades route only fixed Case/Drive/Agent identities', async () => {
   const calls = [];
   const owners = createMcpTrialOwnerFacades({
@@ -129,6 +142,21 @@ test('D0046 owner facades route only fixed Case/Drive/Agent identities', async (
   assert.ok(calls.some((entry) => entry === 'id:case:trial-case-1'));
   assert.ok(calls.every((entry) => !entry.includes('other-case')));
   assert.equal(MCP_TRIAL_AGENT_RPC_PROFILE, 'tdev.installable-agent-qualification-rpc.v2');
+});
+
+test('D0046 public context is a bounded reference and full context stays resolver-internal', async () => {
+  const owners = createMcpTrialOwnerFacades({
+    manifest: manifest(),
+    caseNamespace: namespace('case', []),
+    driveNamespace: namespace('drive', []),
+    agentNamespace: namespace('agent', []),
+  });
+  const publicContext = await owners.contextOwner.developmentContextGet({ selector: 'ctx-trial-1' });
+  assert.equal(publicContext.contextReferenceId, 'ctx-trial-1');
+  assert.equal(publicContext.baseDigest, digest(BASE_TREE));
+  assert.equal(Object.hasOwn(publicContext, 'baseTree'), false);
+  const fullContext = await owners.contextOwner.developmentContextResolve({ selector: 'ctx-trial-1' });
+  assert.deepEqual(fullContext.baseTree, BASE_TREE);
 });
 
 test('D0046 trial rejects canonical writers, resource substitution and context substitution', () => {

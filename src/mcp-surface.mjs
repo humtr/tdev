@@ -651,12 +651,13 @@ export class TdevMcpSurface {
     this.claimLedger = owners.claimLedger ?? claimLedger;
     this.authorize = owners.authorize ?? authorize ?? auth?.authorize ?? null;
     this.owners = { ...owners };
+    const contextResolver = this.owners.developmentContextResolve ?? this.owners.developmentContextGet;
     if (typeof this.owners.developmentUnitStart !== 'function' &&
-        typeof this.owners.developmentContextGet === 'function' &&
+        typeof contextResolver === 'function' &&
         this.developmentUnitRunner !== null) {
       this.owners.developmentUnitStart = createDevelopmentUnitStartAdapter({
         runner: this.developmentUnitRunner,
-        resolveContext: ({ contextReference, identity }) => this.owners.developmentContextGet({ selector: contextReference, identity }),
+        resolveContext: ({ contextReference, identity }) => contextResolver({ selector: contextReference, identity }),
       });
     }
     this.authorizationServerMetadata = authorizationServerMetadata;
