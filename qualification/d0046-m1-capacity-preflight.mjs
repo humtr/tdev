@@ -26,10 +26,8 @@ import { buildMcpTrialBaseTreeModule } from './mcp-trial-base-tree-builder.mjs';
 
 const DEFAULT_ENV_FILE = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
-const EXPECTED_SOURCE_SHA = '439ea71d8ed9095b1d0e2db8aa82a65c848bfe6d';
-const EXPECTED_BASE_DIGEST = 'sha256:c6f648b4678638951f27a5c17dd7b0ea3e4122c29954d705acebbf95b6b4a108';
-const EXPECTED_CONTEXT_REFERENCE = 'tdev-context-439ea71d8ed9';
-const EXPECTED_CONTEXT_REVISION = 'tdev-mcp-439ea71d8ed9';
+const DEFAULT_REVISION_ID = 'tdev-mcp-preflight';
+const DEFAULT_REPOSITORY_COMMIT_OID = '0'.repeat(40);
 const MODEL_PROFILE = 'tdev.model.repository.execute.v1';
 const VALIDATION_OPERATION_PROFILE = 'tdev.repository.validate.v1';
 const VALIDATION_PROFILE = 'tdev.validation.npm-check.v1';
@@ -71,9 +69,9 @@ function chunkCount(text, chunkBytes = CASEDO_DEFAULT_CHUNK_BYTES) {
  */
 export function measureFreshCaseAuthoritativeBytes({
   caseId = WORST_CASE_ID,
-  revisionId = EXPECTED_CONTEXT_REVISION,
+  revisionId = DEFAULT_REVISION_ID,
   baseTree,
-  repositoryCommitOid = EXPECTED_SOURCE_SHA,
+  repositoryCommitOid = DEFAULT_REPOSITORY_COMMIT_OID,
   instruction = 'x'.repeat(MAX_INSTRUCTION_BYTES),
   validationProfile = VALIDATION_PROFILE,
   objectFormat = 'sha1',
@@ -175,6 +173,16 @@ function assertText(settings, name, expected) {
   if (textBinding(settings, name) !== expected) fail('d0046_preflight_binding_mismatch', `${name} did not match the fixed trial owner`, { expected, actual: textBinding(settings, name) });
 }
 
+function assertSha(value, label) {
+  if (typeof value !== 'string' || !/^[0-9a-f]{40}$/u.test(value)) fail('d0046_preflight_binding_invalid', `${label} was not a full Git SHA`);
+  return value;
+}
+
+function assertDigest(value, label) {
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail('d0046_preflight_binding_invalid', `${label} was not a sha256 digest`);
+  return value;
+}
+
 function parseCanonicalBindingJson(settings, name) {
   const text = textBinding(settings, name);
   let value;
@@ -217,9 +225,9 @@ function assertTrialSettings(settings) {
   assertText(settings, 'TDEV_WORKER_SCRIPT', D0046_MCP_TRIAL_SCRIPT);
   assertText(settings, 'TDEV_DEPLOYMENT', D0046_MCP_TRIAL_SCRIPT);
   assertText(settings, 'TDEV_ENVIRONMENT', 'qualification');
-  assertText(settings, 'TDEV_SOURCE_SHA', EXPECTED_SOURCE_SHA);
-  assertText(settings, 'TDEV_MCP_REPOSITORY_COMMIT', EXPECTED_SOURCE_SHA);
-  assertText(settings, 'TDEV_MCP_BASE_DIGEST', EXPECTED_BASE_DIGEST);
+  const sourceSha = assertSha(textBinding(settings, 'TDEV_SOURCE_SHA'), 'TDEV_SOURCE_SHA');
+  assertText(settings, 'TDEV_MCP_REPOSITORY_COMMIT', sourceSha);
+  const baseDigest = assertDigest(textBinding(settings, 'TDEV_MCP_BASE_DIGEST'), 'TDEV_MCP_BASE_DIGEST');
   assertText(settings, 'TDEV_MCP_TRIAL_RESOURCE', `${D0046_MCP_TRIAL_ORIGIN}/mcp`);
   assertText(settings, 'TDEV_MCP_CANONICAL_WRITER_ENABLED', 'false');
   assertText(settings, 'TDEV_MCP_PREVIEW_WRITERS_ENABLED', 'false');
@@ -229,7 +237,7 @@ function assertTrialSettings(settings) {
   if (caseAuthority.type !== 'durable_object_namespace' || caseAuthority.class_name !== 'CaseRuntimeDO' || caseAuthority.namespace_id !== D0046_CASE_NAMESPACE) fail('d0046_preflight_binding_mismatch', 'Trial Case binding was not the fixed Case owner');
   const placement = binding(settings, 'TDEV_CASE_PLACEMENT');
   if (placement.type !== 'd1' || placement.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_preflight_binding_mismatch', 'Trial D1 placement was not the fixed database');
-  return { driveNamespace: drive.namespace_id, composition: parseCanonicalBindingJson(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON') };
+  return { sourceSha, baseDigest, driveNamespace: drive.namespace_id, composition: parseCanonicalBindingJson(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON') };
 }
 
 function assertCaseSettings(settings) {
@@ -262,28 +270,34 @@ export async function runM1CapacityPreflight({
   ]);
   const trial = assertTrialSettings(trialSettings);
   const configuredBytes = assertCaseSettings(caseSettings);
+  const head = await runGitCommand({ repositoryPath, args: ['rev-parse', 'HEAD'] });
+  if (head.code !== 0) fail('d0046_preflight_source_missing', 'Git could not resolve the local source HEAD', { exitCode: head.code });
+  const localSourceSha = head.stdout.toString('utf8').trim();
+  if (localSourceSha !== trial.sourceSha) fail('d0046_preflight_source_mismatch', 'Local checkout was not the exact source bound to the trial Worker', { provider: trial.sourceSha, local: localSourceSha });
+  const expectedContextReference = `tdev-context-${trial.sourceSha.slice(0, 12)}`;
+  const expectedContextRevision = `tdev-mcp-${trial.sourceSha.slice(0, 12)}`;
   const composition = trial.composition;
-  if (composition.repository?.commitOid !== EXPECTED_SOURCE_SHA || composition.repository?.baseDigest !== EXPECTED_BASE_DIGEST || composition.repository?.contextReference !== EXPECTED_CONTEXT_REFERENCE) {
-    fail('d0046_preflight_manifest_mismatch', 'Trial composition manifest did not match the fixed source/base/context');
+  if (composition.repository?.commitOid !== trial.sourceSha || composition.repository?.baseDigest !== trial.baseDigest || composition.repository?.contextReference !== expectedContextReference || composition.repository?.context?.repositoryCommitOid !== trial.sourceSha || composition.repository?.context?.revisionId !== expectedContextRevision || composition.repository?.context?.contextReferenceId !== expectedContextReference) {
+    fail('d0046_preflight_manifest_mismatch', 'Trial composition manifest did not match the provider-bound source/base/context');
   }
-  const operationText = await readExactFile(repositoryPath, EXPECTED_SOURCE_SHA, 'config/development-operation-profiles.json');
+  const operationText = await readExactFile(repositoryPath, trial.sourceSha, 'config/development-operation-profiles.json');
   let operation;
   try { operation = normalizeDevelopmentOperationManifest(JSON.parse(operationText)); } catch (cause) { fail('d0046_preflight_operation_invalid', 'Bound source operation manifest was invalid', undefined, { cause }); }
   if (!operation.profiles[MODEL_PROFILE] || !operation.profiles[VALIDATION_OPERATION_PROFILE] || operation.profiles[VALIDATION_OPERATION_PROFILE].binding?.profile !== VALIDATION_PROFILE) fail('d0046_preflight_operation_invalid', 'Bound source operation manifest omitted the required model or validation profile');
   const excludedPaths = operation.profiles[MODEL_PROFILE].binding?.contextExcludedPaths ?? [];
-  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: EXPECTED_SOURCE_SHA, excludedPaths });
-  if (base.baseDigest !== EXPECTED_BASE_DIGEST) fail('d0046_preflight_base_mismatch', 'Recomputed source-bound base digest differed from provider binding', { expected: EXPECTED_BASE_DIGEST, actual: base.baseDigest });
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: trial.sourceSha, excludedPaths });
+  if (base.baseDigest !== trial.baseDigest) fail('d0046_preflight_base_mismatch', 'Recomputed source-bound base digest differed from provider binding', { expected: trial.baseDigest, actual: base.baseDigest });
   const measurement = measureFreshCaseAuthoritativeBytes({
     baseTree: base.tree,
-    repositoryCommitOid: EXPECTED_SOURCE_SHA,
+    repositoryCommitOid: trial.sourceSha,
     revisionId: composition.repository.context.revisionId,
     caseContract: composition.repository.context.caseContract ?? {},
   });
   const capacity = assertCapacityPreflight({ requiredAuthoritativeBytes: measurement.requiredAuthoritativeBytes, configuredBytes });
   return Object.freeze({
     status: 'pass',
-    source: { commitOid: EXPECTED_SOURCE_SHA, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, excludedPaths },
-    composition: { contextReference: EXPECTED_CONTEXT_REFERENCE, driveNamespace: trial.driveNamespace },
+    source: { commitOid: trial.sourceSha, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, excludedPaths },
+    composition: { contextReference: expectedContextReference, driveNamespace: trial.driveNamespace },
     provider: {
       trial: { scriptName: D0046_MCP_TRIAL_SCRIPT, versionId: trialDeployment.versionId, versionNumber: trialDeployment.versionNumber, activeDeploymentId: trialDeployment.activeDeploymentId, traffic: trialDeployment.traffic },
       case: { scriptName: D0046_CASE_SCRIPT, versionId: caseDeployment.versionId, versionNumber: caseDeployment.versionNumber, activeDeploymentId: caseDeployment.activeDeploymentId, traffic: caseDeployment.traffic, configuredBytes },
