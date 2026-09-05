@@ -270,10 +270,8 @@ export async function runM1CapacityPreflight({
   ]);
   const trial = assertTrialSettings(trialSettings);
   const configuredBytes = assertCaseSettings(caseSettings);
-  const head = await runGitCommand({ repositoryPath, args: ['rev-parse', 'HEAD'] });
-  if (head.code !== 0) fail('d0046_preflight_source_missing', 'Git could not resolve the local source HEAD', { exitCode: head.code });
-  const localSourceSha = head.stdout.toString('utf8').trim();
-  if (localSourceSha !== trial.sourceSha) fail('d0046_preflight_source_mismatch', 'Local checkout was not the exact source bound to the trial Worker', { provider: trial.sourceSha, local: localSourceSha });
+  const sourceObject = await runGitCommand({ repositoryPath, args: ['cat-file', '-e', `${trial.sourceSha}^{commit}`] });
+  if (sourceObject.code !== 0) fail('d0046_preflight_source_missing', 'The provider-bound immutable source commit was not present in the local repository', { sourceSha: trial.sourceSha, exitCode: sourceObject.code });
   const expectedContextReference = `tdev-context-${trial.sourceSha.slice(0, 12)}`;
   const expectedContextRevision = `tdev-mcp-${trial.sourceSha.slice(0, 12)}`;
   const composition = trial.composition;
