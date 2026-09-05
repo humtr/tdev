@@ -300,6 +300,12 @@ async function createTrialLightApplication(env) {
     if (fullWorkerPromise === null) fullWorkerPromise = application(env);
     return fullWorkerPromise;
   };
+  const assertTrialCaseId = (caseId) => {
+    if (typeof caseId !== 'string' || caseId.length === 0 || !caseId.startsWith(configuredComposition.casePrefix)) {
+      throw configError('mcp_trial_case_scope_denied', 'Case identity is outside the fixed trial prefix');
+    }
+    return caseId;
+  };
   const invokeFull = async (property, method, args) => {
     const worker = await fullWorker();
     const owner = worker.surface[property];
@@ -308,15 +314,41 @@ async function createTrialLightApplication(env) {
     }
     return owner[method](...args);
   };
+  const invokeFullOwner = async (name, args) => {
+    const worker = await fullWorker();
+    const owner = worker.surface.owners?.[name];
+    if (typeof owner !== 'function') {
+      throw configError('mcp_owner_unavailable', `Full trial owner ${name} is unavailable`);
+    }
+    return owner(...args);
+  };
   const repository = Object.freeze({
-    create: (...args) => invokeFull('repository', 'create', args),
-    load: (...args) => invokeFull('repository', 'load', args),
-    command: (...args) => invokeFull('repository', 'command', args),
+    create: (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      return invokeFull('repository', 'create', [input]);
+    },
+    load: (caseId) => {
+      assertTrialCaseId(caseId);
+      return invokeFull('repository', 'load', [caseId]);
+    },
+    command: (caseId, ...rest) => {
+      assertTrialCaseId(caseId);
+      return invokeFull('repository', 'command', [caseId, ...rest]);
+    },
   });
   const runner = Object.freeze({
-    create: (...args) => invokeFull('developmentUnitRunner', 'create', args),
-    drive: (...args) => invokeFull('developmentUnitRunner', 'drive', args),
-    candidate: (...args) => invokeFull('developmentUnitRunner', 'candidate', args),
+    create: (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      return invokeFull('developmentUnitRunner', 'create', [input]);
+    },
+    drive: (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      return invokeFull('developmentUnitRunner', 'drive', [input]);
+    },
+    candidate: (caseId) => {
+      assertTrialCaseId(caseId);
+      return invokeFull('developmentUnitRunner', 'candidate', [caseId]);
+    },
   });
   const context = compactContext(configuredComposition);
   const assertContextSelector = (selector) => {
@@ -330,6 +362,10 @@ async function createTrialLightApplication(env) {
     repository,
     driveRunner: runner,
     developmentUnitRunner: runner,
+    developmentUnitStart: async (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      return invokeFullOwner('developmentUnitStart', [input]);
+    },
     developmentContextGet: async ({ selector = null } = {}) => {
       assertContextSelector(selector);
       return context;
