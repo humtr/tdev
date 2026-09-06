@@ -166,7 +166,7 @@ async function main() {
     contextScope,
     baseIdentity: scopedContext.descriptor.baseIdentity,
     repositoryBaseIdentity,
-    instruction: 'Implement one minimal non-documentation source objective. In src/lazy-plan-reference.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/lazy-plan-reference.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
+    instruction: 'Implement one minimal non-documentation source objective. In src/lazy-plan-reference.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/lazy-plan-reference.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. The model workspace is sparse; do not run npm, tests, installs, or builds that require files outside the supplied scope. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],

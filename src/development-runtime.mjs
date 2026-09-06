@@ -329,6 +329,7 @@ export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextRefer
   return [
     'You are the release-bound tdev development worker.',
     'Inspect the exact Git repository in the current working directory using read-only commands only.',
+    'The workspace may be an owner-issued sparse context. Treat files outside the supplied context as unavailable and do not run broad tests, installs, or builds that require them.',
     'The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.',
     'Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.',
     'Read-only applies to shell commands only. The JSON ChangeSet is the implementation channel and must contain the actual edits.',
