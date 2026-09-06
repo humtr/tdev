@@ -8,6 +8,7 @@ import {
   CaseRepository,
   ContractError,
   DevelopmentUnitRunner,
+  GitRepositoryModelExecutor,
   LocalDevelopmentOperationRuntime,
   MemoryCaseAgentDriveStore,
   MemorySnapshotStore,
@@ -16,7 +17,6 @@ import {
   developmentOperationCapabilityId,
   digest,
   strictJsonParse,
-  validateTree,
 } from '../src/index.mjs';
 import { runGitCommand } from '../src/git-projection.mjs';
 
@@ -71,56 +71,6 @@ async function preservedFiles() {
   return result;
 }
 
-function decodeUtf8(bytes, label) {
-  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
-  catch (cause) { fail('m0_non_utf8_repository', `${label} is not UTF-8`, {}, { cause }); }
-}
-
-async function trackedTree(commitOid) {
-  const listing = await git(['ls-tree', '-r', '-z', '-l', commitOid]);
-  const rows = [];
-  for (const record of listing.toString('utf8').split('\0').filter(Boolean)) {
-    const tab = record.indexOf('\t');
-    if (tab < 1) fail('m0_git_tree_invalid', 'Git tree listing is malformed');
-    const fields = record.slice(0, tab).trim().split(/ +/u);
-    if (fields.length !== 4 || !['100644', '100755'].includes(fields[0]) || fields[1] !== 'blob' || !/^[0-9a-f]{40}$/.test(fields[2]) || !/^[0-9]+$/.test(fields[3])) {
-      fail('m0_git_tree_invalid', 'Git tree contains an unsupported entry');
-    }
-    rows.push({ mode: fields[0], blobOid: fields[2], byteLength: Number(fields[3]), path: record.slice(tab + 1) });
-  }
-  rows.sort((left, right) => left.path.localeCompare(right.path));
-  const uniqueOids = [...new Set(rows.map((row) => row.blobOid))];
-  const batch = uniqueOids.length === 0 ? Buffer.alloc(0) : await git(['cat-file', '--batch'], Buffer.from(`${uniqueOids.join('\n')}\n`, 'ascii'));
-  const contentByOid = new Map();
-  const excludedOids = new Set();
-  let offset = 0;
-  for (const oid of uniqueOids) {
-    const headerEnd = batch.indexOf(0x0a, offset);
-    if (headerEnd < 0) fail('m0_git_blob_invalid', 'Git blob batch header is truncated');
-    const header = batch.subarray(offset, headerEnd).toString('ascii').split(' ');
-    if (header.length !== 3 || header[0] !== oid || header[1] !== 'blob' || !/^[0-9]+$/.test(header[2])) fail('m0_git_blob_invalid', 'Git blob batch identity is invalid');
-    const size = Number(header[2]);
-    const start = headerEnd + 1;
-    const end = start + size;
-    if (end >= batch.length || batch[end] !== 0x0a) fail('m0_git_blob_invalid', 'Git blob batch content is truncated');
-    try { contentByOid.set(oid, decodeUtf8(batch.subarray(start, end), `Git blob ${oid}`)); }
-    catch (cause) {
-      if (cause?.code !== 'm0_non_utf8_repository') throw cause;
-      excludedOids.add(oid);
-    }
-    offset = end + 1;
-  }
-  if (offset !== batch.length) fail('m0_git_blob_invalid', 'Git blob batch has trailing bytes');
-  const tree = {};
-  for (const row of rows) {
-    if (excludedOids.has(row.blobOid)) continue;
-    const content = contentByOid.get(row.blobOid);
-    if (content === undefined || Buffer.byteLength(content, 'utf8') !== row.byteLength) fail('m0_git_blob_invalid', 'Git blob size does not match tree metadata', { path: row.path });
-    tree[row.path] = content;
-  }
-  return { tree: validateTree(tree), excludedPaths: rows.filter((row) => excludedOids.has(row.blobOid)).map((row) => row.path).sort() };
-}
-
 async function assertExecutable(filePath, label) {
   try {
     const fileStat = await stat(filePath);
@@ -148,9 +98,6 @@ async function main() {
   const beforeCheckout = await assertM0Checkout();
   const preservedBefore = await preservedFiles();
   const commitOid = beforeCheckout.head;
-  const tracked = await trackedTree(commitOid);
-  const baseTree = tracked.tree;
-  const baseDigest = digest(baseTree);
   const manifest = strictJsonParse(await readFile(path.join(ROOT, 'config', 'development-operation-profiles.json')));
   const profileNames = {
     context: 'tdev.repository.context.prepare.v1',
@@ -158,9 +105,39 @@ async function main() {
     validation: 'tdev.repository.validate.v1',
   };
   const capabilityByProfile = Object.fromEntries(Object.values(profileNames).map((profile) => [profile, developmentOperationCapabilityId(manifest, profile)]));
-  if (tracked.excludedPaths.length !== 0) {
-    fail('m0_non_text_entry_requires_lazy_scope', 'The physical full-context M0 fixture contains non-UTF-8 entries; arbitrary exclusions are forbidden and a scoped Design path is required', { paths: tracked.excludedPaths });
-  }
+  const contextScope = {
+    paths: [
+      'config/codex-changeset-output.schema.json',
+      'package.json',
+      'src/development-runtime.mjs',
+      'test/development-runtime.test.mjs',
+    ],
+    maxFiles: 8,
+    maxBytes: 4 * 1024 * 1024,
+    maxSearchResults: 16,
+  };
+  const lazyAdapter = new GitRepositoryModelExecutor({
+    repositoryPath: ROOT,
+    modelExecutable: CODEX_EXECUTABLE,
+    timeoutMs: 300_000,
+  });
+  // The first manifest pass binds the complete exact repository without reading
+  // any blob. The selected pass then decodes only the owner-issued text scope.
+  const probe = await lazyAdapter.prepareLazyContext(commitOid, digest({ profile: 'tdev.m0.lazy-probe.v1', commitOid }), { scope: contextScope });
+  const probeScoped = await lazyAdapter.materializeScopedContext(commitOid, digest({ profile: 'tdev.m0.lazy-probe.v1', commitOid }), { scope: contextScope });
+  const repositoryBaseIdentity = probe.descriptor.repositoryBaseIdentity;
+  const baseDigest = probeScoped.scopedBaseDigest;
+  const lazyContext = await lazyAdapter.prepareLazyContext(commitOid, baseDigest, { scope: contextScope, repositoryBaseIdentity });
+  const scopedContext = await lazyAdapter.materializeScopedContext(commitOid, baseDigest, { scope: contextScope, repositoryBaseIdentity });
+  const baseTree = Object.fromEntries(scopedContext.files.map((file) => [file.path, file.content]));
+  if (scopedContext.descriptor.baseDigest !== baseDigest) fail('m0_lazy_identity_invalid', 'Scoped context did not rebind its semantic base digest');
+  const scopedContextAdapter = {
+    materializeContext: (boundCommit, boundDigest, options = {}) => lazyAdapter.materializeScopedContext(boundCommit, boundDigest, {
+      ...options,
+      scope: contextScope,
+      repositoryBaseIdentity,
+    }),
+  };
   const capabilities = Object.values(capabilityByProfile).sort();
   const caseContract = { caseGrant: capabilities, workspacePolicy: capabilities };
   const workspaceBefore = await workspaceEntries();
@@ -172,6 +149,7 @@ async function main() {
     outputSchemaPath: path.join(ROOT, 'config', 'codex-changeset-output.schema.json'),
     npmExecutable: NPM_EXECUTABLE,
     workspaceRoot: WORKSPACE_ROOT,
+    contextAdapter: scopedContextAdapter,
   });
   const agent = createLocalDevelopmentAgent({ operationRuntime, agentId: 'agent-tdev-m0', executorId: 'executor-tdev-m0' });
   const repository = new CaseRepository(new MemorySnapshotStore());
@@ -184,6 +162,10 @@ async function main() {
     baseTree,
     repositoryCommitOid: commitOid,
     objectFormat: 'sha1',
+    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+    contextScope,
+    baseIdentity: scopedContext.descriptor.baseIdentity,
+    repositoryBaseIdentity,
     instruction: 'Implement one minimal non-documentation source objective. In src/development-runtime.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/development-runtime.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
@@ -201,6 +183,9 @@ async function main() {
     const modelResult = snapshot.taskStates.model.acceptedResult;
     const validationResult = snapshot.taskStates.validate.acceptedResult;
     if (candidate.caseState !== 'succeeded' || validationResult?.passed !== true) fail('m0_validation_failed', 'M0 candidate did not pass fixed npm validation', { caseState: candidate.caseState, validation: validationResult });
+    if (candidate.repositoryBaseIdentity?.baseDigest !== repositoryBaseIdentity.baseDigest || candidate.repositoryBaseIdentity?.manifestDigest !== repositoryBaseIdentity.manifestDigest) {
+      fail('m0_repository_identity_missing', 'M0 candidate did not retain the complete repository base identity');
+    }
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
     if (!candidate.canonicalTree['src/development-runtime.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/development-runtime.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
     for (const filePath of new Set([...Object.keys(baseTree), ...Object.keys(candidate.canonicalTree)])) {
@@ -220,7 +205,7 @@ async function main() {
     if (JSON.stringify(preservedAfter) !== JSON.stringify(preservedBefore)) fail('m0_user_files_changed', 'M0 changed a preserved user file');
     const serializedFrames = JSON.stringify(agent.emitted);
     if (serializedFrames.includes(CODEX_HOME) || /Bearer\s+[A-Za-z0-9._-]{8,}/iu.test(serializedFrames) || /sk-[A-Za-z0-9]{20,}/u.test(serializedFrames)) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
-    process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
+    process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, repositoryBaseDigest: repositoryBaseIdentity.baseDigest, manifestDigest: repositoryBaseIdentity.manifestDigest, scopeDigest: scopedContext.descriptor.scopeDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
   } finally {
     await operationRuntime.dispose().catch(() => {});
   }

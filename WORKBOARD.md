@@ -21,10 +21,11 @@ Each entry is a foreign key to one maintained Design revision, not a copied Desi
 - D0047@r2 — `docs/design/0047-lazy-bounded-repository-context.md` — carry owner-issued full-base identity and lazy profile/scope through the development-unit path, use sparse model context and a separate full-base candidate, and qualify CP1/CP2/CP3 apart from full-context stress.
 - D0023@r2 — `docs/design/0023-versioned-stateless-tdev-mcp-surface.md` — add stateless bounded lazy-context projections without making MCP a repository owner.
 - D0046@r3 — `docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md` — source work may prepare the isolated trial composition in parallel; provider activation follows D0043 M0 and D0047 CP1, then M1 continues to the complete user-ready URL handoff and M2 current-client result without an intermediate completion stop.
+- D0048@r1 — `docs/design/0048-lazy-scoped-plan-reference.md` — bind the complete repository identity and owner-issued lazy scope to an explicit scoped semantic Plan so native/non-UTF-8 entries do not force eager full-tree Case preparation.
 
 ## Selected next action
 
-- D0043@r4 — physical supported-Termux M0 is the next gate, but the first clean exact-source attempt is blocked by native non-UTF-8 entries under the current full-tree Case representation; resolve the D0019-compatible lazy Plan/reference boundary or an explicitly accepted scoped physical gate before rerunning, while retaining the CP1/CP2/CP3/stress evidence.
+- D0048@r1 — implement and qualify the scoped semantic Plan/reference boundary, then rerun D0043@r4 physical M0 without excluding any exact-base manifest entry.
 
 The selected next action must be `none` or identify exactly one entry already present in the runnable frontier. Selection is scheduling/routing, not Design acceptance and not a claim that other frontier entries are blocked.
 

@@ -25,6 +25,7 @@ function normalizeContext(value, contextReference) {
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
     'validationCapabilityId', 'writePaths', 'caseContract', 'payload', 'contextProfile',
     'contextScope', 'baseIdentity',
+    'repositoryBaseIdentity',
   ], 'development context');
   assertIdentifier(value.revisionId, 'development context.revisionId');
   if (!isPlainRecord(value.baseTree)) fail('mcp_context_invalid', 'Context baseTree must be a record');
@@ -64,6 +65,7 @@ export function createDevelopmentUnitStartAdapter({ runner, resolveContext } = {
       contextProfile: context.contextProfile ?? 'tdev.repository.context.prepare.v1',
       contextScope: context.contextScope ?? null,
       baseIdentity: context.baseIdentity ?? null,
+      repositoryBaseIdentity: context.repositoryBaseIdentity ?? null,
       contextCapabilityId: context.contextCapabilityId ?? null,
       instruction,
       validationProfile,

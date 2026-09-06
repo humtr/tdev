@@ -16,6 +16,7 @@ import { normalizeClaims } from './claims.mjs';
 import { WORK_RESULT_KINDS } from './results.mjs';
 import { normalizeCaseContract } from './policy.mjs';
 import { validateTree } from './promotion.mjs';
+import { normalizeLazyPlanReference } from './lazy-plan-reference.mjs';
 
 const EFFECT_CLASSES = new Set(['result-only', 'idempotent-external', 'reconcilable-external']);
 const RESULT_KINDS = new Set(WORK_RESULT_KINDS);
@@ -124,13 +125,15 @@ function assertAcyclic(tasksById, taskOrder, reverseDependenciesById) {
 
 export function isCompiledPlan(value) {
   if (!isPlainRecord(value)) return false;
-  const expected = [
+  const required = [
     'revisionId', 'baseTree', 'baseDigest', 'taskOrder', 'tasksById',
     'promotionTaskId', 'reverseDependenciesById', 'planDigest',
   ].sort(compareText);
   const actual = Object.keys(value).sort(compareText);
-  return actual.length === expected.length &&
-    actual.every((key, index) => key === expected[index]) &&
+  const allowed = [...required, 'baseReference'].sort(compareText);
+  return actual.length >= required.length && actual.length <= allowed.length &&
+    actual.every((key) => allowed.includes(key)) &&
+    required.every((key) => actual.includes(key)) &&
     Array.isArray(value.taskOrder) &&
     isPlainRecord(value.tasksById) &&
     isPlainRecord(value.reverseDependenciesById) &&
@@ -138,7 +141,7 @@ export function isCompiledPlan(value) {
 }
 
 export function definePlan(input, options = {}) {
-  assertRecordShape(input, ['revisionId', 'tasks'], ['baseTree'], 'Plan');
+  assertRecordShape(input, ['revisionId', 'tasks'], ['baseTree', 'baseReference'], 'Plan');
   const caseContract = options.caseContract?.contractDigest
     ? options.caseContract
     : normalizeCaseContract(options.caseContract ?? {});
@@ -237,6 +240,9 @@ export function definePlan(input, options = {}) {
   }
 
   const baseDigest = digest(baseTree);
+  const baseReference = input.baseReference === undefined
+    ? undefined
+    : normalizeLazyPlanReference(input.baseReference, { objectFormat: options.objectFormat ?? input.baseReference.repositoryBaseIdentity?.objectFormat, semanticBaseDigest: baseDigest });
   const planIdentity = {
     revisionId: input.revisionId,
     baseTree,
@@ -244,6 +250,7 @@ export function definePlan(input, options = {}) {
     taskOrder,
     tasksById,
     promotionTaskId: promotionTask.id,
+    ...(baseReference === undefined ? {} : { baseReference }),
   };
   const planDigest = typedDigest('tdev.plan-revision.v2', planIdentity);
   const compiled = {
@@ -266,5 +273,6 @@ export function serializePlan(plan) {
     revisionId: plan.revisionId,
     baseTree: plan.baseTree,
     tasks: plan.taskOrder.map((taskId) => plan.tasksById[taskId]),
+    ...(plan.baseReference === undefined ? {} : { baseReference: plan.baseReference }),
   });
 }

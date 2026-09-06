@@ -24,6 +24,10 @@ import {
   prepareSelectedContextDelivery,
   resolveSelectedContextDelivery,
 } from './selected-context-delivery.mjs';
+import {
+  createRepositoryBaseIdentity,
+  normalizeRepositoryBaseIdentity,
+} from './lazy-plan-reference.mjs';
 
 export const REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-full-text.v1';
 export const LAZY_REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-scoped-lazy.v1';
@@ -1140,7 +1144,7 @@ export class GitRepositoryModelExecutor {
     );
   }
 
-  async #produceLazyManifest(commitOid, expectedBaseDigest, scope, signal) {
+  async #produceLazyManifest(commitOid, expectedBaseDigest, scope, signal, repositoryBaseIdentity = null) {
     const gitMetrics = zeroGitMetrics();
     throwIfAborted(signal, 'Model transport was aborted before lazy manifest preparation');
     const objectFormat = inferObjectFormat(commitOid, 'repositoryCommitOid');
@@ -1159,6 +1163,10 @@ export class GitRepositoryModelExecutor {
     const selectedByteLength = selectedRows.reduce((sum, row) => sum + (row.byteLength ?? 0), 0);
     const manifestIdentity = lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries: rows });
     const manifestDigest = typedDigest('tdev.repository-context.git-manifest.v1', manifestIdentity);
+    const generatedIdentity = createRepositoryBaseIdentity({ objectFormat, commitOid, treeOid, manifestDigest });
+    const completeIdentity = repositoryBaseIdentity === null
+      ? generatedIdentity
+      : normalizeRepositoryBaseIdentity(repositoryBaseIdentity, { objectFormat, commitOid, treeOid, manifestDigest });
     const scopeDigest = typedDigest(LAZY_CONTEXT_SCOPE_PROFILE, scope);
     const baseIdentity = deepFreeze({
       schemaVersion: 1,
@@ -1183,6 +1191,7 @@ export class GitRepositoryModelExecutor {
       baseIdentity,
       selectedEntryCount: selectedRows.length,
       selectedByteLength,
+      repositoryBaseIdentity: completeIdentity,
     });
     const handle = { descriptor, manifest: deepFreeze(rows), selectedRows: deepFreeze(selectedRows), gitMetrics };
     this.#lazyContexts.add(handle);
@@ -1197,11 +1206,11 @@ export class GitRepositoryModelExecutor {
   }
 
   async prepareLazyContext(commitOid, expectedBaseDigest, options = {}) {
-    assertRecordShape(options, ['scope'], ['signal'], 'prepareLazyContext options');
+    assertRecordShape(options, ['scope'], ['signal', 'repositoryBaseIdentity'], 'prepareLazyContext options');
     assertDigest(expectedBaseDigest, 'baseDigest');
     const signal = options.signal === undefined ? NEVER_ABORTED_SIGNAL : assertAbortSignal(options.signal, 'prepareLazyContext signal');
     const scope = normalizeLazyScope(options.scope);
-    return this.#produceLazyManifest(commitOid, expectedBaseDigest, scope, signal);
+    return this.#produceLazyManifest(commitOid, expectedBaseDigest, scope, signal, options.repositoryBaseIdentity ?? null);
   }
 
   listLazyContext(context, options = {}) {
@@ -1272,7 +1281,9 @@ export class GitRepositoryModelExecutor {
 
   async materializeScopedContext(commitOid, expectedBaseDigest, options = {}) {
     const handle = await this.prepareLazyContext(commitOid, expectedBaseDigest, options);
-    const selected = handle.selectedRows.filter((entry) => entry.type === 'blob' && ['100644', '100755'].includes(entry.mode) && entry.byteLength !== null);
+    const unsupported = handle.selectedRows.find((entry) => entry.type !== 'blob' || !['100644', '100755'].includes(entry.mode) || entry.byteLength === null);
+    if (unsupported !== undefined) throw new ContractError('lazy_selected_entry_unsupported', `Scoped context selected an unsupported repository entry: ${unsupported.path}`);
+    const selected = handle.selectedRows;
     if (selected.length > handle.descriptor.scope.maxFiles) throw new ContractError('lazy_scope_limit_exceeded', 'Lazy scoped context exceeds its file bound');
     const totalBytes = selected.reduce((sum, entry) => sum + entry.byteLength, 0);
     if (totalBytes > handle.descriptor.scope.maxBytes) throw new ContractError('lazy_scope_limit_exceeded', 'Lazy scoped context exceeds its byte bound', { contentBytes: totalBytes });
@@ -1285,12 +1296,34 @@ export class GitRepositoryModelExecutor {
       files.push({ ...row, content: read.content });
     }
     const scopedBaseDigest = digest(tree);
-    const descriptor = deepFreeze({ ...handle.descriptor, fileCount: files.length, contentBytes: totalBytes, scopedBaseDigest, contextDigest: typedDigest(LAZY_REPOSITORY_CONTEXT_PROFILE, { descriptor: handle.descriptor, entries: files.map(({ path: filePath, mode, type, blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })) }) });
+    const completeIdentity = options.repositoryBaseIdentity === undefined || options.repositoryBaseIdentity === null
+      ? null
+      : normalizeRepositoryBaseIdentity(options.repositoryBaseIdentity, {
+        objectFormat: handle.descriptor.objectFormat,
+        commitOid: handle.descriptor.commitOid,
+        treeOid: handle.descriptor.treeOid,
+        manifestDigest: handle.descriptor.manifestDigest,
+      });
+    const semanticIdentity = completeIdentity === null
+      ? handle.descriptor.baseIdentity
+      : {
+        schemaVersion: 1,
+        profile: 'tdev.repository-base-identity.v1',
+        objectFormat: handle.descriptor.objectFormat,
+        commitOid: handle.descriptor.commitOid,
+        treeOid: handle.descriptor.treeOid,
+        baseDigest: scopedBaseDigest,
+        manifestDigest: handle.descriptor.manifestDigest,
+      };
+    const descriptorBase = completeIdentity === null
+      ? handle.descriptor
+      : { ...handle.descriptor, baseDigest: scopedBaseDigest, baseIdentity: semanticIdentity, repositoryBaseIdentity: completeIdentity };
+    const descriptor = deepFreeze({ ...descriptorBase, fileCount: files.length, contentBytes: totalBytes, scopedBaseDigest, contextDigest: typedDigest(LAZY_REPOSITORY_CONTEXT_PROFILE, { descriptor: descriptorBase, entries: files.map(({ path: filePath, mode, type, blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })) }) });
     return deepFreeze({ descriptor, files, manifest: handle.manifest, scope: handle.descriptor.scope, manifestDigest: handle.descriptor.manifestDigest, scopeDigest: handle.descriptor.scopeDigest, scopedBaseDigest, gitCommandCount: handle.gitMetrics.commandCount, gitInputBytes: handle.gitMetrics.inputBytes, gitStdoutBytes: handle.gitMetrics.stdoutBytes });
   }
 
   async materializeContext(commitOid, expectedBaseDigest, options = {}) {
-    assertRecordShape(options, [], ['signal'], 'materializeContext options');
+    assertRecordShape(options, [], ['signal', 'repositoryBaseIdentity'], 'materializeContext options');
     const signal = options.signal === undefined
       ? NEVER_ABORTED_SIGNAL
       : assertAbortSignal(options.signal, 'materializeContext signal');

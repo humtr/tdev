@@ -2961,7 +2961,7 @@ function restoreV2Snapshot(snapshot, options) {
   assertRecordShape(snapshot.plan, [
     'revisionId', 'baseTree', 'baseDigest', 'taskOrder', 'tasksById', 'promotionTaskId',
     'reverseDependenciesById', 'planDigest',
-  ], [], 'snapshot.plan');
+  ], ['baseReference'], 'snapshot.plan');
   assertIdentifier(snapshot.plan.revisionId, 'snapshot.plan.revisionId');
   assertDigest(snapshot.plan.baseDigest, 'snapshot.plan.baseDigest');
   assertDigest(snapshot.plan.planDigest, 'snapshot.plan.planDigest');
@@ -2979,6 +2979,7 @@ function restoreV2Snapshot(snapshot, options) {
     revisionId: snapshot.plan.revisionId,
     baseTree: snapshot.plan.baseTree,
     tasks: snapshot.plan.taskOrder.map((taskId) => snapshot.plan.tasksById[taskId]),
+    ...(snapshot.plan.baseReference === undefined ? {} : { baseReference: snapshot.plan.baseReference }),
   }, { caseContract });
   if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== snapshot.plan.baseDigest) {
     throw new ContractError('snapshot_plan_digest', 'Snapshot Plan digest is invalid');

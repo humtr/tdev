@@ -35,6 +35,7 @@ import {
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
 import { LocalAgentRuntime } from './local-agent-runtime.mjs';
+import { normalizeRepositoryBaseIdentity } from './lazy-plan-reference.mjs';
 
 export const CODEX_EXEC_MODEL_PROFILE = CODEX_MODEL_BINDING_PROFILE;
 export const CODEX_DISCLOSURE_PROFILE = 'tdev.openai-codex-full-context.trusted-local.v1';
@@ -268,6 +269,7 @@ function assertPreparedContextIdentity(context, {
   baseDigest,
   objectFormat = null,
   baseIdentity = null,
+  repositoryBaseIdentity = null,
 } = {}) {
   if (!isPlainRecord(context) || !isPlainRecord(context.descriptor)) {
     fail('development_runtime_context_invalid', 'Prepared context is not an immutable descriptor');
@@ -301,6 +303,24 @@ function assertPreparedContextIdentity(context, {
   if (descriptor.baseIdentity !== undefined) assertDigest(descriptor.baseIdentity.manifestDigest, 'prepared context manifestDigest');
   if (descriptor.manifestDigest !== undefined && descriptor.baseIdentity?.manifestDigest !== undefined && descriptor.manifestDigest !== descriptor.baseIdentity.manifestDigest) {
     fail('development_runtime_manifest_identity_mismatch', 'Prepared context manifest identity disagrees with its full-base identity');
+  }
+  if (repositoryBaseIdentity !== null && repositoryBaseIdentity !== undefined) {
+    const expected = normalizeRepositoryBaseIdentity(repositoryBaseIdentity, {
+      objectFormat: objectFormat ?? repositoryBaseIdentity.objectFormat,
+      commitOid: repositoryCommitOid,
+    });
+    const observed = descriptor.repositoryBaseIdentity;
+    if (!isPlainRecord(observed) || observed.profile !== expected.profile || observed.objectFormat !== expected.objectFormat ||
+        observed.commitOid !== expected.commitOid || observed.treeOid !== expected.treeOid ||
+        observed.baseDigest !== expected.baseDigest || observed.manifestDigest !== expected.manifestDigest) {
+      fail('development_runtime_repository_identity_mismatch', 'Prepared context does not attest the complete repository base identity');
+    }
+  }
+  if (descriptor.repositoryBaseIdentity !== undefined) {
+    normalizeRepositoryBaseIdentity(descriptor.repositoryBaseIdentity, {
+      commitOid: repositoryCommitOid,
+      objectFormat: descriptor.repositoryBaseIdentity.objectFormat,
+    });
   }
   return context;
 }
@@ -514,14 +534,14 @@ export class CodexExecRepositoryModelExecutor {
     Object.freeze(this);
   }
 
-  async materializeContext(repositoryCommitOid, baseDigest, { signal, scope = null, objectFormat = null, baseIdentity = null } = {}) {
+  async materializeContext(repositoryCommitOid, baseDigest, { signal, scope = null, objectFormat = null, baseIdentity = null, repositoryBaseIdentity = null } = {}) {
     const context = scope !== null && typeof this.contextAdapter.materializeScopedContext === 'function'
-      ? await this.contextAdapter.materializeScopedContext(repositoryCommitOid, baseDigest, { signal, scope })
-      : await this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal, scope });
-    return assertPreparedContextIdentity(context, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity });
+      ? await this.contextAdapter.materializeScopedContext(repositoryCommitOid, baseDigest, { signal, scope, repositoryBaseIdentity })
+      : await this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal, scope, repositoryBaseIdentity });
+    return assertPreparedContextIdentity(context, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity, repositoryBaseIdentity });
   }
 
-  async execute({ repositoryCommitOid, baseDigest, instruction, contextReferenceId = undefined, writePaths = undefined, objectFormat = null, contextProfile = null, contextScope = null, contextScopeDigest = null, baseIdentity = null, preparedContext = null, operationId = null, signal = new AbortController().signal } = {}) {
+  async execute({ repositoryCommitOid, baseDigest, instruction, contextReferenceId = undefined, writePaths = undefined, objectFormat = null, contextProfile = null, contextScope = null, contextScopeDigest = null, baseIdentity = null, repositoryBaseIdentity = null, preparedContext = null, operationId = null, signal = new AbortController().signal } = {}) {
     assertScalarString(repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(baseDigest, 'baseDigest');
     boundedText(instruction, 'instruction', 64 * 1024);
@@ -531,8 +551,8 @@ export class CodexExecRepositoryModelExecutor {
     }
     if (contextScopeDigest !== null && contextScopeDigest !== undefined) assertDigest(contextScopeDigest, 'contextScopeDigest');
     const context = preparedContext === null
-      ? await this.materializeContext(repositoryCommitOid, baseDigest, { signal, scope: contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? contextScope : null, objectFormat, baseIdentity })
-      : assertPreparedContextIdentity(preparedContext, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity });
+      ? await this.materializeContext(repositoryCommitOid, baseDigest, { signal, scope: contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? contextScope : null, objectFormat, baseIdentity, repositoryBaseIdentity })
+      : assertPreparedContextIdentity(preparedContext, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity, repositoryBaseIdentity });
     const expectedDescriptorProfile = contextProfile === 'tdev.repository.context.prepare.lazy.v1'
       ? LAZY_REPOSITORY_CONTEXT_PROFILE
       : contextProfile === 'tdev.repository.context.prepare.v1' ? REPOSITORY_CONTEXT_PROFILE : null;
@@ -656,12 +676,13 @@ export class NpmCheckValidationExecutor {
   }
 }
 
-function candidateTreeDigest({ repositoryCommitOid, baseDigest, contextDigest = null, manifestDigest = null, scopeDigest = null, operationId = null, result } = {}) {
+function candidateTreeDigest({ repositoryCommitOid, baseDigest, repositoryBaseIdentity = null, contextDigest = null, manifestDigest = null, scopeDigest = null, operationId = null, result } = {}) {
   return typedDigest(CANDIDATE_DIGEST_DOMAIN, {
     schemaVersion: 1,
     operationId,
     repositoryCommitOid,
     baseDigest,
+    repositoryBaseIdentity,
     contextDigest,
     manifestDigest,
     scopeDigest,
@@ -747,10 +768,11 @@ export class LocalDevelopmentOperationRuntime {
       scope: input.scope ?? null,
       objectFormat: input.objectFormat ?? null,
       baseIdentity: input.baseIdentity ?? null,
+      repositoryBaseIdentity: input.repositoryBaseIdentity ?? null,
     });
     const referenceId = contextReferenceId(context.descriptor);
     this.contexts.set(referenceId, context);
-    return { kind: 'observation', subject: 'repository-context', value: { referenceId, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, contextDigest: context.descriptor.contextDigest, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, baseIdentity: context.descriptor.baseIdentity ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null }, evidence: { contextDigest: context.descriptor.contextDigest, repositoryCommitOid: input.repositoryCommitOid, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null } };
+    return { kind: 'observation', subject: 'repository-context', value: { referenceId, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, contextDigest: context.descriptor.contextDigest, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, baseIdentity: context.descriptor.baseIdentity ?? null, repositoryBaseIdentity: context.descriptor.repositoryBaseIdentity ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null }, evidence: { contextDigest: context.descriptor.contextDigest, repositoryCommitOid: input.repositoryCommitOid, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, baseIdentity: context.descriptor.baseIdentity ?? null, repositoryBaseIdentity: context.descriptor.repositoryBaseIdentity ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null } };
   }
 
   async modelExecutor({ input, operationId = null, signal }) {
@@ -762,16 +784,18 @@ export class LocalDevelopmentOperationRuntime {
         scope: input.contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? input.contextScope : null,
         objectFormat: input.objectFormat ?? null,
         baseIdentity: input.baseIdentity ?? null,
+        repositoryBaseIdentity: input.repositoryBaseIdentity ?? null,
       });
     const referenceId = assertContextReference(context.descriptor, input.contextReferenceId);
     try {
       const result = await this.codex.execute({ ...input, contextReferenceId: referenceId, preparedContext: context, operationId, signal });
       const manifestDigest = context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null;
       const scopeDigest = context.descriptor.scopeDigest ?? null;
-      const candidateDigest = candidateTreeDigest({ repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, operationId, result });
+      const repositoryIdentity = context.descriptor.repositoryBaseIdentity ?? input.repositoryBaseIdentity ?? null;
+      const candidateDigest = candidateTreeDigest({ repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, repositoryBaseIdentity: repositoryIdentity, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, operationId, result });
       const candidateRoot = await writeCandidateChangeSet({ repositoryPath: this.repositoryPath, commitOid: input.repositoryCommitOid, result, candidateTreeDigest: candidateDigest, baseDigest: input.baseDigest, workspaceRoot: this.workspaceRoot, signal, warden: this.warden });
-      const evidence = { ...(isPlainRecord(result.evidence) ? result.evidence : {}), candidateTreeDigest: candidateDigest, candidateBaseDigest: input.baseDigest, candidateCommitOid: input.repositoryCommitOid, candidateContextDigest: context.descriptor.contextDigest, candidateManifestDigest: manifestDigest, candidateScopeDigest: scopeDigest, candidateBaseIdentity: context.descriptor.baseIdentity ?? null };
-      this.candidates.set(candidateDigest, { candidateRoot, result, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, baseIdentity: context.descriptor.baseIdentity ?? null });
+      const evidence = { ...(isPlainRecord(result.evidence) ? result.evidence : {}), candidateTreeDigest: candidateDigest, candidateBaseDigest: input.baseDigest, candidateCommitOid: input.repositoryCommitOid, candidateContextDigest: context.descriptor.contextDigest, candidateManifestDigest: manifestDigest, candidateScopeDigest: scopeDigest, candidateBaseIdentity: context.descriptor.baseIdentity ?? null, repositoryBaseIdentity: repositoryIdentity };
+      this.candidates.set(candidateDigest, { candidateRoot, result, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, baseIdentity: context.descriptor.baseIdentity ?? null, repositoryBaseIdentity: repositoryIdentity });
       return deepFreeze({ ...result, evidence });
     } finally {
       this.contexts.delete(referenceId);
@@ -800,7 +824,7 @@ export class LocalDevelopmentOperationRuntime {
 
   candidate(candidateTreeDigest) {
     const candidate = this.candidates.get(candidateTreeDigest);
-    return candidate === undefined ? null : deepFreeze({ candidateTreeDigest, candidateRoot: candidate.candidateRoot, repositoryCommitOid: candidate.repositoryCommitOid, baseDigest: candidate.baseDigest, contextDigest: candidate.contextDigest, manifestDigest: candidate.manifestDigest, scopeDigest: candidate.scopeDigest, baseIdentity: candidate.baseIdentity, writes: canonicalClone(candidate.result.writes) });
+    return candidate === undefined ? null : deepFreeze({ candidateTreeDigest, candidateRoot: candidate.candidateRoot, repositoryCommitOid: candidate.repositoryCommitOid, baseDigest: candidate.baseDigest, contextDigest: candidate.contextDigest, manifestDigest: candidate.manifestDigest, scopeDigest: candidate.scopeDigest, baseIdentity: candidate.baseIdentity, repositoryBaseIdentity: candidate.repositoryBaseIdentity ?? null, writes: canonicalClone(candidate.result.writes) });
   }
 
   async cleanupOperation(operationId) {

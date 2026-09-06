@@ -15,6 +15,10 @@ import { promote, validateTree } from './promotion.mjs';
 import { runDurableCase } from './durable-runner.mjs';
 import { normalizeCaseContract, validateRelativePath } from './policy.mjs';
 import { executeDevelopmentOperation } from './development-operation-profile.mjs';
+import {
+  createLazyPlanReference,
+  normalizeRepositoryBaseIdentity,
+} from './lazy-plan-reference.mjs';
 
 export const DEVELOPMENT_UNIT_PROFILE = 'tdev.development-unit.v1';
 export const DEVELOPMENT_UNIT_CONTEXT_TASK_ID = 'context';
@@ -52,6 +56,7 @@ export function defineDevelopmentUnitPlan({
   contextProfile = 'tdev.repository.context.prepare.v1',
   contextScope = null,
   baseIdentity = null,
+  repositoryBaseIdentity = null,
   contextCapabilityId = null,
   instruction,
   validationProfile = 'tdev.validation.npm-check.v1',
@@ -86,6 +91,20 @@ export function defineDevelopmentUnitPlan({
     }
     assertDigest(baseIdentity.manifestDigest, 'baseIdentity.manifestDigest');
   }
+  let normalizedRepositoryBaseIdentity = null;
+  if (repositoryBaseIdentity !== null) {
+    normalizedRepositoryBaseIdentity = normalizeRepositoryBaseIdentity(repositoryBaseIdentity, {
+      objectFormat,
+      commitOid: repositoryCommitOid,
+    });
+    if (baseIdentity !== null && baseIdentity.manifestDigest !== normalizedRepositoryBaseIdentity.manifestDigest) {
+      fail('development_unit_plan_base_identity_mismatch', 'baseIdentity and repositoryBaseIdentity do not bind the same complete manifest');
+    }
+  }
+  if (contextProfile === 'tdev.repository.context.prepare.lazy.v1' && baseIdentity !== null &&
+      baseIdentity.baseDigest !== baseDigest && normalizedRepositoryBaseIdentity === null) {
+    fail('development_unit_plan_repository_identity_missing', 'A scoped lazy Plan whose semantic tree is smaller than the full base requires repositoryBaseIdentity');
+  }
   if (contextCapabilityId !== null) assertCapabilityIdentifier(contextCapabilityId, "contextCapabilityId");
   if (typeof instruction !== 'string' || instruction.length === 0) fail('development_unit_plan_invalid', 'instruction is required');
   assertIdentifier(validationProfile, 'validationProfile');
@@ -100,6 +119,13 @@ export function defineDevelopmentUnitPlan({
   const planInput = {
     revisionId,
     baseTree: normalizedBaseTree,
+    ...(normalizedRepositoryBaseIdentity === null ? {} : {
+      baseReference: createLazyPlanReference({
+        repositoryBaseIdentity: normalizedRepositoryBaseIdentity,
+        scope: contextScope,
+        semanticBaseDigest: baseDigest,
+      }),
+    }),
     tasks: [
       {
         id: DEVELOPMENT_UNIT_CONTEXT_TASK_ID,
@@ -113,6 +139,7 @@ export function defineDevelopmentUnitPlan({
           objectFormat,
           ...(contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? { scope: canonicalClone(contextScope) } : {}),
           ...(baseIdentity === null ? {} : { baseIdentity: canonicalClone(baseIdentity) }),
+          ...(normalizedRepositoryBaseIdentity === null ? {} : { repositoryBaseIdentity: canonicalClone(normalizedRepositoryBaseIdentity) }),
         },
         execution: {
           operation: contextProfile,
@@ -135,6 +162,7 @@ export function defineDevelopmentUnitPlan({
           objectFormat,
           ...(contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? { contextProfile, contextScope: canonicalClone(contextScope) } : {}),
           ...(baseIdentity === null ? {} : { baseIdentity: canonicalClone(baseIdentity) }),
+          ...(normalizedRepositoryBaseIdentity === null ? {} : { repositoryBaseIdentity: canonicalClone(normalizedRepositoryBaseIdentity) }),
           ...(writePaths === null ? {} : { writePaths }),
         },
         execution: {
@@ -250,6 +278,7 @@ export class DevelopmentUnitRunner {
             objectFormat: task.input.objectFormat,
             ...(task.input.scope === undefined ? {} : { scope: task.input.scope }),
             ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
+            ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
           },
         };
       } else if (task.id === DEVELOPMENT_UNIT_MODEL_TASK_ID) {
@@ -268,6 +297,7 @@ export class DevelopmentUnitRunner {
             ...(task.input.contextProfile === undefined ? {} : { contextProfile: task.input.contextProfile, contextScope: task.input.contextScope }),
             ...(contextScopeDigest === null ? {} : { contextScopeDigest }),
             ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
+            ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
             ...(task.input.writePaths === undefined ? {} : { writePaths: task.input.writePaths }),
             contextReferenceId,
           },
@@ -370,7 +400,9 @@ export class DevelopmentUnitRunner {
       canonicalTree: canonicalClone(snapshot.canonicalTree),
       canonicalDigest: snapshot.canonicalDigest,
       planDigest: snapshot.plan.planDigest,
+      baseReference: snapshot.plan.baseReference ?? null,
       baseIdentity: contextResult?.value?.baseIdentity ?? null,
+      repositoryBaseIdentity: contextResult?.value?.repositoryBaseIdentity ?? snapshot.plan.baseReference?.repositoryBaseIdentity ?? null,
       contextDigest: contextResult?.value?.contextDigest ?? null,
       manifestDigest: contextResult?.value?.manifestDigest ?? null,
       scopeDigest: contextResult?.value?.scopeDigest ?? null,

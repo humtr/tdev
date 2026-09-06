@@ -91,8 +91,9 @@ async function main() {
   const lazyAdapter = new GitRepositoryModelExecutor({ repositoryPath: fixture.repositoryPath, modelExecutable: CODEX_EXECUTABLE, timeoutMs: 300_000 });
   const scope = { paths: Object.keys(fixture.files).sort(), maxFiles: 8, maxBytes: 16 * 1024 };
   const lazyContext = await lazyAdapter.prepareLazyContext(fixture.commitOid, fixture.baseDigest, { scope });
+  const repositoryBaseIdentity = lazyContext.descriptor.repositoryBaseIdentity;
   const scopedContextAdapter = {
-    materializeContext: (commitOid, baseDigest, options = {}) => lazyAdapter.materializeScopedContext(commitOid, baseDigest, { ...options, scope }),
+    materializeContext: (commitOid, baseDigest, options = {}) => lazyAdapter.materializeScopedContext(commitOid, baseDigest, { ...options, scope, repositoryBaseIdentity }),
   };
   const contextReference = `cp1-context-${fixture.commitOid.slice(0, 12)}`;
   const identity = { principalId: 'cp1-principal', tenantId: 'cp1-tenant' };
@@ -136,6 +137,7 @@ async function main() {
     contextProfile: 'tdev.repository.context.prepare.lazy.v1',
     contextScope: scope,
     baseIdentity: lazyContext.descriptor.baseIdentity,
+    repositoryBaseIdentity,
     contextReferenceId: contextReference,
     contextCapabilityId,
     modelCapabilityId,

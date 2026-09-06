@@ -282,6 +282,18 @@ export {
   GitRepositoryModelExecutor,
   runModelSubprocess,
 } from './repository-model-transport.mjs';
+export {
+  REPOSITORY_BASE_IDENTITY_PROFILE,
+  REPOSITORY_BASE_DIGEST_DOMAIN,
+  LAZY_PLAN_REFERENCE_PROFILE,
+  LAZY_PLAN_REFERENCE_SCHEMA_VERSION,
+  createRepositoryBaseIdentity,
+  normalizeRepositoryBaseIdentity,
+  createLazyPlanReference,
+  normalizeLazyPlanReference,
+  normalizeLazyPlanScope,
+  scopeDigest,
+} from './lazy-plan-reference.mjs';
 export { CaseRepository } from './repository.mjs';
 export {
   SEMANTIC_PROFILE,

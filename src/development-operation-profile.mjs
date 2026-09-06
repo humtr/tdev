@@ -14,6 +14,7 @@ import {
   typedDigest,
 } from './canonical.mjs';
 import { validateRelativePath } from './policy.mjs';
+import { normalizeRepositoryBaseIdentity } from './lazy-plan-reference.mjs';
 
 export const DEVELOPMENT_OPERATION_PROFILE = 'tdev.development-operation-profiles.v2';
 export const DEVELOPMENT_OPERATION_SCHEMA_VERSION = 2;
@@ -215,17 +216,18 @@ function normalizeRequestInput(kind, input, profileName) {
   if (!isPlainRecord(input)) fail('development_operation_request_invalid', 'Development operation input must be a record');
   if (kind === 'repository_context') {
     const lazy = profileName === LAZY_CONTEXT_OPERATION_PROFILE;
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], lazy ? ['scope', 'baseIdentity'] : ['baseIdentity'], 'repository context operation input');
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], lazy ? ['scope', 'baseIdentity', 'repositoryBaseIdentity'] : ['baseIdentity', 'repositoryBaseIdentity'], 'repository context operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     if (!['sha1', 'sha256'].includes(input.objectFormat)) fail('development_operation_request_invalid', 'objectFormat is unsupported');
     const normalized = canonicalClone(input);
     if (input.baseIdentity !== undefined) normalized.baseIdentity = normalizeBaseIdentity(input.baseIdentity, { repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, label: 'repository context baseIdentity' });
+    if (input.repositoryBaseIdentity !== undefined) normalized.repositoryBaseIdentity = normalizeRepositoryBaseIdentity(input.repositoryBaseIdentity, { repositoryCommitOid: input.repositoryCommitOid, objectFormat: input.objectFormat });
     if (lazy && (!isPlainRecord(input.scope) || Object.keys(input.scope).length === 0 || input.baseIdentity === undefined || input.baseIdentity === null)) fail('development_operation_request_invalid', 'Lazy context scope and full-base identity are required');
     return deepFreeze(normalized);
   }
   if (kind === 'model_repository') {
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId', 'writePaths', 'objectFormat', 'contextProfile', 'contextScope', 'contextScopeDigest', 'baseIdentity'], 'model operation input');
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId', 'writePaths', 'objectFormat', 'contextProfile', 'contextScope', 'contextScopeDigest', 'baseIdentity', 'repositoryBaseIdentity'], 'model operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     boundedText(input.instruction, 'instruction', 64 * 1024);
@@ -245,6 +247,7 @@ function normalizeRequestInput(kind, input, profileName) {
     }
     if (input.contextScopeDigest !== undefined) assertDigest(input.contextScopeDigest, 'model contextScopeDigest');
     if (input.baseIdentity !== undefined) normalized.baseIdentity = normalizeBaseIdentity(input.baseIdentity, { repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat ?? null, label: 'model baseIdentity' });
+    if (input.repositoryBaseIdentity !== undefined) normalized.repositoryBaseIdentity = normalizeRepositoryBaseIdentity(input.repositoryBaseIdentity, { repositoryCommitOid: input.repositoryCommitOid, objectFormat: input.objectFormat ?? undefined });
     if (Object.hasOwn(input, 'writePaths')) normalized.writePaths = normalizeWritePaths(input.writePaths);
     return deepFreeze(normalized);
   }
