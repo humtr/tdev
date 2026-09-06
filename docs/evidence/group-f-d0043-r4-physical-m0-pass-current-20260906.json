@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0043",
+  "revision": 4,
+  "layer": "physical-termux",
+  "qualification": "m0-physical-termux-candidate-current-source",
+  "sourceCommit": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+  "status": "PASS",
+  "command": "node qualification/d0043-physical-termux-m0.mjs",
+  "operationBinding": {
+    "model": "gpt-5.6-luna",
+    "reasoningEffort": "low",
+    "codex": "codex-cli 0.153.4",
+    "sandboxMode": "none",
+    "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1"
+  },
+  "exactBase": {
+    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+    "semanticBaseDigest": "sha256:b38560ad58fcbd3358579f75eb1a6928ec7fd30b29b5a47141a7d1e51c845075",
+    "repositoryBaseDigest": "sha256:443b70726e1070117151bef72132d5759a0597c85c9a3914a3a0b525e43c12b2",
+    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
+    "scopeDigest": "sha256:01eaa8531eca41ee5771919c026e04c07dd31924a27dae49d10f098d34f1b4e7"
+  },
+  "result": {
+    "caseId": "case-m0-9d0a75485ce1",
+    "caseState": "succeeded",
+    "candidateDigest": "sha256:43c7c359f808c3e6b1063b77673e18d3b95a03687b414122f9355276258337a9",
+    "modelProcessStarts": 1,
+    "validationPassed": true,
+    "emittedFrames": 15
+  },
+  "cleanup": {
+    "modelProcess": "positive observed-close receipt",
+    "modelWorkspace": "positive absence receipt",
+    "validationProcess": "positive observed-close receipt",
+    "candidate": "positive absence receipt",
+    "workspaceRoot": "no tdev-development-* entry remained after process exit"
+  },
+  "externalEffects": {
+    "canonicalCheckout": false,
+    "gitIndex": false,
+    "gitRef": false,
+    "provider": false,
+    "credentials": false
+  },
+  "notProven": [
+    "provider deployment/readback",
+    "authenticated current ChatGPT web client execution",
+    "tmcp comparison",
+    "the historical 502 cause"
+  ],
+  "secrets": "none"
+}

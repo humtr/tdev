@@ -1,0 +1,192 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0048",
+  "revision": 1,
+  "layer": "source-local-and-physical-termux",
+  "qualification": "current-source-cp1-cp2-cp3-full-context-stress-and-m0",
+  "sourceCommit": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+  "status": "PASS",
+  "cp1": {
+    "profile": "tdev.d0047.cp1-scoped-context.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "ae38cc21a1b47cb3f2ac48491555864319f7c3cc",
+    "treeOid": "fdbaf7a26399972a5d80da09bb057d63b1768697",
+    "objectFormat": "sha1",
+    "semanticBaseDigest": "sha256:5948eefa7aab16b9eca6a182297e12c01611be59a20a2ccc8ccdaaa104e22cd5",
+    "repositoryBaseDigest": "sha256:3cc2bb7d1c9bfac13cb04a2ed4948ed9035124928446a6cf06b857af5941c945",
+    "manifestDigest": "sha256:600d038632dce72af152342c2b8d2a742712c3fc1a4090a03efde11432ada2e5",
+    "scopeDigest": "sha256:2fdd630ca4f92c6fd834df4050767ccd76f989c9070fe3225bd223e5c7d9eb0e",
+    "selectedEntryCount": 3,
+    "contextReference": "cp1-context-ae38cc21a1b4",
+    "route": {
+      "mcpSurface": "in-process MCP JSON-RPC initialize/tools/list/tools/call surface",
+      "agent": "local authenticated Agent bridge",
+      "model": "installed Termux Codex CLI codex-cli 0.153.4",
+      "candidate": "disposable full exact-base clone",
+      "validation": "fixed installed npm check"
+    },
+    "result": {
+      "candidateState": "succeeded",
+      "modelChangeSet": "inspectable result-only ChangeSet",
+      "fixedValidation": "PASS",
+      "sameCaseProjection": true,
+      "canonicalUnchanged": true,
+      "workspaceCleaned": true
+    },
+    "cleanup": {
+      "modelProcess": "positive observed-close receipt",
+      "modelWorkspace": "positive absence receipt",
+      "validationProcess": "positive observed-close receipt",
+      "candidate": "positive absence receipt"
+    }
+  },
+  "cp2": {
+    "profile": "tdev.d0047.cp2-full-repository-lazy.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+    "treeOid": "7e00a9f2ce114dabf2ede26878b296987fe5ca65",
+    "semanticBaseDigest": "sha256:d585ef47cdba2699e60f5ca02a533a04369b8cbcbab99d6324b025be8a2d49ae",
+    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
+    "manifestEntryCount": 512,
+    "scopeDigest": "sha256:6defb928c0ecf4f9197fe71b25787dc78873cd4683f335a370afb16a9e0fd1db",
+    "selectedEntryCount": 3,
+    "boundedRead": {
+      "path": "src/development-runtime.mjs",
+      "bytes": 1024,
+      "complete": false
+    },
+    "search": {
+      "matches": [
+        "src/development-runtime.mjs"
+      ],
+      "complete": true,
+      "visitedFiles": 3,
+      "visitedBytes": 133850
+    },
+    "boundedBlobReadsBeforeScope": 0,
+    "boundedBlobReadsAfterScope": 4,
+    "completeManifestPaged": true
+  },
+  "cp3": {
+    "profile": "tdev.d0047.cp3-one-gib-metadata.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "19baab9b7aa645cc7cb3c129048a39b7de5c161b",
+    "treeOid": "5b1e03cf8378aaf4bba4ab063096dc698cf31206",
+    "semanticBaseDigest": "sha256:84be7d378783372cf6d3a35cd9242cecd1256e8522ea4fe3fbef010323239d22",
+    "manifestDigest": "sha256:e9a16416567e19bbc2252a56213e69dc5f158abcbf39b406140b56112490deda",
+    "manifestEntryCount": 2,
+    "largeEntryBytes": 1073741824,
+    "smallRead": {
+      "path": "src/small.txt",
+      "bytes": 16
+    },
+    "incompleteLargeSearch": {
+      "complete": false,
+      "visitedBytes": 0
+    },
+    "boundedBlobReadsBeforeSmallRead": 0,
+    "fullContextStress": "separate explicit profile"
+  },
+  "fullContextStress": {
+    "profile": "tdev.d0047.full-context-stress.v1",
+    "status": "PASS",
+    "fullContext": {
+      "status": "PASS",
+      "repositoryCommitOid": "11d11da6859230b15c10e17692c5181c411977ef",
+      "treeOid": "2866cb95b6e43277758c05cdfca089b0fb457b07",
+      "fileCount": 2,
+      "contentBytes": 69,
+      "durationMs": 200
+    },
+    "overFileLimit": {
+      "status": "PASS",
+      "repositoryCommitOid": "72808799f756bb3971228068a1fa99849ce08e67",
+      "declaredFileLimitBytes": 2097152,
+      "attemptedBytes": 2097153,
+      "failure": {
+        "code": "repository_context_file_limit_exceeded",
+        "message": "Repository file exceeds 2097152 bytes"
+      }
+    },
+    "overTreeLimit": {
+      "status": "PASS",
+      "repositoryCommitOid": "27f4a4c78f15e1fdeed0ed8ea29f4a07999c8ff9",
+      "declaredTreeLimitBytes": 16777216,
+      "attemptedBytes": 18874368,
+      "failure": {
+        "code": "repository_context_tree_limit_exceeded",
+        "message": "Repository context exceeds 16777216 bytes"
+      }
+    },
+    "qualification": "separate-explicit-full-context-profile"
+  },
+  "m0PhysicalTermux": {
+    "profile": "tdev.d0043.m0-physical-termux.v1",
+    "status": "PASS",
+    "command": "node qualification/d0043-physical-termux-m0.mjs",
+    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+    "semanticBaseDigest": "sha256:b38560ad58fcbd3358579f75eb1a6928ec7fd30b29b5a47141a7d1e51c845075",
+    "repositoryBaseDigest": "sha256:443b70726e1070117151bef72132d5759a0597c85c9a3914a3a0b525e43c12b2",
+    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
+    "scopeDigest": "sha256:01eaa8531eca41ee5771919c026e04c07dd31924a27dae49d10f098d34f1b4e7",
+    "caseId": "case-m0-9d0a75485ce1",
+    "candidateDigest": "sha256:43c7c359f808c3e6b1063b77673e18d3b95a03687b414122f9355276258337a9",
+    "operationBinding": {
+      "model": "gpt-5.6-luna",
+      "reasoningEffort": "low",
+      "codex": "codex-cli 0.153.4",
+      "sandboxMode": "none",
+      "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1"
+    },
+    "result": {
+      "caseState": "succeeded",
+      "modelProcessStarts": 1,
+      "validationPassed": true,
+      "emittedFrames": 15
+    },
+    "cleanup": {
+      "modelProcess": "positive observed-close receipt",
+      "modelWorkspace": "positive absence receipt",
+      "validationProcess": "positive observed-close receipt",
+      "candidate": "positive absence receipt",
+      "workspaceRoot": "no tdev-development-* entry remained after process exit"
+    },
+    "externalEffects": {
+      "canonicalCheckout": false,
+      "gitIndex": false,
+      "gitRef": false,
+      "provider": false,
+      "credentials": false
+    }
+  },
+  "sourceGate": {
+    "command": "npm run check",
+    "status": "PASS",
+    "syntax": "PASS",
+    "documentation": "PASS",
+    "tests": {
+      "passed": 676,
+      "failed": 0,
+      "cancelled": 0,
+      "skipped": 0
+    },
+    "demo": "PASS",
+    "durableDemo": "PASS",
+    "diffCheck": "PASS"
+  },
+  "observations": {
+    "workspaceBaselineBeforeM0": "empty for tdev-development-* entries",
+    "workspaceAfterM0": "empty for tdev-development-* entries",
+    "sourceGateRanBeforeEvidenceCommit": true
+  },
+  "notProven": [
+    "provider deployment or provider MCP candidate execution at this source",
+    "authenticated current ChatGPT web client execution",
+    "the historical 502 cause",
+    "metadata-only durable Case/Plan representation",
+    "tmcp comparison",
+    "1 GiB full-context execution; only metadata/lazy and explicit stress profiles were qualified"
+  ],
+  "secrets": "none"
+}
