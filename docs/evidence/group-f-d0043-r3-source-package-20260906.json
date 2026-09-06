@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0043",
+  "revision": 3,
+  "qualification": "source-package-rebinding",
+  "layer": "source-package",
+  "sourceCommit": "32e150f1105905d8982961c81224bc0d4f90b705",
+  "status": "PASS",
+  "target": { "platform": "android", "arch": "arm64" },
+  "artifact": {
+    "archive": "tdev-installable-agent-android-arm64-32e150f1105905d8982961c81224bc0d4f90b705.tgz",
+    "sha256": "sha256:a81b11f1ee76bd7d51898bdeb402bcf189d8f3fab1c015dfb772b022e5b46671",
+    "bytes": 175517,
+    "releaseManifestDigest": "sha256:93711a32c9552dddb89b3aadae211d5a1002d3898ceaed96cc6e5b94bd4a99d4",
+    "fileCount": 35
+  },
+  "bindings": {
+    "developmentOperationManifestDigest": "sha256:aced4fa7b887a5e39eccbc6a3e17fcd8eca6bb0a42d3c082bc6f02f7d1b6332e",
+    "developmentOperationProfilesSha256": "69b97249793950d50a0ea705767ca21129d7bb3b976f5190c4588bfb9f0e43ba",
+    "outputSchemaSha256": "5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7"
+  },
+  "checks": {
+    "deterministicPackageBuild": true,
+    "releaseManifestVerified": true,
+    "physicalTermuxExecution": "not_proven",
+    "providerDeployment": "not_proven",
+    "currentClient": "not_proven"
+  },
+  "secrets": "none"
+}
