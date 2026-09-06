@@ -207,6 +207,8 @@ Force at least model timeout/cancel, malformed terminal output, validation failu
 
 ### D0046 minimum tdev MCP experiential-path gates
 
+User CP1 requires actual authenticated ChatGPT and the same-Case validated candidate. Local executables named CP1 are prerequisite proof only. Before an existing trial is updated, verify exact predecessor/configuration, preserved auth/namespace identities, legacy Case/drive reader compatibility and positive Agent/process quiescence. A stale observation or unknown live effect blocks only its dependent update.
+
 D0046 qualification is ordered CP1 scoped source path -> CP2/CP3 lazy repository gates -> M0 physical Termux -> M1 provider composition -> M2 current-client result. CP1 is the first executable checkpoint and must traverse MCP → Agent → model ChangeSet → disposable candidate → validation once; CP2/CP3 and the explicit full-context stress run remain separate evidence. Do not spend a final web ChatGPT attempt while the lower gates are absent or failing.
 
 At the source/composition layer, prove one strict release manifest binds D0023/D0024 ingress, cross-script Case and Agent Durable Object facades, one SQLite `CaseAgentDriveRuntimeDO`, the same exact Case D1 placement, and fixed principal/tenant/Agent/route/repository/operation identities. Negative tests deny alternate script/class/namespace/D1/tenant/Case-prefix/Agent/repository/profile inputs before owner lookup, prove the ingress stores no Case/readiness/delivery/process truth and verify no canonical/Git adapter is configured.

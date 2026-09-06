@@ -1,17 +1,28 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 3
+- Revision: 4
 - Class: 2
 - Decision date: 2026-09-06
-- Acceptance base: `development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a`
-- Predecessor revision: D0046@r2 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
+- Acceptance base: `development@18da93afad6e37429f83fab49bde2331b797233e`
+- Historical r3 predecessor revision: D0046@r2 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
 - Trigger: the source repair now connects the owner-issued lazy identity through Case/Agent execution, sparse model workspace, disposable full-base candidate and positive warden receipts. The minimum path must treat that local composition as the first executable checkpoint while retaining provider quota and current-client behavior as unknown.
-- Acceptance evidence: `docs/evidence/group-f-d0046-r3-scoped-warden-route-acceptance-2026-09-06.json`
+- Historical r3 acceptance evidence: `docs/evidence/group-f-d0046-r3-scoped-warden-route-acceptance-2026-09-06.json`
 - Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
+
+## Revision 4 correction
+
+- Predecessor: D0046@r3 as published at `development@18da93afad6e37429f83fab49bde2331b797233e`.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r4-preserving-update-acceptance-20260906.json`.
+- User CP1 means the actual ChatGPT MCP -> Agent -> model ChangeSet -> disposable candidate -> validation -> same Case result path in Section 4. Historical executables named CP1 prove only the local prerequisite; their PASS never closes user CP1. M2 is the current-client component of user CP1.
+- Reuse the existing verified trial principal/tenant, Access resource/application/audience and namespace bindings when unchanged. A missing shell environment variable is not evidence of missing identity. Do not change authentication meaning or add a new public URL merely to rerun a first-install tool.
+- First creation still requires absence. A forward update instead requires an exact provider predecessor, unchanged owner placements/auth identity, compatible readers for retained Cases/drives and positive execution quiescence. Preserve data, receipts and namespaces. Changed state since preparation rejects the update. A failed or ambiguous upload is reconciled by actual deployed version/configuration, never blind replay or automatic deletion.
+- Qualify the scoped Plan against the actual Case writer and the operation against the actual installed Agent release before trial ingress mutation. A source marker alone is insufficient. Update a shared owner only after its responsible compatibility/lifecycle gate covers all affected consumers; this revision does not permit replacing a canonical route to manufacture a test.
+- Keep the qualified Case budget while measuring the actual scoped Plan. Capacity or discovery PASS cannot skip authenticated machine/provider candidate execution.
+- Accepted changes are deployment/qualification Class 2. D0024 identity semantics, D0019 authority, D0027 lifecycle and D0047/D0048 base identity remain unchanged. Current source/local evidence remains at its original source; provider/current-client evidence remains open.
 
 ## 1. One-line definition
 

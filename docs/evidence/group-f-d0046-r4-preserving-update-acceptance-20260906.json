@@ -1,0 +1,14 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0046",
+  "revision": 4,
+  "status": "accepted",
+  "acceptanceBase": "development@18da93afad6e37429f83fab49bde2331b797233e",
+  "decision": "preserve existing trial identity and durable state during an explicitly qualified forward update; user CP1 requires actual ChatGPT same-Case candidate confirmation",
+  "authorization": "user requested correction and continued implementation",
+  "facts": ["Existing provider principal and tenant were observed without disclosing their values", "First-install deployer rejects existing trial resources", "Local CP1 harness does not execute a ChatGPT client"],
+  "requiredFalsifiers": ["changed predecessor", "changed auth or namespace", "incompatible Case reader", "nonquiescent execution", "lost upload response"],
+  "unknown": ["current provider reader compatibility", "installed release compatibility", "provider candidate success", "ChatGPT result", "historical 502 root cause"],
+  "providerMutation": false
+}

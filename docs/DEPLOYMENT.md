@@ -473,7 +473,7 @@ Rollback before any Attempt is normal package rollback after exact predecessor a
 
 ### D0046 isolated user-experience trial deployment
 
-The first ingress is a new Worker service `tdev-mcp-trial` with public resource `https://tdev-mcp-trial.humtr.workers.dev/mcp`. Deployment refuses to overwrite a preexisting conflicting service. It leaves the existing `tdev` OAuth experiment, canonical D0039 route, D0044 lane and Git refs untouched.
+The first ingress is a new Worker service `tdev-mcp-trial` with public resource `https://tdev-mcp-trial.humtr.workers.dev/mcp`. First creation refuses a preexisting service. D0046 revision 4 permits an explicitly prepared forward update of the already-owned trial only after exact predecessor/configuration, unchanged auth/namespace identities, retained-state reader compatibility and positive execution quiescence are proved. It preserves existing data and receipts; response loss requires readback reconciliation rather than retry or deletion. It leaves the existing `tdev` OAuth experiment, canonical D0039 route, D0044 lane and Git refs untouched.
 
 The immutable trial manifest binds:
 
