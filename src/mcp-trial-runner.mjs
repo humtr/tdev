@@ -189,6 +189,20 @@ function candidateTree(view) {
   return promote(view.plan.baseTree, acceptedResults, view.plan.baseDigest, { caseContract: view.caseContract }).tree;
 }
 
+function candidateChanges(view) {
+  const changes = [];
+  for (const taskId of view.plan.taskOrder) {
+    const result = resultForTask(view, taskId);
+    if (!isPlainRecord(result) || result.kind !== 'changeset' || !Array.isArray(result.writes)) continue;
+    for (const write of result.writes) {
+      changes.push({ taskId, path: write.path, content: write.content });
+    }
+  }
+  changes.sort((left, right) => String(left.taskId).localeCompare(String(right.taskId)) ||
+    String(left.path).localeCompare(String(right.path)));
+  return changes;
+}
+
 function effectKey(view, taskId) {
   const engine = new CaseEngine({ caseId: view.snapshot.caseId, plan: view.plan, caseContract: view.caseContract });
   return engine.effectKey(taskId);
@@ -229,7 +243,24 @@ function reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrd
     .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)))[0] ?? null;
 }
 
-function operationRequest(view, taskId, payload) {
+/**
+ * Public development_unit_start accepts the named validation capability
+ * (for example tdev.validation.npm-check.v1), while the operation catalog
+ * keys the executable request by its repository-validation operation profile.
+ * Resolve that one fixed binding here and reject ambiguity; callers never gain
+ * executable/argv authority from the alias.
+ */
+export function resolveValidationOperationProfile(operationManifest, requestedProfile) {
+  const normalized = normalizeDevelopmentOperationManifest(operationManifest);
+  if (normalized.profiles[requestedProfile]?.kind === 'repository_validation') return requestedProfile;
+  const matches = Object.entries(normalized.profiles)
+    .filter(([, profile]) => profile.kind === 'repository_validation' && profile.binding?.profile === requestedProfile)
+    .map(([name]) => name);
+  if (matches.length !== 1) fail('mcp_trial_validation_profile_invalid', 'Validation profile did not resolve to exactly one fixed operation profile', { requestedProfile, matches });
+  return matches[0];
+}
+
+function operationRequest(view, taskId, payload, operationManifest) {
   const task = view.plan.tasksById[taskId];
   if (taskId === 'context') {
     return {
@@ -258,15 +289,15 @@ function operationRequest(view, taskId, payload) {
   if (taskId === 'validate') {
     const tree = candidateTree(view);
     return {
-      profile: task.input.profile,
+      profile: resolveValidationOperationProfile(operationManifest, task.input.profile),
       input: { candidateTreeDigest: digest(tree), validationProfile: task.input.validationProfile },
     };
   }
   fail('mcp_trial_task_unsupported', `Unsupported development Task ${taskId}`);
 }
 
-function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor } = {}) {
-  const operation = operationRequest(view, taskId, payload);
+function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor, operationManifest } = {}) {
+  const operation = operationRequest(view, taskId, payload, operationManifest);
   if (!Number.isSafeInteger(predictedAttemptOrdinal) || predictedAttemptOrdinal < 1) {
     fail('mcp_trial_attempt_identity_invalid', 'Executable body requires a positive predicted Attempt ordinal');
   }
@@ -359,7 +390,19 @@ export class McpTrialDevelopmentUnitRunner {
     if (!isPlainRecord(plan)) fail('mcp_trial_plan_invalid', 'Trial runner requires a compiled Plan record');
     const created = await this.repository.create({ caseId, plan, caseContract: this.caseContract });
     const drive = await this.driveOwner.initialize({ caseId, driveRequestId, payload });
-    return deepFreeze({ caseId, planDigest: plan.planDigest, drive: canonicalClone(drive), created: canonicalClone(created?.snapshot?.() ?? created) });
+    const createdSnapshot = snapshotFromOwner(created, 'Case owner');
+    return deepFreeze({
+      caseId,
+      planDigest: plan.planDigest,
+      drive: canonicalClone(drive),
+      created: {
+        caseId: createdSnapshot.caseId,
+        caseState: createdSnapshot.caseState,
+        caseRevision: createdSnapshot.caseRevision,
+        planDigest: createdSnapshot.plan?.planDigest ?? plan.planDigest,
+        baseDigest: createdSnapshot.plan?.baseDigest ?? plan.baseDigest,
+      },
+    });
   }
 
   async #load(caseId) {
@@ -461,6 +504,7 @@ export class McpTrialDevelopmentUnitRunner {
     const body = executableBody(view, taskId, payload, {
       predictedAttemptOrdinal,
       executor,
+      operationManifest: this.operationManifest,
     });
     const descriptor = preflightDescriptor(body, agentSnapshot, taskId);
     const reservationRequestId = requestId('reserve', { driveRequestId, taskId, predictedAttemptOrdinal });
@@ -714,12 +758,19 @@ export class McpTrialDevelopmentUnitRunner {
 
   async candidate(caseId) {
     const view = await this.#load(caseId);
+    const tree = candidateTree(view);
+    const changes = candidateChanges(view);
     return deepFreeze({
       caseId,
       caseState: view.snapshot.caseState,
       caseRevision: view.snapshot.caseRevision,
-      canonicalTree: candidateTree(view),
-      canonicalDigest: view.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(candidateTree(view)),
+      baseDigest: view.plan.baseDigest,
+      candidateDigest: digest(tree),
+      candidateTreeBytes: new TextEncoder().encode(canonicalJson(tree)).byteLength,
+      changeCount: changes.length,
+      changedPaths: changes.map(({ path }) => path),
+      changes,
+      canonicalDigest: view.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(tree),
       planDigest: view.plan.planDigest,
     });
   }

@@ -14,7 +14,9 @@ import {
 } from './canonical.mjs';
 import { MCP_AUTH_PROFILE } from './mcp-auth.mjs';
 import { createCasePlacement } from './casedo-authority.mjs';
+import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
+import { agentRouteHostKey } from './agent-route-election.mjs';
 
 /**
  * D0046's source-only composition boundary.  The Worker that imports this
@@ -63,20 +65,22 @@ function ownerPlacement(value, label, expectedClassName) {
 }
 
 function ownerBinding(value, label, expectedClassName) {
-  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration'], label);
+  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration', 'routeKey'], label);
   const placement = ownerPlacement(value.placement, `${label}.placement`, expectedClassName);
   for (const field of ['namespaceId', 'd1Binding', 'd1DatabaseId']) {
     if (value[field] !== undefined) boundedText(value[field], `${label}.${field}`, 512);
   }
+  if (value.routeKey !== undefined) boundedText(value.routeKey, `${label}.routeKey`, 256);
   return {
     placement,
     ...(value.namespaceId === undefined ? {} : { namespaceId: value.namespaceId }),
     ...(value.d1Binding === undefined ? {} : { d1Binding: value.d1Binding }),
     ...(value.d1DatabaseId === undefined ? {} : { d1DatabaseId: value.d1DatabaseId }),
+    ...(value.routeKey === undefined ? {} : { routeKey: value.routeKey }),
   };
 }
 
-function normalizeContext(context, repository, label = 'repository.context') {
+function normalizeContext(context, repository, label = 'repository.context', { allowEmptyBaseTree = false } = {}) {
   if (!isPlainRecord(context)) fail('mcp_trial_context_invalid', `${label} must be a record`);
   assertRecordShape(context, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
@@ -89,7 +93,14 @@ function normalizeContext(context, repository, label = 'repository.context') {
   if (objectFormat !== repository.objectFormat) fail('mcp_trial_context_mismatch', `${label}.objectFormat is not the fixed repository format`);
   if (context.repositoryCommitOid !== repository.commitOid) fail('mcp_trial_context_mismatch', `${label}.repositoryCommitOid is not the fixed commit`);
   const baseTree = canonicalClone(context.baseTree);
-  if (digest(baseTree) !== repository.baseDigest) fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed base digest`);
+  // The deployment binding deliberately carries an empty context tree: the
+  // immutable tree is compiled into the Worker module and injected only when
+  // a full owner operation is actually needed.  An empty tree is accepted
+  // here solely by normalizeMcpTrialCompositionBinding; the normal manifest
+  // normalizer remains strict and always checks the semantic digest.
+  if (!(allowEmptyBaseTree && Object.keys(baseTree).length === 0) && digest(baseTree) !== repository.baseDigest) {
+    fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed base digest`);
+  }
   if (context.contextReferenceId !== repository.contextReference) {
     fail('mcp_trial_context_mismatch', `${label}.contextReferenceId is not the fixed context reference`);
   }
@@ -100,7 +111,7 @@ function normalizeContext(context, repository, label = 'repository.context') {
   };
 }
 
-function normalizeManifestBody(input) {
+function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   assertRecordShape(input, [
     'schemaVersion', 'profile', 'resource', 'workerScript', 'environment', 'jurisdiction',
     'caseOwner', 'driveOwner', 'agentOwner', 'repository', 'operation', 'identity',
@@ -118,9 +129,15 @@ function normalizeManifestBody(input) {
   const caseOwner = ownerBinding(input.caseOwner, 'caseOwner', MCP_TRIAL_CASE_CLASS_NAME);
   const driveOwner = ownerBinding(input.driveOwner, 'driveOwner', MCP_TRIAL_DRIVE_CLASS_NAME);
   const agentOwner = ownerBinding(input.agentOwner, 'agentOwner', MCP_TRIAL_AGENT_CLASS_NAME);
-  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId'], 'agentOwner');
+  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId', 'routeKey'], 'agentOwner');
   assertIdentifier(input.agentOwner.agentId, 'agentOwner.agentId');
   assertSafeInteger(input.agentOwner.routeGeneration, 'agentOwner.routeGeneration', { min: 1 });
+  if (input.agentOwner.routeKey !== undefined && input.agentOwner.routeKey !== agentRouteHostKey({
+    agentId: input.agentOwner.agentId,
+    routeGeneration: input.agentOwner.routeGeneration,
+  })) {
+    fail('mcp_trial_agent_route_mismatch', 'agentOwner.routeKey must be the generation-bound route host key');
+  }
   const repository = input.repository;
   assertRecordShape(repository, [
     'commitOid', 'baseDigest', 'objectFormat', 'contextReference', 'context',
@@ -134,7 +151,7 @@ function normalizeManifestBody(input) {
     baseDigest: repository.baseDigest,
     objectFormat: repository.objectFormat,
     contextReference: repository.contextReference,
-    context: normalizeContext(repository.context, repository),
+    context: normalizeContext(repository.context, repository, 'repository.context', { allowEmptyBaseTree }),
   };
   const operation = input.operation;
   assertRecordShape(operation, [
@@ -193,7 +210,24 @@ export function normalizeMcpTrialCompositionManifest(input) {
   return deepFreeze({ ...body, manifestDigest: expected });
 }
 
-function namespaceFor(namespace, jurisdiction, label) {
+/**
+ * Normalize the small environment binding used before the generated base-tree
+ * module is decoded.  The binding's manifestDigest still commits to the full
+ * composition (including the omitted tree), so it is retained as an opaque
+ * digest and rechecked by normalizeMcpTrialCompositionManifest once the tree
+ * is injected.  This function must never be used as a substitute for the
+ * full normalizer on owner operations.
+ */
+export function normalizeMcpTrialCompositionBinding(input) {
+  const body = normalizeManifestBody(input, { allowEmptyBaseTree: true });
+  assertDigest(input.manifestDigest, 'MCP trial composition manifestDigest');
+  if (Object.keys(body.repository.context.baseTree).length !== 0) {
+    fail('mcp_trial_binding_invalid', 'Trial composition binding must omit the immutable base tree');
+  }
+  return deepFreeze({ ...body, manifestDigest: input.manifestDigest });
+}
+
+export function namespaceFor(namespace, jurisdiction, label) {
   if (!namespace || typeof namespace.idFromName !== 'function' || typeof namespace.get !== 'function') {
     fail('mcp_trial_owner_unavailable', `${label} namespace binding is unavailable`);
   }
@@ -259,11 +293,25 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, driveRunner = null } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null } = {}) {
   const normalized = normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
-  const driveNs = namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive');
+  const driveNs = driveOwnerOverride === null
+    ? namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive')
+    : null;
   const agentNs = namespaceFor(agentNamespace, normalized.jurisdiction, 'Agent');
+  const placementAuthority = casePlacementDatabase === null ? null : new D1CasePlacementAuthority(casePlacementDatabase);
+
+  if (driveOwnerOverride !== null) {
+    if (typeof driveOwnerOverride !== 'object' || Array.isArray(driveOwnerOverride) ||
+        typeof driveOwnerOverride.initializeCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.readCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.quiesceCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.snapshotCaseAgentDrive !== 'function' ||
+        typeof driveOwnerOverride.advanceCaseAgentDrive !== 'function') {
+      fail('mcp_trial_owner_unavailable', 'Injected Case-Agent drive owner must expose its complete local RPC contract');
+    }
+  }
 
   function caseRoute(caseId) {
     assertCaseId(caseId, normalized.casePrefix);
@@ -281,6 +329,10 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async create({ caseId, plan, caseContract = {} } = {}) {
       assertCaseId(caseId, normalized.casePrefix);
       fixedPlanCheck(plan, normalized);
+      if (placementAuthority !== null) {
+        const routed = caseRoute(caseId);
+        await placementAuthority.elect({ placement: routed.placement });
+      }
       const result = await caseCall('initialize', caseId, { plan, caseContract });
       return caseEngineProjection(result.snapshot);
     },
@@ -299,13 +351,14 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
   });
 
   function driveRoute(caseId) {
+    if (driveOwnerOverride !== null) fail('mcp_trial_owner_unavailable', 'Drive route lookup is unavailable for a local owner adapter');
     assertCaseId(caseId, normalized.casePrefix);
     const routed = routedStub(driveNs, caseId, normalized.jurisdiction, 'Case-Agent drive', { rpc: false });
     if (routed.id.toString() === '') fail('mcp_trial_owner_unavailable', 'Case-Agent drive identity is empty');
     return routed;
   }
 
-  const driveOwner = Object.freeze({
+  const driveOwner = driveOwnerOverride === null ? Object.freeze({
     async initialize({ caseId, driveRequestId, payload = {} } = {}) {
       const route = driveRoute(caseId);
       const method = route.stub.initializeCaseAgentDrive;
@@ -330,10 +383,39 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       if (typeof method !== 'function') fail('mcp_trial_owner_unavailable', 'Case-Agent drive snapshot RPC is unavailable');
       return publicJsonClone(await method.call(route.stub, { caseId }));
     },
+    async advance(input = {}) {
+      if (!isPlainRecord(input)) fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance input must be a record');
+      const route = driveRoute(input.caseId);
+      const method = route.stub.advanceCaseAgentDrive;
+      if (typeof method !== 'function') fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance RPC is unavailable');
+      return publicJsonClone(await method.call(route.stub, canonicalClone(input)));
+    },
+  }) : Object.freeze({
+    async initialize({ caseId, driveRequestId, payload = {} } = {}) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.initializeCaseAgentDrive({ caseId, driveRequestId, payload }));
+    },
+    async read(caseId) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.readCaseAgentDrive({ caseId }));
+    },
+    async quiesce({ caseId, ...input } = {}) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.quiesceCaseAgentDrive({ caseId, ...input }));
+    },
+    async snapshot(caseId) {
+      assertCaseId(caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.snapshotCaseAgentDrive({ caseId }));
+    },
+    async advance(input = {}) {
+      if (!isPlainRecord(input)) fail('mcp_trial_owner_unavailable', 'Case-Agent drive advance input must be a record');
+      assertCaseId(input.caseId, normalized.casePrefix);
+      return publicJsonClone(await driveOwnerOverride.advanceCaseAgentDrive(canonicalClone(input)));
+    },
   });
 
   function agentRoute() {
-    const routed = routedStub(agentNs, normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent');
+    const routed = routedStub(agentNs, normalized.agentOwner.routeKey ?? normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent');
     const routeBinding = normalizeAgentRouteBinding({
       agentId: normalized.agentOwner.agentId,
       routeGeneration: normalized.agentOwner.routeGeneration,
@@ -365,11 +447,32 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     identity?.principalId === normalized.identity.principalId && identity?.tenantId === normalized.identity.tenantId,
   );
 
-  const contextOwner = Object.freeze({
-    async developmentContextGet({ selector = null } = {}) {
+  function assertContextSelector(selector) {
       if (selector !== null && selector !== normalized.repository.contextReference) {
         fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
       }
+  }
+
+  const contextOwner = Object.freeze({
+    // Public MCP callers receive a bounded reference projection.  The full
+    // tree remains an internal resolver input for development_unit_start and
+    // is never copied into a discovery/context response.
+    async developmentContextGet({ selector = null } = {}) {
+      assertContextSelector(selector);
+      const context = normalized.repository.context;
+      return publicJsonClone({
+        revisionId: context.revisionId,
+        repositoryCommitOid: context.repositoryCommitOid,
+        objectFormat: context.objectFormat,
+        contextReferenceId: normalized.repository.contextReference,
+        baseDigest: normalized.repository.baseDigest,
+        ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
+        ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
+        ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
+      });
+    },
+    async developmentContextResolve({ selector = null } = {}) {
+      assertContextSelector(selector);
       return publicJsonClone(normalized.repository.context);
     },
   });
