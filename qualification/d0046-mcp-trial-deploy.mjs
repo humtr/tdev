@@ -54,6 +54,8 @@ export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
+export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
+export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
 // M1/M2 use one owner-issued source/test scope. The complete repository
 // manifest and base identity remain bound separately by the generated module.
 export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
@@ -457,6 +459,20 @@ function assertOwnerMarker(settings, scriptName) {
     const binding = bindingByName(settings, name);
     if (binding?.type !== 'plain_text' || binding.text !== text) fail('d0046_owner_binding_mismatch', `${scriptName} marker ${name} did not match`);
   }
+}
+
+export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
+  if (!Number.isSafeInteger(minimumBytes) || minimumBytes <= 0) fail('d0046_owner_capacity_invalid', 'Case capacity minimum must be a positive safe integer');
+  const binding = bindingByName(settings, 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE');
+  const raw = binding?.type === 'plain_text' ? binding.text : undefined;
+  if (typeof raw !== 'string' || !/^[1-9][0-9]*$/u.test(raw)) {
+    fail('d0046_owner_capacity_mismatch', 'Existing Case owner capacity binding was absent or not a canonical positive integer', { minimumBytes });
+  }
+  const parsed = Number(raw);
+  if (!Number.isSafeInteger(parsed) || parsed < minimumBytes) {
+    fail('d0046_owner_capacity_mismatch', 'Existing Case owner capacity is below the source-bound admission minimum', { requiredBytes: minimumBytes, configuredBytes: Number.isSafeInteger(parsed) ? parsed : null });
+  }
+  return parsed;
 }
 
 async function verifyExistingOwners(client) {
