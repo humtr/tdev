@@ -29,6 +29,7 @@ import {
   MCP_TRIAL_COMPOSITION_RESOURCE,
   MCP_TRIAL_DRIVE_CLASS_NAME,
   normalizeMcpTrialCompositionManifest,
+  normalizeMcpTrialCompositionBinding,
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
@@ -511,30 +512,31 @@ async function waitForTrialNamespace(client) {
   fail('d0046_trial_namespace_missing', 'Trial Worker drive namespace was not visible after bounded readback', { matches: last });
 }
 
-async function latestVersion(client) {
-  const versions = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions?per_page=100`));
-  const items = versions.result?.items;
-  if (!Array.isArray(items) || items.length === 0) fail('d0046_worker_version_missing', 'Trial Worker has no version readback');
-  const highest = Math.max(...items.map((item) => Number(item.number)));
-  const matches = items.filter((item) => Number(item.number) === highest);
-  if (matches.length !== 1 || typeof matches[0].id !== 'string') fail('d0046_worker_version_ambiguous', 'Trial Worker latest version is ambiguous');
-  const detail = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions/${encodeURIComponent(matches[0].id)}`));
-  if (detail.result?.id !== matches[0].id || Number(detail.result?.number) !== highest) fail('d0046_worker_version_mismatch', 'Trial Worker latest version detail disagreed with list');
-  return detail.result;
+// Cloudflare deployments.list defines entry zero as the deployment serving traffic.
+// https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/
+export function activeTrialDeployment(entries) {
+  if (!Array.isArray(entries) || entries.length === 0) fail('d0046_worker_deployments_missing', 'Trial Worker deployment readback is empty');
+  const active = entries[0];
+  if (typeof active?.id !== 'string' || active.id.length === 0 || !Array.isArray(active.versions) || active.versions.length !== 1 || active.versions[0].percentage !== 100 || typeof active.versions[0].version_id !== 'string' || active.versions[0].version_id.length === 0) {
+    fail('d0046_worker_traffic_mismatch', 'Trial Worker active deployment must serve exactly one version at one hundred percent');
+  }
+  return canonicalClone(active);
 }
 
-async function workerReadback(client) {
-  const settings = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
-  const version = await latestVersion(client);
-  const deployments = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/deployments`));
-  const entries = deployments.result?.deployments;
-  if (!Array.isArray(entries) || entries.length === 0) fail('d0046_worker_deployments_missing', 'Trial Worker deployment readback is empty');
-  const active = entries.find((entry) => Array.isArray(entry.versions) && entry.versions.some((item) => item?.version_id === version.id));
-  if (!active) fail('d0046_worker_traffic_mismatch', 'Trial Worker deployment readback did not reference the latest version');
-  if (!Array.isArray(active.versions) || active.versions.length !== 1 || active.versions[0].percentage !== 100 || active.versions[0].version_id !== version.id) {
-    fail('d0046_worker_traffic_mismatch', 'Trial Worker traffic is not one hundred percent on the latest version');
+export async function workerReadback(client) {
+  const apiPath = client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}`);
+  const before = await client.request('GET', `${apiPath}/deployments`);
+  const active = activeTrialDeployment(before.result?.deployments);
+  const [settings, detail] = await Promise.all([
+    workerSettings(client, D0046_MCP_TRIAL_SCRIPT),
+    client.request('GET', `${apiPath}/versions/${encodeURIComponent(active.versions[0].version_id)}`),
+  ]);
+  if (detail.result?.id !== active.versions[0].version_id) fail('d0046_worker_version_mismatch', 'Active deployment and version detail disagree');
+  const after = await client.request('GET', `${apiPath}/deployments`);
+  if (canonicalJson(activeTrialDeployment(after.result?.deployments)) !== canonicalJson(active)) {
+    fail('d0046_worker_predecessor_changed', 'Active deployment changed during readback');
   }
-  return { settings: settings.result, version, deployments: entries };
+  return { settings: settings.result, version: detail.result, deployment: active, deployments: after.result.deployments };
 }
 
 function validateTrialWorkerSettings(settings, version, manifests, sourceSha, artifact) {
@@ -640,6 +642,70 @@ function redactedIdentity(identity) {
     principalDigest: sha256(identity.principalId),
     tenantDigest: sha256(identity.tenantId),
     claimMapping: { principalClaim: 'email', tenantClaim: 'email' },
+  };
+}
+
+function readJsonBinding(settings, name) {
+  const values = (settings?.bindings ?? []).filter((item) => item?.name === name);
+  if (values.length !== 1 || values[0].type !== 'plain_text') fail('d0046_update_binding_invalid', 'Expected one existing plain-text manifest binding', { name });
+  try { return JSON.parse(values[0].text); } catch { fail('d0046_update_binding_invalid', 'Existing manifest binding is not JSON', { name }); }
+}
+
+// This prepares a reviewable artifact. It does not authorize upload, retained-state
+// migration or Agent activation; those consume the responsible owner observations.
+export function preparePreservingTrialManifests({ settings, accessApplication, accountId, ...candidate }) {
+  assertOwnerMarker(settings, D0046_MCP_TRIAL_SCRIPT);
+  const previous = normalizeMcpTrialCompositionBinding(readJsonBinding(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON'));
+  const previousAuth = normalizeMcpAuthManifest(readJsonBinding(settings, 'TDEV_MCP_AUTH_MANIFEST_JSON'));
+  const app = validateAccessApplication(accessApplication, accountId);
+  if (app.aud !== previousAuth.accessApplicationAudience) fail('d0046_update_auth_changed', 'Existing Access application and ingress audience disagree');
+  const manifests = buildTrialManifests({
+    ...candidate,
+    identity: previous.identity,
+    driveNamespace: previous.driveOwner.placement.namespace,
+    accessAudience: app.aud,
+  });
+  if (canonicalJson(manifests.auth) !== canonicalJson(previousAuth)) fail('d0046_update_auth_changed', 'Candidate would change the existing authentication contract');
+  for (const key of ['resource', 'workerScript', 'environment', 'jurisdiction', 'caseOwner', 'driveOwner', 'agentOwner', 'identity', 'authProfile', 'casePrefix', 'canonicalWriterEnabled', 'previewWritersEnabled']) {
+    if (canonicalJson(manifests.composition[key]) !== canonicalJson(previous[key])) fail('d0046_update_owner_changed', 'Candidate would change an existing owner or access scope', { key });
+  }
+  for (const [name, className, namespace] of [
+    ['TDEV_CASE_AUTHORITY', MCP_TRIAL_CASE_CLASS_NAME, previous.caseOwner.placement.namespace],
+    ['TDEV_AGENT_DELIVERY', MCP_TRIAL_AGENT_CLASS_NAME, previous.agentOwner.placement.namespace],
+    ['TDEV_CASE_AGENT_DRIVE', MCP_TRIAL_DRIVE_CLASS_NAME, previous.driveOwner.placement.namespace],
+  ]) assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, className, namespace, name);
+  const placement = bindingByName(settings, 'TDEV_CASE_PLACEMENT');
+  if (placement?.type !== 'd1' || placement.database_id !== previous.caseOwner.d1DatabaseId) fail('d0046_update_owner_changed', 'Existing D1 binding disagrees with the manifest');
+  return manifests;
+}
+
+export async function prepareMcpTrialUpdate({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
+  const sourceSha = assertTrackedSource(repositoryPath);
+  const client = new CloudflareApiClient(loadCloudflareCredentials(envFile));
+  const predecessor = await workerReadback(client);
+  const apps = await listAccessApps(client);
+  const matches = apps.filter((app) => app?.domain === D0046_MCP_TRIAL_DOMAIN);
+  if (matches.length !== 1) fail('d0046_access_app_mismatch', 'Expected exactly one existing trial Access application');
+  const app = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(matches[0].id)}`))).result;
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
+  const manifests = preparePreservingTrialManifests({
+    settings: predecessor.settings, accessApplication: app, accountId: client.accountId,
+    sourceSha, baseDigest: base.baseDigest, baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity, scope: base.scope, scopeDigest: base.scopeDigest,
+    operationManifest: JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8')),
+  });
+  const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
+  const artifact = artifactManifest(modules);
+  const metadata = buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace: manifests.composition.driveOwner.placement.namespace });
+  const current = await workerReadback(client);
+  const currentApp = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(app.id)}`))).result;
+  if (canonicalJson(currentApp) !== canonicalJson(app)) fail('d0046_update_auth_changed', 'Access application changed during update preparation');
+  if (canonicalJson(current.settings) !== canonicalJson(predecessor.settings) || canonicalJson(current.deployment) !== canonicalJson(predecessor.deployment)) fail('d0046_worker_predecessor_changed', 'Provider predecessor changed during update preparation');
+  return {
+    sourceSha, predecessor, manifests, modules, artifact, metadata,
+    preservationDigest: digest({ settings: predecessor.settings, deployment: predecessor.deployment, accessApplication: app }),
+    providerMutation: false,
+    remainingGates: ['retained Case/drive reader compatibility', 'shared owner consumers', 'positive execution quiescence', 'installed Agent release compatibility'],
   };
 }
 
