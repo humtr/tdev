@@ -5,20 +5,20 @@
   "revision": 1,
   "layer": "source-local-and-physical-termux",
   "qualification": "current-source-cp1-cp2-cp3-full-context-stress-and-m0",
-  "sourceCommit": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+  "sourceCommit": "8a4e4ef7ad1a0493f056a5e3aeff26f54c273c81",
   "status": "PASS",
   "cp1": {
     "profile": "tdev.d0047.cp1-scoped-context.v1",
     "status": "PASS",
-    "repositoryCommitOid": "ae38cc21a1b47cb3f2ac48491555864319f7c3cc",
+    "repositoryCommitOid": "d7536f645c912819606afc65e4bc25532815c4fe",
     "treeOid": "fdbaf7a26399972a5d80da09bb057d63b1768697",
     "objectFormat": "sha1",
     "semanticBaseDigest": "sha256:5948eefa7aab16b9eca6a182297e12c01611be59a20a2ccc8ccdaaa104e22cd5",
-    "repositoryBaseDigest": "sha256:3cc2bb7d1c9bfac13cb04a2ed4948ed9035124928446a6cf06b857af5941c945",
-    "manifestDigest": "sha256:600d038632dce72af152342c2b8d2a742712c3fc1a4090a03efde11432ada2e5",
+    "repositoryBaseDigest": "sha256:bdf7fcd39afe97e30ff35a3e1d93c77acad521b75fda7fcbaf5b010507818242",
+    "manifestDigest": "sha256:e44599d2792658a3076ed276af613ea398553129a207e31fb8a6aaf32cc4bb24",
     "scopeDigest": "sha256:2fdd630ca4f92c6fd834df4050767ccd76f989c9070fe3225bd223e5c7d9eb0e",
     "selectedEntryCount": 3,
-    "contextReference": "cp1-context-ae38cc21a1b4",
+    "contextReference": "cp1-context-d7536f645c91",
     "route": {
       "mcpSurface": "in-process MCP JSON-RPC initialize/tools/list/tools/call surface",
       "agent": "local authenticated Agent bridge",
@@ -44,11 +44,11 @@
   "cp2": {
     "profile": "tdev.d0047.cp2-full-repository-lazy.v1",
     "status": "PASS",
-    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
-    "treeOid": "7e00a9f2ce114dabf2ede26878b296987fe5ca65",
-    "semanticBaseDigest": "sha256:d585ef47cdba2699e60f5ca02a533a04369b8cbcbab99d6324b025be8a2d49ae",
-    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
-    "manifestEntryCount": 512,
+    "repositoryCommitOid": "8a4e4ef7ad1a0493f056a5e3aeff26f54c273c81",
+    "treeOid": "f680619ab979bfc0763b1fffdcb30494b7ee6535",
+    "semanticBaseDigest": "sha256:35f67a0a4312ecb0c10865707868c55727227870d249d8cffe3239e6a504cce2",
+    "manifestDigest": "sha256:97d1147b60a72e604f8ca8fcca33b04e4f3ffce99930bd3d277e208ef5d3ec94",
+    "manifestEntryCount": 516,
     "scopeDigest": "sha256:6defb928c0ecf4f9197fe71b25787dc78873cd4683f335a370afb16a9e0fd1db",
     "selectedEntryCount": 3,
     "boundedRead": {
@@ -71,10 +71,10 @@
   "cp3": {
     "profile": "tdev.d0047.cp3-one-gib-metadata.v1",
     "status": "PASS",
-    "repositoryCommitOid": "19baab9b7aa645cc7cb3c129048a39b7de5c161b",
+    "repositoryCommitOid": "d95b41041319bb8fedeaf1252e1b35b0bf06b57a",
     "treeOid": "5b1e03cf8378aaf4bba4ab063096dc698cf31206",
-    "semanticBaseDigest": "sha256:84be7d378783372cf6d3a35cd9242cecd1256e8522ea4fe3fbef010323239d22",
-    "manifestDigest": "sha256:e9a16416567e19bbc2252a56213e69dc5f158abcbf39b406140b56112490deda",
+    "semanticBaseDigest": "sha256:c67aeab61ca4d0a3cb2a3c3dd66a992f4188ba1907461407e26701977b47b18d",
+    "manifestDigest": "sha256:1c12279bf03353f3d11367ffc0c2b800a5a9ac41151a92165aecb60a48ddf0b7",
     "manifestEntryCount": 2,
     "largeEntryBytes": 1073741824,
     "smallRead": {
@@ -93,15 +93,15 @@
     "status": "PASS",
     "fullContext": {
       "status": "PASS",
-      "repositoryCommitOid": "11d11da6859230b15c10e17692c5181c411977ef",
+      "repositoryCommitOid": "df357fbc014aeb6696be26ebfe3103b7464eed02",
       "treeOid": "2866cb95b6e43277758c05cdfca089b0fb457b07",
       "fileCount": 2,
       "contentBytes": 69,
-      "durationMs": 200
+      "durationMs": 221
     },
     "overFileLimit": {
       "status": "PASS",
-      "repositoryCommitOid": "72808799f756bb3971228068a1fa99849ce08e67",
+      "repositoryCommitOid": "3a5f1e434f628ccecfdf0450c73ae8f28e9aec24",
       "declaredFileLimitBytes": 2097152,
       "attemptedBytes": 2097153,
       "failure": {
@@ -111,7 +111,7 @@
     },
     "overTreeLimit": {
       "status": "PASS",
-      "repositoryCommitOid": "27f4a4c78f15e1fdeed0ed8ea29f4a07999c8ff9",
+      "repositoryCommitOid": "f5924f4d9e2747a3d84b28eb14f34ebf5eabd79a",
       "declaredTreeLimitBytes": 16777216,
       "attemptedBytes": 18874368,
       "failure": {
@@ -125,13 +125,13 @@
     "profile": "tdev.d0043.m0-physical-termux.v1",
     "status": "PASS",
     "command": "node qualification/d0043-physical-termux-m0.mjs",
-    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+    "repositoryCommitOid": "8a4e4ef7ad1a0493f056a5e3aeff26f54c273c81",
     "semanticBaseDigest": "sha256:b38560ad58fcbd3358579f75eb1a6928ec7fd30b29b5a47141a7d1e51c845075",
-    "repositoryBaseDigest": "sha256:443b70726e1070117151bef72132d5759a0597c85c9a3914a3a0b525e43c12b2",
-    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
+    "repositoryBaseDigest": "sha256:0e14970e1545b9d8aa8752e2a74a279b69be03144701731ab34ce285be1a585b",
+    "manifestDigest": "sha256:97d1147b60a72e604f8ca8fcca33b04e4f3ffce99930bd3d277e208ef5d3ec94",
     "scopeDigest": "sha256:01eaa8531eca41ee5771919c026e04c07dd31924a27dae49d10f098d34f1b4e7",
-    "caseId": "case-m0-9d0a75485ce1",
-    "candidateDigest": "sha256:43c7c359f808c3e6b1063b77673e18d3b95a03687b414122f9355276258337a9",
+    "caseId": "case-m0-8a4e4ef7ad1a",
+    "candidateDigest": "sha256:ee407fef8b53f349d810220509d50c066870c5debcc59010d48ec94cedf55e12",
     "operationBinding": {
       "model": "gpt-5.6-luna",
       "reasoningEffort": "low",
@@ -166,7 +166,7 @@
     "syntax": "PASS",
     "documentation": "PASS",
     "tests": {
-      "passed": 676,
+      "passed": 678,
       "failed": 0,
       "cancelled": 0,
       "skipped": 0

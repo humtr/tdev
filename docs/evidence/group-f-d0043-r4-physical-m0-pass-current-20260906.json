@@ -5,7 +5,7 @@
   "revision": 4,
   "layer": "physical-termux",
   "qualification": "m0-physical-termux-candidate-current-source",
-  "sourceCommit": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+  "sourceCommit": "8a4e4ef7ad1a0493f056a5e3aeff26f54c273c81",
   "status": "PASS",
   "command": "node qualification/d0043-physical-termux-m0.mjs",
   "operationBinding": {
@@ -16,16 +16,16 @@
     "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1"
   },
   "exactBase": {
-    "repositoryCommitOid": "9d0a75485ce16615dfd6a898cef0505cc93cffef",
+    "repositoryCommitOid": "8a4e4ef7ad1a0493f056a5e3aeff26f54c273c81",
     "semanticBaseDigest": "sha256:b38560ad58fcbd3358579f75eb1a6928ec7fd30b29b5a47141a7d1e51c845075",
-    "repositoryBaseDigest": "sha256:443b70726e1070117151bef72132d5759a0597c85c9a3914a3a0b525e43c12b2",
-    "manifestDigest": "sha256:cb4c2e265380d4a2111c97ad14356a86caddace86a783131d67b472745216292",
+    "repositoryBaseDigest": "sha256:0e14970e1545b9d8aa8752e2a74a279b69be03144701731ab34ce285be1a585b",
+    "manifestDigest": "sha256:97d1147b60a72e604f8ca8fcca33b04e4f3ffce99930bd3d277e208ef5d3ec94",
     "scopeDigest": "sha256:01eaa8531eca41ee5771919c026e04c07dd31924a27dae49d10f098d34f1b4e7"
   },
   "result": {
-    "caseId": "case-m0-9d0a75485ce1",
+    "caseId": "case-m0-8a4e4ef7ad1a",
     "caseState": "succeeded",
-    "candidateDigest": "sha256:43c7c359f808c3e6b1063b77673e18d3b95a03687b414122f9355276258337a9",
+    "candidateDigest": "sha256:ee407fef8b53f349d810220509d50c066870c5debcc59010d48ec94cedf55e12",
     "modelProcessStarts": 1,
     "validationPassed": true,
     "emittedFrames": 15
