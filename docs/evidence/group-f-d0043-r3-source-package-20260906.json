@@ -5,14 +5,14 @@
   "revision": 3,
   "qualification": "source-package-rebinding",
   "layer": "source-package",
-  "sourceCommit": "32e150f1105905d8982961c81224bc0d4f90b705",
+  "sourceCommit": "1b229601d7a9a0ac7b5607aad1c8cb0ce748145f",
   "status": "PASS",
   "target": { "platform": "android", "arch": "arm64" },
   "artifact": {
-    "archive": "tdev-installable-agent-android-arm64-32e150f1105905d8982961c81224bc0d4f90b705.tgz",
-    "sha256": "sha256:a81b11f1ee76bd7d51898bdeb402bcf189d8f3fab1c015dfb772b022e5b46671",
-    "bytes": 175517,
-    "releaseManifestDigest": "sha256:93711a32c9552dddb89b3aadae211d5a1002d3898ceaed96cc6e5b94bd4a99d4",
+    "archive": "tdev-installable-agent-android-arm64-1b229601d7a9a0ac7b5607aad1c8cb0ce748145f.tgz",
+    "sha256": "sha256:b5d21a535f0e16d3a922cbbe40408ad3e6b0ddffe696cb36981f7865239db588",
+    "bytes": 175515,
+    "releaseManifestDigest": "sha256:80a2cf345d56766c54bca8708bd989499b419faa66e338a5b52bf7d3a111b85b",
     "fileCount": 35
   },
   "bindings": {
