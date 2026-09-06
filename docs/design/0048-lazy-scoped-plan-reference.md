@@ -67,6 +67,10 @@ separate full exact-commit clone, applies the result-only ChangeSet, runs the fi
 and records the full repository identity, semantic base digest, scope digest and positive
 warden cleanup receipts.
 
+The current trusted-local operation binding also pins `gpt-5.6-luna` with
+`reasoningEffort=low`. These are release-owned model settings used to keep the physical Termux
+gate reproducible; MCP and Task input cannot select or widen them.
+
 The Case canonical projection for this profile is the scoped semantic projection. It is not a
 claim that the MCP response contains the complete repository. The candidate root is the only
 place where unselected files are retained for validation. A later metadata-only Plan/root

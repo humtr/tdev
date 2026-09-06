@@ -24,7 +24,9 @@
         "profile": "tdev.model.codex-exec-no-bwrap.v1",
         "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
         "outputSchemaPath": "config/codex-changeset-output.schema.json",
-        "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7"
+        "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7",
+        "model": "gpt-5.6-luna",
+        "reasoningEffort": "low"
       }
     },
     "tdev.repository.context.prepare.v1": {
