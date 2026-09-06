@@ -201,6 +201,8 @@ At the package/local-runtime layer, record the exact supported Termux/Android pr
 
 M0 requires one real non-documentation source objective from one exact published tdev commit. The physical Agent must prepare the exact context, invoke one read-only ephemeral Codex process, accept one schema-valid relative-path ChangeSet, materialize only a disposable candidate, run the fixed npm validation and return the candidate/result through the normal Attempt path. Independently compare the canonical checkout/index/ref before/after, validate the candidate objective and focused regression, prove required validation PASS, process-group disappearance, capacity release and no credential/log/evidence leakage. A diagnostic process, canned output, documentation-only edit or source/package test cannot substitute.
 
+If that exact commit contains a non-UTF-8/native entry, M0 records `m0_non_text_entry_requires_lazy_scope` and stops before model launch; arbitrary exclusions cannot be used to make the full-base digest fit. The scoped CP1 composition is qualified separately under D0047.
+
 Force at least model timeout/cancel, malformed terminal output, validation failure and lost outer response. Each must retain the same Attempt identity, produce no blind second Codex launch, preserve exact failure/unknown truth and leave no unauthorized canonical/Git effect. Revision-1 and Revision-2 source/package evidence remain historical and cannot qualify Revision 3. A provider CLI quota/credit error is retained as a provider-layer blocker; it is not a tdev operation PASS.
 
 ### D0046 minimum tdev MCP experiential-path gates

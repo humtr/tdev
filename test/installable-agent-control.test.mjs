@@ -224,7 +224,7 @@ test('control reconnect reuses one durable connect identity after response loss 
     webSocketFactory: websocket.factory,
   });
 
-  assert.equal(control.developmentOperationCapabilities.length, 3);
+  assert.equal(control.developmentOperationCapabilities.length, 4);
   assert.deepEqual(control.runtime.identity().capabilities, control.developmentOperationCapabilities);
 
   await assert.rejects(control.connectOnce(), (error) => error?.code === 'local_transport_connect_failed');

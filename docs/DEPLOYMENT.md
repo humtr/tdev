@@ -457,6 +457,8 @@ The isolated qualification deployment may expose `/qualification/d0044/election/
 
 The current deployment binding uses `tdev.model.codex-exec-no-bwrap.v1` with literal `exec --ephemeral --json --ignore-user-config` arguments and no kernel-sandbox/bwrap dependency. It derives only the minimal Termux `PREFIX`/temporary-directory variables required by the installed launcher, launches in a disposable exact-base clone, accepts one structured JSON ChangeSet, and removes the clone/process group before release. The fixed `tdev.validation.npm-check.v1` profile binds literal `run check` arguments in the result-only candidate with `network:none`. D0047 lazy context identities and owner-issued scope are separate from the full-base digest and must be read back before model admission.
 
+The CP1 qualification composition injects the D0047 scoped adapter explicitly. The installed v2 Plan/runtime remains full-tree compatible until a separately accepted lazy Plan/reference representation exists; a partial scope cannot be substituted into the existing `baseDigest` or candidate identity.
+
 Physical M0 remains blocked until the installed Codex provider account can complete a real non-documentation run; the current observed CLI response is a bounded credits/quota provider failure. No package/provider/client success is implied by this source binding.
 
 ### D0043 Revision-2 supported-Termux Codex operation binding (historical)

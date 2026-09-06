@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0047",
+  "revision": 1,
+  "qualification": "cp1-mcp-agent-candidate-validation",
+  "layer": "source-local-plus-provider-cli",
+  "sourceCommit": "a131ba24880bf579d2b75308b8afd60758311348",
+  "status": "BLOCKED",
+  "route": {
+    "mcpInitialize": "reached",
+    "lazyManifestList": "PASS",
+    "lazyScopedRead": "PASS",
+    "caseCreated": true,
+    "agentDispatch": "reached",
+    "candidate": "not-created",
+    "validation": "not-started",
+    "canonicalUnchanged": true,
+    "workspaceCleaned": true
+  },
+  "providerCli": {
+    "executable": "/data/data/com.termux/files/usr/bin/codex",
+    "version": "codex-cli 0.153.4",
+    "argvProfile": "exec --ephemeral --json --ignore-user-config",
+    "exitCode": 1,
+    "eventType": "error",
+    "failureCode": "codex_provider_failed",
+    "failureClass": "credits_or_quota"
+  },
+  "effects": {
+    "caseState": "failed",
+    "canonicalTreeMutation": false,
+    "gitPublication": false,
+    "credentialDisclosure": false
+  },
+  "notProven": [
+    "Codex-generated ChangeSet",
+    "candidate validation PASS",
+    "provider deployment or current-client MCP behavior"
+  ],
+  "secrets": "none"
+}

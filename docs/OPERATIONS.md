@@ -221,6 +221,8 @@ The first provider-facing operation catalog is `tdev.development-operation-profi
 
 The matching disclosure profile explicitly permits the bounded tracked UTF-8 content of that one published tdev commit to reach the user's Codex service. It excludes mutable/untracked/external files and credentials. The adapter accepts only one schema/base/path/size-valid ChangeSet, then tdev materializes that output in a disposable candidate. Codex never writes the candidate or canonical tree.
 
+That paragraph describes the retained full-text compatibility profile. The first scoped development composition uses D0047's owner-issued manifest/scope adapter; the current v2 Plan still carries its full `baseTree`, so making a lazy reference durable requires a separately accepted Plan Design and is not silently inferred from a context projection.
+
 `tdev.validation.npm-check.v1` runs installed npm with literal `run check` in the disposable candidate, secret-free and `network:none`. Its result is preserved even when false. A model or validation failure cannot be converted to Promotion, and no Git adapter is configured for the minimum trial.
 
 Do not retry an unknown model launch. Timeout, disconnect or response loss retains the same Attempt and reconciliation state; a later semantic retry is owned only by the existing Case policy after the prior process/effect boundary is resolved. A provider-reported quota/credit failure remains a provider-CLI failure and does not become a tdev operation success. Saved Codex login is local deployment state consumed by Codex itself and is never accepted from MCP or Task input.

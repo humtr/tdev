@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0047",
+  "revision": 1,
+  "layer": "source-local",
+  "qualification": "cp2-cp3-lazy-context",
+  "sourceCommit": "fe27fa64847fe72765eebb6de3ffc692e52d8f56",
+  "status": "PASS",
+  "cp2": {
+    "profile": "tdev.d0047.cp2-full-repository-lazy.v1",
+    "repositoryCommitOid": "fe27fa64847fe72765eebb6de3ffc692e52d8f56",
+    "treeOid": "9406c4bea945f4841af147be31b40f849436f86b",
+    "baseDigest": "sha256:d5ad07345d251e038cd8e0652c5b835d9a392c2f9a9455b669045ea0dd35728a",
+    "manifestDigest": "sha256:df198f53e33c4713ad4e7bb3b2f75526289f970a73592b62090f85bf7a473ec2",
+    "manifestEntryCount": 482,
+    "scopeDigest": "sha256:6defb928c0ecf4f9197fe71b25787dc78873cd4683f335a370afb16a9e0fd1db",
+    "selectedEntryCount": 3,
+    "boundedRead": { "path": "src/development-runtime.mjs", "bytes": 1024, "complete": false },
+    "search": { "matches": ["src/development-runtime.mjs"], "complete": true, "visitedFiles": 3, "visitedBytes": 94960 },
+    "blobBatchReadsBeforeScope": 0,
+    "blobBatchReadsAfterScope": 4,
+    "completeManifestPaged": true
+  },
+  "cp3": {
+    "profile": "tdev.d0047.cp3-one-gib-metadata.v1",
+    "repositoryCommitOid": "9d4e76ab91e78bbb9148241b9ff92cbcd85c427d",
+    "treeOid": "5b1e03cf8378aaf4bba4ab063096dc698cf31206",
+    "baseDigest": "sha256:33252a79472ec4e53401c7ccd63bcaacbe558000ed1ea185383e75f72a60245b",
+    "manifestDigest": "sha256:abda97a2f3b21ce91811bdcbe9e5564bac3be27546e029368d2017b023d6e115",
+    "manifestEntryCount": 2,
+    "largeEntryBytes": 1073741824,
+    "smallRead": { "path": "src/small.txt", "bytes": 16 },
+    "incompleteLargeSearch": { "complete": false, "visitedBytes": 0 },
+    "blobBatchReadsBeforeSmallRead": 0,
+    "fullContextStress": "separate-not-run"
+  },
+  "claims": [
+    "the complete repository metadata manifest was paged without blob-body reads",
+    "only owner-selected bounded files were read and searched",
+    "a one-gib Git entry remained metadata-only while a small file was read",
+    "incomplete large-file search was reported incomplete"
+  ],
+  "notProven": [
+    "provider deployment or current-client MCP behavior",
+    "physical Codex candidate success",
+    "intentional full-context stress success"
+  ],
+  "secrets": "none"
+}
