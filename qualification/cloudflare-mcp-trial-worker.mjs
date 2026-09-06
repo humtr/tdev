@@ -156,7 +156,9 @@ function generatedContextOwner(composition, lazyContext) {
   const selectedEntries = lazyContext.manifest.filter((entry) => Object.hasOwn(lazyContext.tree, entry.path));
   const selectedPaths = selectedEntries.map((entry) => entry.path).sort();
   const treePaths = Object.keys(lazyContext.tree).sort();
-  if (canonicalJson(selectedPaths) !== canonicalJson(treePaths) || selectedEntries.length === 0) {
+  const selectedByScope = (filePath) => repository.scope.paths.includes(filePath) || repository.scope.prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`));
+  if (canonicalJson(selectedPaths) !== canonicalJson(treePaths) || selectedEntries.length === 0 ||
+      selectedEntries.some((entry) => !selectedByScope(entry.path)) || digest(lazyContext.tree) !== repository.baseDigest) {
     throw configError('mcp_config_unavailable', 'Generated lazy context selected tree does not match its manifest');
   }
   const context = composition.repository.context;
