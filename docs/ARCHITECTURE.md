@@ -209,6 +209,10 @@ For an opt-in v3 Case, `CaseEngine` owns lifecycle and the semantic base/canonic
 
 The path-byte radix must enforce the same canonical text-tree semantics as the compatibility profile, including exact path identity and file/ancestor/descendant exclusion. The normal sparse Promotion/checkpoint path does not require complete text-tree materialization or hashing, while compatibility APIs, cold semantic hydration/scrub and explicit full-tree comparison may still be O(N). Existing v2 Cases retain their compatibility schema/store semantics unless a separately accepted migration changes them.
 
+## 9.3 Lazy repository context boundary
+
+D0047 adds an explicit `tdev.repository-context.git-scoped-lazy.v1` transport profile. Repository identity is fixed by the exact commit, tree and object format; a complete metadata manifest binds every entry and has its own digest. An owner-issued scope and scope digest select bounded list/search/read operations. The scope digest and selected context digest never replace the Case/Plan semantic `baseDigest`, and a path exclusion cannot shrink that meaning. The full-text D0013/D0017 profile remains a compatibility path for legacy full-tree Plans; it is not used as a hidden fallback for lazy references. Repository transport owns immutable Git reads, while Case/Plan, Promotion, candidate lifecycle and canonical/ref publication retain their existing owners.
+
 The semantic tree identity remains the tdev canonical text-tree contract, not a Git tree OID. Provider transactions, distributed Claims and hostile-storage authenticity are separate owners/problems and cannot be inferred from a local sparse root.
 
 ## 9.3 Local and remote Git projection boundary
@@ -245,7 +249,7 @@ The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` log
 
 ## 9.6 D0043/D0046 development-path composition boundary
 
-D0043 adds no semantic owner. Its Revision-2 catalog binds repository preparation, one fresh Codex model process, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it.
+D0043 adds no semantic owner. Its Revision-3 catalog binds repository preparation, one fresh no-bwrap Codex model process, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017/D0047, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it.
 
 D0046 adds one provider-composition layer, not a replacement runtime:
 

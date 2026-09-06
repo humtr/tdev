@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0043",
+  "revision": 3,
+  "status": "accepted",
+  "acceptanceBase": "development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d",
+  "decision": "release-bound no-bwrap Codex arguments with derived minimal Termux PREFIX/TMPDIR, disposable exact-base clone, result-only ChangeSet and positive cleanup",
+  "facts": [
+    "the accepted sandbox argument indirectly selects a Termux bwrap shim that fails on this host",
+    "the release-bound minimal environment failed until the installed Termux launcher received PREFIX",
+    "the source path does not invoke bwrap and does not claim hostile-local-code or multi-tenant isolation"
+  ],
+  "unknown": [
+    "physical M0 remains unqualified until a clean source-bound run produces and validates a non-documentation ChangeSet"
+  ],
+  "authorization": "accepted design only; implementation and physical qualification remain open",
+  "secrets": "none"
+}

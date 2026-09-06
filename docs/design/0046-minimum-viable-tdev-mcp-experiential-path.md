@@ -1,15 +1,16 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 1
+- Revision: 2
 - Class: 2
-- Decision date: 2026-09-03
-- Acceptance base: `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`
-- Trigger: direct user requirement to stop treating source/package milestones as the development goal and instead reach the first real web ChatGPT -> tdev MCP -> Termux development result by the shortest safe route, then harden that working path
-- Acceptance evidence: `docs/evidence/group-f-d0046-r1-minimum-viable-tdev-mcp-experiential-path-acceptance-2026-09-03.json`
+- Decision date: 2026-09-06
+- Acceptance base: `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`
+- Predecessor revision: D0046@r1 accepted at `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`; its acceptance evidence is `docs/evidence/group-f-d0046-r1-minimum-viable-tdev-mcp-experiential-path-acceptance-2026-09-03.json`
+- Trigger: D0043's no-bwrap correction and D0047's lazy scoped-context decision change the minimum executable route while preserving the same single-user MCP-to-candidate goal
+- Acceptance evidence: `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
 - Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
-- Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0025 owns Git publication; D0045 owns later tmcp comparison
+- Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
 
 ## 1. One-line definition
@@ -30,7 +31,7 @@ The prior route stopped before user-visible value for three independent reasons.
 
 D0043 Revision 1 qualified a typed source/package catalog but left the model and validator as unbound `configured_runtime` names. Its model profile declared `network:none`, and its own package evidence explicitly did not claim a physical Termux run. A public MCP endpoint over that package could admit work but could not produce a real model-generated ChangeSet.
 
-D0043 Revision 2 is the corrective owner. It binds the installed non-interactive Codex runtime, saved local authentication boundary, structured result schema and fixed validation executable while preserving result-only execution.
+D0043 Revision 3 is the current corrective owner. It binds the installed non-interactive Codex runtime without a kernel sandbox or bwrap dependency, the saved local authentication boundary, structured result schema and fixed validation executable while preserving result-only execution.
 
 ### 3.2 Provider composition authority gap
 
@@ -52,7 +53,7 @@ The minimum viable claim is exactly one run satisfying all of the following:
 2. the user adds the exact read-back MCP HTTPS URL to supported web ChatGPT and completes the selected D0024 authentication flow;
 3. the user gives one bounded real development objective against one exact published tdev commit;
 4. ChatGPT invokes the D0023 tools, one D0019 Case is created and D0042 drives it through the fixed D0020/D0027 Agent route;
-5. the Termux Agent invokes the D0043 Revision-2 Codex profile, receives one schema-valid result-only ChangeSet and runs the fixed validation profile in an isolated candidate;
+5. the Termux Agent invokes the D0043 Revision-3 no-bwrap Codex profile after an owner-issued D0047 scoped context, receives one schema-valid result-only ChangeSet and runs the fixed validation profile in an isolated candidate;
 6. ChatGPT receives a terminal projection containing the exact base, validation result and inspectable candidate/diff;
 7. independent readback proves no canonical checkout, Git ref, unrelated Case, provider owner or credential was mutated.
 
@@ -119,7 +120,7 @@ The order is selected by cheapest decisive falsifier, not by document number.
 
 ### M0 - make Termux capable of real development
 
-Implement and qualify D0043 Revision 2 first. Bind exact Codex/npm identities, implement the structured result adapter and candidate materialization, update the installable Agent only after positive quiescence, then run one real non-documentation source task through the local/Agent path. The output must be a validated isolated candidate with no canonical or Git mutation.
+Implement and qualify D0043 Revision 3 first. Bind exact Codex/npm identities, implement the structured result adapter and candidate materialization, update the installable Agent only after positive quiescence, then qualify D0047 CP1 with a small owner-issued scope and run one real non-documentation source task through the local/Agent path. The output must be a validated isolated candidate with no canonical or Git mutation.
 
 If M0 fails, fix the D0043/runtime defect before spending more Cloudflare or web-client attempts. Source/package success alone does not advance the checkpoint.
 
@@ -149,7 +150,7 @@ D0024 remains the authentication owner. The trial first uses Cloudflare Access M
 
 If the current ChatGPT client falsifies the selected Managed OAuth contract, the request stops before owner mutation and exact evidence reopens D0024. A revised client-compatible profile is designed and source/provider-preflighted before another web attempt; no permissive bearer-token fallback or undocumented header bypass is allowed.
 
-The web credential terminates at Access/ingress and never reaches Case, drive, Agent or model input. The Agent credential never reaches MCP/ChatGPT. Codex saved authentication stays local to the Codex process boundary defined by D0043 Revision 2 and is never copied into Worker, Case, evidence or model instructions. Evidence contains identities/digests and redacted denial classes, never secret values.
+The web credential terminates at Access/ingress and never reaches Case, drive, Agent or model input. The Agent credential never reaches MCP/ChatGPT. Codex saved authentication stays local to the D0043 Revision-3 process boundary and is never copied into Worker, Case, evidence or model instructions. Evidence contains identities/digests and redacted denial classes, never secret values.
 
 The first real model run sends the exact admitted repository context under the user's existing trusted-local Codex account. This is an explicit single-user disclosure boundary; it is not a multi-tenant privacy or hostile-provider claim.
 
@@ -203,7 +204,7 @@ The first boundary is a deliberate user handoff, not implementation completion. 
 
 | Area | Minimum required result |
 | --- | --- |
-| operation | D0043 Revision-2 real Codex ChangeSet plus fixed validation on physical Termux |
+| operation | D0043 Revision-3 real Codex ChangeSet plus fixed validation on physical Termux, using D0047 scoped context |
 | composition | exact read-back trial Worker, Case DO, drive DO, Agent DO and D1 bindings; no hidden in-memory owner |
 | authentication | current web ChatGPT completes exact D0024 flow and one authorized tool call; cross-resource/tenant denial is zero-effect |
 | real development | one non-documentation source objective produces an inspectable validated candidate from one immutable published base |

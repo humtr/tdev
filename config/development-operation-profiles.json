@@ -24,8 +24,7 @@
         "profile": "tdev.model.codex-exec-no-bwrap.v1",
         "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
         "outputSchemaPath": "config/codex-changeset-output.schema.json",
-        "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7",
-        "contextExcludedPaths": ["native/d0030/android-arm64/rename-noreplace-helper", "native/immutable-journal-publication/android-arm64/rename-noreplace-helper", "native/installable-agent-supervisor/android-arm64/pidfd-control.node"]
+        "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7"
       }
     },
     "tdev.repository.context.prepare.v1": {
@@ -46,6 +45,25 @@
       "cleanupDomain": "warden_process_group",
       "credentialMode": "none",
       "binding": { "profile": "tdev.repository.context.prepare.v1" }
+    },
+    "tdev.repository.context.prepare.lazy.v1": {
+      "kind": "repository_context",
+      "executable": { "kind": "built_in", "name": "git-scoped-lazy-context" },
+      "argv": [],
+      "environment": {},
+      "filesystem": "immutable_repository",
+      "network": "none",
+      "limits": {
+        "timeoutMs": 300000,
+        "maxInputBytes": 262144,
+        "maxOutputBytes": 4194304,
+        "maxFileBytes": 16777216,
+        "maxWorkspaceBytes": 67108864,
+        "cancelGraceMs": 2000
+      },
+      "cleanupDomain": "warden_process_group",
+      "credentialMode": "none",
+      "binding": { "profile": "tdev.repository-context.git-scoped-lazy.v1" }
     },
     "tdev.repository.validate.v1": {
       "kind": "repository_validation",

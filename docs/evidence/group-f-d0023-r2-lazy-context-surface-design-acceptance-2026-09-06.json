@@ -1,0 +1,18 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0023",
+  "revision": 2,
+  "status": "accepted",
+  "acceptanceBase": "development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d",
+  "decision": "stateless bounded MCP projections for owner-issued lazy manifest/list/search/read context",
+  "facts": [
+    "D0047 introduces a distinct lazy context profile and forbids arbitrary exclusions",
+    "the MCP surface currently delegates owner projections and does not own repository or Case state"
+  ],
+  "unknown": [
+    "provider deployment and current-client discovery remain unexecuted"
+  ],
+  "authorization": "accepted design only; source/provider/client qualification remains open",
+  "secrets": "none"
+}

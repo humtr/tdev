@@ -9,7 +9,7 @@
 - Trigger: direct user decision to add, without replacing the existing qualification methods, a paired cross-validation and improvement loop demonstrating that development work submitted through tdev MCP is materially better than equivalent work submitted through tmcp MCP in representative performance, efficiency, speed, parallel execution and stability profiles
 - Acceptance evidence: `docs/evidence/group-f-d0045-r1-tdev-tmcp-comparative-qualification-acceptance-2026-09-03.json`
 - Affected owners: `docs/development/PROGRAM.md`, `docs/QUALIFICATION.md`, D0035 prerequisite planning and the derived Design index
-- Preserved owners: D0019 remains the only Case semantic owner; D0020/D0027 remain Agent delivery/execution owners; D0023/D0024 own the supported MCP and security surface; D0025 owns Git publication; D0042 owns Case re-drive; D0043@r2 owns bounded development operations; D0046 owns the prerequisite independently usable tdev MCP path; D0035 owns tmcp-retirement readiness
+- Preserved owners: D0019 remains the only Case semantic owner; D0020/D0027 remain Agent delivery/execution owners; D0023/D0024 own the supported MCP and security surface; D0025 owns Git publication; D0042 owns Case re-drive; D0043@r3 and D0047@r1 own bounded development operations and lazy context; D0046@r2 owns the prerequisite independently usable tdev MCP path; D0035 owns tmcp-retirement readiness
 - Product/runtime semantics: no product command, schema, state, authority, retry, security or deployment behavior changes merely by accepting this comparison plan
 - Explicit non-goals: no claim that tdev currently outperforms tmcp; no replacement of correctness/security/recovery qualification; no comparison between different clients as though it isolated the execution path; no production SLO; no canonical-ref race between the two paths; no tmcp shutdown; no D0044/D0039 route mutation; no implementation before later `WORKBOARD.md` routing
 
@@ -171,7 +171,7 @@ Likely attribution includes:
 - ready-work delay or restart re-drive -> D0042;
 - MCP round-trip/projection overhead -> D0023;
 - authentication/reconnect overhead -> D0024;
-- repository preparation, model transport or validation operation cost -> D0043@r2 and the existing repository/model executor owners;
+- repository preparation, model transport or validation operation cost -> D0043@r3/D0047@r1 and the existing repository/model executor owners;
 - Agent delivery/reconnect/duplicate behavior -> D0020/D0027/D0044 as applicable;
 - Git publication/reconciliation -> D0025;
 - an optimization that changes none of those contracts -> Class 1 at the existing owner;
@@ -254,7 +254,7 @@ Rejected. D0035 owns tmcp-disabled self-hosting independence. A system may be in
 
 ## 15. Planned ordering and checkpoint integration
 
-1. Complete D0043@r2 M0 and D0046 M1/M2/H1-H5 so one real supported web ChatGPT tdev path is independently usable and hardened at its declared single-user scope.
+1. Complete D0043@r3 M0, D0047 CP1/CP2/CP3 and D0046@r2 M1/M2/H1-H5 so one real supported web ChatGPT tdev path is independently usable and hardened at its declared single-user scope.
 2. Freeze the exact D0046 source/client/model/Agent/provider/base/validation profile that becomes the tdev side of the first comparison generation.
 3. Route D0045 and implement only the neutral manifest, instrumentation, tmcp/tdev adapters, independent validator and evidence writer needed for candidate-only paired trials.
 4. Run the Codex stratum, attribute gaps, continuously correct authorized tdev owners and rerun the full frozen corpus until PASS.

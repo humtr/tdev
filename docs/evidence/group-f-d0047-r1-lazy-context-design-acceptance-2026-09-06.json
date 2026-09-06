@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0047",
+  "revision": 1,
+  "status": "accepted",
+  "acceptanceBase": "development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d",
+  "decision": "explicit owner-issued lazy manifest and bounded scoped reads; no arbitrary exclusions or silent full-context fallback",
+  "facts": [
+    "the bound repository-model transport eagerly decodes the complete supported text tree",
+    "configured context exclusions are applied before semantic base digest calculation",
+    "the repository target permits workloads far larger than the current complete-text request bound"
+  ],
+  "unknown": [
+    "provider/client implementation and 1GB physical stress evidence are unexecuted"
+  ],
+  "authorization": "accepted design only; source, package, provider and client qualification remain open",
+  "secrets": "none"
+}

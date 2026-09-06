@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0046",
+  "revision": 2,
+  "status": "accepted",
+  "acceptanceBase": "development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d",
+  "decision": "route the first tdev MCP development result through D0043 revision-3 no-bwrap Termux execution and D0047 owner-issued lazy context before provider/client trials",
+  "facts": [
+    "D0043 revision 3 removes the provider sandbox/bwrap dependency and retains disposable exact-base, result-only and fixed-validation boundaries",
+    "D0047 revision 1 supplies distinct whole-base, manifest, scope and selected-context identities with bounded list/search/read operations",
+    "provider deployment, current-client execution and physical Codex candidate success remain separate qualification gates"
+  ],
+  "unknown": [
+    "the installed Codex account currently reports an out-of-credits provider failure during the physical M0 attempt",
+    "no provider or current-client MCP development result has been executed"
+  ],
+  "authorization": "accepted design only; implementation, physical qualification and provider/client qualification remain open",
+  "secrets": "none"
+}

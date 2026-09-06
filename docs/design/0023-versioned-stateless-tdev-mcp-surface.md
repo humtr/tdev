@@ -1,12 +1,13 @@
 # Design 0023 - Versioned Stateless tdev MCP Surface
 
 - Status: `accepted`
-- Revision: 1
+- Revision: 2
 - Class: 2
-- Decision date: 2026-09-03
-- Acceptance base: `development@2b99f09280a06ab52a8ea04934afc3ae3d538f4e`
-- Trigger: P1 source composition now reaches a validated isolated candidate, so the final-MVP MCP boundary must be made executable without creating a second Case scheduler, Agent queue or canonical writer
-- Acceptance evidence: `docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json`
+- Decision date: 2026-09-06
+- Acceptance base: `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`
+- Predecessor revision: D0023@r1 accepted at `development@2b99f09280a06ab52a8ea04934afc3ae3d538f4e`; its acceptance evidence remains `docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json`
+- Trigger: D0047 requires bounded owner-issued manifest/list/search/read projections so a client can drive lazy context without hydrating a complete repository payload
+- Acceptance evidence: `docs/evidence/group-f-d0023-r2-lazy-context-surface-design-acceptance-2026-09-06.json`
 - Scope: one versioned, stateless MCP projection/command ingress for tdev Case, drive and development-unit operations
 - Affected owners: `src/`, `docs/MCP.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, the deployed MCP Worker and its generated schemas
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery and local-process authorities; D0042 remains Case-to-Agent drive/re-drive; D0043 remains typed operation admission; D0024 owns MCP authentication/tenant identity; D0025 owns Git publication
@@ -14,7 +15,7 @@
 
 ## 1. One-line definition
 
-Expose a strict, versioned, stateless Streamable HTTP MCP surface at `/mcp` that maps a small tool set to authoritative tdev owners, preserves exact receipts/revisions/reconciliation states, and never invents semantic success from a transport response.
+Expose a strict, versioned, stateless Streamable HTTP MCP surface at `/mcp` that maps a small tool set to authoritative tdev owners, includes bounded lazy context projections, preserves exact receipts/revisions/reconciliation states, and never invents semantic success from a transport response.
 
 ## 2. Why this is Class 2
 
@@ -38,11 +39,13 @@ The public origin is HTTPS only. A Termux process is never reached by an inbound
 
 ## 4. Surface identity and versioning
 
-The surface identity is:
+The surface identity remains:
 
 ```text
 tdev.mcp.surface.v1
 ```
+
+Revision 2 adds `development_context_list`, `development_context_search` and `development_context_read`. Each accepts only an owner-issued context reference and bounded cursor/pattern/path/range data. The Worker remains a projection adapter: it does not read the repository, select a scope, or cache content as authority. Incomplete/truncated results are explicit and cannot start model work. The accepted v1 tool definitions remain compatible for callers that do not request the new projections; an unknown tool or unsupported argument fails closed.
 
 The Worker publishes one immutable surface manifest containing:
 
