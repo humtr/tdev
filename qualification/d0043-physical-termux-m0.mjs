@@ -205,8 +205,10 @@ async function main() {
       if (filePath.startsWith('docs/') && candidate.canonicalTree[filePath] !== baseTree[filePath]) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
     }
     const runtimeCandidateDigest = modelResult?.evidence?.candidateTreeDigest ?? candidate.canonicalDigest;
-    const runtimeCandidate = operationRuntime.candidate(runtimeCandidateDigest);
-    if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');
+    if (candidate.candidateCleanup?.cleanupComplete !== true || candidate.candidateCleanup?.positiveAbsence !== true) {
+      fail('m0_candidate_cleanup_missing', 'M0 candidate cleanup did not return a positive absence receipt', { candidateCleanup: candidate.candidateCleanup ?? null });
+    }
+    if (operationRuntime.candidate(runtimeCandidateDigest) !== null) fail('m0_candidate_cleanup_missing', 'M0 runtime retained a candidate after validation');
     await operationRuntime.dispose();
     try { await stat(runtimeCandidate.candidateRoot); fail('m0_candidate_cleanup_missing', 'M0 candidate workspace remained after disposal'); }
     catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
