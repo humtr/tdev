@@ -1,0 +1,80 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0046",
+  "revision": 3,
+  "layer": "provider-readonly-preflight-and-deploy-admission",
+  "qualification": "m1-current-source-provider-rebind",
+  "sourceCommit": "e29a0d031d274d2531972980518d88f14000afa7",
+  "status": "BLOCKED",
+  "observations": {
+    "preflight": {
+      "command": "node qualification/d0046-m1-capacity-preflight.mjs --env-file /data/data/com.termux/files/home/.config/tdev/cloudflare.env",
+      "status": "FAIL_BEFORE_CASE_ADMISSION",
+      "code": "d0046_preflight_manifest_mismatch",
+      "message": "Trial composition did not bind the accepted lazy repository identity and scope",
+      "mutation": "none"
+    },
+    "deploymentAdmission": {
+      "command": "node qualification/d0046-mcp-trial-deploy.mjs --apply --env-file /data/data/com.termux/files/home/.config/tdev/cloudflare.env",
+      "status": "FAIL_BEFORE_PROVIDER_CALL",
+      "code": "d0046_deploy_input_invalid",
+      "message": "TDEV_D0046_ACCESS_PRINCIPAL is outside its bound",
+      "mutation": "none"
+    }
+  },
+  "localExpected": {
+    "sourceCommit": "e29a0d031d274d2531972980518d88f14000afa7",
+    "contextProfile": "tdev.repository.context.prepare.lazy.v1",
+    "scopeProfile": "tdev.repository-context-scope.v1",
+    "completeRepositoryIdentity": true,
+    "ownerScope": [
+      "src/lazy-plan-reference.mjs",
+      "test/lazy-plan-reference.test.mjs"
+    ]
+  },
+  "providerReadback": {
+    "workerScript": "tdev-mcp-trial",
+    "activeVersion": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+    "activeTraffic": 100,
+    "sourceCommit": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "baseDigest": "sha256:51891d0a2fe68ab6546c9b43e7e7120ff4e4fe15a0acd26839c50b74b5e2b921",
+    "composition": {
+      "contextProfile": null,
+      "contextScope": null,
+      "scopeDigest": null,
+      "completeRepositoryIdentity": false,
+      "contextBaseTreeEntries": 0
+    },
+    "bindings": {
+      "caseWorker": "tdev-d0020-composition-case-r1",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "driveClass": "CaseAgentDriveRuntimeDO",
+      "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+      "agentWorker": "tdev-d0020-qualification-clean-a",
+      "agentNamespace": "0dad69baa7154d00949f88c8b8dbf94a",
+      "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+    }
+  },
+  "providerEffects": {
+    "trialWorkerChanged": false,
+    "trialSubdomainChanged": false,
+    "accessApplicationChanged": false,
+    "caseCreated": false,
+    "agentChanged": false,
+    "credentialsChanged": false
+  },
+  "blockers": [
+    "Current provider trial is an older source/configuration and does not satisfy the accepted lazy composition.",
+    "A fresh exact rebind cannot proceed until the owner supplies TDEV_D0046_ACCESS_PRINCIPAL in the deploy environment.",
+    "The existing deployer refuses overwrite of a non-absent trial target; no destructive replacement was attempted."
+  ],
+  "notProven": [
+    "provider deployment from current source",
+    "provider MCP lifecycle or candidate execution",
+    "authenticated current ChatGPT web client execution",
+    "historical 502 root cause",
+    "tmcp comparison"
+  ],
+  "secrets": "none"
+}
