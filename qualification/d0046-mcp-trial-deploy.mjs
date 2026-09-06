@@ -474,7 +474,7 @@ export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_QUALIFIED
   return parsed;
 }
 
-async function verifyExistingOwners(client) {
+async function verifyExistingOwners(client, repositoryPath) {
   const [caseSettings, agentSettings, namespaces] = await Promise.all([
     workerSettings(client, D0046_CASE_SCRIPT),
     workerSettings(client, D0046_AGENT_SCRIPT),
@@ -491,6 +491,11 @@ async function verifyExistingOwners(client) {
   }
   const placement = bindingByName(caseSettings.result, 'TDEV_CASE_PLACEMENT');
   if (placement?.type !== 'd1' || placement.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_owner_d1_mismatch', 'Existing Case owner D1 binding was not exact');
+  const readerSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA')?.text;
+  const { qualifyCaseReader } = await import('./d0046-case-reader-compatibility.mjs');
+  const reader = await qualifyCaseReader({ repositoryPath, readerSource, scope: D0046_MCP_CONTEXT_SCOPE });
+  if (!reader.compatible) fail('d0046_case_reader_incompatible', 'Case owner declared source cannot restore the scoped Plan; qualify the owner update first', reader);
+  // A passing source probe does not replace deployed artifact/state compatibility evidence.
 }
 
 async function waitForTrialNamespace(client) {
@@ -654,7 +659,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const identity = identityManifest();
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
-  await verifyExistingOwners(client);
+  await verifyExistingOwners(client, repositoryPath);
   const absence = await preflightAbsence(client);
   const manifestInput = {
     sourceSha,

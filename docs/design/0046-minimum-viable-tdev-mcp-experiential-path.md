@@ -87,7 +87,7 @@ The first public resource is:
 https://tdev-mcp-trial.humtr.workers.dev/mcp
 ```
 
-The service name and resource are release-manifest values and must be confirmed by provider readback before handoff. A preexisting or conflicting provider object fails closed; it is not overwritten by convention.
+The service name and resource are release-manifest values and must be confirmed by provider readback before handoff. First creation rejects preexisting or conflicting provider objects. Forward updates to the verified trial use the Revision-4 preservation gates; resource existence alone is not an update failure.
 
 The isolated Worker `tdev-mcp-trial` contains only the D0023/D0024 ingress adapters, provider facades and one new SQLite Durable Object host for D0042:
 
@@ -139,7 +139,7 @@ If M0 fails, fix the D0043/runtime defect before spending more Cloudflare or web
 
 Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path.
 
-No existing `tdev` Worker, canonical D0039 route, D0044 lane or stable Git ref is replaced in M1. A provider response loss is reconciled by version/config/readback; it is not retried blindly.
+No existing `tdev` Worker, canonical D0039 route, D0044 lane or stable Git ref is replaced in M1. A shared Case/Agent code update must satisfy the Revision-4 reader, consumer and quiescence gates while preserving namespace and route identities. A provider response loss is reconciled by version/config/readback; it is not retried blindly.
 
 ### M2 - perform the one planned web ChatGPT trial
 
