@@ -31,6 +31,16 @@ test('D0043 Codex JSONL accepts one strict terminal result and preserves usage s
   assert.deepEqual(parsed.usage, { input_tokens: 8, output_tokens: 3 });
 });
 
+test('D0043 Codex JSONL tolerates bounded progress text when exactly one structured result exists', () => {
+  const parsed = parseCodexJsonl(eventStream(
+    { type: 'item.completed', item: { type: 'agent_message', text: 'I inspected the requested files.' } },
+    { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },
+  ));
+  assert.deepEqual({ ...parsed.result }, changeset);
+  assert.equal(parsed.terminalMessageCount, 2);
+  assert.equal(parsed.auxiliaryTerminalMessages, 1);
+});
+
 test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed terminal events', () => {
   const cases = [
     [eventStream({ type: 'turn.completed', usage: {} }), 'codex_terminal_output_missing'],

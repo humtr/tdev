@@ -41,6 +41,9 @@ const TOOL_NAMES = Object.freeze([
   'claim_conflicts_get',
   'promotion_get',
   'development_context_get',
+  'development_context_list',
+  'development_context_search',
+  'development_context_read',
   'development_unit_start',
   'development_unit_get',
 ]);
@@ -73,6 +76,9 @@ export const MCP_SURFACE_TOOL_DEFINITIONS = Object.freeze([
   { name: 'claim_conflicts_get', description: 'Read current ClaimLedger conflicts without acquiring a lease.', inputSchema: schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']) },
   { name: 'promotion_get', description: 'Read the bounded Promotion/candidate projection for a Case.', inputSchema: schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']) },
   { name: 'development_context_get', description: 'Read an owner-issued immutable repository context reference.', inputSchema: schema({ selector: stringSchema }, []) },
+  { name: 'development_context_list', description: 'List a bounded page from an owner-issued lazy repository context.', inputSchema: schema({ contextReference: identifierSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 128 } }, ['contextReference']) },
+  { name: 'development_context_search', description: 'Search an owner-issued lazy repository context within explicit bounds.', inputSchema: schema({ contextReference: identifierSchema, pattern: stringSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 256 } }, ['contextReference', 'pattern']) },
+  { name: 'development_context_read', description: 'Read one bounded file range from an owner-issued lazy repository context.', inputSchema: schema({ contextReference: identifierSchema, path: stringSchema, startByte: { type: 'integer', minimum: 0 }, maxBytes: { type: 'integer', minimum: 1 } }, ['contextReference', 'path']) },
   { name: 'development_unit_start', description: 'Start one typed development unit through the existing Case, Drive and Agent owners.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']) },
   { name: 'development_unit_get', description: 'Read the bounded candidate projection for a development unit.', inputSchema: schema({ caseId: identifierSchema }, ['caseId']) },
 ]);
@@ -358,6 +364,24 @@ function validateToolArguments(name, input) {
       assertRecordShape(args, [], ['selector'], 'development_context_get arguments');
       if (args.selector !== undefined) requireText(args, 'selector');
       return canonicalClone(args);
+    case 'development_context_list':
+      assertRecordShape(args, ['contextReference'], ['cursor', 'limit'], 'development_context_list arguments');
+      requireText(args, 'contextReference', { identifier: true });
+      const listCursor = args.cursor === undefined ? 0 : assertSafeInteger(args.cursor, 'cursor', { min: 0 });
+      const listLimit = args.limit === undefined ? 128 : assertSafeInteger(args.limit, 'limit', { min: 1, max: 128 });
+      return { contextReference: args.contextReference, cursor: listCursor, limit: listLimit };
+    case 'development_context_search':
+      assertRecordShape(args, ['contextReference', 'pattern'], ['cursor', 'limit'], 'development_context_search arguments');
+      requireText(args, 'contextReference', { identifier: true }); requireText(args, 'pattern');
+      const searchCursor = args.cursor === undefined ? 0 : assertSafeInteger(args.cursor, 'cursor', { min: 0 });
+      const searchLimit = args.limit === undefined ? 64 : assertSafeInteger(args.limit, 'limit', { min: 1, max: 256 });
+      return { contextReference: args.contextReference, pattern: args.pattern, cursor: searchCursor, limit: searchLimit };
+    case 'development_context_read':
+      assertRecordShape(args, ['contextReference', 'path'], ['startByte', 'maxBytes'], 'development_context_read arguments');
+      requireText(args, 'contextReference', { identifier: true }); requireText(args, 'path');
+      const startByte = args.startByte === undefined ? 0 : assertSafeInteger(args.startByte, 'startByte', { min: 0 });
+      const maxBytes = args.maxBytes === undefined ? undefined : assertSafeInteger(args.maxBytes, 'maxBytes', { min: 1 });
+      return { contextReference: args.contextReference, path: args.path, startByte, ...(maxBytes === undefined ? {} : { maxBytes }) };
     case 'development_unit_start':
       assertRecordShape(args, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile'], [], 'development_unit_start arguments');
       requireText(args, 'requestId', { identifier: true }); requireText(args, 'caseId', { identifier: true }); requireText(args, 'driveRequestId', { identifier: true });
@@ -596,6 +620,18 @@ export class TdevMcpSurface {
       case 'development_context_get': {
         if (typeof this.owners.developmentContextGet !== 'function') fail('mcp_owner_unavailable', 'Development context owner is unavailable');
         return projectContext(await this.owners.developmentContextGet({ selector: args.selector ?? null, identity }), this.manifest.limits.maxContextBytes);
+      }
+      case 'development_context_list': {
+        if (typeof this.owners.developmentContextList !== 'function') fail('mcp_owner_unavailable', 'Lazy context list owner is unavailable');
+        return projectContext(await this.owners.developmentContextList({ contextReference: args.contextReference, cursor: args.cursor, limit: args.limit, identity }), this.manifest.limits.maxContextBytes);
+      }
+      case 'development_context_search': {
+        if (typeof this.owners.developmentContextSearch !== 'function') fail('mcp_owner_unavailable', 'Lazy context search owner is unavailable');
+        return projectContext(await this.owners.developmentContextSearch({ contextReference: args.contextReference, pattern: args.pattern, cursor: args.cursor, limit: args.limit, identity }), this.manifest.limits.maxContextBytes);
+      }
+      case 'development_context_read': {
+        if (typeof this.owners.developmentContextRead !== 'function') fail('mcp_owner_unavailable', 'Lazy context read owner is unavailable');
+        return projectContext(await this.owners.developmentContextRead({ contextReference: args.contextReference, path: args.path, startByte: args.startByte, maxBytes: args.maxBytes, identity }), this.manifest.limits.maxContextBytes);
       }
       case 'development_unit_start': {
         if (typeof this.owners.developmentUnitStart !== 'function') fail('mcp_owner_unavailable', 'Development unit owner is unavailable');

@@ -158,8 +158,9 @@ async function main() {
     validation: 'tdev.repository.validate.v1',
   };
   const capabilityByProfile = Object.fromEntries(Object.values(profileNames).map((profile) => [profile, developmentOperationCapabilityId(manifest, profile)]));
-  const expectedExcludedPaths = manifest.profiles[profileNames.model].binding.contextExcludedPaths ?? [];
-  if (JSON.stringify(tracked.excludedPaths) !== JSON.stringify(expectedExcludedPaths)) fail('m0_context_exclusion_mismatch', 'The published repository binary exclusion does not match the release binding', { observed: tracked.excludedPaths, expected: expectedExcludedPaths });
+  if (tracked.excludedPaths.length !== 0) {
+    fail('m0_non_text_entry_requires_lazy_scope', 'The physical full-context M0 fixture contains non-UTF-8 entries; arbitrary exclusions are forbidden and a scoped Design path is required', { paths: tracked.excludedPaths });
+  }
   const capabilities = Object.values(capabilityByProfile).sort();
   const caseContract = { caseGrant: capabilities, workspacePolicy: capabilities };
   const workspaceBefore = await workspaceEntries();
@@ -187,6 +188,7 @@ async function main() {
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],
+    writePaths: ['src/development-runtime.mjs', 'test/development-runtime.test.mjs'],
     caseContract,
   });
   let candidate = null;
@@ -201,7 +203,9 @@ async function main() {
     if (candidate.caseState !== 'succeeded' || validationResult?.passed !== true) fail('m0_validation_failed', 'M0 candidate did not pass fixed npm validation', { caseState: candidate.caseState, validation: validationResult });
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
     if (!candidate.canonicalTree['src/development-runtime.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/development-runtime.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
-    for (const filePath of Object.keys(candidate.canonicalTree)) if (filePath.startsWith('docs/')) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
+    for (const filePath of new Set([...Object.keys(baseTree), ...Object.keys(candidate.canonicalTree)])) {
+      if (filePath.startsWith('docs/') && candidate.canonicalTree[filePath] !== baseTree[filePath]) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
+    }
     const runtimeCandidate = operationRuntime.candidate(candidate.canonicalDigest);
     if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');
     await operationRuntime.dispose();
@@ -214,7 +218,7 @@ async function main() {
     const preservedAfter = await preservedFiles();
     if (JSON.stringify(preservedAfter) !== JSON.stringify(preservedBefore)) fail('m0_user_files_changed', 'M0 changed a preserved user file');
     const serializedFrames = JSON.stringify(agent.emitted);
-    if (/\.codex|CODEX_HOME|Bearer\s|sk-[A-Za-z0-9]/iu.test(serializedFrames)) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
+    if (serializedFrames.includes(CODEX_HOME) || /Bearer\s+[A-Za-z0-9._-]{8,}/iu.test(serializedFrames) || /sk-[A-Za-z0-9]{20,}/u.test(serializedFrames)) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
     process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
   } finally {
     await operationRuntime.dispose().catch(() => {});

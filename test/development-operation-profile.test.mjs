@@ -96,6 +96,27 @@ test('D0043 requests select typed inputs and reject caller executable authority'
   );
 });
 
+test('D0043 owner-issued write scope is normalized and cannot be widened by model input', () => {
+  const model = normalizeDevelopmentOperationRequest(manifest, {
+    profile: 'model.v1',
+    input: { repositoryCommitOid: commitOid, baseDigest, instruction: 'change one source file', writePaths: ['test/b.mjs', 'src/a.mjs'] },
+  });
+  assert.deepEqual(model.input.writePaths, ['src/a.mjs', 'test/b.mjs']);
+  assert.throws(() => normalizeDevelopmentOperationRequest(manifest, {
+    profile: 'model.v1',
+    input: { repositoryCommitOid: commitOid, baseDigest, instruction: 'x', writePaths: ['src/a.mjs', 'src/a.mjs'] },
+  }), (error) => error instanceof ContractError && error.code === 'development_operation_write_scope_invalid');
+});
+
+test('D0047 rejects exclusion bindings that would silently redefine the base scope', () => {
+  const legacy = structuredClone(manifest);
+  legacy.profiles['model.v1'].binding.contextExcludedPaths = ['native/blob'];
+  assert.throws(
+    () => normalizeDevelopmentOperationManifest(legacy),
+    (error) => error instanceof ContractError && error.code === 'development_operation_binding_invalid',
+  );
+});
+
 test('D0043 capability intersection and typed dispatch select exactly one operation owner', async () => {
   const capabilityId = developmentOperationCapabilityId(manifest, 'model.v1');
   let called = 0;

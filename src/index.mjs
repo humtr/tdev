@@ -209,6 +209,7 @@ export {
   CODEX_EXECUTION_BOUNDARY,
   CODEX_MODEL_BINDING_PROFILE,
   CODEX_OPERATION_ARGUMENTS,
+  LAZY_CONTEXT_OPERATION_PROFILE,
   DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES,
   normalizeDevelopmentOperationManifest,
   normalizeDevelopmentOperationRequest,
@@ -275,6 +276,8 @@ export {
   MODEL_REQUEST_DOMAIN,
   MODEL_TRANSPORT_PROFILE,
   REPOSITORY_CONTEXT_PROFILE,
+  LAZY_REPOSITORY_CONTEXT_PROFILE,
+  LAZY_CONTEXT_SCOPE_PROFILE,
   GitRepositoryModelExecutor,
   runModelSubprocess,
 } from './repository-model-transport.mjs';

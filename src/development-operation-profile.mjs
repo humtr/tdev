@@ -24,6 +24,7 @@ export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
 export const CODEX_MODEL_BINDING_PROFILE = 'tdev.model.codex-exec-no-bwrap.v1';
 export const CODEX_EXECUTION_BOUNDARY = 'tdev.disposable-exact-base-no-bwrap.v1';
 export const CODEX_OPERATION_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--ignore-user-config']);
+export const LAZY_CONTEXT_OPERATION_PROFILE = 'tdev.repository.context.prepare.lazy.v1';
 
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
 const EXECUTABLE_KINDS = new Set(['built_in', 'configured_runtime']);
@@ -106,14 +107,10 @@ function normalizeProfile(input, name) {
     }
     binding = canonicalClone(input.binding);
     if (input.binding.contextExcludedPaths !== undefined) {
-      if (!Array.isArray(input.binding.contextExcludedPaths) || input.binding.contextExcludedPaths.length > 128) {
+      if (!Array.isArray(input.binding.contextExcludedPaths) || input.binding.contextExcludedPaths.length !== 0) {
         fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths is invalid`);
       }
-      const excludedPaths = input.binding.contextExcludedPaths.map((value) => validateRelativePath(boundedText(value, `operation profile ${name}.binding.contextExcludedPaths`, 4096))).sort(compareText);
-      for (let index = 1; index < excludedPaths.length; index += 1) {
-        if (excludedPaths[index] === excludedPaths[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths contains a duplicate`);
-      }
-      binding.contextExcludedPaths = excludedPaths;
+      binding.contextExcludedPaths = [];
     }
   }
   if (input.kind === 'model_repository' && (binding === null || binding.profile !== CODEX_MODEL_BINDING_PROFILE || binding.executionBoundary !== CODEX_EXECUTION_BOUNDARY || typeof binding.outputSchemaPath !== 'string')) {
@@ -175,22 +172,39 @@ function rejectForbiddenInputKeys(value, path = 'request.input') {
   }
 }
 
-function normalizeRequestInput(kind, input) {
+function normalizeWritePaths(input, label = 'writePaths') {
+  if (input === undefined || input === null) return null;
+  if (!Array.isArray(input) || input.length === 0 || input.length > 256) {
+    fail('development_operation_write_scope_invalid', `${label} must be a bounded non-empty array`);
+  }
+  const paths = input.map((value, index) => validateRelativePath(boundedText(value, `${label}[${index}]`, 4_096))).sort(compareText);
+  for (let index = 1; index < paths.length; index += 1) {
+    if (paths[index] === paths[index - 1]) fail('development_operation_write_scope_invalid', `${label} contains a duplicate path`);
+  }
+  return paths;
+}
+
+function normalizeRequestInput(kind, input, profileName) {
   if (!isPlainRecord(input)) fail('development_operation_request_invalid', 'Development operation input must be a record');
   if (kind === 'repository_context') {
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], [], 'repository context operation input');
+    const lazy = profileName === LAZY_CONTEXT_OPERATION_PROFILE;
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], lazy ? ['scope'] : [], 'repository context operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     if (!['sha1', 'sha256'].includes(input.objectFormat)) fail('development_operation_request_invalid', 'objectFormat is unsupported');
-    return deepFreeze(canonicalClone(input));
+    const normalized = canonicalClone(input);
+    if (lazy && (!isPlainRecord(input.scope) || Object.keys(input.scope).length === 0)) fail('development_operation_request_invalid', 'Lazy context scope is required');
+    return deepFreeze(normalized);
   }
   if (kind === 'model_repository') {
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId'], 'model operation input');
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId', 'writePaths'], 'model operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     boundedText(input.instruction, 'instruction', 64 * 1024);
     if (Object.hasOwn(input, 'contextReferenceId')) assertIdentifier(input.contextReferenceId, 'contextReferenceId');
-    return deepFreeze(canonicalClone(input));
+    const normalized = canonicalClone(input);
+    if (Object.hasOwn(input, 'writePaths')) normalized.writePaths = normalizeWritePaths(input.writePaths);
+    return deepFreeze(normalized);
   }
   assertRecordShape(input, ['candidateTreeDigest', 'validationProfile'], [], 'validation operation input');
   assertDigest(input.candidateTreeDigest, 'candidateTreeDigest');
@@ -205,7 +219,7 @@ export function normalizeDevelopmentOperationRequest(manifest, input) {
   const selected = normalizedManifest.profiles[input.profile];
   if (!selected) fail('development_operation_profile_unknown', `Unknown development operation profile: ${input.profile}`);
   rejectForbiddenInputKeys(input.input);
-  const operationInput = normalizeRequestInput(selected.kind, input.input);
+  const operationInput = normalizeRequestInput(selected.kind, input.input, input.profile);
   const request = {
     schemaVersion: DEVELOPMENT_OPERATION_SCHEMA_VERSION,
     profile: input.profile,

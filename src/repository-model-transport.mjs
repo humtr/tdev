@@ -4,6 +4,7 @@ import { createHash } from 'node:crypto';
 import {
   ContractError,
   DEFAULT_JSON_LIMITS,
+  assertDigest,
   assertRecordShape,
   assertSafeInteger,
   assertScalarString,
@@ -11,6 +12,7 @@ import {
   canonicalJson,
   compareText,
   deepFreeze,
+  digest,
   isPlainRecord,
   strictJsonParse,
   typedDigest,
@@ -24,6 +26,8 @@ import {
 } from './selected-context-delivery.mjs';
 
 export const REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-full-text.v1';
+export const LAZY_REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-scoped-lazy.v1';
+export const LAZY_CONTEXT_SCOPE_PROFILE = 'tdev.repository-context-scope.v1';
 export const MODEL_TRANSPORT_PROFILE = 'tdev.model.subprocess-json.v1';
 export const MODEL_REPOSITORY_OPERATION = 'tdev.model.repository';
 export const MODEL_REQUEST_DOMAIN = 'tdev.model.repository-request.v1';
@@ -47,6 +51,10 @@ const REQUEST_IDENTITY_SUFFIX = Buffer.from(',"schemaVersion":1}', 'utf8');
 const REQUEST_DIGEST_FIELD = Buffer.from(',"requestDigest":', 'utf8');
 const REQUEST_SUFFIX = Buffer.from(',"schemaVersion":1}', 'utf8');
 const DIGEST_SEPARATOR = Buffer.from([0]);
+const LAZY_MAX_MANIFEST_ENTRIES = 1_000_000;
+const LAZY_MAX_MANIFEST_BYTES = 128 * 1024 * 1024;
+const LAZY_MAX_SCOPE_FILES = 4_096;
+const LAZY_MAX_SCOPE_BYTES = 16 * 1024 * 1024;
 
 function freeze(value) {
   return deepFreeze(canonicalClone(value));
@@ -204,6 +212,46 @@ function normalizeExcludedPaths(input) {
     if (paths[index] === paths[index - 1]) throw new ContractError('duplicate_repository_excluded_path', `excludedPaths repeats ${paths[index]}`);
   }
   return Object.freeze(paths);
+}
+
+function normalizeLazyScope(input) {
+  if (!isPlainRecord(input)) throw new ContractError('lazy_scope_invalid', 'Lazy context scope must be a record');
+  assertRecordShape(input, [], ['paths', 'prefixes', 'maxFiles', 'maxBytes', 'maxSearchResults'], 'lazy context scope');
+  const normalizePaths = (values, label) => {
+    if (values === undefined) return [];
+    if (!Array.isArray(values) || values.length > LAZY_MAX_SCOPE_FILES) throw new ContractError('lazy_scope_invalid', `${label} is outside its bound`);
+    const result = values.map((value, index) => validateRelativePath(boundedLazyText(value, `${label}[${index}]`))).sort(compareText);
+    for (let index = 1; index < result.length; index += 1) {
+      if (result[index] === result[index - 1]) throw new ContractError('lazy_scope_invalid', `${label} contains a duplicate`);
+    }
+    return result;
+  };
+  const paths = normalizePaths(input.paths, 'lazy scope paths');
+  const prefixes = normalizePaths(input.prefixes, 'lazy scope prefixes');
+  if (paths.length === 0 && prefixes.length === 0) throw new ContractError('lazy_scope_invalid', 'Lazy context scope must name a path or prefix');
+  const maxFiles = input.maxFiles === undefined
+    ? LAZY_MAX_SCOPE_FILES
+    : assertSafeInteger(input.maxFiles, 'lazy scope maxFiles', { min: 1, max: LAZY_MAX_SCOPE_FILES });
+  const maxBytes = input.maxBytes === undefined
+    ? LAZY_MAX_SCOPE_BYTES
+    : assertSafeInteger(input.maxBytes, 'lazy scope maxBytes', { min: 1, max: LAZY_MAX_SCOPE_BYTES });
+  const maxSearchResults = input.maxSearchResults === undefined
+    ? 256
+    : assertSafeInteger(input.maxSearchResults, 'lazy scope maxSearchResults', { min: 1, max: 4_096 });
+  return freeze({ schemaVersion: 1, profile: LAZY_CONTEXT_SCOPE_PROFILE, paths, prefixes, maxFiles, maxBytes, maxSearchResults });
+}
+
+function boundedLazyText(value, label, maxBytes = 4_096) {
+  assertScalarString(value, label);
+  if (value.length === 0 || value.includes('\0') || Buffer.byteLength(value, 'utf8') > maxBytes) {
+    throw new ContractError('lazy_scope_invalid', `${label} is outside its bound`);
+  }
+  return value;
+}
+
+function lazyPathSelected(filePath, scope) {
+  if (scope.paths.includes(filePath)) return true;
+  return scope.prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`));
 }
 
 class ContextPreparationCache {
@@ -432,6 +480,52 @@ function parseTreeRows(bytes, objectFormat, limits) {
     return { path: filePath, mode, blobOid: oid, byteLength };
   }).sort((left, right) => compareText(left.path, right.path));
   return { rows, contentBytes };
+}
+
+function parseLazyManifestRows(bytes, objectFormat) {
+  if (!Buffer.isBuffer(bytes) || bytes.byteLength > LAZY_MAX_MANIFEST_BYTES) {
+    throw new ContractError('lazy_manifest_limit_exceeded', 'Repository metadata manifest exceeds its bound');
+  }
+  const text = decodeUtf8(bytes, 'Git metadata manifest');
+  const rawRows = text.split('\0');
+  if (rawRows.at(-1) === '') rawRows.pop();
+  if (rawRows.length > LAZY_MAX_MANIFEST_ENTRIES) {
+    throw new ContractError('lazy_manifest_limit_exceeded', 'Repository metadata manifest exceeds its entry bound');
+  }
+  const seen = new Set();
+  const rows = rawRows.map((row) => {
+    const tab = row.indexOf('\t');
+    if (tab < 1) throw new ContractError('invalid_lazy_manifest', 'Git metadata manifest entry is malformed');
+    const metadata = row.slice(0, tab).trim().split(/ +/u);
+    if (metadata.length !== 4) throw new ContractError('invalid_lazy_manifest', 'Git metadata manifest metadata is malformed');
+    const [mode, type, oid, sizeText] = metadata;
+    if (!/^[0-7]{6}$/u.test(mode) || !['blob', 'commit'].includes(type)) {
+      throw new ContractError('unsupported_lazy_manifest_entry', 'Git metadata manifest contains an unsupported entry', { mode, type });
+    }
+    assertOid(oid, objectFormat, 'lazy manifest object OID');
+    let byteLength = null;
+    if (sizeText !== '-') {
+      if (!/^(0|[1-9][0-9]*)$/u.test(sizeText)) throw new ContractError('invalid_lazy_manifest', 'Git metadata manifest size is malformed');
+      byteLength = Number(sizeText);
+      if (!Number.isSafeInteger(byteLength)) throw new ContractError('lazy_manifest_limit_exceeded', 'Git metadata manifest size is not safe');
+    }
+    const filePath = validateRelativePath(row.slice(tab + 1));
+    if (seen.has(filePath)) throw new ContractError('duplicate_lazy_manifest_path', `Duplicate repository path: ${filePath}`);
+    seen.add(filePath);
+    return { path: filePath, mode, type, blobOid: oid, byteLength };
+  }).sort((left, right) => compareText(left.path, right.path));
+  return rows;
+}
+
+function lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries }) {
+  return {
+    schemaVersion: 1,
+    profile: 'tdev.repository-context.git-manifest.v1',
+    objectFormat,
+    commitOid,
+    treeOid,
+    entries: entries.map(({ path: filePath, mode, type, blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })),
+  };
 }
 
 function parseBatchBlobs(bytes, rows, objectFormat) {
@@ -746,6 +840,7 @@ export class GitRepositoryModelExecutor {
   #environment;
   #limits;
   #contextCache;
+  #lazyContexts;
 
   constructor({
     repositoryPath,
@@ -783,6 +878,7 @@ export class GitRepositoryModelExecutor {
     this.#contextCache = cacheConfiguration === null
       ? null
       : new ContextPreparationCache(cacheConfiguration);
+    this.#lazyContexts = new WeakSet();
     Object.freeze(this);
   }
 
@@ -948,6 +1044,148 @@ export class GitRepositoryModelExecutor {
         requestLimit,
       ),
     );
+  }
+
+  async #produceLazyManifest(commitOid, expectedBaseDigest, scope, signal) {
+    const gitMetrics = zeroGitMetrics();
+    throwIfAborted(signal, 'Model transport was aborted before lazy manifest preparation');
+    const objectFormat = inferObjectFormat(commitOid, 'repositoryCommitOid');
+    const observedObjectFormat = (await this.#git(['rev-parse', '--show-object-format'], null, signal, gitMetrics)).toString('utf8').trim();
+    if (observedObjectFormat !== objectFormat) {
+      throw new ContractError('repository_object_format_mismatch', 'Repository object format does not match the commit OID', { expectedObjectFormat: objectFormat, observedObjectFormat });
+    }
+    const type = (await this.#git(['cat-file', '-t', commitOid], null, signal, gitMetrics)).toString('utf8').trim();
+    if (type !== 'commit') throw new ContractError('repository_context_not_commit', 'repositoryCommitOid must name a Git commit');
+    const treeOid = (await this.#git(['rev-parse', `${commitOid}^{tree}`], null, signal, gitMetrics)).toString('utf8').trim();
+    assertOid(treeOid, objectFormat, 'tree OID');
+    const listingBytes = await this.#git(['ls-tree', '-r', '-z', '-l', commitOid], null, signal, gitMetrics);
+    const rows = parseLazyManifestRows(listingBytes, objectFormat);
+    const selectedRows = rows.filter((row) => lazyPathSelected(row.path, scope));
+    if (selectedRows.length === 0) throw new ContractError('lazy_scope_empty', 'Owner-issued lazy scope selects no manifest entry');
+    const selectedByteLength = selectedRows.reduce((sum, row) => sum + (row.byteLength ?? 0), 0);
+    const manifestIdentity = lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries: rows });
+    const manifestDigest = typedDigest('tdev.repository-context.git-manifest.v1', manifestIdentity);
+    const scopeDigest = typedDigest(LAZY_CONTEXT_SCOPE_PROFILE, scope);
+    const descriptor = deepFreeze({
+      schemaVersion: 1,
+      profile: LAZY_REPOSITORY_CONTEXT_PROFILE,
+      objectFormat,
+      commitOid,
+      treeOid,
+      baseDigest: expectedBaseDigest,
+      manifestDigest,
+      manifestEntryCount: rows.length,
+      scope,
+      scopeDigest,
+      selectedEntryCount: selectedRows.length,
+      selectedByteLength,
+    });
+    const handle = { descriptor, manifest: deepFreeze(rows), selectedRows: deepFreeze(selectedRows), gitMetrics };
+    this.#lazyContexts.add(handle);
+    return handle;
+  }
+
+  #assertLazyContext(context) {
+    if (!isPlainRecord(context) || !this.#lazyContexts.has(context) || context.descriptor?.profile !== LAZY_REPOSITORY_CONTEXT_PROFILE) {
+      throw new ContractError('lazy_context_reference_invalid', 'Lazy context reference is not owned by this executor');
+    }
+    return context;
+  }
+
+  async prepareLazyContext(commitOid, expectedBaseDigest, options = {}) {
+    assertRecordShape(options, ['scope'], ['signal'], 'prepareLazyContext options');
+    assertDigest(expectedBaseDigest, 'baseDigest');
+    const signal = options.signal === undefined ? NEVER_ABORTED_SIGNAL : assertAbortSignal(options.signal, 'prepareLazyContext signal');
+    const scope = normalizeLazyScope(options.scope);
+    return this.#produceLazyManifest(commitOid, expectedBaseDigest, scope, signal);
+  }
+
+  listLazyContext(context, options = {}) {
+    const handle = this.#assertLazyContext(context);
+    assertRecordShape(options, [], ['cursor', 'limit'], 'listLazyContext options');
+    const cursor = options.cursor === undefined ? 0 : assertSafeInteger(options.cursor, 'lazy context cursor', { min: 0, max: handle.selectedRows.length });
+    const limit = options.limit === undefined ? Math.min(128, handle.descriptor.scope.maxFiles) : assertSafeInteger(options.limit, 'lazy context page limit', { min: 1, max: 128 });
+    const entries = handle.selectedRows.slice(cursor, cursor + limit).map((entry) => canonicalClone(entry));
+    const nextCursor = cursor + entries.length < handle.selectedRows.length ? cursor + entries.length : null;
+    return deepFreeze({ profile: LAZY_REPOSITORY_CONTEXT_PROFILE, manifestDigest: handle.descriptor.manifestDigest, scopeDigest: handle.descriptor.scopeDigest, entries, nextCursor, complete: nextCursor === null });
+  }
+
+  listLazyManifest(context, options = {}) {
+    const handle = this.#assertLazyContext(context);
+    assertRecordShape(options, [], ['cursor', 'limit'], 'listLazyManifest options');
+    const cursor = options.cursor === undefined ? 0 : assertSafeInteger(options.cursor, 'lazy manifest cursor', { min: 0, max: handle.manifest.length });
+    const limit = options.limit === undefined ? 128 : assertSafeInteger(options.limit, 'lazy manifest page limit', { min: 1, max: 128 });
+    const entries = handle.manifest.slice(cursor, cursor + limit).map((entry) => canonicalClone(entry));
+    const nextCursor = cursor + entries.length < handle.manifest.length ? cursor + entries.length : null;
+    return deepFreeze({ profile: LAZY_REPOSITORY_CONTEXT_PROFILE, manifestDigest: handle.descriptor.manifestDigest, entries, nextCursor, complete: nextCursor === null });
+  }
+
+  async readLazyContext(context, options = {}) {
+    const handle = this.#assertLazyContext(context);
+    assertRecordShape(options, ['path'], ['startByte', 'maxBytes', 'signal'], 'readLazyContext options');
+    const filePath = validateRelativePath(options.path);
+    const row = handle.selectedRows.find((entry) => entry.path === filePath);
+    if (!row) throw new ContractError('lazy_scope_denied', `Path is outside the owner-issued lazy scope: ${filePath}`);
+    if (row.type !== 'blob' || !['100644', '100755'].includes(row.mode) || row.byteLength === null) {
+      throw new ContractError('lazy_entry_read_unsupported', `Lazy read does not support entry ${filePath}`);
+    }
+    const startByte = options.startByte === undefined ? 0 : assertSafeInteger(options.startByte, 'lazy read startByte', { min: 0, max: row.byteLength });
+    const maxBytes = options.maxBytes === undefined ? handle.descriptor.scope.maxBytes : assertSafeInteger(options.maxBytes, 'lazy read maxBytes', { min: 1, max: handle.descriptor.scope.maxBytes });
+    const endByte = Math.min(row.byteLength, startByte + maxBytes);
+    if (endByte < startByte || endByte - startByte > maxBytes) throw new ContractError('lazy_read_limit_exceeded', 'Lazy read range exceeds its bound');
+    const signal = options.signal === undefined ? NEVER_ABORTED_SIGNAL : assertAbortSignal(options.signal, 'readLazyContext signal');
+    const batch = await this.#git(['cat-file', '--batch'], Buffer.from(`${row.blobOid}\n`, 'ascii'), signal, handle.gitMetrics);
+    const parsed = parseBatchBlobs(batch, [row], handle.descriptor.objectFormat);
+    const contentBytes = Buffer.from(parsed.tree[filePath], 'utf8');
+    const selectedBytes = contentBytes.subarray(startByte, endByte);
+    let content;
+    try { content = fatalDecoder.decode(selectedBytes); }
+    catch (cause) { throw new ContractError('lazy_read_range_not_utf8', 'Lazy read range is not a complete UTF-8 sequence', {}, { cause }); }
+    return deepFreeze({ profile: LAZY_REPOSITORY_CONTEXT_PROFILE, path: filePath, mode: row.mode, type: row.type, blobOid: row.blobOid, byteLength: row.byteLength, startByte, endByte, complete: endByte === row.byteLength, content });
+  }
+
+  async searchLazyContext(context, options = {}) {
+    const handle = this.#assertLazyContext(context);
+    assertRecordShape(options, ['pattern'], ['cursor', 'limit', 'signal'], 'searchLazyContext options');
+    const pattern = boundedLazyText(options.pattern, 'lazy search pattern', 4_096);
+    const cursor = options.cursor === undefined ? 0 : assertSafeInteger(options.cursor, 'lazy search cursor', { min: 0, max: handle.selectedRows.length });
+    const limit = options.limit === undefined ? Math.min(handle.descriptor.scope.maxSearchResults, 64) : assertSafeInteger(options.limit, 'lazy search result limit', { min: 1, max: handle.descriptor.scope.maxSearchResults });
+    let visitedFiles = 0;
+    let visitedBytes = 0;
+    const matches = [];
+    let index = cursor;
+    let complete = true;
+    while (index < handle.selectedRows.length) {
+      if (matches.length >= limit) { complete = false; break; }
+      const row = handle.selectedRows[index];
+      index += 1;
+      if (row.type !== 'blob' || !['100644', '100755'].includes(row.mode) || row.byteLength === null) continue;
+      if (visitedBytes + row.byteLength > handle.descriptor.scope.maxBytes) { complete = false; break; }
+      const read = await this.readLazyContext(handle, { path: row.path, signal: options.signal });
+      visitedFiles += 1;
+      visitedBytes += row.byteLength;
+      if (read.content.includes(pattern)) matches.push(row.path);
+    }
+    return deepFreeze({ profile: LAZY_REPOSITORY_CONTEXT_PROFILE, manifestDigest: handle.descriptor.manifestDigest, scopeDigest: handle.descriptor.scopeDigest, matches, nextCursor: complete ? null : index, complete, visitedFiles, visitedBytes });
+  }
+
+  async materializeScopedContext(commitOid, expectedBaseDigest, options = {}) {
+    const handle = await this.prepareLazyContext(commitOid, expectedBaseDigest, options);
+    const selected = handle.selectedRows.filter((entry) => entry.type === 'blob' && ['100644', '100755'].includes(entry.mode) && entry.byteLength !== null);
+    if (selected.length > handle.descriptor.scope.maxFiles) throw new ContractError('lazy_scope_limit_exceeded', 'Lazy scoped context exceeds its file bound');
+    const totalBytes = selected.reduce((sum, entry) => sum + entry.byteLength, 0);
+    if (totalBytes > handle.descriptor.scope.maxBytes) throw new ContractError('lazy_scope_limit_exceeded', 'Lazy scoped context exceeds its byte bound', { contentBytes: totalBytes });
+    const files = [];
+    const tree = Object.create(null);
+    for (const row of selected) {
+      const read = await this.readLazyContext(handle, { path: row.path, signal: options.signal });
+      if (!read.complete) throw new ContractError('lazy_scope_limit_exceeded', `Scoped file is larger than its admitted byte bound: ${row.path}`);
+      tree[row.path] = read.content;
+      files.push({ ...row, content: read.content });
+    }
+    const scopedBaseDigest = digest(tree);
+    const descriptor = deepFreeze({ ...handle.descriptor, fileCount: files.length, contentBytes: totalBytes, scopedBaseDigest, contextDigest: typedDigest(LAZY_REPOSITORY_CONTEXT_PROFILE, { descriptor: handle.descriptor, entries: files.map(({ path: filePath, mode, type, blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })) }) });
+    return deepFreeze({ descriptor, files, manifest: handle.manifest, scope: handle.descriptor.scope, manifestDigest: handle.descriptor.manifestDigest, scopeDigest: handle.descriptor.scopeDigest, scopedBaseDigest, gitCommandCount: handle.gitMetrics.commandCount, gitInputBytes: handle.gitMetrics.inputBytes, gitStdoutBytes: handle.gitMetrics.stdoutBytes });
   }
 
   async materializeContext(commitOid, expectedBaseDigest, options = {}) {

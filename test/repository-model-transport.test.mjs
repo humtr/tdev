@@ -217,6 +217,47 @@ test('context materialization is deterministic and preserves executable mode out
   assert.equal(digest(Object.fromEntries(first.files.map((entry) => [entry.path, entry.content]))), plan.baseDigest);
 });
 
+test('lazy context binds the complete manifest and reads only the admitted scope', async (t) => {
+  const repo = makeRepo(t);
+  const counted = countingGitRunner();
+  const adapter = adapterFor(repo.repositoryPath, 'changeset', { gitRunner: counted.runner });
+  const handle = await adapter.prepareLazyContext(repo.commitOid, digest(repo.baseTree), {
+    scope: { paths: ['a.txt'], maxFiles: 2, maxBytes: 1024 },
+  });
+  assert.equal(handle.descriptor.profile, 'tdev.repository-context.git-scoped-lazy.v1');
+  assert.equal(handle.descriptor.baseDigest, digest(repo.baseTree));
+  assert.equal(handle.descriptor.manifestEntryCount, 2);
+  assert.equal(handle.descriptor.selectedEntryCount, 1);
+  const manifestPage = adapter.listLazyManifest(handle, { limit: 8 });
+  assert.equal(manifestPage.complete, true);
+  assert.deepEqual(manifestPage.entries.map((entry) => entry.path), ['a.txt', 'script.sh']);
+  const page = adapter.listLazyContext(handle, { limit: 8 });
+  assert.equal(page.complete, true);
+  assert.deepEqual(page.entries.map((entry) => entry.path), ['a.txt']);
+  assert.equal(counted.metrics.calls.filter((args) => args[0] === 'cat-file' && args[1] === '--batch').length, 0);
+  const read = await adapter.readLazyContext(handle, { path: 'a.txt' });
+  assert.equal(read.content, 'alpha\n');
+  assert.equal(counted.metrics.calls.filter((args) => args[0] === 'cat-file' && args[1] === '--batch').length, 1);
+  await assert.rejects(adapter.readLazyContext(handle, { path: 'script.sh' }), (error) => error instanceof ContractError && error.code === 'lazy_scope_denied');
+  const materialized = await adapter.materializeScopedContext(repo.commitOid, digest(repo.baseTree), {
+    scope: { paths: ['a.txt'], maxFiles: 2, maxBytes: 1024 },
+  });
+  assert.equal(materialized.scopedBaseDigest, digest({ 'a.txt': 'alpha\n' }));
+  assert.notEqual(materialized.descriptor.contextDigest, materialized.descriptor.manifestDigest);
+});
+
+test('lazy context reports bounded incomplete search instead of claiming completeness', async (t) => {
+  const repo = makeRepo(t);
+  const adapter = adapterFor(repo.repositoryPath);
+  const handle = await adapter.prepareLazyContext(repo.commitOid, digest(repo.baseTree), {
+    scope: { paths: ['a.txt', 'script.sh'], maxFiles: 2, maxBytes: 5, maxSearchResults: 4 },
+  });
+  const result = await adapter.searchLazyContext(handle, { pattern: 'alpha' });
+  assert.equal(result.complete, false);
+  assert.equal(result.matches.length, 0);
+  assert.equal(result.visitedBytes, 0);
+});
+
 test('context reads the immutable commit rather than a mutated worktree', async (t) => {
   const repo = makeRepo(t);
   const plan = planFor(repo);

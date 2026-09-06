@@ -12,7 +12,7 @@ import { CaseRepository } from './repository.mjs';
 import { definePlan } from './plan.mjs';
 import { promote, validateTree } from './promotion.mjs';
 import { runDurableCase } from './durable-runner.mjs';
-import { normalizeCaseContract } from './policy.mjs';
+import { normalizeCaseContract, validateRelativePath } from './policy.mjs';
 import { executeDevelopmentOperation } from './development-operation-profile.mjs';
 
 export const DEVELOPMENT_UNIT_PROFILE = 'tdev.development-unit.v1';
@@ -53,6 +53,7 @@ export function defineDevelopmentUnitPlan({
   validationProfile = 'tdev.validation.npm-check.v1',
   modelCapabilityId = null,
   validationCapabilityId = null,
+  writePaths = null,
   caseContract = undefined,
 } = {}) {
   assertIdentifier(revisionId, 'development unit revisionId');
@@ -64,6 +65,12 @@ export function defineDevelopmentUnitPlan({
   assertIdentifier(validationProfile, 'validationProfile');
   if (modelCapabilityId !== null) assertCapabilityIdentifier(modelCapabilityId, 'modelCapabilityId');
   if (validationCapabilityId !== null) assertCapabilityIdentifier(validationCapabilityId, 'validationCapabilityId');
+  if (writePaths !== null) {
+    if (!Array.isArray(writePaths) || writePaths.length === 0 || writePaths.length > 256) fail('development_unit_plan_invalid', 'writePaths must be a bounded non-empty array');
+    const normalizedWritePaths = writePaths.map((value) => validateRelativePath(value)).sort();
+    if (new Set(normalizedWritePaths).size !== normalizedWritePaths.length) fail('development_unit_plan_invalid', 'writePaths contains a duplicate path');
+    writePaths = normalizedWritePaths;
+  }
   const normalizedCaseContract = normalizeCaseContract(caseContract ?? {});
   const normalizedBaseTree = validateTree(canonicalClone(baseTree), normalizedCaseContract);
   const baseDigest = digest(normalizedBaseTree);
@@ -100,6 +107,7 @@ export function defineDevelopmentUnitPlan({
           repositoryCommitOid,
           baseDigest,
           instruction,
+          ...(writePaths === null ? {} : { writePaths }),
         },
         execution: {
           operation: 'tdev.model.repository.execute.v1',
@@ -225,6 +233,7 @@ export class DevelopmentUnitRunner {
             repositoryCommitOid: task.input.repositoryCommitOid,
             baseDigest: task.input.baseDigest,
             instruction: task.input.instruction,
+            ...(task.input.writePaths === undefined ? {} : { writePaths: task.input.writePaths }),
             contextReferenceId,
           },
         };

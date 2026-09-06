@@ -95,7 +95,7 @@ test('MCP metadata and initialize/tools/list use one versioned stateless surface
   assert.equal(initialized.body.result.serverInfo.name, 'tdev');
   const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-03-26' }));
   assert.equal(listed.response.status, 200);
-  assert.equal(listed.body.result.tools.length, 11);
+  assert.equal(listed.body.result.tools.length, 14);
   assert.equal(listed.body.result.tools.at(-1).name, 'development_unit_get');
 });
 
