@@ -1,0 +1,83 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.case-reader-preflight.v1",
+  "observedAt": "2026-09-06T21:06:35Z",
+  "sourceCommit": "0269d990a19d0bc44648664575c8ddd87afdcd3a",
+  "publishedPredecessor": "18da93afad6e37429f83fab49bde2331b797233e",
+  "provider": {
+    "script": "tdev-d0020-composition-case-r1",
+    "declaredSource": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "contentReadbackBytes": 308813,
+    "byteIdenticalModules": [
+      "src/engine.mjs",
+      "src/casedo-authority.mjs",
+      "qualification/cloudflare-casedo-worker.mjs"
+    ]
+  },
+  "sourceProbe": {
+    "oldReaderCompatible": false,
+    "oldReaderError": "unexpected_keys",
+    "currentReaderCompatible": true,
+    "planReferencePresent": true,
+    "probeBase": "0eca7b01fae17aa4b4eabe2b13375ba43c2f8fc4",
+    "doesNotProve": [
+      "retained provider Case migration",
+      "live execution quiescence",
+      "whole deployed artifact identity"
+    ],
+    "currentReaderRerunBase": "0269d990a19d0bc44648664575c8ddd87afdcd3a"
+  },
+  "installedPackage": {
+    "path": "~/.local/state/tdev-d0046-agent/package",
+    "matchesCurrent": [
+      "src/installable-agent-control.mjs"
+    ],
+    "differsFromCurrent": [
+      "src/development-runtime.mjs",
+      "src/repository-model-transport.mjs",
+      "config/development-operation-profiles.json"
+    ],
+    "meaning": "installed package is not current repair source; operational compatibility remains unqualified"
+  },
+  "capabilities": {
+    "exposedTdevTools": "OAuth experiment read-only probes only; no trial development surface",
+    "caseDiagnosticTokenFoundInCheckedLocalConfigPaths": false,
+    "tokenSearchDoesNotProveGlobalAbsence": true
+  },
+  "remaining": [
+    "qualify existing Case and drive state readers and shared consumers",
+    "establish execution quiescence and exact provider predecessor",
+    "implement and qualify preserving forward update and response-loss reconciliation",
+    "install exact qualified Agent release without replacing canonical route",
+    "authenticated provider candidate and actual ChatGPT same-Case result"
+  ],
+  "userCP1": "OPEN",
+  "historical502RootCause": "unknown",
+  "providerMutation": false,
+  "caseCreated": false,
+  "verification": {
+    "npmCiIgnoreScripts": {
+      "exitCode": 0
+    },
+    "npmRunCheck": {
+      "exitCode": 0,
+      "tests": 681,
+      "pass": 681,
+      "fail": 0,
+      "scope": "working source before 0269d99 commit; final owner wording separately passed documentation checker"
+    },
+    "coverage": {
+      "exitCode": 0,
+      "sourceCommit": "0269d990a19d0bc44648664575c8ddd87afdcd3a",
+      "tests": 681,
+      "pass": 681,
+      "fail": 0,
+      "linePercent": 83.35,
+      "branchPercent": 69.37,
+      "functionPercent": 85.65
+    },
+    "documentationCheck": "PASS",
+    "diffCheck": "PASS",
+    "doesNotClaim": "provider or client qualification"
+  }
+}

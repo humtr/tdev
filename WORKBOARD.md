@@ -28,6 +28,8 @@ The selected next action must be `none` or identify exactly one entry already pr
 
 ## Live carry-forward constraints
 
+- D0046@r4 reader preflight reproduced `unexpected_keys` for a scoped Plan against the deployed Case engine source; three provider modules matched that declared source byte-for-byte. The installed development runtime, repository transport and operation profile also differ from the repair source. Evidence: `docs/evidence/group-f-d0046-r4-case-reader-preflight-20260906.json`. Retained-state compatibility, quiescence, preserving update, installed release qualification and authenticated provider/client candidate remain open; this is not a new explanation of the historical 502.
+
 - User CP1 remains OPEN until actual authenticated ChatGPT returns the validated candidate from the same Case. Historical local CP1 and physical M0 PASS records cover prerequisites only. D0046@r4 selects existing-state compatibility checks and preserving forward update before provider candidate qualification.
 
 - Independent origin reassessment is now maintained by D0046@r4 after D0048 scoped-Plan qualification and D0043@r4 physical M0. The explicit no-sandbox correction addresses the reproduced Termux launch boundary; D0047/D0048 preserve lazy identity, sparse model context, full-base candidate and warden cleanup while preserving the complete manifest/base digest. Current order is M1 isolated `tdev-mcp-trial` provider preflight and exact connection handoff -> M2 one real supported web ChatGPT development result -> H1-H5 hardening -> D0045 comparison. The D0048 and physical M0 records do not claim provider or client success.
