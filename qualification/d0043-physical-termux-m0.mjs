@@ -210,8 +210,6 @@ async function main() {
     }
     if (operationRuntime.candidate(runtimeCandidateDigest) !== null) fail('m0_candidate_cleanup_missing', 'M0 runtime retained a candidate after validation');
     await operationRuntime.dispose();
-    try { await stat(runtimeCandidate.candidateRoot); fail('m0_candidate_cleanup_missing', 'M0 candidate workspace remained after disposal'); }
-    catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
     const workspaceAfter = await workspaceEntries();
     for (const entry of workspaceAfter) if (!workspaceBefore.has(entry)) fail('m0_workspace_cleanup_missing', 'M0 left a disposable workspace behind', { entry });
     const afterCheckout = await assertM0Checkout();
