@@ -701,12 +701,132 @@ export async function prepareMcpTrialUpdate({ repositoryPath = repositoryRoot, e
   const currentApp = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(app.id)}`))).result;
   if (canonicalJson(currentApp) !== canonicalJson(app)) fail('d0046_update_auth_changed', 'Access application changed during update preparation');
   if (canonicalJson(current.settings) !== canonicalJson(predecessor.settings) || canonicalJson(current.deployment) !== canonicalJson(predecessor.deployment)) fail('d0046_worker_predecessor_changed', 'Provider predecessor changed during update preparation');
+  const preservation = Object.freeze({
+    settingsDigest: digest(predecessor.settings),
+    deploymentDigest: digest(predecessor.deployment),
+    accessApplicationId: app.id,
+    accessApplicationDigest: digest(app),
+    driveNamespace: manifests.composition.driveOwner.placement.namespace,
+  });
   return {
-    sourceSha, predecessor, manifests, modules, artifact, metadata,
-    preservationDigest: digest({ settings: predecessor.settings, deployment: predecessor.deployment, accessApplication: app }),
+    sourceSha, predecessor, manifests, modules, artifact, metadata, preservation,
+    preservationDigest: digest(preservation),
     providerMutation: false,
     remainingGates: ['retained Case/drive reader compatibility', 'shared owner consumers', 'positive execution quiescence', 'installed Agent release compatibility'],
   };
+}
+
+function assertDigestValue(value, label) {
+  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail('d0046_update_admission_invalid', `${label} must be a sha256 digest`);
+  return value;
+}
+
+export function validatePreservingUpdateAdmission(admission, prepared) {
+  if (!admission || typeof admission !== 'object' || Array.isArray(admission)) fail('d0046_update_admission_invalid', 'Preserving update admission must be an object');
+  const expectedKeys = [
+    'profile', 'sourceSha', 'preservationDigest', 'retainedStateCompatibilityDigest',
+    'sharedOwnerConsumersDigest', 'positiveExecutionQuiescenceDigest', 'installedAgentCompatibilityDigest',
+  ];
+  if (canonicalJson(Object.keys(admission).sort()) !== canonicalJson([...expectedKeys].sort())) fail('d0046_update_admission_invalid', 'Preserving update admission keys were not exact');
+  if (admission.profile !== 'tdev.d0046.preserving-update-admission.v1') fail('d0046_update_admission_invalid', 'Preserving update admission profile did not match');
+  if (admission.sourceSha !== prepared?.sourceSha || admission.preservationDigest !== prepared?.preservationDigest) {
+    fail('d0046_update_admission_stale', 'Preserving update admission was not bound to the prepared source/predecessor');
+  }
+  for (const key of ['retainedStateCompatibilityDigest', 'sharedOwnerConsumersDigest', 'positiveExecutionQuiescenceDigest', 'installedAgentCompatibilityDigest']) {
+    assertDigestValue(admission[key], `admission.${key}`);
+  }
+  return Object.freeze({ ...admission, admissionDigest: digest(admission) });
+}
+
+async function preservingProviderSnapshot(client, accessApplicationId, readWorker = workerReadback) {
+  const worker = await readWorker(client);
+  const app = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(accessApplicationId)}`))).result;
+  const preservation = Object.freeze({
+    settingsDigest: digest(worker.settings),
+    deploymentDigest: digest(worker.deployment),
+    accessApplicationId,
+    accessApplicationDigest: digest(app),
+    driveNamespace: bindingByName(worker.settings, 'TDEV_CASE_AGENT_DRIVE')?.namespace_id ?? null,
+  });
+  return { worker, app, preservation, preservationDigest: digest(preservation) };
+}
+
+function validateDesiredPreservingReadback(snapshot, prepared, accountId) {
+  validateAccessApplication(snapshot.app, accountId);
+  if (digest(snapshot.app) !== prepared.preservation.accessApplicationDigest) fail('d0046_update_auth_changed', 'Access application changed across preserving update');
+  const driveNamespace = validateTrialWorkerSettings(snapshot.worker.settings, snapshot.worker.version, prepared.manifests, prepared.sourceSha, prepared.artifact);
+  if (driveNamespace !== prepared.preservation.driveNamespace) fail('d0046_drive_namespace_mismatch', 'Preserving update changed the trial drive namespace');
+  return driveNamespace;
+}
+
+export async function applyPreparedMcpTrialUpdate({
+  client,
+  prepared,
+  admission,
+  upload = uploadWorker,
+  readWorker = workerReadback,
+} = {}) {
+  if (!client || typeof client.request !== 'function' || typeof client.accountPath !== 'function') fail('d0046_update_client_invalid', 'Preserving update requires a Cloudflare API client');
+  if (!prepared?.preservation || prepared.preservationDigest !== digest(prepared.preservation)) fail('d0046_update_preparation_invalid', 'Preserving update preparation was incomplete or internally inconsistent');
+  const admitted = validatePreservingUpdateAdmission(admission, prepared);
+  const before = await preservingProviderSnapshot(client, prepared.preservation.accessApplicationId, readWorker);
+  if (before.preservationDigest !== prepared.preservationDigest) {
+    fail('d0046_worker_predecessor_changed', 'Provider predecessor changed after update preparation', {
+      expectedPreservationDigest: prepared.preservationDigest,
+      actualPreservationDigest: before.preservationDigest,
+    });
+  }
+
+  let uploadError = null;
+  try {
+    await upload(client, prepared.modules, prepared.metadata);
+  } catch (cause) {
+    uploadError = cause;
+  }
+
+  let after;
+  try {
+    after = await preservingProviderSnapshot(client, prepared.preservation.accessApplicationId, readWorker);
+    validateDesiredPreservingReadback(after, prepared, client.accountId);
+  } catch (readbackError) {
+    fail('d0046_update_effect_unknown', 'Preserving update was attempted but authoritative readback did not prove the desired active state', {
+      uploadCode: uploadError?.code ?? null,
+      uploadReturnedTrustedResult: uploadError === null,
+      readbackCode: readbackError?.code ?? 'unknown',
+      predecessorVersionId: prepared.predecessor?.deployment?.versions?.[0]?.version_id ?? null,
+    }, { cause: readbackError });
+  }
+
+  return Object.freeze({
+    status: uploadError === null ? 'updated' : 'reconciled_after_ambiguous_upload',
+    sourceSha: prepared.sourceSha,
+    preservationDigest: prepared.preservationDigest,
+    admissionDigest: admitted.admissionDigest,
+    predecessorVersionId: prepared.predecessor.deployment.versions[0].version_id,
+    activeVersionId: after.worker.deployment.versions[0].version_id,
+    driveNamespace: prepared.preservation.driveNamespace,
+    accessApplicationId: prepared.preservation.accessApplicationId,
+    artifact: { moduleDigest: prepared.artifact.moduleDigest, artifactManifestDigest: prepared.artifact.artifactManifestDigest },
+    uploadErrorCode: uploadError?.code ?? null,
+    providerMutation: true,
+    secretValues: 'excluded',
+  });
+}
+
+export function summarizeMcpTrialUpdatePreparation(prepared) {
+  if (!prepared?.preservation || prepared.preservationDigest !== digest(prepared.preservation)) fail('d0046_update_preparation_invalid', 'Preserving update preparation was incomplete or internally inconsistent');
+  return Object.freeze({
+    status: 'prepared_preserving_update',
+    sourceSha: prepared.sourceSha,
+    preservationDigest: prepared.preservationDigest,
+    predecessorVersionId: prepared.predecessor.deployment.versions[0].version_id,
+    driveNamespace: prepared.preservation.driveNamespace,
+    accessApplicationId: prepared.preservation.accessApplicationId,
+    artifact: { moduleDigest: prepared.artifact.moduleDigest, artifactManifestDigest: prepared.artifact.artifactManifestDigest },
+    remainingGates: [...prepared.remainingGates],
+    providerMutation: false,
+    secretValues: 'excluded',
+  });
 }
 
 export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
@@ -788,15 +908,19 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
 
 async function main() {
   const args = process.argv.slice(2);
-  const allowed = new Set(['--apply', '--env-file']);
+  const allowed = new Set(['--apply', '--prepare-update', '--env-file']);
   let envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
   let envProvided = false;
   let apply = false;
+  let prepareUpdate = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--apply') {
       if (apply) fail('d0046_cli_invalid', '--apply was repeated');
       apply = true;
+    } else if (arg === '--prepare-update') {
+      if (prepareUpdate) fail('d0046_cli_invalid', '--prepare-update was repeated');
+      prepareUpdate = true;
     } else if (arg === '--env-file') {
       if (index + 1 >= args.length || args[index + 1].startsWith('--')) fail('d0046_cli_invalid', '--env-file requires a path');
       if (envProvided) fail('d0046_cli_invalid', '--env-file was repeated');
@@ -806,8 +930,13 @@ async function main() {
       fail('d0046_cli_invalid', `Unsupported argument: ${arg}`);
     }
   }
-  if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply');
-  const result = await deployMcpTrial({ envFile });
+  if (apply && prepareUpdate) fail('d0046_cli_invalid', '--apply and --prepare-update are mutually exclusive');
+  let result;
+  if (prepareUpdate) result = summarizeMcpTrialUpdatePreparation(await prepareMcpTrialUpdate({ envFile }));
+  else {
+    if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply or read-only --prepare-update');
+    result = await deployMcpTrial({ envFile });
+  }
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
