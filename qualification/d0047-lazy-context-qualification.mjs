@@ -78,8 +78,8 @@ async function currentRepositoryQualification() {
   }
   const selected = adapter.listLazyContext(handle, { limit: 8 });
   if (!selected.complete || selected.entries.length !== scope.paths.length) fail('d0047_cp2_scope_projection_invalid', 'Owner-issued scope projection is incomplete');
-  const read = await adapter.readLazyContext(handle, { path: 'src/development-runtime.mjs', maxBytes: 64 * 1024 });
-  if (read.path !== 'src/development-runtime.mjs' || read.startByte !== 0 || read.endByte !== 64 * 1024 || read.complete) {
+  const read = await adapter.readLazyContext(handle, { path: 'src/development-runtime.mjs', maxBytes: 1024 });
+  if (read.path !== 'src/development-runtime.mjs' || read.startByte !== 0 || read.endByte !== 1024 || read.complete) {
     fail('d0047_cp2_read_bound_invalid', 'Bounded lazy read did not report its range and truncation');
   }
   const search = await adapter.searchLazyContext(handle, { pattern: 'buildCodexPrompt', limit: 8 });
