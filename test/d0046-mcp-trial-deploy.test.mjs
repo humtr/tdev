@@ -4,7 +4,6 @@ import { readFile } from 'node:fs/promises';
 
 import {
   D0046_ACCESS_APP_NAME,
-  D0046_MIN_CASE_AUTHORITATIVE_BYTES,
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
@@ -68,9 +67,9 @@ test('D0046 Case admission rejects an undersized or malformed owner budget', () 
   const settings = {
     bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(8 * 1024 * 1024) }],
   };
-  assert.throws(() => assertCaseOwnerCapacity(settings, D0046_MIN_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
-  assert.throws(() => assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: '016777216' }] }, D0046_MIN_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
-  assert.equal(assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) }] }, D0046_MIN_CASE_AUTHORITATIVE_BYTES), D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
+  assert.throws(() => assertCaseOwnerCapacity(settings, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
+  assert.throws(() => assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: '016777216' }] }, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
+  assert.equal(assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) }] }, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
 });
 
 test('D0046 discovery metadata serves the path-specific resource without repository initialization', async () => {

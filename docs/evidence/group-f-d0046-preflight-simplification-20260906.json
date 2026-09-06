@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "classification": "Class 1: restore preflight to the accepted scoped Plan and M1 proof boundary",
+  "base": "development@ac80881397f56aa0121f2d884a1e81dc1af7b639",
+  "owner": "D0046@r3 and docs/QUALIFICATION.md",
+  "removed": [
+    "Historical 11419628-byte full-context workload used as a minimum valid measured size",
+    "Capacity-only success instructing the operator to advance directly to M2"
+  ],
+  "preserved": [
+    "Qualified 16 MiB Case-owner budget",
+    "Measured capacity overflow rejection",
+    "Authentication and existing provider resource protection"
+  ],
+  "corrected": [
+    "Capacity measurement carries the configured scoped Plan identity and capabilities",
+    "Existing provider composition contains nonempty principalId and tenantId; missing process environment does not prove missing deployment identity"
+  ],
+  "providerObservation": {
+    "operation": "GET trial Worker settings",
+    "principalPresent": true,
+    "tenantPresent": true,
+    "principalEqualsTenant": true,
+    "valuesDisclosed": false,
+    "mutation": false
+  },
+  "remaining": [
+    "Existing-target forward update and legacy Case compatibility must be implemented and qualified",
+    "Provider MCP candidate qualification remains required before M2",
+    "Historical 502 root cause remains unknown"
+  ],
+  "secrets": "none",
+  "validation": {
+    "npmRunCheck": "PASS 680/680 before adding the final scoped identity regression",
+    "finalFocusedRegression": "PASS 3/3 including scoped identity substitution rejection",
+    "gitDiffCheck": "PASS"
+  }
+}

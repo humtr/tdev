@@ -54,7 +54,6 @@ export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
-export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
 // M1/M2 use one owner-issued source/test scope. The complete repository
 // manifest and base identity remain bound separately by the generated module.
@@ -461,7 +460,7 @@ function assertOwnerMarker(settings, scriptName) {
   }
 }
 
-export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
+export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) {
   if (!Number.isSafeInteger(minimumBytes) || minimumBytes <= 0) fail('d0046_owner_capacity_invalid', 'Case capacity minimum must be a positive safe integer');
   const binding = bindingByName(settings, 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE');
   const raw = binding?.type === 'plain_text' ? binding.text : undefined;

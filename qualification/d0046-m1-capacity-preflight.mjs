@@ -16,7 +16,6 @@ import {
   D0046_CASE_NAMESPACE,
   D0046_CASE_PLACEMENT_DATABASE,
   D0046_CASE_SCRIPT,
-  D0046_MIN_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_ORIGIN,
   D0046_MCP_TRIAL_SCRIPT,
   D0046_MCP_CONTEXT_SCOPE,
@@ -77,6 +76,8 @@ export function measureFreshCaseAuthoritativeBytes({
   validationProfile = VALIDATION_PROFILE,
   objectFormat = 'sha1',
   caseContract = {},
+  contextProfile, contextScope, baseIdentity, repositoryBaseIdentity,
+  contextCapabilityId, modelCapabilityId, validationCapabilityId, writePaths,
 } = {}) {
   if (!isPlainRecord(baseTree) || Object.keys(baseTree).length === 0) fail('d0046_preflight_base_invalid', 'Preflight requires a non-empty immutable base tree');
   const plan = defineDevelopmentUnitPlan({
@@ -87,6 +88,8 @@ export function measureFreshCaseAuthoritativeBytes({
     instruction,
     validationProfile,
     caseContract,
+    contextProfile, contextScope, baseIdentity, repositoryBaseIdentity,
+    contextCapabilityId, modelCapabilityId, validationCapabilityId, writePaths,
   });
   const engine = new CaseEngine({
     caseId,
@@ -125,10 +128,9 @@ export function measureFreshCaseAuthoritativeBytes({
 }
 
 export function assertCapacityPreflight({ requiredAuthoritativeBytes, configuredBytes } = {}) {
-  if (!Number.isSafeInteger(requiredAuthoritativeBytes) || requiredAuthoritativeBytes < D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
-    fail('d0046_preflight_requirement_invalid', 'Source-bound Case admission requirement was below the accepted measured minimum', {
+  if (!Number.isSafeInteger(requiredAuthoritativeBytes) || requiredAuthoritativeBytes <= 0) {
+    fail('d0046_preflight_requirement_invalid', 'Source-bound Case admission requirement must be a positive safe integer', {
       requiredAuthoritativeBytes,
-      minimumBytes: D0046_MIN_CASE_AUTHORITATIVE_BYTES,
     });
   }
   if (!Number.isSafeInteger(configuredBytes) || configuredBytes < requiredAuthoritativeBytes) {
@@ -249,7 +251,7 @@ function assertTrialSettings(settings) {
 }
 
 function assertCaseSettings(settings) {
-  const configuredBytes = assertCaseOwnerCapacity(settings, D0046_MIN_CASE_AUTHORITATIVE_BYTES);
+  const configuredBytes = assertCaseOwnerCapacity(settings);
   assertText(settings, 'TDEV_WORKER_SCRIPT', D0046_CASE_SCRIPT);
   assertText(settings, 'TDEV_DEPLOYMENT', D0046_CASE_SCRIPT);
   assertText(settings, 'TDEV_ENVIRONMENT', 'qualification');
@@ -298,6 +300,7 @@ export async function runM1CapacityPreflight({
     fail('d0046_preflight_identity_mismatch', 'Recomputed source-bound complete identity differed from provider binding');
   }
   const measurement = measureFreshCaseAuthoritativeBytes({
+    ...composition.repository.context,
     baseTree: base.tree,
     repositoryCommitOid: trial.sourceSha,
     revisionId: composition.repository.context.revisionId,
@@ -315,7 +318,7 @@ export async function runM1CapacityPreflight({
     measurement,
     capacity,
     effects: { caseCreated: false, canonicalTreeMutation: false, gitRefMutation: false, trialWorkerMutation: false, caseWorkerMutation: false, secretValuesRead: false },
-    next: 'One fresh authenticated web ChatGPT M2 development attempt; no additional ad hoc refresh probes.',
+    next: 'Complete the authenticated machine/provider MCP candidate and cleanup qualification before M2; capacity readback alone does not pass M1.',
   });
 }
 
