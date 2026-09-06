@@ -177,7 +177,20 @@ async function main() {
   try {
     await runner.create({ caseId, plan, driveRequestId, payload: { objective: 'm0-physical-source-change' } });
     const driven = await runner.drive({ caseId, driveRequestId, payload: { objective: 'm0-physical-source-change' } });
-    if (driven.classification !== 'accepted') fail('m0_case_not_accepted', 'M0 development unit did not reach accepted terminal state', { driven });
+    if (driven.classification !== 'accepted') {
+      const failedSnapshot = await repository.store.load(caseId);
+      const taskOutcomes = Object.fromEntries(Object.entries(failedSnapshot.taskStates).map(([taskId, state]) => [taskId, {
+        state: state.state,
+        errorCode: state.error?.code ?? null,
+        errorCertainty: state.error?.certainty ?? null,
+      }]));
+      fail('m0_case_not_accepted', 'M0 development unit did not reach accepted terminal state', {
+        classification: driven.classification,
+        caseState: failedSnapshot.caseState,
+        caseRevision: failedSnapshot.caseRevision,
+        taskOutcomes,
+      });
+    }
     candidate = await runner.candidate(caseId);
     const snapshot = await repository.store.load(caseId);
     const modelResult = snapshot.taskStates.model.acceptedResult;
@@ -212,6 +225,6 @@ async function main() {
 }
 
 main().catch((cause) => {
-  process.stderr.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'FAIL', code: cause?.code ?? 'm0_failed', message: cause?.message ?? String(cause) })}\n`);
+  process.stderr.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'FAIL', code: cause?.code ?? 'm0_failed', message: cause?.message ?? String(cause), details: cause?.details ?? null })}\n`);
   process.exitCode = 1;
 });
