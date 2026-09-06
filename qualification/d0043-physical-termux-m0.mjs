@@ -109,8 +109,8 @@ async function main() {
     paths: [
       'config/codex-changeset-output.schema.json',
       'package.json',
-      'src/development-runtime.mjs',
-      'test/development-runtime.test.mjs',
+      'src/lazy-plan-reference.mjs',
+      'test/lazy-plan-reference.test.mjs',
     ],
     maxFiles: 8,
     maxBytes: 4 * 1024 * 1024,
@@ -166,11 +166,11 @@ async function main() {
     contextScope,
     baseIdentity: scopedContext.descriptor.baseIdentity,
     repositoryBaseIdentity,
-    instruction: 'Implement one minimal non-documentation source objective. In src/development-runtime.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/development-runtime.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
+    instruction: 'Implement one minimal non-documentation source objective. In src/lazy-plan-reference.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/lazy-plan-reference.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],
-    writePaths: ['src/development-runtime.mjs', 'test/development-runtime.test.mjs'],
+    writePaths: ['src/lazy-plan-reference.mjs', 'test/lazy-plan-reference.test.mjs'],
     caseContract,
   });
   let candidate = null;
@@ -200,7 +200,7 @@ async function main() {
       fail('m0_repository_identity_missing', 'M0 candidate did not retain the complete repository base identity');
     }
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
-    if (!candidate.canonicalTree['src/development-runtime.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/development-runtime.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
+    if (!candidate.canonicalTree['src/lazy-plan-reference.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/lazy-plan-reference.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
     for (const filePath of new Set([...Object.keys(baseTree), ...Object.keys(candidate.canonicalTree)])) {
       if (filePath.startsWith('docs/') && candidate.canonicalTree[filePath] !== baseTree[filePath]) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
     }
