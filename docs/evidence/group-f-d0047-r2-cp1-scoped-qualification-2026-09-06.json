@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0047",
+  "revision": 2,
+  "layer": "source-local",
+  "qualification": "cp1-scoped-mcp-agent-candidate-validation",
+  "sourceCommit": "c755915f8aa49b3cc2531f29aa837149ec4a1849",
+  "status": "PASS",
+  "route": {
+    "mcpSurface": "in-process MCP JSON-RPC initialize/tools/list/tools/call surface",
+    "agent": "local authenticated Agent bridge",
+    "model": "installed Termux Codex CLI codex-cli 0.153.4",
+    "validation": "installed npm run check in the disposable candidate"
+  },
+  "exactBase": {
+    "repositoryCommitOid": "631743f782d90cc9048d167a7805e4a842d119a7",
+    "baseDigest": "sha256:5948eefa7aab16b9eca6a182297e12c01611be59a20a2ccc8ccdaaa104e22cd5",
+    "manifestDigest": "sha256:97758f2d573824dc93061ca3ffa1a6235b20390d3a611d7bd5bae56adf7f5426",
+    "scopeDigest": "sha256:2fdd630ca4f92c6fd834df4050767ccd76f989c9070fe3225bd223e5c7d9eb0e",
+    "contextReference": "cp1-context-631743f782d9"
+  },
+  "result": {
+    "candidateState": "succeeded",
+    "canonicalUnchanged": true,
+    "modelChangeSet": "inspectable result-only ChangeSet",
+    "fixedValidation": "PASS",
+    "sameCaseProjection": true
+  },
+  "cleanup": {
+    "modelProcess": "positive observed-close receipt",
+    "modelWorkspace": "positive absence receipt",
+    "validationProcess": "positive observed-close receipt",
+    "candidate": "positive absence receipt"
+  },
+  "externalEffects": {
+    "canonicalCheckout": false,
+    "gitRef": false,
+    "provider": false,
+    "credentials": false
+  },
+  "notProven": [
+    "authenticated current ChatGPT web client execution",
+    "provider deployment/readback",
+    "physical full-repository Termux M0",
+    "the historical 502 cause"
+  ],
+  "secrets": "none"
+}

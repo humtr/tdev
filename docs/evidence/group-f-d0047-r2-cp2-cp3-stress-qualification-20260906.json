@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0047",
+  "revision": 2,
+  "layer": "source-local",
+  "qualification": "cp2-cp3-lazy-context-and-full-context-stress",
+  "sourceCommit": "c755915f8aa49b3cc2531f29aa837149ec4a1849",
+  "status": "PASS",
+  "cp2": {
+    "profile": "tdev.d0047.cp2-full-repository-lazy.v1",
+    "repositoryCommitOid": "c755915f8aa49b3cc2531f29aa837149ec4a1849",
+    "treeOid": "fa905218ff2593151533ebc4ac2101bf1987eb15",
+    "baseDigest": "sha256:d7578fd12652fe4fb7b0747aab235b370f0cce7a94d58cc2ba7ea42847b5e6e5",
+    "manifestDigest": "sha256:31d1718e385fce0d16452616e379114b2b5537597c1215ab3218a0dd97418a4a",
+    "manifestEntryCount": 490,
+    "scopeDigest": "sha256:6defb928c0ecf4f9197fe71b25787dc78873cd4683f335a370afb16a9e0fd1db",
+    "selectedEntryCount": 3,
+    "boundedRead": { "path": "src/development-runtime.mjs", "bytes": 1024, "complete": false },
+    "search": { "matches": ["src/development-runtime.mjs"], "complete": true, "visitedFiles": 3, "visitedBytes": 121732 },
+    "boundedBlobReadsBeforeScope": 0,
+    "boundedBlobReadsAfterScope": 4,
+    "completeManifestPaged": true
+  },
+  "cp3": {
+    "profile": "tdev.d0047.cp3-one-gib-metadata.v1",
+    "repositoryCommitOid": "db018919388e45dc0cd7f00899d44d3ad97046a8",
+    "manifestEntryCount": 2,
+    "largeEntryBytes": 1073741824,
+    "smallRead": { "path": "src/small.txt", "bytes": 16 },
+    "incompleteLargeSearch": { "complete": false, "visitedBytes": 0 },
+    "boundedBlobReadsBeforeSmallRead": 0,
+    "fullContextStress": "separate profile"
+  },
+  "fullContextStress": {
+    "profile": "tdev.d0047.full-context-stress.v1",
+    "status": "PASS",
+    "fullContext": { "fileCount": 2, "contentBytes": 69 },
+    "overFileLimit": { "status": "PASS", "attemptedBytes": 2097153, "declaredFileLimitBytes": 2097152 },
+    "overTreeLimit": { "status": "PASS", "attemptedBytes": 18874368, "declaredTreeLimitBytes": 16777216 }
+  },
+  "notProven": [
+    "metadata-only durable Case/Plan representation",
+    "physical Termux M0",
+    "provider deployment or current-client MCP behavior",
+    "the historical 502 cause"
+  ],
+  "secrets": "none"
+}

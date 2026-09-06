@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0043",
+  "revision": 4,
+  "layer": "physical-termux",
+  "qualification": "m0-physical-termux-candidate",
+  "sourceCommit": "c755915f8aa49b3cc2531f29aa837149ec4a1849",
+  "status": "FAIL",
+  "failure": {
+    "code": "m0_non_text_entry_requires_lazy_scope",
+    "message": "The exact published source tree contains non-UTF-8 native blobs; the full-context M0 fixture cannot silently exclude them",
+    "paths": [
+      "native/d0030/android-arm64/rename-noreplace-helper",
+      "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+      "native/installable-agent-supervisor/android-arm64/pidfd-control.node"
+    ]
+  },
+  "boundary": {
+    "checkoutCleanBeforeRun": true,
+    "modelStarted": false,
+    "candidateCreated": false,
+    "providerCalled": false,
+    "quotaOr502Evidence": false
+  },
+  "interpretation": "This is a source-shape blocker for the physical full-context fixture, not evidence of a provider quota or 502 cause. Arbitrary file exclusion would change the base meaning. A D0019-compatible lazy Plan/reference or a separately authorized scoped physical gate is required before this M0 can pass.",
+  "notProven": [
+    "physical candidate success",
+    "provider deployment",
+    "authenticated current ChatGPT MCP execution",
+    "the historical 502 cause"
+  ],
+  "secrets": "none"
+}
