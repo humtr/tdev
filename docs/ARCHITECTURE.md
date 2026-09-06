@@ -249,7 +249,7 @@ The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` log
 
 ## 9.6 D0043/D0046 development-path composition boundary
 
-D0043 adds no semantic owner. Its Revision-3 catalog binds repository preparation, one fresh no-bwrap Codex model process, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017/D0047, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it.
+D0043 adds no semantic owner. Its Revision-4 catalog binds repository preparation, one fresh explicit no-sandbox Codex model process, sparse scoped workspace, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017/D0047, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it. The warden owns process, model-workspace and candidate cleanup and emits positive absence receipts.
 
 D0046 adds one provider-composition layer, not a replacement runtime:
 

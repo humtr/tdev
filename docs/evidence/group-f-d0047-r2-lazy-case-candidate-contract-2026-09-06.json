@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0047",
+  "revision": 2,
+  "status": "accepted",
+  "acceptanceBase": "development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a",
+  "decision": "carry exact base identity and lazy profile/scope through the durable development-unit model input, use a sparse model workspace and a separate full-base candidate, and require warden cleanup",
+  "facts": [
+    "lazy manifest preparation does not read blob bodies",
+    "selected reads use a bounded streaming Git range and strict UTF-8 decoding",
+    "candidate and workspace roots have positive cleanup receipts"
+  ],
+  "unknown": [
+    "a metadata-only durable Case/Plan representation is not implemented",
+    "provider/client execution and the original 502 cause remain unknown"
+  ],
+  "authorization": "accepted source contract; large-repository durable Case support remains blocked until a D0019-compatible Plan revision",
+  "secrets": "none"
+}

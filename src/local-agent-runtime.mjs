@@ -39,6 +39,26 @@ function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
 }
 
+function boundedCompletionDetails(error) {
+  const source = error?.details;
+  if (source === null || typeof source !== 'object' || Array.isArray(source)) return null;
+  const allowed = new Set([
+    'phase', 'cleanupComplete', 'pid', 'processStarts', 'exitCode', 'signal',
+    'stdoutBytes', 'stderrBytes', 'timeoutMs', 'stream', 'eventType',
+    'providerFailureClass', 'requestBytes', 'certainty',
+  ]);
+  const allowedArrays = new Set(['actual', 'required', 'optional', 'missing', 'unknown']);
+  const details = {};
+  for (const key of Object.keys(source)) {
+    if (!allowed.has(key)) continue;
+    const value = source[key];
+    if (value === null || typeof value === 'boolean' || Number.isSafeInteger(value)) details[key] = value;
+    else if (typeof value === 'string' && value.length <= 256 && !value.includes('\0')) details[key] = value;
+    else if (allowedArrays.has(key) && Array.isArray(value) && value.length <= 64 && value.every((item) => typeof item === 'string' && item.length <= 256 && !item.includes('\0'))) details[key] = [...value];
+  }
+  return Object.keys(details).length === 0 ? null : details;
+}
+
 const LOCAL_EXECUTION_START_FAILURE = Symbol('tdev.local-execution-start-failure.v1');
 
 export function createLocalExecutionStartError(code, message, {
@@ -442,7 +462,21 @@ export class LocalAgentRuntime {
         }));
       }
     } catch (cause) {
-      completion = Object.freeze({ classification: 'completion_unknown', causeCode: cause?.code ?? 'local_completion_unknown' });
+      const boundedDetails = boundedCompletionDetails(cause);
+      completion = Object.freeze({
+        classification: 'completion_unknown',
+        causeCode: cause?.code ?? 'local_completion_unknown',
+        certainty: cause?.certainty === 'not_applied' || cause?.certainty === 'unknown' ? cause.certainty : 'unknown',
+        retryable: cause?.retryable === true,
+        ...(boundedDetails === null ? {} : { causeDetails: boundedDetails }),
+      });
+      await this.#emitEvidence(delivery, entry, {
+        execution: 'completion_unknown',
+        causeCode: completion.causeCode,
+        certainty: completion.certainty,
+        retryable: completion.retryable,
+        ...(boundedDetails === null ? {} : { causeDetails: boundedDetails }),
+      });
     }
 
     let cleanup;

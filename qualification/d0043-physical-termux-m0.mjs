@@ -206,7 +206,8 @@ async function main() {
     for (const filePath of new Set([...Object.keys(baseTree), ...Object.keys(candidate.canonicalTree)])) {
       if (filePath.startsWith('docs/') && candidate.canonicalTree[filePath] !== baseTree[filePath]) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
     }
-    const runtimeCandidate = operationRuntime.candidate(candidate.canonicalDigest);
+    const runtimeCandidateDigest = modelResult?.evidence?.candidateTreeDigest ?? candidate.canonicalDigest;
+    const runtimeCandidate = operationRuntime.candidate(runtimeCandidateDigest);
     if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');
     await operationRuntime.dispose();
     try { await stat(runtimeCandidate.candidateRoot); fail('m0_candidate_cleanup_missing', 'M0 candidate workspace remained after disposal'); }

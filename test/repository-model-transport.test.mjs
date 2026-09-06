@@ -258,6 +258,25 @@ test('lazy context reports bounded incomplete search instead of claiming complet
   assert.equal(result.visitedBytes, 0);
 });
 
+test('lazy read streams only the admitted byte range for a large blob', async (t) => {
+  const large = '0123456789abcdef'.repeat(131072);
+  const repo = makeRepo(t, {
+    'large.txt': { content: large },
+    'small.txt': { content: 'small\n' },
+  });
+  const adapter = new GitRepositoryModelExecutor({ repositoryPath: repo.repositoryPath, modelExecutable: process.execPath, timeoutMs: 30_000 });
+  const handle = await adapter.prepareLazyContext(repo.commitOid, digest(repo.baseTree), {
+    scope: { paths: ['large.txt'], maxFiles: 1, maxBytes: 64 },
+  });
+  const before = handle.gitMetrics.stdoutBytes;
+  const read = await adapter.readLazyContext(handle, { path: 'large.txt', startByte: 100_000, maxBytes: 32 });
+  assert.equal(read.content, '0123456789abcdef0123456789abcdef');
+  assert.equal(read.complete, false);
+  const observed = handle.gitMetrics.stdoutBytes - before;
+  assert.ok(observed < 256 * 1024, `bounded range read emitted ${observed} bytes`);
+  assert.ok(observed < handle.descriptor.selectedByteLength, 'bounded range read retained the complete blob');
+});
+
 test('context reads the immutable commit rather than a mutated worktree', async (t) => {
   const repo = makeRepo(t);
   const plan = planFor(repo);

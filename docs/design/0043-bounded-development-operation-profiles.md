@@ -1,13 +1,13 @@
 # Design 0043 — Bounded Typed Development Operation Profiles
 
 - Status: `accepted`
-- Revision: 3
+- Revision: 4
 - Class: 2
 - Decision date: 2026-09-06
-- Acceptance base: `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`
-- Predecessor revision: D0043@r2 accepted at `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`; its acceptance evidence is `docs/evidence/group-f-d0043-r2-real-termux-codex-operation-binding-acceptance-2026-09-03.json`
-- Trigger: the independent physical audit reproduced the accepted sandbox argument's Termux bwrap failure and then reproduced a missing `PREFIX` launch failure. The supported M0 boundary must use the release-bound no-bwrap argument set and derive only the minimal Termux runtime variables required by the installed executable.
-- Acceptance evidence: `docs/evidence/group-f-d0043-r3-no-bwrap-boundary-design-acceptance-2026-09-06.json`
+- Acceptance base: `development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a`
+- Predecessor revision: D0043@r3 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0043-r3-no-bwrap-boundary-design-acceptance-2026-09-06.json`
+- Trigger: source review found that the accepted no-bwrap profile still returned a candidate through an adapter-owned workspace and did not give the warden positive ownership of model/candidate cleanup. The corrected boundary must bind every model/validation process and disposable workspace to one Attempt operation identity, while retaining the explicit trusted-local no-sandbox decision.
+- Acceptance evidence: `docs/evidence/group-f-d0043-r4-warden-candidate-boundary-acceptance-2026-09-06.json`
 - Scope: a versioned, release-bound typed operation catalog plus the first single-user trusted-local Termux Codex/validation runtime binding for one isolated tdev development unit, with no kernel sandbox or bwrap requirement
 - Affected owners: `src/`, `config/`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, focused operation-profile tests
 - Preserved owners: D0019 remains Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery and local-process owners; D0013/D0014 remain repository context/model transport owners; D0025 remains Git publication authority; D0042 owns Case-to-Agent re-drive
@@ -23,7 +23,7 @@ Choosing which local commands may run and how a caller reaches a repository or m
 
 ## 3. Repository facts and unknowns
 
-At Revision-3 design review:
+At Revision-3 design review (retained predecessor facts):
 
 - `src/repository-model-transport.mjs` reads one exact immutable Git commit, validates the semantic base digest and invokes a configured model subprocess with bounded output/timeout;
 - `src/local-agent-runtime.mjs` and the supervisor own process handles, cancellation and positive cleanup evidence;
@@ -38,17 +38,17 @@ At Revision-3 design review:
 - The accepted Revision-2 argument set can indirectly select the Termux bwrap shim; the no-bwrap binding removes that provider-internal dependency.
 - The physical boundary is the release-bound executable and arguments, a disposable exact-base clone, result-only ChangeSet validation, fixed candidate validation and positive warden cleanup.
 
-Unknowns remain the exact model/reasoning identifier available to the authenticated account at a future run, provider latency/rate limits, and whether the Termux/Android environment can positively enforce an endpoint-level egress allowlist. Those identities and limits are deployment evidence. Revision 3 supports only the trusted-local single-user trial.
+Unknowns remain the exact model/reasoning identifier available to the authenticated account at a future run, provider latency/rate limits, and whether the Termux/Android environment can positively enforce an endpoint-level egress allowlist. Those identities and limits are deployment evidence. Revision 4 still supports only the trusted-local single-user trial.
 
 ## 4. Decision and operation catalog
 
-The package-owned manifest remains the authority for executable identity. Revision 3 advances the model binding while retaining the typed manifest version:
+The package-owned manifest remains the authority for executable identity. Revision 4 advances the model binding while retaining the typed manifest version:
 
 ```text
 tdev.development-operation-profiles.v2
 ```
 
-Revision 1 and Revision 2 remain historical and are never reinterpreted as the no-bwrap runtime. Each Revision-3 profile has a fixed operation kind, release/deployment-bound executable identity, literal argument template, explicit environment and credential visibility, fixed filesystem/network mode and bounded limits. The caller selects only a profile identifier plus typed data admitted by that profile.
+Revision 1, Revision 2 and Revision 3 remain historical and are never reinterpreted as the Revision-4 runtime. Each Revision-4 profile has a fixed operation kind, release/deployment-bound executable identity, literal argument template, explicit environment and credential visibility, fixed filesystem/network mode and bounded limits. The caller selects only a profile identifier plus typed data admitted by that profile.
 
 ### 4.1 `tdev.repository.context.prepare.v1`
 
@@ -60,6 +60,8 @@ Required input:
 repositoryCommitOid
 baseDigest
 objectFormat
+scope                  // required only for the lazy context profile
+baseIdentity           // required for the lazy context profile
 ```
 
 The operation delegates to the existing D0013 context preparation contract. It may read only the configured repository through hardened Git plumbing, never the mutable worktree/index, and returns a bounded context descriptor/reference. It has no write claim, no process creation and no network.
@@ -75,6 +77,12 @@ repositoryCommitOid
 baseDigest
 instruction
 contextReferenceId       // only when supplied by the owner-owned preparation step
+objectFormat             // when the owner binds a non-default Git object format
+contextProfile           // full or owner-issued lazy profile
+contextScope             // required when contextProfile is lazy
+contextScopeDigest       // required when contextProfile is lazy; copied from the accepted context result
+baseIdentity             // same owner-issued full-base identity as preparation
+writePaths               // optional owner-issued write scope
 ```
 
 The first real runtime profile is:
@@ -89,7 +97,7 @@ The adapter supplies the bounded instruction and exact prepared context, accepts
 
 The Codex process may reuse the user's already-established saved CLI authentication. tdev never reads, copies, serializes, logs or forwards the cached credential, Access token or Agent credential. Authentication absence/expiry is a pre-launch or provider failure, not permission to request a secret through MCP. This is a trusted-local single-user credential boundary; it is not a general credential service.
 
-The first external-model disclosure profile is `tdev.openai-codex-full-context.trusted-local.v1`. It explicitly permits the complete bounded regular UTF-8 tracked content of one exact published tdev commit, plus the admitted Task instruction, to be made available to the Codex service under the user's existing account. It excludes mutable worktree/index state, untracked files, repository-external paths, inherited environment, Git/provider/Agent/MCP credentials and any secret value. The deployment admits only the named repository/account/profile, records the exact commit and bounded context digest, and fails closed when the repository is not explicitly eligible for this profile. Provider retention, training, privacy, residency, billing and hostile-provider authenticity remain governed by the user's provider account/terms and are not tdev claims.
+The external-model disclosure profile is `tdev.openai-codex-full-context.trusted-local.v1`. Its legacy full-text variant permits the complete bounded regular UTF-8 tracked content of one exact published tdev commit, while the D0047 lazy variant permits only the selected bounded files from the owner-issued scope. Both include the admitted Task instruction and exclude mutable worktree/index state, untracked files, repository-external paths, inherited environment, Git/provider/Agent/MCP credentials and any secret value. The deployment admits only the named repository/account/profile, records the exact commit, full-base identity and bounded context/scope digest, and fails closed when the repository is not explicitly eligible for the selected profile. Provider retention, training, privacy, residency, billing and hostile-provider authenticity remain governed by the user's provider account/terms and are not tdev claims.
 
 One Attempt authorizes at most one outer Codex process launch under its stable identity. The adapter does not blindly repeat a launch after timeout, disconnect, response loss or unknown provider billing/effect. Any Codex-internal provider calls/retries and directly reported usage are bounded/observed where the selected CLI exposes them and otherwise remain explicit unknowns; they never create semantic success or a second Attempt.
 
@@ -108,7 +116,7 @@ validationProfile
 
 `validationProfile` is an installed manifest identifier, not a command string. The release manifest maps it to package-owned executable/argv, an isolated candidate root, fixed environment, network mode (default `none`), timeout, output bound, process-group cleanup and cancellation policy. The profile may read/write only the disposable candidate workspace; it cannot address the canonical repository ref or Agent state.
 
-Revision 3 retains the first validation profile as `tdev.validation.npm-check.v1`, binding the installed npm executable and literal `run check` arguments with a finite deployment-recorded timeout large enough to run the baseline. It runs in the disposable candidate workspace with a secret-free explicit environment and no admitted network need. If the exact base changes package scripts, lifecycle hooks or validation configuration relative to the admitted manifest, the profile is rebound before execution; model output cannot silently replace the validator it must pass. If the host lacks the declared executable or cannot prove root/cleanup bounds, the operation fails closed and the physical gate remains unqualified.
+Revision 4 retains the first validation profile as `tdev.validation.npm-check.v1`, binding the installed npm executable and literal `run check` arguments with a finite deployment-recorded timeout large enough to run the baseline. It runs in the disposable candidate workspace with a secret-free explicit environment and no admitted network need. If the exact base changes package scripts, lifecycle hooks or validation configuration relative to the admitted manifest, the profile is rebound before execution; model output cannot silently replace the validator it must pass. If the host lacks the declared executable or cannot prove root/cleanup bounds, the operation fails closed and the physical gate remains unqualified.
 
 ## 5. Typed boundary and capability admission
 
@@ -142,9 +150,19 @@ Unknown process completion after timeout, disconnect or response loss is reconci
 
 The manifest is versioned and bound into the installable-Agent release digest. A release that does not contain a profile required by a Case fails capability admission before Attempt creation. Unknown future manifest versions and profile substitutions fail closed.
 
-Revision 3 does not reinterpret the existing diagnostic, Revision-1 or Revision-2 development profiles. Existing packages remain valid for their qualified scopes but cannot claim the no-bwrap physical Codex development path. The no-bwrap model binding, fixed argument template, execution-boundary identity and manifest digest change the package/release identity and require fresh source/package/Agent qualification plus a quiescent D0027 package update; they are not in-place capability aliases.
+Revision 4 does not reinterpret the existing diagnostic or Revision-1 through Revision-3 development profiles. Existing packages remain valid for their qualified scopes but cannot claim the Revision-4 warden boundary. The explicit no-sandbox model binding, fixed argument template, execution-boundary identity, warden workspace/process receipts and manifest digest change the package/release identity and require fresh source/package/Agent qualification plus a quiescent D0027 package update; they are not in-place capability aliases.
 
 No Case snapshot migration is introduced. A Case stores the typed operation/profile identity as Task input under existing bounds; durable operation receipts remain D0020/D0027/Case-owned. Rollback to a release lacking a still-live profile is blocked until affected Cases quiesce or an explicit forward-compatible migration is accepted.
+
+## 8.1 Revision-4 corrective boundary
+
+The trusted-local M0 profile passes `--dangerously-bypass-approvals-and-sandbox` explicitly. Omitting a sandbox flag is not a no-sandbox declaration. The disposable exact-base clone, owner-issued ChangeSet scope and warden are the boundary; no hostile-local-code, kernel-sandbox or multi-tenant isolation claim is made.
+
+Every model and validation subprocess is registered with the warden under the stable Case/Task/Attempt operation identity. The warden observes process close and process-group absence, owns the disposable model workspace and owns the candidate workspace. A successful result carries positive process and model-workspace cleanup receipts; validation carries positive process and candidate-absence receipts. Missing or unresolved cleanup keeps the operation unknown and blocks reuse.
+
+The model receives a sparse checkout containing only the files in the prepared scoped context. The candidate is a separate full exact-commit clone to which the result-only ChangeSet is applied. The full repository identity remains the commit/tree/object-format/base/manifest identity; the scope/context/candidate digests are separate derived identities.
+
+Provider quota, billing, authentication, response loss and the original 502 cause remain provider-layer unknowns unless a bounded observation proves otherwise. A provider error is retained as `certainty=unknown` and never becomes a successful Candidate.
 
 ## 9. Acceptance matrix and cheapest falsifiers
 

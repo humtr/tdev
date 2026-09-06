@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0043",
+  "revision": 4,
+  "status": "accepted",
+  "acceptanceBase": "development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a",
+  "decision": "make no-sandbox explicit and put model/validation processes plus disposable model/candidate workspaces under one warden with positive cleanup receipts",
+  "facts": [
+    "the provider CLI supports the explicit --dangerously-bypass-approvals-and-sandbox flag",
+    "the source runtime now binds process launches to the Case/Task/Attempt operation identity",
+    "candidate validation can return only after the warden proves candidate absence"
+  ],
+  "unknown": [
+    "physical Termux M0, provider deployment and current-client execution remain separate qualification gates; the local scoped fixture does not close them",
+    "the original historical 502 cause remains unknown"
+  ],
+  "authorization": "accepted design only; source evidence and physical/provider qualification remain separate",
+  "secrets": "none"
+}

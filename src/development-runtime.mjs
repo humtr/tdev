@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { lstat, mkdtemp, mkdir, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 
@@ -15,12 +15,17 @@ import {
   digest,
   isPlainRecord,
   strictJsonParse,
+  typedDigest,
 } from './canonical.mjs';
 import { DEFAULT_LIMITS, DEFAULT_PATH_POLICY, validateRelativePath } from './policy.mjs';
 import { normalizeChangeSet } from './results.mjs';
-import { validateTree } from './promotion.mjs';
 import { runGitCommand } from './git-projection.mjs';
-import { runModelSubprocess, GitRepositoryModelExecutor } from './repository-model-transport.mjs';
+import {
+  runModelSubprocess,
+  GitRepositoryModelExecutor,
+  REPOSITORY_CONTEXT_PROFILE,
+  LAZY_REPOSITORY_CONTEXT_PROFILE,
+} from './repository-model-transport.mjs';
 import {
   CODEX_MODEL_BINDING_PROFILE,
   CODEX_EXECUTION_BOUNDARY,
@@ -44,6 +49,7 @@ const DEFAULT_OPERATION_TIMEOUT_MS = 300_000;
 const DEFAULT_CANCEL_GRACE_MS = 2_000;
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 const TERMUX_PREFIX = '/data/data/com.termux/files/usr';
+const CANDIDATE_DIGEST_DOMAIN = 'tdev.disposable-candidate.v1';
 
 function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
@@ -104,6 +110,147 @@ function safeObservation(callback, value) {
   catch { /* observations are non-authoritative */ }
 }
 
+function processStillExists(pid) {
+  if (!Number.isSafeInteger(pid) || pid <= 0) return false;
+  try {
+    process.kill(pid, 0);
+    return true;
+  } catch (cause) {
+    if (cause?.code === 'EPERM') return true;
+    return false;
+  }
+}
+
+function processGroupStillExists(processGroupId) {
+  if (!Number.isSafeInteger(processGroupId) || processGroupId <= 0 || process.platform === 'win32') return false;
+  try {
+    process.kill(-processGroupId, 0);
+    return true;
+  } catch (cause) {
+    if (cause?.code === 'EPERM') return true;
+    return false;
+  }
+}
+
+/**
+ * Owns the disposable process and candidate lifecycle for a trusted-local run.
+ * The warden never infers cleanup from a promise result: it records a launch,
+ * observes process close, removes the candidate, and verifies its absence.
+ */
+export class DevelopmentWarden {
+  constructor({ workspaceRoot = null } = {}) {
+    this.workspaceRoot = absolutePath(workspaceRoot === null ? os.tmpdir() : workspaceRoot, 'workspaceRoot');
+    this.processes = new Map();
+    this.workspaces = new Map();
+    this.candidates = new Map();
+    this.evidence = [];
+  }
+
+  #assertOwnedRoot(root, label) {
+    if (this.workspaceRoot === null) return;
+    const relative = path.relative(this.workspaceRoot, root);
+    if (relative === '' || relative.startsWith(`..${path.sep}`) || path.isAbsolute(relative)) {
+      fail('development_warden_workspace_invalid', `${label} is outside the warden workspace root`);
+    }
+  }
+
+  registerProcess({ operationId, pid, processGroupId = pid } = {}) {
+    if (typeof operationId !== 'string' || operationId.length === 0 || !Number.isSafeInteger(pid) || pid <= 0 ||
+        (processGroupId !== null && (!Number.isSafeInteger(processGroupId) || processGroupId <= 0))) {
+      fail('development_warden_process_invalid', 'Warden process registration is invalid');
+    }
+    const key = `${operationId}\0${pid}`;
+    if (this.processes.has(key)) fail('development_warden_process_duplicate', 'Warden process identity was already registered');
+    const entry = { operationId, pid, processGroupId, started: true, closed: false };
+    this.processes.set(key, entry);
+    return deepFreeze({ operationId, pid, processGroupId });
+  }
+
+  observeProcessExit({ operationId, pid, code = null, signal = null } = {}) {
+    const key = `${operationId}\0${pid}`;
+    const entry = this.processes.get(key);
+    if (!entry) return;
+    entry.closed = true;
+    entry.code = code;
+    entry.signal = signal;
+  }
+
+  async cleanupOperation(operationId) {
+    const entries = [...this.processes.values()].filter((entry) => entry.operationId === operationId);
+    const unresolved = entries.filter((entry) => !entry.closed || processStillExists(entry.pid) || processGroupStillExists(entry.processGroupId));
+    if (unresolved.length > 0) {
+      return deepFreeze({ cleanupComplete: false, operationId, livePids: unresolved.filter((entry) => processStillExists(entry.pid)).map((entry) => entry.pid).sort((a, b) => a - b), liveProcessGroups: unresolved.filter((entry) => processGroupStillExists(entry.processGroupId)).map((entry) => entry.processGroupId).sort((a, b) => a - b), unresolvedPids: unresolved.filter((entry) => !entry.closed).map((entry) => entry.pid).sort((a, b) => a - b) });
+    }
+    for (const entry of entries) this.processes.delete(`${entry.operationId}\0${entry.pid}`);
+    const receipt = { cleanupComplete: true, operationId, processCount: entries.length, observedExit: entries.every((entry) => entry.closed) };
+    this.evidence.push(receipt);
+    return deepFreeze(receipt);
+  }
+
+  registerWorkspace({ workspaceId, root, operationId = null, kind = 'disposable' } = {}) {
+    if (typeof workspaceId !== 'string' || workspaceId.length === 0 || typeof root !== 'string' || root.length === 0) {
+      fail('development_warden_workspace_invalid', 'Warden workspace registration is invalid');
+    }
+    const normalizedRoot = absolutePath(root, 'workspace root');
+    this.#assertOwnedRoot(normalizedRoot, 'Workspace root');
+    if (operationId !== null && (typeof operationId !== 'string' || operationId.length === 0)) {
+      fail('development_warden_workspace_invalid', 'Warden workspace operation identity is invalid');
+    }
+    if (this.workspaces.has(workspaceId)) fail('development_warden_workspace_duplicate', 'Warden workspace identity was already registered');
+    this.workspaces.set(workspaceId, { workspaceId, root: normalizedRoot, operationId, kind });
+    return deepFreeze({ workspaceId, operationId, kind });
+  }
+
+  async cleanupWorkspace(workspaceId) {
+    const entry = this.workspaces.get(workspaceId);
+    if (!entry) return deepFreeze({ cleanupComplete: true, workspaceId, absent: true });
+    await rm(entry.root, { recursive: true, force: true });
+    let absent = false;
+    try { await stat(entry.root); }
+    catch (cause) { if (cause?.code === 'ENOENT') absent = true; else throw cause; }
+    if (!absent) fail('development_warden_workspace_cleanup_failed', 'Warden could not prove disposable workspace cleanup');
+    this.workspaces.delete(workspaceId);
+    const receipt = { cleanupComplete: true, workspaceId, absent: true, operationId: entry.operationId, kind: entry.kind };
+    this.evidence.push(receipt);
+    return deepFreeze(receipt);
+  }
+
+  registerCandidate({ candidateTreeDigest, candidateRoot, baseDigest, repositoryCommitOid } = {}) {
+    assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+    const key = candidateTreeDigest;
+    if (typeof candidateRoot !== 'string' || candidateRoot.length === 0) fail('development_warden_candidate_invalid', 'Candidate root is invalid');
+    const normalizedRoot = absolutePath(candidateRoot, 'candidateRoot');
+    this.#assertOwnedRoot(normalizedRoot, 'Candidate root');
+    if (this.candidates.has(key)) fail('development_warden_candidate_duplicate', 'Warden candidate identity was already registered');
+    this.candidates.set(key, { candidateTreeDigest, candidateRoot: normalizedRoot, baseDigest, repositoryCommitOid });
+    return key;
+  }
+
+  async cleanupCandidate(candidateTreeDigest) {
+    const entry = this.candidates.get(candidateTreeDigest);
+    if (!entry) return deepFreeze({ cleanupComplete: true, candidateTreeDigest, absent: true });
+    await rm(entry.candidateRoot, { recursive: true, force: true });
+    let absent = false;
+    try { await stat(entry.candidateRoot); }
+    catch (cause) { if (cause?.code === 'ENOENT') absent = true; else throw cause; }
+    if (!absent) fail('development_warden_candidate_cleanup_failed', 'Candidate workspace remained after warden cleanup');
+    this.candidates.delete(candidateTreeDigest);
+    const receipt = { cleanupComplete: true, candidateTreeDigest, absent: true };
+    this.evidence.push(receipt);
+    return deepFreeze(receipt);
+  }
+
+  async cleanupAll() {
+    const receipts = [];
+    for (const operationId of [...new Set([...this.processes.values()].map((entry) => entry.operationId))]) {
+      receipts.push(await this.cleanupOperation(operationId));
+    }
+    for (const workspaceId of [...this.workspaces.keys()]) receipts.push(await this.cleanupWorkspace(workspaceId));
+    for (const candidateTreeDigest of [...this.candidates.keys()]) receipts.push(await this.cleanupCandidate(candidateTreeDigest));
+    return deepFreeze({ cleanupComplete: receipts.every((receipt) => receipt.cleanupComplete === true), receipts });
+  }
+}
+
 function contextReferenceId(descriptor) {
   return `ctx-${descriptor.contextDigest.slice('sha256:'.length, 'sha256:'.length + 48)}`;
 }
@@ -114,6 +261,48 @@ function assertContextReference(descriptor, value) {
     fail('development_runtime_context_reference_mismatch', 'Model input does not name the prepared immutable context');
   }
   return expected;
+}
+
+function assertPreparedContextIdentity(context, {
+  repositoryCommitOid,
+  baseDigest,
+  objectFormat = null,
+  baseIdentity = null,
+} = {}) {
+  if (!isPlainRecord(context) || !isPlainRecord(context.descriptor)) {
+    fail('development_runtime_context_invalid', 'Prepared context is not an immutable descriptor');
+  }
+  const descriptor = context.descriptor;
+  if (descriptor.commitOid !== undefined && descriptor.commitOid !== repositoryCommitOid) {
+    fail('development_runtime_commit_identity_mismatch', 'Prepared context is bound to a different repository commit');
+  }
+  if (descriptor.baseDigest !== undefined && descriptor.baseDigest !== baseDigest) {
+    fail('development_runtime_base_identity_mismatch', 'Prepared context is bound to a different full base digest');
+  }
+  if (objectFormat !== null && descriptor.objectFormat !== undefined && descriptor.objectFormat !== objectFormat) {
+    fail('development_runtime_object_format_mismatch', 'Prepared context is bound to a different Git object format');
+  }
+  if (baseIdentity !== null && baseIdentity !== undefined) {
+    const observed = descriptor.baseIdentity;
+    if (!isPlainRecord(observed) || observed.schemaVersion !== 1 || observed.profile !== 'tdev.repository-base-identity.v1' ||
+        observed.objectFormat !== baseIdentity.objectFormat || observed.commitOid !== baseIdentity.commitOid ||
+        observed.treeOid !== baseIdentity.treeOid || observed.baseDigest !== baseIdentity.baseDigest ||
+        observed.manifestDigest !== baseIdentity.manifestDigest) {
+      fail('development_runtime_base_identity_mismatch', 'Prepared context does not attest the owner-issued full-base identity');
+    }
+  }
+  if (descriptor.baseIdentity !== undefined && (!isPlainRecord(descriptor.baseIdentity) ||
+      descriptor.baseIdentity.schemaVersion !== 1 || descriptor.baseIdentity.profile !== 'tdev.repository-base-identity.v1' ||
+      !['sha1', 'sha256'].includes(descriptor.baseIdentity.objectFormat) ||
+      descriptor.baseIdentity.commitOid !== repositoryCommitOid || descriptor.baseIdentity.baseDigest !== baseDigest ||
+      typeof descriptor.baseIdentity.treeOid !== 'string' || !/^([0-9a-f]{40}|[0-9a-f]{64})$/u.test(descriptor.baseIdentity.treeOid))) {
+    fail('development_runtime_base_identity_mismatch', 'Prepared context full-base identity is inconsistent');
+  }
+  if (descriptor.baseIdentity !== undefined) assertDigest(descriptor.baseIdentity.manifestDigest, 'prepared context manifestDigest');
+  if (descriptor.manifestDigest !== undefined && descriptor.baseIdentity?.manifestDigest !== undefined && descriptor.manifestDigest !== descriptor.baseIdentity.manifestDigest) {
+    fail('development_runtime_manifest_identity_mismatch', 'Prepared context manifest identity disagrees with its full-base identity');
+  }
+  return context;
 }
 
 export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextReferenceId: referenceId, contextDigest, contextFileCount, instruction, writePaths = null } = {}) {
@@ -136,8 +325,8 @@ export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextRefer
   ].join('\n');
 }
 
-async function checkedGit({ repositoryPath, args, signal }) {
-  const result = await runGitCommand({ repositoryPath, args, signal });
+async function checkedGit({ repositoryPath, args, input = null, signal }) {
+  const result = await runGitCommand({ repositoryPath, args, input, signal });
   if (result.code !== 0) fail('development_runtime_git_failed', `Git command failed: ${args[0]}`, { exitCode: result.code, signal: result.signal });
   return result.stdout;
 }
@@ -147,12 +336,24 @@ async function assertCleanClone({ repositoryPath, signal }) {
   if (status.length !== 0) fail('development_runtime_clone_mutated', 'Codex modified the disposable exact-base repository', { status: status.slice(0, 8192) });
 }
 
-async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal }) {
+async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, sparsePaths = null }) {
   const parent = workspaceRoot === undefined || workspaceRoot === null ? os.tmpdir() : absolutePath(workspaceRoot, 'workspaceRoot');
   await mkdir(parent, { recursive: true, mode: 0o700 });
   const clonePath = await mkdtemp(path.join(parent, 'tdev-development-'));
   try {
     await checkedGit({ repositoryPath, signal, args: ['clone', '--no-local', '--no-hardlinks', '--no-checkout', repositoryPath, clonePath] });
+    if (sparsePaths !== null) {
+      if (!Array.isArray(sparsePaths) || sparsePaths.length === 0) fail('development_runtime_scoped_clone_invalid', 'A scoped model clone requires at least one admitted path');
+      await checkedGit({ repositoryPath: clonePath, signal, args: ['sparse-checkout', 'init', '--no-cone'] });
+      await checkedGit({
+        repositoryPath: clonePath,
+        signal,
+        args: ['sparse-checkout', 'set', '--no-cone', '--stdin'],
+        input: Buffer.from(`${sparsePaths.join('\n')}\n`, 'utf8'),
+      });
+    }
+    // Configure the sparse worktree before checkout. A checkout-first sequence
+    // materializes every repository file and defeats the lazy context contract.
     await checkedGit({ repositoryPath: clonePath, signal, args: ['checkout', '--detach', commitOid] });
     const head = (await checkedGit({ repositoryPath: clonePath, signal, args: ['rev-parse', 'HEAD'] })).toString('utf8').trim();
     if (head !== commitOid) fail('development_runtime_clone_identity_mismatch', 'Disposable repository did not bind the requested commit');
@@ -198,7 +399,19 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
         exitCode: Number.isSafeInteger(event.item.exit_code) ? event.item.exit_code : null,
       });
     }
-    if (event.type === 'error' || event.type === 'turn.failed') fail('codex_provider_failed', 'Codex reported a failed turn', { eventType: event.type });
+    if (event.type === 'error' || event.type === 'turn.failed') {
+      const message = typeof event.message === 'string'
+        ? event.message
+        : typeof event.error?.message === 'string' ? event.error.message : '';
+      const error = new ContractError('codex_provider_failed', 'Codex reported a failed turn', {
+        eventType: event.type,
+        providerFailureClass: /credit|quota|billing/iu.test(message) ? 'credits_or_quota' : 'unknown',
+        certainty: 'unknown',
+      });
+      error.certainty = 'unknown';
+      error.retryable = true;
+      throw error;
+    }
     if (event.type === 'turn.completed') usage = safeUsage(event.usage);
     if (event.type === 'item.completed' && event.item?.type === 'agent_message') {
       if (typeof event.item.text !== 'string' || event.item.text.length === 0) fail('codex_terminal_output_invalid', 'Codex terminal agent message is empty');
@@ -234,21 +447,28 @@ function classifyCodexProcessFailure(processResult) {
     }
   } catch { /* retain the bounded process failure when provider output is not JSONL */ }
   if (providerEvent !== null) {
-    return new ContractError('codex_provider_failed', 'Codex provider reported a failed turn', {
+    const error = new ContractError('codex_provider_failed', 'Codex provider reported a failed turn', {
       exitCode: processResult.code,
       signal: processResult.signal,
       stdoutBytes: processResult.stdoutBytes,
       stderrBytes: processResult.stderrBytes,
       eventType: providerEvent,
       providerFailureClass: /credit|quota|billing/iu.test(providerMessage) ? 'credits_or_quota' : 'provider_error',
+      certainty: 'unknown',
     });
+    error.certainty = 'unknown';
+    error.retryable = true;
+    return error;
   }
-  return new ContractError('codex_process_failed', 'Codex process exited unsuccessfully', {
+  const error = new ContractError('codex_process_failed', 'Codex process exited unsuccessfully', {
     exitCode: processResult.code,
     signal: processResult.signal,
     stdoutBytes: processResult.stdoutBytes,
     stderrBytes: processResult.stderrBytes,
+    certainty: 'unknown',
   });
+  error.certainty = 'unknown';
+  return error;
 }
 
 function normalizedChangeSet(result, baseDigest, evidence) {
@@ -261,17 +481,17 @@ function normalizedChangeSet(result, baseDigest, evidence) {
 }
 
 function assertWriteScope(result, writePaths) {
+  if (result.writes.length === 0) fail('development_runtime_empty_changeset', 'Implementation operation returned an empty ChangeSet');
   if (writePaths === undefined || writePaths === null) return;
   if (!Array.isArray(writePaths) || writePaths.length === 0) fail('development_runtime_write_scope_invalid', 'writePaths must be a non-empty owner-issued list');
   const allowed = new Set(writePaths);
   for (const write of result.writes) {
     if (!allowed.has(write.path)) fail('development_runtime_write_scope_denied', `ChangeSet path is outside the owner-issued write scope: ${write.path}`);
   }
-  if (result.writes.length === 0) fail('development_runtime_empty_changeset', 'Implementation operation returned an empty ChangeSet');
 }
 
 export class CodexExecRepositoryModelExecutor {
-  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
+  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null, warden = null } = {}) {
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.codexExecutable = absolutePath(codexExecutable, 'codexExecutable');
     this.codexHome = absolutePath(codexHome, 'codexHome');
@@ -288,23 +508,84 @@ export class CodexExecRepositoryModelExecutor {
     if (typeof modelRunner !== 'function') fail('development_runtime_model_runner_invalid', 'modelRunner must be a function');
     this.observation = observation;
     this.modelRunner = modelRunner;
+    this.warden = warden;
     this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
     if (!this.contextAdapter || typeof this.contextAdapter.materializeContext !== 'function') fail('development_runtime_context_adapter_invalid', 'contextAdapter must materialize immutable context');
     Object.freeze(this);
   }
 
-  async materializeContext(repositoryCommitOid, baseDigest, { signal } = {}) {
-    return this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal });
+  async materializeContext(repositoryCommitOid, baseDigest, { signal, scope = null, objectFormat = null, baseIdentity = null } = {}) {
+    const context = scope !== null && typeof this.contextAdapter.materializeScopedContext === 'function'
+      ? await this.contextAdapter.materializeScopedContext(repositoryCommitOid, baseDigest, { signal, scope })
+      : await this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal, scope });
+    return assertPreparedContextIdentity(context, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity });
   }
 
-  async execute({ repositoryCommitOid, baseDigest, instruction, contextReferenceId = undefined, writePaths = undefined, signal = new AbortController().signal } = {}) {
+  async execute({ repositoryCommitOid, baseDigest, instruction, contextReferenceId = undefined, writePaths = undefined, objectFormat = null, contextProfile = null, contextScope = null, contextScopeDigest = null, baseIdentity = null, preparedContext = null, operationId = null, signal = new AbortController().signal } = {}) {
     assertScalarString(repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(baseDigest, 'baseDigest');
     boundedText(instruction, 'instruction', 64 * 1024);
     if (!signal || typeof signal.aborted !== 'boolean') fail('development_runtime_signal_invalid', 'signal must be an AbortSignal');
-    const context = await this.materializeContext(repositoryCommitOid, baseDigest, { signal });
+    if (contextProfile === 'tdev.repository.context.prepare.lazy.v1' && (!isPlainRecord(contextScope) || typeof contextScopeDigest !== 'string')) {
+      fail('development_runtime_context_scope_missing', 'Lazy model execution requires the owner-issued context scope and scope digest');
+    }
+    if (contextScopeDigest !== null && contextScopeDigest !== undefined) assertDigest(contextScopeDigest, 'contextScopeDigest');
+    const context = preparedContext === null
+      ? await this.materializeContext(repositoryCommitOid, baseDigest, { signal, scope: contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? contextScope : null, objectFormat, baseIdentity })
+      : assertPreparedContextIdentity(preparedContext, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity });
+    const expectedDescriptorProfile = contextProfile === 'tdev.repository.context.prepare.lazy.v1'
+      ? LAZY_REPOSITORY_CONTEXT_PROFILE
+      : contextProfile === 'tdev.repository.context.prepare.v1' ? REPOSITORY_CONTEXT_PROFILE : null;
+    if (expectedDescriptorProfile !== null && context.descriptor.profile !== expectedDescriptorProfile) {
+      fail('development_runtime_context_profile_mismatch', 'Prepared context profile does not match the model operation profile');
+    }
+    if (contextProfile === 'tdev.repository.context.prepare.lazy.v1' && context.descriptor.scopeDigest !== contextScopeDigest) {
+      fail('development_runtime_context_scope_mismatch', 'Prepared context scope does not match the model operation scope');
+    }
     const referenceId = assertContextReference(context.descriptor, contextReferenceId);
-    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal });
+    const sparsePaths = context.descriptor.profile === 'tdev.repository-context.git-scoped-lazy.v1'
+      ? context.files?.map((file) => file.path).filter((filePath) => typeof filePath === 'string') ?? null
+      : null;
+    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal, sparsePaths });
+    const workspaceId = typedDigest('tdev.model-workspace.v1', {
+      schemaVersion: 1,
+      operationId: operationId ?? null,
+      repositoryCommitOid,
+      contextReferenceId: referenceId,
+      clonePathDigest: digest(clonePath),
+    });
+    if (this.warden !== null) {
+      try {
+        this.warden.registerWorkspace({ workspaceId, root: clonePath, operationId, kind: 'model-clone' });
+      } catch (cause) {
+        await rm(clonePath, { recursive: true, force: true });
+        throw cause;
+      }
+    }
+    let workspaceCleanup = null;
+    const processOperationId = operationId ?? `codex:${repositoryCommitOid}`;
+    let processCleanup = null;
+    const cleanupProcess = async () => {
+      if (processCleanup !== null) return processCleanup;
+      if (this.warden === null) {
+        processCleanup = { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true };
+        return processCleanup;
+      }
+      processCleanup = await this.warden.cleanupOperation(processOperationId);
+      if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove model process-group cleanup');
+      return processCleanup;
+    };
+    const cleanupWorkspace = async () => {
+      if (workspaceCleanup !== null) return workspaceCleanup;
+      if (this.warden !== null) workspaceCleanup = await this.warden.cleanupWorkspace(workspaceId);
+      else {
+        await rm(clonePath, { recursive: true, force: true });
+        try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
+        catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+        workspaceCleanup = { cleanupComplete: true, workspaceId, absent: true, kind: 'model-clone' };
+      }
+      return workspaceCleanup;
+    };
     const started = performance.now();
     try {
       const schemaBytes = await readFile(this.outputSchemaPath);
@@ -326,78 +607,116 @@ export class CodexExecRepositoryModelExecutor {
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: clonePath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: clonePath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
+      const processCleanupReceipt = await cleanupProcess();
       if (processResult.code !== 0) throw classifyCodexProcessFailure(processResult);
       await assertCleanClone({ repositoryPath: clonePath, signal });
       const parsed = parseCodexJsonl(processResult.stdout, CODEX_MAX_RESPONSE_BYTES);
-      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage, terminalMessageCount: parsed.terminalMessageCount, auxiliaryTerminalMessages: parsed.auxiliaryTerminalMessages };
+      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage, terminalMessageCount: parsed.terminalMessageCount, auxiliaryTerminalMessages: parsed.auxiliaryTerminalMessages, processCleanup: processCleanupReceipt };
       const result = normalizedChangeSet(parsed.result, baseDigest, evidence);
       assertWriteScope(result, writePaths);
-      safeObservation(this.observation, { ...evidence, outcome: 'returned', totalDurationMs: Math.max(0, Math.round(performance.now() - started)) });
-      return result;
+      const cleanup = await cleanupWorkspace();
+      const returned = deepFreeze({ ...result, evidence: { ...result.evidence, workspaceCleanup: cleanup } });
+      safeObservation(this.observation, { ...evidence, workspaceCleanup: cleanup, outcome: 'returned', totalDurationMs: Math.max(0, Math.round(performance.now() - started)) });
+      return returned;
     } catch (cause) {
-      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed' });
+      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed', failureClass: cause?.details?.providerFailureClass ?? 'unknown', certainty: cause?.certainty === 'not_applied' || cause?.certainty === 'unknown' ? cause.certainty : 'unknown' });
       throw cause;
     } finally {
-      await rm(clonePath, { recursive: true, force: true });
-      try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
-      catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+      let cleanupFailure = null;
+      try { await cleanupProcess(); } catch (cause) { cleanupFailure = cause; }
+      try { await cleanupWorkspace(); } catch (cause) { cleanupFailure ??= cause; }
+      if (cleanupFailure !== null) throw cleanupFailure;
     }
   }
 }
 
 export class NpmCheckValidationExecutor {
-  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS } = {}) {
+  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, warden = null } = {}) {
     this.npmExecutable = absolutePath(npmExecutable, 'npmExecutable');
     this.timeoutMs = positiveBound(timeoutMs, 'timeoutMs', 600_000);
     this.cancelGraceMs = assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
+    this.warden = warden;
     Object.freeze(this);
   }
 
-  async execute({ candidateRoot, candidateTreeDigest, validationProfile, signal = new AbortController().signal } = {}) {
+  async execute({ candidateRoot, candidateTreeDigest, validationProfile, operationId = null, signal = new AbortController().signal } = {}) {
     const root = absolutePath(candidateRoot, 'candidateRoot');
     assertDigest(candidateTreeDigest, 'candidateTreeDigest');
     assertIdentifier(validationProfile, 'validationProfile');
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
-    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+    const processOperationId = operationId ?? `validation:${candidateTreeDigest}`;
+    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
+    const processCleanup = this.warden === null
+      ? { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true }
+      : await this.warden.cleanupOperation(processOperationId);
+    if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove validation process-group cleanup');
     const passed = processResult.code === 0 && processResult.signal === null;
-    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs } });
+    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, processCleanup } });
   }
 }
 
-function applyChangeSet(baseTree, result, baseDigest) {
-  const tree = validateTree(canonicalClone(baseTree));
-  if (digest(tree) !== baseDigest) fail('development_runtime_base_mismatch', 'Candidate base tree does not match the plan digest');
-  for (const write of result.writes) {
-    const filePath = validateRelativePath(write.path);
-    if (write.content === null) delete tree[filePath];
-    else tree[filePath] = write.content;
-  }
-  return validateTree(tree);
+function candidateTreeDigest({ repositoryCommitOid, baseDigest, contextDigest = null, manifestDigest = null, scopeDigest = null, operationId = null, result } = {}) {
+  return typedDigest(CANDIDATE_DIGEST_DOMAIN, {
+    schemaVersion: 1,
+    operationId,
+    repositoryCommitOid,
+    baseDigest,
+    contextDigest,
+    manifestDigest,
+    scopeDigest,
+    changeSetDigest: digest(result),
+    writes: result.writes.map(({ path: filePath, content }) => ({ path: filePath, content })),
+  });
 }
 
-async function writeCandidateWorkspace({ repositoryPath, commitOid, tree, baseTree, workspaceRoot, signal }) {
-  const candidateRoot = await cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal });
-  try {
-    for (const [filePath, content] of Object.entries(tree)) {
-      if (baseTree[filePath] === content) continue;
-      const fullPath = path.join(candidateRoot, ...filePath.split('/'));
-      await mkdir(path.dirname(fullPath), { recursive: true, mode: 0o700 });
-      await writeFile(fullPath, content, { mode: 0o600 });
+async function assertCandidatePathSafe(candidateRoot, filePath) {
+  const segments = filePath.split('/');
+  let current = candidateRoot;
+  for (const segment of segments) {
+    current = path.join(current, segment);
+    try {
+      const entry = await lstat(current);
+      if (entry.isSymbolicLink()) fail('development_runtime_candidate_symlink', `Candidate path is a symlink: ${filePath}`);
+    } catch (cause) {
+      if (cause?.code === 'ENOENT') break;
+      throw cause;
     }
-    for (const filePath of Object.keys(baseTree)) {
-      if (Object.hasOwn(tree, filePath)) continue;
-      await rm(path.join(candidateRoot, ...filePath.split('/')), { force: true });
+  }
+}
+
+async function writeCandidateChangeSet({ repositoryPath, commitOid, result, candidateTreeDigest, baseDigest, workspaceRoot, signal, warden = null }) {
+  const candidateRoot = await cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal });
+  let registered = false;
+  try {
+    if (warden !== null) {
+      warden.registerCandidate({ candidateTreeDigest, candidateRoot, baseDigest, repositoryCommitOid: commitOid });
+      registered = true;
+    }
+    for (const write of result.writes) {
+      const filePath = validateRelativePath(write.path);
+      await assertCandidatePathSafe(candidateRoot, filePath);
+      const fullPath = path.join(candidateRoot, ...filePath.split('/'));
+      if (write.content === null) {
+        await rm(fullPath, { force: true });
+        continue;
+      }
+      await mkdir(path.dirname(fullPath), { recursive: true, mode: 0o700 });
+      await writeFile(fullPath, write.content, { mode: 0o600 });
     }
     return candidateRoot;
   } catch (cause) {
-    await rm(candidateRoot, { recursive: true, force: true });
+    if (registered) {
+      try { await warden.cleanupCandidate(candidateTreeDigest); } catch { /* preserve the original write failure; dispose reconciles the residue */ }
+    } else {
+      await rm(candidateRoot, { recursive: true, force: true });
+    }
     throw cause;
   }
 }
 
 export class LocalDevelopmentOperationRuntime {
-  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, contextAdapter = null, observation = null } = {}) {
+  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, contextAdapter = null, observation = null, warden = null, modelRunner = runModelSubprocess } = {}) {
     this.manifest = normalizeDevelopmentOperationManifest(manifest);
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
@@ -406,8 +725,15 @@ export class LocalDevelopmentOperationRuntime {
     if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, codexArguments: modelProfile.argv, contextAdapter, observation });
-    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs });
+    this.warden = warden ?? new DevelopmentWarden({ workspaceRoot: this.workspaceRoot });
+    if (!this.warden || typeof this.warden.registerProcess !== 'function' || typeof this.warden.observeProcessExit !== 'function' ||
+        typeof this.warden.cleanupOperation !== 'function' || typeof this.warden.registerWorkspace !== 'function' ||
+        typeof this.warden.cleanupWorkspace !== 'function' || typeof this.warden.cleanupCandidate !== 'function') {
+      fail('development_runtime_warden_invalid', 'A DevelopmentWarden is required for process, workspace and candidate ownership');
+    }
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, codexArguments: modelProfile.argv, contextAdapter, observation, warden: this.warden, modelRunner });
+    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, warden: this.warden });
+    this.contexts = new Map();
     this.candidates = new Map();
     this.disposed = false;
   }
@@ -416,51 +742,82 @@ export class LocalDevelopmentOperationRuntime {
 
   async contextExecutor({ input, signal }) {
     this.#assertLive();
-    const context = await this.codex.materializeContext(input.repositoryCommitOid, input.baseDigest, { signal });
+    const context = await this.codex.materializeContext(input.repositoryCommitOid, input.baseDigest, {
+      signal,
+      scope: input.scope ?? null,
+      objectFormat: input.objectFormat ?? null,
+      baseIdentity: input.baseIdentity ?? null,
+    });
     const referenceId = contextReferenceId(context.descriptor);
-    return { kind: 'observation', subject: 'repository-context', value: { referenceId, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, contextDigest: context.descriptor.contextDigest, fileCount: context.descriptor.fileCount }, evidence: { contextDigest: context.descriptor.contextDigest, repositoryCommitOid: input.repositoryCommitOid, fileCount: context.descriptor.fileCount } };
+    this.contexts.set(referenceId, context);
+    return { kind: 'observation', subject: 'repository-context', value: { referenceId, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, contextDigest: context.descriptor.contextDigest, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, baseIdentity: context.descriptor.baseIdentity ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null }, evidence: { contextDigest: context.descriptor.contextDigest, repositoryCommitOid: input.repositoryCommitOid, manifestDigest: context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null, scopeDigest: context.descriptor.scopeDigest ?? null, fileCount: context.descriptor.fileCount ?? context.descriptor.selectedEntryCount ?? null } };
   }
 
-  async modelExecutor({ input, signal }) {
+  async modelExecutor({ input, operationId = null, signal }) {
     this.#assertLive();
-    const context = await this.codex.materializeContext(input.repositoryCommitOid, input.baseDigest, { signal });
+    const context = input.contextReferenceId !== undefined && this.contexts.has(input.contextReferenceId)
+      ? this.contexts.get(input.contextReferenceId)
+      : await this.codex.materializeContext(input.repositoryCommitOid, input.baseDigest, {
+        signal,
+        scope: input.contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? input.contextScope : null,
+        objectFormat: input.objectFormat ?? null,
+        baseIdentity: input.baseIdentity ?? null,
+      });
     const referenceId = assertContextReference(context.descriptor, input.contextReferenceId);
-    const result = await this.codex.execute({ ...input, contextReferenceId: referenceId, signal });
-    const baseTree = Object.fromEntries(context.files.map((entry) => [entry.path, entry.content]));
-    const tree = applyChangeSet(baseTree, result, input.baseDigest);
-    const candidateRoot = await writeCandidateWorkspace({ repositoryPath: this.repositoryPath, commitOid: input.repositoryCommitOid, tree, baseTree, workspaceRoot: this.workspaceRoot, signal });
-    this.candidates.set(digest(tree), { candidateRoot, tree, baseTree, repositoryCommitOid: input.repositoryCommitOid });
-    return result;
+    try {
+      const result = await this.codex.execute({ ...input, contextReferenceId: referenceId, preparedContext: context, operationId, signal });
+      const manifestDigest = context.descriptor.manifestDigest ?? context.descriptor.baseIdentity?.manifestDigest ?? null;
+      const scopeDigest = context.descriptor.scopeDigest ?? null;
+      const candidateDigest = candidateTreeDigest({ repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, operationId, result });
+      const candidateRoot = await writeCandidateChangeSet({ repositoryPath: this.repositoryPath, commitOid: input.repositoryCommitOid, result, candidateTreeDigest: candidateDigest, baseDigest: input.baseDigest, workspaceRoot: this.workspaceRoot, signal, warden: this.warden });
+      const evidence = { ...(isPlainRecord(result.evidence) ? result.evidence : {}), candidateTreeDigest: candidateDigest, candidateBaseDigest: input.baseDigest, candidateCommitOid: input.repositoryCommitOid, candidateContextDigest: context.descriptor.contextDigest, candidateManifestDigest: manifestDigest, candidateScopeDigest: scopeDigest, candidateBaseIdentity: context.descriptor.baseIdentity ?? null };
+      this.candidates.set(candidateDigest, { candidateRoot, result, repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, contextDigest: context.descriptor.contextDigest, manifestDigest, scopeDigest, baseIdentity: context.descriptor.baseIdentity ?? null });
+      return deepFreeze({ ...result, evidence });
+    } finally {
+      this.contexts.delete(referenceId);
+    }
   }
 
-  async validationExecutor({ input, signal }) {
+  async validationExecutor({ input, operationId = null, signal }) {
     this.#assertLive();
     const candidate = this.candidates.get(input.candidateTreeDigest);
     if (!candidate) fail('development_candidate_not_found', 'Validation requested an unknown candidate tree');
-    return this.npm.execute({ candidateRoot: candidate.candidateRoot, candidateTreeDigest: input.candidateTreeDigest, validationProfile: input.validationProfile, signal });
+    let validation;
+    try {
+      validation = await this.npm.execute({ candidateRoot: candidate.candidateRoot, candidateTreeDigest: input.candidateTreeDigest, validationProfile: input.validationProfile, operationId, signal });
+    } finally {
+      const cleanup = await this.warden.cleanupCandidate(input.candidateTreeDigest);
+      if (cleanup.cleanupComplete !== true) fail('development_runtime_candidate_cleanup_incomplete', 'Warden could not prove candidate cleanup after validation');
+      this.candidates.delete(input.candidateTreeDigest);
+    }
+    return deepFreeze({ ...validation, evidence: { ...(isPlainRecord(validation.evidence) ? validation.evidence : {}), candidateCleanup: { cleanupComplete: true, candidateTreeDigest: input.candidateTreeDigest, positiveAbsence: true } } });
   }
 
-  async execute(request, capabilities, signal) {
+  async execute(request, capabilities, signal, { operationId = null } = {}) {
     this.#assertLive();
-    return executeDevelopmentOperation({ manifest: this.manifest, request, capabilities, signal, contextExecutor: (input) => this.contextExecutor(input), modelExecutor: (input) => this.modelExecutor(input), validationExecutor: (input) => this.validationExecutor(input) });
+    return executeDevelopmentOperation({ manifest: this.manifest, request, capabilities, signal, contextExecutor: (input) => this.contextExecutor(input), modelExecutor: (input) => this.modelExecutor({ ...input, operationId }), validationExecutor: (input) => this.validationExecutor({ ...input, operationId }) });
   }
 
   candidate(candidateTreeDigest) {
     const candidate = this.candidates.get(candidateTreeDigest);
-    return candidate === undefined ? null : deepFreeze({ candidateTreeDigest, candidateRoot: candidate.candidateRoot, tree: canonicalClone(candidate.tree) });
+    return candidate === undefined ? null : deepFreeze({ candidateTreeDigest, candidateRoot: candidate.candidateRoot, repositoryCommitOid: candidate.repositoryCommitOid, baseDigest: candidate.baseDigest, contextDigest: candidate.contextDigest, manifestDigest: candidate.manifestDigest, scopeDigest: candidate.scopeDigest, baseIdentity: candidate.baseIdentity, writes: canonicalClone(candidate.result.writes) });
+  }
+
+  async cleanupOperation(operationId) {
+    this.#assertLive();
+    return this.warden.cleanupOperation(operationId);
   }
 
   async dispose() {
     if (this.disposed) return;
-    this.disposed = true;
-    const entries = [...this.candidates.values()];
+    const entries = [...this.candidates.entries()];
+    for (const [candidateDigest] of entries) await this.warden.cleanupCandidate(candidateDigest);
+    const result = await this.warden.cleanupAll();
+    if (result.cleanupComplete !== true) fail('development_runtime_cleanup_incomplete', 'Warden could not prove process cleanup');
+    this.contexts.clear();
     this.candidates.clear();
-    for (const entry of entries) {
-      await rm(entry.candidateRoot, { recursive: true, force: true });
-      try { await stat(entry.candidateRoot); }
-      catch (cause) { if (cause?.code === 'ENOENT') continue; throw cause; }
-      fail('development_runtime_candidate_cleanup_failed', 'Candidate workspace remained after disposal');
-    }
+    this.disposed = true;
+    return result;
   }
 }
 
@@ -472,8 +829,9 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
   const executionAdapter = Object.freeze({
     async start({ envelope }) {
       const controller = new AbortController();
-      const completion = operationRuntime.execute(envelope.executableBody?.operationRequest, capabilities, controller.signal).then((output) => ({ code: 0, signal: null, effect: 'not_applied', resultEnvelope: { schemaVersion: 1, profile: DEVELOPMENT_OPERATION_RESULT_PROFILE, result: output.result } }));
-      return Object.freeze({ completion, async cancel() { controller.abort(); return { signalled: true }; }, async cleanup() { await completion.catch(() => {}); return { cleanupComplete: true }; } });
+      const operationId = `${envelope.caseId}/${envelope.taskId}/${envelope.attemptId}`;
+      const completion = operationRuntime.execute(envelope.executableBody?.operationRequest, capabilities, controller.signal, { operationId }).then((output) => ({ code: 0, signal: null, effect: 'not_applied', resultEnvelope: { schemaVersion: 1, profile: DEVELOPMENT_OPERATION_RESULT_PROFILE, result: output.result } }));
+      return Object.freeze({ completion, async cancel() { controller.abort(); return { signalled: true }; }, async cleanup() { await completion.catch(() => {}); return operationRuntime.cleanupOperation(operationId); } });
     },
   });
   const localRuntime = new LocalAgentRuntime({ agentId, routeGeneration, executor: { id: executorId, epoch: executorEpoch }, capabilities, emit: async (frame) => { emitted.push(canonicalClone(frame)); }, executionAdapter });
@@ -495,7 +853,13 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
       if (started.classification !== 'started') fail('development_runtime_agent_dispatch_failed', 'Local Agent did not start the operation', started);
       const completed = await started.completion;
       const resultEnvelope = completed?.completion?.resultEnvelope;
-      if (!isPlainRecord(resultEnvelope) || resultEnvelope.profile !== DEVELOPMENT_OPERATION_RESULT_PROFILE) fail('development_runtime_agent_result_invalid', 'Local Agent returned no typed operation result');
+      if (!isPlainRecord(resultEnvelope) || resultEnvelope.profile !== DEVELOPMENT_OPERATION_RESULT_PROFILE) {
+        const completion = completed?.completion;
+        const error = new ContractError(completion?.causeCode ?? 'development_runtime_agent_result_invalid', 'Local Agent returned no typed operation result', completion?.causeDetails ?? {});
+        error.certainty = completion?.certainty ?? 'unknown';
+        error.retryable = completion?.retryable === true;
+        throw error;
+      }
       return resultEnvelope.result;
     },
   });

@@ -55,6 +55,10 @@ const LAZY_MAX_MANIFEST_ENTRIES = 1_000_000;
 const LAZY_MAX_MANIFEST_BYTES = 128 * 1024 * 1024;
 const LAZY_MAX_SCOPE_FILES = 4_096;
 const LAZY_MAX_SCOPE_BYTES = 16 * 1024 * 1024;
+// A bounded read may skip bytes inside a large blob, but the adapter never scans
+// an unbounded prefix on behalf of one request. Larger offsets require a future
+// indexed/blob-range transport rather than silently turning into a full read.
+const LAZY_MAX_READ_SCAN_BYTES = 32 * 1024 * 1024;
 
 function freeze(value) {
   return deepFreeze(canonicalClone(value));
@@ -524,7 +528,7 @@ function lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries }) {
     objectFormat,
     commitOid,
     treeOid,
-    entries: entries.map(({ path: filePath, mode, type, blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })),
+    entries: entries.map(({ path: filePath, mode, type = 'blob', blobOid, byteLength }) => ({ path: filePath, mode, type, blobOid, byteLength })),
   };
 }
 
@@ -600,6 +604,7 @@ function contextIdentity(input) {
     commitOid: input.commitOid,
     treeOid: input.treeOid,
     semanticBaseDigest: input.semanticBaseDigest,
+    baseIdentity: input.baseIdentity,
     fileCount: input.fileCount,
     contentBytes: input.contentBytes,
     excludedPaths: input.excludedPaths,
@@ -715,6 +720,8 @@ export function runModelSubprocess({
   signal,
   maxStdoutBytes,
   maxStderrBytes,
+  warden = null,
+  operationId = null,
 }) {
   if (signal.aborted) {
     return Promise.reject(new ContractError(
@@ -729,7 +736,10 @@ export function runModelSubprocess({
     try {
       child = spawn(executable, args, {
         cwd: workingDirectory,
-        env: environment,
+        // Node's coverage runner may add NODE_V8_COVERAGE while normalizing the
+        // child environment. Copy the release-bound map so a frozen caller map
+        // remains immutable without preventing that runtime bookkeeping.
+        env: environment === undefined || environment === null ? environment : { ...environment },
         stdio: ['pipe', 'pipe', 'pipe'],
         shell: false,
         detached: useProcessGroup,
@@ -737,6 +747,24 @@ export function runModelSubprocess({
     } catch (cause) {
       reject(new ContractError('model_process_spawn_failed', 'Failed to start model subprocess', { processStarts: 0 }, { cause }));
       return;
+    }
+
+    if (warden !== null) {
+      try {
+        if (typeof warden.registerProcess !== 'function') throw new Error('warden.registerProcess is not a function');
+        warden.registerProcess({ operationId: operationId ?? `${executable}:${child.pid}`, pid: child.pid, processGroupId: useProcessGroup ? child.pid : null });
+      } catch (cause) {
+        // The normal listeners are installed below; consume a late spawn error
+        // while rejecting the launch so a warden failure cannot become an
+        // uncaught EventEmitter error.
+        child.once('error', () => {});
+        if (useProcessGroup && Number.isSafeInteger(child.pid) && child.pid > 0) {
+          try { process.kill(-child.pid, 'SIGKILL'); } catch {}
+        }
+        try { child.kill('SIGKILL'); } catch {}
+        reject(cause instanceof ContractError ? cause : new ContractError('model_process_warden_failed', 'Warden rejected the subprocess', {}, { cause }));
+        return;
+      }
     }
 
     const started = performance.now();
@@ -783,6 +811,7 @@ export function runModelSubprocess({
       settled = true;
       clearTimeout(timer);
       signal.removeEventListener('abort', onAbort);
+      if (warden !== null) warden.observeProcessExit({ operationId: operationId ?? `${executable}:${child.pid}`, pid: child.pid, code: null, signal: 'error' });
       reject(new ContractError('model_process_spawn_failed', 'Model subprocess failed to start', { processStarts: 0 }, { cause }));
     });
     child.once('exit', () => {
@@ -796,6 +825,7 @@ export function runModelSubprocess({
       clearTimeout(timer);
       signal.removeEventListener('abort', onAbort);
       killProcessGroup();
+      if (warden !== null) warden.observeProcessExit({ operationId: operationId ?? `${executable}:${child.pid}`, pid: child.pid, code, signal: processSignal });
       const result = {
         code,
         signal: processSignal,
@@ -902,6 +932,61 @@ export class GitRepositoryModelExecutor {
     }
   }
 
+  async #readBlobRange(row, startByte, endByte, signal, metrics) {
+    if (endByte === 0) return Buffer.alloc(0);
+
+    // Keep injected Git runners compatible with the source qualification fakes. The
+    // production runner uses a streaming blob command so a bounded read never retains
+    // the complete blob in memory.
+    if (this.#gitRunner !== runGitCommand) {
+      const batch = await this.#git(['cat-file', '--batch'], Buffer.from(`${row.blobOid}\n`, 'ascii'), signal, metrics);
+      const parsed = parseBatchBlobs(batch, [row], inferObjectFormat(row.blobOid, 'blob OID'));
+      return Buffer.from(parsed.tree[row.path], 'utf8').subarray(startByte, endByte);
+    }
+
+    const started = performance.now();
+    metrics.commandCount += 1;
+    let offset = 0;
+    let selectedBytes = 0;
+    const selected = [];
+    const result = await runGitCommand({
+      gitExecutable: this.gitExecutable,
+      repositoryPath: this.repositoryPath,
+      args: ['cat-file', 'blob', row.blobOid],
+      signal,
+      stopAfterStdoutBytes: endByte,
+      stdoutConsumer: (chunk) => {
+        const chunkStart = offset;
+        const chunkEnd = offset + chunk.length;
+        const copyStart = Math.max(startByte, chunkStart);
+        const copyEnd = Math.min(endByte, chunkEnd);
+        if (copyEnd > copyStart) {
+          const part = chunk.subarray(copyStart - chunkStart, copyEnd - chunkStart);
+          selected.push(Buffer.from(part));
+          selectedBytes += part.length;
+        }
+        offset = chunkEnd;
+      },
+    });
+    metrics.stdoutBytes += result.stdoutBytes ?? offset;
+    metrics.durationMs += durationMs(started);
+    if (!result.stoppedEarly && result.code !== 0) {
+      throw new ContractError('git_command_failed', 'Git blob read failed', {
+        exitCode: result.code,
+        signal: result.signal,
+      });
+    }
+    if (offset < endByte || selectedBytes !== endByte - startByte) {
+      throw new ContractError('invalid_repository_blob_range', 'Git blob range ended before the requested bytes were read', {
+        path: row.path,
+        startByte,
+        endByte,
+        observedBytes: offset,
+      });
+    }
+    return Buffer.concat(selected, selectedBytes);
+  }
+
   async #produceContext(commitOid, expectedBaseDigest, objectFormat, signal, requestLimit = null) {
     const scanStarted = performance.now();
     const gitMetrics = zeroGitMetrics();
@@ -980,6 +1065,15 @@ export class GitRepositoryModelExecutor {
       commitOid,
       treeOid,
       semanticBaseDigest,
+      baseIdentity: {
+        schemaVersion: 1,
+        profile: 'tdev.repository-base-identity.v1',
+        objectFormat,
+        commitOid,
+        treeOid,
+        baseDigest: expectedBaseDigest,
+        manifestDigest: typedDigest('tdev.repository-context.git-manifest.v1', lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries: listing.rows })),
+      },
       fileCount: blobs.files.length,
       contentBytes,
       excludedPaths: this.excludedPaths,
@@ -1066,6 +1160,15 @@ export class GitRepositoryModelExecutor {
     const manifestIdentity = lazyManifestIdentity({ objectFormat, commitOid, treeOid, entries: rows });
     const manifestDigest = typedDigest('tdev.repository-context.git-manifest.v1', manifestIdentity);
     const scopeDigest = typedDigest(LAZY_CONTEXT_SCOPE_PROFILE, scope);
+    const baseIdentity = deepFreeze({
+      schemaVersion: 1,
+      profile: 'tdev.repository-base-identity.v1',
+      objectFormat,
+      commitOid,
+      treeOid,
+      baseDigest: expectedBaseDigest,
+      manifestDigest,
+    });
     const descriptor = deepFreeze({
       schemaVersion: 1,
       profile: LAZY_REPOSITORY_CONTEXT_PROFILE,
@@ -1077,6 +1180,7 @@ export class GitRepositoryModelExecutor {
       manifestEntryCount: rows.length,
       scope,
       scopeDigest,
+      baseIdentity,
       selectedEntryCount: selectedRows.length,
       selectedByteLength,
     });
@@ -1132,12 +1236,9 @@ export class GitRepositoryModelExecutor {
     const startByte = options.startByte === undefined ? 0 : assertSafeInteger(options.startByte, 'lazy read startByte', { min: 0, max: row.byteLength });
     const maxBytes = options.maxBytes === undefined ? handle.descriptor.scope.maxBytes : assertSafeInteger(options.maxBytes, 'lazy read maxBytes', { min: 1, max: handle.descriptor.scope.maxBytes });
     const endByte = Math.min(row.byteLength, startByte + maxBytes);
-    if (endByte < startByte || endByte - startByte > maxBytes) throw new ContractError('lazy_read_limit_exceeded', 'Lazy read range exceeds its bound');
+    if (endByte < startByte || endByte - startByte > maxBytes || endByte > LAZY_MAX_READ_SCAN_BYTES) throw new ContractError('lazy_read_limit_exceeded', 'Lazy read range exceeds its bound');
     const signal = options.signal === undefined ? NEVER_ABORTED_SIGNAL : assertAbortSignal(options.signal, 'readLazyContext signal');
-    const batch = await this.#git(['cat-file', '--batch'], Buffer.from(`${row.blobOid}\n`, 'ascii'), signal, handle.gitMetrics);
-    const parsed = parseBatchBlobs(batch, [row], handle.descriptor.objectFormat);
-    const contentBytes = Buffer.from(parsed.tree[filePath], 'utf8');
-    const selectedBytes = contentBytes.subarray(startByte, endByte);
+    const selectedBytes = await this.#readBlobRange(row, startByte, endByte, signal, handle.gitMetrics);
     let content;
     try { content = fatalDecoder.decode(selectedBytes); }
     catch (cause) { throw new ContractError('lazy_read_range_not_utf8', 'Lazy read range is not a complete UTF-8 sequence', {}, { cause }); }

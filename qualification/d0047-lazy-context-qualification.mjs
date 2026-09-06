@@ -63,7 +63,7 @@ async function currentRepositoryQualification() {
     maxSearchResults: 8,
   };
   const handle = await adapter.prepareLazyContext(identity.commitOid, identity.baseDigest, { scope });
-  const beforeBlobReads = counted.metrics.calls.filter((args) => args[0] === 'cat-file' && args[1] === '--batch').length;
+  const beforeBlobReads = counted.metrics.calls.filter((args) => args[0] === 'cat-file' && (args[1] === '--batch' || args[1] === 'blob')).length;
   if (beforeBlobReads !== 0) fail('d0047_cp2_eager_blob_read', 'Lazy preparation read blob contents before a scoped read');
   const manifestEntries = [];
   let cursor = 0;
@@ -84,7 +84,7 @@ async function currentRepositoryQualification() {
   }
   const search = await adapter.searchLazyContext(handle, { pattern: 'buildCodexPrompt', limit: 8 });
   if (!search.complete || !search.matches.includes('src/development-runtime.mjs')) fail('d0047_cp2_search_invalid', 'Bounded lazy search missed the selected source match');
-  const afterBlobReads = counted.metrics.calls.filter((args) => args[0] === 'cat-file' && args[1] === '--batch').length;
+  const afterBlobReads = counted.metrics.calls.filter((args) => args[0] === 'cat-file' && (args[1] === '--batch' || args[1] === 'blob')).length;
   if (afterBlobReads < 2) fail('d0047_cp2_read_not_observed', 'Scoped reads did not issue bounded blob requests');
   return {
     profile: 'tdev.d0047.cp2-full-repository-lazy.v1',
@@ -98,8 +98,8 @@ async function currentRepositoryQualification() {
     selectedEntryCount: handle.descriptor.selectedEntryCount,
     boundedRead: { path: read.path, bytes: read.endByte - read.startByte, complete: read.complete },
     search: { matches: search.matches, complete: search.complete, visitedFiles: search.visitedFiles, visitedBytes: search.visitedBytes },
-    blobBatchReadsBeforeScope: beforeBlobReads,
-    blobBatchReadsAfterScope: afterBlobReads,
+    boundedBlobReadsBeforeScope: beforeBlobReads,
+    boundedBlobReadsAfterScope: afterBlobReads,
     completeManifestPaged: true,
   };
 }
@@ -130,7 +130,7 @@ async function largeRepositoryQualification() {
     });
     const largeEntry = small.manifest.find((entry) => entry.path === 'large.bin');
     if (!largeEntry || largeEntry.byteLength !== LARGE_BYTES) fail('d0047_cp3_manifest_size_invalid', '1 GiB entry was not preserved in the metadata manifest');
-    if (counted.metrics.calls.some((args) => args[0] === 'cat-file' && args[1] === '--batch')) fail('d0047_cp3_eager_blob_read', '1 GiB lazy preparation read blob contents');
+    if (counted.metrics.calls.some((args) => args[0] === 'cat-file' && (args[1] === '--batch' || args[1] === 'blob'))) fail('d0047_cp3_eager_blob_read', '1 GiB lazy preparation read blob contents');
     const read = await adapter.readLazyContext(small, { path: 'src/small.txt' });
     if (read.content !== 'small lazy file\n') fail('d0047_cp3_small_read_invalid', 'Bounded small-file read failed in the 1 GiB fixture');
     const largeScope = await adapter.prepareLazyContext(identity.commitOid, identity.baseDigest, {
@@ -149,7 +149,7 @@ async function largeRepositoryQualification() {
       largeEntryBytes: largeEntry.byteLength,
       smallRead: { path: read.path, bytes: Buffer.byteLength(read.content, 'utf8') },
       incompleteLargeSearch: { complete: search.complete, visitedBytes: search.visitedBytes },
-      blobBatchReadsBeforeSmallRead: 0,
+      boundedBlobReadsBeforeSmallRead: 0,
       fullContextStress: 'separate-not-run',
     };
   } finally {

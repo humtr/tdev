@@ -23,7 +23,14 @@ export const DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES = 256 * 1024;
 export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
 export const CODEX_MODEL_BINDING_PROFILE = 'tdev.model.codex-exec-no-bwrap.v1';
 export const CODEX_EXECUTION_BOUNDARY = 'tdev.disposable-exact-base-no-bwrap.v1';
-export const CODEX_OPERATION_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--ignore-user-config']);
+// Trusted-local M0 deliberately runs without Codex's kernel/bwrap sandbox. The
+// disposable exact-base clone and warden are the enforced boundary, so the
+// dangerous bypass must be explicit in the release binding rather than inferred
+// from an omitted option.
+export const CODEX_OPERATION_ARGUMENTS = Object.freeze([
+  'exec', '--ephemeral', '--json', '--ignore-user-config',
+  '--dangerously-bypass-approvals-and-sandbox',
+]);
 export const LAZY_CONTEXT_OPERATION_PROFILE = 'tdev.repository.context.prepare.lazy.v1';
 
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
@@ -184,25 +191,60 @@ function normalizeWritePaths(input, label = 'writePaths') {
   return paths;
 }
 
+function normalizeBaseIdentity(input, { repositoryCommitOid, baseDigest, objectFormat = null, label = 'baseIdentity' } = {}) {
+  if (input === undefined || input === null) return null;
+  if (!isPlainRecord(input)) fail('development_operation_request_invalid', `${label} must be a record`);
+  assertRecordShape(input, ['schemaVersion', 'profile', 'objectFormat', 'commitOid', 'treeOid', 'baseDigest', 'manifestDigest'], [], label);
+  if (input.schemaVersion !== 1 || input.profile !== 'tdev.repository-base-identity.v1' ||
+      !['sha1', 'sha256'].includes(input.objectFormat) ||
+      (objectFormat !== null && input.objectFormat !== objectFormat) ||
+      input.commitOid !== repositoryCommitOid || input.baseDigest !== baseDigest) {
+    fail('development_operation_request_invalid', `${label} does not bind the repository context request`);
+  }
+  assertDigest(input.manifestDigest, `${label}.manifestDigest`);
+  assertScalarString(input.treeOid, `${label}.treeOid`);
+  const oidLength = input.objectFormat === 'sha1' ? 40 : 64;
+  if (!new RegExp(`^[0-9a-f]{${oidLength}}$`, 'u').test(input.commitOid) ||
+      !new RegExp(`^[0-9a-f]{${oidLength}}$`, 'u').test(input.treeOid)) {
+    fail('development_operation_request_invalid', `${label} contains an invalid Git object identity`);
+  }
+  return canonicalClone(input);
+}
+
 function normalizeRequestInput(kind, input, profileName) {
   if (!isPlainRecord(input)) fail('development_operation_request_invalid', 'Development operation input must be a record');
   if (kind === 'repository_context') {
     const lazy = profileName === LAZY_CONTEXT_OPERATION_PROFILE;
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], lazy ? ['scope'] : [], 'repository context operation input');
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'objectFormat'], lazy ? ['scope', 'baseIdentity'] : ['baseIdentity'], 'repository context operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     if (!['sha1', 'sha256'].includes(input.objectFormat)) fail('development_operation_request_invalid', 'objectFormat is unsupported');
     const normalized = canonicalClone(input);
-    if (lazy && (!isPlainRecord(input.scope) || Object.keys(input.scope).length === 0)) fail('development_operation_request_invalid', 'Lazy context scope is required');
+    if (input.baseIdentity !== undefined) normalized.baseIdentity = normalizeBaseIdentity(input.baseIdentity, { repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat, label: 'repository context baseIdentity' });
+    if (lazy && (!isPlainRecord(input.scope) || Object.keys(input.scope).length === 0 || input.baseIdentity === undefined || input.baseIdentity === null)) fail('development_operation_request_invalid', 'Lazy context scope and full-base identity are required');
     return deepFreeze(normalized);
   }
   if (kind === 'model_repository') {
-    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId', 'writePaths'], 'model operation input');
+    assertRecordShape(input, ['repositoryCommitOid', 'baseDigest', 'instruction'], ['contextReferenceId', 'writePaths', 'objectFormat', 'contextProfile', 'contextScope', 'contextScopeDigest', 'baseIdentity'], 'model operation input');
     assertScalarString(input.repositoryCommitOid, 'repositoryCommitOid');
     assertDigest(input.baseDigest, 'baseDigest');
     boundedText(input.instruction, 'instruction', 64 * 1024);
     if (Object.hasOwn(input, 'contextReferenceId')) assertIdentifier(input.contextReferenceId, 'contextReferenceId');
     const normalized = canonicalClone(input);
+    if (input.objectFormat !== undefined && !['sha1', 'sha256'].includes(input.objectFormat)) fail('development_operation_request_invalid', 'model operation objectFormat is unsupported');
+    if (input.contextProfile !== undefined) {
+      assertIdentifier(input.contextProfile, 'contextProfile');
+      if (!["tdev.repository.context.prepare.v1", LAZY_CONTEXT_OPERATION_PROFILE].includes(input.contextProfile)) fail('development_operation_request_invalid', 'model contextProfile is unsupported');
+      if (input.contextProfile === LAZY_CONTEXT_OPERATION_PROFILE && (!isPlainRecord(input.contextScope) || Object.keys(input.contextScope).length === 0 || input.baseIdentity === undefined || input.baseIdentity === null)) {
+        fail('development_operation_request_invalid', 'lazy model contextProfile requires an owner-issued contextScope and full-base identity');
+      }
+    }
+    if (input.contextScope !== undefined) {
+      if (input.contextProfile !== LAZY_CONTEXT_OPERATION_PROFILE || !isPlainRecord(input.contextScope) || Object.keys(input.contextScope).length === 0) fail('development_operation_request_invalid', 'model contextScope requires the lazy context profile');
+      normalized.contextScope = canonicalClone(input.contextScope);
+    }
+    if (input.contextScopeDigest !== undefined) assertDigest(input.contextScopeDigest, 'model contextScopeDigest');
+    if (input.baseIdentity !== undefined) normalized.baseIdentity = normalizeBaseIdentity(input.baseIdentity, { repositoryCommitOid: input.repositoryCommitOid, baseDigest: input.baseDigest, objectFormat: input.objectFormat ?? null, label: 'model baseIdentity' });
     if (Object.hasOwn(input, 'writePaths')) normalized.writePaths = normalizeWritePaths(input.writePaths);
     return deepFreeze(normalized);
   }

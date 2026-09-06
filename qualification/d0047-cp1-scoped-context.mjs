@@ -84,7 +84,7 @@ async function main() {
   const workspaceBefore = new Set((await readdir(WORKSPACE_ROOT).catch(() => [])).filter((entry) => entry.startsWith('tdev-development-')));
   const operationManifest = normalizeDevelopmentOperationManifest(strictJsonParse(await readFile(PROFILE_PATH)));
   const capabilities = Object.keys(operationManifest.profiles).map((profile) => developmentOperationCapabilityId(operationManifest, profile)).sort();
-  const contextProfile = 'tdev.repository.context.prepare.v1';
+  const contextProfile = 'tdev.repository.context.prepare.lazy.v1';
   const contextCapabilityId = developmentOperationCapabilityId(operationManifest, contextProfile);
   const modelCapabilityId = developmentOperationCapabilityId(operationManifest, 'tdev.model.repository.execute.v1');
   const validationCapabilityId = developmentOperationCapabilityId(operationManifest, 'tdev.repository.validate.v1');
@@ -133,6 +133,9 @@ async function main() {
     baseTree: fixture.files,
     repositoryCommitOid: fixture.commitOid,
     objectFormat: 'sha1',
+    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+    contextScope: scope,
+    baseIdentity: lazyContext.descriptor.baseIdentity,
     contextReferenceId: contextReference,
     contextCapabilityId,
     modelCapabilityId,
@@ -187,7 +190,17 @@ async function main() {
     } }, { 'mcp-protocol-version': initialize.protocolVersion });
     const candidate = await request(surface, 'candidate', 'tools/call', { name: 'development_unit_get', arguments: { caseId: 'cp1-case' } }, { 'mcp-protocol-version': initialize.protocolVersion });
     const candidateValue = strictJsonParse(candidate.content[0].text);
-    if (candidateValue.caseState !== 'succeeded') fail('cp1_candidate_not_succeeded', 'CP1 candidate did not reach succeeded state', { started, candidate: candidateValue });
+    if (candidateValue.caseState !== 'succeeded') fail('cp1_candidate_not_succeeded', 'CP1 candidate did not reach succeeded state', {
+      started: {
+        status: started?.status,
+        structuredContent: started?.structuredContent?.drive ?? null,
+      },
+      candidate: candidateValue,
+      localEvidence: agent.emitted.slice(-24),
+    });
+    if (candidateValue.modelProcessCleanup?.cleanupComplete !== true || candidateValue.modelWorkspaceCleanup?.absent !== true || candidateValue.validationProcessCleanup?.cleanupComplete !== true || candidateValue.candidateCleanup?.positiveAbsence !== true) {
+      fail('cp1_cleanup_evidence_missing', 'CP1 candidate did not expose positive model/process/workspace/candidate cleanup evidence', { candidate: candidateValue });
+    }
     const changed = candidateValue.canonicalTree['src/mini.mjs']?.includes('value = 2') && candidateValue.canonicalTree['test/mini.test.mjs']?.includes('equal(value, 2)');
     if (!changed) fail('cp1_objective_missing', 'CP1 candidate does not contain the requested source change');
     const afterHead = (await git(fixture.repositoryPath, ['rev-parse', 'HEAD'])).toString('ascii').trim();

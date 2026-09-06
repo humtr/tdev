@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0046",
+  "revision": 3,
+  "status": "accepted",
+  "acceptanceBase": "development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a",
+  "decision": "make the small scoped MCP-to-candidate route the first executable checkpoint and require D0043 no-sandbox plus D0047 identity/warden contracts",
+  "facts": [
+    "the source route can carry a scoped context reference through Case and Agent to candidate validation",
+    "model/provider failures are returned with bounded unknown certainty and no candidate success",
+    "provider deployment and current ChatGPT authentication are separate owner gates"
+  ],
+  "unknown": [
+    "the local scoped Codex fixture passes, while physical M0/provider deployment and current-client ChatGPT execution remain unqualified",
+    "no authenticated current-client ChatGPT MCP run has been observed"
+  ],
+  "authorization": "accepted design only; physical, provider and client qualification remain open",
+  "secrets": "none"
+}

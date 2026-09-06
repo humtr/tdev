@@ -211,6 +211,38 @@ test('exact dispatch replay never starts a second local operation and conflictin
   assert.equal(emitted.find((frame) => frame.type === 'result')?.payload.resultEnvelope.value, 'ok');
 });
 
+test('completion failure is returned as bounded unknown evidence', async () => {
+  const { agent } = runtime({
+    adapter: {
+      async start() {
+        const error = Object.assign(new Error('provider detail must not escape'), {
+          code: 'fixture_provider_failed',
+          certainty: 'unknown',
+          retryable: true,
+          details: {
+            exitCode: 1,
+            providerFailureClass: 'unknown',
+            stderr: 'x'.repeat(100_000),
+          },
+        });
+        return {
+          completion: Promise.reject(error),
+          async cancel() {},
+          async cleanup() { return { cleanupComplete: true }; },
+        };
+      },
+    },
+  });
+  const started = await agent.handleDispatch(dispatch());
+  const completed = await started.completion;
+  assert.equal(completed.completion.classification, 'completion_unknown');
+  assert.equal(completed.completion.causeCode, 'fixture_provider_failed');
+  assert.equal(completed.completion.certainty, 'unknown');
+  assert.equal(completed.completion.retryable, true);
+  assert.deepEqual(completed.completion.causeDetails, { exitCode: 1, providerFailureClass: 'unknown' });
+  assert.equal(completed.cleanup.cleanupComplete, true);
+});
+
 test('positive not-started/no-handle permits the next ordinal but a started predecessor never does', async () => {
   let starts = 0;
   const failingAdapter = {

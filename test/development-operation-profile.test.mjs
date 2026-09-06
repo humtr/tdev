@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
   DEVELOPMENT_OPERATION_PROFILE,
+  LAZY_CONTEXT_OPERATION_PROFILE,
   developmentOperationCapabilityId,
   developmentOperationManifestDigest,
   executeDevelopmentOperation,
@@ -27,7 +28,7 @@ const manifest = {
     'model.v1': {
       kind: 'model_repository',
       executable: { kind: 'configured_runtime', name: 'codex' },
-      argv: ['exec', '--ephemeral', '--json', '--ignore-user-config'],
+      argv: ['exec', '--ephemeral', '--json', '--ignore-user-config', '--dangerously-bypass-approvals-and-sandbox'],
       environment: {},
       filesystem: 'immutable_repository',
       network: 'openai-codex-trusted-local',
@@ -94,6 +95,27 @@ test('D0043 requests select typed inputs and reject caller executable authority'
     }),
     (error) => error instanceof ContractError && error.code === 'development_operation_input_forbidden',
   );
+});
+
+test('D0047 lazy context and model requests require the owner-issued full-base identity', () => {
+  const scope = { paths: ['src/a.mjs'], maxFiles: 1, maxBytes: 1024 };
+  const lazyManifest = structuredClone(manifest);
+  lazyManifest.profiles[LAZY_CONTEXT_OPERATION_PROFILE] = structuredClone(lazyManifest.profiles['context.v1']);
+  assert.throws(() => normalizeDevelopmentOperationRequest(lazyManifest, {
+    profile: LAZY_CONTEXT_OPERATION_PROFILE,
+    input: { repositoryCommitOid: commitOid, baseDigest, objectFormat: 'sha1', scope },
+  }), (error) => error instanceof ContractError && error.code === 'development_operation_request_invalid');
+  assert.throws(() => normalizeDevelopmentOperationRequest(manifest, {
+    profile: 'model.v1',
+    input: {
+      repositoryCommitOid: commitOid,
+      baseDigest,
+      instruction: 'change',
+      contextProfile: LAZY_CONTEXT_OPERATION_PROFILE,
+      contextScope: scope,
+      contextScopeDigest: baseDigest,
+    },
+  }), (error) => error instanceof ContractError);
 });
 
 test('D0043 owner-issued write scope is normalized and cannot be widened by model input', () => {

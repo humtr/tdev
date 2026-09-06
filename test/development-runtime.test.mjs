@@ -21,7 +21,7 @@ test('D0043 runtime rejects provider sandbox arguments', () => {
 });
 
 test('D0043 Codex JSONL accepts one strict terminal result and preserves usage separately', () => {
-  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--ignore-user-config']);
+  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--ignore-user-config', '--dangerously-bypass-approvals-and-sandbox']);
   const parsed = parseCodexJsonl(eventStream(
     { type: 'thread.started', thread_id: 'thread-test' },
     { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },

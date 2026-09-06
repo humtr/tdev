@@ -1,5 +1,6 @@
 import {
   ContractError,
+  assertDigest,
   assertIdentifier,
   assertCapabilityIdentifier,
   canonicalClone,
@@ -48,6 +49,9 @@ export function defineDevelopmentUnitPlan({
   baseTree,
   repositoryCommitOid,
   objectFormat = 'sha1',
+  contextProfile = 'tdev.repository.context.prepare.v1',
+  contextScope = null,
+  baseIdentity = null,
   contextCapabilityId = null,
   instruction,
   validationProfile = 'tdev.validation.npm-check.v1',
@@ -60,6 +64,28 @@ export function defineDevelopmentUnitPlan({
   if (!isPlainRecord(baseTree)) fail('development_unit_plan_invalid', 'Development unit baseTree must be a record');
   if (typeof repositoryCommitOid !== 'string' || repositoryCommitOid.length === 0) fail('development_unit_plan_invalid', 'repositoryCommitOid is required');
   if (!["sha1", "sha256"].includes(objectFormat)) fail("development_unit_plan_invalid", "objectFormat is unsupported");
+  assertIdentifier(contextProfile, 'contextProfile');
+  if (contextProfile === 'tdev.repository.context.prepare.lazy.v1') {
+    if (!isPlainRecord(contextScope)) fail('development_unit_plan_invalid', 'Lazy context plans require an owner-issued context scope');
+  } else if (contextScope !== null) {
+    fail('development_unit_plan_invalid', 'A context scope is only valid with the lazy context profile');
+  }
+  const normalizedCaseContract = normalizeCaseContract(caseContract ?? {});
+  const normalizedBaseTree = validateTree(canonicalClone(baseTree), normalizedCaseContract);
+  const baseDigest = digest(normalizedBaseTree);
+  if (contextProfile === 'tdev.repository.context.prepare.lazy.v1' && baseIdentity === null) {
+    fail('development_unit_plan_base_identity_missing', 'Lazy context plans require the owner-issued full-base identity');
+  }
+  if (baseIdentity !== null) {
+    if (!isPlainRecord(baseIdentity)) fail('development_unit_plan_invalid', 'baseIdentity must be a record');
+    for (const field of ['profile', 'objectFormat', 'commitOid', 'treeOid', 'baseDigest', 'manifestDigest']) {
+      if (typeof baseIdentity[field] !== 'string' || baseIdentity[field].length === 0) fail('development_unit_plan_invalid', `baseIdentity.${field} is required`);
+    }
+    if (baseIdentity.schemaVersion !== 1 || baseIdentity.profile !== 'tdev.repository-base-identity.v1' || baseIdentity.objectFormat !== objectFormat || baseIdentity.commitOid !== repositoryCommitOid || baseIdentity.baseDigest !== baseDigest) {
+      fail('development_unit_plan_base_identity_mismatch', 'baseIdentity does not bind the Plan base');
+    }
+    assertDigest(baseIdentity.manifestDigest, 'baseIdentity.manifestDigest');
+  }
   if (contextCapabilityId !== null) assertCapabilityIdentifier(contextCapabilityId, "contextCapabilityId");
   if (typeof instruction !== 'string' || instruction.length === 0) fail('development_unit_plan_invalid', 'instruction is required');
   assertIdentifier(validationProfile, 'validationProfile');
@@ -71,9 +97,6 @@ export function defineDevelopmentUnitPlan({
     if (new Set(normalizedWritePaths).size !== normalizedWritePaths.length) fail('development_unit_plan_invalid', 'writePaths contains a duplicate path');
     writePaths = normalizedWritePaths;
   }
-  const normalizedCaseContract = normalizeCaseContract(caseContract ?? {});
-  const normalizedBaseTree = validateTree(canonicalClone(baseTree), normalizedCaseContract);
-  const baseDigest = digest(normalizedBaseTree);
   const planInput = {
     revisionId,
     baseTree: normalizedBaseTree,
@@ -84,13 +107,15 @@ export function defineDevelopmentUnitPlan({
         dependencies: [],
         claims: [],
         input: {
-          profile: "tdev.repository.context.prepare.v1",
+          profile: contextProfile,
           repositoryCommitOid,
           baseDigest,
           objectFormat,
+          ...(contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? { scope: canonicalClone(contextScope) } : {}),
+          ...(baseIdentity === null ? {} : { baseIdentity: canonicalClone(baseIdentity) }),
         },
         execution: {
-          operation: "tdev.repository.context.prepare.v1",
+          operation: contextProfile,
           resultKind: "observation",
           effectClass: "result-only",
           retry: { maxAttempts: 1 },
@@ -107,6 +132,9 @@ export function defineDevelopmentUnitPlan({
           repositoryCommitOid,
           baseDigest,
           instruction,
+          objectFormat,
+          ...(contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? { contextProfile, contextScope: canonicalClone(contextScope) } : {}),
+          ...(baseIdentity === null ? {} : { baseIdentity: canonicalClone(baseIdentity) }),
           ...(writePaths === null ? {} : { writePaths }),
         },
         execution: {
@@ -198,7 +226,6 @@ export class DevelopmentUnitRunner {
   async #dispatchCase(caseId, driveRequestId, payload) {
     const caseEngine = await this.repository.load(caseId, { reopen: false });
     if (caseEngine === null) fail('case_not_found', `Case ${caseId} does not exist`);
-    const baseTree = canonicalClone(caseEngine.plan.baseTree);
     const baseDigest = caseEngine.plan.baseDigest;
     const caseContract = canonicalClone(caseEngine.caseContract);
     return runDurableCase(this.repository, caseId, async (invocation) => {
@@ -221,29 +248,41 @@ export class DevelopmentUnitRunner {
             repositoryCommitOid: task.input.repositoryCommitOid,
             baseDigest: task.input.baseDigest,
             objectFormat: task.input.objectFormat,
+            ...(task.input.scope === undefined ? {} : { scope: task.input.scope }),
+            ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
           },
         };
       } else if (task.id === DEVELOPMENT_UNIT_MODEL_TASK_ID) {
         const contextResult = invocation.acceptedResults.find((entry) => entry.taskId === DEVELOPMENT_UNIT_CONTEXT_TASK_ID)?.result;
         const contextReferenceId = contextResult?.value?.referenceId;
         assertIdentifier(contextReferenceId, "contextReferenceId");
+        const contextScopeDigest = contextResult?.value?.scopeDigest ?? null;
+        if (task.input.contextProfile === 'tdev.repository.context.prepare.lazy.v1') assertDigest(contextScopeDigest, 'contextScopeDigest');
         operationRequest = {
           profile: task.input.profile,
           input: {
             repositoryCommitOid: task.input.repositoryCommitOid,
             baseDigest: task.input.baseDigest,
             instruction: task.input.instruction,
+            ...(task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+            ...(task.input.contextProfile === undefined ? {} : { contextProfile: task.input.contextProfile, contextScope: task.input.contextScope }),
+            ...(contextScopeDigest === null ? {} : { contextScopeDigest }),
+            ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
             ...(task.input.writePaths === undefined ? {} : { writePaths: task.input.writePaths }),
             contextReferenceId,
           },
         };
       } else if (task.id === DEVELOPMENT_UNIT_VALIDATION_TASK_ID) {
-        const engine = { plan: { baseTree, baseDigest }, caseContract };
-        const candidateTree = candidateTreeFromModel(engine, invocation.acceptedResults);
+        const model = invocation.acceptedResults.find((entry) => entry.taskId === DEVELOPMENT_UNIT_MODEL_TASK_ID)?.result;
+        const candidateTreeDigest = model?.evidence?.candidateTreeDigest;
+        if (candidateTreeDigest !== undefined) assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+        const fallbackDigest = candidateTreeDigest === undefined
+          ? digest(candidateTreeFromModel({ plan: { baseTree: caseEngine.plan.baseTree, baseDigest }, caseContract }, invocation.acceptedResults))
+          : candidateTreeDigest;
         operationRequest = {
           profile: task.input.profile,
           input: {
-            candidateTreeDigest: digest(candidateTree),
+            candidateTreeDigest: fallbackDigest,
             validationProfile: task.input.validationProfile,
           },
         };
@@ -311,6 +350,19 @@ export class DevelopmentUnitRunner {
   async candidate(caseId) {
     const engine = await this.#loadCase(caseId);
     const snapshot = engine.snapshot();
+    const contextResult = snapshot.taskStates[DEVELOPMENT_UNIT_CONTEXT_TASK_ID]?.acceptedResult;
+    const modelResult = snapshot.taskStates[DEVELOPMENT_UNIT_MODEL_TASK_ID]?.acceptedResult;
+    const validationResult = snapshot.taskStates[DEVELOPMENT_UNIT_VALIDATION_TASK_ID]?.acceptedResult;
+    const modelEvidence = isPlainRecord(modelResult?.evidence) ? modelResult.evidence : {};
+    const validationEvidence = isPlainRecord(validationResult?.evidence) ? validationResult.evidence : {};
+    const taskOutcomes = Object.fromEntries(snapshot.plan.taskOrder.map((taskId) => {
+      const state = snapshot.taskStates[taskId];
+      return [taskId, {
+        state: state?.state ?? null,
+        error: state?.error ?? null,
+        acceptedResultDigest: state?.acceptedResultDigest ?? null,
+      }];
+    }));
     return deepFreeze({
       caseId,
       caseState: snapshot.caseState,
@@ -318,6 +370,16 @@ export class DevelopmentUnitRunner {
       canonicalTree: canonicalClone(snapshot.canonicalTree),
       canonicalDigest: snapshot.canonicalDigest,
       planDigest: snapshot.plan.planDigest,
+      baseIdentity: contextResult?.value?.baseIdentity ?? null,
+      contextDigest: contextResult?.value?.contextDigest ?? null,
+      manifestDigest: contextResult?.value?.manifestDigest ?? null,
+      scopeDigest: contextResult?.value?.scopeDigest ?? null,
+      candidateTreeDigest: modelResult?.evidence?.candidateTreeDigest ?? null,
+      modelProcessCleanup: modelEvidence.processCleanup ?? null,
+      modelWorkspaceCleanup: modelEvidence.workspaceCleanup ?? null,
+      validationProcessCleanup: validationEvidence.processCleanup ?? null,
+      candidateCleanup: validationEvidence.candidateCleanup ?? null,
+      taskOutcomes,
     });
   }
 }

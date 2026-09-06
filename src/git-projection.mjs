@@ -161,6 +161,8 @@ export function runGitCommand({
   input = null,
   env = {},
   signal = null,
+  stdoutConsumer = null,
+  stopAfterStdoutBytes = null,
 }) {
   if (signal !== null && (
     typeof signal.aborted !== 'boolean' || typeof signal.addEventListener !== 'function'
@@ -169,6 +171,12 @@ export function runGitCommand({
   }
   if (signal?.aborted) {
     return Promise.reject(new ContractError('git_process_aborted', 'Git command was aborted before process start'));
+  }
+  if (stdoutConsumer !== null && typeof stdoutConsumer !== 'function') {
+    throw new ContractError('invalid_git_stdout_consumer', 'stdoutConsumer must be a function or null');
+  }
+  if (stopAfterStdoutBytes !== null && (!Number.isSafeInteger(stopAfterStdoutBytes) || stopAfterStdoutBytes < 1)) {
+    throw new ContractError('invalid_git_stdout_limit', 'stopAfterStdoutBytes must be a positive safe integer or null');
   }
   const controlledEnv = Object.create(null);
   for (const [key, value] of Object.entries(process.env)) {
@@ -198,8 +206,11 @@ export function runGitCommand({
     const stdout = [];
     const stderr = [];
     let stdoutBytes = 0;
+    let stdoutObservedBytes = 0;
     let stderrBytes = 0;
     let overflowed = false;
+    let stoppedEarly = false;
+    let consumerError = null;
     let settled = false;
     let aborted = false;
 
@@ -213,9 +224,32 @@ export function runGitCommand({
 
     const append = (chunks, chunk, kind) => {
       const size = chunk.length;
-      if (kind === 'stdout') stdoutBytes += size;
+      if (kind === 'stdout') stdoutObservedBytes += size;
       else stderrBytes += size;
-      if (stdoutBytes > MAX_GIT_OUTPUT_BYTES || stderrBytes > MAX_GIT_OUTPUT_BYTES) {
+      if (kind === 'stdout' && stdoutConsumer !== null) {
+        if (stdoutObservedBytes > MAX_GIT_OUTPUT_BYTES) {
+          overflowed = true;
+          child.kill('SIGKILL');
+          return;
+        }
+        try {
+          stdoutConsumer(Buffer.from(chunk));
+        } catch (cause) {
+          consumerError = cause;
+          child.kill('SIGKILL');
+          return;
+        }
+        stdoutBytes = stopAfterStdoutBytes === null
+          ? stdoutObservedBytes
+          : Math.min(stopAfterStdoutBytes, stdoutObservedBytes);
+        if (stopAfterStdoutBytes !== null && stdoutObservedBytes >= stopAfterStdoutBytes) {
+          stoppedEarly = true;
+          child.kill('SIGKILL');
+        }
+        return;
+      }
+      stdoutBytes = stdoutObservedBytes;
+      if (stdoutObservedBytes > MAX_GIT_OUTPUT_BYTES || stderrBytes > MAX_GIT_OUTPUT_BYTES) {
         overflowed = true;
         child.kill('SIGKILL');
         return;
@@ -240,11 +274,24 @@ export function runGitCommand({
         reject(new ContractError('git_process_aborted', 'Git command was aborted'));
         return;
       }
+      if (consumerError !== null) {
+        reject(consumerError);
+        return;
+      }
       if (overflowed) {
         reject(new ContractError('git_output_limit_exceeded', 'Git command output exceeded the adapter limit'));
         return;
       }
-      resolve({ code, signal: processSignal, stdout: Buffer.concat(stdout), stderr: Buffer.concat(stderr) });
+      resolve({
+        code: stoppedEarly ? 0 : code,
+        signal: stoppedEarly ? null : processSignal,
+        stdout: Buffer.concat(stdout),
+        stderr: Buffer.concat(stderr),
+        stdoutBytes,
+        stdoutObservedBytes,
+        stderrBytes,
+        stoppedEarly,
+      });
     });
 
     if (input === null) child.stdin.end();

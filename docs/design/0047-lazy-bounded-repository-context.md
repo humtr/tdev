@@ -1,12 +1,13 @@
 # Design 0047 — Lazy Bounded Repository Context
 
 - Status: `accepted`
-- Revision: 1
+- Revision: 2
 - Class: 2
 - Decision date: 2026-09-06
-- Acceptance base: `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`
-- Trigger: the independent origin audit found that the current repository-model path eagerly decodes the complete text tree, and that configured path exclusions silently change the semantic base digest. That shape cannot be the default for a repository whose size is allowed to reach 1 GB.
-- Acceptance evidence: `docs/evidence/group-f-d0047-r1-lazy-context-design-acceptance-2026-09-06.json`
+- Acceptance base: `development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a`
+- Predecessor revision: D0047@r1 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0047-r1-lazy-context-design-acceptance-2026-09-06.json`
+- Trigger: the first lazy source slice prepared a correct manifest and bounded reads but left the durable development-unit path carrying an unbound context identity, rematerializing the wrong profile after a retry, and keeping candidate/workspace ownership outside the warden. The corrected contract joins the lazy reference to the exact Case base and candidate lifecycle without changing the meaning of the full base digest.
+- Acceptance evidence: `docs/evidence/group-f-d0047-r2-lazy-case-candidate-contract-2026-09-06.json`
 - Scope: an explicit owner-issued lazy manifest and bounded list/search/read context for the tdev development path
 - Affected owners: `src/repository-model-transport.mjs`, `src/mcp-development-adapter.mjs`, `src/development-unit.mjs`, `src/plan.mjs`, `docs/ARCHITECTURE.md`, `docs/PROTOCOL.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/MCP.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, focused tests
 - Preserved owners: D0019 remains Case/Task/Attempt/result/Promotion authority; D0013/D0014/D0017 remain repository preparation and selected-delivery owners for their accepted full-context profile; D0043 remains the typed local operation boundary; D0046 remains the first tdev MCP composition; D0025 remains Git publication authority
@@ -32,7 +33,7 @@ The existing `tdev.repository-context.git-full-text.v1` profile remains a compat
 
 The context owner issues the scope and binds it to the exact Case/Plan contract. Case/Plan retains ownership of lifecycle, Plan identity and base semantics. Repository transport owns Git reads and immutable descriptor validation. The model executor receives an opaque context reference and only the selected, bounded files. Candidate materialization still starts from the exact commit clone; a scoped context does not authorize canonical-tree mutation or a second candidate owner.
 
-Legacy v2 Plans continue to use their full `baseTree` and `baseDigest` until a separately accepted Plan representation supports a lazy reference. A new scoped Plan or MCP request must carry `manifestDigest`, `scopeDigest` and a declared context profile, and its result/candidate digest must state whether it is a full canonical candidate or a scoped projection. No old digest field is silently reinterpreted.
+Legacy v2 Plans continue to use their full `baseTree` and `baseDigest` until a separately accepted Plan representation supports a lazy reference. A new scoped development-unit Plan or MCP request must carry `manifestDigest`, `scopeDigest`, a declared context profile and the owner-issued full-base identity. Its model input carries the same profile, scope, scope digest and identity on retry, and its result/candidate digest states whether it is a full canonical candidate or a scoped projection. No old digest field is silently reinterpreted.
 
 The manifest may be paged, but the complete manifest root must be stable across pages. A changed commit, tree, object format, manifest page, blob OID, mode, size, scope or authorization contract invalidates the reference. Cache entries are disposable and rebuildable from the exact commit; cache presence never authorizes a read.
 
@@ -45,6 +46,10 @@ The manifest may be paged, but the complete manifest root must be stable across 
 - The adapter does not call `cat-file --batch` for files outside the requested scope.
 - A manifest or scope mismatch prevents model launch and leaves the canonical checkout, Case and Git ref unchanged.
 - Full-context loading is an explicitly named stress profile and is separately qualified; it is not the lazy profile's success path.
+
+The source-compatible v2 development-unit path retains the existing full-tree Plan representation for Case/Promotion compatibility. It does not claim that a 1 GB repository can be placed in a durable Case snapshot. Until a separately accepted D0019 Plan representation stores a lazy base reference instead of `baseTree`, a large-repository request may use the manifest/read primitives and a disposable full exact-commit candidate only in a gate that can prove its storage budget. A request that cannot satisfy that gate remains blocked; it must not manufacture a subset digest or silently fall back to eager full context.
+
+For a scoped model operation, the model workspace is a sparse checkout containing only admitted files while its `HEAD` remains the exact base commit. Candidate materialization is a separate full exact-commit clone. The warden owns both disposable roots and the model/validation process groups; positive absence receipts are required before reuse. Reads enforce both selected-byte and scanned-prefix limits, and incomplete/truncated search is never a complete context.
 
 ## 4. Acceptance matrix
 
@@ -60,4 +65,4 @@ Cheapest falsifiers are a subset digest accepted as the canonical base, an unbou
 
 ## 5. Follow-on gates
 
-This revision authorizes the source lazy primitive and its local CP1/CP2/CP3 qualification. Provider deployment and current-client claims remain under D0046 and require fresh source/package/provider readback. Any change that makes a lazy reference the durable Case/Plan representation, changes public MCP schemas, or adds a new persistent content owner requires the affected Class-2 revision before implementation.
+Revision 2 authorizes the source lazy primitive, its durable development-unit identity binding and its local CP1/CP2/CP3 qualification. Provider deployment and current-client claims remain under D0046 and require fresh source/package/provider readback. A true metadata-only durable Case/Plan representation, changes to public MCP schemas, or a new persistent content owner still requires the affected Class-2 revision before implementation.
