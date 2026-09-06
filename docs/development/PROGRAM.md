@@ -79,7 +79,7 @@ D0021? / D0022? / D0026 / D0028 remain conditional or broader final-MVP lanes.
 
 `?` marks an evidence-activated conditional gate or a provisional future Design ID, not implementation authorization. D0042, D0043 and D0046 are accepted maintained Design foreign keys; exact runnable selection still comes only from `WORKBOARD.md`. D0045 remains later than the independently usable D0046 M2 path.
 
-The current runnable line remains owned only by `WORKBOARD.md`. Its minimum route selects D0048@r1 as the scoped Plan/reference falsifier after the D0047@r2 primitives, then the full-repository lazy/stress gates and D0043@r4 physical execution without treating a routing/evidence update as a user-facing completion point.
+The current runnable line remains owned only by `WORKBOARD.md`. Its completed local route has qualified D0048@r1's scoped Plan/reference, full-repository lazy/stress gates and D0043@r4 physical execution; the next selected action is D0046@r3 M1 isolated provider composition, without treating local routing/evidence as a user-facing completion point.
 
 Research may proceed ahead of an implementation dependency when it does not choose an unresolved authority/security/migration contract by implication. Canonical repository mutation/publication remains governed by the development workflow and current WORKBOARD route.
 

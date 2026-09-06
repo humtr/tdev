@@ -1,10 +1,11 @@
 # Design 0048 — Lazy Scoped Plan Reference
 
-- Status: `implementing`
+- Status: `accepted`
 - Revision: 1
 - Class: 2
 - Decision date: 2026-09-06
 - Acceptance base: `development@8a55956ff164f6e8ca27010aef88d4371e747205`
+- Acceptance evidence: `docs/evidence/group-f-d0048-r1-scoped-plan-lazy-qualification-20260906.json`, `docs/evidence/group-f-d0043-r4-physical-m0-pass-20260906.json`
 - Predecessor authority: D0019@r2 and D0047@r2
 - Trigger: D0047 CP1 proved the lazy manifest/read and candidate boundary, but the physical M0 gate still constructed a v2 Plan from every UTF-8 blob. The exact repository contains native non-UTF-8 entries, so that path cannot complete without either an unauthorized exclusion or an explicit scoped Plan contract.
 - Scope: an owner-issued scoped semantic Plan reference for the trusted-local tdev development unit

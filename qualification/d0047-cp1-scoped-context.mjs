@@ -211,7 +211,31 @@ async function main() {
     await operationRuntime.dispose();
     const workspaceAfter = new Set((await readdir(WORKSPACE_ROOT).catch(() => [])).filter((entry) => entry.startsWith('tdev-development-')));
     for (const entry of workspaceAfter) if (!workspaceBefore.has(entry)) fail('cp1_workspace_leaked', 'CP1 left a disposable workspace behind', { entry });
-    process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0047.cp1-scoped-context.v1', status: 'PASS', repositoryCommitOid: fixture.commitOid, baseDigest: fixture.baseDigest, manifestDigest: lazyContext.descriptor.manifestDigest, scopeDigest: lazyContext.descriptor.scopeDigest, contextReference, candidateState: candidateValue.caseState, canonicalUnchanged: true, workspaceCleaned: true })}\n`);
+    process.stdout.write(`${JSON.stringify({
+      profile: 'tdev.d0047.cp1-scoped-context.v1',
+      status: 'PASS',
+      repositoryCommitOid: fixture.commitOid,
+      treeOid: repositoryBaseIdentity.treeOid,
+      objectFormat: repositoryBaseIdentity.objectFormat,
+      baseDigest: fixture.baseDigest,
+      repositoryBaseDigest: repositoryBaseIdentity.baseDigest,
+      manifestDigest: lazyContext.descriptor.manifestDigest,
+      scopeDigest: lazyContext.descriptor.scopeDigest,
+      selectedEntryCount: lazyContext.descriptor.selectedEntryCount,
+      contextReference,
+      candidateState: candidateValue.caseState,
+      modelChangeSet: 'inspectable result-only ChangeSet',
+      fixedValidation: 'PASS',
+      sameCaseProjection: true,
+      canonicalUnchanged: true,
+      workspaceCleaned: true,
+      cleanup: {
+        modelProcess: 'positive observed-close receipt',
+        modelWorkspace: 'positive absence receipt',
+        validationProcess: 'positive observed-close receipt',
+        candidate: 'positive absence receipt',
+      },
+    })}\n`);
   } finally {
     await operationRuntime.dispose().catch(() => {});
     await rm(fixture.repositoryPath, { recursive: true, force: true });

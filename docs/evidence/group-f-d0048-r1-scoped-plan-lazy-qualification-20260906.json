@@ -1,0 +1,114 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.qualification-evidence.v1",
+  "design": "D0048",
+  "revision": 1,
+  "layer": "source-local",
+  "qualification": "scoped-plan-reference-cp1-cp2-cp3-and-full-context-stress",
+  "sourceCommit": "c44f0db2897c9a347b680db40e6655f0a7858c9f",
+  "status": "PASS",
+  "cp1": {
+    "profile": "tdev.d0047.cp1-scoped-context.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "f0881f4ed8a56f61757a5749202774345bfc9814",
+    "treeOid": "fdbaf7a26399972a5d80da09bb057d63b1768697",
+    "objectFormat": "sha1",
+    "semanticBaseDigest": "sha256:5948eefa7aab16b9eca6a182297e12c01611be59a20a2ccc8ccdaaa104e22cd5",
+    "repositoryBaseDigest": "sha256:1060ddc24097f2a8d33ebdebd91ebb04a9b3b173d51180375da094e6044640f2",
+    "manifestDigest": "sha256:65d2aeff44bc02881b9232fc0e23341c33d2cf3eb91f33121781a801965c9a27",
+    "scopeDigest": "sha256:2fdd630ca4f92c6fd834df4050767ccd76f989c9070fe3225bd223e5c7d9eb0e",
+    "selectedEntryCount": 3,
+    "contextReference": "cp1-context-f0881f4ed8a5",
+    "route": {
+      "mcpSurface": "in-process MCP JSON-RPC initialize/tools/list/tools/call surface",
+      "agent": "local authenticated Agent bridge",
+      "model": "installed Termux Codex CLI codex-cli 0.153.4",
+      "candidate": "disposable full exact-base clone",
+      "validation": "fixed installed npm check"
+    },
+    "result": {
+      "candidateState": "succeeded",
+      "modelChangeSet": "inspectable result-only ChangeSet",
+      "fixedValidation": "PASS",
+      "sameCaseProjection": true,
+      "canonicalUnchanged": true,
+      "workspaceCleaned": true
+    },
+    "cleanup": {
+      "modelProcess": "positive observed-close receipt",
+      "modelWorkspace": "positive absence receipt",
+      "validationProcess": "positive observed-close receipt",
+      "candidate": "positive absence receipt"
+    }
+  },
+  "cp2": {
+    "profile": "tdev.d0047.cp2-full-repository-lazy.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "c44f0db2897c9a347b680db40e6655f0a7858c9f",
+    "treeOid": "f5abbb8b00b54982fa03d82bb470f3d10d3b45ca",
+    "semanticBaseDigest": "sha256:522c47ebd2897356d12bbca97ab1ba2a2e91a12adba38b940bc02f4bafebdd42",
+    "manifestDigest": "sha256:ca3bb7bd48a780cbe57a8d10532e3318781a419703f4b10a1afcb3cdb957aae1",
+    "manifestEntryCount": 496,
+    "scopeDigest": "sha256:6defb928c0ecf4f9197fe71b25787dc78873cd4683f335a370afb16a9e0fd1db",
+    "selectedEntryCount": 3,
+    "boundedRead": { "path": "src/development-runtime.mjs", "bytes": 1024, "complete": false },
+    "search": { "matches": ["src/development-runtime.mjs"], "complete": true, "visitedFiles": 3, "visitedBytes": 125871 },
+    "boundedBlobReadsBeforeScope": 0,
+    "boundedBlobReadsAfterScope": 4,
+    "completeManifestPaged": true
+  },
+  "cp3": {
+    "profile": "tdev.d0047.cp3-one-gib-metadata.v1",
+    "status": "PASS",
+    "repositoryCommitOid": "b2ab66f134e748a2be2454dc30d09742256b2d6f",
+    "treeOid": "5b1e03cf8378aaf4bba4ab063096dc698cf31206",
+    "semanticBaseDigest": "sha256:e9fe4598cf400721941feba68a27e8253952ac613e36c70ec583282aae9f022b",
+    "manifestDigest": "sha256:ecba6a6d55c0f3ce797068e262d01a75b0eb4913467a23cc9b23c7432cd72b03",
+    "manifestEntryCount": 2,
+    "largeEntryBytes": 1073741824,
+    "smallRead": { "path": "src/small.txt", "bytes": 16 },
+    "incompleteLargeSearch": { "complete": false, "visitedBytes": 0 },
+    "boundedBlobReadsBeforeSmallRead": 0,
+    "fullContextStress": "separate-not-run"
+  },
+  "fullContextStress": {
+    "profile": "tdev.d0047.full-context-stress.v1",
+    "status": "PASS",
+    "fullContext": {
+      "status": "PASS",
+      "repositoryCommitOid": "23e6f79c4335e59268094bc01875a338d4ade49d",
+      "treeOid": "2866cb95b6e43277758c05cdfca089b0fb457b07",
+      "fileCount": 2,
+      "contentBytes": 69,
+      "durationMs": 197
+    },
+    "overFileLimit": {
+      "status": "PASS",
+      "repositoryCommitOid": "cb1ecd156d2fba6b70905cd035bf5a8614e63d0c",
+      "declaredFileLimitBytes": 2097152,
+      "attemptedBytes": 2097153,
+      "failure": {
+        "code": "repository_context_file_limit_exceeded",
+        "message": "Repository file exceeds 2097152 bytes"
+      }
+    },
+    "overTreeLimit": {
+      "status": "PASS",
+      "repositoryCommitOid": "ac41577f48c2ece8481c570036f151639b1bc962",
+      "declaredTreeLimitBytes": 16777216,
+      "attemptedBytes": 18874368,
+      "failure": {
+        "code": "repository_context_tree_limit_exceeded",
+        "message": "Repository context exceeds 16777216 bytes"
+      }
+    },
+    "qualification": "separate-explicit-full-context-profile"
+  },
+  "notProven": [
+    "metadata-only durable Case/Plan representation",
+    "provider deployment or current-client MCP behavior",
+    "the historical 502 cause",
+    "tmcp comparison"
+  ],
+  "secrets": "none"
+}
