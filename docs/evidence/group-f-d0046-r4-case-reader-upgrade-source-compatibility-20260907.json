@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "evidenceKind": "tdev.d0046.r4.case-reader-upgrade-source-compatibility.v1",
+  "observedAt": "2026-09-06T22:24:59.160Z",
+  "scope": "Source compatibility only. This does not prove live retained Case quiescence, provider mutation, installed Agent update, M1, M2, or the historical 502 cause.",
+  "repository": {
+    "testedHead": "9a001f5474ba839bb805ebab06377f0f0d1a75d6",
+    "predecessorWriterSource": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "harnessPath": "qualification/case-reader-upgrade.mjs",
+    "harnessSha256": "82786dd37f00fd94ddf6466ef72930d61d82f7b1b91037d49c9be5ed8ed08ee6"
+  },
+  "result": {
+    "profile": "tdev.case-reader-upgrade.v1",
+    "passed": true,
+    "rowCount": 20,
+    "schemaVersions": [2, 3],
+    "states": ["pending", "running", "accepted", "cancelled", "promoted"],
+    "reopenModes": [false, true],
+    "semanticModes": [false, true],
+    "providerMutation": false,
+    "liveRetainedCasesRead": false
+  },
+  "rows": [
+    {"schemaVersion":2,"state":"pending","reopen":false,"snapshotDigest":"sha256:af4f694aac603af2bd68f783ddfce341803385c19397fec0c29572e161f00c3e","equal":true},
+    {"schemaVersion":2,"state":"pending","reopen":true,"snapshotDigest":"sha256:af4f694aac603af2bd68f783ddfce341803385c19397fec0c29572e161f00c3e","equal":true},
+    {"schemaVersion":2,"state":"running","reopen":false,"snapshotDigest":"sha256:7e48fbd5142fda3426e99a90f12c7ddc73e2e0497bc56250884e695b6d0b732a","equal":true},
+    {"schemaVersion":2,"state":"running","reopen":true,"snapshotDigest":"sha256:685b16f41267de7ed0e513a60f51cacc84a998bc7c48ed33e6a4eed8b9cd47d3","equal":true},
+    {"schemaVersion":2,"state":"accepted","reopen":false,"snapshotDigest":"sha256:31a1355058ba5a10d85c2bb6feeb4c4020e20e07bf950da9be5b5204239b31b7","equal":true},
+    {"schemaVersion":2,"state":"accepted","reopen":true,"snapshotDigest":"sha256:31a1355058ba5a10d85c2bb6feeb4c4020e20e07bf950da9be5b5204239b31b7","equal":true},
+    {"schemaVersion":2,"state":"cancelled","reopen":false,"snapshotDigest":"sha256:0648a89bfb05884ff76d34387602f44b160204d57e73f6839bd563672bbd5454","equal":true},
+    {"schemaVersion":2,"state":"cancelled","reopen":true,"snapshotDigest":"sha256:0648a89bfb05884ff76d34387602f44b160204d57e73f6839bd563672bbd5454","equal":true},
+    {"schemaVersion":2,"state":"promoted","reopen":false,"snapshotDigest":"sha256:bcb7716658f7949838029434b17fa1a755f74d162cd3dda98ce2e601e42aa881","equal":true},
+    {"schemaVersion":2,"state":"promoted","reopen":true,"snapshotDigest":"sha256:bcb7716658f7949838029434b17fa1a755f74d162cd3dda98ce2e601e42aa881","equal":true},
+    {"schemaVersion":3,"state":"pending","reopen":false,"snapshotDigest":"sha256:3a56eeded51d3113948880606fcdf74ba91366f2d28d12a605adda01108fa948","equal":true},
+    {"schemaVersion":3,"state":"pending","reopen":true,"snapshotDigest":"sha256:3a56eeded51d3113948880606fcdf74ba91366f2d28d12a605adda01108fa948","equal":true},
+    {"schemaVersion":3,"state":"running","reopen":false,"snapshotDigest":"sha256:0bbae8e38f16355e1aff2af0f56c413e72fc0b0032fac0109c4e6eb27a16eba1","equal":true},
+    {"schemaVersion":3,"state":"running","reopen":true,"snapshotDigest":"sha256:4d1133cfc2534a9c968b6dba5c7d52a0d7e342b8560ae4366674c169ffe37c78","equal":true},
+    {"schemaVersion":3,"state":"accepted","reopen":false,"snapshotDigest":"sha256:5a8adf9290d0504a8a42fec49453e805c8f90e3a3c4b789aaeb242e7ae7eb2f8","equal":true},
+    {"schemaVersion":3,"state":"accepted","reopen":true,"snapshotDigest":"sha256:5a8adf9290d0504a8a42fec49453e805c8f90e3a3c4b789aaeb242e7ae7eb2f8","equal":true},
+    {"schemaVersion":3,"state":"cancelled","reopen":false,"snapshotDigest":"sha256:8f2a33ced965cb7f3fae88e05ed8945570707a1331e0b2627513289ee976bb89","equal":true},
+    {"schemaVersion":3,"state":"cancelled","reopen":true,"snapshotDigest":"sha256:8f2a33ced965cb7f3fae88e05ed8945570707a1331e0b2627513289ee976bb89","equal":true},
+    {"schemaVersion":3,"state":"promoted","reopen":false,"snapshotDigest":"sha256:3906686be893ac069aee4e129406f9fc05b30ced47048fa18cd8c0aeca557ffb","equal":true},
+    {"schemaVersion":3,"state":"promoted","reopen":true,"snapshotDigest":"sha256:3906686be893ac069aee4e129406f9fc05b30ced47048fa18cd8c0aeca557ffb","equal":true}
+  ],
+  "interpretation": {
+    "oldWriterToCurrentReader": "compatible for the exercised source corpus",
+    "currentScopedPlanToOldReader": "known incompatible from prior D0046 r4 reader preflight",
+    "requiredUpdateOrder": "preserve retained state and upgrade reader/Agent compatibility before activating scoped ingress/provider semantics",
+    "historical502Cause": "unknown"
+  }
+}
