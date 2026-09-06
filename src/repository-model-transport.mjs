@@ -224,7 +224,9 @@ function normalizeExcludedPaths(input) {
 
 function normalizeLazyScope(input) {
   if (!isPlainRecord(input)) throw new ContractError('lazy_scope_invalid', 'Lazy context scope must be a record');
-  assertRecordShape(input, [], ['paths', 'prefixes', 'maxFiles', 'maxBytes', 'maxSearchResults'], 'lazy context scope');
+  assertRecordShape(input, [], ['schemaVersion', 'profile', 'paths', 'prefixes', 'maxFiles', 'maxBytes', 'maxSearchResults'], 'lazy context scope');
+  if (input.schemaVersion !== undefined && input.schemaVersion !== 1) throw new ContractError('lazy_scope_invalid', 'Lazy context scope schemaVersion is unsupported');
+  if (input.profile !== undefined && input.profile !== LAZY_CONTEXT_SCOPE_PROFILE) throw new ContractError('lazy_scope_invalid', 'Lazy context scope profile is unsupported');
   const normalizePaths = (values, label) => {
     if (values === undefined) return [];
     if (!Array.isArray(values) || values.length > LAZY_MAX_SCOPE_FILES) throw new ContractError('lazy_scope_invalid', `${label} is outside its bound`);

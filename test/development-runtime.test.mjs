@@ -2,7 +2,14 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { ContractError, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { CodexExecRepositoryModelExecutor, codexLauncherHome } from '../src/development-runtime.mjs';
+import {
+  CodexExecRepositoryModelExecutor,
+  LocalDevelopmentOperationRuntime,
+  codexLauncherHome,
+  createLocalDevelopmentOperationExecutionAdapter,
+} from '../src/development-runtime.mjs';
+import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
+import { readFile } from 'node:fs/promises';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
@@ -55,4 +62,66 @@ test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed termina
   for (const [bytes, code] of cases) {
     assert.throws(() => parseCodexJsonl(bytes), (error) => error instanceof ContractError && error.code === code);
   }
+});
+
+test('D0048 local execution adapter validates a scoped operation before handing it to the Agent', async () => {
+  const manifest = normalizeDevelopmentOperationManifest(JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8')));
+  const repositoryCommitOid = 'a'.repeat(40);
+  const baseDigest = digest({ 'src/base.mjs': 'base\n' });
+  const operationRuntime = new LocalDevelopmentOperationRuntime({
+    manifest,
+    repositoryPath: '/tmp',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp',
+    outputSchemaPath: '/tmp/codex-changeset-output.schema.json',
+    npmExecutable: '/tmp/npm',
+    contextAdapter: {
+      async materializeContext(commitOid, digestValue) {
+        return {
+          descriptor: {
+            profile: 'tdev.repository-context.git-immutable.v1',
+            objectFormat: 'sha1',
+            commitOid,
+            baseDigest: digestValue,
+            contextDigest: digest('adapter-context'),
+          },
+          files: [],
+        };
+      },
+    },
+  });
+  const adapter = createLocalDevelopmentOperationExecutionAdapter({ operationRuntime });
+  const started = await adapter.start({
+    envelope: {
+      caseId: 'case-adapter',
+      taskId: 'context',
+      attemptId: 'context.1',
+      executorId: 'executor-adapter',
+      executorEpoch: 1,
+      fencingToken: digest('fence'),
+      executableBody: {
+        profile: 'tdev.development-operation-profiles.v2',
+        operationRequest: {
+          profile: 'tdev.repository.context.prepare.v1',
+          input: { repositoryCommitOid, baseDigest, objectFormat: 'sha1' },
+        },
+        resultEnvelopeTemplate: {
+          caseId: 'case-adapter',
+          planRevisionId: 'revision-adapter',
+          planDigest: digest('plan-adapter'),
+          taskId: 'context',
+          attemptId: 'context.1',
+          executorId: 'executor-adapter',
+          executorEpoch: 1,
+          claimLeaseToken: null,
+          claimLeaseGeneration: null,
+          claimLeaseClaimsDigest: null,
+        },
+      },
+    },
+  });
+  const completion = await started.completion;
+  assert.equal(completion.code, 0);
+  assert.equal(completion.resultEnvelope.result.kind, 'observation');
+  await operationRuntime.dispose();
 });

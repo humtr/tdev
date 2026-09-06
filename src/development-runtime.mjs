@@ -7,6 +7,7 @@ import {
   ContractError,
   assertDigest,
   assertIdentifier,
+  assertRecordShape,
   assertSafeInteger,
   assertScalarString,
   canonicalClone,
@@ -32,9 +33,10 @@ import {
   CODEX_OPERATION_ARGUMENTS,
   developmentOperationCapabilityId,
   executeDevelopmentOperation,
+  normalizeDevelopmentOperationRequest,
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
-import { LocalAgentRuntime } from './local-agent-runtime.mjs';
+import { LocalAgentRuntime, createLocalExecutionStartError } from './local-agent-runtime.mjs';
 import { normalizeRepositoryBaseIdentity } from './lazy-plan-reference.mjs';
 
 export const CODEX_EXEC_MODEL_PROFILE = CODEX_MODEL_BINDING_PROFILE;
@@ -54,6 +56,40 @@ const CANDIDATE_DIGEST_DOMAIN = 'tdev.disposable-candidate.v1';
 
 function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
+}
+
+function validateCaseResultEnvelopeTemplate(template) {
+  if (!isPlainRecord(template)) fail('development_runtime_result_template_invalid', 'Result envelope template must be a record');
+  assertRecordShape(template, [
+    'caseId', 'planRevisionId', 'planDigest', 'taskId', 'attemptId', 'executorId', 'executorEpoch',
+    'claimLeaseToken', 'claimLeaseGeneration', 'claimLeaseClaimsDigest',
+  ], [], 'result envelope template');
+  for (const field of ['caseId', 'planRevisionId', 'taskId', 'attemptId', 'executorId']) assertIdentifier(template[field], `result envelope template.${field}`);
+  assertDigest(template.planDigest, 'result envelope template.planDigest');
+  assertSafeInteger(template.executorEpoch, 'result envelope template.executorEpoch', { min: 1 });
+  if (template.claimLeaseToken !== null) assertDigest(template.claimLeaseToken, 'result envelope template.claimLeaseToken');
+  if (template.claimLeaseGeneration !== null) assertSafeInteger(template.claimLeaseGeneration, 'result envelope template.claimLeaseGeneration', { min: 1 });
+  if (template.claimLeaseClaimsDigest !== null) assertDigest(template.claimLeaseClaimsDigest, 'result envelope template.claimLeaseClaimsDigest');
+  if ((template.claimLeaseToken === null) !== (template.claimLeaseGeneration === null) ||
+      (template.claimLeaseToken === null) !== (template.claimLeaseClaimsDigest === null)) {
+    fail('development_runtime_result_template_invalid', 'Result claim-lease identity must be wholly present or wholly absent');
+  }
+  return template;
+}
+
+export function caseResultEnvelopeFromDispatch({ template, envelope, result } = {}) {
+  validateCaseResultEnvelopeTemplate(template);
+  if (!isPlainRecord(envelope)) fail('development_runtime_dispatch_invalid', 'Dispatch envelope must be a record');
+  for (const field of ['caseId', 'taskId', 'attemptId', 'executorId']) {
+    if (envelope[field] !== template[field]) fail('development_runtime_result_identity_mismatch', `Dispatch ${field} does not match the release-bound result template`);
+  }
+  if (envelope.executorEpoch !== template.executorEpoch) fail('development_runtime_result_identity_mismatch', 'Dispatch executor epoch does not match the result template');
+  assertDigest(envelope.fencingToken, 'dispatch fencingToken');
+  return deepFreeze({
+    ...template,
+    fencingToken: envelope.fencingToken,
+    result: canonicalClone(result),
+  });
 }
 
 function boundedText(value, label, maxBytes = 8 * 1024) {
@@ -846,19 +882,48 @@ export class LocalDevelopmentOperationRuntime {
   }
 }
 
+export function createLocalDevelopmentOperationExecutionAdapter({ operationRuntime, capabilities = undefined } = {}) {
+  if (!(operationRuntime instanceof LocalDevelopmentOperationRuntime)) fail('development_runtime_agent_invalid', 'operationRuntime is required');
+  const normalizedManifest = normalizeDevelopmentOperationManifest(operationRuntime.manifest);
+  const effectiveCapabilities = capabilities === undefined
+    ? Object.keys(normalizedManifest.profiles).map((profile) => developmentOperationCapabilityId(normalizedManifest, profile)).sort()
+    : [...capabilities];
+  if (!Array.isArray(effectiveCapabilities)) fail('development_runtime_agent_invalid', 'Development capabilities must be an array');
+  return Object.freeze({
+    async start({ envelope }) {
+      const body = envelope?.executableBody;
+      try {
+        if (!isPlainRecord(body)) fail('development_runtime_executable_invalid', 'Development dispatch body must be a record');
+        assertRecordShape(body, ['profile', 'operationRequest', 'resultEnvelopeTemplate'], [], 'development dispatch body');
+        if (body.profile !== 'tdev.development-operation-profiles.v2') fail('development_runtime_executable_invalid', 'Development dispatch body profile is not the release-bound profile');
+        normalizeDevelopmentOperationRequest(normalizedManifest, body.operationRequest);
+        validateCaseResultEnvelopeTemplate(body.resultEnvelopeTemplate);
+      } catch (cause) {
+        throw createLocalExecutionStartError(cause?.code ?? 'development_runtime_executable_invalid', cause?.message ?? 'Development dispatch body validation failed', { phase: 'pre_handle', cause });
+      }
+      const controller = new AbortController();
+      const operationId = `${envelope.caseId}/${envelope.taskId}/${envelope.attemptId}`;
+      const completion = operationRuntime.execute(body.operationRequest, effectiveCapabilities, controller.signal, { operationId }).then((output) => ({
+        code: 0,
+        signal: null,
+        effect: 'not_applied',
+        resultEnvelope: caseResultEnvelopeFromDispatch({ template: body.resultEnvelopeTemplate, envelope, result: output.result }),
+      }));
+      return Object.freeze({
+        completion,
+        async cancel() { controller.abort(); return { signalled: true }; },
+        async cleanup() { await completion.catch(() => {}); return operationRuntime.cleanupOperation(operationId); },
+      });
+    },
+  });
+}
+
 export function createLocalDevelopmentAgent({ operationRuntime, manifest = operationRuntime?.manifest, agentId = 'agent-tdev-m0', executorId = 'executor-tdev-m0', executorEpoch = 1, routeGeneration = 1 } = {}) {
   if (!(operationRuntime instanceof LocalDevelopmentOperationRuntime)) fail('development_runtime_agent_invalid', 'operationRuntime is required');
   const normalizedManifest = normalizeDevelopmentOperationManifest(manifest);
   const capabilities = Object.keys(normalizedManifest.profiles).map((profile) => developmentOperationCapabilityId(normalizedManifest, profile)).sort();
   const emitted = [];
-  const executionAdapter = Object.freeze({
-    async start({ envelope }) {
-      const controller = new AbortController();
-      const operationId = `${envelope.caseId}/${envelope.taskId}/${envelope.attemptId}`;
-      const completion = operationRuntime.execute(envelope.executableBody?.operationRequest, capabilities, controller.signal, { operationId }).then((output) => ({ code: 0, signal: null, effect: 'not_applied', resultEnvelope: { schemaVersion: 1, profile: DEVELOPMENT_OPERATION_RESULT_PROFILE, result: output.result } }));
-      return Object.freeze({ completion, async cancel() { controller.abort(); return { signalled: true }; }, async cleanup() { await completion.catch(() => {}); return operationRuntime.cleanupOperation(operationId); } });
-    },
-  });
+  const executionAdapter = createLocalDevelopmentOperationExecutionAdapter({ operationRuntime, capabilities });
   const localRuntime = new LocalAgentRuntime({ agentId, routeGeneration, executor: { id: executorId, epoch: executorEpoch }, capabilities, emit: async (frame) => { emitted.push(canonicalClone(frame)); }, executionAdapter });
   localRuntime.bindConnection({ id: 'connection-tdev-m0', epoch: 1 });
   const identity = Object.freeze({ id: agentId, epoch: executorEpoch, capabilities: Object.freeze([...capabilities]) });
@@ -874,11 +939,29 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
       const { signal: _signal, ...observableRequest } = request;
       calls.dispatch.push(canonicalClone(observableRequest));
       const invocation = request.invocation;
-      const started = await localRuntime.handleDispatch({ type: 'dispatch', deliveryId: digest({ caseId: request.caseId, taskId: request.taskId, attemptId: request.attemptId, lane: 'tdev-m0' }), dispatchOrdinal: 1, authorizationId: digest({ authorization: request.attemptId }), dispatchGrantId: digest({ grant: request.attemptId }), caseId: request.caseId, taskId: request.taskId, attemptId: request.attemptId, executorId, executorEpoch, fencingToken: invocation.fencingToken, protocolVersion: 'tdev-agent-v1', executableBody: { profile: 'tdev.development-operation-profiles.v2', operationRequest: request.operationRequest } });
+      const started = await localRuntime.handleDispatch({ type: 'dispatch', deliveryId: digest({ caseId: request.caseId, taskId: request.taskId, attemptId: request.attemptId, lane: 'tdev-m0' }), dispatchOrdinal: 1, authorizationId: digest({ authorization: request.attemptId }), dispatchGrantId: digest({ grant: request.attemptId }), caseId: request.caseId, taskId: request.taskId, attemptId: request.attemptId, executorId, executorEpoch, fencingToken: invocation.fencingToken, protocolVersion: 'tdev-agent-v1', executableBody: {
+        profile: 'tdev.development-operation-profiles.v2',
+        operationRequest: request.operationRequest,
+        resultEnvelopeTemplate: {
+          caseId: request.caseId,
+          planRevisionId: invocation.planRevisionId,
+          planDigest: invocation.planDigest,
+          taskId: request.taskId,
+          attemptId: request.attemptId,
+          executorId,
+          executorEpoch,
+          claimLeaseToken: invocation.claimLease?.token ?? null,
+          claimLeaseGeneration: invocation.claimLease?.generation ?? null,
+          claimLeaseClaimsDigest: invocation.claimLease?.claimsDigest ?? null,
+        },
+      } });
       if (started.classification !== 'started') fail('development_runtime_agent_dispatch_failed', 'Local Agent did not start the operation', started);
       const completed = await started.completion;
       const resultEnvelope = completed?.completion?.resultEnvelope;
-      if (!isPlainRecord(resultEnvelope) || resultEnvelope.profile !== DEVELOPMENT_OPERATION_RESULT_PROFILE) {
+      if (!isPlainRecord(resultEnvelope) || resultEnvelope.caseId !== request.caseId ||
+          resultEnvelope.taskId !== request.taskId || resultEnvelope.attemptId !== request.attemptId ||
+          resultEnvelope.executorId !== executorId || resultEnvelope.executorEpoch !== invocation.attempt.executorEpoch ||
+          resultEnvelope.fencingToken !== invocation.fencingToken || !isPlainRecord(resultEnvelope.result)) {
         const completion = completed?.completion;
         const error = new ContractError(completion?.causeCode ?? 'development_runtime_agent_result_invalid', 'Local Agent returned no typed operation result', completion?.causeDetails ?? {});
         error.certainty = completion?.certainty ?? 'unknown';

@@ -7,6 +7,7 @@ import {
   isPlainRecord,
 } from './canonical.mjs';
 import { defineDevelopmentUnitPlan } from './development-unit.mjs';
+import { normalizeLazyPlanScope, scopeDigest } from './lazy-plan-reference.mjs';
 
 function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
@@ -24,7 +25,7 @@ function normalizeContext(value, contextReference) {
   assertRecordShape(value, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
     'validationCapabilityId', 'writePaths', 'caseContract', 'payload', 'contextProfile',
-    'contextScope', 'baseIdentity',
+    'contextScope', 'scopeDigest', 'baseIdentity',
     'repositoryBaseIdentity',
   ], 'development context');
   assertIdentifier(value.revisionId, 'development context.revisionId');
@@ -41,6 +42,19 @@ function normalizeContext(value, contextReference) {
     if (value[field] !== undefined && value[field] !== null && typeof value[field] !== 'string') {
       fail('mcp_context_invalid', `${field} must be a capability identifier`);
     }
+  }
+  if (value.scopeDigest !== undefined) {
+    if (typeof value.scopeDigest !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value.scopeDigest)) {
+      fail('mcp_context_invalid', 'development context.scopeDigest is invalid');
+    }
+  }
+  if (value.contextScope !== undefined) {
+    const normalizedScope = normalizeLazyPlanScope(value.contextScope);
+    if (value.scopeDigest !== undefined && value.scopeDigest !== scopeDigest(normalizedScope)) {
+      fail('mcp_context_scope_mismatch', 'development context scopeDigest does not match the owner-issued scope');
+    }
+  } else if (value.scopeDigest !== undefined) {
+    fail('mcp_context_scope_mismatch', 'development context scopeDigest requires contextScope');
   }
   return deepFreeze({ ...canonicalClone(value), objectFormat, contextReferenceId: contextReference });
 }

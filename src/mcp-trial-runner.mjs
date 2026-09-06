@@ -30,6 +30,7 @@ import {
   MCP_TRIAL_AGENT_RPC_PROFILE,
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
+import { normalizeLazyPlanReference } from './lazy-plan-reference.mjs';
 import { normalizeCaseContract } from './policy.mjs';
 
 const MAX_ENVELOPE_BYTES = 5 * 1024 * 1024;
@@ -67,15 +68,30 @@ function taskPlan(snapshot, manifest, caseContract) {
   if (snapshot.plan.baseDigest !== manifest.repository.baseDigest || digest(baseTree) !== snapshot.plan.baseDigest) {
     fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
   }
-  const plan = definePlan({
+  const planInput = {
     revisionId: snapshot.plan.revisionId,
     baseTree,
     tasks: Array.isArray(snapshot.plan.tasks)
       ? snapshot.plan.tasks
       : snapshot.plan.taskOrder?.map((taskId) => snapshot.plan.tasksById?.[taskId]),
-  }, { caseContract });
+    ...(snapshot.plan.baseReference === undefined ? {} : { baseReference: snapshot.plan.baseReference }),
+  };
+  const plan = definePlan(planInput, { caseContract });
   if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== manifest.repository.baseDigest) {
     fail('mcp_trial_case_snapshot_invalid', 'Case snapshot Plan digest does not match the fixed trial Plan');
+  }
+  if (manifest.repository.repositoryBaseIdentity !== undefined) {
+    if (plan.baseReference === undefined) fail('mcp_trial_case_snapshot_invalid', 'Scoped Case snapshot omitted its immutable baseReference');
+    const reference = normalizeLazyPlanReference(plan.baseReference, {
+      objectFormat: manifest.repository.objectFormat,
+      commitOid: manifest.repository.commitOid,
+      semanticBaseDigest: manifest.repository.baseDigest,
+    });
+    if (reference.repositoryBaseIdentity.baseDigest !== manifest.repository.repositoryBaseIdentity.baseDigest ||
+        reference.repositoryBaseIdentity.manifestDigest !== manifest.repository.repositoryBaseIdentity.manifestDigest ||
+        reference.scopeDigest !== manifest.repository.scopeDigest) {
+      fail('mcp_trial_case_snapshot_invalid', 'Scoped Case snapshot baseReference drifted from the trial identity');
+    }
   }
   return plan;
 }
@@ -269,6 +285,9 @@ function operationRequest(view, taskId, payload, operationManifest) {
         repositoryCommitOid: task.input.repositoryCommitOid,
         baseDigest: task.input.baseDigest,
         objectFormat: task.input.objectFormat,
+        ...(task.input.scope === undefined ? {} : { scope: task.input.scope }),
+        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
+        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
       },
     };
   }
@@ -283,6 +302,13 @@ function operationRequest(view, taskId, payload, operationManifest) {
         baseDigest: task.input.baseDigest,
         instruction: task.input.instruction,
         contextReferenceId,
+        ...(task.input.contextProfile === undefined ? {} : { contextProfile: task.input.contextProfile }),
+        ...(task.input.contextScope === undefined ? {} : { contextScope: task.input.contextScope }),
+        ...(manifestScopeDigest(view) === null ? {} : { contextScopeDigest: manifestScopeDigest(view) }),
+        ...(task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
+        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
+        ...(task.input.writePaths === undefined ? {} : { writePaths: task.input.writePaths }),
       },
     };
   }
@@ -294,6 +320,11 @@ function operationRequest(view, taskId, payload, operationManifest) {
     };
   }
   fail('mcp_trial_task_unsupported', `Unsupported development Task ${taskId}`);
+}
+
+function manifestScopeDigest(view) {
+  const value = view.plan.baseReference?.scopeDigest;
+  return typeof value === 'string' ? value : null;
 }
 
 function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor, operationManifest } = {}) {

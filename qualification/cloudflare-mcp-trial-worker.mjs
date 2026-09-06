@@ -1,8 +1,10 @@
 import {
+  canonicalClone,
   canonicalJson,
   digest,
   isPlainRecord,
   strictJsonParse,
+  typedDigest,
 } from '../src/canonical.mjs';
 import {
   createCloudflareAccessAssertionVerifier,
@@ -35,9 +37,15 @@ import {
 } from '../src/development-operation-profile.mjs';
 import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mjs';
 import {
-  loadMcpTrialBaseTree,
+  loadMcpTrialLazyContext,
   MCP_TRIAL_BASE_COMMIT_OID,
+  MCP_TRIAL_BASE_TREE_OID,
+  MCP_TRIAL_BASE_OBJECT_FORMAT,
   MCP_TRIAL_BASE_DIGEST,
+  MCP_TRIAL_REPOSITORY_BASE_IDENTITY,
+  MCP_TRIAL_SCOPE,
+  MCP_TRIAL_SCOPE_DIGEST,
+  MCP_TRIAL_MANIFEST_DIGEST,
 } from './mcp-trial-base-tree.mjs';
 
 const TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
@@ -84,6 +92,24 @@ function assertGeneratedBaseBinding(composition) {
   if (MCP_TRIAL_BASE_DIGEST !== null && MCP_TRIAL_BASE_DIGEST !== composition.repository.baseDigest) {
     throw configError('mcp_config_unavailable', 'Generated base-tree module digest does not match the trial composition');
   }
+  if (MCP_TRIAL_BASE_TREE_OID !== null && MCP_TRIAL_BASE_TREE_OID !== composition.repository.repositoryBaseIdentity?.treeOid) {
+    throw configError('mcp_config_unavailable', 'Generated base-tree module tree identity does not match the trial composition');
+  }
+  if (MCP_TRIAL_BASE_OBJECT_FORMAT !== null && MCP_TRIAL_BASE_OBJECT_FORMAT !== composition.repository.objectFormat) {
+    throw configError('mcp_config_unavailable', 'Generated base-tree module object format does not match the trial composition');
+  }
+  if (MCP_TRIAL_REPOSITORY_BASE_IDENTITY !== null && canonicalJson(MCP_TRIAL_REPOSITORY_BASE_IDENTITY) !== canonicalJson(composition.repository.repositoryBaseIdentity)) {
+    throw configError('mcp_config_unavailable', 'Generated module complete repository identity does not match the trial composition');
+  }
+  if (MCP_TRIAL_SCOPE_DIGEST !== null && MCP_TRIAL_SCOPE_DIGEST !== composition.repository.scopeDigest) {
+    throw configError('mcp_config_unavailable', 'Generated module scope digest does not match the trial composition');
+  }
+  if (MCP_TRIAL_MANIFEST_DIGEST !== null && MCP_TRIAL_MANIFEST_DIGEST !== composition.repository.repositoryBaseIdentity?.manifestDigest) {
+    throw configError('mcp_config_unavailable', 'Generated module manifest digest does not match the trial composition');
+  }
+  if (MCP_TRIAL_SCOPE !== null && canonicalJson(MCP_TRIAL_SCOPE) !== canonicalJson(composition.repository.scope)) {
+    throw configError('mcp_config_unavailable', 'Generated module scope does not match the trial composition');
+  }
 }
 
 function compactContext(composition) {
@@ -94,9 +120,106 @@ function compactContext(composition) {
     objectFormat: context.objectFormat,
     contextReferenceId: composition.repository.contextReference,
     baseDigest: composition.repository.baseDigest,
+    ...(context.contextProfile === undefined ? {} : { contextProfile: context.contextProfile }),
+    ...(context.contextScope === undefined ? {} : { contextScope: context.contextScope }),
+    ...(context.scopeDigest === undefined ? {} : { scopeDigest: context.scopeDigest }),
+    ...(context.baseIdentity === undefined ? {} : { baseIdentity: context.baseIdentity }),
+    ...(context.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: context.repositoryBaseIdentity }),
     ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
     ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
     ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
+  });
+}
+
+function generatedContextOwner(composition, lazyContext) {
+  if (!isPlainRecord(lazyContext) || !isPlainRecord(lazyContext.tree) || !Array.isArray(lazyContext.manifest)) {
+    throw configError('mcp_config_unavailable', 'Generated lazy context payload is invalid');
+  }
+  const repository = composition.repository;
+  const identity = repository.repositoryBaseIdentity;
+  const expectedManifest = typedDigest('tdev.repository-context.git-manifest.v1', {
+    schemaVersion: 1,
+    profile: 'tdev.repository-context.git-manifest.v1',
+    objectFormat: repository.objectFormat,
+    commitOid: repository.commitOid,
+    treeOid: identity.treeOid,
+    entries: lazyContext.manifest.map(({ path, mode, type, blobOid, byteLength }) => ({ path, mode, type, blobOid, byteLength })),
+  });
+  if (expectedManifest !== identity.manifestDigest || lazyContext.manifestDigest !== identity.manifestDigest) {
+    throw configError('mcp_config_unavailable', 'Generated lazy context manifest digest is invalid');
+  }
+  if (lazyContext.commitOid !== repository.commitOid || lazyContext.treeOid !== identity.treeOid ||
+      lazyContext.objectFormat !== repository.objectFormat || lazyContext.semanticBaseDigest !== repository.baseDigest ||
+      lazyContext.scopeDigest !== repository.scopeDigest || canonicalJson(lazyContext.scope) !== canonicalJson(repository.scope)) {
+    throw configError('mcp_config_unavailable', 'Generated lazy context identity does not match the trial composition');
+  }
+  const selectedEntries = lazyContext.manifest.filter((entry) => Object.hasOwn(lazyContext.tree, entry.path));
+  const selectedPaths = selectedEntries.map((entry) => entry.path).sort();
+  const treePaths = Object.keys(lazyContext.tree).sort();
+  if (canonicalJson(selectedPaths) !== canonicalJson(treePaths) || selectedEntries.length === 0) {
+    throw configError('mcp_config_unavailable', 'Generated lazy context selected tree does not match its manifest');
+  }
+  const context = composition.repository.context;
+  const selector = (value) => {
+    if (value !== null && value !== repository.contextReference) throw configError('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
+  };
+  const selected = () => selectedEntries.map((entry) => canonicalClone(entry));
+  return Object.freeze({
+    async developmentContextGet({ selector: selectedReference = null } = {}) {
+      selector(selectedReference);
+      return compactContext(composition);
+    },
+    async developmentContextResolve({ selector: selectedReference = null } = {}) {
+      selector(selectedReference);
+      return canonicalClone({
+        ...context,
+        baseTree: lazyContext.tree,
+        manifest: lazyContext.manifest,
+        repositoryBaseIdentity: identity,
+        contextScope: repository.scope,
+        scopeDigest: repository.scopeDigest,
+      });
+    },
+    async developmentContextList({ contextReference: selectedReference, cursor = 0, limit = 128 } = {}) {
+      selector(selectedReference);
+      if (!Number.isSafeInteger(cursor) || cursor < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > 128) throw configError('mcp_context_limit_invalid', 'Context list bounds are invalid');
+      const entries = selected().slice(cursor, cursor + limit);
+      const nextCursor = cursor + entries.length < selectedEntries.length ? cursor + entries.length : null;
+      return { profile: 'tdev.repository-context.git-scoped-lazy.v1', manifestDigest: identity.manifestDigest, scopeDigest: repository.scopeDigest, entries, nextCursor, complete: nextCursor === null };
+    },
+    async developmentContextSearch({ contextReference: selectedReference, pattern, cursor = 0, limit = 64 } = {}) {
+      selector(selectedReference);
+      if (typeof pattern !== 'string' || pattern.length === 0 || pattern.length > 4096 || !Number.isSafeInteger(cursor) || cursor < 0 || !Number.isSafeInteger(limit) || limit < 1 || limit > repository.scope.maxSearchResults) throw configError('mcp_context_limit_invalid', 'Context search bounds are invalid');
+      const matches = [];
+      let visitedFiles = 0;
+      let visitedBytes = 0;
+      let index = cursor;
+      let complete = true;
+      while (index < selectedEntries.length) {
+        if (matches.length >= limit) { complete = false; break; }
+        const entry = selectedEntries[index++];
+        const content = lazyContext.tree[entry.path];
+        const size = new TextEncoder().encode(content).byteLength;
+        if (visitedBytes + size > repository.scope.maxBytes) { complete = false; break; }
+        visitedFiles += 1;
+        visitedBytes += size;
+        if (content.includes(pattern)) matches.push(entry.path);
+      }
+      return { profile: 'tdev.repository-context.git-scoped-lazy.v1', manifestDigest: identity.manifestDigest, scopeDigest: repository.scopeDigest, matches, nextCursor: complete ? null : index, complete, visitedFiles, visitedBytes };
+    },
+    async developmentContextRead({ contextReference: selectedReference, path: filePath, startByte = 0, maxBytes = repository.scope.maxBytes } = {}) {
+      selector(selectedReference);
+      const entry = selectedEntries.find((item) => item.path === filePath);
+      if (entry === undefined) throw configError('lazy_scope_denied', 'Path is outside the owner-issued lazy scope');
+      if (entry.type !== 'blob' || !['100644', '100755'].includes(entry.mode) || entry.byteLength === null) throw configError('lazy_entry_read_unsupported', 'Selected repository entry cannot be decoded');
+      if (!Number.isSafeInteger(startByte) || startByte < 0 || startByte > entry.byteLength || !Number.isSafeInteger(maxBytes) || maxBytes < 1 || maxBytes > repository.scope.maxBytes) throw configError('lazy_read_limit_exceeded', 'Lazy read range is outside its bound');
+      const bytes = new TextEncoder().encode(lazyContext.tree[filePath]);
+      const endByte = Math.min(entry.byteLength, startByte + maxBytes);
+      let content;
+      try { content = new TextDecoder('utf-8', { fatal: true }).decode(bytes.subarray(startByte, endByte)); }
+      catch { throw configError('lazy_read_range_not_utf8', 'Lazy read range is not a complete UTF-8 sequence'); }
+      return { profile: 'tdev.repository-context.git-scoped-lazy.v1', path: filePath, mode: entry.mode, type: entry.type, blobOid: entry.blobOid, byteLength: entry.byteLength, startByte, endByte, complete: endByte === entry.byteLength, content };
+    },
   });
 }
 
@@ -187,7 +310,8 @@ function metadataFastPath(request, env) {
 
 export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
   const configuredComposition = readJsonBinding(env, TRIAL_MANIFEST_BINDING);
-  const baseTree = await loadMcpTrialBaseTree();
+  const lazyContext = await loadMcpTrialLazyContext();
+  const baseTree = lazyContext.tree;
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
     throw configError('mcp_config_unavailable', 'Trial composition repository context is not configured');
   }
@@ -218,6 +342,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     agentNamespace: env.TDEV_AGENT_DELIVERY,
     casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
     driveOwnerOverride,
+    contextOwnerOverride: generatedContextOwner(composition, lazyContext),
   });
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: facades.repository,
@@ -251,6 +376,9 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       developmentUnitRunner: runner,
       developmentContextGet: facades.contextOwner.developmentContextGet,
       developmentContextResolve: facades.contextOwner.developmentContextResolve,
+      developmentContextList: facades.contextOwner.developmentContextList,
+      developmentContextSearch: facades.contextOwner.developmentContextSearch,
+      developmentContextRead: facades.contextOwner.developmentContextRead,
       authorize: facades.authorize,
     },
   });
@@ -347,6 +475,16 @@ async function createTrialLightApplication(env) {
     },
   });
   const context = compactContext(configuredComposition);
+  let contextOwnerPromise = null;
+  const lazyContextOwner = async () => {
+    if (contextOwnerPromise === null) {
+      contextOwnerPromise = Promise.resolve().then(async () => generatedContextOwner(
+        configuredComposition,
+        await loadMcpTrialLazyContext(),
+      ));
+    }
+    return contextOwnerPromise;
+  };
   const assertContextSelector = (selector) => {
     if (selector !== null && selector !== configuredComposition.repository.contextReference) {
       const error = new Error('Context selector is outside the fixed trial reference');
@@ -370,6 +508,9 @@ async function createTrialLightApplication(env) {
       assertContextSelector(selector);
       throw configError('mcp_owner_unavailable', 'Full development context resolution is available only inside the execution Durable Object');
     },
+    developmentContextList: async (input = {}) => (await lazyContextOwner()).developmentContextList(input),
+    developmentContextSearch: async (input = {}) => (await lazyContextOwner()).developmentContextSearch(input),
+    developmentContextRead: async (input = {}) => (await lazyContextOwner()).developmentContextRead(input),
     authorize: async ({ identity } = {}) => Boolean(
       identity?.principalId === configuredComposition.identity.principalId &&
       identity?.tenantId === configuredComposition.identity.tenantId,

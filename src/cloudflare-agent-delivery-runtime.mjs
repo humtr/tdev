@@ -578,6 +578,30 @@ export class SqliteAgentResultHandoffStore {
   }
 }
 
+// Unit/qualification contexts may inject the in-memory Agent delivery store
+// with a lightweight fake Durable Object context. Preserve that seam while
+// keeping production/provider hosts on the SQLite handoff owner above.
+export class MemoryAgentResultHandoffStore {
+  #entries = new Map();
+
+  initialize() {}
+
+  put(input) {
+    const current = this.#entries.get(input.deliveryId);
+    const handoff = canonicalClone(input.handoff);
+    if (current !== undefined && canonicalJson(current) !== canonicalJson(handoff)) {
+      fail('agent_result_handoff_conflict', 'Result handoff identity was reused with different content');
+    }
+    this.#entries.set(input.deliveryId, handoff);
+    return { classification: current === undefined ? 'accepted' : 'exact_replay', handoff: canonicalClone(handoff) };
+  }
+
+  load({ deliveryId }) {
+    const handoff = this.#entries.get(deliveryId);
+    return handoff === undefined ? null : canonicalClone(handoff);
+  }
+}
+
 function deliveryRoutePlacement(config) {
   const { electionClassName, electionNamespace, ...placement } = config.placement;
   return placement;
@@ -841,7 +865,11 @@ export class AgentDeliveryRuntimeDOHost {
     }
     this.durableObjectId = ctx.id.toString();
     this.store = options.store ?? new SqliteAgentDeliveryStore(ctx.storage, { maxSnapshotBytes: this.config.maxSnapshotBytes });
-    this.resultHandoffStore = options.resultHandoffStore ?? new SqliteAgentResultHandoffStore(ctx.storage, { maxSnapshotBytes: this.config.maxFrameBytes });
+    this.resultHandoffStore = options.resultHandoffStore ?? (
+      typeof ctx.storage?.transactionSync === 'function' && typeof ctx.storage?.sql?.exec === 'function'
+        ? new SqliteAgentResultHandoffStore(ctx.storage, { maxSnapshotBytes: this.config.maxFrameBytes })
+        : new MemoryAgentResultHandoffStore()
+    );
     this.generationStore = options.generationStore ?? (
       typeof ctx.storage?.transactionSync === 'function' && typeof ctx.storage?.sql?.exec === 'function'
         ? new SqliteAgentRouteGenerationStore(ctx.storage)

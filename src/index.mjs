@@ -113,6 +113,7 @@ export {
   CLOUDFLARE_WEBSOCKET_RECEIVE_MAX_BYTES,
   AgentDeliveryRuntimeService,
   AgentDeliveryRuntimeDOHost,
+  MemoryAgentResultHandoffStore,
   SqliteAgentDeliveryStore,
   SqliteAgentResultHandoffStore,
   createRuntimeAgentRouteBinding,
@@ -248,9 +249,16 @@ export {
   MCP_TRIAL_DRIVE_CLASS_NAME,
   MCP_TRIAL_AGENT_CLASS_NAME,
   normalizeMcpTrialCompositionManifest,
+  normalizeMcpTrialCompositionBinding,
+  namespaceFor,
   createMcpTrialOwnerFacades,
   createMcpTrialAuthorization,
 } from './mcp-trial-composition.mjs';
+export {
+  McpTrialDevelopmentUnitRunner,
+  createMcpTrialDevelopmentUnitRunner,
+  resolveValidationOperationProfile,
+} from './mcp-trial-runner.mjs';
 export {
   DEVELOPMENT_UNIT_PROFILE,
   DEVELOPMENT_UNIT_CONTEXT_TASK_ID,
@@ -270,6 +278,8 @@ export {
   CodexExecRepositoryModelExecutor,
   NpmCheckValidationExecutor,
   DevelopmentWarden,
+  caseResultEnvelopeFromDispatch,
+  createLocalDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,
   createLocalDevelopmentAgent,
 } from './development-runtime.mjs';

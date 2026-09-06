@@ -32,6 +32,7 @@ import {
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
+import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const D0046_MCP_TRIAL_SCRIPT = 'tdev-mcp-trial';
@@ -53,6 +54,17 @@ export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
+// M1/M2 use one owner-issued source/test scope. The complete repository
+// manifest and base identity remain bound separately by the generated module.
+export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
+  schemaVersion: 1,
+  profile: 'tdev.repository-context-scope.v1',
+  paths: Object.freeze(['src/lazy-plan-reference.mjs', 'test/lazy-plan-reference.test.mjs']),
+  prefixes: Object.freeze([]),
+  maxFiles: 8,
+  maxBytes: 1024 * 1024,
+  maxSearchResults: 16,
+});
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const MAX_PUBLIC_RESPONSE_BYTES = 1024 * 1024;
@@ -164,16 +176,32 @@ function identityManifest() {
   return Object.freeze({ principalId, tenantId });
 }
 
-function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
+function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
   const contextReference = `tdev-context-${sourceSha.slice(0, 12)}`;
   const revisionId = `tdev-mcp-${sourceSha.slice(0, 12)}`;
   const operationDigest = digest(operationManifest);
+  const normalizedScopeDigest = scope === null ? null : suppliedScopeDigest ?? lazyScopeDigest(scope);
   const context = {
     revisionId,
     baseTree: includeBaseTree ? baseTree : {},
     repositoryCommitOid: sourceSha,
     objectFormat: 'sha1',
     contextReferenceId: contextReference,
+    ...(scope === null ? {} : {
+      contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+      contextScope: scope,
+      scopeDigest: normalizedScopeDigest,
+      ...(repositoryBaseIdentity === null ? {} : { baseIdentity: {
+        schemaVersion: 1,
+        profile: 'tdev.repository-base-identity.v1',
+        objectFormat: repositoryBaseIdentity.objectFormat,
+        commitOid: repositoryBaseIdentity.commitOid,
+        treeOid: repositoryBaseIdentity.treeOid,
+        baseDigest,
+        manifestDigest: repositoryBaseIdentity.manifestDigest,
+      } }),
+      ...(repositoryBaseIdentity === null ? {} : { repositoryBaseIdentity }),
+    }),
   };
   const body = {
     schemaVersion: 1,
@@ -222,10 +250,12 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
       objectFormat: 'sha1',
       contextReference,
       context,
+      ...(repositoryBaseIdentity === null ? {} : { repositoryBaseIdentity }),
+      ...(scope === null ? {} : { scope, scopeDigest: normalizedScopeDigest }),
     },
     operation: {
       manifestDigest: operationDigest,
-      contextProfile: 'tdev.repository.context.prepare.v1',
+      contextProfile: scope === null ? 'tdev.repository.context.prepare.v1' : 'tdev.repository.context.prepare.lazy.v1',
       modelProfile: 'tdev.model.repository.execute.v1',
       validationProfile: 'tdev.repository.validate.v1',
     },
@@ -238,10 +268,10 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
   return normalizeMcpTrialCompositionManifest(body);
 }
 
-export function buildTrialManifests({ sourceSha, baseDigest, baseTree, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
+export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
-  const composition = trialComposition({ sourceSha, baseDigest, baseTree, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
+  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
   const auth = accessManifest(accessAudience);
   const buildDigest = digest({
     profile: 'tdev.mcp.trial.build.v1',
@@ -597,11 +627,10 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const sourceSha = assertTrackedSource(repositoryPath);
   const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
   const operationManifest = normalizedOperationManifest(rawOperation);
-  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
   const base = await buildMcpTrialBaseTreeModule({
     repositoryPath,
     commitOid: sourceSha,
-    excludedPaths: modelBinding?.contextExcludedPaths ?? [],
+    scope: D0046_MCP_CONTEXT_SCOPE,
   });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, {
     overrides: { [base.moduleName]: base.source },
@@ -612,7 +641,18 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
   const absence = await preflightAbsence(client);
-  const bootstrap = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience: 'pending-access-audience' });
+  const manifestInput = {
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+  };
+  const bootstrap = buildTrialManifests({ ...manifestInput, driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience: 'pending-access-audience' });
   let subdomainEnabled = false;
   let accessApp = null;
   let driveNamespace = null;
@@ -622,7 +662,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     const namespace = await waitForTrialNamespace(client);
     driveNamespace = assertNamespaceId(namespace.id, 'trial drive namespace');
     accessApp = await createAccessApplication(client, credentials.accountId);
-    const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
+    const manifests = buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud });
     await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
     await setSubdomain(client, true);
     subdomainEnabled = true;
@@ -640,9 +680,9 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
       scriptName: D0046_MCP_TRIAL_SCRIPT,
       resource: D0046_MCP_TRIAL_RESOURCE,
       origin: D0046_MCP_TRIAL_ORIGIN,
-      base: { commitOid: base.commitOid, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes, excludedPaths: base.excludedPaths },
+      base: { commitOid: base.commitOid, treeOid: base.treeOid, objectFormat: base.objectFormat, semanticBaseDigest: base.semanticBaseDigest, repositoryBaseDigest: base.repositoryBaseIdentity.baseDigest, manifestDigest: base.manifestDigest, scopeDigest: base.scopeDigest, scope: base.scope, manifestEntryCount: base.manifestEntryCount, fileCount: base.fileCount, semanticBytes: base.semanticBytes, selectedBytes: base.selectedBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes },
       artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest, modules: artifact.modules },
-      manifests: { compositionDigest: bootstrap.composition.manifestDigest, finalCompositionDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).composition.manifestDigest, authProfileDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).auth.profileDigest, operationDigest: bootstrap.operationDigest, surfaceDigest: buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud }).surfaceDigest },
+      manifests: { compositionDigest: bootstrap.composition.manifestDigest, finalCompositionDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).composition.manifestDigest, authProfileDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).auth.profileDigest, operationDigest: bootstrap.operationDigest, surfaceDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).surfaceDigest },
       ownerBindings: { caseWorker: D0046_CASE_SCRIPT, caseNamespace: D0046_CASE_NAMESPACE, driveWorker: D0046_MCP_TRIAL_SCRIPT, driveNamespace, agentWorker: D0046_AGENT_SCRIPT, agentNamespace: D0046_AGENT_NAMESPACE, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE, agentId: bootstrap.composition.agentOwner.agentId, routeGeneration: bootstrap.composition.agentOwner.routeGeneration },
       identity: redactedIdentity(identity),
       access: { id: finalAccess.id, audienceDigest: sha256(finalAccess.aud), domain: finalAccess.domain, policyCount: finalAccess.policies.length, oauth: { issuer: D0046_ACCESS_ISSUER, jwksUri: D0046_ACCESS_JWKS_URI, dynamicRegistration: true, redirectUri: 'https://chatgpt.com/connector/oauth/*', pkce: 'S256' } },

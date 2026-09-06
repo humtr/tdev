@@ -526,11 +526,15 @@ export class TdevMcpSurface {
     this.authorize = owners.authorize ?? authorize ?? auth?.authorize ?? null;
     this.owners = { ...owners };
     if (typeof this.owners.developmentUnitStart !== 'function' &&
-        typeof this.owners.developmentContextGet === 'function' &&
+        (typeof this.owners.developmentContextResolve === 'function' || typeof this.owners.developmentContextGet === 'function') &&
         this.developmentUnitRunner !== null) {
       this.owners.developmentUnitStart = createDevelopmentUnitStartAdapter({
         runner: this.developmentUnitRunner,
-        resolveContext: ({ contextReference, identity }) => this.owners.developmentContextGet({ selector: contextReference, identity }),
+        resolveContext: ({ contextReference, identity }) => (
+          typeof this.owners.developmentContextResolve === 'function'
+            ? this.owners.developmentContextResolve({ selector: contextReference, identity })
+            : this.owners.developmentContextGet({ selector: contextReference, identity })
+        ),
       });
     }
     this.authorizationServerMetadata = authorizationServerMetadata;
