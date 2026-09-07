@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.r5.recovery-provider-reconciliation.v1",
+  "design": "D0046",
+  "revision": 5,
+  "observedAt": "2026-09-07T09:59:10Z",
+  "sourceCommit": "f011c7ced373174ff68abbfe2c0004bfe80a6a78",
+  "recoveryUpload": {
+    "attemptJobId": "job_ly5_cf53e27803",
+    "initialOutcome": "effect_unknown_after_put",
+    "uploadErrorCode": null,
+    "predecessorVersionId": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+    "predecessorSource": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61"
+  },
+  "authoritativeReconciliation": {
+    "activeVersionId": "90eca433-9ab4-4ab5-8d8f-62ce86a6a6c5",
+    "deploymentId": "d5f7d728-a839-4fad-8a62-59e3c7487a77",
+    "sourceMarker": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "moduleCount": 34,
+    "bundleDigest": "sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64",
+    "expectedRecoveryBundleDigest": "sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64",
+    "mainDigest": "sha256:74be15ad48515d2de0ea95eaf61c64335ef3800f2a92f7de57a1b5216fe9ead2",
+    "mainMatchesRecovery": true,
+    "recoveryToolPresent": true,
+    "nonMainTrackedMismatches": [],
+    "stableAcrossFreshReadback": true
+  },
+  "preservedIdentities": {
+    "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+    "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+    "agentNamespace": "0dad69baa7154d00949f88c8b8dbf94a",
+    "d1DatabaseId": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+    "urlChanged": false,
+    "accessIdentityChanged": false,
+    "ownerStateMutationObserved": false
+  },
+  "currentClient": {
+    "surface": "current ChatGPT tdev-trial-4 connector in this conversation",
+    "discoveredToolCount": 11,
+    "temporaryToolInCachedSchema": false,
+    "requiredNextAction": "refresh/rebind the current client tool schema to the same existing MCP connection; do not create a new provider URL or bypass Access",
+    "status": "client_refresh_required"
+  },
+  "driveRead": {
+    "caseId": "tdev-trial-m2-20260905-r3",
+    "performed": false,
+    "reason": "current ChatGPT connector schema is cached before the recovery tool appeared",
+    "quiescence": "unknown"
+  },
+  "gates": {
+    "sharedCaseMutationAllowed": false,
+    "m1": "OPEN",
+    "m2": "OPEN",
+    "cp1": "OPEN"
+  },
+  "secrets": "none"
+}
