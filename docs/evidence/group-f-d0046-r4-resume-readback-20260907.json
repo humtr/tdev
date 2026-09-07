@@ -1,0 +1,280 @@
+{
+  "scope": "D0046 resumption observation, not M1/M2 completion",
+  "sourceCommit": "1f03048e101604fc1fb411ebaebad748d6b64be9",
+  "provider": {
+    "observedAt": "2026-09-07T08:30:06.265Z",
+    "workers": [
+      {
+        "script": "tdev-d0020-composition-case-r1",
+        "deployment": {
+          "id": "3cf2e1d4-184e-4fa9-9c0a-2567f71e5c1a",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "Automatic deployment on upload.",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "ce96bc9d-4756-4b24-84c9-141522ba65da",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-09-05T05:24:03.358937Z"
+        },
+        "subdomain": {
+          "enabled": false,
+          "previews_enabled": false
+        },
+        "durableBindings": [
+          {
+            "class_name": "CaseRuntimeDO",
+            "name": "TDEV_CASE_AUTHORITY",
+            "namespace_id": "3b3d5808028f4e74bcbc1dc22f0757fd",
+            "type": "durable_object_namespace"
+          },
+          {
+            "database_id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+            "id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+            "name": "TDEV_CASE_PLACEMENT",
+            "type": "d1"
+          }
+        ]
+      },
+      {
+        "script": "tdev-d0020-qualification-clean-a",
+        "deployment": {
+          "id": "e21ef1a2-1dcb-4795-9686-9ada9079fa4c",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "D0039 R12 provider realignment 466a45473672c8b0...",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-08-28T09:25:06.185284Z"
+        },
+        "subdomain": {
+          "enabled": true,
+          "previews_enabled": false
+        },
+        "durableBindings": [
+          {
+            "class_name": "AgentDeliveryRuntimeDO",
+            "name": "TDEV_AGENT_DELIVERY",
+            "namespace_id": "0dad69baa7154d00949f88c8b8dbf94a",
+            "type": "durable_object_namespace"
+          }
+        ]
+      },
+      {
+        "script": "tdev-mcp-trial",
+        "deployment": {
+          "id": "574091a3-31bf-4890-a2c4-967118b9dd13",
+          "source": "api",
+          "strategy": "percentage",
+          "annotations": {
+            "workers/message": "D0046 isolated MCP trial 78f47d5002f7f0fbeb3520...",
+            "workers/triggered_by": "upload"
+          },
+          "versions": [
+            {
+              "version_id": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+              "percentage": 100
+            }
+          ],
+          "created_on": "2026-09-05T06:01:44.585684Z"
+        },
+        "subdomain": {
+          "enabled": true,
+          "previews_enabled": false
+        },
+        "durableBindings": [
+          {
+            "class_name": "AgentDeliveryRuntimeDO",
+            "name": "TDEV_AGENT_DELIVERY",
+            "namespace_id": "0dad69baa7154d00949f88c8b8dbf94a",
+            "script_name": "tdev-d0020-qualification-clean-a",
+            "type": "durable_object_namespace"
+          },
+          {
+            "class_name": "CaseAgentDriveRuntimeDO",
+            "name": "TDEV_CASE_AGENT_DRIVE",
+            "namespace_id": "138b3b6fc20d4d8988b598c572aa39f7",
+            "type": "durable_object_namespace"
+          },
+          {
+            "class_name": "CaseRuntimeDO",
+            "name": "TDEV_CASE_AUTHORITY",
+            "namespace_id": "3b3d5808028f4e74bcbc1dc22f0757fd",
+            "script_name": "tdev-d0020-composition-case-r1",
+            "type": "durable_object_namespace"
+          },
+          {
+            "database_id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+            "id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+            "name": "TDEV_CASE_PLACEMENT",
+            "type": "d1"
+          }
+        ]
+      }
+    ],
+    "consumers": [
+      {
+        "script": "tdev-d0020-composition-case-r1",
+        "bindings": [
+          {
+            "class_name": "CaseRuntimeDO",
+            "name": "TDEV_CASE_AUTHORITY",
+            "namespace_id": "3b3d5808028f4e74bcbc1dc22f0757fd",
+            "type": "durable_object_namespace"
+          }
+        ]
+      },
+      {
+        "script": "tdev-mcp-trial",
+        "bindings": [
+          {
+            "class_name": "CaseRuntimeDO",
+            "name": "TDEV_CASE_AUTHORITY",
+            "namespace_id": "3b3d5808028f4e74bcbc1dc22f0757fd",
+            "script_name": "tdev-d0020-composition-case-r1",
+            "type": "durable_object_namespace"
+          }
+        ]
+      }
+    ],
+    "providerDeploymentMutation": false
+  },
+  "supportedAuthenticatedReads": [
+    {
+      "method": "initialize",
+      "tool": null,
+      "status": 200,
+      "error": null
+    },
+    {
+      "method": "tools/list",
+      "tool": null,
+      "status": 200,
+      "error": null
+    },
+    {
+      "method": "tools/call",
+      "tool": "development_context_get",
+      "status": 200,
+      "error": null,
+      "context": {
+        "baseDigest": "sha256:51891d0a2fe68ab6546c9b43e7e7120ff4e4fe15a0acd26839c50b74b5e2b921",
+        "contextReferenceId": "tdev-context-78f47d5002f7",
+        "objectFormat": "sha1",
+        "repositoryCommitOid": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+        "revisionId": "tdev-mcp-78f47d5002f7"
+      }
+    },
+    {
+      "method": "tools/call",
+      "tool": "case_get",
+      "status": 500,
+      "error": {
+        "code": -32000,
+        "message": "MCP server error",
+        "data": {
+          "code": "mcp_internal_error"
+        }
+      }
+    },
+    {
+      "method": "tools/call",
+      "tool": "development_unit_get",
+      "status": 500,
+      "error": {
+        "code": -32000,
+        "message": "MCP server error",
+        "data": {
+          "code": "mcp_internal_error"
+        }
+      }
+    }
+  ],
+  "previousArtifactProof": {
+    "observedAt": "2026-09-07T07:00:57.614Z",
+    "layer": "downloaded-provider-artifact executed locally; no live Case mutation",
+    "predecessorVersionId": "ce96bc9d-4756-4b24-84c9-141522ba65da",
+    "comparedGitSource": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "allModulesMatchComparedSource": true,
+    "mismatchedModules": [],
+    "legacyRunningSnapshotPreserved": true,
+    "sha256CapabilityActualOldReaderError": "invalid_identifier",
+    "sha256CapabilityCurrentReaderAccepted": true,
+    "existingTwentyRowProofRerun": false,
+    "liveQuiescenceProved": false,
+    "providerMutation": false
+  },
+  "agentSourceComparison": {
+    "from": "581c44667194d9adab8bb89b5c7dc6de946883b8",
+    "to": "1f03048e101604fc1fb411ebaebad748d6b64be9",
+    "paths": [
+      "src",
+      "native",
+      "config",
+      "package.json",
+      "package-lock.json"
+    ],
+    "changedFiles": []
+  },
+  "limits": [
+    "Settings-based consumer enumeration does not prove all serving-version consumers or quiescence.",
+    "HTTP 500 is the direct operator observation; historical ChatGPT 502 remains separate.",
+    "No Worker deployment, Agent update, Case creation or development execution performed.",
+    "Reader-local artifact proof does not prove retained live readability."
+  ],
+  "remaining": [
+    "Obtain affected Case/Drive execution state through the existing authenticated owner path; current load failure blocks this.",
+    "Preserving Shared Case reader update, then current-source trial update, only after required execution safety is established.",
+    "Original provider candidate M1, then actual ChatGPT same-Case M2."
+  ],
+  "runtimeObservation": {
+    "observedAt": "2026-09-07T08:30:17.480Z",
+    "events": [
+      {
+        "script": "tdev-mcp-trial",
+        "outcome": "ok",
+        "exceptions": [],
+        "diagnostics": [
+          {
+            "stage": "received",
+            "profile": "tdev.mcp.trial.request-diagnostic.v1"
+          },
+          {
+            "stage": "mcp",
+            "code": "mcp_internal_error",
+            "status": 500,
+            "profile": "tdev.mcp.trial.request-diagnostic.v1"
+          }
+        ]
+      },
+      {
+        "script": "tdev-d0020-composition-case-r1",
+        "outcome": "ok",
+        "exceptions": [],
+        "diagnostics": []
+      },
+      {
+        "script": "tdev-mcp-trial",
+        "outcome": "ok",
+        "exceptions": [],
+        "diagnostics": []
+      }
+    ],
+    "temporaryTailSubscriptionsRemoved": true,
+    "workerDeploymentChanged": false
+  },
+  "priorReaderPreflight": "docs/evidence/group-f-d0046-r4-case-reader-preflight-20260906.json",
+  "retainedCaseId": "tdev-trial-m2-20260905-r3"
+}

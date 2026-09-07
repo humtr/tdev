@@ -28,7 +28,7 @@ The selected next action must be `none` or identify exactly one entry already pr
 
 ## Live carry-forward constraints
 
-- D0046@r4 reader preflight reproduced `unexpected_keys` for a scoped Plan against the deployed Case engine source; three provider modules matched that declared source byte-for-byte. The installed development runtime, repository transport and operation profile also differ from the repair source. Evidence: `docs/evidence/group-f-d0046-r4-case-reader-preflight-20260906.json`. Retained-state compatibility, quiescence, preserving update, installed release qualification and authenticated provider/client candidate remain open; this is not a new explanation of the historical 502.
+- D0046@r4 preserving update remains blocked on fresh affected Case/Drive execution-state readability. The authenticated operator path now returns HTTP 500 for both retained `case_get` and `development_unit_get`, while context/list/initialize succeed; this is separate from historical ChatGPT 502. Current reader source compatibility evidence is reusable, and the installed Agent's runtime/config/package paths have no changes from its source to the observed repair source, so source-string alignment alone does not require reinstall. Serving versions remain unchanged. See `docs/evidence/group-f-d0046-r4-resume-readback-20260907.json` and the bounded continuation in `docs/development/2026-09-07-d0046-resume.md`. M1/M2/CP1 remain open.
 
 - User CP1 remains OPEN until actual authenticated ChatGPT returns the validated candidate from the same Case. Historical local CP1 and physical M0 PASS records cover prerequisites only. D0046@r4 selects existing-state compatibility checks and preserving forward update before provider candidate qualification.
 
