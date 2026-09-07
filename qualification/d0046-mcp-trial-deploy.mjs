@@ -283,7 +283,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
       name: 'TDEV_CASE_AUTHORITY',
       class_name: MCP_TRIAL_CASE_CLASS_NAME,
       script_name: D0046_CASE_SCRIPT,
-      namespace_id: D0046_CASE_NAMESPACE,
     },
     {
       type: 'durable_object_namespace',
@@ -296,7 +295,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
       name: 'TDEV_AGENT_DELIVERY',
       class_name: MCP_TRIAL_AGENT_CLASS_NAME,
       script_name: D0046_AGENT_SCRIPT,
-      namespace_id: D0046_AGENT_NAMESPACE,
     },
     { type: 'd1', name: 'TDEV_CASE_PLACEMENT', database_id: D0046_CASE_PLACEMENT_DATABASE },
     { type: 'version_metadata', name: 'TDEV_WORKER_VERSION' },
@@ -419,7 +417,7 @@ async function setSubdomain(client, enabled) {
 
 function assertOwnerBinding(settings, scriptName, className, namespaceId, label) {
   const binding = bindingByName(settings, label);
-  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.namespace_id !== namespaceId) {
+  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.script_name !== scriptName) {
     fail('d0046_owner_binding_mismatch', `${scriptName} ${label} binding did not match its fixed owner`, { scriptName, label });
   }
 }
