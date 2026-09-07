@@ -166,6 +166,7 @@ export class LocalAgentRuntime {
     agentId,
     routeGeneration,
     executor,
+    capacityRevision = 0,
     capabilities = [],
     emit,
     executionAdapter,
@@ -197,7 +198,8 @@ export class LocalAgentRuntime {
     this.maxDispatchOrdinals = assertPositiveBound(maxDispatchOrdinals, 'maxDispatchOrdinals', 1024);
     this.maxFrameBytes = assertPositiveBound(maxFrameBytes, 'maxFrameBytes');
     this.connection = null;
-    this.capacityRevision = 0;
+    assertSafeInteger(capacityRevision, 'capacityRevision', { min: 0 });
+    this.capacityRevision = capacityRevision;
     this.deliveries = new Map();
     this.attempts = new Map();
   }
