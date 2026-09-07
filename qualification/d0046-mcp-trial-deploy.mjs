@@ -186,7 +186,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
     jurisdiction: 'global',
     caseOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_CASE_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_CASE_SCRIPT,
         className: MCP_TRIAL_CASE_CLASS_NAME,
@@ -198,7 +198,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
     },
     driveOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_MCP_TRIAL_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_MCP_TRIAL_SCRIPT,
         className: MCP_TRIAL_DRIVE_CLASS_NAME,
@@ -208,7 +208,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
     },
     agentOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_AGENT_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_AGENT_SCRIPT,
         className: MCP_TRIAL_AGENT_CLASS_NAME,
