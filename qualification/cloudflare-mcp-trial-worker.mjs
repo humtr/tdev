@@ -252,6 +252,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       developmentUnitRunner: runner,
       developmentContextGet: facades.contextOwner.developmentContextGet,
       developmentContextResolve: facades.contextOwner.developmentContextResolve,
+      diagnosticAgentRead: () => facades.agentOwner.readRoute(),
       authorize: facades.authorize,
     },
   });
@@ -442,6 +443,10 @@ export default {
             instruction: 'Change exactly one user-facing validation error message in src/mcp-development-adapter.mjs without changing behavior.',
             validationProfile: 'tdev.validation.npm-check.v1',
           })));
+        }
+        if (operation === 'agent.read') {
+          if (typeof stub.diagnoseAgentRead !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_agent_rpc_unavailable' } });
+          return jsonResponse(200, await stub.diagnoseAgentRead());
         }
         if (typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
         const input = operation === 'developmentUnitStart'

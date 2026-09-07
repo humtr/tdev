@@ -174,6 +174,26 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
     }
   }
 
+  async diagnoseAgentRead() {
+    try {
+      if (this.trialApplicationPromise === null) {
+        this.trialApplicationPromise = createTrialApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const worker = await this.trialApplicationPromise;
+      const snapshot = await worker.surface.owners.diagnosticAgentRead();
+      return { ok: true, result: publicJsonClone(snapshot) };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          name: typeof error?.name === 'string' ? error.name : null,
+          code: typeof error?.code === 'string' ? error.code : null,
+          message: typeof error?.message === 'string' ? error.message : String(error),
+        },
+      };
+    }
+  }
+
   async diagnoseMcpTrial(input) {
     try {
       return { ok: true, result: await this.executeMcpTrial(input) };
