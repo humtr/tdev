@@ -444,6 +444,10 @@ export default {
             validationProfile: 'tdev.validation.npm-check.v1',
           })));
         }
+        if (operation === 'case.start.attempt') {
+          if (typeof stub.diagnoseCaseStartAttempt !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_case_start_unavailable' } });
+          return jsonResponse(200, await stub.diagnoseCaseStartAttempt({ caseId }));
+        }
         if (operation === 'agent.read') {
           if (typeof stub.diagnoseAgentRead !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_agent_rpc_unavailable' } });
           return jsonResponse(200, await stub.diagnoseAgentRead());

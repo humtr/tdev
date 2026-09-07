@@ -174,6 +174,40 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
     }
   }
 
+  async diagnoseCaseStartAttempt(input) {
+    let phase = 'application';
+    try {
+      const caseId = input?.caseId;
+      if (typeof caseId !== 'string' || caseId.length === 0) fail('mcp_trial_execution_invalid', 'Case start probe requires caseId');
+      if (this.trialApplicationPromise === null) {
+        this.trialApplicationPromise = createTrialApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const worker = await this.trialApplicationPromise;
+      phase = 'load';
+      const loaded = await worker.surface.repository.load(caseId);
+      const snapshot = loaded?.snapshot?.() ?? loaded;
+      const taskId = snapshot?.plan?.taskOrder?.find((id) => snapshot?.taskStates?.[id]?.state === 'pending');
+      if (typeof taskId !== 'string') fail('mcp_trial_execution_invalid', 'Case start probe found no pending task');
+      phase = 'agent';
+      const agent = await worker.surface.owners.diagnosticAgentRead();
+      const executor = agent?.executor;
+      if (!executor || typeof executor.id !== 'string' || !Number.isSafeInteger(executor.epoch)) fail('mcp_trial_execution_invalid', 'Case start probe has no executor');
+      phase = 'command';
+      const result = await worker.surface.repository.command(caseId, {
+        requestId: 'probe-start-attempt-a25',
+        expectedCaseRevision: snapshot.caseRevision,
+        command: {
+          type: 'start_attempt',
+          taskId,
+          executor: { id: executor.id, epoch: executor.epoch, capabilities: worker.surface.developmentUnitRunner.capabilities },
+        },
+      });
+      return { ok: true, phase, taskId, result: publicJsonClone(result?.result ?? null) };
+    } catch (error) {
+      return { ok: false, phase, error: { name: typeof error?.name === 'string' ? error.name : null, code: typeof error?.code === 'string' ? error.code : null, message: typeof error?.message === 'string' ? error.message : String(error) } };
+    }
+  }
+
   async diagnoseAgentRead() {
     try {
       if (this.trialApplicationPromise === null) {
