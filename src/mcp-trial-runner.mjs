@@ -422,6 +422,24 @@ export class McpTrialDevelopmentUnitRunner {
     return snapshot;
   }
 
+  async #expireDueReservations(agentSnapshot) {
+    const nowMs = this.now();
+    const due = Object.values(agentSnapshot?.reservations ?? {})
+      .filter((reservation) => reservation?.status === 'reserved' && Number.isSafeInteger(reservation.expiresAtMs) && reservation.expiresAtMs <= nowMs)
+      .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)));
+    for (const reservation of due) {
+      await this.agentOwner.invoke('expire_reservation', {
+        request: {
+          reservationWindowGeneration: reservation.reservationWindowGeneration ?? reservation.windowGeneration,
+          reservationRequestId: reservation.reservationRequestId,
+          reservationRequestDigest: reservation.reservationRequestDigest,
+        },
+        nowMs,
+      });
+    }
+    return due.length === 0 ? agentSnapshot : this.#readAgent();
+  }
+
   async #advance({ caseId, driveRequestId, payload, view, agentSnapshot, dispatchResult = undefined }) {
     const observation = caseObservation(view, this.capabilities);
     // The drive authority is a cursor owner, not a second Case state owner.  It
@@ -692,6 +710,7 @@ export class McpTrialDevelopmentUnitRunner {
     const initial = await this.#load(caseId);
     let view = initial;
     let agentSnapshot = await this.#readAgent();
+    agentSnapshot = await this.#expireDueReservations(agentSnapshot);
     const attempts = nonterminalAttempts(view.snapshot, caseId);
     let action = null;
     if (attempts.length > 0) {

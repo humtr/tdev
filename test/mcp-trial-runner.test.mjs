@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
+  CaseEngine,
   MCP_AUTH_PROFILE,
   MCP_TRIAL_AGENT_CLASS_NAME,
   MCP_TRIAL_CASE_CLASS_NAME,
@@ -129,4 +130,79 @@ test('D0046 candidate projection returns a bounded diff instead of the complete 
   assert.deepEqual(candidate.changedPaths, ['src/changed.mjs']);
   assert.deepEqual(candidate.changes, [{ taskId: 'model', path: 'src/changed.mjs', content: 'export const changed = true;\n' }]);
   assert.equal(candidate.candidateDigest, digest({ ...BASE_TREE, 'src/changed.mjs': 'export const changed = true;\n' }));
+});
+
+test('D0046 drive expires due Agent reservations before availability gating', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-trial-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'write one file',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const caseId = 'trial-expired-reservation';
+  const engine = new CaseEngine({ caseId, plan });
+  const reservationRequestDigest = digest({ reservation: 'expired' });
+  let expired = false;
+  const agentState = () => ({
+    routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
+    installableAgent: { state: 'CURRENT' },
+    connection: expired ? null : { id: 'connection-1', epoch: 1 },
+    executor: { id: 'executor-1', epoch: 1 },
+    capacity: { revision: 1, effectiveCapacity: 1 },
+    reservationWindowGeneration: 1,
+    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    reservations: {
+      stale: {
+        reservationWindowGeneration: 1,
+        windowGeneration: 1,
+        reservationRequestId: 'reservation-stale',
+        reservationRequestDigest,
+        caseId,
+        taskId: 'context',
+        predictedAttemptOrdinal: 1,
+        slotGeneration: 1,
+        requestedSlots: 1,
+        expiresAtMs: 999,
+        status: expired ? 'expired' : 'reserved',
+      },
+    },
+    deliveries: {},
+  });
+  const calls = [];
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: { create: async () => null, load: async () => engine, command: async () => { throw new Error('unexpected Case command'); } },
+    driveOwner: { initialize: async () => null, advance: async (input) => ({ classification: 'accepted', input }) },
+    agentOwner: {
+      async invoke(operation, input) {
+        calls.push({ operation, input });
+        assert.equal(operation, 'expire_reservation');
+        expired = true;
+        return { classification: 'accepted' };
+      },
+      readRoute: async () => agentState(),
+      readResultHandoff: async () => null,
+      routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
+    },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    now: () => 1000,
+  });
+  const result = await runner.drive({ caseId, driveRequestId: 'drive-expiry', payload: {} });
+  assert.equal(result.status, 'not_ready');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], {
+    operation: 'expire_reservation',
+    input: {
+      request: {
+        reservationWindowGeneration: 1,
+        reservationRequestId: 'reservation-stale',
+        reservationRequestDigest,
+      },
+      nowMs: 1000,
+    },
+  });
 });
