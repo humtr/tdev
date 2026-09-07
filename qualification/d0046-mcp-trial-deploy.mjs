@@ -415,10 +415,17 @@ async function setSubdomain(client, enabled) {
   return response.result;
 }
 
-function assertOwnerBinding(settings, scriptName, className, namespaceId, label) {
+function assertSelfOwnerBinding(settings, scriptName, className, namespaceId, label) {
   const binding = bindingByName(settings, label);
-  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.script_name !== scriptName) {
+  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.namespace_id !== namespaceId) {
     fail('d0046_owner_binding_mismatch', `${scriptName} ${label} binding did not match its fixed owner`, { scriptName, label });
+  }
+}
+
+function assertExternalOwnerBinding(settings, ownerScriptName, className, label) {
+  const binding = bindingByName(settings, label);
+  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.script_name !== ownerScriptName) {
+    fail('d0046_owner_binding_mismatch', `${ownerScriptName} ${label} external binding did not match its fixed owner`, { ownerScriptName, label });
   }
 }
 
@@ -451,8 +458,8 @@ async function verifyExistingOwners(client) {
   ]);
   assertOwnerMarker(caseSettings.result, D0046_CASE_SCRIPT);
   assertOwnerMarker(agentSettings.result, D0046_AGENT_SCRIPT);
-  assertOwnerBinding(caseSettings.result, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
-  assertOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertSelfOwnerBinding(caseSettings.result, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
+  assertSelfOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
   assertCaseOwnerCapacity(caseSettings.result, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
   const caseSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA');
   if (caseSource?.type !== 'plain_text' || caseSource.text !== 'e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626') {
@@ -516,8 +523,8 @@ async function workerReadback(client) {
 
 function validateTrialWorkerSettings(settings, version, manifests, sourceSha, artifact) {
   assertOwnerMarker(settings, D0046_MCP_TRIAL_SCRIPT);
-  assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
-  assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertExternalOwnerBinding(settings, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, 'TDEV_CASE_AUTHORITY');
+  assertExternalOwnerBinding(settings, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, 'TDEV_AGENT_DELIVERY');
   const d1 = bindingByName(settings, 'TDEV_CASE_PLACEMENT');
   if (d1?.type !== 'd1' || d1.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_worker_binding_mismatch', 'Trial Worker D1 binding was not exact');
   const drive = bindingByName(settings, 'TDEV_CASE_AGENT_DRIVE');
