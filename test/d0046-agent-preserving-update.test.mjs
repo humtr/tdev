@@ -18,6 +18,7 @@ import {
   nextManagementRequestId,
   reconcileAmbiguousAgentMutation,
   selectPackageUpdateIdentity,
+  summarizeAgentPreparation,
 } from '../qualification/d0046-agent-preserving-update.mjs';
 
 const D = (label) => digest({ label });
@@ -164,6 +165,28 @@ test('local release binding admits only exact predecessor or candidate according
   assert.equal(assertLocalReleaseBindingState({ localStateManifestDigest: candidatePackage, candidateManifestDigest: candidatePackage, localManagementCurrent: null, predecessorBindings: [exact], candidateBinding: exact }).classification, 'candidate');
   assert.throws(() => assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: null, predecessorBindings: [mismatch], candidateBinding: mismatch }), { code: 'd0046_agent_local_release_binding_unknown' });
   assert.throws(() => assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: localManagementCurrent(), predecessorBindings: [exact], candidateBinding: exact }), { code: 'd0046_agent_local_release_binding_unknown' });
+});
+
+test('already-current summary keeps control health separate from package currency', () => {
+  const base = {
+    mode: 'already_current',
+    candidateManifestDigest: candidatePackage,
+    candidateSourceRevision: 'a'.repeat(40),
+    predecessorManifestDigest: candidatePackage,
+    providerObservedStateDigest: predecessorDigest,
+    managementExpectedPredecessorDigest: null,
+    deploymentIdentityDigest: deploymentIdentity,
+    routeBindingDigest: D('route'),
+    durableRootBindingDigest: D('root'),
+    compatibilityDigest: D('compatibility'),
+    providerQuiescenceDigest: D('provider-quiescence'),
+    localQuiescenceDigest: D('local-quiescence'),
+    localReleaseBindingDigest: D('local-binding'),
+    managementRequestId: null,
+    preparationDigest: D('preparation'),
+  };
+  assert.equal(summarizeAgentPreparation({ ...base, controlRunitClassification: 'down' }).status, 'agent_package_current_control_unhealthy');
+  assert.equal(summarizeAgentPreparation({ ...base, controlRunitClassification: 'running' }).status, 'agent_already_current');
 });
 
 test('provider quiescence requires actual full-route reservation and delivery state', () => {

@@ -91,6 +91,8 @@ async function main() {
     const packageModule = await import(pathToFileURL(path.join(packageRoot, 'src', 'installable-agent-package.mjs')).href);
     const serviceModule = await import(pathToFileURL(path.join(packageRoot, 'src', 'installable-agent-supervisor-service.mjs')).href);
     const termuxModule = await import(pathToFileURL(path.join(packageRoot, 'src', 'installable-agent-termux-service.mjs')).href);
+    const controlModule = await import(pathToFileURL(path.join(packageRoot, 'src', 'installable-agent-control.mjs')).href);
+    if (typeof controlModule.createInstallableAgentControlProcess !== 'function') fail('installable_agent_package_control_entrypoint_invalid', 'Extracted package control entrypoint does not expose the package-owned control process');
     const release = await packageModule.verifyInstallableAgentRelease({ packageRoot });
     if (expectedSourceRevision !== null && release.manifest.sourceRevision !== expectedSourceRevision) {
       fail('installable_agent_package_source_revision_mismatch', 'Extracted package source revision does not match qualification target');
@@ -169,6 +171,9 @@ async function main() {
     await waitForService(svPath, layout.controlServicePath, 'down');
     run(svPath, ['up', layout.controlServicePath]);
     await waitForService(svPath, layout.controlServicePath, 'running');
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    const restartedStatus = await controller.status({ stateDirectory });
+    if (restartedStatus?.controlRunit?.classification !== 'running') fail('installable_agent_package_control_not_stable', 'Extracted package control service did not remain running after restart');
 
     if (await containsSecret(stateDirectory, secretBytes)) fail('installable_agent_package_secret_persistence', 'Raw external credential material appeared in package-owned durable state');
     if (await containsSecret(layout.supervisorServicePath, secretBytes) || await containsSecret(layout.controlServicePath, secretBytes)) {

@@ -219,7 +219,12 @@ test('Termux runit controller force-stops only a positively drained supervisor t
   });
   const manifest = { target: { platform: 'android', arch: 'arm64' } };
   await controller.install({ packageRoot, stateDirectory, manifest });
-  await controller.activateControl({ stateDirectory, controlConfig: { credentialRef: path.join(root, 'credential-ref'), profile: 'fixture' } });
+  const credentialRef = `androidkeystore://com.termux.api/tdev.a1.${'A'.repeat(43)}`;
+  await controller.activateControl({ stateDirectory, controlConfig: { credentialRef, profile: 'fixture' } });
+  await assert.rejects(
+    controller.activateControl({ stateDirectory, controlConfig: { credentialRef: 'androidkeystore://com.termux.api/not-canonical', profile: 'fixture' } }),
+    { code: 'invalid_agent_credential_ref' },
+  );
   const result = await controller.quiesceAndStop({ stateDirectory, drainRequestId: 'drain-force-stop-one' });
   const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
   assert.equal(result.classification, 'quiesced_and_stopped');

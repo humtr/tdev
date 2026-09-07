@@ -4,7 +4,7 @@ import { spawnSync } from 'node:child_process';
 import { chmod, cp, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
-import { fileURLToPath } from 'node:url';
+import { fileURLToPath, pathToFileURL } from 'node:url';
 import {
   INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
   INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
@@ -46,6 +46,7 @@ const SOURCE_FILES = [
   ['src/cloudflare-agent-route-generation-runtime.mjs', 'runtime'],
   ['src/local-agent-runtime.mjs', 'runtime'],
   ['src/development-operation-profile.mjs', 'development-runtime'],
+  ['src/lazy-plan-reference.mjs', 'development-runtime'],
   ['src/development-runtime.mjs', 'development-runtime'],
   ['src/git-projection.mjs', 'development-runtime'],
   ['src/policy.mjs', 'development-runtime'],
@@ -118,6 +119,23 @@ async function fileEntry(stageRoot, relativePath, role) {
   if (!fileStat.isFile()) fail(`staged package payload is not a regular file: ${relativePath}`);
   const bytes = await readFile(fullPath);
   return { sha256: sha256(bytes), bytes: bytes.byteLength, role };
+}
+
+function assertPackageImportClosure(stageRoot) {
+  const entrypoints = [
+    'src/installable-agent-control.mjs',
+    'src/installable-agent-supervisor-service.mjs',
+    'src/installable-agent-package-cli.mjs',
+  ];
+  const source = entrypoints.map((relativePath) => `await import(${JSON.stringify(pathToFileURL(path.join(stageRoot, ...relativePath.split('/'))).href)});`).join('\n');
+  const result = spawnSync(process.execPath, ['--input-type=module', '--eval', source], {
+    cwd: stageRoot,
+    encoding: 'utf8',
+    maxBuffer: 4 * 1024 * 1024,
+  });
+  if (result.error || result.status !== 0) {
+    fail(`staged package entrypoint import closure is incomplete: ${(result.stderr ?? result.error?.message ?? '').trim()}`);
+  }
 }
 
 async function main() {
@@ -213,6 +231,7 @@ async function main() {
       files,
     };
     await writeMaterialized(stageRoot, 'release-manifest.json', Buffer.from(`${canonicalJson(manifest)}\n`), 0o644);
+    assertPackageImportClosure(stageRoot);
 
     const archiveName = `tdev-installable-agent-${targetKey}-${sourceRevision}.tgz`;
     const archivePath = path.join(outputDirectory, archiveName);

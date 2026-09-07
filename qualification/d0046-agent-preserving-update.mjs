@@ -510,6 +510,7 @@ export async function prepareD0046AgentPreservingUpdate({
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
     localReleaseBindingDigest: digest(bindingState),
+    controlRunitClassification: service.controlRunit?.classification ?? 'unknown',
     mode: identity.mode,
     managementRequestId: identity.managementRequestId ?? null,
   };
@@ -530,8 +531,11 @@ export async function prepareD0046AgentPreservingUpdate({
 }
 
 export function summarizeAgentPreparation(prepared) {
+  const status = prepared.mode === 'already_current'
+    ? prepared.controlRunitClassification === 'running' ? 'agent_already_current' : 'agent_package_current_control_unhealthy'
+    : 'prepared_agent_preserving_update';
   return Object.freeze({
-    status: prepared.mode === 'already_current' ? 'agent_already_current' : 'prepared_agent_preserving_update',
+    status,
     candidateManifestDigest: prepared.candidateManifestDigest,
     candidateSourceRevision: prepared.candidateSourceRevision,
     predecessorManifestDigest: prepared.predecessorManifestDigest,
@@ -544,6 +548,7 @@ export function summarizeAgentPreparation(prepared) {
     providerQuiescenceDigest: prepared.providerQuiescenceDigest,
     localQuiescenceDigest: prepared.localQuiescenceDigest,
     localReleaseBindingDigest: prepared.localReleaseBindingDigest,
+    controlRunitClassification: prepared.controlRunitClassification,
     mode: prepared.mode,
     managementRequestId: prepared.managementRequestId,
     preparationDigest: prepared.preparationDigest,
@@ -591,6 +596,9 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
   if (localStatus.managementJournal?.current !== null || candidateBinding.classification !== 'exact') {
     fail('d0046_agent_update_readback_mismatch', 'Local recovery journal or run definitions did not finalize on the exact durable candidate release');
   }
+  if (localStatus.service?.controlRunit?.classification !== 'running') {
+    fail('d0046_agent_control_not_running', 'Local Agent control service is not positively running after package finalization', { classification: localStatus.service?.controlRunit?.classification ?? 'unknown' });
+  }
   return Object.freeze({
     status: 'agent_preserving_update_complete',
     candidateManifestDigest: prepared.candidateManifestDigest,
@@ -600,6 +608,7 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
     localReleaseBindingDigest: digest(candidateBinding),
+    controlRunitDigest: digest(localStatus.service.controlRunit),
     resultDigest: digest(result),
     providerMutation: true,
     secretValues: 'excluded',
