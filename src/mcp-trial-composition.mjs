@@ -250,11 +250,11 @@ function routedStub(namespace, name, jurisdiction, label, { rpc = true } = {}) {
   return { id, stub };
 }
 
-function unwrapRpc(response, label, { profile = null } = {}) {
+function unwrapRpc(response, label, { profile = null, schemaVersion = 1 } = {}) {
   if (!isPlainRecord(response)) fail('mcp_trial_owner_invalid_response', `${label} returned a non-record response`);
   const header = profile === null ? ['schemaVersion', 'ok'] : ['profile', 'schemaVersion', 'ok'];
   assertRecordShape(response, header, ['result', 'error'], `${label} RPC response`);
-  if ((profile !== null && response.profile !== profile) || response.schemaVersion !== 1 || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
+  if ((profile !== null && response.profile !== profile) || response.schemaVersion !== schemaVersion || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
   if (response.ok) {
     assertRecordShape(response, [...header, 'result'], [], `${label} RPC success`);
     return publicJsonClone(response.result);
@@ -437,7 +437,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
         routeGeneration: normalized.agentOwner.routeGeneration,
         ...canonicalClone(input),
       };
-      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`, { profile: MCP_TRIAL_AGENT_RPC_PROFILE });
+      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`, { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2 });
     },
     async readRoute() { return this.invoke('read'); },
     async readResultHandoff(deliveryId) { return this.invoke('read_result_handoff', { deliveryId }); },
