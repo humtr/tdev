@@ -314,7 +314,10 @@ async function createTrialLightApplication(env) {
     if (!stub || typeof stub.executeMcpTrial !== 'function') {
       throw configError('mcp_owner_unavailable', 'Trial execution Durable Object RPC is unavailable');
     }
-    return stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    const result = await stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    // Cloudflare RPC results can carry runtime-owned Symbol metadata. Project
+    // only the public JSON payload before the strict MCP canonical boundary.
+    return JSON.parse(JSON.stringify(result));
   };
   const caseSnapshotOwner = (snapshot) => Object.freeze({
     snapshot: () => canonicalClone(snapshot),
