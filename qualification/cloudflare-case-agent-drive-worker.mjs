@@ -89,4 +89,19 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
     }
     return canonicalClone(plainOwnerResult(result));
   }
+
+  async diagnoseMcpTrial(input) {
+    try {
+      return { ok: true, result: await this.executeMcpTrial(input) };
+    } catch (error) {
+      return {
+        ok: false,
+        error: {
+          name: typeof error?.name === 'string' ? error.name : null,
+          code: typeof error?.code === 'string' ? error.code : null,
+          message: typeof error?.message === 'string' ? error.message : String(error),
+        },
+      };
+    }
+  }
 }

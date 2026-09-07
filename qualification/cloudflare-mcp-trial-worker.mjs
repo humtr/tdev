@@ -395,6 +395,31 @@ async function lightApplication(env) {
 export default {
   async fetch(request, env) {
     emitRequestDiagnostic('received', request);
+    const url = new URL(request.url);
+    if (url.pathname === '/__tdev_rpc_probe') {
+      const expected = typeof env.TDEV_RPC_PROBE_TOKEN === 'string' ? env.TDEV_RPC_PROBE_TOKEN : '';
+      const authorization = request.headers.get('authorization') ?? '';
+      if (expected.length < 32 || authorization !== `Bearer ${expected}`) return new Response('Not found', { status: 404 });
+      const caseId = url.searchParams.get('caseId') ?? '';
+      const operation = url.searchParams.get('operation') ?? 'repository.load';
+      try {
+        const configuredComposition = normalizeMcpTrialCompositionBinding(readJsonBinding(env, TRIAL_MANIFEST_BINDING));
+        if (!caseId.startsWith(configuredComposition.casePrefix)) return jsonResponse(400, { ok: false, error: { code: 'probe_case_scope_denied' } });
+        const driveNs = namespaceFor(env.TDEV_CASE_AGENT_DRIVE, configuredComposition.jurisdiction, 'Case-Agent drive');
+        const id = driveNs.idFromName(caseId);
+        const stub = driveNs.get(id);
+        if (!stub || typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
+        const input = operation === 'repository.load' ? { caseId } : { caseId };
+        const result = await stub.diagnoseMcpTrial({ operation, input });
+        return jsonResponse(200, result);
+      } catch (error) {
+        return jsonResponse(500, { ok: false, error: {
+          name: typeof error?.name === 'string' ? error.name : null,
+          code: typeof error?.code === 'string' ? error.code : null,
+          message: typeof error?.message === 'string' ? error.message : String(error),
+        } });
+      }
+    }
     const fastMetadata = metadataFastPath(request, env);
     if (fastMetadata !== null) {
       emitRequestDiagnostic('metadata', request, { status: fastMetadata.status });
