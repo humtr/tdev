@@ -1,0 +1,51 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.r6.execution-readback.v1",
+  "design": "D0046",
+  "revision": 6,
+  "sourceCommit": "73761d6d0e904ed4791535591f755bb35cc27433",
+  "providerUpdate": {
+    "applyJobId": "job_lzg_aceab51897",
+    "immediateOutcome": "effect_unknown_after_put",
+    "uploadErrorCode": null,
+    "reconciled": true,
+    "activeVersionId": "3f6ecb65-6882-4223-866b-b485d454876d",
+    "moduleCount": 34,
+    "bundleDigest": "sha256:6d6bf5a9fd876a111e0a96a5b543750e05b39cf268b1f3de77793d7c2baa8bba",
+    "exactQualifiedBundle": true,
+    "stableAcrossFreshReadback": true
+  },
+  "preservedIdentities": {
+    "caseNamespaceExact": true,
+    "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+    "agentNamespaceExact": true,
+    "d1Exact": true,
+    "urlChanged": false,
+    "accessIdentityChanged": false
+  },
+  "cachedClientRead": {
+    "tool": "development_context_get",
+    "selector": "d0046-r6-execution-state.tdev-trial-m2-20260905-r3",
+    "result": "HTTP 502 upstream error from current ChatGPT connector",
+    "driveProjectionRead": false,
+    "quiescence": "unknown"
+  },
+  "diagnosis": {
+    "sourceFact": "The normal development_context_get owner throws mcp_trial_context_scope_denied for a non-current selector; the outer ingress catches thrown errors and returns HTTP 503 before the r6 post-response bridge can run.",
+    "r6BridgeReached": false,
+    "normalDevelopmentContextStillWorks": true,
+    "normalContextReference": "tdev-context-78f47d5002f7",
+    "productOwnerMutationObserved": false
+  },
+  "decision": {
+    "providerRetryAllowed": false,
+    "sharedCaseMutationAllowed": false,
+    "next": "Do not add r7 or another provider bridge. Start a fresh ChatGPT conversation in the same project so connector tool schemas are enumerated anew from the already-active MCP surface; call existing r5 development_execution_state_get for tdev-trial-m2-20260905-r3. Only a valid QUIESCED projection with terminal revision and receipt admits the preserving Shared Case update."
+  },
+  "gates": {
+    "m1": "OPEN",
+    "m2": "OPEN",
+    "cp1": "OPEN"
+  },
+  "secrets": "none"
+}
