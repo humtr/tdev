@@ -125,11 +125,14 @@ function generatedModule({ commitOid, baseDigest, compressed }) {
  * Build the generated Worker module for one exact commit. Non-UTF8 blobs are
  * accepted only when their paths are explicitly excluded by D0043.
  */
-export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, excludedPaths = [] } = {}) {
+export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, excludedPaths = [], includedPathPrefixes = [] } = {}) {
   if (typeof repositoryPath !== 'string' || repositoryPath.length === 0) fail('mcp_base_tree_repository_invalid', 'repositoryPath is required');
   if (typeof commitOid !== 'string' || !GIT_OID.test(commitOid)) fail('mcp_base_tree_commit_invalid', 'commitOid is invalid');
   if (!Array.isArray(excludedPaths) || excludedPaths.some((value) => typeof value !== 'string' || value.length === 0)) {
     fail('mcp_base_tree_exclusion_invalid', 'excludedPaths must be an array of non-empty paths');
+  }
+  if (!Array.isArray(includedPathPrefixes) || includedPathPrefixes.some((value) => typeof value !== 'string' || value.length === 0)) {
+    fail('mcp_base_tree_inclusion_invalid', 'includedPathPrefixes must be an array of non-empty path prefixes');
   }
   const excluded = new Set(excludedPaths);
   if (excluded.size !== excludedPaths.length) fail('mcp_base_tree_exclusion_invalid', 'excludedPaths contains a duplicate');
@@ -138,20 +141,26 @@ export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, e
   for (const filePath of excluded) {
     if (!observedPaths.has(filePath)) fail('mcp_base_tree_exclusion_mismatch', 'An excluded path is absent from the exact commit', { path: filePath });
   }
-  const oids = [...new Set(rows.map((row) => row.blobOid))];
+  const selectedRows = includedPathPrefixes.length === 0
+    ? rows
+    : rows.filter((row) => includedPathPrefixes.some((prefix) => row.path === prefix || row.path.startsWith(prefix)));
+  if (selectedRows.length === 0) fail('mcp_base_tree_inclusion_empty', 'includedPathPrefixes selected no repository entries');
+  const selectedPaths = new Set(selectedRows.map((row) => row.path));
+  const selectedExcluded = new Set(excludedPaths.filter((filePath) => selectedPaths.has(filePath)));
+  const oids = [...new Set(selectedRows.map((row) => row.blobOid))];
   const contents = parseBatch(await git(repositoryPath, ['cat-file', '--batch'], Buffer.from(`${oids.join('\n')}\n`, 'ascii')), oids);
   const tree = {};
   const nonUtf8 = [];
-  for (const row of rows) {
+  for (const row of selectedRows) {
     const raw = contents.get(row.blobOid);
     if (raw === undefined || raw.byteLength !== row.byteLength) fail('mcp_base_tree_git_blob_invalid', 'Git blob size does not match tree metadata', { path: row.path });
     try { tree[row.path] = decodeBlob(raw, `Git blob ${row.blobOid}`); }
     catch (cause) {
-      if (!excluded.has(row.path)) throw cause;
+      if (!selectedExcluded.has(row.path)) throw cause;
       nonUtf8.push(row.path);
     }
   }
-  const unexpectedExcluded = excludedPaths.filter((filePath) => !nonUtf8.includes(filePath));
+  const unexpectedExcluded = [...selectedExcluded].filter((filePath) => !nonUtf8.includes(filePath));
   if (unexpectedExcluded.length !== 0) fail('mcp_base_tree_exclusion_mismatch', 'Excluded paths do not match non-UTF8 release entries', { unexpectedExcluded });
   const normalizedTree = validateTree(tree);
   const baseJson = canonicalJson(normalizedTree);

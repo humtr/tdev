@@ -39,6 +39,7 @@ export const D0046_MCP_TRIAL_SUBDOMAIN = 'humtr';
 export const D0046_MCP_TRIAL_RESOURCE = MCP_TRIAL_COMPOSITION_RESOURCE;
 export const D0046_MCP_TRIAL_ORIGIN = `https://${D0046_MCP_TRIAL_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev`;
 export const D0046_MCP_TRIAL_DOMAIN = `${D0046_MCP_TRIAL_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev/mcp`;
+const D0046_CONNECTION_CONTEXT_PREFIXES = Object.freeze(['src/', 'package.json', 'package-lock.json']);
 export const D0046_ACCESS_ISSUER = 'https://humtr.cloudflareaccess.com';
 export const D0046_ACCESS_JWKS_URI = `${D0046_ACCESS_ISSUER}/cdn-cgi/access/certs`;
 export const D0046_ACCESS_IDP = '8845fb76-2486-433f-892c-39398f70bfae';
@@ -666,7 +667,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
   const operationManifest = normalizedOperationManifest(rawOperation);
   const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
-  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, excludedPaths: modelBinding?.contextExcludedPaths ?? [] });
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, excludedPaths: modelBinding?.contextExcludedPaths ?? [], includedPathPrefixes: D0046_CONNECTION_CONTEXT_PREFIXES });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
   const artifact = artifactManifest(modules);
   const identity = identityManifest();
@@ -717,6 +718,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     repositoryPath,
     commitOid: sourceSha,
     excludedPaths: modelBinding?.contextExcludedPaths ?? [],
+    includedPathPrefixes: D0046_CONNECTION_CONTEXT_PREFIXES,
   });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, {
     overrides: { [base.moduleName]: base.source },
