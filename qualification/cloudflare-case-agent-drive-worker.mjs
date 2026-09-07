@@ -1,6 +1,6 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CaseAgentDriveRuntimeDOHost } from '../src/cloudflare-case-agent-drive-runtime.mjs';
-import { canonicalClone, isPlainRecord } from '../src/canonical.mjs';
+import { canonicalClone, isPlainRecord, publicJsonClone } from '../src/canonical.mjs';
 import { createCasePlacement } from '../src/casedo-authority.mjs';
 import { namespaceFor, normalizeMcpTrialCompositionBinding } from '../src/mcp-trial-composition.mjs';
 import { createTrialApplication } from './cloudflare-mcp-trial-worker.mjs';
@@ -89,7 +89,7 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
       case 'developmentUnitStart': result = await worker.surface.owners.developmentUnitStart(request.input); break;
       default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
     }
-    return canonicalClone(plainOwnerResult(result));
+    return publicJsonClone(plainOwnerResult(result));
   }
 
   diagnoseDrivePing() {
