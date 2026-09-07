@@ -418,7 +418,18 @@ export default {
           return jsonResponse(200, await stub.diagnoseCaseLoadDirect({ caseId }));
         }
         if (typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
-        const result = await stub.diagnoseMcpTrial({ operation, input: { caseId } });
+        const input = operation === 'developmentUnitStart'
+          ? {
+              caseId,
+              driveRequestId: `probe-drive-${caseId}`,
+              contextReference: configuredComposition.repository.contextReference,
+              instruction: 'Change exactly one user-facing validation error message in src/mcp-development-adapter.mjs without changing behavior.',
+              validationProfile: 'tdev.validation.npm-check.v1',
+              identity: configuredComposition.identity,
+              requestId: `probe-request-${caseId}`,
+            }
+          : { caseId };
+        const result = await stub.diagnoseMcpTrial({ operation, input });
         return jsonResponse(200, result);
       } catch (error) {
         return jsonResponse(500, { ok: false, error: {
