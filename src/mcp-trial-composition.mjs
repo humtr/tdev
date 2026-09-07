@@ -33,6 +33,18 @@ export const MCP_TRIAL_DRIVE_CLASS_NAME = 'CaseAgentDriveRuntimeDO';
 export const MCP_TRIAL_AGENT_CLASS_NAME = 'AgentDeliveryRuntimeDO';
 
 const JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
+const MCP_TRIAL_AGENT_DEPLOYMENT_IDENTITY_OPERATIONS = new Set([
+  'reserve',
+  'release_reservation',
+  'expire_reservation',
+  'roll_reservation_window',
+  'activate_delivery',
+  'grant_command',
+  'close_undispatched_delivery',
+  'bind_terminal_case_receipt',
+  'reacquire_delivery_admission',
+  'send_dispatch',
+]);
 const REPOSITORY_OID = /^[0-9a-f]{40,64}$/u;
 const MAX_TEXT_BYTES = 4096;
 const OWNER_PLACEMENT_FIELDS = [
@@ -430,12 +442,24 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async invoke(operation, input = {}) {
       const route = agentRoute();
       assertIdentifier(operation, 'Agent operation');
+      let expectedDeploymentIdentityDigest;
+      if (MCP_TRIAL_AGENT_DEPLOYMENT_IDENTITY_OPERATIONS.has(operation)) {
+        const probe = unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone({
+          profile: MCP_TRIAL_AGENT_RPC_PROFILE,
+          operation: 'runtime_probe',
+          agentId: normalized.agentOwner.agentId,
+          routeGeneration: normalized.agentOwner.routeGeneration,
+        })), 'Agent runtime_probe', { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2 });
+        assertDigest(probe?.deploymentIdentityDigest, 'Agent deployment identity digest');
+        expectedDeploymentIdentityDigest = probe.deploymentIdentityDigest;
+      }
       const rpc = {
         profile: MCP_TRIAL_AGENT_RPC_PROFILE,
         operation,
         agentId: normalized.agentOwner.agentId,
         routeGeneration: normalized.agentOwner.routeGeneration,
         ...canonicalClone(input),
+        ...(expectedDeploymentIdentityDigest === undefined ? {} : { expectedDeploymentIdentityDigest }),
       };
       return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`, { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2 });
     },
