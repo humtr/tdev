@@ -1,0 +1,56 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.r5.recovery-read-acceptance.v1",
+  "design": "D0046",
+  "revision": 5,
+  "status": "accepted",
+  "observedAt": "2026-09-07T09:37:00Z",
+  "acceptanceBase": "abf357b78b94f9fadf9695e55c1e4a68c8c154aa",
+  "falsifier": {
+    "retainedCaseId": "tdev-trial-m2-20260905-r3",
+    "liveTrialSource": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "liveTrialVersionId": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+    "retainedProjection": "mcp_internal_error / connector upstream failure",
+    "nonexistentCaseProjection": "same failing public boundary",
+    "historicalFailDurationSeconds": [
+      24.482,
+      23.346
+    ],
+    "driveReadRpcExists": true,
+    "driveReadIngressExists": false,
+    "remoteDurableObjectLocalBindingSupported": false,
+    "remoteDevWouldCreatePreview": true,
+    "localAccessServiceAssertionPresent": false
+  },
+  "sourceCompatibility": {
+    "comparedFrom": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "comparedTo": "abf357b78b94f9fadf9695e55c1e4a68c8c154aa",
+    "unchanged": [
+      "src/case-agent-drive.mjs",
+      "src/cloudflare-case-agent-drive-runtime.mjs"
+    ],
+    "driveWorkerOnlyCurrentDiff": "six additive lines admitting context.list/context.search/context.read; no D0042 authority/storage change"
+  },
+  "decision": {
+    "kind": "existing-target ingress-only recovery update",
+    "temporaryTool": "development_execution_state_get",
+    "predecessorBundleRule": "all modules except ingress main module byte-identical to active 78f47d predecessor",
+    "allowedOwnerCall": "readCaseAgentDrive only",
+    "sharedCaseMutationBeforePositiveRead": false,
+    "mustRemoveBeforeM1": true,
+    "newWorker": false,
+    "newUrl": false,
+    "preview": false,
+    "newNamespace": false,
+    "newCredentialIdentity": false
+  },
+  "positiveGate": {
+    "status": "QUIESCED",
+    "requiresLastCaseRevision": true,
+    "requiresLastDriveReceiptDigest": true
+  },
+  "providerMutation": false,
+  "m1": "OPEN",
+  "m2": "OPEN",
+  "secrets": "none"
+}

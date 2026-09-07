@@ -1,10 +1,10 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 4
+- Revision: 5
 - Class: 2
-- Decision date: 2026-09-06
-- Acceptance base: `development@18da93afad6e37429f83fab49bde2331b797233e`
+- Decision date: 2026-09-07
+- Acceptance base: `development@abf357b78b94f9fadf9695e55c1e4a68c8c154aa`
 - Historical r3 predecessor revision: D0046@r2 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
 - Trigger: the source repair now connects the owner-issued lazy identity through Case/Agent execution, sparse model workspace, disposable full-base candidate and positive warden receipts. The minimum path must treat that local composition as the first executable checkpoint while retaining provider quota and current-client behavior as unknown.
 - Historical r3 acceptance evidence: `docs/evidence/group-f-d0046-r3-scoped-warden-route-acceptance-2026-09-06.json`
@@ -12,6 +12,19 @@
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
+
+## Revision 5 correction
+
+- Predecessor: D0046@r4 as published at `development@abf357b78b94f9fadf9695e55c1e4a68c8c154aa`.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r5-recovery-read-acceptance-20260907.json`.
+- Falsifier: the retained `tdev-trial-m2-20260905-r3` Case cannot be projected through the deployed trial because tree-heavy Case reads return `mcp_internal_error` after roughly 23-25 seconds. A nonexistent Case identifier fails through the same public boundary. The deployed D0042 Drive object already owns a bounded `readCaseAgentDrive` RPC, but the deployed `78f47d5` trial has no callable ingress route for that read. Cloudflare local development cannot bind directly to a remote Durable Object, while remote development would create the preview deployment forbidden by Revision 4. No existing local Cloudflare Access service assertion is available to call an added private HTTP path. Revision 4 therefore contains a circular admission condition: ordinary trial/shared-owner updates require execution-state readability, while the deployed surface cannot expose that state without an ingress-only update.
+- Exactly one **recovery-only existing-target trial update** is admitted before the ordinary quiescence gate. It must keep the exact `tdev-mcp-trial` service, HTTPS resource, Access application/audience, principal/tenant mapping, traffic target, Case/Drive/Agent Durable Object namespace identities, D1 placement identity, secrets and all unrelated provider objects unchanged. No preview, alternate URL, version override, diagnostic Worker or replacement namespace is allowed.
+- The recovery artifact is derived from the exact active predecessor source `78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61` / version `5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9`. Every module except the HTTP/MCP ingress main module must be byte-identical to that predecessor. In particular `CaseAgentDriveRuntimeDO`, D0042 authority/storage, Shared Case bindings and normal execution operations are unchanged. The ingress-only patch may add the temporary D0046 qualification tool `development_execution_state_get`; it may not alter an existing tool's behavior.
+- `development_execution_state_get` is **not** part of the D0023 stable product surface. It exists only in the recovery version, is authenticated by the existing D0024 Access boundary and exact trial principal/tenant mapping, accepts exactly one bounded `{caseId}` for the existing trial Case prefix, invokes only `readCaseAgentDrive`, and returns only `caseId`, `status`, `revision`, `lastCaseRevision`, `lastDriveReceiptDigest` and `lastObservedDeliveryDigest`. It cannot initialize, advance, quiesce or snapshot a Drive; load a Case; dispatch an Agent; read repository content; or mutate any owner. It must be absent again before M1 begins.
+- Admission of the recovery upload requires two matching provider readbacks around preparation and an exact active predecessor match. A lost/ambiguous upload response is reconciled by actual deployed version, module content, bindings, traffic and Access identity before any retry. Any predecessor/configuration drift rejects the operation.
+- A recovered Drive record is sufficient for the affected-Case execution gate only when it is schema-valid `QUIESCED` with non-null `lastCaseRevision` and `lastDriveReceiptDigest`. `ACTIVE`, `RECONCILING`, absent, malformed or unreadable state blocks every Shared Case update. Agent reservation counts, placement inventory and invocation success remain insufficient substitutes.
+- After positive Drive quiescence, rebind the exact Shared Case predecessor/consumers and perform the Revision-4 compatible reader forward update with namespace/D1 preservation. Retained Case readability must then succeed. Only after that readback may the existing trial be aligned to current source, and that normal current-source trial update must remove `development_execution_state_get`. M1 and M2 meanings are unchanged.
+- This correction changes only D0046 deployment-admission/qualification meaning. D0019 Case authority, D0042 Drive state semantics, D0024 authentication semantics, D0023 stable product tools, D0027 lifecycle and D0047/D0048 repository identity remain unchanged.
 
 ## Revision 4 correction
 
