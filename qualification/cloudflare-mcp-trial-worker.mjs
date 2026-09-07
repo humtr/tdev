@@ -430,7 +430,7 @@ export default {
               requestId: `probe-request-${caseId}`,
             }
           : { caseId };
-        const result = await stub.diagnoseMcpTrial({ operation, input });
+        const result = await stub.diagnoseMcpTrial(publicJsonClone({ operation, input }));
         return jsonResponse(200, result);
       } catch (error) {
         return jsonResponse(500, { ok: false, error: {
