@@ -408,9 +408,17 @@ export default {
         const driveNs = namespaceFor(env.TDEV_CASE_AGENT_DRIVE, configuredComposition.jurisdiction, 'Case-Agent drive');
         const id = driveNs.idFromName(caseId);
         const stub = driveNs.get(id);
-        if (!stub || typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
-        const input = operation === 'repository.load' ? { caseId } : { caseId };
-        const result = await stub.diagnoseMcpTrial({ operation, input });
+        if (!stub) return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
+        if (operation === 'drive.ping') {
+          if (typeof stub.diagnoseDrivePing !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_ping_unavailable' } });
+          return jsonResponse(200, await stub.diagnoseDrivePing());
+        }
+        if (operation === 'case.load.direct') {
+          if (typeof stub.diagnoseCaseLoadDirect !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_case_direct_unavailable' } });
+          return jsonResponse(200, await stub.diagnoseCaseLoadDirect({ caseId }));
+        }
+        if (typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
+        const result = await stub.diagnoseMcpTrial({ operation, input: { caseId } });
         return jsonResponse(200, result);
       } catch (error) {
         return jsonResponse(500, { ok: false, error: {

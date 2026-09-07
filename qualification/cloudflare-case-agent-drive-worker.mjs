@@ -1,6 +1,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CaseAgentDriveRuntimeDOHost } from '../src/cloudflare-case-agent-drive-runtime.mjs';
 import { canonicalClone, isPlainRecord } from '../src/canonical.mjs';
+import { createCasePlacement } from '../src/casedo-authority.mjs';
+import { namespaceFor, normalizeMcpTrialCompositionBinding } from '../src/mcp-trial-composition.mjs';
 import { createTrialApplication } from './cloudflare-mcp-trial-worker.mjs';
 
 const TRIAL_EXECUTION_OPERATIONS = new Set([
@@ -88,6 +90,46 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
       default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
     }
     return canonicalClone(plainOwnerResult(result));
+  }
+
+  diagnoseDrivePing() {
+    return { ok: true, phase: 'drive_ping' };
+  }
+
+  async diagnoseCaseLoadDirect(input) {
+    try {
+      const caseId = input?.caseId;
+      if (typeof caseId !== 'string' || caseId.length === 0) fail('mcp_trial_execution_invalid', 'Direct Case probe requires caseId');
+      const configured = normalizeMcpTrialCompositionBinding(JSON.parse(this.env.TDEV_MCP_TRIAL_MANIFEST_JSON));
+      const caseNs = namespaceFor(this.env.TDEV_CASE_AUTHORITY, configured.jurisdiction, 'Case');
+      const id = caseNs.idFromName(caseId);
+      const placement = createCasePlacement({
+        caseId,
+        placementGeneration: 1,
+        ...configured.caseOwner.placement,
+        durableObjectId: id.toString(),
+      });
+      const stub = caseNs.get(id);
+      if (!stub || typeof stub.qualificationInvoke !== 'function') fail('mcp_trial_owner_unavailable', 'Direct Case RPC is unavailable');
+      const response = await stub.qualificationInvoke({ operation: 'load', placement });
+      return {
+        ok: true,
+        phase: 'case_load_direct',
+        response: response?.ok === true
+          ? { schemaVersion: response.schemaVersion, ok: true, caseId: response.result?.snapshot?.caseId ?? null, caseRevision: response.result?.snapshot?.caseRevision ?? null }
+          : response,
+      };
+    } catch (error) {
+      return {
+        ok: false,
+        phase: 'case_load_direct',
+        error: {
+          name: typeof error?.name === 'string' ? error.name : null,
+          code: typeof error?.code === 'string' ? error.code : null,
+          message: typeof error?.message === 'string' ? error.message : String(error),
+        },
+      };
+    }
   }
 
   async diagnoseMcpTrial(input) {
