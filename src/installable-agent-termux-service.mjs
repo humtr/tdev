@@ -235,6 +235,17 @@ export class TermuxInstallableAgentServiceController {
     fail('installable_agent_service_not_ready', 'Package-owned service did not positively reach running state');
   }
 
+  async #stopDrainedSupervisor(servicePath) {
+    this.#sv('down', servicePath);
+    try {
+      return await this.#waitDown(servicePath);
+    } catch (cause) {
+      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
+      this.#sv('force-stop', servicePath);
+      return this.#waitDown(servicePath);
+    }
+  }
+
   async #waitSupervisorReady(layout) {
     const client = this.clientFactory({ socketPath: layout.socketPath });
     const deadline = Date.now() + this.readyWaitMs;
@@ -479,8 +490,7 @@ export class TermuxInstallableAgentServiceController {
     if (!['quiesced', 'exact_replay'].includes(drained?.classification) || drained?.supervisor?.liveOperations !== 0 || drained?.supervisor?.heldPredecessors?.length !== 0) {
       fail('installable_agent_supervisor_drain_incomplete', 'Supervisor drain did not provide positive quiescence');
     }
-    this.#sv('down', layout.supervisorServicePath);
-    const supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
+    const supervisorStopped = await this.#stopDrainedSupervisor(layout.supervisorServicePath);
     return Object.freeze({
       classification: 'quiesced_and_stopped',
       profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,

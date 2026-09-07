@@ -169,6 +169,67 @@ test('Termux runit controller waits for runsvdir discovery before issuing servic
   assert.equal(firstUp > thirdSupervisorStatus, true, 'sv up must occur only after runsvdir supervision is positively observed');
 });
 
+test('Termux runit controller force-stops only a positively drained supervisor that ignores normal down', async (t) => {
+  const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-force-stop-test-'));
+  const prefix = path.join(root, 'prefix');
+  const packageRoot = path.join(root, 'release');
+  const stateDirectory = path.join(root, 'state');
+  const nodePath = path.join(prefix, 'bin', 'node');
+  await mkdir(path.join(prefix, 'var', 'service'), { recursive: true });
+  await mkdir(path.join(packageRoot, 'src'), { recursive: true });
+  for (const executable of ['sh', 'sv', 'runsv', 'node']) await fakeExecutable(path.join(prefix, 'bin', executable));
+  t.after(() => rm(root, { recursive: true, force: true }));
+
+  const running = new Map();
+  const commands = [];
+  let drained = false;
+  const controller = new TermuxInstallableAgentServiceController({
+    prefix,
+    nodePath,
+    platform: 'android',
+    arch: 'arm64',
+    readyWaitMs: 10,
+    pollMs: 1,
+    runCommand(executable, args) {
+      const [command, servicePath] = args;
+      commands.push({ command, servicePath });
+      const isControl = servicePath.endsWith('-control');
+      if (command === 'up') running.set(servicePath, true);
+      if (command === 'down' && isControl) running.set(servicePath, false);
+      if (command === 'down' && !isControl) {
+        assert.equal(drained, true, 'normal supervisor down must occur only after positive drain');
+      }
+      if (command === 'force-stop') {
+        assert.equal(isControl, false, 'force-stop fallback is forbidden for the control service');
+        assert.equal(drained, true, 'force-stop fallback is forbidden before positive supervisor drain');
+        running.set(servicePath, false);
+      }
+      if (command === 'status') {
+        return { status: 0, signal: null, stdout: running.get(servicePath) === true ? 'run: service: (pid 1) 1s' : 'down: service: 1s, normally up', stderr: '' };
+      }
+      return { status: 0, signal: null, stdout: '', stderr: '' };
+    },
+    clientFactory: () => ({
+      async status() { return { supervisor: { ...supervisorStatus(), liveOperations: 0, heldPredecessors: [] } }; },
+      async drain({ requestId }) {
+        drained = true;
+        return { classification: 'quiesced', supervisor: { ...supervisorStatus(), liveOperations: 0, heldPredecessors: [] }, requestId };
+      },
+    }),
+  });
+  const manifest = { target: { platform: 'android', arch: 'arm64' } };
+  await controller.install({ packageRoot, stateDirectory, manifest });
+  await controller.activateControl({ stateDirectory, controlConfig: { credentialRef: path.join(root, 'credential-ref'), profile: 'fixture' } });
+  const result = await controller.quiesceAndStop({ stateDirectory, drainRequestId: 'drain-force-stop-one' });
+  const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
+  assert.equal(result.classification, 'quiesced_and_stopped');
+  assert.equal(result.positiveQuiescence.liveOperations, 0);
+  assert.equal(running.get(layout.controlServicePath), false);
+  assert.equal(running.get(layout.supervisorServicePath), false);
+  assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.supervisorServicePath).length, 1);
+  assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.controlServicePath).length, 0);
+});
+
 test('Termux runit controller installs a package-owned absolute service definition and rejects substitution', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-runit-test-'));
   const prefix = path.join(root, 'prefix');
