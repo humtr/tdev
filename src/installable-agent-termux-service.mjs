@@ -334,6 +334,51 @@ export class TermuxInstallableAgentServiceController {
     }
   }
 
+  async inspectReleaseBinding({ packageRoot, stateDirectory, manifest }) {
+    if (typeof packageRoot !== 'string' || !path.isAbsolute(packageRoot) || typeof stateDirectory !== 'string' || !path.isAbsolute(stateDirectory)) {
+      fail('invalid_installable_agent_service_controller', 'packageRoot and stateDirectory must be absolute');
+    }
+    await this.#assertProfile(manifest);
+    const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
+    const supervisorRunPath = path.join(layout.supervisorServicePath, 'run');
+    const controlRunPath = path.join(layout.controlServicePath, 'run');
+    const existingSupervisorRun = await readOptional(supervisorRunPath);
+    const existingControlRun = await readOptional(controlRunPath);
+    const desiredSupervisorRun = renderSupervisorRunScript({
+      prefix: this.prefix,
+      nodePath: this.nodePath,
+      packageRoot,
+      stateDirectory,
+      socketPath: layout.socketPath,
+    });
+    const desiredControlRun = renderControlRunScript({
+      prefix: this.prefix,
+      nodePath: this.nodePath,
+      packageRoot,
+      stateDirectory,
+      controlConfigPath: layout.controlConfigPath,
+    });
+    const supervisorExact = existingSupervisorRun !== null && existingSupervisorRun.equals(desiredSupervisorRun);
+    const controlExact = existingControlRun !== null && existingControlRun.equals(desiredControlRun);
+    return Object.freeze({
+      classification: existingSupervisorRun === null || existingControlRun === null ? 'missing' : supervisorExact && controlExact ? 'exact' : 'mismatch',
+      profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,
+      serviceIdentity: layout.identity,
+      supervisor: {
+        present: existingSupervisorRun !== null,
+        exact: supervisorExact,
+        observedDefinitionDigest: existingSupervisorRun === null ? null : sha256(existingSupervisorRun),
+        desiredDefinitionDigest: sha256(desiredSupervisorRun),
+      },
+      control: {
+        present: existingControlRun !== null,
+        exact: controlExact,
+        observedDefinitionDigest: existingControlRun === null ? null : sha256(existingControlRun),
+        desiredDefinitionDigest: sha256(desiredControlRun),
+      },
+    });
+  }
+
   async start({ stateDirectory }) {
     const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
     await this.#waitSupervised(layout.supervisorServicePath);

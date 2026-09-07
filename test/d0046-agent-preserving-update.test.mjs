@@ -4,7 +4,9 @@ import assert from 'node:assert/strict';
 import { digest } from '../src/canonical.mjs';
 import { computeInstallableAgentManagementIntentDigest } from '../src/installable-agent-admission.mjs';
 import {
+  assertCandidateDurableReleaseRoot,
   assertLocalQuiescence,
+  assertLocalReleaseBindingState,
   assertProviderQuiescence,
   assertStableReleaseCompatibility,
   buildEvidenceProof,
@@ -12,6 +14,7 @@ import {
   buildQualificationRpcInput,
   controlConfigBase,
   createAgentManagementTransport,
+  durableAgentReleaseRoot,
   nextManagementRequestId,
   reconcileAmbiguousAgentMutation,
   selectPackageUpdateIdentity,
@@ -57,6 +60,30 @@ function installableRead({ packageDigest = oldPackage, transaction = null, highW
         trustPolicyGeneration: 1,
       },
     },
+  };
+}
+
+function managementIntent(packageDigest = candidatePackage) {
+  return computeInstallableAgentManagementIntentDigest('package', routeBinding(), { transitionCause: 'package_update', packageManifestDigest: packageDigest, packageTrustSubjectDigest: trustSubject });
+}
+
+function localManagementCurrent({ requestId = 'm2:3', packageDigest = candidatePackage, intentDigest = null, expectedPredecessorDigest = predecessorDigest } = {}) {
+  return {
+    operation: 'update',
+    managementRequestId: requestId,
+    intentDigest: intentDigest ?? managementIntent(packageDigest),
+    expectedPredecessorDigest,
+    releaseManifestDigest: packageDigest,
+  };
+}
+
+function committedReceipt({ requestId = 'm2:3', packageDigest = candidatePackage, intentDigest = null, predecessor = predecessorDigest } = {}) {
+  return {
+    managementRequestId: requestId,
+    operation: 'package',
+    intentDigest: intentDigest ?? managementIntent(packageDigest),
+    predecessorDigest: predecessor,
+    result: { phase: 'committed' },
   };
 }
 
@@ -120,6 +147,25 @@ test('stable release compatibility permits implementation/profile payload evolut
   assert.throws(() => assertStableReleaseCompatibility(predecessor, missingRuntime), { code: 'd0046_agent_release_contract_changed' });
 });
 
+test('durable release root is deterministic and transient staging roots are rejected', () => {
+  const sourceRevision = 'a'.repeat(40);
+  const releasesRoot = '/tmp/tdev-agent-releases';
+  const expected = `${releasesRoot}/${sourceRevision}`;
+  assert.equal(durableAgentReleaseRoot(sourceRevision, releasesRoot), expected);
+  assert.equal(assertCandidateDurableReleaseRoot({ packageRoot: expected, sourceRevision, releasesRoot }).sourceRevision, sourceRevision);
+  assert.throws(() => assertCandidateDurableReleaseRoot({ packageRoot: '/tmp/staged/candidate', sourceRevision, releasesRoot }), { code: 'd0046_agent_candidate_root_not_durable' });
+});
+
+test('local release binding admits only exact predecessor or candidate according to recovery state', () => {
+  const exact = { classification: 'exact' };
+  const mismatch = { classification: 'mismatch' };
+  assert.equal(assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: null, predecessorBindings: [exact], candidateBinding: mismatch }).classification, 'predecessor');
+  assert.equal(assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: localManagementCurrent(), predecessorBindings: [mismatch], candidateBinding: exact }).classification, 'candidate');
+  assert.equal(assertLocalReleaseBindingState({ localStateManifestDigest: candidatePackage, candidateManifestDigest: candidatePackage, localManagementCurrent: null, predecessorBindings: [exact], candidateBinding: exact }).classification, 'candidate');
+  assert.throws(() => assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: null, predecessorBindings: [mismatch], candidateBinding: mismatch }), { code: 'd0046_agent_local_release_binding_unknown' });
+  assert.throws(() => assertLocalReleaseBindingState({ localStateManifestDigest: oldPackage, candidateManifestDigest: candidatePackage, localManagementCurrent: localManagementCurrent(), predecessorBindings: [exact], candidateBinding: exact }), { code: 'd0046_agent_local_release_binding_unknown' });
+});
+
 test('provider quiescence requires actual full-route reservation and delivery state', () => {
   const read = installableRead();
   const ok = assertProviderQuiescence({ routeBinding: routeBinding(), reservationWindowGeneration: 1, reservations: {}, deliveries: {} }, read);
@@ -144,20 +190,36 @@ test('fresh package update allocates exactly high-water plus one and binds owner
   assert.equal(identity.intentDigest, computeInstallableAgentManagementIntentDigest('package', routeBinding(), identity.content));
 });
 
-test('same-target nonterminal package transaction is resumed with exact original management identity', () => {
+test('same-target nonterminal package transaction is resumed only with exact local recovery identity', () => {
   const tx = packageTransaction({ requestId: 'm2:3' });
-  const identity = selectPackageUpdateIdentity({ installableRead: installableRead({ transaction: tx, highWater: 3 }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject });
+  const local = localManagementCurrent({ requestId: tx.managementRequestId, intentDigest: tx.intentDigest, expectedPredecessorDigest: tx.predecessorDigest });
+  const identity = selectPackageUpdateIdentity({ installableRead: installableRead({ transaction: tx, highWater: 3 }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localManagementCurrent: local, localStateManifestDigest: oldPackage });
   assert.equal(identity.mode, 'resume');
   assert.equal(identity.managementRequestId, tx.managementRequestId);
   assert.equal(identity.intentDigest, tx.intentDigest);
   assert.equal(identity.expectedPredecessorDigest, tx.predecessorDigest);
+  assert.throws(() => selectPackageUpdateIdentity({ installableRead: installableRead({ transaction: tx, highWater: 3 }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localStateManifestDigest: oldPackage }), { code: 'd0046_agent_local_management_conflict' });
 });
 
-test('conflicting transaction fails closed and already-current candidate is a no-op', () => {
+test('local prepared and provider-committed crashes resume the same management identity', () => {
+  const local = localManagementCurrent();
+  const prepared = selectPackageUpdateIdentity({ installableRead: installableRead(), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localManagementCurrent: local, localStateManifestDigest: oldPackage });
+  assert.equal(prepared.mode, 'resume_local');
+  assert.equal(prepared.managementRequestId, 'm2:3');
+
+  const receipt = committedReceipt();
+  const committed = selectPackageUpdateIdentity({ installableRead: installableRead({ packageDigest: candidatePackage, highWater: 3, receipts: { 'm2:3': receipt } }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localManagementCurrent: local, localStateManifestDigest: oldPackage });
+  assert.equal(committed.mode, 'resume_committed');
+  assert.equal(committed.managementRequestId, 'm2:3');
+  assert.throws(() => selectPackageUpdateIdentity({ installableRead: installableRead({ packageDigest: candidatePackage, highWater: 3, receipts: { 'm2:3': { ...receipt, intentDigest: D('wrong') } } }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localManagementCurrent: local, localStateManifestDigest: oldPackage }), { code: 'd0046_agent_local_management_conflict' });
+});
+
+test('conflicting transaction fails closed and fully finalized current candidate is a no-op', () => {
   const conflict = packageTransaction({ packageDigest: D('other-package') });
   assert.throws(() => selectPackageUpdateIdentity({ installableRead: installableRead({ transaction: conflict }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject }), { code: 'd0046_agent_conflicting_management_transaction' });
-  const same = selectPackageUpdateIdentity({ installableRead: installableRead({ packageDigest: candidatePackage }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject });
+  const same = selectPackageUpdateIdentity({ installableRead: installableRead({ packageDigest: candidatePackage }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localStateManifestDigest: candidatePackage });
   assert.equal(same.mode, 'already_current');
+  assert.throws(() => selectPackageUpdateIdentity({ installableRead: installableRead({ packageDigest: candidatePackage }), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, localStateManifestDigest: oldPackage }), { code: 'd0046_agent_local_provider_release_mismatch' });
 });
 
 test('package request signs the canonical package proof context and preserves control config base', () => {
@@ -200,10 +262,12 @@ test('ambiguous begin, evidence and commit reconcile only from the same durable 
   assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'beginPackageActivation', input: { managementRequestId: 'm2:3', intentDigest: D('wrong-intent'), expectedPredecessorDigest: tx.predecessorDigest }, installableRead: draining, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
   assert.equal(reconcileAmbiguousAgentMutation({ method: 'recordInstallableAgentTransactionEvidence', input: { managementRequestId: 'm2:3', type: 'positive_quiescence', evidenceDigest: D('q') }, installableRead: draining, candidateManifestDigest: candidatePackage }).classification, 'exact_replay');
 
-  const receipt = { phase: 'committed', operation: 'package' };
+  const receipt = committedReceipt();
   const committed = installableRead({ packageDigest: candidatePackage, highWater: 3, receipts: { 'm2:3': receipt } });
-  assert.equal(reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { managementRequestId: 'm2:3' }, installableRead: committed, candidateManifestDigest: candidatePackage }).phase, 'committed');
-  assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { managementRequestId: 'm2:4' }, installableRead: committed, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
+  const committedInput = { managementRequestId: 'm2:3', intentDigest: receipt.intentDigest, expectedPredecessorDigest: receipt.predecessorDigest };
+  assert.equal(reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: committedInput, installableRead: committed, candidateManifestDigest: candidatePackage }).phase, 'committed');
+  assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { ...committedInput, managementRequestId: 'm2:4' }, installableRead: committed, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
+  assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { ...committedInput, intentDigest: D('wrong') }, installableRead: committed, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
 });
 
 test('management transport never blind-replays an ambiguous provider mutation', async () => {

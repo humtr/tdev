@@ -30,6 +30,7 @@ export const D0046_AGENT_QUALIFICATION_URL = `${D0046_AGENT_ORIGIN}/qualificatio
 export const D0046_AGENT_RPC_PROFILE = 'tdev.installable-agent-qualification-rpc.v2';
 export const D0046_AGENT_STATE_DIRECTORY = '/data/data/com.termux/files/home/.local/state/tdev-d0039-r12-agent/route-d0039-r12-custody-20260828-3631c5a4/state';
 export const D0046_AGENT_INSTALLED_PACKAGE_ROOT = '/data/data/com.termux/files/home/.local/state/tdev-d0046-agent/package';
+export const D0046_AGENT_RELEASES_ROOT = '/data/data/com.termux/files/home/.local/state/tdev-d0046-agent/releases';
 export const D0046_AGENT_MANAGEMENT_CUSTODY = '/data/data/com.termux/files/home/.local/state/tdev-d0039-r12-management/route-d0039-r12-custody-20260828-3631c5a4';
 export const D0046_AGENT_ATTESTOR_CUSTODY = '/data/data/com.termux/files/home/.local/state/tdev-d0040-attestor/v1';
 
@@ -59,6 +60,84 @@ function assertDigest(value, label) {
 function assertRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail('d0046_agent_update_input_invalid', `${label} must be a record`);
   return value;
+}
+
+function assertSourceRevision(value, label = 'source revision') {
+  if (typeof value !== 'string' || !/^[0-9a-f]{40}$/u.test(value)) fail('d0046_agent_update_input_invalid', `${label} must be an exact lowercase Git SHA`);
+  return value;
+}
+
+export function durableAgentReleaseRoot(sourceRevision, releasesRoot = D0046_AGENT_RELEASES_ROOT) {
+  assertSourceRevision(sourceRevision);
+  if (typeof releasesRoot !== 'string' || !path.isAbsolute(releasesRoot)) fail('d0046_agent_release_root_invalid', 'Agent releases root must be absolute');
+  return path.join(path.resolve(releasesRoot), sourceRevision);
+}
+
+function assertLocalPackageState(value) {
+  const state = assertRecord(value, 'local package state');
+  assertDigest(state.releaseManifestDigest, 'local package state releaseManifestDigest');
+  assertSourceRevision(state.sourceRevision, 'local package state sourceRevision');
+  return state;
+}
+
+function normalizeLocalManagementCurrent(value, candidateManifestDigest) {
+  if (value === null) return null;
+  const current = assertRecord(value, 'local management journal current');
+  if (current.operation !== 'update') fail('d0046_agent_local_management_conflict', 'Only the exact D0027 update transaction may be resumed');
+  if (current.releaseManifestDigest !== candidateManifestDigest) fail('d0046_agent_local_management_conflict', 'Local management transaction targets a different package release');
+  if (typeof current.managementRequestId !== 'string' || current.managementRequestId.length === 0) fail('d0046_agent_local_management_conflict', 'Local management transaction has no request identity');
+  assertDigest(current.intentDigest, 'local management intentDigest');
+  assertDigest(current.expectedPredecessorDigest, 'local management expectedPredecessorDigest');
+  return current;
+}
+
+async function readOptionalJson(filePath) {
+  try { return JSON.parse(await readFile(filePath, 'utf8')); }
+  catch (cause) { if (cause?.code === 'ENOENT') return null; throw cause; }
+}
+
+async function releaseAt(packageRoot) {
+  const manifest = await readOptionalJson(path.join(packageRoot, 'release-manifest.json'));
+  if (manifest === null) return null;
+  return verifyInstallableAgentRelease({ packageRoot });
+}
+
+async function resolveLocalStateRelease({ localState, serviceController, stateDirectory, legacyPackageRoot, releasesRoot }) {
+  const state = assertLocalPackageState(localState);
+  const candidates = [...new Set([
+    durableAgentReleaseRoot(state.sourceRevision, releasesRoot),
+    path.resolve(legacyPackageRoot),
+  ])];
+  const matches = [];
+  for (const packageRoot of candidates) {
+    const release = await releaseAt(packageRoot);
+    if (release === null || release.manifestDigest !== state.releaseManifestDigest || release.manifest.sourceRevision !== state.sourceRevision) continue;
+    const binding = await serviceController.inspectReleaseBinding({ packageRoot, stateDirectory, manifest: release.manifest });
+    matches.push({ packageRoot, release, binding });
+  }
+  if (matches.length === 0) fail('d0046_agent_local_release_missing', 'No verified local package root matches the durable local package state');
+  return Object.freeze({ state: canonicalClone(state), matches });
+}
+
+export function assertCandidateDurableReleaseRoot({ packageRoot, sourceRevision, releasesRoot = D0046_AGENT_RELEASES_ROOT }) {
+  const expected = durableAgentReleaseRoot(sourceRevision, releasesRoot);
+  if (path.resolve(packageRoot) !== expected) fail('d0046_agent_candidate_root_not_durable', 'Candidate Agent package must be materialized at its deterministic durable release root');
+  return Object.freeze({ profile: 'tdev.d0046.agent-durable-release-root.v1', sourceRevision, rootBindingDigest: digest({ sourceRevision, releaseRootProfile: 'versioned-durable-root' }) });
+}
+
+export function assertLocalReleaseBindingState({ localStateManifestDigest, candidateManifestDigest, localManagementCurrent, predecessorBindings, candidateBinding }) {
+  const candidateExact = candidateBinding?.classification === 'exact';
+  const predecessorExactCount = predecessorBindings.filter((binding) => binding?.classification === 'exact').length;
+  if (localStateManifestDigest === candidateManifestDigest) {
+    if (!candidateExact) fail('d0046_agent_local_release_binding_unknown', 'Finalized local candidate state is not bound to the candidate release root');
+    return Object.freeze({ profile: 'tdev.d0046.agent-local-release-binding.v1', classification: 'candidate', predecessorExactCount, candidateExact: true });
+  }
+  if (localManagementCurrent === null) {
+    if (predecessorExactCount !== 1 || candidateExact) fail('d0046_agent_local_release_binding_unknown', 'Quiescent local predecessor is not bound to exactly one verified predecessor release root');
+    return Object.freeze({ profile: 'tdev.d0046.agent-local-release-binding.v1', classification: 'predecessor', predecessorExactCount: 1, candidateExact: false });
+  }
+  if ((predecessorExactCount === 1) === candidateExact) fail('d0046_agent_local_release_binding_unknown', 'In-progress local update must be bound to exactly one of predecessor or candidate release roots');
+  return Object.freeze({ profile: 'tdev.d0046.agent-local-release-binding.v1', classification: candidateExact ? 'candidate' : 'predecessor', predecessorExactCount, candidateExact });
 }
 
 export function assertStableReleaseCompatibility(predecessor, candidate) {
@@ -135,7 +214,14 @@ function transactionMatchesCandidate(transaction, content) {
     transaction.candidate?.packageTrustSubjectDigest === content.packageTrustSubjectDigest;
 }
 
-export function selectPackageUpdateIdentity({ installableRead, routeBinding, candidateManifestDigest, packageTrustSubjectDigest }) {
+export function selectPackageUpdateIdentity({
+  installableRead,
+  routeBinding,
+  candidateManifestDigest,
+  packageTrustSubjectDigest,
+  localManagementCurrent = null,
+  localStateManifestDigest = null,
+}) {
   const read = assertRecord(installableRead, 'installable Agent read');
   const binding = assertRecord(routeBinding, 'route binding');
   const installable = read.installableAgent;
@@ -144,31 +230,41 @@ export function selectPackageUpdateIdentity({ installableRead, routeBinding, can
   const current = installable.current;
   const transaction = current.managementTransaction;
   const expectedIntentDigest = computeInstallableAgentManagementIntentDigest('package', binding, content);
+  const local = localManagementCurrent === null ? null : normalizeLocalManagementCurrent(localManagementCurrent, content.packageManifestDigest);
+  if (local !== null && local.intentDigest !== expectedIntentDigest) fail('d0046_agent_management_intent_mismatch', 'Local Agent package transaction has a non-canonical intent digest');
+  if (localStateManifestDigest !== null && current.packageManifestDigest !== content.packageManifestDigest && current.packageManifestDigest !== localStateManifestDigest) {
+    fail('d0046_agent_local_provider_release_mismatch', 'Provider CURRENT package and durable local package state disagree');
+  }
 
   if (transaction !== null) {
     if (!transactionMatchesCandidate(transaction, content)) fail('d0046_agent_conflicting_management_transaction', 'A different Agent package transaction is already in progress');
     if (transaction.intentDigest !== expectedIntentDigest) fail('d0046_agent_management_intent_mismatch', 'Existing Agent package transaction has a non-canonical intent digest');
-    return Object.freeze({
-      mode: 'resume',
-      managementRequestId: transaction.managementRequestId,
-      intentDigest: transaction.intentDigest,
-      expectedPredecessorDigest: transaction.predecessorDigest,
-      content,
-    });
+    if (local === null || local.managementRequestId !== transaction.managementRequestId || local.intentDigest !== transaction.intentDigest || local.expectedPredecessorDigest !== transaction.predecessorDigest) {
+      fail('d0046_agent_local_management_conflict', 'Provider package transaction is not backed by the exact local recovery journal identity');
+    }
+    return Object.freeze({ mode: 'resume', managementRequestId: transaction.managementRequestId, intentDigest: transaction.intentDigest, expectedPredecessorDigest: transaction.predecessorDigest, content });
   }
 
   if (current.packageManifestDigest === content.packageManifestDigest) {
+    if (local !== null) {
+      const receipt = committedReceiptFor(read, local.managementRequestId);
+      if (receipt === null || receipt.operation !== 'package' || receipt.intentDigest !== expectedIntentDigest || receipt.predecessorDigest !== local.expectedPredecessorDigest) {
+        fail('d0046_agent_local_management_conflict', 'Provider CURRENT candidate is not backed by the exact committed receipt for the local recovery journal');
+      }
+      return Object.freeze({ mode: 'resume_committed', managementRequestId: local.managementRequestId, intentDigest: local.intentDigest, expectedPredecessorDigest: local.expectedPredecessorDigest, content });
+    }
+    if (localStateManifestDigest !== content.packageManifestDigest) fail('d0046_agent_local_provider_release_mismatch', 'Provider CURRENT candidate is not finalized in durable local package state and has no recovery journal');
     return Object.freeze({ mode: 'already_current', content });
   }
+
   if (current.packageTrustSubjectDigest !== content.packageTrustSubjectDigest) fail('d0046_agent_trust_subject_changed', 'Candidate package does not preserve the active package trust subject');
+  if (localStateManifestDigest !== null && current.packageManifestDigest !== localStateManifestDigest) fail('d0046_agent_local_provider_release_mismatch', 'Provider CURRENT package and durable local package state disagree before package update');
+  if (local !== null) {
+    if (local.expectedPredecessorDigest !== read.predecessorDigest) fail('d0046_agent_local_management_conflict', 'Prepared local package transaction is fenced to a stale provider predecessor');
+    return Object.freeze({ mode: 'resume_local', managementRequestId: local.managementRequestId, intentDigest: local.intentDigest, expectedPredecessorDigest: local.expectedPredecessorDigest, content });
+  }
   const managementRequestId = nextManagementRequestId(installable.managementRequestSequenceHighWater);
-  return Object.freeze({
-    mode: 'new',
-    managementRequestId,
-    intentDigest: expectedIntentDigest,
-    expectedPredecessorDigest: assertDigest(read.predecessorDigest, 'provider predecessor digest'),
-    content,
-  });
+  return Object.freeze({ mode: 'new', managementRequestId, intentDigest: expectedIntentDigest, expectedPredecessorDigest: assertDigest(read.predecessorDigest, 'provider predecessor digest'), content });
 }
 
 export function createManagementEnvelope({ context, publicJwk, privateKey }) {
@@ -243,6 +339,10 @@ function committedReceiptFor(installableRead, managementRequestId) {
   return phase === 'committed' ? receipt : null;
 }
 
+function committedReceiptMatches(receipt, input) {
+  return receipt !== null && receipt.operation === 'package' && receipt.intentDigest === input.intentDigest && receipt.predecessorDigest === input.expectedPredecessorDigest;
+}
+
 export function reconcileAmbiguousAgentMutation({ method, input, installableRead, candidateManifestDigest }) {
   const transaction = installableRead?.installableAgent?.current?.managementTransaction ?? null;
   const managementRequestId = input.managementRequestId;
@@ -253,14 +353,14 @@ export function reconcileAmbiguousAgentMutation({ method, input, installableRead
     if (transaction?.managementRequestId === managementRequestId && transaction.intentDigest === input.intentDigest && transaction.predecessorDigest === input.expectedPredecessorDigest && transactionMatchesCandidate(transaction, packageIntentContent(candidateManifestDigest, transaction.candidate?.packageTrustSubjectDigest))) {
       return Object.freeze({ phase: 'draining', classification: 'reconciled_after_ambiguous_response' });
     }
-    if (candidateCurrent && receipt !== null) return Object.freeze({ phase: 'committed', currentTuple: canonicalClone(installableRead.currentTuple), classification: 'reconciled_after_ambiguous_response' });
+    if (candidateCurrent && committedReceiptMatches(receipt, input)) return Object.freeze({ phase: 'committed', currentTuple: canonicalClone(installableRead.currentTuple), classification: 'reconciled_after_ambiguous_response' });
   } else if (method === 'recordInstallableAgentTransactionEvidence') {
     const readinessKey = EVIDENCE_READINESS_KEYS[input.type];
     if (transaction?.managementRequestId === managementRequestId && readinessKey !== undefined && transaction.readiness?.[readinessKey] === input.evidenceDigest) {
       return Object.freeze({ classification: 'exact_replay', evidenceDigest: input.evidenceDigest });
     }
   } else if (method === 'commitPackageActivation') {
-    if (candidateCurrent && receipt !== null) return Object.freeze({ phase: 'committed', currentTuple: canonicalClone(installableRead.currentTuple), classification: 'reconciled_after_ambiguous_response' });
+    if (candidateCurrent && committedReceiptMatches(receipt, input)) return Object.freeze({ phase: 'committed', currentTuple: canonicalClone(installableRead.currentTuple), classification: 'reconciled_after_ambiguous_response' });
   }
   fail('d0046_agent_update_effect_unknown', 'Agent provider mutation response was ambiguous and authoritative readback did not prove the same requested effect', { method, managementRequestId });
 }
@@ -342,18 +442,20 @@ async function readJson(filePath) {
 export async function prepareD0046AgentPreservingUpdate({
   packageRoot,
   installedPackageRoot = D0046_AGENT_INSTALLED_PACKAGE_ROOT,
+  releasesRoot = D0046_AGENT_RELEASES_ROOT,
   stateDirectory = D0046_AGENT_STATE_DIRECTORY,
   token = process.env.TDEV_D0020_QUALIFICATION_TOKEN,
   rpc = null,
 } = {}) {
-  if (typeof packageRoot !== 'string' || packageRoot.length === 0) fail('d0046_agent_package_root_missing', 'Candidate staged package root is required');
+  if (typeof packageRoot !== 'string' || packageRoot.length === 0) fail('d0046_agent_package_root_missing', 'Candidate durable package root is required');
   const provider = rpc ?? createQualificationRpc({ token });
   const serviceController = new TermuxInstallableAgentServiceController();
-  const installedManager = new InstallableAgentPackageManager({ packageRoot: installedPackageRoot, stateDirectory, serviceController });
-  const [candidate, predecessorManifest, localStatus, routeRead, installableRead, runtimeProbe, securityReadback, attestorReadback, controlConfig, managementPublicJwk, attestorPublicFile] = await Promise.all([
-    verifyInstallableAgentRelease({ packageRoot }),
-    readJson(path.join(installedPackageRoot, 'release-manifest.json')),
-    installedManager.status(),
+  const candidate = await verifyInstallableAgentRelease({ packageRoot });
+  const durableRoot = assertCandidateDurableReleaseRoot({ packageRoot, sourceRevision: candidate.manifest.sourceRevision, releasesRoot });
+  const [localStateRaw, managementJournal, service, routeRead, installableRead, runtimeProbe, securityReadback, attestorReadback, controlConfig, managementPublicJwk, attestorPublicFile] = await Promise.all([
+    readJson(path.join(stateDirectory, 'package-state.json')),
+    readJson(path.join(stateDirectory, 'management-journal.json')),
+    serviceController.status({ stateDirectory }),
     provider('read'),
     provider('read_installable_agent'),
     provider('runtime_probe'),
@@ -363,39 +465,62 @@ export async function prepareD0046AgentPreservingUpdate({
     readJson(path.join(D0046_AGENT_MANAGEMENT_CUSTODY, 'management.public.jwk.json')),
     readJson(path.join(D0046_AGENT_ATTESTOR_CUSTODY, 'attestor-public.json')),
   ]);
+  const localRelease = await resolveLocalStateRelease({ localState: localStateRaw, serviceController, stateDirectory, legacyPackageRoot: installedPackageRoot, releasesRoot });
+  const localState = localRelease.state;
+  const predecessorManifest = localRelease.matches[0].release.manifest;
   const compatibility = assertStableReleaseCompatibility(predecessorManifest, candidate.manifest);
   const providerQuiescence = assertProviderQuiescence(routeRead, installableRead);
-  const localQuiescence = assertLocalQuiescence(localStatus, { allowExactManagementRequestId: providerQuiescence.managementTransaction?.managementRequestId ?? null });
   const current = installableRead.installableAgent.current;
-  if (localStatus.localState?.releaseManifestDigest !== current.packageManifestDigest) fail('d0046_agent_local_provider_release_mismatch', 'Local installed package and provider CURRENT package disagree');
+  const routeBinding = routeRead.routeBinding;
+  if (routeBinding === undefined) fail('d0046_agent_route_binding_missing', 'Provider route read did not expose the canonical route binding');
+  const localManagementCurrent = managementJournal?.current ?? null;
+  const identity = selectPackageUpdateIdentity({
+    installableRead,
+    routeBinding,
+    candidateManifestDigest: candidate.manifestDigest,
+    packageTrustSubjectDigest: current.packageTrustSubjectDigest,
+    localManagementCurrent,
+    localStateManifestDigest: localState.releaseManifestDigest,
+  });
+  const localStatus = { service, managementJournal: { current: localManagementCurrent === null ? null : { managementRequestId: localManagementCurrent.managementRequestId } } };
+  const localQuiescence = assertLocalQuiescence(localStatus, { allowExactManagementRequestId: localManagementCurrent === null ? null : identity.managementRequestId });
+  const candidateBinding = await serviceController.inspectReleaseBinding({ packageRoot, stateDirectory, manifest: candidate.manifest });
+  const bindingState = assertLocalReleaseBindingState({
+    localStateManifestDigest: localState.releaseManifestDigest,
+    candidateManifestDigest: candidate.manifestDigest,
+    localManagementCurrent,
+    predecessorBindings: localRelease.matches.map((match) => match.binding),
+    candidateBinding,
+  });
   if (installableAgentManagementKeyId(managementPublicJwk) !== securityReadback.managementKeyId) fail('d0046_agent_management_key_mismatch', 'Local management custody key does not match provider CURRENT security state');
   const attestorPublicJwk = publicKeyFromAttestorFile(attestorPublicFile);
   const providerAttestorKeyId = attestorReadback.evidenceAttestationVerifier?.keyId ?? attestorReadback.keyId;
   if (installableAgentEvidenceAttestorKeyId(attestorPublicJwk) !== providerAttestorKeyId || providerAttestorKeyId !== runtimeProbe.evidenceAttestationVerifier?.keyId) fail('d0046_agent_attestor_key_mismatch', 'Local evidence attestor does not match provider deployment');
-  const routeBinding = routeRead.routeBinding;
-  if (routeBinding === undefined) fail('d0046_agent_route_binding_missing', 'Provider route read did not expose the canonical route binding');
-  const identity = selectPackageUpdateIdentity({ installableRead, routeBinding, candidateManifestDigest: candidate.manifestDigest, packageTrustSubjectDigest: current.packageTrustSubjectDigest });
   const preparation = {
-    profile: 'tdev.d0046.agent-preserving-update-preparation.v1',
+    profile: 'tdev.d0046.agent-preserving-update-preparation.v2',
     candidateManifestDigest: candidate.manifestDigest,
     candidateSourceRevision: candidate.manifest.sourceRevision,
-    predecessorManifestDigest: localStatus.localState.releaseManifestDigest,
-    providerPredecessorDigest: installableRead.predecessorDigest,
+    predecessorManifestDigest: localState.releaseManifestDigest,
+    providerObservedStateDigest: installableRead.predecessorDigest,
+    managementExpectedPredecessorDigest: identity.expectedPredecessorDigest ?? null,
     deploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest,
     routeBindingDigest: digest(routeBinding),
+    durableRootBindingDigest: durableRoot.rootBindingDigest,
     compatibilityDigest: compatibility.digest,
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
+    localReleaseBindingDigest: digest(bindingState),
     mode: identity.mode,
     managementRequestId: identity.managementRequestId ?? null,
   };
   return Object.freeze({
     ...preparation,
     preparationDigest: digest(preparation),
-    packageRoot,
+    packageRoot: path.resolve(packageRoot),
     stateDirectory,
     routeBinding: canonicalClone(routeBinding),
     identity,
+    candidateManifest: canonicalClone(candidate.manifest),
     controlConfig: controlConfigBase(controlConfig),
     managementPublicJwk,
     attestorPublicJwk,
@@ -410,12 +535,15 @@ export function summarizeAgentPreparation(prepared) {
     candidateManifestDigest: prepared.candidateManifestDigest,
     candidateSourceRevision: prepared.candidateSourceRevision,
     predecessorManifestDigest: prepared.predecessorManifestDigest,
-    providerPredecessorDigest: prepared.providerPredecessorDigest,
+    providerObservedStateDigest: prepared.providerObservedStateDigest,
+    managementExpectedPredecessorDigest: prepared.managementExpectedPredecessorDigest,
     deploymentIdentityDigest: prepared.deploymentIdentityDigest,
     routeBindingDigest: prepared.routeBindingDigest,
+    durableRootBindingDigest: prepared.durableRootBindingDigest,
     compatibilityDigest: prepared.compatibilityDigest,
     providerQuiescenceDigest: prepared.providerQuiescenceDigest,
     localQuiescenceDigest: prepared.localQuiescenceDigest,
+    localReleaseBindingDigest: prepared.localReleaseBindingDigest,
     mode: prepared.mode,
     managementRequestId: prepared.managementRequestId,
     preparationDigest: prepared.preparationDigest,
@@ -438,17 +566,19 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     candidateManifestDigest: prepared.candidateManifestDigest,
     evidenceSigner,
   });
+  const serviceController = new TermuxInstallableAgentServiceController();
   const manager = new InstallableAgentPackageManager({
     packageRoot: prepared.packageRoot,
     stateDirectory: prepared.stateDirectory,
-    serviceController: new TermuxInstallableAgentServiceController(),
+    serviceController,
     managementTransport: transport,
   });
   const result = await manager.update(request);
-  const [routeRead, installableRead, localStatus] = await Promise.all([
+  const [routeRead, installableRead, localStatus, candidateBinding] = await Promise.all([
     prepared.rpc('read'),
     prepared.rpc('read_installable_agent'),
     manager.status(),
+    serviceController.inspectReleaseBinding({ packageRoot: prepared.packageRoot, stateDirectory: prepared.stateDirectory, manifest: prepared.candidateManifest }),
   ]);
   const providerQuiescence = assertProviderQuiescence(routeRead, installableRead);
   const localQuiescence = assertLocalQuiescence(localStatus);
@@ -458,6 +588,9 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
   if (localStatus.localState?.releaseManifestDigest !== prepared.candidateManifestDigest || localStatus.localState?.sourceRevision !== prepared.candidateSourceRevision) {
     fail('d0046_agent_update_readback_mismatch', 'Local package state did not read back the candidate release');
   }
+  if (localStatus.managementJournal?.current !== null || candidateBinding.classification !== 'exact') {
+    fail('d0046_agent_update_readback_mismatch', 'Local recovery journal or run definitions did not finalize on the exact durable candidate release');
+  }
   return Object.freeze({
     status: 'agent_preserving_update_complete',
     candidateManifestDigest: prepared.candidateManifestDigest,
@@ -466,6 +599,7 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     deploymentIdentityDigest: prepared.deploymentIdentityDigest,
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
+    localReleaseBindingDigest: digest(candidateBinding),
     resultDigest: digest(result),
     providerMutation: true,
     secretValues: 'excluded',

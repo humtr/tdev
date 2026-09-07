@@ -222,6 +222,12 @@ test('Termux runit controller installs a package-owned absolute service definiti
   assert.match(controlRunScript, new RegExp(path.join(packageRoot, 'src', 'installable-agent-control.mjs').replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(controlRunScript, new RegExp(layout.controlConfigPath.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.equal(runScript.includes(`export HOME='${stateDirectory}'`), true, 'run definition must bind HOME to package state rather than ambient HOME');
+  const installedBinding = await controller.inspectReleaseBinding({ packageRoot, stateDirectory, manifest });
+  assert.equal(installedBinding.classification, 'exact');
+  assert.equal(installedBinding.supervisor.exact, true);
+  assert.equal(installedBinding.control.exact, true);
+  const wrongBinding = await controller.inspectReleaseBinding({ packageRoot: otherPackageRoot, stateDirectory, manifest });
+  assert.equal(wrongBinding.classification, 'mismatch');
   assert.equal((await stat(path.join(layout.supervisorServicePath, 'run'))).isFile(), true);
   assert.equal((await stat(path.join(layout.controlServicePath, 'run'))).isFile(), true);
   assert.equal(running.get(layout.supervisorServicePath), true);
@@ -251,6 +257,9 @@ test('Termux runit controller installs a package-owned absolute service definiti
   assert.equal(running.get(layout.controlServicePath), false, 'candidate control remains fenced until final owner commit');
   assert.match(await readFile(path.join(layout.supervisorServicePath, 'run'), 'utf8'), new RegExp(otherPackageRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
   assert.match(await readFile(path.join(layout.controlServicePath, 'run'), 'utf8'), new RegExp(otherPackageRoot.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')));
+  const stagedBinding = await controller.inspectReleaseBinding({ packageRoot: otherPackageRoot, stateDirectory, manifest });
+  assert.equal(stagedBinding.classification, 'exact');
+  assert.equal((await controller.inspectReleaseBinding({ packageRoot, stateDirectory, manifest })).classification, 'mismatch');
   const stageReplay = await controller.stageRelease({ packageRoot: otherPackageRoot, stateDirectory, manifest });
   assert.equal(stageReplay.classification, 'exact_replay');
   assert.equal(running.get(layout.controlServicePath), false);
