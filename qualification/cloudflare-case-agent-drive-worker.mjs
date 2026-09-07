@@ -1,7 +1,8 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CaseAgentDriveRuntimeDOHost } from '../src/cloudflare-case-agent-drive-runtime.mjs';
-import { canonicalClone, isPlainRecord, publicJsonClone } from '../src/canonical.mjs';
+import { canonicalClone, canonicalJson, isPlainRecord, publicJsonClone } from '../src/canonical.mjs';
 import { createCasePlacement } from '../src/casedo-authority.mjs';
+import { defineDevelopmentUnitPlan } from '../src/development-unit.mjs';
 import { namespaceFor, normalizeMcpTrialCompositionBinding } from '../src/mcp-trial-composition.mjs';
 import { createTrialApplication } from './cloudflare-mcp-trial-worker.mjs';
 
@@ -129,6 +130,47 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
           message: typeof error?.message === 'string' ? error.message : String(error),
         },
       };
+    }
+  }
+
+  async diagnoseStartPhase(input) {
+    let phase = 'application';
+    try {
+      const caseId = input?.caseId;
+      const requestedPhase = input?.phase;
+      if (typeof caseId !== 'string' || !['context', 'plan', 'create'].includes(requestedPhase)) {
+        fail('mcp_trial_execution_invalid', 'Start phase probe input is invalid');
+      }
+      if (this.trialApplicationPromise === null) {
+        this.trialApplicationPromise = createTrialApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const worker = await this.trialApplicationPromise;
+      phase = 'context';
+      const context = await worker.surface.owners.developmentContextResolve({ selector: input.contextReference });
+      if (requestedPhase === 'context') {
+        return { ok: true, phase, revisionId: context.revisionId, repositoryCommitOid: context.repositoryCommitOid, baseTreeEntries: Object.keys(context.baseTree ?? {}).length };
+      }
+      phase = 'plan';
+      const plan = defineDevelopmentUnitPlan({
+        revisionId: context.revisionId,
+        baseTree: context.baseTree,
+        repositoryCommitOid: context.repositoryCommitOid,
+        objectFormat: context.objectFormat ?? 'sha1',
+        contextCapabilityId: context.contextCapabilityId ?? null,
+        instruction: input.instruction,
+        validationProfile: input.validationProfile,
+        modelCapabilityId: context.modelCapabilityId ?? null,
+        validationCapabilityId: context.validationCapabilityId ?? null,
+        caseContract: context.caseContract,
+      });
+      if (requestedPhase === 'plan') {
+        return { ok: true, phase, planDigest: plan.planDigest, baseDigest: plan.baseDigest, planBytes: new TextEncoder().encode(canonicalJson(plan)).byteLength };
+      }
+      phase = 'create';
+      const created = await worker.surface.repository.create({ caseId, plan, caseContract: context.caseContract ?? {} });
+      return { ok: true, phase, caseId: created?.caseId ?? caseId, caseRevision: created?.caseRevision ?? null, caseState: created?.caseState ?? null };
+    } catch (error) {
+      return { ok: false, phase, error: { name: typeof error?.name === 'string' ? error.name : null, code: typeof error?.code === 'string' ? error.code : null, message: typeof error?.message === 'string' ? error.message : String(error) } };
     }
   }
 

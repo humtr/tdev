@@ -418,6 +418,17 @@ export default {
           if (typeof stub.diagnoseCaseLoadDirect !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_case_direct_unavailable' } });
           return jsonResponse(200, await stub.diagnoseCaseLoadDirect({ caseId }));
         }
+        if (operation.startsWith('start.')) {
+          if (typeof stub.diagnoseStartPhase !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_start_phase_unavailable' } });
+          const phase = operation.slice('start.'.length);
+          return jsonResponse(200, await stub.diagnoseStartPhase(publicJsonClone({
+            phase,
+            caseId,
+            contextReference: configuredComposition.repository.contextReference,
+            instruction: 'Change exactly one user-facing validation error message in src/mcp-development-adapter.mjs without changing behavior.',
+            validationProfile: 'tdev.validation.npm-check.v1',
+          })));
+        }
         if (typeof stub.diagnoseMcpTrial !== 'function') return jsonResponse(500, { ok: false, error: { code: 'probe_drive_rpc_unavailable' } });
         const input = operation === 'developmentUnitStart'
           ? {
