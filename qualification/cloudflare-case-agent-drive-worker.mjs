@@ -186,8 +186,9 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
       phase = 'load';
       const loaded = await worker.surface.repository.load(caseId);
       const snapshot = loaded?.snapshot?.() ?? loaded;
+      const taskStates = Object.fromEntries(Object.entries(snapshot?.taskStates ?? {}).map(([id, state]) => [id, state?.state ?? null]));
       const taskId = snapshot?.plan?.taskOrder?.find((id) => snapshot?.taskStates?.[id]?.state === 'pending');
-      if (typeof taskId !== 'string') fail('mcp_trial_execution_invalid', 'Case start probe found no pending task');
+      if (typeof taskId !== 'string') return { ok: false, phase, diagnostic: { caseRevision: snapshot?.caseRevision ?? null, caseState: snapshot?.caseState ?? null, taskOrder: snapshot?.plan?.taskOrder ?? [], taskStates } };
       phase = 'agent';
       const agent = await worker.surface.owners.diagnosticAgentRead();
       const executor = agent?.executor;
