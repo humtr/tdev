@@ -22,6 +22,7 @@ import {
 } from '../src/installable-agent-security.mjs';
 import { InstallableAgentPackageManager, verifyInstallableAgentRelease } from '../src/installable-agent-package.mjs';
 import { TermuxInstallableAgentServiceController } from '../src/installable-agent-termux-service.mjs';
+import { qualificationDeploymentIdentityDigest } from './installable-agent-qualification-r4.mjs';
 
 export const D0046_AGENT_ID = 'd0039-r12-custody-20260828-3631c5a4';
 export const D0046_AGENT_ROUTE_GENERATION = 1;
@@ -39,6 +40,7 @@ const STABLE_RELEASE_FIELDS = Object.freeze([
   'developmentOperationOutputSchema', 'helperAbi', 'runtime', 'toolProfiles',
 ]);
 const TERMINAL_DELIVERY_STATES = new Set(['completed', 'failed', 'cancelled', 'released', 'expired']);
+const STOPPED_DRAIN_RESUME_PHASES = new Set(['evidence_positive_quiescence', 'evidence_package_verified']);
 const EVIDENCE_READINESS_KEYS = Object.freeze({
   positive_quiescence: 'positiveQuiescence',
   package_verified: 'packageVerified',
@@ -60,6 +62,46 @@ function assertDigest(value, label) {
 function assertRecord(value, label) {
   if (value === null || typeof value !== 'object' || Array.isArray(value)) fail('d0046_agent_update_input_invalid', `${label} must be a record`);
   return value;
+}
+
+function validatedDeploymentProbe(probe, label = 'deployment runtime probe') {
+  const value = assertRecord(probe, label);
+  const identity = assertRecord(value.deploymentIdentity, `${label}.deploymentIdentity`);
+  assertDigest(identity.routeCurrentTupleDigest, `${label}.deploymentIdentity.routeCurrentTupleDigest`);
+  assertDigest(value.deploymentIdentityDigest, `${label}.deploymentIdentityDigest`);
+  const computed = qualificationDeploymentIdentityDigest(identity);
+  if (computed !== value.deploymentIdentityDigest) {
+    fail('d0046_agent_deployment_identity_digest_mismatch', 'Provider deployment probe digest does not match its normalized deployment identity');
+  }
+  return Object.freeze({ deploymentIdentity: canonicalClone(identity), deploymentIdentityDigest: value.deploymentIdentityDigest });
+}
+
+function deploymentStaticProjection(identity) {
+  const value = assertRecord(identity, 'deployment identity');
+  assertDigest(value.routeCurrentTupleDigest, 'deployment identity routeCurrentTupleDigest');
+  const projection = canonicalClone(value);
+  delete projection.routeCurrentTupleDigest;
+  return projection;
+}
+
+export function assertSameDeploymentStaticIdentity(baselineIdentity, observedIdentity) {
+  const baseline = deploymentStaticProjection(baselineIdentity);
+  const observed = deploymentStaticProjection(observedIdentity);
+  if (canonicalJson(baseline) !== canonicalJson(observed)) {
+    fail('d0046_agent_deployment_identity_changed', 'Agent deployment static identity changed across one package management transaction');
+  }
+  return Object.freeze({
+    profile: 'tdev.d0046.agent-deployment-static-identity.v1',
+    staticIdentityDigest: digest(baseline),
+    baselineRouteCurrentTupleDigest: baselineIdentity.routeCurrentTupleDigest,
+    observedRouteCurrentTupleDigest: observedIdentity.routeCurrentTupleDigest,
+  });
+}
+
+async function freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity }) {
+  const probe = validatedDeploymentProbe(await rpc('runtime_probe'));
+  const staticIdentity = assertSameDeploymentStaticIdentity(baselineDeploymentIdentity, probe.deploymentIdentity);
+  return Object.freeze({ ...probe, staticIdentityDigest: staticIdentity.staticIdentityDigest });
 }
 
 function assertSourceRevision(value, label = 'source revision') {
@@ -178,20 +220,23 @@ export function assertProviderQuiescence(routeRead, installableRead) {
 
 export function assertLocalQuiescence(status, { allowExactManagementRequestId = null } = {}) {
   assertRecord(status, 'local package status');
-  const supervisor = status.service?.supervisor?.supervisor;
-  if (status.service?.classification !== 'running' || supervisor?.initialized !== true || supervisor?.liveOperations !== 0 || !Array.isArray(supervisor?.heldPredecessors) || supervisor.heldPredecessors.length !== 0) {
-    fail('d0046_agent_local_not_quiescent', 'Local Agent service/supervisor is not positively quiescent');
-  }
   const current = status.managementJournal?.current ?? null;
   if (current !== null && current.managementRequestId !== allowExactManagementRequestId) {
     fail('d0046_agent_local_management_busy', 'A different local Agent management transaction is nonterminal', { managementRequestId: current.managementRequestId ?? null });
   }
+  const supervisor = status.service?.supervisor?.supervisor;
+  const runningPositive = status.service?.classification === 'running' && supervisor?.initialized === true && supervisor?.liveOperations === 0 && Array.isArray(supervisor?.heldPredecessors) && supervisor.heldPredecessors.length === 0;
+  const stoppedDrainReplay = current !== null && current.operation === 'update' && current.managementRequestId === allowExactManagementRequestId && STOPPED_DRAIN_RESUME_PHASES.has(current.phase) && status.service?.classification === 'not_ready' && status.service?.supervisorRunit?.classification === 'down' && status.service?.controlRunit?.classification === 'down';
+  if (!runningPositive && !stoppedDrainReplay) {
+    fail('d0046_agent_local_not_quiescent', 'Local Agent is neither positively running/quiescent nor an exact stopped post-drain recovery state');
+  }
   return Object.freeze({
     profile: 'tdev.d0046.agent-local-quiescence.v1',
-    service: 'running',
+    service: runningPositive ? 'running' : 'stopped_after_recorded_positive_quiescence',
     liveOperations: 0,
     heldPredecessorCount: 0,
     managementRequestId: current?.managementRequestId ?? null,
+    managementPhase: current?.phase ?? null,
   });
 }
 
@@ -404,7 +449,7 @@ export function createQualificationRpc({ token, fetchImpl = globalThis.fetch, ur
   };
 }
 
-export function createAgentManagementTransport({ rpc, expectedDeploymentIdentityDigest, routeBinding, candidateManifestDigest, evidenceSigner }) {
+export function createAgentManagementTransport({ rpc, baselineDeploymentIdentity, routeBinding, candidateManifestDigest, evidenceSigner }) {
   const mutationMap = Object.freeze({
     beginPackageActivation: 'begin_package_activation',
     recordInstallableAgentTransactionEvidence: 'record_installable_agent_transaction_evidence',
@@ -420,8 +465,9 @@ export function createAgentManagementTransport({ rpc, expectedDeploymentIdentity
         const read = await rpc('read_installable_agent');
         request = buildEvidenceProof({ type: rawInput.type, evidenceDigest: rawInput.evidenceDigest, installableRead: read, routeBinding, evidenceSigner });
       }
+      const fence = await freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity });
       try {
-        return await rpc(operation, { request, expectedDeploymentIdentityDigest });
+        return await rpc(operation, { request, expectedDeploymentIdentityDigest: fence.deploymentIdentityDigest });
       } catch (error) {
         if (error?.code !== 'd0046_agent_provider_response_ambiguous') throw error;
         const read = await rpc('read_installable_agent');
@@ -482,7 +528,7 @@ export async function prepareD0046AgentPreservingUpdate({
     localManagementCurrent,
     localStateManifestDigest: localState.releaseManifestDigest,
   });
-  const localStatus = { service, managementJournal: { current: localManagementCurrent === null ? null : { managementRequestId: localManagementCurrent.managementRequestId } } };
+  const localStatus = { service, managementJournal: { current: localManagementCurrent === null ? null : canonicalClone(localManagementCurrent) } };
   const localQuiescence = assertLocalQuiescence(localStatus, { allowExactManagementRequestId: localManagementCurrent === null ? null : identity.managementRequestId });
   const candidateBinding = await serviceController.inspectReleaseBinding({ packageRoot, stateDirectory, manifest: candidate.manifest });
   const bindingState = assertLocalReleaseBindingState({
@@ -492,6 +538,8 @@ export async function prepareD0046AgentPreservingUpdate({
     predecessorBindings: localRelease.matches.map((match) => match.binding),
     candidateBinding,
   });
+  const deploymentProbe = validatedDeploymentProbe(runtimeProbe);
+  const deploymentStaticIdentity = assertSameDeploymentStaticIdentity(deploymentProbe.deploymentIdentity, deploymentProbe.deploymentIdentity);
   if (installableAgentManagementKeyId(managementPublicJwk) !== securityReadback.managementKeyId) fail('d0046_agent_management_key_mismatch', 'Local management custody key does not match provider CURRENT security state');
   const attestorPublicJwk = publicKeyFromAttestorFile(attestorPublicFile);
   const providerAttestorKeyId = attestorReadback.evidenceAttestationVerifier?.keyId ?? attestorReadback.keyId;
@@ -503,7 +551,8 @@ export async function prepareD0046AgentPreservingUpdate({
     predecessorManifestDigest: localState.releaseManifestDigest,
     providerObservedStateDigest: installableRead.predecessorDigest,
     managementExpectedPredecessorDigest: identity.expectedPredecessorDigest ?? null,
-    deploymentIdentityDigest: runtimeProbe.deploymentIdentityDigest,
+    deploymentIdentityDigest: deploymentProbe.deploymentIdentityDigest,
+    deploymentStaticIdentityDigest: deploymentStaticIdentity.staticIdentityDigest,
     routeBindingDigest: digest(routeBinding),
     durableRootBindingDigest: durableRoot.rootBindingDigest,
     compatibilityDigest: compatibility.digest,
@@ -520,6 +569,7 @@ export async function prepareD0046AgentPreservingUpdate({
     packageRoot: path.resolve(packageRoot),
     stateDirectory,
     routeBinding: canonicalClone(routeBinding),
+    deploymentIdentity: canonicalClone(deploymentProbe.deploymentIdentity),
     identity,
     candidateManifest: canonicalClone(candidate.manifest),
     controlConfig: controlConfigBase(controlConfig),
@@ -542,6 +592,7 @@ export function summarizeAgentPreparation(prepared) {
     providerObservedStateDigest: prepared.providerObservedStateDigest,
     managementExpectedPredecessorDigest: prepared.managementExpectedPredecessorDigest,
     deploymentIdentityDigest: prepared.deploymentIdentityDigest,
+    deploymentStaticIdentityDigest: prepared.deploymentStaticIdentityDigest,
     routeBindingDigest: prepared.routeBindingDigest,
     durableRootBindingDigest: prepared.durableRootBindingDigest,
     compatibilityDigest: prepared.compatibilityDigest,
@@ -566,7 +617,7 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
   const request = buildPackageUpdateRequest({ identity: prepared.identity, routeBinding: prepared.routeBinding, controlConfig: prepared.controlConfig, managementSigner });
   const transport = createAgentManagementTransport({
     rpc: prepared.rpc,
-    expectedDeploymentIdentityDigest: prepared.deploymentIdentityDigest,
+    baselineDeploymentIdentity: prepared.deploymentIdentity,
     routeBinding: prepared.routeBinding,
     candidateManifestDigest: prepared.candidateManifestDigest,
     evidenceSigner,
@@ -579,13 +630,16 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     managementTransport: transport,
   });
   const result = await manager.update(request);
-  const [routeRead, installableRead, localStatus, candidateBinding] = await Promise.all([
+  const [routeRead, installableRead, localStatus, candidateBinding, finalRuntimeProbe] = await Promise.all([
     prepared.rpc('read'),
     prepared.rpc('read_installable_agent'),
     manager.status(),
     serviceController.inspectReleaseBinding({ packageRoot: prepared.packageRoot, stateDirectory: prepared.stateDirectory, manifest: prepared.candidateManifest }),
+    prepared.rpc('runtime_probe'),
   ]);
   const providerQuiescence = assertProviderQuiescence(routeRead, installableRead);
+  const finalDeploymentProbe = validatedDeploymentProbe(finalRuntimeProbe, 'final deployment runtime probe');
+  const finalDeploymentStaticIdentity = assertSameDeploymentStaticIdentity(prepared.deploymentIdentity, finalDeploymentProbe.deploymentIdentity);
   const localQuiescence = assertLocalQuiescence(localStatus);
   if (installableRead.installableAgent.current?.packageManifestDigest !== prepared.candidateManifestDigest || installableRead.installableAgent.current?.managementTransaction !== null) {
     fail('d0046_agent_update_readback_mismatch', 'Provider did not read back the candidate package as exact CURRENT with no management transaction');
@@ -604,7 +658,9 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     candidateManifestDigest: prepared.candidateManifestDigest,
     candidateSourceRevision: prepared.candidateSourceRevision,
     managementRequestId: prepared.identity.managementRequestId,
-    deploymentIdentityDigest: prepared.deploymentIdentityDigest,
+    preflightDeploymentIdentityDigest: prepared.deploymentIdentityDigest,
+    deploymentIdentityDigest: finalDeploymentProbe.deploymentIdentityDigest,
+    deploymentStaticIdentityDigest: finalDeploymentStaticIdentity.staticIdentityDigest,
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
     localReleaseBindingDigest: digest(candidateBinding),

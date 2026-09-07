@@ -8,6 +8,7 @@ import {
   assertLocalQuiescence,
   assertLocalReleaseBindingState,
   assertProviderQuiescence,
+  assertSameDeploymentStaticIdentity,
   assertStableReleaseCompatibility,
   buildEvidenceProof,
   buildPackageUpdateRequest,
@@ -20,6 +21,7 @@ import {
   selectPackageUpdateIdentity,
   summarizeAgentPreparation,
 } from '../qualification/d0046-agent-preserving-update.mjs';
+import { qualificationDeploymentIdentityDigest } from '../qualification/installable-agent-qualification-r4.mjs';
 
 const D = (label) => digest({ label });
 const predecessorDigest = D('predecessor');
@@ -27,6 +29,47 @@ const oldPackage = D('old-package');
 const candidatePackage = D('candidate-package');
 const trustSubject = D('trust-subject');
 const deploymentIdentity = D('deployment');
+
+function deploymentIdentityRecord(routeCurrentTupleDigest = D('route-current'), overrides = {}) {
+  const workerScript = 'tdev-d0020-qualification-clean-a';
+  const workersDevAccountSubdomain = 'humtr';
+  const workersDevHostname = `${workerScript}.${workersDevAccountSubdomain}.workers.dev`;
+  return {
+    profile: 'tdev.installable-agent-qualification-deployment.v2',
+    sourceSha: 'a'.repeat(40),
+    artifactDigest: D('artifact'),
+    artifactManifestDigest: D('artifact-manifest'),
+    workerVersionId: 'worker-version-one',
+    accountId: 'account-one',
+    serviceName: workerScript,
+    deployment: 'production',
+    environment: 'production',
+    deploymentEpoch: 'epoch-one',
+    stateChangingTrafficPercentage: 100,
+    qualificationEndpointOrigin: `https://${workersDevHostname}`,
+    ingressKind: 'workers_dev',
+    workersDevAccountSubdomain,
+    workersDevHostname,
+    workersDevEnabled: true,
+    workersDevPreviewsEnabled: false,
+    workerScript,
+    namespaceId: '0dad69baa7154d00949f88c8b8dbf94a',
+    namespace: 'tdev-agent-delivery',
+    className: 'AgentDeliveryRuntimeDO',
+    jurisdiction: 'global',
+    agentId: 'd0039-r12-custody-20260828-3631c5a4',
+    routeGeneration: 1,
+    durableObjectId: '88bd5d3c42876252317034b6031382ce8617fb54afad4f8a1a313c12e230360c',
+    routeCurrentTupleDigest,
+    routeVerifierDigest: D('route-verifier'),
+    ...overrides,
+  };
+}
+
+function deploymentProbe(routeCurrentTupleDigest = D('route-current'), overrides = {}) {
+  const deploymentIdentity = deploymentIdentityRecord(routeCurrentTupleDigest, overrides);
+  return { deploymentIdentity, deploymentIdentityDigest: qualificationDeploymentIdentityDigest(deploymentIdentity) };
+}
 
 function routeBinding() {
   return {
@@ -117,6 +160,18 @@ function localStatus({ liveOperations = 0, heldPredecessors = [], managementCurr
   };
 }
 
+function stoppedDrainLocalStatus({ requestId = 'm2:3', phase = 'evidence_positive_quiescence' } = {}) {
+  return {
+    service: {
+      classification: 'not_ready',
+      supervisorRunit: { classification: 'down' },
+      controlRunit: { classification: 'down' },
+      error: 'ECONNREFUSED',
+    },
+    managementJournal: { current: { operation: 'update', managementRequestId: requestId, phase } },
+  };
+}
+
 function stableRelease(overrides = {}) {
   return {
     schemaVersion: 1,
@@ -176,6 +231,7 @@ test('already-current summary keeps control health separate from package currenc
     providerObservedStateDigest: predecessorDigest,
     managementExpectedPredecessorDigest: null,
     deploymentIdentityDigest: deploymentIdentity,
+    deploymentStaticIdentityDigest: D('deployment-static'),
     routeBindingDigest: D('route'),
     durableRootBindingDigest: D('root'),
     compatibilityDigest: D('compatibility'),
@@ -197,12 +253,25 @@ test('provider quiescence requires actual full-route reservation and delivery st
   assert.throws(() => assertProviderQuiescence({ reservations: {}, deliveries: { d1: { status: 'activated' } } }, read), { code: 'd0046_agent_provider_not_quiescent' });
 });
 
-test('local quiescence requires running service, zero live operations, no held predecessors and no competing journal transaction', () => {
+test('local quiescence requires running positive state or the exact recorded stopped post-drain recovery phase', () => {
   assert.equal(assertLocalQuiescence(localStatus()).liveOperations, 0);
   assert.throws(() => assertLocalQuiescence(localStatus({ liveOperations: 1 })), { code: 'd0046_agent_local_not_quiescent' });
   assert.throws(() => assertLocalQuiescence(localStatus({ heldPredecessors: ['p'] })), { code: 'd0046_agent_local_not_quiescent' });
   assert.throws(() => assertLocalQuiescence(localStatus({ managementCurrent: { managementRequestId: 'm2:9' } })), { code: 'd0046_agent_local_management_busy' });
   assert.equal(assertLocalQuiescence(localStatus({ managementCurrent: { managementRequestId: 'm2:3' } }), { allowExactManagementRequestId: 'm2:3' }).managementRequestId, 'm2:3');
+  assert.equal(assertLocalQuiescence(stoppedDrainLocalStatus(), { allowExactManagementRequestId: 'm2:3' }).service, 'stopped_after_recorded_positive_quiescence');
+  assert.equal(assertLocalQuiescence(stoppedDrainLocalStatus({ phase: 'evidence_package_verified' }), { allowExactManagementRequestId: 'm2:3' }).service, 'stopped_after_recorded_positive_quiescence');
+  assert.throws(() => assertLocalQuiescence(stoppedDrainLocalStatus({ phase: 'authority_fence' }), { allowExactManagementRequestId: 'm2:3' }), { code: 'd0046_agent_local_not_quiescent' });
+  assert.throws(() => assertLocalQuiescence(stoppedDrainLocalStatus(), { allowExactManagementRequestId: 'm2:4' }), { code: 'd0046_agent_local_management_busy' });
+});
+
+test('deployment static identity permits only the route current tuple to evolve', () => {
+  const baseline = deploymentIdentityRecord(D('tuple-before'));
+  const observed = deploymentIdentityRecord(D('tuple-after'));
+  const result = assertSameDeploymentStaticIdentity(baseline, observed);
+  assert.match(result.staticIdentityDigest, /^sha256:/u);
+  assert.notEqual(result.baselineRouteCurrentTupleDigest, result.observedRouteCurrentTupleDigest);
+  assert.throws(() => assertSameDeploymentStaticIdentity(baseline, deploymentIdentityRecord(D('tuple-after'), { workerVersionId: 'worker-version-two' })), { code: 'd0046_agent_deployment_identity_changed' });
 });
 
 test('fresh package update allocates exactly high-water plus one and binds owner operation package', () => {
@@ -293,13 +362,51 @@ test('ambiguous begin, evidence and commit reconcile only from the same durable 
   assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { ...committedInput, intentDigest: D('wrong') }, installableRead: committed, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
 });
 
+test('management transport refreshes the deployment CAS before every provider mutation phase', async () => {
+  const tx = packageTransaction();
+  const baseline = deploymentIdentityRecord(D('tuple-baseline'));
+  const probes = [deploymentProbe(D('tuple-begin')), deploymentProbe(D('tuple-evidence')), deploymentProbe(D('tuple-commit'))];
+  const mutationFences = [];
+  const rpc = async (operation, options = {}) => {
+    if (operation === 'runtime_probe') return probes.shift();
+    if (operation === 'read_installable_agent') return installableRead({ transaction: tx, highWater: 3 });
+    if (['begin_package_activation', 'record_installable_agent_transaction_evidence', 'commit_package_activation'].includes(operation)) {
+      mutationFences.push({ operation, digest: options.expectedDeploymentIdentityDigest });
+      if (operation === 'begin_package_activation') return { phase: 'draining' };
+      if (operation === 'commit_package_activation') return { phase: 'committed' };
+      return { classification: 'recorded' };
+    }
+    throw new Error(`unexpected ${operation}`);
+  };
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({ profile: 'evidence', keyId: D('k'), context: {}, signature: 'sig' }) });
+  await transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } });
+  await transport.invoke('recordInstallableAgentTransactionEvidence', { managementRequestId: 'm2:3', type: 'positive_quiescence', evidenceDigest: D('q') });
+  await transport.invoke('commitPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest });
+  assert.deepEqual(mutationFences.map((item) => item.digest), [deploymentProbe(D('tuple-begin')).deploymentIdentityDigest, deploymentProbe(D('tuple-evidence')).deploymentIdentityDigest, deploymentProbe(D('tuple-commit')).deploymentIdentityDigest]);
+});
+
+test('management transport rejects a static deployment identity change before provider mutation', async () => {
+  const baseline = deploymentIdentityRecord(D('tuple-baseline'));
+  let mutationCalls = 0;
+  const rpc = async (operation) => {
+    if (operation === 'runtime_probe') return deploymentProbe(D('tuple-current'), { workerVersionId: 'worker-version-two' });
+    if (operation === 'begin_package_activation') { mutationCalls += 1; return { phase: 'draining' }; }
+    throw new Error(`unexpected ${operation}`);
+  };
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
+  await assert.rejects(transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: managementIntent(), expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } }), { code: 'd0046_agent_deployment_identity_changed' });
+  assert.equal(mutationCalls, 0);
+});
+
 test('management transport never blind-replays an ambiguous provider mutation', async () => {
   const tx = packageTransaction();
+  const probe = deploymentProbe(D('tuple-begin'));
   let beginCalls = 0;
   let readCalls = 0;
   const calls = [];
   const rpc = async (operation, options = {}) => {
     calls.push({ operation, options });
+    if (operation === 'runtime_probe') return probe;
     if (operation === 'begin_package_activation') {
       beginCalls += 1;
       const error = new Error('lost response'); error.code = 'd0046_agent_provider_response_ambiguous'; throw error;
@@ -307,10 +414,11 @@ test('management transport never blind-replays an ambiguous provider mutation', 
     if (operation === 'read_installable_agent') { readCalls += 1; return installableRead({ transaction: tx, highWater: 3 }); }
     throw new Error(`unexpected ${operation}`);
   };
-  const transport = createAgentManagementTransport({ rpc, expectedDeploymentIdentityDigest: deploymentIdentity, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: deploymentIdentityRecord(D('tuple-baseline')), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
   const result = await transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } });
   assert.equal(result.phase, 'draining');
   assert.equal(beginCalls, 1);
   assert.equal(readCalls, 1);
-  assert.equal(calls[0].options.expectedDeploymentIdentityDigest, deploymentIdentity);
+  const beginCall = calls.find((item) => item.operation === 'begin_package_activation');
+  assert.equal(beginCall.options.expectedDeploymentIdentityDigest, probe.deploymentIdentityDigest);
 });
