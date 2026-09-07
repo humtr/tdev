@@ -361,7 +361,18 @@ async function createTrialLightApplication(env) {
     developmentUnitRunner: runner,
     developmentUnitStart: async (input = {}) => {
       assertTrialCaseId(input?.caseId);
-      return invokeExecution(input.caseId, 'developmentUnitStart', input);
+      const identity = input?.identity && typeof input.identity === 'object'
+        ? { principalId: input.identity.principalId, tenantId: input.identity.tenantId }
+        : null;
+      return invokeExecution(input.caseId, 'developmentUnitStart', {
+        caseId: input.caseId,
+        driveRequestId: input.driveRequestId,
+        contextReference: input.contextReference,
+        instruction: input.instruction,
+        validationProfile: input.validationProfile,
+        identity,
+        requestId: input.requestId,
+      });
     },
     developmentContextGet: async ({ selector = null } = {}) => {
       assertContextSelector(selector);
