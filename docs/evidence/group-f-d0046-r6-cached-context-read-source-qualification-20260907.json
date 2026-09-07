@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.r6.cached-context-recovery-source-qualification.v1",
+  "design": "D0046",
+  "revision": 6,
+  "status": "PASS",
+  "implementationBase": "4fc40ce190d909bb60d395ec5bedb7c0b18a38f6",
+  "activePredecessor": {
+    "script": "tdev-mcp-trial",
+    "versionId": "90eca433-9ab4-4ab5-8d8f-62ce86a6a6c5",
+    "sourceMarker": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "moduleCount": 34,
+    "bundleDigest": "sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64"
+  },
+  "candidate": {
+    "bundleDigest": "sha256:6d6bf5a9fd876a111e0a96a5b543750e05b39cf268b1f3de77793d7c2baa8bba",
+    "changedModules": [
+      "qualification/cloudflare-mcp-trial-worker.mjs"
+    ],
+    "selector": "d0046-r6-execution-state.tdev-trial-m2-20260905-r3",
+    "fixedCaseId": "tdev-trial-m2-20260905-r3",
+    "newMcpTools": 0,
+    "ownerCall": "readCaseAgentDrive",
+    "ownerMutation": false,
+    "providerMutation": false
+  },
+  "security": {
+    "ordinaryAuthenticatedApplicationRunsFirst": true,
+    "requiredOrdinaryResult": "mcp_trial_context_scope_denied",
+    "callerCanChooseCaseId": false,
+    "accessBypass": false,
+    "newUrl": false,
+    "previewDeployment": false
+  },
+  "validation": {
+    "focusedTests": {
+      "tests": 6,
+      "pass": 6,
+      "fail": 0,
+      "files": [
+        "test/d0046-r5-recovery-read.test.mjs",
+        "test/d0046-r6-cached-context-read.test.mjs"
+      ]
+    },
+    "livePrepare": "PASS",
+    "documentationCheck": "PASS: frontier selected D0046@r6",
+    "diffCheck": "PASS"
+  },
+  "preserved": [
+    "No provider upload occurred during source qualification",
+    "No Shared Case, Drive, Agent, D1, Access, credential or retained state was mutated"
+  ],
+  "next": "Commit and publish r6 source, then create a fresh D0046@r6 execution Task authorized for exactly one existing-target ingress-main-only upload from the exact predecessor, followed immediately by the cached development_context_get selector read.",
+  "secrets": "none"
+}

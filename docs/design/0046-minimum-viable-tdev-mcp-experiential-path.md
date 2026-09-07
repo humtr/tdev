@@ -1,10 +1,10 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 5
+- Revision: 6
 - Class: 2
 - Decision date: 2026-09-07
-- Acceptance base: `development@abf357b78b94f9fadf9695e55c1e4a68c8c154aa`
+- Acceptance base: `development@4fc40ce190d909bb60d395ec5bedb7c0b18a38f6`
 - Historical r3 predecessor revision: D0046@r2 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
 - Trigger: the source repair now connects the owner-issued lazy identity through Case/Agent execution, sparse model workspace, disposable full-base candidate and positive warden receipts. The minimum path must treat that local composition as the first executable checkpoint while retaining provider quota and current-client behavior as unknown.
 - Historical r3 acceptance evidence: `docs/evidence/group-f-d0046-r3-scoped-warden-route-acceptance-2026-09-06.json`
@@ -12,6 +12,18 @@
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
+
+## Revision 6 correction
+
+- Predecessor: D0046@r5 source/evidence at `development@4fc40ce190d909bb60d395ec5bedb7c0b18a38f6`, with live reconciled recovery version `90eca433-9ab4-4ab5-8d8f-62ce86a6a6c5` and exact 34-module bundle `sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64`.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r6-cached-context-read-acceptance-20260907.json`.
+- Falsifier: after the user refreshed the current ChatGPT connection, this conversation still exposes the same cached 11-tool `tdev-trial-4` schema and therefore cannot invoke the r5-only `development_execution_state_get` name even though provider readback proves that tool is active. The product/auth path is not falsified; the conversation-bound tool-schema cache prevents the recovery read. Re-uploading r5, bypassing Access, creating a new URL or asking for a service credential would not fix that schema mismatch.
+- Exactly one second **existing-target ingress-only recovery update** is admitted from the exact reconciled r5 version. It must preserve every module except `qualification/cloudflare-mcp-trial-worker.mjs`, all Worker settings/bindings, the URL, Access application/audience, principal/tenant mapping, traffic semantics, Case/Drive/Agent namespace identities, D1 identity, secrets, retained data and receipts. No preview, diagnostic Worker, alternate URL, version override, replacement namespace or Access workaround is allowed.
+- Revision 6 adds no MCP tool and does not change `tools/list`. Instead it recognizes one exact reserved `development_context_get` selector, `d0046-r6-execution-state.tdev-trial-m2-20260905-r3`, before the ordinary request body is consumed. The ordinary D0024/D0023 application still executes first. The bridge may act only when that ordinary authenticated request returns the existing `mcp_trial_context_scope_denied` result for the reserved selector. Any success, different denial or malformed request is returned unchanged. This ordering is the security gate: the bridge cannot bypass authentication, tenant mapping or the normal context owner.
+- The reserved selector maps to exactly one fixed retained Case, `tdev-trial-m2-20260905-r3`; callers cannot supply a Case ID through the cached schema. The bridge may invoke only `readCaseAgentDrive` on the existing trial-local Drive namespace and may return only the same bounded execution projection defined by Revision 5. It cannot initialize, advance, snapshot or quiesce a Drive; load a Case; dispatch an Agent; read repository bytes; or mutate any owner.
+- Fresh preparation must prove the exact r5 active version, source marker, 34-module bundle, settings and identities. Post-upload readback must prove that only the ingress main module changed. Ambiguous provider effects are reconciled before any retry.
+- The execution admission condition is unchanged: only a schema-valid `QUIESCED` projection with non-null nonnegative `lastCaseRevision` and sha256 `lastDriveReceiptDigest` permits the preserving Shared Case update. `ACTIVE`, `RECONCILING`, absent, malformed or unreadable state blocks owner mutation.
+- After the one read, Revision-5 continuation resumes unchanged. Both temporary recovery paths must be absent before M1. D0019, D0023, D0024, D0042 and D0047 ownership semantics remain unchanged.
 
 ## Revision 5 correction
 

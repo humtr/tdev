@@ -1,0 +1,32 @@
+{
+  "schemaVersion": 1,
+  "design": "D0046",
+  "revision": 6,
+  "status": "ACCEPTED",
+  "class": 2,
+  "acceptanceBase": "4fc40ce190d909bb60d395ec5bedb7c0b18a38f6",
+  "predecessor": {
+    "activeVersionId": "90eca433-9ab4-4ab5-8d8f-62ce86a6a6c5",
+    "bundleDigest": "sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64",
+    "sourceMarker": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61"
+  },
+  "falsifier": "Current conversation still exposes the cached 11-tool schema after refresh, so the active r5-only tool name is not callable.",
+  "decision": "Permit exactly one existing-target ingress-main-only r6 update that reuses development_context_get with one fixed reserved selector after ordinary authenticated scope denial, solely to call readCaseAgentDrive for the fixed retained Case.",
+  "selector": "d0046-r6-execution-state.tdev-trial-m2-20260905-r3",
+  "caseId": "tdev-trial-m2-20260905-r3",
+  "security": [
+    "ordinary authenticated application executes first",
+    "bridge requires mcp_trial_context_scope_denied",
+    "no new tool or tools/list change",
+    "fixed selector and fixed Case",
+    "readCaseAgentDrive only",
+    "no owner mutation"
+  ],
+  "preservation": [
+    "same URL and Access identity",
+    "same Case/Drive/Agent namespaces and D1",
+    "same 34 module names; only ingress main may differ",
+    "no preview or diagnostic Worker"
+  ],
+  "next": "Implement and source-qualify r6, then use a fresh r6-authorized execution task for one exact existing-target upload and immediately call the cached development_context_get selector."
+}
