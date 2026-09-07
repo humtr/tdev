@@ -8,6 +8,7 @@ import {
   assertLocalQuiescence,
   assertLocalReleaseBindingState,
   assertProviderQuiescence,
+  assertSameAgentSecurityIdentity,
   assertSameDeploymentStaticIdentity,
   assertStableReleaseCompatibility,
   buildEvidenceProof,
@@ -21,7 +22,7 @@ import {
   selectPackageUpdateIdentity,
   summarizeAgentPreparation,
 } from '../qualification/d0046-agent-preserving-update.mjs';
-import { qualificationDeploymentIdentityDigest } from '../qualification/installable-agent-qualification-r4.mjs';
+import { qualificationDeploymentIdentityDigest, qualificationRouteVerifierDigest } from '../qualification/installable-agent-qualification-r4.mjs';
 
 const D = (label) => digest({ label });
 const predecessorDigest = D('predecessor');
@@ -30,7 +31,16 @@ const candidatePackage = D('candidate-package');
 const trustSubject = D('trust-subject');
 const deploymentIdentity = D('deployment');
 
-function deploymentIdentityRecord(routeCurrentTupleDigest = D('route-current'), overrides = {}) {
+function securityIdentity(overrides = {}) {
+  return {
+    managementKeyId: D('management-key'),
+    releaseRootKeyId: D('release-root-key'),
+    currentCredentialKeyId: D('credential-key'),
+    ...overrides,
+  };
+}
+
+function deploymentIdentityRecord(routeCurrentTupleDigest = D('route-current'), overrides = {}, security = securityIdentity()) {
   const workerScript = 'tdev-d0020-qualification-clean-a';
   const workersDevAccountSubdomain = 'humtr';
   const workersDevHostname = `${workerScript}.${workersDevAccountSubdomain}.workers.dev`;
@@ -61,14 +71,19 @@ function deploymentIdentityRecord(routeCurrentTupleDigest = D('route-current'), 
     routeGeneration: 1,
     durableObjectId: '88bd5d3c42876252317034b6031382ce8617fb54afad4f8a1a313c12e230360c',
     routeCurrentTupleDigest,
-    routeVerifierDigest: D('route-verifier'),
+    routeVerifierDigest: qualificationRouteVerifierDigest({ currentTupleDigest: routeCurrentTupleDigest, ...security }),
     ...overrides,
   };
 }
 
-function deploymentProbe(routeCurrentTupleDigest = D('route-current'), overrides = {}) {
-  const deploymentIdentity = deploymentIdentityRecord(routeCurrentTupleDigest, overrides);
+function deploymentProbe(routeCurrentTupleDigest = D('route-current'), overrides = {}, security = securityIdentity()) {
+  const deploymentIdentity = deploymentIdentityRecord(routeCurrentTupleDigest, overrides, security);
   return { deploymentIdentity, deploymentIdentityDigest: qualificationDeploymentIdentityDigest(deploymentIdentity) };
+}
+
+function securityReadback(routeCurrentTupleDigest = D('route-current'), { deploymentOverrides = {}, securityOverrides = {} } = {}) {
+  const security = securityIdentity(securityOverrides);
+  return { ...deploymentProbe(routeCurrentTupleDigest, deploymentOverrides, security), ...security };
 }
 
 function routeBinding() {
@@ -232,6 +247,7 @@ test('already-current summary keeps control health separate from package currenc
     managementExpectedPredecessorDigest: null,
     deploymentIdentityDigest: deploymentIdentity,
     deploymentStaticIdentityDigest: D('deployment-static'),
+    securityIdentityDigest: D('security-identity'),
     routeBindingDigest: D('route'),
     durableRootBindingDigest: D('root'),
     compatibilityDigest: D('compatibility'),
@@ -265,13 +281,21 @@ test('local quiescence requires running positive state or the exact recorded sto
   assert.throws(() => assertLocalQuiescence(stoppedDrainLocalStatus(), { allowExactManagementRequestId: 'm2:4' }), { code: 'd0046_agent_local_management_busy' });
 });
 
-test('deployment static identity permits only the route current tuple to evolve', () => {
+test('deployment static identity permits the route current tuple and its derived verifier to evolve together', () => {
   const baseline = deploymentIdentityRecord(D('tuple-before'));
   const observed = deploymentIdentityRecord(D('tuple-after'));
   const result = assertSameDeploymentStaticIdentity(baseline, observed);
   assert.match(result.staticIdentityDigest, /^sha256:/u);
   assert.notEqual(result.baselineRouteCurrentTupleDigest, result.observedRouteCurrentTupleDigest);
+  assert.notEqual(result.baselineRouteVerifierDigest, result.observedRouteVerifierDigest);
   assert.throws(() => assertSameDeploymentStaticIdentity(baseline, deploymentIdentityRecord(D('tuple-after'), { workerVersionId: 'worker-version-two' })), { code: 'd0046_agent_deployment_identity_changed' });
+});
+
+test('Agent security identity remains fixed even while route-current deployment digests evolve', () => {
+  const baseline = securityIdentity();
+  assert.match(assertSameAgentSecurityIdentity(baseline, securityIdentity()).securityIdentityDigest, /^sha256:/u);
+  assert.throws(() => assertSameAgentSecurityIdentity(baseline, securityIdentity({ managementKeyId: D('other-management-key') })), { code: 'd0046_agent_security_identity_changed' });
+  assert.throws(() => assertSameAgentSecurityIdentity(baseline, securityIdentity({ currentCredentialKeyId: D('other-credential-key') })), { code: 'd0046_agent_security_identity_changed' });
 });
 
 test('fresh package update allocates exactly high-water plus one and binds owner operation package', () => {
@@ -362,13 +386,20 @@ test('ambiguous begin, evidence and commit reconcile only from the same durable 
   assert.throws(() => reconcileAmbiguousAgentMutation({ method: 'commitPackageActivation', input: { ...committedInput, intentDigest: D('wrong') }, installableRead: committed, candidateManifestDigest: candidatePackage }), { code: 'd0046_agent_update_effect_unknown' });
 });
 
-test('management transport refreshes the deployment CAS before every provider mutation phase', async () => {
+test('management transport refreshes one security-bound deployment CAS before every provider mutation phase', async () => {
   const tx = packageTransaction();
-  const baseline = deploymentIdentityRecord(D('tuple-baseline'));
-  const probes = [deploymentProbe(D('tuple-begin')), deploymentProbe(D('tuple-evidence')), deploymentProbe(D('tuple-commit'))];
+  const baselineSecurity = securityIdentity();
+  const baseline = deploymentIdentityRecord(D('tuple-baseline'), {}, baselineSecurity);
+  const pairs = [
+    { runtime: deploymentProbe(D('tuple-begin'), {}, baselineSecurity), security: securityReadback(D('tuple-begin')) },
+    { runtime: deploymentProbe(D('tuple-evidence'), {}, baselineSecurity), security: securityReadback(D('tuple-evidence')) },
+    { runtime: deploymentProbe(D('tuple-commit'), {}, baselineSecurity), security: securityReadback(D('tuple-commit')) },
+  ];
+  let activePair = null;
   const mutationFences = [];
   const rpc = async (operation, options = {}) => {
-    if (operation === 'runtime_probe') return probes.shift();
+    if (operation === 'runtime_probe') { activePair = pairs.shift(); return activePair.runtime; }
+    if (operation === 'd0039_security_readback') return activePair.security;
     if (operation === 'read_installable_agent') return installableRead({ transaction: tx, highWater: 3 });
     if (['begin_package_activation', 'record_installable_agent_transaction_evidence', 'commit_package_activation'].includes(operation)) {
       mutationFences.push({ operation, digest: options.expectedDeploymentIdentityDigest });
@@ -378,7 +409,7 @@ test('management transport refreshes the deployment CAS before every provider mu
     }
     throw new Error(`unexpected ${operation}`);
   };
-  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({ profile: 'evidence', keyId: D('k'), context: {}, signature: 'sig' }) });
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, baselineSecurityIdentity: baselineSecurity, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({ profile: 'evidence', keyId: D('k'), context: {}, signature: 'sig' }) });
   await transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } });
   await transport.invoke('recordInstallableAgentTransactionEvidence', { managementRequestId: 'm2:3', type: 'positive_quiescence', evidenceDigest: D('q') });
   await transport.invoke('commitPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest });
@@ -386,27 +417,52 @@ test('management transport refreshes the deployment CAS before every provider mu
 });
 
 test('management transport rejects a static deployment identity change before provider mutation', async () => {
-  const baseline = deploymentIdentityRecord(D('tuple-baseline'));
+  const baselineSecurity = securityIdentity();
+  const baseline = deploymentIdentityRecord(D('tuple-baseline'), {}, baselineSecurity);
+  const runtime = deploymentProbe(D('tuple-current'), { workerVersionId: 'worker-version-two' }, baselineSecurity);
+  const security = securityReadback(D('tuple-current'), { deploymentOverrides: { workerVersionId: 'worker-version-two' } });
   let mutationCalls = 0;
   const rpc = async (operation) => {
-    if (operation === 'runtime_probe') return deploymentProbe(D('tuple-current'), { workerVersionId: 'worker-version-two' });
+    if (operation === 'runtime_probe') return runtime;
+    if (operation === 'd0039_security_readback') return security;
     if (operation === 'begin_package_activation') { mutationCalls += 1; return { phase: 'draining' }; }
     throw new Error(`unexpected ${operation}`);
   };
-  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, baselineSecurityIdentity: baselineSecurity, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
   await assert.rejects(transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: managementIntent(), expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } }), { code: 'd0046_agent_deployment_identity_changed' });
+  assert.equal(mutationCalls, 0);
+});
+
+test('management transport rejects security key drift even when the fresh route verifier is internally consistent', async () => {
+  const baselineSecurity = securityIdentity();
+  const changedSecurity = securityIdentity({ managementKeyId: D('changed-management-key') });
+  const baseline = deploymentIdentityRecord(D('tuple-baseline'), {}, baselineSecurity);
+  const runtime = deploymentProbe(D('tuple-current'), {}, changedSecurity);
+  const security = securityReadback(D('tuple-current'), { securityOverrides: { managementKeyId: D('changed-management-key') } });
+  let mutationCalls = 0;
+  const rpc = async (operation) => {
+    if (operation === 'runtime_probe') return runtime;
+    if (operation === 'd0039_security_readback') return security;
+    if (operation === 'begin_package_activation') { mutationCalls += 1; return { phase: 'draining' }; }
+    throw new Error(`unexpected ${operation}`);
+  };
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: baseline, baselineSecurityIdentity: baselineSecurity, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
+  await assert.rejects(transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: managementIntent(), expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } }), { code: 'd0046_agent_security_identity_changed' });
   assert.equal(mutationCalls, 0);
 });
 
 test('management transport never blind-replays an ambiguous provider mutation', async () => {
   const tx = packageTransaction();
-  const probe = deploymentProbe(D('tuple-begin'));
+  const baselineSecurity = securityIdentity();
+  const probe = deploymentProbe(D('tuple-begin'), {}, baselineSecurity);
+  const security = securityReadback(D('tuple-begin'));
   let beginCalls = 0;
   let readCalls = 0;
   const calls = [];
   const rpc = async (operation, options = {}) => {
     calls.push({ operation, options });
     if (operation === 'runtime_probe') return probe;
+    if (operation === 'd0039_security_readback') return security;
     if (operation === 'begin_package_activation') {
       beginCalls += 1;
       const error = new Error('lost response'); error.code = 'd0046_agent_provider_response_ambiguous'; throw error;
@@ -414,7 +470,7 @@ test('management transport never blind-replays an ambiguous provider mutation', 
     if (operation === 'read_installable_agent') { readCalls += 1; return installableRead({ transaction: tx, highWater: 3 }); }
     throw new Error(`unexpected ${operation}`);
   };
-  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: deploymentIdentityRecord(D('tuple-baseline')), routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
+  const transport = createAgentManagementTransport({ rpc, baselineDeploymentIdentity: deploymentIdentityRecord(D('tuple-baseline'), {}, baselineSecurity), baselineSecurityIdentity: baselineSecurity, routeBinding: routeBinding(), candidateManifestDigest: candidatePackage, evidenceSigner: () => ({}) });
   const result = await transport.invoke('beginPackageActivation', { managementRequestId: 'm2:3', intentDigest: tx.intentDigest, expectedPredecessorDigest: predecessorDigest, transitionCause: 'package_update', packageManifestDigest: candidatePackage, packageTrustSubjectDigest: trustSubject, managementProof: { opaque: true } });
   assert.equal(result.phase, 'draining');
   assert.equal(beginCalls, 1);

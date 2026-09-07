@@ -22,7 +22,7 @@ import {
 } from '../src/installable-agent-security.mjs';
 import { InstallableAgentPackageManager, verifyInstallableAgentRelease } from '../src/installable-agent-package.mjs';
 import { TermuxInstallableAgentServiceController } from '../src/installable-agent-termux-service.mjs';
-import { qualificationDeploymentIdentityDigest } from './installable-agent-qualification-r4.mjs';
+import { qualificationDeploymentIdentityDigest, qualificationRouteVerifierDigest } from './installable-agent-qualification-r4.mjs';
 
 export const D0046_AGENT_ID = 'd0039-r12-custody-20260828-3631c5a4';
 export const D0046_AGENT_ROUTE_GENERATION = 1;
@@ -79,8 +79,10 @@ function validatedDeploymentProbe(probe, label = 'deployment runtime probe') {
 function deploymentStaticProjection(identity) {
   const value = assertRecord(identity, 'deployment identity');
   assertDigest(value.routeCurrentTupleDigest, 'deployment identity routeCurrentTupleDigest');
+  assertDigest(value.routeVerifierDigest, 'deployment identity routeVerifierDigest');
   const projection = canonicalClone(value);
   delete projection.routeCurrentTupleDigest;
+  delete projection.routeVerifierDigest;
   return projection;
 }
 
@@ -91,17 +93,71 @@ export function assertSameDeploymentStaticIdentity(baselineIdentity, observedIde
     fail('d0046_agent_deployment_identity_changed', 'Agent deployment static identity changed across one package management transaction');
   }
   return Object.freeze({
-    profile: 'tdev.d0046.agent-deployment-static-identity.v1',
+    profile: 'tdev.d0046.agent-deployment-static-identity.v2',
     staticIdentityDigest: digest(baseline),
     baselineRouteCurrentTupleDigest: baselineIdentity.routeCurrentTupleDigest,
     observedRouteCurrentTupleDigest: observedIdentity.routeCurrentTupleDigest,
+    baselineRouteVerifierDigest: baselineIdentity.routeVerifierDigest,
+    observedRouteVerifierDigest: observedIdentity.routeVerifierDigest,
   });
 }
 
-async function freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity }) {
+function normalizeSecurityIdentity(value, label = 'Agent security readback') {
+  const readback = assertRecord(value, label);
+  const result = {};
+  for (const key of ['managementKeyId', 'releaseRootKeyId', 'currentCredentialKeyId']) {
+    if (!Object.hasOwn(readback, key)) fail('d0046_agent_security_identity_invalid', `${label} is missing ${key}`);
+    const item = readback[key];
+    if (item !== null && (typeof item !== 'string' || item.length === 0 || item.length > 512 || item.includes('\0'))) {
+      fail('d0046_agent_security_identity_invalid', `${label}.${key} is invalid`);
+    }
+    result[key] = item;
+  }
+  return Object.freeze(result);
+}
+
+export function assertSameAgentSecurityIdentity(baselineSecurityIdentity, observedSecurityIdentity) {
+  const baseline = normalizeSecurityIdentity(baselineSecurityIdentity, 'baseline Agent security identity');
+  const observed = normalizeSecurityIdentity(observedSecurityIdentity, 'observed Agent security identity');
+  if (canonicalJson(baseline) !== canonicalJson(observed)) {
+    fail('d0046_agent_security_identity_changed', 'Agent management/release/credential key identity changed across one package management transaction');
+  }
+  return Object.freeze({ profile: 'tdev.d0046.agent-security-identity.v1', securityIdentityDigest: digest(baseline) });
+}
+
+function assertRouteVerifierMatchesSecurity(deploymentIdentity, securityIdentity) {
+  const expected = qualificationRouteVerifierDigest({
+    currentTupleDigest: deploymentIdentity.routeCurrentTupleDigest,
+    managementKeyId: securityIdentity.managementKeyId,
+    releaseRootKeyId: securityIdentity.releaseRootKeyId,
+    currentCredentialKeyId: securityIdentity.currentCredentialKeyId,
+  });
+  if (deploymentIdentity.routeVerifierDigest !== expected) {
+    fail('d0046_agent_route_verifier_mismatch', 'Agent deployment route verifier is not bound to the observed current tuple and security key identity');
+  }
+  return expected;
+}
+
+function validatedSecurityReadback(value, label = 'Agent security readback') {
+  const probe = validatedDeploymentProbe(value, label);
+  const securityIdentity = normalizeSecurityIdentity(value, label);
+  assertRouteVerifierMatchesSecurity(probe.deploymentIdentity, securityIdentity);
+  return Object.freeze({ ...probe, securityIdentity });
+}
+
+function assertSameDeploymentSnapshot(runtimeProbe, securityProbe) {
+  if (runtimeProbe.deploymentIdentityDigest !== securityProbe.deploymentIdentityDigest || canonicalJson(runtimeProbe.deploymentIdentity) !== canonicalJson(securityProbe.deploymentIdentity)) {
+    fail('d0046_agent_deployment_snapshot_inconsistent', 'Runtime and security readbacks did not observe one exact deployment identity snapshot');
+  }
+}
+
+async function freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity, baselineSecurityIdentity }) {
   const probe = validatedDeploymentProbe(await rpc('runtime_probe'));
+  const securityProbe = validatedSecurityReadback(await rpc('d0039_security_readback'));
+  assertSameDeploymentSnapshot(probe, securityProbe);
   const staticIdentity = assertSameDeploymentStaticIdentity(baselineDeploymentIdentity, probe.deploymentIdentity);
-  return Object.freeze({ ...probe, staticIdentityDigest: staticIdentity.staticIdentityDigest });
+  const securityIdentity = assertSameAgentSecurityIdentity(baselineSecurityIdentity, securityProbe.securityIdentity);
+  return Object.freeze({ ...probe, staticIdentityDigest: staticIdentity.staticIdentityDigest, securityIdentityDigest: securityIdentity.securityIdentityDigest });
 }
 
 function assertSourceRevision(value, label = 'source revision') {
@@ -449,7 +505,7 @@ export function createQualificationRpc({ token, fetchImpl = globalThis.fetch, ur
   };
 }
 
-export function createAgentManagementTransport({ rpc, baselineDeploymentIdentity, routeBinding, candidateManifestDigest, evidenceSigner }) {
+export function createAgentManagementTransport({ rpc, baselineDeploymentIdentity, baselineSecurityIdentity, routeBinding, candidateManifestDigest, evidenceSigner }) {
   const mutationMap = Object.freeze({
     beginPackageActivation: 'begin_package_activation',
     recordInstallableAgentTransactionEvidence: 'record_installable_agent_transaction_evidence',
@@ -465,7 +521,7 @@ export function createAgentManagementTransport({ rpc, baselineDeploymentIdentity
         const read = await rpc('read_installable_agent');
         request = buildEvidenceProof({ type: rawInput.type, evidenceDigest: rawInput.evidenceDigest, installableRead: read, routeBinding, evidenceSigner });
       }
-      const fence = await freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity });
+      const fence = await freshMutationDeploymentFence({ rpc, baselineDeploymentIdentity, baselineSecurityIdentity });
       try {
         return await rpc(operation, { request, expectedDeploymentIdentityDigest: fence.deploymentIdentityDigest });
       } catch (error) {
@@ -539,8 +595,11 @@ export async function prepareD0046AgentPreservingUpdate({
     candidateBinding,
   });
   const deploymentProbe = validatedDeploymentProbe(runtimeProbe);
+  const providerSecurity = validatedSecurityReadback(securityReadback);
+  assertSameDeploymentSnapshot(deploymentProbe, providerSecurity);
   const deploymentStaticIdentity = assertSameDeploymentStaticIdentity(deploymentProbe.deploymentIdentity, deploymentProbe.deploymentIdentity);
-  if (installableAgentManagementKeyId(managementPublicJwk) !== securityReadback.managementKeyId) fail('d0046_agent_management_key_mismatch', 'Local management custody key does not match provider CURRENT security state');
+  const securityIdentity = assertSameAgentSecurityIdentity(providerSecurity.securityIdentity, providerSecurity.securityIdentity);
+  if (installableAgentManagementKeyId(managementPublicJwk) !== providerSecurity.securityIdentity.managementKeyId) fail('d0046_agent_management_key_mismatch', 'Local management custody key does not match provider CURRENT security state');
   const attestorPublicJwk = publicKeyFromAttestorFile(attestorPublicFile);
   const providerAttestorKeyId = attestorReadback.evidenceAttestationVerifier?.keyId ?? attestorReadback.keyId;
   if (installableAgentEvidenceAttestorKeyId(attestorPublicJwk) !== providerAttestorKeyId || providerAttestorKeyId !== runtimeProbe.evidenceAttestationVerifier?.keyId) fail('d0046_agent_attestor_key_mismatch', 'Local evidence attestor does not match provider deployment');
@@ -553,6 +612,7 @@ export async function prepareD0046AgentPreservingUpdate({
     managementExpectedPredecessorDigest: identity.expectedPredecessorDigest ?? null,
     deploymentIdentityDigest: deploymentProbe.deploymentIdentityDigest,
     deploymentStaticIdentityDigest: deploymentStaticIdentity.staticIdentityDigest,
+    securityIdentityDigest: securityIdentity.securityIdentityDigest,
     routeBindingDigest: digest(routeBinding),
     durableRootBindingDigest: durableRoot.rootBindingDigest,
     compatibilityDigest: compatibility.digest,
@@ -570,6 +630,7 @@ export async function prepareD0046AgentPreservingUpdate({
     stateDirectory,
     routeBinding: canonicalClone(routeBinding),
     deploymentIdentity: canonicalClone(deploymentProbe.deploymentIdentity),
+    securityIdentity: canonicalClone(providerSecurity.securityIdentity),
     identity,
     candidateManifest: canonicalClone(candidate.manifest),
     controlConfig: controlConfigBase(controlConfig),
@@ -593,6 +654,7 @@ export function summarizeAgentPreparation(prepared) {
     managementExpectedPredecessorDigest: prepared.managementExpectedPredecessorDigest,
     deploymentIdentityDigest: prepared.deploymentIdentityDigest,
     deploymentStaticIdentityDigest: prepared.deploymentStaticIdentityDigest,
+    securityIdentityDigest: prepared.securityIdentityDigest,
     routeBindingDigest: prepared.routeBindingDigest,
     durableRootBindingDigest: prepared.durableRootBindingDigest,
     compatibilityDigest: prepared.compatibilityDigest,
@@ -618,6 +680,7 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
   const transport = createAgentManagementTransport({
     rpc: prepared.rpc,
     baselineDeploymentIdentity: prepared.deploymentIdentity,
+    baselineSecurityIdentity: prepared.securityIdentity,
     routeBinding: prepared.routeBinding,
     candidateManifestDigest: prepared.candidateManifestDigest,
     evidenceSigner,
@@ -630,16 +693,20 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     managementTransport: transport,
   });
   const result = await manager.update(request);
-  const [routeRead, installableRead, localStatus, candidateBinding, finalRuntimeProbe] = await Promise.all([
+  const [routeRead, installableRead, localStatus, candidateBinding, finalRuntimeProbe, finalSecurityReadback] = await Promise.all([
     prepared.rpc('read'),
     prepared.rpc('read_installable_agent'),
     manager.status(),
     serviceController.inspectReleaseBinding({ packageRoot: prepared.packageRoot, stateDirectory: prepared.stateDirectory, manifest: prepared.candidateManifest }),
     prepared.rpc('runtime_probe'),
+    prepared.rpc('d0039_security_readback'),
   ]);
   const providerQuiescence = assertProviderQuiescence(routeRead, installableRead);
   const finalDeploymentProbe = validatedDeploymentProbe(finalRuntimeProbe, 'final deployment runtime probe');
+  const finalProviderSecurity = validatedSecurityReadback(finalSecurityReadback, 'final Agent security readback');
+  assertSameDeploymentSnapshot(finalDeploymentProbe, finalProviderSecurity);
   const finalDeploymentStaticIdentity = assertSameDeploymentStaticIdentity(prepared.deploymentIdentity, finalDeploymentProbe.deploymentIdentity);
+  const finalSecurityIdentity = assertSameAgentSecurityIdentity(prepared.securityIdentity, finalProviderSecurity.securityIdentity);
   const localQuiescence = assertLocalQuiescence(localStatus);
   if (installableRead.installableAgent.current?.packageManifestDigest !== prepared.candidateManifestDigest || installableRead.installableAgent.current?.managementTransaction !== null) {
     fail('d0046_agent_update_readback_mismatch', 'Provider did not read back the candidate package as exact CURRENT with no management transaction');
@@ -661,6 +728,7 @@ export async function applyD0046AgentPreservingUpdate({ prepared }) {
     preflightDeploymentIdentityDigest: prepared.deploymentIdentityDigest,
     deploymentIdentityDigest: finalDeploymentProbe.deploymentIdentityDigest,
     deploymentStaticIdentityDigest: finalDeploymentStaticIdentity.staticIdentityDigest,
+    securityIdentityDigest: finalSecurityIdentity.securityIdentityDigest,
     providerQuiescenceDigest: digest(providerQuiescence),
     localQuiescenceDigest: digest(localQuiescence),
     localReleaseBindingDigest: digest(candidateBinding),
