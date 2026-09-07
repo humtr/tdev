@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046.r5.recovery-read-source-qualification.v1",
+  "design": "D0046",
+  "revision": 5,
+  "status": "PASS",
+  "implementationBase": "d0f476078deefefac99f7ffd385b3e9d57fd9944",
+  "activePredecessor": {
+    "script": "tdev-mcp-trial",
+    "sourceCommit": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "versionId": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+    "moduleCount": 34,
+    "trackedModulesComparedToGit": 33,
+    "trackedModuleMismatches": [],
+    "generatedBaseModule": "qualification/mcp-trial-base-tree.mjs",
+    "predecessorBundleDigest": "sha256:414a4260e72ffd20e50155cc3c97d308e527283be1b02aa8c40fc67887573c5c"
+  },
+  "recoveryArtifact": {
+    "changedModules": [
+      "qualification/cloudflare-mcp-trial-worker.mjs"
+    ],
+    "recoveryBundleDigest": "sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64",
+    "preservationDigest": "sha256:21e4904b0627d8332b0b05ff3aad58533b7ade444fe06bd62f7b9934d5d76e24",
+    "temporaryTool": "development_execution_state_get",
+    "ownerCall": "readCaseAgentDrive",
+    "ownerMutation": false,
+    "providerMutation": false
+  },
+  "validation": {
+    "livePrepare": "PASS",
+    "focusedTests": {
+      "tests": 28,
+      "pass": 28,
+      "fail": 0,
+      "files": [
+        "test/d0046-r5-recovery-read.test.mjs",
+        "test/d0046-mcp-trial-deploy.test.mjs",
+        "test/mcp-trial-update.test.mjs",
+        "test/mcp-trial-composition.test.mjs",
+        "test/mcp-trial-runner.test.mjs"
+      ]
+    },
+    "documentationCheck": "PASS: frontier selected D0046@r5",
+    "diffCheck": "PASS",
+    "fullCheck": "INTERRUPTED by tmcp SERVER_RESTARTED before a result; not treated as a source failure and not used for admission"
+  },
+  "preserved": [
+    "No provider upload occurred during source qualification",
+    "No Shared Case, Drive, Agent, D1, Access, credential or canonical Git state was mutated",
+    "The recovery upload implementation requires exact active predecessor readback and exact post-upload content/config reconciliation before reporting success"
+  ],
+  "next": "Publish this qualified source, then use a fresh D0046@r5-authorized execution Task for exactly one existing-target ingress-only recovery upload and authoritative Drive readback.",
+  "secrets": "none"
+}
