@@ -2,6 +2,7 @@ import {
   canonicalJson,
   digest,
   isPlainRecord,
+  publicJsonClone,
   strictJsonParse,
 } from '../src/canonical.mjs';
 import {
@@ -313,7 +314,7 @@ async function createTrialLightApplication(env) {
     if (!stub || typeof stub.executeMcpTrial !== 'function') {
       throw configError('mcp_owner_unavailable', 'Trial execution Durable Object RPC is unavailable');
     }
-    return stub.executeMcpTrial({ operation, input });
+    return stub.executeMcpTrial(publicJsonClone({ operation, input }));
   };
   const caseSnapshotOwner = (snapshot) => Object.freeze({
     snapshot: () => canonicalClone(snapshot),
