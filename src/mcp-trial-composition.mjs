@@ -250,15 +250,16 @@ function routedStub(namespace, name, jurisdiction, label, { rpc = true } = {}) {
   return { id, stub };
 }
 
-function unwrapRpc(response, label) {
+function unwrapRpc(response, label, { profile = null } = {}) {
   if (!isPlainRecord(response)) fail('mcp_trial_owner_invalid_response', `${label} returned a non-record response`);
-  assertRecordShape(response, ['schemaVersion', 'ok'], ['result', 'error'], `${label} RPC response`);
-  if (response.schemaVersion !== 1 || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
+  const header = profile === null ? ['schemaVersion', 'ok'] : ['profile', 'schemaVersion', 'ok'];
+  assertRecordShape(response, header, ['result', 'error'], `${label} RPC response`);
+  if ((profile !== null && response.profile !== profile) || response.schemaVersion !== 1 || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
   if (response.ok) {
-    assertRecordShape(response, ['schemaVersion', 'ok', 'result'], [], `${label} RPC success`);
+    assertRecordShape(response, [...header, 'result'], [], `${label} RPC success`);
     return publicJsonClone(response.result);
   }
-  assertRecordShape(response, ['schemaVersion', 'ok', 'error'], [], `${label} RPC failure`);
+  assertRecordShape(response, [...header, 'error'], [], `${label} RPC failure`);
   assertRecordShape(response.error, ['code'], [], `${label} RPC error`);
   if (typeof response.error.code !== 'string') fail('mcp_trial_owner_invalid_response', `${label} RPC error code is invalid`);
   fail(response.error.code, `${label} owner rejected the operation`);
@@ -436,7 +437,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
         routeGeneration: normalized.agentOwner.routeGeneration,
         ...canonicalClone(input),
       };
-      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`);
+      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`, { profile: MCP_TRIAL_AGENT_RPC_PROFILE });
     },
     async readRoute() { return this.invoke('read'); },
     async readResultHandoff(deliveryId) { return this.invoke('read_result_handoff', { deliveryId }); },
