@@ -98,31 +98,6 @@ function caseView(snapshot, manifest, fallbackContract) {
   return { snapshot, plan, caseContract };
 }
 
-function historicalCaseView(snapshot, fallbackContract) {
-  if (!TERMINAL_CASE_STATES.has(snapshot?.caseState)) {
-    fail('mcp_trial_context_mismatch', 'Only terminal Case snapshots may be read against a historical repository base');
-  }
-  if (!isPlainRecord(snapshot?.plan) || !isPlainRecord(snapshot.plan.baseTree)) {
-    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot has no reconstructable Plan base');
-  }
-  const caseContract = caseContractFrom(snapshot, fallbackContract);
-  const baseTree = canonicalClone(snapshot.plan.baseTree);
-  if (digest(baseTree) !== snapshot.plan.baseDigest) {
-    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot base digest is invalid');
-  }
-  const plan = definePlan({
-    revisionId: snapshot.plan.revisionId,
-    baseTree,
-    tasks: Array.isArray(snapshot.plan.tasks)
-      ? snapshot.plan.tasks
-      : snapshot.plan.taskOrder?.map((taskId) => snapshot.plan.tasksById?.[taskId]),
-  }, { caseContract });
-  if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== snapshot.plan.baseDigest) {
-    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot Plan digest is invalid');
-  }
-  return { snapshot, plan, caseContract };
-}
-
 function readyTaskIds(view, capabilities) {
   if (!isPlainRecord(view.snapshot.taskStates) || view.snapshot.caseState !== 'active') return [];
   return view.plan.taskOrder.filter((taskId) => {
@@ -214,10 +189,10 @@ function candidateTree(view) {
   return promote(view.plan.baseTree, acceptedResults, view.plan.baseDigest, { caseContract: view.caseContract }).tree;
 }
 
-function candidateChanges(view) {
+function candidateChangesFromSnapshot(snapshot) {
   const changes = [];
-  for (const taskId of view.plan.taskOrder) {
-    const result = resultForTask(view, taskId);
+  for (const [taskId, state] of Object.entries(snapshot.taskStates ?? {})) {
+    const result = state?.acceptedResult ?? null;
     if (!isPlainRecord(result) || result.kind !== 'changeset' || !Array.isArray(result.writes)) continue;
     for (const write of result.writes) {
       changes.push({ taskId, path: write.path, content: write.content });
@@ -226,6 +201,10 @@ function candidateChanges(view) {
   changes.sort((left, right) => String(left.taskId).localeCompare(String(right.taskId)) ||
     String(left.path).localeCompare(String(right.path)));
   return changes;
+}
+
+function candidateChanges(view) {
+  return candidateChangesFromSnapshot(view.snapshot);
 }
 
 function effectKey(view, taskId) {
@@ -804,9 +783,41 @@ export class McpTrialDevelopmentUnitRunner {
     const loaded = await this.repository.load(caseId);
     if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
     const snapshot = snapshotFromOwner(loaded, 'Case owner');
-    const view = snapshot.plan?.baseDigest === this.manifest.repository.baseDigest
-      ? caseView(snapshot, this.manifest, this.caseContract)
-      : historicalCaseView(snapshot, this.caseContract);
+    if (snapshot.plan?.baseDigest !== this.manifest.repository.baseDigest) {
+      if (!TERMINAL_CASE_STATES.has(snapshot.caseState)) {
+        fail('mcp_trial_context_mismatch', 'Only terminal Case snapshots may be read against a historical repository base');
+      }
+      if (typeof this.repository.materializedProjection !== 'function') {
+        fail('mcp_owner_unavailable', 'Historical Case materialized projection owner is unavailable');
+      }
+      const materialized = canonicalClone(await this.repository.materializedProjection(caseId));
+      if (!isPlainRecord(materialized) ||
+          materialized.caseId !== snapshot.caseId ||
+          materialized.caseState !== snapshot.caseState ||
+          materialized.caseRevision !== snapshot.caseRevision ||
+          materialized.baseDigest !== snapshot.plan?.baseDigest ||
+          materialized.planDigest !== snapshot.plan?.planDigest ||
+          typeof materialized.candidateDigest !== 'string' ||
+          !Number.isSafeInteger(materialized.candidateTreeBytes) || materialized.candidateTreeBytes < 0 ||
+          (materialized.canonicalDigest !== null && typeof materialized.canonicalDigest !== 'string')) {
+        fail('mcp_trial_owner_invalid_response', 'Historical Case materialized projection is invalid');
+      }
+      const changes = candidateChangesFromSnapshot(snapshot);
+      return deepFreeze({
+        caseId,
+        caseState: snapshot.caseState,
+        caseRevision: snapshot.caseRevision,
+        baseDigest: snapshot.plan.baseDigest,
+        candidateDigest: materialized.candidateDigest,
+        candidateTreeBytes: materialized.candidateTreeBytes,
+        changeCount: changes.length,
+        changedPaths: changes.map(({ path }) => path),
+        changes,
+        canonicalDigest: materialized.canonicalDigest,
+        planDigest: snapshot.plan.planDigest,
+      });
+    }
+    const view = caseView(snapshot, this.manifest, this.caseContract);
     const tree = candidateTree(view);
     const changes = candidateChanges(view);
     return deepFreeze({

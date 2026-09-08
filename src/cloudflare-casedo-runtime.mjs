@@ -124,6 +124,11 @@ export class CaseRuntimeDOHost {
     return this.authority.loadCase({ ...input, placement });
   }
 
+  async materializedProjection(input) {
+    const placement = await this.requireElectedPlacement(input.placement);
+    return this.authority.materializedProjection({ ...input, placement });
+  }
+
   async command(input) {
     const placement = await this.requireElectedPlacement(input.placement);
     return this.authority.command({ ...input, placement });

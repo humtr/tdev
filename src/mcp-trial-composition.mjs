@@ -353,6 +353,9 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       const result = await caseCall('load', caseId);
       return caseEngineProjection(result.snapshot);
     },
+    async materializedProjection(caseId) {
+      return publicJsonClone(await caseCall('materialized_projection', caseId));
+    },
     async command(caseId, envelope) {
       const result = await caseCall('command', caseId, { envelope });
       return {

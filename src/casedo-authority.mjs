@@ -4,6 +4,7 @@ import {
   assertRecordShape,
   canonicalClone,
   canonicalJson,
+  digest,
   strictJsonParse,
   typedDigest,
 } from './canonical.mjs';
@@ -494,6 +495,27 @@ export class CaseDOAuthority {
     const placement = validateCasePlacement(input.placement);
     const state = this.#loadState(placement);
     return Object.freeze(canonicalClone({ placement, head: state.head, snapshot: state.snapshot, authoritativeBytes: state.meta.authoritative_bytes }));
+  }
+
+  materializedProjection(input) {
+    assertRecordShape(input, ['placement'], [], 'CaseDO materialized projection');
+    const placement = validateCasePlacement(input.placement);
+    const state = this.#loadState(placement);
+    const engine = CaseEngine.restore(state.snapshot, {
+      reopen: false,
+      semanticResolver: (objectDigest) => this.#loadObject(objectDigest),
+    });
+    const canonicalTree = engine.canonicalTree;
+    return Object.freeze(canonicalClone({
+      caseId: engine.caseId,
+      caseState: engine.caseState,
+      caseRevision: engine.caseRevision,
+      planDigest: engine.plan.planDigest,
+      baseDigest: engine.plan.baseDigest,
+      candidateDigest: digest(canonicalTree),
+      candidateTreeBytes: utf8Bytes(canonicalJson(canonicalTree)),
+      canonicalDigest: state.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(canonicalTree),
+    }));
   }
 
   command(input) {

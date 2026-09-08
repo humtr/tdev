@@ -170,8 +170,27 @@ test('D0046 candidate projection reads terminal historical bases but rejects act
     attempts: {},
     receipts: {},
   };
+  const historicalTree = { ...historicalBaseTree, 'src/changed.mjs': 'export const changed = true;\n' };
+  let materializedReads = 0;
   const runner = createMcpTrialDevelopmentUnitRunner({
-    repository: { create: async () => null, load: async () => ({ snapshot: () => snapshot }), command: async () => null },
+    repository: {
+      create: async () => null,
+      load: async () => ({ snapshot: () => snapshot }),
+      materializedProjection: async () => {
+        materializedReads += 1;
+        return {
+          caseId: snapshot.caseId,
+          caseState: snapshot.caseState,
+          caseRevision: snapshot.caseRevision,
+          baseDigest: snapshot.plan.baseDigest,
+          planDigest: snapshot.plan.planDigest,
+          candidateDigest: digest(historicalTree),
+          candidateTreeBytes: 123,
+          canonicalDigest: null,
+        };
+      },
+      command: async () => null,
+    },
     driveOwner: { initialize: async () => null, advance: async () => null },
     agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
     manifest: buildManifest(operationManifest),
@@ -179,9 +198,12 @@ test('D0046 candidate projection reads terminal historical bases but rejects act
   });
   const candidate = await runner.candidate('trial-historical-case-1');
   assert.equal(candidate.baseDigest, digest(historicalBaseTree));
-  assert.equal(candidate.candidateDigest, digest({ ...historicalBaseTree, 'src/changed.mjs': 'export const changed = true;\n' }));
+  assert.equal(candidate.candidateDigest, digest(historicalTree));
+  assert.equal(candidate.candidateTreeBytes, 123);
+  assert.equal(materializedReads, 1);
   snapshot.caseState = 'active';
   await assert.rejects(() => runner.candidate('trial-historical-case-1'), { code: 'mcp_trial_context_mismatch' });
+  assert.equal(materializedReads, 1);
 });
 
 test('D0046 drive expires due Agent reservations before availability gating', async () => {
