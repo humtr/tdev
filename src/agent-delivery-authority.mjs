@@ -1023,6 +1023,35 @@ function releaseQuiescedPackagePredecessorSlots(state, transaction) {
   }
 }
 
+function releaseCommittedPackageReplayPredecessorSlots(state, replayResult) {
+  if (!isPlainRecord(replayResult) || replayResult.phase !== 'committed' ||
+      !['package_update', 'package_rollback'].includes(replayResult.operation)) return false;
+  const committedTuple = normalizeInstallableAgentDataPlaneTuple(replayResult.currentTuple);
+  const currentTuple = installableAgentCurrentTuple(state.installableAgent, { executable: true });
+  if (canonicalJson(currentTuple) !== canonicalJson(committedTuple)) return false;
+  if (committedTuple.packageActivationGeneration <= 1 || committedTuple.lifecycleGeneration <= 2) return false;
+
+  let changed = false;
+  for (const delivery of Object.values(state.deliveries)) {
+    if (!delivery.slotHeld) continue;
+    const dispatchedByImmediatePredecessor = Object.values(delivery.dispatches).some((dispatch) => {
+      if (dispatch.installableAgentTuple === undefined || dispatch.installableAgentTuple === null) return false;
+      const predecessorTuple = normalizeInstallableAgentDataPlaneTuple(dispatch.installableAgentTuple);
+      return predecessorTuple.installationGeneration === committedTuple.installationGeneration &&
+        predecessorTuple.credentialGeneration === committedTuple.credentialGeneration &&
+        predecessorTuple.packageActivationGeneration === committedTuple.packageActivationGeneration - 1 &&
+        predecessorTuple.trustPolicyGeneration === committedTuple.trustPolicyGeneration &&
+        predecessorTuple.trustStateDigest === committedTuple.trustStateDigest &&
+        predecessorTuple.lifecycleGeneration === committedTuple.lifecycleGeneration - 2;
+    });
+    if (!dispatchedByImmediatePredecessor) continue;
+    delivery.slotHeld = false;
+    delivery.slotKind = 'none';
+    changed = true;
+  }
+  return changed;
+}
+
 function managementResult(classification, result) {
   return deepFreeze({ classification, ...canonicalClone(result) });
 }
@@ -1923,7 +1952,10 @@ export class AgentDeliveryAuthority {
       const known = state.installableAgent.managementReceipts[input.managementRequestId];
       this.#verifyManagement('package', state, input, known ? null : intentContent);
       const replay = managementRequestReplay(state.installableAgent, input, 'package', state.limits);
-      if (replay !== null) return { changed: false, result: managementResult('exact_replay', replay.result) };
+      if (replay !== null) {
+        const changed = releaseCommittedPackageReplayPredecessorSlots(state, replay.result);
+        return { changed, result: managementResult('exact_replay', replay.result) };
+      }
       requireNoManagementTransaction(current);
       if (current.lifecycleDisposition !== 'active') fail('lifecycle_predecessor_conflict', 'Package activation requires active predecessor before draining');
       assertDigest(input.packageManifestDigest, 'packageManifestDigest');
