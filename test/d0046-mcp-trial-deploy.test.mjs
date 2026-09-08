@@ -13,6 +13,7 @@ import {
   accessPolicyPayload,
   buildTrialManifests,
   buildWorkerMetadata,
+  existingTrialIdentity,
 } from '../qualification/d0046-mcp-trial-deploy.mjs';
 import { mcpDiscoveryResponse } from '../src/mcp-discovery.mjs';
 import { digest } from '../src/canonical.mjs';
@@ -56,6 +57,29 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
   assert.equal(metadata.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE').namespace_id, 'drive-namespace');
   assert.equal(Object.hasOwn(metadata, 'limits'), false);
   assert.equal(metadata.exports.CaseAgentDriveRuntimeDO.storage, 'sqlite');
+});
+
+test('D0046 resume identity is recovered from the existing Trial binding', async () => {
+  const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
+  const identity = { principalId: 'existing@example.test', tenantId: 'existing@example.test' };
+  const manifests = buildTrialManifests({
+    sourceSha: SOURCE_SHA,
+    baseDigest: digest(BASE_TREE),
+    baseTree: BASE_TREE,
+    operationManifest: operation,
+    driveNamespace: 'drive-namespace',
+    accessAudience: 'access-audience',
+    identity,
+    includeBaseTree: true,
+  });
+  const metadata = buildWorkerMetadata({
+    manifests,
+    sourceSha: SOURCE_SHA,
+    artifact: { moduleDigest: 'sha256:' + 'c'.repeat(64), artifactManifestDigest: 'sha256:' + 'd'.repeat(64) },
+    driveNamespace: 'drive-namespace',
+  });
+  assert.deepEqual({ ...existingTrialIdentity(metadata) }, identity);
+  assert.throws(() => existingTrialIdentity({ bindings: [] }), { code: 'd0046_update_binding_invalid' });
 });
 
 test('D0046 Access payload is the fixed ChatGPT managed-OAuth profile', () => {
