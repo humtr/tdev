@@ -33,6 +33,47 @@ test('D0046 resolves the public validation capability to one fixed operation pro
   assert.throws(() => resolveValidationOperationProfile(operationManifest, 'tdev.validation.unknown.v1'), { code: 'mcp_trial_validation_profile_invalid' });
 });
 
+test('D0046 validation reuses the release runtime candidate identity from the accepted model result', () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-validation-candidate-identity',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'write one file',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const runtimeCandidateTreeDigest = digest({ profile: 'runtime-candidate-identity' });
+  const view = {
+    plan,
+    caseContract: new CaseEngine({ caseId: 'trial-validation-candidate-identity', plan }).caseContract,
+    snapshot: {
+      caseId: 'trial-validation-candidate-identity',
+      taskStates: {
+        context: {
+          state: 'succeeded',
+          acceptedResult: { kind: 'observation', subject: 'repository-context', value: { referenceId: 'ctx-validation-candidate' } },
+        },
+        model: {
+          state: 'succeeded',
+          acceptedResult: {
+            kind: 'changeset',
+            baseDigest: digest(BASE_TREE),
+            writes: [{ path: 'src/base.mjs', content: 'export const base = 2;\n' }],
+            evidence: { candidateTreeDigest: runtimeCandidateTreeDigest },
+          },
+        },
+      },
+    },
+  };
+
+  const request = createMcpTrialOperationRequest(view, 'validate', {}, operationManifest);
+  assert.equal(request.profile, 'tdev.repository.validate.v1');
+  assert.equal(request.input.candidateTreeDigest, runtimeCandidateTreeDigest);
+  assert.equal(request.input.validationProfile, 'tdev.validation.npm-check.v1');
+});
+
 function placement(workerScript, className, namespace) {
   return {
     deployment: 'qualification',
