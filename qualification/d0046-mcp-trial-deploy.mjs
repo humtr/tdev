@@ -462,7 +462,7 @@ async function verifyExistingOwners(client) {
   assertSelfOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
   assertCaseOwnerCapacity(caseSettings.result, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
   const caseSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA');
-  if (caseSource?.type !== 'plain_text' || caseSource.text !== 'e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626') {
+  if (caseSource?.type !== 'plain_text' || caseSource.text !== '2bb20fbc099bfeeb09d4cafa05eac20f88c97729') {
     fail('d0046_owner_binding_mismatch', 'Existing Case owner source identity was not the fixed D0020 composition source');
   }
   const writer = bindingByName(caseSettings.result, 'TDEV_CASEDO_WRITER_COMPATIBILITY_ID');

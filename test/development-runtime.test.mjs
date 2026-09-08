@@ -1,6 +1,10 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { readFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { ContractError, canonicalClone, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
 import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome } from '../src/development-runtime.mjs';
@@ -64,6 +68,49 @@ test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed termina
   for (const [bytes, code] of cases) {
     assert.throws(() => parseCodexJsonl(bytes), (error) => error instanceof ContractError && error.code === code);
   }
+});
+
+test('D0046 Codex runtime temp files stay outside the exact-base clone and are cleaned', async (t) => {
+  const parent = mkdtempSync(path.join(tmpdir(), 'tdev-development-runtime-test-'));
+  t.after(() => rmSync(parent, { recursive: true, force: true }));
+  const repositoryPath = path.join(parent, 'repo');
+  const workspaceRoot = path.join(parent, 'workspaces');
+  mkdirSync(repositoryPath);
+  mkdirSync(workspaceRoot);
+  execFileSync('git', ['init', '-q'], { cwd: repositoryPath });
+  writeFileSync(path.join(repositoryPath, 'source.txt'), 'base\n');
+  execFileSync('git', ['add', 'source.txt'], { cwd: repositoryPath });
+  execFileSync('git', ['-c', 'user.name=tdev', '-c', 'user.email=tdev@example.invalid', 'commit', '-qm', 'base'], { cwd: repositoryPath });
+  const repositoryCommitOid = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryPath, encoding: 'utf8' }).trim();
+  const testBaseDigest = digest({ 'source.txt': 'base\n' });
+  const contextDigest = digest({ context: 'runtime-temp-isolation' });
+  let observedTempPath = null;
+  const executor = new CodexExecRepositoryModelExecutor({
+    repositoryPath,
+    codexExecutable: process.execPath,
+    codexHome: parent,
+    outputSchemaPath: fileURLToPath(new URL('../config/codex-changeset-output.schema.json', import.meta.url)),
+    workspaceRoot,
+    contextAdapter: {
+      materializeContext: async () => ({ descriptor: { contextDigest, fileCount: 1 } }),
+    },
+    modelRunner: async ({ environment, workingDirectory }) => {
+      observedTempPath = environment.TMPDIR;
+      assert.notEqual(observedTempPath, workingDirectory);
+      assert.equal(path.dirname(observedTempPath), workspaceRoot);
+      writeFileSync(path.join(observedTempPath, 'model-cache.tmp'), 'cache\n');
+      const stdout = eventStream(
+        { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify({ kind: 'changeset', baseDigest: testBaseDigest, writes: [{ path: 'source.txt', content: 'changed\n' }] }) } },
+        { type: 'turn.completed', usage: { input_tokens: 1, output_tokens: 1 } },
+      );
+      return { code: 0, signal: null, stdout, stdoutBytes: stdout.length, stderrBytes: 0, durationMs: 1 };
+    },
+  });
+  const result = await executor.execute({ repositoryCommitOid, baseDigest: testBaseDigest, instruction: 'change source' });
+  assert.equal(result.kind, 'changeset');
+  assert.equal(result.writes.length, 1);
+  assert.equal(existsSync(observedTempPath), false);
+  assert.deepEqual(readdirSync(workspaceRoot), []);
 });
 
 test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation sink', () => {

@@ -410,9 +410,12 @@ export class CodexExecRepositoryModelExecutor {
     const context = await this.materializeContext(repositoryCommitOid, baseDigest, { signal });
     const referenceId = assertContextReference(context.descriptor, contextReferenceId);
     const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal });
+    const temporaryParent = this.workspaceRoot === null ? os.tmpdir() : this.workspaceRoot;
+    let runtimeTempPath = null;
     const started = performance.now();
     let processResult = null;
     try {
+      runtimeTempPath = await mkdtemp(path.join(temporaryParent, 'tdev-development-runtime-'));
       const schemaBytes = await readFile(this.outputSchemaPath);
       const schemaDigest = `sha256:${createHash('sha256').update(schemaBytes).digest('hex')}`;
       if (this.outputSchemaSha256 !== null && schemaDigest !== this.outputSchemaSha256) {
@@ -431,7 +434,7 @@ export class CodexExecRepositoryModelExecutor {
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: clonePath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: runtimeTempPath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
       if (processResult.code !== 0) {
         const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
         fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
@@ -477,6 +480,11 @@ export class CodexExecRepositoryModelExecutor {
       });
       throw cause;
     } finally {
+      if (runtimeTempPath !== null) {
+        await rm(runtimeTempPath, { recursive: true, force: true });
+        try { await stat(runtimeTempPath); fail('development_runtime_temp_cleanup_failed', 'Codex runtime temporary directory remained after execution'); }
+        catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+      }
       await rm(clonePath, { recursive: true, force: true });
       try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
       catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
