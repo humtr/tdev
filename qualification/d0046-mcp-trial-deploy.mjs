@@ -56,6 +56,17 @@ export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.jso
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
+// M1/M2 use one owner-issued source/test scope. The complete repository
+// manifest and base identity remain bound separately by the generated module.
+export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
+  schemaVersion: 1,
+  profile: 'tdev.repository-context-scope.v1',
+  paths: Object.freeze(['src/lazy-plan-reference.mjs', 'test/lazy-plan-reference.test.mjs']),
+  prefixes: Object.freeze([]),
+  maxFiles: 8,
+  maxBytes: 1024 * 1024,
+  maxSearchResults: 16,
+});
 export const D0046_CASE_SOURCE_SHAS = Object.freeze([
   '2bb20fbc099bfeeb09d4cafa05eac20f88c97729',
   '3122ca9818e5e6b742491e8076721d68da131c50',

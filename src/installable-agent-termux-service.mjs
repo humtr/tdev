@@ -144,11 +144,9 @@ function assertNonSecretControlConfig(value) {
   if (typeof value.credentialRef !== 'string') {
     fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an external reference');
   }
-  if (value.credentialRef.startsWith('androidkeystore://')) {
-    try { parseInstallableAgentCredentialRef(value.credentialRef); }
-    catch (cause) { fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef AndroidKeyStore reference is invalid', { cause }); }
-  } else if (!path.isAbsolute(value.credentialRef)) {
-    fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an absolute external reference');
+  if (value.credentialRef.startsWith('androidkeystore://')) parseInstallableAgentCredentialRef(value.credentialRef);
+  else if (!path.isAbsolute(value.credentialRef)) {
+    fail('invalid_installable_agent_control_config', 'controlConfig.credentialRef must be an absolute path or canonical AndroidKeyStore reference');
   }
   return value;
 }
@@ -489,14 +487,7 @@ export class TermuxInstallableAgentServiceController {
     await this.#waitSupervised(layout.controlServicePath);
     await this.#waitSupervised(layout.supervisorServicePath);
     this.#sv('down', layout.controlServicePath);
-    let controlStopped;
-    try {
-      controlStopped = await this.#waitDown(layout.controlServicePath);
-    } catch (cause) {
-      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
-      this.#sv('kill', layout.controlServicePath);
-      controlStopped = await this.#waitDown(layout.controlServicePath);
-    }
+    const controlStopped = await this.#waitDown(layout.controlServicePath);
     this.#sv('up', layout.supervisorServicePath);
     await this.#waitSupervisorReady(layout);
     const client = this.clientFactory({ socketPath: layout.socketPath });
@@ -504,15 +495,7 @@ export class TermuxInstallableAgentServiceController {
     if (!['quiesced', 'exact_replay'].includes(drained?.classification) || drained?.supervisor?.liveOperations !== 0 || drained?.supervisor?.heldPredecessors?.length !== 0) {
       fail('installable_agent_supervisor_drain_incomplete', 'Supervisor drain did not provide positive quiescence');
     }
-    this.#sv('down', layout.supervisorServicePath);
-    let supervisorStopped;
-    try {
-      supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
-    } catch (cause) {
-      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
-      this.#sv('kill', layout.supervisorServicePath);
-      supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
-    }
+    const supervisorStopped = await this.#stopDrainedSupervisor(layout.supervisorServicePath);
     return Object.freeze({
       classification: 'quiesced_and_stopped',
       profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,
