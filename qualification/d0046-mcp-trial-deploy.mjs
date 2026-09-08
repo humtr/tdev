@@ -55,6 +55,10 @@ export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.jso
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
+export const D0046_CASE_SOURCE_SHAS = Object.freeze([
+  '2bb20fbc099bfeeb09d4cafa05eac20f88c97729',
+  '3122ca9818e5e6b742491e8076721d68da131c50',
+]);
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const MAX_PUBLIC_RESPONSE_BYTES = 1024 * 1024;
@@ -462,8 +466,8 @@ async function verifyExistingOwners(client) {
   assertSelfOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
   assertCaseOwnerCapacity(caseSettings.result, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
   const caseSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA');
-  if (caseSource?.type !== 'plain_text' || caseSource.text !== '2bb20fbc099bfeeb09d4cafa05eac20f88c97729') {
-    fail('d0046_owner_binding_mismatch', 'Existing Case owner source identity was not the fixed D0020 composition source');
+  if (caseSource?.type !== 'plain_text' || !D0046_CASE_SOURCE_SHAS.includes(caseSource.text)) {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner source identity was not one of the fixed qualified composition sources');
   }
   const writer = bindingByName(caseSettings.result, 'TDEV_CASEDO_WRITER_COMPATIBILITY_ID');
   if (writer?.type !== 'plain_text' || writer.text !== 'd0020-composition-r1') {
