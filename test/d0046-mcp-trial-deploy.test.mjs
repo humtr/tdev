@@ -31,8 +31,9 @@ test('D0046 light Case snapshot projection imports its clone helper', async () =
 
 
 
-test('D0046 fixed Case source allowlist includes the lazy Plan compatible reader baseline', () => {
+test('D0046 fixed Case source allowlist includes the lazy Plan compatible reader baselines', () => {
   assert.ok(D0046_CASE_SOURCE_SHAS.includes('746a09d4643bf268d9f4204304217e3309763422'));
+  assert.ok(D0046_CASE_SOURCE_SHAS.includes('e5977a1abd95d90a7fc2039ab990d3550e1386f0'));
   assert.equal(new Set(D0046_CASE_SOURCE_SHAS).size, D0046_CASE_SOURCE_SHAS.length);
 });
 

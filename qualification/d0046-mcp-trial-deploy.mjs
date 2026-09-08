@@ -72,6 +72,7 @@ export const D0046_CASE_SOURCE_SHAS = Object.freeze([
   '2bb20fbc099bfeeb09d4cafa05eac20f88c97729',
   '3122ca9818e5e6b742491e8076721d68da131c50',
   '746a09d4643bf268d9f4204304217e3309763422',
+  'e5977a1abd95d90a7fc2039ab990d3550e1386f0',
 ]);
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
