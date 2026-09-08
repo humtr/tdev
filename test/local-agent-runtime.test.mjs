@@ -380,7 +380,7 @@ test('local evidence revision is monotonic across a network reconnect on the sam
   assert.equal(agent.identity().connectionEpoch, 2);
 });
 
-test('one semantic Attempt cannot allocate a second delivery owner or poison the bounded tracking table', async () => {
+test('semantic Attempt ownership is Case-scoped while duplicate owners stay fenced within one Case', async () => {
   const adapter = controlledAdapter();
   const { agent } = runtime({ adapter, maxTrackedDeliveries: 2 });
   const first = await agent.handleDispatch(dispatch());
@@ -397,8 +397,8 @@ test('one semantic Attempt cannot allocate a second delivery owner or poison the
     authorizationId: digest({ authorization: 'other' }),
     dispatchGrantId: digest({ grant: 'other' }),
     caseId: 'case-two',
-    taskId: 'task-two',
-    attemptId: 'task-two.1',
+    taskId: 'task-one',
+    attemptId: 'task-one.1',
     fencingToken: digest({ fence: 'other' }),
   });
   const admitted = await agent.handleDispatch(other);

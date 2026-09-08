@@ -173,6 +173,10 @@ function deliveryKey(envelope) {
   return `${envelope.deliveryId}:${envelope.executorId}:${envelope.executorEpoch}`;
 }
 
+function semanticAttemptKey(envelope) {
+  return canonicalJson([envelope.caseId, envelope.attemptId]);
+}
+
 function ordinalKey(ordinal) {
   return String(ordinal);
 }
@@ -342,7 +346,8 @@ export class LocalAgentRuntime {
       if (this.socketIncarnationId === null) this.socketIncarnationId = envelope.socketIncarnationId;
       else if (this.socketIncarnationId !== envelope.socketIncarnationId) fail('stale_local_socket_incarnation', 'Dispatch arrived for a different physical socket incarnation');
     }
-    const attemptOwner = this.attempts.get(envelope.attemptId);
+    const attemptKey = semanticAttemptKey(envelope);
+    const attemptOwner = this.attempts.get(attemptKey);
     if (attemptOwner && attemptOwner !== envelope.deliveryId) {
       fail('local_attempt_conflict', 'One semantic Attempt cannot create multiple local delivery owners');
     }
@@ -373,7 +378,7 @@ export class LocalAgentRuntime {
         fail('local_dispatch_replay_unsafe', 'Later dispatch ordinal requires positive predecessor not-started/no-handle evidence');
       }
     }
-    this.attempts.set(envelope.attemptId, delivery.deliveryId);
+    this.attempts.set(attemptKey, delivery.deliveryId);
     const entry = {
       envelope,
       envelopeDigest,
