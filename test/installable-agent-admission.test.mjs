@@ -786,6 +786,48 @@ test('J3 ambiguous first send never produces a second maySend and reconnect cann
   expectCode(() => authority.grantCommand(admitted.delivery.deliveryId, 2), 'dispatch_replay_unsafe');
 });
 
+test('package positive quiescence releases predecessor dispatch capacity without asserting its effect', async () => {
+  const { authority } = createAuthority();
+  await registerAndActivate(authority, 'package-quiescence-release');
+  connectCurrent(authority, 'package-quiescence-release');
+  const ambiguous = makeDelivery(authority, 'package-quiescence-release');
+  const admissionInput = {
+    deliveryId: ambiguous.delivery.deliveryId,
+    authorizationId: ambiguous.authorization.authorizationId,
+    dispatchOrdinal: 1,
+    dispatchGrantId: ambiguous.authorization.dispatchGrantId,
+  };
+  const send = authority.initiateFirstEmission(admissionInput, () => {
+    throw Object.assign(new Error('ambiguous socket send'), { code: 'socket_send_ambiguous' });
+  });
+  assert.equal(send.classification, 'send_outcome_unknown');
+  const before = authority.read().deliveries[ambiguous.delivery.deliveryId];
+  assert.equal(before.slotHeld, true);
+  assert.equal(before.effect, 'unknown');
+  assert.equal(before.localEvidenceRevision, 0);
+
+  const current = authority.readInstallableAgent().installableAgent.current;
+  const packageRequest = managementRequest(authority, 'package', 'package-quiescence-release', {
+    transitionCause: 'package_update',
+    packageManifestDigest: digest({ package: 'package-quiescence-release-v2' }),
+    packageTrustSubjectDigest: current.packageTrustSubjectDigest,
+  });
+  authority.beginPackageActivation(packageRequest);
+  const transaction = authority.readInstallableAgent().installableAgent.current.managementTransaction;
+  assert.deepEqual(transaction.candidate.predecessorDataPlaneTuple, ambiguous.authorization.installableAgentTuple);
+  assert.equal(authority.read().deliveries[ambiguous.delivery.deliveryId].slotHeld, true);
+
+  await evidence(authority, packageRequest.managementRequestId, 'positive_quiescence');
+  const released = authority.read().deliveries[ambiguous.delivery.deliveryId];
+  assert.equal(released.slotHeld, false);
+  assert.equal(released.slotKind, 'none');
+  assert.equal(released.effect, 'unknown');
+  assert.equal(released.localEvidenceRevision, 0);
+  assert.equal(released.closedUndispatched, false);
+  assert.equal(released.terminalCaseReceipt, null);
+  assert.ok(released.dispatches['1'].firstEmissionAdmission);
+});
+
 test('legacy D0020 held slot blocks initial activation until exact positive quiescence proof releases only that slot', async () => {
   const { authority } = createAuthority();
   connectCurrent(authority, 'legacy-held');

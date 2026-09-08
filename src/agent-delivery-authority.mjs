@@ -1006,6 +1006,23 @@ function legacyHeldPredecessors(state) {
   return locators;
 }
 
+function releaseQuiescedPackagePredecessorSlots(state, transaction) {
+  const suppliedTuple = transaction.candidate?.predecessorDataPlaneTuple;
+  if (suppliedTuple === undefined || suppliedTuple === null) return;
+  const predecessorTuple = normalizeInstallableAgentDataPlaneTuple(suppliedTuple);
+  const predecessorTupleJson = canonicalJson(predecessorTuple);
+  for (const delivery of Object.values(state.deliveries)) {
+    if (!delivery.slotHeld) continue;
+    const dispatchedByPredecessor = Object.values(delivery.dispatches).some((dispatch) =>
+      dispatch.installableAgentTuple !== undefined &&
+      dispatch.installableAgentTuple !== null &&
+      canonicalJson(dispatch.installableAgentTuple) === predecessorTupleJson);
+    if (!dispatchedByPredecessor) continue;
+    delivery.slotHeld = false;
+    delivery.slotKind = 'none';
+  }
+}
+
 function managementResult(classification, result) {
   return deepFreeze({ classification, ...canonicalClone(result) });
 }
@@ -1585,6 +1602,9 @@ export class AgentDeliveryAuthority {
         currentSecurityDigest: installableAgentSecurityStateDigest(state.installableAgent),
       });
       transaction.readiness[readinessKey] = input.evidenceDigest;
+      if (input.type === 'positive_quiescence' && ['package_update', 'package_rollback'].includes(transaction.type)) {
+        releaseQuiescedPackagePredecessorSlots(state, transaction);
+      }
       return { changed: true, result: { classification: 'accepted', type: input.type, evidenceDigest: input.evidenceDigest } };
     });
   }
@@ -1909,6 +1929,7 @@ export class AgentDeliveryAuthority {
       assertDigest(input.packageManifestDigest, 'packageManifestDigest');
       assertDigest(input.packageTrustSubjectDigest, 'packageTrustSubjectDigest');
       if (current.trustSubjects[input.packageTrustSubjectDigest] !== 'active') fail('package_trust_denied', 'New package activation requires an active trust subject');
+      const predecessorDataPlaneTuple = installableAgentCurrentTuple(state.installableAgent, { executable: true });
       const drainingLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
       const finalLifecycleGeneration = nextInstallableGeneration(state.installableAgent, 'lifecycleGenerationHighWater', 'lifecycleGeneration');
       const packageActivationGeneration = nextInstallableGeneration(state.installableAgent, 'packageActivationGenerationHighWater', 'packageActivationGeneration');
@@ -1931,6 +1952,7 @@ export class AgentDeliveryAuthority {
           packageActivationGeneration,
           packageManifestDigest: input.packageManifestDigest,
           packageTrustSubjectDigest: input.packageTrustSubjectDigest,
+          predecessorDataPlaneTuple: canonicalClone(predecessorDataPlaneTuple),
           finalLifecycleGeneration,
           drainingSecurityDigest: null,
         },
