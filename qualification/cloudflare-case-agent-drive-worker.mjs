@@ -187,7 +187,7 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
       const loaded = await worker.surface.repository.load(caseId);
       const snapshot = loaded?.snapshot?.() ?? loaded;
       const taskStates = Object.fromEntries(Object.entries(snapshot?.taskStates ?? {}).map(([id, state]) => [id, state?.state ?? null]));
-      const taskId = snapshot?.plan?.taskOrder?.find((id) => snapshot?.taskStates?.[id]?.state === 'pending');
+      const taskId = Object.entries(snapshot?.taskStates ?? {}).find(([, state]) => state?.state === 'pending')?.[0];
       if (typeof taskId !== 'string') return { ok: false, phase, diagnostic: { caseRevision: snapshot?.caseRevision ?? null, caseState: snapshot?.caseState ?? null, taskOrder: snapshot?.plan?.taskOrder ?? [], taskStates } };
       phase = 'agent';
       const agent = await worker.surface.owners.diagnosticAgentRead();
