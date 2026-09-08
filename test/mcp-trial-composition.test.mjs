@@ -15,6 +15,7 @@ import {
   normalizeMcpTrialCompositionManifest,
   agentRouteHostKey,
 } from '../src/index.mjs';
+import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const COMMIT = 'a'.repeat(40);
 const BASE_TREE = { 'src/base.mjs': 'export const base = 1;\n' };
@@ -70,6 +71,54 @@ function manifest(overrides = {}) {
   };
 }
 
+
+
+function lazyManifest() {
+  const base = manifest();
+  const scope = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-context-scope.v1',
+    paths: ['src/base.mjs'],
+    prefixes: [],
+    maxFiles: 8,
+    maxBytes: 1024 * 1024,
+    maxSearchResults: 16,
+  };
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid: 'b'.repeat(40),
+    manifestDigest: digest({ profile: 'test.repository-manifest.v1' }),
+  });
+  const baseIdentity = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-base-identity.v1',
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid: repositoryBaseIdentity.treeOid,
+    baseDigest: base.repository.baseDigest,
+    manifestDigest: repositoryBaseIdentity.manifestDigest,
+  };
+  return {
+    ...base,
+    repository: {
+      ...base.repository,
+      repositoryBaseIdentity,
+      scope,
+      scopeDigest: scopeDigest(scope),
+      context: {
+        ...base.repository.context,
+        contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+        contextScope: scope,
+        scopeDigest: scopeDigest(scope),
+        baseIdentity,
+        repositoryBaseIdentity,
+      },
+    },
+    operation: { ...base.operation, contextProfile: 'tdev.repository.context.prepare.lazy.v1' },
+  };
+}
+
 function namespace(route, calls) {
   return {
     idFromName(name) {
@@ -99,6 +148,51 @@ test('D0046 trial manifest binds one fixed resource, owner set and immutable bas
   assert.equal(normalized.agentOwner.agentId, 'agent-trial');
   assert.equal(normalized.operation.contextProfile, 'tdev.repository.context.prepare.v1');
   assert.match(normalized.manifestDigest, /^sha256:[0-9a-f]{64}$/u);
+});
+
+
+
+test('D0046 trial composition preserves one normalized lazy repository/context binding', () => {
+  const input = lazyManifest();
+  const normalized = normalizeMcpTrialCompositionManifest(input);
+  assert.deepEqual(normalized.repository.scope, input.repository.scope);
+  assert.equal(normalized.repository.scopeDigest, input.repository.scopeDigest);
+  assert.deepEqual(normalized.repository.repositoryBaseIdentity, input.repository.repositoryBaseIdentity);
+  assert.deepEqual(normalized.repository.context.contextScope, input.repository.scope);
+  assert.equal(normalized.repository.context.scopeDigest, input.repository.scopeDigest);
+  assert.equal(normalized.repository.context.baseIdentity.manifestDigest, input.repository.repositoryBaseIdentity.manifestDigest);
+  assert.equal(normalized.operation.contextProfile, 'tdev.repository.context.prepare.lazy.v1');
+  const binding = normalizeMcpTrialCompositionBinding({
+    ...normalized,
+    repository: {
+      ...normalized.repository,
+      context: { ...normalized.repository.context, baseTree: {} },
+    },
+  });
+  assert.equal(Object.keys(binding.repository.context.baseTree).length, 0);
+  assert.equal(binding.repository.scopeDigest, normalized.repository.scopeDigest);
+  assert.equal(binding.repository.context.scopeDigest, normalized.repository.context.scopeDigest);
+  assert.equal(binding.repository.context.baseIdentity.manifestDigest, normalized.repository.context.baseIdentity.manifestDigest);
+});
+
+test('D0046 trial composition rejects divergent lazy scope, identity, and operation bindings', () => {
+  const scopeMismatch = lazyManifest();
+  scopeMismatch.repository.context = {
+    ...scopeMismatch.repository.context,
+    contextScope: { ...scopeMismatch.repository.scope, paths: ['src/other.mjs'] },
+  };
+  assert.throws(() => normalizeMcpTrialCompositionManifest(scopeMismatch), (error) => error?.code === 'mcp_trial_context_mismatch');
+
+  const identityMismatch = lazyManifest();
+  identityMismatch.repository.context = {
+    ...identityMismatch.repository.context,
+    baseIdentity: { ...identityMismatch.repository.context.baseIdentity, treeOid: 'c'.repeat(40) },
+  };
+  assert.throws(() => normalizeMcpTrialCompositionManifest(identityMismatch), (error) => error?.code === 'mcp_trial_context_mismatch');
+
+  const profileMismatch = lazyManifest();
+  profileMismatch.operation = { ...profileMismatch.operation, contextProfile: 'tdev.repository.context.prepare.v1' };
+  assert.throws(() => normalizeMcpTrialCompositionManifest(profileMismatch), (error) => error?.code === 'mcp_trial_manifest_invalid');
 });
 
 test('D0046 deployment binding accepts only the intentionally omitted base tree', () => {
