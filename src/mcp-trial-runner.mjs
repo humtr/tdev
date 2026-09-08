@@ -73,6 +73,7 @@ function taskPlan(snapshot, manifest, caseContract) {
     tasks: Array.isArray(snapshot.plan.tasks)
       ? snapshot.plan.tasks
       : snapshot.plan.taskOrder?.map((taskId) => snapshot.plan.tasksById?.[taskId]),
+    ...(snapshot.plan.baseReference === undefined ? {} : { baseReference: snapshot.plan.baseReference }),
   }, { caseContract });
   if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== manifest.repository.baseDigest) {
     fail('mcp_trial_case_snapshot_invalid', 'Case snapshot Plan digest does not match the fixed trial Plan');

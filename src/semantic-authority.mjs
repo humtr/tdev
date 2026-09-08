@@ -13,6 +13,7 @@ import {
   assertContentSize,
   validateRelativePath,
 } from './policy.mjs';
+import { normalizeLazyPlanReference } from './lazy-plan-reference.mjs';
 
 export const SEMANTIC_PROFILE = 'tdev.semantic.path-byte-radix.v1';
 export const SEMANTIC_VALUE_DOMAIN = 'tdev.semantic.value.v1';
@@ -470,23 +471,35 @@ export function hydrateSemanticTree(rootInput, resolver, context = {}) {
   return semantic;
 }
 
+function semanticBaseReference(value, baseDigest) {
+  if (value === undefined) return undefined;
+  return normalizeLazyPlanReference(value, {
+    objectFormat: value?.repositoryBaseIdentity?.objectFormat,
+    semanticBaseDigest: baseDigest,
+  });
+}
+
 export function semanticPlanBinding(plan, baseRootInput) {
   const baseRoot = validateSemanticRoot(baseRootInput);
+  const baseReference = semanticBaseReference(plan.baseReference, plan.baseDigest);
   const identity = {
     revisionId: plan.revisionId,
     baseDigest: plan.baseDigest,
     planDigest: plan.planDigest,
     tasks: plan.taskOrder.map((taskId) => canonicalClone(plan.tasksById[taskId])),
     baseRoot,
+    ...(baseReference === undefined ? {} : { baseReference }),
   };
   return deepFreeze({ ...identity, planBindingDigest: typedDigest(SEMANTIC_PLAN_BINDING_DOMAIN, identity) });
 }
 
 export function validateSemanticPlanBinding(input) {
   if (!isPlainRecord(input)) throw new ContractError('invalid_semantic_plan_binding', 'Semantic Plan binding must be a record');
-  const expected = ['revisionId', 'baseDigest', 'planDigest', 'tasks', 'baseRoot', 'planBindingDigest'].sort(compareText);
+  const required = ['revisionId', 'baseDigest', 'planDigest', 'tasks', 'baseRoot', 'planBindingDigest'].sort(compareText);
+  const allowed = [...required, 'baseReference'].sort(compareText);
   const actual = Object.keys(input).sort(compareText);
-  if (actual.length !== expected.length || !actual.every((key, index) => key === expected[index])) {
+  if (actual.length < required.length || actual.length > allowed.length ||
+      !actual.every((key) => allowed.includes(key)) || !required.every((key) => actual.includes(key))) {
     throw new ContractError('invalid_semantic_plan_binding', 'Semantic Plan binding fields are invalid');
   }
   assertDigestString(input.baseDigest, 'semantic plan baseDigest');
@@ -494,15 +507,17 @@ export function validateSemanticPlanBinding(input) {
   assertDigestString(input.planBindingDigest, 'semantic plan planBindingDigest');
   if (typeof input.revisionId !== 'string' || !Array.isArray(input.tasks)) throw new ContractError('invalid_semantic_plan_binding', 'Semantic Plan binding identity is invalid');
   const baseRoot = validateSemanticRoot(input.baseRoot);
+  const baseReference = semanticBaseReference(input.baseReference, input.baseDigest);
   const identity = {
     revisionId: input.revisionId,
     baseDigest: input.baseDigest,
     planDigest: input.planDigest,
     tasks: canonicalClone(input.tasks),
     baseRoot,
+    ...(baseReference === undefined ? {} : { baseReference }),
   };
   if (typedDigest(SEMANTIC_PLAN_BINDING_DOMAIN, identity) !== input.planBindingDigest) {
     throw new ContractError('semantic_plan_binding_digest_mismatch', 'Semantic Plan binding digest is invalid');
   }
-  return deepFreeze(canonicalClone(input));
+  return deepFreeze({ ...identity, planBindingDigest: input.planBindingDigest });
 }
