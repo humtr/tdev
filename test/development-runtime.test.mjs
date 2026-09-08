@@ -64,6 +64,16 @@ test('D0043 Codex JSONL tolerates bounded progress text when exactly one structu
   assert.equal(parsed.auxiliaryTerminalMessages, 1);
 });
 
+test('D0043 Codex JSONL accepts a recovered inspection-command failure when one structured result follows', () => {
+  const parsed = parseCodexJsonl(eventStream(
+    { type: 'item.completed', item: { type: 'command_execution', status: 'failed', exit_code: 2 } },
+    { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },
+    { type: 'turn.completed', usage: { input_tokens: 5, output_tokens: 2 } },
+  ));
+  assert.deepEqual({ ...parsed.result }, changeset);
+  assert.deepEqual(parsed.usage, { input_tokens: 5, output_tokens: 2 });
+});
+
 test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed terminal events', () => {
   const cases = [
     [eventStream({ type: 'turn.completed', usage: {} }), 'codex_terminal_output_missing'],
