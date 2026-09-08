@@ -2,6 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
+import { createMcpTrialOperationRequest } from '../src/mcp-trial-runner.mjs';
+
 import {
   CaseEngine,
   MCP_AUTH_PROFILE,
@@ -11,6 +13,7 @@ import {
   MCP_TRIAL_COMPOSITION_RESOURCE,
   MCP_TRIAL_DRIVE_CLASS_NAME,
   createMcpTrialDevelopmentUnitRunner,
+  createRepositoryBaseIdentity,
   defineDevelopmentUnitPlan,
   digest,
   normalizeDevelopmentOperationManifest,
@@ -78,6 +81,82 @@ function buildManifest(operationManifest) {
     previewWritersEnabled: false,
   };
 }
+
+test('D0047 Trial operation requests preserve owner-issued lazy context bindings', () => {
+  const baseDigest = digest(BASE_TREE);
+  const manifestDigest = digest({ repository: 'lazy-trial-request' });
+  const treeOid = 'b'.repeat(40);
+  const scope = { paths: ['src/base.mjs'], maxFiles: 4, maxBytes: 4096, maxSearchResults: 4 };
+  const baseIdentity = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-base-identity.v1',
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid,
+    baseDigest,
+    manifestDigest,
+  };
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid,
+    manifestDigest,
+  });
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-lazy-trial-request',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+    contextScope: scope,
+    baseIdentity,
+    repositoryBaseIdentity,
+    instruction: 'write one file',
+    writePaths: ['src/base.mjs'],
+  });
+  const scopeDigest = digest(scope);
+  const view = {
+    plan,
+    snapshot: {
+      taskStates: {
+        context: {
+          acceptedResult: {
+            kind: 'observation',
+            subject: 'repository-context',
+            value: { referenceId: 'ctx-lazy-trial', scopeDigest },
+          },
+        },
+      },
+    },
+  };
+
+  assert.deepEqual(JSON.parse(JSON.stringify(createMcpTrialOperationRequest(view, 'context', {}, null))), {
+    profile: 'tdev.repository.context.prepare.lazy.v1',
+    input: {
+      repositoryCommitOid: COMMIT,
+      baseDigest,
+      objectFormat: 'sha1',
+      scope,
+      baseIdentity,
+      repositoryBaseIdentity: JSON.parse(JSON.stringify(repositoryBaseIdentity)),
+    },
+  });
+  assert.deepEqual(JSON.parse(JSON.stringify(createMcpTrialOperationRequest(view, 'model', {}, null))), {
+    profile: 'tdev.model.repository.execute.v1',
+    input: {
+      repositoryCommitOid: COMMIT,
+      baseDigest,
+      instruction: 'write one file',
+      contextReferenceId: 'ctx-lazy-trial',
+      objectFormat: 'sha1',
+      contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+      contextScope: scope,
+      contextScopeDigest: scopeDigest,
+      baseIdentity,
+      repositoryBaseIdentity: JSON.parse(JSON.stringify(repositoryBaseIdentity)),
+      writePaths: ['src/base.mjs'],
+    },
+  });
+});
 
 test('D0046 candidate projection returns a bounded diff instead of the complete base tree', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(

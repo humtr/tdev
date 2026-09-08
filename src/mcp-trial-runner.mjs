@@ -264,7 +264,7 @@ export function resolveValidationOperationProfile(operationManifest, requestedPr
   return matches[0];
 }
 
-function operationRequest(view, taskId, payload, operationManifest) {
+export function createMcpTrialOperationRequest(view, taskId, payload, operationManifest) {
   const task = view.plan.tasksById[taskId];
   if (taskId === 'context') {
     return {
@@ -273,6 +273,9 @@ function operationRequest(view, taskId, payload, operationManifest) {
         repositoryCommitOid: task.input.repositoryCommitOid,
         baseDigest: task.input.baseDigest,
         objectFormat: task.input.objectFormat,
+        ...(task.input.scope === undefined ? {} : { scope: canonicalClone(task.input.scope) }),
+        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
       },
     };
   }
@@ -280,6 +283,9 @@ function operationRequest(view, taskId, payload, operationManifest) {
     const context = resultForTask(view, 'context');
     const contextReferenceId = context?.value?.referenceId;
     assertIdentifier(contextReferenceId, 'contextReferenceId');
+    const lazyContext = task.input.contextProfile === 'tdev.repository.context.prepare.lazy.v1';
+    const contextScopeDigest = lazyContext ? context?.value?.scopeDigest : undefined;
+    if (lazyContext) assertDigest(contextScopeDigest, 'contextScopeDigest');
     return {
       profile: task.input.profile,
       input: {
@@ -287,6 +293,13 @@ function operationRequest(view, taskId, payload, operationManifest) {
         baseDigest: task.input.baseDigest,
         instruction: task.input.instruction,
         contextReferenceId,
+        ...(task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+        ...(task.input.contextProfile === undefined ? {} : { contextProfile: task.input.contextProfile }),
+        ...(task.input.contextScope === undefined ? {} : { contextScope: canonicalClone(task.input.contextScope) }),
+        ...(contextScopeDigest === undefined ? {} : { contextScopeDigest }),
+        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
+        ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
       },
     };
   }
@@ -301,7 +314,7 @@ function operationRequest(view, taskId, payload, operationManifest) {
 }
 
 function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor, operationManifest } = {}) {
-  const operation = operationRequest(view, taskId, payload, operationManifest);
+  const operation = createMcpTrialOperationRequest(view, taskId, payload, operationManifest);
   if (!Number.isSafeInteger(predictedAttemptOrdinal) || predictedAttemptOrdinal < 1) {
     fail('mcp_trial_attempt_identity_invalid', 'Executable body requires a positive predicted Attempt ordinal');
   }
