@@ -249,7 +249,7 @@ The initial adapter must use the versioned `tdev.casedo.sqlite-authority.v1` log
 
 ## 9.6 D0043/D0046 development-path composition boundary
 
-D0043 adds no semantic owner. Its Revision-4 catalog binds repository preparation, one fresh explicit no-sandbox Codex model process, sparse scoped workspace, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017/D0047, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a read-only result producer; the disposable candidate is derived work state until existing result/Promotion rules accept it. The warden owns process, model-workspace and candidate cleanup and emits positive absence receipts.
+D0043 adds no semantic owner. Its Revision-3 no-bwrap catalog binds repository preparation, one fresh no-bwrap Codex model process against a disposable exact-base clone, ChangeSet validation/materialization and fixed candidate validation to the installable Agent release. The repository/context owners remain D0013/D0017, process/delivery truth remains D0020/D0027, result acceptance remains D0019, and only Promotion may elect canonical content. Codex is a result-only producer; the clone must remain clean after execution; the disposable candidate is derived work state until existing result/Promotion rules accept it.
 
 D0046 adds one provider-composition layer, not a replacement runtime:
 
@@ -262,7 +262,7 @@ web ChatGPT -> D0023/D0024 trial ingress
                                                           |-> D0043 Codex/validation
 ```
 
-The ingress is stateless command/projection code. The drive DO owns only durable level-triggered intent/cursors. Cross-script bindings select the already-owned Case and Agent authorities, and the common D1 binding selects Case placement; none is a new semantic cache or queue. One immutable deployment manifest fixes the principal/tenant, Case prefix, Agent/route, repository, operation release and provider objects so request data cannot redirect an edge.
+The ingress is stateless command/projection code. On the Workers Free plan it performs only light bootstrap/authentication and delegates tree-heavy owner operations through an RPC method on the already-bound trial Drive DO. That method constructs the source-bound composition once per object and uses the local D0042 host for its cursor calls; it does not create a second semantic owner or recursively call its own namespace. The Drive DO still owns only durable level-triggered intent/cursors; Case, Task/Attempt/result, Agent delivery/process and candidate semantics remain with their named owners. Cross-script bindings select the already-owned Case and Agent authorities, and the common D1 binding selects Case placement; none is a new semantic cache or queue. One immutable deployment manifest fixes the principal/tenant, Case prefix, Agent/route, repository, operation release and provider objects so request data cannot redirect an edge.
 
 The first composition intentionally has no Git/publication edge and uses an isolated public Worker name. Stable endpoint cutover, broader tenancy, publication, comparison and self-hosting remain later independently authorized edges. A source diagram or successful HTTP response never proves those owners are deployed or that a current client reached a validated candidate.
 

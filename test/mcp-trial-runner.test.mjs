@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import {
+  CaseEngine,
   MCP_AUTH_PROFILE,
   MCP_TRIAL_AGENT_CLASS_NAME,
   MCP_TRIAL_CASE_CLASS_NAME,
@@ -129,4 +130,153 @@ test('D0046 candidate projection returns a bounded diff instead of the complete 
   assert.deepEqual(candidate.changedPaths, ['src/changed.mjs']);
   assert.deepEqual(candidate.changes, [{ taskId: 'model', path: 'src/changed.mjs', content: 'export const changed = true;\n' }]);
   assert.equal(candidate.candidateDigest, digest({ ...BASE_TREE, 'src/changed.mjs': 'export const changed = true;\n' }));
+});
+
+test('D0046 candidate projection reads terminal historical bases but rejects active stale bases', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const historicalBaseTree = { 'src/old.mjs': 'export const old = 1;\n' };
+  const historicalPlan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-historical-1',
+    baseTree: historicalBaseTree,
+    repositoryCommitOid: 'b'.repeat(40),
+    instruction: 'write one historical file',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const serializedPlan = {
+    revisionId: historicalPlan.revisionId,
+    baseTree: historicalPlan.baseTree,
+    baseDigest: historicalPlan.baseDigest,
+    tasks: historicalPlan.taskOrder.map((taskId) => historicalPlan.tasksById[taskId]),
+    planDigest: historicalPlan.planDigest,
+  };
+  const snapshot = {
+    schemaVersion: 2,
+    caseId: 'trial-historical-case-1',
+    caseState: 'succeeded',
+    caseRevision: 20,
+    eventSequence: 20,
+    plan: serializedPlan,
+    events: [],
+    canonicalTree: {},
+    canonicalDigest: null,
+    taskStates: {
+      context: { state: 'succeeded', acceptedResult: { kind: 'observation', subject: 'context', value: { referenceId: 'ctx-old-1' } } },
+      model: { state: 'succeeded', acceptedResult: { kind: 'changeset', baseDigest: digest(historicalBaseTree), writes: [{ path: 'src/changed.mjs', content: 'export const changed = true;\n' }] } },
+      validate: { state: 'succeeded', acceptedResult: { kind: 'validation', passed: true, checks: [] } },
+      promote: { state: 'succeeded', acceptedResult: null },
+    },
+    attempts: {},
+    receipts: {},
+  };
+  const historicalTree = { ...historicalBaseTree, 'src/changed.mjs': 'export const changed = true;\n' };
+  let materializedReads = 0;
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => null,
+      load: async () => ({ snapshot: () => snapshot }),
+      materializedProjection: async () => {
+        materializedReads += 1;
+        return {
+          caseId: snapshot.caseId,
+          caseState: snapshot.caseState,
+          caseRevision: snapshot.caseRevision,
+          baseDigest: snapshot.plan.baseDigest,
+          planDigest: snapshot.plan.planDigest,
+          candidateDigest: digest(historicalTree),
+          candidateTreeBytes: 123,
+          canonicalDigest: null,
+        };
+      },
+      command: async () => null,
+    },
+    driveOwner: { initialize: async () => null, advance: async () => null },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const candidate = await runner.candidate('trial-historical-case-1');
+  assert.equal(candidate.baseDigest, digest(historicalBaseTree));
+  assert.equal(candidate.candidateDigest, digest(historicalTree));
+  assert.equal(candidate.candidateTreeBytes, 123);
+  assert.equal(materializedReads, 1);
+  snapshot.caseState = 'active';
+  await assert.rejects(() => runner.candidate('trial-historical-case-1'), { code: 'mcp_trial_context_mismatch' });
+  assert.equal(materializedReads, 1);
+});
+
+test('D0046 drive expires due Agent reservations before availability gating', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-trial-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'write one file',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const caseId = 'trial-expired-reservation';
+  const engine = new CaseEngine({ caseId, plan });
+  const reservationRequestDigest = digest({ reservation: 'expired' });
+  let expired = false;
+  const agentState = () => ({
+    routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
+    installableAgent: { state: 'CURRENT' },
+    connection: expired ? null : { id: 'connection-1', epoch: 1 },
+    executor: { id: 'executor-1', epoch: 1 },
+    capacity: { revision: 1, effectiveCapacity: 1 },
+    reservationWindowGeneration: 1,
+    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    reservations: {
+      stale: {
+        reservationWindowGeneration: 1,
+        windowGeneration: 1,
+        reservationRequestId: 'reservation-stale',
+        reservationRequestDigest,
+        caseId,
+        taskId: 'context',
+        predictedAttemptOrdinal: 1,
+        slotGeneration: 1,
+        requestedSlots: 1,
+        expiresAtMs: 999,
+        status: expired ? 'expired' : 'reserved',
+      },
+    },
+    deliveries: {},
+  });
+  const calls = [];
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: { create: async () => null, load: async () => engine, command: async () => { throw new Error('unexpected Case command'); } },
+    driveOwner: { initialize: async () => null, advance: async (input) => ({ classification: 'accepted', input }) },
+    agentOwner: {
+      async invoke(operation, input) {
+        calls.push({ operation, input });
+        assert.equal(operation, 'expire_reservation');
+        expired = true;
+        return { classification: 'accepted' };
+      },
+      readRoute: async () => agentState(),
+      readResultHandoff: async () => null,
+      routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
+    },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    now: () => 1000,
+  });
+  const result = await runner.drive({ caseId, driveRequestId: 'drive-expiry', payload: {} });
+  assert.equal(result.status, 'not_ready');
+  assert.equal(calls.length, 1);
+  assert.deepEqual(calls[0], {
+    operation: 'expire_reservation',
+    input: {
+      request: {
+        reservationWindowGeneration: 1,
+        reservationRequestId: 'reservation-stale',
+        reservationRequestDigest,
+      },
+      nowMs: 1000,
+    },
+  });
 });

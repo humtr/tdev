@@ -1,0 +1,123 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r3_case_capacity_provider_correction_readback",
+  "observedAtUtc": "2026-09-05T05:24:03.358937Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "design": "D0046",
+    "designRevision": 3,
+    "correctionImplementationCommit": "f186f8f055248528e201dcd5ef44d99c90729623",
+    "readbackVerifierCommit": "7c72546d1921f5de1af7b26c4f0bfe01ad0a3a83",
+    "trialSourceSha": "42b0912e279908f2fdd72040020408f163a2cd2e",
+    "trialBaseDigest": "sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42"
+  },
+  "attempts": [
+    {
+      "status": 400,
+      "errorCode": 10057,
+      "messageClass": "secret inherit version_id accepts only literal latest",
+      "providerMutation": false
+    },
+    {
+      "status": 400,
+      "errorCode": 100402,
+      "messageClass": "CaseRuntimeDO export was missing from settings reconciliation",
+      "providerMutation": false
+    },
+    {
+      "status": "applied",
+      "method": "PATCH",
+      "endpointClass": "existing Case Worker settings",
+      "changedBinding": "TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE",
+      "from": 8388608,
+      "to": 16777216,
+      "secretPayload": "inherit latest; no plaintext value sent",
+      "providerMutation": true,
+      "initialReadbackVerifier": "failed only on provider JSON object-key ordering; no value or binding mismatch",
+      "canonicalReadbackVerifier": "passed on subsequent idempotent run"
+    }
+  ],
+  "precondition": {
+    "scriptName": "tdev-d0020-composition-case-r1",
+    "latestVersionId": "08b3463b-f0dd-4109-9baf-5f01b481f637",
+    "latestVersionNumber": 19,
+    "latestDeploymentAt100": true,
+    "sourceSha": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+    "caseClass": "CaseRuntimeDO",
+    "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+    "writerCompatibilityId": "d0020-composition-r1",
+    "qualificationSecretBindingPresent": true,
+    "configuredBytes": 8388608
+  },
+  "postCorrection": {
+    "scriptName": "tdev-d0020-composition-case-r1",
+    "latestVersionId": "ce96bc9d-4756-4b24-84c9-141522ba65da",
+    "latestVersionNumber": 20,
+    "activeDeploymentId": "3cf2e1d4-184e-4fa9-9c0a-2567f71e5c1a",
+    "traffic": [{ "versionId": "ce96bc9d-4756-4b24-84c9-141522ba65da", "percentage": 100 }],
+    "configuredBytes": 16777216,
+    "sourceSha": "e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626",
+    "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+    "caseClass": "CaseRuntimeDO",
+    "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+    "writerCompatibilityId": "d0020-composition-r1",
+    "qualificationSecretBindingPresent": true,
+    "compatibilityDate": "2026-08-15",
+    "usageModel": "standard",
+    "limits": null,
+    "annotations": {
+      "workers/triggered_by": "upload",
+      "providerGenerated": true,
+      "semanticOwnerChange": false
+    }
+  },
+  "preserved": {
+    "trialWorker": {
+      "scriptName": "tdev-mcp-trial",
+      "latestVersionId": "a6528269-7cd4-4eb4-a734-11847aed72c7",
+      "latestVersionNumber": 18,
+      "activeDeploymentId": "35a0c606-2c2a-4592-8f33-a8b64287967e",
+      "trafficPercentage": 100,
+      "sourceSha": "42b0912e279908f2fdd72040020408f163a2cd2e",
+      "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "casePlacementDatabase": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+      "canonicalWriterEnabled": false,
+      "previewWritersEnabled": false
+    },
+    "agentWorker": {
+      "scriptName": "tdev-d0020-qualification-clean-a",
+      "latestVersionId": "f1c285c2-d231-4547-9382-87cc6384dcdf",
+      "latestVersionNumber": 95,
+      "trafficPercentage": 100,
+      "sourceSha": "466a45473672c8b0296cc33d99a0b0c945fbe9ac",
+      "agentNamespace": "0dad69baa7154d00949f88c8b8dbf94a"
+    },
+    "sqliteNamespaces": [
+      { "script": "tdev-d0020-qualification-clean-a", "class": "AgentDeliveryRuntimeDO", "namespace": "0dad69baa7154d00949f88c8b8dbf94a" },
+      { "script": "tdev-d0020-composition-case-r1", "class": "CaseRuntimeDO", "namespace": "3b3d5808028f4e74bcbc1dc22f0757fd" },
+      { "script": "tdev-mcp-trial", "class": "CaseAgentDriveRuntimeDO", "namespace": "138b3b6fc20d4d8988b598c572aa39f7" }
+    ]
+  },
+  "effects": {
+    "caseWorkerConfigMutation": true,
+    "caseDurableDataMutation": "no Case operation was invoked by the correction; data content was not read",
+    "caseSecretValuesRead": false,
+    "caseSecretRotated": false,
+    "trialWorkerConfigMutation": false,
+    "accessMutation": false,
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false
+  },
+  "proofBoundary": {
+    "providerCapacityCorrection": "PASS",
+    "caseOwnerReadback": "PASS",
+    "m1CapacityPreflight": "provider configuration pass; source-bound preflight execution pending",
+    "m2ExperientialResult": "open - no candidate/result observed yet",
+    "tmcpComparison": "not started"
+  },
+  "next": "Run the bounded source-bound capacity preflight, then make one fresh authenticated web ChatGPT development attempt and independently read back Case, drive, Agent and candidate/result state."
+}

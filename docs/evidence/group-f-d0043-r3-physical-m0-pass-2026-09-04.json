@@ -1,0 +1,82 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r3_physical_termux_m0_pass",
+  "observedAtUtc": "2026-09-04T16:30:01Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "225bc59a3d09a06577ec7f4d6027ea3c577f169d",
+    "preservedUntracked": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ],
+    "canonicalCheckoutIndexRefUnchanged": true,
+    "preservedUserFilesUnchanged": true
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 3,
+    "status": "accepted",
+    "scope": "single-user trusted-local no-bwrap physical M0"
+  },
+  "invocation": {
+    "profile": "tdev.d0043.m0-physical-termux.v1",
+    "command": "env CODEX_HOME=<saved-auth-root> node qualification/d0043-physical-termux-m0.mjs",
+    "configuredCodexArguments": [
+      "exec",
+      "--ephemeral",
+      "--json",
+      "--ignore-user-config",
+      "--output-schema <release-schema>"
+    ],
+    "sandboxFlagRequested": false,
+    "bwrapRequested": false,
+    "savedAuthBytes": "excluded"
+  },
+  "result": {
+    "status": "PASS",
+    "repositoryCommitOid": "225bc59a3d09a06577ec7f4d6027ea3c577f169d",
+    "baseDigest": "sha256:972f00d9b0344b34bb633a0f737f2730177c40105ca1bd627d25f4bc3f400c7b",
+    "caseId": "case-m0-225bc59a3d09",
+    "candidateDigest": "sha256:655b86dbaec36de270a6b85a1ee75f00c0f1757791bfbbd753655b93ac08315e",
+    "modelProcessStarts": 1,
+    "modelProcessReuses": 0,
+    "validationPassed": true,
+    "emittedFrames": 15,
+    "objective": {
+      "effectClass": "result-only",
+      "writePaths": [
+        "src/m0-physical-execution-profile.mjs",
+        "test/m0-physical-execution-profile.test.mjs"
+      ],
+      "documentationOnly": false,
+      "candidateInspectable": true
+    }
+  },
+  "cleanup": {
+    "candidateWorkspaceRemoved": true,
+    "residualTdevDevelopmentWorkspace": false,
+    "canonicalCheckoutIndexRefUnchanged": true,
+    "preservedUserFilesUnchanged": true,
+    "credentialOrAuthRootLeak": false
+  },
+  "proofBoundaries": {
+    "source": "PASS",
+    "physicalTermuxM0": "PASS",
+    "installableAgentProviderRebind": "not yet claimed",
+    "providerM1": "not yet claimed",
+    "mcpClientM2": "not yet claimed",
+    "tmcpComparison": "not claimed"
+  },
+  "externalEffects": {
+    "physicalModelInvocation": true,
+    "candidateOnly": true,
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "providerMutation": false,
+    "mcpClientAttempt": false,
+    "credentialMutation": false
+  },
+  "next": "Rebind the installable Agent to the same D0043 no-bwrap runtime, then continue D0046 M1 isolated Worker/provider preflight and readback."
+}

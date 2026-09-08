@@ -21,6 +21,7 @@ export {
   MCP_SURFACE_MANIFEST_DOMAIN,
   MCP_SURFACE_PATH,
   MCP_SURFACE_PROTOCOL_VERSION,
+  MCP_SURFACE_MODERN_PROTOCOL_VERSION,
   MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS,
   MCP_SURFACE_MAX_REQUEST_BYTES,
   MCP_SURFACE_MAX_RESPONSE_BYTES,
@@ -213,7 +214,6 @@ export {
   CODEX_EXECUTION_BOUNDARY,
   CODEX_MODEL_BINDING_PROFILE,
   CODEX_OPERATION_ARGUMENTS,
-  LAZY_CONTEXT_OPERATION_PROFILE,
   DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES,
   normalizeDevelopmentOperationManifest,
   normalizeDevelopmentOperationRequest,
@@ -250,7 +250,6 @@ export {
   MCP_TRIAL_AGENT_CLASS_NAME,
   normalizeMcpTrialCompositionManifest,
   normalizeMcpTrialCompositionBinding,
-  namespaceFor,
   createMcpTrialOwnerFacades,
   createMcpTrialAuthorization,
 } from './mcp-trial-composition.mjs';

@@ -856,6 +856,64 @@ async function waitForWorkerReadback(client, scriptName, expected) {
   throw lastError;
 }
 
+export async function refreshOwnedCaseQualificationWorker({
+  client,
+  repositoryRoot,
+  scriptName,
+  databaseId,
+  namespaceId,
+  jurisdiction,
+  maxAuthoritativeBytesPerCase,
+  writerCompatibilityId,
+  sourceSha,
+  qualificationToken,
+  enableSubdomain,
+}) {
+  if (!client || typeof client.request !== 'function') fail('invalid_cloudflare_client', 'Cloudflare API client is required');
+  if (typeof repositoryRoot !== 'string' || repositoryRoot.length === 0) fail('invalid_repository_root', 'Repository root is required');
+  if (typeof qualificationToken !== 'string' || qualificationToken.includes('\0') ||
+      new TextEncoder().encode(qualificationToken).byteLength < 32 ||
+      new TextEncoder().encode(qualificationToken).byteLength > 512) {
+    fail('invalid_qualification_token', 'Ephemeral qualification token is invalid');
+  }
+  if (typeof enableSubdomain !== 'boolean') fail('invalid_subdomain_state', 'Qualification subdomain state must be boolean');
+  const expected = {
+    scriptName: assertScriptName(scriptName),
+    databaseId,
+    namespaceId,
+    jurisdiction: assertJurisdiction(jurisdiction),
+    maxAuthoritativeBytesPerCase: assertPositiveSafeInteger(maxAuthoritativeBytesPerCase, 'maxAuthoritativeBytesPerCase'),
+    writerCompatibilityId: assertWriterCompatibilityId(writerCompatibilityId),
+    sourceSha: String(sourceSha ?? '').toLowerCase(),
+  };
+  if (!/^[0-9a-f]{40}$/.test(expected.sourceSha)) fail('invalid_source_sha', 'Worker deployment requires an exact 40-digit source SHA');
+
+  const existing = await workerSettings(client, expected.scriptName);
+  assertWorkerOwned(existing.result, expected.scriptName);
+  const existingSource = bindingByName(existing.result, 'TDEV_SOURCE_SHA')?.text;
+  if (!/^[0-9a-f]{40}$/.test(existingSource ?? '')) fail('worker_settings_mismatch', 'Existing Worker source identity is invalid');
+  assertQualificationWorkerSettings(existing.result, { ...expected, sourceSha: existingSource });
+
+  const namespace = exactWorkerNamespace(await readNamespaces(client), expected.scriptName);
+  if (namespace.id !== expected.namespaceId) {
+    fail('do_namespace_unverified', 'Existing Worker namespace does not match the requested retained namespace');
+  }
+
+  const modules = collectWorkerModules(repositoryRoot);
+  await uploadWorker(client, expected.scriptName, buildQualificationWorkerMetadata(expected), modules);
+  await setWorkerSecret(client, expected.scriptName, qualificationToken);
+  await setWorkerSubdomain(client, expected.scriptName, enableSubdomain);
+  await waitForWorkerReadback(client, expected.scriptName, expected);
+  return Object.freeze({
+    scriptName: expected.scriptName,
+    namespaceId: expected.namespaceId,
+    databaseId: expected.databaseId,
+    sourceSha: expected.sourceSha,
+    moduleDigest: workerModuleDigest(modules),
+    subdomainEnabled: enableSubdomain,
+  });
+}
+
 async function provisionWorker(client, modules, config, qualificationToken, allowCreate, enableSubdomain) {
   const existing = await workerSettings(client, config.scriptName, { allowNotFound: true });
   if (!existing.found && !allowCreate) fail('missing_worker_resource', `Worker ${config.scriptName} does not exist`);

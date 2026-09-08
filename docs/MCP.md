@@ -28,6 +28,12 @@ Response loss is handled by replaying the same request ID and payload. MCP must 
 
 ## 3. Versioned v1 tool surface
 
+D0023 accepts one exact `tdev.mcp.surface.v1` tool set over both MCP protocol eras: modern request-metadata version `2026-07-28` is advertised first, followed by legacy initialize/tools/call versions `2025-11-25`, `2025-06-18` and `2025-03-26` as fallbacks. The modern path supports `server/discover`, per-request `_meta`, `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name`; it has no protocol session and does not reinterpret legacy requests.
+
+For an `/mcp` resource, protected-resource metadata is served at the RFC 9728 path `/.well-known/oauth-protected-resource/mcp`. The origin-root path and the Cloudflare Access-specific path remain read-only compatibility aliases; all successful metadata responses bind the exact `/mcp` resource and configured issuer.
+
+Each advertised tool includes a stable human-readable `title`, explicit `inputSchema` and object `outputSchema`, plus the four MCP safety annotations `readOnlyHint`, `destructiveHint`, `idempotentHint` and `openWorldHint`. These are discovery metadata only: they do not add a new owner or bypass the existing authorization and operation gates.
+
 D0023 accepts one exact `tdev.mcp.surface.v1` tool set:
 
 - `case_create`;
@@ -89,9 +95,9 @@ The source realization uses `src/mcp-surface.mjs` for the versioned Streamable H
 
 ### D0046 minimum experiential route
 
-The first supported candidate path is the isolated `https://tdev-mcp-trial.humtr.workers.dev/mcp` resource selected by D0046. The endpoint is not offered to the user until exact source, physical-Termux and provider preflight passes and provider readback matches the release manifest. Its Worker remains stateless across requests except for the separately bound D0042 `CaseAgentDriveRuntimeDO`; Case, readiness, Task/Attempt/result, Agent delivery/process and candidate truth remain with their existing owners.
+The first supported candidate path is the isolated `https://tdev-mcp-trial.humtr.workers.dev/mcp` resource selected by D0046. The endpoint is not offered to the user until exact source, physical-Termux and provider preflight passes and provider readback matches the release manifest. Its HTTP Worker remains a light stateless ingress across requests except for the separately bound D0042 `CaseAgentDriveRuntimeDO`: tree-heavy owner operations are RPC-dispatched to that already-bound object, while Case, readiness, Task/Attempt/result, Agent delivery/process and candidate truth remain with their existing owners. The Drive object is an execution host for this provider constraint, not a second semantic owner and not a caller-selectable route.
 
-The first user-visible PASS requires supported web ChatGPT to authenticate, submit one real non-documentation development unit and receive its validated isolated candidate/diff. `initialize`, `tools/list`, authentication, Worker upload or source/package success alone is not this PASS. The complete handoff includes the exact read-back URL, authentication/connection instructions, tool-set fingerprint and disable/rollback status. The only planned user actions are connection/authentication and the development objective.
+The first user-visible PASS requires supported web ChatGPT to authenticate, submit one real non-documentation development unit and receive its validated isolated candidate/diff. `initialize`, `tools/list`, authentication, Worker upload or source/package success alone is not this PASS. `development_unit_get` exposes a bounded ChangeSet/diff projection with exact base/candidate digests and changed paths; it does not return the complete immutable tree. The complete handoff includes the exact read-back URL, authentication/connection instructions, tool-set fingerprint and disable/rollback status. The only planned user actions are connection/authentication and the development objective.
 
 No Git/publication adapter is configured for this first route. Reconnect or response loss reuses the original request/Case/drive identity and rereads the owners. Repeated ad hoc ChatGPT probing is not a compatibility method: after lower-layer preflight, record the smallest failing current-client interaction once, correct its D0023/D0024/D0046 owner, then perform one new bounded attempt.
 

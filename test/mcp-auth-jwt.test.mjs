@@ -12,7 +12,7 @@ function b64(value) {
   return Buffer.from(typeof value === 'string' ? value : canonicalJson(value)).toString('base64url');
 }
 
-test('Cloudflare Access RS256 verifier uses strict JWT/JWKS parsing and refreshes an unknown key once', async () => {
+test('Cloudflare Access RS256 verifier accepts issuer certificate projections and refreshes an unknown key once', async () => {
   const { publicKey, privateKey } = generateKeyPairSync('rsa', { modulusLength: 2048 });
   const publicJwk = publicKey.export({ format: 'jwk' });
   const jwk = { kty: 'RSA', kid: 'key-1', alg: 'RS256', use: 'sig', n: publicJwk.n, e: publicJwk.e };
@@ -30,8 +30,13 @@ test('Cloudflare Access RS256 verifier uses strict JWT/JWKS parsing and refreshe
   signer.end();
   const token = `${input}.${signer.sign(privateKey).toString('base64url')}`;
   let fetches = 0;
+  const cloudflareJwks = {
+    keys: [jwk],
+    public_cert: { kid: 'key-1', cert: 'issuer-certificate' },
+    public_certs: [{ kid: 'key-1', cert: 'issuer-certificate' }],
+  };
   const verify = createCloudflareAccessAssertionVerifier({
-    fetchImpl: async () => { fetches += 1; return new Response(JSON.stringify({ keys: [jwk] }), { status: 200 }); },
+    fetchImpl: async () => { fetches += 1; return new Response(JSON.stringify(cloudflareJwks), { status: 200 }); },
   });
   const auth = new McpAccessAuthenticator({ manifest, now: () => 1_700_000_000, verifyAssertion: verify });
   const request = new Request('https://mcp.example.test/mcp', { headers: { 'cf-access-jwt-assertion': token } });

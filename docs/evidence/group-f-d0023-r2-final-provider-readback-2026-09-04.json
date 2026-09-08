@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_r2_final_provider_readback_after_call_coverage",
+  "observedAtUtc": "2026-09-04T21:49:55Z",
+  "route": {
+    "repository": "humtr/tdev",
+    "branch": "development",
+    "sourceCommit": "c99ee09abec4525454af5e73ebf5520ad245d9b1"
+  },
+  "source": {
+    "d0023Revision": 2,
+    "mcpSurfaceFocusedTests": {"passed": 7, "failed": 0},
+    "legacyProtocolsCovered": ["2025-03-26", "2025-06-18", "2025-11-25"],
+    "lifecycleCovered": ["initialize", "tools/list", "tools/call"],
+    "toolCount": 11,
+    "metadataFields": ["title", "outputSchema", "annotations"]
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "versionId": "fd2648e3-5464-4fb5-bbf9-255ffbca40b2",
+    "versionNumber": 7,
+    "traffic": "100% latest immutable version",
+    "surfaceDigest": "sha256:16be6037fb518a3841d485d2f099d588c00987295872237cab0f1b09b67a13f5",
+    "artifactDigest": "sha256:74995793192f04c7fd87135f988435b31e7ac40243f3ad22782510c051a52a15",
+    "artifactManifestDigest": "sha256:89cc763d72bd0343d3a85982335ecbbeaacb3500a03acf071530f33062a4172e",
+    "baseDigest": "sha256:530f661cd7b9c858274f74fc121f342ecb0cace4787ac5bd75832cfa4a2739b5",
+    "ownerBindingsUnchanged": true,
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false,
+    "publicReadback": {
+      "protectedResourceMetadata": 200,
+      "authorizationServerMetadata": 200,
+      "unauthenticatedMcp": 401,
+      "pkce": "S256",
+      "dynamicRegistration": true
+    }
+  },
+  "proofBoundaries": {
+    "source": "PASS - D0023 r2 source gate and all advertised legacy lifecycle tests",
+    "provider": "PASS - final isolated Worker upload/readback with exact bindings",
+    "mcpClient": "OPEN - user must refresh the connected Developer-mode instance",
+    "experientialM2": "OPEN - no real development objective or candidate yet",
+    "modern2026Protocol": "not claimed"
+  },
+  "externalEffects": {
+    "providerMutation": "one authorized upload to existing isolated trial Worker",
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

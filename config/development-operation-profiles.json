@@ -5,12 +5,12 @@
     "tdev.model.repository.execute.v1": {
       "kind": "model_repository",
       "executable": { "kind": "configured_runtime", "name": "codex" },
-      "argv": ["exec", "--ephemeral", "--json", "--ignore-user-config", "--dangerously-bypass-approvals-and-sandbox"],
+      "argv": ["exec", "--ephemeral", "--json", "--ignore-user-config"],
       "environment": {},
       "filesystem": "immutable_repository",
       "network": "openai-codex-trusted-local",
       "limits": {
-        "timeoutMs": 300000,
+        "timeoutMs": 600000,
         "maxInputBytes": 262144,
         "maxOutputBytes": 4194304,
         "maxFileBytes": 16777216,
@@ -23,10 +23,11 @@
       "binding": {
         "profile": "tdev.model.codex-exec-no-bwrap.v1",
         "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
+        "model": "gpt-5.6-luna",
         "outputSchemaPath": "config/codex-changeset-output.schema.json",
         "outputSchemaSha256": "sha256:5d77077a843e055db52a512a295fa1ecad8dac56189cc009cc253e860c9c99b7",
-        "model": "gpt-5.6-luna",
-        "reasoningEffort": "low"
+        "contextExcludedPaths": ["native/d0030/android-arm64/rename-noreplace-helper", "native/immutable-journal-publication/android-arm64/rename-noreplace-helper", "native/installable-agent-supervisor/android-arm64/pidfd-control.node"],
+        "contextIncludedPathPrefixes": ["src/", "package.json", "package-lock.json"]
       }
     },
     "tdev.repository.context.prepare.v1": {

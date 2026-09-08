@@ -1,53 +1,42 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 6
+- Revision: 3
 - Class: 2
-- Decision date: 2026-09-07
-- Acceptance base: `development@4fc40ce190d909bb60d395ec5bedb7c0b18a38f6`
-- Historical r3 predecessor revision: D0046@r2 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0046-r2-lazy-no-bwrap-route-acceptance-2026-09-06.json`
-- Trigger: the source repair now connects the owner-issued lazy identity through Case/Agent execution, sparse model workspace, disposable full-base candidate and positive warden receipts. The minimum path must treat that local composition as the first executable checkpoint while retaining provider quota and current-client behavior as unknown.
-- Historical r3 acceptance evidence: `docs/evidence/group-f-d0046-r3-scoped-warden-route-acceptance-2026-09-06.json`
+- Decision date: 2026-09-05
+- Acceptance base: `development@2cbf238082ba950e53eedbbd239c757f2b1af144`
+- Predecessor revision: D0046 r2, accepted at `development@3c1c7b32568b9a0685cafe660e284a1808e5a981`; its Free-plan placement evidence remains historical and is not rewritten.
+- Trigger: the first post-r2 real development-unit attempt read the immutable context successfully but `development_unit_start` returned 502. The deployed Case owner readback showed an 8 MiB authoritative-state budget, while exact local replay of the same source-bound base requires 11,419,628 bytes before Case birth. The underlying `casedo_capacity_exceeded` classification is deterministic from the current owner code and binding; no tail event for this attempt was available.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r3-case-capacity-correction-acceptance-2026-09-05.json`
+- Provider correction evidence: `docs/evidence/group-f-d0046-r3-case-capacity-correction-provider-readback-2026-09-05.json`
+- M1 source-bound preflight/redeploy evidence: `docs/evidence/group-f-d0046-r3-m1-source-bound-preflight-2026-09-05.json`
 - Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0025 owns Git publication; D0045 owns later tmcp comparison
 - Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no canonical-tree or remote-Git mutation in the first experiential run; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
 
-## Revision 6 correction
+## Revision 3 maintenance amendment — Case capacity admission correction
 
-- Predecessor: D0046@r5 source/evidence at `development@4fc40ce190d909bb60d395ec5bedb7c0b18a38f6`, with live reconciled recovery version `90eca433-9ab4-4ab5-8d8f-62ce86a6a6c5` and exact 34-module bundle `sha256:b5e2eac9001aa43a97050bf952d62ef558ad1f075b0b217968a5768f1ff4fc64`.
-- Acceptance evidence: `docs/evidence/group-f-d0046-r6-cached-context-read-acceptance-20260907.json`.
-- Falsifier: after the user refreshed the current ChatGPT connection, this conversation still exposes the same cached 11-tool `tdev-trial-4` schema and therefore cannot invoke the r5-only `development_execution_state_get` name even though provider readback proves that tool is active. The product/auth path is not falsified; the conversation-bound tool-schema cache prevents the recovery read. Re-uploading r5, bypassing Access, creating a new URL or asking for a service credential would not fix that schema mismatch.
-- Exactly one second **existing-target ingress-only recovery update** is admitted from the exact reconciled r5 version. It must preserve every module except `qualification/cloudflare-mcp-trial-worker.mjs`, all Worker settings/bindings, the URL, Access application/audience, principal/tenant mapping, traffic semantics, Case/Drive/Agent namespace identities, D1 identity, secrets, retained data and receipts. No preview, diagnostic Worker, alternate URL, version override, replacement namespace or Access workaround is allowed.
-- Revision 6 adds no MCP tool and does not change `tools/list`. Instead it recognizes one exact reserved `development_context_get` selector, `d0046-r6-execution-state.tdev-trial-m2-20260905-r3`, before the ordinary request body is consumed. The ordinary D0024/D0023 application still executes first. The bridge may act only when that ordinary authenticated request returns the existing `mcp_trial_context_scope_denied` result for the reserved selector. Any success, different denial or malformed request is returned unchanged. This ordering is the security gate: the bridge cannot bypass authentication, tenant mapping or the normal context owner.
-- The reserved selector maps to exactly one fixed retained Case, `tdev-trial-m2-20260905-r3`; callers cannot supply a Case ID through the cached schema. The bridge may invoke only `readCaseAgentDrive` on the existing trial-local Drive namespace and may return only the same bounded execution projection defined by Revision 5. It cannot initialize, advance, snapshot or quiesce a Drive; load a Case; dispatch an Agent; read repository bytes; or mutate any owner.
-- Fresh preparation must prove the exact r5 active version, source marker, 34-module bundle, settings and identities. Post-upload readback must prove that only the ingress main module changed. Ambiguous provider effects are reconciled before any retry.
-- The execution admission condition is unchanged: only a schema-valid `QUIESCED` projection with non-null nonnegative `lastCaseRevision` and sha256 `lastDriveReceiptDigest` permits the preserving Shared Case update. `ACTIVE`, `RECONCILING`, absent, malformed or unreadable state blocks owner mutation.
-- After the one read, Revision-5 continuation resumes unchanged. Both temporary recovery paths must be absent before M1. D0019, D0023, D0024, D0042 and D0047 ownership semantics remain unchanged.
+Revision 3 preserves the r2 execution placement, owner family, single-user scope, no-bwrap boundary and M0 -> M1 -> M2 order. It corrects the remaining provider admission defect exposed by the first real `development_unit_start` attempt:
 
-## Revision 5 correction
+- The exact deployed trial source `42b0912e279908f2fdd72040020408f163a2cd2e` and base digest `sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42` require `11,419,628` authoritative bytes for the fresh Case state under the `CaseDOAuthority.authoritativeBytes` formula.
+- The existing `tdev-d0020-composition-case-r1` Worker currently advertises `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE=8388608`, so `CaseDOAuthority.#prepareState` rejects the plan before Case metadata/commit. The HTTP composition consequently exposes an upstream 502; the report's Case/candidate state remains unknown because the owner readback was unavailable.
+- Raise only that existing Case Worker plain-text binding to exactly `16,777,216` bytes, the already-qualified D0019 r2 budget. Preserve the existing CaseRuntimeDO namespace, D1 placement, source `e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626`, writer compatibility, qualification secret, trial bindings, canonical/Git exclusion and all durable owner semantics.
+- The correction is monotonic capacity admission, not a new owner, namespace, schema, retry path, CPU setting or fallback. Provider readback must prove the exact binding and secret-preserving owner identity before the next M2 client attempt.
 
-- Predecessor: D0046@r4 as published at `development@abf357b78b94f9fadf9695e55c1e4a68c8c154aa`.
-- Acceptance evidence: `docs/evidence/group-f-d0046-r5-recovery-read-acceptance-20260907.json`.
-- Falsifier: the retained `tdev-trial-m2-20260905-r3` Case cannot be projected through the deployed trial because tree-heavy Case reads return `mcp_internal_error` after roughly 23-25 seconds. A nonexistent Case identifier fails through the same public boundary. The deployed D0042 Drive object already owns a bounded `readCaseAgentDrive` RPC, but the deployed `78f47d5` trial has no callable ingress route for that read. Cloudflare local development cannot bind directly to a remote Durable Object, while remote development would create the preview deployment forbidden by Revision 4. No existing local Cloudflare Access service assertion is available to call an added private HTTP path. Revision 4 therefore contains a circular admission condition: ordinary trial/shared-owner updates require execution-state readability, while the deployed surface cannot expose that state without an ingress-only update.
-- Exactly one **recovery-only existing-target trial update** is admitted before the ordinary quiescence gate. It must keep the exact `tdev-mcp-trial` service, HTTPS resource, Access application/audience, principal/tenant mapping, traffic target, Case/Drive/Agent Durable Object namespace identities, D1 placement identity, secrets and all unrelated provider objects unchanged. No preview, alternate URL, version override, diagnostic Worker or replacement namespace is allowed.
-- The recovery artifact is derived from the exact active predecessor source `78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61` / version `5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9`. Every module except the HTTP/MCP ingress main module must be byte-identical to that predecessor. In particular `CaseAgentDriveRuntimeDO`, D0042 authority/storage, Shared Case bindings and normal execution operations are unchanged. The ingress-only patch may add the temporary D0046 qualification tool `development_execution_state_get`; it may not alter an existing tool's behavior.
-- `development_execution_state_get` is **not** part of the D0023 stable product surface. It exists only in the recovery version, is authenticated by the existing D0024 Access boundary and exact trial principal/tenant mapping, accepts exactly one bounded `{caseId}` for the existing trial Case prefix, invokes only `readCaseAgentDrive`, and returns only `caseId`, `status`, `revision`, `lastCaseRevision`, `lastDriveReceiptDigest` and `lastObservedDeliveryDigest`. It cannot initialize, advance, quiesce or snapshot a Drive; load a Case; dispatch an Agent; read repository content; or mutate any owner. It must be absent again before M1 begins.
-- Admission of the recovery upload requires two matching provider readbacks around preparation and an exact active predecessor match. A lost/ambiguous upload response is reconciled by actual deployed version, module content, bindings, traffic and Access identity before any retry. Any predecessor/configuration drift rejects the operation.
-- A recovered Drive record is sufficient for the affected-Case execution gate only when it is schema-valid `QUIESCED` with non-null `lastCaseRevision` and `lastDriveReceiptDigest`. `ACTIVE`, `RECONCILING`, absent, malformed or unreadable state blocks every Shared Case update. Agent reservation counts, placement inventory and invocation success remain insufficient substitutes.
-- After positive Drive quiescence, rebind the exact Shared Case predecessor/consumers and perform the Revision-4 compatible reader forward update with namespace/D1 preservation. Retained Case readability must then succeed. Only after that readback may the existing trial be aligned to current source, and that normal current-source trial update must remove `development_execution_state_get`. M1 and M2 meanings are unchanged.
-- This correction changes only D0046 deployment-admission/qualification meaning. D0019 Case authority, D0042 Drive state semantics, D0024 authentication semantics, D0023 stable product tools, D0027 lifecycle and D0047/D0048 repository identity remain unchanged.
+The acceptance record separates directly observed provider/config facts from the deterministic local inference and records the 502 attempt as an unchanged-effect, non-completion result. M1 capacity preflight is now a required gate: it must compare the measured requirement with the read-back Case budget and refuse activation when the budget is absent, below the requirement or ambiguous.
 
-## Revision 4 correction
+## Revision 2 historical maintenance amendment — Free-plan execution placement and bounded candidate
 
-- Predecessor: D0046@r3 as published at `development@18da93afad6e37429f83fab49bde2331b797233e`.
-- Acceptance evidence: `docs/evidence/group-f-d0046-r4-preserving-update-acceptance-20260906.json`.
-- User CP1 means the actual ChatGPT MCP -> Agent -> model ChangeSet -> disposable candidate -> validation -> same Case result path in Section 4. Historical executables named CP1 prove only the local prerequisite; their PASS never closes user CP1. M2 is the current-client component of user CP1.
-- Reuse the existing verified trial principal/tenant, Access resource/application/audience and namespace bindings when unchanged. A missing shell environment variable is not evidence of missing identity. Do not change authentication meaning or add a new public URL merely to rerun a first-install tool.
-- First creation still requires absence. A forward update instead requires an exact provider predecessor, unchanged owner placements/auth identity, compatible readers for retained Cases/drives and positive execution quiescence. Preserve data, receipts and namespaces. Changed state since preparation rejects the update. A failed or ambiguous upload is reconciled by actual deployed version/configuration, never blind replay or automatic deletion.
-- Qualify the scoped Plan against the actual Case writer and the operation against the actual installed Agent release before trial ingress mutation. A source marker alone is insufficient. Update a shared owner only after its responsible compatibility/lifecycle gate covers all affected consumers; this revision does not permit replacing a canonical route to manufacture a test.
-- Keep the qualified Case budget while measuring the actual scoped Plan. Capacity or discovery PASS cannot skip authenticated machine/provider candidate execution.
-- Accepted changes are deployment/qualification Class 2. D0024 identity semantics, D0019 authority, D0027 lifecycle and D0047/D0048 base identity remain unchanged. Current source/local evidence remains at its original source; provider/current-client evidence remains open.
+Revision 2 preserves the r1 problem boundary, owner family, single-user scope and M0 -> M1 -> M2 order. It corrects the provider execution boundary exposed by the first real development attempt:
+
+- The isolated ingress Worker must remain a light bootstrap on the account's Workers Free plan. It must not upload or declare a custom `limits.cpu_ms` value; that setting is a paid-plan capability and a deployment rejection is not a runtime fallback.
+- Owner operations that need the immutable generated repository tree (`development_unit_start`, Case repository reads/commands and runner readback) are dispatched through the already-bound trial-local `CaseAgentDriveRuntimeDO` RPC. The Durable Object constructs the full source-bound composition once per object and uses a local adapter for its own D0042 cursor calls; it must not call itself through a recursive namespace RPC. This is execution placement, not a second Case/Task/Attempt/Agent owner.
+- The HTTP Worker retains authentication, tenant/Case-prefix admission, protocol handling and bounded projections. The request body cannot choose the Durable Object, source tree, executable, operation profile or owner identity. Invalid Case prefixes fail before any Durable Object lookup.
+- `development_unit_get` returns an inspectable bounded ChangeSet/diff projection (`baseDigest`, `candidateDigest`, changed paths and bounded contents) plus lifecycle identity. It does not serialize the complete immutable candidate tree; the full tree remains internal to the owner path and can be reconstructed from the exact base plus diff.
+- `development_unit_start` returns bounded Case creation identity rather than an embedded semantic snapshot. Case/Drive/Agent receipts and full snapshots remain available only through their owner-bound read paths.
+
+The amendment is accepted under `SDD.md` as the maintained D0046 revision. It does not authorize a new Durable Object class, a canonical/Git writer, a permissive CPU setting, a caller-selected execution route or a multi-tenant/hostile-local-code claim. The fresh source/provider and current-client experiential gates remain open until one real candidate/result is observed.
 
 ## 1. One-line definition
 
@@ -162,7 +151,7 @@ If M0 fails, fix the D0043/runtime defect before spending more Cloudflare or web
 
 ### M1 - compose and preflight the isolated provider path
 
-Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path.
+Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path. Before that trial, compare the exact source-bound authoritative-byte requirement with the existing Case owner's read-back budget; reject an absent, ambiguous or undersized budget before any Case admission.
 
 No existing `tdev` Worker, canonical D0039 route, D0044 lane or stable Git ref is replaced in M1. A shared Case/Agent code update must satisfy the Revision-4 reader, consumer and quiescence gates while preserving namespace and route identities. A provider response loss is reconciled by version/config/readback; it is not retried blindly.
 
@@ -182,7 +171,7 @@ The trial ends at an isolated validated candidate projection. Promotion may be e
 
 ## 8. Authentication, credentials and disclosure
 
-D0024 remains the authentication owner. The trial first uses Cloudflare Access Managed OAuth with exact resource, issuer, audience, registration mode, redirect, PKCE and verified claim mapping. Standard protected-resource/authorization metadata must be provider-read back before ChatGPT is asked to connect.
+D0024 remains the authentication owner. The trial first uses Cloudflare Access Managed OAuth with exact resource, issuer, audience, registration mode, redirect, PKCE and verified claim mapping. RFC 9728 protected-resource metadata for `/mcp` (`/.well-known/oauth-protected-resource/mcp`), its compatibility aliases, and authorization-server metadata must be provider-read back before ChatGPT is asked to connect.
 
 If the current ChatGPT client falsifies the selected Managed OAuth contract, the request stops before owner mutation and exact evidence reopens D0024. A revised client-compatible profile is designed and source/provider-preflighted before another web attempt; no permissive bearer-token fallback or undocumented header bypass is allowed.
 
@@ -242,6 +231,7 @@ The first boundary is a deliberate user handoff, not implementation completion. 
 | --- | --- |
 | operation | D0043 Revision-4 real Codex ChangeSet plus fixed validation on physical Termux, using D0047 scoped context |
 | composition | exact read-back trial Worker, Case DO, drive DO, Agent DO and D1 bindings; no hidden in-memory owner |
+| capacity admission | exact source-bound base measurement is no greater than the read-back `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE`; the existing Case owner has at least `16,777,216` bytes, with no custom ingress CPU setting |
 | authentication | current web ChatGPT completes exact D0024 flow and one authorized tool call; cross-resource/tenant denial is zero-effect |
 | real development | one non-documentation source objective produces an inspectable validated candidate from one immutable published base |
 | result-only | Codex/ordinary Task cannot mutate canonical checkout or Git; only disposable candidate bytes appear |
@@ -256,11 +246,12 @@ Cheapest decisive falsifiers are:
 
 1. the installed Agent still runs a placeholder or diagnostic instead of real Codex and validation;
 2. the trial Worker cannot name one exact Case, drive and Agent owner set;
-3. ChatGPT authentication succeeds but the development task requires a manual out-of-band executor/edit;
-4. one request selects another tenant, Agent, executable, repository, model or validation command;
-5. response loss starts a second Case, Attempt or model process;
-6. the model or ordinary Task changes the canonical checkout/ref;
-7. a completion report is issued before the user-ready handoff or validated candidate.
+3. the existing Case owner budget is below the exact source-bound admission requirement or cannot be read back without ambiguity;
+4. ChatGPT authentication succeeds but the development task requires a manual out-of-band executor/edit;
+5. one request selects another tenant, Agent, executable, repository, model or validation command;
+6. response loss starts a second Case, Attempt or model process;
+7. the model or ordinary Task changes the canonical checkout/ref;
+8. a completion report is issued before the user-ready handoff or validated candidate.
 
 Any one blocks the affected claim and is corrected at its responsible owner before the complete M0-M2 path is rerun.
 

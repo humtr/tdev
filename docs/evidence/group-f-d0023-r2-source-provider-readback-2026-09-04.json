@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_r2_source_provider_readback",
+  "observedAtUtc": "2026-09-04T21:47:35Z",
+  "route": {
+    "repository": "humtr/tdev",
+    "branch": "development",
+    "sourceCommit": "ffa246ca0aa73764541efbfac09365fd681bd97c"
+  },
+  "design": {
+    "id": "D0023",
+    "revision": 2,
+    "status": "accepted",
+    "surfaceProfile": "tdev.mcp.surface.v1",
+    "legacyProtocolVersions": ["2025-03-26", "2025-06-18", "2025-11-25"],
+    "toolCount": 11,
+    "descriptorMetadata": ["title", "outputSchema", "annotations"],
+    "sourceTests": {"mcpSurface": {"passed": 7, "failed": 0}, "fullNpmTest": {"passed": 658, "failed": 0}, "syntax": "passed", "docsCheck": "passed", "diffCheck": "passed"}
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "versionId": "165bc4a8-5edb-4eff-8e4f-c808ce592b4a",
+    "versionNumber": 6,
+    "traffic": "100% latest immutable version",
+    "surfaceDigest": "sha256:4a8f4709c76f05b23a743e557ace058f2e4ac4e89b7301472c9537b7aaf64ff4",
+    "artifactDigest": "sha256:6dc1727ea8d67e2b4d4fe46ff03957d1e43a2f8d915a030d5ad3c0b188a0ae94",
+    "artifactManifestDigest": "sha256:92e8bdbc171f95af1df6783e82847247686d6100f6e4cb8548a68b19c8e4e0a2",
+    "baseDigest": "sha256:31ba1345bc019ff5b560f88e59c0a3689cf8244c7da803355b303bab02509207",
+    "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+    "ownerBindingsUnchanged": true,
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false,
+    "publicReadback": {
+      "protectedResourceMetadata": 200,
+      "authorizationServerMetadata": 200,
+      "unauthenticatedMcp": 401,
+      "pkce": "S256",
+      "dynamicRegistration": true
+    }
+  },
+  "proofBoundaries": {
+    "source": "PASS - D0023 r2 compatibility adapter and complete source gate",
+    "provider": "PASS - isolated Worker upload/readback and owner binding reconciliation",
+    "mcpClient": "OPEN - OAuth-connected ChatGPT instance must be refreshed after this deployment",
+    "experientialM2": "OPEN - no real development objective or candidate yet",
+    "termuxPhysicalExecution": "unchanged from D0043 evidence"
+  },
+  "externalEffects": {
+    "providerMutation": "one authorized upload to existing isolated trial Worker",
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

@@ -48,7 +48,7 @@ import {
 } from './development-runtime.mjs';
 
 export const INSTALLABLE_AGENT_CONTROL_PROFILE = 'tdev.installable-agent-control.v1';
-export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 2;
+export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 3;
 export const INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE = 'tdev.installable-agent-control-connection.v1';
 export const INSTALLABLE_AGENT_TOOL_PROFILES_PROFILE = 'tdev.installable-agent-tool-profiles.v1';
 export const INSTALLABLE_AGENT_TOOL_PROFILES_SCHEMA_VERSION = 1;
@@ -275,6 +275,7 @@ function initialConnectionState() {
     revision: 0,
     lastConnectionEpoch: 0,
     lastConnectRequestSequence: 0,
+    capacityRevisionCursor: null,
     pending: null,
   };
 }
@@ -315,15 +316,43 @@ async function readConnectionState(filePath) {
       revision: value.revision,
       lastConnectionEpoch: value.lastConnectionEpoch,
       lastConnectRequestSequence: 0,
+      capacityRevisionCursor: null,
       pending: null,
     };
   }
-  assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'lastConnectRequestSequence', 'pending'], [], 'installable Agent control connection state');
+  if (value?.schemaVersion === 2) {
+    assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'lastConnectRequestSequence', 'pending'], [], 'legacy installable Agent control connection state');
+    if (value.profile !== INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE || value.authorityClaim !== 'subordinate_transport_recovery_only' ||
+        !Number.isSafeInteger(value.revision) || value.revision < 0 || !Number.isSafeInteger(value.lastConnectionEpoch) || value.lastConnectionEpoch < 0 ||
+        !Number.isSafeInteger(value.lastConnectRequestSequence) || value.lastConnectRequestSequence < 0) {
+      fail('installable_agent_control_state_corrupt', 'Legacy control state identity is invalid');
+    }
+    if (value.pending !== null) {
+      assertRecordShape(value.pending, ['expectedConnectionEpoch', 'connectRequestId', 'connectionId'], [], 'pending control connection');
+      assertSafeInteger(value.pending.expectedConnectionEpoch, 'pending expectedConnectionEpoch', { min: 0 });
+      if (value.pending.connectRequestId.startsWith('c1:')) {
+        const sequence = parseInstallableAgentConnectRequestId(value.pending.connectRequestId);
+        if (sequence !== value.lastConnectRequestSequence) fail('installable_agent_control_state_corrupt', 'Pending c1 sequence must equal the local durable request high-water');
+      } else {
+        assertIdentifier(value.pending.connectRequestId, 'pending connectRequestId');
+      }
+      assertIdentifier(value.pending.connectionId, 'pending connectionId');
+      if (value.pending.expectedConnectionEpoch !== value.lastConnectionEpoch) fail('installable_agent_control_state_corrupt', 'Pending connection predecessor mismatches last connected epoch');
+    }
+    return { ...value, schemaVersion: INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION, capacityRevisionCursor: null };
+  }
+  assertRecordShape(value, ['schemaVersion', 'profile', 'authorityClaim', 'revision', 'lastConnectionEpoch', 'lastConnectRequestSequence', 'capacityRevisionCursor', 'pending'], [], 'installable Agent control connection state');
   if (value.schemaVersion !== INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION || value.profile !== INSTALLABLE_AGENT_CONTROL_CONNECTION_PROFILE ||
       value.authorityClaim !== 'subordinate_transport_recovery_only' || !Number.isSafeInteger(value.revision) || value.revision < 0 ||
       !Number.isSafeInteger(value.lastConnectionEpoch) || value.lastConnectionEpoch < 0 ||
       !Number.isSafeInteger(value.lastConnectRequestSequence) || value.lastConnectRequestSequence < 0) {
     fail('installable_agent_control_state_corrupt', 'Control connection state identity is invalid');
+  }
+  if (value.capacityRevisionCursor !== null) {
+    assertRecordShape(value.capacityRevisionCursor, ['executorId', 'executorEpoch', 'highWater'], [], 'capacity revision cursor');
+    assertIdentifier(value.capacityRevisionCursor.executorId, 'capacity revision cursor executorId');
+    assertSafeInteger(value.capacityRevisionCursor.executorEpoch, 'capacity revision cursor executorEpoch', { min: 1 });
+    assertSafeInteger(value.capacityRevisionCursor.highWater, 'capacity revision cursor highWater', { min: 1 });
   }
   if (value.pending !== null) {
     assertRecordShape(value.pending, ['expectedConnectionEpoch', 'connectRequestId', 'connectionId'], [], 'pending control connection');
@@ -449,6 +478,13 @@ export async function createInstallableAgentControlProcess({
     authKey = await credentialLoader(normalizedConfig.credentialRef);
   }
   const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory: normalizedConfig.stateDirectory });
+  const connectionStatePath = path.join(normalizedConfig.stateDirectory, 'control-connection.json');
+  const recoveredConnectionState = await readConnectionState(connectionStatePath);
+  const recoveredCapacityRevision = recoveredConnectionState.capacityRevisionCursor !== null &&
+      recoveredConnectionState.capacityRevisionCursor.executorId === normalizedConfig.executorId &&
+      recoveredConnectionState.capacityRevisionCursor.executorEpoch === normalizedConfig.executorEpoch
+    ? recoveredConnectionState.capacityRevisionCursor.highWater
+    : 0;
   const serviceClient = supervisorClient ?? new InstallableAgentSupervisorServiceClient({ socketPath: layout.socketPath });
   const baseExecutionAdapter = createInstallableAgentSupervisorServiceExecutionAdapter({
     client: serviceClient,
@@ -478,6 +514,7 @@ export async function createInstallableAgentControlProcess({
     agentId: normalizedConfig.agentId,
     routeGeneration: normalizedConfig.routeGeneration,
     executor: { id: normalizedConfig.executorId, epoch: normalizedConfig.executorEpoch },
+    capacityRevision: recoveredCapacityRevision,
     capabilities: developmentOperationCapabilities,
     installableAgentTuple: normalizedConfig.installableAgentTuple,
     executionAdapter,
@@ -492,7 +529,6 @@ export async function createInstallableAgentControlProcess({
     authKey,
     ...(webSocketFactory === undefined ? {} : { webSocketFactory }),
   });
-  const connectionStatePath = path.join(normalizedConfig.stateDirectory, 'control-connection.json');
   let stopped = false;
 
   const connectOnce = async () => {
@@ -546,9 +582,27 @@ export async function createInstallableAgentControlProcess({
     }
     state.lastConnectionEpoch = pending.expectedConnectionEpoch + 1;
     state.pending = null;
+    const cursor = state.capacityRevisionCursor;
+    const cursorHighWater = cursor !== null && cursor.executorId === normalizedConfig.executorId && cursor.executorEpoch === normalizedConfig.executorEpoch
+      ? cursor.highWater
+      : 0;
+    const runtimeCapacityRevision = runtime.identity().capacityRevision;
+    if (runtimeCapacityRevision !== cursorHighWater) {
+      fail('installable_agent_control_state_conflict', 'Local capacity revision does not match its durable recovery high-water');
+    }
+    if (cursorHighWater === Number.MAX_SAFE_INTEGER) fail('installable_agent_capacity_revision_exhausted', 'Local capacity revision high-water is exhausted');
+    const nextCapacityRevision = cursorHighWater + 1;
+    state.capacityRevisionCursor = {
+      executorId: normalizedConfig.executorId,
+      executorEpoch: normalizedConfig.executorEpoch,
+      highWater: nextCapacityRevision,
+    };
     state.revision += 1;
     await atomicWriteJson(connectionStatePath, state);
-    await runtime.reportCapacity(normalizedConfig.reportedCapacity);
+    const capacityReport = await runtime.reportCapacity(normalizedConfig.reportedCapacity);
+    if (capacityReport.capacityRevision !== nextCapacityRevision) {
+      fail('installable_agent_control_state_conflict', 'Local capacity report diverged from its durable recovery high-water');
+    }
     return Object.freeze({ identity, connectionState: canonicalClone(state) });
   };
 

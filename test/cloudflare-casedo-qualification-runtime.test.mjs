@@ -357,6 +357,35 @@ test('D0019 qualification DO serializes ContractError codes before the provider 
   });
 });
 
+test('D0019 qualification DO exposes the bounded materialized projection through read-only RPC', async () => {
+  const host = new D0019QualificationCaseDOHost(qualificationContext([]), deploymentEnvironment());
+  let calls = 0;
+  host.host = {
+    async materializedProjection(input) {
+      calls += 1;
+      assert.deepEqual(input, { placement: { id: 'placement' } });
+      return {
+        caseId: 'case-a',
+        caseState: 'succeeded',
+        caseRevision: 20,
+        planDigest: `sha256:${'1'.repeat(64)}`,
+        baseDigest: `sha256:${'2'.repeat(64)}`,
+        candidateDigest: `sha256:${'3'.repeat(64)}`,
+        candidateTreeBytes: 123,
+        canonicalDigest: `sha256:${'4'.repeat(64)}`,
+      };
+    },
+  };
+  const response = await host.qualificationInvoke({
+    operation: 'materialized_projection',
+    placement: { id: 'placement' },
+  });
+  assert.equal(response.ok, true);
+  assert.equal(response.result.candidateTreeBytes, 123);
+  assert.equal(response.result.caseRevision, 20);
+  assert.equal(calls, 1);
+});
+
 test('D0019 qualification writer barrier probes only the exact running writer and reports mutation rejection', async () => {
   const events = [];
   const host = new D0019QualificationCaseDOHost(qualificationContext(events), deploymentEnvironment());

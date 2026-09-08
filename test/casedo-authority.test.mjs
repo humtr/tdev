@@ -8,6 +8,7 @@ import {
   CaseDOAuthority,
   createCasePlacement,
 } from '../src/casedo-authority.mjs';
+import { digest } from '../src/canonical.mjs';
 import { planWithWork, resultFor } from './helpers.mjs';
 
 class TestSqlCursor {
@@ -139,9 +140,18 @@ test('CaseDO requires a finite deployment budget and initializes elected native 
   assert.equal(Number(meta.storage_schema_version), CASEDO_STORAGE_SCHEMA_VERSION);
   assert.ok(Number(meta.authoritative_bytes) > 0);
 
-  const reconstructed = makeAuthority(storage, { chunkBytes: 128 }).loadCase({ placement });
+  const reconstructedAuthority = makeAuthority(storage, { chunkBytes: 128 });
+  const reconstructed = reconstructedAuthority.loadCase({ placement });
   assert.equal(reconstructed.snapshot.snapshotDigest, created.snapshot.snapshotDigest);
   assert.equal(reconstructed.snapshot.caseRevision, created.snapshot.caseRevision);
+  const materialized = reconstructedAuthority.materializedProjection({ placement });
+  assert.equal(materialized.caseId, placement.caseId);
+  assert.equal(materialized.caseRevision, reconstructed.snapshot.caseRevision);
+  assert.equal(materialized.baseDigest, plan.baseDigest);
+  assert.equal(materialized.planDigest, plan.planDigest);
+  assert.equal(materialized.candidateDigest, digest(plan.baseTree));
+  assert.ok(materialized.candidateTreeBytes > 0);
+  assert.equal(reconstructedAuthority.loadCase({ placement }).snapshot.caseRevision, reconstructed.snapshot.caseRevision);
   storage.close();
 });
 

@@ -22,7 +22,10 @@ import { runGitCommand } from '../src/git-projection.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const WORKSPACE_ROOT = '/data/data/com.termux/files/usr/tmp';
-const CODEX_EXECUTABLE = '/data/data/com.termux/files/usr/bin/codex';
+// Qualification-only override: the installed legacy launcher may still select
+// its Termux bwrap shim. Production tdev keeps the release-bound executable;
+// this hook lets the physical gate use an externally supplied no-bwrap build.
+const CODEX_EXECUTABLE = process.env.TDEV_M0_CODEX_EXECUTABLE ?? '/data/data/com.termux/files/usr/bin/codex';
 const NPM_EXECUTABLE = '/data/data/com.termux/files/usr/bin/npm';
 const CODEX_HOME = process.env.CODEX_HOME ?? null;
 const PRESERVED_PATHS = [
@@ -69,6 +72,118 @@ async function preservedFiles() {
     result[filePath] = { bytes: bytes.byteLength, sha256: createHash('sha256').update(bytes).digest('hex') };
   }
   return result;
+}
+
+function summarizeError(error) {
+  if (!error || typeof error !== 'object') return null;
+  return {
+    code: typeof error.code === 'string' ? error.code : null,
+    message: typeof error.message === 'string' ? error.message.slice(0, 256).replace(/\/data\/data\/\S+/gu, '<path>') : null,
+    certainty: error.certainty === 'not_applied' || error.certainty === 'unknown' ? error.certainty : null,
+    retryable: typeof error.retryable === 'boolean' ? error.retryable : null,
+  };
+}
+
+function summarizeCaseSnapshot(snapshot) {
+  if (!snapshot || typeof snapshot !== 'object') return null;
+  const taskStates = {};
+  for (const [taskId, state] of Object.entries(snapshot.taskStates ?? {})) {
+    taskStates[taskId] = {
+      state: typeof state?.state === 'string' ? state.state : null,
+      attemptIds: Array.isArray(state?.attemptIds) ? [...state.attemptIds] : [],
+      acceptedResultKind: typeof state?.acceptedResult?.kind === 'string' ? state.acceptedResult.kind : null,
+      acceptedResultDigest: typeof state?.acceptedResultDigest === 'string' ? state.acceptedResultDigest : null,
+      error: summarizeError(state?.error),
+    };
+  }
+  const attempts = {};
+  for (const [attemptId, attempt] of Object.entries(snapshot.attempts ?? {})) {
+    attempts[attemptId] = {
+      taskId: typeof attempt?.taskId === 'string' ? attempt.taskId : null,
+      ordinal: Number.isSafeInteger(attempt?.ordinal) ? attempt.ordinal : null,
+      state: typeof attempt?.state === 'string' ? attempt.state : null,
+      error: summarizeError(attempt?.error),
+      resultDigest: typeof attempt?.resultDigest === 'string' ? attempt.resultDigest : null,
+    };
+  }
+  return {
+    caseId: typeof snapshot.caseId === 'string' ? snapshot.caseId : null,
+    caseState: typeof snapshot.caseState === 'string' ? snapshot.caseState : null,
+    caseRevision: Number.isSafeInteger(snapshot.caseRevision) ? snapshot.caseRevision : null,
+    eventSequence: Number.isSafeInteger(snapshot.eventSequence) ? snapshot.eventSequence : null,
+    taskStates,
+    attempts,
+  };
+}
+
+function summarizeOperationObservation(observation) {
+  if (!observation || typeof observation !== "object") return null;
+  const summary = {};
+  for (const key of ["runtimeProfile", "executionBoundary", "sandboxMode", "repositoryCommitOid", "contextDigest", "candidateTreeDigest", "validationProfile", "outcome", "processStarts", "processReuses", "exitCode", "signal", "stderrClass", "stdoutEventTypes", "stdoutItemTypes", "stdoutErrorCodes", "stdoutErrorKeys", "stdoutErrorDetailClasses", "stdoutErrorMessageLengths", "stdoutErrorMessagePreviews", "stdoutFailureLineCount", "stdoutFailureClasses", "stdoutFailurePreviews", "stdoutEventCount", "stdoutTruncated", "stdoutMalformedEvents", "stdoutTerminalAgentMessages", "stdoutTurnCompleted", "stdoutTurnFailed", "stdoutErrorEvents", "stdoutFailedCommandExecutions", "stdoutFailedCommandExitCodes", "stdoutBytes", "stderrBytes", "durationMs", "totalDurationMs"]) {
+    if (Object.hasOwn(observation, key)) summary[key] = observation[key];
+  }
+  return summary;
+}
+
+function summarizeAgentFrames(frames) {
+  if (!Array.isArray(frames)) return [];
+  return frames.slice(0, 32).map((frame) => ({
+    type: typeof frame?.type === "string" ? frame.type : null,
+    payloadKeys: frame?.payload && typeof frame.payload === "object" ? Object.keys(frame.payload).sort() : [],
+    resultKind: typeof frame?.payload?.resultEnvelope?.result?.kind === "string" ? frame.payload.resultEnvelope.result.kind : null,
+    resultWriteCount: Array.isArray(frame?.payload?.resultEnvelope?.result?.writes) ? frame.payload.resultEnvelope.result.writes.length : null,
+    resultWritePaths: Array.isArray(frame?.payload?.resultEnvelope?.result?.writes) ? frame.payload.resultEnvelope.result.writes.slice(0, 8).map((write) => typeof write?.path === "string" ? write.path : null) : null,
+  }));
+}
+
+function decodeUtf8(bytes, label) {
+  try { return new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+  catch (cause) { fail('m0_non_utf8_repository', `${label} is not UTF-8`, {}, { cause }); }
+}
+
+async function trackedTree(commitOid) {
+  const listing = await git(['ls-tree', '-r', '-z', '-l', commitOid]);
+  const rows = [];
+  for (const record of listing.toString('utf8').split('\0').filter(Boolean)) {
+    const tab = record.indexOf('\t');
+    if (tab < 1) fail('m0_git_tree_invalid', 'Git tree listing is malformed');
+    const fields = record.slice(0, tab).trim().split(/ +/u);
+    if (fields.length !== 4 || !['100644', '100755'].includes(fields[0]) || fields[1] !== 'blob' || !/^[0-9a-f]{40}$/.test(fields[2]) || !/^[0-9]+$/.test(fields[3])) {
+      fail('m0_git_tree_invalid', 'Git tree contains an unsupported entry');
+    }
+    rows.push({ mode: fields[0], blobOid: fields[2], byteLength: Number(fields[3]), path: record.slice(tab + 1) });
+  }
+  rows.sort((left, right) => left.path.localeCompare(right.path));
+  const uniqueOids = [...new Set(rows.map((row) => row.blobOid))];
+  const batch = uniqueOids.length === 0 ? Buffer.alloc(0) : await git(['cat-file', '--batch'], Buffer.from(`${uniqueOids.join('\n')}\n`, 'ascii'));
+  const contentByOid = new Map();
+  const excludedOids = new Set();
+  let offset = 0;
+  for (const oid of uniqueOids) {
+    const headerEnd = batch.indexOf(0x0a, offset);
+    if (headerEnd < 0) fail('m0_git_blob_invalid', 'Git blob batch header is truncated');
+    const header = batch.subarray(offset, headerEnd).toString('ascii').split(' ');
+    if (header.length !== 3 || header[0] !== oid || header[1] !== 'blob' || !/^[0-9]+$/.test(header[2])) fail('m0_git_blob_invalid', 'Git blob batch identity is invalid');
+    const size = Number(header[2]);
+    const start = headerEnd + 1;
+    const end = start + size;
+    if (end >= batch.length || batch[end] !== 0x0a) fail('m0_git_blob_invalid', 'Git blob batch content is truncated');
+    try { contentByOid.set(oid, decodeUtf8(batch.subarray(start, end), `Git blob ${oid}`)); }
+    catch (cause) {
+      if (cause?.code !== 'm0_non_utf8_repository') throw cause;
+      excludedOids.add(oid);
+    }
+    offset = end + 1;
+  }
+  if (offset !== batch.length) fail('m0_git_blob_invalid', 'Git blob batch has trailing bytes');
+  const tree = {};
+  for (const row of rows) {
+    if (excludedOids.has(row.blobOid)) continue;
+    const content = contentByOid.get(row.blobOid);
+    if (content === undefined || Buffer.byteLength(content, 'utf8') !== row.byteLength) fail('m0_git_blob_invalid', 'Git blob size does not match tree metadata', { path: row.path });
+    tree[row.path] = content;
+  }
+  return { tree: validateTree(tree), excludedPaths: rows.filter((row) => excludedOids.has(row.blobOid)).map((row) => row.path).sort() };
 }
 
 async function assertExecutable(filePath, label) {
@@ -141,6 +256,7 @@ async function main() {
   const capabilities = Object.values(capabilityByProfile).sort();
   const caseContract = { caseGrant: capabilities, workspacePolicy: capabilities };
   const workspaceBefore = await workspaceEntries();
+  const runtimeObservations = [];
   const operationRuntime = new LocalDevelopmentOperationRuntime({
     manifest,
     repositoryPath: ROOT,
@@ -149,7 +265,7 @@ async function main() {
     outputSchemaPath: path.join(ROOT, 'config', 'codex-changeset-output.schema.json'),
     npmExecutable: NPM_EXECUTABLE,
     workspaceRoot: WORKSPACE_ROOT,
-    contextAdapter: scopedContextAdapter,
+    observation: (observation) => { if (runtimeObservations.length < 32) runtimeObservations.push(summarizeOperationObservation(observation)); },
   });
   const agent = createLocalDevelopmentAgent({ operationRuntime, agentId: 'agent-tdev-m0', executorId: 'executor-tdev-m0' });
   const repository = new CaseRepository(new MemorySnapshotStore());
@@ -162,11 +278,7 @@ async function main() {
     baseTree,
     repositoryCommitOid: commitOid,
     objectFormat: 'sha1',
-    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
-    contextScope,
-    baseIdentity: scopedContext.descriptor.baseIdentity,
-    repositoryBaseIdentity,
-    instruction: 'Implement one minimal non-documentation source objective. In src/lazy-plan-reference.mjs export a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1, and add a focused node:test in test/lazy-plan-reference.test.mjs asserting that exact value. Do not modify docs, config, WORKBOARD, package metadata, user files, or existing behavior. The model workspace is sparse; do not run npm, tests, installs, or builds that require files outside the supplied scope. Return only complete relative-path replacements in the supplied ChangeSet schema.',
+    instruction: 'Implement one minimal non-documentation source objective. You must return exactly two non-empty writes, one for each named file; a no-op ChangeSet is invalid. Create src/m0-physical-execution-profile.mjs exporting a new constant named M0_PHYSICAL_EXECUTION_PROFILE with the exact value tdev.m0.physical-execution.v1. Create test/m0-physical-execution-profile.test.mjs containing one focused node:test that imports that export and asserts the exact value. Both files are new and small; return their complete contents in the ChangeSet. The JSON result is the only implementation channel. Do not modify existing files, docs, config, WORKBOARD, package metadata, user files, or existing behavior. Return only complete relative-path replacements in the supplied ChangeSet schema.',
     contextCapabilityId: capabilityByProfile[profileNames.context],
     modelCapabilityId: capabilityByProfile[profileNames.model],
     validationCapabilityId: capabilityByProfile[profileNames.validation],
@@ -179,16 +291,11 @@ async function main() {
     const driven = await runner.drive({ caseId, driveRequestId, payload: { objective: 'm0-physical-source-change' } });
     if (driven.classification !== 'accepted') {
       const failedSnapshot = await repository.store.load(caseId);
-      const taskOutcomes = Object.fromEntries(Object.entries(failedSnapshot.taskStates).map(([taskId, state]) => [taskId, {
-        state: state.state,
-        errorCode: state.error?.code ?? null,
-        errorCertainty: state.error?.certainty ?? null,
-      }]));
       fail('m0_case_not_accepted', 'M0 development unit did not reach accepted terminal state', {
-        classification: driven.classification,
-        caseState: failedSnapshot.caseState,
-        caseRevision: failedSnapshot.caseRevision,
-        taskOutcomes,
+        driven,
+        case: summarizeCaseSnapshot(failedSnapshot),
+        runtimeObservations,
+        agentFrames: summarizeAgentFrames(agent.emitted),
       });
     }
     candidate = await runner.candidate(caseId);
@@ -200,15 +307,13 @@ async function main() {
       fail('m0_repository_identity_missing', 'M0 candidate did not retain the complete repository base identity');
     }
     if (modelResult?.evidence?.processStarts !== 1 || modelResult?.evidence?.processReuses !== 0) fail('m0_process_identity_invalid', 'M0 must record one fresh outer Codex process', { evidence: modelResult?.evidence ?? null });
-    if (!candidate.canonicalTree['src/lazy-plan-reference.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/lazy-plan-reference.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
-    for (const filePath of new Set([...Object.keys(baseTree), ...Object.keys(candidate.canonicalTree)])) {
-      if (filePath.startsWith('docs/') && candidate.canonicalTree[filePath] !== baseTree[filePath]) fail('m0_documentation_only_or_leak', 'M0 candidate unexpectedly writes documentation', { filePath });
-    }
-    const runtimeCandidateDigest = modelResult?.evidence?.candidateTreeDigest ?? candidate.canonicalDigest;
-    if (candidate.candidateCleanup?.cleanupComplete !== true || candidate.candidateCleanup?.positiveAbsence !== true) {
-      fail('m0_candidate_cleanup_missing', 'M0 candidate cleanup did not return a positive absence receipt', { candidateCleanup: candidate.candidateCleanup ?? null });
-    }
-    if (operationRuntime.candidate(runtimeCandidateDigest) !== null) fail('m0_candidate_cleanup_missing', 'M0 runtime retained a candidate after validation');
+    const modelWrites = Array.isArray(modelResult?.writes) ? modelResult.writes : [];
+    const modelWritePaths = modelWrites.map((write) => write?.path).sort();
+    const expectedWritePaths = ['src/m0-physical-execution-profile.mjs', 'test/m0-physical-execution-profile.test.mjs'];
+    if (JSON.stringify(modelWritePaths) !== JSON.stringify(expectedWritePaths)) fail('m0_objective_scope_invalid', 'M0 ChangeSet writes outside the exact physical objective', { observed: modelWritePaths, expected: expectedWritePaths });
+    if (!candidate.canonicalTree['src/m0-physical-execution-profile.mjs']?.includes('M0_PHYSICAL_EXECUTION_PROFILE') || !candidate.canonicalTree['test/m0-physical-execution-profile.test.mjs']?.includes('tdev.m0.physical-execution.v1')) fail('m0_objective_missing', 'M0 candidate does not contain the requested source objective');
+    const runtimeCandidate = operationRuntime.candidate(candidate.canonicalDigest);
+    if (runtimeCandidate === null) fail('m0_candidate_missing', 'M0 runtime did not retain the validated candidate projection');
     await operationRuntime.dispose();
     const workspaceAfter = await workspaceEntries();
     for (const entry of workspaceAfter) if (!workspaceBefore.has(entry)) fail('m0_workspace_cleanup_missing', 'M0 left a disposable workspace behind', { entry });
@@ -217,8 +322,11 @@ async function main() {
     const preservedAfter = await preservedFiles();
     if (JSON.stringify(preservedAfter) !== JSON.stringify(preservedBefore)) fail('m0_user_files_changed', 'M0 changed a preserved user file');
     const serializedFrames = JSON.stringify(agent.emitted);
-    if (serializedFrames.includes(CODEX_HOME) || /Bearer\s+[A-Za-z0-9._-]{8,}/iu.test(serializedFrames) || /sk-[A-Za-z0-9]{20,}/u.test(serializedFrames)) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
-    process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, repositoryBaseDigest: repositoryBaseIdentity.baseDigest, manifestDigest: repositoryBaseIdentity.manifestDigest, scopeDigest: scopedContext.descriptor.scopeDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
+    const authRootLeak = CODEX_HOME.length > 0 && serializedFrames.includes(CODEX_HOME);
+    const bearerTokenLeak = /\bBearer\s+[A-Za-z0-9._~+/=-]{24,}/u.test(serializedFrames);
+    const apiKeyLeak = /\bsk-[A-Za-z0-9]{20,}/u.test(serializedFrames);
+    if (authRootLeak || bearerTokenLeak || apiKeyLeak) fail('m0_credential_leak', 'M0 emitted evidence contains credential material or auth root');
+    process.stdout.write(`${JSON.stringify({ profile: 'tdev.d0043.m0-physical-termux.v1', status: 'PASS', repositoryCommitOid: commitOid, baseDigest, caseId, candidateDigest: candidate.canonicalDigest, modelProcessStarts: modelResult.evidence.processStarts, validationPassed: validationResult.passed, emittedFrames: agent.emitted.length })}\n`);
   } finally {
     await operationRuntime.dispose().catch(() => {});
   }

@@ -16,7 +16,7 @@ export const MCP_AUTH_MANIFEST_DOMAIN = 'tdev.mcp.auth-profile.v1';
 export const MCP_AUTH_ASSERTION_HEADER = 'cf-access-jwt-assertion';
 export const MCP_AUTH_RESOURCE_METADATA_PATHS = Object.freeze([
   // RFC 9728 inserts the well-known segment between the origin and the
-  // protected resource path. The trial resource is fixed at /mcp, so this
+  // protected resource path.  The trial resource is fixed at /mcp, so this
   // is the standards-derived location clients are expected to probe first.
   '/.well-known/oauth-protected-resource/mcp',
   // Keep the origin-root and legacy/provider aliases for clients that still

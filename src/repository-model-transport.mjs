@@ -206,6 +206,32 @@ function normalizeLimits(input = {}) {
   });
 }
 
+function normalizeIncludedPathPrefixes(input) {
+  if (input === undefined) return Object.freeze([]);
+  if (!Array.isArray(input) || input.length === 0 || input.length > 128) {
+    throw new ContractError('invalid_repository_included_path_prefixes', 'includedPathPrefixes must be a non-empty bounded array');
+  }
+  const prefixes = input.map((value) => {
+    assertScalarString(value, 'includedPathPrefixes entry');
+    const directoryPrefix = value.endsWith('/');
+    const normalized = validateRelativePath(directoryPrefix ? value.slice(0, -1) : value, {
+      requireNfc: true,
+      deniedPrefixes: ['.git', '.tdev'],
+      maxPathBytes: DEFAULT_LIMITS.maxPathBytes,
+    });
+    return directoryPrefix ? `${normalized}/` : normalized;
+  }).sort(compareText);
+  for (let index = 1; index < prefixes.length; index += 1) {
+    if (prefixes[index] === prefixes[index - 1]) throw new ContractError('duplicate_repository_included_path_prefix', `includedPathPrefixes repeats ${prefixes[index]}`);
+  }
+  return Object.freeze(prefixes);
+}
+
+function includedByPrefix(filePath, prefixes) {
+  if (prefixes.length === 0) return true;
+  return prefixes.some((prefix) => prefix.endsWith('/') ? filePath.startsWith(prefix) : filePath === prefix);
+}
+
 function normalizeExcludedPaths(input) {
   if (input === undefined) return Object.freeze([]);
   if (!Array.isArray(input) || input.length > 128) {
@@ -716,6 +742,20 @@ function durationMs(start) {
   return Math.max(0, Math.round(performance.now() - start));
 }
 
+function classifyStderr(bytes) {
+  if (!Buffer.isBuffer(bytes) || bytes.length === 0) return 'empty';
+  let text;
+  try { text = fatalDecoder.decode(bytes).toLowerCase(); }
+  catch { return 'non_utf8'; }
+  if (/bwrap|sandbox|namespace/u.test(text)) return 'sandbox';
+  if (/approval|permission|confirm/u.test(text)) return 'approval';
+  if (/401|403|unauthorized|authentication|login/u.test(text)) return 'authentication';
+  if (/404|not found|unknown error/u.test(text)) return 'endpoint';
+  if (/model.{0,32}(not found|unsupported)|unsupported.{0,32}model/u.test(text)) return 'model';
+  if (/schema|json/u.test(text)) return 'schema';
+  return 'other';
+}
+
 export function runModelSubprocess({
   executable,
   args,
@@ -775,6 +815,7 @@ export function runModelSubprocess({
 
     const started = performance.now();
     const stdout = [];
+    const stderr = [];
     let stdoutBytes = 0;
     let stderrBytes = 0;
     let terminalReason = null;
@@ -807,9 +848,11 @@ export function runModelSubprocess({
       }
       stdout.push(Buffer.from(chunk));
     });
-    child.stderr.on('data', (chunk) => {
+    child.stderr.on("data", (chunk) => {
+      const retainedBytes = Math.max(0, maxStderrBytes - stderrBytes);
+      if (retainedBytes > 0) stderr.push(Buffer.from(chunk.subarray(0, retainedBytes)));
       stderrBytes += chunk.length;
-      if (stderrBytes > maxStderrBytes) stop('stderr_limit');
+      if (stderrBytes > maxStderrBytes) stop("stderr_limit");
     });
     child.stdin.on('error', () => {});
     child.once('error', (cause) => {
@@ -838,6 +881,7 @@ export function runModelSubprocess({
         stdout: Buffer.concat(stdout),
         stdoutBytes,
         stderrBytes,
+        stderrClass: classifyStderr(Buffer.concat(stderr)),
         durationMs: durationMs(started),
       };
       if (terminalReason === 'aborted') {
@@ -891,6 +935,7 @@ export class GitRepositoryModelExecutor {
     observation = null,
     limits = {},
     excludedPaths = undefined,
+    includedPathPrefixes = undefined,
     contextCache = undefined,
   }) {
     this.repositoryPath = normalizeRepositoryPath(repositoryPath);
@@ -910,6 +955,7 @@ export class GitRepositoryModelExecutor {
     this.#environment = freeze(normalizeEnvironment(modelEnvironment));
     this.#limits = normalizeLimits(limits);
     this.excludedPaths = normalizeExcludedPaths(excludedPaths);
+    this.includedPathPrefixes = normalizeIncludedPathPrefixes(includedPathPrefixes);
     const cacheConfiguration = normalizeContextCache(contextCache);
     this.#contextCache = cacheConfiguration === null
       ? null
@@ -1027,7 +1073,7 @@ export class GitRepositoryModelExecutor {
         throw new ContractError('repository_excluded_path_missing', `Configured excluded path is absent from the bound commit: ${excludedPath}`);
       }
     }
-    const rows = listing.rows.filter((row) => !excludedSet.has(row.path));
+    const rows = listing.rows.filter((row) => includedByPrefix(row.path, this.includedPathPrefixes) && !excludedSet.has(row.path));
     const contentBytes = rows.reduce((sum, row) => sum + row.byteLength, 0);
     if (requestLimit !== null && contentBytes >= requestLimit) {
       throw new ContractError('model_request_limit_exceeded', `Model request exceeds ${requestLimit} bytes`, {
@@ -1103,6 +1149,7 @@ export class GitRepositoryModelExecutor {
       retainedBytes: estimatePreparationBytes(files, descriptorBytes, filesBytes),
       contextEncodingBytes: descriptorBytes.length + filesBytes.length,
       excludedPaths: this.excludedPaths,
+      includedPathPrefixes: this.includedPathPrefixes,
       logicalBlobCount: rows.length,
       logicalContentBytes: contentBytes,
       uniqueBlobCount: blobs.uniqueBlobCount,
@@ -1344,6 +1391,7 @@ export class GitRepositoryModelExecutor {
       descriptor: acquired.preparation.descriptor,
       files: acquired.preparation.files,
       excludedPaths: acquired.preparation.excludedPaths,
+      includedPathPrefixes: acquired.preparation.includedPathPrefixes,
       scanDurationMs: acquired.contextMaterializations === 1
         ? acquired.preparation.scanDurationMs
         : 0,

@@ -1,0 +1,81 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0043_r3_no_bwrap_execution_boundary_design_acceptance",
+  "observedAtUtc": "2026-09-04T07:26:34Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "publishedAuthority": {
+      "ref": "development",
+      "sha": "d2a1573b2c71e2f50e1656fca9c36a82a827d0aa"
+    },
+    "unrelatedUntrackedFilesPreserved": true,
+    "preservedUntrackedPaths": [
+      "qualification/d0044-provider-response-loss-r22-resume.mjs",
+      "qualification/d0044-provider-response-loss-r23-resume.mjs"
+    ]
+  },
+  "design": {
+    "id": "D0043",
+    "revision": 3,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@d2a1573b2c71e2f50e1656fca9c36a82a827d0aa",
+    "predecessor": {
+      "revision": 2,
+      "acceptanceBase": "development@069be884f0cb160ee8584c7b79ab333d232a1c2f",
+      "acceptanceEvidence": "docs/evidence/group-f-d0043-r2-real-termux-codex-operation-binding-acceptance-2026-09-03.json",
+      "correctionEvidence": "docs/evidence/group-f-d0043-r2-termux-shim-observation-correction-2026-09-04.json"
+    }
+  },
+  "userExplicitApproval": {
+    "approved": true,
+    "scope": "단일 사용자 trusted-local M0에 한해 커널 sandbox/bwrap 없이 실행하고, disposable exact-base clone·결과 전용 ChangeSet·warden cleanup을 경계로 사용하며, hostile-local-code·multi-tenant 격리는 지원하지 않는다.",
+    "recordedAs": "D0043 Revision 3 no-bwrap execution-boundary authorization"
+  },
+  "reviewProcedure": {
+    "designReview": "PASS - Revision 3 fixes a new no-bwrap model binding, disposable exact-base clone, strict result-only ChangeSet, post-run clean-tree check, fixed validation and warden cleanup; it makes no hostile-local-code or multi-tenant claim.",
+    "gitDiffCheck": "PASS",
+    "directBwrapSourceCheck": "PASS - no direct bwrap invocation remains in tdev MCP/development-unit source; provider-internal bwrap is not a tdev requirement.",
+    "requiredDesignMarkers": "PASS - accepted boundary, no-bwrap model profile, clone-clean check, rejected bwrap installation and trusted-local scope are present.",
+    "focusedProfileRuntimeTests": "PASS - 8/8 tests after the profile/runtime change"
+  },
+  "acceptedDecision": {
+    "catalog": "tdev.development-operation-profiles.v2",
+    "modelRuntimeProfile": "tdev.model.codex-exec-no-bwrap.v1",
+    "executionBoundary": "tdev.disposable-exact-base-no-bwrap.v1",
+    "modelArguments": ["exec", "--ephemeral", "--json", "--ignore-user-config"],
+    "sandboxMode": "none",
+    "workspaceBoundary": "disposable exact-base clone; clone must remain clean after the process and is deleted before reuse",
+    "resultBoundary": "one schema-valid relative-path result-only ChangeSet; only a disposable candidate is materialized and Promotion remains the sole canonical writer",
+    "cleanupBoundary": "warden process-group cleanup with positive clone/candidate disappearance; uncertainty fails closed",
+    "supportedScope": "single-user trusted-local Termux M0",
+    "unsupportedScope": ["hostile-local-code isolation", "multi-tenant isolation"],
+    "credentialBoundary": "Codex may reuse existing saved CLI authentication; tdev never reads, copies, serializes, logs or forwards credential bytes",
+    "validationProfile": "tdev.validation.npm-check.v1",
+    "releaseRule": "new model binding, execution-boundary identity and manifest digest require fresh source/package/physical qualification and quiescent activation"
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - user authorization and bounded no-bwrap semantics accepted",
+    "implementationSource": "not claimed by this design-acceptance record",
+    "packageRelease": "not claimed",
+    "physicalTermuxM0": "not claimed",
+    "provider": "not claimed",
+    "mcpClient": "not claimed",
+    "deployedProduct": "not claimed"
+  },
+  "unknowns": [
+    "whether the currently installed Codex executable has the no-bwrap refactor at the next physical run",
+    "exact model/reasoning identifier admitted by the saved authenticated account",
+    "provider latency/rate limits and Android endpoint-level egress enforcement"
+  ],
+  "externalEffects": {
+    "implementation": false,
+    "modelInvocation": false,
+    "credentialMutation": false,
+    "agentMutation": false,
+    "providerMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false
+  },
+  "next": "Implement the accepted no-bwrap profile/runtime and package rebinding, run source gates, then execute exactly one physical Termux M0 candidate before D0046 M1."
+}

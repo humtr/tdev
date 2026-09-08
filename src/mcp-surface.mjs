@@ -26,7 +26,22 @@ export const MCP_SURFACE_SCHEMA_VERSION = 1;
 export const MCP_SURFACE_MANIFEST_DOMAIN = 'tdev.mcp.surface-manifest.v1';
 export const MCP_SURFACE_PATH = '/mcp';
 export const MCP_SURFACE_PROTOCOL_VERSION = '2025-03-26';
-export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([MCP_SURFACE_PROTOCOL_VERSION]);
+export const MCP_SURFACE_MODERN_PROTOCOL_VERSION = '2026-07-28';
+// Advertise the request-scoped revision first so a dual-era client has a
+// deterministic modern-first preference. Keep every initialize-era revision
+// for existing clients; the adapter selects one from each request and never
+// silently downgrades it.
+export const MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS = Object.freeze([
+  MCP_SURFACE_MODERN_PROTOCOL_VERSION,
+  '2025-11-25',
+  '2025-06-18',
+  MCP_SURFACE_PROTOCOL_VERSION,
+]);
+const MCP_SURFACE_LEGACY_PROTOCOL_VERSIONS = new Set([
+  MCP_SURFACE_PROTOCOL_VERSION,
+  '2025-06-18',
+  '2025-11-25',
+]);
 export const MCP_SURFACE_MAX_REQUEST_BYTES = 1024 * 1024;
 export const MCP_SURFACE_MAX_RESPONSE_BYTES = 4 * 1024 * 1024;
 export const MCP_SURFACE_MAX_EVENTS_PAGE = 100;
@@ -66,21 +81,31 @@ const identifierSchema = Object.freeze({ type: 'string', pattern: '^[A-Za-z0-9][
 const digestSchema = Object.freeze({ type: 'string', pattern: '^sha256:[0-9a-f]{64}$' });
 const integerSchema = Object.freeze({ type: 'integer', minimum: 0 });
 
+const structuredObjectSchema = Object.freeze({ type: 'object', additionalProperties: true });
+const readOnlyAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const localMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const externalMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+const cancellationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
+
+function tool(name, title, description, inputSchema, annotations) {
+  return Object.freeze({ name, title, description, inputSchema, outputSchema: structuredObjectSchema, annotations });
+}
+
 export const MCP_SURFACE_TOOL_DEFINITIONS = Object.freeze([
-  { name: 'case_create', description: 'Create one immutable tdev Case from a compiled Plan.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, plan: { type: 'object' }, caseContract: { type: 'object' } }, ['requestId', 'caseId', 'plan']) },
-  { name: 'case_get', description: 'Read one bounded authoritative Case projection.', inputSchema: schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']) },
-  { name: 'case_events_get', description: 'Read a bounded committed Case Event page.', inputSchema: schema({ caseId: identifierSchema, afterSequence: integerSchema, limit: { type: 'integer', minimum: 1, maximum: MCP_SURFACE_MAX_EVENTS_PAGE } }, ['caseId']) },
-  { name: 'case_run_or_resume', description: 'Drive one existing Case through the authenticated Agent owner.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']) },
-  { name: 'task_cancel', description: 'Submit a receipt-backed Task cancellation to the Case owner.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, taskId: identifierSchema, reason: stringSchema, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'taskId']) },
-  { name: 'attempt_reconcile', description: 'Submit an exact external Attempt reconciliation decision.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']) },
-  { name: 'claim_conflicts_get', description: 'Read current ClaimLedger conflicts without acquiring a lease.', inputSchema: schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']) },
-  { name: 'promotion_get', description: 'Read the bounded Promotion/candidate projection for a Case.', inputSchema: schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']) },
-  { name: 'development_context_get', description: 'Read an owner-issued immutable repository context reference.', inputSchema: schema({ selector: stringSchema }, []) },
-  { name: 'development_context_list', description: 'List a bounded page from an owner-issued lazy repository context.', inputSchema: schema({ contextReference: identifierSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 128 } }, ['contextReference']) },
-  { name: 'development_context_search', description: 'Search an owner-issued lazy repository context within explicit bounds.', inputSchema: schema({ contextReference: identifierSchema, pattern: stringSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 256 } }, ['contextReference', 'pattern']) },
-  { name: 'development_context_read', description: 'Read one bounded file range from an owner-issued lazy repository context.', inputSchema: schema({ contextReference: identifierSchema, path: stringSchema, startByte: { type: 'integer', minimum: 0 }, maxBytes: { type: 'integer', minimum: 1 } }, ['contextReference', 'path']) },
-  { name: 'development_unit_start', description: 'Start one typed development unit through the existing Case, Drive and Agent owners.', inputSchema: schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']) },
-  { name: 'development_unit_get', description: 'Read the bounded candidate projection for a development unit.', inputSchema: schema({ caseId: identifierSchema }, ['caseId']) },
+  tool('case_create', 'Create Case', 'Create one immutable tdev Case from a compiled Plan.', schema({ requestId: identifierSchema, caseId: identifierSchema, plan: { type: 'object' }, caseContract: { type: 'object' } }, ['requestId', 'caseId', 'plan']), localMutationAnnotations),
+  tool('case_get', 'Get Case', 'Read one bounded authoritative Case projection.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
+  tool('case_events_get', 'Get Case Events', 'Read a bounded committed Case Event page.', schema({ caseId: identifierSchema, afterSequence: integerSchema, limit: { type: 'integer', minimum: 1, maximum: MCP_SURFACE_MAX_EVENTS_PAGE } }, ['caseId']), readOnlyAnnotations),
+  tool('case_run_or_resume', 'Run or Resume Case', 'Drive one existing Case through the authenticated Agent owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']), externalMutationAnnotations),
+  tool('task_cancel', 'Cancel Task', 'Submit a receipt-backed Task cancellation to the Case owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, taskId: identifierSchema, reason: stringSchema, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'taskId']), cancellationAnnotations),
+  tool('attempt_reconcile', 'Reconcile Attempt', 'Submit an exact external Attempt reconciliation decision.', schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']), localMutationAnnotations),
+  tool('claim_conflicts_get', 'Get Claim Conflicts', 'Read current ClaimLedger conflicts without acquiring a lease.', schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']), readOnlyAnnotations),
+  tool('promotion_get', 'Get Promotion', 'Read the bounded Promotion/candidate projection for a Case.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
+  tool('development_context_get', 'Get Development Context', 'Read an owner-issued immutable repository context reference.', schema({ selector: stringSchema }, []), readOnlyAnnotations),
+  tool('development_context_list', 'List Development Context', 'List a bounded page from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 128 } }, ['contextReference']), readOnlyAnnotations),
+  tool('development_context_search', 'Search Development Context', 'Search an owner-issued lazy repository context within explicit bounds.', schema({ contextReference: identifierSchema, pattern: stringSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 256 } }, ['contextReference', 'pattern']), readOnlyAnnotations),
+  tool('development_context_read', 'Read Development Context', 'Read one bounded file range from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, path: stringSchema, startByte: { type: 'integer', minimum: 0 }, maxBytes: { type: 'integer', minimum: 1 } }, ['contextReference', 'path']), readOnlyAnnotations),
+  tool('development_unit_start', 'Start Development Unit', 'Start one typed development unit through the existing Case, Drive and Agent owners.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']), externalMutationAnnotations),
+  tool('development_unit_get', 'Get Development Unit', 'Read the bounded candidate projection for a development unit.', schema({ caseId: identifierSchema }, ['caseId']), readOnlyAnnotations),
 ]);
 
 function limitsBody(input) {
@@ -113,14 +138,25 @@ function manifestBody(input) {
       input.protocolVersions.some((value) => typeof value !== 'string' || value.length === 0)) {
     fail('mcp_surface_protocol_invalid', 'MCP surface protocolVersions must be a non-empty string array');
   }
-  const protocolVersions = [...new Set(input.protocolVersions)].sort();
-  if (protocolVersions.length !== input.protocolVersions.length) fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
+  // Array order is part of the negotiation preference: modern first, then
+  // the newest legacy revisions. Preserve the caller's explicit order rather
+  // than sorting it away during manifest normalization.
+  const protocolVersions = [...input.protocolVersions];
+  if (new Set(protocolVersions).size !== protocolVersions.length) {
+    fail('mcp_surface_protocol_duplicate', 'MCP surface protocolVersions contains a duplicate');
+  }
   if (!Array.isArray(input.tools) || input.tools.length !== TOOL_NAMES.length) fail('mcp_surface_tools_invalid', 'MCP surface tool set is incomplete');
   const tools = input.tools.map((tool, index) => {
-    assertRecordShape(tool, ['name', 'description', 'inputSchema'], [], `MCP surface tool ${index}`);
+    assertRecordShape(tool, ['name', 'title', 'description', 'inputSchema', 'outputSchema', 'annotations'], [], `MCP surface tool ${index}`);
     assertIdentifier(tool.name, `MCP surface tool ${index}.name`);
+    if (typeof tool.title !== 'string' || tool.title.length === 0) fail('mcp_surface_tools_invalid', 'MCP surface tool title is invalid');
     if (typeof tool.description !== 'string' || tool.description.length === 0) fail('mcp_surface_tools_invalid', 'MCP surface tool description is invalid');
     if (!isPlainRecord(tool.inputSchema)) fail('mcp_surface_tools_invalid', 'MCP surface tool inputSchema must be a record');
+    if (!isPlainRecord(tool.outputSchema)) fail('mcp_surface_tools_invalid', 'MCP surface tool outputSchema must be a record');
+    if (!isPlainRecord(tool.annotations)) fail('mcp_surface_tools_invalid', 'MCP surface tool annotations must be a record');
+    for (const name of ['readOnlyHint', 'destructiveHint', 'idempotentHint', 'openWorldHint']) {
+      if (typeof tool.annotations[name] !== 'boolean') fail('mcp_surface_tools_invalid', `MCP surface tool annotation ${name} must be boolean`);
+    }
     return canonicalClone(tool);
   });
   const names = tools.map((tool) => tool.name);
@@ -272,17 +308,105 @@ function protocolHeader(request) {
   return value;
 }
 
+const MODERN_META_PROTOCOL_KEY = 'io.modelcontextprotocol/protocolVersion';
+const MODERN_META_CLIENT_INFO_KEY = 'io.modelcontextprotocol/clientInfo';
+const MODERN_META_CLIENT_CAPABILITIES_KEY = 'io.modelcontextprotocol/clientCapabilities';
+const MODERN_META_SERVER_INFO_KEY = 'io.modelcontextprotocol/serverInfo';
+
+function modernMetaVersion(rpc) {
+  const meta = rpc?.params?._meta;
+  return isPlainRecord(meta) && typeof meta[MODERN_META_PROTOCOL_KEY] === 'string'
+    ? meta[MODERN_META_PROTOCOL_KEY]
+    : null;
+}
+
+// MCP reserves the outer params object for transport metadata and method
+// arguments.  Hosted clients may add forward-compatible transport fields to
+// that envelope; require the fields that define the request, but do not treat
+// unrelated envelope extensions as a different protocol.  Tool arguments
+// remain strictly validated by validateToolArguments below.
+function requireRecordKeys(value, required, path) {
+  if (!isPlainRecord(value)) fail('invalid_record', `${path} must be a plain record`);
+  const missing = required.filter((key) => !Object.hasOwn(value, key));
+  if (missing.length > 0) {
+    fail('unexpected_keys', `${path} has unexpected or missing keys`, {
+      actual: Object.keys(value).sort(),
+      required: [...required].sort(),
+      missing: [...missing].sort(),
+    });
+  }
+  return value;
+}
+
+function modernRequestMeta(request, rpc, manifest) {
+  if (!isPlainRecord(rpc.params) || !isPlainRecord(rpc.params._meta)) {
+    fail('mcp_modern_metadata_required', 'Modern MCP requests require a bounded _meta object');
+  }
+  const meta = rpc.params._meta;
+  const requested = meta[MODERN_META_PROTOCOL_KEY];
+  const header = protocolHeader(request);
+  if (typeof requested !== 'string' || requested.length === 0 || header === null || header !== requested) {
+    fail('mcp_header_mismatch', 'MCP protocol metadata and header must contain one matching value', {
+      field: 'MCP-Protocol-Version',
+    });
+  }
+  if (!manifest.protocolVersions.includes(requested)) {
+    fail('mcp_protocol_unsupported', 'Requested MCP protocol version is not supported', {
+      requested,
+      supported: [...manifest.protocolVersions],
+    });
+  }
+  if (requested !== MCP_SURFACE_MODERN_PROTOCOL_VERSION) {
+    fail('mcp_protocol_unsupported', 'Modern request metadata uses an unsupported protocol era', {
+      requested,
+      supported: [...manifest.protocolVersions],
+    });
+  }
+  const clientInfo = meta[MODERN_META_CLIENT_INFO_KEY];
+  if (clientInfo !== undefined) {
+    if (!isPlainRecord(clientInfo)) fail('mcp_modern_metadata_invalid', 'Modern clientInfo must be a record');
+    requireRecordKeys(clientInfo, ['name', 'version'], 'modern clientInfo');
+    assertScalarString(clientInfo.name, 'modern clientInfo.name');
+    assertScalarString(clientInfo.version, 'modern clientInfo.version');
+  }
+  const clientCapabilities = meta[MODERN_META_CLIENT_CAPABILITIES_KEY];
+  if (clientCapabilities !== undefined && !isPlainRecord(clientCapabilities)) {
+    fail('mcp_modern_metadata_invalid', 'Modern clientCapabilities must be a record');
+  }
+  return deepFreeze({
+    protocolVersion: requested,
+    clientInfo: clientInfo === undefined ? null : canonicalClone(clientInfo),
+    clientCapabilities: clientCapabilities === undefined ? {} : canonicalClone(clientCapabilities),
+  });
+}
+
+function modernHeaders(request, rpc) {
+  const method = request.headers.get('mcp-method');
+  if (method === null || method !== rpc.method) {
+    fail('mcp_header_mismatch', 'Mcp-Method must match the JSON-RPC method', { field: 'Mcp-Method' });
+  }
+  if (rpc.method === 'tools/call') {
+    const name = rpc.params?.name;
+    const headerName = request.headers.get('mcp-name');
+    if (typeof name !== 'string' || headerName === null || headerName !== name) {
+      fail('mcp_header_mismatch', 'Mcp-Name must match the tools/call name', { field: 'Mcp-Name' });
+    }
+  }
+}
+
 function safeErrorCode(error) {
   if (error instanceof ContractError && typeof error.code === 'string' && /^[a-z][a-z0-9_]{0,127}$/.test(error.code)) return error.code;
   return 'mcp_internal_error';
 }
 
-function rpcError(id, code, message, dataCode = code) {
-  return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message, data: { code: dataCode } } };
+function rpcError(id, code, message, dataCode = code, details = {}) {
+  return { jsonrpc: '2.0', ...(id === undefined ? {} : { id }), error: { code, message, data: { code: dataCode, ...details } } };
 }
 
 function errorStatus(error) {
   const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return 404;
+  if (code === 'mcp_header_mismatch' || code === 'mcp_protocol_unsupported' || code === 'mcp_modern_metadata_required' || code === 'mcp_modern_metadata_invalid') return 400;
   if (code === 'mcp_authentication_failed' || code.startsWith('mcp_auth_') && (code.includes('issuer') || code.includes('audience') || code.includes('assertion'))) return 401;
   if (code === 'mcp_authorization_denied') return 403;
   if (code.includes('config') || code.includes('verifier_unavailable')) return 503;
@@ -292,10 +416,49 @@ function errorStatus(error) {
 
 function errorMessage(error) {
   const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return 'MCP method not found';
+  if (code === 'mcp_header_mismatch') return 'MCP request header mismatch';
+  if (code === 'mcp_protocol_unsupported') return 'MCP protocol version is not supported';
   if (code === 'mcp_internal_error') return 'MCP server error';
   if (code === 'mcp_authentication_failed' || code.startsWith('mcp_auth_')) return 'MCP authentication failed';
   if (code === 'mcp_authorization_denied') return 'MCP authorization denied';
   return 'MCP request rejected';
+}
+
+function rpcErrorCode(error) {
+  const code = safeErrorCode(error);
+  if (code === 'mcp_method_not_found') return -32601;
+  if (code === 'mcp_header_mismatch') return -32020;
+  if (code === 'mcp_protocol_unsupported') return -32022;
+  return -32000;
+}
+
+function rpcErrorDetails(error, manifest) {
+  const code = safeErrorCode(error);
+  if (code === 'mcp_protocol_unsupported') {
+    return {
+      code,
+      supported: [...manifest.protocolVersions],
+      ...(typeof error?.details?.requested === 'string' ? { requested: error.details.requested } : {}),
+    };
+  }
+  if (code === 'mcp_header_mismatch') return { code, field: error?.details?.field ?? null };
+  return { code };
+}
+
+function protectedResourceMetadataUrl(resource) {
+  if (typeof resource !== 'string' || resource.length === 0) return null;
+  try {
+    const parsed = new URL(resource);
+    // RFC 9728 derives the metadata location by inserting the well-known
+    // segment before the resource path.  mcpResource is normalized to /mcp
+    // by the auth manifest, so retain a deterministic standards location and
+    // leave the root/provider aliases available for compatibility discovery.
+    const resourcePath = parsed.pathname.replace(/^\/+|\/+$/gu, '');
+    return `${parsed.origin}/.well-known/oauth-protected-resource${resourcePath.length === 0 ? '' : `/${resourcePath}`}`;
+  } catch {
+    return null;
+  }
 }
 
 function assertObject(value, label) {
@@ -438,7 +601,7 @@ function projectSnapshot(snapshot, { includeTree = false } = {}) {
     eventSequence: snapshot.eventSequence,
     planDigest: snapshot.plan?.planDigest ?? null,
     baseDigest: snapshot.plan?.baseDigest ?? null,
-    canonicalDigest: snapshot.canonicalDigest,
+    canonicalDigest: snapshot.canonicalDigest ?? null,
     taskStates,
     attempts,
     receipts,
@@ -483,7 +646,8 @@ function projectCandidate(result, maxBytes) {
 
 function projectPromotion(snapshot, { includeTree = false } = {}) {
   if (!isPlainRecord(snapshot)) fail('mcp_owner_invalid_projection', 'Case owner returned an invalid Promotion snapshot');
-  const promotionTaskId = snapshot.plan?.promotionTaskId ?? null;
+  const promotionTaskId = snapshot.plan?.promotionTaskId
+    ?? (isPlainRecord(snapshot.taskStates?.promote) ? 'promote' : null);
   const promotionState = promotionTaskId === null ? null : snapshot.taskStates?.[promotionTaskId] ?? null;
   const accepted = promotionState?.acceptedResult ?? null;
   const promotion = accepted === null ? null : {
@@ -501,7 +665,7 @@ function projectPromotion(snapshot, { includeTree = false } = {}) {
     promotionState: promotionState?.state ?? null,
     promotionResultDigest: promotionState?.acceptedResultDigest ?? null,
     promotion,
-    canonicalDigest: snapshot.canonicalDigest,
+    canonicalDigest: snapshot.canonicalDigest ?? null,
   };
   if (includeTree) result.canonicalTree = canonicalClone(snapshot.canonicalTree ?? {});
   return deepFreeze(canonicalClone(result));
@@ -525,16 +689,13 @@ export class TdevMcpSurface {
     this.claimLedger = owners.claimLedger ?? claimLedger;
     this.authorize = owners.authorize ?? authorize ?? auth?.authorize ?? null;
     this.owners = { ...owners };
+    const contextResolver = this.owners.developmentContextResolve ?? this.owners.developmentContextGet;
     if (typeof this.owners.developmentUnitStart !== 'function' &&
-        (typeof this.owners.developmentContextResolve === 'function' || typeof this.owners.developmentContextGet === 'function') &&
+        typeof contextResolver === 'function' &&
         this.developmentUnitRunner !== null) {
       this.owners.developmentUnitStart = createDevelopmentUnitStartAdapter({
         runner: this.developmentUnitRunner,
-        resolveContext: ({ contextReference, identity }) => (
-          typeof this.owners.developmentContextResolve === 'function'
-            ? this.owners.developmentContextResolve({ selector: contextReference, identity })
-            : this.owners.developmentContextGet({ selector: contextReference, identity })
-        ),
+        resolveContext: ({ contextReference, identity }) => contextResolver({ selector: contextReference, identity }),
       });
     }
     this.authorizationServerMetadata = authorizationServerMetadata;
@@ -655,9 +816,9 @@ export class TdevMcpSurface {
     if (typeof protocol !== 'string' || !this.manifest.protocolVersions.includes(protocol)) {
       fail('mcp_protocol_unsupported', 'Requested MCP protocol version is not supported');
     }
-    assertRecordShape(rpc.params, ['protocolVersion', 'capabilities', 'clientInfo'], [], 'initialize params');
+    requireRecordKeys(rpc.params, ['protocolVersion', 'capabilities', 'clientInfo'], 'initialize params');
     if (!isPlainRecord(rpc.params.capabilities) || !isPlainRecord(rpc.params.clientInfo)) fail('mcp_initialize_invalid', 'initialize capabilities/clientInfo must be records');
-    assertRecordShape(rpc.params.clientInfo, ['name', 'version'], [], 'initialize clientInfo');
+    requireRecordKeys(rpc.params.clientInfo, ['name', 'version'], 'initialize clientInfo');
     assertScalarString(rpc.params.clientInfo.name, 'initialize clientInfo.name');
     assertScalarString(rpc.params.clientInfo.version, 'initialize clientInfo.version');
     const header = protocolHeader(request);
@@ -666,10 +827,64 @@ export class TdevMcpSurface {
       protocolVersion: protocol,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'tdev', version: this.manifest.surfaceDigest.slice('sha256:'.length, 'sha256:'.length + 12) },
+      instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
     };
   }
 
+  #modernServerInfo() {
+    return { name: 'tdev', version: this.manifest.surfaceDigest.slice('sha256:'.length, 'sha256:'.length + 12) };
+  }
+
+  async #modernRpc(request, rpc) {
+    if (!Object.hasOwn(rpc, 'id')) fail('mcp_modern_notification_unsupported', 'Modern Streamable HTTP does not accept client notifications');
+    modernRequestMeta(request, rpc, this.manifest);
+    modernHeaders(request, rpc);
+    const identity = await this.#authorize(request, rpc, rpc.method === 'tools/call' ? rpc.params?.name ?? 'tools/call' : rpc.method, rpc.params);
+    if (rpc.method === 'server/discover') {
+      requireRecordKeys(rpc.params, ['_meta'], 'server/discover params');
+      return {
+        resultType: 'complete',
+        supportedVersions: [...this.manifest.protocolVersions],
+        capabilities: { tools: { listChanged: false } },
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+        instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
+        ttlMs: 0,
+        cacheScope: 'private',
+      };
+    }
+    if (rpc.method === 'tools/list') {
+      requireRecordKeys(rpc.params, ['_meta'], 'tools/list params');
+      if (rpc.params.cursor !== undefined) fail('mcp_cursor_unsupported', 'This stateless surface has no resumable tool cursor');
+      return {
+        resultType: 'complete',
+        tools: canonicalClone(this.manifest.tools),
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+        ttlMs: 0,
+        cacheScope: 'private',
+      };
+    }
+    if (rpc.method === 'tools/call') {
+      requireRecordKeys(rpc.params, ['name', '_meta'], 'tools/call params');
+      if (typeof rpc.params.name !== 'string' || !TOOL_NAMES.includes(rpc.params.name)) fail('mcp_tool_not_found', 'Requested MCP tool is not exposed');
+      const result = await this.#tool(rpc.params.name, rpc.params.arguments ?? {}, identity);
+      const structuredContent = canonicalClone(result);
+      return {
+        resultType: 'complete',
+        content: [{ type: 'text', text: canonicalJson(structuredContent) }],
+        structuredContent,
+        isError: false,
+        _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
+      };
+    }
+    fail('mcp_method_not_found', `Unknown MCP method ${rpc.method}`);
+  }
+
   async #rpc(request, rpc) {
+    const header = protocolHeader(request);
+    const metaVersion = modernMetaVersion(rpc);
+    const modern = metaVersion !== null || header === MCP_SURFACE_MODERN_PROTOCOL_VERSION ||
+      (header !== null && !MCP_SURFACE_LEGACY_PROTOCOL_VERSIONS.has(header));
+    if (modern) return this.#modernRpc(request, rpc);
     if (!Object.hasOwn(rpc, 'id')) {
       if (rpc.method !== 'notifications/initialized') fail('mcp_invalid_rpc', 'Only notifications/initialized is accepted without an id');
       await this.#authorize(request, rpc, 'notifications/initialized', rpc.params);
@@ -679,7 +894,6 @@ export class TdevMcpSurface {
       await this.#authorize(request, rpc, 'initialize', rpc.params);
       return this.#initialize(rpc, request);
     }
-    const header = protocolHeader(request);
     if (header === null || !this.manifest.protocolVersions.includes(header)) fail('mcp_protocol_required', 'A supported MCP-Protocol-Version header is required after initialize');
     const identity = await this.#authorize(request, rpc, rpc.method === 'tools/call' ? rpc.params?.name ?? 'tools/call' : rpc.method, rpc.params);
     if (rpc.method === 'tools/list') {
@@ -729,9 +943,17 @@ export class TdevMcpSurface {
       return jsonResponse(200, response, { 'mcp-protocol-version': rpc.method === 'initialize' ? rpc.params.protocolVersion : protocolHeader(request) });
     } catch (error) {
       const status = errorStatus(error);
-      const response = rpcError(rpc?.id, -32000, errorMessage(error), safeErrorCode(error));
+      const response = rpcError(rpc?.id, rpcErrorCode(error), errorMessage(error), safeErrorCode(error), rpcErrorDetails(error, this.manifest));
       const headers = {};
-      if (status === 401) headers['www-authenticate'] = `Bearer resource="${this.auth.manifest?.mcpResource ?? ''}"`;
+      if (status === 401) {
+        const resource = this.auth.manifest?.mcpResource ?? '';
+        const metadata = protectedResourceMetadataUrl(resource);
+        headers['www-authenticate'] = [
+          'Bearer error="invalid_token"',
+          `resource="${resource}"`,
+          ...(metadata === null ? [] : [`resource_metadata="${metadata}"`]),
+        ].join(', ');
+      }
       return jsonResponse(status, response, headers);
     }
   }

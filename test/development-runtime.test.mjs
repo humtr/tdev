@@ -1,18 +1,17 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { ContractError, digest } from '../src/canonical.mjs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
+import { tmpdir } from 'node:os';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { ContractError, canonicalClone, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import {
-  CodexExecRepositoryModelExecutor,
-  LocalDevelopmentOperationRuntime,
-  codexLauncherHome,
-  createLocalDevelopmentOperationExecutionAdapter,
-} from '../src/development-runtime.mjs';
-import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
-import { readFile } from 'node:fs/promises';
+import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome } from '../src/development-runtime.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
+const operationManifest = JSON.parse(readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
 
 function eventStream(...events) {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`, 'utf8');
@@ -23,12 +22,29 @@ test('D0043 Termux Codex launcher keeps profile CODEX_HOME under the real Termux
   assert.equal(codexLauncherHome('/data/data/com.termux/files/home/.codex'), '/data/data/com.termux/files/home');
 });
 
+test('D0043 prompt requires result-only implementation while clone stays clean', () => {
+  const prompt = buildCodexPrompt({
+    repositoryCommitOid: 'a'.repeat(40),
+    baseDigest,
+    contextReferenceId: 'ctx-test',
+    contextDigest: 'sha256:' + 'b'.repeat(64),
+    contextFileCount: 2,
+    instruction: 'add source change',
+  });
+  assert.match(prompt, /Do not mutate files directly/);
+  assert.match(prompt, /MUST implement the requested source change in the returned ChangeSet/);
+  assert.match(prompt, /never substitute an empty ChangeSet/);
+  assert.match(prompt, /Read-only applies to shell commands only/);
+  assert.match(prompt, /A no-op is invalid/);
+  assert.doesNotMatch(prompt, /Do not edit files,/);
+});
+
 test('D0043 runtime rejects provider sandbox arguments', () => {
   assert.throws(() => new CodexExecRepositoryModelExecutor({ repositoryPath: '/tmp/repo', codexExecutable: '/tmp/codex', codexHome: '/tmp/codex-home', outputSchemaPath: '/tmp/schema.json', codexArguments: ['exec', '--ephemeral', '--json', '--sandbox', 'read-only', '--ignore-user-config'] }), (error) => error instanceof ContractError && error.code === 'development_runtime_arguments_invalid');
 });
 
 test('D0043 Codex JSONL accepts one strict terminal result and preserves usage separately', () => {
-  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--ignore-user-config', '--dangerously-bypass-approvals-and-sandbox']);
+  assert.deepEqual(CODEX_ARGUMENTS, ['exec', '--ephemeral', '--json', '--ignore-user-config']);
   const parsed = parseCodexJsonl(eventStream(
     { type: 'thread.started', thread_id: 'thread-test' },
     { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify(changeset) } },
@@ -64,64 +80,94 @@ test('D0043 Codex JSONL rejects missing, duplicate, malformed and failed termina
   }
 });
 
-test('D0048 local execution adapter validates a scoped operation before handing it to the Agent', async () => {
-  const manifest = normalizeDevelopmentOperationManifest(JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8')));
-  const repositoryCommitOid = 'a'.repeat(40);
-  const baseDigest = digest({ 'src/base.mjs': 'base\n' });
-  const operationRuntime = new LocalDevelopmentOperationRuntime({
-    manifest,
-    repositoryPath: '/tmp',
-    codexExecutable: '/tmp/codex',
-    codexHome: '/tmp',
-    outputSchemaPath: '/tmp/codex-changeset-output.schema.json',
-    npmExecutable: '/tmp/npm',
+test('D0046 Codex runtime temp files stay outside the exact-base clone and are cleaned', async (t) => {
+  const parent = mkdtempSync(path.join(tmpdir(), 'tdev-development-runtime-test-'));
+  t.after(() => rmSync(parent, { recursive: true, force: true }));
+  const repositoryPath = path.join(parent, 'repo');
+  const workspaceRoot = path.join(parent, 'workspaces');
+  mkdirSync(repositoryPath);
+  mkdirSync(workspaceRoot);
+  execFileSync('git', ['init', '-q'], { cwd: repositoryPath });
+  writeFileSync(path.join(repositoryPath, 'source.txt'), 'base\n');
+  execFileSync('git', ['add', 'source.txt'], { cwd: repositoryPath });
+  execFileSync('git', ['-c', 'user.name=tdev', '-c', 'user.email=tdev@example.invalid', 'commit', '-qm', 'base'], { cwd: repositoryPath });
+  const repositoryCommitOid = execFileSync('git', ['rev-parse', 'HEAD'], { cwd: repositoryPath, encoding: 'utf8' }).trim();
+  const testBaseDigest = digest({ 'source.txt': 'base\n' });
+  const contextDigest = digest({ context: 'runtime-temp-isolation' });
+  let observedTempPath = null;
+  const executor = new CodexExecRepositoryModelExecutor({
+    repositoryPath,
+    codexExecutable: process.execPath,
+    codexHome: parent,
+    outputSchemaPath: fileURLToPath(new URL('../config/codex-changeset-output.schema.json', import.meta.url)),
+    workspaceRoot,
     contextAdapter: {
-      async materializeContext(commitOid, digestValue) {
-        return {
-          descriptor: {
-            profile: 'tdev.repository-context.git-immutable.v1',
-            objectFormat: 'sha1',
-            commitOid,
-            baseDigest: digestValue,
-            contextDigest: digest('adapter-context'),
-          },
-          files: [],
-        };
-      },
+      materializeContext: async () => ({ descriptor: { contextDigest, fileCount: 1 } }),
+    },
+    modelRunner: async ({ environment, workingDirectory }) => {
+      observedTempPath = environment.TMPDIR;
+      assert.notEqual(observedTempPath, workingDirectory);
+      assert.equal(path.dirname(observedTempPath), workspaceRoot);
+      writeFileSync(path.join(observedTempPath, 'model-cache.tmp'), 'cache\n');
+      const stdout = eventStream(
+        { type: 'item.completed', item: { type: 'agent_message', text: JSON.stringify({ kind: 'changeset', baseDigest: testBaseDigest, writes: [{ path: 'source.txt', content: 'changed\n' }] }) } },
+        { type: 'turn.completed', usage: { input_tokens: 1, output_tokens: 1 } },
+      );
+      return { code: 0, signal: null, stdout, stdoutBytes: stdout.length, stderrBytes: 0, durationMs: 1 };
     },
   });
-  const adapter = createLocalDevelopmentOperationExecutionAdapter({ operationRuntime });
-  const started = await adapter.start({
-    envelope: {
-      caseId: 'case-adapter',
-      taskId: 'context',
-      attemptId: 'context.1',
-      executorId: 'executor-adapter',
-      executorEpoch: 1,
-      fencingToken: digest('fence'),
-      executableBody: {
-        profile: 'tdev.development-operation-profiles.v2',
-        operationRequest: {
-          profile: 'tdev.repository.context.prepare.v1',
-          input: { repositoryCommitOid, baseDigest, objectFormat: 'sha1' },
-        },
-        resultEnvelopeTemplate: {
-          caseId: 'case-adapter',
-          planRevisionId: 'revision-adapter',
-          planDigest: digest('plan-adapter'),
-          taskId: 'context',
-          attemptId: 'context.1',
-          executorId: 'executor-adapter',
-          executorEpoch: 1,
-          claimLeaseToken: null,
-          claimLeaseGeneration: null,
-          claimLeaseClaimsDigest: null,
-        },
-      },
-    },
+  const result = await executor.execute({ repositoryCommitOid, baseDigest: testBaseDigest, instruction: 'change source' });
+  assert.equal(result.kind, 'changeset');
+  assert.equal(result.writes.length, 1);
+  assert.equal(existsSync(observedTempPath), false);
+  assert.deepEqual(readdirSync(workspaceRoot), []);
+});
+
+test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation sink', () => {
+  const observation = () => {};
+  const runtime = new LocalDevelopmentOperationRuntime({
+    manifest: operationManifest,
+    repositoryPath: '/tmp/tdev-repository',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp/codex-home',
+    outputSchemaPath: '/tmp/codex-schema.json',
+    npmExecutable: '/tmp/npm',
+    observation,
   });
-  const completion = await started.completion;
-  assert.equal(completion.code, 0);
-  assert.equal(completion.resultEnvelope.result.kind, 'observation');
-  await operationRuntime.dispose();
+  assert.equal(runtime.codex.observation, observation);
+  assert.equal(runtime.npm.observation, observation);
+});
+
+test('D0043 development result envelope binds the activated Attempt fence', () => {
+  const template = {
+    caseId: 'case-runtime',
+    planRevisionId: 'plan-runtime',
+    planDigest: digest({ plan: 'runtime' }),
+    taskId: 'model',
+    attemptId: 'model.1',
+    executorId: 'executor-runtime',
+    executorEpoch: 2,
+    claimLeaseToken: null,
+    claimLeaseGeneration: null,
+    claimLeaseClaimsDigest: null,
+  };
+  const envelope = {
+    caseId: 'case-runtime',
+    taskId: 'model',
+    attemptId: 'model.1',
+    executorId: 'executor-runtime',
+    executorEpoch: 2,
+    fencingToken: digest({ fence: 'runtime' }),
+  };
+  const result = { profile: 'tdev.development-operation-profiles.v2', kind: 'model_repository', result: { kind: 'changeset' } };
+  assert.deepEqual(caseResultEnvelopeFromDispatch({ template, envelope, result }), {
+    ...template,
+    fencingToken: envelope.fencingToken,
+    result: canonicalClone(result),
+  });
+  assert.throws(() => caseResultEnvelopeFromDispatch({
+    template,
+    envelope: { ...envelope, attemptId: 'model.2' },
+    result,
+  }), (error) => error instanceof ContractError && error.code === 'development_runtime_result_identity_mismatch');
 });

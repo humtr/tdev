@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises';
 
 import {
   D0046_ACCESS_APP_NAME,
+  D0046_MIN_CASE_AUTHORITATIVE_BYTES,
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
@@ -18,6 +19,12 @@ import { digest } from '../src/canonical.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
+
+test('D0046 light Case snapshot projection imports its clone helper', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{[\s\S]*?canonicalClone,[\s\S]*?\} from '\.\.\/src\/canonical\.mjs';/u);
+  assert.match(source, /snapshot: \(\) => canonicalClone\(snapshot\)/u);
+});
 
 test('D0046 deployer composes a digest-bound trial and keeps the large tree out of env JSON', async () => {
   const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
@@ -67,12 +74,12 @@ test('D0046 Case admission rejects an undersized or malformed owner budget', () 
   const settings = {
     bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(8 * 1024 * 1024) }],
   };
-  assert.throws(() => assertCaseOwnerCapacity(settings, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
-  assert.throws(() => assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: '016777216' }] }, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
-  assert.equal(assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) }] }, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES), D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
+  assert.throws(() => assertCaseOwnerCapacity(settings, D0046_MIN_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
+  assert.throws(() => assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: '016777216' }] }, D0046_MIN_CASE_AUTHORITATIVE_BYTES), { code: 'd0046_owner_capacity_mismatch' });
+  assert.equal(assertCaseOwnerCapacity({ bindings: [{ name: 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE', type: 'plain_text', text: String(D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) }] }, D0046_MIN_CASE_AUTHORITATIVE_BYTES), D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
 });
 
-test('D0046 discovery metadata serves the path-specific resource without repository initialization', async () => {
+test('D0046 discovery metadata bypasses large repository initialization', async () => {
   const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
   const manifests = buildTrialManifests({
     sourceSha: SOURCE_SHA,

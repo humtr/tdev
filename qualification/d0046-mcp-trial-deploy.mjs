@@ -29,7 +29,6 @@ import {
   MCP_TRIAL_COMPOSITION_RESOURCE,
   MCP_TRIAL_DRIVE_CLASS_NAME,
   normalizeMcpTrialCompositionManifest,
-  normalizeMcpTrialCompositionBinding,
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
@@ -55,6 +54,7 @@ export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
+export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
 // M1/M2 use one owner-issued source/test scope. The complete repository
 // manifest and base identity remain bound separately by the generated module.
@@ -67,6 +67,10 @@ export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
   maxBytes: 1024 * 1024,
   maxSearchResults: 16,
 });
+export const D0046_CASE_SOURCE_SHAS = Object.freeze([
+  '2bb20fbc099bfeeb09d4cafa05eac20f88c97729',
+  '3122ca9818e5e6b742491e8076721d68da131c50',
+]);
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
 const MAX_PUBLIC_RESPONSE_BYTES = 1024 * 1024;
@@ -214,7 +218,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
     jurisdiction: 'global',
     caseOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_CASE_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_CASE_SCRIPT,
         className: MCP_TRIAL_CASE_CLASS_NAME,
@@ -226,7 +230,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
     },
     driveOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_MCP_TRIAL_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_MCP_TRIAL_SCRIPT,
         className: MCP_TRIAL_DRIVE_CLASS_NAME,
@@ -236,7 +240,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
     },
     agentOwner: {
       placement: {
-        deployment: 'qualification',
+        deployment: D0046_AGENT_SCRIPT,
         environment: 'qualification',
         workerScript: D0046_AGENT_SCRIPT,
         className: MCP_TRIAL_AGENT_CLASS_NAME,
@@ -313,7 +317,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
       name: 'TDEV_CASE_AUTHORITY',
       class_name: MCP_TRIAL_CASE_CLASS_NAME,
       script_name: D0046_CASE_SCRIPT,
-      namespace_id: D0046_CASE_NAMESPACE,
     },
     {
       type: 'durable_object_namespace',
@@ -326,7 +329,6 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
       name: 'TDEV_AGENT_DELIVERY',
       class_name: MCP_TRIAL_AGENT_CLASS_NAME,
       script_name: D0046_AGENT_SCRIPT,
-      namespace_id: D0046_AGENT_NAMESPACE,
     },
     { type: 'd1', name: 'TDEV_CASE_PLACEMENT', database_id: D0046_CASE_PLACEMENT_DATABASE },
     { type: 'version_metadata', name: 'TDEV_WORKER_VERSION' },
@@ -447,10 +449,17 @@ async function setSubdomain(client, enabled) {
   return response.result;
 }
 
-function assertOwnerBinding(settings, scriptName, className, namespaceId, label) {
+function assertSelfOwnerBinding(settings, scriptName, className, namespaceId, label) {
   const binding = bindingByName(settings, label);
   if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.namespace_id !== namespaceId) {
     fail('d0046_owner_binding_mismatch', `${scriptName} ${label} binding did not match its fixed owner`, { scriptName, label });
+  }
+}
+
+function assertExternalOwnerBinding(settings, ownerScriptName, className, label) {
+  const binding = bindingByName(settings, label);
+  if (binding?.type !== 'durable_object_namespace' || binding.class_name !== className || binding.script_name !== ownerScriptName) {
+    fail('d0046_owner_binding_mismatch', `${ownerScriptName} ${label} external binding did not match its fixed owner`, { ownerScriptName, label });
   }
 }
 
@@ -461,7 +470,7 @@ function assertOwnerMarker(settings, scriptName) {
   }
 }
 
-export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES) {
+export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
   if (!Number.isSafeInteger(minimumBytes) || minimumBytes <= 0) fail('d0046_owner_capacity_invalid', 'Case capacity minimum must be a positive safe integer');
   const binding = bindingByName(settings, 'TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE');
   const raw = binding?.type === 'plain_text' ? binding.text : undefined;
@@ -475,7 +484,7 @@ export function assertCaseOwnerCapacity(settings, minimumBytes = D0046_QUALIFIED
   return parsed;
 }
 
-async function verifyExistingOwners(client, repositoryPath) {
+async function verifyExistingOwners(client) {
   const [caseSettings, agentSettings, namespaces] = await Promise.all([
     workerSettings(client, D0046_CASE_SCRIPT),
     workerSettings(client, D0046_AGENT_SCRIPT),
@@ -483,8 +492,21 @@ async function verifyExistingOwners(client, repositoryPath) {
   ]);
   assertOwnerMarker(caseSettings.result, D0046_CASE_SCRIPT);
   assertOwnerMarker(agentSettings.result, D0046_AGENT_SCRIPT);
-  assertOwnerBinding(caseSettings.result, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
-  assertOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertSelfOwnerBinding(caseSettings.result, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
+  assertSelfOwnerBinding(agentSettings.result, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertCaseOwnerCapacity(caseSettings.result, D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES);
+  const caseSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA');
+  if (caseSource?.type !== 'plain_text' || !D0046_CASE_SOURCE_SHAS.includes(caseSource.text)) {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner source identity was not one of the fixed qualified composition sources');
+  }
+  const writer = bindingByName(caseSettings.result, 'TDEV_CASEDO_WRITER_COMPATIBILITY_ID');
+  if (writer?.type !== 'plain_text' || writer.text !== 'd0020-composition-r1') {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner writer compatibility identity was not exact');
+  }
+  const qualificationSecret = bindingByName(caseSettings.result, 'TDEV_D0019_QUALIFICATION_TOKEN');
+  if (qualificationSecret?.type !== 'secret_text') {
+    fail('d0046_owner_binding_mismatch', 'Existing Case owner qualification secret binding was absent');
+  }
   const caseNs = namespaces.filter((item) => item?.script === D0046_CASE_SCRIPT && item?.class === MCP_TRIAL_CASE_CLASS_NAME);
   const agentNs = namespaces.filter((item) => item?.script === D0046_AGENT_SCRIPT && item?.class === MCP_TRIAL_AGENT_CLASS_NAME);
   if (caseNs.length !== 1 || agentNs.length !== 1 || caseNs[0].id !== D0046_CASE_NAMESPACE || agentNs[0].id !== D0046_AGENT_NAMESPACE || caseNs[0].use_sqlite !== true || agentNs[0].use_sqlite !== true) {
@@ -492,11 +514,6 @@ async function verifyExistingOwners(client, repositoryPath) {
   }
   const placement = bindingByName(caseSettings.result, 'TDEV_CASE_PLACEMENT');
   if (placement?.type !== 'd1' || placement.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_owner_d1_mismatch', 'Existing Case owner D1 binding was not exact');
-  const readerSource = bindingByName(caseSettings.result, 'TDEV_SOURCE_SHA')?.text;
-  const { qualifyCaseReader } = await import('./d0046-case-reader-compatibility.mjs');
-  const reader = await qualifyCaseReader({ repositoryPath, readerSource, scope: D0046_MCP_CONTEXT_SCOPE });
-  if (!reader.compatible) fail('d0046_case_reader_incompatible', 'Case owner declared source cannot restore the scoped Plan; qualify the owner update first', reader);
-  // A passing source probe does not replace deployed artifact/state compatibility evidence.
 }
 
 async function waitForTrialNamespace(client) {
@@ -512,37 +529,36 @@ async function waitForTrialNamespace(client) {
   fail('d0046_trial_namespace_missing', 'Trial Worker drive namespace was not visible after bounded readback', { matches: last });
 }
 
-// Cloudflare deployments.list defines entry zero as the deployment serving traffic.
-// https://developers.cloudflare.com/api/resources/workers/subresources/scripts/subresources/deployments/methods/list/
-export function activeTrialDeployment(entries) {
-  if (!Array.isArray(entries) || entries.length === 0) fail('d0046_worker_deployments_missing', 'Trial Worker deployment readback is empty');
-  const active = entries[0];
-  if (typeof active?.id !== 'string' || active.id.length === 0 || !Array.isArray(active.versions) || active.versions.length !== 1 || active.versions[0].percentage !== 100 || typeof active.versions[0].version_id !== 'string' || active.versions[0].version_id.length === 0) {
-    fail('d0046_worker_traffic_mismatch', 'Trial Worker active deployment must serve exactly one version at one hundred percent');
-  }
-  return canonicalClone(active);
+async function latestVersion(client) {
+  const versions = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions?per_page=100`));
+  const items = versions.result?.items;
+  if (!Array.isArray(items) || items.length === 0) fail('d0046_worker_version_missing', 'Trial Worker has no version readback');
+  const highest = Math.max(...items.map((item) => Number(item.number)));
+  const matches = items.filter((item) => Number(item.number) === highest);
+  if (matches.length !== 1 || typeof matches[0].id !== 'string') fail('d0046_worker_version_ambiguous', 'Trial Worker latest version is ambiguous');
+  const detail = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions/${encodeURIComponent(matches[0].id)}`));
+  if (detail.result?.id !== matches[0].id || Number(detail.result?.number) !== highest) fail('d0046_worker_version_mismatch', 'Trial Worker latest version detail disagreed with list');
+  return detail.result;
 }
 
 export async function workerReadback(client) {
-  const apiPath = client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}`);
-  const before = await client.request('GET', `${apiPath}/deployments`);
-  const active = activeTrialDeployment(before.result?.deployments);
-  const [settings, detail] = await Promise.all([
-    workerSettings(client, D0046_MCP_TRIAL_SCRIPT),
-    client.request('GET', `${apiPath}/versions/${encodeURIComponent(active.versions[0].version_id)}`),
-  ]);
-  if (detail.result?.id !== active.versions[0].version_id) fail('d0046_worker_version_mismatch', 'Active deployment and version detail disagree');
-  const after = await client.request('GET', `${apiPath}/deployments`);
-  if (canonicalJson(activeTrialDeployment(after.result?.deployments)) !== canonicalJson(active)) {
-    fail('d0046_worker_predecessor_changed', 'Active deployment changed during readback');
+  const settings = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
+  const version = await latestVersion(client);
+  const deployments = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/deployments`));
+  const entries = deployments.result?.deployments;
+  if (!Array.isArray(entries) || entries.length === 0) fail('d0046_worker_deployments_missing', 'Trial Worker deployment readback is empty');
+  const active = entries.find((entry) => Array.isArray(entry.versions) && entry.versions.some((item) => item?.version_id === version.id));
+  if (!active) fail('d0046_worker_traffic_mismatch', 'Trial Worker deployment readback did not reference the latest version');
+  if (!Array.isArray(active.versions) || active.versions.length !== 1 || active.versions[0].percentage !== 100 || active.versions[0].version_id !== version.id) {
+    fail('d0046_worker_traffic_mismatch', 'Trial Worker traffic is not one hundred percent on the latest version');
   }
-  return { settings: settings.result, version: detail.result, deployment: active, deployments: after.result.deployments };
+  return { settings: settings.result, version, deployments: entries };
 }
 
 function validateTrialWorkerSettings(settings, version, manifests, sourceSha, artifact) {
   assertOwnerMarker(settings, D0046_MCP_TRIAL_SCRIPT);
-  assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, D0046_CASE_NAMESPACE, 'TDEV_CASE_AUTHORITY');
-  assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, D0046_AGENT_NAMESPACE, 'TDEV_AGENT_DELIVERY');
+  assertExternalOwnerBinding(settings, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, 'TDEV_CASE_AUTHORITY');
+  assertExternalOwnerBinding(settings, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, 'TDEV_AGENT_DELIVERY');
   const d1 = bindingByName(settings, 'TDEV_CASE_PLACEMENT');
   if (d1?.type !== 'd1' || d1.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_worker_binding_mismatch', 'Trial Worker D1 binding was not exact');
   const drive = bindingByName(settings, 'TDEV_CASE_AGENT_DRIVE');
@@ -553,6 +569,7 @@ function validateTrialWorkerSettings(settings, version, manifests, sourceSha, ar
   if (source?.type !== 'plain_text' || source.text !== sourceSha || base?.text !== manifests.composition.repository.baseDigest || artifactDigest?.text !== artifact.moduleDigest) fail('d0046_worker_binding_mismatch', 'Trial Worker source/base/artifact markers did not match');
   const runtime = version?.resources?.script_runtime ?? settings?.script_runtime ?? settings;
   if (runtime?.compatibility_date !== D0046_WORKER_COMPATIBILITY_DATE || !runtime?.compatibility_flags?.includes('nodejs_compat')) fail('d0046_worker_runtime_mismatch', 'Trial Worker runtime compatibility did not match');
+  if (runtime?.limits?.cpu_ms !== undefined) fail('d0046_worker_runtime_mismatch', 'Trial Worker must not declare a custom CPU limit on the Workers Free plan');
   if (runtime?.exports?.CaseAgentDriveRuntimeDO?.type !== 'durable-object' || runtime?.exports?.CaseAgentDriveRuntimeDO?.storage !== 'sqlite') fail('d0046_worker_runtime_mismatch', 'Trial Worker did not expose the expected SQLite drive export');
   return drive.namespace_id;
 }
@@ -608,16 +625,30 @@ async function publicJson(url) {
 }
 
 async function publicMetadataReadback(auth) {
-  const resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/cloudflare-access-protected-resource/mcp`);
-  if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'Cloudflare Access protected-resource metadata was not public', { status: resource.status });
+  let resource = null;
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource/mcp`);
+    if (resource.status === 200) break;
+    if (attempt < 14) await new Promise((resolve) => setTimeout(resolve, 2_000));
+  }
+  if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'RFC 9728 path-specific protected-resource metadata was not public', { status: resource.status });
   const validatedResource = validateMcpProtectedResourceMetadata(resource.body, auth);
+  const rootResource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource`);
+  if (rootResource.status !== 200) fail('d0046_resource_metadata_alias_missing', 'Origin-root protected-resource metadata compatibility alias was not public', { status: rootResource.status });
+  const validatedRootResource = validateMcpProtectedResourceMetadata(rootResource.body, auth);
   const authorization = await publicJson(`${D0046_ACCESS_ISSUER}/.well-known/oauth-authorization-server`);
   if (authorization.status !== 200) fail('d0046_authorization_metadata_missing', 'Cloudflare Access authorization-server metadata was not public', { status: authorization.status });
   const validatedAuthorization = validateMcpAuthorizationServerMetadata(authorization.body, auth);
   const mcp = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/mcp`);
   if (![301, 302, 303, 307, 308, 401, 403].includes(mcp.status)) fail('d0046_mcp_edge_state_unexpected', 'Trial MCP endpoint did not show an expected Access-protected unauthenticated status', { status: mcp.status });
   return {
-    resource: { status: resource.status, resource: validatedResource.resource, authorizationServers: validatedResource.authorization_servers },
+    resource: {
+      status: resource.status,
+      path: '/.well-known/oauth-protected-resource/mcp',
+      resource: validatedResource.resource,
+      authorizationServers: validatedResource.authorization_servers,
+      rootAlias: { status: rootResource.status, resource: validatedRootResource.resource, authorizationServers: validatedRootResource.authorization_servers },
+    },
     authorization: { status: authorization.status, issuer: validatedAuthorization.issuer, authorizationEndpoint: validatedAuthorization.authorization_endpoint, tokenEndpoint: validatedAuthorization.token_endpoint, registrationEndpoint: validatedAuthorization.registration_endpoint ?? null, pkce: validatedAuthorization.code_challenge_methods_supported },
     mcpUnauthenticated: { status: mcp.status },
   };
@@ -645,198 +676,82 @@ function redactedIdentity(identity) {
   };
 }
 
-function readJsonBinding(settings, name) {
-  const values = (settings?.bindings ?? []).filter((item) => item?.name === name);
-  if (values.length !== 1 || values[0].type !== 'plain_text') fail('d0046_update_binding_invalid', 'Expected one existing plain-text manifest binding', { name });
-  try { return JSON.parse(values[0].text); } catch { fail('d0046_update_binding_invalid', 'Existing manifest binding is not JSON', { name }); }
-}
-
-// This prepares a reviewable artifact. It does not authorize upload, retained-state
-// migration or Agent activation; those consume the responsible owner observations.
-export function preparePreservingTrialManifests({ settings, accessApplication, accountId, ...candidate }) {
-  assertOwnerMarker(settings, D0046_MCP_TRIAL_SCRIPT);
-  const previous = normalizeMcpTrialCompositionBinding(readJsonBinding(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON'));
-  const previousAuth = normalizeMcpAuthManifest(readJsonBinding(settings, 'TDEV_MCP_AUTH_MANIFEST_JSON'));
-  const app = validateAccessApplication(accessApplication, accountId);
-  if (app.aud !== previousAuth.accessApplicationAudience) fail('d0046_update_auth_changed', 'Existing Access application and ingress audience disagree');
-  const manifests = buildTrialManifests({
-    ...candidate,
-    identity: previous.identity,
-    driveNamespace: previous.driveOwner.placement.namespace,
-    accessAudience: app.aud,
+function deploymentResult({ sourceSha, base, artifact, bootstrap = null, manifests, accessApp, provider, publicReadback, absence = null, identity, driveNamespace, subdomainEnabled }) {
+  return Object.freeze({
+    status: 'deployed',
+    sourceSha,
+    scriptName: D0046_MCP_TRIAL_SCRIPT,
+    resource: D0046_MCP_TRIAL_RESOURCE,
+    origin: D0046_MCP_TRIAL_ORIGIN,
+    base: { commitOid: base.commitOid, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes, excludedPaths: base.excludedPaths },
+    artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest, modules: artifact.modules },
+    manifests: { compositionDigest: bootstrap?.composition?.manifestDigest ?? null, finalCompositionDigest: manifests.composition.manifestDigest, authProfileDigest: manifests.auth.profileDigest, operationDigest: manifests.operationDigest, surfaceDigest: manifests.surfaceDigest },
+    ownerBindings: { caseWorker: D0046_CASE_SCRIPT, caseNamespace: D0046_CASE_NAMESPACE, driveWorker: D0046_MCP_TRIAL_SCRIPT, driveNamespace, agentWorker: D0046_AGENT_SCRIPT, agentNamespace: D0046_AGENT_NAMESPACE, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE, agentId: manifests.composition.agentOwner.agentId, routeGeneration: manifests.composition.agentOwner.routeGeneration },
+    identity: redactedIdentity(identity),
+    access: { id: accessApp.id, audienceDigest: sha256(accessApp.aud), domain: accessApp.domain, policyCount: accessApp.policies.length, oauth: { issuer: D0046_ACCESS_ISSUER, jwksUri: D0046_ACCESS_JWKS_URI, dynamicRegistration: true, redirectUri: 'https://chatgpt.com/connector/oauth/*', pkce: 'S256' } },
+    provider: { absence, driveNamespace, worker: provider, publicReadback },
+    safety: { canonicalWriterEnabled: false, previewWritersEnabled: false, subdomainEnabled, rollback: { disableSubdomain: `POST /accounts/{account}/workers/scripts/${D0046_MCP_TRIAL_SCRIPT}/subdomain { enabled:false, previews_enabled:false }`, accessAppId: accessApp.id } },
+    secretValues: 'excluded',
   });
-  if (canonicalJson(manifests.auth) !== canonicalJson(previousAuth)) fail('d0046_update_auth_changed', 'Candidate would change the existing authentication contract');
-  for (const key of ['resource', 'workerScript', 'environment', 'jurisdiction', 'caseOwner', 'driveOwner', 'agentOwner', 'identity', 'authProfile', 'casePrefix', 'canonicalWriterEnabled', 'previewWritersEnabled']) {
-    if (canonicalJson(manifests.composition[key]) !== canonicalJson(previous[key])) fail('d0046_update_owner_changed', 'Candidate would change an existing owner or access scope', { key });
-  }
-  for (const [name, className, namespace] of [
-    ['TDEV_CASE_AUTHORITY', MCP_TRIAL_CASE_CLASS_NAME, previous.caseOwner.placement.namespace],
-    ['TDEV_AGENT_DELIVERY', MCP_TRIAL_AGENT_CLASS_NAME, previous.agentOwner.placement.namespace],
-    ['TDEV_CASE_AGENT_DRIVE', MCP_TRIAL_DRIVE_CLASS_NAME, previous.driveOwner.placement.namespace],
-  ]) assertOwnerBinding(settings, D0046_MCP_TRIAL_SCRIPT, className, namespace, name);
-  const placement = bindingByName(settings, 'TDEV_CASE_PLACEMENT');
-  if (placement?.type !== 'd1' || placement.database_id !== previous.caseOwner.d1DatabaseId) fail('d0046_update_owner_changed', 'Existing D1 binding disagrees with the manifest');
-  return manifests;
 }
 
-export async function prepareMcpTrialUpdate({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
+export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
   const sourceSha = assertTrackedSource(repositoryPath);
-  const client = new CloudflareApiClient(loadCloudflareCredentials(envFile));
-  const predecessor = await workerReadback(client);
-  const apps = await listAccessApps(client);
-  const matches = apps.filter((app) => app?.domain === D0046_MCP_TRIAL_DOMAIN);
-  if (matches.length !== 1) fail('d0046_access_app_mismatch', 'Expected exactly one existing trial Access application');
-  const app = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(matches[0].id)}`))).result;
-  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
-  const manifests = preparePreservingTrialManifests({
-    settings: predecessor.settings, accessApplication: app, accountId: client.accountId,
-    sourceSha, baseDigest: base.baseDigest, baseTree: base.tree,
-    repositoryBaseIdentity: base.repositoryBaseIdentity, scope: base.scope, scopeDigest: base.scopeDigest,
-    operationManifest: JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8')),
-  });
+  const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
+  const operationManifest = normalizedOperationManifest(rawOperation);
+  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, excludedPaths: modelBinding?.contextExcludedPaths ?? [], includedPathPrefixes: modelBinding?.contextIncludedPathPrefixes ?? [] });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
   const artifact = artifactManifest(modules);
-  const metadata = buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace: manifests.composition.driveOwner.placement.namespace });
-  const current = await workerReadback(client);
-  const currentApp = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(app.id)}`))).result;
-  if (canonicalJson(currentApp) !== canonicalJson(app)) fail('d0046_update_auth_changed', 'Access application changed during update preparation');
-  if (canonicalJson(current.settings) !== canonicalJson(predecessor.settings) || canonicalJson(current.deployment) !== canonicalJson(predecessor.deployment)) fail('d0046_worker_predecessor_changed', 'Provider predecessor changed during update preparation');
-  const preservation = Object.freeze({
-    settingsDigest: digest(predecessor.settings),
-    deploymentDigest: digest(predecessor.deployment),
-    accessApplicationId: app.id,
-    accessApplicationDigest: digest(app),
-    driveNamespace: manifests.composition.driveOwner.placement.namespace,
-  });
-  return {
-    sourceSha, predecessor, manifests, modules, artifact, metadata, preservation,
-    preservationDigest: digest(preservation),
-    providerMutation: false,
-    remainingGates: ['retained Case/drive reader compatibility', 'shared owner consumers', 'positive execution quiescence', 'installed Agent release compatibility'],
-  };
-}
-
-function assertDigestValue(value, label) {
-  if (typeof value !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value)) fail('d0046_update_admission_invalid', `${label} must be a sha256 digest`);
-  return value;
-}
-
-export function validatePreservingUpdateAdmission(admission, prepared) {
-  if (!admission || typeof admission !== 'object' || Array.isArray(admission)) fail('d0046_update_admission_invalid', 'Preserving update admission must be an object');
-  const expectedKeys = [
-    'profile', 'sourceSha', 'preservationDigest', 'retainedStateCompatibilityDigest',
-    'sharedOwnerConsumersDigest', 'positiveExecutionQuiescenceDigest', 'installedAgentCompatibilityDigest',
-  ];
-  if (canonicalJson(Object.keys(admission).sort()) !== canonicalJson([...expectedKeys].sort())) fail('d0046_update_admission_invalid', 'Preserving update admission keys were not exact');
-  if (admission.profile !== 'tdev.d0046.preserving-update-admission.v1') fail('d0046_update_admission_invalid', 'Preserving update admission profile did not match');
-  if (admission.sourceSha !== prepared?.sourceSha || admission.preservationDigest !== prepared?.preservationDigest) {
-    fail('d0046_update_admission_stale', 'Preserving update admission was not bound to the prepared source/predecessor');
+  const identity = identityManifest();
+  const credentials = loadCloudflareCredentials(envFile);
+  const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
+  await verifyExistingOwners(client);
+  const existing = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
+  assertOwnerMarker(existing.result, D0046_MCP_TRIAL_SCRIPT);
+  const namespaces = await listNamespaces(client);
+  const targetNamespaces = namespaces.filter((item) => item?.script === D0046_MCP_TRIAL_SCRIPT);
+  if (targetNamespaces.length !== 1 || targetNamespaces[0].class !== MCP_TRIAL_DRIVE_CLASS_NAME || targetNamespaces[0].use_sqlite !== true) {
+    fail('d0046_trial_namespace_ambiguous', 'Existing trial Worker does not have exactly one SQLite drive namespace', { matches: targetNamespaces.length });
   }
-  for (const key of ['retainedStateCompatibilityDigest', 'sharedOwnerConsumersDigest', 'positiveExecutionQuiescenceDigest', 'installedAgentCompatibilityDigest']) {
-    assertDigestValue(admission[key], `admission.${key}`);
-  }
-  return Object.freeze({ ...admission, admissionDigest: digest(admission) });
-}
-
-async function preservingProviderSnapshot(client, accessApplicationId, readWorker = workerReadback) {
-  const worker = await readWorker(client);
-  const app = (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(accessApplicationId)}`))).result;
-  const preservation = Object.freeze({
-    settingsDigest: digest(worker.settings),
-    deploymentDigest: digest(worker.deployment),
-    accessApplicationId,
-    accessApplicationDigest: digest(app),
-    driveNamespace: bindingByName(worker.settings, 'TDEV_CASE_AGENT_DRIVE')?.namespace_id ?? null,
-  });
-  return { worker, app, preservation, preservationDigest: digest(preservation) };
-}
-
-function validateDesiredPreservingReadback(snapshot, prepared, accountId) {
-  validateAccessApplication(snapshot.app, accountId);
-  if (digest(snapshot.app) !== prepared.preservation.accessApplicationDigest) fail('d0046_update_auth_changed', 'Access application changed across preserving update');
-  const driveNamespace = validateTrialWorkerSettings(snapshot.worker.settings, snapshot.worker.version, prepared.manifests, prepared.sourceSha, prepared.artifact);
-  if (driveNamespace !== prepared.preservation.driveNamespace) fail('d0046_drive_namespace_mismatch', 'Preserving update changed the trial drive namespace');
-  return driveNamespace;
-}
-
-export async function applyPreparedMcpTrialUpdate({
-  client,
-  prepared,
-  admission,
-  upload = uploadWorker,
-  readWorker = workerReadback,
-} = {}) {
-  if (!client || typeof client.request !== 'function' || typeof client.accountPath !== 'function') fail('d0046_update_client_invalid', 'Preserving update requires a Cloudflare API client');
-  if (!prepared?.preservation || prepared.preservationDigest !== digest(prepared.preservation)) fail('d0046_update_preparation_invalid', 'Preserving update preparation was incomplete or internally inconsistent');
-  const admitted = validatePreservingUpdateAdmission(admission, prepared);
-  const before = await preservingProviderSnapshot(client, prepared.preservation.accessApplicationId, readWorker);
-  if (before.preservationDigest !== prepared.preservationDigest) {
-    fail('d0046_worker_predecessor_changed', 'Provider predecessor changed after update preparation', {
-      expectedPreservationDigest: prepared.preservationDigest,
-      actualPreservationDigest: before.preservationDigest,
-    });
-  }
-
-  let uploadError = null;
+  const driveNamespace = assertNamespaceId(targetNamespaces[0].id, 'trial drive namespace');
+  const apps = await listAccessApps(client);
+  const appMatches = apps.filter((app) => app?.name === D0046_ACCESS_APP_NAME || app?.domain === D0046_MCP_TRIAL_DOMAIN);
+  if (appMatches.length !== 1) fail('d0046_access_readback_missing', 'Existing trial does not have exactly one matching Access application', { matches: appMatches.length });
+  const accessApp = validateAccessApplication((await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(appMatches[0].id)}`))).result, credentials.accountId);
+  const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
+  let subdomainEnabled = false;
   try {
-    await upload(client, prepared.modules, prepared.metadata);
+    // The existing target is owned and isolated; this forward upload only
+    // rebinds it to the exact current source commit and generated base tree.
+    await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
+    await setSubdomain(client, true);
+    subdomainEnabled = true;
+    const provider = await workerReadback(client);
+    const readbackDriveNamespace = validateTrialWorkerSettings(provider.settings, provider.version, manifests, sourceSha, artifact);
+    if (readbackDriveNamespace !== driveNamespace) fail('d0046_drive_namespace_mismatch', 'Trial Worker readback drive namespace disagreed with existing namespace');
+    const publicReadback = await publicMetadataReadback(manifests.auth);
+    return deploymentResult({ sourceSha, base, artifact, manifests, accessApp, provider, publicReadback, absence: { workerAlreadyOwned: true, namespaceMatches: 1, accessAppMatches: 1 }, identity, driveNamespace, subdomainEnabled });
   } catch (cause) {
-    uploadError = cause;
+    if (subdomainEnabled) {
+      try { await setSubdomain(client, false); } catch (cleanupError) {
+        cause.details = { ...(cause.details ?? {}), safetyClosure: { code: cleanupError?.code ?? 'unknown' } };
+      }
+    }
+    throw cause;
   }
-
-  let after;
-  try {
-    after = await preservingProviderSnapshot(client, prepared.preservation.accessApplicationId, readWorker);
-    validateDesiredPreservingReadback(after, prepared, client.accountId);
-  } catch (readbackError) {
-    fail('d0046_update_effect_unknown', 'Preserving update was attempted but authoritative readback did not prove the desired active state', {
-      uploadCode: uploadError?.code ?? null,
-      uploadReturnedTrustedResult: uploadError === null,
-      readbackCode: readbackError?.code ?? 'unknown',
-      predecessorVersionId: prepared.predecessor?.deployment?.versions?.[0]?.version_id ?? null,
-    }, { cause: readbackError });
-  }
-
-  return Object.freeze({
-    status: uploadError === null ? 'updated' : 'reconciled_after_ambiguous_upload',
-    sourceSha: prepared.sourceSha,
-    preservationDigest: prepared.preservationDigest,
-    admissionDigest: admitted.admissionDigest,
-    predecessorVersionId: prepared.predecessor.deployment.versions[0].version_id,
-    activeVersionId: after.worker.deployment.versions[0].version_id,
-    driveNamespace: prepared.preservation.driveNamespace,
-    accessApplicationId: prepared.preservation.accessApplicationId,
-    artifact: { moduleDigest: prepared.artifact.moduleDigest, artifactManifestDigest: prepared.artifact.artifactManifestDigest },
-    uploadErrorCode: uploadError?.code ?? null,
-    providerMutation: true,
-    secretValues: 'excluded',
-  });
-}
-
-export function summarizeMcpTrialUpdatePreparation(prepared) {
-  if (!prepared?.preservation || prepared.preservationDigest !== digest(prepared.preservation)) fail('d0046_update_preparation_invalid', 'Preserving update preparation was incomplete or internally inconsistent');
-  return Object.freeze({
-    status: 'prepared_preserving_update',
-    sourceSha: prepared.sourceSha,
-    preservationDigest: prepared.preservationDigest,
-    predecessorVersionId: prepared.predecessor.deployment.versions[0].version_id,
-    driveNamespace: prepared.preservation.driveNamespace,
-    accessApplicationId: prepared.preservation.accessApplicationId,
-    artifact: { moduleDigest: prepared.artifact.moduleDigest, artifactManifestDigest: prepared.artifact.artifactManifestDigest },
-    remainingGates: [...prepared.remainingGates],
-    providerMutation: false,
-    secretValues: 'excluded',
-  });
 }
 
 export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
   const sourceSha = assertTrackedSource(repositoryPath);
   const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
   const operationManifest = normalizedOperationManifest(rawOperation);
+  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
   const base = await buildMcpTrialBaseTreeModule({
     repositoryPath,
     commitOid: sourceSha,
-    scope: D0046_MCP_CONTEXT_SCOPE,
+    excludedPaths: modelBinding?.contextExcludedPaths ?? [],
+    includedPathPrefixes: D0046_CONNECTION_CONTEXT_PREFIXES,
   });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, {
     overrides: { [base.moduleName]: base.source },
@@ -845,20 +760,9 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const identity = identityManifest();
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
-  await verifyExistingOwners(client, repositoryPath);
+  await verifyExistingOwners(client);
   const absence = await preflightAbsence(client);
-  const manifestInput = {
-    sourceSha,
-    baseDigest: base.baseDigest,
-    baseTree: base.tree,
-    repositoryBaseIdentity: base.repositoryBaseIdentity,
-    scope: base.scope,
-    scopeDigest: base.scopeDigest,
-    operationManifest,
-    identity,
-    includeBaseTree: true,
-  };
-  const bootstrap = buildTrialManifests({ ...manifestInput, driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience: 'pending-access-audience' });
+  const bootstrap = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience: 'pending-access-audience' });
   let subdomainEnabled = false;
   let accessApp = null;
   let driveNamespace = null;
@@ -868,7 +772,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     const namespace = await waitForTrialNamespace(client);
     driveNamespace = assertNamespaceId(namespace.id, 'trial drive namespace');
     accessApp = await createAccessApplication(client, credentials.accountId);
-    const manifests = buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud });
+    const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
     await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
     await setSubdomain(client, true);
     subdomainEnabled = true;
@@ -880,22 +784,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     if (matchingApps.length !== 1) fail('d0046_access_readback_missing', 'Trial Access application disappeared from list readback');
     const finalAccess = validateAccessApplication((await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(accessApp.id)}`))).result, credentials.accountId);
     const publicReadback = await publicMetadataReadback(manifests.auth);
-    return Object.freeze({
-      status: 'deployed',
-      sourceSha,
-      scriptName: D0046_MCP_TRIAL_SCRIPT,
-      resource: D0046_MCP_TRIAL_RESOURCE,
-      origin: D0046_MCP_TRIAL_ORIGIN,
-      base: { commitOid: base.commitOid, treeOid: base.treeOid, objectFormat: base.objectFormat, semanticBaseDigest: base.semanticBaseDigest, repositoryBaseDigest: base.repositoryBaseIdentity.baseDigest, manifestDigest: base.manifestDigest, scopeDigest: base.scopeDigest, scope: base.scope, manifestEntryCount: base.manifestEntryCount, fileCount: base.fileCount, semanticBytes: base.semanticBytes, selectedBytes: base.selectedBytes, compressedBytes: base.compressedBytes, moduleBytes: base.moduleBytes },
-      artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest, modules: artifact.modules },
-      manifests: { compositionDigest: bootstrap.composition.manifestDigest, finalCompositionDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).composition.manifestDigest, authProfileDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).auth.profileDigest, operationDigest: bootstrap.operationDigest, surfaceDigest: buildTrialManifests({ ...manifestInput, driveNamespace, accessAudience: accessApp.aud }).surfaceDigest },
-      ownerBindings: { caseWorker: D0046_CASE_SCRIPT, caseNamespace: D0046_CASE_NAMESPACE, driveWorker: D0046_MCP_TRIAL_SCRIPT, driveNamespace, agentWorker: D0046_AGENT_SCRIPT, agentNamespace: D0046_AGENT_NAMESPACE, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE, agentId: bootstrap.composition.agentOwner.agentId, routeGeneration: bootstrap.composition.agentOwner.routeGeneration },
-      identity: redactedIdentity(identity),
-      access: { id: finalAccess.id, audienceDigest: sha256(finalAccess.aud), domain: finalAccess.domain, policyCount: finalAccess.policies.length, oauth: { issuer: D0046_ACCESS_ISSUER, jwksUri: D0046_ACCESS_JWKS_URI, dynamicRegistration: true, redirectUri: 'https://chatgpt.com/connector/oauth/*', pkce: 'S256' } },
-      provider: { absence, driveNamespace, worker: provider, publicReadback },
-      safety: { canonicalWriterEnabled: false, previewWritersEnabled: false, subdomainEnabled, rollback: { disableSubdomain: `POST /accounts/{account}/workers/scripts/${D0046_MCP_TRIAL_SCRIPT}/subdomain { enabled:false, previews_enabled:false }`, accessAppId: finalAccess.id } },
-      secretValues: 'excluded',
-    });
+    return deploymentResult({ sourceSha, base, artifact, bootstrap, manifests, accessApp: finalAccess, provider, publicReadback, absence, identity, driveNamespace, subdomainEnabled });
   } catch (cause) {
     if (subdomainEnabled) {
       try { await setSubdomain(client, false); } catch (cleanupError) {
@@ -908,19 +797,19 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
 
 async function main() {
   const args = process.argv.slice(2);
-  const allowed = new Set(['--apply', '--prepare-update', '--env-file']);
+  const allowed = new Set(['--apply', '--env-file', '--resume-existing']);
   let envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
   let envProvided = false;
   let apply = false;
-  let prepareUpdate = false;
+  let resumeExisting = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--apply') {
       if (apply) fail('d0046_cli_invalid', '--apply was repeated');
       apply = true;
-    } else if (arg === '--prepare-update') {
-      if (prepareUpdate) fail('d0046_cli_invalid', '--prepare-update was repeated');
-      prepareUpdate = true;
+    } else if (arg === '--resume-existing') {
+      if (resumeExisting) fail('d0046_cli_invalid', '--resume-existing was repeated');
+      resumeExisting = true;
     } else if (arg === '--env-file') {
       if (index + 1 >= args.length || args[index + 1].startsWith('--')) fail('d0046_cli_invalid', '--env-file requires a path');
       if (envProvided) fail('d0046_cli_invalid', '--env-file was repeated');
@@ -930,13 +819,8 @@ async function main() {
       fail('d0046_cli_invalid', `Unsupported argument: ${arg}`);
     }
   }
-  if (apply && prepareUpdate) fail('d0046_cli_invalid', '--apply and --prepare-update are mutually exclusive');
-  let result;
-  if (prepareUpdate) result = summarizeMcpTrialUpdatePreparation(await prepareMcpTrialUpdate({ envFile }));
-  else {
-    if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply or read-only --prepare-update');
-    result = await deployMcpTrial({ envFile });
-  }
+  if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply');
+  const result = resumeExisting ? await resumeMcpTrial({ envFile }) : await deployMcpTrial({ envFile });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 

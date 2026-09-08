@@ -1,0 +1,78 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m2_access_audit_readback",
+  "observedAtUtc": "2026-09-05T00:04:06Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "dd184940aa2a5e6834f67f4e55db2b4d04d6cd9b",
+    "sourceCommitDeployedToTrial": "77f279f00b97b40fc1362ff082d89ec7ecde2b69",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M2 current-client authentication boundary diagnosis",
+    "scope": "read the account-scoped Cloudflare Access authentication audit log with a distinct observer principal and correlate it with the isolated MCP trial"
+  },
+  "credentials": {
+    "providerDeploymentVariable": "CLOUDFLARE_API_TOKEN",
+    "observerVariable": "CLOUDFLARE_IAM_API_TOKEN",
+    "localFile": "/data/data/com.termux/files/home/.config/tdev/cloudflare.env",
+    "fileMode": "600",
+    "values": "excluded",
+    "roleProbe": {
+      "providerDeploymentAccessAuditRead": { "status": 403, "errorClass": "Authentication error" },
+      "observerAccessAuditRead": { "status": 200, "permission": "Access: Audit Logs Read" }
+    }
+  },
+  "provider": {
+    "endpoint": "/accounts/{account_id}/access/logs/access_requests",
+    "returnedRecords": 8,
+    "trialApplication": {
+      "appDomain": "tdev-mcp-trial.humtr.workers.dev",
+      "appName": "tdev MCP trial 20260904",
+      "appUid": "3a409320-586b-48cd-8c3b-b6c25bdcd728",
+      "records": 5,
+      "allAllowed": true,
+      "actions": ["login"],
+      "createdAtUtc": [
+        "2026-09-04T20:29:57Z",
+        "2026-09-04T20:54:55Z",
+        "2026-09-04T21:09:19Z",
+        "2026-09-04T21:24:08Z",
+        "2026-09-04T22:36:25Z"
+      ],
+      "rayIds": [
+        "a35fbfd4aabcf300",
+        "a35fe45e08aa3060",
+        "a35ff97be95aea25",
+        "a3600f2e3e4b7b6d",
+        "a360790fcc3cd2f8"
+      ],
+      "connection": "cloudflare",
+      "country": "kr"
+    },
+    "otherApplications": {
+      "records": 3,
+      "allAllowed": true,
+      "actions": ["login"]
+    }
+  },
+  "interpretation": {
+    "oauthAccessLogin": "PASS - five trial-app OAuth login events were accepted by the Access policy; no denied trial-app login appears in the returned records",
+    "connectionFailureLayer": "not yet isolated - this endpoint records Access authentication events, not every post-authenticated MCP request",
+    "workerCorrelation": "requires a fresh Worker Tail window and one user-side ChatGPT Refresh; historical Tail was not active for these Access events",
+    "currentClientM2": "OPEN"
+  },
+  "effects": {
+    "providerMutation": false,
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false
+  },
+  "next": "Arm a fresh bounded Worker Tail, have the user press Refresh once, and classify the request by whether an authenticated POST/metadata event reaches the Worker."
+}
