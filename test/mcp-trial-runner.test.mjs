@@ -158,6 +158,88 @@ test('D0047 Trial operation requests preserve owner-issued lazy context bindings
   });
 });
 
+
+test('D0046 runner resumes an exact Case-only partial create by initializing the Drive', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-partial-create-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'recover partial create',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const snapshot = new CaseEngine({ caseId: 'trial-partial-create-1', plan }).snapshot();
+  let driveInitializations = 0;
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => { const error = new Error('already initialized'); error.code = 'case_exists'; throw error; },
+      load: async () => ({ snapshot: () => snapshot }),
+      command: async () => null,
+    },
+    driveOwner: {
+      initialize: async ({ caseId, driveRequestId, payload }) => {
+        driveInitializations += 1;
+        return { classification: 'accepted', caseId, driveRequestId, payload };
+      },
+      advance: async () => null,
+    },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const result = await runner.create({
+    caseId: 'trial-partial-create-1',
+    plan,
+    driveRequestId: 'drive-partial-create-1',
+    payload: { contextReference: 'ctx-trial-1' },
+  });
+  assert.equal(driveInitializations, 1);
+  assert.equal(result.caseId, 'trial-partial-create-1');
+  assert.equal(result.planDigest, plan.planDigest);
+  assert.equal(result.created.caseRevision, snapshot.caseRevision);
+  assert.equal(result.drive.classification, 'accepted');
+});
+
+test('D0046 runner rejects a Case-only replay when the authoritative Plan differs', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-partial-conflict-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'expected plan',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const otherPlan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-partial-conflict-2',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'different plan',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const snapshot = new CaseEngine({ caseId: 'trial-partial-conflict-1', plan: otherPlan }).snapshot();
+  let driveInitializations = 0;
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => { const error = new Error('already initialized'); error.code = 'case_exists'; throw error; },
+      load: async () => ({ snapshot: () => snapshot }),
+      command: async () => null,
+    },
+    driveOwner: { initialize: async () => { driveInitializations += 1; }, advance: async () => null },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  await assert.rejects(
+    runner.create({ caseId: 'trial-partial-conflict-1', plan, driveRequestId: 'drive-partial-conflict-1' }),
+    (error) => error?.code === 'mcp_trial_case_replay_conflict',
+  );
+  assert.equal(driveInitializations, 0);
+});
+
 test('D0046 candidate projection returns a bounded diff instead of the complete base tree', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
