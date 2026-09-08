@@ -216,6 +216,19 @@ test('MCP case projection delegates to repository and tenant denial precedes own
   assert.equal(projection.canonicalTree, undefined);
   assert.equal(ownerReads, 1);
 
+  const legacyEngine = await repository.load('case-a');
+  const legacySnapshot = legacyEngine.snapshot();
+  delete legacySnapshot.canonicalDigest;
+  const legacySurface = createSurface({ owners: { repository: { load: async () => ({ snapshot: () => legacySnapshot }) } } });
+  const legacyRead = await rpc(legacySurface, callRequest('tools/call', { name: 'case_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
+  assert.equal(legacyRead.response.status, 200);
+  assert.equal(legacyRead.body.result.isError, false);
+  assert.equal(legacyRead.body.result.structuredContent.canonicalDigest, null);
+  const legacyPromotion = await rpc(legacySurface, callRequest('tools/call', { name: 'promotion_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
+  assert.equal(legacyPromotion.response.status, 200);
+  assert.equal(legacyPromotion.body.result.isError, false);
+  assert.equal(legacyPromotion.body.result.structuredContent.canonicalDigest, null);
+
   const denied = createSurface({ repository, auth: makeAuth({ tenant: 'tenant-b' }), authorize: async () => false });
   const deniedResult = await rpc(denied, callRequest('tools/call', { name: 'case_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26', assertion: 'tenant-b' }));
   assert.equal(deniedResult.response.status, 403);

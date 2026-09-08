@@ -577,7 +577,7 @@ function projectSnapshot(snapshot, { includeTree = false } = {}) {
     eventSequence: snapshot.eventSequence,
     planDigest: snapshot.plan?.planDigest ?? null,
     baseDigest: snapshot.plan?.baseDigest ?? null,
-    canonicalDigest: snapshot.canonicalDigest,
+    canonicalDigest: snapshot.canonicalDigest ?? null,
     taskStates,
     attempts,
     receipts,
@@ -640,7 +640,7 @@ function projectPromotion(snapshot, { includeTree = false } = {}) {
     promotionState: promotionState?.state ?? null,
     promotionResultDigest: promotionState?.acceptedResultDigest ?? null,
     promotion,
-    canonicalDigest: snapshot.canonicalDigest,
+    canonicalDigest: snapshot.canonicalDigest ?? null,
   };
   if (includeTree) result.canonicalTree = canonicalClone(snapshot.canonicalTree ?? {});
   return deepFreeze(canonicalClone(result));
