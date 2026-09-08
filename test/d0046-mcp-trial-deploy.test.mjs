@@ -17,6 +17,7 @@ import {
 } from '../qualification/d0046-mcp-trial-deploy.mjs';
 import { mcpDiscoveryResponse } from '../src/mcp-discovery.mjs';
 import { digest } from '../src/canonical.mjs';
+import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
@@ -60,6 +61,62 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
 });
 
 
+
+
+
+test('D0046 scoped Trial manifest preserves lazy scope and complete repository identity through strict normalization', async () => {
+  const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
+  const scope = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-context-scope.v1',
+    paths: ['src/example.mjs'],
+    prefixes: [],
+    maxFiles: 8,
+    maxBytes: 1024 * 1024,
+    maxSearchResults: 16,
+  };
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid: SOURCE_SHA,
+    treeOid: 'b'.repeat(40),
+    manifestDigest: digest({ profile: 'test.repository-manifest.v1' }),
+  });
+  const manifests = buildTrialManifests({
+    sourceSha: SOURCE_SHA,
+    baseDigest: digest(BASE_TREE),
+    baseTree: BASE_TREE,
+    repositoryBaseIdentity,
+    scope,
+    scopeDigest: scopeDigest(scope),
+    operationManifest: operation,
+    driveNamespace: 'drive-namespace',
+    accessAudience: 'access-audience',
+    identity: { principalId: 'user@example.com', tenantId: 'user@example.com' },
+    includeBaseTree: true,
+  });
+  assert.equal(manifests.composition.operation.contextProfile, 'tdev.repository.context.prepare.lazy.v1');
+  assert.deepEqual(manifests.composition.repository.scope, scope);
+  assert.equal(manifests.composition.repository.scopeDigest, scopeDigest(scope));
+  assert.deepEqual(manifests.composition.repository.repositoryBaseIdentity, repositoryBaseIdentity);
+  assert.equal(manifests.composition.repository.context.contextProfile, 'tdev.repository.context.prepare.lazy.v1');
+  assert.deepEqual(manifests.composition.repository.context.contextScope, scope);
+  assert.equal(manifests.composition.repository.context.scopeDigest, scopeDigest(scope));
+  assert.equal(manifests.composition.repository.context.baseIdentity.manifestDigest, repositoryBaseIdentity.manifestDigest);
+  assert.deepEqual(manifests.composition.repository.context.repositoryBaseIdentity, repositoryBaseIdentity);
+
+  const metadata = buildWorkerMetadata({
+    manifests,
+    sourceSha: SOURCE_SHA,
+    artifact: { moduleDigest: 'sha256:' + 'c'.repeat(64), artifactManifestDigest: 'sha256:' + 'd'.repeat(64) },
+    driveNamespace: 'drive-namespace',
+  });
+  const bound = JSON.parse(metadata.bindings.find((binding) => binding.name === 'TDEV_MCP_TRIAL_MANIFEST_JSON').text);
+  assert.deepEqual(bound.repository.context.baseTree, {});
+  assert.deepEqual(bound.repository.scope, scope);
+  assert.deepEqual(bound.repository.repositoryBaseIdentity, { ...repositoryBaseIdentity });
+  assert.deepEqual(bound.repository.context.contextScope, scope);
+  assert.deepEqual(bound.repository.context.repositoryBaseIdentity, { ...repositoryBaseIdentity });
+});
 
 test('D0046 deploy and resume preserve scoped base identity in every generated Trial manifest', async () => {
   const source = await readFile(new URL('../qualification/d0046-mcp-trial-deploy.mjs', import.meta.url), 'utf8');

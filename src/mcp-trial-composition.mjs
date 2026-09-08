@@ -17,6 +17,11 @@ import { createCasePlacement } from './casedo-authority.mjs';
 import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
 import { agentRouteHostKey } from './agent-route-election.mjs';
+import {
+  normalizeLazyPlanScope,
+  normalizeRepositoryBaseIdentity,
+  scopeDigest as lazyScopeDigest,
+} from './lazy-plan-reference.mjs';
 
 /**
  * D0046's source-only composition boundary.  The Worker that imports this
@@ -92,11 +97,29 @@ function ownerBinding(value, label, expectedClassName) {
   };
 }
 
+function normalizeContextBaseIdentity(input, repository, label) {
+  if (!isPlainRecord(input)) fail('mcp_trial_context_invalid', `${label} must be a record`);
+  assertRecordShape(input, [
+    'schemaVersion', 'profile', 'objectFormat', 'commitOid', 'treeOid', 'baseDigest', 'manifestDigest',
+  ], [], label);
+  const oidLength = input.objectFormat === 'sha1' ? 40 : input.objectFormat === 'sha256' ? 64 : 0;
+  if (input.schemaVersion !== 1 || input.profile !== 'tdev.repository-base-identity.v1' ||
+      input.objectFormat !== repository.objectFormat || input.commitOid !== repository.commitOid ||
+      input.baseDigest !== repository.baseDigest || oidLength === 0 ||
+      !new RegExp(`^[0-9a-f]{${oidLength}}$`, 'u').test(input.commitOid) ||
+      !new RegExp(`^[0-9a-f]{${oidLength}}$`, 'u').test(input.treeOid)) {
+    fail('mcp_trial_context_mismatch', `${label} does not bind the fixed repository context`);
+  }
+  assertDigest(input.manifestDigest, `${label}.manifestDigest`);
+  return canonicalClone(input);
+}
+
 function normalizeContext(context, repository, label = 'repository.context', { allowEmptyBaseTree = false } = {}) {
   if (!isPlainRecord(context)) fail('mcp_trial_context_invalid', `${label} must be a record`);
   assertRecordShape(context, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
-    'validationCapabilityId', 'caseContract', 'payload',
+    'validationCapabilityId', 'caseContract', 'payload', 'contextProfile', 'contextScope',
+    'scopeDigest', 'baseIdentity', 'repositoryBaseIdentity',
   ], label);
   assertIdentifier(context.revisionId, `${label}.revisionId`);
   if (!isPlainRecord(context.baseTree)) fail('mcp_trial_context_invalid', `${label}.baseTree must be a record`);
@@ -116,11 +139,47 @@ function normalizeContext(context, repository, label = 'repository.context', { a
   if (context.contextReferenceId !== repository.contextReference) {
     fail('mcp_trial_context_mismatch', `${label}.contextReferenceId is not the fixed context reference`);
   }
-  return {
+  const repositoryScope = repository.scope ?? null;
+  const lazy = repositoryScope !== null;
+  const hasLazyContextFields = ['contextProfile', 'contextScope', 'scopeDigest', 'baseIdentity', 'repositoryBaseIdentity']
+    .some((field) => context[field] !== undefined);
+  if (!lazy && hasLazyContextFields) {
+    fail('mcp_trial_context_mismatch', `${label} cannot carry lazy context bindings without a scoped repository`);
+  }
+  const normalized = {
     ...canonicalClone(context),
     objectFormat,
     contextReferenceId: repository.contextReference,
   };
+  if (lazy) {
+    if (context.contextProfile !== 'tdev.repository.context.prepare.lazy.v1' || !isPlainRecord(context.contextScope)) {
+      fail('mcp_trial_context_mismatch', `${label} must use the fixed lazy context profile and repository scope`);
+    }
+    const contextScope = normalizeLazyPlanScope(context.contextScope);
+    if (canonicalJson(contextScope) !== canonicalJson(repositoryScope)) {
+      fail('mcp_trial_context_mismatch', `${label}.contextScope does not match the fixed repository scope`);
+    }
+    assertDigest(context.scopeDigest, `${label}.scopeDigest`);
+    if (context.scopeDigest !== repository.scopeDigest) {
+      fail('mcp_trial_context_mismatch', `${label}.scopeDigest does not match the fixed repository scope digest`);
+    }
+    const baseIdentity = normalizeContextBaseIdentity(context.baseIdentity, repository, `${label}.baseIdentity`);
+    const repositoryBaseIdentity = normalizeRepositoryBaseIdentity(context.repositoryBaseIdentity, {
+      objectFormat: repository.objectFormat,
+      commitOid: repository.commitOid,
+    });
+    if (canonicalJson(repositoryBaseIdentity) !== canonicalJson(repository.repositoryBaseIdentity) ||
+        baseIdentity.manifestDigest !== repositoryBaseIdentity.manifestDigest ||
+        baseIdentity.treeOid !== repositoryBaseIdentity.treeOid) {
+      fail('mcp_trial_context_mismatch', `${label} lazy identities do not bind the same complete repository manifest`);
+    }
+    normalized.contextProfile = context.contextProfile;
+    normalized.contextScope = contextScope;
+    normalized.scopeDigest = context.scopeDigest;
+    normalized.baseIdentity = baseIdentity;
+    normalized.repositoryBaseIdentity = repositoryBaseIdentity;
+  }
+  return normalized;
 }
 
 function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
@@ -153,24 +212,49 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   const repository = input.repository;
   assertRecordShape(repository, [
     'commitOid', 'baseDigest', 'objectFormat', 'contextReference', 'context',
-  ], [], 'trial repository');
+  ], ['repositoryBaseIdentity', 'scope', 'scopeDigest'], 'trial repository');
   if (!REPOSITORY_OID.test(repository.commitOid)) fail('mcp_trial_manifest_invalid', 'repository.commitOid is invalid');
   assertDigest(repository.baseDigest, 'repository.baseDigest');
   if (!['sha1', 'sha256'].includes(repository.objectFormat)) fail('mcp_trial_manifest_invalid', 'repository.objectFormat is unsupported');
   assertIdentifier(repository.contextReference, 'repository.contextReference');
+  const hasScope = repository.scope !== undefined;
+  const hasScopeDigest = repository.scopeDigest !== undefined;
+  const hasRepositoryBaseIdentity = repository.repositoryBaseIdentity !== undefined;
+  if (hasScope !== hasScopeDigest || hasScope !== hasRepositoryBaseIdentity) {
+    fail('mcp_trial_manifest_invalid', 'Scoped trial repositories require scope, scopeDigest, and repositoryBaseIdentity together');
+  }
+  const normalizedScope = hasScope ? normalizeLazyPlanScope(repository.scope) : null;
+  if (hasScope) {
+    assertDigest(repository.scopeDigest, 'repository.scopeDigest');
+    if (repository.scopeDigest !== lazyScopeDigest(normalizedScope)) {
+      fail('mcp_trial_manifest_invalid', 'repository.scopeDigest does not match the fixed repository scope');
+    }
+  }
+  const normalizedRepositoryBaseIdentity = hasRepositoryBaseIdentity
+    ? normalizeRepositoryBaseIdentity(repository.repositoryBaseIdentity, {
+        objectFormat: repository.objectFormat,
+        commitOid: repository.commitOid,
+      })
+    : null;
   const normalizedRepository = {
     commitOid: repository.commitOid,
     baseDigest: repository.baseDigest,
     objectFormat: repository.objectFormat,
     contextReference: repository.contextReference,
-    context: normalizeContext(repository.context, repository, 'repository.context', { allowEmptyBaseTree }),
+    ...(normalizedRepositoryBaseIdentity === null ? {} : { repositoryBaseIdentity: normalizedRepositoryBaseIdentity }),
+    ...(normalizedScope === null ? {} : { scope: normalizedScope, scopeDigest: repository.scopeDigest }),
   };
+  normalizedRepository.context = normalizeContext(repository.context, normalizedRepository, 'repository.context', { allowEmptyBaseTree });
   const operation = input.operation;
   assertRecordShape(operation, [
     'manifestDigest', 'contextProfile', 'modelProfile', 'validationProfile',
   ], [], 'trial operation binding');
   assertDigest(operation.manifestDigest, 'operation.manifestDigest');
   for (const field of ['contextProfile', 'modelProfile', 'validationProfile']) assertIdentifier(operation[field], `operation.${field}`);
+  const repositoryIsLazy = normalizedRepository.scope !== undefined;
+  if (repositoryIsLazy !== (operation.contextProfile === 'tdev.repository.context.prepare.lazy.v1')) {
+    fail('mcp_trial_manifest_invalid', 'Trial operation context profile does not match the fixed repository context mode');
+  }
   const identity = input.identity;
   assertRecordShape(identity, ['principalId', 'tenantId'], [], 'trial identity');
   // Cloudflare Access supplies bounded email/UUID claim values; they are not
