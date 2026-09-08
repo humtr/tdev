@@ -405,7 +405,20 @@ export class McpTrialDevelopmentUnitRunner {
     boundedIdentifier(caseId, 'caseId');
     boundedIdentifier(driveRequestId, 'driveRequestId');
     if (!isPlainRecord(plan)) fail('mcp_trial_plan_invalid', 'Trial runner requires a compiled Plan record');
-    const created = await this.repository.create({ caseId, plan, caseContract: this.caseContract });
+    let created;
+    try {
+      created = await this.repository.create({ caseId, plan, caseContract: this.caseContract });
+    } catch (error) {
+      if (error?.code !== 'case_exists') throw error;
+      const existing = await this.repository.load(caseId);
+      if (existing === null) fail('mcp_trial_case_replay_invalid', 'Case owner reported an existing Case that cannot be loaded');
+      const existingSnapshot = snapshotFromOwner(existing, 'Case owner');
+      if (existingSnapshot.caseId !== caseId || existingSnapshot.plan?.planDigest !== plan.planDigest ||
+          existingSnapshot.plan?.baseDigest !== plan.baseDigest) {
+        fail('mcp_trial_case_replay_conflict', 'Existing Case does not bind the exact development Plan');
+      }
+      created = existing;
+    }
     const drive = await this.driveOwner.initialize({ caseId, driveRequestId, payload });
     const createdSnapshot = snapshotFromOwner(created, 'Case owner');
     return deepFreeze({
