@@ -442,7 +442,14 @@ export class TermuxInstallableAgentServiceController {
       fail('installable_agent_supervisor_drain_incomplete', 'Supervisor drain did not provide positive quiescence');
     }
     this.#sv('down', layout.supervisorServicePath);
-    const supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
+    let supervisorStopped;
+    try {
+      supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
+    } catch (cause) {
+      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
+      this.#sv('kill', layout.supervisorServicePath);
+      supervisorStopped = await this.#waitDown(layout.supervisorServicePath);
+    }
     return Object.freeze({
       classification: 'quiesced_and_stopped',
       profile: INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE,
