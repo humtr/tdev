@@ -174,7 +174,7 @@ async function registerAndActivate(authority, tag = 'one') {
   return { request, registered, activated };
 }
 
-function connectCurrent(authority, suffix = 'one') {
+function connectCurrent(authority, suffix = 'one', capacityRevision = 1) {
   const tuple = authority.readInstallableAgent().currentTuple;
   const state = authority.read();
   const content = {
@@ -196,7 +196,7 @@ function connectCurrent(authority, suffix = 'one') {
     connectionEpoch: connected.receipt.connectionEpoch,
     executorId: connected.receipt.executorId,
     executorEpoch: connected.receipt.executorEpoch,
-    capacityRevision: 1,
+    capacityRevision,
     reportedCapacity: 2,
   };
   authority.observeCapacity({ ...capacityContent, requestDigest: computeAgentCapacityRequestDigest(capacityContent) });
@@ -826,6 +826,92 @@ test('package positive quiescence releases predecessor dispatch capacity without
   assert.equal(released.closedUndispatched, false);
   assert.equal(released.terminalCaseReceipt, null);
   assert.ok(released.dispatches['1'].firstEmissionAdmission);
+});
+
+test('committed package exact replay backfills only its immediate predecessor held capacity', async () => {
+  const { authority, store, routeBinding } = createAuthority();
+  await registerAndActivate(authority, 'package-replay-backfill');
+  connectCurrent(authority, 'package-replay-backfill-v1');
+
+  const older = makeDelivery(authority, 'package-replay-backfill-older');
+  authority.initiateFirstEmission({
+    deliveryId: older.delivery.deliveryId,
+    authorizationId: older.authorization.authorizationId,
+    dispatchOrdinal: 1,
+    dispatchGrantId: older.authorization.dispatchGrantId,
+  }, () => { throw Object.assign(new Error('ambiguous older send'), { code: 'socket_send_ambiguous' }); });
+
+  const firstCurrent = authority.readInstallableAgent().installableAgent.current;
+  const packageTwo = managementRequest(authority, 'package', 'package-replay-backfill-v2', {
+    transitionCause: 'package_update',
+    packageManifestDigest: digest({ package: 'package-replay-backfill-v2' }),
+    packageTrustSubjectDigest: firstCurrent.packageTrustSubjectDigest,
+  });
+  authority.beginPackageActivation(packageTwo);
+  await evidence(authority, packageTwo.managementRequestId, 'package_verified');
+  await evidence(authority, packageTwo.managementRequestId, 'local_service_ready');
+  await evidence(authority, packageTwo.managementRequestId, 'positive_quiescence');
+  authority.commitPackageActivation(managementEnvelope(packageTwo));
+
+  let snapshot = store.load(routeBinding.agentId);
+  snapshot.deliveries[older.delivery.deliveryId].slotHeld = true;
+  snapshot.deliveries[older.delivery.deliveryId].slotKind = 'admission';
+  snapshot.revision += 1;
+  store.compareAndSwap(routeBinding.agentId, snapshot.revision - 1, snapshot);
+
+  const oldConnection = authority.read().connection;
+  authority.disconnect({
+    agentId: routeBinding.agentId,
+    routeGeneration: routeBinding.routeGeneration,
+    connectionId: oldConnection.id,
+    connectionEpoch: oldConnection.epoch,
+    socketIncarnationId: oldConnection.socketIncarnationId,
+    installableAgentTuple: oldConnection.installableAgentTuple,
+  });
+  connectCurrent(authority, 'package-replay-backfill-v2', 2);
+  const immediate = makeDelivery(authority, 'package-replay-backfill-immediate');
+  authority.initiateFirstEmission({
+    deliveryId: immediate.delivery.deliveryId,
+    authorizationId: immediate.authorization.authorizationId,
+    dispatchOrdinal: 1,
+    dispatchGrantId: immediate.authorization.dispatchGrantId,
+  }, () => { throw Object.assign(new Error('ambiguous immediate send'), { code: 'socket_send_ambiguous' }); });
+
+  const secondCurrent = authority.readInstallableAgent().installableAgent.current;
+  const packageThree = managementRequest(authority, 'package', 'package-replay-backfill-v3', {
+    transitionCause: 'package_update',
+    packageManifestDigest: digest({ package: 'package-replay-backfill-v3' }),
+    packageTrustSubjectDigest: secondCurrent.packageTrustSubjectDigest,
+  });
+  authority.beginPackageActivation(packageThree);
+  await evidence(authority, packageThree.managementRequestId, 'package_verified');
+  await evidence(authority, packageThree.managementRequestId, 'local_service_ready');
+  await evidence(authority, packageThree.managementRequestId, 'positive_quiescence');
+  authority.commitPackageActivation(managementEnvelope(packageThree));
+
+  snapshot = store.load(routeBinding.agentId);
+  snapshot.deliveries[immediate.delivery.deliveryId].slotHeld = true;
+  snapshot.deliveries[immediate.delivery.deliveryId].slotKind = 'admission';
+  snapshot.revision += 1;
+  store.compareAndSwap(routeBinding.agentId, snapshot.revision - 1, snapshot);
+  assert.equal(authority.read().deliveries[older.delivery.deliveryId].slotHeld, true);
+  assert.equal(authority.read().deliveries[immediate.delivery.deliveryId].slotHeld, true);
+
+  const beforeReplayRevision = authority.read().revision;
+  const replay = authority.beginPackageActivation(packageThree);
+  assert.equal(replay.classification, 'exact_replay');
+  assert.equal(authority.read().revision, beforeReplayRevision + 1);
+  assert.equal(authority.read().deliveries[older.delivery.deliveryId].slotHeld, true);
+  const repaired = authority.read().deliveries[immediate.delivery.deliveryId];
+  assert.equal(repaired.slotHeld, false);
+  assert.equal(repaired.slotKind, 'none');
+  assert.equal(repaired.effect, 'unknown');
+  assert.equal(repaired.localEvidenceRevision, 0);
+
+  const afterRepairRevision = authority.read().revision;
+  assert.equal(authority.beginPackageActivation(packageThree).classification, 'exact_replay');
+  assert.equal(authority.read().revision, afterRepairRevision);
+  assert.equal(authority.read().deliveries[older.delivery.deliveryId].slotHeld, true);
 });
 
 test('legacy D0020 held slot blocks initial activation until exact positive quiescence proof releases only that slot', async () => {
