@@ -6,7 +6,6 @@ import path from 'node:path';
 import { canonicalJson } from './canonical.mjs';
 import { parseInstallableAgentCredentialRef } from './installable-agent-security.mjs';
 import { InstallableAgentSupervisorServiceClient } from './installable-agent-supervisor-service.mjs';
-import { parseInstallableAgentCredentialRef } from './installable-agent-security.mjs';
 
 export const INSTALLABLE_AGENT_TERMUX_SERVICE_PROFILE = 'tdev.agent.termux.runit.v1';
 const DEFAULT_READY_WAIT_MS = 8_000;

@@ -44,5 +44,7 @@
 | D0044 | r1 | implementing | Agent Route Higher-Generation Election and Cutover | `docs/design/0044-agent-route-higher-generation-election-and-cutover.md` |
 | D0045 | r1 | accepted | tdev/tmcp MCP Development-Path Comparative Qualification | `docs/design/0045-tdev-tmcp-mcp-development-path-comparative-qualification.md` |
 | D0046 | r3 | accepted | Minimum Viable tdev MCP Experiential Path | `docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md` |
+| D0047 | r2 | accepted | Lazy Bounded Repository Context | `docs/design/0047-lazy-bounded-repository-context.md` |
+| D0048 | r1 | accepted | Lazy Scoped Plan Reference | `docs/design/0048-lazy-scoped-plan-reference.md` |
 
 Records without an explicit `Revision` field are rendered as legacy `r1` under `SDD.md`.

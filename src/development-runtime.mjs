@@ -104,40 +104,6 @@ function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
 }
 
-function validateCaseResultEnvelopeTemplate(template) {
-  if (!isPlainRecord(template)) fail('development_runtime_result_template_invalid', 'Result envelope template must be a record');
-  assertRecordShape(template, [
-    'caseId', 'planRevisionId', 'planDigest', 'taskId', 'attemptId', 'executorId', 'executorEpoch',
-    'claimLeaseToken', 'claimLeaseGeneration', 'claimLeaseClaimsDigest',
-  ], [], 'result envelope template');
-  for (const field of ['caseId', 'planRevisionId', 'taskId', 'attemptId', 'executorId']) assertIdentifier(template[field], `result envelope template.${field}`);
-  assertDigest(template.planDigest, 'result envelope template.planDigest');
-  assertSafeInteger(template.executorEpoch, 'result envelope template.executorEpoch', { min: 1 });
-  if (template.claimLeaseToken !== null) assertDigest(template.claimLeaseToken, 'result envelope template.claimLeaseToken');
-  if (template.claimLeaseGeneration !== null) assertSafeInteger(template.claimLeaseGeneration, 'result envelope template.claimLeaseGeneration', { min: 1 });
-  if (template.claimLeaseClaimsDigest !== null) assertDigest(template.claimLeaseClaimsDigest, 'result envelope template.claimLeaseClaimsDigest');
-  if ((template.claimLeaseToken === null) !== (template.claimLeaseGeneration === null) ||
-      (template.claimLeaseToken === null) !== (template.claimLeaseClaimsDigest === null)) {
-    fail('development_runtime_result_template_invalid', 'Result claim-lease identity must be wholly present or wholly absent');
-  }
-  return template;
-}
-
-export function caseResultEnvelopeFromDispatch({ template, envelope, result } = {}) {
-  validateCaseResultEnvelopeTemplate(template);
-  if (!isPlainRecord(envelope)) fail('development_runtime_dispatch_invalid', 'Dispatch envelope must be a record');
-  for (const field of ['caseId', 'taskId', 'attemptId', 'executorId']) {
-    if (envelope[field] !== template[field]) fail('development_runtime_result_identity_mismatch', `Dispatch ${field} does not match the release-bound result template`);
-  }
-  if (envelope.executorEpoch !== template.executorEpoch) fail('development_runtime_result_identity_mismatch', 'Dispatch executor epoch does not match the result template');
-  assertDigest(envelope.fencingToken, 'dispatch fencingToken');
-  return deepFreeze({
-    ...template,
-    fencingToken: envelope.fencingToken,
-    result: canonicalClone(result),
-  });
-}
-
 function boundedText(value, label, maxBytes = 8 * 1024) {
   assertScalarString(value, label);
   if (value.length === 0 || value.includes('\0') || Buffer.byteLength(value, 'utf8') > maxBytes) {

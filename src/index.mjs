@@ -280,8 +280,6 @@ export {
   caseResultEnvelopeFromDispatch,
   createLocalDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,
-  caseResultEnvelopeFromDispatch,
-  createLocalDevelopmentOperationExecutionAdapter,
   createLocalDevelopmentAgent,
 } from './development-runtime.mjs';
 export {
