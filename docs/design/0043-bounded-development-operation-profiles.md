@@ -1,14 +1,14 @@
 # Design 0043 — Bounded Typed Development Operation Profiles
 
 - Status: `accepted`
-- Revision: 3
+- Revision: 4
 - Class: 2
-- Decision date: 2026-09-04
-- Acceptance base: `development@d2a1573b2c71e2f50e1656fca9c36a82a827d0aa`
-- Predecessor revision: D0043@r2 accepted at `development@069be884f0cb160ee8584c7b79ab333d232a1c2f`; its acceptance evidence is `docs/evidence/group-f-d0043-r2-real-termux-codex-operation-binding-acceptance-2026-09-03.json`
-- Trigger: the supported-Termux observation proved that the accepted `--sandbox read-only` argument can select a managed bwrap compatibility shim which refuses Linux namespace options; tdev does not invoke bwrap directly, and the target Codex refactor removes that provider-internal dependency
-- Acceptance evidence: `docs/evidence/group-f-d0043-r3-no-bwrap-execution-boundary-acceptance-2026-09-04.json`
-- Scope: a versioned, release-bound typed operation catalog plus the first single-user trusted-local Termux Codex/validation runtime binding for one isolated tdev development unit, with no provider-internal bwrap requirement
+- Decision date: 2026-09-06
+- Acceptance base: `development@7a40877b365c9f0ad8037ecc9a9a57ba450ecc0a`
+- Predecessor revision: D0043@r3 accepted at `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`; its acceptance evidence is `docs/evidence/group-f-d0043-r3-no-bwrap-boundary-design-acceptance-2026-09-06.json`
+- Trigger: source review found that the accepted no-bwrap profile still returned a candidate through an adapter-owned workspace and did not give the warden positive ownership of model/candidate cleanup. The corrected boundary must bind every model/validation process and disposable workspace to one Attempt operation identity, while retaining the explicit trusted-local no-sandbox decision.
+- Acceptance evidence: `docs/evidence/group-f-d0043-r4-warden-candidate-boundary-acceptance-2026-09-06.json`
+- Scope: a versioned, release-bound typed operation catalog plus the first single-user trusted-local Termux Codex/validation runtime binding for one isolated tdev development unit, with no kernel sandbox or bwrap requirement
 - Affected owners: `src/`, `config/`, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, focused operation-profile tests
 - Preserved owners: D0019 remains Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery and local-process owners; D0013/D0014 remain repository context/model transport owners; D0025 remains Git publication authority; D0042 owns Case-to-Agent re-drive
 - Explicit non-goals: no general shell; no caller-selected executable/argv/environment/path/model/authentication mode; no reusable network credential broker; no multi-tenant or hostile-local-code isolation claim; no canonical-tree mutation from an ordinary operation; no Git publication; no semantic scheduler or MCP auth
@@ -41,11 +41,11 @@ At Revision-3 design review:
 - no-bwrap is therefore a provider execution choice, not a tdev authority. The tdev boundary is the release-bound executable, a disposable exact-base repository clone, strict result-only ChangeSet validation, fixed candidate validation and positive cleanup;
 - the no-bwrap model binding is a new release/profile identity. The predecessor profile is historical and is not reinterpreted.
 
-Unknowns remain the exact model/reasoning identifier available to the authenticated account at a future run, provider latency/rate limits, and whether the Termux/Android environment can positively enforce an endpoint-level egress allowlist. Those identities and limits are deployment evidence. Revision 3 deliberately supports only the user's trusted-local single-tenant trial; no hostile-local-code or multi-tenant isolation claim is made.
+Unknowns remain the exact model/reasoning identifier available to the authenticated account at a future run, provider latency/rate limits, and whether the Termux/Android environment can positively enforce an endpoint-level egress allowlist. Those identities and limits are deployment evidence. Revision 4 still supports only the user's trusted-local single-user trial; no hostile-local-code or multi-tenant isolation claim is made.
 
 ## 4. Decision and operation catalog
 
-The package-owned manifest remains the authority for executable identity. Revision 3 retains the typed operation manifest shape and advances its model binding to:
+The package-owned manifest remains the authority for executable identity. Revision 4 advances the model binding while retaining the typed manifest version:
 
 ```text
 tdev.development-operation-profiles.v2
@@ -119,7 +119,7 @@ validationProfile
 
 `validationProfile` is an installed manifest identifier, not a command string. The release manifest maps it to package-owned executable/argv, an isolated candidate root, fixed environment, network mode (default `none`), timeout, output bound, process-group cleanup and cancellation policy. The profile may read/write only the disposable candidate workspace; it cannot address the canonical repository ref or Agent state.
 
-Revision 3 retains the first validation profile as `tdev.validation.npm-check.v1`, binding the installed npm executable and literal `run check` arguments with a finite deployment-recorded timeout large enough to run the baseline. It runs in the disposable candidate workspace with a secret-free explicit environment and no admitted network need. If the exact base changes package scripts, lifecycle hooks or validation configuration relative to the admitted manifest, the profile is rebound before execution; model output cannot silently replace the validator it must pass. If the host lacks the declared executable or cannot prove root/cleanup bounds, the operation fails closed and the physical gate remains unqualified.
+Revision 4 retains the first validation profile as `tdev.validation.npm-check.v1`, binding the installed npm executable and literal `run check` arguments with a finite deployment-recorded timeout large enough to run the baseline. It runs in the disposable candidate workspace with a secret-free explicit environment and no admitted network need. If the exact base changes package scripts, lifecycle hooks or validation configuration relative to the admitted manifest, the profile is rebound before execution; model output cannot silently replace the validator it must pass. If the host lacks the declared executable or cannot prove root/cleanup bounds, the operation fails closed and the physical gate remains unqualified.
 
 ## 5. Typed boundary and capability admission
 
@@ -153,7 +153,7 @@ Unknown process completion after timeout, disconnect or response loss is reconci
 
 The manifest is versioned and bound into the installable-Agent release digest. A release that does not contain a profile required by a Case fails capability admission before Attempt creation. Unknown future manifest versions and profile substitutions fail closed.
 
-Revision 3 does not reinterpret the existing diagnostic, Revision-1 or Revision-2 development profiles. Existing packages remain valid for their qualified scopes but cannot claim the no-bwrap physical Codex development path. The catalog schema remains `tdev.development-operation-profiles.v2`, but the no-bwrap model binding, fixed argument template, execution-boundary identity and resulting manifest digest change the package/release identity and require fresh source/package/Agent qualification plus a quiescent D0027 package update; they are not in-place capability aliases.
+Revision 4 does not reinterpret the existing diagnostic or Revision-1 through Revision-3 development profiles. Existing packages remain valid for their qualified scopes but cannot claim the Revision-4 warden boundary. The catalog schema remains `tdev.development-operation-profiles.v2`, but the no-bwrap model binding, fixed argument template, execution-boundary identity and resulting manifest digest change the package/release identity and require fresh source/package/Agent qualification plus a quiescent D0027 package update; they are not in-place capability aliases.
 
 No Case snapshot migration is introduced. A Case stores the typed operation/profile identity as Task input under existing bounds; durable operation receipts remain D0020/D0027/Case-owned. Rollback to a release lacking a still-live profile is blocked until affected Cases quiesce or an explicit forward-compatible migration is accepted.
 

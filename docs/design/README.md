@@ -40,10 +40,10 @@
 | D0040 | r1 | verified | Installable Agent Evidence Attestation Authority | `docs/design/0040-installable-agent-evidence-attestation-authority.md` |
 | D0041 | r1 | verified | Installable Agent Pre-Genesis Material Binding | `docs/design/0041-installable-agent-pre-genesis-material-binding.md` |
 | D0042 | r1 | accepted | Durable Case-to-Agent Drive and Re-drive | `docs/design/0042-case-agent-drive-and-redrive.md` |
-| D0043 | r3 | accepted | Bounded Typed Development Operation Profiles | `docs/design/0043-bounded-development-operation-profiles.md` |
+| D0043 | r4 | accepted | Bounded Typed Development Operation Profiles | `docs/design/0043-bounded-development-operation-profiles.md` |
 | D0044 | r1 | implementing | Agent Route Higher-Generation Election and Cutover | `docs/design/0044-agent-route-higher-generation-election-and-cutover.md` |
 | D0045 | r1 | accepted | tdev/tmcp MCP Development-Path Comparative Qualification | `docs/design/0045-tdev-tmcp-mcp-development-path-comparative-qualification.md` |
-| D0046 | r3 | accepted | Minimum Viable tdev MCP Experiential Path | `docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md` |
+| D0046 | r7 | accepted | Minimum Viable tdev MCP Experiential Path | `docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md` |
 | D0047 | r2 | accepted | Lazy Bounded Repository Context | `docs/design/0047-lazy-bounded-repository-context.md` |
 | D0048 | r1 | accepted | Lazy Scoped Plan Reference | `docs/design/0048-lazy-scoped-plan-reference.md` |
 
