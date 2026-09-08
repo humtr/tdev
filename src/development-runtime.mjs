@@ -467,16 +467,17 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
   if (lines.length === 0) fail('codex_terminal_output_missing', 'Codex returned no JSONL events');
   const terminal = [];
   let usage = null;
+  let failedCommand = null;
   for (const [index, line] of lines.entries()) {
     if (line.length === 0) fail('codex_jsonl_malformed', `Codex JSONL event ${index} is empty`);
     let event;
     try { event = strictJsonParse(line, { maxBytes }); }
     catch (cause) { fail('codex_jsonl_malformed', `Codex JSONL event ${index} is invalid`, {}, { cause }); }
     if (!isPlainRecord(event) || typeof event.type !== 'string') fail('codex_jsonl_malformed', `Codex JSONL event ${index} has no type`);
-    if (event.type === 'item.completed' && event.item?.type === 'command_execution' && event.item.status === 'failed') {
-      fail('codex_command_execution_failed', 'Codex could not execute a required repository inspection command', {
+    if (event.type === 'item.completed' && event.item?.type === 'command_execution' && event.item.status === 'failed' && failedCommand === null) {
+      failedCommand = {
         exitCode: Number.isSafeInteger(event.item.exit_code) ? event.item.exit_code : null,
-      });
+      };
     }
     if (event.type === 'error' || event.type === 'turn.failed') {
       const message = typeof event.message === 'string'
@@ -497,7 +498,12 @@ export function parseCodexJsonl(bytes, maxBytes = CODEX_MAX_RESPONSE_BYTES) {
       terminal.push(event.item.text);
     }
   }
-  if (terminal.length === 0) fail('codex_terminal_output_missing', 'Codex returned no terminal agent message');
+  if (terminal.length === 0) {
+    if (failedCommand !== null) {
+      fail('codex_command_execution_failed', 'Codex could not recover from a failed repository inspection command', failedCommand);
+    }
+    fail('codex_terminal_output_missing', 'Codex returned no terminal agent message');
+  }
   const structured = [];
   for (const text of terminal) {
     try { structured.push(strictJsonParse(text, { maxBytes })); }
