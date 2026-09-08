@@ -28,6 +28,7 @@ import {
   MCP_TRIAL_COMPOSITION_PROFILE,
   MCP_TRIAL_COMPOSITION_RESOURCE,
   MCP_TRIAL_DRIVE_CLASS_NAME,
+  normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
@@ -93,6 +94,17 @@ function plain(name, text) {
 function bindingByName(value, name) {
   const bindings = value?.version?.resources?.bindings ?? value?.resources?.bindings ?? value?.bindings ?? [];
   return Array.isArray(bindings) ? bindings.find((binding) => binding?.name === name) : undefined;
+}
+
+export function existingTrialIdentity(settings) {
+  const binding = bindingByName(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON');
+  if (binding?.type !== 'plain_text' || typeof binding.text !== 'string') {
+    fail('d0046_update_binding_invalid', 'Existing Trial composition binding is missing or not plain text');
+  }
+  let parsed;
+  try { parsed = JSON.parse(binding.text); }
+  catch { fail('d0046_update_binding_invalid', 'Existing Trial composition binding is not JSON'); }
+  return normalizeMcpTrialCompositionBinding(parsed).identity;
 }
 
 function assertText(value, label, maxBytes = 4096) {
@@ -702,12 +714,12 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
   const artifact = artifactManifest(modules);
-  const identity = identityManifest();
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
   const existing = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
   assertOwnerMarker(existing.result, D0046_MCP_TRIAL_SCRIPT);
+  const identity = existingTrialIdentity(existing.result);
   const namespaces = await listNamespaces(client);
   const targetNamespaces = namespaces.filter((item) => item?.script === D0046_MCP_TRIAL_SCRIPT);
   if (targetNamespaces.length !== 1 || targetNamespaces[0].class !== MCP_TRIAL_DRIVE_CLASS_NAME || targetNamespaces[0].use_sqlite !== true) {
