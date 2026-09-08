@@ -730,7 +730,19 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const appMatches = apps.filter((app) => app?.name === D0046_ACCESS_APP_NAME || app?.domain === D0046_MCP_TRIAL_DOMAIN);
   if (appMatches.length !== 1) fail('d0046_access_readback_missing', 'Existing trial does not have exactly one matching Access application', { matches: appMatches.length });
   const accessApp = validateAccessApplication((await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(appMatches[0].id)}`))).result, credentials.accountId);
-  const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
+  const manifests = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace,
+    accessAudience: accessApp.aud,
+  });
   let subdomainEnabled = false;
   try {
     // The existing target is owned and isolated; this forward upload only
@@ -771,7 +783,19 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
   const absence = await preflightAbsence(client);
-  const bootstrap = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience: 'pending-access-audience' });
+  const bootstrap = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`,
+    accessAudience: 'pending-access-audience',
+  });
   let subdomainEnabled = false;
   let accessApp = null;
   let driveNamespace = null;
@@ -781,7 +805,19 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     const namespace = await waitForTrialNamespace(client);
     driveNamespace = assertNamespaceId(namespace.id, 'trial drive namespace');
     accessApp = await createAccessApplication(client, credentials.accountId);
-    const manifests = buildTrialManifests({ sourceSha, baseDigest: base.baseDigest, baseTree: base.tree, operationManifest, identity, includeBaseTree: true, driveNamespace, accessAudience: accessApp.aud });
+    const manifests = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace,
+    accessAudience: accessApp.aud,
+  });
     await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
     await setSubdomain(client, true);
     subdomainEnabled = true;
