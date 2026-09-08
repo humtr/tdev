@@ -152,6 +152,7 @@ function rpcOperationShape(input, operation) {
   const shapes = {
     initialize: [['plan'], ['caseContract']],
     load: [[], []],
+    materialized_projection: [[], []],
     command: [['envelope'], []],
     recover_execution_owner_loss: [['recoveryId', 'cause'], []],
     abort_instance: [[], []],
@@ -289,6 +290,10 @@ export class D0019QualificationCaseDOHost {
     return this.host.loadCase(input);
   }
 
+  materializedProjection(input) {
+    return this.host.materializedProjection(input);
+  }
+
   command(input) {
     return this.host.command(input);
   }
@@ -363,6 +368,8 @@ export class D0019QualificationCaseDOHost {
         });
       } else if (input.operation === 'load') {
         result = await this.loadCase({ placement: input.placement });
+      } else if (input.operation === 'materialized_projection') {
+        result = await this.materializedProjection({ placement: input.placement });
       } else if (input.operation === 'command') {
         result = await this.command({ placement: input.placement, envelope: input.envelope });
       } else if (input.operation === 'recover_execution_owner_loss') {

@@ -249,9 +249,28 @@ test('control reconnect reuses one durable connect identity after response loss 
   const recoveredStateText = await readFile(path.join(fixture.stateDirectory, 'control-connection.json'), 'utf8');
   const recoveredState = JSON.parse(recoveredStateText);
   assert.equal(recoveredState.lastConnectionEpoch, 1);
+  assert.deepEqual(recoveredState.capacityRevisionCursor, { executorId: fixture.config.executorId, executorEpoch: fixture.config.executorEpoch, highWater: 1 });
   assert.equal(recoveredState.pending, null);
   assert.equal(recoveredStateText.includes(OPAQUE_AUTH_MATERIAL), false);
   control.stop();
+
+  const restartedWebsocket = scriptedWebSocketFactory(['open']);
+  const restarted = await createInstallableAgentControlProcess({
+    packageRoot: fixture.packageRoot,
+    config: fixture.config,
+    prefix: fixture.prefix,
+    supervisorClient: fixture.supervisorClient,
+    credentialLoader: async () => OPAQUE_AUTH_MATERIAL,
+    webSocketFactory: restartedWebsocket.factory,
+  });
+  assert.equal(restarted.runtime.identity().capacityRevision, 1);
+  await restarted.connectOnce();
+  const restartedCapacityFrame = JSON.parse(restartedWebsocket.sockets[0].sent.at(-1));
+  assert.equal(restartedCapacityFrame.type, 'capacity');
+  assert.equal(restartedCapacityFrame.payload.capacityRevision, 2);
+  const restartedState = JSON.parse(await readFile(path.join(fixture.stateDirectory, 'control-connection.json'), 'utf8'));
+  assert.deepEqual(restartedState.capacityRevisionCursor, { executorId: fixture.config.executorId, executorEpoch: fixture.config.executorEpoch, highWater: 2 });
+  restarted.stop();
 });
 
 test('control process refuses to claim a D0027 tuple for a different local release', async (t) => {

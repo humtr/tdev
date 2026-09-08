@@ -28,7 +28,7 @@ const manifest = {
     'model.v1': {
       kind: 'model_repository',
       executable: { kind: 'configured_runtime', name: 'codex' },
-      argv: ['exec', '--ephemeral', '--json', '--ignore-user-config', '--dangerously-bypass-approvals-and-sandbox'],
+      argv: ['exec', '--ephemeral', '--json', '--ignore-user-config'],
       environment: {},
       filesystem: 'immutable_repository',
       network: 'openai-codex-trusted-local',

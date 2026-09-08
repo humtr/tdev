@@ -30,7 +30,6 @@ import {
   MCP_TRIAL_AGENT_RPC_PROFILE,
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
-import { normalizeLazyPlanReference } from './lazy-plan-reference.mjs';
 import { normalizeCaseContract } from './policy.mjs';
 
 const MAX_ENVELOPE_BYTES = 5 * 1024 * 1024;
@@ -68,30 +67,15 @@ function taskPlan(snapshot, manifest, caseContract) {
   if (snapshot.plan.baseDigest !== manifest.repository.baseDigest || digest(baseTree) !== snapshot.plan.baseDigest) {
     fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
   }
-  const planInput = {
+  const plan = definePlan({
     revisionId: snapshot.plan.revisionId,
     baseTree,
     tasks: Array.isArray(snapshot.plan.tasks)
       ? snapshot.plan.tasks
       : snapshot.plan.taskOrder?.map((taskId) => snapshot.plan.tasksById?.[taskId]),
-    ...(snapshot.plan.baseReference === undefined ? {} : { baseReference: snapshot.plan.baseReference }),
-  };
-  const plan = definePlan(planInput, { caseContract });
+  }, { caseContract });
   if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== manifest.repository.baseDigest) {
     fail('mcp_trial_case_snapshot_invalid', 'Case snapshot Plan digest does not match the fixed trial Plan');
-  }
-  if (manifest.repository.repositoryBaseIdentity !== undefined) {
-    if (plan.baseReference === undefined) fail('mcp_trial_case_snapshot_invalid', 'Scoped Case snapshot omitted its immutable baseReference');
-    const reference = normalizeLazyPlanReference(plan.baseReference, {
-      objectFormat: manifest.repository.objectFormat,
-      commitOid: manifest.repository.commitOid,
-      semanticBaseDigest: manifest.repository.baseDigest,
-    });
-    if (reference.repositoryBaseIdentity.baseDigest !== manifest.repository.repositoryBaseIdentity.baseDigest ||
-        reference.repositoryBaseIdentity.manifestDigest !== manifest.repository.repositoryBaseIdentity.manifestDigest ||
-        reference.scopeDigest !== manifest.repository.scopeDigest) {
-      fail('mcp_trial_case_snapshot_invalid', 'Scoped Case snapshot baseReference drifted from the trial identity');
-    }
   }
   return plan;
 }
@@ -205,10 +189,10 @@ function candidateTree(view) {
   return promote(view.plan.baseTree, acceptedResults, view.plan.baseDigest, { caseContract: view.caseContract }).tree;
 }
 
-function candidateChanges(view) {
+function candidateChangesFromSnapshot(snapshot) {
   const changes = [];
-  for (const taskId of view.plan.taskOrder) {
-    const result = resultForTask(view, taskId);
+  for (const [taskId, state] of Object.entries(snapshot.taskStates ?? {})) {
+    const result = state?.acceptedResult ?? null;
     if (!isPlainRecord(result) || result.kind !== 'changeset' || !Array.isArray(result.writes)) continue;
     for (const write of result.writes) {
       changes.push({ taskId, path: write.path, content: write.content });
@@ -217,6 +201,10 @@ function candidateChanges(view) {
   changes.sort((left, right) => String(left.taskId).localeCompare(String(right.taskId)) ||
     String(left.path).localeCompare(String(right.path)));
   return changes;
+}
+
+function candidateChanges(view) {
+  return candidateChangesFromSnapshot(view.snapshot);
 }
 
 function effectKey(view, taskId) {
@@ -285,9 +273,6 @@ function operationRequest(view, taskId, payload, operationManifest) {
         repositoryCommitOid: task.input.repositoryCommitOid,
         baseDigest: task.input.baseDigest,
         objectFormat: task.input.objectFormat,
-        ...(task.input.scope === undefined ? {} : { scope: task.input.scope }),
-        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
-        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
       },
     };
   }
@@ -302,13 +287,6 @@ function operationRequest(view, taskId, payload, operationManifest) {
         baseDigest: task.input.baseDigest,
         instruction: task.input.instruction,
         contextReferenceId,
-        ...(task.input.contextProfile === undefined ? {} : { contextProfile: task.input.contextProfile }),
-        ...(task.input.contextScope === undefined ? {} : { contextScope: task.input.contextScope }),
-        ...(manifestScopeDigest(view) === null ? {} : { contextScopeDigest: manifestScopeDigest(view) }),
-        ...(task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
-        ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: task.input.baseIdentity }),
-        ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: task.input.repositoryBaseIdentity }),
-        ...(task.input.writePaths === undefined ? {} : { writePaths: task.input.writePaths }),
       },
     };
   }
@@ -320,11 +298,6 @@ function operationRequest(view, taskId, payload, operationManifest) {
     };
   }
   fail('mcp_trial_task_unsupported', `Unsupported development Task ${taskId}`);
-}
-
-function manifestScopeDigest(view) {
-  const value = view.plan.baseReference?.scopeDigest;
-  return typeof value === 'string' ? value : null;
 }
 
 function executableBody(view, taskId, payload, { predictedAttemptOrdinal, executor, operationManifest } = {}) {
@@ -451,6 +424,24 @@ export class McpTrialDevelopmentUnitRunner {
       fail('mcp_trial_agent_route_mismatch', 'Agent owner read crossed the fixed route identity');
     }
     return snapshot;
+  }
+
+  async #expireDueReservations(agentSnapshot) {
+    const nowMs = this.now();
+    const due = Object.values(agentSnapshot?.reservations ?? {})
+      .filter((reservation) => reservation?.status === 'reserved' && Number.isSafeInteger(reservation.expiresAtMs) && reservation.expiresAtMs <= nowMs)
+      .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)));
+    for (const reservation of due) {
+      await this.agentOwner.invoke('expire_reservation', {
+        request: {
+          reservationWindowGeneration: reservation.reservationWindowGeneration ?? reservation.windowGeneration,
+          reservationRequestId: reservation.reservationRequestId,
+          reservationRequestDigest: reservation.reservationRequestDigest,
+        },
+        nowMs,
+      });
+    }
+    return due.length === 0 ? agentSnapshot : this.#readAgent();
   }
 
   async #advance({ caseId, driveRequestId, payload, view, agentSnapshot, dispatchResult = undefined }) {
@@ -723,6 +714,7 @@ export class McpTrialDevelopmentUnitRunner {
     const initial = await this.#load(caseId);
     let view = initial;
     let agentSnapshot = await this.#readAgent();
+    agentSnapshot = await this.#expireDueReservations(agentSnapshot);
     const attempts = nonterminalAttempts(view.snapshot, caseId);
     let action = null;
     if (attempts.length > 0) {
@@ -788,7 +780,44 @@ export class McpTrialDevelopmentUnitRunner {
   }
 
   async candidate(caseId) {
-    const view = await this.#load(caseId);
+    const loaded = await this.repository.load(caseId);
+    if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
+    const snapshot = snapshotFromOwner(loaded, 'Case owner');
+    if (snapshot.plan?.baseDigest !== this.manifest.repository.baseDigest) {
+      if (!TERMINAL_CASE_STATES.has(snapshot.caseState)) {
+        fail('mcp_trial_context_mismatch', 'Only terminal Case snapshots may be read against a historical repository base');
+      }
+      if (typeof this.repository.materializedProjection !== 'function') {
+        fail('mcp_owner_unavailable', 'Historical Case materialized projection owner is unavailable');
+      }
+      const materialized = canonicalClone(await this.repository.materializedProjection(caseId));
+      if (!isPlainRecord(materialized) ||
+          materialized.caseId !== snapshot.caseId ||
+          materialized.caseState !== snapshot.caseState ||
+          materialized.caseRevision !== snapshot.caseRevision ||
+          materialized.baseDigest !== snapshot.plan?.baseDigest ||
+          materialized.planDigest !== snapshot.plan?.planDigest ||
+          typeof materialized.candidateDigest !== 'string' ||
+          !Number.isSafeInteger(materialized.candidateTreeBytes) || materialized.candidateTreeBytes < 0 ||
+          (materialized.canonicalDigest !== null && typeof materialized.canonicalDigest !== 'string')) {
+        fail('mcp_trial_owner_invalid_response', 'Historical Case materialized projection is invalid');
+      }
+      const changes = candidateChangesFromSnapshot(snapshot);
+      return deepFreeze({
+        caseId,
+        caseState: snapshot.caseState,
+        caseRevision: snapshot.caseRevision,
+        baseDigest: snapshot.plan.baseDigest,
+        candidateDigest: materialized.candidateDigest,
+        candidateTreeBytes: materialized.candidateTreeBytes,
+        changeCount: changes.length,
+        changedPaths: changes.map(({ path }) => path),
+        changes,
+        canonicalDigest: materialized.canonicalDigest,
+        planDigest: snapshot.plan.planDigest,
+      });
+    }
+    const view = caseView(snapshot, this.manifest, this.caseContract);
     const tree = candidateTree(view);
     const changes = candidateChanges(view);
     return deepFreeze({

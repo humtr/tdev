@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_r3_dual_era_provider_readback",
+  "observedAtUtc": "2026-09-04T22:21:17Z",
+  "design": {
+    "id": "D0023",
+    "revision": 3,
+    "status": "implementing",
+    "sourceCommit": "ec18385153f17b1ffb64deea66e10360a455f54f",
+    "focusedTests": {"passed": 8, "failed": 0},
+    "completeSourceGate": {"npmCheckTestsPassed": 659, "failed": 0, "docsCheck": "PASS", "diffCheck": "PASS"}
+  },
+  "surface": {
+    "profile": "tdev.mcp.surface.v1",
+    "route": "/mcp",
+    "legacyProtocolVersions": ["2025-03-26", "2025-06-18", "2025-11-25"],
+    "modernProtocolVersion": "2026-07-28",
+    "modernLifecycle": ["server/discover", "tools/list", "tools/call"],
+    "modernRequestMetadata": ["io.modelcontextprotocol/protocolVersion", "io.modelcontextprotocol/clientInfo", "io.modelcontextprotocol/clientCapabilities"],
+    "modernHeaders": ["MCP-Protocol-Version", "Mcp-Method", "Mcp-Name"],
+    "toolCount": 11,
+    "surfaceDigest": "sha256:1eafaf3e92f2bccbf1fe758eb76e05938ddd9db177b56808692ee57c0f929f47"
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "versionId": "12bdd52c-a717-4d56-8425-c98d10175bf5",
+    "versionNumber": 8,
+    "traffic": "100% latest immutable version",
+    "artifactDigest": "sha256:d2fa9469ed2d2025125c34ee3aadb791b8d1d56ade2f17f78bd163a4eb764be5",
+    "artifactManifestDigest": "sha256:5038d637519ec7804783e912c97254f79c62d27c04736349420dadd70a3049d0"
+  },
+  "publicReadback": {
+    "protectedResourceMetadata": {"status": 200, "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp", "authorizationServers": ["https://humtr.cloudflareaccess.com"]},
+    "authorizationServerMetadata": {"status": 200, "issuer": "https://humtr.cloudflareaccess.com", "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration", "pkce": ["S256"]},
+    "unauthenticatedMcp": {"status": 401, "resourceMetadataChallenge": true}
+  },
+  "proofBoundaries": {
+    "source": "PASS - dual-era focused tests and complete source gate",
+    "provider": "PASS - exact isolated Worker version/readback and independent public metadata/401 readback",
+    "mcpClient": "OPEN - ChatGPT must reconnect and expose actions after this deployment",
+    "experientialM2": "OPEN - no real development objective or candidate yet"
+  },
+  "externalEffects": {
+    "providerMutation": "one authorized upload to the existing isolated trial Worker",
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

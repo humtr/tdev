@@ -87,7 +87,7 @@ function namespace(route, calls) {
               quiesceCaseAgentDrive: async (input) => ({ classification: 'quiesced', caseId: input.caseId }),
               snapshotCaseAgentDrive: async (input) => ({ caseId: input.caseId, revision: 0 }),
             }
-          : { qualificationInvoke: async (input) => ({ schemaVersion: 1, ok: true, result: { operation: input.operation } }) };
+          : { qualificationInvoke: async (input) => ({ profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2, ok: true, result: { operation: input.operation } }) };
     },
   };
 }
@@ -142,6 +142,36 @@ test('D0046 owner facades route only fixed Case/Drive/Agent identities', async (
   assert.ok(calls.some((entry) => entry === 'id:case:trial-case-1'));
   assert.ok(calls.every((entry) => !entry.includes('other-case')));
   assert.equal(MCP_TRIAL_AGENT_RPC_PROFILE, 'tdev.installable-agent-qualification-rpc.v2');
+});
+
+test('D0046 Agent data-plane calls bind the live deployment identity for old and new provider RPCs', async () => {
+  const calls = [];
+  const deploymentIdentityDigest = 'sha256:' + 'd'.repeat(64);
+  const agentNamespace = {
+    idFromName(name) { return { jurisdiction: 'global', toString: () => `agent-do-${name}` }; },
+    get() {
+      return {
+        async qualificationInvoke(input) {
+          calls.push(input);
+          if (input.operation === 'runtime_probe') return { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2, ok: true, result: { deploymentIdentityDigest } };
+          return { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2, ok: true, result: { operation: input.operation } };
+        },
+      };
+    },
+  };
+  const owners = createMcpTrialOwnerFacades({
+    manifest: manifest(),
+    caseNamespace: namespace('case', []),
+    driveNamespace: namespace('drive', []),
+    agentNamespace,
+  });
+  assert.equal((await owners.agentOwner.invoke('reserve', { request: { id: 'r1' }, nowMs: 1 })).operation, 'reserve');
+  assert.equal(calls.length, 2);
+  assert.equal(calls[0].operation, 'runtime_probe');
+  assert.equal(calls[1].operation, 'reserve');
+  assert.equal(calls[1].expectedDeploymentIdentityDigest, deploymentIdentityDigest);
+  assert.deepEqual(calls[1].request, { id: 'r1' });
+  assert.equal(calls[1].nowMs, 1);
 });
 
 test('D0046 execution host can bind the existing Drive owner locally without a recursive namespace call', async () => {

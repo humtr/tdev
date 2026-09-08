@@ -1,0 +1,52 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0023_r2_chatgpt_discovery_compatibility_acceptance",
+  "observedAtUtc": "2026-09-04T21:38:00Z",
+  "design": {
+    "id": "D0023",
+    "revision": 2,
+    "statusAfterEvidence": "accepted",
+    "acceptanceBase": "development@607cb0cc56a8598a1bf228ec8e36abbea2edcd5c",
+    "predecessorRevision": 1,
+    "predecessorEvidence": "docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json"
+  },
+  "falsifier": {
+    "client": "ChatGPT Developer mode",
+    "connection": "tdev-trial-2",
+    "url": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "authorizationSupported": "OAuth",
+    "authorizationUsed": "OAuth",
+    "observedResult": "connected and OAuth-authorized, but No app actions available yet",
+    "interpretation": "authentication was not sufficient to establish an executable tools/list surface; the smallest unresolved lower-layer boundary was initialize/tools/list compatibility"
+  },
+  "decision": {
+    "surfaceProfile": "tdev.mcp.surface.v1",
+    "transport": "https-streamable-http",
+    "path": "/mcp",
+    "legacyProtocolVersions": ["2025-03-26", "2025-06-18", "2025-11-25"],
+    "modernProtocolVersionNotClaimed": "2026-07-28",
+    "toolCount": 11,
+    "descriptorFields": ["name", "title", "description", "inputSchema", "outputSchema", "annotations"],
+    "structuredOutputSchema": {"type": "object", "additionalProperties": true},
+    "annotationFields": ["readOnlyHint", "destructiveHint", "idempotentHint", "openWorldHint"],
+    "initializeInstructions": true,
+    "ownerMappingsUnchanged": true,
+    "noBwrapBoundaryUnchanged": true
+  },
+  "proofBoundaries": {
+    "designAcceptance": "PASS - additive legacy protocol and tool-descriptor compatibility contract accepted",
+    "source": "pending source implementation and tests",
+    "provider": "pending redeployment/readback",
+    "mcpClient": "OPEN - the reported connection has not yet completed tools discovery",
+    "termuxPhysicalExecution": "not changed by this design revision",
+    "deployedProduct": "OPEN"
+  },
+  "externalEffects": {
+    "providerMutation": false,
+    "deviceMutation": false,
+    "caseMutation": false,
+    "canonicalPublication": false,
+    "credentialMutation": false
+  }
+}

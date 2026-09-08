@@ -1,0 +1,86 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r3_m2_refresh_and_agent_capacity_recovery",
+  "observedAtUtc": "2026-09-05T07:22:08Z",
+  "design": {
+    "id": "D0046",
+    "revision": 3,
+    "gate": "M2 current-client connection and Agent readiness preflight",
+    "scope": "correlate one current web-client Refresh with the isolated Worker and restore the local Agent capacity-freshness barrier"
+  },
+  "repository": {
+    "activeRef": "development",
+    "observedHead": "f5486c4b3b83b171eb9a44c04a07de9db16ab349",
+    "providerSourceSha": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "activeVersionId": "5fc3a517-f82d-4aa4-9f37-5e2b0586e3e9",
+    "activeDeploymentId": "574091a3-31bf-4890-a2c4-967118b9dd13",
+    "activeTrafficPercentage": 100,
+    "sourceSha": "78f47d5002f7f0fbeb3520b7ec82dbc2a7356b61",
+    "tail": {
+      "protocol": "trace-v1",
+      "requestCount": 2,
+      "requests": [
+        { "method": "POST", "path": "/mcp", "status": 200, "outcome": "ok", "exceptions": 0 },
+        { "method": "POST", "path": "/mcp", "status": 200, "outcome": "ok", "exceptions": 0 }
+      ],
+      "workerIngress": "PASS",
+      "ownerResult": "not_observed_in_this_tail_projection"
+    }
+  },
+  "agentRecovery": {
+    "route": {
+      "agentId": "d0039-r12-custody-20260828-3631c5a4",
+      "routeGeneration": 1
+    },
+    "before": {
+      "connectionEpoch": 10,
+      "executorEpoch": 1,
+      "capacityRevisionFloor": 9,
+      "capacity": null,
+      "reservations": 0,
+      "deliveries": 0
+    },
+    "recovery": {
+      "cause": "fresh control process reset capacityRevision to 1 while the retained executor generation required a revision greater than 9",
+      "localAction": "advanced the explicitly scoped local executorEpoch to 2 while no reservation or delivery existed",
+      "canonicalTreeMutation": false,
+      "gitMutation": false,
+      "providerWorkerDeploymentMutation": false
+    },
+    "after": {
+      "connectionEpoch": 11,
+      "executorEpoch": 2,
+      "capacityRevisionFloor": 1,
+      "reportedCapacity": 1,
+      "effectiveCapacity": 1,
+      "reservations": 0,
+      "deliveries": 0
+    },
+    "service": {
+      "supervisor": "running",
+      "control": "running",
+      "runitDownMarkers": "removed_for_these_two_package-owned_services"
+    },
+    "scopeNote": "This is an operational recovery observation. Automatic monotonic capacityRevision persistence across a fresh control-process restart remains a follow-up source/package correction; no such source claim is made here."
+  },
+  "result": {
+    "currentClientRefresh": "PASS - two authenticated Worker POST /mcp requests returned HTTP 200 with no Worker exception",
+    "agentCapacityReadiness": "PASS - provider readback reports effective capacity 1",
+    "m2ExperientialDevelopment": "OPEN - development_context_get/development_unit_start/development_unit_get candidate evidence is still required"
+  },
+  "effects": {
+    "caseState": "unchanged_by_refresh_observation",
+    "candidateDigest": "not_observed",
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "promotion": false,
+    "credentialsExposed": false
+  },
+  "next": "Use the connected tdev tools once for development_context_get, one new non-documentation development_unit_start, and bounded development_unit_get readback; do not reuse the prior 502 Case identity unless the owner explicitly reports an exact replay."
+}

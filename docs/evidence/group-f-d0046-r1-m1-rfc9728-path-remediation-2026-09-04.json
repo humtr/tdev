@@ -1,0 +1,103 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m1_rfc9728_path_specific_metadata_remediation_provider_readback_pass",
+  "observedAtUtc": "2026-09-04T23:15:43Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "00a80c886648759899160824b33ceacb412e9c82",
+    "sourceGate": "npm run check PASS 660/660; docs:check PASS; git diff --check PASS",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M1 RFC 9728 path-specific metadata remediation",
+    "scope": "serve and verify the standards-derived protected-resource metadata path for the fixed /mcp resource"
+  },
+  "change": {
+    "problem": "The fixed /mcp resource did not recognize /.well-known/oauth-protected-resource/mcp. Before the repair that path entered the large application path and returned Cloudflare Worker error 1102 instead of metadata.",
+    "repair": "The standards-derived path is now a metadata fast path, the origin-root and Cloudflare Access aliases remain compatibility paths, and internal authentication challenges advertise the path-specific RFC 9728 URL.",
+    "sourceModules": [
+      "src/mcp-auth.mjs",
+      "src/mcp-surface.mjs",
+      "qualification/cloudflare-mcp-trial-worker.mjs",
+      "qualification/d0046-mcp-trial-deploy.mjs"
+    ],
+    "tests": {
+      "focused": "12/12 PASS",
+      "complete": "660/660 PASS"
+    }
+  },
+  "trial": {
+    "scriptName": "tdev-mcp-trial",
+    "origin": "https://tdev-mcp-trial.humtr.workers.dev",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "environment": "qualification",
+    "jurisdiction": "global",
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false
+  },
+  "provider": {
+    "workerVersion": {
+      "id": "0165c1f6-dc7b-425b-ba99-f5498ff227c1",
+      "number": 10,
+      "trafficPercentage": 100
+    },
+    "publicReadback": {
+      "pathSpecificProtectedResourceMetadata": {
+        "path": "/.well-known/oauth-protected-resource/mcp",
+        "status": 200,
+        "contentType": "application/json; charset=utf-8",
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "originRootCompatibilityAlias": {
+        "path": "/.well-known/oauth-protected-resource",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "cloudflareAccessMetadata": {
+        "path": "/.well-known/cloudflare-access-protected-resource/mcp",
+        "status": 200,
+        "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+        "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+      },
+      "unauthenticatedMcp": {
+        "status": 401,
+        "edge": true,
+        "workerDiagnosticEvent": false,
+        "resourceMetadataChallenge": "https://tdev-mcp-trial.humtr.workers.dev/.well-known/cloudflare-access-protected-resource/mcp"
+      },
+      "authorizationServerMetadata": {
+        "status": 200,
+        "issuer": "https://humtr.cloudflareaccess.com",
+        "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration",
+        "pkce": ["S256"]
+      }
+    },
+    "workerTail": {
+      "available": true,
+      "observed": "metadata GET reached Worker and emitted bounded request diagnostics without credentials",
+      "accessAuditLogHistory": "unavailable: current Cloudflare API token was rejected with 403 Authentication error because Access Audit Logs Read scope is not present"
+    }
+  },
+  "effects": {
+    "providerMutation": "one authorized upload to the existing isolated trial Worker",
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false
+  },
+  "proofBoundaries": {
+    "source": "PASS",
+    "providerMetadata": "PASS",
+    "oauthAndAccess": "metadata and DCR/PKCE preflight PASS; user token/policy admission not replayed here",
+    "currentChatGPTClient": "OPEN - no authenticated Refresh request was captured during the bounded Tail window",
+    "experientialM2": "OPEN - no real development objective or candidate yet"
+  },
+  "next": "Connect or Refresh the existing ChatGPT developer-mode entry after this deployment. If a request reaches the Worker, inspect only the bounded diagnostic fields; if no event appears, the failure is at Cloudflare Access or before the Worker and requires Access audit evidence rather than another MCP parser change."
+}

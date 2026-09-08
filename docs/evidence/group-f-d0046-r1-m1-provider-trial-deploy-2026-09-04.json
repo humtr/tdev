@@ -1,0 +1,126 @@
+{
+  "schemaVersion": 1,
+  "classification": "d0046_r1_m1_provider_trial_deploy_readback_pass",
+  "observedAtUtc": "2026-09-04T18:40:07Z",
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M1",
+    "sourceCommit": "36de56ebe1e0b5c7fac2c984edd417c7decb3756",
+    "sourceGate": "npm run check PASS 657/657"
+  },
+  "trial": {
+    "scriptName": "tdev-mcp-trial",
+    "origin": "https://tdev-mcp-trial.humtr.workers.dev",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "environment": "qualification",
+    "jurisdiction": "global",
+    "casePrefix": "tdev-trial-",
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false
+  },
+  "repository": {
+    "commitOid": "36de56ebe1e0b5c7fac2c984edd417c7decb3756",
+    "baseDigest": "sha256:245bcf1357c28f1a9073c3199d7be0773416519bf657c170380d0d94cb0a6eb4",
+    "fileCount": 485,
+    "semanticBytes": 7670106,
+    "excludedBinaryPaths": [
+      "native/d0030/android-arm64/rename-noreplace-helper",
+      "native/immutable-journal-publication/android-arm64/rename-noreplace-helper",
+      "native/installable-agent-supervisor/android-arm64/pidfd-control.node"
+    ]
+  },
+  "artifact": {
+    "moduleCount": 33,
+    "moduleDigest": "sha256:0700586a714b8d2dae74ca98082110ba59e9702b69887b254e91f1a9d1ced8ee",
+    "artifactManifestDigest": "sha256:47bcac2e05e8866e4a203ad88393bee4add61eb3f981295dd09676dab1c04be9",
+    "generatedBaseTreeModuleDigest": "sha256:82f95b1b2b1a63f729089704b1e0a34e5fc4685e94663d643c365dc4f573366f"
+  },
+  "manifests": {
+    "compositionDigest": "sha256:30ac6819704ac186bbb38a39eb7d51d4584644113d918aece059e8d6ff251680",
+    "authProfileDigest": "sha256:1ae1352fb462e1caf60b5410a2d57fd8553ce5a1d0a975e388557aaf490459a1",
+    "operationDigest": "sha256:a1deaefcefe8c8b8cc835c9c456240f660f14d44d258fbc0d6c3d734e8969cf9",
+    "surfaceDigest": "sha256:8e69feabdd49eaac0421688c33fe78de795e7270309e83d5b7edfe4d0d6082ee"
+  },
+  "ownerBindings": {
+    "case": {
+      "workerScript": "tdev-d0020-composition-case-r1",
+      "className": "CaseRuntimeDO",
+      "namespaceId": "3b3d5808028f4e74bcbc1dc22f0757fd"
+    },
+    "drive": {
+      "workerScript": "tdev-mcp-trial",
+      "className": "CaseAgentDriveRuntimeDO",
+      "namespaceId": "138b3b6fc20d4d8988b598c572aa39f7",
+      "useSqlite": true
+    },
+    "agent": {
+      "workerScript": "tdev-d0020-qualification-clean-a",
+      "className": "AgentDeliveryRuntimeDO",
+      "namespaceId": "0dad69baa7154d00949f88c8b8dbf94a",
+      "agentId": "d0039-r12-custody-20260828-3631c5a4",
+      "routeGeneration": 1
+    },
+    "casePlacementDatabaseId": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+  },
+  "provider": {
+    "workerVersion": {
+      "id": "a40d5e34-3a86-45b2-9a53-d5eb03652a99",
+      "number": 3,
+      "createdOn": "2026-09-04T18:37:10.131105Z",
+      "trafficPercentage": 100
+    },
+    "deploymentId": "9d54798b-ff62-48f9-8d2d-d007d99ccf25",
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "access": {
+      "applicationId": "3a409320-586b-48cd-8c3b-b6c25bdcd728",
+      "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+      "audienceDigest": "sha256:cbbf9f05df0a658d89217c69fdc8f06cf9cc8f8f83c661da26d61389e9841a61",
+      "policy": "one allow cloudflare_account_member policy",
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "jwksUri": "https://humtr.cloudflareaccess.com/cdn-cgi/access/certs",
+      "dynamicRegistration": true,
+      "redirectUri": "https://chatgpt.com/connector/oauth/*",
+      "pkce": "S256"
+    }
+  },
+  "publicReadback": {
+    "protectedResourceMetadata": {
+      "status": 200,
+      "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+      "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+    },
+    "authorizationServerMetadata": {
+      "status": 200,
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "authorizationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/authorization",
+      "tokenEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/token",
+      "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration",
+      "pkce": ["S256"]
+    },
+    "unauthenticatedMcp": {
+      "status": 401
+    }
+  },
+  "identity": {
+    "principalClaim": "email",
+    "tenantClaim": "email",
+    "principalDigest": "sha256:f0a6f36c2c15758866e42e9a3de31d1f3cab67718cbd9c494826ceac45a3f1ae",
+    "tenantDigest": "sha256:f0a6f36c2c15758866e42e9a3de31d1f3cab67718cbd9c494826ceac45a3f1ae"
+  },
+  "safety": {
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false,
+    "rollback": {
+      "disableSubdomain": "POST /accounts/{account}/workers/scripts/tdev-mcp-trial/subdomain { enabled:false, previews_enabled:false }",
+      "accessApplicationId": "3a409320-586b-48cd-8c3b-b6c25bdcd728"
+    }
+  },
+  "secretValues": "excluded"
+}

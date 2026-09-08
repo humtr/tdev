@@ -1,0 +1,92 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m2_current_client_modern_discovery_tools_list_pass",
+  "observedAtUtc": "2026-09-05T02:53:26Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "4ed795764636bdc590f687a0a9ef2c6a0981a384",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M2 current-client authenticated modern discovery and tool-list checkpoint",
+    "scope": "prove the supported web ChatGPT path reaches the isolated Worker after Access authentication and receives the modern discovery/tool-list responses"
+  },
+  "diagnosis": {
+    "priorFailure": {
+      "workerStatus": 403,
+      "code": "mcp_authorization_denied",
+      "cause": "deployed composition identity digest did not match the Access-authenticated principal"
+    },
+    "identityCorrection": {
+      "previousPrincipalDigest": "sha256:f0a6f36c2c15758866e42e9a3de31d1f3cab67718cbd9c494826ceac45a3f1ae",
+      "activePrincipalDigest": "sha256:a350fd30719d981c071c9b92a3beb87ea5f327e313303a2c1fc48c2a0665a7fb",
+      "tenantMatchesPrincipal": true,
+      "claimMapping": {
+        "principalClaim": "email",
+        "tenantClaim": "email"
+      }
+    }
+  },
+  "provider": {
+    "scriptName": "tdev-mcp-trial",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "workerVersion": {
+      "id": "eb75424b-fdad-42c8-badb-b352cb8ee54f",
+      "number": 17,
+      "deploymentId": "7d1421c5-556f-43c0-940e-fe1e087a8289",
+      "trafficPercentage": 100,
+      "sourceSha": "4ed795764636bdc590f687a0a9ef2c6a0981a384"
+    },
+    "tail": {
+      "correlated": true,
+      "protocol": "trace-v1",
+      "events": [
+        {
+          "cfRay": "a361effa9cd8d1d7",
+          "method": "POST",
+          "path": "/mcp",
+          "mcpProtocol": "2026-07-28",
+          "mcpMethod": "server/discover",
+          "hasAuthorization": false,
+          "hasAccessAssertion": true,
+          "status": 200,
+          "outcome": "ok",
+          "cpuTimeMs": 27
+        },
+        {
+          "cfRay": "a361effdcd18d1d7",
+          "method": "POST",
+          "path": "/mcp",
+          "mcpProtocol": "2026-07-28",
+          "mcpMethod": "tools/list",
+          "hasAuthorization": false,
+          "hasAccessAssertion": true,
+          "status": 200,
+          "outcome": "ok",
+          "cpuTimeMs": 2
+        }
+      ]
+    }
+  },
+  "result": {
+    "accessAdmission": "PASS - edge supplied an issuer assertion and the Worker accepted the corrected principal/tenant",
+    "modernDiscovery": "PASS - server/discover returned HTTP 200",
+    "toolList": "PASS - tools/list returned HTTP 200",
+    "currentClientConnection": "PASS - authenticated Developer-mode request reached the modern MCP surface",
+    "experientialM2": "OPEN - no development_context_get/development_unit_start candidate result has been executed yet"
+  },
+  "effects": {
+    "providerMutation": "one authorized isolated Worker upload rebinding only the trial identity",
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "ownerToolCall": false,
+    "codexCredentialForwarded": false
+  },
+  "next": "Use the now-visible tdev tools to call development_context_get, then submit one bounded non-documentation development_unit_start and verify the isolated candidate/result path before claiming M2 experiential completion."
+}

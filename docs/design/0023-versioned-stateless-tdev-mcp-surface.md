@@ -1,13 +1,14 @@
 # Design 0023 - Versioned Stateless tdev MCP Surface
 
-- Status: `accepted`
-- Revision: 2
+- Status: `implementing`
+- Revision: 3
 - Class: 2
-- Decision date: 2026-09-06
-- Acceptance base: `development@81a7ce689ff81e4d8bd071dc2c43ec6319b9820d`
-- Predecessor revision: D0023@r1 accepted at `development@2b99f09280a06ab52a8ea04934afc3ae3d538f4e`; its acceptance evidence remains `docs/evidence/group-f-d0023-r1-stateless-mcp-surface-acceptance-2026-09-03.json`
-- Trigger: D0047 requires bounded owner-issued manifest/list/search/read projections so a client can drive lazy context without hydrating a complete repository payload
-- Acceptance evidence: `docs/evidence/group-f-d0023-r2-lazy-context-surface-design-acceptance-2026-09-06.json`
+- Decision date: 2026-09-04
+- Acceptance base: `development@1a3d32f990c21caf7fefeb7c15f290357896e42a`
+- Predecessor: D0023 Revision 2, accepted by `docs/evidence/group-f-d0023-r2-chatgpt-discovery-compatibility-acceptance-2026-09-04.json`
+- Trigger: the fresh web ChatGPT trial now reports a red connection failure after OAuth rather than merely omitting actions; the deployed surface advertises only legacy initialize/tools/call while the current MCP revision uses request-scoped metadata and standard routing headers
+- Trigger evidence: user-reported connection failure plus the public endpoint's exact legacy-only surface manifest and authenticated-path protocol analysis; no owner mutation was observed
+- Acceptance evidence: pending source, provider and current-client requalification
 - Scope: one versioned, stateless MCP projection/command ingress for tdev Case, drive and development-unit operations
 - Affected owners: `src/`, `docs/MCP.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, the deployed MCP Worker and its generated schemas
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery and local-process authorities; D0042 remains Case-to-Agent drive/re-drive; D0043 remains typed operation admission; D0024 owns MCP authentication/tenant identity; D0025 owns Git publication
@@ -30,7 +31,7 @@ The supported external transport is HTTPS Streamable HTTP:
 - `GET` is allowed only when the selected MCP transport implementation requires a resumable event stream and must remain an owner-state projection, never a command channel;
 - other methods are rejected before owner access;
 - the Worker is stateless between requests; durable Case/drive state is read from the accepted owners;
-- the server negotiates only an explicitly supported MCP protocol-version set and rejects an unknown/future version without downgrade-by-convention;
+- the server negotiates only an explicitly supported MCP protocol-version set and rejects an unknown/future version without downgrade-by-convention. Revision 3 is dual-era: it preserves the legacy initialize/tools/call versions `2025-03-26`, `2025-06-18` and `2025-11-25`, and adds a stateless `2026-07-28` adapter with `server/discover`, request-scoped `_meta`, `MCP-Protocol-Version`, `Mcp-Method` and `Mcp-Name` validation. The modern adapter never creates a session or reinterprets a legacy request;
 - JSON-RPC batch, notifications and tool calls follow the selected version's exact schema; unsupported message shapes fail closed.
 
 Every request is bounded before authentication-dependent owner dispatch. Duplicate JSON members, unsafe numbers, invalid UTF-8, sparse arrays, unknown top-level fields, oversized bodies and trailing data are rejected by the strict canonical parser. A JSON-RPC error is transport output, not a Case Event or receipt.
@@ -55,11 +56,11 @@ The Worker publishes one immutable surface manifest containing:
 - authentication profile ID from D0024;
 - owner adapter profile IDs for Case, drive, operation and Artifact projections.
 
-A changed tool name, required field, result meaning, authentication resource or owner mapping is a new surface revision. A client cannot select an executable, path, environment, network policy, Agent identity, claim, credential or provider binding through a tool argument.
+A changed tool name, required field, result meaning, authentication resource or owner mapping is a new surface revision. Revision 3 is an additive protocol compatibility revision: the eleven tool names and input meanings remain unchanged, while the same descriptors are served to both eras. Legacy requests retain their initialize handshake; modern requests carry bounded per-request metadata, use the standard routing headers, return `resultType: complete` and private cache hints, and may call `server/discover` before `tools/list`. A client cannot select an executable, path, environment, network policy, Agent identity, claim, credential or provider binding through a tool argument. The advertised protocol-version array is ordered with `2026-07-28` first, followed by the newest legacy revisions, so a dual-era client has a deterministic modern-first preference; legacy clients remain accepted when they explicitly select an initialize-era revision.
 
 ## 5. Tool contract
 
-Tool names remain stable and schemas are versioned by the surface manifest. The first surface contains:
+Tool names remain stable and schemas are versioned by the surface manifest. The first surface contains the following eleven tools. Every descriptor has the same explicit input/output schema and safety metadata; output schemas describe the bounded structured projection returned by `tools/call`.
 
 | Tool | Kind | Required input | Owner mapping |
 | --- | --- | --- | --- |
@@ -98,6 +99,8 @@ A successful tool call returns both human-readable `content` and machine-readabl
 - owner receipt identity and replay classification;
 - bounded next-action/not-ready information without declaring readiness from a cache.
 
+The initialize result also supplies bounded server instructions so a client can discover the owner-issued-context prerequisite without relying on an out-of-band prompt. These instructions do not grant a caller any additional capability.
+
 Errors map to stable surface error codes with bounded messages and no token, secret, absolute path, raw provider response or process output. An MCP transport timeout never becomes Case failure. If the owner response is ambiguous, the client receives `reconciling` and must call the same request identity or a read/reconciliation tool.
 
 ## 7. Authorization and owner separation
@@ -134,8 +137,8 @@ A release/rollback that changes the surface manifest, schema, owner binding or a
 
 | Area | Required result |
 | --- | --- |
-| transport | current supported MCP client completes `initialize`, `tools/list` and `tools/call` over HTTPS Streamable HTTP |
-| schemas | exact generated versioned schemas reject duplicate/unknown/unsafe/oversized input |
+| transport | each advertised legacy version completes `initialize`, `tools/list` and `tools/call`, and `2026-07-28` completes `server/discover`, `tools/list` and `tools/call` over HTTPS Streamable HTTP with required request metadata/header checks |
+| schemas | exact generated versioned schemas, titles, output schemas and safety annotations are returned; duplicate/unknown/unsafe/oversized input is rejected |
 | mutations | request identity, exact replay, stale revision and owner receipt behavior are proven |
 | projections | Case/Task/Attempt/Promotion/reconciliation states and digests remain exact and bounded |
 | authorization | principal/tenant A cannot read or mutate tenant B Case/context/Artifact |

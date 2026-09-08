@@ -16,9 +16,9 @@ import {
   D0046_CASE_NAMESPACE,
   D0046_CASE_PLACEMENT_DATABASE,
   D0046_CASE_SCRIPT,
+  D0046_MIN_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_ORIGIN,
   D0046_MCP_TRIAL_SCRIPT,
-  D0046_MCP_CONTEXT_SCOPE,
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   assertCaseOwnerCapacity,
 } from './d0046-mcp-trial-deploy.mjs';
@@ -76,8 +76,6 @@ export function measureFreshCaseAuthoritativeBytes({
   validationProfile = VALIDATION_PROFILE,
   objectFormat = 'sha1',
   caseContract = {},
-  contextProfile, contextScope, baseIdentity, repositoryBaseIdentity,
-  contextCapabilityId, modelCapabilityId, validationCapabilityId, writePaths,
 } = {}) {
   if (!isPlainRecord(baseTree) || Object.keys(baseTree).length === 0) fail('d0046_preflight_base_invalid', 'Preflight requires a non-empty immutable base tree');
   const plan = defineDevelopmentUnitPlan({
@@ -88,8 +86,6 @@ export function measureFreshCaseAuthoritativeBytes({
     instruction,
     validationProfile,
     caseContract,
-    contextProfile, contextScope, baseIdentity, repositoryBaseIdentity,
-    contextCapabilityId, modelCapabilityId, validationCapabilityId, writePaths,
   });
   const engine = new CaseEngine({
     caseId,
@@ -128,9 +124,10 @@ export function measureFreshCaseAuthoritativeBytes({
 }
 
 export function assertCapacityPreflight({ requiredAuthoritativeBytes, configuredBytes } = {}) {
-  if (!Number.isSafeInteger(requiredAuthoritativeBytes) || requiredAuthoritativeBytes <= 0) {
-    fail('d0046_preflight_requirement_invalid', 'Source-bound Case admission requirement must be a positive safe integer', {
+  if (!Number.isSafeInteger(requiredAuthoritativeBytes) || requiredAuthoritativeBytes < D0046_MIN_CASE_AUTHORITATIVE_BYTES) {
+    fail('d0046_preflight_requirement_invalid', 'Source-bound Case admission requirement was below the accepted measured minimum', {
       requiredAuthoritativeBytes,
+      minimumBytes: D0046_MIN_CASE_AUTHORITATIVE_BYTES,
     });
   }
   if (!Number.isSafeInteger(configuredBytes) || configuredBytes < requiredAuthoritativeBytes) {
@@ -240,18 +237,11 @@ function assertTrialSettings(settings) {
   if (caseAuthority.type !== 'durable_object_namespace' || caseAuthority.class_name !== 'CaseRuntimeDO' || caseAuthority.namespace_id !== D0046_CASE_NAMESPACE) fail('d0046_preflight_binding_mismatch', 'Trial Case binding was not the fixed Case owner');
   const placement = binding(settings, 'TDEV_CASE_PLACEMENT');
   if (placement.type !== 'd1' || placement.database_id !== D0046_CASE_PLACEMENT_DATABASE) fail('d0046_preflight_binding_mismatch', 'Trial D1 placement was not the fixed database');
-  const composition = parseCanonicalBindingJson(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON');
-  if (composition.repository?.context?.contextProfile !== 'tdev.repository.context.prepare.lazy.v1' ||
-      composition.repository?.scopeDigest !== composition.repository?.context?.scopeDigest ||
-      JSON.stringify(composition.repository?.scope) !== JSON.stringify(D0046_MCP_CONTEXT_SCOPE) ||
-      composition.repository?.repositoryBaseIdentity?.manifestDigest === undefined) {
-    fail('d0046_preflight_manifest_mismatch', 'Trial composition did not bind the accepted lazy repository identity and scope');
-  }
-  return { sourceSha, baseDigest, driveNamespace: drive.namespace_id, composition };
+  return { sourceSha, baseDigest, driveNamespace: drive.namespace_id, composition: parseCanonicalBindingJson(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON') };
 }
 
 function assertCaseSettings(settings) {
-  const configuredBytes = assertCaseOwnerCapacity(settings);
+  const configuredBytes = assertCaseOwnerCapacity(settings, D0046_MIN_CASE_AUTHORITATIVE_BYTES);
   assertText(settings, 'TDEV_WORKER_SCRIPT', D0046_CASE_SCRIPT);
   assertText(settings, 'TDEV_DEPLOYMENT', D0046_CASE_SCRIPT);
   assertText(settings, 'TDEV_ENVIRONMENT', 'qualification');
@@ -280,10 +270,8 @@ export async function runM1CapacityPreflight({
   ]);
   const trial = assertTrialSettings(trialSettings);
   const configuredBytes = assertCaseSettings(caseSettings);
-  const head = await runGitCommand({ repositoryPath, args: ['rev-parse', 'HEAD'] });
-  if (head.code !== 0) fail('d0046_preflight_source_missing', 'Git could not resolve the local source HEAD', { exitCode: head.code });
-  const localSourceSha = head.stdout.toString('utf8').trim();
-  if (localSourceSha !== trial.sourceSha) fail('d0046_preflight_source_mismatch', 'Local checkout was not the exact source bound to the trial Worker', { provider: trial.sourceSha, local: localSourceSha });
+  const sourceObject = await runGitCommand({ repositoryPath, args: ['cat-file', '-e', `${trial.sourceSha}^{commit}`] });
+  if (sourceObject.code !== 0) fail('d0046_preflight_source_missing', 'The provider-bound immutable source commit was not present in the local repository', { sourceSha: trial.sourceSha, exitCode: sourceObject.code });
   const expectedContextReference = `tdev-context-${trial.sourceSha.slice(0, 12)}`;
   const expectedContextRevision = `tdev-mcp-${trial.sourceSha.slice(0, 12)}`;
   const composition = trial.composition;
@@ -294,13 +282,10 @@ export async function runM1CapacityPreflight({
   let operation;
   try { operation = normalizeDevelopmentOperationManifest(JSON.parse(operationText)); } catch (cause) { fail('d0046_preflight_operation_invalid', 'Bound source operation manifest was invalid', undefined, { cause }); }
   if (!operation.profiles[MODEL_PROFILE] || !operation.profiles[VALIDATION_OPERATION_PROFILE] || operation.profiles[VALIDATION_OPERATION_PROFILE].binding?.profile !== VALIDATION_PROFILE) fail('d0046_preflight_operation_invalid', 'Bound source operation manifest omitted the required model or validation profile');
-  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: trial.sourceSha, scope: composition.repository.scope });
+  const excludedPaths = operation.profiles[MODEL_PROFILE].binding?.contextExcludedPaths ?? [];
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: trial.sourceSha, excludedPaths });
   if (base.baseDigest !== trial.baseDigest) fail('d0046_preflight_base_mismatch', 'Recomputed source-bound base digest differed from provider binding', { expected: trial.baseDigest, actual: base.baseDigest });
-  if (base.repositoryBaseIdentity.baseDigest !== composition.repository.repositoryBaseIdentity.baseDigest || base.manifestDigest !== composition.repository.repositoryBaseIdentity.manifestDigest || base.scopeDigest !== composition.repository.scopeDigest) {
-    fail('d0046_preflight_identity_mismatch', 'Recomputed source-bound complete identity differed from provider binding');
-  }
   const measurement = measureFreshCaseAuthoritativeBytes({
-    ...composition.repository.context,
     baseTree: base.tree,
     repositoryCommitOid: trial.sourceSha,
     revisionId: composition.repository.context.revisionId,
@@ -309,7 +294,7 @@ export async function runM1CapacityPreflight({
   const capacity = assertCapacityPreflight({ requiredAuthoritativeBytes: measurement.requiredAuthoritativeBytes, configuredBytes });
   return Object.freeze({
     status: 'pass',
-    source: { commitOid: trial.sourceSha, treeOid: base.treeOid, objectFormat: base.objectFormat, baseDigest: base.baseDigest, repositoryBaseDigest: base.repositoryBaseIdentity.baseDigest, manifestDigest: base.manifestDigest, scopeDigest: base.scopeDigest, scope: base.scope, manifestEntryCount: base.manifestEntryCount, fileCount: base.fileCount, semanticBytes: base.semanticBytes, selectedBytes: base.selectedBytes, compressedBytes: base.compressedBytes },
+    source: { commitOid: trial.sourceSha, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, compressedBytes: base.compressedBytes, excludedPaths },
     composition: { contextReference: expectedContextReference, driveNamespace: trial.driveNamespace },
     provider: {
       trial: { scriptName: D0046_MCP_TRIAL_SCRIPT, versionId: trialDeployment.versionId, versionNumber: trialDeployment.versionNumber, activeDeploymentId: trialDeployment.activeDeploymentId, traffic: trialDeployment.traffic },
@@ -318,7 +303,7 @@ export async function runM1CapacityPreflight({
     measurement,
     capacity,
     effects: { caseCreated: false, canonicalTreeMutation: false, gitRefMutation: false, trialWorkerMutation: false, caseWorkerMutation: false, secretValuesRead: false },
-    next: 'Complete the authenticated machine/provider MCP candidate and cleanup qualification before M2; capacity readback alone does not pass M1.',
+    next: 'One fresh authenticated web ChatGPT M2 development attempt; no additional ad hoc refresh probes.',
   });
 }
 

@@ -1,0 +1,128 @@
+{
+  "schemaVersion": 1,
+  "secretValues": "excluded",
+  "classification": "d0046_r1_m1_oauth_capability_metadata_provider_readback_pass",
+  "observedAtUtc": "2026-09-04T21:05:16Z",
+  "repository": {
+    "repository": "humtr/tdev",
+    "activeRef": "development",
+    "testedCommit": "ef2be2dbb7a5648d15796ce9e0c84b5213cbd9ec",
+    "sourceGate": "npm run check PASS 658/658; npm run docs:check PASS",
+    "unrelatedUntrackedFilesPreserved": true
+  },
+  "design": {
+    "id": "D0046",
+    "revision": 1,
+    "gate": "M1 OAuth compatibility remediation",
+    "scope": "make Worker-hosted OAuth authorization-server metadata match the Cloudflare issuer capability contract"
+  },
+  "change": {
+    "problem": "The Worker-hosted standard authorization-server metadata omitted optional-but-published Cloudflare OAuth capabilities that a current MCP client may inspect.",
+    "repair": "The Worker-hosted metadata now mirrors the Cloudflare issuer for response types/modes, grants, token endpoint auth methods, revocation, registration, and PKCE S256.",
+    "sourceModules": [
+      "src/mcp-discovery.mjs",
+      "test/d0046-mcp-trial-deploy.test.mjs"
+    ]
+  },
+  "trial": {
+    "scriptName": "tdev-mcp-trial",
+    "origin": "https://tdev-mcp-trial.humtr.workers.dev",
+    "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+    "environment": "qualification",
+    "jurisdiction": "global",
+    "canonicalWriterEnabled": false,
+    "previewWritersEnabled": false
+  },
+  "repositoryArtifact": {
+    "commitOid": "ef2be2dbb7a5648d15796ce9e0c84b5213cbd9ec",
+    "baseDigest": "sha256:7eca7ae3cf1bb0e46ecb66e7673ca2b81a7265293ef6bd0ebd87f2360e5b52b2",
+    "fileCount": 488,
+    "semanticBytes": 7688230,
+    "compressedBytes": 1629881,
+    "moduleBytes": 2283239,
+    "moduleCount": 34,
+    "moduleDigest": "sha256:9d00ed47f6e38b76381152d230797c627891b200676ed1ff6d6207af42bc1fdd",
+    "artifactManifestDigest": "sha256:f8efff2ff7c6858a1b337ad8377eb2648d2953e130b1518828aa2e0c8aee75e9"
+  },
+  "manifests": {
+    "compositionDigest": "sha256:db856e7d5eea4ea6430e42f039aa5d9cbb91f909c7b1c9ec306998f297903658",
+    "authProfileDigest": "sha256:1ae1352fb462e1caf60b5410a2d57fd8553ce5a1d0a975e388557aaf490459a1",
+    "operationDigest": "sha256:a1deaefcefe8c8b8cc835c9c456240f660f14d44d258fbc0d6c3d734e8969cf9",
+    "surfaceDigest": "sha256:5b6d555ec996f392dfbbd604d7002bb264f683171663b53807ded0bbe9edb8ac"
+  },
+  "provider": {
+    "workerVersion": {
+      "id": "01c680aa-7477-42f4-860f-26c56b74d83a",
+      "number": 5,
+      "trafficPercentage": 100
+    },
+    "deploymentId": "7e95a4e8-c98a-4faa-98c0-0745b924a1c8",
+    "workersDev": {
+      "enabled": true,
+      "previewsEnabled": false
+    },
+    "access": {
+      "applicationId": "3a409320-586b-48cd-8c3b-b6c25bdcd728",
+      "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "dynamicRegistration": true,
+      "redirectUri": "https://chatgpt.com/connector/oauth/*",
+      "pkce": "S256"
+    }
+  },
+  "publicReadback": {
+    "workerProtectedResourceMetadata": {
+      "status": 200,
+      "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+      "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+    },
+    "workerAuthorizationServerMetadata": {
+      "status": 200,
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "authorizationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/authorization",
+      "tokenEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/token",
+      "responseTypes": ["code"],
+      "responseModes": ["query"],
+      "grantTypes": ["authorization_code", "refresh_token"],
+      "tokenEndpointAuthMethods": ["client_secret_basic", "client_secret_post", "none"],
+      "revocationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/revoke",
+      "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration",
+      "pkce": ["S256"]
+    },
+    "cloudflareProtectedResourceMetadata": {
+      "status": 200,
+      "resource": "https://tdev-mcp-trial.humtr.workers.dev/mcp",
+      "authorizationServers": ["https://humtr.cloudflareaccess.com"]
+    },
+    "issuerAuthorizationServerMetadata": {
+      "status": 200,
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "responseTypes": ["code"],
+      "responseModes": ["query"],
+      "grantTypes": ["authorization_code", "refresh_token"],
+      "tokenEndpointAuthMethods": ["client_secret_basic", "client_secret_post", "none"],
+      "revocationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/revoke",
+      "registrationEndpoint": "https://humtr.cloudflareaccess.com/cdn-cgi/access/oauth/registration",
+      "pkce": ["S256"]
+    },
+    "unauthenticatedMcp": {
+      "status": 401,
+      "resourceMetadata": "https://tdev-mcp-trial.humtr.workers.dev/.well-known/cloudflare-access-protected-resource/mcp"
+    },
+    "authorizationEndpointPreflight": {
+      "status": 302,
+      "redirectHost": "humtr.cloudflareaccess.com",
+      "pkceAndResourceAccepted": true
+    }
+  },
+  "safety": {
+    "canonicalTreeMutation": false,
+    "gitRefMutation": false,
+    "caseDataMutation": false,
+    "agentCredentialMutation": false,
+    "codexCredentialForwarded": false,
+    "existingTrialOwnersReused": true,
+    "secretValues": "excluded"
+  },
+  "next": "Use a fresh ChatGPT MCP connection or Refresh metadata, then complete the browser OAuth flow; PKCE requires no manual UI option."
+}

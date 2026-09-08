@@ -24,15 +24,7 @@ export const DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES = 256 * 1024;
 export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
 export const CODEX_MODEL_BINDING_PROFILE = 'tdev.model.codex-exec-no-bwrap.v1';
 export const CODEX_EXECUTION_BOUNDARY = 'tdev.disposable-exact-base-no-bwrap.v1';
-// Trusted-local M0 deliberately runs without Codex's kernel/bwrap sandbox. The
-// disposable exact-base clone and warden are the enforced boundary, so the
-// dangerous bypass must be explicit in the release binding rather than inferred
-// from an omitted option.
-export const CODEX_OPERATION_ARGUMENTS = Object.freeze([
-  'exec', '--ephemeral', '--json', '--ignore-user-config',
-  '--dangerously-bypass-approvals-and-sandbox',
-]);
-export const LAZY_CONTEXT_OPERATION_PROFILE = 'tdev.repository.context.prepare.lazy.v1';
+export const CODEX_OPERATION_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--ignore-user-config']);
 
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
 const EXECUTABLE_KINDS = new Set(['built_in', 'configured_runtime']);
@@ -105,7 +97,7 @@ function normalizeProfile(input, name) {
   }
   let binding = null;
   if (input.binding !== undefined && input.binding !== null) {
-    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths', 'executionBoundary'], `operation profile ${name}.binding`);
+    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths', 'contextIncludedPathPrefixes', 'executionBoundary'], `operation profile ${name}.binding`);
     assertIdentifier(input.binding.profile, `operation profile ${name}.binding.profile`);
     for (const field of ['outputSchemaPath', 'model', 'reasoningEffort', 'validationCommand']) {
       if (input.binding[field] !== undefined && input.binding[field] !== null) boundedText(input.binding[field], `operation profile ${name}.binding.${field}`, 4096);
@@ -119,6 +111,21 @@ function normalizeProfile(input, name) {
         fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths is invalid`);
       }
       binding.contextExcludedPaths = [];
+    }
+    if (input.binding.contextIncludedPathPrefixes !== undefined) {
+      if (!Array.isArray(input.binding.contextIncludedPathPrefixes) || input.binding.contextIncludedPathPrefixes.length === 0 || input.binding.contextIncludedPathPrefixes.length > 128) {
+        fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextIncludedPathPrefixes is invalid`);
+      }
+      const includedPathPrefixes = input.binding.contextIncludedPathPrefixes.map((value) => {
+        const text = boundedText(value, `operation profile ${name}.binding.contextIncludedPathPrefixes`, 4096);
+        const directoryPrefix = text.endsWith('/');
+        const normalized = validateRelativePath(directoryPrefix ? text.slice(0, -1) : text);
+        return directoryPrefix ? `${normalized}/` : normalized;
+      }).sort(compareText);
+      for (let index = 1; index < includedPathPrefixes.length; index += 1) {
+        if (includedPathPrefixes[index] === includedPathPrefixes[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextIncludedPathPrefixes contains a duplicate`);
+      }
+      binding.contextIncludedPathPrefixes = includedPathPrefixes;
     }
   }
   if (input.kind === 'model_repository' && (binding === null || binding.profile !== CODEX_MODEL_BINDING_PROFILE || binding.executionBoundary !== CODEX_EXECUTION_BOUNDARY || typeof binding.outputSchemaPath !== 'string')) {

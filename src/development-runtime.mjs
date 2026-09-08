@@ -22,12 +22,6 @@ import { DEFAULT_LIMITS, DEFAULT_PATH_POLICY, validateRelativePath } from './pol
 import { normalizeChangeSet } from './results.mjs';
 import { runGitCommand } from './git-projection.mjs';
 import {
-  runModelSubprocess,
-  GitRepositoryModelExecutor,
-  REPOSITORY_CONTEXT_PROFILE,
-  LAZY_REPOSITORY_CONTEXT_PROFILE,
-} from './repository-model-transport.mjs';
-import {
   CODEX_MODEL_BINDING_PROFILE,
   CODEX_EXECUTION_BOUNDARY,
   CODEX_OPERATION_ARGUMENTS,
@@ -52,7 +46,59 @@ const DEFAULT_OPERATION_TIMEOUT_MS = 300_000;
 const DEFAULT_CANCEL_GRACE_MS = 2_000;
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 const TERMUX_PREFIX = '/data/data/com.termux/files/usr';
-const CANDIDATE_DIGEST_DOMAIN = 'tdev.disposable-candidate.v1';
+
+/**
+ * Build the Case result envelope emitted by a release-bound development Agent.
+ *
+ * The operation adapter only returns a typed operation result.  The surrounding
+ * Agent delivery is the authority that knows the activated Attempt fence, so
+ * the result identity is completed from the dispatch envelope here.  The
+ * template is release/Plan-bound and may not be selected by the caller.
+ */
+function validateCaseResultEnvelopeTemplate(template) {
+  if (!isPlainRecord(template)) fail('development_runtime_result_template_invalid', 'Result envelope template must be a record');
+  assertRecordShape(template, [
+    'caseId', 'planRevisionId', 'planDigest', 'taskId', 'attemptId', 'executorId', 'executorEpoch',
+    'claimLeaseToken', 'claimLeaseGeneration', 'claimLeaseClaimsDigest',
+  ], [], 'result envelope template');
+  for (const field of ['caseId', 'planRevisionId', 'taskId', 'attemptId', 'executorId']) {
+    assertIdentifier(template[field], `result envelope template.${field}`);
+  }
+  assertDigest(template.planDigest, 'result envelope template.planDigest');
+  assertSafeInteger(template.executorEpoch, 'result envelope template.executorEpoch', { min: 1 });
+  if (template.claimLeaseToken !== null) assertDigest(template.claimLeaseToken, 'result envelope template.claimLeaseToken');
+  if (template.claimLeaseGeneration !== null) assertSafeInteger(template.claimLeaseGeneration, 'result envelope template.claimLeaseGeneration', { min: 1 });
+  if (template.claimLeaseClaimsDigest !== null) assertDigest(template.claimLeaseClaimsDigest, 'result envelope template.claimLeaseClaimsDigest');
+  if ((template.claimLeaseToken === null) !== (template.claimLeaseGeneration === null) ||
+      (template.claimLeaseToken === null) !== (template.claimLeaseClaimsDigest === null)) {
+    fail('development_runtime_result_template_invalid', 'Result claim-lease identity must be wholly present or wholly absent');
+  }
+  return template;
+}
+
+export function caseResultEnvelopeFromDispatch({ template, envelope, result } = {}) {
+  validateCaseResultEnvelopeTemplate(template);
+  if (!isPlainRecord(envelope)) fail('development_runtime_dispatch_invalid', 'Dispatch envelope must be a record');
+  for (const field of ['caseId', 'taskId', 'attemptId', 'executorId']) {
+    if (envelope[field] !== template[field]) fail('development_runtime_result_identity_mismatch', `Dispatch ${field} does not match the release-bound result template`);
+  }
+  if (envelope.executorEpoch !== template.executorEpoch) fail('development_runtime_result_identity_mismatch', 'Dispatch executor epoch does not match the result template');
+  assertDigest(envelope.fencingToken, 'dispatch fencingToken');
+  return deepFreeze({
+    caseId: template.caseId,
+    planRevisionId: template.planRevisionId,
+    planDigest: template.planDigest,
+    taskId: template.taskId,
+    attemptId: template.attemptId,
+    executorId: template.executorId,
+    executorEpoch: template.executorEpoch,
+    fencingToken: envelope.fencingToken,
+    claimLeaseToken: template.claimLeaseToken,
+    claimLeaseGeneration: template.claimLeaseGeneration,
+    claimLeaseClaimsDigest: template.claimLeaseClaimsDigest,
+    result: canonicalClone(result),
+  });
+}
 
 function fail(code, message, details = undefined, options = undefined) {
   throw new ContractError(code, message, details, options);
@@ -134,6 +180,10 @@ function runtimeEnvironment({ executable, codexHome = null, temporaryDirectory =
     environment.CODEX_HOME = codexHome;
     environment.HOME = codexLauncherHome(codexHome);
   }
+  // Termux launchers require these two platform variables, but inheriting the
+  // ambient process environment would re-open an unbounded caller-controlled
+  // environment.  Derive them only for the release-bound Termux executable
+  // family and point temporary files at the disposable operation root.
   if (path.resolve(executable).startsWith(`${TERMUX_PREFIX}/`)) {
     environment.PREFIX = TERMUX_PREFIX;
     if (temporaryDirectory !== null) environment.TMPDIR = path.resolve(temporaryDirectory);
@@ -300,90 +350,27 @@ function assertContextReference(descriptor, value) {
   return expected;
 }
 
-function assertPreparedContextIdentity(context, {
-  repositoryCommitOid,
-  baseDigest,
-  objectFormat = null,
-  baseIdentity = null,
-  repositoryBaseIdentity = null,
-} = {}) {
-  if (!isPlainRecord(context) || !isPlainRecord(context.descriptor)) {
-    fail('development_runtime_context_invalid', 'Prepared context is not an immutable descriptor');
-  }
-  const descriptor = context.descriptor;
-  if (descriptor.commitOid !== undefined && descriptor.commitOid !== repositoryCommitOid) {
-    fail('development_runtime_commit_identity_mismatch', 'Prepared context is bound to a different repository commit');
-  }
-  if (descriptor.baseDigest !== undefined && descriptor.baseDigest !== baseDigest) {
-    fail('development_runtime_base_identity_mismatch', 'Prepared context is bound to a different full base digest');
-  }
-  if (objectFormat !== null && descriptor.objectFormat !== undefined && descriptor.objectFormat !== objectFormat) {
-    fail('development_runtime_object_format_mismatch', 'Prepared context is bound to a different Git object format');
-  }
-  if (baseIdentity !== null && baseIdentity !== undefined) {
-    const observed = descriptor.baseIdentity;
-    if (!isPlainRecord(observed) || observed.schemaVersion !== 1 || observed.profile !== 'tdev.repository-base-identity.v1' ||
-        observed.objectFormat !== baseIdentity.objectFormat || observed.commitOid !== baseIdentity.commitOid ||
-        observed.treeOid !== baseIdentity.treeOid || observed.baseDigest !== baseIdentity.baseDigest ||
-        observed.manifestDigest !== baseIdentity.manifestDigest) {
-      fail('development_runtime_base_identity_mismatch', 'Prepared context does not attest the owner-issued full-base identity');
-    }
-  }
-  if (descriptor.baseIdentity !== undefined && (!isPlainRecord(descriptor.baseIdentity) ||
-      descriptor.baseIdentity.schemaVersion !== 1 || descriptor.baseIdentity.profile !== 'tdev.repository-base-identity.v1' ||
-      !['sha1', 'sha256'].includes(descriptor.baseIdentity.objectFormat) ||
-      descriptor.baseIdentity.commitOid !== repositoryCommitOid || descriptor.baseIdentity.baseDigest !== baseDigest ||
-      typeof descriptor.baseIdentity.treeOid !== 'string' || !/^([0-9a-f]{40}|[0-9a-f]{64})$/u.test(descriptor.baseIdentity.treeOid))) {
-    fail('development_runtime_base_identity_mismatch', 'Prepared context full-base identity is inconsistent');
-  }
-  if (descriptor.baseIdentity !== undefined) assertDigest(descriptor.baseIdentity.manifestDigest, 'prepared context manifestDigest');
-  if (descriptor.manifestDigest !== undefined && descriptor.baseIdentity?.manifestDigest !== undefined && descriptor.manifestDigest !== descriptor.baseIdentity.manifestDigest) {
-    fail('development_runtime_manifest_identity_mismatch', 'Prepared context manifest identity disagrees with its full-base identity');
-  }
-  if (repositoryBaseIdentity !== null && repositoryBaseIdentity !== undefined) {
-    const expected = normalizeRepositoryBaseIdentity(repositoryBaseIdentity, {
-      objectFormat: objectFormat ?? repositoryBaseIdentity.objectFormat,
-      commitOid: repositoryCommitOid,
-    });
-    const observed = descriptor.repositoryBaseIdentity;
-    if (!isPlainRecord(observed) || observed.profile !== expected.profile || observed.objectFormat !== expected.objectFormat ||
-        observed.commitOid !== expected.commitOid || observed.treeOid !== expected.treeOid ||
-        observed.baseDigest !== expected.baseDigest || observed.manifestDigest !== expected.manifestDigest) {
-      fail('development_runtime_repository_identity_mismatch', 'Prepared context does not attest the complete repository base identity');
-    }
-  }
-  if (descriptor.repositoryBaseIdentity !== undefined) {
-    normalizeRepositoryBaseIdentity(descriptor.repositoryBaseIdentity, {
-      commitOid: repositoryCommitOid,
-      objectFormat: descriptor.repositoryBaseIdentity.objectFormat,
-    });
-  }
-  return context;
-}
-
-export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextReferenceId: referenceId, contextDigest, contextFileCount, instruction, writePaths = null } = {}) {
+export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextReferenceId: referenceId, contextDigest, contextFileCount, instruction } = {}) {
   return [
-    'You are the release-bound tdev development worker.',
-    'Inspect the exact Git repository in the current working directory using read-only commands only.',
-    'The workspace may be an owner-issued sparse context. Treat files outside the supplied context as unavailable and do not run broad tests, installs, or builds that require them.',
-    'The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.',
-    'Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.',
-    'Read-only applies to shell commands only. The JSON ChangeSet is the implementation channel and must contain the actual edits.',
-    'The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible. The returned writes array MUST be non-empty for an implementation instruction: inspect the named files, construct complete replacements, and put those replacements in the JSON result. A no-op is invalid even when the existing tests pass. Do not report that you changed files unless the writes array contains the changes.',
-    'Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.',
-    'The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).',
-    `repositoryCommitOid=${repositoryCommitOid}`,
-    `baseDigest=${baseDigest}`,
-    `contextReferenceId=${referenceId}`,
-    `contextDigest=${contextDigest}`,
-    `contextFileCount=${contextFileCount}`,
-    `writePaths=${writePaths === null ? 'owner scope not supplied' : writePaths.join(',')}`,
-    `instruction=${instruction}`,
-  ].join('\n');
+    "You are the release-bound tdev development worker.",
+    "Inspect the exact Git repository in the current working directory using read-only commands only.",
+    "The provider does not supply a kernel sandbox; treat this disposable clone as the only workspace and do not rely on bwrap.",
+    "Do not mutate files directly, create commits, access network tools, read files outside the working directory, or reveal credentials.",
+    "Read-only applies to shell commands only. The JSON ChangeSet is the implementation channel and must contain the actual edits.",
+    "The clone must remain clean because the caller applies your result. You MUST implement the requested source change in the returned ChangeSet; never substitute an empty ChangeSet when the instruction is feasible. The returned writes array MUST be non-empty for an implementation instruction: inspect the named files, construct complete replacements, and put those replacements in the JSON result. A no-op is invalid even when the existing tests pass. Do not report that you changed files unless the writes array contains the changes.",
+    "Return exactly one JSON object matching the supplied output schema and no Markdown or commentary.",
+    "The object must be a result-only ChangeSet against the supplied base digest. Include only relative paths and complete replacement text (or null for deletion).",
+    "repositoryCommitOid=" + repositoryCommitOid,
+    "baseDigest=" + baseDigest,
+    "contextReferenceId=" + referenceId,
+    "contextDigest=" + contextDigest,
+    "contextFileCount=" + contextFileCount,
+    "instruction=" + instruction,
+  ].join("\n");
 }
 
-async function checkedGit({ repositoryPath, args, input = null, signal }) {
-  const result = await runGitCommand({ repositoryPath, args, input, signal });
+async function checkedGit({ repositoryPath, args, signal }) {
+  const result = await runGitCommand({ repositoryPath, args, signal });
   if (result.code !== 0) fail('development_runtime_git_failed', `Git command failed: ${args[0]}`, { exitCode: result.code, signal: result.signal });
   return result.stdout;
 }
@@ -393,7 +380,7 @@ async function assertCleanClone({ repositoryPath, signal }) {
   if (status.length !== 0) fail('development_runtime_clone_mutated', 'Codex modified the disposable exact-base repository', { status: status.slice(0, 8192) });
 }
 
-async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, sparsePaths = null }) {
+async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal }) {
   const parent = workspaceRoot === undefined || workspaceRoot === null ? os.tmpdir() : absolutePath(workspaceRoot, 'workspaceRoot');
   await mkdir(parent, { recursive: true, mode: 0o700 });
   const clonePath = await mkdtemp(path.join(parent, 'tdev-development-'));
@@ -528,6 +515,101 @@ function classifyCodexProcessFailure(processResult) {
   return error;
 }
 
+function sanitizeDiagnosticText(value) {
+  if (typeof value !== "string" || value.length === 0) return null;
+  return value.slice(0, 256)
+    .replace(/(?:https?|wss?):\/\/\S+/giu, "<url>")
+    .replace(/(?:bearer|token|secret|password|authorization|api.?key)[=: ]+\S+/giu, "<credential>")
+    .replace(/\/data\/data\/\S+/gu, "<path>")
+    .replace(/[A-Za-z0-9+_=-]{24,}/gu, "<opaque>");
+}
+
+function classifyDiagnosticText(value) {
+  if (typeof value !== "string" || value.length === 0) return "empty";
+  const text = value.toLowerCase();
+  if (/bwrap|sandbox|namespace/u.test(text)) return "sandbox";
+  if (/approval|permission|confirm/u.test(text)) return "approval";
+  if (/401|403|unauthorized|authentication|login|token/u.test(text)) return "authentication";
+  if (/404|not found|unknown endpoint|endpoint/u.test(text)) return "endpoint";
+  if (/rate.?limit|quota|limit exceeded/u.test(text)) return "rate_limit";
+  if (/model.{0,32}(not found|unsupported|unavailable)|unsupported.{0,32}model/u.test(text)) return "model";
+  if (/schema|json|structured output/u.test(text)) return "schema";
+  if (/trust|trusted|untrusted|project directory|working directory|repository root/u.test(text)) return "trust";
+  if (/network|connect|socket|websocket|http|dns|tls/u.test(text)) return "network";
+  if (/invalid|malformed|bad request|request failed/u.test(text)) return "request";
+  return "other";
+}
+
+function summarizeCodexProcessOutput(bytes) {
+  const summary = { eventTypes: [], itemTypes: [], eventCount: 0, truncated: false, malformedEvents: 0, terminalAgentMessages: 0, turnCompleted: false, turnFailed: false, errorEvents: 0, errorCodes: [], errorKeys: [], errorDetailClasses: [], errorMessageLengths: [], errorMessagePreviews: [], failedCommandExecutions: 0, failedCommandExitCodes: [] };
+  if (!Buffer.isBuffer(bytes)) return summary;
+  let text;
+  try { text = UTF8_DECODER.decode(bytes); }
+  catch { summary.malformedEvents = 1; return summary; }
+  const lines = text.split("\n");
+  if (lines.at(-1) === "") lines.pop();
+  const boundedLines = lines.slice(0, 64);
+  summary.eventCount = boundedLines.length;
+  summary.truncated = lines.length > boundedLines.length;
+  for (const line of boundedLines) {
+    let event;
+    try { event = strictJsonParse(line, { maxBytes: CODEX_MAX_RESPONSE_BYTES }); }
+    catch { summary.malformedEvents += 1; continue; }
+    if (!isPlainRecord(event) || typeof event.type !== "string") { summary.malformedEvents += 1; continue; }
+    if (summary.eventTypes.length < 16) summary.eventTypes.push(event.type);
+    const item = event.item;
+    if (isPlainRecord(item) && typeof item.type === "string") {
+      if (summary.itemTypes.length < 16) summary.itemTypes.push(item.type);
+      if (event.type === "item.completed" && item.type === "agent_message") summary.terminalAgentMessages += 1;
+    }
+    if (event.type === "item.completed" && item?.type === "command_execution" && item.status === "failed") {
+      summary.failedCommandExecutions += 1;
+      if (summary.failedCommandExitCodes.length < 8 && Number.isSafeInteger(item.exit_code)) summary.failedCommandExitCodes.push(item.exit_code);
+    }
+    if (event.type === "turn.completed") summary.turnCompleted = true;
+    if (event.type === "turn.failed") summary.turnFailed = true;
+    if (event.type === "error" || event.type === "turn.failed") summary.errorEvents += 1;
+    if (isPlainRecord(event.error)) {
+      for (const key of Object.keys(event.error).sort()) if (summary.errorKeys.length < 16) summary.errorKeys.push(key);
+      for (const key of ["code", "type", "message", "detail"]) {
+        if (typeof event.error[key] !== "string") continue;
+        if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.error[key]));
+        if (summary.errorMessageLengths.length < 8 && key === "message") summary.errorMessageLengths.push(event.error[key].length);
+        if (summary.errorMessagePreviews.length < 4 && key === "message") summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.error[key]));
+        if (key === "code" && summary.errorCodes.length < 8) summary.errorCodes.push(event.error[key]);
+      }
+    } else if (typeof event.error === "string") {
+      if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.error));
+      if (summary.errorMessageLengths.length < 8) summary.errorMessageLengths.push(event.error.length);
+      if (summary.errorMessagePreviews.length < 4) summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.error));
+    }
+    if (typeof event.message === "string") {
+      if (summary.errorDetailClasses.length < 8) summary.errorDetailClasses.push(classifyDiagnosticText(event.message));
+      if (summary.errorMessageLengths.length < 8) summary.errorMessageLengths.push(event.message.length);
+      if (summary.errorMessagePreviews.length < 4) summary.errorMessagePreviews.push(sanitizeDiagnosticText(event.message));
+    }
+  }
+  return summary;
+}
+
+function summarizeValidationOutput(bytes) {
+  const summary = { failureLineCount: 0, failureClasses: [], failurePreviews: [] };
+  if (!Buffer.isBuffer(bytes)) return summary;
+  let text;
+  try { text = UTF8_DECODER.decode(bytes); }
+  catch { summary.failureLineCount = 1; summary.failureClasses.push('non_utf8'); return summary; }
+  for (const line of text.split("\n")) {
+    const cleanLine = line.replace(/\u001b\[[0-?]*[ -\/]*[@-~]/gu, '');
+    // Match runner/error records, not ordinary test names such as
+    // "fails closed" that happen to contain the word "fail".
+    if (!/(?:^\s*not ok\b|^\s*✖\b|^\s*npm ERR!\b|^\s*(?:AssertionError|(?:Type|Range|Reference|Syntax)?Error)(?:\s*\[[^\]]+\])?:)/u.test(cleanLine)) continue;
+    summary.failureLineCount += 1;
+    if (summary.failureClasses.length < 8) summary.failureClasses.push(classifyDiagnosticText(cleanLine));
+    if (summary.failurePreviews.length < 8) summary.failurePreviews.push(sanitizeDiagnosticText(cleanLine));
+  }
+  return summary;
+}
+
 function normalizedChangeSet(result, baseDigest, evidence) {
   if (!isPlainRecord(result)) fail('codex_changeset_invalid', 'Codex terminal output must be a ChangeSet record');
   try {
@@ -548,7 +630,7 @@ function assertWriteScope(result, writePaths) {
 }
 
 export class CodexExecRepositoryModelExecutor {
-  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null, warden = null } = {}) {
+  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], contextIncludedPathPrefixes = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.codexExecutable = absolutePath(codexExecutable, 'codexExecutable');
     this.codexHome = absolutePath(codexHome, 'codexHome');
@@ -565,8 +647,7 @@ export class CodexExecRepositoryModelExecutor {
     if (typeof modelRunner !== 'function') fail('development_runtime_model_runner_invalid', 'modelRunner must be a function');
     this.observation = observation;
     this.modelRunner = modelRunner;
-    this.warden = warden;
-    this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
+    this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, includedPathPrefixes: contextIncludedPathPrefixes, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
     if (!this.contextAdapter || typeof this.contextAdapter.materializeContext !== 'function') fail('development_runtime_context_adapter_invalid', 'contextAdapter must materialize immutable context');
     Object.freeze(this);
   }
@@ -600,51 +681,13 @@ export class CodexExecRepositoryModelExecutor {
       fail('development_runtime_context_scope_mismatch', 'Prepared context scope does not match the model operation scope');
     }
     const referenceId = assertContextReference(context.descriptor, contextReferenceId);
-    const sparsePaths = context.descriptor.profile === 'tdev.repository-context.git-scoped-lazy.v1'
-      ? context.files?.map((file) => file.path).filter((filePath) => typeof filePath === 'string') ?? null
-      : null;
-    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal, sparsePaths });
-    const workspaceId = typedDigest('tdev.model-workspace.v1', {
-      schemaVersion: 1,
-      operationId: operationId ?? null,
-      repositoryCommitOid,
-      contextReferenceId: referenceId,
-      clonePathDigest: digest(clonePath),
-    });
-    if (this.warden !== null) {
-      try {
-        this.warden.registerWorkspace({ workspaceId, root: clonePath, operationId, kind: 'model-clone' });
-      } catch (cause) {
-        await rm(clonePath, { recursive: true, force: true });
-        throw cause;
-      }
-    }
-    let workspaceCleanup = null;
-    const processOperationId = operationId ?? `codex:${repositoryCommitOid}`;
-    let processCleanup = null;
-    const cleanupProcess = async () => {
-      if (processCleanup !== null) return processCleanup;
-      if (this.warden === null) {
-        processCleanup = { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true };
-        return processCleanup;
-      }
-      processCleanup = await this.warden.cleanupOperation(processOperationId);
-      if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove model process-group cleanup');
-      return processCleanup;
-    };
-    const cleanupWorkspace = async () => {
-      if (workspaceCleanup !== null) return workspaceCleanup;
-      if (this.warden !== null) workspaceCleanup = await this.warden.cleanupWorkspace(workspaceId);
-      else {
-        await rm(clonePath, { recursive: true, force: true });
-        try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
-        catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
-        workspaceCleanup = { cleanupComplete: true, workspaceId, absent: true, kind: 'model-clone' };
-      }
-      return workspaceCleanup;
-    };
+    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal });
+    const temporaryParent = this.workspaceRoot === null ? os.tmpdir() : this.workspaceRoot;
+    let runtimeTempPath = null;
     const started = performance.now();
+    let processResult = null;
     try {
+      runtimeTempPath = await mkdtemp(path.join(temporaryParent, 'tdev-development-runtime-'));
       const schemaBytes = await readFile(this.outputSchemaPath);
       const schemaDigest = `sha256:${createHash('sha256').update(schemaBytes).digest('hex')}`;
       if (this.outputSchemaSha256 !== null && schemaDigest !== this.outputSchemaSha256) {
@@ -657,19 +700,20 @@ export class CodexExecRepositoryModelExecutor {
         contextDigest: context.descriptor.contextDigest,
         contextFileCount: context.descriptor.fileCount,
         instruction,
-        writePaths,
       });
       const input = Buffer.from(prompt, 'utf8');
       if (input.byteLength > CODEX_MAX_PROMPT_BYTES) fail('codex_prompt_limit_exceeded', 'Codex prompt exceeds its bound');
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      const processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: clonePath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
-      const processCleanupReceipt = await cleanupProcess();
-      if (processResult.code !== 0) throw classifyCodexProcessFailure(processResult);
+      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: runtimeTempPath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      if (processResult.code !== 0) {
+        const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
+        fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
+      }
       await assertCleanClone({ repositoryPath: clonePath, signal });
       const parsed = parseCodexJsonl(processResult.stdout, CODEX_MAX_RESPONSE_BYTES);
-      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage, terminalMessageCount: parsed.terminalMessageCount, auxiliaryTerminalMessages: parsed.auxiliaryTerminalMessages, processCleanup: processCleanupReceipt };
+      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage };
       const result = normalizedChangeSet(parsed.result, baseDigest, evidence);
       assertWriteScope(result, writePaths);
       const cleanup = await cleanupWorkspace();
@@ -677,23 +721,59 @@ export class CodexExecRepositoryModelExecutor {
       safeObservation(this.observation, { ...evidence, workspaceCleanup: cleanup, outcome: 'returned', totalDurationMs: Math.max(0, Math.round(performance.now() - started)) });
       return returned;
     } catch (cause) {
-      safeObservation(this.observation, { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', repositoryCommitOid, contextDigest: context.descriptor.contextDigest, processStarts: cause?.details?.processStarts === 0 ? 0 : 1, outcome: cause?.code ?? 'codex_failed', failureClass: cause?.details?.providerFailureClass ?? 'unknown', certainty: cause?.certainty === 'not_applied' || cause?.certainty === 'unknown' ? cause.certainty : 'unknown' });
+      const details = cause?.details ?? {};
+      const outputSummary = processResult === null ? {} : summarizeCodexProcessOutput(processResult.stdout);
+      safeObservation(this.observation, {
+        runtimeProfile: CODEX_EXEC_MODEL_PROFILE,
+        executionBoundary: CODEX_EXECUTION_BOUNDARY,
+        sandboxMode: 'none',
+        repositoryCommitOid,
+        contextDigest: context.descriptor.contextDigest,
+        processStarts: details.processStarts === 0 ? 0 : (processResult === null ? null : 1),
+        exitCode: Number.isSafeInteger(details.exitCode) ? details.exitCode : (Number.isSafeInteger(processResult?.code) ? processResult.code : null),
+        signal: typeof details.signal === 'string' ? details.signal : null,
+        stdoutBytes: Number.isSafeInteger(details.stdoutBytes) ? details.stdoutBytes : (Number.isSafeInteger(processResult?.stdoutBytes) ? processResult.stdoutBytes : null),
+        stderrBytes: Number.isSafeInteger(details.stderrBytes) ? details.stderrBytes : (Number.isSafeInteger(processResult?.stderrBytes) ? processResult.stderrBytes : null),
+        stderrClass: typeof details.stderrClass === "string" ? details.stderrClass : (typeof processResult?.stderrClass === "string" ? processResult.stderrClass : null),
+        stdoutEventTypes: Array.isArray(details.stdoutEventTypes) ? details.stdoutEventTypes.slice(0, 16) : (Array.isArray(outputSummary.eventTypes) ? outputSummary.eventTypes.slice(0, 16) : []),
+        stdoutItemTypes: Array.isArray(details.stdoutItemTypes) ? details.stdoutItemTypes.slice(0, 16) : (Array.isArray(outputSummary.itemTypes) ? outputSummary.itemTypes.slice(0, 16) : []),
+        stdoutErrorCodes: Array.isArray(details.stdoutErrorCodes) ? details.stdoutErrorCodes.slice(0, 8) : (Array.isArray(outputSummary.errorCodes) ? outputSummary.errorCodes.slice(0, 8) : []),
+        stdoutErrorKeys: Array.isArray(details.errorKeys) ? details.errorKeys.slice(0, 16) : (Array.isArray(outputSummary.errorKeys) ? outputSummary.errorKeys.slice(0, 16) : []),
+        stdoutErrorDetailClasses: Array.isArray(details.errorDetailClasses) ? details.errorDetailClasses.slice(0, 8) : (Array.isArray(outputSummary.errorDetailClasses) ? outputSummary.errorDetailClasses.slice(0, 8) : []),
+        stdoutErrorMessageLengths: Array.isArray(details.errorMessageLengths) ? details.errorMessageLengths.slice(0, 8) : (Array.isArray(outputSummary.errorMessageLengths) ? outputSummary.errorMessageLengths.slice(0, 8) : []),
+        stdoutErrorMessagePreviews: Array.isArray(details.errorMessagePreviews) ? details.errorMessagePreviews.slice(0, 4) : (Array.isArray(outputSummary.errorMessagePreviews) ? outputSummary.errorMessagePreviews.slice(0, 4) : []),
+        stdoutEventCount: Number.isSafeInteger(details.eventCount) ? details.eventCount : (Number.isSafeInteger(outputSummary.eventCount) ? outputSummary.eventCount : null),
+        stdoutTruncated: details.truncated === true || outputSummary.truncated === true,
+        stdoutMalformedEvents: Number.isSafeInteger(details.malformedEvents) ? details.malformedEvents : (Number.isSafeInteger(outputSummary.malformedEvents) ? outputSummary.malformedEvents : null),
+        stdoutTerminalAgentMessages: Number.isSafeInteger(details.terminalAgentMessages) ? details.terminalAgentMessages : (Number.isSafeInteger(outputSummary.terminalAgentMessages) ? outputSummary.terminalAgentMessages : null),
+        stdoutTurnCompleted: details.turnCompleted === true || outputSummary.turnCompleted === true,
+        stdoutTurnFailed: details.turnFailed === true || outputSummary.turnFailed === true,
+        stdoutErrorEvents: Number.isSafeInteger(details.errorEvents) ? details.errorEvents : (Number.isSafeInteger(outputSummary.errorEvents) ? outputSummary.errorEvents : null),
+        stdoutFailedCommandExecutions: Number.isSafeInteger(outputSummary.failedCommandExecutions) ? outputSummary.failedCommandExecutions : null,
+        stdoutFailedCommandExitCodes: Array.isArray(outputSummary.failedCommandExitCodes) ? outputSummary.failedCommandExitCodes.slice(0, 8) : [],
+        outcome: cause?.code ?? 'codex_failed',
+      });
       throw cause;
     } finally {
-      let cleanupFailure = null;
-      try { await cleanupProcess(); } catch (cause) { cleanupFailure = cause; }
-      try { await cleanupWorkspace(); } catch (cause) { cleanupFailure ??= cause; }
-      if (cleanupFailure !== null) throw cleanupFailure;
+      if (runtimeTempPath !== null) {
+        await rm(runtimeTempPath, { recursive: true, force: true });
+        try { await stat(runtimeTempPath); fail('development_runtime_temp_cleanup_failed', 'Codex runtime temporary directory remained after execution'); }
+        catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+      }
+      await rm(clonePath, { recursive: true, force: true });
+      try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
+      catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
     }
   }
 }
 
 export class NpmCheckValidationExecutor {
-  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, warden = null } = {}) {
+  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, observation = null } = {}) {
     this.npmExecutable = absolutePath(npmExecutable, 'npmExecutable');
     this.timeoutMs = positiveBound(timeoutMs, 'timeoutMs', 600_000);
     this.cancelGraceMs = assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
-    this.warden = warden;
+    if (observation !== null && typeof observation !== 'function') fail('development_runtime_observation_invalid', 'observation must be a function or null');
+    this.observation = observation;
     Object.freeze(this);
   }
 
@@ -702,14 +782,27 @@ export class NpmCheckValidationExecutor {
     assertDigest(candidateTreeDigest, 'candidateTreeDigest');
     assertIdentifier(validationProfile, 'validationProfile');
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
-    const processOperationId = operationId ?? `validation:${candidateTreeDigest}`;
-    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
-    const processCleanup = this.warden === null
-      ? { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true }
-      : await this.warden.cleanupOperation(processOperationId);
-    if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove validation process-group cleanup');
+    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
     const passed = processResult.code === 0 && processResult.signal === null;
-    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, processCleanup } });
+    const outputSummary = summarizeValidationOutput(processResult.stdout);
+    safeObservation(this.observation, {
+      runtimeProfile: NPM_CHECK_VALIDATION_PROFILE,
+      executionBoundary: CODEX_EXECUTION_BOUNDARY,
+      sandboxMode: "none",
+      candidateTreeDigest,
+      validationProfile,
+      outcome: passed ? "passed" : "failed",
+      exitCode: Number.isSafeInteger(processResult.code) ? processResult.code : null,
+      signal: typeof processResult.signal === "string" ? processResult.signal : null,
+      stdoutBytes: processResult.stdoutBytes,
+      stderrBytes: processResult.stderrBytes,
+      stderrClass: typeof processResult.stderrClass === "string" ? processResult.stderrClass : null,
+      durationMs: processResult.durationMs,
+      stdoutFailureLineCount: outputSummary.failureLineCount,
+      stdoutFailureClasses: outputSummary.failureClasses,
+      stdoutFailurePreviews: outputSummary.failurePreviews,
+    });
+    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, stdoutFailureLineCount: outputSummary.failureLineCount, stdoutFailureClasses: outputSummary.failureClasses, stdoutFailurePreviews: outputSummary.failurePreviews } });
   }
 }
 
@@ -774,7 +867,7 @@ async function writeCandidateChangeSet({ repositoryPath, commitOid, result, cand
 }
 
 export class LocalDevelopmentOperationRuntime {
-  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, contextAdapter = null, observation = null, warden = null, modelRunner = runModelSubprocess } = {}) {
+  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, observation = null } = {}) {
     this.manifest = normalizeDevelopmentOperationManifest(manifest);
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
@@ -783,15 +876,8 @@ export class LocalDevelopmentOperationRuntime {
     if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.warden = warden ?? new DevelopmentWarden({ workspaceRoot: this.workspaceRoot });
-    if (!this.warden || typeof this.warden.registerProcess !== 'function' || typeof this.warden.observeProcessExit !== 'function' ||
-        typeof this.warden.cleanupOperation !== 'function' || typeof this.warden.registerWorkspace !== 'function' ||
-        typeof this.warden.cleanupWorkspace !== 'function' || typeof this.warden.cleanupCandidate !== 'function') {
-      fail('development_runtime_warden_invalid', 'A DevelopmentWarden is required for process, workspace and candidate ownership');
-    }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, codexArguments: modelProfile.argv, contextAdapter, observation, warden: this.warden, modelRunner });
-    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, warden: this.warden });
-    this.contexts = new Map();
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], contextIncludedPathPrefixes: modelProfile.binding.contextIncludedPathPrefixes ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
+    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, observation });
     this.candidates = new Map();
     this.disposed = false;
   }
@@ -882,8 +968,17 @@ export class LocalDevelopmentOperationRuntime {
   }
 }
 
+/**
+ * Execution adapter used by an installable Agent control process.  Development
+ * operations are deliberately handled in-process by the release-bound runtime:
+ * the Codex/npm children still run under the runtime's disposable clone and
+ * process-group cleanup boundary, while diagnostic package profiles continue
+ * to use the supervisor service below/alongside this path.
+ */
 export function createLocalDevelopmentOperationExecutionAdapter({ operationRuntime, capabilities = undefined } = {}) {
-  if (!(operationRuntime instanceof LocalDevelopmentOperationRuntime)) fail('development_runtime_agent_invalid', 'operationRuntime is required');
+  if (!(operationRuntime instanceof LocalDevelopmentOperationRuntime)) {
+    fail('development_runtime_agent_invalid', 'operationRuntime is required');
+  }
   const normalizedManifest = normalizeDevelopmentOperationManifest(operationRuntime.manifest);
   const effectiveCapabilities = capabilities === undefined
     ? Object.keys(normalizedManifest.profiles).map((profile) => developmentOperationCapabilityId(normalizedManifest, profile)).sort()
@@ -895,24 +990,33 @@ export function createLocalDevelopmentOperationExecutionAdapter({ operationRunti
       try {
         if (!isPlainRecord(body)) fail('development_runtime_executable_invalid', 'Development dispatch body must be a record');
         assertRecordShape(body, ['profile', 'operationRequest', 'resultEnvelopeTemplate'], [], 'development dispatch body');
-        if (body.profile !== 'tdev.development-operation-profiles.v2') fail('development_runtime_executable_invalid', 'Development dispatch body profile is not the release-bound profile');
+        if (body.profile !== 'tdev.development-operation-profiles.v2') {
+          fail('development_runtime_executable_invalid', 'Development dispatch body profile is not the release-bound profile');
+        }
         normalizeDevelopmentOperationRequest(normalizedManifest, body.operationRequest);
         validateCaseResultEnvelopeTemplate(body.resultEnvelopeTemplate);
       } catch (cause) {
-        throw createLocalExecutionStartError(cause?.code ?? 'development_runtime_executable_invalid', cause?.message ?? 'Development dispatch body validation failed', { phase: 'pre_handle', cause });
+        throw createLocalExecutionStartError(
+          cause?.code ?? 'development_runtime_executable_invalid',
+          cause?.message ?? 'Development dispatch body validation failed',
+          { phase: 'pre_handle', cause },
+        );
       }
       const controller = new AbortController();
-      const operationId = `${envelope.caseId}/${envelope.taskId}/${envelope.attemptId}`;
-      const completion = operationRuntime.execute(body.operationRequest, effectiveCapabilities, controller.signal, { operationId }).then((output) => ({
+      const completion = operationRuntime.execute(body.operationRequest, effectiveCapabilities, controller.signal).then((output) => ({
         code: 0,
         signal: null,
         effect: 'not_applied',
-        resultEnvelope: caseResultEnvelopeFromDispatch({ template: body.resultEnvelopeTemplate, envelope, result: output.result }),
+        resultEnvelope: caseResultEnvelopeFromDispatch({
+          template: body.resultEnvelopeTemplate,
+          envelope,
+          result: output.result,
+        }),
       }));
       return Object.freeze({
         completion,
         async cancel() { controller.abort(); return { signalled: true }; },
-        async cleanup() { await completion.catch(() => {}); return operationRuntime.cleanupOperation(operationId); },
+        async cleanup() { await completion.catch(() => {}); return { cleanupComplete: true }; },
       });
     },
   });
@@ -962,11 +1066,7 @@ export function createLocalDevelopmentAgent({ operationRuntime, manifest = opera
           resultEnvelope.taskId !== request.taskId || resultEnvelope.attemptId !== request.attemptId ||
           resultEnvelope.executorId !== executorId || resultEnvelope.executorEpoch !== invocation.attempt.executorEpoch ||
           resultEnvelope.fencingToken !== invocation.fencingToken || !isPlainRecord(resultEnvelope.result)) {
-        const completion = completed?.completion;
-        const error = new ContractError(completion?.causeCode ?? 'development_runtime_agent_result_invalid', 'Local Agent returned no typed operation result', completion?.causeDetails ?? {});
-        error.certainty = completion?.certainty ?? 'unknown';
-        error.retryable = completion?.retryable === true;
-        throw error;
+        fail('development_runtime_agent_result_invalid', 'Local Agent returned no fenced Case result envelope');
       }
       return resultEnvelope.result;
     },

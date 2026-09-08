@@ -45,6 +45,35 @@ function callRequest(method, params, { id = 1, assertion = 'valid', protocol = n
   });
 }
 
+function modernRequest(method, params = {}, { id = 1, assertion = 'valid', version = '2026-07-28', methodHeader = method, nameHeader = null } = {}) {
+  const headers = {
+    'content-type': 'application/json',
+    accept: 'application/json, text/event-stream',
+    'cf-access-jwt-assertion': assertion,
+    'mcp-protocol-version': version,
+    'mcp-method': methodHeader,
+  };
+  if (nameHeader !== null) headers['mcp-name'] = nameHeader;
+  return new Request('https://mcp.example.test/mcp', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      jsonrpc: '2.0',
+      id,
+      method,
+      params: {
+        ...params,
+        _meta: {
+          'io.modelcontextprotocol/protocolVersion': version,
+          'io.modelcontextprotocol/clientInfo': { name: 'modern-test-client', version: '1' },
+          'io.modelcontextprotocol/clientCapabilities': {},
+          ...(params._meta ?? {}),
+        },
+      },
+    }),
+  });
+}
+
 async function rpc(surface, request) {
   const response = await surface.fetch(request);
   const body = response.status === 202 ? null : await response.json();
@@ -77,26 +106,101 @@ test('D0024 auth profile binds resource/issuer and rejects wrong or expired asse
   );
 });
 
-test('MCP metadata and initialize/tools/list use one versioned stateless surface', async () => {
-  const surface = createSurface();
+test('MCP metadata and initialize/tools/list/call use the compatible versioned stateless surface', async () => {
+  const surface = createSurface({ owners: { claimLedger: new ClaimLedger() } });
   const metadata = await surface.fetch(new Request('https://mcp.example.test/.well-known/oauth-protected-resource'));
   assert.equal(metadata.status, 200);
   assert.deepEqual(await metadata.json(), {
     resource: authManifest.mcpResource,
     authorization_servers: [authManifest.authorizationServerIssuer],
   });
-  const initialized = await rpc(surface, callRequest('initialize', {
-    protocolVersion: '2025-03-26',
-    capabilities: {},
-    clientInfo: { name: 'test-client', version: '1' },
-  }));
-  assert.equal(initialized.response.status, 200);
-  assert.equal(initialized.body.result.protocolVersion, '2025-03-26');
-  assert.equal(initialized.body.result.serverInfo.name, 'tdev');
-  const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-03-26' }));
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26']);
+  for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {
+    const initialized = await rpc(surface, callRequest('initialize', {
+      protocolVersion,
+      capabilities: {},
+      clientInfo: { name: 'test-client', version: '1', title: 'Test client' },
+    }, { protocol: protocolVersion }));
+    assert.equal(initialized.response.status, 200);
+    assert.equal(initialized.body.result.protocolVersion, protocolVersion);
+    assert.equal(initialized.body.result.serverInfo.name, 'tdev');
+    assert.match(initialized.body.result.instructions, /development_context_get/);
+  }
+  const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-11-25' }));
   assert.equal(listed.response.status, 200);
   assert.equal(listed.body.result.tools.length, 14);
   assert.equal(listed.body.result.tools.at(-1).name, 'development_unit_get');
+  for (const descriptor of listed.body.result.tools) {
+    assert.equal(typeof descriptor.title, 'string');
+    assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
+    assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
+  }
+  const discovered = await rpc(surface, modernRequest('server/discover', {}, { id: 'discover-1' }));
+  assert.equal(discovered.response.status, 200);
+  assert.equal(discovered.body.result.resultType, 'complete');
+  assert.deepEqual(discovered.body.result.supportedVersions, surfaceManifest.protocolVersions);
+  assert.equal(discovered.body.result._meta['io.modelcontextprotocol/serverInfo'].name, 'tdev');
+
+  const discoveredWithForwardField = await rpc(surface, modernRequest('server/discover', {
+    clientTransportHint: 'chatgpt-hosted',
+  }, { id: 'discover-forward-field' }));
+  assert.equal(discoveredWithForwardField.response.status, 200);
+
+  const modernListed = await rpc(surface, modernRequest('tools/list', {}, { id: 'list-1' }));
+  assert.equal(modernListed.response.status, 200);
+  assert.equal(modernListed.body.result.resultType, 'complete');
+  assert.equal(modernListed.body.result.tools.length, 11);
+  assert.equal(modernListed.body.result.cacheScope, 'private');
+
+  for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {
+    const called = await rpc(surface, callRequest('tools/call', {
+      name: 'claim_conflicts_get', arguments: { claims: [] },
+    }, { protocol: protocolVersion, id: `call-${protocolVersion}` }));
+    assert.equal(called.response.status, 200);
+    assert.equal(called.body.result.isError, false);
+    assert.deepEqual(called.body.result.structuredContent, { conflicts: [], revision: 0 });
+  }
+  const modernCalled = await rpc(surface, modernRequest('tools/call', {
+    name: 'claim_conflicts_get', arguments: { claims: [] },
+  }, { id: 'call-modern', nameHeader: 'claim_conflicts_get' }));
+  assert.equal(modernCalled.response.status, 200);
+  assert.equal(modernCalled.body.result.resultType, 'complete');
+  assert.equal(modernCalled.body.result.isError, false);
+  assert.deepEqual(modernCalled.body.result.structuredContent, { conflicts: [], revision: 0 });
+
+  const legacyInitializeWithForwardField = await rpc(surface, callRequest('initialize', {
+    protocolVersion: '2025-03-26',
+    capabilities: {},
+    clientInfo: { name: 'legacy-forward-field', version: '1' },
+    clientTransportHint: 'chatgpt-hosted',
+  }, { id: 'initialize-forward-field', protocol: '2025-03-26' }));
+  assert.equal(legacyInitializeWithForwardField.response.status, 200);
+});
+
+test('modern MCP metadata and routing headers fail closed before authorization on mismatch', async () => {
+  let authorizations = 0;
+  const surface = createSurface({ authorize: async () => { authorizations += 1; return true; } });
+  const mismatch = await rpc(surface, modernRequest('tools/list', {}, { methodHeader: 'tools/call' }));
+  assert.equal(mismatch.response.status, 400);
+  assert.equal(mismatch.body.error.code, -32020);
+  assert.equal(mismatch.body.error.data.code, 'mcp_header_mismatch');
+  assert.equal(authorizations, 0);
+  const unsupported = await rpc(surface, modernRequest('tools/list', {}, { version: '2027-01-01', methodHeader: 'tools/list' }));
+  assert.equal(unsupported.response.status, 400);
+  assert.equal(unsupported.body.error.code, -32022);
+  assert.deepEqual(unsupported.body.error.data.supported, surfaceManifest.protocolVersions);
+  assert.equal(authorizations, 0);
+});
+
+test('surface manifest rejects duplicate protocol versions without changing negotiation order', () => {
+  assert.throws(
+    () => createMcpSurfaceManifest({
+      buildDigest: digest({ source: 'mcp-duplicate-version-test' }),
+      protocolVersions: ['2026-07-28', '2026-07-28'],
+    }),
+    (error) => error.code === 'mcp_surface_protocol_duplicate',
+  );
+  assert.deepEqual(surfaceManifest.protocolVersions, ['2026-07-28', '2025-11-25', '2025-06-18', '2025-03-26']);
 });
 
 test('MCP case projection delegates to repository and tenant denial precedes owner access', async () => {
@@ -112,10 +216,43 @@ test('MCP case projection delegates to repository and tenant denial precedes own
   assert.equal(projection.canonicalTree, undefined);
   assert.equal(ownerReads, 1);
 
+  const legacyEngine = await repository.load('case-a');
+  const legacySnapshot = legacyEngine.snapshot();
+  delete legacySnapshot.canonicalDigest;
+  delete legacySnapshot.plan.promotionTaskId;
+  const legacySurface = createSurface({ owners: { repository: { load: async () => ({ snapshot: () => legacySnapshot }) } } });
+  const legacyRead = await rpc(legacySurface, callRequest('tools/call', { name: 'case_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
+  assert.equal(legacyRead.response.status, 200);
+  assert.equal(legacyRead.body.result.isError, false);
+  assert.equal(legacyRead.body.result.structuredContent.canonicalDigest, null);
+  const legacyPromotion = await rpc(legacySurface, callRequest('tools/call', { name: 'promotion_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
+  assert.equal(legacyPromotion.response.status, 200);
+  assert.equal(legacyPromotion.body.result.isError, false);
+  assert.equal(legacyPromotion.body.result.structuredContent.promotionTaskId, 'promote');
+  assert.equal(legacyPromotion.body.result.structuredContent.canonicalDigest, null);
+
   const denied = createSurface({ repository, auth: makeAuth({ tenant: 'tenant-b' }), authorize: async () => false });
   const deniedResult = await rpc(denied, callRequest('tools/call', { name: 'case_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26', assertion: 'tenant-b' }));
   assert.equal(deniedResult.response.status, 403);
   assert.equal(deniedResult.body.error.data.code, 'mcp_authorization_denied');
+});
+
+test('authentication failures advertise the protected-resource metadata endpoint', async () => {
+  const surface = createSurface({ auth: makeAuth() });
+  const request = new Request('https://mcp.example.test/mcp', {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json',
+      'mcp-protocol-version': '2025-03-26',
+    },
+    body: JSON.stringify({ jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} }),
+  });
+  const response = await surface.fetch(request);
+  assert.equal(response.status, 401);
+  assert.equal(
+    response.headers.get('www-authenticate'),
+    'Bearer error="invalid_token", resource="https://mcp.example.test/mcp", resource_metadata="https://mcp.example.test/.well-known/oauth-protected-resource/mcp"',
+  );
 });
 
 test('strict parser rejects duplicate members, batches, and missing protocol before any owner call', async () => {

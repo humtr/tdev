@@ -17,12 +17,6 @@ import { createCasePlacement } from './casedo-authority.mjs';
 import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
 import { agentRouteHostKey } from './agent-route-election.mjs';
-import {
-  normalizeLazyPlanReference,
-  normalizeLazyPlanScope,
-  normalizeRepositoryBaseIdentity,
-  scopeDigest,
-} from './lazy-plan-reference.mjs';
 
 /**
  * D0046's source-only composition boundary.  The Worker that imports this
@@ -39,6 +33,18 @@ export const MCP_TRIAL_DRIVE_CLASS_NAME = 'CaseAgentDriveRuntimeDO';
 export const MCP_TRIAL_AGENT_CLASS_NAME = 'AgentDeliveryRuntimeDO';
 
 const JURISDICTIONS = new Set(['global', 'eu', 'us', 'fedramp']);
+const MCP_TRIAL_AGENT_DEPLOYMENT_IDENTITY_OPERATIONS = new Set([
+  'reserve',
+  'release_reservation',
+  'expire_reservation',
+  'roll_reservation_window',
+  'activate_delivery',
+  'grant_command',
+  'close_undispatched_delivery',
+  'bind_terminal_case_receipt',
+  'reacquire_delivery_admission',
+  'send_dispatch',
+]);
 const REPOSITORY_OID = /^[0-9a-f]{40,64}$/u;
 const MAX_TEXT_BYTES = 4096;
 const OWNER_PLACEMENT_FIELDS = [
@@ -89,9 +95,8 @@ function ownerBinding(value, label, expectedClassName) {
 function normalizeContext(context, repository, label = 'repository.context', { allowEmptyBaseTree = false } = {}) {
   if (!isPlainRecord(context)) fail('mcp_trial_context_invalid', `${label} must be a record`);
   assertRecordShape(context, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
-    'objectFormat', 'contextReferenceId', 'contextProfile', 'contextScope', 'scopeDigest',
-    'contextCapabilityId', 'modelCapabilityId', 'validationCapabilityId',
-    'caseContract', 'payload', 'baseIdentity', 'repositoryBaseIdentity', 'manifest',
+    'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
+    'validationCapabilityId', 'caseContract', 'payload',
   ], label);
   assertIdentifier(context.revisionId, `${label}.revisionId`);
   if (!isPlainRecord(context.baseTree)) fail('mcp_trial_context_invalid', `${label}.baseTree must be a record`);
@@ -101,78 +106,21 @@ function normalizeContext(context, repository, label = 'repository.context', { a
   if (context.repositoryCommitOid !== repository.commitOid) fail('mcp_trial_context_mismatch', `${label}.repositoryCommitOid is not the fixed commit`);
   const baseTree = canonicalClone(context.baseTree);
   // The deployment binding deliberately carries an empty context tree: the
-  // selected immutable tree is compiled into the Worker module and injected
-  // only when a full owner operation is actually needed. An empty tree is
-  // accepted here solely by normalizeMcpTrialCompositionBinding.
+  // immutable tree is compiled into the Worker module and injected only when
+  // a full owner operation is actually needed.  An empty tree is accepted
+  // here solely by normalizeMcpTrialCompositionBinding; the normal manifest
+  // normalizer remains strict and always checks the semantic digest.
   if (!(allowEmptyBaseTree && Object.keys(baseTree).length === 0) && digest(baseTree) !== repository.baseDigest) {
-    fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed semantic base digest`);
+    fail('mcp_trial_context_mismatch', `${label}.baseTree does not match the fixed base digest`);
   }
   if (context.contextReferenceId !== repository.contextReference) {
     fail('mcp_trial_context_mismatch', `${label}.contextReferenceId is not the fixed context reference`);
   }
-  const normalized = canonicalClone(context);
-  normalized.objectFormat = objectFormat;
-  normalized.contextReferenceId = repository.contextReference;
-  if (context.contextProfile !== undefined) {
-    assertIdentifier(context.contextProfile, `${label}.contextProfile`);
-    if (!['tdev.repository.context.prepare.v1', 'tdev.repository.context.prepare.lazy.v1'].includes(context.contextProfile)) {
-      fail('mcp_trial_context_invalid', `${label}.contextProfile is unsupported`);
-    }
-  }
-  const lazy = context.contextProfile === 'tdev.repository.context.prepare.lazy.v1';
-  if (context.contextScope !== undefined) {
-    normalized.contextScope = normalizeLazyPlanScope(context.contextScope);
-    const expectedScopeDigest = scopeDigest(normalized.contextScope);
-    if (context.scopeDigest !== undefined && context.scopeDigest !== expectedScopeDigest) {
-      fail('mcp_trial_context_mismatch', `${label}.scopeDigest does not match the owner-issued scope`);
-    }
-    normalized.scopeDigest = expectedScopeDigest;
-  } else if (context.scopeDigest !== undefined) {
-    fail('mcp_trial_context_invalid', `${label}.scopeDigest requires contextScope`);
-  }
-  const repositoryIdentity = repository.repositoryBaseIdentity ?? null;
-  if (context.repositoryBaseIdentity !== undefined) {
-    normalized.repositoryBaseIdentity = normalizeRepositoryBaseIdentity(context.repositoryBaseIdentity, {
-      objectFormat,
-      commitOid: repository.commitOid,
-    });
-  }
-  if (repositoryIdentity !== null) {
-    const expected = normalizeRepositoryBaseIdentity(repositoryIdentity, {
-      objectFormat,
-      commitOid: repository.commitOid,
-    });
-    if (normalized.repositoryBaseIdentity === undefined || normalized.repositoryBaseIdentity.baseDigest !== expected.baseDigest ||
-        normalized.repositoryBaseIdentity.manifestDigest !== expected.manifestDigest || normalized.repositoryBaseIdentity.treeOid !== expected.treeOid) {
-      fail('mcp_trial_context_mismatch', `${label}.repositoryBaseIdentity does not match the complete repository identity`);
-    }
-    normalized.repositoryBaseIdentity = expected;
-  }
-  if (repository.scope !== undefined) {
-    const expectedScope = normalizeLazyPlanScope(repository.scope);
-    if (normalized.contextScope === undefined || canonicalJson(normalized.contextScope) !== canonicalJson(expectedScope)) {
-      fail('mcp_trial_context_mismatch', `${label}.contextScope does not match the fixed repository scope`);
-    }
-    normalized.contextScope = expectedScope;
-    normalized.scopeDigest = scopeDigest(expectedScope);
-  }
-  if (repository.scopeDigest !== undefined && normalized.scopeDigest !== repository.scopeDigest) {
-    fail('mcp_trial_context_mismatch', `${label}.scopeDigest does not match the fixed repository scope digest`);
-  }
-  if (lazy && (normalized.contextScope === undefined || normalized.repositoryBaseIdentity === undefined)) {
-    fail('mcp_trial_context_invalid', `${label} lazy profile requires owner-issued scope and complete repository identity`);
-  }
-  if (context.baseIdentity !== undefined) {
-    const identity = context.baseIdentity;
-    assertRecordShape(identity, ['schemaVersion', 'profile', 'objectFormat', 'commitOid', 'treeOid', 'baseDigest', 'manifestDigest'], [], `${label}.baseIdentity`);
-    if (identity.schemaVersion !== 1 || identity.profile !== 'tdev.repository-base-identity.v1' || identity.objectFormat !== objectFormat ||
-        identity.commitOid !== repository.commitOid || identity.baseDigest !== repository.baseDigest ||
-        (!(allowEmptyBaseTree && Object.keys(baseTree).length === 0) && identity.baseDigest !== digest(baseTree))) {
-      fail('mcp_trial_context_mismatch', `${label}.baseIdentity does not bind the selected semantic tree`);
-    }
-    assertDigest(identity.manifestDigest, `${label}.baseIdentity.manifestDigest`);
-  }
-  return normalized;
+  return {
+    ...canonicalClone(context),
+    objectFormat,
+    contextReferenceId: repository.contextReference,
+  };
 }
 
 function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
@@ -205,7 +153,7 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   const repository = input.repository;
   assertRecordShape(repository, [
     'commitOid', 'baseDigest', 'objectFormat', 'contextReference', 'context',
-  ], ['repositoryBaseIdentity', 'scope', 'scopeDigest'], 'trial repository');
+  ], [], 'trial repository');
   if (!REPOSITORY_OID.test(repository.commitOid)) fail('mcp_trial_manifest_invalid', 'repository.commitOid is invalid');
   assertDigest(repository.baseDigest, 'repository.baseDigest');
   if (!['sha1', 'sha256'].includes(repository.objectFormat)) fail('mcp_trial_manifest_invalid', 'repository.objectFormat is unsupported');
@@ -215,31 +163,8 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
     baseDigest: repository.baseDigest,
     objectFormat: repository.objectFormat,
     contextReference: repository.contextReference,
-    ...(repository.repositoryBaseIdentity === undefined ? {} : {
-      repositoryBaseIdentity: normalizeRepositoryBaseIdentity(repository.repositoryBaseIdentity, {
-        objectFormat: repository.objectFormat,
-        commitOid: repository.commitOid,
-      }),
-    }),
-    ...(repository.scope === undefined ? {} : { scope: normalizeLazyPlanScope(repository.scope) }),
-    ...(repository.scopeDigest === undefined ? {} : { scopeDigest: repository.scopeDigest }),
-    context: null,
+    context: normalizeContext(repository.context, repository, 'repository.context', { allowEmptyBaseTree }),
   };
-  if (normalizedRepository.scope !== undefined) {
-    const expectedScopeDigest = scopeDigest(normalizedRepository.scope);
-    if (repository.scopeDigest !== undefined && repository.scopeDigest !== expectedScopeDigest) {
-      fail('mcp_trial_context_mismatch', 'trial repository.scopeDigest does not match its owner-issued scope');
-    }
-    normalizedRepository.scopeDigest = expectedScopeDigest;
-  } else if (repository.scopeDigest !== undefined) {
-    fail('mcp_trial_manifest_invalid', 'trial repository.scopeDigest requires repository.scope');
-  }
-  normalizedRepository.context = normalizeContext(repository.context, normalizedRepository, 'repository.context', { allowEmptyBaseTree });
-  const contextProfile = normalizedRepository.context.contextProfile ?? input.operation?.contextProfile;
-  if (contextProfile === 'tdev.repository.context.prepare.lazy.v1' &&
-      (normalizedRepository.repositoryBaseIdentity === undefined || normalizedRepository.scope === undefined)) {
-    fail('mcp_trial_context_invalid', 'Lazy trial composition requires complete repository identity and owner-issued scope');
-  }
   const operation = input.operation;
   assertRecordShape(operation, [
     'manifestDigest', 'contextProfile', 'modelProfile', 'validationProfile',
@@ -337,15 +262,16 @@ function routedStub(namespace, name, jurisdiction, label, { rpc = true } = {}) {
   return { id, stub };
 }
 
-function unwrapRpc(response, label) {
+function unwrapRpc(response, label, { profile = null, schemaVersion = 1 } = {}) {
   if (!isPlainRecord(response)) fail('mcp_trial_owner_invalid_response', `${label} returned a non-record response`);
-  assertRecordShape(response, ['schemaVersion', 'ok'], ['result', 'error'], `${label} RPC response`);
-  if (response.schemaVersion !== 1 || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
+  const header = profile === null ? ['schemaVersion', 'ok'] : ['profile', 'schemaVersion', 'ok'];
+  assertRecordShape(response, header, ['result', 'error'], `${label} RPC response`);
+  if ((profile !== null && response.profile !== profile) || response.schemaVersion !== schemaVersion || typeof response.ok !== 'boolean') fail('mcp_trial_owner_invalid_response', `${label} RPC response header is invalid`);
   if (response.ok) {
-    assertRecordShape(response, ['schemaVersion', 'ok', 'result'], [], `${label} RPC success`);
+    assertRecordShape(response, [...header, 'result'], [], `${label} RPC success`);
     return publicJsonClone(response.result);
   }
-  assertRecordShape(response, ['schemaVersion', 'ok', 'error'], [], `${label} RPC failure`);
+  assertRecordShape(response, [...header, 'error'], [], `${label} RPC failure`);
   assertRecordShape(response.error, ['code'], [], `${label} RPC error`);
   if (typeof response.error.code !== 'string') fail('mcp_trial_owner_invalid_response', `${label} RPC error code is invalid`);
   fail(response.error.code, `${label} owner rejected the operation`);
@@ -371,28 +297,7 @@ function makeCasePlacement(manifest, caseId, durableObjectId) {
 function fixedPlanCheck(plan, manifest) {
   if (!isPlainRecord(plan)) fail('mcp_trial_plan_scope_denied', 'Plan must be a record');
   if (plan.baseDigest !== manifest.repository.baseDigest || !isPlainRecord(plan.baseTree) || digest(plan.baseTree) !== manifest.repository.baseDigest) {
-    fail('mcp_trial_plan_scope_denied', 'Plan does not bind the fixed semantic repository base');
-  }
-  const requiresLazyReference = manifest.operation.contextProfile === 'tdev.repository.context.prepare.lazy.v1' ||
-    manifest.repository.scope !== undefined || manifest.repository.repositoryBaseIdentity !== undefined;
-  if (requiresLazyReference) {
-    if (manifest.repository.repositoryBaseIdentity === undefined || manifest.repository.scope === undefined) {
-      fail('mcp_trial_plan_scope_denied', 'Scoped trial manifest has no complete repository identity and scope');
-    }
-    if (plan.baseReference === undefined) fail('mcp_trial_plan_scope_denied', 'Scoped trial Plan is missing its immutable baseReference');
-    const reference = normalizeLazyPlanReference(plan.baseReference, {
-      objectFormat: manifest.repository.objectFormat,
-      commitOid: manifest.repository.commitOid,
-      semanticBaseDigest: manifest.repository.baseDigest,
-    });
-    const identity = manifest.repository.repositoryBaseIdentity;
-    if (reference.repositoryBaseIdentity.baseDigest !== identity.baseDigest ||
-        reference.repositoryBaseIdentity.manifestDigest !== identity.manifestDigest ||
-        reference.repositoryBaseIdentity.treeOid !== identity.treeOid ||
-        reference.scopeDigest !== manifest.repository.scopeDigest ||
-        canonicalJson(reference.scope) !== canonicalJson(manifest.repository.scope)) {
-      fail('mcp_trial_plan_scope_denied', 'Plan baseReference does not bind the fixed repository identity and scope');
-    }
+    fail('mcp_trial_plan_scope_denied', 'Plan does not bind the fixed immutable repository base');
   }
 }
 
@@ -401,7 +306,7 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, contextOwnerOverride = null } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null } = {}) {
   const normalized = normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
   const driveNs = driveOwnerOverride === null
@@ -447,6 +352,9 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async load(caseId) {
       const result = await caseCall('load', caseId);
       return caseEngineProjection(result.snapshot);
+    },
+    async materializedProjection(caseId) {
+      return publicJsonClone(await caseCall('materialized_projection', caseId));
     },
     async command(caseId, envelope) {
       const result = await caseCall('command', caseId, { envelope });
@@ -537,14 +445,26 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async invoke(operation, input = {}) {
       const route = agentRoute();
       assertIdentifier(operation, 'Agent operation');
+      let expectedDeploymentIdentityDigest;
+      if (MCP_TRIAL_AGENT_DEPLOYMENT_IDENTITY_OPERATIONS.has(operation)) {
+        const probe = unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone({
+          profile: MCP_TRIAL_AGENT_RPC_PROFILE,
+          operation: 'runtime_probe',
+          agentId: normalized.agentOwner.agentId,
+          routeGeneration: normalized.agentOwner.routeGeneration,
+        })), 'Agent runtime_probe', { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2 });
+        assertDigest(probe?.deploymentIdentityDigest, 'Agent deployment identity digest');
+        expectedDeploymentIdentityDigest = probe.deploymentIdentityDigest;
+      }
       const rpc = {
         profile: MCP_TRIAL_AGENT_RPC_PROFILE,
         operation,
         agentId: normalized.agentOwner.agentId,
         routeGeneration: normalized.agentOwner.routeGeneration,
         ...canonicalClone(input),
+        ...(expectedDeploymentIdentityDigest === undefined ? {} : { expectedDeploymentIdentityDigest }),
       };
-      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`);
+      return unwrapRpc(await route.stub.qualificationInvoke(publicJsonClone(rpc)), `Agent ${operation}`, { profile: MCP_TRIAL_AGENT_RPC_PROFILE, schemaVersion: 2 });
     },
     async readRoute() { return this.invoke('read'); },
     async readResultHandoff(deliveryId) { return this.invoke('read_result_handoff', { deliveryId }); },
@@ -556,9 +476,9 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
   );
 
   function assertContextSelector(selector) {
-    if (selector !== null && selector !== normalized.repository.contextReference) {
-      fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
-    }
+      if (selector !== null && selector !== normalized.repository.contextReference) {
+        fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
+      }
   }
 
   const contextOwner = Object.freeze({
@@ -574,11 +494,6 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
         objectFormat: context.objectFormat,
         contextReferenceId: normalized.repository.contextReference,
         baseDigest: normalized.repository.baseDigest,
-        ...(context.contextProfile === undefined ? {} : { contextProfile: context.contextProfile }),
-        ...(context.contextScope === undefined ? {} : { contextScope: context.contextScope }),
-        ...(context.scopeDigest === undefined ? {} : { scopeDigest: context.scopeDigest }),
-        ...(context.baseIdentity === undefined ? {} : { baseIdentity: context.baseIdentity }),
-        ...(context.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: context.repositoryBaseIdentity }),
         ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
         ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
         ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
@@ -590,38 +505,6 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     },
   });
 
-  if (contextOwnerOverride !== null) {
-    if (!isPlainRecord(contextOwnerOverride) || typeof contextOwnerOverride.developmentContextGet !== 'function' ||
-        typeof contextOwnerOverride.developmentContextResolve !== 'function' ||
-        typeof contextOwnerOverride.developmentContextList !== 'function' ||
-        typeof contextOwnerOverride.developmentContextSearch !== 'function' ||
-        typeof contextOwnerOverride.developmentContextRead !== 'function') {
-      fail('mcp_trial_owner_unavailable', 'Injected context owner must expose get/resolve/list/search/read');
-    }
-  }
-  const resolvedContextOwner = contextOwnerOverride === null ? contextOwner : Object.freeze({
-    async developmentContextGet(input = {}) {
-      assertContextSelector(input.selector ?? null);
-      return publicJsonClone(await contextOwnerOverride.developmentContextGet(input));
-    },
-    async developmentContextResolve(input = {}) {
-      assertContextSelector(input.selector ?? null);
-      return publicJsonClone(await contextOwnerOverride.developmentContextResolve(input));
-    },
-    async developmentContextList(input = {}) {
-      assertContextSelector(input.contextReference ?? null);
-      return publicJsonClone(await contextOwnerOverride.developmentContextList(input));
-    },
-    async developmentContextSearch(input = {}) {
-      assertContextSelector(input.contextReference ?? null);
-      return publicJsonClone(await contextOwnerOverride.developmentContextSearch(input));
-    },
-    async developmentContextRead(input = {}) {
-      assertContextSelector(input.contextReference ?? null);
-      return publicJsonClone(await contextOwnerOverride.developmentContextRead(input));
-    },
-  });
-
   if (driveRunner !== null && (!isPlainRecord(driveRunner) || typeof driveRunner.drive !== 'function')) {
     fail('mcp_trial_owner_unavailable', 'Injected drive runner must expose drive()');
   }
@@ -630,7 +513,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     repository,
     driveOwner,
     agentOwner,
-    contextOwner: resolvedContextOwner,
+    contextOwner,
     authorize,
     ...(driveRunner === null ? {} : { driveRunner }),
   });
