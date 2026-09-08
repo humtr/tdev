@@ -683,6 +683,107 @@ test('legal partial evidence supports started + cleanup_complete while effect re
   assert.equal(authority.assimilateEvidence(started).classification, 'stale');
 });
 
+test('completion_unknown evidence preserves bounded failure and binds a failed Case receipt', () => {
+  const { store, binding, authority } = setupAgent({ reportedCapacity: 1 });
+  const flow = reserveStartActivate({ authority, caseId: 'case-completion-failure', requestId: 'reservation-completion-failure' });
+  const grant = caseGrant(authority, flow.engine, flow.delivery.deliveryId);
+  const authorization = authorize(authority, grant).authorization;
+  assert.equal(authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    1,
+    { dispatch: 'sent_observed', transportReceipt: 'received', execution: 'started', cleanup: 'held' },
+  )).classification, 'monotonic_refinement');
+  const failed = authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    2,
+    {
+      execution: 'completion_unknown',
+      causeCode: 'fixture_provider_failed',
+      certainty: 'unknown',
+      retryable: true,
+      causeDetails: { exitCode: 1, providerFailureClass: 'unknown' },
+    },
+  ));
+  assert.equal(failed.classification, 'monotonic_refinement');
+  assert.equal(failed.evidence.execution, 'completion_unknown');
+  assert.deepEqual(JSON.parse(JSON.stringify(failed.evidence.failure)), {
+    causeCode: 'fixture_provider_failed',
+    causeDetails: { exitCode: 1, providerFailureClass: 'unknown' },
+    certainty: 'unknown',
+    retryable: true,
+  });
+  assert.equal(failed.slotReleased, false);
+  const cleanup = authority.assimilateEvidence(evidenceInput(
+    authority,
+    flow.delivery,
+    authorization,
+    3,
+    { cleanup: 'cleanup_complete' },
+  ));
+  assert.equal(cleanup.classification, 'monotonic_refinement');
+  assert.equal(cleanup.slotReleased, true);
+  assert.equal(cleanup.evidence.execution, 'completion_unknown');
+  assert.equal(JSON.stringify(cleanup.evidence.failure), JSON.stringify(failed.evidence.failure));
+
+  const reconstructed = new AgentDeliveryAuthority({ store, routeBinding: binding });
+  const persisted = reconstructed.read().deliveries[flow.delivery.deliveryId];
+  assert.equal(persisted.dispatches['1'].evidence.execution, 'completion_unknown');
+  assert.equal(JSON.stringify(persisted.dispatches['1'].evidence.failure), JSON.stringify(failed.evidence.failure));
+
+  const command = {
+    type: 'fail_attempt',
+    attemptId: flow.attempt.id,
+    error: {
+      code: 'fixture_provider_failed',
+      message: 'Agent operation failed: fixture_provider_failed',
+      certainty: 'unknown',
+      retryable: true,
+    },
+    retryable: true,
+  };
+  const failureRequestId = 'fail-completion-failure';
+  flow.engine.applyCommand({
+    requestId: failureRequestId,
+    expectedCaseRevision: flow.engine.caseRevision,
+    command,
+  });
+  const caseReceipt = flow.engine.receipts[failureRequestId];
+  const bound = reconstructed.bindTerminalCaseReceipt({
+    deliveryId: flow.delivery.deliveryId,
+    command,
+    caseReceipt,
+  }, { nowMs: NOW + 10 });
+  assert.equal(bound.classification, 'accepted');
+  assert.equal(bound.terminalCaseReceipt.terminalStatus, 'failed');
+  assert.equal(reconstructed.read().deliveryTombstones[flow.delivery.deliveryId].terminalCaseReceipt.terminalStatus, 'failed');
+});
+
+test('completion failure metadata cannot change after it is observed', () => {
+  const { authority } = setupAgent({ reportedCapacity: 1 });
+  const flow = reserveStartActivate({ authority, caseId: 'case-completion-conflict', requestId: 'reservation-completion-conflict' });
+  const grant = caseGrant(authority, flow.engine, flow.delivery.deliveryId);
+  const authorization = authorize(authority, grant).authorization;
+  authority.assimilateEvidence(evidenceInput(authority, flow.delivery, authorization, 1, { execution: 'started' }));
+  authority.assimilateEvidence(evidenceInput(authority, flow.delivery, authorization, 2, {
+    execution: 'completion_unknown',
+    causeCode: 'fixture_provider_failed',
+    certainty: 'unknown',
+    retryable: true,
+  }));
+  const conflict = authority.assimilateEvidence(evidenceInput(authority, flow.delivery, authorization, 3, {
+    execution: 'completion_unknown',
+    causeCode: 'different_failure',
+    certainty: 'unknown',
+    retryable: true,
+  }));
+  assert.equal(conflict.classification, 'conflict');
+  assert.equal(conflict.evidence.failure.causeCode, 'fixture_provider_failed');
+});
+
 test('positive physical cleanup releases capacity while effect uncertainty remains durable', () => {
   const { authority } = setupAgent({ reportedCapacity: 1 });
   const flow = reserveStartActivate({ authority, caseId: 'case-cleanup', requestId: 'reservation-cleanup' });

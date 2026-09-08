@@ -118,6 +118,21 @@ function nonterminalAttempts(snapshot, caseId) {
     .sort((left, right) => String(left.id).localeCompare(String(right.id)));
 }
 
+function completionFailure(delivery) {
+  if (!isPlainRecord(delivery?.dispatches)) return null;
+  const dispatches = Object.values(delivery.dispatches)
+    .filter((dispatch) => isPlainRecord(dispatch) && isPlainRecord(dispatch.evidence))
+    .sort((left, right) => (right.dispatchOrdinal ?? 0) - (left.dispatchOrdinal ?? 0));
+  for (const dispatch of dispatches) {
+    const evidence = dispatch.evidence;
+    if (evidence.execution !== 'completion_unknown' || evidence.cleanup !== 'cleanup_complete' || !isPlainRecord(evidence.failure)) continue;
+    const failure = evidence.failure;
+    if (typeof failure.causeCode !== 'string' || !['not_applied', 'unknown'].includes(failure.certainty) || typeof failure.retryable !== 'boolean') continue;
+    return canonicalClone(failure);
+  }
+  return null;
+}
+
 function occupiedSlots(agentSnapshot) {
   let occupied = 0;
   for (const reservation of Object.values(agentSnapshot?.reservations ?? {})) {
@@ -536,10 +551,61 @@ export class McpTrialDevelopmentUnitRunner {
       return { view, agentSnapshot, status: 'awaiting_delivery', taskId: attempt.taskId, attemptId: attempt.id };
     }
     const handoff = await this.agentOwner.readResultHandoff(delivery.deliveryId);
-    if (handoff === null) {
+    if (handoff !== null) return this.#bindHandoff(view, agentSnapshot, delivery, handoff);
+    const failure = completionFailure(delivery);
+    if (failure === null) {
       return { view, agentSnapshot, status: 'awaiting_result', taskId: attempt.taskId, attemptId: attempt.id, deliveryId: delivery.deliveryId };
     }
-    return this.#bindHandoff(view, agentSnapshot, delivery, handoff);
+    const command = {
+      type: 'fail_attempt',
+      attemptId: attempt.id,
+      error: {
+        code: failure.causeCode,
+        message: `Agent operation failed: ${failure.causeCode}`,
+        certainty: failure.certainty,
+        retryable: failure.retryable,
+      },
+      retryable: failure.retryable,
+    };
+    const failureRequestId = requestId('failure', {
+      deliveryId: delivery.deliveryId,
+      attemptId: attempt.id,
+      causeCode: failure.causeCode,
+      certainty: failure.certainty,
+      retryable: failure.retryable,
+    });
+    const transaction = await this.repository.command(caseId, {
+      requestId: failureRequestId,
+      expectedCaseRevision: view.snapshot.caseRevision,
+      command,
+    });
+    const currentView = await this.#load(caseId);
+    const storedReceipt = currentView.snapshot.receipts?.[failureRequestId] ?? null;
+    if (!isPlainRecord(storedReceipt) || storedReceipt.requestId !== failureRequestId) {
+      fail('mcp_trial_case_receipt_missing', 'Failed Attempt has no matching authoritative Case receipt');
+    }
+    const response = canonicalClone(transaction.result ?? storedReceipt.response);
+    const caseReceipt = {
+      requestId: failureRequestId,
+      commandDigest: typedDigest('tdev.case-command.v1', command),
+      response,
+      responseDigest: digest(response),
+      committedRevision: currentView.snapshot.caseRevision,
+    };
+    const bound = await this.agentOwner.invoke('bind_terminal_case_receipt', {
+      request: { deliveryId: delivery.deliveryId, command, caseReceipt },
+      nowMs: this.now(),
+    });
+    return {
+      view: currentView,
+      agentSnapshot: await this.#readAgent(),
+      status: 'attempt_failed',
+      taskId: attempt.taskId,
+      attemptId: attempt.id,
+      deliveryId: delivery.deliveryId,
+      failure,
+      bound,
+    };
   }
 
   async #dispatchWork(view, agentSnapshot, taskId, { caseId, driveRequestId, payload } = {}) {
