@@ -59,6 +59,21 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
   assert.equal(metadata.exports.CaseAgentDriveRuntimeDO.storage, 'sqlite');
 });
 
+
+
+test('D0046 deploy and resume preserve scoped base identity in every generated Trial manifest', async () => {
+  const source = await readFile(new URL('../qualification/d0046-mcp-trial-deploy.mjs', import.meta.url), 'utf8');
+  const callSites = source.split('buildTrialManifests({').slice(1)
+    .map((body) => body.split('});', 1)[0])
+    .filter((body) => body.includes('baseDigest: base.baseDigest'));
+  assert.equal(callSites.length, 3);
+  for (const body of callSites) {
+    assert.match(body, /repositoryBaseIdentity: base\.repositoryBaseIdentity/u);
+    assert.match(body, /scope: base\.scope/u);
+    assert.match(body, /scopeDigest: base\.scopeDigest/u);
+  }
+});
+
 test('D0046 resume identity is recovered from the existing Trial binding', async () => {
   const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
   const identity = { principalId: 'existing@example.test', tenantId: 'existing@example.test' };
