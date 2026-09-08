@@ -32,6 +32,7 @@ import {
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
+import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const D0046_MCP_TRIAL_SCRIPT = 'tdev-mcp-trial';
@@ -170,16 +171,32 @@ function identityManifest() {
   return Object.freeze({ principalId, tenantId });
 }
 
-function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
+function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
   const contextReference = `tdev-context-${sourceSha.slice(0, 12)}`;
   const revisionId = `tdev-mcp-${sourceSha.slice(0, 12)}`;
   const operationDigest = digest(operationManifest);
+  const normalizedScopeDigest = scope === null ? null : suppliedScopeDigest ?? lazyScopeDigest(scope);
   const context = {
     revisionId,
     baseTree: includeBaseTree ? baseTree : {},
     repositoryCommitOid: sourceSha,
     objectFormat: 'sha1',
     contextReferenceId: contextReference,
+    ...(scope === null ? {} : {
+      contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+      contextScope: scope,
+      scopeDigest: normalizedScopeDigest,
+      ...(repositoryBaseIdentity === null ? {} : { baseIdentity: {
+        schemaVersion: 1,
+        profile: 'tdev.repository-base-identity.v1',
+        objectFormat: repositoryBaseIdentity.objectFormat,
+        commitOid: repositoryBaseIdentity.commitOid,
+        treeOid: repositoryBaseIdentity.treeOid,
+        baseDigest,
+        manifestDigest: repositoryBaseIdentity.manifestDigest,
+      } }),
+      ...(repositoryBaseIdentity === null ? {} : { repositoryBaseIdentity }),
+    }),
   };
   const body = {
     schemaVersion: 1,
@@ -228,10 +245,12 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
       objectFormat: 'sha1',
       contextReference,
       context,
+      ...(repositoryBaseIdentity === null ? {} : { repositoryBaseIdentity }),
+      ...(scope === null ? {} : { scope, scopeDigest: normalizedScopeDigest }),
     },
     operation: {
       manifestDigest: operationDigest,
-      contextProfile: 'tdev.repository.context.prepare.v1',
+      contextProfile: scope === null ? 'tdev.repository.context.prepare.v1' : 'tdev.repository.context.prepare.lazy.v1',
       modelProfile: 'tdev.model.repository.execute.v1',
       validationProfile: 'tdev.repository.validate.v1',
     },
@@ -244,10 +263,10 @@ function trialComposition({ sourceSha, baseDigest, baseTree, operationManifest, 
   return normalizeMcpTrialCompositionManifest(body);
 }
 
-export function buildTrialManifests({ sourceSha, baseDigest, baseTree, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
+export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
-  const composition = trialComposition({ sourceSha, baseDigest, baseTree, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
+  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
   const auth = accessManifest(accessAudience);
   const buildDigest = digest({
     profile: 'tdev.mcp.trial.build.v1',
@@ -511,7 +530,7 @@ async function latestVersion(client) {
   return detail.result;
 }
 
-async function workerReadback(client) {
+export async function workerReadback(client) {
   const settings = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
   const version = await latestVersion(client);
   const deployments = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/deployments`));

@@ -149,7 +149,7 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
   const modernListed = await rpc(surface, modernRequest('tools/list', {}, { id: 'list-1' }));
   assert.equal(modernListed.response.status, 200);
   assert.equal(modernListed.body.result.resultType, 'complete');
-  assert.equal(modernListed.body.result.tools.length, 11);
+  assert.equal(modernListed.body.result.tools.length, surfaceManifest.tools.length);
   assert.equal(modernListed.body.result.cacheScope, 'private');
 
   for (const protocolVersion of surfaceManifest.protocolVersions.filter((value) => value !== '2026-07-28')) {

@@ -22,6 +22,12 @@ import { DEFAULT_LIMITS, DEFAULT_PATH_POLICY, validateRelativePath } from './pol
 import { normalizeChangeSet } from './results.mjs';
 import { runGitCommand } from './git-projection.mjs';
 import {
+  runModelSubprocess,
+  GitRepositoryModelExecutor,
+  REPOSITORY_CONTEXT_PROFILE,
+  LAZY_REPOSITORY_CONTEXT_PROFILE,
+} from './repository-model-transport.mjs';
+import {
   CODEX_MODEL_BINDING_PROFILE,
   CODEX_EXECUTION_BOUNDARY,
   CODEX_OPERATION_ARGUMENTS,
@@ -46,6 +52,7 @@ const DEFAULT_OPERATION_TIMEOUT_MS = 300_000;
 const DEFAULT_CANCEL_GRACE_MS = 2_000;
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 const TERMUX_PREFIX = '/data/data/com.termux/files/usr';
+const CANDIDATE_DIGEST_DOMAIN = 'tdev.disposable-candidate.v1';
 
 /**
  * Build the Case result envelope emitted by a release-bound development Agent.
@@ -316,6 +323,68 @@ function assertContextReference(descriptor, value) {
   return expected;
 }
 
+function assertPreparedContextIdentity(context, {
+  repositoryCommitOid,
+  baseDigest,
+  objectFormat = null,
+  baseIdentity = null,
+  repositoryBaseIdentity = null,
+} = {}) {
+  if (!isPlainRecord(context) || !isPlainRecord(context.descriptor)) {
+    fail('development_runtime_context_invalid', 'Prepared context is not an immutable descriptor');
+  }
+  const descriptor = context.descriptor;
+  if (descriptor.commitOid !== undefined && descriptor.commitOid !== repositoryCommitOid) {
+    fail('development_runtime_commit_identity_mismatch', 'Prepared context is bound to a different repository commit');
+  }
+  if (descriptor.baseDigest !== undefined && descriptor.baseDigest !== baseDigest) {
+    fail('development_runtime_base_identity_mismatch', 'Prepared context is bound to a different full base digest');
+  }
+  if (objectFormat !== null && descriptor.objectFormat !== undefined && descriptor.objectFormat !== objectFormat) {
+    fail('development_runtime_object_format_mismatch', 'Prepared context is bound to a different Git object format');
+  }
+  if (baseIdentity !== null && baseIdentity !== undefined) {
+    const observed = descriptor.baseIdentity;
+    if (!isPlainRecord(observed) || observed.schemaVersion !== 1 || observed.profile !== 'tdev.repository-base-identity.v1' ||
+        observed.objectFormat !== baseIdentity.objectFormat || observed.commitOid !== baseIdentity.commitOid ||
+        observed.treeOid !== baseIdentity.treeOid || observed.baseDigest !== baseIdentity.baseDigest ||
+        observed.manifestDigest !== baseIdentity.manifestDigest) {
+      fail('development_runtime_base_identity_mismatch', 'Prepared context does not attest the owner-issued full-base identity');
+    }
+  }
+  if (descriptor.baseIdentity !== undefined && (!isPlainRecord(descriptor.baseIdentity) ||
+      descriptor.baseIdentity.schemaVersion !== 1 || descriptor.baseIdentity.profile !== 'tdev.repository-base-identity.v1' ||
+      !['sha1', 'sha256'].includes(descriptor.baseIdentity.objectFormat) ||
+      descriptor.baseIdentity.commitOid !== repositoryCommitOid || descriptor.baseIdentity.baseDigest !== baseDigest ||
+      typeof descriptor.baseIdentity.treeOid !== 'string' || !/^([0-9a-f]{40}|[0-9a-f]{64})$/u.test(descriptor.baseIdentity.treeOid))) {
+    fail('development_runtime_base_identity_mismatch', 'Prepared context full-base identity is inconsistent');
+  }
+  if (descriptor.baseIdentity !== undefined) assertDigest(descriptor.baseIdentity.manifestDigest, 'prepared context manifestDigest');
+  if (descriptor.manifestDigest !== undefined && descriptor.baseIdentity?.manifestDigest !== undefined && descriptor.manifestDigest !== descriptor.baseIdentity.manifestDigest) {
+    fail('development_runtime_manifest_identity_mismatch', 'Prepared context manifest identity disagrees with its full-base identity');
+  }
+  if (repositoryBaseIdentity !== null && repositoryBaseIdentity !== undefined) {
+    const expected = normalizeRepositoryBaseIdentity(repositoryBaseIdentity, {
+      objectFormat: objectFormat ?? repositoryBaseIdentity.objectFormat,
+      commitOid: repositoryCommitOid,
+    });
+    const observed = descriptor.repositoryBaseIdentity;
+    if (!isPlainRecord(observed) || observed.profile !== expected.profile || observed.objectFormat !== expected.objectFormat ||
+        observed.commitOid !== expected.commitOid || observed.treeOid !== expected.treeOid ||
+        observed.baseDigest !== expected.baseDigest || observed.manifestDigest !== expected.manifestDigest) {
+      fail('development_runtime_repository_identity_mismatch', 'Prepared context does not attest the complete repository base identity');
+    }
+  }
+  if (descriptor.repositoryBaseIdentity !== undefined) {
+    normalizeRepositoryBaseIdentity(descriptor.repositoryBaseIdentity, {
+      commitOid: repositoryCommitOid,
+      objectFormat: descriptor.repositoryBaseIdentity.objectFormat,
+    });
+  }
+  return context;
+}
+
+
 export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextReferenceId: referenceId, contextDigest, contextFileCount, instruction } = {}) {
   return [
     "You are the release-bound tdev development worker.",
@@ -335,8 +404,8 @@ export function buildCodexPrompt({ repositoryCommitOid, baseDigest, contextRefer
   ].join("\n");
 }
 
-async function checkedGit({ repositoryPath, args, signal }) {
-  const result = await runGitCommand({ repositoryPath, args, signal });
+async function checkedGit({ repositoryPath, args, input = null, signal }) {
+  const result = await runGitCommand({ repositoryPath, args, input, signal });
   if (result.code !== 0) fail('development_runtime_git_failed', `Git command failed: ${args[0]}`, { exitCode: result.code, signal: result.signal });
   return result.stdout;
 }
@@ -346,7 +415,7 @@ async function assertCleanClone({ repositoryPath, signal }) {
   if (status.length !== 0) fail('development_runtime_clone_mutated', 'Codex modified the disposable exact-base repository', { status: status.slice(0, 8192) });
 }
 
-async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal }) {
+async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, sparsePaths = null }) {
   const parent = workspaceRoot === undefined || workspaceRoot === null ? os.tmpdir() : absolutePath(workspaceRoot, 'workspaceRoot');
   await mkdir(parent, { recursive: true, mode: 0o700 });
   const clonePath = await mkdtemp(path.join(parent, 'tdev-development-'));
@@ -596,7 +665,7 @@ function assertWriteScope(result, writePaths) {
 }
 
 export class CodexExecRepositoryModelExecutor {
-  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], contextIncludedPathPrefixes = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
+  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], contextIncludedPathPrefixes = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null, warden = null } = {}) {
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.codexExecutable = absolutePath(codexExecutable, 'codexExecutable');
     this.codexHome = absolutePath(codexHome, 'codexHome');
@@ -613,6 +682,7 @@ export class CodexExecRepositoryModelExecutor {
     if (typeof modelRunner !== 'function') fail('development_runtime_model_runner_invalid', 'modelRunner must be a function');
     this.observation = observation;
     this.modelRunner = modelRunner;
+    this.warden = warden;
     this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, includedPathPrefixes: contextIncludedPathPrefixes, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
     if (!this.contextAdapter || typeof this.contextAdapter.materializeContext !== 'function') fail('development_runtime_context_adapter_invalid', 'contextAdapter must materialize immutable context');
     Object.freeze(this);
@@ -647,7 +717,33 @@ export class CodexExecRepositoryModelExecutor {
       fail('development_runtime_context_scope_mismatch', 'Prepared context scope does not match the model operation scope');
     }
     const referenceId = assertContextReference(context.descriptor, contextReferenceId);
-    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal });
+    const sparsePaths = context.descriptor.profile === LAZY_REPOSITORY_CONTEXT_PROFILE
+      ? context.files?.map((file) => file.path).filter((filePath) => typeof filePath === 'string') ?? null
+      : null;
+    const clonePath = await cloneExactRepository({ repositoryPath: this.repositoryPath, commitOid: repositoryCommitOid, workspaceRoot: this.workspaceRoot, signal, sparsePaths });
+    const workspaceId = typedDigest('tdev.model-workspace.v1', { schemaVersion: 1, operationId: operationId ?? null, repositoryCommitOid, contextReferenceId: referenceId, clonePathDigest: digest(clonePath) });
+    if (this.warden !== null) {
+      try { this.warden.registerWorkspace({ workspaceId, root: clonePath, operationId, kind: 'model-clone' }); }
+      catch (cause) { await rm(clonePath, { recursive: true, force: true }); throw cause; }
+    }
+    let workspaceCleanup = null;
+    const processOperationId = operationId ?? `codex:${repositoryCommitOid}`;
+    let processCleanup = null;
+    const cleanupProcess = async () => {
+      if (processCleanup !== null) return processCleanup;
+      if (this.warden === null) return (processCleanup = { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true });
+      processCleanup = await this.warden.cleanupOperation(processOperationId);
+      if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove model process-group cleanup');
+      return processCleanup;
+    };
+    const cleanupWorkspace = async () => {
+      if (workspaceCleanup !== null) return workspaceCleanup;
+      if (this.warden !== null) return (workspaceCleanup = await this.warden.cleanupWorkspace(workspaceId));
+      await rm(clonePath, { recursive: true, force: true });
+      try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
+      catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+      return (workspaceCleanup = { cleanupComplete: true, workspaceId, absent: true, kind: 'model-clone' });
+    };
     const temporaryParent = this.workspaceRoot === null ? os.tmpdir() : this.workspaceRoot;
     let runtimeTempPath = null;
     const started = performance.now();
@@ -672,14 +768,15 @@ export class CodexExecRepositoryModelExecutor {
       const args = [...this.codexArguments, '--output-schema', this.outputSchemaPath];
       if (this.model !== null) args.push('--model', this.model);
       if (this.reasoningEffort !== null) args.push('-c', `model_reasoning_effort=${this.reasoningEffort}`);
-      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: runtimeTempPath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+      processResult = await this.modelRunner({ executable: this.codexExecutable, args, input, environment: runtimeEnvironment({ executable: this.codexExecutable, codexHome: this.codexHome, temporaryDirectory: runtimeTempPath }), workingDirectory: clonePath, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
+      const processCleanupReceipt = await cleanupProcess();
       if (processResult.code !== 0) {
         const outputSummary = summarizeCodexProcessOutput(processResult.stdout);
         fail("codex_process_failed", "Codex process exited unsuccessfully", { exitCode: processResult.code, signal: processResult.signal, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, stderrClass: processResult.stderrClass ?? "unknown", ...outputSummary, stdoutEventTypes: outputSummary.eventTypes, stdoutItemTypes: outputSummary.itemTypes, stdoutErrorCodes: outputSummary.errorCodes });
       }
       await assertCleanClone({ repositoryPath: clonePath, signal });
       const parsed = parseCodexJsonl(processResult.stdout, CODEX_MAX_RESPONSE_BYTES);
-      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage };
+      const evidence = { runtimeProfile: CODEX_EXEC_MODEL_PROFILE, executionBoundary: CODEX_EXECUTION_BOUNDARY, sandboxMode: 'none', workspaceMutation: 'clean', disclosureProfile: CODEX_DISCLOSURE_PROFILE, repositoryCommitOid, contextDigest: context.descriptor.contextDigest, outputSchemaPath: this.outputSchemaPath, outputSchemaSha256: schemaDigest, processStarts: 1, processReuses: 0, stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, usage: parsed.usage, terminalMessageCount: parsed.terminalMessageCount, auxiliaryTerminalMessages: parsed.auxiliaryTerminalMessages, processCleanup: processCleanupReceipt };
       const result = normalizedChangeSet(parsed.result, baseDigest, evidence);
       assertWriteScope(result, writePaths);
       const cleanup = await cleanupWorkspace();
@@ -721,25 +818,29 @@ export class CodexExecRepositoryModelExecutor {
       });
       throw cause;
     } finally {
+      let cleanupFailure = null;
       if (runtimeTempPath !== null) {
-        await rm(runtimeTempPath, { recursive: true, force: true });
-        try { await stat(runtimeTempPath); fail('development_runtime_temp_cleanup_failed', 'Codex runtime temporary directory remained after execution'); }
-        catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+        try {
+          await rm(runtimeTempPath, { recursive: true, force: true });
+          try { await stat(runtimeTempPath); fail('development_runtime_temp_cleanup_failed', 'Codex runtime temporary directory remained after execution'); }
+          catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+        } catch (cause) { cleanupFailure = cause; }
       }
-      await rm(clonePath, { recursive: true, force: true });
-      try { await stat(clonePath); fail('development_runtime_clone_cleanup_failed', 'Codex exact-base clone remained after execution'); }
-      catch (cleanupError) { if (cleanupError?.code !== 'ENOENT') throw cleanupError; }
+      try { await cleanupProcess(); } catch (cause) { cleanupFailure ??= cause; }
+      try { await cleanupWorkspace(); } catch (cause) { cleanupFailure ??= cause; }
+      if (cleanupFailure !== null) throw cleanupFailure;
     }
   }
 }
 
 export class NpmCheckValidationExecutor {
-  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, observation = null } = {}) {
+  constructor({ npmExecutable, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, observation = null, warden = null } = {}) {
     this.npmExecutable = absolutePath(npmExecutable, 'npmExecutable');
     this.timeoutMs = positiveBound(timeoutMs, 'timeoutMs', 600_000);
     this.cancelGraceMs = assertSafeInteger(cancelGraceMs, 'cancelGraceMs', { min: 0, max: 60_000 });
     if (observation !== null && typeof observation !== 'function') fail('development_runtime_observation_invalid', 'observation must be a function or null');
     this.observation = observation;
+    this.warden = warden;
     Object.freeze(this);
   }
 
@@ -748,7 +849,12 @@ export class NpmCheckValidationExecutor {
     assertDigest(candidateTreeDigest, 'candidateTreeDigest');
     assertIdentifier(validationProfile, 'validationProfile');
     if (validationProfile !== NPM_CHECK_VALIDATION_PROFILE) fail('development_validation_profile_unknown', `Unsupported validation profile: ${validationProfile}`);
-    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES });
+    const processOperationId = operationId ?? `validation:${candidateTreeDigest}`;
+    const processResult = await runModelSubprocess({ executable: this.npmExecutable, args: ['run', 'check'], input: Buffer.alloc(0), environment: runtimeEnvironment({ executable: this.npmExecutable, temporaryDirectory: root, extra: { npm_config_audit: 'false', npm_config_fund: 'false', npm_config_update_notifier: 'false', npm_config_offline: 'true' } }), workingDirectory: root, timeoutMs: this.timeoutMs, signal, maxStdoutBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES, warden: this.warden, operationId: processOperationId });
+    const processCleanup = this.warden === null
+      ? { cleanupComplete: true, operationId: processOperationId, processCount: 0, observedExit: true }
+      : await this.warden.cleanupOperation(processOperationId);
+    if (processCleanup.cleanupComplete !== true) fail('development_runtime_process_cleanup_incomplete', 'Warden could not prove validation process-group cleanup');
     const passed = processResult.code === 0 && processResult.signal === null;
     const outputSummary = summarizeValidationOutput(processResult.stdout);
     safeObservation(this.observation, {
@@ -767,8 +873,9 @@ export class NpmCheckValidationExecutor {
       stdoutFailureLineCount: outputSummary.failureLineCount,
       stdoutFailureClasses: outputSummary.failureClasses,
       stdoutFailurePreviews: outputSummary.failurePreviews,
+      processCleanup,
     });
-    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, stdoutFailureLineCount: outputSummary.failureLineCount, stdoutFailureClasses: outputSummary.failureClasses, stdoutFailurePreviews: outputSummary.failurePreviews } });
+    return deepFreeze({ kind: 'validation', passed, checks: [{ id: NPM_CHECK_VALIDATION_PROFILE, passed, message: passed ? null : `npm run check exited ${String(processResult.code ?? processResult.signal ?? 'unknown')}` }], evidence: { validationProfile, candidateTreeDigest, executable: this.npmExecutable, args: ['run', 'check'], network: 'none', stdoutBytes: processResult.stdoutBytes, stderrBytes: processResult.stderrBytes, durationMs: processResult.durationMs, stdoutFailureLineCount: outputSummary.failureLineCount, stdoutFailureClasses: outputSummary.failureClasses, stdoutFailurePreviews: outputSummary.failurePreviews, processCleanup } });
   }
 }
 
@@ -833,7 +940,7 @@ async function writeCandidateChangeSet({ repositoryPath, commitOid, result, cand
 }
 
 export class LocalDevelopmentOperationRuntime {
-  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, observation = null } = {}) {
+  constructor({ manifest, repositoryPath, codexExecutable, codexHome, outputSchemaPath, npmExecutable, model = null, reasoningEffort = null, workspaceRoot = null, contextAdapter = null, observation = null, warden = null, modelRunner = runModelSubprocess } = {}) {
     this.manifest = normalizeDevelopmentOperationManifest(manifest);
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
@@ -842,8 +949,13 @@ export class LocalDevelopmentOperationRuntime {
     if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], contextIncludedPathPrefixes: modelProfile.binding.contextIncludedPathPrefixes ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
-    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, observation });
+    this.warden = warden ?? new DevelopmentWarden({ workspaceRoot: this.workspaceRoot });
+    if (!this.warden || typeof this.warden.registerProcess !== 'function' || typeof this.warden.observeProcessExit !== 'function' || typeof this.warden.cleanupOperation !== 'function' || typeof this.warden.registerWorkspace !== 'function' || typeof this.warden.cleanupWorkspace !== 'function' || typeof this.warden.cleanupCandidate !== 'function') {
+      fail('development_runtime_warden_invalid', 'A DevelopmentWarden is required for process, workspace and candidate ownership');
+    }
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], contextIncludedPathPrefixes: modelProfile.binding.contextIncludedPathPrefixes ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv, contextAdapter, warden: this.warden, modelRunner });
+    this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, observation, warden: this.warden });
+    this.contexts = new Map();
     this.candidates = new Map();
     this.disposed = false;
   }

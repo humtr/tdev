@@ -25,6 +25,7 @@ export const DEVELOPMENT_OPERATION_MAX_REQUEST_BYTES = 256 * 1024;
 export const CODEX_MODEL_BINDING_PROFILE = 'tdev.model.codex-exec-no-bwrap.v1';
 export const CODEX_EXECUTION_BOUNDARY = 'tdev.disposable-exact-base-no-bwrap.v1';
 export const CODEX_OPERATION_ARGUMENTS = Object.freeze(['exec', '--ephemeral', '--json', '--ignore-user-config']);
+export const LAZY_CONTEXT_OPERATION_PROFILE = 'tdev.repository.context.prepare.lazy.v1';
 
 const OPERATION_KINDS = new Set(['repository_context', 'model_repository', 'repository_validation']);
 const EXECUTABLE_KINDS = new Set(['built_in', 'configured_runtime']);
@@ -107,10 +108,14 @@ function normalizeProfile(input, name) {
     }
     binding = canonicalClone(input.binding);
     if (input.binding.contextExcludedPaths !== undefined) {
-      if (!Array.isArray(input.binding.contextExcludedPaths) || input.binding.contextExcludedPaths.length !== 0) {
+      if (!Array.isArray(input.binding.contextExcludedPaths) || input.binding.contextExcludedPaths.length > 128) {
         fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths is invalid`);
       }
-      binding.contextExcludedPaths = [];
+      const excludedPaths = input.binding.contextExcludedPaths.map((value) => validateRelativePath(boundedText(value, `operation profile ${name}.binding.contextExcludedPaths`, 4096))).sort(compareText);
+      for (let index = 1; index < excludedPaths.length; index += 1) {
+        if (excludedPaths[index] === excludedPaths[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths contains a duplicate`);
+      }
+      binding.contextExcludedPaths = excludedPaths;
     }
     if (input.binding.contextIncludedPathPrefixes !== undefined) {
       if (!Array.isArray(input.binding.contextIncludedPathPrefixes) || input.binding.contextIncludedPathPrefixes.length === 0 || input.binding.contextIncludedPathPrefixes.length > 128) {
@@ -126,6 +131,15 @@ function normalizeProfile(input, name) {
         if (includedPathPrefixes[index] === includedPathPrefixes[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextIncludedPathPrefixes contains a duplicate`);
       }
       binding.contextIncludedPathPrefixes = includedPathPrefixes;
+    }
+    if (Array.isArray(binding.contextExcludedPaths) && binding.contextExcludedPaths.length > 0) {
+      if (!Array.isArray(binding.contextIncludedPathPrefixes) || binding.contextIncludedPathPrefixes.length === 0) {
+        fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths cannot reduce an unscoped repository context`);
+      }
+      for (const excludedPath of binding.contextExcludedPaths) {
+        const overlapsIncludedScope = binding.contextIncludedPathPrefixes.some((prefix) => prefix.endsWith('/') ? excludedPath.startsWith(prefix) : excludedPath === prefix);
+        if (overlapsIncludedScope) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths overlaps the admitted context scope`);
+      }
     }
   }
   if (input.kind === 'model_repository' && (binding === null || binding.profile !== CODEX_MODEL_BINDING_PROFILE || binding.executionBoundary !== CODEX_EXECUTION_BOUNDARY || typeof binding.outputSchemaPath !== 'string')) {
