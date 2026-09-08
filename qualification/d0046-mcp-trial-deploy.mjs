@@ -699,8 +699,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const sourceSha = assertTrackedSource(repositoryPath);
   const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
   const operationManifest = normalizedOperationManifest(rawOperation);
-  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
-  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, excludedPaths: modelBinding?.contextExcludedPaths ?? [], includedPathPrefixes: modelBinding?.contextIncludedPathPrefixes ?? [] });
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
   const artifact = artifactManifest(modules);
   const identity = identityManifest();
@@ -746,12 +745,10 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const sourceSha = assertTrackedSource(repositoryPath);
   const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
   const operationManifest = normalizedOperationManifest(rawOperation);
-  const modelBinding = operationManifest.profiles['tdev.model.repository.execute.v1']?.binding;
   const base = await buildMcpTrialBaseTreeModule({
     repositoryPath,
     commitOid: sourceSha,
-    excludedPaths: modelBinding?.contextExcludedPaths ?? [],
-    includedPathPrefixes: D0046_CONNECTION_CONTEXT_PREFIXES,
+    scope: D0046_MCP_CONTEXT_SCOPE,
   });
   const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, {
     overrides: { [base.moduleName]: base.source },
