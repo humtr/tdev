@@ -87,7 +87,7 @@ const ROUTE_BINDING_FIELDS = [
   'durableObjectId',
 ];
 
-const EXECUTION_VALUES = new Set(['unknown', 'not_started', 'started', 'completed']);
+const EXECUTION_VALUES = new Set(['unknown', 'not_started', 'started', 'completed', 'completion_unknown']);
 const CLEANUP_VALUES = new Set(['unknown', 'no_handle', 'held', 'cleanup_complete']);
 const EFFECT_VALUES = new Set(['not_applicable', 'unknown', 'not_applied', 'applied']);
 const DISPATCH_VALUES = new Set(['authorized', 'sent_observed', 'positively_not_sent']);
@@ -226,12 +226,41 @@ function emptyDispatchEvidence() {
   };
 }
 
-function assertDispatchEvidence(tuple, label = 'dispatch evidence') {
-  exactRecord(tuple, ['dispatch', 'transportReceipt', 'execution', 'cleanup'], [], label);
+function normalizeExecutionFailure(input, limits, label = 'execution failure') {
+  if (!isPlainRecord(input)) fail('invalid_delivery_evidence', `${label} must be a record`);
+  exactRecord(input, ['causeCode', 'certainty', 'retryable'], ['causeDetails'], label);
+  assertBoundedText(input.causeCode, `${label}.causeCode`, limits.maxIdentifierBytes, { identifier: true });
+  if (!['not_applied', 'unknown'].includes(input.certainty)) fail('invalid_delivery_evidence', `${label}.certainty is invalid`);
+  if (typeof input.retryable !== 'boolean') fail('invalid_delivery_evidence', `${label}.retryable must be boolean`);
+  let causeDetails;
+  if (Object.hasOwn(input, 'causeDetails')) {
+    if (!isPlainRecord(input.causeDetails)) fail('invalid_delivery_evidence', `${label}.causeDetails must be a record`);
+    causeDetails = canonicalClone(input.causeDetails);
+  }
+  const failure = {
+    causeCode: input.causeCode,
+    certainty: input.certainty,
+    retryable: input.retryable,
+    ...(causeDetails === undefined ? {} : { causeDetails }),
+  };
+  if (textEncoder.encode(canonicalJson(failure)).byteLength > limits.maxEvidenceBytes) {
+    fail('delivery_evidence_limit', `${label} exceeds the configured evidence byte limit`);
+  }
+  return failure;
+}
+
+function assertDispatchEvidence(tuple, limits, label = 'dispatch evidence') {
+  exactRecord(tuple, ['dispatch', 'transportReceipt', 'execution', 'cleanup'], ['failure'], label);
   if (!DISPATCH_VALUES.has(tuple.dispatch)) fail('invalid_delivery_evidence', `${label}.dispatch is invalid`);
   if (!RECEIPT_VALUES.has(tuple.transportReceipt)) fail('invalid_delivery_evidence', `${label}.transportReceipt is invalid`);
   if (!EXECUTION_VALUES.has(tuple.execution)) fail('invalid_delivery_evidence', `${label}.execution is invalid`);
   if (!CLEANUP_VALUES.has(tuple.cleanup)) fail('invalid_delivery_evidence', `${label}.cleanup is invalid`);
+  if (tuple.execution === 'completion_unknown') {
+    if (!Object.hasOwn(tuple, 'failure')) fail('invalid_delivery_evidence', `${label}.failure is required for completion_unknown`);
+    tuple.failure = normalizeExecutionFailure(tuple.failure, limits, `${label}.failure`);
+  } else if (Object.hasOwn(tuple, 'failure')) {
+    fail('invalid_delivery_evidence', `${label}.failure requires completion_unknown execution`);
+  }
   return tuple;
 }
 
@@ -239,10 +268,10 @@ function evidenceLegality(tuple, effect) {
   if (tuple.dispatch === 'positively_not_sent' && tuple.transportReceipt === 'received') {
     return 'positively_not_sent_conflicts_with_transport_receipt';
   }
-  if (tuple.dispatch === 'positively_not_sent' && ['started', 'completed'].includes(tuple.execution)) {
+  if (tuple.dispatch === 'positively_not_sent' && ['started', 'completed', 'completion_unknown'].includes(tuple.execution)) {
     return 'positively_not_sent_conflicts_with_execution';
   }
-  if (tuple.execution === 'not_started' && ['started', 'completed'].includes(tuple.execution)) {
+  if (tuple.execution === 'not_started' && ['started', 'completed', 'completion_unknown'].includes(tuple.execution)) {
     return 'not_started_conflicts_with_execution';
   }
   if (effect === 'applied' && tuple.dispatch === 'positively_not_sent') {
@@ -251,7 +280,7 @@ function evidenceLegality(tuple, effect) {
   if (effect === 'applied' && tuple.execution === 'not_started') {
     return 'not_started_conflicts_with_applied_effect';
   }
-  if (tuple.cleanup === 'no_handle' && ['started', 'completed'].includes(tuple.execution)) {
+  if (tuple.cleanup === 'no_handle' && ['started', 'completed', 'completion_unknown'].includes(tuple.execution)) {
     return 'no_handle_conflicts_with_execution_history';
   }
   return null;
@@ -262,8 +291,8 @@ function refineAxis(axis, before, after) {
   if (axis === 'dispatch') return before === 'authorized' && ['sent_observed', 'positively_not_sent'].includes(after);
   if (axis === 'transportReceipt') return before === 'none' && after === 'received';
   if (axis === 'execution') {
-    if (before === 'unknown') return ['not_started', 'started', 'completed'].includes(after);
-    return before === 'started' && after === 'completed';
+    if (before === 'unknown') return ['not_started', 'started', 'completed', 'completion_unknown'].includes(after);
+    return before === 'started' && ['completed', 'completion_unknown'].includes(after);
   }
   if (axis === 'cleanup') {
     if (before === 'unknown') return ['no_handle', 'held', 'cleanup_complete'].includes(after);
@@ -275,7 +304,10 @@ function refineAxis(axis, before, after) {
 
 function normalizeEvidenceObservation(input, limits) {
   if (!isPlainRecord(input)) fail('invalid_delivery_evidence', 'Evidence observation must be a record');
-  exactRecord(input, [], ['dispatch', 'transportReceipt', 'execution', 'cleanup', 'effect'], 'evidence observation');
+  exactRecord(input, [], [
+    'dispatch', 'transportReceipt', 'execution', 'cleanup', 'effect',
+    'causeCode', 'certainty', 'retryable', 'causeDetails',
+  ], 'evidence observation');
   const result = {};
   if (Object.hasOwn(input, 'dispatch')) {
     if (!['sent_observed', 'positively_not_sent'].includes(input.dispatch)) fail('invalid_delivery_evidence', 'Invalid dispatch observation');
@@ -288,6 +320,20 @@ function normalizeEvidenceObservation(input, limits) {
   if (Object.hasOwn(input, 'execution')) {
     if (!EXECUTION_VALUES.has(input.execution) || input.execution === 'unknown') fail('invalid_delivery_evidence', 'Invalid execution observation');
     result.execution = input.execution;
+  }
+  const hasFailureField = ['causeCode', 'certainty', 'retryable', 'causeDetails'].some((key) => Object.hasOwn(input, key));
+  if (input.execution === 'completion_unknown') {
+    if (!Object.hasOwn(input, 'causeCode') || !Object.hasOwn(input, 'certainty') || !Object.hasOwn(input, 'retryable')) {
+      fail('invalid_delivery_evidence', 'completion_unknown observation requires bounded failure metadata');
+    }
+    result.failure = normalizeExecutionFailure({
+      causeCode: input.causeCode,
+      certainty: input.certainty,
+      retryable: input.retryable,
+      ...(Object.hasOwn(input, 'causeDetails') ? { causeDetails: input.causeDetails } : {}),
+    }, limits, 'evidence observation failure');
+  } else if (hasFailureField) {
+    fail('invalid_delivery_evidence', 'Failure metadata requires completion_unknown execution');
   }
   if (Object.hasOwn(input, 'cleanup')) {
     if (!CLEANUP_VALUES.has(input.cleanup) || input.cleanup === 'unknown') fail('invalid_delivery_evidence', 'Invalid cleanup observation');
@@ -701,7 +747,7 @@ function normalizeSnapshot(snapshot, expectedBinding = null) {
         assertDigest(dispatch.firstSendClaim.authorizationId, 'dispatch.firstSendClaim.authorizationId');
         if (dispatch.firstSendClaim.authorizationId !== dispatch.authorizationId) fail('invalid_agent_delivery_snapshot', 'First-send claim authorization mismatch');
       }
-      assertDispatchEvidence(dispatch.evidence, `delivery ${deliveryId} dispatch ${ordinal}.evidence`);
+      assertDispatchEvidence(dispatch.evidence, limits, `delivery ${deliveryId} dispatch ${ordinal}.evidence`);
     }
     assertSafeInteger(delivery.localEvidenceRevision, 'delivery.localEvidenceRevision', { min: 0 });
     if (delivery.lastEvidenceDigest !== null) assertDigest(delivery.lastEvidenceDigest, 'delivery.lastEvidenceDigest');
@@ -846,6 +892,12 @@ function normalizeTerminalCaseReceipt(delivery, command, caseReceipt, limits) {
       fail('case_terminal_receipt_mismatch', 'Case terminal result does not bind the exact delivery Attempt fence');
     }
     terminalStatus = 'succeeded';
+  } else if (command.type === 'fail_attempt') {
+    exactRecord(command, ['type', 'attemptId', 'error'], ['retryable'], 'terminal fail_attempt command');
+    if (command.attemptId !== delivery.attemptId) {
+      fail('case_terminal_receipt_mismatch', 'Case failure does not bind the exact delivery Attempt');
+    }
+    terminalStatus = 'failed';
   } else if (command.type === 'resolve_reconciliation') {
     exactRecord(command, ['type', 'attemptId', 'decision'], [], 'terminal reconciliation command');
     if (command.attemptId !== delivery.attemptId) {
@@ -856,7 +908,7 @@ function normalizeTerminalCaseReceipt(delivery, command, caseReceipt, limits) {
     }
     terminalStatus = command.decision.outcome;
   } else {
-    fail('case_terminal_receipt_not_terminal', 'Only terminal Case result/reconciliation receipts may retire a dispatched delivery');
+    fail('case_terminal_receipt_not_terminal', 'Only terminal Case result/failure/reconciliation receipts may retire a dispatched delivery');
   }
 
   return {
@@ -3374,6 +3426,19 @@ export class AgentDeliveryAuthority {
         }
         candidateEvidence[axis] = observation[axis];
       }
+      if (Object.hasOwn(observation, 'failure')) {
+        if (Object.hasOwn(dispatch.evidence, 'failure') && canonicalJson(dispatch.evidence.failure) !== canonicalJson(observation.failure)) {
+          delivery.evidenceConflict = {
+            dispatchOrdinal: input.dispatchOrdinal,
+            localEvidenceRevision: input.localEvidenceRevision,
+            incomingEvidenceDigest: observationDigest,
+            currentDispositionDigest: digest({ evidence: dispatch.evidence, effect: delivery.effect }),
+            reason: 'non_monotonic_failure',
+          };
+          return { changed: true, result: { classification: 'conflict', evidence: dispatch.evidence, effect: delivery.effect } };
+        }
+        candidateEvidence.failure = canonicalClone(observation.failure);
+      }
       if (Object.hasOwn(observation, 'effect')) {
         if (!refineAxis('effect', delivery.effect, observation.effect)) {
           delivery.evidenceConflict = {
@@ -3404,7 +3469,7 @@ export class AgentDeliveryAuthority {
       delivery.localEvidenceRevision = input.localEvidenceRevision;
       delivery.lastEvidenceDigest = observationDigest;
       delivery.lastEvidenceOrdinal = input.dispatchOrdinal;
-      if (['started', 'completed'].includes(candidateEvidence.execution) || candidateEvidence.cleanup === 'held') {
+      if (['started', 'completed', 'completion_unknown'].includes(candidateEvidence.execution) || candidateEvidence.cleanup === 'held') {
         if (delivery.slotHeld) delivery.slotKind = 'physical';
       }
       if (['no_handle', 'cleanup_complete'].includes(candidateEvidence.cleanup)) {
