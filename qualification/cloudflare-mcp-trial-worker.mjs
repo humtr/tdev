@@ -1,4 +1,5 @@
 import {
+  canonicalClone,
   canonicalJson,
   digest,
   isPlainRecord,

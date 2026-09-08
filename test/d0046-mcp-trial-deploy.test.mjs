@@ -20,6 +20,12 @@ import { digest } from '../src/canonical.mjs';
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
 
+test('D0046 light Case snapshot projection imports its clone helper', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  assert.match(source, /import \{[\s\S]*?canonicalClone,[\s\S]*?\} from '\.\.\/src\/canonical\.mjs';/u);
+  assert.match(source, /snapshot: \(\) => canonicalClone\(snapshot\)/u);
+});
+
 test('D0046 deployer composes a digest-bound trial and keeps the large tree out of env JSON', async () => {
   const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
   const manifests = buildTrialManifests({
