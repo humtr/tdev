@@ -622,7 +622,8 @@ function projectCandidate(result, maxBytes) {
 
 function projectPromotion(snapshot, { includeTree = false } = {}) {
   if (!isPlainRecord(snapshot)) fail('mcp_owner_invalid_projection', 'Case owner returned an invalid Promotion snapshot');
-  const promotionTaskId = snapshot.plan?.promotionTaskId ?? null;
+  const promotionTaskId = snapshot.plan?.promotionTaskId
+    ?? (isPlainRecord(snapshot.taskStates?.promote) ? 'promote' : null);
   const promotionState = promotionTaskId === null ? null : snapshot.taskStates?.[promotionTaskId] ?? null;
   const accepted = promotionState?.acceptedResult ?? null;
   const promotion = accepted === null ? null : {

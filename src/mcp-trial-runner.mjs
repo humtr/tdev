@@ -98,6 +98,31 @@ function caseView(snapshot, manifest, fallbackContract) {
   return { snapshot, plan, caseContract };
 }
 
+function historicalCaseView(snapshot, fallbackContract) {
+  if (!TERMINAL_CASE_STATES.has(snapshot?.caseState)) {
+    fail('mcp_trial_context_mismatch', 'Only terminal Case snapshots may be read against a historical repository base');
+  }
+  if (!isPlainRecord(snapshot?.plan) || !isPlainRecord(snapshot.plan.baseTree)) {
+    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot has no reconstructable Plan base');
+  }
+  const caseContract = caseContractFrom(snapshot, fallbackContract);
+  const baseTree = canonicalClone(snapshot.plan.baseTree);
+  if (digest(baseTree) !== snapshot.plan.baseDigest) {
+    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot base digest is invalid');
+  }
+  const plan = definePlan({
+    revisionId: snapshot.plan.revisionId,
+    baseTree,
+    tasks: Array.isArray(snapshot.plan.tasks)
+      ? snapshot.plan.tasks
+      : snapshot.plan.taskOrder?.map((taskId) => snapshot.plan.tasksById?.[taskId]),
+  }, { caseContract });
+  if (plan.planDigest !== snapshot.plan.planDigest || plan.baseDigest !== snapshot.plan.baseDigest) {
+    fail('mcp_trial_case_snapshot_invalid', 'Historical Case snapshot Plan digest is invalid');
+  }
+  return { snapshot, plan, caseContract };
+}
+
 function readyTaskIds(view, capabilities) {
   if (!isPlainRecord(view.snapshot.taskStates) || view.snapshot.caseState !== 'active') return [];
   return view.plan.taskOrder.filter((taskId) => {
@@ -776,7 +801,12 @@ export class McpTrialDevelopmentUnitRunner {
   }
 
   async candidate(caseId) {
-    const view = await this.#load(caseId);
+    const loaded = await this.repository.load(caseId);
+    if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
+    const snapshot = snapshotFromOwner(loaded, 'Case owner');
+    const view = snapshot.plan?.baseDigest === this.manifest.repository.baseDigest
+      ? caseView(snapshot, this.manifest, this.caseContract)
+      : historicalCaseView(snapshot, this.caseContract);
     const tree = candidateTree(view);
     const changes = candidateChanges(view);
     return deepFreeze({

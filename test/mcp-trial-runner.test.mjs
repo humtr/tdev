@@ -132,6 +132,58 @@ test('D0046 candidate projection returns a bounded diff instead of the complete 
   assert.equal(candidate.candidateDigest, digest({ ...BASE_TREE, 'src/changed.mjs': 'export const changed = true;\n' }));
 });
 
+test('D0046 candidate projection reads terminal historical bases but rejects active stale bases', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const historicalBaseTree = { 'src/old.mjs': 'export const old = 1;\n' };
+  const historicalPlan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-historical-1',
+    baseTree: historicalBaseTree,
+    repositoryCommitOid: 'b'.repeat(40),
+    instruction: 'write one historical file',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const serializedPlan = {
+    revisionId: historicalPlan.revisionId,
+    baseTree: historicalPlan.baseTree,
+    baseDigest: historicalPlan.baseDigest,
+    tasks: historicalPlan.taskOrder.map((taskId) => historicalPlan.tasksById[taskId]),
+    planDigest: historicalPlan.planDigest,
+  };
+  const snapshot = {
+    schemaVersion: 2,
+    caseId: 'trial-historical-case-1',
+    caseState: 'succeeded',
+    caseRevision: 20,
+    eventSequence: 20,
+    plan: serializedPlan,
+    events: [],
+    canonicalTree: {},
+    canonicalDigest: null,
+    taskStates: {
+      context: { state: 'succeeded', acceptedResult: { kind: 'observation', subject: 'context', value: { referenceId: 'ctx-old-1' } } },
+      model: { state: 'succeeded', acceptedResult: { kind: 'changeset', baseDigest: digest(historicalBaseTree), writes: [{ path: 'src/changed.mjs', content: 'export const changed = true;\n' }] } },
+      validate: { state: 'succeeded', acceptedResult: { kind: 'validation', passed: true, checks: [] } },
+      promote: { state: 'succeeded', acceptedResult: null },
+    },
+    attempts: {},
+    receipts: {},
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: { create: async () => null, load: async () => ({ snapshot: () => snapshot }), command: async () => null },
+    driveOwner: { initialize: async () => null, advance: async () => null },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const candidate = await runner.candidate('trial-historical-case-1');
+  assert.equal(candidate.baseDigest, digest(historicalBaseTree));
+  assert.equal(candidate.candidateDigest, digest({ ...historicalBaseTree, 'src/changed.mjs': 'export const changed = true;\n' }));
+  snapshot.caseState = 'active';
+  await assert.rejects(() => runner.candidate('trial-historical-case-1'), { code: 'mcp_trial_context_mismatch' });
+});
+
 test('D0046 drive expires due Agent reservations before availability gating', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
