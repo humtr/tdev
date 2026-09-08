@@ -321,9 +321,15 @@ export function createMcpTrialOperationRequest(view, taskId, payload, operationM
   }
   if (taskId === 'validate') {
     const tree = candidateTree(view);
+    const model = resultForTask(view, 'model');
+    const runtimeCandidateTreeDigest = model?.evidence?.candidateTreeDigest;
+    if (runtimeCandidateTreeDigest !== undefined) assertDigest(runtimeCandidateTreeDigest, 'candidateTreeDigest');
     return {
       profile: resolveValidationOperationProfile(operationManifest, task.input.profile),
-      input: { candidateTreeDigest: digest(tree), validationProfile: task.input.validationProfile },
+      input: {
+        candidateTreeDigest: runtimeCandidateTreeDigest ?? digest(tree),
+        validationProfile: task.input.validationProfile,
+      },
     };
   }
   fail('mcp_trial_task_unsupported', `Unsupported development Task ${taskId}`);
