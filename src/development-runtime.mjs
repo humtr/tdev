@@ -376,7 +376,7 @@ function normalizedChangeSet(result, baseDigest, evidence) {
 }
 
 export class CodexExecRepositoryModelExecutor {
-  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
+  constructor({ repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256 = null, contextExcludedPaths = [], contextIncludedPathPrefixes = [], model = null, reasoningEffort = null, codexArguments = CODEX_ARGUMENTS, timeoutMs = DEFAULT_OPERATION_TIMEOUT_MS, cancelGraceMs = DEFAULT_CANCEL_GRACE_MS, workspaceRoot = null, observation = null, modelRunner = runModelSubprocess, contextAdapter = null } = {}) {
     this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
     this.codexExecutable = absolutePath(codexExecutable, 'codexExecutable');
     this.codexHome = absolutePath(codexHome, 'codexHome');
@@ -393,7 +393,7 @@ export class CodexExecRepositoryModelExecutor {
     if (typeof modelRunner !== 'function') fail('development_runtime_model_runner_invalid', 'modelRunner must be a function');
     this.observation = observation;
     this.modelRunner = modelRunner;
-    this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
+    this.contextAdapter = contextAdapter ?? new GitRepositoryModelExecutor({ repositoryPath: this.repositoryPath, modelExecutable: this.codexExecutable, timeoutMs: this.timeoutMs, excludedPaths: contextExcludedPaths, includedPathPrefixes: contextIncludedPathPrefixes, limits: { maxResponseBytes: CODEX_MAX_RESPONSE_BYTES, maxStderrBytes: CODEX_MAX_STDERR_BYTES } });
     if (!this.contextAdapter || typeof this.contextAdapter.materializeContext !== 'function') fail('development_runtime_context_adapter_invalid', 'contextAdapter must materialize immutable context');
     Object.freeze(this);
   }
@@ -564,7 +564,7 @@ export class LocalDevelopmentOperationRuntime {
     if (!modelProfile || modelProfile.binding?.profile !== CODEX_EXEC_MODEL_PROFILE || modelProfile.binding?.executionBoundary !== CODEX_EXECUTION_BOUNDARY || !validationProfile || validationProfile.binding?.profile !== NPM_CHECK_VALIDATION_PROFILE) {
       fail('development_runtime_manifest_invalid', 'The runtime requires the release-bound D0043 model and validation profiles');
     }
-    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
+    this.codex = new CodexExecRepositoryModelExecutor({ repositoryPath: this.repositoryPath, codexExecutable, codexHome, outputSchemaPath, outputSchemaSha256: modelProfile.binding.outputSchemaSha256 ?? null, contextExcludedPaths: modelProfile.binding.contextExcludedPaths ?? [], contextIncludedPathPrefixes: modelProfile.binding.contextIncludedPathPrefixes ?? [], model: model ?? modelProfile.binding.model ?? null, reasoningEffort: reasoningEffort ?? modelProfile.binding.reasoningEffort ?? null, timeoutMs: modelProfile.limits.timeoutMs, cancelGraceMs: modelProfile.limits.cancelGraceMs, workspaceRoot: this.workspaceRoot, observation, codexArguments: modelProfile.argv });
     this.npm = new NpmCheckValidationExecutor({ npmExecutable, timeoutMs: validationProfile.limits.timeoutMs, cancelGraceMs: validationProfile.limits.cancelGraceMs, observation });
     this.candidates = new Map();
     this.disposed = false;

@@ -96,7 +96,7 @@ function normalizeProfile(input, name) {
   }
   let binding = null;
   if (input.binding !== undefined && input.binding !== null) {
-    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths', 'executionBoundary'], `operation profile ${name}.binding`);
+    assertRecordShape(input.binding, ['profile'], ['outputSchemaPath', 'outputSchemaSha256', 'model', 'reasoningEffort', 'validationCommand', 'contextExcludedPaths', 'contextIncludedPathPrefixes', 'executionBoundary'], `operation profile ${name}.binding`);
     assertIdentifier(input.binding.profile, `operation profile ${name}.binding.profile`);
     for (const field of ['outputSchemaPath', 'model', 'reasoningEffort', 'validationCommand']) {
       if (input.binding[field] !== undefined && input.binding[field] !== null) boundedText(input.binding[field], `operation profile ${name}.binding.${field}`, 4096);
@@ -114,6 +114,21 @@ function normalizeProfile(input, name) {
         if (excludedPaths[index] === excludedPaths[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextExcludedPaths contains a duplicate`);
       }
       binding.contextExcludedPaths = excludedPaths;
+    }
+    if (input.binding.contextIncludedPathPrefixes !== undefined) {
+      if (!Array.isArray(input.binding.contextIncludedPathPrefixes) || input.binding.contextIncludedPathPrefixes.length === 0 || input.binding.contextIncludedPathPrefixes.length > 128) {
+        fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextIncludedPathPrefixes is invalid`);
+      }
+      const includedPathPrefixes = input.binding.contextIncludedPathPrefixes.map((value) => {
+        const text = boundedText(value, `operation profile ${name}.binding.contextIncludedPathPrefixes`, 4096);
+        const directoryPrefix = text.endsWith('/');
+        const normalized = validateRelativePath(directoryPrefix ? text.slice(0, -1) : text);
+        return directoryPrefix ? `${normalized}/` : normalized;
+      }).sort(compareText);
+      for (let index = 1; index < includedPathPrefixes.length; index += 1) {
+        if (includedPathPrefixes[index] === includedPathPrefixes[index - 1]) fail('development_operation_binding_invalid', `Operation profile ${name}.binding.contextIncludedPathPrefixes contains a duplicate`);
+      }
+      binding.contextIncludedPathPrefixes = includedPathPrefixes;
     }
   }
   if (input.kind === 'model_repository' && (binding === null || binding.profile !== CODEX_MODEL_BINDING_PROFILE || binding.executionBoundary !== CODEX_EXECUTION_BOUNDARY || typeof binding.outputSchemaPath !== 'string')) {
