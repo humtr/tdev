@@ -433,7 +433,14 @@ export class TermuxInstallableAgentServiceController {
     await this.#waitSupervised(layout.controlServicePath);
     await this.#waitSupervised(layout.supervisorServicePath);
     this.#sv('down', layout.controlServicePath);
-    const controlStopped = await this.#waitDown(layout.controlServicePath);
+    let controlStopped;
+    try {
+      controlStopped = await this.#waitDown(layout.controlServicePath);
+    } catch (cause) {
+      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
+      this.#sv('kill', layout.controlServicePath);
+      controlStopped = await this.#waitDown(layout.controlServicePath);
+    }
     this.#sv('up', layout.supervisorServicePath);
     await this.#waitSupervisorReady(layout);
     const client = this.clientFactory({ socketPath: layout.socketPath });
