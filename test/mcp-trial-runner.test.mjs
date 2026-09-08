@@ -18,6 +18,7 @@ import {
   digest,
   normalizeDevelopmentOperationManifest,
   resolveValidationOperationProfile,
+  SEMANTIC_PROFILE,
 } from '../src/index.mjs';
 
 const COMMIT = 'a'.repeat(40);
@@ -238,6 +239,82 @@ test('D0046 runner rejects a Case-only replay when the authoritative Plan differ
     (error) => error?.code === 'mcp_trial_case_replay_conflict',
   );
   assert.equal(driveInitializations, 0);
+});
+
+test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const baseDigest = digest(BASE_TREE);
+  const manifestDigest = digest({ repository: 'lazy-v3-trial' });
+  const treeOid = 'b'.repeat(40);
+  const baseIdentity = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-base-identity.v1',
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid,
+    baseDigest,
+    manifestDigest,
+  };
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid,
+    manifestDigest,
+  });
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-lazy-v3-trial',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+    contextScope: { paths: ['src/base.mjs'], maxFiles: 4, maxBytes: 4096, maxSearchResults: 4 },
+    baseIdentity,
+    repositoryBaseIdentity,
+    instruction: 'drive compact lazy Plan',
+    writePaths: ['src/base.mjs'],
+  });
+  const snapshot = new CaseEngine({
+    caseId: 'trial-lazy-v3-case',
+    plan,
+    semanticAuthority: { profile: SEMANTIC_PROFILE },
+  }).snapshot();
+  let advances = 0;
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => null,
+      load: async () => snapshot,
+      command: async () => null,
+    },
+    driveOwner: {
+      initialize: async () => null,
+      advance: async () => { advances += 1; return { classification: 'not_ready' }; },
+    },
+    agentOwner: {
+      invoke: async () => null,
+      readRoute: async () => ({
+        routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
+        installableAgent: { state: 'CURRENT' },
+        connection: null,
+        executor: null,
+        capacity: null,
+        reservations: {},
+        deliveries: {},
+      }),
+      readResultHandoff: async () => null,
+      routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
+    },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const result = await runner.drive({
+    caseId: 'trial-lazy-v3-case',
+    driveRequestId: 'drive-lazy-v3-case',
+    payload: {},
+  });
+  assert.equal(result.caseRevision, snapshot.caseRevision);
+  assert.equal(result.status, 'not_ready');
+  assert.ok(advances >= 1);
 });
 
 test('D0046 candidate projection returns a bounded diff instead of the complete base tree', async () => {

@@ -5,6 +5,9 @@ import { join } from 'node:path';
 import test from 'node:test';
 
 import { CaseEngine } from '../src/engine.mjs';
+import { digest } from '../src/canonical.mjs';
+import { defineDevelopmentUnitPlan } from '../src/development-unit.mjs';
+import { createRepositoryBaseIdentity } from '../src/lazy-plan-reference.mjs';
 import { SEMANTIC_PROFILE } from '../src/semantic-authority.mjs';
 import { openSemanticSqliteStore } from '../src/semantic-store.mjs';
 import { planWithWork, resultFor } from './helpers.mjs';
@@ -84,6 +87,57 @@ test('CaseEngine v3 snapshot requires semantic object resolver and round-trips t
     assert.deepEqual(JSON.parse(JSON.stringify(restored.canonicalTree)), JSON.parse(JSON.stringify(engine.canonicalTree)));
     reopenedStore.close();
   });
+});
+
+test('CaseEngine v3 preserves a lazy Plan baseReference across snapshot restore', () => {
+  const baseTree = { 'base.txt': 'base' };
+  const commitOid = 'a'.repeat(40);
+  const treeOid = 'b'.repeat(40);
+  const manifestDigest = digest({ manifest: 'lazy-v3-plan' });
+  const baseDigest = digest(baseTree);
+  const baseIdentity = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-base-identity.v1',
+    objectFormat: 'sha1',
+    commitOid,
+    treeOid,
+    baseDigest,
+    manifestDigest,
+  };
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid,
+    treeOid,
+    manifestDigest,
+  });
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'lazy-v3-plan',
+    baseTree,
+    repositoryCommitOid: commitOid,
+    contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+    contextScope: { paths: ['base.txt'], maxFiles: 4, maxBytes: 4096, maxSearchResults: 4 },
+    baseIdentity,
+    repositoryBaseIdentity,
+    instruction: 'preserve lazy identity',
+  });
+  const engine = new CaseEngine({
+    caseId: 'semantic-lazy-case',
+    plan,
+    semanticAuthority: { profile: SEMANTIC_PROFILE },
+  });
+  const snapshot = engine.snapshot();
+  assert.equal(snapshot.schemaVersion, 3);
+  assert.deepEqual(JSON.parse(JSON.stringify(snapshot.plan.baseReference)), JSON.parse(JSON.stringify(plan.baseReference)));
+  assert.equal(snapshot.plan.planDigest, plan.planDigest);
+
+  const objects = new Map(engine.semanticObjectRecords().map((entry) => [entry.digest, entry]));
+  const restored = CaseEngine.restore(snapshot, {
+    reopen: false,
+    semanticResolver: (objectDigest) => objects.get(objectDigest) ?? null,
+  });
+  assert.equal(restored.plan.planDigest, plan.planDigest);
+  assert.deepEqual(JSON.parse(JSON.stringify(restored.plan.baseReference)), JSON.parse(JSON.stringify(plan.baseReference)));
+  assert.deepEqual(restored.snapshot(), snapshot);
 });
 
 test('CaseEngine v2 remains schema-v2 and full-tree authoritative by default', () => {

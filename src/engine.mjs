@@ -2868,6 +2868,7 @@ function restoreV3Snapshot(snapshot, options) {
     revisionId: binding.revisionId,
     baseTree,
     tasks: binding.tasks,
+    ...(binding.baseReference === undefined ? {} : { baseReference: binding.baseReference }),
   }, { caseContract });
   if (plan.planDigest !== binding.planDigest || plan.baseDigest !== binding.baseDigest) {
     throw new ContractError('snapshot_plan_digest', 'Semantic snapshot Plan identity does not match the reconstructed Plan');
