@@ -10,7 +10,7 @@
       "filesystem": "immutable_repository",
       "network": "openai-codex-trusted-local",
       "limits": {
-        "timeoutMs": 300000,
+        "timeoutMs": 600000,
         "maxInputBytes": 262144,
         "maxOutputBytes": 4194304,
         "maxFileBytes": 16777216,

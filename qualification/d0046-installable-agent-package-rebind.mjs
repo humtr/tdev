@@ -296,7 +296,7 @@ export async function runD0046InstallableAgentPackageRebind(options = {}) {
     credentialRef,
     androidSourceLineageId,
     protocolMetadataDigest: digest({ profile: 'tdev.d0046-mcp-trial-agent-protocol.v1', version: 1 }),
-    reportedCapacity: 1,
+    reportedCapacity: Number(envText('TDEV_D0046_REPORTED_CAPACITY', String(options.reportedCapacity ?? 1))),
     developmentRepositoryPath: repositoryPath,
     developmentCodexHome: codexHome,
     developmentCodexExecutable: codexExecutable,
