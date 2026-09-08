@@ -8,6 +8,7 @@ import {
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
+  D0046_CASE_SOURCE_SHAS,
   accessApplicationPayload,
   assertCaseOwnerCapacity,
   accessPolicyPayload,
@@ -26,6 +27,13 @@ test('D0046 light Case snapshot projection imports its clone helper', async () =
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   assert.match(source, /import \{[\s\S]*?canonicalClone,[\s\S]*?\} from '\.\.\/src\/canonical\.mjs';/u);
   assert.match(source, /snapshot: \(\) => canonicalClone\(snapshot\)/u);
+});
+
+
+
+test('D0046 fixed Case source allowlist includes the lazy Plan compatible reader baseline', () => {
+  assert.ok(D0046_CASE_SOURCE_SHAS.includes('746a09d4643bf268d9f4204304217e3309763422'));
+  assert.equal(new Set(D0046_CASE_SOURCE_SHAS).size, D0046_CASE_SOURCE_SHAS.length);
 });
 
 test('D0046 deployer composes a digest-bound trial and keeps the large tree out of env JSON', async () => {
