@@ -12,11 +12,14 @@ D0036 revision 1 replaces D0031's checkpoint-ref election with one persistent de
 
 The provider default branch, current checkout, branch naming, timestamps, remembered continuity, mere existence of a later ref and local-only unpublished refs are discovery inputs only. They do not elect the current route. Bind the selected exact `ref@sha`, then establish the fixed bootstrap kernel in this order:
 
-1. read `RULE.md` from the bound snapshot;
-2. read `SDD.md` from the bound snapshot;
-3. read `WORKBOARD.md` from the bound snapshot, confirm its active branch matches the bound published ref and, when present, its route mode is exactly `persistent-v1`, then resolve the current development route from it;
-4. compare any chat summary, handoff, project prompt, Task context, cached interpretation or historical record with those current owners;
-5. discard or mark stale every incompatible derived claim before dependent mutation.
+1. read `DIRECTIVE.md` from the bound snapshot and require exactly one active positive integer revision;
+2. read `RULE.md` from the bound snapshot;
+3. read `SDD.md` from the bound snapshot;
+4. read `WORKBOARD.md` from the bound snapshot, confirm its active branch matches the bound published ref and, when present, its route mode is exactly `persistent-v1`, then require its exact `Active owner directive` pointer to match the already-read `DIRECTIVE.md` revision and resolve the current development route from it;
+5. compare any chat summary, handoff, project prompt, Task context, cached interpretation, historical record, route or Design-derived plan with the active Directive and the other current owners;
+6. discard or mark stale every incompatible derived claim before dependent mutation.
+
+A route, Design, handoff, plan, historical PASS or qualification campaign that conflicts with the active Directive is stale for dependent mutation. Correct the conflict under `SDD.md`; do not let a subordinate owner silently replace or narrow the owner objective.
 
 If authority location cannot resolve one exact published snapshot, or a required bootstrap owner is missing, unreadable, or mutually inconsistent, stop only the dependent mutation and repair authority through `SDD.md`. Do not choose a branch, Design, migration, rollback, product meaning or completion claim by convention.
 
@@ -40,7 +43,8 @@ Do not infer authority from file names, capitalization, branch location, generat
 
 ## Development route discipline
 
-- `WORKBOARD.md` owns the current routing instance: active cumulative Group/branch, zero or more runnable `Dxxxx@rN` foreign keys, the selected next action, and live debts/barriers. Design files own their status and maintained revision meaning.
+- `DIRECTIVE.md` owns the current top-level objective, priority and non-substitutable completion criteria. It is not a Design or implementation authorization.
+- `WORKBOARD.md` owns the current routing instance and the exact active-Directive pointer: active cumulative Group/branch, zero or more runnable `Dxxxx@rN` foreign keys, the selected next action, and live debts/barriers. It does not copy or redefine the Directive objective. Design files own their status and maintained revision meaning.
 - `LINEAGE.md` owns stable Group-checkpoint succession and provenance preservation. Under D0036, a Group checkpoint does not imply a new persistent branch; it does not own which Group is current.
 - Resolve the active branch from `WORKBOARD.md`; do not carry a remembered branch from an earlier session or historical report.
 - Before a remote-changing action, freshly observe the actual provider ref and verify expected predecessor/ancestry. A commit SHA is immutable identity; a mutable ref observation is location- and time-specific.

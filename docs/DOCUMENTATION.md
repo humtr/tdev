@@ -32,6 +32,7 @@ Self-development documents answer how this repository is changed, routed, design
 | Development concern | Owner |
 | --- | --- |
 | repository/session bootstrap entrypoint | `AGENTS.md` |
+| current top-level owner objective, priority and non-substitutable completion criteria | `DIRECTIVE.md` |
 | stable implementation guardrails | `RULE.md` |
 | change classification and Design lifecycle | `SDD.md` |
 | current routing instance, runnable Design foreign keys, selected action and live carry-forward constraints | `WORKBOARD.md` |
@@ -63,7 +64,7 @@ A document also has one primary session role:
 
 | Session role | Meaning | Typical documents |
 | --- | --- | --- |
-| bootstrap | always needed to establish current development authority | `AGENTS.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md` |
+| bootstrap | always needed to establish current development authority | `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md` |
 | stable owner | loaded when affected scope requires its long-lived contract | product owners, `LINEAGE.md`, `WORKFLOW.md`, `ROADMAP.md`, `PROGRAM.md` |
 | current router | selects the current development route and 0..N runnable Design revision references | `WORKBOARD.md` |
 | active decision | authorizes one Class 2 scope | current Design revision |
@@ -86,16 +87,17 @@ After exact snapshot binding, the unconditional repository bootstrap is:
 
 ```text
 AGENTS.md
+DIRECTIVE.md
 RULE.md
 SDD.md
 WORKBOARD.md
 ```
 
-`AGENTS.md` defines the algorithm; `RULE.md` defines stable engineering invariants; `SDD.md` defines change/Design lifecycle; `WORKBOARD.md` owns the current route. The bound `WORKBOARD.md` must agree with the bound published ref.
+`AGENTS.md` defines the algorithm; `DIRECTIVE.md` owns the current top-level objective/priority without authorizing implementation by itself; `RULE.md` defines stable engineering invariants; `SDD.md` defines change/Design lifecycle; `WORKBOARD.md` owns the current route plus the exact active-Directive pointer. The bound `WORKBOARD.md` must agree with the bound published ref and its Directive pointer must match the active `DIRECTIVE.md` revision.
 
 After that kernel, load stable owners selected by affected scope. Do not preload the whole historical/program corpus merely because it exists.
 
-A chat summary, handoff, project prompt, Task context, generated registry or cached session manifest is derived continuity material. It may be reused only after its routing/Design/owner claims are rebound to current repository owners.
+A chat summary, handoff, project prompt, Task context, generated registry or cached session manifest is derived continuity material. It may be reused only after its Directive/routing/Design/owner claims are rebound to current repository owners. A carried Directive identity or objective that conflicts with the bound active Directive is stale for dependent mutation.
 
 ## 3. Information direction and one-owner rule
 
@@ -125,7 +127,8 @@ They may not independently originate another current value, and the canonical ow
 
 In particular:
 
-- `WORKBOARD.md` owns the current active Group/branch, runnable `Dxxxx@rN` foreign keys and selected next action; Design owners, not WORKBOARD, own Design status;
+- `DIRECTIVE.md` owns the current top-level objective, priority and non-substitutable completion criteria; a Design, plan, handoff, evidence record or router cannot become a competing objective owner;
+- `WORKBOARD.md` owns the exact active-Directive pointer plus the current active Group/branch, runnable `Dxxxx@rN` foreign keys and selected next action; it does not copy the Directive objective, and Design owners, not WORKBOARD, own Design status;
 - `LINEAGE.md` owns valid checkpoint succession, not the current instance;
 - `ROADMAP.md` owns stable capability/exit intent, not current branch routing;
 - `PROGRAM.md` owns dependency/coverage planning, not current branch routing;
@@ -161,7 +164,7 @@ Filename style is a navigation signal, not authority by itself.
 
 Use `UPPERCASE.md`; prefer one semantic word when that remains clear and precise.
 
-Examples: `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `SPEC.md`, `PROTOCOL.md`, `SECURITY.md`, `WORKFLOW.md`, `PROGRAM.md`.
+Examples: `DIRECTIVE.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md`, `LINEAGE.md`, `SPEC.md`, `PROTOCOL.md`, `SECURITY.md`, `WORKFLOW.md`, `PROGRAM.md`.
 
 A multiword live normative name is allowed when forcing one word would reduce clarity or create unnecessary migration risk. D0031 therefore retained `MVP.md` when only stylistic renaming was justified. D0032 later established a semantic owner separation: `QUALIFICATION.md` owns verification methodology, while the former MVP acceptance/evidence aggregate is preserved under `docs/history/`.
 
@@ -205,6 +208,7 @@ Before deleting duplicated prose, prove either:
 
 `WORKBOARD.md` may retain old facts only when they constrain current action. Its runnable frontier may contain zero, one or many Design revision foreign keys, and its selected next action is either `none` or one of those keys. For example:
 
+- exact active `DIRECTIVE.md` revision pointer;
 - immediate completed predecessor needed for current ancestry;
 - a live inherited qualification gap;
 - unresolved sync/checkout-alignment debt;
