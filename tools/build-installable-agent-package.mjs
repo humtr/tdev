@@ -9,6 +9,7 @@ import {
   INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
   INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
   INSTALLABLE_AGENT_PACKAGE_PROFILE,
+  INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH,
   INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
   INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH,
   INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION,
@@ -90,6 +91,12 @@ function assertCommit(revision) {
   if (result.error || result.status !== 0) fail(`source revision is not an available Git commit: ${revision}`);
 }
 
+function gitPathExists(revision, relativePath) {
+  const result = spawnSync('git', ['cat-file', '-e', `${revision}:${relativePath}`], { cwd: root, encoding: 'utf8' });
+  if (result.error) fail(`cannot inspect ${relativePath} in ${revision}: ${result.error.message}`);
+  return result.status === 0;
+}
+
 function parseArgs(argv) {
   let sourceRevision = null;
   let outputDirectory = null;
@@ -156,6 +163,19 @@ async function main() {
   const helperBytes = gitBytes(sourceRevision, helper.relativePath);
   if (sha256(helperBytes) !== helper.sha256) fail('source revision native helper digest mismatches its manifest');
 
+  const catalogSourcePath = 'src/development-operation-catalog.mjs';
+  const hasCatalogSource = gitPathExists(sourceRevision, catalogSourcePath);
+  const hasCatalogConfig = gitPathExists(sourceRevision, INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH);
+  if (hasCatalogSource !== hasCatalogConfig) {
+    fail('source revision contains a partial semantic development operation catalog');
+  }
+  const semanticCatalogFiles = hasCatalogSource
+    ? [
+      [catalogSourcePath, 'development-runtime'],
+      [INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH, 'package-development-operation-catalog'],
+    ]
+    : [];
+
   const outputDirectory = requestedOutput ?? path.join(root, 'native', 'installable-agent-package', targetKey);
   await mkdir(outputDirectory, { recursive: true, mode: 0o755 });
   const temporaryRoot = await mkdtemp(path.join(os.tmpdir(), 'tdev-installable-agent-package-'));
@@ -163,7 +183,7 @@ async function main() {
   await mkdir(stageRoot, { recursive: true, mode: 0o755 });
   try {
     const roles = new Map();
-    for (const [relativePath, role] of SOURCE_FILES) {
+    for (const [relativePath, role] of [...SOURCE_FILES, ...semanticCatalogFiles]) {
       const bytes = relativePath === 'native/installable-agent-supervisor/manifest.json'
         ? nativeManifestBytes
         : gitBytes(sourceRevision, relativePath);
@@ -214,6 +234,12 @@ async function main() {
         relativePath: INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH,
         sha256: files[INSTALLABLE_AGENT_TOOL_PROFILES_RELATIVE_PATH].sha256,
       },
+      ...(hasCatalogSource ? {
+        developmentOperationCatalog: {
+          relativePath: INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH,
+          sha256: files[INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH].sha256,
+        },
+      } : {}),
       developmentOperationProfiles: {
         relativePath: INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
         sha256: files[INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH].sha256,

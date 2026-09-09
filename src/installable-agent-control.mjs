@@ -44,8 +44,15 @@ import {
 } from './development-operation-profile.mjs';
 import {
   createLocalDevelopmentOperationExecutionAdapter,
+  createLocalSemanticDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,
+  SemanticDevelopmentOperationRuntime,
 } from './development-runtime.mjs';
+import {
+  DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+  developmentOperationCatalogDigest as computeDevelopmentOperationCatalogDigest,
+  normalizeDevelopmentOperationCatalog,
+} from './development-operation-catalog.mjs';
 
 export const INSTALLABLE_AGENT_CONTROL_PROFILE = 'tdev.installable-agent-control.v1';
 export const INSTALLABLE_AGENT_CONTROL_CONNECTION_SCHEMA_VERSION = 3;
@@ -58,6 +65,7 @@ const MAX_CONFIG_BYTES = 1024 * 1024;
 const MAX_CREDENTIAL_BYTES = 16 * 1024;
 const MAX_TOOL_PROFILE_BYTES = 1024 * 1024;
 const MAX_DEVELOPMENT_OPERATION_PROFILE_BYTES = 256 * 1024;
+const MAX_DEVELOPMENT_OPERATION_CATALOG_BYTES = 256 * 1024;
 const MAX_ARGUMENT_BYTES = 64 * 1024;
 const DEFAULT_RECONNECT_DELAY_MS = 1000;
 
@@ -118,19 +126,27 @@ export function normalizeInstallableAgentControlConfig(input) {
   assertSafeInteger(input.reportedCapacity, 'reportedCapacity', { min: 0, max: 1024 });
   const reconnectDelayMs = input.reconnectDelayMs ?? DEFAULT_RECONNECT_DELAY_MS;
   assertSafeInteger(reconnectDelayMs, 'reconnectDelayMs', { min: 100, max: 60_000 });
-  const developmentCore = ['developmentRepositoryPath', 'developmentCodexHome', 'developmentCodexExecutable', 'developmentNpmExecutable'];
+  const developmentCore = ['developmentRepositoryPath', 'developmentNpmExecutable'];
   const presentCore = developmentCore.filter((field) => input[field] !== undefined);
   if (presentCore.length !== 0 && presentCore.length !== developmentCore.length) {
-    fail('invalid_installable_agent_control_config', 'D0043 development runtime paths must be configured as one complete binding');
+    fail('invalid_installable_agent_control_config', 'Semantic development runtime requires repository and npm paths together');
   }
-  for (const field of [...developmentCore, 'developmentWorkspaceRoot']) {
+  const codexPair = ['developmentCodexHome', 'developmentCodexExecutable'];
+  const presentCodex = codexPair.filter((field) => input[field] !== undefined);
+  if (presentCodex.length !== 0 && presentCodex.length !== codexPair.length) {
+    fail('invalid_installable_agent_control_config', 'Optional Codex compatibility paths must be configured together');
+  }
+  if (presentCodex.length !== 0 && presentCore.length === 0) {
+    fail('invalid_installable_agent_control_config', 'Optional Codex compatibility requires the semantic development core binding');
+  }
+  for (const field of [...developmentCore, ...codexPair, 'developmentWorkspaceRoot']) {
     if (input[field] === undefined) continue;
     if (!path.isAbsolute(input[field]) || input[field].includes('\0')) {
       fail('invalid_installable_agent_control_config', `${field} must be an absolute path`);
     }
   }
   if (input.developmentWorkspaceRoot !== undefined && presentCore.length === 0) {
-    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the complete D0043 runtime binding');
+    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the semantic development core binding');
   }
   return Object.freeze({
     schemaVersion: 1,
@@ -148,6 +164,7 @@ export function normalizeInstallableAgentControlConfig(input) {
     reportedCapacity: input.reportedCapacity,
     reconnectDelayMs,
     ...(presentCore.length === developmentCore.length ? Object.fromEntries(developmentCore.map((field) => [field, path.resolve(input[field])])) : {}),
+    ...(presentCodex.length === codexPair.length ? Object.fromEntries(codexPair.map((field) => [field, path.resolve(input[field])])) : {}),
     ...(input.developmentWorkspaceRoot === undefined ? {} : { developmentWorkspaceRoot: path.resolve(input.developmentWorkspaceRoot) }),
   });
 }
@@ -232,6 +249,20 @@ async function loadReleaseToolProfiles(packageRoot, release) {
   try { parsed = strictJsonParse(bytes.toString('utf8'), { maxBytes: MAX_TOOL_PROFILE_BYTES }); }
   catch (cause) { fail('installable_agent_tool_profiles_invalid', 'Tool-profile manifest is not bounded JSON', {}, { cause }); }
   return normalizeToolProfiles(parsed);
+}
+
+async function loadReleaseDevelopmentOperationCatalog(packageRoot, release) {
+  const binding = release.manifest.developmentOperationCatalog;
+  if (binding === undefined) return null;
+  const relativePath = binding.relativePath;
+  const bytes = await readFile(path.join(packageRoot, ...relativePath.split('/')));
+  if (bytes.byteLength > MAX_DEVELOPMENT_OPERATION_CATALOG_BYTES || sha256(bytes) !== binding.sha256) {
+    fail('installable_agent_development_operation_catalog_mismatch', 'Package-owned semantic operation catalog does not match release binding');
+  }
+  let parsed;
+  try { parsed = strictJsonParse(bytes.toString('utf8'), { maxBytes: MAX_DEVELOPMENT_OPERATION_CATALOG_BYTES }); }
+  catch (cause) { fail('installable_agent_development_operation_catalog_invalid', 'Semantic operation catalog is not bounded JSON', {}, { cause }); }
+  return normalizeDevelopmentOperationCatalog(parsed);
 }
 
 async function loadReleaseDevelopmentOperationProfiles(packageRoot, release) {
@@ -431,36 +462,55 @@ export async function createInstallableAgentControlProcess({
     fail('installable_agent_profile_unsupported', 'Installed package target does not match this control process');
   }
   const toolProfiles = await loadReleaseToolProfiles(resolvedPackageRoot, release);
+  const developmentOperationCatalog = await loadReleaseDevelopmentOperationCatalog(resolvedPackageRoot, release);
+  const developmentOperationCatalogDigest = developmentOperationCatalog === null ? null : computeDevelopmentOperationCatalogDigest(developmentOperationCatalog);
   const developmentOperationProfiles = await loadReleaseDevelopmentOperationProfiles(resolvedPackageRoot, release);
   const developmentOperationProfilesDigest = developmentOperationProfiles === null ? null : developmentOperationManifestDigest(developmentOperationProfiles);
-  const developmentOperationCapabilities = developmentOperationProfiles === null ? [] : Object.keys(developmentOperationProfiles.profiles).map((profile) =>
+  const legacyDevelopmentOperationCapabilities = developmentOperationProfiles === null ? [] : Object.keys(developmentOperationProfiles.profiles).map((profile) =>
     developmentOperationCapabilityId(developmentOperationProfiles, profile)).sort();
-  let developmentRuntime = null;
-  let developmentExecutionAdapter = null;
-  const developmentRuntimeFields = [
-    normalizedConfig.developmentRepositoryPath,
-    normalizedConfig.developmentCodexHome,
-    normalizedConfig.developmentCodexExecutable,
-    normalizedConfig.developmentNpmExecutable,
-  ];
-  if (developmentRuntimeFields.some((value) => value !== undefined)) {
-    if (developmentOperationProfiles === null) fail('development_runtime_manifest_invalid', 'A configured D0043 runtime requires the package-owned operation manifest');
+  let semanticDevelopmentRuntime = null;
+  let semanticDevelopmentExecutionAdapter = null;
+  let semanticDevelopmentOperationCapabilities = [];
+  let legacyDevelopmentRuntime = null;
+  let legacyDevelopmentExecutionAdapter = null;
+  const semanticCoreConfigured = normalizedConfig.developmentRepositoryPath !== undefined || normalizedConfig.developmentNpmExecutable !== undefined;
+  if (semanticCoreConfigured) {
+    if (developmentOperationCatalog === null) fail('development_runtime_catalog_invalid', 'Configured semantic development runtime requires the package-owned operation catalog');
+    semanticDevelopmentRuntime = new SemanticDevelopmentOperationRuntime({
+      catalog: developmentOperationCatalog,
+      repositoryPath: normalizedConfig.developmentRepositoryPath,
+      npmExecutable: normalizedConfig.developmentNpmExecutable,
+      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces'),
+    });
+    semanticDevelopmentOperationCapabilities = semanticDevelopmentRuntime.capabilities();
+    semanticDevelopmentExecutionAdapter = createLocalSemanticDevelopmentOperationExecutionAdapter({
+      operationRuntime: semanticDevelopmentRuntime,
+      capabilities: semanticDevelopmentOperationCapabilities,
+    });
+  }
+  const codexConfigured = normalizedConfig.developmentCodexHome !== undefined || normalizedConfig.developmentCodexExecutable !== undefined;
+  if (codexConfigured) {
+    if (developmentOperationProfiles === null) fail('development_runtime_manifest_invalid', 'Optional Codex compatibility requires the package-owned legacy operation manifest');
     const outputBinding = release.manifest.developmentOperationOutputSchema;
-    if (outputBinding === undefined) fail('development_runtime_manifest_invalid', 'A configured D0043 runtime requires the package-owned output schema binding');
-    developmentRuntime = new LocalDevelopmentOperationRuntime({
+    if (outputBinding === undefined) fail('development_runtime_manifest_invalid', 'Optional Codex compatibility requires the package-owned output schema binding');
+    legacyDevelopmentRuntime = new LocalDevelopmentOperationRuntime({
       manifest: developmentOperationProfiles,
       repositoryPath: normalizedConfig.developmentRepositoryPath,
       codexExecutable: normalizedConfig.developmentCodexExecutable,
       codexHome: normalizedConfig.developmentCodexHome,
       outputSchemaPath: path.join(resolvedPackageRoot, ...outputBinding.relativePath.split('/')),
       npmExecutable: normalizedConfig.developmentNpmExecutable,
-      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces'),
+      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces-legacy'),
     });
-    developmentExecutionAdapter = createLocalDevelopmentOperationExecutionAdapter({
-      operationRuntime: developmentRuntime,
-      capabilities: developmentOperationCapabilities,
+    legacyDevelopmentExecutionAdapter = createLocalDevelopmentOperationExecutionAdapter({
+      operationRuntime: legacyDevelopmentRuntime,
+      capabilities: legacyDevelopmentOperationCapabilities,
     });
   }
+  const developmentOperationCapabilities = [...new Set([
+    ...semanticDevelopmentOperationCapabilities,
+    ...(legacyDevelopmentRuntime === null ? [] : legacyDevelopmentOperationCapabilities),
+  ])].sort();
   const d0039Credential = normalizedConfig.credentialRef.startsWith('androidkeystore://');
   let authKey = null;
   let credentialVerifier = null;
@@ -492,15 +542,25 @@ export async function createInstallableAgentControlProcess({
   });
   const executionAdapter = Object.freeze({
     async start(input) {
-      if (input?.envelope?.executableBody?.profile === DEVELOPMENT_OPERATION_PROFILE) {
-        if (developmentExecutionAdapter === null) {
+      if (input?.envelope?.executableBody?.profile === DEVELOPMENT_OPERATION_CATALOG_PROFILE) {
+        if (semanticDevelopmentExecutionAdapter === null) {
           throw createLocalExecutionStartError(
             'development_runtime_unconfigured',
-            'This Agent release has no host-bound D0043 development runtime configuration',
+            'This Agent release has no host-bound semantic development runtime configuration',
             { phase: 'pre_handle' },
           );
         }
-        return developmentExecutionAdapter.start(input);
+        return semanticDevelopmentExecutionAdapter.start(input);
+      }
+      if (input?.envelope?.executableBody?.profile === DEVELOPMENT_OPERATION_PROFILE) {
+        if (legacyDevelopmentExecutionAdapter === null) {
+          throw createLocalExecutionStartError(
+            'development_legacy_runtime_unconfigured',
+            'This Agent release has no optional legacy/Codex development runtime configuration',
+            { phase: 'pre_handle' },
+          );
+        }
+        return legacyDevelopmentExecutionAdapter.start(input);
       }
       const launch = resolveToolProfileBeforeHandle(toolProfiles, input.envelope.executableBody);
       const operation = await baseExecutionAdapter.start(input);
@@ -623,6 +683,7 @@ export async function createInstallableAgentControlProcess({
     profile: INSTALLABLE_AGENT_CONTROL_PROFILE,
     releaseManifestDigest: release.manifestDigest,
     toolProfilesDigest: digest(toolProfiles),
+    developmentOperationCatalogDigest,
     developmentOperationProfilesDigest,
     developmentOperationCapabilities: Object.freeze([...developmentOperationCapabilities]),
     runtime,
@@ -631,7 +692,8 @@ export async function createInstallableAgentControlProcess({
     stop() {
       stopped = true;
       transport.close(1000, 'control_stop');
-      if (developmentRuntime !== null) void developmentRuntime.dispose().catch(() => {});
+      if (semanticDevelopmentRuntime !== null) void semanticDevelopmentRuntime.dispose().catch(() => {});
+      if (legacyDevelopmentRuntime !== null) void legacyDevelopmentRuntime.dispose().catch(() => {});
     },
     async status() {
       const state = await readConnectionState(connectionStatePath);
@@ -644,7 +706,10 @@ export async function createInstallableAgentControlProcess({
         executorId: normalizedConfig.executorId,
         executorEpoch: normalizedConfig.executorEpoch,
         installationGeneration: normalizedConfig.installableAgentTuple.installationGeneration,
+        developmentOperationCatalogDigest,
         developmentOperationProfilesDigest,
+        semanticDevelopmentConfigured: semanticDevelopmentRuntime !== null,
+        legacyCodexConfigured: legacyDevelopmentRuntime !== null,
         developmentOperationCapabilities: Object.freeze([...developmentOperationCapabilities]),
       });
     },

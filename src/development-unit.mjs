@@ -16,6 +16,13 @@ import { runDurableCase } from './durable-runner.mjs';
 import { normalizeCaseContract, validateRelativePath } from './policy.mjs';
 import { executeDevelopmentOperation } from './development-operation-profile.mjs';
 import {
+  developmentOperationCapabilityId as semanticOperationCapabilityId,
+  developmentOperationDescriptor,
+  normalizeDevelopmentOperationCatalog,
+  normalizeDevelopmentOperationSelection,
+  requiredDevelopmentValidation,
+} from './development-operation-catalog.mjs';
+import {
   createLazyPlanReference,
   normalizeRepositoryBaseIdentity,
 } from './lazy-plan-reference.mjs';
@@ -23,6 +30,7 @@ import {
 export const DEVELOPMENT_UNIT_PROFILE = 'tdev.development-unit.v1';
 export const DEVELOPMENT_UNIT_CONTEXT_TASK_ID = 'context';
 export const DEVELOPMENT_UNIT_MODEL_TASK_ID = 'model';
+export const DEVELOPMENT_UNIT_CHANGE_TASK_ID = 'change';
 export const DEVELOPMENT_UNIT_VALIDATION_TASK_ID = 'validate';
 export const DEVELOPMENT_UNIT_PROMOTION_TASK_ID = 'promote';
 
@@ -46,6 +54,144 @@ function assertAgent(agent) {
 function assertCaseRepository(repository) {
   if (!(repository instanceof CaseRepository)) fail('development_unit_repository_unconfigured', 'Development unit requires a CaseRepository');
   return repository;
+}
+
+export function defineSemanticDevelopmentUnitPlan({
+  revisionId,
+  baseTree,
+  repositoryCommitOid,
+  objectFormat = 'sha1',
+  contextReferenceId,
+  contextScope = null,
+  baseIdentity = null,
+  repositoryBaseIdentity = null,
+  operation,
+  operationCatalog,
+  writePaths = null,
+  caseContract = undefined,
+} = {}) {
+  assertIdentifier(revisionId, 'development revisionId');
+  assertIdentifier(contextReferenceId, 'development contextReferenceId');
+  if (!isPlainRecord(baseTree)) fail('development_unit_plan_invalid', 'Development baseTree must be a record');
+  if (typeof repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/u.test(repositoryCommitOid)) {
+    fail('development_unit_plan_invalid', 'repositoryCommitOid must be a hexadecimal Git object ID');
+  }
+  if (!['sha1', 'sha256'].includes(objectFormat)) fail('development_unit_plan_invalid', 'objectFormat is unsupported');
+  const normalizedCaseContract = normalizeCaseContract(caseContract ?? {});
+  const normalizedBaseTree = validateTree(canonicalClone(baseTree), normalizedCaseContract);
+  const baseDigest = digest(normalizedBaseTree);
+  if (contextScope !== null && !isPlainRecord(contextScope)) fail('development_unit_plan_invalid', 'contextScope must be an owner-issued scope record');
+  if (baseIdentity !== null) {
+    if (!isPlainRecord(baseIdentity)) fail('development_unit_plan_invalid', 'baseIdentity must be a record');
+    for (const field of ['profile', 'objectFormat', 'commitOid', 'treeOid', 'baseDigest', 'manifestDigest']) {
+      if (typeof baseIdentity[field] !== 'string' || baseIdentity[field].length === 0) fail('development_unit_plan_invalid', `baseIdentity.${field} is required`);
+    }
+    if (baseIdentity.schemaVersion !== 1 || baseIdentity.profile !== 'tdev.repository-base-identity.v1' ||
+        baseIdentity.objectFormat !== objectFormat || baseIdentity.commitOid !== repositoryCommitOid || baseIdentity.baseDigest !== baseDigest) {
+      fail('development_unit_plan_base_identity_mismatch', 'baseIdentity does not bind the Plan base');
+    }
+    assertDigest(baseIdentity.manifestDigest, 'baseIdentity.manifestDigest');
+  }
+  let normalizedRepositoryBaseIdentity = null;
+  if (repositoryBaseIdentity !== null) {
+    normalizedRepositoryBaseIdentity = normalizeRepositoryBaseIdentity(repositoryBaseIdentity, { objectFormat, commitOid: repositoryCommitOid });
+    if (baseIdentity !== null && baseIdentity.manifestDigest !== normalizedRepositoryBaseIdentity.manifestDigest) {
+      fail('development_unit_plan_base_identity_mismatch', 'baseIdentity and repositoryBaseIdentity do not bind the same complete manifest');
+    }
+  }
+  if (contextScope !== null && baseIdentity !== null && baseIdentity.baseDigest !== baseDigest && normalizedRepositoryBaseIdentity === null) {
+    fail('development_unit_plan_repository_identity_missing', 'A scoped semantic Plan requires repositoryBaseIdentity for the full repository base');
+  }
+  if (writePaths !== null) {
+    if (!Array.isArray(writePaths) || writePaths.length === 0 || writePaths.length > normalizedCaseContract.limits.maxWritesPerChangeSet) {
+      fail('development_unit_plan_invalid', 'writePaths must be a bounded non-empty owner-issued array');
+    }
+    const normalizedWritePaths = writePaths.map((value) => validateRelativePath(value, normalizedCaseContract.pathPolicy)).sort();
+    if (new Set(normalizedWritePaths).size !== normalizedWritePaths.length) fail('development_unit_plan_invalid', 'writePaths contains a duplicate path');
+    writePaths = normalizedWritePaths;
+  }
+  const catalog = normalizeDevelopmentOperationCatalog(operationCatalog);
+  const selected = normalizeDevelopmentOperationSelection(catalog, operation, {
+    baseDigest,
+    caseContract: normalizedCaseContract,
+    writePaths,
+  });
+  const descriptor = developmentOperationDescriptor(catalog, selected.id, selected.version);
+  if (descriptor.resultKind !== 'changeset' || descriptor.effectClass !== 'result-only') {
+    fail('development_unit_operation_invalid', 'Selected development operation must return a result-only ChangeSet');
+  }
+  const requiredValidation = requiredDevelopmentValidation(catalog);
+  const validationDescriptor = developmentOperationDescriptor(catalog, requiredValidation.operationId, requiredValidation.operationVersion);
+  const changeCapabilityId = semanticOperationCapabilityId(catalog, selected.id, selected.version);
+  const validationCapabilityId = semanticOperationCapabilityId(catalog, requiredValidation.operationId, requiredValidation.operationVersion);
+  const planInput = {
+    revisionId,
+    baseTree: normalizedBaseTree,
+    ...(normalizedRepositoryBaseIdentity === null ? {} : {
+      baseReference: createLazyPlanReference({
+        repositoryBaseIdentity: normalizedRepositoryBaseIdentity,
+        scope: contextScope,
+        semanticBaseDigest: baseDigest,
+      }),
+    }),
+    tasks: [
+      {
+        id: DEVELOPMENT_UNIT_CHANGE_TASK_ID,
+        kind: 'work',
+        dependencies: [],
+        claims: [],
+        input: {
+          operation: canonicalClone(selected),
+          repositoryCommitOid,
+          baseDigest,
+          objectFormat,
+          contextReferenceId,
+          ...(contextScope === null ? {} : { contextScope: canonicalClone(contextScope) }),
+          ...(baseIdentity === null ? {} : { baseIdentity: canonicalClone(baseIdentity) }),
+          ...(normalizedRepositoryBaseIdentity === null ? {} : { repositoryBaseIdentity: canonicalClone(normalizedRepositoryBaseIdentity) }),
+          ...(writePaths === null ? {} : { writePaths: canonicalClone(writePaths) }),
+        },
+        execution: {
+          operation: selected.id,
+          resultKind: 'changeset',
+          effectClass: 'result-only',
+          retry: { maxAttempts: 1 },
+        },
+        requiredCapabilities: [changeCapabilityId],
+      },
+      {
+        id: DEVELOPMENT_UNIT_VALIDATION_TASK_ID,
+        kind: 'work',
+        dependencies: [DEVELOPMENT_UNIT_CHANGE_TASK_ID],
+        claims: [],
+        input: {
+          operation: {
+            id: requiredValidation.operationId,
+            version: requiredValidation.operationVersion,
+            contractDigest: requiredValidation.contractDigest,
+          },
+          policyId: requiredValidation.policyId,
+          bindingId: requiredValidation.bindingId,
+        },
+        execution: {
+          operation: requiredValidation.operationId,
+          resultKind: validationDescriptor.resultKind,
+          effectClass: validationDescriptor.effectClass,
+          retry: { maxAttempts: 1 },
+          requirePassed: true,
+        },
+        requiredCapabilities: [validationCapabilityId],
+      },
+      {
+        id: DEVELOPMENT_UNIT_PROMOTION_TASK_ID,
+        kind: 'promotion',
+        dependencies: [DEVELOPMENT_UNIT_CHANGE_TASK_ID, DEVELOPMENT_UNIT_VALIDATION_TASK_ID],
+        claims: [{ mode: 'write', resource: 'canonical:tree' }],
+        input: {},
+      },
+    ],
+  };
+  return definePlan(planInput, { caseContract: normalizedCaseContract });
 }
 
 export function defineDevelopmentUnitPlan({
@@ -223,13 +369,16 @@ function candidateTreeFromModel(engine, acceptedResults) {
 }
 
 export class DevelopmentUnitRunner {
-  constructor({ repository, driveAuthority, agent, operationManifest, caseContract = {}, claimLedger = null, capacity = 1 } = {}) {
+  constructor({ repository, driveAuthority, agent, operationManifest = null, operationCatalog = null, caseContract = {}, claimLedger = null, capacity = 1 } = {}) {
     this.repository = assertCaseRepository(repository);
     if (!(driveAuthority instanceof CaseAgentDriveAuthority)) fail('development_unit_drive_unconfigured', 'Development unit requires CaseAgentDriveAuthority');
     this.driveAuthority = driveAuthority;
     this.agent = assertAgent(agent);
-    if (!isPlainRecord(operationManifest)) fail('development_unit_operation_manifest_missing', 'Development unit requires a D0043 operation manifest');
-    this.operationManifest = canonicalClone(operationManifest);
+    if (operationManifest !== null && !isPlainRecord(operationManifest)) fail('development_unit_operation_manifest_invalid', 'Legacy development operation manifest must be a record when present');
+    if (operationCatalog !== null && !isPlainRecord(operationCatalog)) fail('development_unit_operation_catalog_invalid', 'Semantic development operation catalog must be a record when present');
+    if (operationManifest === null && operationCatalog === null) fail('development_unit_operation_contract_missing', 'Development unit requires a legacy manifest or semantic operation catalog');
+    this.operationManifest = operationManifest === null ? null : canonicalClone(operationManifest);
+    this.operationCatalog = operationCatalog === null ? null : normalizeDevelopmentOperationCatalog(operationCatalog);
     this.caseContract = caseContract?.contractDigest ? canonicalClone(caseContract) : normalizeCaseContract(caseContract);
     this.claimLedger = claimLedger;
     if (!Number.isSafeInteger(capacity) || capacity < 1) fail('development_unit_capacity_invalid', 'Development unit capacity must be positive');
@@ -269,7 +418,18 @@ export class DevelopmentUnitRunner {
       if (authorized !== true) fail('development_unit_agent_denied', 'Authenticated Agent bridge denied the Task');
 
       let operationRequest;
-      if (task.id === DEVELOPMENT_UNIT_CONTEXT_TASK_ID) {
+      if (task.id === DEVELOPMENT_UNIT_CHANGE_TASK_ID) {
+        operationRequest = {
+          operation: canonicalClone(task.input.operation),
+          repositoryCommitOid: task.input.repositoryCommitOid,
+          baseDigest: task.input.baseDigest,
+          contextReferenceId: task.input.contextReferenceId,
+          caseContract,
+          ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
+          ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+          ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
+        };
+      } else if (task.id === DEVELOPMENT_UNIT_CONTEXT_TASK_ID) {
         operationRequest = {
           profile: task.input.profile,
           input: {
@@ -303,19 +463,31 @@ export class DevelopmentUnitRunner {
           },
         };
       } else if (task.id === DEVELOPMENT_UNIT_VALIDATION_TASK_ID) {
-        const model = invocation.acceptedResults.find((entry) => entry.taskId === DEVELOPMENT_UNIT_MODEL_TASK_ID)?.result;
-        const candidateTreeDigest = model?.evidence?.candidateTreeDigest;
-        if (candidateTreeDigest !== undefined) assertDigest(candidateTreeDigest, 'candidateTreeDigest');
-        const fallbackDigest = candidateTreeDigest === undefined
-          ? digest(candidateTreeFromModel({ plan: { baseTree: caseEngine.plan.baseTree, baseDigest }, caseContract }, invocation.acceptedResults))
-          : candidateTreeDigest;
-        operationRequest = {
-          profile: task.input.profile,
-          input: {
-            candidateTreeDigest: fallbackDigest,
-            validationProfile: task.input.validationProfile,
-          },
-        };
+        if (isPlainRecord(task.input.operation)) {
+          const change = invocation.acceptedResults.find((entry) => entry.taskId === DEVELOPMENT_UNIT_CHANGE_TASK_ID)?.result;
+          const candidateTreeDigest = change?.evidence?.candidateTreeDigest;
+          assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+          operationRequest = {
+            operation: canonicalClone(task.input.operation),
+            policyId: task.input.policyId,
+            bindingId: task.input.bindingId,
+            candidateTreeDigest,
+          };
+        } else {
+          const model = invocation.acceptedResults.find((entry) => entry.taskId === DEVELOPMENT_UNIT_MODEL_TASK_ID)?.result;
+          const candidateTreeDigest = model?.evidence?.candidateTreeDigest;
+          if (candidateTreeDigest !== undefined) assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+          const fallbackDigest = candidateTreeDigest === undefined
+            ? digest(candidateTreeFromModel({ plan: { baseTree: caseEngine.plan.baseTree, baseDigest }, caseContract }, invocation.acceptedResults))
+            : candidateTreeDigest;
+          operationRequest = {
+            profile: task.input.profile,
+            input: {
+              candidateTreeDigest: fallbackDigest,
+              validationProfile: task.input.validationProfile,
+            },
+          };
+        }
       } else {
         fail("development_unit_task_unsupported", "Unsupported development unit Task");
       }
@@ -381,10 +553,14 @@ export class DevelopmentUnitRunner {
     const engine = await this.#loadCase(caseId);
     const snapshot = engine.snapshot();
     const contextResult = snapshot.taskStates[DEVELOPMENT_UNIT_CONTEXT_TASK_ID]?.acceptedResult;
+    const changeResult = snapshot.taskStates[DEVELOPMENT_UNIT_CHANGE_TASK_ID]?.acceptedResult;
     const modelResult = snapshot.taskStates[DEVELOPMENT_UNIT_MODEL_TASK_ID]?.acceptedResult;
     const validationResult = snapshot.taskStates[DEVELOPMENT_UNIT_VALIDATION_TASK_ID]?.acceptedResult;
+    const changeEvidence = isPlainRecord(changeResult?.evidence) ? changeResult.evidence : {};
     const modelEvidence = isPlainRecord(modelResult?.evidence) ? modelResult.evidence : {};
     const validationEvidence = isPlainRecord(validationResult?.evidence) ? validationResult.evidence : {};
+    const semanticTaskInput = snapshot.plan.tasksById[DEVELOPMENT_UNIT_CHANGE_TASK_ID]?.input ?? null;
+    const effectiveChangeResult = changeResult ?? modelResult;
     const taskOutcomes = Object.fromEntries(snapshot.plan.taskOrder.map((taskId) => {
       const state = snapshot.taskStates[taskId];
       return [taskId, {
@@ -401,12 +577,14 @@ export class DevelopmentUnitRunner {
       canonicalDigest: snapshot.canonicalDigest,
       planDigest: snapshot.plan.planDigest,
       baseReference: snapshot.plan.baseReference ?? null,
-      baseIdentity: contextResult?.value?.baseIdentity ?? null,
-      repositoryBaseIdentity: contextResult?.value?.repositoryBaseIdentity ?? snapshot.plan.baseReference?.repositoryBaseIdentity ?? null,
+      baseIdentity: contextResult?.value?.baseIdentity ?? semanticTaskInput?.baseIdentity ?? null,
+      repositoryBaseIdentity: contextResult?.value?.repositoryBaseIdentity ?? semanticTaskInput?.repositoryBaseIdentity ?? snapshot.plan.baseReference?.repositoryBaseIdentity ?? null,
+      contextReferenceId: semanticTaskInput?.contextReferenceId ?? contextResult?.value?.referenceId ?? null,
       contextDigest: contextResult?.value?.contextDigest ?? null,
-      manifestDigest: contextResult?.value?.manifestDigest ?? null,
+      manifestDigest: contextResult?.value?.manifestDigest ?? semanticTaskInput?.baseIdentity?.manifestDigest ?? semanticTaskInput?.repositoryBaseIdentity?.manifestDigest ?? null,
       scopeDigest: contextResult?.value?.scopeDigest ?? null,
-      candidateTreeDigest: modelResult?.evidence?.candidateTreeDigest ?? null,
+      candidateTreeDigest: effectiveChangeResult?.evidence?.candidateTreeDigest ?? null,
+      modelProcessStarts: changeEvidence.modelProcessStarts ?? modelEvidence.processStarts ?? null,
       modelProcessCleanup: modelEvidence.processCleanup ?? null,
       modelWorkspaceCleanup: modelEvidence.workspaceCleanup ?? null,
       validationProcessCleanup: validationEvidence.processCleanup ?? null,

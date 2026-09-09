@@ -1,0 +1,137 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.development-operation-catalog.v1",
+  "operations": {
+    "tdev.operation.repository.context.bind.v1": {
+      "version": 1,
+      "title": "Bind repository context",
+      "description": "Bind exact repository, base, scope, and context-reference identity without model execution.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["repositoryCommitOid", "baseDigest", "contextReference"],
+        "properties": {
+          "repositoryCommitOid": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+          "baseDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "contextReference": { "type": "object" }
+        }
+      },
+      "resultKind": "observation",
+      "effectClass": "result-only",
+      "effects": ["read_local"],
+      "requiredCapabilities": [],
+      "cancellable": false,
+      "selectionScope": "internal",
+      "callerSelectable": false
+    },
+    "tdev.operation.repository.changeset.compose.v1": {
+      "version": 1,
+      "title": "Compose repository ChangeSet",
+      "description": "Deterministically validate and normalize caller-authored bounded writes into the existing result-only ChangeSet algebra.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["baseDigest", "writes"],
+        "properties": {
+          "baseDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" },
+          "writes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["path", "content"],
+              "properties": {
+                "path": { "type": "string" },
+                "content": { "oneOf": [{ "type": "string" }, { "type": "null" }] }
+              }
+            }
+          }
+        }
+      },
+      "resultKind": "changeset",
+      "effectClass": "result-only",
+      "effects": ["read_local", "write_candidate"],
+      "requiredCapabilities": [],
+      "cancellable": false,
+      "selectionScope": "development",
+      "callerSelectable": true
+    },
+    "tdev.operation.repository.candidate.validate.v1": {
+      "version": 1,
+      "title": "Validate repository candidate",
+      "description": "Run repository-owner-required validation against the exact disposable candidate.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["candidateDigest"],
+        "properties": {
+          "candidateDigest": { "type": "string", "pattern": "^sha256:[0-9a-f]{64}$" }
+        }
+      },
+      "resultKind": "validation",
+      "effectClass": "result-only",
+      "effects": ["read_local", "execute_local"],
+      "requiredCapabilities": [],
+      "cancellable": true,
+      "selectionScope": "internal",
+      "callerSelectable": false
+    },
+    "tdev.operation.repository.change.generate.v1": {
+      "version": 1,
+      "title": "Generate repository change",
+      "description": "Optionally delegate source-change generation to a release-bound intelligence executor and return a result-only ChangeSet.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["instruction"],
+        "properties": {
+          "instruction": { "type": "string", "minLength": 1 }
+        }
+      },
+      "resultKind": "changeset",
+      "effectClass": "result-only",
+      "effects": ["read_local", "execute_local", "write_candidate"],
+      "requiredCapabilities": [],
+      "cancellable": true,
+      "selectionScope": "development",
+      "callerSelectable": true
+    }
+  },
+  "bindings": {
+    "tdev.binding.builtin.changeset-compose.v1": {
+      "operationId": "tdev.operation.repository.changeset.compose.v1",
+      "operationVersion": 1,
+      "kind": "builtin",
+      "optional": false
+    },
+    "tdev.binding.repository-context.git-scoped-lazy.v1": {
+      "operationId": "tdev.operation.repository.context.bind.v1",
+      "operationVersion": 1,
+      "kind": "legacy_profile",
+      "legacyProfile": "tdev.repository.context.prepare.lazy.v1",
+      "optional": false
+    },
+    "tdev.binding.npm.repository-check.v1": {
+      "operationId": "tdev.operation.repository.candidate.validate.v1",
+      "operationVersion": 1,
+      "kind": "legacy_profile",
+      "legacyProfile": "tdev.repository.validate.v1",
+      "optional": false
+    },
+    "tdev.binding.codex.repository-change.v1": {
+      "operationId": "tdev.operation.repository.change.generate.v1",
+      "operationVersion": 1,
+      "kind": "legacy_profile",
+      "legacyProfile": "tdev.model.repository.execute.v1",
+      "optional": true
+    }
+  },
+  "policies": {
+    "requiredValidation": {
+      "policyId": "tdev.policy.repository.validation.required.v1",
+      "operationId": "tdev.operation.repository.candidate.validate.v1",
+      "operationVersion": 1,
+      "bindingId": "tdev.binding.npm.repository-check.v1"
+    }
+  }
+}

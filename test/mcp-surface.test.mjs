@@ -1,5 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import {
   CaseRepository,
   MemorySnapshotStore,
@@ -7,7 +8,9 @@ import {
   createMcpAuthManifest,
   createMcpSurfaceManifest,
   createTdevMcpSurface,
-  createDevelopmentUnitStartAdapter,
+  createDevelopmentStartAdapter,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+  developmentOperationDescriptor,
 } from '../src/index.mjs';
 import { ClaimLedger } from '../src/claim-ledger.mjs';
 import { digest } from '../src/canonical.mjs';
@@ -21,6 +24,7 @@ const authManifest = createMcpAuthManifest({
   jwksUri: 'https://auth.example.test/.well-known/jwks.json',
 });
 const surfaceManifest = createMcpSurfaceManifest({ buildDigest: digest({ source: 'mcp-test' }) });
+const operationCatalog = JSON.parse(await readFile(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'));
 
 function makeAuth({ tenant = 'tenant-a', issuer = authManifest.authorizationServerIssuer, audience = authManifest.accessApplicationAudience, exp = now + 600 } = {}) {
   return new McpAccessAuthenticator({
@@ -107,7 +111,7 @@ test('D0024 auth profile binds resource/issuer and rejects wrong or expired asse
 });
 
 test('MCP metadata and initialize/tools/list/call use the compatible versioned stateless surface', async () => {
-  const surface = createSurface({ owners: { claimLedger: new ClaimLedger() } });
+  const surface = createSurface({ owners: { claimLedger: new ClaimLedger(), operationCatalog } });
   const metadata = await surface.fetch(new Request('https://mcp.example.test/.well-known/oauth-protected-resource'));
   assert.equal(metadata.status, 200);
   assert.deepEqual(await metadata.json(), {
@@ -128,13 +132,30 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
   }
   const listed = await rpc(surface, callRequest('tools/list', {}, { protocol: '2025-11-25' }));
   assert.equal(listed.response.status, 200);
-  assert.equal(listed.body.result.tools.length, 14);
-  assert.equal(listed.body.result.tools.at(-1).name, 'development_unit_get');
+  const expectedTools = [
+    'case_create', 'case_get', 'case_events_get', 'case_drive', 'task_cancel', 'attempt_reconcile',
+    'claim_conflicts_get', 'case_promotion_get', 'development_context_get', 'development_context_list',
+    'development_context_search', 'development_context_read', 'operation_list', 'operation_get',
+    'development_start', 'development_get',
+  ];
+  assert.deepEqual(listed.body.result.tools.map((tool) => tool.name), expectedTools);
+  assert.equal(listed.body.result.tools.length, 16);
+  assert.equal(listed.body.result.tools.some((tool) => ['case_run_or_resume', 'promotion_get', 'development_unit_start', 'development_unit_get'].includes(tool.name)), false);
   for (const descriptor of listed.body.result.tools) {
     assert.equal(typeof descriptor.title, 'string');
     assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
     assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
+    assert.equal(descriptor.annotations.openWorldHint, false);
   }
+  const operationList = await rpc(surface, callRequest('tools/call', { name: 'operation_list', arguments: {} }, { protocol: '2025-11-25', id: 'operation-list' }));
+  assert.equal(operationList.response.status, 200);
+  assert.equal(operationList.body.result.structuredContent.items.some((entry) => entry.id === DEVELOPMENT_CHANGESET_COMPOSE_OPERATION), true);
+  assert.equal(operationList.body.result.structuredContent.items.every((entry) => entry.inputSchema === undefined), true);
+  const composeDescriptor = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, 1);
+  const operationGet = await rpc(surface, callRequest('tools/call', { name: 'operation_get', arguments: { id: DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, version: 1 } }, { protocol: '2025-11-25', id: 'operation-get' }));
+  assert.equal(operationGet.response.status, 200);
+  assert.equal(operationGet.body.result.structuredContent.contractDigest, composeDescriptor.contractDigest);
+  assert.equal(operationGet.body.result.structuredContent.inputSchema.type, 'object');
   const discovered = await rpc(surface, modernRequest('server/discover', {}, { id: 'discover-1' }));
   assert.equal(discovered.response.status, 200);
   assert.equal(discovered.body.result.resultType, 'complete');
@@ -225,7 +246,7 @@ test('MCP case projection delegates to repository and tenant denial precedes own
   assert.equal(legacyRead.response.status, 200);
   assert.equal(legacyRead.body.result.isError, false);
   assert.equal(legacyRead.body.result.structuredContent.canonicalDigest, null);
-  const legacyPromotion = await rpc(legacySurface, callRequest('tools/call', { name: 'promotion_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
+  const legacyPromotion = await rpc(legacySurface, callRequest('tools/call', { name: 'case_promotion_get', arguments: { caseId: 'case-a' } }, { protocol: '2025-03-26' }));
   assert.equal(legacyPromotion.response.status, 200);
   assert.equal(legacyPromotion.body.result.isError, false);
   assert.equal(legacyPromotion.body.result.structuredContent.promotionTaskId, 'promote');
@@ -310,36 +331,46 @@ test('claim conflict projection is read-only and bounded', async () => {
   assert.equal(ledger.activeLeases().length, 1);
 });
 
-test('development_unit_start composes only an owner-issued context with the existing runner', async () => {
+test('development_start composes only owner-issued context plus strict semantic operation with owner-required validation', async () => {
   const calls = [];
   const runner = {
     create: async (input) => { calls.push({ kind: 'create', input }); return { classification: 'accepted' }; },
     drive: async (input) => { calls.push({ kind: 'drive', input }); return { classification: 'accepted' }; },
   };
-  const start = createDevelopmentUnitStartAdapter({
+  const baseTree = { 'README.md': '# context\n' };
+  const baseDigest = digest(baseTree);
+  const composeDescriptor = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, 1);
+  const start = createDevelopmentStartAdapter({
     runner,
+    operationCatalog,
     resolveContext: async ({ contextReference }) => ({
       contextReferenceId: contextReference,
       revisionId: 'context-revision-1',
-      baseTree: { 'README.md': '# context\n' },
+      baseTree,
       repositoryCommitOid: 'a'.repeat(40),
       objectFormat: 'sha1',
       payload: { source: 'owner' },
     }),
   });
   const result = await start({
-    requestId: 'unit-request-1',
-    caseId: 'unit-case-1',
-    driveRequestId: 'unit-drive-1',
+    requestId: 'development-request-1',
+    caseId: 'development-case-1',
+    driveRequestId: 'development-drive-1',
     contextReference: 'context-1',
-    instruction: 'bounded source edit',
-    validationProfile: 'tdev.validation.npm-check.v1',
+    operation: {
+      id: DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+      version: 1,
+      contractDigest: composeDescriptor.contractDigest,
+      input: { baseDigest, writes: [{ path: 'src/value.mjs', content: 'export const value = 1;\n' }] },
+    },
     identity: { principalId: 'user-a', tenantId: 'tenant-a' },
   });
   assert.match(result.planDigest, /^sha256:[0-9a-f]{64}$/);
   assert.equal(calls.length, 2);
-  assert.equal(calls[0].input.plan.tasksById.model.input.instruction, 'bounded source edit');
-  assert.equal(calls[0].input.plan.tasksById.model.input.contextReference, undefined);
+  assert.equal(calls[0].input.plan.tasksById.model, undefined);
+  assert.equal(calls[0].input.plan.tasksById.change.input.operation.id, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION);
+  assert.equal(calls[0].input.plan.tasksById.validate.execution.requirePassed, true);
   assert.equal(calls[0].input.payload.contextReference, 'context-1');
-  assert.equal(calls[1].input.payload.validationProfile, 'tdev.validation.npm-check.v1');
+  assert.equal(Object.hasOwn(calls[0].input.payload, 'validationProfile'), false);
+  assert.equal(Object.hasOwn(calls[0].input.payload, 'instruction'), false);
 });

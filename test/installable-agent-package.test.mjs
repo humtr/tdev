@@ -49,10 +49,13 @@ async function createPackageFixture() {
   await writeFile(path.join(packageRoot, 'src', 'runtime.mjs'), runtime);
   await writeFile(path.join(packageRoot, 'native', 'helper', 'pidfd-control.node'), helper);
   await writeFile(path.join(packageRoot, 'config', 'installable-agent-tool-profiles.json'), toolProfiles);
+  const developmentOperationCatalog = await readFile(new URL('../config/development-operation-catalog.json', import.meta.url));
+  await writeFile(path.join(packageRoot, 'config', 'development-operation-catalog.json'), developmentOperationCatalog);
   const developmentOperationProfiles = await readFile(new URL('../config/development-operation-profiles.json', import.meta.url));
   await writeFile(path.join(packageRoot, 'config', 'development-operation-profiles.json'), developmentOperationProfiles);
   const files = {
     'config/installable-agent-tool-profiles.json': { sha256: sha256(toolProfiles), bytes: toolProfiles.byteLength, role: 'package-tool-profiles' },
+    'config/development-operation-catalog.json': { sha256: sha256(developmentOperationCatalog), bytes: developmentOperationCatalog.byteLength, role: 'package-development-operation-catalog' },
     'config/development-operation-profiles.json': { sha256: sha256(developmentOperationProfiles), bytes: developmentOperationProfiles.byteLength, role: 'package-development-operation-profiles' },
     'native/helper/pidfd-control.node': { sha256: sha256(helper), bytes: helper.byteLength, role: 'native-pidfd-helper' },
     'src/runtime.mjs': { sha256: sha256(runtime), bytes: runtime.byteLength, role: 'runtime' },
@@ -75,6 +78,10 @@ async function createPackageFixture() {
     toolProfiles: {
       relativePath: 'config/installable-agent-tool-profiles.json',
       sha256: sha256(toolProfiles),
+    },
+    developmentOperationCatalog: {
+      relativePath: 'config/development-operation-catalog.json',
+      sha256: sha256(developmentOperationCatalog),
     },
     developmentOperationProfiles: {
       relativePath: 'config/development-operation-profiles.json',
@@ -150,7 +157,8 @@ test('release verification binds every package byte and rejects tampering', asyn
   t.after(() => rm(fixture.root, { recursive: true, force: true }));
   const verified = await verifyInstallableAgentRelease({ packageRoot: fixture.packageRoot });
   assert.equal(verified.manifest.sourceRevision, 'a'.repeat(40));
-  assert.equal(verified.verifiedFiles, 4);
+  assert.equal(verified.verifiedFiles, 5);
+  assert.equal(verified.manifest.developmentOperationCatalog.relativePath, 'config/development-operation-catalog.json');
   assert.equal(verified.manifest.developmentOperationProfiles.relativePath, 'config/development-operation-profiles.json');
   await writeFile(path.join(fixture.packageRoot, 'src', 'runtime.mjs'), 'tampered\n');
   await assert.rejects(

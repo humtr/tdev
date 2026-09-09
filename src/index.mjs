@@ -14,7 +14,8 @@ export {
   createMcpAccessAuthenticator,
 } from './mcp-auth.mjs';
 export { createCloudflareAccessAssertionVerifier, MCP_ACCESS_JWT_PROFILE, MCP_ACCESS_JWT_MAX_BYTES, MCP_ACCESS_JWKS_MAX_BYTES } from './mcp-auth-jwt.mjs';
-export { createDevelopmentUnitStartAdapter } from './mcp-development-adapter.mjs';
+export { createDevelopmentStartAdapter, createDevelopmentUnitStartAdapter } from './mcp-development-adapter.mjs';
+export * from './development-operation-catalog.mjs';
 export {
   MCP_SURFACE_PROFILE,
   MCP_SURFACE_SCHEMA_VERSION,
@@ -143,6 +144,7 @@ export {
   INSTALLABLE_AGENT_PACKAGE_CONFIG_SCHEMA,
   INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION,
   INSTALLABLE_AGENT_PACKAGE_PROFILE,
+  INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH,
   INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH,
   INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH,
   INSTALLABLE_AGENT_PACKAGE_STATE_SCHEMA_VERSION,
@@ -206,6 +208,27 @@ export {
 } from './d1-case-placement.mjs';
 export { CaseEngine, definePlan } from './engine.mjs';
 export {
+  DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+  DEVELOPMENT_CONTEXT_BIND_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+  DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_BINDING,
+  DEVELOPMENT_CONTEXT_BINDING,
+  DEVELOPMENT_VALIDATION_BINDING,
+  DEVELOPMENT_CODEX_BINDING,
+  DEVELOPMENT_REQUIRED_VALIDATION_POLICY,
+  normalizeDevelopmentOperationCatalog,
+  developmentOperationCatalogDigest,
+  developmentOperationDescriptor,
+  listDevelopmentOperations,
+  developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
+  normalizeDevelopmentOperationSelection,
+  requiredDevelopmentValidation,
+  operationBindingFor,
+  semanticOperationEvidence,
+} from './development-operation-catalog.mjs';
+export {
   DEVELOPMENT_OPERATION_PROFILE,
   DEVELOPMENT_OPERATION_SCHEMA_VERSION,
   DEVELOPMENT_OPERATION_REQUEST_DOMAIN,
@@ -262,10 +285,12 @@ export {
   DEVELOPMENT_UNIT_PROFILE,
   DEVELOPMENT_UNIT_CONTEXT_TASK_ID,
   DEVELOPMENT_UNIT_MODEL_TASK_ID,
+  DEVELOPMENT_UNIT_CHANGE_TASK_ID,
   DEVELOPMENT_UNIT_VALIDATION_TASK_ID,
   DEVELOPMENT_UNIT_PROMOTION_TASK_ID,
   DevelopmentUnitRunner,
   defineDevelopmentUnitPlan,
+  defineSemanticDevelopmentUnitPlan,
   createDevelopmentUnitOperationExecutor,
 } from './development-unit.mjs';
 export {
@@ -279,8 +304,11 @@ export {
   DevelopmentWarden,
   caseResultEnvelopeFromDispatch,
   createLocalDevelopmentOperationExecutionAdapter,
+  createLocalSemanticDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,
+  SemanticDevelopmentOperationRuntime,
   createLocalDevelopmentAgent,
+  createLocalSemanticDevelopmentAgent,
 } from './development-runtime.mjs';
 export {
   GIT_PROJECTION_CANDIDATE_DOMAIN,

@@ -36,6 +36,20 @@ import {
   normalizeDevelopmentOperationRequest,
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
+import {
+  DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_BINDING,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  DEVELOPMENT_CODEX_BINDING,
+  DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+  developmentOperationCapabilityId as semanticOperationCapabilityId,
+  developmentOperationDescriptor,
+  normalizeDevelopmentOperationCatalog,
+  normalizeDevelopmentOperationSelection,
+  requiredDevelopmentValidation,
+  semanticOperationEvidence,
+} from './development-operation-catalog.mjs';
 import { LocalAgentRuntime, createLocalExecutionStartError } from './local-agent-runtime.mjs';
 import { normalizeRepositoryBaseIdentity } from './lazy-plan-reference.mjs';
 
@@ -415,7 +429,7 @@ async function assertCleanClone({ repositoryPath, signal }) {
   if (status.length !== 0) fail('development_runtime_clone_mutated', 'Codex modified the disposable exact-base repository', { status: status.slice(0, 8192) });
 }
 
-async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, sparsePaths = null }) {
+async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, sparsePaths = null, expectedTreeOid = null }) {
   const parent = workspaceRoot === undefined || workspaceRoot === null ? os.tmpdir() : absolutePath(workspaceRoot, 'workspaceRoot');
   await mkdir(parent, { recursive: true, mode: 0o700 });
   const clonePath = await mkdtemp(path.join(parent, 'tdev-development-'));
@@ -436,6 +450,13 @@ async function cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, 
     await checkedGit({ repositoryPath: clonePath, signal, args: ['checkout', '--detach', commitOid] });
     const head = (await checkedGit({ repositoryPath: clonePath, signal, args: ['rev-parse', 'HEAD'] })).toString('utf8').trim();
     if (head !== commitOid) fail('development_runtime_clone_identity_mismatch', 'Disposable repository did not bind the requested commit');
+    if (expectedTreeOid !== null) {
+      if (typeof expectedTreeOid !== 'string' || !/^([0-9a-f]{40}|[0-9a-f]{64})$/u.test(expectedTreeOid)) {
+        fail('development_runtime_tree_identity_invalid', 'Expected repository tree identity is invalid');
+      }
+      const treeOid = (await checkedGit({ repositoryPath: clonePath, signal, args: ['rev-parse', 'HEAD^{tree}'] })).toString('utf8').trim();
+      if (treeOid !== expectedTreeOid) fail('development_runtime_tree_identity_mismatch', 'Disposable repository tree does not match owner-issued repository identity');
+    }
     const status = (await checkedGit({ repositoryPath: clonePath, signal, args: ['status', '--porcelain=v1'] })).toString('utf8');
     if (status.length !== 0) fail('development_runtime_clone_dirty', 'Disposable exact-base repository is not clean');
     return clonePath;
@@ -915,8 +936,8 @@ async function assertCandidatePathSafe(candidateRoot, filePath) {
   }
 }
 
-async function writeCandidateChangeSet({ repositoryPath, commitOid, result, candidateTreeDigest, baseDigest, workspaceRoot, signal, warden = null }) {
-  const candidateRoot = await cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal });
+async function writeCandidateChangeSet({ repositoryPath, commitOid, result, candidateTreeDigest, baseDigest, workspaceRoot, signal, warden = null, expectedTreeOid = null }) {
+  const candidateRoot = await cloneExactRepository({ repositoryPath, commitOid, workspaceRoot, signal, expectedTreeOid });
   let registered = false;
   try {
     if (warden !== null) {
@@ -1050,6 +1071,414 @@ export class LocalDevelopmentOperationRuntime {
     this.disposed = true;
     return result;
   }
+}
+
+export class SemanticDevelopmentOperationRuntime {
+  constructor({
+    catalog,
+    repositoryPath,
+    npmExecutable = null,
+    workspaceRoot = null,
+    observation = null,
+    warden = null,
+    validationExecutor = null,
+    optionalChangeGenerator = null,
+  } = {}) {
+    this.catalog = normalizeDevelopmentOperationCatalog(catalog);
+    this.repositoryPath = absolutePath(repositoryPath, 'repositoryPath');
+    this.workspaceRoot = workspaceRoot === null ? null : absolutePath(workspaceRoot, 'workspaceRoot');
+    this.warden = warden ?? new DevelopmentWarden({ workspaceRoot: this.workspaceRoot });
+    if (!this.warden || typeof this.warden.registerCandidate !== 'function' || typeof this.warden.cleanupCandidate !== 'function') {
+      fail('development_runtime_warden_invalid', 'A DevelopmentWarden is required for semantic candidate ownership');
+    }
+    if (validationExecutor === null) {
+      this.validationExecutor = new NpmCheckValidationExecutor({
+        npmExecutable,
+        observation,
+        warden: this.warden,
+      });
+    } else {
+      if (!validationExecutor || typeof validationExecutor.execute !== 'function') {
+        fail('development_runtime_validation_executor_invalid', 'validationExecutor must expose execute()');
+      }
+      this.validationExecutor = validationExecutor;
+    }
+    if (optionalChangeGenerator !== null && (!optionalChangeGenerator || typeof optionalChangeGenerator.execute !== 'function')) {
+      fail('development_runtime_optional_generator_invalid', 'optionalChangeGenerator must expose execute() or be null');
+    }
+    this.optionalChangeGenerator = optionalChangeGenerator;
+    this.candidates = new Map();
+    this.disposed = false;
+  }
+
+  #assertLive() {
+    if (this.disposed) fail('development_runtime_disposed', 'Semantic development runtime has already been disposed');
+  }
+
+  availability() {
+    this.#assertLive();
+    const availability = {};
+    for (const [id, operation] of Object.entries(this.catalog.operations)) {
+      availability[id] = id === DEVELOPMENT_CHANGE_GENERATE_OPERATION && this.optionalChangeGenerator === null
+        ? { available: false, reason: 'optional delegated-intelligence binding is not configured' }
+        : { available: true, reason: null };
+      if (!operation.callerSelectable && id !== DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION) {
+        availability[id] = { available: true, reason: null };
+      }
+    }
+    return deepFreeze(availability);
+  }
+
+  capabilities() {
+    const availability = this.availability();
+    const executableIds = new Set([
+      DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+      DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+      DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+    ]);
+    return Object.entries(this.catalog.operations)
+      .filter(([id]) => executableIds.has(id) && availability[id].available)
+      .map(([id, operation]) => semanticOperationCapabilityId(this.catalog, id, operation.version))
+      .sort();
+  }
+
+  #requireCapability(id, version, capabilities) {
+    if (!Array.isArray(capabilities)) fail('development_runtime_capabilities_invalid', 'Semantic capabilities must be an array');
+    const required = semanticOperationCapabilityId(this.catalog, id, version);
+    if (!capabilities.includes(required)) fail('capability_denied', `Missing semantic development capability for ${id}@${version}`);
+    return required;
+  }
+
+  #normalizeOperationIdentity(operation, expectedId = null) {
+    if (!isPlainRecord(operation)) fail('development_operation_request_invalid', 'Semantic operation request must include operation identity');
+    assertRecordShape(operation, ['id', 'version', 'contractDigest'], ['input'], 'semantic operation request.operation');
+    assertIdentifier(operation.id, 'semantic operation id');
+    assertSafeInteger(operation.version, 'semantic operation version', { min: 1 });
+    assertDigest(operation.contractDigest, 'semantic operation contractDigest');
+    if (expectedId !== null && operation.id !== expectedId) fail('development_operation_request_invalid', `Expected semantic operation ${expectedId}`);
+    const descriptor = developmentOperationDescriptor(this.catalog, operation.id, operation.version);
+    if (operation.contractDigest !== descriptor.contractDigest) fail('development_operation_contract_mismatch', 'Semantic operation contract digest is stale or mismatched');
+    return descriptor;
+  }
+
+  validateRequest(request) {
+    this.#assertLive();
+    if (!isPlainRecord(request) || !isPlainRecord(request.operation)) {
+      fail('development_operation_request_invalid', 'Semantic runtime request must be a record');
+    }
+    const id = request.operation.id;
+    if (id === DEVELOPMENT_CHANGESET_COMPOSE_OPERATION) {
+      assertRecordShape(request, ['operation', 'repositoryCommitOid', 'baseDigest', 'contextReferenceId'], ['writePaths', 'caseContract', 'repositoryBaseIdentity'], 'changeset compose runtime request');
+      const descriptor = this.#normalizeOperationIdentity(request.operation, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION);
+      if (typeof request.repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/u.test(request.repositoryCommitOid)) {
+        fail('development_runtime_commit_identity_invalid', 'repositoryCommitOid must be a hexadecimal Git object ID');
+      }
+      assertDigest(request.baseDigest, 'semantic compose baseDigest');
+      assertIdentifier(request.contextReferenceId, 'semantic compose contextReferenceId');
+      if (request.repositoryBaseIdentity !== undefined) {
+        normalizeRepositoryBaseIdentity(request.repositoryBaseIdentity, { commitOid: request.repositoryCommitOid });
+      }
+      normalizeDevelopmentOperationSelection(this.catalog, request.operation, {
+        baseDigest: request.baseDigest,
+        caseContract: request.caseContract ?? {},
+        writePaths: request.writePaths ?? null,
+      });
+      return descriptor;
+    }
+    if (id === DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION) {
+      assertRecordShape(request, ['operation', 'policyId', 'bindingId', 'candidateTreeDigest'], [], 'candidate validation runtime request');
+      const required = requiredDevelopmentValidation(this.catalog);
+      const descriptor = this.#normalizeOperationIdentity(request.operation, DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION);
+      if (request.policyId !== required.policyId || request.bindingId !== required.bindingId || descriptor.contractDigest !== required.contractDigest) {
+        fail('development_validation_policy_mismatch', 'Candidate validation does not match the owner-required policy/binding');
+      }
+      assertDigest(request.candidateTreeDigest, 'semantic validation candidateTreeDigest');
+      return descriptor;
+    }
+    if (id === DEVELOPMENT_CHANGE_GENERATE_OPERATION) {
+      return this.#normalizeOperationIdentity(request.operation, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+    }
+    fail('development_operation_unknown', `Semantic runtime does not execute ${String(id)}`);
+  }
+
+  async #compose(request, capabilities, signal) {
+    const descriptor = this.validateRequest(request);
+    this.#requireCapability(descriptor.id, descriptor.version, capabilities);
+    if (typeof request.repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/u.test(request.repositoryCommitOid)) {
+      fail('development_runtime_commit_identity_invalid', 'repositoryCommitOid must be a hexadecimal Git object ID');
+    }
+    assertDigest(request.baseDigest, 'semantic compose baseDigest');
+    assertIdentifier(request.contextReferenceId, 'semantic compose contextReferenceId');
+    const selection = normalizeDevelopmentOperationSelection(this.catalog, request.operation, {
+      baseDigest: request.baseDigest,
+      caseContract: request.caseContract ?? {},
+      writePaths: request.writePaths ?? null,
+    });
+    const repositoryIdentity = request.repositoryBaseIdentity === undefined
+      ? null
+      : normalizeRepositoryBaseIdentity(request.repositoryBaseIdentity, { commitOid: request.repositoryCommitOid });
+    const binding = semanticOperationEvidence(
+      this.catalog,
+      descriptor.id,
+      descriptor.version,
+      DEVELOPMENT_CHANGESET_COMPOSE_BINDING,
+    );
+    const result = deepFreeze({
+      kind: 'changeset',
+      baseDigest: selection.input.baseDigest,
+      writes: selection.input.writes.map(({ path: filePath, content }) => ({ path: filePath, content })),
+      evidence: {
+        ...binding,
+        contextReferenceId: request.contextReferenceId,
+        modelProcessStarts: 0,
+      },
+    });
+    const candidateDigest = typedDigest('tdev.semantic-disposable-candidate.v1', {
+      schemaVersion: 1,
+      repositoryCommitOid: request.repositoryCommitOid,
+      baseDigest: request.baseDigest,
+      contextReferenceId: request.contextReferenceId,
+      repositoryBaseIdentity: repositoryIdentity,
+      operationId: descriptor.id,
+      operationVersion: descriptor.version,
+      operationContractDigest: descriptor.contractDigest,
+      changeSetDigest: digest(result),
+      writes: result.writes.map(({ path: filePath, content }) => ({ path: filePath, content })),
+    });
+    const candidateRoot = await writeCandidateChangeSet({
+      repositoryPath: this.repositoryPath,
+      commitOid: request.repositoryCommitOid,
+      result,
+      candidateTreeDigest: candidateDigest,
+      baseDigest: request.baseDigest,
+      workspaceRoot: this.workspaceRoot,
+      signal,
+      warden: this.warden,
+      expectedTreeOid: repositoryIdentity?.treeOid ?? null,
+    });
+    this.candidates.set(candidateDigest, {
+      candidateRoot,
+      result,
+      repositoryCommitOid: request.repositoryCommitOid,
+      baseDigest: request.baseDigest,
+      contextReferenceId: request.contextReferenceId,
+      repositoryBaseIdentity: repositoryIdentity,
+    });
+    return deepFreeze({
+      ...result,
+      evidence: {
+        ...result.evidence,
+        candidateTreeDigest: candidateDigest,
+        candidateBaseDigest: request.baseDigest,
+        candidateCommitOid: request.repositoryCommitOid,
+        candidateContextReferenceId: request.contextReferenceId,
+        repositoryBaseIdentity: repositoryIdentity,
+      },
+    });
+  }
+
+  async #validate(request, capabilities, signal, operationId) {
+    const required = requiredDevelopmentValidation(this.catalog);
+    const descriptor = this.validateRequest(request);
+    this.#requireCapability(descriptor.id, descriptor.version, capabilities);
+    const candidate = this.candidates.get(request.candidateTreeDigest);
+    if (!candidate) fail('development_candidate_not_found', 'Validation requested an unknown semantic candidate tree');
+    let validation;
+    try {
+      validation = await this.validationExecutor.execute({
+        candidateRoot: candidate.candidateRoot,
+        candidateTreeDigest: request.candidateTreeDigest,
+        validationProfile: NPM_CHECK_VALIDATION_PROFILE,
+        operationId,
+        signal,
+      });
+    } finally {
+      const cleanup = await this.warden.cleanupCandidate(request.candidateTreeDigest);
+      if (cleanup.cleanupComplete !== true) fail('development_runtime_candidate_cleanup_incomplete', 'Warden could not prove semantic candidate cleanup after validation');
+      this.candidates.delete(request.candidateTreeDigest);
+    }
+    const binding = semanticOperationEvidence(this.catalog, descriptor.id, descriptor.version, required.bindingId);
+    return deepFreeze({
+      ...validation,
+      evidence: {
+        ...(isPlainRecord(validation.evidence) ? validation.evidence : {}),
+        ...binding,
+        policyId: required.policyId,
+        modelProcessStarts: 0,
+        candidateCleanup: {
+          cleanupComplete: true,
+          candidateTreeDigest: request.candidateTreeDigest,
+          positiveAbsence: true,
+        },
+      },
+    });
+  }
+
+  async execute(request, capabilities = this.capabilities(), signal = new AbortController().signal, { operationId = null } = {}) {
+    this.#assertLive();
+    if (!signal || typeof signal.aborted !== 'boolean') fail('development_runtime_signal_invalid', 'signal must be an AbortSignal');
+    const descriptor = this.validateRequest(request);
+    const id = descriptor.id;
+    if (id === DEVELOPMENT_CHANGESET_COMPOSE_OPERATION) {
+      const result = await this.#compose(request, capabilities, signal);
+      return deepFreeze({ profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE, operation: id, result });
+    }
+    if (id === DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION) {
+      const result = await this.#validate(request, capabilities, signal, operationId);
+      return deepFreeze({ profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE, operation: id, result });
+    }
+    if (id === DEVELOPMENT_CHANGE_GENERATE_OPERATION) {
+      this.#requireCapability(descriptor.id, descriptor.version, capabilities);
+      if (this.optionalChangeGenerator === null) fail('development_operation_binding_unavailable', 'Optional delegated-intelligence binding is not configured');
+      return this.optionalChangeGenerator.execute(request, capabilities, signal, { operationId });
+    }
+    fail('development_operation_unknown', `Semantic runtime does not execute ${String(id)}`);
+  }
+
+  candidate(candidateTreeDigestValue) {
+    const candidate = this.candidates.get(candidateTreeDigestValue);
+    return candidate === undefined ? null : deepFreeze({
+      candidateTreeDigest: candidateTreeDigestValue,
+      candidateRoot: candidate.candidateRoot,
+      repositoryCommitOid: candidate.repositoryCommitOid,
+      baseDigest: candidate.baseDigest,
+      contextReferenceId: candidate.contextReferenceId,
+      repositoryBaseIdentity: candidate.repositoryBaseIdentity ?? null,
+      writes: canonicalClone(candidate.result.writes),
+    });
+  }
+
+  async cleanupOperation(operationId) {
+    this.#assertLive();
+    return this.warden.cleanupOperation(operationId);
+  }
+
+  async dispose() {
+    if (this.disposed) return { cleanupComplete: true, receipts: [] };
+    for (const candidateDigestValue of [...this.candidates.keys()]) await this.warden.cleanupCandidate(candidateDigestValue);
+    const result = await this.warden.cleanupAll();
+    if (result.cleanupComplete !== true) fail('development_runtime_cleanup_incomplete', 'Warden could not prove semantic runtime cleanup');
+    this.candidates.clear();
+    this.disposed = true;
+    return result;
+  }
+}
+
+export function createLocalSemanticDevelopmentOperationExecutionAdapter({ operationRuntime, capabilities = undefined } = {}) {
+  if (!(operationRuntime instanceof SemanticDevelopmentOperationRuntime)) {
+    fail('development_runtime_agent_invalid', 'Semantic operationRuntime is required');
+  }
+  const effectiveCapabilities = capabilities === undefined ? operationRuntime.capabilities() : [...capabilities];
+  if (!Array.isArray(effectiveCapabilities)) fail('development_runtime_agent_invalid', 'Semantic development capabilities must be an array');
+  return Object.freeze({
+    async start({ envelope }) {
+      const body = envelope?.executableBody;
+      try {
+        if (!isPlainRecord(body)) fail('development_runtime_executable_invalid', 'Semantic development dispatch body must be a record');
+        assertRecordShape(body, ['profile', 'operationRequest', 'resultEnvelopeTemplate'], [], 'semantic development dispatch body');
+        if (body.profile !== DEVELOPMENT_OPERATION_CATALOG_PROFILE) {
+          fail('development_runtime_executable_invalid', 'Semantic development dispatch body profile is not the release-bound catalog');
+        }
+        operationRuntime.validateRequest(body.operationRequest);
+        validateCaseResultEnvelopeTemplate(body.resultEnvelopeTemplate);
+      } catch (cause) {
+        throw createLocalExecutionStartError(
+          cause?.code ?? 'development_runtime_executable_invalid',
+          cause?.message ?? 'Semantic development dispatch body validation failed',
+          { phase: 'pre_handle', cause },
+        );
+      }
+      const controller = new AbortController();
+      const completion = operationRuntime.execute(body.operationRequest, effectiveCapabilities, controller.signal, {
+        operationId: `${envelope.caseId}/${envelope.taskId}/${envelope.attemptId}`,
+      }).then((output) => ({
+        code: 0,
+        signal: null,
+        effect: 'not_applied',
+        resultEnvelope: caseResultEnvelopeFromDispatch({
+          template: body.resultEnvelopeTemplate,
+          envelope,
+          result: output.result,
+        }),
+      }));
+      return Object.freeze({
+        completion,
+        async cancel() { controller.abort(); return { signalled: true }; },
+        async cleanup() { await completion.catch(() => {}); return { cleanupComplete: true }; },
+      });
+    },
+  });
+}
+
+export function createLocalSemanticDevelopmentAgent({ operationRuntime, agentId = 'agent-tdev-semantic', executorId = 'executor-tdev-semantic', executorEpoch = 1, routeGeneration = 1 } = {}) {
+  if (!(operationRuntime instanceof SemanticDevelopmentOperationRuntime)) fail('development_runtime_agent_invalid', 'Semantic operationRuntime is required');
+  const capabilities = operationRuntime.capabilities();
+  const emitted = [];
+  const executionAdapter = createLocalSemanticDevelopmentOperationExecutionAdapter({ operationRuntime, capabilities });
+  const localRuntime = new LocalAgentRuntime({
+    agentId,
+    routeGeneration,
+    executor: { id: executorId, epoch: executorEpoch },
+    capabilities,
+    emit: async (frame) => { emitted.push(canonicalClone(frame)); },
+    executionAdapter,
+  });
+  localRuntime.bindConnection({ id: 'connection-tdev-semantic', epoch: 1 });
+  const identity = Object.freeze({ id: agentId, epoch: executorEpoch, capabilities: Object.freeze([...capabilities]) });
+  const calls = { authorize: [], dispatch: [] };
+  return Object.freeze({
+    identity,
+    runtime: localRuntime,
+    calls,
+    emitted,
+    authorize: async (request) => { calls.authorize.push(canonicalClone(request)); return true; },
+    observe: async () => ({ available: true }),
+    dispatch: async (request) => {
+      const { signal: _signal, ...observableRequest } = request;
+      calls.dispatch.push(canonicalClone(observableRequest));
+      const invocation = request.invocation;
+      const started = await localRuntime.handleDispatch({
+        type: 'dispatch',
+        deliveryId: digest({ caseId: request.caseId, taskId: request.taskId, attemptId: request.attemptId, lane: 'tdev-semantic' }),
+        dispatchOrdinal: 1,
+        authorizationId: digest({ authorization: request.attemptId }),
+        dispatchGrantId: digest({ grant: request.attemptId }),
+        caseId: request.caseId,
+        taskId: request.taskId,
+        attemptId: request.attemptId,
+        executorId,
+        executorEpoch,
+        fencingToken: invocation.fencingToken,
+        protocolVersion: 'tdev-agent-v1',
+        executableBody: {
+          profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+          operationRequest: request.operationRequest,
+          resultEnvelopeTemplate: {
+            caseId: request.caseId,
+            planRevisionId: invocation.planRevisionId,
+            planDigest: invocation.planDigest,
+            taskId: request.taskId,
+            attemptId: request.attemptId,
+            executorId,
+            executorEpoch,
+            claimLeaseToken: invocation.claimLease?.token ?? null,
+            claimLeaseGeneration: invocation.claimLease?.generation ?? null,
+            claimLeaseClaimsDigest: invocation.claimLease?.claimsDigest ?? null,
+          },
+        },
+      });
+      if (started.classification !== 'started') fail('development_runtime_agent_dispatch_failed', 'Local semantic Agent did not start the operation', started);
+      const completed = await started.completion;
+      const resultEnvelope = completed?.completion?.resultEnvelope;
+      if (!isPlainRecord(resultEnvelope) || resultEnvelope.caseId !== request.caseId ||
+          resultEnvelope.taskId !== request.taskId || resultEnvelope.attemptId !== request.attemptId ||
+          resultEnvelope.executorId !== executorId || resultEnvelope.executorEpoch !== invocation.attempt.executorEpoch ||
+          resultEnvelope.fencingToken !== invocation.fencingToken || !isPlainRecord(resultEnvelope.result)) {
+        fail('development_runtime_agent_result_invalid', 'Local semantic Agent returned no fenced Case result envelope');
+      }
+      return resultEnvelope.result;
+    },
+  });
 }
 
 /**
