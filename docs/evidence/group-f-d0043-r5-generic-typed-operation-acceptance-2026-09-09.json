@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0043",
+  "revision": 5,
+  "status": "accepted",
+  "acceptanceBase": "development@33400f2f7ab13015f7a5699068a128ae1081ee06",
+  "decision": "separate immutable semantic operation ID/version/contract digest from release binding identity; make deterministic repository.changeset.compose the no-model core operation, make repository/release validation owner-required, and retain Codex only as an optional repository.change.generate binding",
+  "facts": [
+    "exact source config/development-operation-profiles.json binds tdev.model.repository.execute.v1 directly to Codex saved-auth execution and tdev.repository.validate.v1 directly to npm run check",
+    "exact source src/development-operation-profile.mjs requires model_repository profiles to use the fixed Codex network/auth/argv/output binding and represents requests as profile plus input rather than semantic ID/version/contract identity",
+    "exact source src/development-unit.mjs hard-codes context -> model -> validation -> promotion and accepts caller validationProfile",
+    "existing src/results.mjs ChangeSet algebra already defines deterministic baseDigest plus writes[{path,content}] with null deletion, canonical path sorting, duplicate/path/content/size checks and result-only Case acceptance",
+    "Revision-4 Codex process/warden/candidate cleanup evidence remains reusable for the optional process-backed binding"
+  ],
+  "unknown": [
+    "Revision-5 catalog/binding source implementation and exact contract digests are not yet realized",
+    "the no-Codex source/Agent/provider/current-client proof remains open",
+    "optional Codex interoperability after the core proof remains a separate later check"
+  ],
+  "authorization": "accepted Design only; implementation may reuse existing Case/Drive/Agent/result/warden primitives but may not add a direct result ingress, caller shell authority or second scheduler",
+  "secrets": "none"
+}
