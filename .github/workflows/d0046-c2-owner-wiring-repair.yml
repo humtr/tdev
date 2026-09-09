@@ -27,6 +27,17 @@ jobs:
       - name: Install
         run: npm ci
 
+      - name: Normalize repair script escaping
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          path = Path('qualification/d0046-c2-owner-wiring-repair.mjs')
+          source = path.read_text()
+          source = source.replace(r"\\`", r"\`").replace(r"\\${", r"\${")
+          path.write_text(source)
+          PY
+
       - name: Apply exact-base repair
         id: repair
         shell: bash
