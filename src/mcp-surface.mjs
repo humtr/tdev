@@ -19,7 +19,12 @@ import {
   MCP_AUTH_SERVER_METADATA_PATH,
   mcpAuthProtectedResourceMetadata,
 } from './mcp-auth.mjs';
-import { createDevelopmentUnitStartAdapter } from './mcp-development-adapter.mjs';
+import { createDevelopmentStartAdapter } from './mcp-development-adapter.mjs';
+import {
+  developmentOperationDescriptor,
+  listDevelopmentOperations,
+  normalizeDevelopmentOperationCatalog,
+} from './development-operation-catalog.mjs';
 
 export const MCP_SURFACE_PROFILE = 'tdev.mcp.surface.v1';
 export const MCP_SURFACE_SCHEMA_VERSION = 1;
@@ -50,17 +55,19 @@ const TOOL_NAMES = Object.freeze([
   'case_create',
   'case_get',
   'case_events_get',
-  'case_run_or_resume',
+  'case_drive',
   'task_cancel',
   'attempt_reconcile',
   'claim_conflicts_get',
-  'promotion_get',
+  'case_promotion_get',
   'development_context_get',
   'development_context_list',
   'development_context_search',
   'development_context_read',
-  'development_unit_start',
-  'development_unit_get',
+  'operation_list',
+  'operation_get',
+  'development_start',
+  'development_get',
 ]);
 
 function fail(code, message, details = undefined, options = undefined) {
@@ -84,7 +91,7 @@ const integerSchema = Object.freeze({ type: 'integer', minimum: 0 });
 const structuredObjectSchema = Object.freeze({ type: 'object', additionalProperties: true });
 const readOnlyAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
 const localMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
-const externalMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: true });
+const mutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
 const cancellationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
 
 function tool(name, title, description, inputSchema, annotations) {
@@ -95,18 +102,24 @@ export const MCP_SURFACE_TOOL_DEFINITIONS = Object.freeze([
   tool('case_create', 'Create Case', 'Create one immutable tdev Case from a compiled Plan.', schema({ requestId: identifierSchema, caseId: identifierSchema, plan: { type: 'object' }, caseContract: { type: 'object' } }, ['requestId', 'caseId', 'plan']), localMutationAnnotations),
   tool('case_get', 'Get Case', 'Read one bounded authoritative Case projection.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
   tool('case_events_get', 'Get Case Events', 'Read a bounded committed Case Event page.', schema({ caseId: identifierSchema, afterSequence: integerSchema, limit: { type: 'integer', minimum: 1, maximum: MCP_SURFACE_MAX_EVENTS_PAGE } }, ['caseId']), readOnlyAnnotations),
-  tool('case_run_or_resume', 'Run or Resume Case', 'Drive one existing Case through the authenticated Agent owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']), externalMutationAnnotations),
+  tool('case_drive', 'Drive Case', 'Level-trigger one existing Case through the authenticated Drive and Agent owners.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, payload: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'driveRequestId', 'payload']), mutationAnnotations),
   tool('task_cancel', 'Cancel Task', 'Submit a receipt-backed Task cancellation to the Case owner.', schema({ requestId: identifierSchema, caseId: identifierSchema, taskId: identifierSchema, reason: stringSchema, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'taskId']), cancellationAnnotations),
   tool('attempt_reconcile', 'Reconcile Attempt', 'Submit an exact external Attempt reconciliation decision.', schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']), localMutationAnnotations),
   tool('claim_conflicts_get', 'Get Claim Conflicts', 'Read current ClaimLedger conflicts without acquiring a lease.', schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']), readOnlyAnnotations),
-  tool('promotion_get', 'Get Promotion', 'Read the bounded Promotion/candidate projection for a Case.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
+  tool('case_promotion_get', 'Get Case Promotion', 'Read the bounded Promotion/candidate projection for a Case.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
   tool('development_context_get', 'Get Development Context', 'Read an owner-issued immutable repository context reference.', schema({ selector: stringSchema }, []), readOnlyAnnotations),
   tool('development_context_list', 'List Development Context', 'List a bounded page from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 128 } }, ['contextReference']), readOnlyAnnotations),
   tool('development_context_search', 'Search Development Context', 'Search an owner-issued lazy repository context within explicit bounds.', schema({ contextReference: identifierSchema, pattern: stringSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 256 } }, ['contextReference', 'pattern']), readOnlyAnnotations),
   tool('development_context_read', 'Read Development Context', 'Read one bounded file range from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, path: stringSchema, startByte: { type: 'integer', minimum: 0 }, maxBytes: { type: 'integer', minimum: 1 } }, ['contextReference', 'path']), readOnlyAnnotations),
-  tool('development_unit_start', 'Start Development Unit', 'Start one typed development unit through the existing Case, Drive and Agent owners.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, instruction: stringSchema, validationProfile: identifierSchema }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile']), externalMutationAnnotations),
-  tool('development_unit_get', 'Get Development Unit', 'Read the bounded candidate projection for a development unit.', schema({ caseId: identifierSchema }, ['caseId']), readOnlyAnnotations),
+  tool('operation_list', 'List Operations', 'List a bounded page of release-owned semantic development operation descriptors without executing work.', schema({ cursor: identifierSchema, pageSize: { type: 'integer', minimum: 1, maximum: 100 } }, []), readOnlyAnnotations),
+  tool('operation_get', 'Get Operation', 'Read one exact semantic development operation descriptor and input schema without executing work.', schema({ id: identifierSchema, version: { type: 'integer', minimum: 1 } }, ['id', 'version']), readOnlyAnnotations),
+  tool('development_start', 'Start Development', 'Start one Case-bound typed development operation through the existing Case, Drive and Agent owners.', schema({ requestId: identifierSchema, caseId: identifierSchema, driveRequestId: identifierSchema, contextReference: identifierSchema, operation: { type: 'object', additionalProperties: false, properties: { id: identifierSchema, version: { type: 'integer', minimum: 1 }, contractDigest: digestSchema, input: { type: 'object' } }, required: ['id', 'version', 'contractDigest', 'input'] } }, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'operation']), mutationAnnotations),
+  tool('development_get', 'Get Development', 'Read the bounded candidate projection for a development Case.', schema({ caseId: identifierSchema }, ['caseId']), readOnlyAnnotations),
 ]);
+
+if (!MCP_SURFACE_TOOL_DEFINITIONS.every((descriptor) => descriptor.annotations.openWorldHint === false)) {
+  throw new Error('tdev MCP v1 public tools must all declare openWorldHint=false');
+}
 
 function limitsBody(input) {
   assertRecordShape(input, ['maxRequestBytes', 'maxResponseBytes', 'maxEventsPage', 'maxContextBytes', 'maxCandidateBytes'], [], 'MCP surface limits');
@@ -198,8 +211,8 @@ export function createMcpSurfaceManifest({ buildDigest = digest({ source: 'unbou
   protocolVersions = MCP_SURFACE_SUPPORTED_PROTOCOL_VERSIONS, ownerProfiles = {
     case: 'tdev.case.repository.v1',
     drive: 'tdev.case-agent-drive.v1',
-    operation: 'tdev.development-operation-profiles.v2',
-    developmentUnit: 'tdev.development-unit.v1',
+    operation: 'tdev.development-operation-catalog.v1',
+    development: 'tdev.development-unit.v1',
   }, limits = {
     maxRequestBytes: MCP_SURFACE_MAX_REQUEST_BYTES,
     maxResponseBytes: MCP_SURFACE_MAX_RESPONSE_BYTES,
@@ -489,7 +502,7 @@ function validateToolArguments(name, input) {
       if (args.caseContract !== undefined && !isPlainRecord(args.caseContract)) fail('mcp_tool_invalid_arguments', 'caseContract must be a record');
       return canonicalClone(args);
     case 'case_get':
-    case 'promotion_get':
+    case 'case_promotion_get':
       assertRecordShape(args, ['caseId'], ['includeTree'], `${name} arguments`);
       requireText(args, 'caseId', { identifier: true });
       if (args.includeTree !== undefined && typeof args.includeTree !== 'boolean') fail('mcp_tool_invalid_arguments', 'includeTree must be boolean');
@@ -500,8 +513,8 @@ function validateToolArguments(name, input) {
       const afterSequence = args.afterSequence === undefined ? 0 : assertSafeInteger(args.afterSequence, 'afterSequence', { min: 0 });
       const limit = args.limit === undefined ? MCP_SURFACE_MAX_EVENTS_PAGE : assertSafeInteger(args.limit, 'limit', { min: 1, max: MCP_SURFACE_MAX_EVENTS_PAGE });
       return deepFreeze({ caseId: args.caseId, afterSequence, limit });
-    case 'case_run_or_resume':
-      assertRecordShape(args, ['requestId', 'caseId', 'driveRequestId', 'payload'], ['expectedCaseRevision'], 'case_run_or_resume arguments');
+    case 'case_drive':
+      assertRecordShape(args, ['requestId', 'caseId', 'driveRequestId', 'payload'], ['expectedCaseRevision'], 'case_drive arguments');
       requireText(args, 'requestId', { identifier: true }); requireText(args, 'caseId', { identifier: true });
       requireText(args, 'driveRequestId', { identifier: true });
       if (!isPlainRecord(args.payload)) fail('mcp_tool_invalid_arguments', 'payload must be a record');
@@ -545,13 +558,30 @@ function validateToolArguments(name, input) {
       const startByte = args.startByte === undefined ? 0 : assertSafeInteger(args.startByte, 'startByte', { min: 0 });
       const maxBytes = args.maxBytes === undefined ? undefined : assertSafeInteger(args.maxBytes, 'maxBytes', { min: 1 });
       return { contextReference: args.contextReference, path: args.path, startByte, ...(maxBytes === undefined ? {} : { maxBytes }) };
-    case 'development_unit_start':
-      assertRecordShape(args, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'instruction', 'validationProfile'], [], 'development_unit_start arguments');
-      requireText(args, 'requestId', { identifier: true }); requireText(args, 'caseId', { identifier: true }); requireText(args, 'driveRequestId', { identifier: true });
-      requireText(args, 'contextReference', { identifier: true }); requireText(args, 'instruction'); requireText(args, 'validationProfile', { identifier: true });
+    case 'operation_list': {
+      assertRecordShape(args, [], ['cursor', 'pageSize'], 'operation_list arguments');
+      if (args.cursor !== undefined) requireText(args, 'cursor', { identifier: true });
+      const pageSize = args.pageSize === undefined ? 32 : assertSafeInteger(args.pageSize, 'pageSize', { min: 1, max: 100 });
+      return { cursor: args.cursor ?? null, pageSize };
+    }
+    case 'operation_get':
+      assertRecordShape(args, ['id', 'version'], [], 'operation_get arguments');
+      requireText(args, 'id', { identifier: true });
+      assertSafeInteger(args.version, 'version', { min: 1 });
       return canonicalClone(args);
-    case 'development_unit_get':
-      assertRecordShape(args, ['caseId'], [], 'development_unit_get arguments');
+    case 'development_start':
+      assertRecordShape(args, ['requestId', 'caseId', 'driveRequestId', 'contextReference', 'operation'], [], 'development_start arguments');
+      requireText(args, 'requestId', { identifier: true }); requireText(args, 'caseId', { identifier: true }); requireText(args, 'driveRequestId', { identifier: true });
+      requireText(args, 'contextReference', { identifier: true });
+      if (!isPlainRecord(args.operation)) fail('mcp_tool_invalid_arguments', 'operation must be a typed semantic operation selection');
+      assertRecordShape(args.operation, ['id', 'version', 'contractDigest', 'input'], [], 'development_start operation');
+      assertIdentifier(args.operation.id, 'development_start operation.id');
+      assertSafeInteger(args.operation.version, 'development_start operation.version', { min: 1 });
+      assertDigest(args.operation.contractDigest, 'development_start operation.contractDigest');
+      if (!isPlainRecord(args.operation.input)) fail('mcp_tool_invalid_arguments', 'development_start operation.input must be an object');
+      return canonicalClone(args);
+    case 'development_get':
+      assertRecordShape(args, ['caseId'], [], 'development_get arguments');
       requireText(args, 'caseId', { identifier: true });
       return canonicalClone(args);
     default: fail('mcp_tool_not_found', `Unknown MCP tool ${name}`);
@@ -680,7 +710,7 @@ async function readCase(repository, caseId) {
 
 export class TdevMcpSurface {
   constructor({ manifest, auth, repository = null, driveRunner = null, developmentUnitRunner = null,
-    claimLedger = null, authorize = null, owners = {}, authorizationServerMetadata = null } = {}) {
+    operationCatalog = null, claimLedger = null, authorize = null, owners = {}, authorizationServerMetadata = null } = {}) {
     this.manifest = normalizeMcpSurfaceManifest(manifest);
     this.auth = auth;
     this.repository = owners.repository ?? repository;
@@ -689,12 +719,15 @@ export class TdevMcpSurface {
     this.claimLedger = owners.claimLedger ?? claimLedger;
     this.authorize = owners.authorize ?? authorize ?? auth?.authorize ?? null;
     this.owners = { ...owners };
+    const selectedCatalog = this.owners.operationCatalog ?? operationCatalog;
+    this.operationCatalog = selectedCatalog === null || selectedCatalog === undefined ? null : normalizeDevelopmentOperationCatalog(selectedCatalog);
     const contextResolver = this.owners.developmentContextResolve ?? this.owners.developmentContextGet;
-    if (typeof this.owners.developmentUnitStart !== 'function' &&
+    if (typeof this.owners.developmentStart !== 'function' &&
         typeof contextResolver === 'function' &&
-        this.developmentUnitRunner !== null) {
-      this.owners.developmentUnitStart = createDevelopmentUnitStartAdapter({
+        this.developmentUnitRunner !== null && this.operationCatalog !== null) {
+      this.owners.developmentStart = createDevelopmentStartAdapter({
         runner: this.developmentUnitRunner,
+        operationCatalog: this.operationCatalog,
         resolveContext: ({ contextReference, identity }) => contextResolver({ selector: contextReference, identity }),
       });
     }
@@ -738,7 +771,7 @@ export class TdevMcpSurface {
       }
       case 'case_get': return this.#caseProjection(args.caseId, args.includeTree === true);
       case 'case_events_get': return projectEvents(await readCase(this.repository, args.caseId), args.afterSequence, args.limit);
-      case 'case_run_or_resume': {
+      case 'case_drive': {
         const expected = optionalRevision(args);
         if (expected !== null) {
           const snapshot = await readCase(this.repository, args.caseId);
@@ -778,7 +811,7 @@ export class TdevMcpSurface {
         if (!this.claimLedger || typeof this.claimLedger.conflictsForClaims !== 'function') fail('mcp_owner_unavailable', 'Claim conflict projection owner is unavailable');
         return canonicalClone(this.claimLedger.conflictsForClaims(args.claims));
       }
-      case 'promotion_get': {
+      case 'case_promotion_get': {
         const snapshot = await readCase(this.repository, args.caseId);
         return projectPromotion(snapshot, { includeTree: args.includeTree === true });
       }
@@ -798,13 +831,31 @@ export class TdevMcpSurface {
         if (typeof this.owners.developmentContextRead !== 'function') fail('mcp_owner_unavailable', 'Lazy context read owner is unavailable');
         return projectContext(await this.owners.developmentContextRead({ contextReference: args.contextReference, path: args.path, startByte: args.startByte, maxBytes: args.maxBytes, identity }), this.manifest.limits.maxContextBytes);
       }
-      case 'development_unit_start': {
-        if (typeof this.owners.developmentUnitStart !== 'function') fail('mcp_owner_unavailable', 'Development unit owner is unavailable');
-        return projectDrive(await this.owners.developmentUnitStart({ ...args, identity }));
+      case 'operation_list': {
+        if (typeof this.owners.operationList === 'function') return canonicalClone(await this.owners.operationList({ ...args, identity }));
+        if (this.operationCatalog === null) fail('mcp_owner_unavailable', 'Development operation catalog owner is unavailable');
+        const availability = typeof this.owners.operationAvailability === 'function'
+          ? await this.owners.operationAvailability({ identity })
+          : {};
+        return listDevelopmentOperations(this.operationCatalog, { cursor: args.cursor, pageSize: args.pageSize, availability });
       }
-      case 'development_unit_get': {
+      case 'operation_get': {
+        if (typeof this.owners.operationGet === 'function') return canonicalClone(await this.owners.operationGet({ ...args, identity }));
+        if (this.operationCatalog === null) fail('mcp_owner_unavailable', 'Development operation catalog owner is unavailable');
+        const availability = typeof this.owners.operationAvailability === 'function'
+          ? await this.owners.operationAvailability({ identity })
+          : {};
+        if (!isPlainRecord(availability)) fail('mcp_owner_invalid_projection', 'Development operation availability owner returned an invalid projection');
+        const state = availability[args.id] ?? { available: true, reason: null };
+        return developmentOperationDescriptor(this.operationCatalog, args.id, args.version, state);
+      }
+      case 'development_start': {
+        if (typeof this.owners.developmentStart !== 'function') fail('mcp_owner_unavailable', 'Development start owner is unavailable');
+        return projectDrive(await this.owners.developmentStart({ ...args, identity }));
+      }
+      case 'development_get': {
         const runner = this.developmentUnitRunner ?? this.driveRunner;
-        if (!runner || typeof runner.candidate !== 'function') fail('mcp_owner_unavailable', 'Development unit candidate owner is unavailable');
+        if (!runner || typeof runner.candidate !== 'function') fail('mcp_owner_unavailable', 'Development candidate owner is unavailable');
         return projectCandidate(await runner.candidate(args.caseId), this.manifest.limits.maxCandidateBytes);
       }
       default: fail('mcp_tool_not_found', `Unknown MCP tool ${name}`);
@@ -827,7 +878,7 @@ export class TdevMcpSurface {
       protocolVersion: protocol,
       capabilities: { tools: { listChanged: false } },
       serverInfo: { name: 'tdev', version: this.manifest.surfaceDigest.slice('sha256:'.length, 'sha256:'.length + 12) },
-      instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
+      instructions: 'Use development_context_get and operation_get before development_start; candidates remain isolated until owner-required validation and Promotion.',
     };
   }
 
@@ -847,7 +898,7 @@ export class TdevMcpSurface {
         supportedVersions: [...this.manifest.protocolVersions],
         capabilities: { tools: { listChanged: false } },
         _meta: { [MODERN_META_SERVER_INFO_KEY]: this.#modernServerInfo() },
-        instructions: 'Use development_context_get before development_unit_start; candidates remain isolated until an owner-authorized promotion.',
+        instructions: 'Use development_context_get and operation_get before development_start; candidates remain isolated until owner-required validation and Promotion.',
         ttlMs: 0,
         cacheScope: 'private',
       };

@@ -60,10 +60,13 @@ async function createControlFixture() {
   const profiles = Buffer.from(`${canonicalJson(toolProfilesDocument())}\n`);
   await writeFile(path.join(packageRoot, 'native', 'helper', 'pidfd-control.node'), helper);
   await writeFile(path.join(packageRoot, 'config', 'installable-agent-tool-profiles.json'), profiles);
+  const developmentOperationCatalog = await readFile(new URL('../config/development-operation-catalog.json', import.meta.url));
+  await writeFile(path.join(packageRoot, 'config', 'development-operation-catalog.json'), developmentOperationCatalog);
   const developmentOperationProfiles = await readFile(new URL('../config/development-operation-profiles.json', import.meta.url));
   await writeFile(path.join(packageRoot, 'config', 'development-operation-profiles.json'), developmentOperationProfiles);
   const files = {
     'config/installable-agent-tool-profiles.json': { sha256: sha256(profiles), bytes: profiles.byteLength, role: 'package-tool-profiles' },
+    'config/development-operation-catalog.json': { sha256: sha256(developmentOperationCatalog), bytes: developmentOperationCatalog.byteLength, role: 'package-development-operation-catalog' },
     'config/development-operation-profiles.json': { sha256: sha256(developmentOperationProfiles), bytes: developmentOperationProfiles.byteLength, role: 'package-development-operation-profiles' },
     'native/helper/pidfd-control.node': { sha256: sha256(helper), bytes: helper.byteLength, role: 'native-pidfd-helper' },
   };
@@ -91,6 +94,10 @@ async function createControlFixture() {
     toolProfiles: {
       relativePath: 'config/installable-agent-tool-profiles.json',
       sha256: sha256(profiles),
+    },
+    developmentOperationCatalog: {
+      relativePath: 'config/development-operation-catalog.json',
+      sha256: sha256(developmentOperationCatalog),
     },
     developmentOperationProfiles: {
       relativePath: 'config/development-operation-profiles.json',
@@ -224,7 +231,7 @@ test('control reconnect reuses one durable connect identity after response loss 
     webSocketFactory: websocket.factory,
   });
 
-  assert.equal(control.developmentOperationCapabilities.length, 4);
+  assert.equal(control.developmentOperationCapabilities.length, 0);
   assert.deepEqual(control.runtime.identity().capabilities, control.developmentOperationCapabilities);
 
   await assert.rejects(control.connectOnce(), (error) => error?.code === 'local_transport_connect_failed');
@@ -271,6 +278,31 @@ test('control reconnect reuses one durable connect identity after response loss 
   const restartedState = JSON.parse(await readFile(path.join(fixture.stateDirectory, 'control-connection.json'), 'utf8'));
   assert.deepEqual(restartedState.capacityRevisionCursor, { executorId: fixture.config.executorId, executorEpoch: fixture.config.executorEpoch, highWater: 2 });
   restarted.stop();
+});
+
+test('semantic development control constructs without Codex and advertises only configured core capabilities', async (t) => {
+  const fixture = await createControlFixture();
+  t.after(() => rm(fixture.root, { recursive: true, force: true }));
+  const control = await createInstallableAgentControlProcess({
+    packageRoot: fixture.packageRoot,
+    config: {
+      ...fixture.config,
+      developmentRepositoryPath: fixture.packageRoot,
+      developmentNpmExecutable: process.execPath,
+    },
+    prefix: fixture.prefix,
+    supervisorClient: fixture.supervisorClient,
+    credentialLoader: async () => OPAQUE_AUTH_MATERIAL,
+    webSocketFactory: scriptedWebSocketFactory(['open']).factory,
+  });
+  assert.equal(control.developmentOperationCapabilities.length, 2);
+  assert.deepEqual(control.runtime.identity().capabilities, control.developmentOperationCapabilities);
+  const status = await control.status();
+  assert.equal(status.semanticDevelopmentConfigured, true);
+  assert.equal(status.legacyCodexConfigured, false);
+  assert.match(status.developmentOperationCatalogDigest, /^sha256:[0-9a-f]{64}$/u);
+  assert.equal(status.developmentOperationCapabilities.some((value) => value.includes('codex')), false);
+  control.stop();
 });
 
 test('control process refuses to claim a D0027 tuple for a different local release', async (t) => {

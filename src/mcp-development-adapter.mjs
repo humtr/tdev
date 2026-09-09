@@ -6,7 +6,8 @@ import {
   deepFreeze,
   isPlainRecord,
 } from './canonical.mjs';
-import { defineDevelopmentUnitPlan } from './development-unit.mjs';
+import { defineDevelopmentUnitPlan, defineSemanticDevelopmentUnitPlan } from './development-unit.mjs';
+import { normalizeDevelopmentOperationCatalog } from './development-operation-catalog.mjs';
 import { normalizeLazyPlanScope, scopeDigest } from './lazy-plan-reference.mjs';
 
 function fail(code, message, details = undefined, options = undefined) {
@@ -57,6 +58,54 @@ function normalizeContext(value, contextReference) {
     fail('mcp_context_scope_mismatch', 'development context scopeDigest requires contextScope');
   }
   return deepFreeze({ ...canonicalClone(value), objectFormat, contextReferenceId: contextReference });
+}
+
+export function createDevelopmentStartAdapter({ runner, resolveContext, operationCatalog } = {}) {
+  const developmentRunner = assertRunner(runner);
+  if (typeof resolveContext !== 'function') fail('mcp_owner_unavailable', 'A context owner resolver is required');
+  const catalog = normalizeDevelopmentOperationCatalog(operationCatalog);
+  return async ({ caseId, driveRequestId, contextReference, operation, identity, requestId } = {}) => {
+    assertIdentifier(caseId, 'development caseId');
+    assertIdentifier(driveRequestId, 'development driveRequestId');
+    assertIdentifier(contextReference, 'development contextReference');
+    if (!isPlainRecord(operation)) fail('mcp_tool_invalid_arguments', 'development operation selection must be an object');
+    const context = normalizeContext(await resolveContext({ contextReference, identity }), contextReference);
+    const plan = defineSemanticDevelopmentUnitPlan({
+      revisionId: context.revisionId,
+      baseTree: context.baseTree,
+      repositoryCommitOid: context.repositoryCommitOid,
+      objectFormat: context.objectFormat,
+      contextReferenceId: contextReference,
+      contextScope: context.contextScope ?? null,
+      baseIdentity: context.baseIdentity ?? null,
+      repositoryBaseIdentity: context.repositoryBaseIdentity ?? null,
+      operation,
+      operationCatalog: catalog,
+      writePaths: context.writePaths ?? null,
+      caseContract: context.caseContract,
+    });
+    const selectedTask = plan.tasksById.change;
+    if (!isPlainRecord(selectedTask)) fail('mcp_owner_invalid_projection', 'Semantic development Plan is missing its change Task');
+    const payload = {
+      contextReference,
+      operation: {
+        id: selectedTask.input.operation.id,
+        version: selectedTask.input.operation.version,
+        contractDigest: selectedTask.input.operation.contractDigest,
+      },
+      ...(isPlainRecord(context.payload) ? context.payload : {}),
+    };
+    const created = await developmentRunner.create({ caseId, plan, driveRequestId, payload });
+    const driven = await developmentRunner.drive({ caseId, driveRequestId, payload });
+    return deepFreeze({
+      requestId: requestId ?? null,
+      contextReference,
+      operation: canonicalClone(payload.operation),
+      planDigest: plan.planDigest,
+      created: canonicalClone(created),
+      drive: canonicalClone(driven),
+    });
+  };
 }
 
 export function createDevelopmentUnitStartAdapter({ runner, resolveContext } = {}) {

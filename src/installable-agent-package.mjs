@@ -20,6 +20,7 @@ import {
 } from './installable-agent-security.mjs';
 
 export const INSTALLABLE_AGENT_PACKAGE_PROFILE = 'tdev.installable-agent-package.v1';
+export const INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_CATALOG_RELATIVE_PATH = 'config/development-operation-catalog.json';
 export const INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_PROFILES_RELATIVE_PATH = 'config/development-operation-profiles.json';
 export const INSTALLABLE_AGENT_DEVELOPMENT_OPERATION_OUTPUT_SCHEMA_RELATIVE_PATH = 'config/codex-changeset-output.schema.json';
 export const INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION = 1;
@@ -95,7 +96,7 @@ export function normalizeInstallableAgentReleaseManifest(manifest) {
   assertRecordShape(manifest, [
     'schemaVersion', 'profile', 'sourceRevision', 'target', 'runtime', 'stateSchemas', 'protocols', 'capabilityProfile',
   'serviceHostProfile', 'configurationSchemaDigest', 'toolProfiles', 'helperAbi', 'files',
-  ], ['developmentOperationProfiles', 'developmentOperationOutputSchema'], 'installable Agent release manifest');
+  ], ['developmentOperationCatalog', 'developmentOperationProfiles', 'developmentOperationOutputSchema'], 'installable Agent release manifest');
   if (manifest.schemaVersion !== INSTALLABLE_AGENT_PACKAGE_MANIFEST_SCHEMA_VERSION || manifest.profile !== INSTALLABLE_AGENT_PACKAGE_PROFILE) {
     fail('installable_agent_package_manifest_incompatible', 'Installable Agent release manifest profile/schema is unsupported');
   }
@@ -120,6 +121,13 @@ export function normalizeInstallableAgentReleaseManifest(manifest) {
   const toolProfilePath = assertSafeRelativePath(manifest.toolProfiles.relativePath, 'toolProfiles.relativePath');
   if (toolProfilePath !== manifest.toolProfiles.relativePath || !FILE_DIGEST_RE.test(manifest.toolProfiles.sha256)) {
     fail('invalid_installable_agent_package_manifest', 'tool-profile binding is invalid');
+  }
+  if (manifest.developmentOperationCatalog !== undefined) {
+    assertRecordShape(manifest.developmentOperationCatalog, ['relativePath', 'sha256'], [], 'package development-operation-catalog binding');
+    const developmentOperationCatalogPath = assertSafeRelativePath(manifest.developmentOperationCatalog.relativePath, 'developmentOperationCatalog.relativePath');
+    if (developmentOperationCatalogPath !== manifest.developmentOperationCatalog.relativePath || !FILE_DIGEST_RE.test(manifest.developmentOperationCatalog.sha256)) {
+      fail('invalid_installable_agent_package_manifest', 'development-operation-catalog binding is invalid');
+    }
   }
   if (manifest.developmentOperationProfiles !== undefined) {
     assertRecordShape(manifest.developmentOperationProfiles, ['relativePath', 'sha256'], [], 'package development-operation-profile binding');
@@ -153,6 +161,10 @@ export function normalizeInstallableAgentReleaseManifest(manifest) {
   }
   if (!files[manifest.toolProfiles.relativePath] || files[manifest.toolProfiles.relativePath].sha256 !== manifest.toolProfiles.sha256) {
     fail('installable_agent_package_manifest_incompatible', 'tool-profile digest is not bound by package files');
+  }
+  if (manifest.developmentOperationCatalog !== undefined &&
+      (!files[manifest.developmentOperationCatalog.relativePath] || files[manifest.developmentOperationCatalog.relativePath].sha256 !== manifest.developmentOperationCatalog.sha256)) {
+    fail('installable_agent_package_manifest_incompatible', 'development-operation-catalog digest is not bound by package files');
   }
   if (manifest.developmentOperationProfiles !== undefined &&
       (!files[manifest.developmentOperationProfiles.relativePath] || files[manifest.developmentOperationProfiles.relativePath].sha256 !== manifest.developmentOperationProfiles.sha256)) {
@@ -358,19 +370,27 @@ function normalizeControlConfigBase(input) {
   assertDigest(input.protocolMetadataDigest, 'controlConfig.protocolMetadataDigest');
   assertSafeInteger(input.reportedCapacity, 'controlConfig.reportedCapacity', { min: 0, max: 1024 });
   if (input.reconnectDelayMs !== undefined) assertSafeInteger(input.reconnectDelayMs, 'controlConfig.reconnectDelayMs', { min: 100, max: 60_000 });
-  const developmentCore = ['developmentRepositoryPath', 'developmentCodexHome', 'developmentCodexExecutable', 'developmentNpmExecutable'];
+  const developmentCore = ['developmentRepositoryPath', 'developmentNpmExecutable'];
   const presentCore = developmentCore.filter((field) => input[field] !== undefined);
   if (presentCore.length !== 0 && presentCore.length !== developmentCore.length) {
-    fail('invalid_installable_agent_control_config', 'D0043 development runtime paths must be configured as one complete binding');
+    fail('invalid_installable_agent_control_config', 'Semantic development runtime requires repository and npm paths together');
   }
-  for (const field of [...developmentCore, 'developmentWorkspaceRoot']) {
+  const codexPair = ['developmentCodexHome', 'developmentCodexExecutable'];
+  const presentCodex = codexPair.filter((field) => input[field] !== undefined);
+  if (presentCodex.length !== 0 && presentCodex.length !== codexPair.length) {
+    fail('invalid_installable_agent_control_config', 'Optional Codex compatibility paths must be configured together');
+  }
+  if (presentCodex.length !== 0 && presentCore.length === 0) {
+    fail('invalid_installable_agent_control_config', 'Optional Codex compatibility requires the semantic development core binding');
+  }
+  for (const field of [...developmentCore, ...codexPair, 'developmentWorkspaceRoot']) {
     if (input[field] === undefined) continue;
     if (typeof input[field] !== 'string' || !path.isAbsolute(input[field]) || input[field].includes('\0')) {
       fail('invalid_installable_agent_control_config', `controlConfig.${field} must be an absolute path`);
     }
   }
   if (input.developmentWorkspaceRoot !== undefined && presentCore.length === 0) {
-    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the complete D0043 runtime binding');
+    fail('invalid_installable_agent_control_config', 'developmentWorkspaceRoot requires the semantic development core binding');
   }
   return canonicalClone({ ...input, agentDeliveryUrl: endpoint.toString() });
 }
