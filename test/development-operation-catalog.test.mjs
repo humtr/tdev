@@ -64,6 +64,7 @@ test('operation discovery is deterministic, bounded, and separates exact schema 
   assert.equal(exact.availability.reason, 'host binding unavailable');
   assert.equal(exact.inputSchema.type, 'object');
   assert.throws(() => developmentOperationDescriptor(value, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, 2), (error) => error?.code === 'development_operation_unknown');
+  assert.throws(() => developmentOperationDescriptor(value, 'tdev.operation.repository.unknown.v1', 1), (error) => error?.code === 'development_operation_unknown');
 });
 
 test('changeset.compose strictly normalizes the existing ChangeSet algebra and owner write scope', () => {
@@ -96,6 +97,12 @@ test('changeset.compose strictly normalizes the existing ChangeSet algebra and o
     contractDigest: descriptor.contractDigest,
     input: { baseDigest, writes: [{ path: 'src/a.mjs', content: 'x' }, { path: 'src/a.mjs', content: 'y' }] },
   }, { baseDigest }), (error) => error?.code === 'duplicate_write');
+  assert.throws(() => normalizeDevelopmentOperationSelection(value, {
+    id: DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+    version: 1,
+    contractDigest: descriptor.contractDigest,
+    input: { baseDigest, writes: [{ path: 'src/oversized.mjs', content: '0123456789' }] },
+  }, { baseDigest, caseContract: { limits: { maxFileBytes: 8 } } }), (error) => error?.code === 'file_limit_exceeded');
   assert.throws(() => normalizeDevelopmentOperationSelection(value, {
     id: DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
     version: 1,
