@@ -1,0 +1,129 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.c0-source-package-verification.v1",
+  "date": "2026-09-09",
+  "repository": "humtr/tdev",
+  "directive": "DIRECTIVE.md@r1",
+  "primaryDesign": "D0043@r5",
+  "composedDesigns": ["D0023@r4", "D0046@r8"],
+  "scope": "C0 source/package semantics only; provider deployment, live Agent activation, credentials, live Cases, current-client C1/C2 proof and optional Codex interoperability are excluded",
+  "lineage": {
+    "acceptedPublishedBase": "6f16f5373f7744de9d28e6059cbdc4e9334b2358",
+    "preservedImplementationCandidate": "68c7f3eb441f5cc2b3c6453d4429d6680816accf",
+    "finalValidatedCandidate": "c617485f2c901ee33534a5eafa83d5a131ceaa08",
+    "publishedMergeCommit": "c76e24add24823fa63e95aa656ffb07491694dc7",
+    "pullRequest": 34,
+    "remoteBranch": "tmcp/v1-c0-chatgpt-native-source-20260909",
+    "ancestryReadbackJob": "job_oio_5ac764a71f",
+    "ancestry": {
+      "acceptedBaseToPublishedMerge": true,
+      "preservedCandidateToPublishedMerge": true,
+      "finalCandidateToPublishedMerge": true
+    }
+  },
+  "implementation": {
+    "semanticOperationCatalog": "PASS",
+    "semanticOperationBindingSeparation": "PASS",
+    "deterministicRepositoryChangesetCompose": "PASS",
+    "existingChangeSetAlgebraReused": true,
+    "ownerRequiredValidation": "PASS",
+    "callerValidationSelectionAbsent": true,
+    "callerRuntimeControlAbsent": true,
+    "codexCoreDependency": false,
+    "codexOptionalBindingOnly": true,
+    "legacyPlanCompatibility": "PASS",
+    "directResultIngressAbsent": true,
+    "promotionOnlyCanonicalWriter": true,
+    "positiveCandidateCleanup": "PASS"
+  },
+  "mcpSurface": {
+    "profile": "tdev.mcp.surface.v1",
+    "toolCount": 16,
+    "tools": [
+      "case_create",
+      "case_get",
+      "case_events_get",
+      "case_drive",
+      "task_cancel",
+      "attempt_reconcile",
+      "claim_conflicts_get",
+      "case_promotion_get",
+      "development_context_get",
+      "development_context_list",
+      "development_context_search",
+      "development_context_read",
+      "operation_list",
+      "operation_get",
+      "development_start",
+      "development_get"
+    ],
+    "allOpenWorldHintFalse": true,
+    "legacyAliasesAbsent": ["case_run_or_resume", "promotion_get", "development_unit_start", "development_unit_get"],
+    "genericOperationExecuteAbsent": true,
+    "operationDiscoveryReadOnly": true
+  },
+  "focusedValidation": {
+    "profile": "portable-test",
+    "jobId": "job_ogf_b3f1743047",
+    "artifactId": "artifact_qq_53b7af8f32",
+    "artifactSha256": "4b90cc6a3ca140e68d4b9f4c2d27ffafb196d5ff0e16c6e2a92645d16f08767a",
+    "targetRevision": "c617485f2c901ee33534a5eafa83d5a131ceaa08",
+    "tests": 753,
+    "pass": 753,
+    "fail": 0,
+    "timedOut": false,
+    "explicitCoverage": [
+      "semantic Plan is change -> owner-required validation -> Promotion with no model Task",
+      "operation input and owner validation are digest-bound; stale contract and scope fail closed",
+      "no-Codex Case -> Agent -> validation -> Promotion with zero model process starts",
+      "semantic empty ChangeSet rejection with legacy profile-bound Plan compatibility",
+      "unknown semantic operation ID rejection",
+      "ChangeSet size-bound rejection"
+    ]
+  },
+  "fullSourceGate": {
+    "profile": "portable",
+    "jobId": "job_ogh_f66fd920de",
+    "artifactId": "artifact_qr_d12d5be476",
+    "artifactSha256": "5498fb5856f009bc4eafc33559105faa2fcea2afbbe56f661f26333fb1bdc7e9",
+    "targetRevision": "c617485f2c901ee33534a5eafa83d5a131ceaa08",
+    "success": true,
+    "tests": 753,
+    "pass": 753,
+    "fail": 0,
+    "timedOut": false,
+    "validationProfileAuthorityDigest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98",
+    "validationProfileProjectRevision": 9
+  },
+  "publication": {
+    "nonForcePushJob": "job_ogx_cd59b65076",
+    "ownerTransferTask": "task_oh4_3c4cbfd138",
+    "ownerNativeMergeJob": "job_oii_f3561699b3",
+    "postMergeReadbackJob": "job_oij_a5940ec117",
+    "publishedDevelopment": "c76e24add24823fa63e95aa656ffb07491694dc7",
+    "providerChecks": {
+      "total": 0,
+      "pending": 0,
+      "failing": 0,
+      "policy": {
+        "kind": "none",
+        "policyId": "source:no-checks"
+      }
+    }
+  },
+  "lifecycleResult": {
+    "D0043@r5": "verified at its C0 source/package contract; provider/current-client meaning is not promoted",
+    "D0023@r4": "implementing; C0 source surface is realized, provider deployment/readback and current-client UX remain open",
+    "D0046@r8": "implementing; C0 source/Agent preflight is green, C1 preserving deployment/readback and C2 current-client experiential proof remain open"
+  },
+  "proofBoundaries": {
+    "C0SourcePackage": "PASS",
+    "providerDeploymentOrMutation": "NOT_EXECUTED",
+    "liveAgentActivation": "NOT_EXECUTED",
+    "credentialMutation": "NOT_EXECUTED",
+    "liveCaseMutation": "NOT_EXECUTED",
+    "D0046C1PreservingDeploymentReadback": "OPEN",
+    "D0046C2CurrentClientExperientialProof": "OPEN",
+    "optionalCodexInteroperability": "OPEN_AFTER_CORE_C2"
+  }
+}

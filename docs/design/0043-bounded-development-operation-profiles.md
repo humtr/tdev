@@ -1,6 +1,6 @@
 # Design 0043 — Versioned Typed Development Operations and Release Bindings
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 5
 - Class: 2
 - Decision date: 2026-09-09
@@ -8,6 +8,7 @@
 - Predecessor revision: D0043@r4 accepted the trusted-local no-sandbox Codex/validation execution boundary and positive warden cleanup. Its acceptance evidence `docs/evidence/group-f-d0043-r4-warden-candidate-boundary-acceptance-2026-09-06.json` and all later Codex-backed physical evidence remain historical for that exact optional binding.
 - Trigger: `DIRECTIVE.md@r1` and exact-source review falsified the maintained operation abstraction, not the Case/Agent execution backbone. Current source treats release profiles as semantic operations, hard-wires `model_repository` to Codex, takes caller-selected `validationProfile`, and makes the development recipe depend on a model Task. The first public v1 instead requires a generic server/Agent-owned semantic operation catalog, deterministic ChatGPT-authored ChangeSet composition, owner-required validation and no Codex dependency on the core path.
 - Acceptance evidence: `docs/evidence/group-f-d0043-r5-generic-typed-operation-acceptance-2026-09-09.json`
+- C0 source/package verification evidence: `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`
 - Scope: versioned semantic development-operation contracts, release binding identity, capability admission, deterministic ChangeSet composition, candidate validation policy, optional delegated-intelligence bindings and common local execution/cleanup boundaries.
 - Affected owners: `src/development-operation-profile.mjs` or its successor catalog module, `src/development-unit.mjs`, `src/development-runtime.mjs`, operation/binding config, `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, installable-Agent package manifests and focused operation/runtime tests.
 - Preserved owners: D0019 remains sole Case/Task/Attempt/result/Promotion authority; D0042 remains Case-to-Agent drive/re-drive; D0020/D0027 remain Agent delivery and local process/effect owners; D0013/D0014/D0047/D0048 remain repository-context identities/transports; D0025 remains Git publication authority.
@@ -236,4 +237,4 @@ Rejected as unnecessary. The existing adapter is useful optional interoperabilit
 
 ## 13. Follow-on gate
 
-Revision 5 authorizes implementation of the semantic catalog/binding split, deterministic ChangeSet compose operation, owner-required validation policy, generic development recipe and Codex optionalization after explicit `WORKBOARD.md` routing. It does not itself claim source realization, Agent package activation, provider deployment, current-client behavior or optional Codex interoperability. Those are separately observed layers.
+Revision 5 is verified at the C0 source/package layer by `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`: the semantic catalog/binding split, deterministic ChangeSet compose operation, owner-required validation policy, generic development recipe, Codex optionalization, fail-closed falsifiers and complete registered source gate are realized and published. This verification does not promote live Agent activation, provider deployment, current-client behavior or optional Codex interoperability; those remain separately observed layers under D0046 and the optional follow-on.
