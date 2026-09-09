@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "design": "D0031",
+  "revision": 8,
+  "phase": "verification",
+  "date": "2026-09-09",
+  "repository": "humtr/tdev",
+  "directive": {
+    "path": "DIRECTIVE.md",
+    "revision": 1,
+    "status": "active"
+  },
+  "acceptanceBase": "development@d18c962171bdf867a0d266846f30bcd9caf1a375",
+  "implementationBase": "development@ef70e44859ed1f806387a6bbffe11741d89fe52f",
+  "implementationSource": "dc776395bc3c2f50b78a5224688f9209057c3473",
+  "verification": {
+    "governanceFalsifiers": {
+      "portableTestJob": "job_nx0_dca7d5cbf0",
+      "artifact": "artifact_pc_56d7402283",
+      "artifactSha256": "b2b2f9552e47c7e90914f63014012c53c3f31676c5de90a512eb0443dbc8c64b",
+      "tests": 743,
+      "passed": 743,
+      "failed": 0,
+      "cases": [
+        "DIRECTIVE.md is a required fixed-bootstrap owner before routing",
+        "missing active-Directive owner fails closed",
+        "missing active-Directive pointer fails closed",
+        "malformed active-Directive pointer fails closed",
+        "duplicate active-Directive pointer fails closed",
+        "WORKBOARD/Directive revision mismatch fails closed",
+        "non-active Directive fails closed",
+        "stale carried Directive revision is marked stale",
+        "a current WORKBOARD/Directive mismatch cannot be rebound as continuity"
+      ]
+    },
+    "fullSourceGate": {
+      "profile": "portable",
+      "job": "job_nxb_60af21da1a",
+      "status": "succeeded",
+      "artifact": "artifact_pe_acf1737984",
+      "artifactSha256": "92d7586e648f98672b45262562c9be7bec992927bc389a8608be035d963287ec",
+      "tests": 743,
+      "passed": 743,
+      "failed": 0,
+      "timedOut": false,
+      "validationProfileAuthorityDigest": "a36c11fb82945021dd361b163b9cb0059b818be2baffd0ad22cf6af137779c98",
+      "validationProfileProjectRevision": 9
+    }
+  },
+  "verifiedMeaning": [
+    "the exact published repository snapshot supplies DIRECTIVE.md before dependent routing",
+    "WORKBOARD carries exactly one DIRECTIVE.md@rN pointer and it must match the active Directive revision",
+    "the active Directive must have status active and a positive integer revision",
+    "handoff, plan, Design-derived routing, historical PASS and qualification continuity conflicting with the active Directive are stale for dependent mutation",
+    "DIRECTIVE.md owns objective and priority only; SDD, technical Designs and WORKBOARD retain their existing implementation-authorization and routing roles"
+  ],
+  "productSemanticsChanged": false,
+  "runtimeProviderMutation": false,
+  "agentMutation": false,
+  "credentialMutation": false,
+  "liveCaseMutation": false,
+  "unverifiedLayers": []
+}

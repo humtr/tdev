@@ -1,6 +1,6 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `implementing`
+- Status: `verified`
 - Revision: 8
 - Revision 8 predecessor: revision 7 was verified at implementation source `2a1e0e5c9aea784181a2ab4e6b25858c6232a0d6`; revisions 1-7 and their evidence remain historical evidence.
 - Revision 8 reason: the explicit owner Directive on 2026-09-09 exposed a missing authority role in the revision-7 bootstrap. The kernel can bind stable rules and a current Design router, but it has no first-class owner for the owner's top-level objective/priority. As a result, a priority can be incorrectly encoded into Design lifecycle or WORKBOARD selection and drift into a narrower technical gate.
@@ -8,6 +8,8 @@
 - Revision 8 acceptance authority: `DIRECTIVE.md@r1`; the Directive owns the objective, while this Design owns only how the self-development bootstrap locates and enforces that owner.
 - Revision 8 changed decision: add root `DIRECTIVE.md` to the fixed bootstrap kernel as the single current owner-objective/priority authority; `AGENTS.md` binds the exact published repository snapshot and reads the Directive before routing, `WORKBOARD.md` carries an exact active-Directive pointer, and conflicting derived plans/routes are stale for dependent mutation. The Directive is not a Design and does not bypass `RULE.md`, `SDD.md`, accepted technical Designs, or runtime owners.
 - Revision 8 downstream implementation/revalidation: `AGENTS.md` bootstrap order, `WORKBOARD.md` active-Directive pointer/routing, documentation taxonomy, derived-index agreement and documentation governance. Product/runtime/provider behavior remains owned elsewhere.
+- Revision 8 implementation source: `dc776395bc3c2f50b78a5224688f9209057c3473`.
+- Revision 8 verification evidence: `docs/evidence/group-f-d0031-r8-directive-bootstrap-verification-2026-09-09.json`; the Directive bootstrap/identity/stale-continuity falsifiers and the registered `portable` source gate passed 743/743 with zero failures in tmcp Jobs `job_nx0_dca7d5cbf0` and `job_nxb_60af21da1a`.
 - Revision 7 predecessor: revision 6 was verified with implementation source `49597a5db8ef4289eca3c8dc6c4408775801c46e` and remained the maintained revision at the fresh application base `a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`; revisions 1-6 and their evidence remain historical evidence.
 - Revision 7 reason: ACR convergence `acr/tdev-20260818-devstate-planab-01` at `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, revalidated against exact current authority `group/f-cloudflare-runtime@a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`, proved a lifecycle-vocabulary contradiction: `SDD.md` and the Design-index parser include `blocked`, while the maintained-Design current-status prose guard and revision 6 decision enumerate the canonical lifecycle without it.
 - Revision 7 acceptance evidence: `docs/evidence/group-f-d0031-r7-blocked-lifecycle-vocabulary-acceptance-2026-08-18.json`.
