@@ -1,6 +1,6 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 8
 - Class: 2
 - Decision date: 2026-09-09
@@ -8,6 +8,7 @@
 - Predecessor revision: D0046@r7 made one complete ChatGPT-to-tdev Case/Drive/Agent/validation/Promotion loop the product gate, but its selected operation was still mandatory D0043@r4 Codex model execution. Revisions 1-7 and all provider/recovery/Codex-backed evidence remain immutable historical evidence for their exact scope.
 - Trigger: `DIRECTIVE.md@r1` requires the first public v1 core to use ChatGPT as the only required intelligence, with Codex optional. Exact-source review confirms the current convenience path still hard-codes a model Task and caller validation profile. The experiential owner must therefore preserve the successful distributed backbone while replacing the mandatory model leg with D0043@r5 deterministic typed-operation execution.
 - Acceptance evidence: `docs/evidence/group-f-d0046-r8-chatgpt-native-experiential-gate-acceptance-2026-09-09.json`
+- C0 source/Agent-preflight evidence: `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`
 - Scope: the isolated authenticated MCP owner composition, preserving deployment/readback order, current-client handoff and final user-experienced no-Codex development proof for first public v1.
 - Affected owners: `docs/ARCHITECTURE.md`, `docs/MCP.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end evidence.
 - Preserved owners: D0019 remains sole Case/Task/Attempt/result/Promotion authority; D0042 remains durable drive; D0020/D0027 remain Agent delivery/local execution; D0023 owns the public MCP v1 schema; D0024 owns authentication; D0043 owns semantic typed operations/bindings; D0047/D0048 own lazy context identity; D0025 owns optional later Git publication.
@@ -202,4 +203,4 @@ Rejected. D0019 Promotion is the semantic completion boundary for this checkpoin
 
 ## 15. Follow-on gate
 
-Revision 8 authorizes coordinated source implementation and C0/C1/C2 verification after explicit `WORKBOARD.md` routing. The next implementation should be the smallest production-shaped vertical slice satisfying D0023@r4 and D0043@r5 together, then continue through preserving deployment/current-client C2 without stopping at internal pass counts. Optional Codex interoperability follows only after the no-Codex core proof succeeds.
+Revision 8 is implementing. C0 source/Agent preflight is green and published by `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`. The next routed gate is C1 preserving deployment/readback; only after C1 is green may C2 perform the bounded current-client no-Codex experiential proof. Optional Codex interoperability follows only after the no-Codex core C2 proof succeeds.

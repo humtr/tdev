@@ -1,6 +1,6 @@
 # Design 0023 - Versioned Stateless tdev MCP Surface
 
-- Status: `accepted`
+- Status: `implementing`
 - Revision: 4
 - Class: 2
 - Decision date: 2026-09-09
@@ -8,6 +8,7 @@
 - Predecessor: D0023 Revision 3 was `implementing` on the accepted dual-era protocol compatibility contract; its source/provider evidence remains historical and is not reinterpreted.
 - Trigger: `DIRECTIVE.md@r1` and exact-source review falsified the maintained public-surface meaning: the source still exposes pre-release names, two mutation tools advertise `openWorldHint: true`, operation discovery is absent, and normal development start still takes instruction plus caller-selected validation profile instead of one Case-bound typed operation.
 - Acceptance evidence: `docs/evidence/group-f-d0023-r4-v1-surface-directive-acceptance-2026-09-09.json`
+- C0 source realization evidence: `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`
 - Scope: the first-release `tdev.mcp.surface.v1` public names, schemas, annotations, bounded operation discovery and stateless mapping into existing tdev owners.
 - Affected owners: `src/mcp-surface.mjs`, generated MCP schemas/manifests, `docs/MCP.md`, `docs/ARCHITECTURE.md`, `docs/SECURITY.md`, `docs/QUALIFICATION.md`, provider surface/readback and focused MCP tests.
 - Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0042 remains Case-to-Agent drive/re-drive; D0020/D0027 remain Agent delivery/local-process authorities; D0043 owns typed-operation semantics/admission/bindings; D0024 owns MCP authentication/tenant identity; D0025 owns Git publication.
@@ -183,4 +184,4 @@ Rejected. It is client UX metadata only. Server safety remains explicit and fail
 
 ## 13. Follow-on gate
 
-Revision 4 authorizes source implementation of the final sixteen-tool v1 surface, annotations, operation discovery and revised Case-bound development-start/get adapter after explicit `WORKBOARD.md` routing. It does not by itself claim provider deployment, current-client approval UX, no-Codex execution, Git publication or final experiential success. Those claims require the D0043 and D0046 gates plus their own observed evidence.
+Revision 4 is implementing. Its C0 source contract is realized and published through `docs/evidence/group-f-d0043-r5-c0-chatgpt-native-source-package-verification-2026-09-09.json`: the final sixteen-tool v1 surface, annotations, operation discovery and revised Case-bound development-start/get adapter are source-green. Provider deployment/readback and current-client approval UX remain unverified and continue through D0046; C0 source success does not promote those layers.
