@@ -28,7 +28,27 @@ jobs:
         run: npm ci
 
       - name: Apply exact-base repair
-        run: node qualification/d0046-c2-owner-wiring-repair.mjs
+        id: repair
+        shell: bash
+        run: |
+          set +e
+          node qualification/d0046-c2-owner-wiring-repair.mjs > repair.log 2>&1
+          status=$?
+          cat repair.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload repair diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0046-repair-log-${{ github.run_id }}
+          path: repair.log
+          retention-days: 1
+
+      - name: Stop on repair failure
+        if: steps.repair.outputs.status != '0'
+        run: exit 1
 
       - name: Focused regression
         run: node --test test/d0046-c2-owner-wiring.test.mjs test/mcp-trial-runner.test.mjs test/d0046-mcp-trial-deploy.test.mjs test/mcp-surface.test.mjs
