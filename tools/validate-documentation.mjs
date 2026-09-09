@@ -53,6 +53,27 @@ export function parseQualificationOwner(documentationText) {
   )[1];
 }
 
+export function parseDirectiveMetadata(text) {
+  const status = singleMatch(text, /^- Status:\s*`([^`]+)`\s*$/gm, 'directive_status')[1];
+  const revision = Number(singleMatch(text, /^- Revision:\s*(\d+)\s*$/gm, 'directive_revision')[1]);
+  if (!Number.isSafeInteger(revision) || revision < 1) throw new Error('documentation_authority_directive_revision_invalid');
+  return { path: 'DIRECTIVE.md', status, revision };
+}
+
+function parseActiveDirectivePointer(text) {
+  const match = singleMatch(text, /^- Active owner directive:\s*`([^`]+)@r(\d+)`\s*$/gm, 'active_owner_directive');
+  const directivePath = match[1];
+  const revision = Number(match[2]);
+  if (directivePath !== 'DIRECTIVE.md') throw new Error(`documentation_authority_active_owner_directive_path: ${directivePath}`);
+  if (!Number.isSafeInteger(revision) || revision < 1) throw new Error('documentation_authority_active_owner_directive_revision_invalid');
+  return { path: directivePath, revision };
+}
+
+export function parseBootstrapReadOrder(text) {
+  const body = sectionBody(text, 'Session bootstrap');
+  return [...body.matchAll(/^\d+\.\s+read `([^`]+)`/gm)].map((match) => match[1]);
+}
+
 export function parseRoadmapGroups(text) {
   return tableRows(text, '3. Capability Groups', 3, 'roadmap_groups').map(([group, capability, exit]) => {
     if (!/^[A-H]$/.test(group)) throw new Error(`documentation_authority_roadmap_group_id: ${group}`);
@@ -90,6 +111,7 @@ export function parseProgramGates(text) {
 export function parseWorkboardRouting(text) {
   const group = singleMatch(text, /^- Active cumulative Group:\s*(.+)$/gm, 'active_group')[1].trim();
   const branch = singleMatch(text, /^- Active cumulative branch:\s*`([^`]+)`\s*$/gm, 'active_branch')[1];
+  const activeDirective = parseActiveDirectivePointer(text);
   const developmentRouteMode = parseDevelopmentRouteMode(text);
   const groupId = /\bGroup\s+([A-Z0-9]+)\b/.exec(group)?.[1];
   if (!groupId) throw new Error('documentation_authority_active_group_id: cannot derive Group ID');
@@ -117,7 +139,7 @@ export function parseWorkboardRouting(text) {
       throw new Error(`documentation_authority_selected_not_frontier: ${selected.id}@r${selected.revision}`);
     }
   }
-  return { group, groupId, branch, developmentRouteMode, frontier, selected };
+  return { group, groupId, branch, activeDirective, developmentRouteMode, frontier, selected };
 }
 
 function developmentRouteModeLines(text) {
@@ -322,8 +344,18 @@ export function resolveFrontierDesigns({ root, route, readText }) {
   return resolved;
 }
 
-export function rebindContinuity({ workboardText, designTexts = {}, documentationText, continuity = {} }) {
+export function rebindContinuity({ workboardText, directiveText, designTexts = {}, documentationText, continuity = {} }) {
   const route = parseWorkboardRouting(workboardText);
+  const directive = directiveText === undefined ? null : parseDirectiveMetadata(directiveText);
+  if (directive !== null) {
+    if (directive.path !== route.activeDirective.path) {
+      throw new Error(`documentation_authority_directive_path_mismatch: WORKBOARD=${route.activeDirective.path} owner=${directive.path}`);
+    }
+    if (directive.revision !== route.activeDirective.revision) {
+      throw new Error(`documentation_authority_directive_revision_mismatch: WORKBOARD=r${route.activeDirective.revision} owner=r${directive.revision}`);
+    }
+    if (directive.status !== 'active') throw new Error(`documentation_authority_directive_not_active: ${directive.status}`);
+  }
   const resolved = route.frontier.map((item) => {
     const text = designTexts[item.path];
     if (text === undefined) return { ...item, status: null };
@@ -333,6 +365,9 @@ export function rebindContinuity({ workboardText, designTexts = {}, documentatio
   });
   const qualificationOwner = documentationText === undefined ? null : parseQualificationOwner(documentationText);
   const staleClaims = [];
+  if (continuity.directivePath !== undefined && continuity.directivePath !== route.activeDirective.path) staleClaims.push('directivePath');
+  if (continuity.directiveRevision !== undefined && Number(continuity.directiveRevision) !== route.activeDirective.revision) staleClaims.push('directiveRevision');
+  if (continuity.directiveStatus !== undefined && directive !== null && continuity.directiveStatus !== directive.status) staleClaims.push('directiveStatus');
   if (continuity.branch !== undefined && continuity.branch !== route.branch) staleClaims.push('branch');
   if (continuity.group !== undefined && continuity.group !== route.group) staleClaims.push('group');
   if (continuity.designId !== undefined) {
@@ -350,7 +385,7 @@ export function rebindContinuity({ workboardText, designTexts = {}, documentatio
   if (continuity.qualificationOwner !== undefined && qualificationOwner !== null && continuity.qualificationOwner !== qualificationOwner) {
     staleClaims.push('qualificationOwner');
   }
-  return { current: { ...route, frontier: resolved, qualificationOwner }, staleClaims };
+  return { current: { ...route, directive, frontier: resolved, qualificationOwner }, staleClaims };
 }
 
 function assert(condition, code, detail = '') {
@@ -370,7 +405,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     return fs.readFileSync(path.join(root, relativePath), 'utf8');
   };
 
-  for (const file of ['AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md']) {
+  for (const file of ['AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md']) {
     check(() => assert(existsPath(file), 'documentation_authority_missing_kernel', file));
   }
   if (failures.length) return { ok: false, failures };
@@ -379,6 +414,15 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   let route;
   check(() => { route = parseWorkboardRouting(workboard); });
   if (!route) return { ok: false, failures };
+
+  const directiveText = readText('DIRECTIVE.md');
+  let directive = null;
+  check(() => { directive = parseDirectiveMetadata(directiveText); });
+  if (directive !== null) {
+    check(() => assert(directive.status === 'active', 'documentation_authority_directive_not_active', directive.status));
+    check(() => assert(route.activeDirective.path === directive.path, 'documentation_authority_directive_path_mismatch', `WORKBOARD=${route.activeDirective.path} owner=${directive.path}`));
+    check(() => assert(route.activeDirective.revision === directive.revision, 'documentation_authority_directive_revision_mismatch', `WORKBOARD=r${route.activeDirective.revision} owner=r${directive.revision}`));
+  }
 
   check(() => assert(workboard.split('\n').length <= 120, 'documentation_authority_workboard_too_large'));
   check(() => assert(!/^### D00(?:0[2-9]|1[0-5])\b/m.test(workboard), 'documentation_authority_workboard_history'));
@@ -431,6 +475,8 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   let qualificationOwner = null;
   check(() => { qualificationOwner = parseQualificationOwner(documentation); });
   check(() => assert(qualificationOwner === 'docs/QUALIFICATION.md', 'documentation_authority_qualification_owner_path', String(qualificationOwner)));
+  check(() => assert(documentation.includes('| current top-level owner objective, priority and non-substitutable completion criteria | `DIRECTIVE.md` |'), 'documentation_authority_documentation_directive_owner'));
+  check(() => assert(documentation.includes('| bootstrap | always needed to establish current development authority | `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, `SDD.md`, `WORKBOARD.md` |'), 'documentation_authority_documentation_bootstrap_kernel'));
   check(() => assert(documentation.includes('| stable final-MVP capability decomposition and exit intent | `docs/ROADMAP.md` |'), 'documentation_authority_documentation_roadmap_owner'));
   check(() => assert(documentation.includes('| forward Design/gate dependency and coverage graph | `docs/development/PROGRAM.md` |'), 'documentation_authority_documentation_program_owner'));
 
@@ -480,6 +526,11 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   ];
   const productContracts = Object.fromEntries(productContractFiles.map((file) => [file, readText(file)]));
   const deployment = productContracts['docs/DEPLOYMENT.md'];
+  check(() => assert(
+    JSON.stringify(parseBootstrapReadOrder(agents).slice(0, 4)) === JSON.stringify(['DIRECTIVE.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md']),
+    'documentation_authority_agents_bootstrap_order', parseBootstrapReadOrder(agents).join(','),
+  ));
+  check(() => assert(agents.includes('conflicts with the active Directive is stale for dependent mutation'), 'documentation_authority_agents_directive_conflict_rule'));
   check(() => assert(agents.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_agents_qualification_pointer'));
   check(() => assert(readme.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_readme_qualification_pointer'));
   for (const [file, text] of [['AGENTS.md', agents], ['README.md', readme]]) {
@@ -498,11 +549,11 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     check(() => assert(!/\b\d+\/\d+\b[^\n]*(?:pass|passed|fail|failed|sample|samples|race|races)/i.test(text), 'documentation_authority_product_result_ledger', file));
   }
   check(() => assert(workboard.includes('`docs/QUALIFICATION.md`'), 'documentation_authority_workboard_qualification_pointer'));
-  for (const file of ['AGENTS.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {
+  for (const file of ['AGENTS.md', 'DIRECTIVE.md', 'WORKBOARD.md', 'README.md', 'docs/DOCUMENTATION.md']) {
     check(() => assert(!readText(file).includes('docs/MVP.md'), 'documentation_authority_stale_current_mvp_pointer', file));
   }
 
-  for (const pointer of ['AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/QUALIFICATION.md']) {
+  for (const pointer of ['AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/QUALIFICATION.md']) {
     check(() => assert(readme.includes(pointer), 'documentation_authority_readme_owner_pointer', pointer));
   }
   check(() => assert(!readme.includes('mvp-1a-7'), 'documentation_authority_readme_stale_legacy_route'));
@@ -577,7 +628,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
   });
 
   const liveReferenceFiles = [
-    'AGENTS.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'LINEAGE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md',
+    'AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md', 'LINEAGE.md', 'README.md', 'docs/DOCUMENTATION.md', 'docs/QUALIFICATION.md',
     'docs/ROADMAP.md', 'docs/development/PROGRAM.md', 'docs/development/WORKFLOW.md', 'docs/design/README.md',
   ];
   for (const file of liveReferenceFiles) {
@@ -598,6 +649,7 @@ export function validateDocumentation(root = process.cwd(), overrides = {}) {
     ok: failures.length === 0,
     failures,
     route,
+    directive,
     frontier: resolvedFrontier,
     qualificationOwner,
     qualificationCommands,
@@ -615,7 +667,8 @@ function runCli() {
     return;
   }
   const selected = result.route.selected ? `${result.route.selected.id}@r${result.route.selected.revision}` : 'none';
-  process.stdout.write(`documentation-authority ok: ${result.route.groupId} ${result.route.branch} frontier=${result.route.frontier.length} selected=${selected} groups=${result.roadmapGroups.length} gates=${result.programGates.length}\n`);
+  const directive = `${result.route.activeDirective.path}@r${result.route.activeDirective.revision}`;
+  process.stdout.write(`documentation-authority ok: ${result.route.groupId} ${result.route.branch} directive=${directive} frontier=${result.route.frontier.length} selected=${selected} groups=${result.roadmapGroups.length} gates=${result.programGates.length}\n`);
 }
 
 const invokedPath = process.argv[1] ? path.resolve(process.argv[1]) : null;

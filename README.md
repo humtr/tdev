@@ -12,12 +12,13 @@ The fixed bootstrap kernel is:
 
 ```text
 AGENTS.md
+DIRECTIVE.md
 RULE.md
 SDD.md
 WORKBOARD.md
 ```
 
-`AGENTS.md` defines the bootstrap/rebinding algorithm. `RULE.md` owns stable engineering guardrails. `SDD.md` owns change classification and Design lifecycle. `WORKBOARD.md` alone owns the current cumulative Group/branch, runnable Design revision foreign keys, selected next action and live carry-forward constraints.
+`AGENTS.md` defines the bootstrap/rebinding algorithm. `DIRECTIVE.md` owns the current top-level objective and priority without becoming a Design or implementation authorization. `RULE.md` owns stable engineering guardrails. `SDD.md` owns change classification and Design lifecycle. `WORKBOARD.md` owns the exact active-Directive pointer plus the current cumulative Group/branch, runnable Design revision foreign keys, selected next action and live carry-forward constraints.
 
 After that kernel, load only the owners selected by the current route and affected scope. Historical reports, old Designs and prior chat/task context are continuity/provenance, not current authority.
 
@@ -41,6 +42,7 @@ One product owner may reference another, but development branch/session state is
 | Concern | Owner |
 | --- | --- |
 | repository/session bootstrap | `AGENTS.md` |
+| current top-level owner objective and priority | `DIRECTIVE.md` |
 | stable implementation guardrails | `RULE.md` |
 | change classes, Design revisions/reopen/supersession | `SDD.md` |
 | current route, runnable frontier and selected action | `WORKBOARD.md` |

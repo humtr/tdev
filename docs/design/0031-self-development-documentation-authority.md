@@ -1,6 +1,6 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `accepted`
+- Status: `verified`
 - Revision: 8
 - Revision 8 predecessor: revision 7 was verified at implementation source `2a1e0e5c9aea784181a2ab4e6b25858c6232a0d6`; revisions 1-7 and their evidence remain historical evidence.
 - Revision 8 reason: the explicit owner Directive on 2026-09-09 exposed a missing authority role in the revision-7 bootstrap. The kernel can bind stable rules and a current Design router, but it has no first-class owner for the owner's top-level objective/priority. As a result, a priority can be incorrectly encoded into Design lifecycle or WORKBOARD selection and drift into a narrower technical gate.
@@ -8,6 +8,8 @@
 - Revision 8 acceptance authority: `DIRECTIVE.md@r1`; the Directive owns the objective, while this Design owns only how the self-development bootstrap locates and enforces that owner.
 - Revision 8 changed decision: add root `DIRECTIVE.md` to the fixed bootstrap kernel as the single current owner-objective/priority authority; `AGENTS.md` binds the exact published repository snapshot and reads the Directive before routing, `WORKBOARD.md` carries an exact active-Directive pointer, and conflicting derived plans/routes are stale for dependent mutation. The Directive is not a Design and does not bypass `RULE.md`, `SDD.md`, accepted technical Designs, or runtime owners.
 - Revision 8 downstream implementation/revalidation: `AGENTS.md` bootstrap order, `WORKBOARD.md` active-Directive pointer/routing, documentation taxonomy, derived-index agreement and documentation governance. Product/runtime/provider behavior remains owned elsewhere.
+- Revision 8 implementation source: `dc776395bc3c2f50b78a5224688f9209057c3473`.
+- Revision 8 verification evidence: `docs/evidence/group-f-d0031-r8-directive-bootstrap-verification-2026-09-09.json`; the Directive bootstrap/identity/stale-continuity falsifiers and the registered `portable` source gate passed 743/743 with zero failures in tmcp Jobs `job_nx0_dca7d5cbf0` and `job_nxb_60af21da1a`.
 - Revision 7 predecessor: revision 6 was verified with implementation source `49597a5db8ef4289eca3c8dc6c4408775801c46e` and remained the maintained revision at the fresh application base `a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`; revisions 1-6 and their evidence remain historical evidence.
 - Revision 7 reason: ACR convergence `acr/tdev-20260818-devstate-planab-01` at `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, revalidated against exact current authority `group/f-cloudflare-runtime@a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`, proved a lifecycle-vocabulary contradiction: `SDD.md` and the Design-index parser include `blocked`, while the maintained-Design current-status prose guard and revision 6 decision enumerate the canonical lifecycle without it.
 - Revision 7 acceptance evidence: `docs/evidence/group-f-d0031-r7-blocked-lifecycle-vocabulary-acceptance-2026-08-18.json`.
@@ -164,7 +166,7 @@ A tool-owned transport branch is not a route candidate merely because it contain
 
 Filename semantics are a secondary signal, never a substitute for declared ownership.
 
-1. Live normative/current Markdown owners use `UPPERCASE.md`, preferably one semantic word when that remains clear (`RULE`, `SDD`, `WORKBOARD`, `LINEAGE`, `SPEC`, `PROTOCOL`, `SECURITY`, `WORKFLOW`, `PROGRAM`).
+1. Live normative/current Markdown owners use `UPPERCASE.md`, preferably one semantic word when that remains clear (`DIRECTIVE`, `RULE`, `SDD`, `WORKBOARD`, `LINEAGE`, `SPEC`, `PROTOCOL`, `SECURITY`, `WORKFLOW`, `PROGRAM`).
 2. Bounded Design, evidence, completed campaign/group material, audits, reviews and historical reports use lowercase kebab-case names under semantic directories.
 3. `README.md` is a conventional exception and may remain uppercase without becoming a normative product/development owner.
 4. Existing widely referenced normative names are not renamed solely for stylistic purity. D0031 originally retained `docs/MVP.md`; later D0032 split verification methodology into `docs/QUALIFICATION.md` and preserved the former MVP aggregate as history, so this maintained revision follows that newer owner without rewriting D0031's historical Git evidence.
@@ -250,7 +252,7 @@ Human-readable Design indexes are deterministic derived projections of all maint
 
 ## 8. Failure, compatibility and migration
 
-- Missing bootstrap/current-router owners fail the dependent mutation closed.
+- Missing bootstrap/current-router owners, a missing or malformed active-Directive pointer, a non-active Directive, or a Directive revision mismatch fail the dependent mutation closed.
 - Conflicting current-routing declarations in live normative documents fail documentation validation.
 - A historical report that names a formerly active branch is not a conflict when its historical role is explicit.
 - Naming migration may break live links only if the same change repairs all maintained live references; exact evidence observations may retain former paths.
@@ -266,18 +268,18 @@ Human-readable Design indexes are deterministic derived projections of all maint
 | authority location — local-only successor | an unpublished/local successor or current-looking checkout cannot advance the published current route |
 | authority location — conflict | sibling/self-declaring candidates or predecessor identity/ancestry conflicts fail closed rather than using time/name/default heuristics |
 | authority location — conception namespace | a published self-declaring or legacy-schema `concept-*` ref is ignored before WORKBOARD parsing and cannot become or block the current route |
-| bootstrap | after exact authority location, a fresh-session procedure can determine current route from `AGENTS/RULE/SDD/WORKBOARD` without reading historical reports first |
-| stale handoff | a fixture claiming an old `mvp-*`, Group E or old Design revision cannot override current WORKBOARD/current Design owner |
+| bootstrap | after exact authority location, a fresh-session procedure binds the active owner objective and current route from `AGENTS/DIRECTIVE/RULE/SDD/WORKBOARD` without reading historical reports first, and the WORKBOARD active-Directive pointer exactly matches the active Directive revision |
+| stale handoff | a fixture claiming an old Directive revision/objective, `mvp-*`, Group E or old Design revision cannot override the active Directive, current WORKBOARD or current Design owner |
 | route transition | full documentation validation remains green when a fixture changes only WORKBOARD from F to G; AGENTS/RULE/WORKFLOW/LINEAGE/ROADMAP/PROGRAM remain byte-identical |
 | empty frontier | WORKBOARD with zero runnable Design references validates when no Design gate is selected |
-| one owner | active branch/runnable-frontier/next-action instance is not independently declared as current by multiple live stable owners |
+| one owner | the Directive objective is not duplicated by routing/planning owners, and active branch/runnable-frontier/next-action instance is not independently declared as current by multiple live stable owners |
 | owner single value | a maintained Design with canonical current lifecycle metadata plus a conflicting unscoped current-looking status snapshot is rejected, while an explicitly historical/as-of predecessor snapshot remains valid |
 | lineage | completed checkpoint succession remains exact and historical checkpoints are not rewritten |
 | history | old Design/evidence/report observations remain recoverable and are not rewritten as current claims |
 | naming | live normative/current owners and bounded historical/specific records obey the declared filename categories, except documented conventions |
 | Design reopen | a falsified accepted/verified Design blocks new dependent mutation until corrected revision/supersession |
 | rollback separation | lifecycle rules do not imply that semantic correction requires Git/deployment rollback |
-| docs validation | executable validator detects missing kernel owner, duplicate current route, stale stable Group literals, bad history naming, broken required live references, non-authorizing/reopened frontier Designs and any Design-index drift without hard-coded Design IDs |
+| docs validation | executable validator detects missing kernel owner, missing/malformed/mismatched active-Directive identity, non-active Directive, duplicate current route, stale stable Group literals, bad history naming, broken required live references, non-authorizing/reopened frontier Designs and any Design-index drift without hard-coded Design IDs |
 | source non-regression | repository-required source gate remains green or any pre-existing platform-unqualified layer is reported exactly rather than hidden |
 
 ## 10. Rejected alternatives
