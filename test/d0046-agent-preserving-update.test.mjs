@@ -261,12 +261,18 @@ test('already-current summary keeps control health separate from package currenc
   assert.equal(summarizeAgentPreparation({ ...base, controlRunitClassification: 'running' }).status, 'agent_already_current');
 });
 
-test('provider quiescence requires actual full-route reservation and delivery state', () => {
+test('provider quiescence blocks reservations while retaining held predecessor deliveries for positive-quiescence release', () => {
   const read = installableRead();
-  const ok = assertProviderQuiescence({ routeBinding: routeBinding(), reservationWindowGeneration: 1, reservations: {}, deliveries: {} }, read);
+  const ok = assertProviderQuiescence({
+    routeBinding: routeBinding(),
+    reservationWindowGeneration: 1,
+    reservations: {},
+    deliveries: { historical: { slotHeld: false }, predecessor: { slotHeld: true } },
+  }, read);
   assert.equal(ok.liveReservationCount, 0);
-  assert.throws(() => assertProviderQuiescence({ reservations: { r1: { status: 'reserved' } }, deliveries: {} }, read), { code: 'd0046_agent_provider_not_quiescent' });
-  assert.throws(() => assertProviderQuiescence({ reservations: {}, deliveries: { d1: { status: 'activated' } } }, read), { code: 'd0046_agent_provider_not_quiescent' });
+  assert.equal(ok.liveDeliveryCount, 0);
+  assert.equal(ok.heldPredecessorDeliveryCount, 1);
+  assert.throws(() => assertProviderQuiescence({ reservations: { r1: { status: 'reserved' } }, deliveries: { predecessor: { slotHeld: true } } }, read), { code: 'd0046_agent_provider_not_quiescent' });
 });
 
 test('local quiescence requires running positive state or the exact recorded stopped post-drain recovery phase', () => {
