@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0046",
+  "revision": 8,
+  "status": "accepted",
+  "acceptanceBase": "development@33400f2f7ab13015f7a5699068a128ae1081ee06",
+  "decision": "replace mandatory D0043 Codex model execution as the experiential product gate with one current-client ChatGPT-authored deterministic ChangeSet run through the same D0019 Case -> D0042 Drive -> D0020/D0027 Agent -> required validation -> D0019 Promotion backbone while Codex is disabled or unavailable",
+  "facts": [
+    "D0046 Revision 7 correctly made full Promotion and terminal readback part of product completion but explicitly required D0043@r4 model execution",
+    "prior Codex-backed live Cases are retained evidence that the Case/Drive/Agent/candidate/validation/Promotion infrastructure can execute real source changes",
+    "DIRECTIVE.md@r1 requires ChatGPT to be the only core intelligence, all sixteen MCP tools to advertise openWorldHint:false, and a real no-Codex current-client Promotion proof"
+  ],
+  "unknown": [
+    "Revision-8 source/Agent package realization, preserving deployment and provider readback have not started",
+    "current-client repeated-approval behavior after the annotation correction has not yet been observed",
+    "the final no-Codex current-client development run remains open"
+  ],
+  "authorization": "accepted Design only; after WORKBOARD routing, implement the smallest D0023@r4/D0043@r5 vertical slice and then perform preserving deployment/current-client C2 without adding qualification architecture",
+  "secrets": "none"
+}

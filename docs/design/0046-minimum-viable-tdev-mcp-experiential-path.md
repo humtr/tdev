@@ -1,336 +1,205 @@
 # Design 0046 - Minimum Viable tdev MCP Experiential Path
 
 - Status: `accepted`
-- Revision: 7
+- Revision: 8
 - Class: 2
 - Decision date: 2026-09-09
-- Acceptance base: `development@92dec2db1b558cd742ff8155dd5021557aa4a647`
-- Predecessor revision: D0046@r6, preserved at `development@8c0da20b9c5ec6f30c4b06f4a6152b2cd5475bbd`; its r4-r6 retained-Case recovery evidence remains historical and is not rewritten.
-- Trigger: the 2026-09-08 recovery integration restored a minimal live source line but regressed maintained D0046 routing from r6 to r3 while later accepted D0043@r4, D0047@r2 and D0048@r1 meanings remained in repository history/current files. This revision corrects authority forward and makes completion of one real ChatGPT-to-tdev development loop the highest-priority product gate.
-- Acceptance evidence: repository lineage and owner-consistency correction at this revision; provider/client loop completion remains an open runtime claim until the Section-4 path is observed.
-- Scope: the isolated Cloudflare owner composition, deployment order, current-client handoff and user-experienced acceptance boundary for the first single-user tdev development unit
-- Affected owners: `docs/ARCHITECTURE.md`, `docs/OPERATIONS.md`, `docs/MCP.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end qualification
-- Preserved owners: D0019 remains the sole Case/Task/Attempt/result/Promotion authority; D0020/D0027 remain Agent delivery/local execution owners; D0023 owns the stateless MCP schema; D0024 owns MCP authentication; D0042 owns durable Case-to-Agent drive semantics; D0043 owns typed Termux operations; D0047 owns lazy repository context; D0048 owns the scoped Plan reference; D0025 owns Git publication; D0045 owns later tmcp comparison
-- Explicit non-goals: no immediate replacement of the existing `tdev.humtr.workers.dev` experiment; no filesystem canonical-checkout or remote-Git publication in the first experiential run; no direct bypass of Case/drive/Agent owners; no multi-tenant or hostile-local-code support claim; no D0045 superiority claim; no final-MVP or production-SLO claim
-
-## Revision 7 correction — loop completion is the product gate
-
-Revision 7 restores the later accepted D0043@r4, D0047@r2 and D0048@r1 dependency meanings and narrows the historical D0046@r4-r6 recovery rules back to the retained Cases/provider updates that triggered them. Those records remain evidence; they are not a global requirement that every future development objective reuse one failed Case.
-
-The highest-priority D0046 path is now exactly:
-
-```text
-authenticated web ChatGPT
-  -> development_context_get
-  -> development_unit_start
-  -> D0019 Case
-  -> D0042 durable drive
-  -> D0020/D0027 Agent
-  -> D0043@r4 model execution
-  -> non-empty result-only ChangeSet
-  -> disposable full exact-base candidate
-  -> configured D0043 validation
-  -> D0019 Case-native Promotion
-  -> terminal owner readback
-```
-
-Intermediate source tests, package qualification, deployment/readback, authentication, recovery tooling and diagnostic observations are prerequisites or evidence only. None is the product exit while this loop remains incomplete.
-
-Case continuity follows authoritative lifecycle truth rather than a blanket same-Case rule. Response loss, reconnect and other nonterminal or ambiguous observations replay/reconcile the same request, Case and Attempt identity. Once the Case owner authoritatively records a terminal failure, that Case is never resurrected, rewritten or converted to success; the failed Case remains evidence and a fresh trial-scoped Case/request is permitted for the next bounded attempt toward the product gate. A timeout or missing response by itself never authorizes replacement.
-
-Promotion is now part of the M2 completion claim. The required Promotion is the existing D0019 Case-native semantic canonical-tree transition after configured validation succeeds. It does not write a repository checkout or Git ref and does not authorize D0025 remote publication. Ordinary Tasks remain result-only, and Promotion remains the only Case canonical-tree writer.
-
-The exact immutable repository/context/release/provider identities are freshly rebound for each bounded attempt. No mutable head or remembered Case identity becomes timeless authority.
-
-## Revision 3 maintenance amendment — Case capacity admission correction
-
-Revision 3 preserves the r2 execution placement, owner family, single-user scope, no-bwrap boundary and M0 -> M1 -> M2 order. It corrects the remaining provider admission defect exposed by the first real `development_unit_start` attempt:
-
-- The exact deployed trial source `42b0912e279908f2fdd72040020408f163a2cd2e` and base digest `sha256:fa333627e981617e9c9cd567c3936444affd2f9052d3c5a17fc5f6cac3a7dd42` require `11,419,628` authoritative bytes for the fresh Case state under the `CaseDOAuthority.authoritativeBytes` formula.
-- The existing `tdev-d0020-composition-case-r1` Worker currently advertises `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE=8388608`, so `CaseDOAuthority.#prepareState` rejects the plan before Case metadata/commit. The HTTP composition consequently exposes an upstream 502; the report's Case/candidate state remains unknown because the owner readback was unavailable.
-- Raise only that existing Case Worker plain-text binding to exactly `16,777,216` bytes, the already-qualified D0019 r2 budget. Preserve the existing CaseRuntimeDO namespace, D1 placement, source `e4420cb776bf8f6a4bde4d636aef7bc4bb2b2626`, writer compatibility, qualification secret, trial bindings, canonical/Git exclusion and all durable owner semantics.
-- The correction is monotonic capacity admission, not a new owner, namespace, schema, retry path, CPU setting or fallback. Provider readback must prove the exact binding and secret-preserving owner identity before the next M2 client attempt.
-
-The acceptance record separates directly observed provider/config facts from the deterministic local inference and records the 502 attempt as an unchanged-effect, non-completion result. M1 capacity preflight is now a required gate: it must compare the measured requirement with the read-back Case budget and refuse activation when the budget is absent, below the requirement or ambiguous.
-
-## Revision 2 historical maintenance amendment — Free-plan execution placement and bounded candidate
-
-Revision 2 preserves the r1 problem boundary, owner family, single-user scope and M0 -> M1 -> M2 order. It corrects the provider execution boundary exposed by the first real development attempt:
-
-- The isolated ingress Worker must remain a light bootstrap on the account's Workers Free plan. It must not upload or declare a custom `limits.cpu_ms` value; that setting is a paid-plan capability and a deployment rejection is not a runtime fallback.
-- Owner operations that need the immutable generated repository tree (`development_unit_start`, Case repository reads/commands and runner readback) are dispatched through the already-bound trial-local `CaseAgentDriveRuntimeDO` RPC. The Durable Object constructs the full source-bound composition once per object and uses a local adapter for its own D0042 cursor calls; it must not call itself through a recursive namespace RPC. This is execution placement, not a second Case/Task/Attempt/Agent owner.
-- The HTTP Worker retains authentication, tenant/Case-prefix admission, protocol handling and bounded projections. The request body cannot choose the Durable Object, source tree, executable, operation profile or owner identity. Invalid Case prefixes fail before any Durable Object lookup.
-- `development_unit_get` returns an inspectable bounded ChangeSet/diff projection (`baseDigest`, `candidateDigest`, changed paths and bounded contents) plus lifecycle identity. It does not serialize the complete immutable candidate tree; the full tree remains internal to the owner path and can be reconstructed from the exact base plus diff.
-- `development_unit_start` returns bounded Case creation identity rather than an embedded semantic snapshot. Case/Drive/Agent receipts and full snapshots remain available only through their owner-bound read paths.
-
-The amendment is accepted under `SDD.md` as the maintained D0046 revision. It does not authorize a new Durable Object class, a canonical/Git writer, a permissive CPU setting, a caller-selected execution route or a multi-tenant/hostile-local-code claim. The fresh source/provider and current-client experiential gates remain open until one real candidate/result is observed.
+- Acceptance base: `development@33400f2f7ab13015f7a5699068a128ae1081ee06`
+- Predecessor revision: D0046@r7 made one complete ChatGPT-to-tdev Case/Drive/Agent/validation/Promotion loop the product gate, but its selected operation was still mandatory D0043@r4 Codex model execution. Revisions 1-7 and all provider/recovery/Codex-backed evidence remain immutable historical evidence for their exact scope.
+- Trigger: `DIRECTIVE.md@r1` requires the first public v1 core to use ChatGPT as the only required intelligence, with Codex optional. Exact-source review confirms the current convenience path still hard-codes a model Task and caller validation profile. The experiential owner must therefore preserve the successful distributed backbone while replacing the mandatory model leg with D0043@r5 deterministic typed-operation execution.
+- Acceptance evidence: `docs/evidence/group-f-d0046-r8-chatgpt-native-experiential-gate-acceptance-2026-09-09.json`
+- Scope: the isolated authenticated MCP owner composition, preserving deployment/readback order, current-client handoff and final user-experienced no-Codex development proof for first public v1.
+- Affected owners: `docs/ARCHITECTURE.md`, `docs/MCP.md`, `docs/OPERATIONS.md`, `docs/SECURITY.md`, `docs/DEPLOYMENT.md`, `docs/QUALIFICATION.md`, `docs/development/PROGRAM.md`, `WORKBOARD.md`, provider manifests/adapters and focused end-to-end evidence.
+- Preserved owners: D0019 remains sole Case/Task/Attempt/result/Promotion authority; D0042 remains durable drive; D0020/D0027 remain Agent delivery/local execution; D0023 owns the public MCP v1 schema; D0024 owns authentication; D0043 owns semantic typed operations/bindings; D0047/D0048 own lazy context identity; D0025 owns optional later Git publication.
+- Explicit non-goals: no direct Case/Drive/Agent bypass; no filesystem canonical-checkout or remote-Git publication in the first experiential proof; no new scheduler/result owner; no generic shell; no mandatory Codex qualification; no multi-tenant/hostile-local-code claim; no tmcp superiority/retirement claim; no extra recovery/qualification architecture as a substitute for product completion.
 
 ## 1. One-line definition
 
-First make one isolated, authenticated web ChatGPT request complete a real non-documentation tdev development unit through Case, drive, Agent and Termux owners to a non-empty ChangeSet, disposable exact-base candidate, configured validation and D0019 Case-native Promotion; after that exact loop works, harden its recovery, security, capacity, rollback and stable cutover without reopening the minimum result.
+The first public-v1 experiential gate is one real current-client run in which ChatGPT reads bounded repository context, discovers the typed-operation contract, authors the actual ChangeSet, and then uses the existing Case -> Drive -> AgentDelivery/local Agent -> deterministic typed result -> owner-required validation -> D0019 Promotion path to a terminal success with Codex disabled or unavailable.
 
-## 2. Why this is Class 2
+## 2. Revision-8 correction
 
-The missing step is not another source adapter. Selecting one public Worker, cross-script Durable Object bindings, a D0042 durable placement, one Agent route, one repository/model profile, an authentication generation, a deployment/cutover order and a new user-visible acceptance boundary changes provider, security, retry and qualification meaning. Those decisions require an accepted Design before implementation or provider mutation.
+Revision 8 keeps the core insight of Revision 7: internal source/package/provider milestones are evidence, not product completion, and Promotion is part of the user-visible exit. It corrects only the accidental executor specialization.
 
-This Design composes existing owners. It does not transfer their state or semantics into the MCP Worker.
+The Directive-triggered mismatch reopened the affected Revision-7 mandatory-model meaning during this acceptance review. Prior Codex-backed successful Cases remain valid demonstrations that Case/Drive/Agent/candidate/validation/Promotion infrastructure can work. They do **not** prove the corrected first-release core because intelligence was delegated to Codex.
 
-## 3. Failure analysis
+No earlier Case is rewritten. No successful Codex evidence is relabelled as a no-Codex result.
 
-The prior route stopped before user-visible value for three independent reasons.
+## 3. Required first-release path
 
-### 3.1 Physical execution gap
-
-D0043 Revision 1 qualified a typed source/package catalog but left the model and validator as unbound `configured_runtime` names. Its model profile declared `network:none`, and its own package evidence explicitly did not claim a physical Termux run. A public MCP endpoint over that package could admit work but could not produce a real model-generated ChangeSet.
-
-D0043 Revision 4 is the current corrective owner. It binds the installed non-interactive Codex runtime without a kernel sandbox or bwrap dependency, the saved local authentication boundary, structured result schema, sparse scoped model workspace, warden receipts and fixed validation executable while preserving result-only execution.
-
-### 3.2 Provider composition authority gap
-
-D0023/D0024 source qualification did not authorize a live Worker to join D0019 Case, D0042 drive and D0020 Agent delivery owners. Provider readback showed that the existing `tdev.humtr.workers.dev/mcp` service is an older OAuth experiment with none of those owner bindings. The available Case and Agent Workers are qualification owners, not an already composed tdev MCP product.
-
-This Design supplies the missing provider composition authority through a new isolated trial Worker. The old endpoint remains untouched until a later explicit cutover gate.
-
-### 3.3 Completion/reporting gap
-
-The earlier plan allowed source, package or provider sub-gates to become stopping points. That made a technically useful intermediate result look like completion while the user still had no URL that could perform development.
-
-Under this Design, small commits, tests, deployments and readbacks remain execution units. They are not user-facing completion. The first product checkpoint is the successful current-client development result in Section 4, or an exact irreducible blocker after all authorized work before it has been exhausted.
-
-## 4. First experiential claim
-
-The minimum viable claim is exactly one run satisfying all of the following:
-
-1. the operator has already completed source, physical-Termux and provider preflight without repeated web-client probing;
-2. the user adds the exact read-back MCP HTTPS URL to supported web ChatGPT and completes the selected D0024 authentication flow;
-3. the user gives one bounded real development objective against one exact published tdev commit;
-4. ChatGPT invokes the D0023 tools, one D0019 Case is created and D0042 drives it through the fixed D0020/D0027 Agent route;
-5. the Termux Agent invokes the D0043 Revision-4 no-bwrap Codex profile after an owner-issued D0047/D0048 scoped context, receives one schema-valid non-empty result-only ChangeSet and runs the fixed configured validation profile in an isolated full-base candidate;
-6. ChatGPT receives the exact base, ChangeSet, validation result and inspectable candidate/diff projection;
-7. the same D0019 Case runs its Promotion Task after validation, Promotion succeeds, and terminal owner readback agrees on the promoted Case canonical/result identity;
-8. independent readback proves no filesystem canonical checkout, Git ref, unrelated Case, provider owner or credential was mutated.
-
-The first objective must change non-documentation source and include an objective focused regression plus the repository-required validation. A canned patch, no-op, documentation-only edit, direct out-of-band edit or result imported from tmcp does not pass.
-
-A nonterminal/ambiguous attempt remains bound to its exact request/Case/Attempt identities. An authoritatively terminal failed Case remains failed evidence; after terminal readback, a fresh trial-scoped Case may carry the next bounded attempt. The experiential claim is about one successful complete loop, not the immortality of any particular failed Case.
-
-For this checkpoint the only planned user actions are:
-
-- add the final read-back MCP URL and authenticate when ChatGPT prompts;
-- submit the real development objective and inspect the returned candidate.
-
-Provider configuration, release installation, Agent activation, preflight, readback and failure diagnosis are implementation/operator work, not additional setup delegated to the user.
-
-This claim is deliberately smaller than final MVP: it proves a useful end-to-end candidate path, not Git publication, broad recovery, multi-tenant operation, comparative superiority or stable production cutover.
-
-## 5. Selected minimum topology
-
-The first public resource is:
+The highest-priority path is now exactly:
 
 ```text
-https://tdev-mcp-trial.humtr.workers.dev/mcp
+authenticated web ChatGPT
+  -> development_context_get/list/search/read
+  -> operation_list / operation_get
+  -> ChatGPT reasons about the source and authors typed ChangeSet writes
+  -> development_start selecting tdev.operation.repository.changeset.compose.v1
+  -> D0019 Case
+  -> D0042 durable drive
+  -> D0020/D0027 AgentDelivery + local Agent
+  -> deterministic D0043@r5 ChangeSet result (no model process)
+  -> disposable exact-base candidate
+  -> owner-required tdev.operation.repository.candidate.validate.v1
+  -> D0019 Case-native Promotion
+  -> development_get / case_promotion_get / terminal owner readback
 ```
 
-The service name and resource are release-manifest values and must be confirmed by provider readback before handoff. First creation rejects preexisting or conflicting provider objects. Forward updates to the verified trial use the Revision-4 preservation gates; resource existence alone is not an update failure.
+The same backbone may later run optional `tdev.operation.repository.change.generate.v1` through a Codex binding, but that is an interoperability path and cannot substitute for this core proof.
 
-The isolated Worker `tdev-mcp-trial` contains only the D0023/D0024 ingress adapters, provider facades and one new SQLite Durable Object host for D0042:
+## 4. What ChatGPT and the Agent each own
 
-```text
-supported web ChatGPT
-        |
-        v
-Cloudflare Access -> tdev-mcp-trial /mcp
-                         |
-                         +-> tdev-d0020-composition-case-r1 / CaseRuntimeDO
-                         |
-                         +-> CaseAgentDriveRuntimeDO
-                                   |
-                                   +-> CaseRuntimeDO (fresh authoritative reread)
-                                   |
-                                   +-> tdev-d0020-qualification-clean-a
-                                         AgentDeliveryRuntimeDO
-                                                   |
-                                                   v
-                                         authenticated Termux Agent
-                                              |             |
-                                              v             v
-                                      bounded Codex     fixed validation
-```
+ChatGPT is the intelligence on the core path. It:
 
-The trial manifest binds, without caller selection:
+- obtains an owner-issued immutable context reference;
+- uses bounded context list/search/read operations to understand the repository;
+- reads the exact semantic operation contract with `operation_list/get`;
+- decides the actual source change;
+- submits the exact typed `baseDigest` plus `writes[{path,content}]` for deterministic ChangeSet composition.
 
-- `TDEV_CASE_AUTHORITY` to the existing `tdev-d0020-composition-case-r1` / `CaseRuntimeDO` namespace;
-- `TDEV_AGENT_DELIVERY` to the existing `tdev-d0020-qualification-clean-a` / `AgentDeliveryRuntimeDO` namespace;
-- `TDEV_CASE_AGENT_DRIVE` to a new trial-local `CaseAgentDriveRuntimeDO` SQLite namespace implementing D0042;
-- `TDEV_CASE_PLACEMENT` to the exact same D1 placement database already used by the bound Case owner;
-- one exact principal, tenant/account mapping, Agent ID, route generation, Case namespace/prefix, immutable repository base policy, D0043 operation capability/release digest and D0024 authentication generation.
+The local Agent does not perform model reasoning for this path. It:
 
-Cross-script Durable Object bindings are provider routing, not new state owners. The ingress cannot choose a different script, class, namespace, D1 database, Agent, repository or operation profile from request data. Every deployed binding is compared with an exact expected manifest and provider readback before traffic is admitted.
+- verifies the Case/Attempt/fence/capability and exact operation contract;
+- validates/normalizes base, path, scope, duplicate and size bounds;
+- returns the normal result-only ChangeSet through AgentDelivery;
+- materializes the disposable candidate under existing runtime/warden rules;
+- runs owner-required validation;
+- returns bounded evidence/results for Case acceptance.
 
-Reusing the existing qualified Case and Agent owner namespaces is limited to this isolated, single-user trial and fresh trial-scoped identities. Existing Cases, D0039/D0044 qualification lanes and unrelated route generations are not reusable test data. Stable production may retain or replace these placements only through the hardening/cutover barrier in Section 10.
+D0019 Promotion alone advances the Case semantic canonical tree. Neither ChatGPT, MCP nor Agent writes canonical authority directly.
 
-## 6. Minimum-path execution order
+## 5. Public MCP/client acceptance
 
-The order is selected by cheapest decisive falsifier, not by document number.
+The client-visible contract is D0023@r4:
 
-### M0 - make Termux capable of real development
+- surface identity remains `tdev.mcp.surface.v1`;
+- exactly sixteen final public tools are advertised;
+- every tool reports `openWorldHint:false`;
+- `case_drive`, `case_promotion_get`, `development_start` and `development_get` replace their trial-only names;
+- `operation_list` and `operation_get` provide catalog discovery without adding per-operation MCP tools.
 
-Implement and qualify D0043 Revision 4 first. Bind exact Codex/npm identities, implement the structured result adapter, scoped identity propagation, sparse model workspace and warden-owned candidate materialization, update the installable Agent only after positive quiescence, then qualify D0047 CP1 with a small owner-issued scope and run one real non-documentation source task through the local/Agent path. The output must be a validated isolated candidate with no canonical or Git mutation.
+The expected interaction is one top-level `development_start` mutation followed by read-only state/context/projection calls as needed. D0042 continues durable progress/re-drive server-side; ChatGPT should not have to resubmit a mutation merely to make each internal step continue.
 
-If M0 fails, fix the D0043/runtime defect before spending more Cloudflare or web-client attempts. Source/package success alone does not advance the checkpoint.
+`openWorldHint:false` is tested as client metadata only. The experiential gate observes whether the repeated approval prompts attributable to the former `openWorldHint:true` descriptors disappear. If the ChatGPT platform still asks for a confirmation for another policy reason, record that separately; do not weaken tdev authorization/effect/fencing rules or revert the annotation to explain client behavior.
 
-### M1 - compose and preflight the isolated provider path
+## 6. Source/Agent preflight — C0
 
-Implement the D0042 SQLite Durable Object host and the D0046 provider facades/manifest. Prove the complete source gate, deploy only `tdev-mcp-trial`, independently read back its immutable version, bindings, DO namespaces, D1 identity, Access profile and disabled preview/alternate writers, then run bounded machine/provider MCP lifecycle and one end-to-end candidate trial through the same owner path. Before that trial, compare the exact source-bound authoritative-byte requirement with the existing Case owner's read-back budget; reject an absent, ambiguous or undersized budget before any Case admission.
+Before provider/client use, source and Agent-package evidence must prove the corrected core locally without Codex:
 
-No existing `tdev` Worker, canonical D0039 route, D0044 lane or stable Git ref is replaced in M1. A shared Case/Agent code update must satisfy the Revision-4 reader, consumer and quiescence gates while preserving namespace and route identities. A provider response loss is reconciled by version/config/readback; it is not retried blindly.
+1. core runtime/catalog construction succeeds when Codex executable, saved authentication and Codex-specific configuration are absent;
+2. the final sixteen-tool MCP manifest is exact and all annotations have `openWorldHint:false`;
+3. `operation_list/get` project the D0043@r5 catalog under bounded schemas;
+4. `development_start` binds one selected semantic operation ID/version/contract digest into a normal Case Plan and does not accept caller validation selection;
+5. `repository.changeset.compose.v1` rejects malformed, stale, duplicate, unsafe or out-of-scope writes and returns the existing deterministic result-only ChangeSet for legal input;
+6. candidate materialization and owner-required validation use the exact accepted ChangeSet/base identity;
+7. no model subprocess is spawned on this path;
+8. Promotion remains the only canonical writer and the complete configured source gate passes.
 
-### M2 - perform the one planned web ChatGPT trial
+Failure in C0 is corrected at D0023/D0043 or unchanged lower owner; it is not papered over with provider probing.
 
-Only after M0 and M1 are green, hand the user the exact URL, expected authentication identity, connection steps, tool-set fingerprint and rollback/disable status. Run one current-client initialize/list/read preflight and then the Section-4 real development objective. Preserve the exact Case/request/base/release/provider identities and independent candidate verification as evidence.
+## 7. Preserving deployment/readback — C1
 
-Ad hoc repeated ChatGPT/Access probing is forbidden. A current-client mismatch is captured once with the smallest failing discovery/registration/auth/tool request and zero unauthorized owner mutation. Its responsible D0023/D0024/D0046 contract is corrected before one new bounded attempt.
+After C0 is green, update only the already-selected isolated provider/Agent composition needed for the final v1 contract. Reuse existing D0019 Case, D0042 Drive, D0020/D0027 Agent and D0024 authentication owners unless fresh evidence reaches one of those contracts.
 
-## 7. Admission and owner interaction
+Before mutation:
 
-The MCP Worker authenticates and authorizes before any owner lookup. One release-owned account map converts the verified D0024 principal into the sole trial tenant and allowed Case scope. The request body cannot select or override tenant, Agent route, Case placement, repository root, model, validation command, executable, environment, credential or network mode.
+- fresh-read the exact `development` source and provider generation;
+- prove Agent/package route quiescence or compatible legacy handling for any old nonterminal profile-bound Case;
+- preserve provider namespaces, credentials, Case/Agent identity and unrelated routes;
+- bind the new semantic catalog and no-Codex-capable Agent release;
+- deploy/read back the exact sixteen-tool v1 surface and required owner bindings.
 
-`case_create` creates a fresh trial-scoped Case against the exact immutable repository authority. `case_run_or_resume` records or replays one D0042 drive intent. Every drive step rereads the Case and Agent owners; the drive record never caches readiness or Agent capacity. Read/projection tools reread the named owner and remain stateless.
+Do not create a new qualification controller, extra Durable Object owner, second MCP endpoint architecture or diagnostic subsystem just to prove this correction. Existing preservation/deployment owners are sufficient unless they fail a concrete falsifier.
 
-The trial does not end at the validated candidate projection. After configured validation passes, the existing D0019 Promotion Task is the only writer permitted to advance the Case's semantic canonical tree, and that Promotion must succeed for M2 completion. The Case canonical tree is owner state, not a filesystem checkout or Git ref. No D0025 Git adapter/publication is configured for this first path; any ordinary-Task checkout/ref write or remote publication capability is a deployment admission failure.
+A provider response loss is reconciled by exact version/config/readback, never a blind retry.
 
-## 8. Authentication, credentials and disclosure
+## 8. Current-client experiential proof — C2
 
-D0024 remains the authentication owner. The trial first uses Cloudflare Access Managed OAuth with exact resource, issuer, audience, registration mode, redirect, PKCE and verified claim mapping. RFC 9728 protected-resource metadata for `/mcp` (`/.well-known/oauth-protected-resource/mcp`), its compatibility aliases, and authorization-server metadata must be provider-read back before ChatGPT is asked to connect.
+Only after C0/C1 are green, perform one bounded current-client proof against one exact published tdev base with Codex disabled or unavailable.
 
-If the current ChatGPT client falsifies the selected Managed OAuth contract, the request stops before owner mutation and exact evidence reopens D0024. A revised client-compatible profile is designed and source/provider-preflighted before another web attempt; no permissive bearer-token fallback or undocumented header bypass is allowed.
+The development objective must be a real non-documentation source change with a focused regression and repository-required validation. It must not be a canned patch, no-op, documentation-only edit, manual out-of-band edit or result imported from tmcp/Codex.
 
-The web credential terminates at Access/ingress and never reaches Case, drive, Agent or model input. The Agent credential never reaches MCP/ChatGPT. Codex saved authentication stays local to the D0043 Revision-4 process boundary and is never copied into Worker, Case, evidence or model instructions. Evidence contains identities/digests and redacted denial classes, never secret values.
+Required observations:
 
-The first real model run sends the exact admitted repository context under the user's existing trusted-local Codex account. This is an explicit single-user disclosure boundary; it is not a multi-tenant privacy or hostile-provider claim.
+1. ChatGPT authenticates to the exact read-back D0024 resource.
+2. `tools/list` exposes exactly the sixteen D0023@r4 names and every descriptor has `openWorldHint:false`.
+3. ChatGPT obtains the immutable context reference and uses bounded context tools to understand the relevant code.
+4. ChatGPT discovers/reads `tdev.operation.repository.changeset.compose.v1` and itself constructs the exact legal typed writes.
+5. `development_start` creates one D0019 Case bound to that semantic operation and one D0042 drive intent.
+6. The Task traverses D0042 -> D0020/D0027 -> local Agent and returns a non-empty result-only ChangeSet without a model process.
+7. The disposable exact-base candidate matches the ChangeSet and owner-required validation passes.
+8. The same Case reaches successful D0019 Promotion.
+9. `development_get`, `case_promotion_get` and terminal Case readback agree on base/result/candidate/validation/Promotion identities.
+10. independent runtime evidence shows Codex executable/auth/config was not required and no model subprocess was spawned.
+11. repeated approval prompts attributable to the former open-world annotation are absent; any remaining platform confirmation is separately classified.
+12. no filesystem canonical checkout, Git ref, unrelated Case/provider owner or credential is mutated.
 
-## 9. Failure, response loss and cleanup
+Only this C2 result closes the Directive's core experiential objective.
 
-- MCP response loss: replay the same request ID/payload and project the stored owner receipt; never create a replacement Case by timeout.
-- Worker/drive restart: reconstruct the D0042 record and reread Case/Agent owners before action.
-- Agent disconnect/reconnect: retain Case intent; D0020/D0027 decide current route, socket and delivery truth.
-- model/validation failure: return the exact terminal failure/validation result with no Promotion or Git effect.
-- terminal Case failure: preserve the failed Case and its receipts as evidence; never resurrect or rewrite it. After exact terminal readback, a later bounded attempt toward D0046 may use a fresh trial-scoped Case/request.
-- Codex authentication expiry: fail closed as a local model admission/provider error; never request a secret through MCP.
-- provider deploy ambiguity: reread exact version, bindings, traffic and Access configuration before retry or rollback.
-- client disconnect: the Case continues only under its existing durable intent; reconnect reads state and does not invent completion.
-- cleanup ambiguity: retain the candidate/claim/capacity block until positive process/workspace reconciliation.
+## 9. Case continuity, response loss and cleanup
 
-Every failed trial records whether Case, drive, delivery, process, candidate, provider and credential effects are absent, present or unknown. Unknown is never collapsed into failure/no-effect.
+A nonterminal or ambiguously observed request stays bound to the same request/Case/Attempt identities. Response loss, Worker restart, Agent reconnect or Drive replay rereads authoritative owners and never creates a new Case merely because a client response disappeared.
 
-## 10. Harden only after the useful path exists
+Once D0019 authoritatively records terminal failure, that Case remains failed evidence. A later bounded attempt may use a fresh Case/request after exact terminal readback; failed Cases are never resurrected to manufacture success.
 
-The successful M2 path is frozen as a regression corpus before hardening. The implementer then advances continuously through:
+Malformed/stale/out-of-scope ChangeSet input, required-validation failure or cleanup uncertainty yields no Promotion. Process/workspace/candidate uncertainty remains explicit and blocks unsafe reuse. Client disconnect does not release semantic claims or invent completion.
 
-1. **H1 recovery** - forced Worker/drive/Agent restart, MCP/model/result response loss, reconnect, cancellation and positive process/workspace cleanup;
-2. **H2 security lifecycle** - wrong resource/issuer/audience/tenant denial, refresh, revocation, JWKS and policy rotation, log/trace secret scans;
-3. **H3 deployment durability** - reproducible fresh deploy, exact config/version readback, rollback/forward recovery and old/preview writer exclusion;
-4. **H4 normal parallelism** - legal disjoint widths 2 and 4 first, then the selected normal capacity, preserving deterministic Promotion and bounded resources;
-5. **H5 stable cutover** - only after the hardened matrix passes, decide whether to promote the exact composition to `https://tdev.humtr.workers.dev/mcp`; preserve or explicitly retire the old experiment with readback and rollback evidence.
+## 10. Authentication and credential separation
 
-Safety floors required to prevent unauthorized effects, credential leakage, owner duplication or blind replay are part of M0-M2 and cannot be postponed as hardening. Broader resilience, scale, multi-tenant support and stable-name migration do not block the first single-user candidate result unless their absence makes that exact run unsafe.
+D0024 remains the external authentication owner. Web credentials terminate at ingress and never enter Case, Agent operation input or evidence. Agent credentials remain local to D0020/D0027. The no-Codex core path has no model credential domain at all.
 
-D0045 tmcp comparison begins only after this tdev-native path is independently usable. Comparative findings may trigger further owner-specific hardening but cannot be used to postpone establishing the baseline tdev path.
+Optional Codex interoperability, if later invoked, reuses its separately accepted trusted-local credential boundary from D0043 history. Codex credentials are never copied into MCP/Case and their absence cannot make core development unavailable.
 
-## 11. Reporting and continuation rule
+## 11. Compatibility and rollback
 
-Implementation remains small-commit and gate-driven, but the implementer does not stop merely because any of the following passes:
+Existing provider generations and immutable Cases using the old Revision-7/profile-bound recipe remain historical under their original semantics. C1 must either retain an exact legacy handler for any still-live old Plan or wait for positive quiescence before removing it. There is no in-place reinterpretation into `changeset.compose`.
 
-- parser/unit/source tests;
-- installable package construction;
-- a diagnostic process;
-- Worker upload or binding readback;
-- MCP initialize/tools/list;
-- authentication without a real development result;
-- a validated candidate without successful Case-native Promotion.
+The isolated trial/provider route may be disabled or rolled back only to a generation that can still read any live durable state it owns. Canonical/Git publication remains outside this first experiential proof. Stable endpoint cutover is a later bounded decision after the corrected path works; it is not a shortcut for C2.
 
-After each internal gate, update evidence/routing as required and continue to the next authorized M-step. User-facing handoff occurs only at one of these boundaries:
+## 12. Optional Codex follow-on
 
-1. **ready for user action** - M0/M1 are independently green and the report contains the exact MCP URL, authentication/connection instructions, expected identity/tool fingerprint and disable/rollback procedure;
-2. **experiential PASS** - the Section-4 real task is complete, the user can inspect its validated candidate/diff, and D0019 Case-native Promotion plus terminal readback succeeded;
-3. **exact blocker** - an authority/safety defect or unavailable external capability remains after all safe in-scope alternatives are exhausted, with the failing layer, unchanged effects and next Design/actor/action named.
+Only after the no-Codex C2 proof is green may the project optionally select `tdev.operation.repository.change.generate.v1` and requalify its Codex binding through the same Case/Drive/Agent/result/validation/Promotion backbone.
 
-The first boundary is a deliberate user handoff, not implementation completion. After the user's connection/task action, work follows the same Case while it is nonterminal or ambiguously observed. If that Case becomes authoritatively terminal failed, it remains failed evidence and the next bounded attempt may use a fresh Case rather than turning Case preservation into the product goal.
+That check proves interoperability only. A Codex failure does not reopen the core path unless it reveals a shared D0019/D0042/D0020/D0027 defect. A Codex success cannot replace the no-Codex completion evidence.
 
-## 12. Acceptance matrix and cheapest falsifiers
+## 13. Acceptance matrix and cheapest falsifiers
 
 | Area | Minimum required result |
 | --- | --- |
-| operation | D0043 Revision-4 real Codex ChangeSet plus fixed validation on physical Termux, using D0047 scoped context |
-| composition | exact read-back trial Worker, Case DO, drive DO, Agent DO and D1 bindings; no hidden in-memory owner |
-| capacity admission | exact source-bound base measurement is no greater than the read-back `TDEV_CASEDO_MAX_AUTHORITATIVE_BYTES_PER_CASE`; the existing Case owner has at least `16,777,216` bytes, with no custom ingress CPU setting |
-| authentication | current web ChatGPT completes exact D0024 flow and one authorized tool call; cross-resource/tenant denial is zero-effect |
-| real development | one non-documentation source objective produces a non-empty ChangeSet and inspectable validated disposable candidate from one immutable published base, then reaches successful Case-native Promotion |
-| result-only | Codex/ordinary Tasks cannot mutate a filesystem canonical checkout or Git; only disposable candidate bytes appear before Promotion |
-| promotion | only the existing D0019 Promotion Task may advance the Case semantic canonical tree; it succeeds after configured validation and terminal owner readback agrees |
-| identity | one principal/tenant/Agent/route/repository/profile manifest; caller cannot substitute any identity |
-| response loss | same request/Case/Attempt is reconciled without duplicate dispatch/model process/effect |
-| credentials | Access, Agent and Codex credential domains remain separate and secret-free in repository/evidence/Case/model-visible state |
-| user burden | user supplies only MCP connection/authentication and the development objective after a complete handoff |
-| reporting | source/package/provider sub-gates do not become a false completion report |
-| proof scope | exact source, machine, provider, client and final-path layers are recorded separately |
+| intelligence | ChatGPT itself reasons about and authors the real source ChangeSet |
+| no-Codex | core runtime and C2 complete with Codex executable/auth/config absent and zero model subprocesses |
+| MCP | exact sixteen-tool v1 surface; every tool `openWorldHint:false` |
+| operation discovery | ChatGPT can list/get the semantic operation without public tool proliferation |
+| execution | selected ChangeSet operation traverses Case -> Drive -> AgentDelivery -> local Agent -> typed result |
+| result-only | ordinary work cannot mutate Case canonical authority or Git |
+| validation | repository/release owner-required validation passes; caller cannot weaken it |
+| promotion | D0019 Promotion succeeds and is the sole canonical writer |
+| identity | exact principal/tenant/Case/Attempt/base/context/operation-contract/binding/result identities are preserved |
+| response loss | no duplicate Case/Attempt/operation from reconnect or missing response |
+| compatibility | old Cases keep old semantics; no profile alias masquerades as migration |
+| approval UX | former open-world-derived repeated prompts are absent or any remaining platform confirmation is separately classified |
+| user burden | user supplies MCP connection/auth and development objective; internal provider/Agent work is not delegated to them |
 
-Cheapest decisive falsifiers are:
-
-1. the installed Agent still runs a placeholder or diagnostic instead of real Codex and validation;
-2. the trial Worker cannot name one exact Case, drive and Agent owner set;
-3. the existing Case owner budget is below the exact source-bound admission requirement or cannot be read back without ambiguity;
-4. ChatGPT authentication succeeds but the development task requires a manual out-of-band executor/edit;
-5. one request selects another tenant, Agent, executable, repository, model or validation command;
-6. response loss starts a second Case, Attempt or model process;
-7. the model or ordinary Task changes the canonical checkout/ref;
-8. a validated candidate is reported as completion while Promotion is pending, blocked or failed;
-9. a completion report is issued before the user-ready handoff or successful promoted terminal result.
-
-Any one blocks the affected claim and is corrected at its responsible owner before the complete M0-M2 path is rerun.
-
-## 13. Migration, rollback and provider preservation
-
-The new trial Worker and drive namespace start empty. No Case/drive schema migration is implied. Cross-script bindings reference existing owner namespaces without copying their records. A mismatched writer/profile/version fails before traffic.
-
-Before M2, rollback is disabling trial traffic/Access and restoring the previously read-back trial version or deleting only newly created empty trial resources after positive absence/quiescence evidence. Existing `tdev`, Case/Agent owner, D0039/D0044 and Git resources are never rollback targets for this Design.
-
-After a live trial Case exists, do not delete the drive namespace or roll back to code unable to read it until the Case is terminal, Agent/process/candidate state is positively quiescent and the exact terminal receipt remains readable. Provider ambiguity recovers forward or remains disabled; it never authorizes blind deletion.
-
-Stable endpoint cutover is H5, not an M2 shortcut. It requires exact old/new resource and Access-generation handling, provider traffic readback, current-client reconnection proof and a supported rollback/disable result.
+Cheapest decisive falsifiers are: Codex required to start or complete core development; a model process spawned for `changeset.compose`; fewer/more than sixteen public tools; any `openWorldHint:true`; caller-selected validation weakening the required gate; manual/out-of-band source edit; direct result ingress bypassing Agent; validated candidate reported complete while Promotion is pending/failed; duplicate execution after response loss; or a historical Codex PASS presented as the corrected C2 proof.
 
 ## 14. Rejected alternatives
 
-### Keep implementing internal gates and ask the user to infer readiness
+### Keep Codex as the mandatory product gate because it already passed once
 
-Rejected. The missing product value is the connected real development path; internal gates remain necessary evidence but are not the experiential exit.
+Rejected. That proves useful executor compatibility, not the owner's required architecture.
 
-### Deploy the existing source package before binding a real model runtime
+### Let ChatGPT submit a ChangeSet directly to Case
 
-Rejected. It would expose a public endpoint that cannot complete the target operation and would spend scarce client/provider trials on a known local gap.
+Rejected. ChatGPT is the intelligence, not a new result authority. Its authored bytes still traverse the existing Agent execution/delivery path.
 
-### Replace the existing `tdev` Worker immediately
+### Add more qualification/recovery machinery before trying the corrected path
 
-Rejected. Its current meaning is an incomplete OAuth experiment, and an in-place replacement couples minimum-path debugging to cutover/rollback risk. The isolated trial name gives an independently disableable route.
+Rejected. Existing owners already proved the distributed backbone. New machinery is justified only by a concrete falsifier at its responsible boundary.
 
-### Build new Case and Agent authority implementations inside the MCP Worker
+### Require Git publication for the first experiential proof
 
-Rejected. D0019 and D0020/D0027 already own those facts. The Worker uses explicit provider bindings and remains stateless.
-
-### Require full production hardening before the first user run
-
-Rejected. It delays the cheapest proof of utility and can optimize a path that still cannot complete. The M-path includes mandatory safety floors; recovery breadth, scale and stable cutover follow a frozen successful path.
-
-### Use a static bearer or Agent credential when OAuth is inconvenient
-
-Rejected. It collapses identity domains and makes a compatibility issue into a security defect. An observed D0024 incompatibility returns through SDD.
-
-### Start tmcp comparison before tdev works independently
-
-Rejected. D0045 needs a stable tdev candidate path. Comparison is an additive improvement gate after D0046, not a substitute for establishing it.
+Rejected. D0019 Promotion is the semantic completion boundary for this checkpoint; D0025 publication is a separate later effect.
 
 ## 15. Follow-on gate
 
-This Design authorizes implementation and qualification of M0-M2 plus the H1-H5 hardening sequence after explicit `WORKBOARD.md` routing. Provider mutation starts only after the applicable source/physical preflight and a fresh provider ref/config readback. It authorizes Case-native D0019 Promotion for the M2 development unit, but no D0025 Git publication, filesystem canonical-checkout mutation, multi-tenant exposure, tmcp retirement or comparative claim.
-
-The next user-visible deliverable is not another internal pass count. It is the complete connection handoff for the exact trial URL after M0/M1, followed by one real M2 result whose non-empty ChangeSet, disposable candidate, configured validation and Case-native Promotion all succeed.
+Revision 8 authorizes coordinated source implementation and C0/C1/C2 verification after explicit `WORKBOARD.md` routing. The next implementation should be the smallest production-shaped vertical slice satisfying D0023@r4 and D0043@r5 together, then continue through preserving deployment/current-client C2 without stopping at internal pass counts. Optional Codex interoperability follows only after the no-Codex core proof succeeds.

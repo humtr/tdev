@@ -1,0 +1,21 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.design-acceptance.v1",
+  "design": "D0023",
+  "revision": 4,
+  "status": "accepted",
+  "acceptanceBase": "development@33400f2f7ab13015f7a5699068a128ae1081ee06",
+  "decision": "keep tdev.mcp.surface.v1 as the first public release while converging pre-release ingress to exactly sixteen final tool names, openWorldHint:false on every public tool, bounded operation_list/operation_get discovery, and Case-bound development_start/development_get without caller validation selection",
+  "facts": [
+    "exact source src/mcp-surface.mjs at the acceptance base exposes fourteen tools and still uses case_run_or_resume, promotion_get, development_unit_start and development_unit_get",
+    "exact source assigns openWorldHint:true to the external mutation annotation used by case_run_or_resume and development_unit_start",
+    "exact source development_unit_start requires instruction and validationProfile and has no operation_list or operation_get",
+    "DIRECTIVE.md@r1 fixes the first public surface identity at tdev.mcp.surface.v1, the exact sixteen final names and openWorldHint:false for every public tool"
+  ],
+  "unknown": [
+    "source implementation of Revision 4 has not started at this acceptance checkpoint",
+    "provider deployment/readback and current-client approval behavior remain separate evidence layers"
+  ],
+  "authorization": "accepted Design only; source implementation requires explicit WORKBOARD routing and must preserve D0019/D0042/D0020/D0027/D0024 authority",
+  "secrets": "none"
+}
