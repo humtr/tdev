@@ -1,0 +1,51 @@
+name: D0046 C2 owner wiring repair
+
+on:
+  push:
+    branches:
+      - repair/d0046-c2-owner-wiring-20260909
+
+permissions:
+  contents: write
+
+jobs:
+  repair:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: repair/d0046-c2-owner-wiring-20260909
+          fetch-depth: 0
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Apply exact-base repair
+        run: node qualification/d0046-c2-owner-wiring-repair.mjs
+
+      - name: Focused regression
+        run: node --test test/d0046-c2-owner-wiring.test.mjs test/mcp-trial-runner.test.mjs test/d0046-mcp-trial-deploy.test.mjs test/mcp-surface.test.mjs
+
+      - name: Full qualification
+        run: npm run check
+
+      - name: Diff guard
+        run: git diff --check
+
+      - name: Commit validated repair only
+        run: |
+          rm qualification/d0046-c2-owner-wiring-repair.mjs
+          rm .github/workflows/d0046-c2-owner-wiring-repair.yml
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "fix: restore D0046 semantic owner wiring"
+          git push origin HEAD:repair/d0046-c2-owner-wiring-20260909
