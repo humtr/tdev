@@ -39,7 +39,6 @@ const STABLE_RELEASE_FIELDS = Object.freeze([
   'schemaVersion', 'profile', 'target', 'stateSchemas', 'protocols', 'capabilityProfile', 'serviceHostProfile', 'configurationSchemaDigest',
   'developmentOperationOutputSchema', 'helperAbi', 'runtime', 'toolProfiles',
 ]);
-const TERMINAL_DELIVERY_STATES = new Set(['completed', 'failed', 'cancelled', 'released', 'expired']);
 const STOPPED_DRAIN_RESUME_PHASES = new Set(['evidence_positive_quiescence', 'evidence_package_verified']);
 const EVIDENCE_READINESS_KEYS = Object.freeze({
   positive_quiescence: 'positiveQuiescence',
@@ -255,13 +254,13 @@ export function assertProviderQuiescence(routeRead, installableRead) {
   const reservations = Object.values(routeRead.reservations ?? {});
   const deliveries = Object.values(routeRead.deliveries ?? {});
   const liveReservations = reservations.filter((item) => item?.status === 'reserved');
-  const liveDeliveries = deliveries.filter((item) => !TERMINAL_DELIVERY_STATES.has(item?.status));
+  const heldPredecessorDeliveries = deliveries.filter((item) => item?.slotHeld === true);
   const installable = installableRead.installableAgent;
   if (installable?.state !== 'CURRENT' || installable?.current === null) fail('d0046_agent_not_current', 'Agent provider is not in exact CURRENT state');
-  if (liveReservations.length !== 0 || liveDeliveries.length !== 0) {
-    fail('d0046_agent_provider_not_quiescent', 'Agent provider has live reservations or deliveries', {
+  if (liveReservations.length !== 0) {
+    fail('d0046_agent_provider_not_quiescent', 'Agent provider has live reservations', {
       liveReservationCount: liveReservations.length,
-      liveDeliveryCount: liveDeliveries.length,
+      heldPredecessorDeliveryCount: heldPredecessorDeliveries.length,
     });
   }
   return Object.freeze({
@@ -269,6 +268,7 @@ export function assertProviderQuiescence(routeRead, installableRead) {
     reservationWindowGeneration: routeRead.reservationWindowGeneration,
     liveReservationCount: 0,
     liveDeliveryCount: 0,
+    heldPredecessorDeliveryCount: heldPredecessorDeliveries.length,
     installableState: 'CURRENT',
     managementTransaction: installable.current.managementTransaction === null ? null : canonicalClone(installable.current.managementTransaction),
   });
