@@ -27,7 +27,7 @@ jobs:
       - name: Install
         run: npm ci
 
-      - name: Normalize repair script escaping
+      - name: Normalize exact repair script
         shell: bash
         run: |
           python3 - <<'PY'
@@ -35,6 +35,19 @@ jobs:
           path = Path('qualification/d0046-c2-owner-wiring-repair.mjs')
           source = path.read_text()
           source = source.replace(r"\\`", r"\`").replace(r"\\${", r"\${")
+          old = r"""insertAfterOnce(
+            worker,
+            `    developmentUnitRunner: runner,\n`,
+            `    operationCatalog,\n    developmentStart: async (input = {}) => {\n      assertTrialCaseId(input?.caseId);\n      return invokeExecution(input.caseId, 'developmentStart', input);\n    },\n`,
+          );""".replace('          ', '')
+          new = r"""replaceOnce(
+            worker,
+            `  const owners = {\n    repository,\n    driveRunner: runner,\n    developmentUnitRunner: runner,\n`,
+            `  const owners = {\n    repository,\n    driveRunner: runner,\n    developmentUnitRunner: runner,\n    operationCatalog,\n    developmentStart: async (input = {}) => {\n      assertTrialCaseId(input?.caseId);\n      return invokeExecution(input.caseId, 'developmentStart', input);\n    },\n`,
+          );""".replace('          ', '')
+          if source.count(old) != 1:
+              raise SystemExit(f'expected one broad light-owner repair target, found {source.count(old)}')
+          source = source.replace(old, new)
           path.write_text(source)
           PY
 
@@ -62,10 +75,50 @@ jobs:
         run: exit 1
 
       - name: Focused regression
-        run: node --test test/d0046-c2-owner-wiring.test.mjs test/mcp-trial-runner.test.mjs test/d0046-mcp-trial-deploy.test.mjs test/mcp-surface.test.mjs
+        id: focused
+        shell: bash
+        run: |
+          set +e
+          node --test test/d0046-c2-owner-wiring.test.mjs test/mcp-trial-runner.test.mjs test/d0046-mcp-trial-deploy.test.mjs test/mcp-surface.test.mjs > focused.log 2>&1
+          status=$?
+          cat focused.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload focused diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0046-focused-log-${{ github.run_id }}
+          path: focused.log
+          retention-days: 1
+
+      - name: Stop on focused failure
+        if: steps.focused.outputs.status != '0'
+        run: exit 1
 
       - name: Full qualification
-        run: npm run check
+        id: full
+        shell: bash
+        run: |
+          set +e
+          npm run check > full.log 2>&1
+          status=$?
+          tail -n 200 full.log
+          echo "status=$status" >> "$GITHUB_OUTPUT"
+          exit 0
+
+      - name: Upload full diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: d0046-full-log-${{ github.run_id }}
+          path: full.log
+          retention-days: 1
+
+      - name: Stop on full failure
+        if: steps.full.outputs.status != '0'
+        run: exit 1
 
       - name: Diff guard
         run: git diff --check
@@ -74,6 +127,7 @@ jobs:
         run: |
           rm qualification/d0046-c2-owner-wiring-repair.mjs
           rm .github/workflows/d0046-c2-owner-wiring-repair.yml
+          rm -f repair.log focused.log full.log
           git diff --check
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
