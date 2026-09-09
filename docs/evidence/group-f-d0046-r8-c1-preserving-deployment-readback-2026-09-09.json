@@ -1,0 +1,136 @@
+{
+  "schemaVersion": 1,
+  "profile": "tdev.d0046-r8-c1-preserving-deployment-readback.v1",
+  "date": "2026-09-09",
+  "repository": "humtr/tdev",
+  "directive": "DIRECTIVE.md@r1",
+  "primaryDesign": "D0046@r8",
+  "composedDesigns": [
+    "D0023@r4",
+    "D0043@r5",
+    "D0019@r2",
+    "D0020@r2",
+    "D0027@r1",
+    "D0024@r1",
+    "D0042@r1"
+  ],
+  "scope": "C1 preserving deployment/readback only; current-client C2 development execution, optional Codex interoperability, stable endpoint cutover and new qualification architecture are excluded",
+  "publishedSource": {
+    "preC1Development": "6dce8c619572bfd288a40d37b5674145dbf9e6a8",
+    "c1CompatibilityFix": "51ec58ed4a46aeedaac8777758a1bf78a50fba81",
+    "fixPullRequest": 36,
+    "deploymentSource": "1460c970f3e700808b9713bc71319956bfd5499c",
+    "fixSummary": "preserving-update provider preflight now blocks new reserved reservations while retaining slotHeld predecessor deliveries for D0027 positive-quiescence handling; current-schema deliveries are no longer misclassified by a removed legacy status field"
+  },
+  "sourceValidation": {
+    "focusedJob": "job_oln_4148eae7a6",
+    "focusedTests": 20,
+    "focusedPass": 20,
+    "focusedFail": 0,
+    "fullPortableJob": "job_olr_1b494a8e8d",
+    "fullPortableArtifact": "artifact_qv_50a239c195",
+    "tests": 753,
+    "pass": 753,
+    "fail": 0,
+    "success": true
+  },
+  "legacyQuiescence": {
+    "abandonedCaseId": "tdev-trial-connect-20260908-a29",
+    "taskId": "context",
+    "attemptId": "context.1",
+    "cancellationRequestId": "c1-quiesce-a29-context-20260909",
+    "authoritativeCaseResult": "cancelled at case revision 10 through public receipt-backed task_cancel",
+    "localSupervisor": {
+      "liveOperations": 0,
+      "heldPredecessors": []
+    },
+    "retainedUnknownEffectFence": {
+      "deliveryId": "sha256:18d51294e392470a0582728547873f268205a7591c6d6b2210c70afd98c3cd9c",
+      "effect": "unknown",
+      "packageActivationGeneration": 6,
+      "disposition": "PRESERVED",
+      "reason": "D0027 multi-generation semantics intentionally release only the exact immediate predecessor after positive quiescence; an older unknown-effect held slot is not cleared or relabelled"
+    }
+  },
+  "agentDeployment": {
+    "applyJob": "job_om3_1d9ce9e9e8",
+    "sourceRevision": "1460c970f3e700808b9713bc71319956bfd5499c",
+    "archiveSha256": "0b14dfd403a81e72b70419db63f58658e1b05d5dd3ec1fe6e1eff6c17f1a37c4",
+    "releaseManifestDigest": "sha256:db1d9357c6066bf237401e7784017ed924cc14e279301bf78d8728907d3be8a4",
+    "packageActivationGeneration": 13,
+    "lifecycleGeneration": 25,
+    "providerState": "CURRENT",
+    "managementTransaction": null,
+    "reservedCount": 0,
+    "localJournalCurrent": null,
+    "deploymentStaticIdentityDigest": "sha256:0dd64c1f123f7d83eb853228c168f5f0f9ee0772c7eda8f456234df7c3edec6f",
+    "securityIdentityDigest": "sha256:6256fd8518f08b45702367a2a6f21fa302a862b25b7cafc4a915e1b54003e6ac",
+    "identityPreserved": true
+  },
+  "providerDeployment": {
+    "deployJob": "job_omb_eed3ac9258",
+    "workerScript": "tdev-mcp-trial",
+    "versionNumber": 102,
+    "versionId": "c8750b7e-c210-45bb-9b8f-22711f9485a0",
+    "sourceSha": "1460c970f3e700808b9713bc71319956bfd5499c",
+    "repositoryCommit": "1460c970f3e700808b9713bc71319956bfd5499c",
+    "surfaceDigest": "sha256:7b5203e67d70d3cf0de06f57e6f9365d65ecfc1e485c76be92352315a5f336b8",
+    "moduleCount": 36,
+    "moduleDigest": "sha256:7958a994a7bcf430db05fc7b715b081997429bdb1add454e341058f84a37a36e",
+    "artifactManifestDigest": "sha256:f38ddec6f3927c3bc014bedd32518fd0bfa541d3ab624f3d0b20097c39010d6d",
+    "compositionDigest": "sha256:b0f13a7a37cc9fcb773b6fdb2145337ec31d6d9f7db9c63548c0bd3a0e9d2a6d",
+    "bindingsPreserved": {
+      "driveNamespace": "138b3b6fc20d4d8988b598c572aa39f7",
+      "caseNamespace": "3b3d5808028f4e74bcbc1dc22f0757fd",
+      "agentNamespace": "0dad69baa7154d00949f88c8b8dbf94a",
+      "d1DatabaseId": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+      "accessAppId": "3a409320-586b-48cd-8c3b-b6c25bdcd728",
+      "accessDomain": "tdev-mcp-trial.humtr.workers.dev/mcp"
+    },
+    "publicReadback": {
+      "protectedResourceMetadata": 200,
+      "authorizationServerMetadata": 200,
+      "pkce": "S256",
+      "dynamicRegistration": true,
+      "unauthenticatedMcp": 401
+    }
+  },
+  "surfaceReadback": {
+    "job": "job_omg_ecdcce445f",
+    "profile": "tdev.mcp.surface.v1",
+    "toolCount": 16,
+    "tools": [
+      "case_create",
+      "case_get",
+      "case_events_get",
+      "case_drive",
+      "task_cancel",
+      "attempt_reconcile",
+      "claim_conflicts_get",
+      "case_promotion_get",
+      "development_context_get",
+      "development_context_list",
+      "development_context_search",
+      "development_context_read",
+      "operation_list",
+      "operation_get",
+      "development_start",
+      "development_get"
+    ],
+    "allOpenWorldHintFalse": true,
+    "providerSourceAndSurfaceDigestMatchPublishedSource": true
+  },
+  "clientBoundary": {
+    "currentConversationClientManifest": "historical cached 12-tool schema observed after provider deployment",
+    "classification": "C2 boundary, not C1 deployment failure",
+    "currentClientRefreshOrCaseExecution": "NOT_EXECUTED"
+  },
+  "result": {
+    "C1PreservingDeploymentReadback": "PASS",
+    "D0046Status": "implementing",
+    "D0023Status": "implementing",
+    "nextGate": "D0046@r8 C2 current-client no-Codex experiential proof",
+    "C2": "OPEN",
+    "optionalCodexInteroperability": "OPEN_AFTER_CORE_C2"
+  }
+}
