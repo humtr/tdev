@@ -1,7 +1,13 @@
 # Design 0031 — Self-Development Documentation Authority
 
-- Status: `verified`
-- Revision: 7
+- Status: `accepted`
+- Revision: 8
+- Revision 8 predecessor: revision 7 was verified at implementation source `2a1e0e5c9aea784181a2ab4e6b25858c6232a0d6`; revisions 1-7 and their evidence remain historical evidence.
+- Revision 8 reason: the explicit owner Directive on 2026-09-09 exposed a missing authority role in the revision-7 bootstrap. The kernel can bind stable rules and a current Design router, but it has no first-class owner for the owner's top-level objective/priority. As a result, a priority can be incorrectly encoded into Design lifecycle or WORKBOARD selection and drift into a narrower technical gate.
+- Revision 8 acceptance base: `development@d18c962171bdf867a0d266846f30bcd9caf1a375`.
+- Revision 8 acceptance authority: `DIRECTIVE.md@r1`; the Directive owns the objective, while this Design owns only how the self-development bootstrap locates and enforces that owner.
+- Revision 8 changed decision: add root `DIRECTIVE.md` to the fixed bootstrap kernel as the single current owner-objective/priority authority; `AGENTS.md` binds the exact published repository snapshot and reads the Directive before routing, `WORKBOARD.md` carries an exact active-Directive pointer, and conflicting derived plans/routes are stale for dependent mutation. The Directive is not a Design and does not bypass `RULE.md`, `SDD.md`, accepted technical Designs, or runtime owners.
+- Revision 8 downstream implementation/revalidation: `AGENTS.md` bootstrap order, `WORKBOARD.md` active-Directive pointer/routing, documentation taxonomy, derived-index agreement and documentation governance. Product/runtime/provider behavior remains owned elsewhere.
 - Revision 7 predecessor: revision 6 was verified with implementation source `49597a5db8ef4289eca3c8dc6c4408775801c46e` and remained the maintained revision at the fresh application base `a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`; revisions 1-6 and their evidence remain historical evidence.
 - Revision 7 reason: ACR convergence `acr/tdev-20260818-devstate-planab-01` at `dda5c3bbae5f137a7ba1f93ed08004b14a4704e0`, revalidated against exact current authority `group/f-cloudflare-runtime@a7d198bcd2df2601d3527ca0a01dc58eef1d14a1`, proved a lifecycle-vocabulary contradiction: `SDD.md` and the Design-index parser include `blocked`, while the maintained-Design current-status prose guard and revision 6 decision enumerate the canonical lifecycle without it.
 - Revision 7 acceptance evidence: `docs/evidence/group-f-d0031-r7-blocked-lifecycle-vocabulary-acceptance-2026-08-18.json`.
@@ -43,7 +49,7 @@
 
 ## 1. One-line definition
 
-Make a new development session rebind its authority from a small stable repository bootstrap plus one current router, while each durable development fact has one owner, bounded historical/evidence records remain preserved but non-authoritative, live normative documents are visually distinguishable from specific/history records, and a later falsifier can formally reopen or revise an earlier Design without rewriting completed Git checkpoints.
+Make a new development session rebind its authority from a small stable repository bootstrap that includes one explicit owner Directive plus one current router, while each durable development fact has one owner, bounded historical/evidence records remain preserved but non-authoritative, live normative documents are visually distinguishable from specific/history records, and a later falsifier can formally reopen or revise an earlier Design without rewriting completed Git checkpoints.
 
 ## 2. Evidence and concrete problem
 
@@ -69,6 +75,7 @@ Every substantive repository change begins with exactly this fixed repository ke
 
 ```text
 AGENTS.md
+DIRECTIVE.md
 RULE.md
 SDD.md
 WORKBOARD.md
@@ -77,11 +84,12 @@ WORKBOARD.md
 The kernel has distinct owners:
 
 - `AGENTS.md` — bootstrap algorithm, precedence entrypoint, fail-closed stop lines, and progressive-loading directions;
+- `DIRECTIVE.md` — the single current owner objective, priority, and non-substitutable completion criteria; it is not a Design or implementation authorization;
 - `RULE.md` — stable engineering invariants that are not tied to the current Group/branch/Design;
 - `SDD.md` — change classification plus Design revision/reopen/supersession lifecycle;
-- `WORKBOARD.md` — the single current routing instance.
+- `WORKBOARD.md` — the single current routing instance and exact active-Directive pointer.
 
-The kernel is small by purpose. Reading it does not by itself authorize product changes; it tells the session which affected owners to load next.
+The kernel is small by purpose. Reading it does not by itself authorize product changes. The Directive fixes what the owner requires; the remaining kernel resolves how that objective may be safely designed and routed.
 
 ### 3.2 Progressive loading
 
@@ -101,6 +109,7 @@ Historical reports and evidence are loaded only when a current gate, Design, own
 
 `WORKBOARD.md` exclusively owns the current development routing instance:
 
+- an exact pointer to the active `DIRECTIVE.md` revision, without duplicating its objective text;
 - active cumulative Group;
 - active cumulative branch name;
 - completed immediate predecessor checkpoint needed for current ancestry;
