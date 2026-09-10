@@ -20,6 +20,14 @@ export async function loadMcpTrialLazyContext() {
   throw unboundBaseTreeError();
 }
 
+export async function loadMcpTrialManifest() {
+  throw unboundBaseTreeError();
+}
+
+export async function loadMcpTrialSelfContextBlob() {
+  throw unboundBaseTreeError();
+}
+
 // The deployment graph replaces this module with a generated source-bound
 // module that exports the real values.  Keeping the placeholders here lets
 // the Worker validate the small binding without decoding the tree during

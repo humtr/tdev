@@ -107,7 +107,7 @@ export const MCP_SURFACE_TOOL_DEFINITIONS = Object.freeze([
   tool('attempt_reconcile', 'Reconcile Attempt', 'Submit an exact external Attempt reconciliation decision.', schema({ requestId: identifierSchema, caseId: identifierSchema, attemptId: identifierSchema, decision: { type: 'object' }, expectedCaseRevision: integerSchema }, ['requestId', 'caseId', 'attemptId', 'decision']), localMutationAnnotations),
   tool('claim_conflicts_get', 'Get Claim Conflicts', 'Read current ClaimLedger conflicts without acquiring a lease.', schema({ claims: { type: 'array', items: { type: 'object' } } }, ['claims']), readOnlyAnnotations),
   tool('case_promotion_get', 'Get Case Promotion', 'Read the bounded Promotion/candidate projection for a Case.', schema({ caseId: identifierSchema, includeTree: { type: 'boolean' } }, ['caseId']), readOnlyAnnotations),
-  tool('development_context_get', 'Get Development Context', 'Read an owner-issued immutable repository context reference.', schema({ selector: stringSchema }, []), readOnlyAnnotations),
+  tool('development_context_get', 'Get Development Context', 'Read or issue an owner-governed immutable repository context reference.', schema({ selector: stringSchema, scope: { type: 'object', additionalProperties: false, properties: { paths: { type: 'array', maxItems: 64, items: stringSchema }, prefixes: { type: 'array', maxItems: 64, items: stringSchema } } } }, []), readOnlyAnnotations),
   tool('development_context_list', 'List Development Context', 'List a bounded page from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 128 } }, ['contextReference']), readOnlyAnnotations),
   tool('development_context_search', 'Search Development Context', 'Search an owner-issued lazy repository context within explicit bounds.', schema({ contextReference: identifierSchema, pattern: stringSchema, cursor: { type: 'integer', minimum: 0 }, limit: { type: 'integer', minimum: 1, maximum: 256 } }, ['contextReference', 'pattern']), readOnlyAnnotations),
   tool('development_context_read', 'Read Development Context', 'Read one bounded file range from an owner-issued lazy repository context.', schema({ contextReference: identifierSchema, path: stringSchema, startByte: { type: 'integer', minimum: 0 }, maxBytes: { type: 'integer', minimum: 1 } }, ['contextReference', 'path']), readOnlyAnnotations),
@@ -537,8 +537,21 @@ function validateToolArguments(name, input) {
       if (!Array.isArray(args.claims)) fail('mcp_tool_invalid_arguments', 'claims must be an array');
       return canonicalClone(args);
     case 'development_context_get':
-      assertRecordShape(args, [], ['selector'], 'development_context_get arguments');
+      assertRecordShape(args, [], ['selector', 'scope'], 'development_context_get arguments');
       if (args.selector !== undefined) requireText(args, 'selector');
+      if (args.scope !== undefined) {
+        if (!isPlainRecord(args.scope)) fail('mcp_tool_invalid_arguments', 'scope must be a bounded record');
+        assertRecordShape(args.scope, [], ['paths', 'prefixes'], 'development_context_get scope');
+        for (const field of ['paths', 'prefixes']) {
+          if (args.scope[field] === undefined) continue;
+          if (!Array.isArray(args.scope[field]) || args.scope[field].length > 64) fail('mcp_tool_invalid_arguments', `scope.${field} must be a bounded array`);
+          for (const value of args.scope[field]) {
+            if (typeof value !== 'string' || value.length === 0) fail('mcp_tool_invalid_arguments', `scope.${field} must contain non-empty strings`);
+          }
+        }
+        if ((args.scope.paths?.length ?? 0) + (args.scope.prefixes?.length ?? 0) > 64) fail('mcp_tool_invalid_arguments', 'scope has too many entries');
+        if (args.selector !== undefined) fail('mcp_tool_invalid_arguments', 'selector and scope cannot be combined');
+      }
       return canonicalClone(args);
     case 'development_context_list':
       assertRecordShape(args, ['contextReference'], ['cursor', 'limit'], 'development_context_list arguments');
@@ -817,7 +830,7 @@ export class TdevMcpSurface {
       }
       case 'development_context_get': {
         if (typeof this.owners.developmentContextGet !== 'function') fail('mcp_owner_unavailable', 'Development context owner is unavailable');
-        return projectContext(await this.owners.developmentContextGet({ selector: args.selector ?? null, identity }), this.manifest.limits.maxContextBytes);
+        return projectContext(await this.owners.developmentContextGet({ selector: args.selector ?? null, scope: args.scope ?? null, identity }), this.manifest.limits.maxContextBytes);
       }
       case 'development_context_list': {
         if (typeof this.owners.developmentContextList !== 'function') fail('mcp_owner_unavailable', 'Lazy context list owner is unavailable');

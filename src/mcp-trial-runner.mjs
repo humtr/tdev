@@ -74,13 +74,19 @@ function hasMaterializedBaseTree(manifest) {
   return isPlainRecord(manifest?.repository?.context?.baseTree) && Object.keys(manifest.repository.context.baseTree).length > 0;
 }
 
+function currentScopedRepositoryBinding(binding, manifest) {
+  return binding?.baseReference !== undefined &&
+    manifest?.repository?.repositoryBaseIdentity !== undefined &&
+    canonicalJson(binding.baseReference.repositoryBaseIdentity) === canonicalJson(manifest.repository.repositoryBaseIdentity);
+}
+
 function semanticTaskPlan(snapshot, manifest) {
   if (snapshot?.schemaVersion !== 3) {
     fail('mcp_trial_case_snapshot_invalid', 'A tree-free Trial drive requires a semantic Case snapshot');
   }
   const binding = validateSemanticPlanBinding(snapshot.plan);
-  if (binding.baseDigest !== manifest.repository.baseDigest) {
-    fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
+  if (binding.baseDigest !== manifest.repository.baseDigest && !currentScopedRepositoryBinding(binding, manifest)) {
+    fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the current exact repository base');
   }
   const tasksById = {};
   for (const task of binding.tasks) {
@@ -108,6 +114,10 @@ function semanticTaskPlan(snapshot, manifest) {
 
 function taskPlan(snapshot, manifest, caseContract) {
   if (!isPlainRecord(snapshot?.plan)) fail('mcp_trial_case_snapshot_invalid', 'Case snapshot has no Plan binding');
+  if (snapshot?.schemaVersion === 3) {
+    const binding = validateSemanticPlanBinding(snapshot.plan);
+    if (binding.baseDigest !== manifest.repository.baseDigest) return semanticTaskPlan(snapshot, manifest);
+  }
   if (!hasMaterializedBaseTree(manifest)) return semanticTaskPlan(snapshot, manifest);
   const baseTree = fixedBaseTree(manifest);
   if (snapshot.plan.baseDigest !== manifest.repository.baseDigest || digest(baseTree) !== snapshot.plan.baseDigest) {
@@ -143,6 +153,15 @@ function caseView(snapshot, manifest, fallbackContract) {
   const caseContract = caseContractFrom(snapshot, fallbackContract);
   const plan = taskPlan(snapshot, manifest, caseContract);
   return { snapshot, plan, caseContract };
+}
+
+function scopedContextReference(plan) {
+  const references = [...new Set(plan.taskOrder
+    .map((taskId) => plan.tasksById?.[taskId]?.input?.contextReferenceId)
+    .filter((value) => typeof value === 'string'))].sort();
+  if (references.length !== 1) fail('mcp_trial_context_mismatch', 'Current scoped Plan does not bind exactly one context reference');
+  assertIdentifier(references[0], 'current scoped contextReferenceId');
+  return references[0];
 }
 
 function readyTaskIds(view, capabilities) {
@@ -503,7 +522,7 @@ function routeIdentity(agentOwner) {
 }
 
 export class McpTrialDevelopmentUnitRunner {
-  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now(), allowBindingManifest = false, materializeManifest = null } = {}) {
+  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now(), allowBindingManifest = false, materializeManifest = null, resolveContext = null } = {}) {
     if (!repository || typeof repository.create !== 'function' || typeof repository.load !== 'function' || typeof repository.command !== 'function') {
       fail('mcp_trial_owner_unavailable', 'Trial runner requires Case repository create/load/command');
     }
@@ -523,6 +542,10 @@ export class McpTrialDevelopmentUnitRunner {
       ? normalizeMcpTrialCompositionBinding(manifest)
       : normalizeMcpTrialCompositionManifest(manifest);
     this.materializeManifest = materializeManifest;
+    if (resolveContext !== null && typeof resolveContext !== 'function') {
+      fail('mcp_trial_runner_invalid', 'Trial runner context resolver must be callable');
+    }
+    this.resolveContext = resolveContext;
     this.operationManifest = normalizeDevelopmentOperationManifest(operationManifest);
     if (this.operationManifest.profile !== DEVELOPMENT_OPERATION_PROFILE) fail('mcp_trial_manifest_invalid', 'Trial operation manifest profile is invalid');
     this.operationCatalog = operationCatalog === null ? null : normalizeDevelopmentOperationCatalog(operationCatalog);
@@ -585,6 +608,36 @@ export class McpTrialDevelopmentUnitRunner {
   }
 
   async #materializedView(view) {
+    if (view.plan.baseDigest !== this.manifest.repository.baseDigest) {
+      if (!currentScopedRepositoryBinding(view.plan, this.manifest)) {
+        fail('mcp_trial_context_mismatch', 'Scoped Plan does not bind the current exact repository base');
+      }
+      if (typeof this.resolveContext !== 'function') {
+        fail('mcp_trial_materialization_required', 'Current scoped Plan requires its owner-issued context resolver');
+      }
+      const contextReferenceId = scopedContextReference(view.plan);
+      const context = canonicalClone(await this.resolveContext({ selector: contextReferenceId }));
+      if (!isPlainRecord(context) || !isPlainRecord(context.baseTree) ||
+          context.contextReferenceId !== contextReferenceId ||
+          context.repositoryCommitOid !== this.manifest.repository.commitOid ||
+          context.objectFormat !== this.manifest.repository.objectFormat ||
+          context.baseDigest !== view.plan.baseDigest || digest(context.baseTree) !== view.plan.baseDigest ||
+          canonicalJson(context.repositoryBaseIdentity) !== canonicalJson(view.plan.baseReference.repositoryBaseIdentity) ||
+          canonicalJson(context.contextScope) !== canonicalJson(view.plan.baseReference.scope) ||
+          context.scopeDigest !== view.plan.baseReference.scopeDigest) {
+        fail('mcp_trial_context_mismatch', 'Resolved current scoped context does not match the authoritative Plan reference');
+      }
+      const plan = definePlan({
+        revisionId: view.plan.revisionId,
+        baseTree: context.baseTree,
+        tasks: view.plan.taskOrder.map((taskId) => view.plan.tasksById[taskId]),
+        baseReference: view.plan.baseReference,
+      }, { caseContract: view.caseContract });
+      if (plan.baseDigest !== view.plan.baseDigest || plan.planDigest !== view.plan.planDigest) {
+        fail('mcp_trial_context_mismatch', 'Resolved current scoped context changed the authoritative Plan identity');
+      }
+      return { ...view, plan };
+    }
     if (hasMaterializedBaseTree(this.manifest)) return view;
     if (typeof this.materializeManifest !== 'function') {
       fail('mcp_trial_materialization_required', 'Trial operation requires the immutable repository tree');
@@ -1024,7 +1077,12 @@ export class McpTrialDevelopmentUnitRunner {
     const loaded = await this.repository.load(caseId);
     if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
     const snapshot = snapshotFromOwner(loaded, 'Case owner');
-    if (snapshot.plan?.baseDigest !== this.manifest.repository.baseDigest) {
+    let currentScoped = false;
+    if (snapshot.plan?.baseDigest !== this.manifest.repository.baseDigest && snapshot?.schemaVersion === 3) {
+      const binding = validateSemanticPlanBinding(snapshot.plan);
+      currentScoped = currentScopedRepositoryBinding(binding, this.manifest);
+    }
+    if (snapshot.plan?.baseDigest !== this.manifest.repository.baseDigest && !currentScoped) {
       if (!TERMINAL_CASE_STATES.has(snapshot.caseState)) {
         fail('mcp_trial_context_mismatch', 'Only terminal Case snapshots may be read against a historical repository base');
       }
@@ -1059,20 +1117,21 @@ export class McpTrialDevelopmentUnitRunner {
       });
     }
     const view = caseView(snapshot, this.manifest, this.caseContract);
-    const tree = candidateTree(view);
-    const changes = candidateChanges(view);
+    const materializedView = await this.#materializedView(view);
+    const tree = candidateTree(materializedView);
+    const changes = candidateChanges(materializedView);
     return deepFreeze({
       caseId,
-      caseState: view.snapshot.caseState,
-      caseRevision: view.snapshot.caseRevision,
-      baseDigest: view.plan.baseDigest,
+      caseState: materializedView.snapshot.caseState,
+      caseRevision: materializedView.snapshot.caseRevision,
+      baseDigest: materializedView.plan.baseDigest,
       candidateDigest: digest(tree),
       candidateTreeBytes: new TextEncoder().encode(canonicalJson(tree)).byteLength,
       changeCount: changes.length,
       changedPaths: changes.map(({ path }) => path),
       changes,
-      canonicalDigest: view.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(tree),
-      planDigest: view.plan.planDigest,
+      canonicalDigest: materializedView.snapshot.semanticAuthority?.canonicalRoot?.rootDigest ?? digest(tree),
+      planDigest: materializedView.plan.planDigest,
     });
   }
 }

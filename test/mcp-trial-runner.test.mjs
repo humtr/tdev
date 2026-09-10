@@ -11,6 +11,7 @@ import {
   normalizeDevelopmentOperationCatalog,
 } from '../src/development-operation-catalog.mjs';
 import { defineSemanticDevelopmentUnitPlan } from '../src/development-unit.mjs';
+import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 import {
   CaseEngine,
@@ -686,6 +687,123 @@ test('D0046 drive advances reserve identity after an expired reservation', async
   assert.equal(calls[1].operation, 'reserve');
   assert.notEqual(calls[1].input.request.reservationRequestId, originalReservationRequestId);
   assert.match(calls[1].input.request.reservationRequestId, /^trial-reserve-[0-9a-f]{64}$/);
+});
+
+
+test('D0047 current exact-release scoped semantic Case resolves through its owner-issued context instead of historical fallback', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(
+    readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'),
+  ));
+  const manifestDigest = digest({ repository: 'current-dynamic-scoped-runner' });
+  const treeOid = 'b'.repeat(40);
+  const repositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1', commitOid: COMMIT, treeOid, manifestDigest,
+  });
+  const fixedScope = { paths: ['src/base.mjs'], maxFiles: 4, maxBytes: 4096, maxSearchResults: 4 };
+  const rawManifest = buildManifest(operationManifest);
+  rawManifest.repository.repositoryBaseIdentity = repositoryBaseIdentity;
+  rawManifest.repository.scope = fixedScope;
+  rawManifest.repository.scopeDigest = lazyScopeDigest(fixedScope);
+  rawManifest.repository.context.contextProfile = 'tdev.repository.context.prepare.lazy.v1';
+  rawManifest.repository.context.contextScope = fixedScope;
+  rawManifest.repository.context.scopeDigest = rawManifest.repository.scopeDigest;
+  rawManifest.repository.context.baseIdentity = {
+    schemaVersion: 1,
+    profile: 'tdev.repository-base-identity.v1',
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid,
+    baseDigest: digest(BASE_TREE),
+    manifestDigest,
+  };
+  rawManifest.repository.context.repositoryBaseIdentity = repositoryBaseIdentity;
+  rawManifest.operation.contextProfile = 'tdev.repository.context.prepare.lazy.v1';
+  const manifest = normalizeMcpTrialCompositionManifest(rawManifest);
+
+  const dynamicTree = { 'src/dynamic.mjs': 'export const dynamic = true;\n' };
+  const dynamicScope = { paths: ['src/dynamic.mjs'], maxFiles: 4, maxBytes: 4096, maxSearchResults: 4 };
+  const descriptor = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const contextReferenceId = 'ctx-current-dynamic';
+  const plan = defineSemanticDevelopmentUnitPlan({
+    revisionId: 'revision-current-dynamic',
+    baseTree: dynamicTree,
+    repositoryCommitOid: COMMIT,
+    contextReferenceId,
+    contextScope: dynamicScope,
+    baseIdentity: {
+      schemaVersion: 1,
+      profile: 'tdev.repository-base-identity.v1',
+      objectFormat: 'sha1',
+      commitOid: COMMIT,
+      treeOid,
+      baseDigest: digest(dynamicTree),
+      manifestDigest,
+    },
+    repositoryBaseIdentity,
+    operationCatalog,
+    operation: {
+      id: DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      version: 1,
+      contractDigest: descriptor.contractDigest,
+      input: { instruction: 'make one current scoped change' },
+    },
+    writePaths: ['src/dynamic.mjs'],
+  });
+  const snapshot = new CaseEngine({
+    caseId: 'trial-current-dynamic',
+    plan,
+    semanticAuthority: { profile: SEMANTIC_PROFILE },
+  }).snapshot();
+  let historicalReads = 0;
+  let resolutions = 0;
+  const repository = {
+    create: async () => null,
+    load: async () => snapshot,
+    command: async () => null,
+    materializedProjection: async () => { historicalReads += 1; throw new Error('must not use historical fallback'); },
+  };
+  const common = {
+    repository,
+    driveOwner: { initialize: async () => null, advance: async () => null },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+    manifest,
+    operationManifest,
+    operationCatalog,
+  };
+  const resolved = {
+    baseTree: dynamicTree,
+    repositoryCommitOid: COMMIT,
+    objectFormat: 'sha1',
+    contextReferenceId,
+    baseDigest: digest(dynamicTree),
+    contextScope: plan.baseReference.scope,
+    scopeDigest: plan.baseReference.scopeDigest,
+    repositoryBaseIdentity,
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    ...common,
+    resolveContext: async ({ selector }) => {
+      resolutions += 1;
+      assert.equal(selector, contextReferenceId);
+      return structuredClone(resolved);
+    },
+  });
+  const candidate = await runner.candidate('trial-current-dynamic');
+  assert.equal(candidate.baseDigest, digest(dynamicTree));
+  assert.equal(candidate.candidateDigest, digest(dynamicTree));
+  assert.equal(candidate.changeCount, 0);
+  assert.equal(resolutions, 1);
+  assert.equal(historicalReads, 0);
+
+  const staleRunner = createMcpTrialDevelopmentUnitRunner({
+    ...common,
+    resolveContext: async () => ({ ...structuredClone(resolved), baseTree: { 'src/dynamic.mjs': 'tampered\n' } }),
+  });
+  await assert.rejects(staleRunner.candidate('trial-current-dynamic'), { code: 'mcp_trial_context_mismatch' });
+  assert.equal(historicalReads, 0);
 });
 
 test('D0047 Trial runner surfaces semantic change capability and binds validation to the accepted candidate digest', () => {

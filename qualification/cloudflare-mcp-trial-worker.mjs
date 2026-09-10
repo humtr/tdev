@@ -43,6 +43,8 @@ import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mj
 import {
   loadMcpTrialBaseTree,
   loadMcpTrialLazyContext,
+  loadMcpTrialManifest,
+  loadMcpTrialSelfContextBlob,
   MCP_TRIAL_BASE_COMMIT_OID,
   MCP_TRIAL_BASE_DIGEST,
 } from './mcp-trial-base-tree.mjs';
@@ -203,7 +205,7 @@ function metadataFastPath(request, env) {
   }
 }
 
-export async function createRuntimeExecutionApplication(env, { driveOwnerOverride = null } = {}) {
+export async function createRuntimeExecutionApplication(env, { driveOwnerOverride = null, contextRegistry = null, resolveContext = null } = {}) {
   const configuredComposition = readCompositionBinding(env);
   const baseTree = await loadMcpTrialBaseTree();
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
@@ -235,6 +237,11 @@ export async function createRuntimeExecutionApplication(env, { driveOwnerOverrid
     casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
     driveOwnerOverride,
     lazyContextProvider: loadMcpTrialLazyContext,
+    selfContextProvider: {
+      loadManifest: loadMcpTrialManifest,
+      loadBlob: loadMcpTrialSelfContextBlob,
+    },
+    contextRegistry,
   });
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: facades.repository,
@@ -243,6 +250,7 @@ export async function createRuntimeExecutionApplication(env, { driveOwnerOverrid
     manifest: composition,
     operationManifest,
     operationCatalog,
+    resolveContext,
   });
   return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
 }
@@ -252,7 +260,7 @@ export async function createRuntimeExecutionApplication(env, { driveOwnerOverrid
 // canonicalized or retired after the r4 P0 cutover.
 export { createRuntimeExecutionApplication as createTrialExecutionApplication };
 
-export async function createTrialDriveApplication(env, { driveOwnerOverride = null } = {}) {
+export async function createTrialDriveApplication(env, { driveOwnerOverride = null, resolveContext = null } = {}) {
   const composition = normalizeMcpRuntimeCompositionBinding(readCompositionBinding(env));
   assertGeneratedBaseBinding(composition);
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
@@ -304,13 +312,14 @@ export async function createTrialDriveApplication(env, { driveOwnerOverride = nu
     operationCatalog,
     allowBindingManifest: true,
     materializeManifest,
+    resolveContext,
   });
   return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
 }
 
-export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
+export async function createTrialApplication(env, { driveOwnerOverride = null, developmentContextResolveOverride = null } = {}) {
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
-  const execution = await createRuntimeExecutionApplication(env, { driveOwnerOverride });
+  const execution = await createRuntimeExecutionApplication(env, { driveOwnerOverride, resolveContext: developmentContextResolveOverride });
   const { composition, operationManifestDigest, operationCatalog, facades, runner } = execution;
   if (authManifest.mcpResource !== composition.resource) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
@@ -341,7 +350,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       developmentUnitRunner: runner,
       operationCatalog,
       developmentContextGet: facades.contextOwner.developmentContextGet,
-      developmentContextResolve: facades.contextOwner.developmentContextResolve,
+      developmentContextResolve: developmentContextResolveOverride ?? facades.contextOwner.developmentContextResolve,
       authorize: facades.authorize,
     },
   });
@@ -509,10 +518,7 @@ async function createRuntimeLightApplication(env) {
         requestId: input.requestId,
       });
     },
-    developmentContextGet: async ({ selector = null } = {}) => {
-      assertContextSelector(selector);
-      return context;
-    },
+    developmentContextGet: async (input = {}) => invokeContextExecution('developmentContextGet', input),
     developmentContextList: async (input = {}) => invokeContextExecution('developmentContextList', input),
     developmentContextSearch: async (input = {}) => invokeContextExecution('developmentContextSearch', input),
     developmentContextRead: async (input = {}) => invokeContextExecution('developmentContextRead', input),

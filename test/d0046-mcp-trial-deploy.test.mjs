@@ -101,7 +101,8 @@ test('D0046 execution DO keeps runner drive off full tree construction under the
   assert.ok(source.includes('const materializeManifest = () =>'));
   assert.ok(driveSource.includes('createTrialApplication, createTrialDriveApplication, createTrialExecutionApplication'));
   assert.ok(driveSource.includes("request.operation === 'runner.drive'"));
-  assert.ok(driveSource.includes('createTrialDriveApplication(this.env, { driveOwnerOverride: this.host })'));
+  assert.ok(driveSource.includes('createTrialDriveApplication(this.env, { driveOwnerOverride: this.host, resolveContext: contextResolver(this.env) })'));
+  assert.ok(driveSource.includes('developmentContextResolveOverride: contextResolver(this.env)'));
   assert.ok(driveSource.includes("request.operation === 'developmentUnitStart' || request.operation === 'developmentStart'"));
 });
 

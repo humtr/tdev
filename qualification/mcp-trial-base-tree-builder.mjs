@@ -12,6 +12,7 @@ import {
   scopeDigest,
 } from '../src/lazy-plan-reference.mjs';
 import { validateTree } from '../src/promotion.mjs';
+import { isMcpSelfContextSourcePath } from '../src/mcp-self-context.mjs';
 
 const UTF8_DECODER = new TextDecoder('utf-8', { fatal: true });
 const GIT_OID = /^[0-9a-f]{40,64}$/u;
@@ -122,10 +123,11 @@ function selectedPath(filePath, scope) {
   return scope.paths.includes(filePath) || scope.prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`));
 }
 
-function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest, repositoryBaseIdentity, scope, manifestEntries, selectedTree }) {
+function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest, repositoryBaseIdentity, scope, manifestEntries, selectedTree, selfContextBlobs }) {
   const encode = (value) => gzipSync(Buffer.from(canonicalJson(value), 'utf8'), { level: 9, mtime: 0 }).toString('base64');
   const selectedLiteral = canonicalJson(selectedTree);
   const manifestPayload = encode(manifestEntries);
+  const selfContextBlobLiteral = canonicalJson(selfContextBlobs);
   const chunks = (value) => {
     const result = [];
     for (let offset = 0; offset < value.length; offset += 120) result.push(JSON.stringify(value.slice(offset, offset + 120)));
@@ -143,8 +145,10 @@ function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest,
     `const MCP_TRIAL_SCOPE_DIGEST = ${JSON.stringify(scopeDigest(scope))};`,
     `const MCP_TRIAL_MANIFEST_DIGEST = ${JSON.stringify(repositoryBaseIdentity.manifestDigest)};`,
     `const MCP_TRIAL_SELECTED_TREE = Object.freeze(${selectedLiteral});`,
+    `const MCP_TRIAL_SELF_CONTEXT_BLOBS = Object.freeze(${selfContextBlobLiteral});`,
     `const MCP_TRIAL_MANIFEST_GZIP_BASE64 = [\n  ${chunks(manifestPayload)}\n].join('');`,
     'let manifestPromise = null;',
+    'const selfContextBlobPromises = new Map();',
     '',
     'function decodeBase64(value) {',
     '  const binary = atob(value);',
@@ -153,10 +157,14 @@ function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest,
     '  return bytes;',
     '}',
     '',
-    'async function decodeJson(value, errorCode) {',
+    'async function decodeGzipBytes(value) {',
     "  if (typeof DecompressionStream !== 'function') throw new Error('mcp_base_tree_decompression_unavailable');",
     "  const stream = new Response(decodeBase64(value)).body.pipeThrough(new DecompressionStream('gzip'));",
-    '  const parsed = JSON.parse(await new Response(stream).text());',
+    '  return new Uint8Array(await new Response(stream).arrayBuffer());',
+    '}',
+    '',
+    'async function decodeJson(value, errorCode) {',
+    '  const parsed = JSON.parse(new TextDecoder().decode(await decodeGzipBytes(value)));',
     "  if (parsed === null || typeof parsed !== 'object') throw new Error(errorCode);",
     '  return parsed;',
     '}',
@@ -172,6 +180,12 @@ function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest,
     '    return value;',
     '  })();',
     '  return manifestPromise;',
+    '}',
+    '',
+    'export async function loadMcpTrialSelfContextBlob(blobOid) {',
+    "  if (typeof blobOid !== 'string' || !Object.hasOwn(MCP_TRIAL_SELF_CONTEXT_BLOBS, blobOid)) return null;",
+    '  if (!selfContextBlobPromises.has(blobOid)) selfContextBlobPromises.set(blobOid, decodeGzipBytes(MCP_TRIAL_SELF_CONTEXT_BLOBS[blobOid]));',
+    '  return selfContextBlobPromises.get(blobOid);',
     '}',
     '',
     'export async function loadMcpTrialLazyContext() {',
@@ -232,6 +246,21 @@ export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, s
     if (raw === undefined || raw.byteLength !== row.byteLength) fail('mcp_base_tree_git_blob_invalid', 'Git blob size does not match tree metadata', { path: row.path });
     selectedTree[row.path] = decodeBlob(raw, `Git blob ${row.blobOid}`);
   }
+  const selfContextRows = rows.filter((row) => isMcpSelfContextSourcePath(row.path) && row.type === 'blob' && REGULAR_TEXT_MODES.has(row.mode) && row.byteLength !== null);
+  const selfContextOids = [...new Set(selfContextRows.map((row) => row.blobOid))];
+  const selfContextContents = selfContextOids.length === 0
+    ? new Map()
+    : parseBatch(await git(repositoryPath, ['cat-file', '--batch'], Buffer.from(`${selfContextOids.join('\n')}\n`, 'ascii')), selfContextOids, objectFormat);
+  const selfContextBlobs = {};
+  const admittedSelfContextOids = new Set();
+  for (const row of selfContextRows) {
+    const raw = selfContextContents.get(row.blobOid);
+    if (raw === undefined || raw.byteLength !== row.byteLength) fail('mcp_base_tree_git_blob_invalid', 'Self-context Git blob size does not match tree metadata', { path: row.path });
+    try { UTF8_DECODER.decode(raw); }
+    catch { continue; }
+    admittedSelfContextOids.add(row.blobOid);
+    if (!Object.hasOwn(selfContextBlobs, row.blobOid)) selfContextBlobs[row.blobOid] = gzipSync(raw, { level: 9, mtime: 0 }).toString('base64');
+  }
   const normalizedTree = validateTree(selectedTree);
   const semanticBaseDigest = digest(normalizedTree);
   const source = generatedModule({
@@ -243,6 +272,7 @@ export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, s
     scope: normalizedScope,
     manifestEntries: rows,
     selectedTree: normalizedTree,
+    selfContextBlobs,
   });
   return Object.freeze({
     moduleName: GENERATED_MODULE,
@@ -262,6 +292,9 @@ export async function buildMcpTrialBaseTreeModule({ repositoryPath, commitOid, s
     manifestEntryCount: rows.length,
     semanticBytes: Buffer.byteLength(canonicalJson(normalizedTree), 'utf8'),
     selectedBytes,
+    selfContextBlobCount: Object.keys(selfContextBlobs).length,
+    selfContextPathCount: selfContextRows.filter((row) => admittedSelfContextOids.has(row.blobOid)).length,
+    selfContextBytes: selfContextRows.filter((row) => admittedSelfContextOids.has(row.blobOid)).reduce((sum, row) => sum + row.byteLength, 0),
     compressedBytes: Buffer.byteLength(source, 'utf8'),
     moduleBytes: Buffer.byteLength(source, 'utf8'),
     tree: normalizedTree,

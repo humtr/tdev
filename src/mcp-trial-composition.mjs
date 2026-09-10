@@ -18,6 +18,7 @@ import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
 import { agentRouteHostKey } from './agent-route-election.mjs';
 import { validateRelativePath } from './policy.mjs';
+import { createMcpSelfContextOwner } from './mcp-self-context.mjs';
 import {
   normalizeLazyPlanScope,
   normalizeRepositoryBaseIdentity,
@@ -432,7 +433,7 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, lazyContextProvider = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, lazyContextProvider = null, selfContextProvider = null, contextRegistry = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
   const normalized = allowBindingManifest
     ? normalizeMcpTrialCompositionBinding(manifest)
     : normalizeMcpTrialCompositionManifest(manifest);
@@ -784,32 +785,61 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     });
   }
 
+  const selfContextOwner = selfContextProvider === null || contextRegistry === null
+    ? null
+    : createMcpSelfContextOwner({
+      repository: normalized.repository,
+      registry: contextRegistry,
+      sourceProvider: selfContextProvider,
+    });
+
   const contextOwner = Object.freeze({
     // Public MCP callers receive a bounded reference projection.  The full
     // tree remains an internal resolver input for development_unit_start and
     // is never copied into a discovery/context response.
-    async developmentContextGet({ selector = null } = {}) {
-      assertContextSelector(selector);
-      const context = normalized.repository.context;
-      return publicJsonClone({
-        revisionId: context.revisionId,
-        repositoryCommitOid: context.repositoryCommitOid,
-        objectFormat: context.objectFormat,
-        contextReferenceId: normalized.repository.contextReference,
-        baseDigest: normalized.repository.baseDigest,
-        ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
-        ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
-        ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
-      });
+    async developmentContextGet({ selector = null, scope = null } = {}) {
+      if (scope !== null) {
+        if (selector !== null) fail('mcp_trial_context_scope_denied', 'Context selector and scope cannot be combined');
+        if (selfContextOwner === null) fail('mcp_owner_unavailable', 'Self-context issuer is unavailable');
+        return publicJsonClone(await selfContextOwner.issue(scope));
+      }
+      if (selector === null || selector === normalized.repository.contextReference) {
+        const context = normalized.repository.context;
+        return publicJsonClone({
+          revisionId: context.revisionId,
+          repositoryCommitOid: context.repositoryCommitOid,
+          objectFormat: context.objectFormat,
+          contextReferenceId: normalized.repository.contextReference,
+          baseDigest: normalized.repository.baseDigest,
+          ...(context.contextCapabilityId === undefined ? {} : { contextCapabilityId: context.contextCapabilityId }),
+          ...(context.modelCapabilityId === undefined ? {} : { modelCapabilityId: context.modelCapabilityId }),
+          ...(context.validationCapabilityId === undefined ? {} : { validationCapabilityId: context.validationCapabilityId }),
+        });
+      }
+      if (selfContextOwner === null) fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
+      return publicJsonClone(await selfContextOwner.get(selector));
     },
     async developmentContextResolve({ selector = null } = {}) {
-      assertContextSelector(selector);
-      return publicJsonClone(normalized.repository.context);
+      if (selector === null || selector === normalized.repository.contextReference) return publicJsonClone(normalized.repository.context);
+      if (selfContextOwner === null) fail('mcp_trial_context_scope_denied', 'Context selector is outside the fixed trial reference');
+      return publicJsonClone(await selfContextOwner.resolve(selector));
     },
     ...(lazyContextProvider === null ? {} : {
-      developmentContextList: listLazyContext,
-      developmentContextSearch: searchLazyContext,
-      developmentContextRead: readLazyContext,
+      async developmentContextList(input) {
+        if (input?.contextReference === normalized.repository.contextReference) return listLazyContext(input);
+        if (selfContextOwner === null) fail('mcp_trial_context_scope_denied', 'Context reference is outside the fixed trial reference');
+        return selfContextOwner.list(input);
+      },
+      async developmentContextSearch(input) {
+        if (input?.contextReference === normalized.repository.contextReference) return searchLazyContext(input);
+        if (selfContextOwner === null) fail('mcp_trial_context_scope_denied', 'Context reference is outside the fixed trial reference');
+        return selfContextOwner.search(input);
+      },
+      async developmentContextRead(input) {
+        if (input?.contextReference === normalized.repository.contextReference) return readLazyContext(input);
+        if (selfContextOwner === null) fail('mcp_trial_context_scope_denied', 'Context reference is outside the fixed trial reference');
+        return selfContextOwner.read(input);
+      },
     }),
   });
 

@@ -131,15 +131,23 @@ function bindingByName(value, name) {
   return Array.isArray(bindings) ? bindings.find((binding) => binding?.name === name) : undefined;
 }
 
-export function existingTrialIdentity(settings) {
-  const binding = bindingByName(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON');
+function existingComposition(settings, bindingName, label) {
+  const binding = bindingByName(settings, bindingName);
   if (binding?.type !== 'plain_text' || typeof binding.text !== 'string') {
-    fail('d0046_update_binding_invalid', 'Existing Trial composition binding is missing or not plain text');
+    fail('d0046_update_binding_invalid', `Existing ${label} composition binding is missing or not plain text`);
   }
   let parsed;
   try { parsed = JSON.parse(binding.text); }
-  catch { fail('d0046_update_binding_invalid', 'Existing Trial composition binding is not JSON'); }
-  return normalizeMcpTrialCompositionBinding(parsed).identity;
+  catch { fail('d0046_update_binding_invalid', `Existing ${label} composition binding is not JSON`); }
+  return normalizeMcpTrialCompositionBinding(parsed);
+}
+
+export function existingTrialIdentity(settings) {
+  return existingComposition(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON', 'Trial').identity;
+}
+
+export function existingCanonicalRuntimeIdentity(settings) {
+  return existingComposition(settings, D0046_MCP_RUNTIME_COMPOSITION_BINDING, 'canonical runtime').identity;
 }
 
 function assertText(value, label, maxBytes = 4096) {
@@ -1041,6 +1049,124 @@ export async function canonicalizeMcpRuntime({ repositoryPath = repositoryRoot, 
     manifests: { compositionDigest: canonicalManifests.composition.manifestDigest, surfaceDigest: canonicalManifests.surfaceDigest, buildDigest: canonicalManifests.buildDigest },
     provider: { canonical: provider, legacyRollback: legacyProvider, publicReadback },
     safety: { legacyRuntimeRetained: true, durableDriveTransferred: true, newDriveNamespaceCreated: false, canonicalWriterEnabled: false, previewWritersEnabled: false },
+  });
+}
+
+
+export async function updateCanonicalMcpRuntime({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
+  const sourceSha = assertTrackedSource(repositoryPath);
+  const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
+  const operationManifest = normalizedOperationManifest(rawOperation);
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
+  const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
+  const artifact = artifactManifest(modules);
+  const credentials = loadCloudflareCredentials(envFile);
+  const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
+
+  await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
+  const [canonicalBefore, legacyBefore, namespaces, apps] = await Promise.all([
+    workerReadback(client, D0046_MCP_RUNTIME_SCRIPT),
+    workerReadback(client, D0046_MCP_TRIAL_SCRIPT),
+    listNamespaces(client),
+    listAccessApps(client),
+  ]);
+  assertOwnerMarker(canonicalBefore.settings, D0046_MCP_RUNTIME_SCRIPT, D0046_MCP_RUNTIME_ENVIRONMENT);
+  assertExternalOwnerBinding(canonicalBefore.settings, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, 'TDEV_CASE_AUTHORITY');
+  assertExternalOwnerBinding(canonicalBefore.settings, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, 'TDEV_AGENT_DELIVERY');
+  const canonicalD1 = bindingByName(canonicalBefore.settings, 'TDEV_CASE_PLACEMENT');
+  const canonicalDrive = bindingByName(canonicalBefore.settings, 'TDEV_CASE_AGENT_DRIVE');
+  if (canonicalD1?.type !== 'd1' || canonicalD1.database_id !== D0046_CASE_PLACEMENT_DATABASE) {
+    fail('d0046_worker_binding_mismatch', 'Canonical update precondition D1 binding was not exact');
+  }
+  if (canonicalDrive?.type !== 'durable_object_namespace' || canonicalDrive.class_name !== MCP_TRIAL_DRIVE_CLASS_NAME ||
+      typeof canonicalDrive.namespace_id !== 'string' || canonicalDrive.script_name !== undefined) {
+    fail('d0046_drive_namespace_mismatch', 'Canonical update precondition Drive binding was not self-owned and exact');
+  }
+  const driveNamespace = assertNamespaceId(canonicalDrive.namespace_id, 'canonical Drive namespace');
+  const driveMatches = namespaces.filter((item) => item?.id === driveNamespace && item?.class === MCP_TRIAL_DRIVE_CLASS_NAME);
+  if (driveMatches.length !== 1 || driveMatches[0]?.script !== D0046_MCP_RUNTIME_SCRIPT || driveMatches[0]?.use_sqlite !== true) {
+    fail('d0046_drive_namespace_mismatch', 'Canonical update precondition Drive namespace owner was not exact');
+  }
+  const legacyDrive = bindingByName(legacyBefore.settings, 'TDEV_CASE_AGENT_DRIVE');
+  if (legacyDrive?.type !== 'durable_object_namespace' || legacyDrive.class_name !== MCP_TRIAL_DRIVE_CLASS_NAME ||
+      legacyDrive.script_name !== D0046_MCP_RUNTIME_SCRIPT || legacyDrive.namespace_id !== driveNamespace) {
+    fail('d0046_drive_namespace_mismatch', 'Canonical update precondition legacy rollback did not reference the canonical Drive');
+  }
+  const runtimeResource = bindingByName(canonicalBefore.settings, D0046_MCP_RUNTIME_RESOURCE_BINDING);
+  if (runtimeResource?.type !== 'plain_text' || runtimeResource.text !== D0046_MCP_RUNTIME_RESOURCE ||
+      bindingByName(canonicalBefore.settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON') !== undefined) {
+    fail('d0046_worker_binding_mismatch', 'Canonical update target is not the post-migration runtime');
+  }
+
+  const canonicalAppMatches = apps.filter((app) => app?.domain === D0046_MCP_RUNTIME_DOMAIN);
+  const legacyAppMatches = apps.filter((app) => app?.domain === D0046_MCP_TRIAL_DOMAIN);
+  if (canonicalAppMatches.length !== 1 || legacyAppMatches.length !== 1) {
+    fail('d0046_access_readback_missing', 'Canonical update requires exactly one canonical and one legacy Access application');
+  }
+  const canonicalAccess = validateAccessApplication(
+    (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(canonicalAppMatches[0].id)}`))).result,
+    credentials.accountId,
+    { expectedName: null, expectedDomain: D0046_MCP_RUNTIME_DOMAIN },
+  );
+  validateAccessApplication(
+    (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(legacyAppMatches[0].id)}`))).result,
+    credentials.accountId,
+  );
+  const identity = existingCanonicalRuntimeIdentity(canonicalBefore.settings);
+  const manifests = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace,
+    accessAudience: canonicalAccess.aud,
+    agentRouteBinding,
+    compositionProfile: MCP_RUNTIME_COMPOSITION_PROFILE,
+    resource: D0046_MCP_RUNTIME_RESOURCE,
+    workerScript: D0046_MCP_RUNTIME_SCRIPT,
+    environment: D0046_MCP_RUNTIME_ENVIRONMENT,
+    casePrefix: D0046_MCP_RUNTIME_CASE_PREFIX,
+    driveWorkerScript: D0046_MCP_RUNTIME_SCRIPT,
+  });
+  const baseMetadata = buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false });
+  const liveMetadata = buildCanonicalRuntimeMetadata(baseMetadata, { manifests, phase: 'live' });
+
+  // The only provider mutation in this path: replace the canonical Worker code/config in place.
+  // No transfer state, no legacy upload, no namespace/D1/Access/subdomain mutation.
+  await uploadWorker(client, modules, liveMetadata, D0046_MCP_RUNTIME_SCRIPT);
+
+  const [canonicalAfter, legacyAfter] = await Promise.all([
+    workerReadback(client, D0046_MCP_RUNTIME_SCRIPT),
+    workerReadback(client, D0046_MCP_TRIAL_SCRIPT),
+  ]);
+  validateCanonicalWorkerSettings(canonicalAfter.settings, canonicalAfter.version, manifests, sourceSha, artifact, driveNamespace);
+  await assertDriveNamespaceOwner(client, D0046_MCP_RUNTIME_SCRIPT, driveNamespace);
+  const legacyDriveAfter = bindingByName(legacyAfter.settings, 'TDEV_CASE_AGENT_DRIVE');
+  if (legacyAfter.version?.id !== legacyBefore.version?.id ||
+      legacyDriveAfter?.type !== 'durable_object_namespace' || legacyDriveAfter.class_name !== MCP_TRIAL_DRIVE_CLASS_NAME ||
+      legacyDriveAfter.script_name !== D0046_MCP_RUNTIME_SCRIPT || legacyDriveAfter.namespace_id !== driveNamespace) {
+    fail('d0046_drive_namespace_mismatch', 'Canonical update changed the retained legacy rollback runtime');
+  }
+  const publicReadback = await publicMetadataReadback(manifests.auth, D0046_MCP_RUNTIME_ORIGIN);
+  return Object.freeze({
+    status: 'canonical-updated',
+    sourceSha,
+    scriptName: D0046_MCP_RUNTIME_SCRIPT,
+    origin: D0046_MCP_RUNTIME_ORIGIN,
+    drive: { namespace: driveNamespace, ownerScript: D0046_MCP_RUNTIME_SCRIPT },
+    ownerBindings: { caseWorker: D0046_CASE_SCRIPT, agentWorker: D0046_AGENT_SCRIPT, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE },
+    access: { id: canonicalAccess.id, domain: canonicalAccess.domain, audienceDigest: sha256(canonicalAccess.aud) },
+    base: { commitOid: base.commitOid, baseDigest: base.baseDigest, fileCount: base.fileCount, semanticBytes: base.semanticBytes, selfContextBlobCount: base.selfContextBlobCount, selfContextPathCount: base.selfContextPathCount, selfContextBytes: base.selfContextBytes, moduleBytes: base.moduleBytes },
+    artifact: { moduleCount: artifact.moduleCount, moduleDigest: artifact.moduleDigest, artifactManifestDigest: artifact.artifactManifestDigest },
+    manifests: { compositionDigest: manifests.composition.manifestDigest, surfaceDigest: manifests.surfaceDigest, buildDigest: manifests.buildDigest },
+    provider: { beforeVersionId: canonicalBefore.version.id, afterVersionId: canonicalAfter.version.id, legacyVersionId: legacyAfter.version.id, publicReadback },
+    safety: { updateOnly: true, legacyRuntimeRetained: true, driveNamespaceTransferred: false, newDriveNamespaceCreated: false, accessMutated: false, canonicalWriterEnabled: false, previewWritersEnabled: false },
   });
 }
 

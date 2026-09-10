@@ -44,6 +44,15 @@ test('D0048 trial builder binds the complete manifest while hydrating only the o
     assert.match(built.source, /MCP_TRIAL_SELECTED_TREE = Object\.freeze/);
     assert.doesNotMatch(built.source, /MCP_TRIAL_SELECTED_GZIP_BASE64/);
     assert.match(built.source, /MCP_TRIAL_MANIFEST_GZIP_BASE64/);
+    assert.equal(built.selfContextBlobCount, 1);
+    assert.equal(built.selfContextPathCount, 1);
+    const generated = await import(`data:text/javascript;base64,${Buffer.from(built.source, 'utf8').toString('base64')}`);
+    const manifest = await generated.loadMcpTrialManifest();
+    const selectedEntry = manifest.find((entry) => entry.path === 'src/selected.mjs');
+    assert.ok(selectedEntry);
+    const blob = await generated.loadMcpTrialSelfContextBlob(selectedEntry.blobOid);
+    assert.equal(Buffer.from(blob).toString('utf8'), 'export const selected = true;\n');
+    assert.equal(await generated.loadMcpTrialSelfContextBlob('0'.repeat(40)), null);
   } finally {
     await rm(repositoryPath, { recursive: true, force: true });
   }
