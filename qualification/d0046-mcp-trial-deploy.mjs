@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -9,6 +10,7 @@ import {
   collectWorkerModules,
   createWorkerUploadForm,
   loadCloudflareCredentials,
+  parseCloudflareEnv,
 } from './cloudflare-casedo-api.mjs';
 import { buildMcpTrialBaseTreeModule } from './mcp-trial-base-tree-builder.mjs';
 import {
@@ -32,8 +34,14 @@ import {
   normalizeMcpTrialCompositionManifest,
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
+import {
+  developmentOperationCatalogDigest,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
+import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
+import { createQualificationRpc } from './d0046-agent-preserving-update.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const D0046_MCP_TRIAL_SCRIPT = 'tdev-mcp-trial';
@@ -48,12 +56,15 @@ export const D0046_CASE_SCRIPT = 'tdev-d0020-composition-case-r1';
 export const D0046_CASE_NAMESPACE = '3b3d5808028f4e74bcbc1dc22f0757fd';
 export const D0046_AGENT_SCRIPT = 'tdev-d0020-qualification-clean-a';
 export const D0046_AGENT_NAMESPACE = '0dad69baa7154d00949f88c8b8dbf94a';
+export const D0046_AGENT_ID = 'd0039-r12-custody-20260828-3631c5a4';
+export const D0046_AGENT_ROUTE_GENERATION = 1;
 export const D0046_CASE_PLACEMENT_DATABASE = 'ff868f84-4fa3-4d3d-9024-8a1eec7b0c79';
 export const D0046_ACCESS_APP_NAME = 'tdev MCP trial 20260904';
 export const D0046_CASE_PREFIX = 'tdev-trial-';
 export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
+export const D0046_OPERATION_CATALOG_CONFIG = 'config/development-operation-catalog.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
@@ -73,6 +84,7 @@ export const D0046_CASE_SOURCE_SHAS = Object.freeze([
   '3122ca9818e5e6b742491e8076721d68da131c50',
   '746a09d4643bf268d9f4204304217e3309763422',
   'e5977a1abd95d90a7fc2039ab990d3550e1386f0',
+  '672b253c8673bbb7e8bd6b40fa85a6148fda99c2',
 ]);
 
 const API_ORIGIN = 'https://api.cloudflare.com/client/v4';
@@ -171,6 +183,11 @@ function normalizedOperationManifest(raw) {
   return normalizeDevelopmentOperationManifest(raw);
 }
 
+function normalizedOperationCatalog() {
+  const source = readFileSync(path.join(repositoryRoot, D0046_OPERATION_CATALOG_CONFIG), 'utf8');
+  return normalizeDevelopmentOperationCatalog(JSON.parse(source));
+}
+
 function accessManifest(audience) {
   return normalizeMcpAuthManifest({
     schemaVersion: 1,
@@ -196,7 +213,39 @@ function identityManifest() {
   return Object.freeze({ principalId, tenantId });
 }
 
-function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
+async function readCanonicalAgentRouteBinding(envFile) {
+  const values = parseCloudflareEnv(readFileSync(envFile, 'utf8'));
+  const token = values.TDEV_D0020_QUALIFICATION_TOKEN;
+  assertText(token, 'TDEV_D0020_QUALIFICATION_TOKEN', 4096);
+  const provider = createQualificationRpc({ token });
+  const routeRead = await provider('read');
+  const binding = routeRead?.routeBinding;
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    fail('d0046_agent_route_binding_missing', 'Agent provider read did not expose the canonical route binding');
+  }
+  if (binding.agentId !== D0046_AGENT_ID ||
+      binding.routeGeneration !== D0046_AGENT_ROUTE_GENERATION ||
+      binding.workerScript !== D0046_AGENT_SCRIPT ||
+      binding.deployment !== D0046_AGENT_SCRIPT ||
+      binding.className !== MCP_TRIAL_AGENT_CLASS_NAME ||
+      binding.namespace !== D0046_AGENT_NAMESPACE ||
+      binding.jurisdiction !== 'global' ||
+      typeof binding.durableObjectId !== 'string' || !/^[0-9a-f]{64}$/u.test(binding.durableObjectId)) {
+    fail('d0046_agent_route_binding_mismatch', 'Agent provider route binding does not match the fixed Trial owner');
+  }
+  return Object.freeze({
+    agentId: binding.agentId,
+    routeGeneration: binding.routeGeneration,
+    workerScript: binding.workerScript,
+    deployment: binding.deployment,
+    className: binding.className,
+    namespace: binding.namespace,
+    jurisdiction: binding.jurisdiction,
+    durableObjectId: binding.durableObjectId,
+  });
+}
+
+function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true, agentRouteBinding = null }) {
   const contextReference = `tdev-context-${sourceSha.slice(0, 12)}`;
   const revisionId = `tdev-mcp-${sourceSha.slice(0, 12)}`;
   const operationDigest = digest(operationManifest);
@@ -261,8 +310,10 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
         namespace: D0046_AGENT_NAMESPACE,
         jurisdiction: 'global',
       },
-      agentId: 'd0039-r12-custody-20260828-3631c5a4',
-      routeGeneration: 1,
+      agentId: D0046_AGENT_ID,
+      routeGeneration: D0046_AGENT_ROUTE_GENERATION,
+      routeKey: agentRouteHostKey({ agentId: D0046_AGENT_ID, routeGeneration: D0046_AGENT_ROUTE_GENERATION }),
+      ...(agentRouteBinding === null ? {} : { durableObjectId: agentRouteBinding.durableObjectId }),
     },
     repository: {
       commitOid: sourceSha,
@@ -288,16 +339,19 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
   return normalizeMcpTrialCompositionManifest(body);
 }
 
-export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
+export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true, agentRouteBinding = null } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
-  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
+  const operationCatalog = normalizedOperationCatalog();
+  const operationCatalogDigest = developmentOperationCatalogDigest(operationCatalog);
+  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree, agentRouteBinding });
   const auth = accessManifest(accessAudience);
   const buildDigest = digest({
     profile: 'tdev.mcp.trial.build.v1',
     compositionDigest: composition.manifestDigest,
     authProfileDigest: auth.profileDigest,
     operationManifestDigest: digest(normalizedOperation),
+    developmentOperationCatalogDigest: operationCatalogDigest,
   });
   const surface = createMcpSurfaceManifest({ buildDigest });
   return Object.freeze({
@@ -305,6 +359,8 @@ export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositor
     auth,
     operation: normalizedOperation,
     operationDigest: digest(normalizedOperation),
+    operationCatalog,
+    operationCatalogDigest,
     surface,
     surfaceDigest: surface.surfaceDigest,
     buildDigest,
@@ -318,11 +374,12 @@ function configBindingManifests(manifests) {
     composition: canonicalJson(composition),
     auth: canonicalJson(manifests.auth),
     operation: canonicalJson(manifests.operation),
+    operationCatalog: canonicalJson(manifests.operationCatalog),
   });
 }
 
 export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace = null, bootstrap = false } = {}) {
-  if (!manifests?.composition || !manifests?.auth || !manifests?.operation) fail('d0046_metadata_invalid', 'Worker metadata requires all trial manifests');
+  if (!manifests?.composition || !manifests?.auth || !manifests?.operation || !manifests?.operationCatalog) fail('d0046_metadata_invalid', 'Worker metadata requires all trial manifests');
   const config = configBindingManifests(manifests);
   const driveText = driveNamespace ?? `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`;
   const bindings = [
@@ -349,6 +406,7 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
     plain('TDEV_MCP_TRIAL_MANIFEST_JSON', config.composition),
     plain('TDEV_MCP_AUTH_MANIFEST_JSON', config.auth),
     plain('TDEV_MCP_OPERATION_MANIFEST_JSON', config.operation),
+    plain('TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON', config.operationCatalog),
     plain('TDEV_MCP_CANONICAL_WRITER_ENABLED', 'false'),
     plain('TDEV_MCP_PREVIEW_WRITERS_ENABLED', 'false'),
     plain('TDEV_MCP_TRIAL_RESOURCE', D0046_MCP_TRIAL_RESOURCE),
@@ -719,6 +777,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
   const existing = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
   assertOwnerMarker(existing.result, D0046_MCP_TRIAL_SCRIPT);
   const identity = existingTrialIdentity(existing.result);
@@ -744,6 +803,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace,
     accessAudience: accessApp.aud,
+    agentRouteBinding,
   });
   let subdomainEnabled = false;
   try {
@@ -784,6 +844,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
   const absence = await preflightAbsence(client);
   const bootstrap = buildTrialManifests({
     sourceSha,
@@ -797,6 +858,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`,
     accessAudience: 'pending-access-audience',
+    agentRouteBinding,
   });
   let subdomainEnabled = false;
   let accessApp = null;
@@ -819,6 +881,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace,
     accessAudience: accessApp.aud,
+    agentRouteBinding,
   });
     await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
     await setSubdomain(client, true);

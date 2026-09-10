@@ -58,6 +58,7 @@ const baseDigest = digest({ base: 'tree' });
 
 test('D0043 manifest is versioned, deterministic, and exposes only fixed release-bound profiles', () => {
   const normalized = normalizeDevelopmentOperationManifest(manifest);
+  assert.equal(normalizeDevelopmentOperationManifest(normalized), normalized);
   assert.equal(Object.keys(normalized.profiles['model.v1'].environment).length, 0);
   assert.equal(normalized.profiles['model.v1'].binding.executionBoundary, 'tdev.disposable-exact-base-no-bwrap.v1');
   assert.equal(developmentOperationManifestDigest(manifest), developmentOperationManifestDigest(normalized));

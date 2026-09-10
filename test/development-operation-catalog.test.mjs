@@ -28,6 +28,7 @@ function catalog() {
 
 test('semantic operation catalog separates immutable contracts from concrete bindings and owner validation policy', () => {
   const value = catalog();
+  assert.equal(normalizeDevelopmentOperationCatalog(value), value);
   assert.equal(value.profile, DEVELOPMENT_OPERATION_CATALOG_PROFILE);
   assert.match(developmentOperationCatalogDigest(value), /^sha256:[0-9a-f]{64}$/);
   const compose = developmentOperationDescriptor(value, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, 1);

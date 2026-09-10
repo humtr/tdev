@@ -11,11 +11,10 @@ import {
   isPlainRecord,
   typedDigest,
 } from './canonical.mjs';
-import { CaseEngine } from './engine.mjs';
 import { definePlan } from './plan.mjs';
 import { promote } from './promotion.mjs';
 import { promoteSemantic } from './semantic-promotion.mjs';
-import { buildSemanticTree } from './semantic-authority.mjs';
+import { buildSemanticTree, validateSemanticPlanBinding } from './semantic-authority.mjs';
 import {
   computeAgentActivationRequestDigest,
   computeAgentDeliveryId,
@@ -27,7 +26,17 @@ import {
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
 import {
+  DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+  DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+  developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
+  normalizeDevelopmentOperationCatalog,
+  operationBindingFor,
+} from './development-operation-catalog.mjs';
+import {
   MCP_TRIAL_AGENT_RPC_PROFILE,
+  normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
 import { normalizeCaseContract } from './policy.mjs';
@@ -61,8 +70,45 @@ function fixedBaseTree(manifest) {
   return canonicalClone(manifest.repository.context.baseTree);
 }
 
+function hasMaterializedBaseTree(manifest) {
+  return isPlainRecord(manifest?.repository?.context?.baseTree) && Object.keys(manifest.repository.context.baseTree).length > 0;
+}
+
+function semanticTaskPlan(snapshot, manifest) {
+  if (snapshot?.schemaVersion !== 3) {
+    fail('mcp_trial_case_snapshot_invalid', 'A tree-free Trial drive requires a semantic Case snapshot');
+  }
+  const binding = validateSemanticPlanBinding(snapshot.plan);
+  if (binding.baseDigest !== manifest.repository.baseDigest) {
+    fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
+  }
+  const tasksById = {};
+  for (const task of binding.tasks) {
+    if (!isPlainRecord(task)) fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan task must be a record');
+    assertIdentifier(task.id, 'Semantic Plan task id');
+    if (Object.hasOwn(tasksById, task.id)) fail('mcp_trial_case_snapshot_invalid', `Duplicate semantic Plan task ${task.id}`);
+    tasksById[task.id] = deepFreeze(canonicalClone(task));
+  }
+  const taskOrder = Object.keys(tasksById).sort();
+  if (canonicalJson(taskOrder) !== canonicalJson(binding.tasks.map((task) => task.id))) {
+    fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan task order is not canonical');
+  }
+  const promotionTaskIds = taskOrder.filter((taskId) => tasksById[taskId].kind === 'promotion');
+  if (promotionTaskIds.length !== 1) fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan must contain exactly one Promotion Task');
+  return deepFreeze({
+    revisionId: binding.revisionId,
+    baseDigest: binding.baseDigest,
+    planDigest: binding.planDigest,
+    taskOrder,
+    tasksById: deepFreeze(tasksById),
+    promotionTaskId: promotionTaskIds[0],
+    ...(binding.baseReference === undefined ? {} : { baseReference: binding.baseReference }),
+  });
+}
+
 function taskPlan(snapshot, manifest, caseContract) {
   if (!isPlainRecord(snapshot?.plan)) fail('mcp_trial_case_snapshot_invalid', 'Case snapshot has no Plan binding');
+  if (!hasMaterializedBaseTree(manifest)) return semanticTaskPlan(snapshot, manifest);
   const baseTree = fixedBaseTree(manifest);
   if (snapshot.plan.baseDigest !== manifest.repository.baseDigest || digest(baseTree) !== snapshot.plan.baseDigest) {
     fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
@@ -224,8 +270,11 @@ function candidateChanges(view) {
 }
 
 function effectKey(view, taskId) {
-  const engine = new CaseEngine({ caseId: view.snapshot.caseId, plan: view.plan, caseContract: view.caseContract });
-  return engine.effectKey(taskId);
+  return typedDigest('tdev.task-effect.v1', {
+    caseId: view.snapshot.caseId,
+    planDigest: view.plan.planDigest,
+    taskId,
+  });
 }
 
 function promotionResult(view) {
@@ -256,11 +305,31 @@ function deliveryForAttempt(agentSnapshot, caseId, attemptId) {
     .sort((left, right) => String(left.deliveryId).localeCompare(String(right.deliveryId)))[0] ?? null;
 }
 
-function reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal }) {
+function reservationsForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal }) {
   return Object.values(agentSnapshot?.reservations ?? {})
     .filter((reservation) => reservation?.caseId === caseId && reservation?.taskId === taskId &&
-      reservation?.predictedAttemptOrdinal === predictedAttemptOrdinal && reservation?.status === 'reserved')
-    .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)))[0] ?? null;
+      reservation?.predictedAttemptOrdinal === predictedAttemptOrdinal)
+    .sort((left, right) => {
+      const leftGeneration = Number.isSafeInteger(left?.slotGeneration) ? left.slotGeneration : -1;
+      const rightGeneration = Number.isSafeInteger(right?.slotGeneration) ? right.slotGeneration : -1;
+      if (leftGeneration !== rightGeneration) return rightGeneration - leftGeneration;
+      return String(right?.reservationRequestId ?? '').localeCompare(String(left?.reservationRequestId ?? ''));
+    });
+}
+
+function reservationForTask(agentSnapshot, identity) {
+  return reservationsForTask(agentSnapshot, identity).find((reservation) => reservation?.status === 'reserved') ?? null;
+}
+
+function terminalReservationPredecessor(agentSnapshot, identity) {
+  const latest = reservationsForTask(agentSnapshot, identity)[0] ?? null;
+  if (latest === null || latest.status === 'reserved') return null;
+  if (typeof latest.reservationRequestId !== 'string' || typeof latest.reservationRequestDigest !== 'string') return null;
+  return {
+    reservationRequestId: latest.reservationRequestId,
+    reservationRequestDigest: latest.reservationRequestDigest,
+    ...(Number.isSafeInteger(latest.slotGeneration) ? { slotGeneration: latest.slotGeneration } : {}),
+  };
 }
 
 /**
@@ -282,6 +351,20 @@ export function resolveValidationOperationProfile(operationManifest, requestedPr
 
 export function createMcpTrialOperationRequest(view, taskId, payload, operationManifest) {
   const task = view.plan.tasksById[taskId];
+  if (taskId === 'change' && isPlainRecord(task.input.operation)) {
+    return {
+      operation: canonicalClone(task.input.operation),
+      repositoryCommitOid: task.input.repositoryCommitOid,
+      baseDigest: task.input.baseDigest,
+      contextReferenceId: task.input.contextReferenceId,
+      caseContract: canonicalClone(view.caseContract),
+      ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+      ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.contextScope === undefined ? {} : { contextScope: canonicalClone(task.input.contextScope) }),
+      ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
+      ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+      ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
+    };
+  }
   if (taskId === 'context') {
     return {
       profile: task.input.profile,
@@ -320,6 +403,17 @@ export function createMcpTrialOperationRequest(view, taskId, payload, operationM
     };
   }
   if (taskId === 'validate') {
+    if (isPlainRecord(task.input.operation)) {
+      const change = resultForTask(view, 'change');
+      const candidateTreeDigest = change?.evidence?.candidateTreeDigest;
+      assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+      return {
+        operation: canonicalClone(task.input.operation),
+        policyId: task.input.policyId,
+        bindingId: task.input.bindingId,
+        candidateTreeDigest,
+      };
+    }
     const tree = candidateTree(view);
     const model = resultForTask(view, 'model');
     const runtimeCandidateTreeDigest = model?.evidence?.candidateTreeDigest;
@@ -343,8 +437,9 @@ function executableBody(view, taskId, payload, { predictedAttemptOrdinal, execut
   if (!isPlainRecord(executor) || typeof executor.id !== 'string' || !Number.isSafeInteger(executor.epoch)) {
     fail('mcp_trial_agent_snapshot_invalid', 'Executable body requires the current executor identity');
   }
+  const semanticOperation = isPlainRecord(view.plan.tasksById[taskId]?.input?.operation);
   return {
-    profile: DEVELOPMENT_OPERATION_PROFILE,
+    profile: semanticOperation ? DEVELOPMENT_OPERATION_CATALOG_PROFILE : DEVELOPMENT_OPERATION_PROFILE,
     operationRequest: operation,
     // The operation result itself is opaque to the Agent.  This fixed template
     // binds the eventual Case receipt to the Plan/Attempt; the Agent fills only
@@ -379,12 +474,25 @@ function preflightDescriptor(body, agentSnapshot, taskId) {
   };
 }
 
-function executorCapabilities(manifest, operationManifest) {
+function executorCapabilities(manifest, operationManifest, operationCatalog = null) {
   const profiles = [manifest.operation.contextProfile, manifest.operation.modelProfile, manifest.operation.validationProfile];
   const ids = profiles.map((profile) => developmentOperationCapabilityId(operationManifest, profile));
   for (const field of ['contextCapabilityId', 'modelCapabilityId', 'validationCapabilityId']) {
     const value = manifest.repository.context[field];
     if (value !== undefined && value !== null) ids.push(value);
+  }
+  if (operationCatalog !== null) {
+    for (const operationId of [
+      DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+      DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+    ]) {
+      const descriptor = operationCatalog.operations[operationId];
+      if (!descriptor) continue;
+      const binding = operationBindingFor(operationCatalog, operationId, descriptor.version, { includeOptional: true });
+      if (binding.kind === 'legacy_profile' && operationManifest.profiles[binding.legacyProfile] === undefined) continue;
+      ids.push(semanticDevelopmentOperationCapabilityId(operationCatalog, operationId, descriptor.version));
+    }
   }
   return [...new Set(ids)].sort();
 }
@@ -395,7 +503,7 @@ function routeIdentity(agentOwner) {
 }
 
 export class McpTrialDevelopmentUnitRunner {
-  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, caseContract = undefined, now = () => Date.now() } = {}) {
+  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now(), allowBindingManifest = false, materializeManifest = null } = {}) {
     if (!repository || typeof repository.create !== 'function' || typeof repository.load !== 'function' || typeof repository.command !== 'function') {
       fail('mcp_trial_owner_unavailable', 'Trial runner requires Case repository create/load/command');
     }
@@ -408,18 +516,30 @@ export class McpTrialDevelopmentUnitRunner {
     this.repository = repository;
     this.driveOwner = driveOwner;
     this.agentOwner = agentOwner;
-    this.manifest = normalizeMcpTrialCompositionManifest(manifest);
+    if (allowBindingManifest && typeof materializeManifest !== 'function') {
+      fail('mcp_trial_runner_invalid', 'A binding-only Trial runner requires a materializeManifest callback');
+    }
+    this.manifest = allowBindingManifest
+      ? normalizeMcpTrialCompositionBinding(manifest)
+      : normalizeMcpTrialCompositionManifest(manifest);
+    this.materializeManifest = materializeManifest;
     this.operationManifest = normalizeDevelopmentOperationManifest(operationManifest);
     if (this.operationManifest.profile !== DEVELOPMENT_OPERATION_PROFILE) fail('mcp_trial_manifest_invalid', 'Trial operation manifest profile is invalid');
+    this.operationCatalog = operationCatalog === null ? null : normalizeDevelopmentOperationCatalog(operationCatalog);
+    if (this.operationCatalog !== null && this.operationCatalog.profile !== DEVELOPMENT_OPERATION_CATALOG_PROFILE) {
+      fail('mcp_trial_manifest_invalid', 'Trial semantic operation catalog profile is invalid');
+    }
     if (this.manifest.operation.manifestDigest !== digest(this.operationManifest)) {
       fail('mcp_trial_manifest_mismatch', 'Trial manifest does not bind the supplied development-operation manifest');
     }
     if (typeof now !== 'function') fail('mcp_trial_runner_invalid', 'Trial runner clock must be callable');
     this.now = now;
+    this.capabilities = executorCapabilities(this.manifest, this.operationManifest, this.operationCatalog);
     this.caseContract = caseContract === undefined
-      ? (isPlainRecord(this.manifest.repository.context.caseContract) ? normalizeCaseContract(this.manifest.repository.context.caseContract) : normalizeCaseContract({}))
+      ? (isPlainRecord(this.manifest.repository.context.caseContract)
+          ? normalizeCaseContract(this.manifest.repository.context.caseContract)
+          : normalizeCaseContract({ caseGrant: this.capabilities, workspacePolicy: this.capabilities }))
       : normalizeCaseContract(caseContract);
-    this.capabilities = executorCapabilities(this.manifest, this.operationManifest);
     Object.freeze(this);
   }
 
@@ -462,6 +582,20 @@ export class McpTrialDevelopmentUnitRunner {
     if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
     const snapshot = snapshotFromOwner(loaded, 'Case owner');
     return caseView(snapshot, this.manifest, this.caseContract);
+  }
+
+  async #materializedView(view) {
+    if (hasMaterializedBaseTree(this.manifest)) return view;
+    if (typeof this.materializeManifest !== 'function') {
+      fail('mcp_trial_materialization_required', 'Trial operation requires the immutable repository tree');
+    }
+    const materialized = normalizeMcpTrialCompositionManifest(await this.materializeManifest());
+    if (materialized.manifestDigest !== this.manifest.manifestDigest ||
+        materialized.repository.baseDigest !== this.manifest.repository.baseDigest ||
+        materialized.repository.commitOid !== this.manifest.repository.commitOid) {
+      fail('mcp_trial_manifest_mismatch', 'Materialized Trial manifest does not match the deployment binding');
+    }
+    return caseView(view.snapshot, materialized, this.caseContract);
   }
 
   async #readAgent() {
@@ -628,7 +762,14 @@ export class McpTrialDevelopmentUnitRunner {
       operationManifest: this.operationManifest,
     });
     const descriptor = preflightDescriptor(body, agentSnapshot, taskId);
-    const reservationRequestId = requestId('reserve', { driveRequestId, taskId, predictedAttemptOrdinal });
+    const reservationIdentity = { caseId, taskId, predictedAttemptOrdinal };
+    const predecessor = terminalReservationPredecessor(agentSnapshot, reservationIdentity);
+    const reservationRequestId = requestId('reserve', {
+      driveRequestId,
+      taskId,
+      predictedAttemptOrdinal,
+      ...(predecessor === null ? {} : { predecessor }),
+    });
     const reservationRequest = {
       agentId: route.agentId,
       routeGeneration: route.routeGeneration,
@@ -647,7 +788,7 @@ export class McpTrialDevelopmentUnitRunner {
       preflightDescriptor: descriptor,
     };
     reservationRequest.reservationRequestDigest = computeAgentReservationRequestDigest(reservationRequest, agentSnapshot.limits);
-    let reservation = reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal });
+    let reservation = reservationForTask(agentSnapshot, reservationIdentity);
     if (reservation === null) {
       const admitted = await this.agentOwner.invoke('reserve', { request: reservationRequest, nowMs: this.now() });
       reservation = admitted?.reservation ?? null;
@@ -772,7 +913,8 @@ export class McpTrialDevelopmentUnitRunner {
     });
     const attempt = started.result;
     const latest = await this.#load(caseId);
-    const result = promotionResult(latest);
+    const materializedLatest = await this.#materializedView(latest);
+    const result = promotionResult(materializedLatest);
     const promotionEnvelope = {
       caseId,
       planRevisionId: latest.plan.revisionId,

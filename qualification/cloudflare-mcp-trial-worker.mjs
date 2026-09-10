@@ -35,6 +35,10 @@ import {
 import {
   normalizeDevelopmentOperationManifest,
 } from '../src/development-operation-profile.mjs';
+import {
+  developmentOperationCatalogDigest,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
 import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mjs';
 import {
   loadMcpTrialBaseTree,
@@ -45,6 +49,7 @@ import {
 const TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
 const AUTH_MANIFEST_BINDING = 'TDEV_MCP_AUTH_MANIFEST_JSON';
 const OPERATION_MANIFEST_BINDING = 'TDEV_MCP_OPERATION_MANIFEST_JSON';
+const DEVELOPMENT_OPERATION_CATALOG_BINDING = 'TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON';
 const SURFACE_DIGEST_BINDING = 'TDEV_MCP_SURFACE_DIGEST';
 const MAX_CONFIG_BYTES = 8 * 1024 * 1024;
 
@@ -187,7 +192,7 @@ function metadataFastPath(request, env) {
   }
 }
 
-export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
+export async function createTrialExecutionApplication(env, { driveOwnerOverride = null } = {}) {
   const configuredComposition = readJsonBinding(env, TRIAL_MANIFEST_BINDING);
   const baseTree = await loadMcpTrialBaseTree();
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
@@ -204,12 +209,10 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     },
   });
   assertGeneratedBaseBinding(composition);
-  const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
-  if (authManifest.mcpResource !== composition.resource) {
-    throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
-  }
-  if (composition.operation.manifestDigest !== digest(operationManifest)) {
+  const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
+  const operationManifestDigest = digest(operationManifest);
+  if (composition.operation.manifestDigest !== operationManifestDigest) {
     throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
   }
 
@@ -227,13 +230,81 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     agentOwner: facades.agentOwner,
     manifest: composition,
     operationManifest,
+    operationCatalog,
   });
+  return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
+}
+
+export async function createTrialDriveApplication(env, { driveOwnerOverride = null } = {}) {
+  const composition = normalizeMcpTrialCompositionBinding(readJsonBinding(env, TRIAL_MANIFEST_BINDING));
+  assertGeneratedBaseBinding(composition);
+  const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
+  const operationManifestDigest = digest(operationManifest);
+  if (composition.operation.manifestDigest !== operationManifestDigest) {
+    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+  }
+
+  const facades = createMcpTrialOwnerFacades({
+    manifest: composition,
+    caseNamespace: env.TDEV_CASE_AUTHORITY,
+    driveNamespace: env.TDEV_CASE_AGENT_DRIVE,
+    agentNamespace: env.TDEV_AGENT_DELIVERY,
+    casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
+    driveOwnerOverride,
+    allowBindingManifest: true,
+    skipCommandReload: true,
+  });
+  let materializedManifestPromise = null;
+  const materializeManifest = () => {
+    if (materializedManifestPromise === null) {
+      materializedManifestPromise = (async () => {
+        const baseTree = await loadMcpTrialBaseTree();
+        const materialized = normalizeMcpTrialCompositionManifest({
+          ...composition,
+          repository: {
+            ...composition.repository,
+            context: { ...composition.repository.context, baseTree },
+          },
+        });
+        assertGeneratedBaseBinding(materialized);
+        if (materialized.manifestDigest !== composition.manifestDigest ||
+            materialized.repository.baseDigest !== composition.repository.baseDigest ||
+            materialized.repository.commitOid !== composition.repository.commitOid) {
+          throw configError('mcp_config_unavailable', 'Materialized Trial composition does not match its deployment binding');
+        }
+        return materialized;
+      })();
+    }
+    return materializedManifestPromise;
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: facades.repository,
+    driveOwner: facades.driveOwner,
+    agentOwner: facades.agentOwner,
+    manifest: composition,
+    operationManifest,
+    operationCatalog,
+    allowBindingManifest: true,
+    materializeManifest,
+  });
+  return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
+}
+
+export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
+  const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
+  const execution = await createTrialExecutionApplication(env, { driveOwnerOverride });
+  const { composition, operationManifestDigest, operationCatalog, facades, runner } = execution;
+  if (authManifest.mcpResource !== composition.resource) {
+    throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
+  }
   const surfaceManifest = createMcpSurfaceManifest({
     buildDigest: digest({
       profile: 'tdev.mcp.trial.build.v1',
       compositionDigest: composition.manifestDigest,
       authProfileDigest: authManifest.profileDigest,
-      operationManifestDigest: digest(operationManifest),
+      operationManifestDigest,
+      developmentOperationCatalogDigest: developmentOperationCatalogDigest(operationCatalog),
     }),
   });
   const verifier = createCloudflareAccessAssertionVerifier();
@@ -251,6 +322,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       repository: facades.repository,
       driveRunner: runner,
       developmentUnitRunner: runner,
+      operationCatalog,
       developmentContextGet: facades.contextOwner.developmentContextGet,
       developmentContextResolve: facades.contextOwner.developmentContextResolve,
       authorize: facades.authorize,
@@ -274,6 +346,9 @@ async function createTrialLightApplication(env) {
   const operationManifest = normalizeDevelopmentOperationManifest(
     readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024),
   );
+  const operationCatalog = normalizeDevelopmentOperationCatalog(
+    readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024),
+  );
   if (authManifest.mcpResource !== configuredComposition.resource) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
   }
@@ -285,6 +360,7 @@ async function createTrialLightApplication(env) {
     compositionDigest: configuredComposition.manifestDigest,
     authProfileDigest: authManifest.profileDigest,
     operationManifestDigest: digest(operationManifest),
+    developmentOperationCatalogDigest: developmentOperationCatalogDigest(operationCatalog),
   });
   const surfaceManifest = createMcpSurfaceManifest({ buildDigest });
   if (surfaceManifest.surfaceDigest !== readDigestBinding(env, SURFACE_DIGEST_BINDING)) {
@@ -315,7 +391,25 @@ async function createTrialLightApplication(env) {
     if (!stub || typeof stub.executeMcpTrial !== 'function') {
       throw configError('mcp_owner_unavailable', 'Trial execution Durable Object RPC is unavailable');
     }
-    const result = await stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    let result;
+    try {
+      result = await stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    } catch (error) {
+      if (typeof console?.log === 'function') {
+        try {
+          console.log(JSON.stringify({
+            profile: 'tdev.mcp.trial.execution-diagnostic.v1',
+            operation,
+            name: typeof error?.name === 'string' ? error.name.slice(0, 128) : null,
+            code: typeof error?.code === 'string' ? error.code.slice(0, 128) : null,
+            message: typeof error?.message === 'string' ? error.message.slice(0, 256) : null,
+          }));
+        } catch {
+          // Diagnostics must never change the RPC response path.
+        }
+      }
+      throw error;
+    }
     // Cloudflare RPC results can carry runtime-owned Symbol metadata. Project
     // only the public JSON payload before the strict MCP canonical boundary.
     return JSON.parse(JSON.stringify(result));
@@ -363,6 +457,7 @@ async function createTrialLightApplication(env) {
     repository,
     driveRunner: runner,
     developmentUnitRunner: runner,
+    operationCatalog,
     developmentUnitStart: async (input = {}) => {
       assertTrialCaseId(input?.caseId);
       const identity = input?.identity && typeof input.identity === 'object'
@@ -374,6 +469,20 @@ async function createTrialLightApplication(env) {
         contextReference: input.contextReference,
         instruction: input.instruction,
         validationProfile: input.validationProfile,
+        identity,
+        requestId: input.requestId,
+      });
+    },
+    developmentStart: async (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      const identity = input?.identity && typeof input.identity === 'object'
+        ? { principalId: input.identity.principalId, tenantId: input.identity.tenantId }
+        : null;
+      return invokeExecution(input.caseId, 'developmentStart', {
+        caseId: input.caseId,
+        driveRequestId: input.driveRequestId,
+        contextReference: input.contextReference,
+        operation: input.operation,
         identity,
         requestId: input.requestId,
       });

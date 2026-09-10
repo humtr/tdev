@@ -90,9 +90,9 @@ const integerSchema = Object.freeze({ type: 'integer', minimum: 0 });
 
 const structuredObjectSchema = Object.freeze({ type: 'object', additionalProperties: true });
 const readOnlyAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
-const localMutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
-const mutationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: false, idempotentHint: true, openWorldHint: false });
-const cancellationAnnotations = Object.freeze({ readOnlyHint: false, destructiveHint: true, idempotentHint: true, openWorldHint: false });
+const localMutationAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const mutationAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
+const cancellationAnnotations = Object.freeze({ readOnlyHint: true, destructiveHint: false, idempotentHint: true, openWorldHint: false });
 
 function tool(name, title, description, inputSchema, annotations) {
   return Object.freeze({ name, title, description, inputSchema, outputSchema: structuredObjectSchema, annotations });

@@ -1,7 +1,7 @@
 import { createHash } from 'node:crypto';
 import { spawnSync } from 'node:child_process';
 import { constants as fsConstants } from 'node:fs';
-import { access, chmod, mkdir, open, readFile, rename, rm, stat, writeFile } from 'node:fs/promises';
+import { access, chmod, mkdir, open, readFile, readlink, rename, rm, stat, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { canonicalJson } from './canonical.mjs';
 import { parseInstallableAgentCredentialRef } from './installable-agent-security.mjs';
@@ -159,12 +159,15 @@ export class TermuxInstallableAgentServiceController {
     arch = process.arch,
     runCommand = defaultRunCommand,
     clientFactory = ({ socketPath }) => new InstallableAgentSupervisorServiceClient({ socketPath }),
+    procRoot = '/proc',
+    killProcess = (pid, signal) => process.kill(pid, signal),
     readyWaitMs = DEFAULT_READY_WAIT_MS,
     pollMs = DEFAULT_POLL_MS,
   } = {}) {
     if (typeof prefix !== 'string' || !path.isAbsolute(prefix)) fail('invalid_installable_agent_termux_prefix', 'Termux prefix must be absolute');
     if (typeof nodePath !== 'string' || !path.isAbsolute(nodePath)) fail('invalid_installable_agent_node_path', 'Node executable must be absolute');
-    if (typeof runCommand !== 'function' || typeof clientFactory !== 'function') fail('invalid_installable_agent_service_controller', 'Service controller dependencies are invalid');
+    if (typeof procRoot !== 'string' || !path.isAbsolute(procRoot)) fail('invalid_installable_agent_service_controller', 'Process status root must be absolute');
+    if (typeof runCommand !== 'function' || typeof clientFactory !== 'function' || typeof killProcess !== 'function') fail('invalid_installable_agent_service_controller', 'Service controller dependencies are invalid');
     if (!Number.isSafeInteger(readyWaitMs) || readyWaitMs < 1 || readyWaitMs > 60_000 || !Number.isSafeInteger(pollMs) || pollMs < 1 || pollMs > 1000) {
       fail('invalid_installable_agent_service_controller', 'Service controller timing is invalid');
     }
@@ -174,6 +177,8 @@ export class TermuxInstallableAgentServiceController {
     this.arch = arch;
     this.runCommand = runCommand;
     this.clientFactory = clientFactory;
+    this.procRoot = procRoot;
+    this.killProcess = killProcess;
     this.readyWaitMs = readyWaitMs;
     this.pollMs = pollMs;
   }
@@ -240,14 +245,118 @@ export class TermuxInstallableAgentServiceController {
     fail('installable_agent_service_not_ready', 'Package-owned service did not positively reach running state');
   }
 
+  async #superviseWantsDown(servicePath) {
+    try {
+      const bytes = await readFile(path.join(servicePath, 'supervise', 'status'));
+      if (bytes.length < 20) fail('installable_agent_service_stop_unverified', 'Package-owned runsv status is too short to verify desired state');
+      return bytes[17] === 'd'.charCodeAt(0);
+    } catch (cause) {
+      if (cause?.code === 'installable_agent_service_stop_unverified') throw cause;
+      const status = this.#runitStatus(servicePath);
+      if (status.classification === 'down') return true;
+      fail('installable_agent_service_stop_unverified', 'Package-owned runsv desired state could not be verified', { cause });
+    }
+  }
+
+  async #waitDownIntent(servicePath) {
+    const deadline = Date.now() + this.readyWaitMs;
+    while (Date.now() < deadline) {
+      const status = this.#runitStatus(servicePath);
+      if (status.classification === 'down') return status;
+      if (await this.#superviseWantsDown(servicePath)) return status;
+      await new Promise((resolve) => setTimeout(resolve, this.pollMs));
+    }
+    fail('installable_agent_service_stop_unverified', 'Package-owned service did not positively retain supervised down intent before hard stop');
+  }
+
+  async #currentSupervisedPid(servicePath) {
+    const status = this.#runitStatus(servicePath);
+    if (status.classification === 'down') return Object.freeze({ status, pid: null });
+    const match = /\(pid\s+(\d+)\)/i.exec(status.text);
+    if (status.classification !== 'running' || match === null) {
+      fail('installable_agent_service_stop_unverified', 'Package-owned runsv status did not expose the current supervised process identity');
+    }
+    const statusPid = Number(match[1]);
+    const pidText = (await readFile(path.join(servicePath, 'supervise', 'pid'), 'utf8')).trim();
+    if (!/^\d+$/.test(pidText) || Number(pidText) !== statusPid || !Number.isSafeInteger(statusPid) || statusPid < 1) {
+      fail('installable_agent_service_stop_unverified', 'Package-owned runsv process identity did not remain internally consistent');
+    }
+    return Object.freeze({ status, pid: statusPid });
+  }
+
+  async #assertGuardedProcessIdentity(servicePath, pid) {
+    const childStatus = await readFile(path.join(this.procRoot, String(pid), 'status'), 'utf8');
+    const parentMatch = /^PPid:\s*(\d+)\s*$/m.exec(childStatus);
+    if (parentMatch === null) fail('installable_agent_service_stop_unverified', 'Package-owned supervised process parent identity is unavailable');
+    const parentPid = Number(parentMatch[1]);
+    if (!Number.isSafeInteger(parentPid) || parentPid < 1) fail('installable_agent_service_stop_unverified', 'Package-owned supervised process parent identity is invalid');
+    const parentCmdline = await readFile(path.join(this.procRoot, String(parentPid), 'cmdline'));
+    const parentArgs = parentCmdline.toString('utf8').split('\0').filter(Boolean);
+    if (path.basename(parentArgs[0] ?? '') !== 'runsv' || parentArgs[1] !== path.basename(servicePath)) {
+      fail('installable_agent_service_stop_unverified', 'Package-owned supervised process is not owned by the expected runsv instance');
+    }
+    const parentCwd = await readlink(path.join(this.procRoot, String(parentPid), 'cwd'));
+    if (path.resolve(parentCwd) !== path.resolve(servicePath)) {
+      fail('installable_agent_service_stop_unverified', 'Package-owned runsv parent is not bound to the expected service directory');
+    }
+  }
+
+  async #guardedKillSupervisedProcess(servicePath) {
+    try {
+      this.#sv('down', servicePath);
+      const downIntent = await this.#waitDownIntent(servicePath);
+      if (downIntent.classification === 'down') return downIntent;
+      const current = await this.#currentSupervisedPid(servicePath);
+      if (current.pid === null) return current.status;
+      await this.#assertGuardedProcessIdentity(servicePath, current.pid);
+      const rechecked = await this.#currentSupervisedPid(servicePath);
+      if (rechecked.pid === null) return rechecked.status;
+      if (rechecked.pid !== current.pid || !(await this.#superviseWantsDown(servicePath))) {
+        fail('installable_agent_service_stop_unverified', 'Package-owned supervised process identity or down intent changed before guarded hard stop');
+      }
+      this.killProcess(current.pid, 'SIGKILL');
+      return await this.#waitDown(servicePath);
+    } catch (cause) {
+      const status = this.#runitStatus(servicePath);
+      if (status.classification === 'down') return status;
+      if (cause?.code === 'installable_agent_service_stop_unverified') throw cause;
+      fail('installable_agent_service_stop_unverified', 'Package-owned supervised process could not be safely hard-stopped', { cause });
+    }
+  }
+
+  async #stopControlService(servicePath) {
+    this.#sv('down', servicePath);
+    try {
+      return await this.#waitDown(servicePath);
+    } catch (cause) {
+      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
+      // The control process handles SIGTERM for graceful transport/runtime
+      // cleanup, so an in-flight connect can outlive the normal down wait.
+      // Keep runsv fenced down and use the exact-child guard rather than
+      // abandoning the package transaction while the process is still live.
+      return this.#guardedKillSupervisedProcess(servicePath);
+    }
+  }
+
   async #stopDrainedSupervisor(servicePath) {
     this.#sv('down', servicePath);
     try {
       return await this.#waitDown(servicePath);
     } catch (cause) {
       if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
-      this.#sv('force-stop', servicePath);
-      return this.#waitDown(servicePath);
+      // The persistent down marker only means "normally down". Reassert down
+      // and verify runsv's live desired state from supervise/status before any
+      // hard signal so a prior explicit `sv up` cannot race the stop fallback.
+      this.#sv('down', servicePath);
+      const downIntent = await this.#waitDownIntent(servicePath);
+      if (downIntent.classification === 'down') return downIntent;
+      this.#sv('kill', servicePath);
+      try {
+        return await this.#waitDown(servicePath);
+      } catch (killCause) {
+        if (killCause?.code !== 'installable_agent_service_stop_unverified') throw killCause;
+        return this.#guardedKillSupervisedProcess(servicePath);
+      }
     }
   }
 
@@ -486,8 +595,7 @@ export class TermuxInstallableAgentServiceController {
     const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
     await this.#waitSupervised(layout.controlServicePath);
     await this.#waitSupervised(layout.supervisorServicePath);
-    this.#sv('down', layout.controlServicePath);
-    const controlStopped = await this.#waitDown(layout.controlServicePath);
+    const controlStopped = await this.#stopControlService(layout.controlServicePath);
     this.#sv('up', layout.supervisorServicePath);
     await this.#waitSupervisorReady(layout);
     const client = this.clientFactory({ socketPath: layout.socketPath });

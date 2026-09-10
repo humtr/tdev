@@ -3,6 +3,14 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { createMcpTrialOperationRequest } from '../src/mcp-trial-runner.mjs';
+import { normalizeMcpTrialCompositionManifest } from '../src/mcp-trial-composition.mjs';
+import {
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
+  developmentOperationDescriptor,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
+import { defineSemanticDevelopmentUnitPlan } from '../src/development-unit.mjs';
 
 import {
   CaseEngine,
@@ -320,6 +328,10 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
     plan,
     semanticAuthority: { profile: SEMANTIC_PROFILE },
   }).snapshot();
+  const materializedManifest = normalizeMcpTrialCompositionManifest(buildManifest(operationManifest));
+  const bindingManifest = JSON.parse(JSON.stringify(materializedManifest));
+  bindingManifest.repository.context.baseTree = {};
+  let materializations = 0;
   let advances = 0;
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: {
@@ -345,8 +357,13 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
       readResultHandoff: async () => null,
       routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
     },
-    manifest: buildManifest(operationManifest),
+    manifest: bindingManifest,
     operationManifest,
+    allowBindingManifest: true,
+    materializeManifest: async () => {
+      materializations += 1;
+      return materializedManifest;
+    },
   });
   const result = await runner.drive({
     caseId: 'trial-lazy-v3-case',
@@ -356,6 +373,7 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
   assert.equal(result.caseRevision, snapshot.caseRevision);
   assert.equal(result.status, 'not_ready');
   assert.ok(advances >= 1);
+  assert.equal(materializations, 0);
 });
 
 test('D0046 runner converts cleaned completion failure evidence into authoritative fail_attempt state', async () => {
@@ -583,7 +601,7 @@ test('D0046 candidate projection reads terminal historical bases but rejects act
   assert.equal(materializedReads, 1);
 });
 
-test('D0046 drive expires due Agent reservations before availability gating', async () => {
+test('D0046 drive advances reserve identity after an expired reservation', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
   ));
@@ -595,22 +613,28 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     validationProfile: 'tdev.validation.npm-check.v1',
   });
   const caseId = 'trial-expired-reservation';
+  const driveRequestId = 'drive-expiry';
   const engine = new CaseEngine({ caseId, plan });
   const reservationRequestDigest = digest({ reservation: 'expired' });
+  const originalReservationRequestId = `trial-reserve-${digest({
+    profile: 'tdev.mcp.trial-request.v1',
+    label: 'reserve',
+    input: { driveRequestId, taskId: 'context', predictedAttemptOrdinal: 1 },
+  }).slice('sha256:'.length)}`;
   let expired = false;
   const agentState = () => ({
     routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
     installableAgent: { state: 'CURRENT' },
-    connection: expired ? null : { id: 'connection-1', epoch: 1 },
+    connection: { id: 'connection-1', epoch: 1 },
     executor: { id: 'executor-1', epoch: 1 },
     capacity: { revision: 1, effectiveCapacity: 1 },
     reservationWindowGeneration: 1,
-    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    limits: { maxReservationLifetimeMs: 30000 },
     reservations: {
       stale: {
         reservationWindowGeneration: 1,
         windowGeneration: 1,
-        reservationRequestId: 'reservation-stale',
+        reservationRequestId: originalReservationRequestId,
         reservationRequestDigest,
         caseId,
         taskId: 'context',
@@ -630,9 +654,12 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     agentOwner: {
       async invoke(operation, input) {
         calls.push({ operation, input });
-        assert.equal(operation, 'expire_reservation');
-        expired = true;
-        return { classification: 'accepted' };
+        if (operation === 'expire_reservation') {
+          expired = true;
+          return { classification: 'accepted' };
+        }
+        if (operation === 'reserve') return { reservation: null };
+        throw new Error(`unexpected Agent operation ${operation}`);
       },
       readRoute: async () => agentState(),
       readResultHandoff: async () => null,
@@ -642,18 +669,103 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     operationManifest,
     now: () => 1000,
   });
-  const result = await runner.drive({ caseId, driveRequestId: 'drive-expiry', payload: {} });
+  const result = await runner.drive({ caseId, driveRequestId, payload: {} });
   assert.equal(result.status, 'not_ready');
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.deepEqual(calls[0], {
     operation: 'expire_reservation',
     input: {
       request: {
         reservationWindowGeneration: 1,
-        reservationRequestId: 'reservation-stale',
+        reservationRequestId: originalReservationRequestId,
         reservationRequestDigest,
       },
       nowMs: 1000,
     },
   });
+  assert.equal(calls[1].operation, 'reserve');
+  assert.notEqual(calls[1].input.request.reservationRequestId, originalReservationRequestId);
+  assert.match(calls[1].input.request.reservationRequestId, /^trial-reserve-[0-9a-f]{64}$/);
+});
+
+test('D0047 Trial runner surfaces semantic change capability and binds validation to the accepted candidate digest', () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(
+    readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'),
+  ));
+  const baseDigest = digest(BASE_TREE);
+  const descriptor = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const plan = defineSemanticDevelopmentUnitPlan({
+    revisionId: 'revision-semantic-trial-change',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    contextReferenceId: 'ctx-semantic-trial',
+    operationCatalog,
+    operation: {
+      id: DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      version: 1,
+      contractDigest: descriptor.contractDigest,
+      input: { instruction: 'make one bounded source change' },
+    },
+    writePaths: ['src/base.mjs'],
+  });
+  const engine = new CaseEngine({ caseId: 'trial-semantic-change', plan });
+  const view = {
+    plan,
+    caseContract: engine.caseContract,
+    snapshot: engine.snapshot(),
+  };
+  const changeRequest = createMcpTrialOperationRequest(view, 'change', {}, operationManifest);
+  assert.equal(changeRequest.operation.id, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+  assert.equal(changeRequest.repositoryCommitOid, COMMIT);
+  assert.equal(changeRequest.baseDigest, baseDigest);
+  assert.equal(changeRequest.contextReferenceId, 'ctx-semantic-trial');
+
+  const candidateTreeDigest = digest({ semanticCandidate: true });
+  const validationView = {
+    ...view,
+    snapshot: {
+      ...view.snapshot,
+      taskStates: {
+        ...view.snapshot.taskStates,
+        change: {
+          state: 'succeeded',
+          acceptedResult: {
+            kind: 'changeset',
+            baseDigest,
+            writes: [{ path: 'src/base.mjs', content: 'export const base = 2;\n' }],
+            evidence: { candidateTreeDigest },
+          },
+        },
+      },
+    },
+  };
+  const validationRequest = createMcpTrialOperationRequest(validationView, 'validate', {}, operationManifest);
+  assert.equal(validationRequest.candidateTreeDigest, candidateTreeDigest);
+
+  const owners = {
+    repository: { create: async () => null, load: async () => view.snapshot, command: async () => null },
+    driveOwner: { initialize: async () => null, advance: async () => ({ classification: 'not_ready' }) },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+  };
+  const semanticRunner = createMcpTrialDevelopmentUnitRunner({
+    ...owners,
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    operationCatalog,
+  });
+  const legacyRunner = createMcpTrialDevelopmentUnitRunner({
+    ...owners,
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const semanticCapability = semanticDevelopmentOperationCapabilityId(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  assert.equal(semanticRunner.capabilities.includes(semanticCapability), true);
+  assert.equal(legacyRunner.capabilities.includes(semanticCapability), false);
+  assert.deepEqual(semanticRunner.caseContract.caseGrant, semanticRunner.capabilities);
+  assert.deepEqual(semanticRunner.caseContract.workspacePolicy, semanticRunner.capabilities);
+  assert.equal(semanticRunner.caseContract.caseGrant.includes(semanticCapability), true);
+  assert.notEqual(semanticRunner.caseContract.contractDigest, new CaseEngine({ caseId: 'empty-contract', plan }).caseContract.contractDigest);
 });

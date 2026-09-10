@@ -124,7 +124,7 @@ function selectedPath(filePath, scope) {
 
 function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest, repositoryBaseIdentity, scope, manifestEntries, selectedTree }) {
   const encode = (value) => gzipSync(Buffer.from(canonicalJson(value), 'utf8'), { level: 9, mtime: 0 }).toString('base64');
-  const selectedPayload = encode(selectedTree);
+  const selectedLiteral = canonicalJson(selectedTree);
   const manifestPayload = encode(manifestEntries);
   const chunks = (value) => {
     const result = [];
@@ -142,9 +142,8 @@ function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest,
     `const MCP_TRIAL_SCOPE = ${JSON.stringify(scope)};`,
     `const MCP_TRIAL_SCOPE_DIGEST = ${JSON.stringify(scopeDigest(scope))};`,
     `const MCP_TRIAL_MANIFEST_DIGEST = ${JSON.stringify(repositoryBaseIdentity.manifestDigest)};`,
-    `const MCP_TRIAL_SELECTED_GZIP_BASE64 = [\n  ${chunks(selectedPayload)}\n].join('');`,
+    `const MCP_TRIAL_SELECTED_TREE = Object.freeze(${selectedLiteral});`,
     `const MCP_TRIAL_MANIFEST_GZIP_BASE64 = [\n  ${chunks(manifestPayload)}\n].join('');`,
-    'let selectedTreePromise = null;',
     'let manifestPromise = null;',
     '',
     'function decodeBase64(value) {',
@@ -163,8 +162,7 @@ function generatedModule({ commitOid, treeOid, objectFormat, semanticBaseDigest,
     '}',
     '',
     'export async function loadMcpTrialBaseTree() {',
-    "  if (selectedTreePromise === null) selectedTreePromise = decodeJson(MCP_TRIAL_SELECTED_GZIP_BASE64, 'mcp_base_tree_payload_invalid').then((value) => { if (Array.isArray(value) || Object.keys(value).length === 0) throw new Error('mcp_base_tree_payload_invalid'); return value; });",
-    '  return selectedTreePromise;',
+    '  return MCP_TRIAL_SELECTED_TREE;',
     '}',
     '',
     'export async function loadMcpTrialManifest() {',

@@ -19,6 +19,8 @@ import {
 import { mcpDiscoveryResponse } from '../src/mcp-discovery.mjs';
 import { digest } from '../src/canonical.mjs';
 import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
+import { developmentOperationCatalogDigest } from '../src/development-operation-catalog.mjs';
+import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
@@ -27,6 +29,28 @@ test('D0046 light Case snapshot projection imports its clone helper', async () =
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   assert.match(source, /import \{[\s\S]*?canonicalClone,[\s\S]*?\} from '\.\.\/src\/canonical\.mjs';/u);
   assert.match(source, /snapshot: \(\) => canonicalClone\(snapshot\)/u);
+});
+
+test('D0046 light ingress owns the semantic catalog and delegates development_start to the execution DO', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
+  assert.ok(source.includes("const DEVELOPMENT_OPERATION_CATALOG_BINDING = 'TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON';"));
+  assert.ok(source.includes("return invokeExecution(input.caseId, 'developmentStart', {"));
+  assert.ok(driveSource.includes("'developmentStart',"));
+  assert.ok(driveSource.includes("case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;"));
+});
+
+test('D0046 execution DO keeps runner drive off full tree construction under the 10 ms request budget', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
+  assert.ok(source.includes('export async function createTrialDriveApplication'));
+  assert.ok(source.includes('allowBindingManifest: true'));
+  assert.ok(source.includes('skipCommandReload: true'));
+  assert.ok(source.includes('const materializeManifest = () =>'));
+  assert.ok(driveSource.includes('createTrialApplication, createTrialDriveApplication, createTrialExecutionApplication'));
+  assert.ok(driveSource.includes("request.operation === 'runner.drive'"));
+  assert.ok(driveSource.includes('createTrialDriveApplication(this.env, { driveOwnerOverride: this.host })'));
+  assert.ok(driveSource.includes("request.operation === 'developmentUnitStart' || request.operation === 'developmentStart'"));
 });
 
 
@@ -64,6 +88,15 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
   assert.equal(compositionBinding.type, 'plain_text');
   const boundComposition = JSON.parse(compositionBinding.text);
   assert.deepEqual(boundComposition.repository.context.baseTree, {});
+  const catalogBinding = metadata.bindings.find((binding) => binding.name === 'TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON');
+  assert.equal(catalogBinding.type, 'plain_text');
+  const boundCatalog = JSON.parse(catalogBinding.text);
+  assert.equal(developmentOperationCatalogDigest(boundCatalog), manifests.operationCatalogDigest);
+  assert.ok(boundCatalog.operations['tdev.operation.repository.change.generate.v1']);
+  assert.equal(
+    boundComposition.agentOwner.routeKey,
+    agentRouteHostKey({ agentId: boundComposition.agentOwner.agentId, routeGeneration: boundComposition.agentOwner.routeGeneration }),
+  );
   assert.equal(metadata.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE').namespace_id, 'drive-namespace');
   assert.equal(Object.hasOwn(metadata, 'limits'), false);
   assert.equal(metadata.exports.CaseAgentDriveRuntimeDO.storage, 'sqlite');

@@ -82,18 +82,22 @@ function ownerPlacement(value, label, expectedClassName) {
 }
 
 function ownerBinding(value, label, expectedClassName) {
-  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration', 'routeKey'], label);
+  assertRecordShape(value, ['placement'], ['namespaceId', 'd1Binding', 'd1DatabaseId', 'agentId', 'routeGeneration', 'routeKey', 'durableObjectId'], label);
   const placement = ownerPlacement(value.placement, `${label}.placement`, expectedClassName);
   for (const field of ['namespaceId', 'd1Binding', 'd1DatabaseId']) {
     if (value[field] !== undefined) boundedText(value[field], `${label}.${field}`, 512);
   }
   if (value.routeKey !== undefined) boundedText(value.routeKey, `${label}.routeKey`, 256);
+  if (value.durableObjectId !== undefined && !/^[0-9a-f]{64}$/u.test(value.durableObjectId)) {
+    fail('mcp_trial_manifest_invalid', `${label}.durableObjectId is invalid`);
+  }
   return {
     placement,
     ...(value.namespaceId === undefined ? {} : { namespaceId: value.namespaceId }),
     ...(value.d1Binding === undefined ? {} : { d1Binding: value.d1Binding }),
     ...(value.d1DatabaseId === undefined ? {} : { d1DatabaseId: value.d1DatabaseId }),
     ...(value.routeKey === undefined ? {} : { routeKey: value.routeKey }),
+    ...(value.durableObjectId === undefined ? {} : { durableObjectId: value.durableObjectId }),
   };
 }
 
@@ -200,7 +204,7 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   const caseOwner = ownerBinding(input.caseOwner, 'caseOwner', MCP_TRIAL_CASE_CLASS_NAME);
   const driveOwner = ownerBinding(input.driveOwner, 'driveOwner', MCP_TRIAL_DRIVE_CLASS_NAME);
   const agentOwner = ownerBinding(input.agentOwner, 'agentOwner', MCP_TRIAL_AGENT_CLASS_NAME);
-  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId', 'routeKey'], 'agentOwner');
+  assertRecordShape(input.agentOwner, ['placement', 'agentId', 'routeGeneration'], ['namespaceId', 'routeKey', 'durableObjectId'], 'agentOwner');
   assertIdentifier(input.agentOwner.agentId, 'agentOwner.agentId');
   assertSafeInteger(input.agentOwner.routeGeneration, 'agentOwner.routeGeneration', { min: 1 });
   if (input.agentOwner.routeKey !== undefined && input.agentOwner.routeKey !== agentRouteHostKey({
@@ -297,13 +301,18 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   return body;
 }
 
+const NORMALIZED_MCP_TRIAL_COMPOSITIONS = new WeakSet();
+
 export function normalizeMcpTrialCompositionManifest(input) {
+  if (input !== null && typeof input === 'object' && NORMALIZED_MCP_TRIAL_COMPOSITIONS.has(input)) return input;
   const body = normalizeManifestBody(input);
   const expected = typedDigest(MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN, body);
   if (input.manifestDigest !== undefined && input.manifestDigest !== expected) {
     fail('mcp_trial_manifest_digest_mismatch', 'Trial composition manifest digest does not match its fields');
   }
-  return deepFreeze({ ...body, manifestDigest: expected });
+  const normalized = deepFreeze({ ...body, manifestDigest: expected });
+  NORMALIZED_MCP_TRIAL_COMPOSITIONS.add(normalized);
+  return normalized;
 }
 
 /**
@@ -336,9 +345,12 @@ export function namespaceFor(namespace, jurisdiction, label) {
   return scoped;
 }
 
-function routedStub(namespace, name, jurisdiction, label, { rpc = true } = {}) {
+function routedStub(namespace, name, jurisdiction, label, { rpc = true, durableObjectId = null } = {}) {
   assertIdentifier(name, `${label} route key`);
-  const id = namespace.idFromName(name);
+  if (durableObjectId !== null && typeof namespace.idFromString !== 'function') {
+    fail('mcp_trial_owner_unavailable', `${label} namespace cannot restore an exact Durable Object identity`);
+  }
+  const id = durableObjectId === null ? namespace.idFromName(name) : namespace.idFromString(durableObjectId);
   if (!id || typeof id.toString !== 'function') fail('mcp_trial_owner_unavailable', `${label} returned an invalid Durable Object identity`);
   if ((id.jurisdiction ?? 'global') !== jurisdiction) fail('mcp_trial_owner_mismatch', `${label} identity has the wrong jurisdiction`);
   const stub = namespace.get(id);
@@ -390,8 +402,10 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null } = {}) {
-  const normalized = normalizeMcpTrialCompositionManifest(manifest);
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
+  const normalized = allowBindingManifest
+    ? normalizeMcpTrialCompositionBinding(manifest)
+    : normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
   const driveNs = driveOwnerOverride === null
     ? namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive')
@@ -443,7 +457,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async command(caseId, envelope) {
       const result = await caseCall('command', caseId, { envelope });
       return {
-        engine: caseEngineProjection((await caseCall('load', caseId)).snapshot),
+        ...(skipCommandReload ? {} : { engine: caseEngineProjection((await caseCall('load', caseId)).snapshot) }),
         result: publicJsonClone(result.response),
         persisted: result.deduplicated !== true,
       };
@@ -515,7 +529,9 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
   });
 
   function agentRoute() {
-    const routed = routedStub(agentNs, normalized.agentOwner.routeKey ?? normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent');
+    const routed = routedStub(agentNs, normalized.agentOwner.routeKey ?? normalized.agentOwner.agentId, normalized.jurisdiction, 'Agent', {
+      durableObjectId: normalized.agentOwner.durableObjectId ?? null,
+    });
     const routeBinding = normalizeAgentRouteBinding({
       agentId: normalized.agentOwner.agentId,
       routeGeneration: normalized.agentOwner.routeGeneration,

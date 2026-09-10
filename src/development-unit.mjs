@@ -425,6 +425,8 @@ export class DevelopmentUnitRunner {
           baseDigest: task.input.baseDigest,
           contextReferenceId: task.input.contextReferenceId,
           caseContract,
+          ...(task.input.operation.id !== 'tdev.operation.repository.change.generate.v1' || task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+          ...(task.input.operation.id !== 'tdev.operation.repository.change.generate.v1' || task.input.contextScope === undefined ? {} : { contextScope: canonicalClone(task.input.contextScope) }),
           ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
           ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
           ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),

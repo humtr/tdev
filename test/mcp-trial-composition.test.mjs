@@ -125,6 +125,10 @@ function namespace(route, calls) {
       calls.push(`id:${route}:${name}`);
       return { jurisdiction: 'global', toString: () => `${route}-do-${name}` };
     },
+    idFromString(value) {
+      calls.push(`id-string:${route}:${value}`);
+      return { jurisdiction: 'global', toString: () => value };
+    },
     get(id) {
       calls.push(`get:${route}:${id.toString()}`);
       return route === 'case'
@@ -143,11 +147,34 @@ function namespace(route, calls) {
 
 test('D0046 trial manifest binds one fixed resource, owner set and immutable base', () => {
   const normalized = normalizeMcpTrialCompositionManifest(manifest());
+  assert.equal(normalizeMcpTrialCompositionManifest(normalized), normalized);
   assert.equal(normalized.resource, MCP_TRIAL_COMPOSITION_RESOURCE);
   assert.equal(normalized.repository.baseDigest, digest(BASE_TREE));
   assert.equal(normalized.agentOwner.agentId, 'agent-trial');
   assert.equal(normalized.operation.contextProfile, 'tdev.repository.context.prepare.v1');
   assert.match(normalized.manifestDigest, /^sha256:[0-9a-f]{64}$/u);
+});
+
+test('D0046 Agent owner restores an exact provider Durable Object identity when bound', async () => {
+  const calls = [];
+  const durableObjectId = 'b'.repeat(64);
+  const input = manifest();
+  input.agentOwner = {
+    ...input.agentOwner,
+    routeKey: agentRouteHostKey({ agentId: input.agentOwner.agentId, routeGeneration: input.agentOwner.routeGeneration }),
+    durableObjectId,
+  };
+  const normalized = normalizeMcpTrialCompositionManifest(input);
+  assert.equal(normalized.agentOwner.durableObjectId, durableObjectId);
+  const owners = createMcpTrialOwnerFacades({
+    manifest: normalized,
+    caseNamespace: namespace('case', calls),
+    driveNamespace: namespace('drive', calls),
+    agentNamespace: namespace('agent', calls),
+  });
+  await owners.agentOwner.readRoute();
+  assert.ok(calls.includes(`id-string:agent:${durableObjectId}`));
+  assert.equal(calls.some((entry) => entry.startsWith('id:agent:')), false);
 });
 
 

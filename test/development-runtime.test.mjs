@@ -7,11 +7,14 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { ContractError, canonicalClone, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
-import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome } from '../src/development-runtime.mjs';
+import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome, createLegacyProfileSemanticChangeGenerator } from '../src/development-runtime.mjs';
+import { normalizeDevelopmentOperationCatalog } from '../src/development-operation-catalog.mjs';
+import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
 const operationManifest = JSON.parse(readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
+const semanticCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8')));
 
 function eventStream(...events) {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`, 'utf8');
@@ -133,6 +136,34 @@ test('D0046 Codex runtime temp files stay outside the exact-base clone and are c
   assert.deepEqual(readdirSync(workspaceRoot), []);
 });
 
+test('D0046 non-lazy context rematerialization does not leak scoped-only options to the strict adapter', async () => {
+  const controller = new AbortController();
+  let observedOptions = null;
+  const contextDigest = digest({ context: 'restart-rematerialization' });
+  const executor = new CodexExecRepositoryModelExecutor({
+    repositoryPath: '/tmp/tdev-repository',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp/codex-home',
+    outputSchemaPath: '/tmp/codex-schema.json',
+    contextAdapter: {
+      materializeContext: async (_repositoryCommitOid, _baseDigest, options) => {
+        observedOptions = options;
+        assert.deepEqual(Object.keys(options).sort(), ['repositoryBaseIdentity', 'signal']);
+        assert.equal(options.signal, controller.signal);
+        assert.equal(options.repositoryBaseIdentity, null);
+        return { descriptor: { contextDigest, fileCount: 1 } };
+      },
+    },
+  });
+  const context = await executor.materializeContext('a'.repeat(40), baseDigest, {
+    signal: controller.signal,
+    scope: null,
+    repositoryBaseIdentity: null,
+  });
+  assert.ok(observedOptions);
+  assert.equal(context.descriptor.contextDigest, contextDigest);
+});
+
 test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation sink', () => {
   const observation = () => {};
   const runtime = new LocalDevelopmentOperationRuntime({
@@ -146,6 +177,40 @@ test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation si
   });
   assert.equal(runtime.codex.observation, observation);
   assert.equal(runtime.npm.observation, observation);
+});
+
+test('D0046 semantic Codex binding preserves the owner-issued lazy scope digest', async () => {
+  const runtime = new LocalDevelopmentOperationRuntime({
+    manifest: operationManifest,
+    repositoryPath: '/tmp/tdev-repository',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp/codex-home',
+    outputSchemaPath: '/tmp/codex-schema.json',
+    npmExecutable: '/tmp/npm',
+  });
+  let observed = null;
+  runtime.generateChangeSet = async ({ profile, input }) => {
+    observed = { profile, input: canonicalClone(input) };
+    return { kind: 'changeset', baseDigest, writes: [{ path: 'source.txt', content: 'changed\n' }] };
+  };
+  const generator = createLegacyProfileSemanticChangeGenerator({ catalog: semanticCatalog, operationRuntime: runtime });
+  const scope = { paths: ['src/selected.mjs'], prefixes: [], maxFiles: 1, maxBytes: 1024, maxSearchResults: 1 };
+  const descriptor = semanticCatalog.operations['tdev.operation.repository.change.generate.v1'];
+  await generator.execute({
+    operation: {
+      id: 'tdev.operation.repository.change.generate.v1',
+      version: 1,
+      contractDigest: descriptor.contractDigest,
+      input: { instruction: 'change the selected value' },
+    },
+    repositoryCommitOid: 'a'.repeat(40),
+    baseDigest,
+    contextScope: scope,
+  }, [], new AbortController().signal, { operationId: 'semantic-change/1' });
+  assert.equal(observed.profile, 'tdev.model.repository.execute.v1');
+  assert.equal(observed.input.contextProfile, 'tdev.repository.context.prepare.lazy.v1');
+  assert.deepEqual({ ...observed.input.contextScope }, scope);
+  assert.equal(observed.input.contextScopeDigest, lazyScopeDigest(scope));
 });
 
 test('D0043 development result envelope binds the activated Attempt fence', () => {
