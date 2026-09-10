@@ -11,6 +11,7 @@ const TRIAL_EXECUTION_OPERATIONS = new Set([
   'runner.drive',
   'runner.candidate',
   'developmentUnitStart',
+  'developmentStart',
 ]);
 
 function fail(code, message) {
@@ -85,6 +86,7 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
       case 'runner.drive': result = await worker.surface.developmentUnitRunner.drive(request.input); break;
       case 'runner.candidate': result = await worker.surface.developmentUnitRunner.candidate(request.input.caseId); break;
       case 'developmentUnitStart': result = await worker.surface.owners.developmentUnitStart(request.input); break;
+      case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;
       default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
     }
     return publicJsonClone(plainOwnerResult(result));

@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto';
 import { execFileSync } from 'node:child_process';
+import { readFileSync } from 'node:fs';
 import { readFile } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
@@ -32,6 +33,10 @@ import {
   normalizeMcpTrialCompositionManifest,
 } from '../src/mcp-trial-composition.mjs';
 import { normalizeDevelopmentOperationManifest } from '../src/development-operation-profile.mjs';
+import {
+  developmentOperationCatalogDigest,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
 import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
@@ -54,6 +59,7 @@ export const D0046_CASE_PREFIX = 'tdev-trial-';
 export const D0046_WORKER_COMPATIBILITY_DATE = '2026-08-15';
 export const D0046_WORKER_MAIN_MODULE = 'qualification/cloudflare-mcp-trial-worker.mjs';
 export const D0046_OPERATION_CONFIG = 'config/development-operation-profiles.json';
+export const D0046_OPERATION_CATALOG_CONFIG = 'config/development-operation-catalog.json';
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
@@ -170,6 +176,11 @@ function artifactManifest(modules) {
 
 function normalizedOperationManifest(raw) {
   return normalizeDevelopmentOperationManifest(raw);
+}
+
+function normalizedOperationCatalog() {
+  const source = readFileSync(path.join(repositoryRoot, D0046_OPERATION_CATALOG_CONFIG), 'utf8');
+  return normalizeDevelopmentOperationCatalog(JSON.parse(source));
 }
 
 function accessManifest(audience) {
@@ -292,6 +303,8 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
 export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
+  const operationCatalog = normalizedOperationCatalog();
+  const operationCatalogDigest = developmentOperationCatalogDigest(operationCatalog);
   const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
   const auth = accessManifest(accessAudience);
   const buildDigest = digest({
@@ -299,6 +312,7 @@ export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositor
     compositionDigest: composition.manifestDigest,
     authProfileDigest: auth.profileDigest,
     operationManifestDigest: digest(normalizedOperation),
+    developmentOperationCatalogDigest: operationCatalogDigest,
   });
   const surface = createMcpSurfaceManifest({ buildDigest });
   return Object.freeze({
@@ -306,6 +320,8 @@ export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositor
     auth,
     operation: normalizedOperation,
     operationDigest: digest(normalizedOperation),
+    operationCatalog,
+    operationCatalogDigest,
     surface,
     surfaceDigest: surface.surfaceDigest,
     buildDigest,
@@ -319,11 +335,12 @@ function configBindingManifests(manifests) {
     composition: canonicalJson(composition),
     auth: canonicalJson(manifests.auth),
     operation: canonicalJson(manifests.operation),
+    operationCatalog: canonicalJson(manifests.operationCatalog),
   });
 }
 
 export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace = null, bootstrap = false } = {}) {
-  if (!manifests?.composition || !manifests?.auth || !manifests?.operation) fail('d0046_metadata_invalid', 'Worker metadata requires all trial manifests');
+  if (!manifests?.composition || !manifests?.auth || !manifests?.operation || !manifests?.operationCatalog) fail('d0046_metadata_invalid', 'Worker metadata requires all trial manifests');
   const config = configBindingManifests(manifests);
   const driveText = driveNamespace ?? `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`;
   const bindings = [
@@ -350,6 +367,7 @@ export function buildWorkerMetadata({ manifests, sourceSha, artifact, driveNames
     plain('TDEV_MCP_TRIAL_MANIFEST_JSON', config.composition),
     plain('TDEV_MCP_AUTH_MANIFEST_JSON', config.auth),
     plain('TDEV_MCP_OPERATION_MANIFEST_JSON', config.operation),
+    plain('TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON', config.operationCatalog),
     plain('TDEV_MCP_CANONICAL_WRITER_ENABLED', 'false'),
     plain('TDEV_MCP_PREVIEW_WRITERS_ENABLED', 'false'),
     plain('TDEV_MCP_TRIAL_RESOURCE', D0046_MCP_TRIAL_RESOURCE),

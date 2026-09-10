@@ -35,6 +35,10 @@ import {
 import {
   normalizeDevelopmentOperationManifest,
 } from '../src/development-operation-profile.mjs';
+import {
+  developmentOperationCatalogDigest,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
 import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mjs';
 import {
   loadMcpTrialBaseTree,
@@ -45,6 +49,7 @@ import {
 const TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
 const AUTH_MANIFEST_BINDING = 'TDEV_MCP_AUTH_MANIFEST_JSON';
 const OPERATION_MANIFEST_BINDING = 'TDEV_MCP_OPERATION_MANIFEST_JSON';
+const DEVELOPMENT_OPERATION_CATALOG_BINDING = 'TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON';
 const SURFACE_DIGEST_BINDING = 'TDEV_MCP_SURFACE_DIGEST';
 const MAX_CONFIG_BYTES = 8 * 1024 * 1024;
 
@@ -206,6 +211,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
   assertGeneratedBaseBinding(composition);
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
   if (authManifest.mcpResource !== composition.resource) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
   }
@@ -234,6 +240,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       compositionDigest: composition.manifestDigest,
       authProfileDigest: authManifest.profileDigest,
       operationManifestDigest: digest(operationManifest),
+      developmentOperationCatalogDigest: developmentOperationCatalogDigest(operationCatalog),
     }),
   });
   const verifier = createCloudflareAccessAssertionVerifier();
@@ -251,6 +258,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
       repository: facades.repository,
       driveRunner: runner,
       developmentUnitRunner: runner,
+      operationCatalog,
       developmentContextGet: facades.contextOwner.developmentContextGet,
       developmentContextResolve: facades.contextOwner.developmentContextResolve,
       authorize: facades.authorize,
@@ -274,6 +282,9 @@ async function createTrialLightApplication(env) {
   const operationManifest = normalizeDevelopmentOperationManifest(
     readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024),
   );
+  const operationCatalog = normalizeDevelopmentOperationCatalog(
+    readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024),
+  );
   if (authManifest.mcpResource !== configuredComposition.resource) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
   }
@@ -285,6 +296,7 @@ async function createTrialLightApplication(env) {
     compositionDigest: configuredComposition.manifestDigest,
     authProfileDigest: authManifest.profileDigest,
     operationManifestDigest: digest(operationManifest),
+    developmentOperationCatalogDigest: developmentOperationCatalogDigest(operationCatalog),
   });
   const surfaceManifest = createMcpSurfaceManifest({ buildDigest });
   if (surfaceManifest.surfaceDigest !== readDigestBinding(env, SURFACE_DIGEST_BINDING)) {
@@ -363,6 +375,7 @@ async function createTrialLightApplication(env) {
     repository,
     driveRunner: runner,
     developmentUnitRunner: runner,
+    operationCatalog,
     developmentUnitStart: async (input = {}) => {
       assertTrialCaseId(input?.caseId);
       const identity = input?.identity && typeof input.identity === 'object'
@@ -374,6 +387,20 @@ async function createTrialLightApplication(env) {
         contextReference: input.contextReference,
         instruction: input.instruction,
         validationProfile: input.validationProfile,
+        identity,
+        requestId: input.requestId,
+      });
+    },
+    developmentStart: async (input = {}) => {
+      assertTrialCaseId(input?.caseId);
+      const identity = input?.identity && typeof input.identity === 'object'
+        ? { principalId: input.identity.principalId, tenantId: input.identity.tenantId }
+        : null;
+      return invokeExecution(input.caseId, 'developmentStart', {
+        caseId: input.caseId,
+        driveRequestId: input.driveRequestId,
+        contextReference: input.contextReference,
+        operation: input.operation,
         identity,
         requestId: input.requestId,
       });
