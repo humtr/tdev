@@ -718,7 +718,7 @@ export class CodexExecRepositoryModelExecutor {
   async materializeContext(repositoryCommitOid, baseDigest, { signal, scope = null, objectFormat = null, baseIdentity = null, repositoryBaseIdentity = null } = {}) {
     const context = scope !== null && typeof this.contextAdapter.materializeScopedContext === 'function'
       ? await this.contextAdapter.materializeScopedContext(repositoryCommitOid, baseDigest, { signal, scope, repositoryBaseIdentity })
-      : await this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal, scope, repositoryBaseIdentity });
+      : await this.contextAdapter.materializeContext(repositoryCommitOid, baseDigest, { signal, repositoryBaseIdentity });
     return assertPreparedContextIdentity(context, { repositoryCommitOid, baseDigest, objectFormat, baseIdentity, repositoryBaseIdentity });
   }
 

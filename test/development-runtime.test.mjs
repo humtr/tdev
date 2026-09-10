@@ -133,6 +133,34 @@ test('D0046 Codex runtime temp files stay outside the exact-base clone and are c
   assert.deepEqual(readdirSync(workspaceRoot), []);
 });
 
+test('D0046 non-lazy context rematerialization does not leak scoped-only options to the strict adapter', async () => {
+  const controller = new AbortController();
+  let observedOptions = null;
+  const contextDigest = digest({ context: 'restart-rematerialization' });
+  const executor = new CodexExecRepositoryModelExecutor({
+    repositoryPath: '/tmp/tdev-repository',
+    codexExecutable: '/tmp/codex',
+    codexHome: '/tmp/codex-home',
+    outputSchemaPath: '/tmp/codex-schema.json',
+    contextAdapter: {
+      materializeContext: async (_repositoryCommitOid, _baseDigest, options) => {
+        observedOptions = options;
+        assert.deepEqual(Object.keys(options).sort(), ['repositoryBaseIdentity', 'signal']);
+        assert.equal(options.signal, controller.signal);
+        assert.equal(options.repositoryBaseIdentity, null);
+        return { descriptor: { contextDigest, fileCount: 1 } };
+      },
+    },
+  });
+  const context = await executor.materializeContext('a'.repeat(40), baseDigest, {
+    signal: controller.signal,
+    scope: null,
+    repositoryBaseIdentity: null,
+  });
+  assert.ok(observedOptions);
+  assert.equal(context.descriptor.contextDigest, contextDigest);
+});
+
 test('D0043 LocalDevelopmentOperationRuntime forwards the bounded observation sink', () => {
   const observation = () => {};
   const runtime = new LocalDevelopmentOperationRuntime({
