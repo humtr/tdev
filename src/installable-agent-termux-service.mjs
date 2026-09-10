@@ -324,6 +324,20 @@ export class TermuxInstallableAgentServiceController {
     }
   }
 
+  async #stopControlService(servicePath) {
+    this.#sv('down', servicePath);
+    try {
+      return await this.#waitDown(servicePath);
+    } catch (cause) {
+      if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
+      // The control process handles SIGTERM for graceful transport/runtime
+      // cleanup, so an in-flight connect can outlive the normal down wait.
+      // Keep runsv fenced down and use the exact-child guard rather than
+      // abandoning the package transaction while the process is still live.
+      return this.#guardedKillSupervisedProcess(servicePath);
+    }
+  }
+
   async #stopDrainedSupervisor(servicePath) {
     this.#sv('down', servicePath);
     try {
@@ -581,8 +595,7 @@ export class TermuxInstallableAgentServiceController {
     const layout = termuxInstallableAgentServiceLayout({ prefix: this.prefix, stateDirectory });
     await this.#waitSupervised(layout.controlServicePath);
     await this.#waitSupervised(layout.supervisorServicePath);
-    this.#sv('down', layout.controlServicePath);
-    const controlStopped = await this.#waitDown(layout.controlServicePath);
+    const controlStopped = await this.#stopControlService(layout.controlServicePath);
     this.#sv('up', layout.supervisorServicePath);
     await this.#waitSupervisorReady(layout);
     const client = this.clientFactory({ socketPath: layout.socketPath });
