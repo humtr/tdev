@@ -24,9 +24,9 @@ import {
   createTdevMcpWorker,
 } from '../src/mcp-surface.mjs';
 import {
-  createMcpTrialOwnerFacades,
-  normalizeMcpTrialCompositionBinding,
-  normalizeMcpTrialCompositionManifest,
+  createMcpRuntimeOwnerFacades,
+  normalizeMcpRuntimeCompositionBinding,
+  normalizeMcpRuntimeCompositionManifest,
   namespaceFor,
 } from '../src/mcp-trial-composition.mjs';
 import {
@@ -47,7 +47,8 @@ import {
   MCP_TRIAL_BASE_DIGEST,
 } from './mcp-trial-base-tree.mjs';
 
-const TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
+const RUNTIME_MANIFEST_BINDING = 'TDEV_MCP_RUNTIME_MANIFEST_JSON';
+const LEGACY_TRIAL_MANIFEST_BINDING = 'TDEV_MCP_TRIAL_MANIFEST_JSON';
 const AUTH_MANIFEST_BINDING = 'TDEV_MCP_AUTH_MANIFEST_JSON';
 const OPERATION_MANIFEST_BINDING = 'TDEV_MCP_OPERATION_MANIFEST_JSON';
 const DEVELOPMENT_OPERATION_CATALOG_BINDING = 'TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON';
@@ -75,6 +76,15 @@ function readJsonBinding(env, name, maxBytes = MAX_CONFIG_BYTES) {
   } catch (cause) {
     throw configError('mcp_config_unavailable', `${name} is not canonical bounded JSON`);
   }
+}
+
+function readCompositionBinding(env) {
+  const runtime = env?.[RUNTIME_MANIFEST_BINDING];
+  const legacy = env?.[LEGACY_TRIAL_MANIFEST_BINDING];
+  if (runtime !== undefined && legacy !== undefined) {
+    throw configError('mcp_config_unavailable', 'Runtime and legacy composition bindings are ambiguous');
+  }
+  return readJsonBinding(env, runtime !== undefined ? RUNTIME_MANIFEST_BINDING : LEGACY_TRIAL_MANIFEST_BINDING);
 }
 
 function readDigestBinding(env, name) {
@@ -148,7 +158,7 @@ function emitRequestDiagnostic(stage, request, fields = {}) {
   if (typeof console?.log !== 'function') return;
   try {
     console.log(JSON.stringify({
-      profile: 'tdev.mcp.trial.request-diagnostic.v1',
+      profile: 'tdev.mcp.runtime.request-diagnostic.v1',
       stage,
       ...requestDiagnostic(request),
       ...fields,
@@ -193,16 +203,16 @@ function metadataFastPath(request, env) {
   }
 }
 
-export async function createTrialExecutionApplication(env, { driveOwnerOverride = null } = {}) {
-  const configuredComposition = readJsonBinding(env, TRIAL_MANIFEST_BINDING);
+export async function createRuntimeExecutionApplication(env, { driveOwnerOverride = null } = {}) {
+  const configuredComposition = readCompositionBinding(env);
   const baseTree = await loadMcpTrialBaseTree();
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
-    throw configError('mcp_config_unavailable', 'Trial composition repository context is not configured');
+    throw configError('mcp_config_unavailable', 'Runtime composition repository context is not configured');
   }
   // The large immutable tree is a deployment-bound module, not a caller or
   // Worker secret. The small environment manifest still binds its commit and
   // digest, which the normalizer verifies against this injected tree.
-  const composition = normalizeMcpTrialCompositionManifest({
+  const composition = normalizeMcpRuntimeCompositionManifest({
     ...configuredComposition,
     repository: {
       ...configuredComposition.repository,
@@ -214,10 +224,10 @@ export async function createTrialExecutionApplication(env, { driveOwnerOverride 
   const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
   const operationManifestDigest = digest(operationManifest);
   if (composition.operation.manifestDigest !== operationManifestDigest) {
-    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+    throw configError('mcp_config_unavailable', 'Runtime operation binding does not match the operation manifest');
   }
 
-  const facades = createMcpTrialOwnerFacades({
+  const facades = createMcpRuntimeOwnerFacades({
     manifest: composition,
     caseNamespace: env.TDEV_CASE_AUTHORITY,
     driveNamespace: env.TDEV_CASE_AGENT_DRIVE,
@@ -238,16 +248,16 @@ export async function createTrialExecutionApplication(env, { driveOwnerOverride 
 }
 
 export async function createTrialDriveApplication(env, { driveOwnerOverride = null } = {}) {
-  const composition = normalizeMcpTrialCompositionBinding(readJsonBinding(env, TRIAL_MANIFEST_BINDING));
+  const composition = normalizeMcpRuntimeCompositionBinding(readCompositionBinding(env));
   assertGeneratedBaseBinding(composition);
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
   const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
   const operationManifestDigest = digest(operationManifest);
   if (composition.operation.manifestDigest !== operationManifestDigest) {
-    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+    throw configError('mcp_config_unavailable', 'Runtime operation binding does not match the operation manifest');
   }
 
-  const facades = createMcpTrialOwnerFacades({
+  const facades = createMcpRuntimeOwnerFacades({
     manifest: composition,
     caseNamespace: env.TDEV_CASE_AUTHORITY,
     driveNamespace: env.TDEV_CASE_AGENT_DRIVE,
@@ -262,7 +272,7 @@ export async function createTrialDriveApplication(env, { driveOwnerOverride = nu
     if (materializedManifestPromise === null) {
       materializedManifestPromise = (async () => {
         const baseTree = await loadMcpTrialBaseTree();
-        const materialized = normalizeMcpTrialCompositionManifest({
+        const materialized = normalizeMcpRuntimeCompositionManifest({
           ...composition,
           repository: {
             ...composition.repository,
@@ -295,14 +305,14 @@ export async function createTrialDriveApplication(env, { driveOwnerOverride = nu
 
 export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
-  const execution = await createTrialExecutionApplication(env, { driveOwnerOverride });
+  const execution = await createRuntimeExecutionApplication(env, { driveOwnerOverride });
   const { composition, operationManifestDigest, operationCatalog, facades, runner } = execution;
   if (authManifest.mcpResource !== composition.resource) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
   }
   const surfaceManifest = createMcpSurfaceManifest({
     buildDigest: digest({
-      profile: 'tdev.mcp.trial.build.v1',
+      profile: configuredComposition.profile === 'tdev.mcp.runtime-composition.v1' ? 'tdev.mcp.runtime.build.v1' : 'tdev.mcp.trial.build.v1',
       compositionDigest: composition.manifestDigest,
       authProfileDigest: authManifest.profileDigest,
       operationManifestDigest,
@@ -339,9 +349,9 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
  * CPU budget. Tree-heavy owner methods are delegated through the bound Drive
  * Durable Object, so the ingress never constructs the full application.
  */
-async function createTrialLightApplication(env) {
-  const configuredComposition = normalizeMcpTrialCompositionBinding(
-    readJsonBinding(env, TRIAL_MANIFEST_BINDING),
+async function createRuntimeLightApplication(env) {
+  const configuredComposition = normalizeMcpRuntimeCompositionBinding(
+    readCompositionBinding(env),
   );
   assertGeneratedBaseBinding(configuredComposition);
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
@@ -355,10 +365,10 @@ async function createTrialLightApplication(env) {
     throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
   }
   if (configuredComposition.operation.manifestDigest !== digest(operationManifest)) {
-    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+    throw configError('mcp_config_unavailable', 'Runtime operation binding does not match the operation manifest');
   }
   const buildDigest = digest({
-    profile: 'tdev.mcp.trial.build.v1',
+    profile: configuredComposition.profile === 'tdev.mcp.runtime-composition.v1' ? 'tdev.mcp.runtime.build.v1' : 'tdev.mcp.trial.build.v1',
     compositionDigest: configuredComposition.manifestDigest,
     authProfileDigest: authManifest.profileDigest,
     operationManifestDigest: digest(operationManifest),
@@ -376,7 +386,7 @@ async function createTrialLightApplication(env) {
     authorizationServerMetadata,
   });
 
-  const assertTrialCaseId = (caseId) => {
+  const assertRuntimeCaseId = (caseId) => {
     if (typeof caseId !== 'string' || caseId.length === 0 || !caseId.startsWith(configuredComposition.casePrefix)) {
       throw configError('mcp_trial_case_scope_denied', 'Case identity is outside the fixed trial prefix');
     }
@@ -399,7 +409,7 @@ async function createTrialLightApplication(env) {
       if (typeof console?.log === 'function') {
         try {
           console.log(JSON.stringify({
-            profile: 'tdev.mcp.trial.execution-diagnostic.v1',
+            profile: 'tdev.mcp.runtime.execution-diagnostic.v1',
             operation,
             name: typeof error?.name === 'string' ? error.name.slice(0, 128) : null,
             code: typeof error?.code === 'string' ? error.code.slice(0, 128) : null,
@@ -416,7 +426,7 @@ async function createTrialLightApplication(env) {
     return JSON.parse(JSON.stringify(result));
   };
   const invokeExecution = async (caseId, operation, input = {}) => {
-    assertTrialCaseId(caseId);
+    assertRuntimeCaseId(caseId);
     return invokeExecutionAt(caseId, operation, input);
   };
   const contextExecutionRouteKey = `context:${configuredComposition.repository.contextReference}`;
@@ -426,36 +436,36 @@ async function createTrialLightApplication(env) {
   });
   const repository = Object.freeze({
     create: async (input = {}) => {
-      assertTrialCaseId(input?.caseId);
+      assertRuntimeCaseId(input?.caseId);
       return caseSnapshotOwner(await invokeExecution(input.caseId, 'repository.create', input));
     },
     load: async (caseId) => {
-      assertTrialCaseId(caseId);
+      assertRuntimeCaseId(caseId);
       return caseSnapshotOwner(await invokeExecution(caseId, 'repository.load', { caseId }));
     },
     command: async (caseId, envelope) => {
-      assertTrialCaseId(caseId);
+      assertRuntimeCaseId(caseId);
       return invokeExecution(caseId, 'repository.command', { caseId, envelope });
     },
   });
   const runner = Object.freeze({
     create: (input = {}) => {
-      assertTrialCaseId(input?.caseId);
+      assertRuntimeCaseId(input?.caseId);
       return invokeExecution(input.caseId, 'runner.create', input);
     },
     drive: (input = {}) => {
-      assertTrialCaseId(input?.caseId);
+      assertRuntimeCaseId(input?.caseId);
       return invokeExecution(input.caseId, 'runner.drive', input);
     },
     candidate: (caseId) => {
-      assertTrialCaseId(caseId);
+      assertRuntimeCaseId(caseId);
       return invokeExecution(caseId, 'runner.candidate', { caseId });
     },
   });
   const context = compactContext(configuredComposition);
   const assertContextSelector = (selector) => {
     if (selector !== null && selector !== configuredComposition.repository.contextReference) {
-      const error = new Error('Context selector is outside the fixed trial reference');
+      const error = new Error('Context selector is outside the fixed runtime reference');
       error.code = 'mcp_trial_context_scope_denied';
       throw error;
     }
@@ -466,7 +476,7 @@ async function createTrialLightApplication(env) {
     developmentUnitRunner: runner,
     operationCatalog,
     developmentUnitStart: async (input = {}) => {
-      assertTrialCaseId(input?.caseId);
+      assertRuntimeCaseId(input?.caseId);
       const identity = input?.identity && typeof input.identity === 'object'
         ? { principalId: input.identity.principalId, tenantId: input.identity.tenantId }
         : null;
@@ -481,7 +491,7 @@ async function createTrialLightApplication(env) {
       });
     },
     developmentStart: async (input = {}) => {
-      assertTrialCaseId(input?.caseId);
+      assertRuntimeCaseId(input?.caseId);
       const identity = input?.identity && typeof input.identity === 'object'
         ? { principalId: input.identity.principalId, tenantId: input.identity.tenantId }
         : null;
@@ -522,7 +532,7 @@ let lightApplicationPromise = null;
 
 async function lightApplication(env) {
   if (lightApplicationPromise === null) {
-    lightApplicationPromise = Promise.resolve().then(() => createTrialLightApplication(env));
+    lightApplicationPromise = Promise.resolve().then(() => createRuntimeLightApplication(env));
   }
   return lightApplicationPromise;
 }

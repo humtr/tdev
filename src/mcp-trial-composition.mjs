@@ -33,6 +33,14 @@ export const MCP_TRIAL_COMPOSITION_PROFILE = 'tdev.mcp.trial-composition.v1';
 export const MCP_TRIAL_COMPOSITION_SCHEMA_VERSION = 1;
 export const MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN = 'tdev.mcp.trial-composition-manifest.v1';
 export const MCP_TRIAL_COMPOSITION_RESOURCE = 'https://tdev-mcp-trial.humtr.workers.dev/mcp';
+
+// Canonical product contract. The trial constants above remain immutable
+// compatibility identities for historical D0046 deployments and rollback.
+export const MCP_RUNTIME_COMPOSITION_PROFILE = 'tdev.mcp.runtime-composition.v1';
+export const MCP_RUNTIME_COMPOSITION_SCHEMA_VERSION = 1;
+export const MCP_RUNTIME_COMPOSITION_MANIFEST_DOMAIN = 'tdev.mcp.runtime-composition-manifest.v1';
+export const MCP_RUNTIME_COMPOSITION_RESOURCE = 'https://tdev.humtr.workers.dev/mcp';
+
 export const MCP_TRIAL_AGENT_RPC_PROFILE = 'tdev.installable-agent-qualification-rpc.v2';
 export const MCP_TRIAL_CASE_CLASS_NAME = 'CaseRuntimeDO';
 export const MCP_TRIAL_DRIVE_CLASS_NAME = 'CaseAgentDriveRuntimeDO';
@@ -189,18 +197,37 @@ function normalizeContext(context, repository, label = 'repository.context', { a
   return normalized;
 }
 
+const COMPOSITION_CONTRACTS = new Map([
+  [MCP_TRIAL_COMPOSITION_PROFILE, Object.freeze({
+    schemaVersion: MCP_TRIAL_COMPOSITION_SCHEMA_VERSION,
+    resource: MCP_TRIAL_COMPOSITION_RESOURCE,
+    manifestDomain: MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN,
+  })],
+  [MCP_RUNTIME_COMPOSITION_PROFILE, Object.freeze({
+    schemaVersion: MCP_RUNTIME_COMPOSITION_SCHEMA_VERSION,
+    resource: MCP_RUNTIME_COMPOSITION_RESOURCE,
+    manifestDomain: MCP_RUNTIME_COMPOSITION_MANIFEST_DOMAIN,
+  })],
+]);
+
+function compositionContract(input) {
+  const contract = COMPOSITION_CONTRACTS.get(input?.profile);
+  if (!contract || input.schemaVersion !== contract.schemaVersion) {
+    fail('mcp_trial_manifest_unsupported', 'Unsupported MCP composition profile or schema');
+  }
+  if (input.resource !== contract.resource) {
+    fail('mcp_trial_resource_mismatch', 'The MCP resource does not match its composition profile');
+  }
+  return contract;
+}
+
 function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   assertRecordShape(input, [
     'schemaVersion', 'profile', 'resource', 'workerScript', 'environment', 'jurisdiction',
     'caseOwner', 'driveOwner', 'agentOwner', 'repository', 'operation', 'identity',
     'authProfile', 'casePrefix', 'canonicalWriterEnabled', 'previewWritersEnabled',
-  ], ['manifestDigest'], 'MCP trial composition manifest');
-  if (input.schemaVersion !== MCP_TRIAL_COMPOSITION_SCHEMA_VERSION || input.profile !== MCP_TRIAL_COMPOSITION_PROFILE) {
-    fail('mcp_trial_manifest_unsupported', 'Unsupported MCP trial composition profile or schema');
-  }
-  if (input.resource !== MCP_TRIAL_COMPOSITION_RESOURCE) {
-    fail('mcp_trial_resource_mismatch', 'The trial resource is fixed to the accepted D0046 endpoint');
-  }
+  ], ['manifestDigest'], 'MCP composition manifest');
+  const contract = compositionContract(input);
   boundedText(input.workerScript, 'workerScript', 63);
   boundedText(input.environment, 'environment');
   if (!JURISDICTIONS.has(input.jurisdiction)) fail('mcp_trial_manifest_invalid', 'Trial jurisdiction is unsupported');
@@ -275,9 +302,9 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
     fail('mcp_trial_writer_forbidden', 'The first trial must not expose canonical or preview writers');
   }
   const body = {
-    schemaVersion: MCP_TRIAL_COMPOSITION_SCHEMA_VERSION,
-    profile: MCP_TRIAL_COMPOSITION_PROFILE,
-    resource: MCP_TRIAL_COMPOSITION_RESOURCE,
+    schemaVersion: contract.schemaVersion,
+    profile: input.profile,
+    resource: contract.resource,
     workerScript: input.workerScript,
     environment: input.environment,
     jurisdiction: input.jurisdiction,
@@ -309,7 +336,7 @@ const NORMALIZED_MCP_TRIAL_COMPOSITIONS = new WeakSet();
 export function normalizeMcpTrialCompositionManifest(input) {
   if (input !== null && typeof input === 'object' && NORMALIZED_MCP_TRIAL_COMPOSITIONS.has(input)) return input;
   const body = normalizeManifestBody(input);
-  const expected = typedDigest(MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN, body);
+  const expected = typedDigest(COMPOSITION_CONTRACTS.get(body.profile).manifestDomain, body);
   if (input.manifestDigest !== undefined && input.manifestDigest !== expected) {
     fail('mcp_trial_manifest_digest_mismatch', 'Trial composition manifest digest does not match its fields');
   }
@@ -804,3 +831,10 @@ export function createMcpTrialAuthorization(manifest) {
   const normalized = normalizeMcpTrialCompositionManifest(manifest);
   return async ({ identity } = {}) => identity?.principalId === normalized.identity.principalId && identity?.tenantId === normalized.identity.tenantId;
 }
+
+// Canonical names for forward product code; historical exports remain valid.
+export {
+  createMcpTrialOwnerFacades as createMcpRuntimeOwnerFacades,
+  normalizeMcpTrialCompositionBinding as normalizeMcpRuntimeCompositionBinding,
+  normalizeMcpTrialCompositionManifest as normalizeMcpRuntimeCompositionManifest,
+};

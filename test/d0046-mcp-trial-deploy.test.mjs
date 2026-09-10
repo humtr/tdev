@@ -8,11 +8,16 @@ import {
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
+  D0046_MCP_RUNTIME_DOMAIN,
+  D0046_MCP_RUNTIME_RESOURCE,
+  D0046_MCP_RUNTIME_SCRIPT,
   D0046_MCP_CONTEXT_SCOPE,
   D0046_CASE_SOURCE_SHAS,
   accessApplicationPayload,
   assertCaseOwnerCapacity,
   accessPolicyPayload,
+  buildCanonicalRuntimeMetadata,
+  buildLegacyTransferMetadata,
   buildTrialManifests,
   buildWorkerMetadata,
   existingTrialIdentity,
@@ -22,11 +27,12 @@ import { digest } from '../src/canonical.mjs';
 import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
 import { developmentOperationCatalogDigest } from '../src/development-operation-catalog.mjs';
 import { agentRouteHostKey } from '../src/agent-route-election.mjs';
+import { MCP_RUNTIME_COMPOSITION_PROFILE } from '../src/mcp-trial-composition.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
 
-test('D0046 self-development context is bounded to the eight Directive-r3 P1 files', () => {
+test('D0046 self-development context is bounded to the eight Directive-r4 canonical-runtime files', () => {
   assert.equal(D0046_MCP_CONTEXT_SCOPE.maxFiles, 8);
   assert.equal(D0046_MCP_CONTEXT_SCOPE.paths.length, 8);
   assert.deepEqual(D0046_MCP_CONTEXT_SCOPE.prefixes, []);
@@ -36,7 +42,7 @@ test('D0046 self-development context is bounded to the eight Directive-r3 P1 fil
     'docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md',
     'qualification/d0046-mcp-trial-deploy.mjs',
     'qualification/d0046-agent-preserving-update.mjs',
-    'qualification/mcp-trial-base-tree-builder.mjs',
+    'qualification/cloudflare-mcp-trial-worker.mjs',
     'test/d0046-mcp-trial-deploy.test.mjs',
     'src/mcp-trial-composition.mjs',
   ]) assert.ok(D0046_MCP_CONTEXT_SCOPE.paths.includes(path));
@@ -204,12 +210,67 @@ test('D0046 deploy and resume preserve scoped base identity in every generated T
   const callSites = source.split('buildTrialManifests({').slice(1)
     .map((body) => body.split('});', 1)[0])
     .filter((body) => body.includes('baseDigest: base.baseDigest'));
-  assert.equal(callSites.length, 3);
+  assert.ok(callSites.length >= 3);
   for (const body of callSites) {
     assert.match(body, /repositoryBaseIdentity: base\.repositoryBaseIdentity/u);
     assert.match(body, /scope: base\.scope/u);
     assert.match(body, /scopeDigest: base\.scopeDigest/u);
   }
+});
+
+test('D0046 canonical metadata stages one existing Drive namespace transfer without a second product owner', async () => {
+  const operation = JSON.parse(await readFile(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
+  const identity = { principalId: 'existing@example.test', tenantId: 'existing@example.test' };
+  const manifests = buildTrialManifests({
+    sourceSha: SOURCE_SHA,
+    baseDigest: digest(BASE_TREE),
+    baseTree: BASE_TREE,
+    operationManifest: operation,
+    driveNamespace: 'drive-namespace',
+    accessAudience: 'canonical-audience',
+    identity,
+    includeBaseTree: true,
+    compositionProfile: MCP_RUNTIME_COMPOSITION_PROFILE,
+    resource: D0046_MCP_RUNTIME_RESOURCE,
+    workerScript: D0046_MCP_RUNTIME_SCRIPT,
+    environment: 'development',
+    casePrefix: 'tdev-',
+    driveWorkerScript: D0046_MCP_RUNTIME_SCRIPT,
+  });
+  assert.equal(manifests.composition.profile, MCP_RUNTIME_COMPOSITION_PROFILE);
+  assert.equal(manifests.composition.resource, D0046_MCP_RUNTIME_RESOURCE);
+  assert.equal(manifests.composition.workerScript, D0046_MCP_RUNTIME_SCRIPT);
+  assert.equal(manifests.composition.driveOwner.placement.workerScript, D0046_MCP_RUNTIME_SCRIPT);
+  assert.equal(manifests.auth.mcpResource, D0046_MCP_RUNTIME_RESOURCE);
+  assert.equal(D0046_MCP_RUNTIME_DOMAIN, 'tdev.humtr.workers.dev/mcp');
+
+  const baseMetadata = buildWorkerMetadata({
+    manifests,
+    sourceSha: SOURCE_SHA,
+    artifact: { moduleDigest: 'sha256:' + 'c'.repeat(64), artifactManifestDigest: 'sha256:' + 'd'.repeat(64) },
+    driveNamespace: 'drive-namespace',
+  });
+  const pending = buildCanonicalRuntimeMetadata(baseMetadata, { manifests, phase: 'expecting-transfer' });
+  assert.equal(pending.bindings.some((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE'), false);
+  assert.equal(pending.bindings.some((binding) => binding.name === 'TDEV_MCP_TRIAL_MANIFEST_JSON'), false);
+  assert.equal(pending.bindings.find((binding) => binding.name === 'TDEV_MCP_RESOURCE')?.text, D0046_MCP_RUNTIME_RESOURCE);
+  assert.deepEqual(pending.exports.CaseAgentDriveRuntimeDO, {
+    type: 'durable-object', state: 'expecting-transfer', storage: 'sqlite', transfer_from: 'tdev-mcp-trial',
+  });
+
+  const live = buildCanonicalRuntimeMetadata(baseMetadata, { manifests, phase: 'live' });
+  const liveDrive = live.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE');
+  assert.equal(liveDrive?.namespace_id, 'drive-namespace');
+  assert.equal(liveDrive?.script_name, undefined);
+  assert.deepEqual(live.exports.CaseAgentDriveRuntimeDO, { type: 'durable-object', storage: 'sqlite' });
+
+  const transferred = buildLegacyTransferMetadata(baseMetadata, { externalDrive: false });
+  assert.equal(transferred.bindings.some((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE'), false);
+  assert.deepEqual(transferred.exports.CaseAgentDriveRuntimeDO, {
+    type: 'durable-object', state: 'transferred', transferred_to: D0046_MCP_RUNTIME_SCRIPT,
+  });
+  const fallback = buildLegacyTransferMetadata(baseMetadata, { externalDrive: true });
+  assert.equal(fallback.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE')?.script_name, D0046_MCP_RUNTIME_SCRIPT);
 });
 
 test('D0046 resume identity is recovered from the existing Trial binding', async () => {

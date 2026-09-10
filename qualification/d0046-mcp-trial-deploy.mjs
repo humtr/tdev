@@ -30,6 +30,8 @@ import {
   MCP_TRIAL_COMPOSITION_PROFILE,
   MCP_TRIAL_COMPOSITION_RESOURCE,
   MCP_TRIAL_DRIVE_CLASS_NAME,
+  MCP_RUNTIME_COMPOSITION_PROFILE,
+  MCP_RUNTIME_COMPOSITION_RESOURCE,
   normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
 } from '../src/mcp-trial-composition.mjs';
@@ -49,6 +51,14 @@ export const D0046_MCP_TRIAL_SUBDOMAIN = 'humtr';
 export const D0046_MCP_TRIAL_RESOURCE = MCP_TRIAL_COMPOSITION_RESOURCE;
 export const D0046_MCP_TRIAL_ORIGIN = `https://${D0046_MCP_TRIAL_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev`;
 export const D0046_MCP_TRIAL_DOMAIN = `${D0046_MCP_TRIAL_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev/mcp`;
+export const D0046_MCP_RUNTIME_SCRIPT = 'tdev';
+export const D0046_MCP_RUNTIME_RESOURCE = MCP_RUNTIME_COMPOSITION_RESOURCE;
+export const D0046_MCP_RUNTIME_ORIGIN = `https://${D0046_MCP_RUNTIME_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev`;
+export const D0046_MCP_RUNTIME_DOMAIN = `${D0046_MCP_RUNTIME_SCRIPT}.${D0046_MCP_TRIAL_SUBDOMAIN}.workers.dev/mcp`;
+export const D0046_MCP_RUNTIME_CASE_PREFIX = 'tdev-';
+export const D0046_MCP_RUNTIME_ENVIRONMENT = 'development';
+export const D0046_MCP_RUNTIME_COMPOSITION_BINDING = 'TDEV_MCP_RUNTIME_MANIFEST_JSON';
+export const D0046_MCP_RUNTIME_RESOURCE_BINDING = 'TDEV_MCP_RESOURCE';
 export const D0046_ACCESS_ISSUER = 'https://humtr.cloudflareaccess.com';
 export const D0046_ACCESS_JWKS_URI = `${D0046_ACCESS_ISSUER}/cdn-cgi/access/certs`;
 export const D0046_ACCESS_IDP = '8845fb76-2486-433f-892c-39398f70bfae';
@@ -69,9 +79,9 @@ export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-t
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
 // The owner-issued self-development context stays explicitly bounded while
-// exposing the current Directive/route plus the existing D0046 release path
-// needed to implement Directive r3 P1 through tdev itself. The complete
-// repository manifest and base identity remain bound separately.
+// exposing the current Directive/route plus the canonical-runtime cutover
+// files needed by Directive r4 P0/P1. P2 replaces this deployment-time scope
+// bootstrap with tdev-native bounded context issuance.
 export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
   schemaVersion: 1,
   profile: 'tdev.repository-context-scope.v1',
@@ -81,7 +91,7 @@ export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
     'docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md',
     'qualification/d0046-mcp-trial-deploy.mjs',
     'qualification/d0046-agent-preserving-update.mjs',
-    'qualification/mcp-trial-base-tree-builder.mjs',
+    'qualification/cloudflare-mcp-trial-worker.mjs',
     'test/d0046-mcp-trial-deploy.test.mjs',
     'src/mcp-trial-composition.mjs',
   ]),
@@ -199,11 +209,11 @@ function normalizedOperationCatalog() {
   return normalizeDevelopmentOperationCatalog(JSON.parse(source));
 }
 
-function accessManifest(audience) {
+function accessManifest(audience, resource = D0046_MCP_TRIAL_RESOURCE) {
   return normalizeMcpAuthManifest({
     schemaVersion: 1,
     profile: MCP_AUTH_PROFILE,
-    mcpResource: D0046_MCP_TRIAL_RESOURCE,
+    mcpResource: resource,
     authorizationServerIssuer: D0046_ACCESS_ISSUER,
     accessApplicationAudience: assertAccessAudience(audience),
     jwksUri: D0046_ACCESS_JWKS_URI,
@@ -256,7 +266,7 @@ async function readCanonicalAgentRouteBinding(envFile) {
   });
 }
 
-function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true, agentRouteBinding = null }) {
+function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true, agentRouteBinding = null, compositionProfile = MCP_TRIAL_COMPOSITION_PROFILE, resource = D0046_MCP_TRIAL_RESOURCE, workerScript = D0046_MCP_TRIAL_SCRIPT, environment = 'qualification', casePrefix = D0046_CASE_PREFIX, driveWorkerScript = workerScript }) {
   const contextReference = `tdev-context-${sourceSha.slice(0, 12)}`;
   const revisionId = `tdev-mcp-${sourceSha.slice(0, 12)}`;
   const operationDigest = digest(operationManifest);
@@ -285,10 +295,10 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
   };
   const body = {
     schemaVersion: 1,
-    profile: MCP_TRIAL_COMPOSITION_PROFILE,
-    resource: D0046_MCP_TRIAL_RESOURCE,
-    workerScript: D0046_MCP_TRIAL_SCRIPT,
-    environment: 'qualification',
+    profile: compositionProfile,
+    resource,
+    workerScript,
+    environment,
     jurisdiction: 'global',
     caseOwner: {
       placement: {
@@ -304,9 +314,9 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
     },
     driveOwner: {
       placement: {
-        deployment: D0046_MCP_TRIAL_SCRIPT,
-        environment: 'qualification',
-        workerScript: D0046_MCP_TRIAL_SCRIPT,
+        deployment: driveWorkerScript,
+        environment: driveWorkerScript === D0046_MCP_RUNTIME_SCRIPT ? D0046_MCP_RUNTIME_ENVIRONMENT : 'qualification',
+        workerScript: driveWorkerScript,
         className: MCP_TRIAL_DRIVE_CLASS_NAME,
         namespace: driveNamespace,
         jurisdiction: 'global',
@@ -343,22 +353,22 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
     },
     identity,
     authProfile: MCP_AUTH_PROFILE,
-    casePrefix: D0046_CASE_PREFIX,
+    casePrefix,
     canonicalWriterEnabled: false,
     previewWritersEnabled: false,
   };
   return normalizeMcpTrialCompositionManifest(body);
 }
 
-export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true, agentRouteBinding = null } = {}) {
+export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true, agentRouteBinding = null, compositionProfile = MCP_TRIAL_COMPOSITION_PROFILE, resource = D0046_MCP_TRIAL_RESOURCE, workerScript = D0046_MCP_TRIAL_SCRIPT, environment = 'qualification', casePrefix = D0046_CASE_PREFIX, driveWorkerScript = workerScript, buildProfile = compositionProfile === MCP_RUNTIME_COMPOSITION_PROFILE ? 'tdev.mcp.runtime.build.v1' : 'tdev.mcp.trial.build.v1' } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
   const operationCatalog = normalizedOperationCatalog();
   const operationCatalogDigest = developmentOperationCatalogDigest(operationCatalog);
-  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree, agentRouteBinding });
-  const auth = accessManifest(accessAudience);
+  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree, agentRouteBinding, compositionProfile, resource, workerScript, environment, casePrefix, driveWorkerScript });
+  const auth = accessManifest(accessAudience, resource);
   const buildDigest = digest({
-    profile: 'tdev.mcp.trial.build.v1',
+    profile: buildProfile,
     compositionDigest: composition.manifestDigest,
     authProfileDigest: auth.profileDigest,
     operationManifestDigest: digest(normalizedOperation),
@@ -514,20 +524,20 @@ async function workerSettings(client, scriptName, allowNotFound = false) {
   return client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/settings`), { allowNotFound });
 }
 
-async function uploadWorker(client, modules, metadata) {
-  const response = await client.request('PUT', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}`), {
+async function uploadWorker(client, modules, metadata, scriptName = D0046_MCP_TRIAL_SCRIPT) {
+  const response = await client.request('PUT', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}`), {
     body: createWorkerUploadForm(metadata, modules),
     timeoutMs: 120_000,
   });
   return response.result;
 }
 
-async function setSubdomain(client, enabled) {
-  const response = await client.request('POST', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/subdomain`), {
+async function setSubdomain(client, enabled, scriptName = D0046_MCP_TRIAL_SCRIPT) {
+  const response = await client.request('POST', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/subdomain`), {
     json: { enabled, previews_enabled: false },
   });
   if (response.result?.enabled !== enabled || response.result?.previews_enabled !== false) {
-    fail('d0046_subdomain_readback_mismatch', 'Trial Worker subdomain state did not match the requested state');
+    fail('d0046_subdomain_readback_mismatch', `${scriptName} Worker subdomain state did not match the requested state`);
   }
   return response.result;
 }
@@ -546,8 +556,8 @@ function assertExternalOwnerBinding(settings, ownerScriptName, className, label)
   }
 }
 
-function assertOwnerMarker(settings, scriptName) {
-  for (const [name, text] of [['TDEV_DEPLOYMENT', scriptName], ['TDEV_ENVIRONMENT', 'qualification'], ['TDEV_WORKER_SCRIPT', scriptName]]) {
+function assertOwnerMarker(settings, scriptName, environment = 'qualification') {
+  for (const [name, text] of [['TDEV_DEPLOYMENT', scriptName], ['TDEV_ENVIRONMENT', environment], ['TDEV_WORKER_SCRIPT', scriptName]]) {
     const binding = bindingByName(settings, name);
     if (binding?.type !== 'plain_text' || binding.text !== text) fail('d0046_owner_binding_mismatch', `${scriptName} marker ${name} did not match`);
   }
@@ -612,22 +622,22 @@ async function waitForTrialNamespace(client) {
   fail('d0046_trial_namespace_missing', 'Trial Worker drive namespace was not visible after bounded readback', { matches: last });
 }
 
-async function latestVersion(client) {
-  const versions = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions?per_page=100`));
+async function latestVersion(client, scriptName = D0046_MCP_TRIAL_SCRIPT) {
+  const versions = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/versions?per_page=100`));
   const items = versions.result?.items;
   if (!Array.isArray(items) || items.length === 0) fail('d0046_worker_version_missing', 'Trial Worker has no version readback');
   const highest = Math.max(...items.map((item) => Number(item.number)));
   const matches = items.filter((item) => Number(item.number) === highest);
   if (matches.length !== 1 || typeof matches[0].id !== 'string') fail('d0046_worker_version_ambiguous', 'Trial Worker latest version is ambiguous');
-  const detail = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/versions/${encodeURIComponent(matches[0].id)}`));
+  const detail = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/versions/${encodeURIComponent(matches[0].id)}`));
   if (detail.result?.id !== matches[0].id || Number(detail.result?.number) !== highest) fail('d0046_worker_version_mismatch', 'Trial Worker latest version detail disagreed with list');
   return detail.result;
 }
 
-export async function workerReadback(client) {
-  const settings = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
-  const version = await latestVersion(client);
-  const deployments = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(D0046_MCP_TRIAL_SCRIPT)}/deployments`));
+export async function workerReadback(client, scriptName = D0046_MCP_TRIAL_SCRIPT) {
+  const settings = await workerSettings(client, scriptName);
+  const version = await latestVersion(client, scriptName);
+  const deployments = await client.request('GET', client.accountPath(`/workers/scripts/${encodeURIComponent(scriptName)}/deployments`));
   const entries = deployments.result?.deployments;
   if (!Array.isArray(entries) || entries.length === 0) fail('d0046_worker_deployments_missing', 'Trial Worker deployment readback is empty');
   const active = entries.find((entry) => Array.isArray(entry.versions) && entry.versions.some((item) => item?.version_id === version.id));
@@ -664,8 +674,8 @@ function accessPolicyMatches(policy, accountId) {
     (!Array.isArray(policy.require) || policy.require.length === 0);
 }
 
-function validateAccessApplication(app, accountId) {
-  if (app?.type !== 'self_hosted' || app?.name !== D0046_ACCESS_APP_NAME || app?.domain !== D0046_MCP_TRIAL_DOMAIN || typeof app?.aud !== 'string' || app.aud.length === 0) {
+function validateAccessApplication(app, accountId, { expectedName = D0046_ACCESS_APP_NAME, expectedDomain = D0046_MCP_TRIAL_DOMAIN } = {}) {
+  if (app?.type !== 'self_hosted' || (expectedName !== null && app?.name !== expectedName) || app?.domain !== expectedDomain || typeof app?.aud !== 'string' || app.aud.length === 0) {
     fail('d0046_access_app_mismatch', 'Trial Access application identity or audience did not match');
   }
   if (JSON.stringify(app.allowed_idps ?? []) !== JSON.stringify([D0046_ACCESS_IDP]) || app.app_launcher_visible !== false || app.enable_binding_cookie !== false || app.http_only_cookie_attribute !== true) {
@@ -707,22 +717,22 @@ async function publicJson(url) {
   return { status: response.status, headers: Object.fromEntries(response.headers.entries()), body };
 }
 
-async function publicMetadataReadback(auth) {
+async function publicMetadataReadback(auth, origin = D0046_MCP_TRIAL_ORIGIN) {
   let resource = null;
   for (let attempt = 0; attempt < 15; attempt += 1) {
-    resource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource/mcp`);
+    resource = await publicJson(`${origin}/.well-known/oauth-protected-resource/mcp`);
     if (resource.status === 200) break;
     if (attempt < 14) await new Promise((resolve) => setTimeout(resolve, 2_000));
   }
   if (resource.status !== 200) fail('d0046_resource_metadata_missing', 'RFC 9728 path-specific protected-resource metadata was not public', { status: resource.status });
   const validatedResource = validateMcpProtectedResourceMetadata(resource.body, auth);
-  const rootResource = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/.well-known/oauth-protected-resource`);
+  const rootResource = await publicJson(`${origin}/.well-known/oauth-protected-resource`);
   if (rootResource.status !== 200) fail('d0046_resource_metadata_alias_missing', 'Origin-root protected-resource metadata compatibility alias was not public', { status: rootResource.status });
   const validatedRootResource = validateMcpProtectedResourceMetadata(rootResource.body, auth);
   const authorization = await publicJson(`${D0046_ACCESS_ISSUER}/.well-known/oauth-authorization-server`);
   if (authorization.status !== 200) fail('d0046_authorization_metadata_missing', 'Cloudflare Access authorization-server metadata was not public', { status: authorization.status });
   const validatedAuthorization = validateMcpAuthorizationServerMetadata(authorization.body, auth);
-  const mcp = await publicJson(`${D0046_MCP_TRIAL_ORIGIN}/mcp`);
+  const mcp = await publicJson(`${origin}/mcp`);
   if (![301, 302, 303, 307, 308, 401, 403].includes(mcp.status)) fail('d0046_mcp_edge_state_unexpected', 'Trial MCP endpoint did not show an expected Access-protected unauthenticated status', { status: mcp.status });
   return {
     resource: {
@@ -775,6 +785,262 @@ function deploymentResult({ sourceSha, base, artifact, bootstrap = null, manifes
     provider: { absence, driveNamespace, worker: provider, publicReadback },
     safety: { canonicalWriterEnabled: false, previewWritersEnabled: false, subdomainEnabled, rollback: { disableSubdomain: `POST /accounts/{account}/workers/scripts/${D0046_MCP_TRIAL_SCRIPT}/subdomain { enabled:false, previews_enabled:false }`, accessAppId: accessApp.id } },
     secretValues: 'excluded',
+  });
+}
+
+export function buildCanonicalRuntimeMetadata(metadata, { manifests, phase = 'live' } = {}) {
+  const out = canonicalClone(metadata);
+  const compositionJson = configBindingManifests(manifests).composition;
+  out.bindings = out.bindings.flatMap((binding) => {
+    if (binding.name === 'TDEV_MCP_TRIAL_MANIFEST_JSON') {
+      return [plain(D0046_MCP_RUNTIME_COMPOSITION_BINDING, compositionJson)];
+    }
+    if (binding.name === 'TDEV_MCP_TRIAL_RESOURCE') {
+      return [plain(D0046_MCP_RUNTIME_RESOURCE_BINDING, D0046_MCP_RUNTIME_RESOURCE)];
+    }
+    if (binding.name === 'TDEV_CASE_AGENT_DRIVE' && phase === 'expecting-transfer') return [];
+    if (binding.name === 'TDEV_DEPLOYMENT') return [plain('TDEV_DEPLOYMENT', D0046_MCP_RUNTIME_SCRIPT)];
+    if (binding.name === 'TDEV_ENVIRONMENT') return [plain('TDEV_ENVIRONMENT', D0046_MCP_RUNTIME_ENVIRONMENT)];
+    if (binding.name === 'TDEV_WORKER_SCRIPT') return [plain('TDEV_WORKER_SCRIPT', D0046_MCP_RUNTIME_SCRIPT)];
+    return [binding];
+  });
+  out.annotations = {
+    'workers/message': `tdev canonical MCP runtime ${manifests.composition.repository.commitOid}`,
+    'workers/tag': 'tdev-mcp-runtime-v1',
+  };
+  out.exports = phase === 'expecting-transfer'
+    ? {
+        CaseAgentDriveRuntimeDO: {
+          type: 'durable-object',
+          state: 'expecting-transfer',
+          storage: 'sqlite',
+          transfer_from: D0046_MCP_TRIAL_SCRIPT,
+        },
+      }
+    : { CaseAgentDriveRuntimeDO: { type: 'durable-object', storage: 'sqlite' } };
+  return out;
+}
+
+export function buildLegacyTransferMetadata(metadata, { externalDrive = false } = {}) {
+  const out = canonicalClone(metadata);
+  out.exports = {
+    CaseAgentDriveRuntimeDO: {
+      type: 'durable-object',
+      state: 'transferred',
+      transferred_to: D0046_MCP_RUNTIME_SCRIPT,
+    },
+  };
+  out.bindings = out.bindings.flatMap((binding) => {
+    if (binding.name !== 'TDEV_CASE_AGENT_DRIVE') return [binding];
+    if (!externalDrive) return [];
+    return [{
+      type: 'durable_object_namespace',
+      name: 'TDEV_CASE_AGENT_DRIVE',
+      class_name: MCP_TRIAL_DRIVE_CLASS_NAME,
+      script_name: D0046_MCP_RUNTIME_SCRIPT,
+    }];
+  });
+  return out;
+}
+
+async function assertDriveNamespaceOwner(client, expectedScript, expectedNamespace) {
+  const namespaces = await listNamespaces(client);
+  const matches = namespaces.filter((item) => item?.class === MCP_TRIAL_DRIVE_CLASS_NAME && item?.id === expectedNamespace);
+  if (matches.length !== 1 || matches[0]?.script !== expectedScript || matches[0]?.use_sqlite !== true) {
+    fail('d0046_drive_namespace_mismatch', 'Drive namespace owner did not match the expected migration phase', {
+      expectedScript,
+      expectedNamespace,
+      matches: matches.map((item) => ({ script: item?.script ?? null, id: item?.id ?? null, useSqlite: item?.use_sqlite ?? null })),
+    });
+  }
+  return matches[0];
+}
+
+function assertCanonicalExperimentTarget(settings) {
+  const resource = bindingByName(settings, 'MCP_RESOURCE');
+  const source = bindingByName(settings, 'EXPERIMENT_SOURCE_SHA');
+  const forbidden = ['TDEV_CASE_AUTHORITY', 'TDEV_CASE_AGENT_DRIVE', 'TDEV_AGENT_DELIVERY', 'TDEV_CASE_PLACEMENT']
+    .filter((name) => bindingByName(settings, name) !== undefined);
+  if (resource?.type !== 'plain_text' || resource.text !== D0046_MCP_RUNTIME_RESOURCE ||
+      source?.type !== 'plain_text' || !/^[0-9a-f]{40}$/u.test(source.text) || forbidden.length !== 0) {
+    fail('d0046_canonical_target_conflict', 'Existing tdev Worker is not the bounded OAuth experiment approved for canonical replacement', { forbidden });
+  }
+}
+
+function validateCanonicalWorkerSettings(settings, version, manifests, sourceSha, artifact, driveNamespace) {
+  assertOwnerMarker(settings, D0046_MCP_RUNTIME_SCRIPT, D0046_MCP_RUNTIME_ENVIRONMENT);
+  assertExternalOwnerBinding(settings, D0046_CASE_SCRIPT, MCP_TRIAL_CASE_CLASS_NAME, 'TDEV_CASE_AUTHORITY');
+  assertExternalOwnerBinding(settings, D0046_AGENT_SCRIPT, MCP_TRIAL_AGENT_CLASS_NAME, 'TDEV_AGENT_DELIVERY');
+  const d1 = bindingByName(settings, 'TDEV_CASE_PLACEMENT');
+  const drive = bindingByName(settings, 'TDEV_CASE_AGENT_DRIVE');
+  const composition = bindingByName(settings, D0046_MCP_RUNTIME_COMPOSITION_BINDING);
+  const resource = bindingByName(settings, D0046_MCP_RUNTIME_RESOURCE_BINDING);
+  const source = bindingByName(settings, 'TDEV_SOURCE_SHA');
+  const base = bindingByName(settings, 'TDEV_MCP_BASE_DIGEST');
+  const artifactDigest = bindingByName(settings, 'TDEV_D0046_ARTIFACT_DIGEST');
+  if (d1?.type !== 'd1' || d1.database_id !== D0046_CASE_PLACEMENT_DATABASE) {
+    fail('d0046_worker_binding_mismatch', 'Canonical Worker D1 binding was not exact');
+  }
+  if (drive?.type !== 'durable_object_namespace' || drive.class_name !== MCP_TRIAL_DRIVE_CLASS_NAME || drive.namespace_id !== driveNamespace || drive.script_name !== undefined) {
+    fail('d0046_worker_binding_mismatch', 'Canonical Worker Drive binding was not the transferred self-owned namespace');
+  }
+  if (composition?.type !== 'plain_text' || typeof composition.text !== 'string' || resource?.type !== 'plain_text' || resource.text !== D0046_MCP_RUNTIME_RESOURCE) {
+    fail('d0046_worker_binding_mismatch', 'Canonical Worker runtime composition/resource bindings were not exact');
+  }
+  if (bindingByName(settings, 'TDEV_MCP_TRIAL_MANIFEST_JSON') !== undefined || bindingByName(settings, 'TDEV_MCP_TRIAL_RESOURCE') !== undefined) {
+    fail('d0046_worker_binding_mismatch', 'Canonical Worker retained legacy trial composition bindings');
+  }
+  if (source?.type !== 'plain_text' || source.text !== sourceSha || base?.text !== manifests.composition.repository.baseDigest || artifactDigest?.text !== artifact.moduleDigest) {
+    fail('d0046_worker_binding_mismatch', 'Canonical Worker source/base/artifact markers did not match');
+  }
+  const runtime = version?.resources?.script_runtime ?? settings?.script_runtime ?? settings;
+  if (runtime?.exports?.CaseAgentDriveRuntimeDO?.type !== 'durable-object' || runtime?.exports?.CaseAgentDriveRuntimeDO?.storage !== 'sqlite') {
+    fail('d0046_worker_runtime_mismatch', 'Canonical Worker did not own the transferred SQLite Drive class');
+  }
+  return drive.namespace_id;
+}
+
+export async function canonicalizeMcpRuntime({ repositoryPath = repositoryRoot, envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env' } = {}) {
+  await resumeMcpTrial({ repositoryPath, envFile });
+
+  const sourceSha = assertTrackedSource(repositoryPath);
+  const rawOperation = JSON.parse(await readFile(path.join(repositoryPath, D0046_OPERATION_CONFIG), 'utf8'));
+  const operationManifest = normalizedOperationManifest(rawOperation);
+  const base = await buildMcpTrialBaseTreeModule({ repositoryPath, commitOid: sourceSha, scope: D0046_MCP_CONTEXT_SCOPE });
+  const modules = collectWorkerModules(repositoryPath, D0046_WORKER_MAIN_MODULE, { overrides: { [base.moduleName]: base.source } });
+  const artifact = artifactManifest(modules);
+  const credentials = loadCloudflareCredentials(envFile);
+  const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
+  await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
+
+  const legacySettings = (await workerSettings(client, D0046_MCP_TRIAL_SCRIPT)).result;
+  assertOwnerMarker(legacySettings, D0046_MCP_TRIAL_SCRIPT);
+  const identity = existingTrialIdentity(legacySettings);
+  const namespaces = await listNamespaces(client);
+  const driveMatches = namespaces.filter((item) => item?.script === D0046_MCP_TRIAL_SCRIPT && item?.class === MCP_TRIAL_DRIVE_CLASS_NAME && item?.use_sqlite === true);
+  if (driveMatches.length !== 1) {
+    fail('d0046_trial_namespace_ambiguous', 'Legacy runtime did not own exactly one SQLite Drive namespace before canonical transfer', { matches: driveMatches.length });
+  }
+  const driveNamespace = assertNamespaceId(driveMatches[0].id, 'Drive namespace');
+
+  const targetSettings = (await workerSettings(client, D0046_MCP_RUNTIME_SCRIPT)).result;
+  assertCanonicalExperimentTarget(targetSettings);
+  const apps = await listAccessApps(client);
+  const canonicalAppMatches = apps.filter((app) => app?.domain === D0046_MCP_RUNTIME_DOMAIN);
+  const legacyAppMatches = apps.filter((app) => app?.domain === D0046_MCP_TRIAL_DOMAIN);
+  if (canonicalAppMatches.length !== 1 || legacyAppMatches.length !== 1) {
+    fail('d0046_access_readback_missing', 'Canonical and legacy MCP endpoints must each have exactly one Access application', {
+      canonicalMatches: canonicalAppMatches.length,
+      legacyMatches: legacyAppMatches.length,
+    });
+  }
+  const canonicalAccess = validateAccessApplication(
+    (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(canonicalAppMatches[0].id)}`))).result,
+    credentials.accountId,
+    { expectedName: null, expectedDomain: D0046_MCP_RUNTIME_DOMAIN },
+  );
+  const legacyAccess = validateAccessApplication(
+    (await client.request('GET', client.accountPath(`/access/apps/${encodeURIComponent(legacyAppMatches[0].id)}`))).result,
+    credentials.accountId,
+  );
+
+  const legacyManifests = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace,
+    accessAudience: legacyAccess.aud,
+    agentRouteBinding,
+  });
+  const canonicalManifests = buildTrialManifests({
+    sourceSha,
+    baseDigest: base.baseDigest,
+    baseTree: base.tree,
+    repositoryBaseIdentity: base.repositoryBaseIdentity,
+    scope: base.scope,
+    scopeDigest: base.scopeDigest,
+    operationManifest,
+    identity,
+    includeBaseTree: true,
+    driveNamespace,
+    accessAudience: canonicalAccess.aud,
+    agentRouteBinding,
+    compositionProfile: MCP_RUNTIME_COMPOSITION_PROFILE,
+    resource: D0046_MCP_RUNTIME_RESOURCE,
+    workerScript: D0046_MCP_RUNTIME_SCRIPT,
+    environment: D0046_MCP_RUNTIME_ENVIRONMENT,
+    casePrefix: D0046_MCP_RUNTIME_CASE_PREFIX,
+    driveWorkerScript: D0046_MCP_RUNTIME_SCRIPT,
+  });
+  const legacyMetadata = buildWorkerMetadata({ manifests: legacyManifests, sourceSha, artifact, driveNamespace, bootstrap: false });
+  const canonicalBaseMetadata = buildWorkerMetadata({ manifests: canonicalManifests, sourceSha, artifact, driveNamespace, bootstrap: false });
+  const pendingTargetMetadata = buildCanonicalRuntimeMetadata(canonicalBaseMetadata, { manifests: canonicalManifests, phase: 'expecting-transfer' });
+  const liveTargetMetadata = buildCanonicalRuntimeMetadata(canonicalBaseMetadata, { manifests: canonicalManifests, phase: 'live' });
+  const sourceTransferMetadata = buildLegacyTransferMetadata(legacyMetadata, { externalDrive: false });
+  const sourceFallbackMetadata = buildLegacyTransferMetadata(legacyMetadata, { externalDrive: true });
+
+  let transferCommitted = false;
+  try {
+    await uploadWorker(client, modules, pendingTargetMetadata, D0046_MCP_RUNTIME_SCRIPT);
+    await setSubdomain(client, true, D0046_MCP_RUNTIME_SCRIPT);
+    await assertDriveNamespaceOwner(client, D0046_MCP_TRIAL_SCRIPT, driveNamespace);
+
+    await uploadWorker(client, modules, sourceTransferMetadata, D0046_MCP_TRIAL_SCRIPT);
+    transferCommitted = true;
+    await assertDriveNamespaceOwner(client, D0046_MCP_RUNTIME_SCRIPT, driveNamespace);
+
+    await uploadWorker(client, modules, sourceFallbackMetadata, D0046_MCP_TRIAL_SCRIPT);
+    await uploadWorker(client, modules, liveTargetMetadata, D0046_MCP_RUNTIME_SCRIPT);
+    await setSubdomain(client, true, D0046_MCP_RUNTIME_SCRIPT);
+    await assertDriveNamespaceOwner(client, D0046_MCP_RUNTIME_SCRIPT, driveNamespace);
+  } catch (cause) {
+    if (transferCommitted) {
+      const recovery = [];
+      try {
+        await uploadWorker(client, modules, liveTargetMetadata, D0046_MCP_RUNTIME_SCRIPT);
+        recovery.push('canonical_live_restored');
+      } catch (error) {
+        recovery.push(`canonical_live_failed:${error?.code ?? 'unknown'}`);
+      }
+      try {
+        await uploadWorker(client, modules, sourceFallbackMetadata, D0046_MCP_TRIAL_SCRIPT);
+        recovery.push('legacy_external_drive_restored');
+      } catch (error) {
+        recovery.push(`legacy_fallback_failed:${error?.code ?? 'unknown'}`);
+      }
+      cause.details = { ...(cause.details ?? {}), safetyClosure: recovery };
+    }
+    throw cause;
+  }
+
+  const provider = await workerReadback(client, D0046_MCP_RUNTIME_SCRIPT);
+  validateCanonicalWorkerSettings(provider.settings, provider.version, canonicalManifests, sourceSha, artifact, driveNamespace);
+  const publicReadback = await publicMetadataReadback(canonicalManifests.auth, D0046_MCP_RUNTIME_ORIGIN);
+  const legacyProvider = await workerReadback(client, D0046_MCP_TRIAL_SCRIPT);
+  const legacyDrive = bindingByName(legacyProvider.settings, 'TDEV_CASE_AGENT_DRIVE');
+  if (legacyDrive?.type !== 'durable_object_namespace' || legacyDrive.class_name !== MCP_TRIAL_DRIVE_CLASS_NAME || legacyDrive.script_name !== D0046_MCP_RUNTIME_SCRIPT || legacyDrive.namespace_id !== driveNamespace) {
+    fail('d0046_drive_namespace_mismatch', 'Legacy rollback endpoint did not bind the transferred canonical Drive owner');
+  }
+
+  return Object.freeze({
+    status: 'canonicalized',
+    sourceSha,
+    scriptName: D0046_MCP_RUNTIME_SCRIPT,
+    resource: D0046_MCP_RUNTIME_RESOURCE,
+    origin: D0046_MCP_RUNTIME_ORIGIN,
+    drive: { namespace: driveNamespace, ownerScript: D0046_MCP_RUNTIME_SCRIPT, legacyBindingScript: D0046_MCP_RUNTIME_SCRIPT },
+    ownerBindings: { caseWorker: D0046_CASE_SCRIPT, agentWorker: D0046_AGENT_SCRIPT, casePlacementDatabase: D0046_CASE_PLACEMENT_DATABASE },
+    access: { id: canonicalAccess.id, domain: canonicalAccess.domain, audienceDigest: sha256(canonicalAccess.aud) },
+    manifests: { compositionDigest: canonicalManifests.composition.manifestDigest, surfaceDigest: canonicalManifests.surfaceDigest, buildDigest: canonicalManifests.buildDigest },
+    provider: { canonical: provider, legacyRollback: legacyProvider, publicReadback },
+    safety: { legacyRuntimeRetained: true, durableDriveTransferred: true, newDriveNamespaceCreated: false, canonicalWriterEnabled: false, previewWritersEnabled: false },
   });
 }
 
@@ -918,11 +1184,12 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
 
 async function main() {
   const args = process.argv.slice(2);
-  const allowed = new Set(['--apply', '--env-file', '--resume-existing']);
+  const allowed = new Set(['--apply', '--env-file', '--resume-existing', '--canonicalize']);
   let envFile = '/data/data/com.termux/files/home/.config/tdev/cloudflare.env';
   let envProvided = false;
   let apply = false;
   let resumeExisting = false;
+  let canonicalize = false;
   for (let index = 0; index < args.length; index += 1) {
     const arg = args[index];
     if (arg === '--apply') {
@@ -931,6 +1198,9 @@ async function main() {
     } else if (arg === '--resume-existing') {
       if (resumeExisting) fail('d0046_cli_invalid', '--resume-existing was repeated');
       resumeExisting = true;
+    } else if (arg === '--canonicalize') {
+      if (canonicalize) fail('d0046_cli_invalid', '--canonicalize was repeated');
+      canonicalize = true;
     } else if (arg === '--env-file') {
       if (index + 1 >= args.length || args[index + 1].startsWith('--')) fail('d0046_cli_invalid', '--env-file requires a path');
       if (envProvided) fail('d0046_cli_invalid', '--env-file was repeated');
@@ -941,7 +1211,8 @@ async function main() {
     }
   }
   if (!apply) fail('d0046_mutation_not_authorized', 'D0046 provider deployment requires --apply');
-  const result = resumeExisting ? await resumeMcpTrial({ envFile }) : await deployMcpTrial({ envFile });
+  if (canonicalize && resumeExisting) fail('d0046_cli_invalid', '--canonicalize and --resume-existing are mutually exclusive');
+  const result = canonicalize ? await canonicalizeMcpRuntime({ envFile }) : resumeExisting ? await resumeMcpTrial({ envFile }) : await deployMcpTrial({ envFile });
   process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
 }
 
