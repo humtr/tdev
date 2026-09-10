@@ -17,6 +17,7 @@ import { createCasePlacement } from './casedo-authority.mjs';
 import { D1CasePlacementAuthority } from './d1-case-placement.mjs';
 import { normalizeAgentRouteBinding } from './agent-delivery-authority.mjs';
 import { agentRouteHostKey } from './agent-route-election.mjs';
+import { validateRelativePath } from './policy.mjs';
 import {
   normalizeLazyPlanScope,
   normalizeRepositoryBaseIdentity,
@@ -51,6 +52,8 @@ const MCP_TRIAL_AGENT_DEPLOYMENT_IDENTITY_OPERATIONS = new Set([
   'send_dispatch',
 ]);
 const REPOSITORY_OID = /^[0-9a-f]{40,64}$/u;
+const LAZY_REPOSITORY_CONTEXT_PROFILE = 'tdev.repository-context.git-scoped-lazy.v1';
+const GIT_MANIFEST_PROFILE = 'tdev.repository-context.git-manifest.v1';
 const MAX_TEXT_BYTES = 4096;
 const OWNER_PLACEMENT_FIELDS = [
   'deployment', 'environment', 'workerScript', 'className', 'namespace', 'jurisdiction',
@@ -402,7 +405,7 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, lazyContextProvider = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
   const normalized = allowBindingManifest
     ? normalizeMcpTrialCompositionBinding(manifest)
     : normalizeMcpTrialCompositionManifest(manifest);
@@ -412,6 +415,13 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     : null;
   const agentNs = namespaceFor(agentNamespace, normalized.jurisdiction, 'Agent');
   const placementAuthority = casePlacementDatabase === null ? null : new D1CasePlacementAuthority(casePlacementDatabase);
+  if (lazyContextProvider !== null && typeof lazyContextProvider !== 'function') {
+    fail('mcp_trial_owner_unavailable', 'Injected lazy context provider must be a function');
+  }
+  if (lazyContextProvider !== null && normalized.repository.scope === undefined) {
+    fail('mcp_trial_context_invalid', 'Lazy context provider requires a scoped repository binding');
+  }
+  let lazyContextPromise = null;
 
   if (driveOwnerOverride !== null) {
     if (typeof driveOwnerOverride !== 'object' || Array.isArray(driveOwnerOverride) ||
@@ -581,6 +591,172 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       }
   }
 
+  function assertContextReference(contextReference) {
+    if (contextReference !== normalized.repository.contextReference) {
+      fail('mcp_trial_context_scope_denied', 'Context reference is outside the fixed trial reference');
+    }
+  }
+
+  function selectedLazyPath(filePath, scope) {
+    return scope.paths.includes(filePath) || scope.prefixes.some((prefix) => filePath === prefix || filePath.startsWith(`${prefix}/`));
+  }
+
+  function normalizeManifestEntry(entry, objectFormat) {
+    if (!isPlainRecord(entry)) fail('mcp_trial_context_invalid', 'Lazy context manifest entry must be a record');
+    assertRecordShape(entry, ['path', 'mode', 'type', 'blobOid', 'byteLength'], [], 'lazy context manifest entry');
+    const filePath = validateRelativePath(entry.path);
+    const oidLength = objectFormat === 'sha1' ? 40 : 64;
+    if (!new RegExp(`^[0-9a-f]{${oidLength}}$`, 'u').test(entry.blobOid)) {
+      fail('mcp_trial_context_invalid', 'Lazy context manifest blob identity is invalid');
+    }
+    if (!/^[0-7]{6}$/u.test(entry.mode) || !['blob', 'commit'].includes(entry.type)) {
+      fail('mcp_trial_context_invalid', 'Lazy context manifest entry type is unsupported');
+    }
+    if (entry.byteLength !== null) assertSafeInteger(entry.byteLength, 'lazy context byteLength', { min: 0 });
+    return { path: filePath, mode: entry.mode, type: entry.type, blobOid: entry.blobOid, byteLength: entry.byteLength };
+  }
+
+  async function loadLazyContext() {
+    if (lazyContextProvider === null) fail('mcp_owner_unavailable', 'Lazy development context provider is unavailable');
+    if (lazyContextPromise === null) {
+      lazyContextPromise = Promise.resolve().then(async () => {
+        const payload = await lazyContextProvider();
+        if (!isPlainRecord(payload) || !isPlainRecord(payload.tree) || !Array.isArray(payload.manifest)) {
+          fail('mcp_trial_context_invalid', 'Lazy context provider returned an invalid payload');
+        }
+        const scope = normalizeLazyPlanScope(payload.scope);
+        if (canonicalJson(scope) !== canonicalJson(normalized.repository.scope) || payload.scopeDigest !== normalized.repository.scopeDigest) {
+          fail('mcp_trial_context_invalid', 'Lazy context provider scope does not match the fixed repository binding');
+        }
+        if (payload.commitOid !== normalized.repository.commitOid || payload.objectFormat !== normalized.repository.objectFormat ||
+            payload.treeOid !== normalized.repository.repositoryBaseIdentity.treeOid ||
+            payload.manifestDigest !== normalized.repository.repositoryBaseIdentity.manifestDigest ||
+            payload.semanticBaseDigest !== normalized.repository.baseDigest ||
+            canonicalJson(payload.repositoryBaseIdentity) !== canonicalJson(normalized.repository.repositoryBaseIdentity)) {
+          fail('mcp_trial_context_invalid', 'Lazy context provider identity does not match the fixed repository binding');
+        }
+        const manifest = payload.manifest.map((entry) => normalizeManifestEntry(entry, payload.objectFormat));
+        for (let index = 1; index < manifest.length; index += 1) {
+          if (manifest[index - 1].path >= manifest[index].path) fail('mcp_trial_context_invalid', 'Lazy context manifest paths must be unique and sorted');
+        }
+        const manifestIdentity = {
+          schemaVersion: 1,
+          profile: GIT_MANIFEST_PROFILE,
+          objectFormat: payload.objectFormat,
+          commitOid: payload.commitOid,
+          treeOid: payload.treeOid,
+          entries: manifest,
+        };
+        if (typedDigest(GIT_MANIFEST_PROFILE, manifestIdentity) !== payload.manifestDigest) {
+          fail('mcp_trial_context_invalid', 'Lazy context manifest digest does not match the fixed repository identity');
+        }
+        const selectedRows = manifest.filter((entry) => selectedLazyPath(entry.path, scope));
+        if (selectedRows.length === 0 || selectedRows.length > scope.maxFiles) {
+          fail('mcp_trial_context_invalid', 'Lazy context selection is outside its file bound');
+        }
+        const selectedBytes = selectedRows.reduce((sum, entry) => sum + (entry.byteLength ?? 0), 0);
+        if (selectedBytes > scope.maxBytes) fail('mcp_trial_context_invalid', 'Lazy context selection is outside its byte bound');
+        const selectedPaths = new Set(selectedRows.map((entry) => entry.path));
+        const tree = canonicalClone(payload.tree);
+        if (Object.keys(tree).length !== selectedRows.length || Object.keys(tree).some((filePath) => !selectedPaths.has(filePath))) {
+          fail('mcp_trial_context_invalid', 'Lazy context selected tree does not match the owner-issued scope');
+        }
+        const encoder = new TextEncoder();
+        for (const row of selectedRows) {
+          if (row.type !== 'blob' || !['100644', '100755'].includes(row.mode) || row.byteLength === null || typeof tree[row.path] !== 'string' ||
+              encoder.encode(tree[row.path]).byteLength !== row.byteLength) {
+            fail('mcp_trial_context_invalid', `Lazy context selected entry is not a bounded UTF-8 blob: ${row.path}`);
+          }
+        }
+        if (digest(tree) !== normalized.repository.baseDigest) {
+          fail('mcp_trial_context_invalid', 'Lazy context selected tree digest does not match the fixed repository base');
+        }
+        return deepFreeze({ scope, manifest, selectedRows, tree });
+      });
+    }
+    return lazyContextPromise;
+  }
+
+  function lazyPageLimit(value, fallback, max, label) {
+    return value === undefined ? fallback : assertSafeInteger(value, label, { min: 1, max });
+  }
+
+  async function listLazyContext({ contextReference, cursor = 0, limit } = {}) {
+    assertContextReference(contextReference);
+    const lazy = await loadLazyContext();
+    const offset = assertSafeInteger(cursor, 'lazy context cursor', { min: 0, max: lazy.selectedRows.length });
+    const pageLimit = lazyPageLimit(limit, Math.min(128, lazy.scope.maxFiles), 128, 'lazy context page limit');
+    const entries = lazy.selectedRows.slice(offset, offset + pageLimit).map((entry) => canonicalClone(entry));
+    const nextCursor = offset + entries.length < lazy.selectedRows.length ? offset + entries.length : null;
+    return deepFreeze({
+      profile: LAZY_REPOSITORY_CONTEXT_PROFILE,
+      manifestDigest: normalized.repository.repositoryBaseIdentity.manifestDigest,
+      scopeDigest: normalized.repository.scopeDigest,
+      entries,
+      nextCursor,
+      complete: nextCursor === null,
+    });
+  }
+
+  async function readLazyContext({ contextReference, path, startByte = 0, maxBytes } = {}) {
+    assertContextReference(contextReference);
+    const lazy = await loadLazyContext();
+    const filePath = validateRelativePath(path);
+    const row = lazy.selectedRows.find((entry) => entry.path === filePath);
+    if (row === undefined) fail('lazy_scope_denied', `Path is outside the owner-issued lazy scope: ${filePath}`);
+    const offset = assertSafeInteger(startByte, 'lazy read startByte', { min: 0, max: row.byteLength });
+    const readLimit = lazyPageLimit(maxBytes, lazy.scope.maxBytes, lazy.scope.maxBytes, 'lazy read maxBytes');
+    const endByte = Math.min(row.byteLength, offset + readLimit);
+    const bytes = new TextEncoder().encode(lazy.tree[filePath]).slice(offset, endByte);
+    let content;
+    try { content = new TextDecoder('utf-8', { fatal: true }).decode(bytes); }
+    catch (cause) { fail('lazy_read_range_not_utf8', 'Lazy read range is not a complete UTF-8 sequence', {}, { cause }); }
+    return deepFreeze({
+      profile: LAZY_REPOSITORY_CONTEXT_PROFILE,
+      path: filePath,
+      mode: row.mode,
+      type: row.type,
+      blobOid: row.blobOid,
+      byteLength: row.byteLength,
+      startByte: offset,
+      endByte,
+      complete: endByte === row.byteLength,
+      content,
+    });
+  }
+
+  async function searchLazyContext({ contextReference, pattern, cursor = 0, limit } = {}) {
+    assertContextReference(contextReference);
+    const lazy = await loadLazyContext();
+    const needle = boundedText(pattern, 'lazy search pattern', 4096);
+    const offset = assertSafeInteger(cursor, 'lazy search cursor', { min: 0, max: lazy.selectedRows.length });
+    const resultLimit = lazyPageLimit(limit, Math.min(lazy.scope.maxSearchResults, 64), lazy.scope.maxSearchResults, 'lazy search result limit');
+    const matches = [];
+    let visitedFiles = 0;
+    let visitedBytes = 0;
+    let index = offset;
+    let complete = true;
+    while (index < lazy.selectedRows.length) {
+      if (matches.length >= resultLimit) { complete = false; break; }
+      const row = lazy.selectedRows[index];
+      index += 1;
+      if (visitedBytes + row.byteLength > lazy.scope.maxBytes) { complete = false; break; }
+      visitedFiles += 1;
+      visitedBytes += row.byteLength;
+      if (lazy.tree[row.path].includes(needle)) matches.push(row.path);
+    }
+    return deepFreeze({
+      profile: LAZY_REPOSITORY_CONTEXT_PROFILE,
+      manifestDigest: normalized.repository.repositoryBaseIdentity.manifestDigest,
+      scopeDigest: normalized.repository.scopeDigest,
+      matches,
+      nextCursor: complete ? null : index,
+      complete,
+      visitedFiles,
+      visitedBytes,
+    });
+  }
+
   const contextOwner = Object.freeze({
     // Public MCP callers receive a bounded reference projection.  The full
     // tree remains an internal resolver input for development_unit_start and
@@ -603,6 +779,11 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
       assertContextSelector(selector);
       return publicJsonClone(normalized.repository.context);
     },
+    ...(lazyContextProvider === null ? {} : {
+      developmentContextList: listLazyContext,
+      developmentContextSearch: searchLazyContext,
+      developmentContextRead: readLazyContext,
+    }),
   });
 
   if (driveRunner !== null && (!isPlainRecord(driveRunner) || typeof driveRunner.drive !== 'function')) {

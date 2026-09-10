@@ -42,6 +42,7 @@ import {
 import { CaseAgentDriveRuntimeDO } from './cloudflare-case-agent-drive-worker.mjs';
 import {
   loadMcpTrialBaseTree,
+  loadMcpTrialLazyContext,
   MCP_TRIAL_BASE_COMMIT_OID,
   MCP_TRIAL_BASE_DIGEST,
 } from './mcp-trial-base-tree.mjs';
@@ -223,6 +224,7 @@ export async function createTrialExecutionApplication(env, { driveOwnerOverride 
     agentNamespace: env.TDEV_AGENT_DELIVERY,
     casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
     driveOwnerOverride,
+    lazyContextProvider: loadMcpTrialLazyContext,
   });
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: facades.repository,
@@ -381,9 +383,8 @@ async function createTrialLightApplication(env) {
     return caseId;
   };
   const driveNs = namespaceFor(env.TDEV_CASE_AGENT_DRIVE, configuredComposition.jurisdiction, 'Case-Agent drive');
-  const invokeExecution = async (caseId, operation, input = {}) => {
-    assertTrialCaseId(caseId);
-    const id = driveNs.idFromName(caseId);
+  const invokeExecutionAt = async (routeKey, operation, input = {}) => {
+    const id = driveNs.idFromName(routeKey);
     if (!id || typeof id.toString !== 'function' || (id.jurisdiction ?? 'global') !== configuredComposition.jurisdiction) {
       throw configError('mcp_owner_unavailable', 'Trial execution Durable Object identity is invalid');
     }
@@ -414,6 +415,12 @@ async function createTrialLightApplication(env) {
     // only the public JSON payload before the strict MCP canonical boundary.
     return JSON.parse(JSON.stringify(result));
   };
+  const invokeExecution = async (caseId, operation, input = {}) => {
+    assertTrialCaseId(caseId);
+    return invokeExecutionAt(caseId, operation, input);
+  };
+  const contextExecutionRouteKey = `context:${configuredComposition.repository.contextReference}`;
+  const invokeContextExecution = (operation, input = {}) => invokeExecutionAt(contextExecutionRouteKey, operation, input);
   const caseSnapshotOwner = (snapshot) => Object.freeze({
     snapshot: () => canonicalClone(snapshot),
   });
@@ -491,6 +498,9 @@ async function createTrialLightApplication(env) {
       assertContextSelector(selector);
       return context;
     },
+    developmentContextList: async (input = {}) => invokeContextExecution('developmentContextList', input),
+    developmentContextSearch: async (input = {}) => invokeContextExecution('developmentContextSearch', input),
+    developmentContextRead: async (input = {}) => invokeContextExecution('developmentContextRead', input),
     developmentContextResolve: async ({ selector = null, identity } = {}) => {
       assertContextSelector(selector);
       throw configError('mcp_owner_unavailable', 'Full development context resolution is available only inside the execution Durable Object');

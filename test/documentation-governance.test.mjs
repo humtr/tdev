@@ -25,6 +25,9 @@ import {
 const root = new URL('..', import.meta.url).pathname;
 const currentWorkboard = fs.readFileSync(new URL('../WORKBOARD.md', import.meta.url), 'utf8');
 const currentDirective = fs.readFileSync(new URL('../DIRECTIVE.md', import.meta.url), 'utf8');
+const currentDirectiveMetadata = parseDirectiveMetadata(currentDirective);
+const currentDirectiveRevision = currentDirectiveMetadata.revision;
+const currentDirectiveRef = `DIRECTIVE.md@r${currentDirectiveRevision}`;
 const currentDocumentation = fs.readFileSync(new URL('../docs/DOCUMENTATION.md', import.meta.url), 'utf8');
 const currentQualification = fs.readFileSync(new URL('../docs/QUALIFICATION.md', import.meta.url), 'utf8');
 const currentMvpHistory = fs.readFileSync(new URL('../docs/history/mvp-verification-and-evidence.md', import.meta.url), 'utf8');
@@ -47,7 +50,7 @@ function workboardFixture({
   group = 'Group F — Cloudflare runtime and local Agent topology',
   branch = 'group/f-cloudflare-runtime',
   developmentRouteMode = null,
-  activeDirectiveRevision = 1,
+  activeDirectiveRevision = currentDirectiveRevision,
   frontier = [{ id: 'D0019', revision: 2, path: 'docs/design/0019-casedo-authority-adapter.md' }],
   selected = { id: 'D0019', revision: 2 },
 } = {}) {
@@ -92,8 +95,8 @@ test('current repository documentation authority validates without duplicating f
   const result = validateDocumentation(root);
   assert.equal(result.ok, true, result.failures?.join('\n'));
   assert.equal(result.route.branch, 'development');
-  assert.deepEqual(result.route.activeDirective, { path: 'DIRECTIVE.md', revision: 1 });
-  assert.deepEqual(result.directive, { path: 'DIRECTIVE.md', status: 'active', revision: 1 });
+  assert.deepEqual(result.route.activeDirective, { path: 'DIRECTIVE.md', revision: currentDirectiveRevision });
+  assert.deepEqual(result.directive, currentDirectiveMetadata);
   assert.equal(result.route.developmentRouteMode, 'persistent-v1');
   assert.equal(result.qualificationOwner, 'docs/QUALIFICATION.md');
   const frontier = result.route.frontier.map((item) => `${item.id}@r${item.revision}`);
@@ -118,7 +121,7 @@ test('current repository documentation authority validates without duplicating f
 });
 
 test('Directive is a first-class fixed-bootstrap owner before routing', () => {
-  assert.deepEqual(parseDirectiveMetadata(currentDirective), { path: 'DIRECTIVE.md', status: 'active', revision: 1 });
+  assert.deepEqual(parseDirectiveMetadata(currentDirective), currentDirectiveMetadata);
   assert.deepEqual(parseBootstrapReadOrder(currentAgents).slice(0, 4), ['DIRECTIVE.md', 'RULE.md', 'SDD.md', 'WORKBOARD.md']);
   assert.match(currentDocumentation, /current top-level owner objective, priority and non-substitutable completion criteria \| `DIRECTIVE\.md`/);
   assert.match(currentDocumentation, /`AGENTS\.md`, `DIRECTIVE\.md`, `RULE\.md`, `SDD\.md`, `WORKBOARD\.md`/);
@@ -136,19 +139,19 @@ test('missing malformed duplicate or mismatched active Directive identity fails 
   assert.match(missingPointer.failures.join('\n'), /documentation_authority_active_owner_directive/);
 
   const malformedPointer = validateDocumentation(root, {
-    'WORKBOARD.md': currentWorkboard.replace('`DIRECTIVE.md@r1`', '`DIRECTIVE.md@v1`'),
+    'WORKBOARD.md': currentWorkboard.replace(`\`${currentDirectiveRef}\``, `\`DIRECTIVE.md@v${currentDirectiveRevision}\``),
   });
   assert.equal(malformedPointer.ok, false);
   assert.match(malformedPointer.failures.join('\n'), /documentation_authority_active_owner_directive/);
 
   const duplicatePointer = validateDocumentation(root, {
-    'WORKBOARD.md': currentWorkboard.replace('- Active owner directive: `DIRECTIVE.md@r1`', '- Active owner directive: `DIRECTIVE.md@r1`\n- Active owner directive: `DIRECTIVE.md@r1`'),
+    'WORKBOARD.md': currentWorkboard.replace(`- Active owner directive: \`${currentDirectiveRef}\``, `- Active owner directive: \`${currentDirectiveRef}\`\n- Active owner directive: \`${currentDirectiveRef}\``),
   });
   assert.equal(duplicatePointer.ok, false);
   assert.match(duplicatePointer.failures.join('\n'), /documentation_authority_active_owner_directive/);
 
   const mismatchedRevision = validateDocumentation(root, {
-    'WORKBOARD.md': currentWorkboard.replace('`DIRECTIVE.md@r1`', '`DIRECTIVE.md@r2`'),
+    'WORKBOARD.md': currentWorkboard.replace(`\`${currentDirectiveRef}\``, `\`DIRECTIVE.md@r${currentDirectiveRevision + 1}\``),
   });
   assert.equal(mismatchedRevision.ok, false);
   assert.match(mismatchedRevision.failures.join('\n'), /documentation_authority_directive_revision_mismatch/);
@@ -167,11 +170,11 @@ test('stale continuity cannot override the active Directive identity', () => {
     designTexts: currentDesignTexts,
     continuity: { directivePath: 'DIRECTIVE.md', directiveRevision: 0, directiveStatus: 'active' },
   });
-  assert.deepEqual(rebound.current.directive, { path: 'DIRECTIVE.md', status: 'active', revision: 1 });
+  assert.deepEqual(rebound.current.directive, currentDirectiveMetadata);
   assert.deepEqual(rebound.staleClaims, ['directiveRevision']);
 
   assert.throws(() => rebindContinuity({
-    workboardText: currentWorkboard.replace('`DIRECTIVE.md@r1`', '`DIRECTIVE.md@r2`'),
+    workboardText: currentWorkboard.replace(`\`${currentDirectiveRef}\``, `\`DIRECTIVE.md@r${currentDirectiveRevision + 1}\``),
     directiveText: currentDirective,
   }), /documentation_authority_directive_revision_mismatch/);
 });

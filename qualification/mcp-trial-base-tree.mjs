@@ -6,10 +6,18 @@
  * commit. Keeping the source slot small avoids putting a multi-megabyte Git
  * tree in a Worker environment variable or in the MCP request path.
  */
-export async function loadMcpTrialBaseTree() {
+function unboundBaseTreeError() {
   const error = new Error('D0046 deployment base-tree module is not bound');
   error.code = 'mcp_base_tree_unbound';
-  throw error;
+  return error;
+}
+
+export async function loadMcpTrialBaseTree() {
+  throw unboundBaseTreeError();
+}
+
+export async function loadMcpTrialLazyContext() {
+  throw unboundBaseTreeError();
 }
 
 // The deployment graph replaces this module with a generated source-bound

@@ -10,6 +10,9 @@ const TRIAL_EXECUTION_OPERATIONS = new Set([
   'runner.create',
   'runner.drive',
   'runner.candidate',
+  'developmentContextList',
+  'developmentContextSearch',
+  'developmentContextRead',
   'developmentUnitStart',
   'developmentStart',
 ]);
@@ -103,6 +106,9 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
         case 'repository.command': result = await execution.facades.repository.command(request.input.caseId, request.input.envelope); break;
         case 'runner.create': result = await execution.runner.create(request.input); break;
         case 'runner.candidate': result = await execution.runner.candidate(request.input.caseId); break;
+        case 'developmentContextList': result = await execution.facades.contextOwner.developmentContextList(request.input); break;
+        case 'developmentContextSearch': result = await execution.facades.contextOwner.developmentContextSearch(request.input); break;
+        case 'developmentContextRead': result = await execution.facades.contextOwner.developmentContextRead(request.input); break;
         default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
       }
     }

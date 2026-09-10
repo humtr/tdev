@@ -11,6 +11,7 @@ import {
   MCP_TRIAL_DRIVE_CLASS_NAME,
   createMcpTrialOwnerFacades,
   digest,
+  typedDigest,
   normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
   agentRouteHostKey,
@@ -73,6 +74,20 @@ function manifest(overrides = {}) {
 
 
 
+const GIT_MANIFEST_PROFILE = 'tdev.repository-context.git-manifest.v1';
+const TREE_OID = 'b'.repeat(40);
+const BLOB_OID = 'c'.repeat(40);
+
+function lazyManifestEntries() {
+  return [{
+    path: 'src/base.mjs',
+    mode: '100644',
+    type: 'blob',
+    blobOid: BLOB_OID,
+    byteLength: new TextEncoder().encode(BASE_TREE['src/base.mjs']).byteLength,
+  }];
+}
+
 function lazyManifest() {
   const base = manifest();
   const scope = {
@@ -84,11 +99,19 @@ function lazyManifest() {
     maxBytes: 1024 * 1024,
     maxSearchResults: 16,
   };
+  const manifestDigest = typedDigest(GIT_MANIFEST_PROFILE, {
+    schemaVersion: 1,
+    profile: GIT_MANIFEST_PROFILE,
+    objectFormat: 'sha1',
+    commitOid: COMMIT,
+    treeOid: TREE_OID,
+    entries: lazyManifestEntries(),
+  });
   const repositoryBaseIdentity = createRepositoryBaseIdentity({
     objectFormat: 'sha1',
     commitOid: COMMIT,
-    treeOid: 'b'.repeat(40),
-    manifestDigest: digest({ profile: 'test.repository-manifest.v1' }),
+    treeOid: TREE_OID,
+    manifestDigest,
   });
   const baseIdentity = {
     schemaVersion: 1,
@@ -116,6 +139,21 @@ function lazyManifest() {
       },
     },
     operation: { ...base.operation, contextProfile: 'tdev.repository.context.prepare.lazy.v1' },
+  };
+}
+
+function lazyContextPayload(input) {
+  return {
+    tree: BASE_TREE,
+    manifest: lazyManifestEntries(),
+    repositoryBaseIdentity: input.repository.repositoryBaseIdentity,
+    scope: input.repository.scope,
+    scopeDigest: input.repository.scopeDigest,
+    semanticBaseDigest: input.repository.baseDigest,
+    commitOid: input.repository.commitOid,
+    treeOid: input.repository.repositoryBaseIdentity.treeOid,
+    objectFormat: input.repository.objectFormat,
+    manifestDigest: input.repository.repositoryBaseIdentity.manifestDigest,
   };
 }
 
@@ -320,6 +358,42 @@ test('D0046 execution host can bind the existing Drive owner locally without a r
     ['advance', 'trial-local'],
   ]);
   assert.equal(calls.some((entry) => String(entry[0]).startsWith('id:drive')), false);
+});
+
+test('D0047 trial lazy context owner projects exact bounded list, read, and search from the deployment payload', async () => {
+  const input = lazyManifest();
+  let providerLoads = 0;
+  const owners = createMcpTrialOwnerFacades({
+    manifest: input,
+    caseNamespace: namespace('case', []),
+    driveNamespace: namespace('drive', []),
+    agentNamespace: namespace('agent', []),
+    lazyContextProvider: async () => {
+      providerLoads += 1;
+      return lazyContextPayload(input);
+    },
+  });
+
+  const listed = await owners.contextOwner.developmentContextList({ contextReference: 'ctx-trial-1', cursor: 0, limit: 8 });
+  assert.equal(listed.profile, 'tdev.repository-context.git-scoped-lazy.v1');
+  assert.deepEqual(JSON.parse(JSON.stringify(listed.entries)), lazyManifestEntries());
+  assert.equal(listed.complete, true);
+
+  const read = await owners.contextOwner.developmentContextRead({ contextReference: 'ctx-trial-1', path: 'src/base.mjs', startByte: 0, maxBytes: 6 });
+  assert.equal(read.content, 'export');
+  assert.equal(read.startByte, 0);
+  assert.equal(read.endByte, 6);
+  assert.equal(read.complete, false);
+
+  const searched = await owners.contextOwner.developmentContextSearch({ contextReference: 'ctx-trial-1', pattern: 'base = 1', cursor: 0, limit: 4 });
+  assert.deepEqual(searched.matches, ['src/base.mjs']);
+  assert.equal(searched.complete, true);
+  assert.equal(providerLoads, 1);
+
+  await assert.rejects(
+    owners.contextOwner.developmentContextRead({ contextReference: 'ctx-other', path: 'src/base.mjs' }),
+    (error) => error?.code === 'mcp_trial_context_scope_denied',
+  );
 });
 
 test('D0046 public context is a bounded reference and full context stays resolver-internal', async () => {

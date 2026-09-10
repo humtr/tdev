@@ -40,6 +40,28 @@ test('D0046 light ingress owns the semantic catalog and delegates development_st
   assert.ok(driveSource.includes("case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;"));
 });
 
+test('D0047 bounded context tools stay light at ingress and execute through the fixed heavy-operation DO route', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
+  const placeholderSource = await readFile(new URL('../qualification/mcp-trial-base-tree.mjs', import.meta.url), 'utf8');
+  const lightStart = source.indexOf('async function createTrialLightApplication');
+  const lightEnd = source.indexOf('let lightApplicationPromise');
+  const lightSource = source.slice(lightStart, lightEnd);
+
+  assert.ok(source.includes('lazyContextProvider: loadMcpTrialLazyContext'));
+  assert.ok(source.includes('const contextExecutionRouteKey = `context:${configuredComposition.repository.contextReference}`'));
+  assert.ok(source.includes("developmentContextList: async (input = {}) => invokeContextExecution('developmentContextList', input)"));
+  assert.ok(source.includes("developmentContextSearch: async (input = {}) => invokeContextExecution('developmentContextSearch', input)"));
+  assert.ok(source.includes("developmentContextRead: async (input = {}) => invokeContextExecution('developmentContextRead', input)"));
+  assert.equal(lightSource.includes('loadMcpTrialBaseTree()'), false);
+  assert.equal(lightSource.includes('loadMcpTrialLazyContext()'), false);
+  assert.ok(placeholderSource.includes('export async function loadMcpTrialLazyContext()'));
+  for (const operation of ['developmentContextList', 'developmentContextSearch', 'developmentContextRead']) {
+    assert.ok(driveSource.includes(`'${operation}',`));
+    assert.ok(driveSource.includes(`case '${operation}': result = await execution.facades.contextOwner.${operation}(request.input); break;`));
+  }
+});
+
 test('D0046 execution DO keeps runner drive off full tree construction under the 10 ms request budget', async () => {
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
