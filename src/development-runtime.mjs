@@ -52,7 +52,7 @@ import {
   semanticOperationEvidence,
 } from './development-operation-catalog.mjs';
 import { LocalAgentRuntime, createLocalExecutionStartError } from './local-agent-runtime.mjs';
-import { normalizeRepositoryBaseIdentity } from './lazy-plan-reference.mjs';
+import { normalizeRepositoryBaseIdentity, scopeDigest as lazyScopeDigest } from './lazy-plan-reference.mjs';
 
 export const CODEX_EXEC_MODEL_PROFILE = CODEX_MODEL_BINDING_PROFILE;
 export const CODEX_DISCLOSURE_PROFILE = 'tdev.openai-codex-full-context.trusted-local.v1';
@@ -1137,6 +1137,7 @@ export function createLegacyProfileSemanticChangeGenerator({ catalog, operationR
           ...(request.contextScope === undefined ? {} : {
             contextProfile: 'tdev.repository.context.prepare.lazy.v1',
             contextScope: canonicalClone(request.contextScope),
+            contextScopeDigest: lazyScopeDigest(request.contextScope),
           }),
           ...(request.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(request.baseIdentity) }),
           ...(request.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(request.repositoryBaseIdentity) }),
