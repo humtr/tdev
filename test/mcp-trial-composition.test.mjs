@@ -147,6 +147,7 @@ function namespace(route, calls) {
 
 test('D0046 trial manifest binds one fixed resource, owner set and immutable base', () => {
   const normalized = normalizeMcpTrialCompositionManifest(manifest());
+  assert.equal(normalizeMcpTrialCompositionManifest(normalized), normalized);
   assert.equal(normalized.resource, MCP_TRIAL_COMPOSITION_RESOURCE);
   assert.equal(normalized.repository.baseDigest, digest(BASE_TREE));
   assert.equal(normalized.agentOwner.agentId, 'agent-trial');

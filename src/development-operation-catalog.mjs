@@ -211,7 +211,10 @@ function requireInitialContract(catalog) {
   return catalog;
 }
 
+const NORMALIZED_DEVELOPMENT_OPERATION_CATALOGS = new WeakSet();
+
 export function normalizeDevelopmentOperationCatalog(input) {
+  if (input !== null && typeof input === 'object' && NORMALIZED_DEVELOPMENT_OPERATION_CATALOGS.has(input)) return input;
   assertRecordShape(input, ['schemaVersion', 'profile', 'operations', 'bindings', 'policies'], [], 'development operation catalog');
   if (input.schemaVersion !== 1 || input.profile !== DEVELOPMENT_OPERATION_CATALOG_PROFILE) {
     fail('development_operation_catalog_incompatible', 'Development operation catalog profile/schema is unsupported');
@@ -227,13 +230,15 @@ export function normalizeDevelopmentOperationCatalog(input) {
   const bindings = {};
   for (const id of Object.keys(input.bindings).sort(compareText)) bindings[id] = normalizeBinding(id, input.bindings[id], operations);
   const policies = normalizePolicies(input.policies, operations, bindings);
-  return requireInitialContract(deepFreeze({
+  const normalized = requireInitialContract(deepFreeze({
     schemaVersion: 1,
     profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE,
     operations: deepFreeze(operations),
     bindings: deepFreeze(bindings),
     policies,
   }));
+  NORMALIZED_DEVELOPMENT_OPERATION_CATALOGS.add(normalized);
+  return normalized;
 }
 
 export function developmentOperationCatalogDigest(catalog) {

@@ -163,7 +163,10 @@ function normalizeProfile(input, name) {
   });
 }
 
+const NORMALIZED_DEVELOPMENT_OPERATION_MANIFESTS = new WeakSet();
+
 export function normalizeDevelopmentOperationManifest(input) {
+  if (input !== null && typeof input === 'object' && NORMALIZED_DEVELOPMENT_OPERATION_MANIFESTS.has(input)) return input;
   assertRecordShape(input, ['schemaVersion', 'profile', 'profiles'], [], 'development operation manifest');
   if (input.schemaVersion !== DEVELOPMENT_OPERATION_SCHEMA_VERSION || input.profile !== DEVELOPMENT_OPERATION_PROFILE) {
     fail('development_operation_manifest_unsupported', 'Development operation manifest profile/schema is unsupported');
@@ -184,7 +187,9 @@ export function normalizeDevelopmentOperationManifest(input) {
   if (Buffer.byteLength(canonicalJson(manifest), 'utf8') > DEVELOPMENT_OPERATION_MAX_MANIFEST_BYTES) {
     fail('development_operation_manifest_limit_exceeded', 'Development operation manifest exceeds its byte bound');
   }
-  return deepFreeze(canonicalClone(manifest));
+  const normalized = deepFreeze(canonicalClone(manifest));
+  NORMALIZED_DEVELOPMENT_OPERATION_MANIFESTS.add(normalized);
+  return normalized;
 }
 
 function rejectForbiddenInputKeys(value, path = 'request.input') {

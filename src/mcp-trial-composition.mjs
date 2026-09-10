@@ -301,13 +301,18 @@ function normalizeManifestBody(input, { allowEmptyBaseTree = false } = {}) {
   return body;
 }
 
+const NORMALIZED_MCP_TRIAL_COMPOSITIONS = new WeakSet();
+
 export function normalizeMcpTrialCompositionManifest(input) {
+  if (input !== null && typeof input === 'object' && NORMALIZED_MCP_TRIAL_COMPOSITIONS.has(input)) return input;
   const body = normalizeManifestBody(input);
   const expected = typedDigest(MCP_TRIAL_COMPOSITION_MANIFEST_DOMAIN, body);
   if (input.manifestDigest !== undefined && input.manifestDigest !== expected) {
     fail('mcp_trial_manifest_digest_mismatch', 'Trial composition manifest digest does not match its fields');
   }
-  return deepFreeze({ ...body, manifestDigest: expected });
+  const normalized = deepFreeze({ ...body, manifestDigest: expected });
+  NORMALIZED_MCP_TRIAL_COMPOSITIONS.add(normalized);
+  return normalized;
 }
 
 /**

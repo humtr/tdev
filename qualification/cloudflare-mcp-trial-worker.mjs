@@ -192,7 +192,7 @@ function metadataFastPath(request, env) {
   }
 }
 
-export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
+export async function createTrialExecutionApplication(env, { driveOwnerOverride = null } = {}) {
   const configuredComposition = readJsonBinding(env, TRIAL_MANIFEST_BINDING);
   const baseTree = await loadMcpTrialBaseTree();
   if (!isPlainRecord(configuredComposition.repository) || !isPlainRecord(configuredComposition.repository.context)) {
@@ -209,13 +209,10 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     },
   });
   assertGeneratedBaseBinding(composition);
-  const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
   const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
   const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
-  if (authManifest.mcpResource !== composition.resource) {
-    throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
-  }
-  if (composition.operation.manifestDigest !== digest(operationManifest)) {
+  const operationManifestDigest = digest(operationManifest);
+  if (composition.operation.manifestDigest !== operationManifestDigest) {
     throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
   }
 
@@ -235,12 +232,22 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     operationManifest,
     operationCatalog,
   });
+  return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
+}
+
+export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
+  const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
+  const execution = await createTrialExecutionApplication(env, { driveOwnerOverride });
+  const { composition, operationManifestDigest, operationCatalog, facades, runner } = execution;
+  if (authManifest.mcpResource !== composition.resource) {
+    throw configError('mcp_config_unavailable', 'MCP auth resource does not match the fixed trial resource');
+  }
   const surfaceManifest = createMcpSurfaceManifest({
     buildDigest: digest({
       profile: 'tdev.mcp.trial.build.v1',
       compositionDigest: composition.manifestDigest,
       authProfileDigest: authManifest.profileDigest,
-      operationManifestDigest: digest(operationManifest),
+      operationManifestDigest,
       developmentOperationCatalogDigest: developmentOperationCatalogDigest(operationCatalog),
     }),
   });

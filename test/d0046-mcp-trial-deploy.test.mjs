@@ -40,6 +40,15 @@ test('D0046 light ingress owns the semantic catalog and delegates development_st
   assert.ok(driveSource.includes("case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;"));
 });
 
+test('D0046 execution DO keeps runner drive off full MCP construction under the 10 ms request budget', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
+  assert.ok(source.includes('export async function createTrialExecutionApplication'));
+  assert.ok(driveSource.includes('createTrialApplication, createTrialExecutionApplication'));
+  assert.ok(driveSource.includes("case 'runner.drive': result = await execution.runner.drive(request.input); break;"));
+  assert.ok(driveSource.includes("request.operation === 'developmentUnitStart' || request.operation === 'developmentStart'"));
+});
+
 
 
 test('D0046 fixed Case source allowlist includes the lazy Plan compatible reader baselines', () => {

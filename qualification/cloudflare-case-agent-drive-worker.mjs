@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CaseAgentDriveRuntimeDOHost } from '../src/cloudflare-case-agent-drive-runtime.mjs';
 import { canonicalClone, isPlainRecord, publicJsonClone } from '../src/canonical.mjs';
-import { createTrialApplication } from './cloudflare-mcp-trial-worker.mjs';
+import { createTrialApplication, createTrialExecutionApplication } from './cloudflare-mcp-trial-worker.mjs';
 
 const TRIAL_EXECUTION_OPERATIONS = new Set([
   'repository.create',
@@ -42,6 +42,7 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
     super(ctx, env);
     this.host = new CaseAgentDriveRuntimeDOHost(ctx, env);
     this.trialApplicationPromise = null;
+    this.trialExecutionApplicationPromise = null;
   }
 
   initializeCaseAgentDrive(input) {
@@ -73,21 +74,31 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
    */
   async executeMcpTrial(input) {
     const request = assertExecutionInput(input);
-    if (this.trialApplicationPromise === null) {
-      this.trialApplicationPromise = createTrialApplication(this.env, { driveOwnerOverride: this.host });
-    }
-    const worker = await this.trialApplicationPromise;
     let result;
-    switch (request.operation) {
-      case 'repository.create': result = await worker.surface.repository.create(request.input); break;
-      case 'repository.load': result = await worker.surface.repository.load(request.input.caseId); break;
-      case 'repository.command': result = await worker.surface.repository.command(request.input.caseId, request.input.envelope); break;
-      case 'runner.create': result = await worker.surface.developmentUnitRunner.create(request.input); break;
-      case 'runner.drive': result = await worker.surface.developmentUnitRunner.drive(request.input); break;
-      case 'runner.candidate': result = await worker.surface.developmentUnitRunner.candidate(request.input.caseId); break;
-      case 'developmentUnitStart': result = await worker.surface.owners.developmentUnitStart(request.input); break;
-      case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;
-      default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
+    if (request.operation === 'developmentUnitStart' || request.operation === 'developmentStart') {
+      if (this.trialApplicationPromise === null) {
+        this.trialApplicationPromise = createTrialApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const worker = await this.trialApplicationPromise;
+      switch (request.operation) {
+        case 'developmentUnitStart': result = await worker.surface.owners.developmentUnitStart(request.input); break;
+        case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;
+        default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
+      }
+    } else {
+      if (this.trialExecutionApplicationPromise === null) {
+        this.trialExecutionApplicationPromise = createTrialExecutionApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const execution = await this.trialExecutionApplicationPromise;
+      switch (request.operation) {
+        case 'repository.create': result = await execution.facades.repository.create(request.input); break;
+        case 'repository.load': result = await execution.facades.repository.load(request.input.caseId); break;
+        case 'repository.command': result = await execution.facades.repository.command(request.input.caseId, request.input.envelope); break;
+        case 'runner.create': result = await execution.runner.create(request.input); break;
+        case 'runner.drive': result = await execution.runner.drive(request.input); break;
+        case 'runner.candidate': result = await execution.runner.candidate(request.input.caseId); break;
+        default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
+      }
     }
     return publicJsonClone(plainOwnerResult(result));
   }
