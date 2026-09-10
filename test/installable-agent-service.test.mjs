@@ -169,7 +169,7 @@ test('Termux runit controller waits for runsvdir discovery before issuing servic
   assert.equal(firstUp > thirdSupervisorStatus, true, 'sv up must occur only after runsvdir supervision is positively observed');
 });
 
-test('Termux runit controller force-stops only a positively drained supervisor that ignores normal down', async (t) => {
+test('Termux runit controller reasserts and observes down intent before hard-stopping a positively drained supervisor', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-force-stop-test-'));
   const prefix = path.join(root, 'prefix');
   const packageRoot = path.join(root, 'release');
@@ -183,6 +183,8 @@ test('Termux runit controller force-stops only a positively drained supervisor t
   const running = new Map();
   const commands = [];
   let drained = false;
+  let supervisorDownRequests = 0;
+  let supervisorWantsDown = false;
   const controller = new TermuxInstallableAgentServiceController({
     prefix,
     nodePath,
@@ -194,22 +196,31 @@ test('Termux runit controller force-stops only a positively drained supervisor t
       const [command, servicePath] = args;
       commands.push({ command, servicePath });
       const isControl = servicePath.endsWith('-control');
-      if (command === 'up') running.set(servicePath, true);
+      if (command === 'up') {
+        running.set(servicePath, true);
+        if (!isControl) supervisorWantsDown = false;
+      }
       if (command === 'down' && isControl) running.set(servicePath, false);
       if (command === 'down' && !isControl) {
         assert.equal(drained, true, 'normal supervisor down must occur only after positive drain');
+        supervisorDownRequests += 1;
+        if (supervisorDownRequests >= 2) supervisorWantsDown = true;
       }
       if (command === 'force-stop') {
-        assert.equal(isControl, false, 'force-stop fallback is forbidden for the control service');
-        assert.equal(drained, true, 'force-stop fallback is forbidden before positive supervisor drain');
+        assert.fail('force-stop must not obscure the explicit down-intent fence');
       }
       if (command === 'kill') {
         assert.equal(isControl, false, 'kill fallback is forbidden for the control service');
         assert.equal(drained, true, 'kill fallback is forbidden before positive supervisor drain');
+        assert.equal(supervisorWantsDown, true, 'kill fallback requires positively observed runsv down intent');
         running.set(servicePath, false);
       }
       if (command === 'status') {
-        return { status: 0, signal: null, stdout: running.get(servicePath) === true ? 'run: service: (pid 1) 1s' : 'down: service: 1s, normally up', stderr: '' };
+        if (running.get(servicePath) === true) {
+          const intent = !isControl && supervisorWantsDown ? ', normally down, want down' : !isControl ? ', normally down, want up' : '';
+          return { status: 0, signal: null, stdout: `run: service: (pid 1) 1s${intent}`, stderr: '' };
+        }
+        return { status: 0, signal: null, stdout: 'down: service: 1s, normally up', stderr: '' };
       }
       return { status: 0, signal: null, stdout: '', stderr: '' };
     },
@@ -235,8 +246,8 @@ test('Termux runit controller force-stops only a positively drained supervisor t
   assert.equal(result.positiveQuiescence.liveOperations, 0);
   assert.equal(running.get(layout.controlServicePath), false);
   assert.equal(running.get(layout.supervisorServicePath), false);
-  assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.supervisorServicePath).length, 1);
-  assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.controlServicePath).length, 0);
+  assert.equal(supervisorDownRequests, 2, 'a timed-out graceful stop must reassert down intent before kill');
+  assert.equal(commands.filter((entry) => entry.command === 'force-stop').length, 0);
   assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.supervisorServicePath).length, 1);
   assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.controlServicePath).length, 0);
 });

@@ -240,20 +240,30 @@ export class TermuxInstallableAgentServiceController {
     fail('installable_agent_service_not_ready', 'Package-owned service did not positively reach running state');
   }
 
+  async #waitDownIntent(servicePath) {
+    const deadline = Date.now() + this.readyWaitMs;
+    while (Date.now() < deadline) {
+      const status = this.#runitStatus(servicePath);
+      if (status.classification === 'down' || /\bwant down\b/i.test(status.text)) return status;
+      await new Promise((resolve) => setTimeout(resolve, this.pollMs));
+    }
+    fail('installable_agent_service_stop_unverified', 'Package-owned service did not positively retain supervised down intent before hard stop');
+  }
+
   async #stopDrainedSupervisor(servicePath) {
     this.#sv('down', servicePath);
     try {
       return await this.#waitDown(servicePath);
     } catch (cause) {
       if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
-      this.#sv('force-stop', servicePath);
-      try {
-        return await this.#waitDown(servicePath);
-      } catch (forceCause) {
-        if (forceCause?.code !== 'installable_agent_service_stop_unverified') throw forceCause;
-        this.#sv('kill', servicePath);
-        return this.#waitDown(servicePath);
-      }
+      // Reassert and positively observe runsv's in-memory down intent before a
+      // hard signal. A persistent down file only means "normally down" and
+      // does not prove that a preceding explicit `sv up` is no longer active.
+      this.#sv('down', servicePath);
+      const downIntent = await this.#waitDownIntent(servicePath);
+      if (downIntent.classification === 'down') return downIntent;
+      this.#sv('kill', servicePath);
+      return this.#waitDown(servicePath);
     }
   }
 
