@@ -25,7 +25,7 @@ function fixture() {
     'test/a.test.mjs': "test('a', () => {});\n",
     'DIRECTIVE.md': '# directive\n',
   };
-  const entries = Object.entries(files).sort(([a], [b]) => a.localeCompare(b)).map(([path, content]) => ({
+  const entries = Object.entries(files).sort(([a], [b]) => a < b ? -1 : a > b ? 1 : 0).map(([path, content]) => ({
     path,
     mode: '100644',
     type: 'blob',

@@ -118,7 +118,7 @@ function manifestRows(raw, repositoryBaseIdentity) {
     if (entry.byteLength !== null) assertSafeInteger(entry.byteLength, 'self-context manifest byteLength', { min: 0 });
     return { path: filePath, mode: entry.mode, type: entry.type, blobOid: entry.blobOid, byteLength: entry.byteLength };
   });
-  rows.sort((left, right) => left.path.localeCompare(right.path));
+  rows.sort((left, right) => left.path < right.path ? -1 : left.path > right.path ? 1 : 0);
   for (let index = 1; index < rows.length; index += 1) {
     if (rows[index - 1].path === rows[index].path) fail('mcp_self_context_manifest_invalid', 'Self-context manifest contains a duplicate path');
   }
