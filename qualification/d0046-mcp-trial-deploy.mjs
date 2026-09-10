@@ -68,12 +68,23 @@ export const D0046_OPERATION_CATALOG_CONFIG = 'config/development-operation-cata
 export const D0046_EVIDENCE_PATH = 'docs/evidence/group-f-d0046-r1-m1-provider-trial-deploy-2026-09-04.json';
 export const D0046_MIN_CASE_AUTHORITATIVE_BYTES = 11_419_628;
 export const D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES = 16 * 1024 * 1024;
-// M1/M2 use one owner-issued source/test scope. The complete repository
-// manifest and base identity remain bound separately by the generated module.
+// The owner-issued self-development context stays explicitly bounded while
+// exposing the current Directive/route plus the existing D0046 release path
+// needed to implement Directive r3 P1 through tdev itself. The complete
+// repository manifest and base identity remain bound separately.
 export const D0046_MCP_CONTEXT_SCOPE = Object.freeze({
   schemaVersion: 1,
   profile: 'tdev.repository-context-scope.v1',
-  paths: Object.freeze(['src/lazy-plan-reference.mjs', 'test/lazy-plan-reference.test.mjs']),
+  paths: Object.freeze([
+    'DIRECTIVE.md',
+    'WORKBOARD.md',
+    'docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md',
+    'qualification/d0046-mcp-trial-deploy.mjs',
+    'qualification/d0046-agent-preserving-update.mjs',
+    'qualification/mcp-trial-base-tree-builder.mjs',
+    'test/d0046-mcp-trial-deploy.test.mjs',
+    'src/mcp-trial-composition.mjs',
+  ]),
   prefixes: Object.freeze([]),
   maxFiles: 8,
   maxBytes: 1024 * 1024,

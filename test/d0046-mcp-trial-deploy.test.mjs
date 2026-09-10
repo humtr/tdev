@@ -8,6 +8,7 @@ import {
   D0046_QUALIFIED_CASE_AUTHORITATIVE_BYTES,
   D0046_MCP_TRIAL_DOMAIN,
   D0046_MCP_TRIAL_RESOURCE,
+  D0046_MCP_CONTEXT_SCOPE,
   D0046_CASE_SOURCE_SHAS,
   accessApplicationPayload,
   assertCaseOwnerCapacity,
@@ -24,6 +25,22 @@ import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
+
+test('D0046 self-development context is bounded to the eight Directive-r3 P1 files', () => {
+  assert.equal(D0046_MCP_CONTEXT_SCOPE.maxFiles, 8);
+  assert.equal(D0046_MCP_CONTEXT_SCOPE.paths.length, 8);
+  assert.deepEqual(D0046_MCP_CONTEXT_SCOPE.prefixes, []);
+  for (const path of [
+    'DIRECTIVE.md',
+    'WORKBOARD.md',
+    'docs/design/0046-minimum-viable-tdev-mcp-experiential-path.md',
+    'qualification/d0046-mcp-trial-deploy.mjs',
+    'qualification/d0046-agent-preserving-update.mjs',
+    'qualification/mcp-trial-base-tree-builder.mjs',
+    'test/d0046-mcp-trial-deploy.test.mjs',
+    'src/mcp-trial-composition.mjs',
+  ]) assert.ok(D0046_MCP_CONTEXT_SCOPE.paths.includes(path));
+});
 
 test('D0046 light Case snapshot projection imports its clone helper', async () => {
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
