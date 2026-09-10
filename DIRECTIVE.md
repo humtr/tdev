@@ -1,7 +1,7 @@
 # tdev owner directive
 
 - Status: `active`
-- Revision: 2
+- Revision: 3
 - Issued: 2026-09-09
 - Revised: 2026-09-11
 - Scope: current forward development through the first public tdev release
@@ -112,6 +112,8 @@ The development path must no longer depend on a human repeatedly rebinding and r
 ## 7. Current execution order
 
 Execute the following sequence before unrelated expansion. Technical Designs and `WORKBOARD.md` must be revised where needed to route this order; stale subordinate routing or historical fixed-base instructions do not override it.
+
+**Parallel execution policy.** The configured tdev development capacity is eight lanes. For independent, non-conflicting investigation, implementation, or validation work, orchestration should preferentially keep as many of those lanes productively occupied as correctness permits, with the practical goal of using the maximum safe parallelism rather than serializing work by default. Do not manufacture work merely to fill lanes, and do not overlap operations that can corrupt or invalidate one another. Mutations to the same file or shared mutable state, exact-base transitions, candidate/validation/Promotion dependencies, and other ordering-sensitive boundaries must be serialized or otherwise fenced when concurrent execution could create stale writes, nested edits, duplicate effects, or ambiguous ownership. Capacity is an upper bound, not a correctness override.
 
 ### P0 — restore reliable bounded context reading
 
