@@ -233,6 +233,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null } 
     agentOwner: facades.agentOwner,
     manifest: composition,
     operationManifest,
+    operationCatalog,
   });
   const surfaceManifest = createMcpSurfaceManifest({
     buildDigest: digest({

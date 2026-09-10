@@ -43,6 +43,7 @@ import {
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
 import {
+  createLegacyProfileSemanticChangeGenerator,
   createLocalDevelopmentOperationExecutionAdapter,
   createLocalSemanticDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,
@@ -474,20 +475,6 @@ export async function createInstallableAgentControlProcess({
   let legacyDevelopmentRuntime = null;
   let legacyDevelopmentExecutionAdapter = null;
   const semanticCoreConfigured = normalizedConfig.developmentRepositoryPath !== undefined || normalizedConfig.developmentNpmExecutable !== undefined;
-  if (semanticCoreConfigured) {
-    if (developmentOperationCatalog === null) fail('development_runtime_catalog_invalid', 'Configured semantic development runtime requires the package-owned operation catalog');
-    semanticDevelopmentRuntime = new SemanticDevelopmentOperationRuntime({
-      catalog: developmentOperationCatalog,
-      repositoryPath: normalizedConfig.developmentRepositoryPath,
-      npmExecutable: normalizedConfig.developmentNpmExecutable,
-      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces'),
-    });
-    semanticDevelopmentOperationCapabilities = semanticDevelopmentRuntime.capabilities();
-    semanticDevelopmentExecutionAdapter = createLocalSemanticDevelopmentOperationExecutionAdapter({
-      operationRuntime: semanticDevelopmentRuntime,
-      capabilities: semanticDevelopmentOperationCapabilities,
-    });
-  }
   const codexConfigured = normalizedConfig.developmentCodexHome !== undefined || normalizedConfig.developmentCodexExecutable !== undefined;
   if (codexConfigured) {
     if (developmentOperationProfiles === null) fail('development_runtime_manifest_invalid', 'Optional Codex compatibility requires the package-owned legacy operation manifest');
@@ -505,6 +492,27 @@ export async function createInstallableAgentControlProcess({
     legacyDevelopmentExecutionAdapter = createLocalDevelopmentOperationExecutionAdapter({
       operationRuntime: legacyDevelopmentRuntime,
       capabilities: legacyDevelopmentOperationCapabilities,
+    });
+  }
+  if (semanticCoreConfigured) {
+    if (developmentOperationCatalog === null) fail('development_runtime_catalog_invalid', 'Configured semantic development runtime requires the package-owned operation catalog');
+    const optionalChangeGenerator = legacyDevelopmentRuntime === null
+      ? null
+      : createLegacyProfileSemanticChangeGenerator({
+        catalog: developmentOperationCatalog,
+        operationRuntime: legacyDevelopmentRuntime,
+      });
+    semanticDevelopmentRuntime = new SemanticDevelopmentOperationRuntime({
+      catalog: developmentOperationCatalog,
+      repositoryPath: normalizedConfig.developmentRepositoryPath,
+      npmExecutable: normalizedConfig.developmentNpmExecutable,
+      workspaceRoot: normalizedConfig.developmentWorkspaceRoot ?? path.join(normalizedConfig.stateDirectory, 'development-workspaces'),
+      optionalChangeGenerator,
+    });
+    semanticDevelopmentOperationCapabilities = semanticDevelopmentRuntime.capabilities();
+    semanticDevelopmentExecutionAdapter = createLocalSemanticDevelopmentOperationExecutionAdapter({
+      operationRuntime: semanticDevelopmentRuntime,
+      capabilities: semanticDevelopmentOperationCapabilities,
     });
   }
   const developmentOperationCapabilities = [...new Set([

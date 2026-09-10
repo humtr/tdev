@@ -27,6 +27,15 @@ import {
   normalizeDevelopmentOperationManifest,
 } from './development-operation-profile.mjs';
 import {
+  DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+  DEVELOPMENT_OPERATION_CATALOG_PROFILE,
+  developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
+  normalizeDevelopmentOperationCatalog,
+  operationBindingFor,
+} from './development-operation-catalog.mjs';
+import {
   MCP_TRIAL_AGENT_RPC_PROFILE,
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
@@ -282,6 +291,20 @@ export function resolveValidationOperationProfile(operationManifest, requestedPr
 
 export function createMcpTrialOperationRequest(view, taskId, payload, operationManifest) {
   const task = view.plan.tasksById[taskId];
+  if (taskId === 'change' && isPlainRecord(task.input.operation)) {
+    return {
+      operation: canonicalClone(task.input.operation),
+      repositoryCommitOid: task.input.repositoryCommitOid,
+      baseDigest: task.input.baseDigest,
+      contextReferenceId: task.input.contextReferenceId,
+      caseContract: canonicalClone(view.caseContract),
+      ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
+      ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.contextScope === undefined ? {} : { contextScope: canonicalClone(task.input.contextScope) }),
+      ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
+      ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+      ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
+    };
+  }
   if (taskId === 'context') {
     return {
       profile: task.input.profile,
@@ -320,6 +343,17 @@ export function createMcpTrialOperationRequest(view, taskId, payload, operationM
     };
   }
   if (taskId === 'validate') {
+    if (isPlainRecord(task.input.operation)) {
+      const change = resultForTask(view, 'change');
+      const candidateTreeDigest = change?.evidence?.candidateTreeDigest;
+      assertDigest(candidateTreeDigest, 'candidateTreeDigest');
+      return {
+        operation: canonicalClone(task.input.operation),
+        policyId: task.input.policyId,
+        bindingId: task.input.bindingId,
+        candidateTreeDigest,
+      };
+    }
     const tree = candidateTree(view);
     const model = resultForTask(view, 'model');
     const runtimeCandidateTreeDigest = model?.evidence?.candidateTreeDigest;
@@ -343,8 +377,9 @@ function executableBody(view, taskId, payload, { predictedAttemptOrdinal, execut
   if (!isPlainRecord(executor) || typeof executor.id !== 'string' || !Number.isSafeInteger(executor.epoch)) {
     fail('mcp_trial_agent_snapshot_invalid', 'Executable body requires the current executor identity');
   }
+  const semanticOperation = isPlainRecord(view.plan.tasksById[taskId]?.input?.operation);
   return {
-    profile: DEVELOPMENT_OPERATION_PROFILE,
+    profile: semanticOperation ? DEVELOPMENT_OPERATION_CATALOG_PROFILE : DEVELOPMENT_OPERATION_PROFILE,
     operationRequest: operation,
     // The operation result itself is opaque to the Agent.  This fixed template
     // binds the eventual Case receipt to the Plan/Attempt; the Agent fills only
@@ -379,12 +414,25 @@ function preflightDescriptor(body, agentSnapshot, taskId) {
   };
 }
 
-function executorCapabilities(manifest, operationManifest) {
+function executorCapabilities(manifest, operationManifest, operationCatalog = null) {
   const profiles = [manifest.operation.contextProfile, manifest.operation.modelProfile, manifest.operation.validationProfile];
   const ids = profiles.map((profile) => developmentOperationCapabilityId(operationManifest, profile));
   for (const field of ['contextCapabilityId', 'modelCapabilityId', 'validationCapabilityId']) {
     const value = manifest.repository.context[field];
     if (value !== undefined && value !== null) ids.push(value);
+  }
+  if (operationCatalog !== null) {
+    for (const operationId of [
+      DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+      DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      DEVELOPMENT_CANDIDATE_VALIDATE_OPERATION,
+    ]) {
+      const descriptor = operationCatalog.operations[operationId];
+      if (!descriptor) continue;
+      const binding = operationBindingFor(operationCatalog, operationId, descriptor.version, { includeOptional: true });
+      if (binding.kind === 'legacy_profile' && operationManifest.profiles[binding.legacyProfile] === undefined) continue;
+      ids.push(semanticDevelopmentOperationCapabilityId(operationCatalog, operationId, descriptor.version));
+    }
   }
   return [...new Set(ids)].sort();
 }
@@ -395,7 +443,7 @@ function routeIdentity(agentOwner) {
 }
 
 export class McpTrialDevelopmentUnitRunner {
-  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, caseContract = undefined, now = () => Date.now() } = {}) {
+  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now() } = {}) {
     if (!repository || typeof repository.create !== 'function' || typeof repository.load !== 'function' || typeof repository.command !== 'function') {
       fail('mcp_trial_owner_unavailable', 'Trial runner requires Case repository create/load/command');
     }
@@ -411,6 +459,10 @@ export class McpTrialDevelopmentUnitRunner {
     this.manifest = normalizeMcpTrialCompositionManifest(manifest);
     this.operationManifest = normalizeDevelopmentOperationManifest(operationManifest);
     if (this.operationManifest.profile !== DEVELOPMENT_OPERATION_PROFILE) fail('mcp_trial_manifest_invalid', 'Trial operation manifest profile is invalid');
+    this.operationCatalog = operationCatalog === null ? null : normalizeDevelopmentOperationCatalog(operationCatalog);
+    if (this.operationCatalog !== null && this.operationCatalog.profile !== DEVELOPMENT_OPERATION_CATALOG_PROFILE) {
+      fail('mcp_trial_manifest_invalid', 'Trial semantic operation catalog profile is invalid');
+    }
     if (this.manifest.operation.manifestDigest !== digest(this.operationManifest)) {
       fail('mcp_trial_manifest_mismatch', 'Trial manifest does not bind the supplied development-operation manifest');
     }
@@ -419,7 +471,7 @@ export class McpTrialDevelopmentUnitRunner {
     this.caseContract = caseContract === undefined
       ? (isPlainRecord(this.manifest.repository.context.caseContract) ? normalizeCaseContract(this.manifest.repository.context.caseContract) : normalizeCaseContract({}))
       : normalizeCaseContract(caseContract);
-    this.capabilities = executorCapabilities(this.manifest, this.operationManifest);
+    this.capabilities = executorCapabilities(this.manifest, this.operationManifest, this.operationCatalog);
     Object.freeze(this);
   }
 

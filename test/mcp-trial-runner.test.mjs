@@ -3,6 +3,13 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { createMcpTrialOperationRequest } from '../src/mcp-trial-runner.mjs';
+import {
+  DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
+  developmentOperationDescriptor,
+  normalizeDevelopmentOperationCatalog,
+} from '../src/development-operation-catalog.mjs';
+import { defineSemanticDevelopmentUnitPlan } from '../src/development-unit.mjs';
 
 import {
   CaseEngine,
@@ -656,4 +663,82 @@ test('D0046 drive expires due Agent reservations before availability gating', as
       nowMs: 1000,
     },
   });
+});
+
+test('D0047 Trial runner surfaces semantic change capability and binds validation to the accepted candidate digest', () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(
+    readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'),
+  ));
+  const baseDigest = digest(BASE_TREE);
+  const descriptor = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const plan = defineSemanticDevelopmentUnitPlan({
+    revisionId: 'revision-semantic-trial-change',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    contextReferenceId: 'ctx-semantic-trial',
+    operationCatalog,
+    operation: {
+      id: DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      version: 1,
+      contractDigest: descriptor.contractDigest,
+      input: { instruction: 'make one bounded source change' },
+    },
+    writePaths: ['src/base.mjs'],
+  });
+  const engine = new CaseEngine({ caseId: 'trial-semantic-change', plan });
+  const view = {
+    plan,
+    caseContract: engine.caseContract,
+    snapshot: engine.snapshot(),
+  };
+  const changeRequest = createMcpTrialOperationRequest(view, 'change', {}, operationManifest);
+  assert.equal(changeRequest.operation.id, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+  assert.equal(changeRequest.repositoryCommitOid, COMMIT);
+  assert.equal(changeRequest.baseDigest, baseDigest);
+  assert.equal(changeRequest.contextReferenceId, 'ctx-semantic-trial');
+
+  const candidateTreeDigest = digest({ semanticCandidate: true });
+  const validationView = {
+    ...view,
+    snapshot: {
+      ...view.snapshot,
+      taskStates: {
+        ...view.snapshot.taskStates,
+        change: {
+          state: 'succeeded',
+          acceptedResult: {
+            kind: 'changeset',
+            baseDigest,
+            writes: [{ path: 'src/base.mjs', content: 'export const base = 2;\n' }],
+            evidence: { candidateTreeDigest },
+          },
+        },
+      },
+    },
+  };
+  const validationRequest = createMcpTrialOperationRequest(validationView, 'validate', {}, operationManifest);
+  assert.equal(validationRequest.candidateTreeDigest, candidateTreeDigest);
+
+  const owners = {
+    repository: { create: async () => null, load: async () => view.snapshot, command: async () => null },
+    driveOwner: { initialize: async () => null, advance: async () => ({ classification: 'not_ready' }) },
+    agentOwner: { invoke: async () => null, readRoute: async () => null, readResultHandoff: async () => null, routeBinding: () => ({}) },
+  };
+  const semanticRunner = createMcpTrialDevelopmentUnitRunner({
+    ...owners,
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    operationCatalog,
+  });
+  const legacyRunner = createMcpTrialDevelopmentUnitRunner({
+    ...owners,
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+  });
+  const semanticCapability = semanticDevelopmentOperationCapabilityId(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  assert.equal(semanticRunner.capabilities.includes(semanticCapability), true);
+  assert.equal(legacyRunner.capabilities.includes(semanticCapability), false);
 });

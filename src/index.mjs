@@ -303,6 +303,7 @@ export {
   NpmCheckValidationExecutor,
   DevelopmentWarden,
   caseResultEnvelopeFromDispatch,
+  createLegacyProfileSemanticChangeGenerator,
   createLocalDevelopmentOperationExecutionAdapter,
   createLocalSemanticDevelopmentOperationExecutionAdapter,
   LocalDevelopmentOperationRuntime,

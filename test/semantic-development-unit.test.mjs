@@ -221,3 +221,106 @@ test('semantic ChangeSet Plan rejects empty changes while legacy profile-bound P
     DEVELOPMENT_UNIT_VALIDATION_TASK_ID,
   ]);
 });
+
+test('delegated semantic change generation keeps candidate ownership in the semantic runtime', async (t) => {
+  const repositoryPath = await mkdtemp(path.join(os.tmpdir(), 'tdev-semantic-delegated-'));
+  t.after(() => rm(repositoryPath, { recursive: true, force: true }));
+  const git = (args) => {
+    const result = spawnSync('git', args, { cwd: repositoryPath, encoding: 'utf8' });
+    assert.equal(result.status, 0, result.stderr);
+    return result.stdout.trim();
+  };
+  git(['init', '-q']);
+  await writeFile(path.join(repositoryPath, 'README.md'), '# semantic delegated base\n');
+  git(['add', 'README.md']);
+  git(['-c', 'user.name=tdev-test', '-c', 'user.email=tdev@example.invalid', 'commit', '-qm', 'semantic delegated base']);
+  const repositoryCommitOid = git(['rev-parse', 'HEAD']);
+  const baseTree = { 'README.md': '# semantic delegated base\n' };
+  const baseDigest = digest(baseTree);
+  const generatorCalls = [];
+  const validationCalls = [];
+  const operationRuntime = new SemanticDevelopmentOperationRuntime({
+    catalog,
+    repositoryPath,
+    optionalChangeGenerator: {
+      async execute(request) {
+        generatorCalls.push(request);
+        return {
+          kind: 'changeset',
+          baseDigest: request.baseDigest,
+          writes: [{ path: 'src/value.mjs', content: 'export const delegated = true;\n' }],
+          evidence: { processStarts: 1 },
+        };
+      },
+    },
+    validationExecutor: {
+      async execute({ candidateRoot, candidateTreeDigest, validationProfile }) {
+        validationCalls.push({ candidateTreeDigest, validationProfile });
+        assert.equal(await readFile(path.join(candidateRoot, 'src', 'value.mjs'), 'utf8'), 'export const delegated = true;\n');
+        return {
+          kind: 'validation',
+          passed: true,
+          checks: [{ id: 'delegated-semantic-check', passed: true }],
+          evidence: { candidateTreeDigest, validationProfile },
+        };
+      },
+    },
+  });
+  t.after(() => operationRuntime.dispose());
+  assert.equal(operationRuntime.availability()[DEVELOPMENT_CHANGE_GENERATE_OPERATION].available, true);
+
+  const agent = createLocalSemanticDevelopmentAgent({ operationRuntime });
+  const caseContract = {
+    caseGrant: [...agent.identity.capabilities],
+    workspacePolicy: [...agent.identity.capabilities],
+  };
+  const descriptor = developmentOperationDescriptor(catalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const plan = defineSemanticDevelopmentUnitPlan({
+    revisionId: 'semantic-delegated-v1',
+    baseTree,
+    repositoryCommitOid,
+    contextReferenceId: 'context-semantic-delegated',
+    operationCatalog: catalog,
+    operation: {
+      id: DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+      version: 1,
+      contractDigest: descriptor.contractDigest,
+      input: { instruction: 'make the delegated source-only change' },
+    },
+    writePaths: ['src/value.mjs'],
+    caseContract,
+  });
+  const caseRepository = new CaseRepository(new MemorySnapshotStore());
+  const driveAuthority = new CaseAgentDriveAuthority({ store: new MemoryCaseAgentDriveStore() });
+  const runner = new DevelopmentUnitRunner({
+    repository: caseRepository,
+    driveAuthority,
+    agent,
+    operationCatalog: catalog,
+    caseContract,
+  });
+  await runner.create({
+    caseId: 'case-semantic-delegated',
+    plan,
+    driveRequestId: 'drive-semantic-delegated',
+    payload: { source: 'delegated-change-test' },
+  });
+  const driven = await runner.drive({
+    caseId: 'case-semantic-delegated',
+    driveRequestId: 'drive-semantic-delegated',
+    payload: { source: 'delegated-change-test' },
+  });
+  assert.equal(driven.classification, 'accepted');
+  assert.equal(generatorCalls.length, 1);
+  assert.equal(generatorCalls[0].operation.id, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+  assert.equal(generatorCalls[0].baseDigest, baseDigest);
+  assert.equal(validationCalls.length, 1);
+  assert.match(validationCalls[0].candidateTreeDigest, /^sha256:[0-9a-f]{64}$/u);
+
+  const candidate = await runner.candidate('case-semantic-delegated');
+  assert.equal(candidate.caseState, 'succeeded');
+  assert.equal(candidate.canonicalTree['src/value.mjs'], 'export const delegated = true;\n');
+  assert.equal(candidate.modelProcessStarts, 1);
+  assert.equal(candidate.candidateCleanup?.cleanupComplete, true);
+  assert.equal(candidate.candidateCleanup?.positiveAbsence, true);
+});

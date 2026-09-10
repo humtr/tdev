@@ -18,7 +18,7 @@ import {
   strictJsonParse,
   typedDigest,
 } from './canonical.mjs';
-import { DEFAULT_LIMITS, DEFAULT_PATH_POLICY, validateRelativePath } from './policy.mjs';
+import { DEFAULT_LIMITS, DEFAULT_PATH_POLICY, normalizeCaseContract, validateRelativePath } from './policy.mjs';
 import { normalizeChangeSet } from './results.mjs';
 import { runGitCommand } from './git-projection.mjs';
 import {
@@ -47,6 +47,7 @@ import {
   developmentOperationDescriptor,
   normalizeDevelopmentOperationCatalog,
   normalizeDevelopmentOperationSelection,
+  operationBindingFor,
   requiredDevelopmentValidation,
   semanticOperationEvidence,
 } from './development-operation-catalog.mjs';
@@ -1030,6 +1031,31 @@ export class LocalDevelopmentOperationRuntime {
     }
   }
 
+  async generateChangeSet({ profile = 'tdev.model.repository.execute.v1', input, operationId = null, signal } = {}) {
+    this.#assertLive();
+    const request = normalizeDevelopmentOperationRequest(this.manifest, { profile, input });
+    const operation = this.manifest.profiles[request.profile];
+    if (!operation || operation.kind !== 'model_repository') {
+      fail('development_runtime_profile_invalid', 'Raw delegated change generation requires a release-bound model repository profile');
+    }
+    const normalizedInput = request.input;
+    const context = normalizedInput.contextReferenceId !== undefined && this.contexts.has(normalizedInput.contextReferenceId)
+      ? this.contexts.get(normalizedInput.contextReferenceId)
+      : await this.codex.materializeContext(normalizedInput.repositoryCommitOid, normalizedInput.baseDigest, {
+        signal,
+        scope: normalizedInput.contextProfile === 'tdev.repository.context.prepare.lazy.v1' ? normalizedInput.contextScope : null,
+        objectFormat: normalizedInput.objectFormat ?? null,
+        baseIdentity: normalizedInput.baseIdentity ?? null,
+        repositoryBaseIdentity: normalizedInput.repositoryBaseIdentity ?? null,
+      });
+    const referenceId = assertContextReference(context.descriptor, normalizedInput.contextReferenceId);
+    try {
+      return deepFreeze(await this.codex.execute({ ...normalizedInput, contextReferenceId: referenceId, preparedContext: context, operationId, signal }));
+    } finally {
+      this.contexts.delete(referenceId);
+    }
+  }
+
   async validationExecutor({ input, operationId = null, signal }) {
     this.#assertLive();
     const candidate = this.candidates.get(input.candidateTreeDigest);
@@ -1071,6 +1097,54 @@ export class LocalDevelopmentOperationRuntime {
     this.disposed = true;
     return result;
   }
+}
+
+export function createLegacyProfileSemanticChangeGenerator({ catalog, operationRuntime } = {}) {
+  if (!(operationRuntime instanceof LocalDevelopmentOperationRuntime)) {
+    fail('development_runtime_optional_generator_invalid', 'Legacy semantic change binding requires LocalDevelopmentOperationRuntime');
+  }
+  const normalizedCatalog = normalizeDevelopmentOperationCatalog(catalog);
+  const descriptor = developmentOperationDescriptor(normalizedCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const binding = operationBindingFor(normalizedCatalog, descriptor.id, descriptor.version, { includeOptional: true });
+  if (binding.bindingId !== DEVELOPMENT_CODEX_BINDING || binding.kind !== 'legacy_profile' || binding.optional !== true) {
+    fail('development_operation_binding_mismatch', 'Canonical delegated change operation is not bound to the release-owned Codex legacy profile');
+  }
+  const legacyProfile = operationRuntime.manifest.profiles[binding.legacyProfile];
+  if (!legacyProfile || legacyProfile.kind !== 'model_repository') {
+    fail('development_operation_binding_unavailable', 'Canonical delegated change binding is not backed by the configured legacy model runtime');
+  }
+  return Object.freeze({
+    async execute(request, _capabilities, signal, { operationId = null } = {}) {
+      if (!isPlainRecord(request)) fail('development_operation_request_invalid', 'Delegated semantic change request must be a record');
+      if (typeof request.repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/u.test(request.repositoryCommitOid)) {
+        fail('development_runtime_commit_identity_invalid', 'repositoryCommitOid must be a hexadecimal Git object ID');
+      }
+      assertDigest(request.baseDigest, 'delegated semantic baseDigest');
+      const selection = normalizeDevelopmentOperationSelection(normalizedCatalog, request.operation, {
+        baseDigest: request.baseDigest,
+        caseContract: request.caseContract ?? {},
+        writePaths: request.writePaths ?? null,
+      });
+      return operationRuntime.generateChangeSet({
+        profile: binding.legacyProfile,
+        operationId,
+        signal,
+        input: {
+          repositoryCommitOid: request.repositoryCommitOid,
+          baseDigest: request.baseDigest,
+          instruction: selection.input.instruction,
+          ...(request.objectFormat === undefined ? {} : { objectFormat: request.objectFormat }),
+          ...(request.contextScope === undefined ? {} : {
+            contextProfile: 'tdev.repository.context.prepare.lazy.v1',
+            contextScope: canonicalClone(request.contextScope),
+          }),
+          ...(request.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(request.baseIdentity) }),
+          ...(request.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(request.repositoryBaseIdentity) }),
+          ...(request.writePaths === undefined ? {} : { writePaths: canonicalClone(request.writePaths) }),
+        },
+      });
+    },
+  });
 }
 
 export class SemanticDevelopmentOperationRuntime {
@@ -1196,7 +1270,27 @@ export class SemanticDevelopmentOperationRuntime {
       return descriptor;
     }
     if (id === DEVELOPMENT_CHANGE_GENERATE_OPERATION) {
-      return this.#normalizeOperationIdentity(request.operation, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+      assertRecordShape(
+        request,
+        ['operation', 'repositoryCommitOid', 'baseDigest', 'contextReferenceId'],
+        ['writePaths', 'caseContract', 'objectFormat', 'contextScope', 'baseIdentity', 'repositoryBaseIdentity'],
+        'delegated change runtime request',
+      );
+      const descriptor = this.#normalizeOperationIdentity(request.operation, DEVELOPMENT_CHANGE_GENERATE_OPERATION);
+      if (typeof request.repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/u.test(request.repositoryCommitOid)) {
+        fail('development_runtime_commit_identity_invalid', 'repositoryCommitOid must be a hexadecimal Git object ID');
+      }
+      assertDigest(request.baseDigest, 'semantic delegated change baseDigest');
+      assertIdentifier(request.contextReferenceId, 'semantic delegated change contextReferenceId');
+      if (request.repositoryBaseIdentity !== undefined) {
+        normalizeRepositoryBaseIdentity(request.repositoryBaseIdentity, { commitOid: request.repositoryCommitOid });
+      }
+      normalizeDevelopmentOperationSelection(this.catalog, request.operation, {
+        baseDigest: request.baseDigest,
+        caseContract: request.caseContract ?? {},
+        writePaths: request.writePaths ?? null,
+      });
+      return descriptor;
     }
     fail('development_operation_unknown', `Semantic runtime does not execute ${String(id)}`);
   }
@@ -1231,6 +1325,95 @@ export class SemanticDevelopmentOperationRuntime {
         ...binding,
         contextReferenceId: request.contextReferenceId,
         modelProcessStarts: 0,
+      },
+    });
+    const candidateDigest = typedDigest('tdev.semantic-disposable-candidate.v1', {
+      schemaVersion: 1,
+      repositoryCommitOid: request.repositoryCommitOid,
+      baseDigest: request.baseDigest,
+      contextReferenceId: request.contextReferenceId,
+      repositoryBaseIdentity: repositoryIdentity,
+      operationId: descriptor.id,
+      operationVersion: descriptor.version,
+      operationContractDigest: descriptor.contractDigest,
+      changeSetDigest: digest(result),
+      writes: result.writes.map(({ path: filePath, content }) => ({ path: filePath, content })),
+    });
+    const candidateRoot = await writeCandidateChangeSet({
+      repositoryPath: this.repositoryPath,
+      commitOid: request.repositoryCommitOid,
+      result,
+      candidateTreeDigest: candidateDigest,
+      baseDigest: request.baseDigest,
+      workspaceRoot: this.workspaceRoot,
+      signal,
+      warden: this.warden,
+      expectedTreeOid: repositoryIdentity?.treeOid ?? null,
+    });
+    this.candidates.set(candidateDigest, {
+      candidateRoot,
+      result,
+      repositoryCommitOid: request.repositoryCommitOid,
+      baseDigest: request.baseDigest,
+      contextReferenceId: request.contextReferenceId,
+      repositoryBaseIdentity: repositoryIdentity,
+    });
+    return deepFreeze({
+      ...result,
+      evidence: {
+        ...result.evidence,
+        candidateTreeDigest: candidateDigest,
+        candidateBaseDigest: request.baseDigest,
+        candidateCommitOid: request.repositoryCommitOid,
+        candidateContextReferenceId: request.contextReferenceId,
+        repositoryBaseIdentity: repositoryIdentity,
+      },
+    });
+  }
+
+  async #generate(request, capabilities, signal, operationId) {
+    const descriptor = this.validateRequest(request);
+    this.#requireCapability(descriptor.id, descriptor.version, capabilities);
+    if (this.optionalChangeGenerator === null) fail('development_operation_binding_unavailable', 'Optional delegated-intelligence binding is not configured');
+    const contractInput = isPlainRecord(request.caseContract) && Object.hasOwn(request.caseContract, 'contractDigest')
+      ? {
+        caseGrant: canonicalClone(request.caseContract.caseGrant),
+        workspacePolicy: canonicalClone(request.caseContract.workspacePolicy),
+        pathPolicy: canonicalClone(request.caseContract.pathPolicy),
+        limits: canonicalClone(request.caseContract.limits),
+      }
+      : (request.caseContract ?? {});
+    const contract = normalizeCaseContract(contractInput);
+    const delegated = await this.optionalChangeGenerator.execute(request, capabilities, signal, { operationId });
+    const normalized = normalizeChangeSet('semantic delegated change', delegated, {
+      baseDigest: request.baseDigest,
+      pathPolicy: contract.pathPolicy,
+      limits: contract.limits,
+    });
+    if (request.writePaths !== undefined) {
+      const allowed = new Set(request.writePaths.map((value) => validateRelativePath(value, { ...contract.pathPolicy, maxPathBytes: contract.limits.maxPathBytes })));
+      for (const write of normalized.writes) {
+        if (!allowed.has(write.path)) fail('development_operation_scope_denied', 'Delegated ChangeSet write is outside the owner-issued write scope: ' + write.path);
+      }
+    }
+    const repositoryIdentity = request.repositoryBaseIdentity === undefined
+      ? null
+      : normalizeRepositoryBaseIdentity(request.repositoryBaseIdentity, { commitOid: request.repositoryCommitOid });
+    const binding = semanticOperationEvidence(
+      this.catalog,
+      descriptor.id,
+      descriptor.version,
+      DEVELOPMENT_CODEX_BINDING,
+    );
+    const result = deepFreeze({
+      kind: 'changeset',
+      baseDigest: normalized.baseDigest,
+      writes: normalized.writes.map(({ path: filePath, content }) => ({ path: filePath, content })),
+      evidence: {
+        ...(isPlainRecord(normalized.evidence) ? normalized.evidence : {}),
+        ...binding,
+        contextReferenceId: request.contextReferenceId,
+        modelProcessStarts: normalized.evidence?.processStarts ?? normalized.evidence?.modelProcessStarts ?? null,
       },
     });
     const candidateDigest = typedDigest('tdev.semantic-disposable-candidate.v1', {
@@ -1328,9 +1511,8 @@ export class SemanticDevelopmentOperationRuntime {
       return deepFreeze({ profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE, operation: id, result });
     }
     if (id === DEVELOPMENT_CHANGE_GENERATE_OPERATION) {
-      this.#requireCapability(descriptor.id, descriptor.version, capabilities);
-      if (this.optionalChangeGenerator === null) fail('development_operation_binding_unavailable', 'Optional delegated-intelligence binding is not configured');
-      return this.optionalChangeGenerator.execute(request, capabilities, signal, { operationId });
+      const result = await this.#generate(request, capabilities, signal, operationId);
+      return deepFreeze({ profile: DEVELOPMENT_OPERATION_CATALOG_PROFILE, operation: id, result });
     }
     fail('development_operation_unknown', `Semantic runtime does not execute ${String(id)}`);
   }
