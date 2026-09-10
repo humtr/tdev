@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 
 import { createMcpTrialOperationRequest } from '../src/mcp-trial-runner.mjs';
+import { normalizeMcpTrialCompositionManifest } from '../src/mcp-trial-composition.mjs';
 import {
   DEVELOPMENT_CHANGE_GENERATE_OPERATION,
   developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
@@ -327,6 +328,10 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
     plan,
     semanticAuthority: { profile: SEMANTIC_PROFILE },
   }).snapshot();
+  const materializedManifest = normalizeMcpTrialCompositionManifest(buildManifest(operationManifest));
+  const bindingManifest = JSON.parse(JSON.stringify(materializedManifest));
+  bindingManifest.repository.context.baseTree = {};
+  let materializations = 0;
   let advances = 0;
   const runner = createMcpTrialDevelopmentUnitRunner({
     repository: {
@@ -352,8 +357,13 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
       readResultHandoff: async () => null,
       routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
     },
-    manifest: buildManifest(operationManifest),
+    manifest: bindingManifest,
     operationManifest,
+    allowBindingManifest: true,
+    materializeManifest: async () => {
+      materializations += 1;
+      return materializedManifest;
+    },
   });
   const result = await runner.drive({
     caseId: 'trial-lazy-v3-case',
@@ -363,6 +373,7 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
   assert.equal(result.caseRevision, snapshot.caseRevision);
   assert.equal(result.status, 'not_ready');
   assert.ok(advances >= 1);
+  assert.equal(materializations, 0);
 });
 
 test('D0046 runner converts cleaned completion failure evidence into authoritative fail_attempt state', async () => {

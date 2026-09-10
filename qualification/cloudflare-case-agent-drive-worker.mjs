@@ -1,7 +1,7 @@
 import { DurableObject } from 'cloudflare:workers';
 import { CaseAgentDriveRuntimeDOHost } from '../src/cloudflare-case-agent-drive-runtime.mjs';
 import { canonicalClone, isPlainRecord, publicJsonClone } from '../src/canonical.mjs';
-import { createTrialApplication, createTrialExecutionApplication } from './cloudflare-mcp-trial-worker.mjs';
+import { createTrialApplication, createTrialDriveApplication, createTrialExecutionApplication } from './cloudflare-mcp-trial-worker.mjs';
 
 const TRIAL_EXECUTION_OPERATIONS = new Set([
   'repository.create',
@@ -42,6 +42,7 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
     super(ctx, env);
     this.host = new CaseAgentDriveRuntimeDOHost(ctx, env);
     this.trialApplicationPromise = null;
+    this.trialDriveApplicationPromise = null;
     this.trialExecutionApplicationPromise = null;
   }
 
@@ -85,6 +86,12 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
         case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;
         default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
       }
+    } else if (request.operation === 'runner.drive') {
+      if (this.trialDriveApplicationPromise === null) {
+        this.trialDriveApplicationPromise = createTrialDriveApplication(this.env, { driveOwnerOverride: this.host });
+      }
+      const execution = await this.trialDriveApplicationPromise;
+      result = await execution.runner.drive(request.input);
     } else {
       if (this.trialExecutionApplicationPromise === null) {
         this.trialExecutionApplicationPromise = createTrialExecutionApplication(this.env, { driveOwnerOverride: this.host });
@@ -95,7 +102,6 @@ export class CaseAgentDriveRuntimeDO extends DurableObject {
         case 'repository.load': result = await execution.facades.repository.load(request.input.caseId); break;
         case 'repository.command': result = await execution.facades.repository.command(request.input.caseId, request.input.envelope); break;
         case 'runner.create': result = await execution.runner.create(request.input); break;
-        case 'runner.drive': result = await execution.runner.drive(request.input); break;
         case 'runner.candidate': result = await execution.runner.candidate(request.input.caseId); break;
         default: fail('mcp_trial_execution_invalid', 'Trial execution operation is not admitted');
       }

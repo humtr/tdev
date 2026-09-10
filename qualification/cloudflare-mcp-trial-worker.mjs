@@ -235,6 +235,62 @@ export async function createTrialExecutionApplication(env, { driveOwnerOverride 
   return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
 }
 
+export async function createTrialDriveApplication(env, { driveOwnerOverride = null } = {}) {
+  const composition = normalizeMcpTrialCompositionBinding(readJsonBinding(env, TRIAL_MANIFEST_BINDING));
+  assertGeneratedBaseBinding(composition);
+  const operationManifest = normalizeDevelopmentOperationManifest(readJsonBinding(env, OPERATION_MANIFEST_BINDING, 256 * 1024));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(readJsonBinding(env, DEVELOPMENT_OPERATION_CATALOG_BINDING, 256 * 1024));
+  const operationManifestDigest = digest(operationManifest);
+  if (composition.operation.manifestDigest !== operationManifestDigest) {
+    throw configError('mcp_config_unavailable', 'Trial operation binding does not match the operation manifest');
+  }
+
+  const facades = createMcpTrialOwnerFacades({
+    manifest: composition,
+    caseNamespace: env.TDEV_CASE_AUTHORITY,
+    driveNamespace: env.TDEV_CASE_AGENT_DRIVE,
+    agentNamespace: env.TDEV_AGENT_DELIVERY,
+    casePlacementDatabase: env.TDEV_CASE_PLACEMENT,
+    driveOwnerOverride,
+    allowBindingManifest: true,
+    skipCommandReload: true,
+  });
+  let materializedManifestPromise = null;
+  const materializeManifest = () => {
+    if (materializedManifestPromise === null) {
+      materializedManifestPromise = (async () => {
+        const baseTree = await loadMcpTrialBaseTree();
+        const materialized = normalizeMcpTrialCompositionManifest({
+          ...composition,
+          repository: {
+            ...composition.repository,
+            context: { ...composition.repository.context, baseTree },
+          },
+        });
+        assertGeneratedBaseBinding(materialized);
+        if (materialized.manifestDigest !== composition.manifestDigest ||
+            materialized.repository.baseDigest !== composition.repository.baseDigest ||
+            materialized.repository.commitOid !== composition.repository.commitOid) {
+          throw configError('mcp_config_unavailable', 'Materialized Trial composition does not match its deployment binding');
+        }
+        return materialized;
+      })();
+    }
+    return materializedManifestPromise;
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: facades.repository,
+    driveOwner: facades.driveOwner,
+    agentOwner: facades.agentOwner,
+    manifest: composition,
+    operationManifest,
+    operationCatalog,
+    allowBindingManifest: true,
+    materializeManifest,
+  });
+  return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
+}
+
 export async function createTrialApplication(env, { driveOwnerOverride = null } = {}) {
   const authManifest = normalizeMcpAuthManifest(readJsonBinding(env, AUTH_MANIFEST_BINDING, 64 * 1024));
   const execution = await createTrialExecutionApplication(env, { driveOwnerOverride });

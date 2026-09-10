@@ -11,11 +11,10 @@ import {
   isPlainRecord,
   typedDigest,
 } from './canonical.mjs';
-import { CaseEngine } from './engine.mjs';
 import { definePlan } from './plan.mjs';
 import { promote } from './promotion.mjs';
 import { promoteSemantic } from './semantic-promotion.mjs';
-import { buildSemanticTree } from './semantic-authority.mjs';
+import { buildSemanticTree, validateSemanticPlanBinding } from './semantic-authority.mjs';
 import {
   computeAgentActivationRequestDigest,
   computeAgentDeliveryId,
@@ -37,6 +36,7 @@ import {
 } from './development-operation-catalog.mjs';
 import {
   MCP_TRIAL_AGENT_RPC_PROFILE,
+  normalizeMcpTrialCompositionBinding,
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
 import { normalizeCaseContract } from './policy.mjs';
@@ -70,8 +70,45 @@ function fixedBaseTree(manifest) {
   return canonicalClone(manifest.repository.context.baseTree);
 }
 
+function hasMaterializedBaseTree(manifest) {
+  return isPlainRecord(manifest?.repository?.context?.baseTree) && Object.keys(manifest.repository.context.baseTree).length > 0;
+}
+
+function semanticTaskPlan(snapshot, manifest) {
+  if (snapshot?.schemaVersion !== 3) {
+    fail('mcp_trial_case_snapshot_invalid', 'A tree-free Trial drive requires a semantic Case snapshot');
+  }
+  const binding = validateSemanticPlanBinding(snapshot.plan);
+  if (binding.baseDigest !== manifest.repository.baseDigest) {
+    fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
+  }
+  const tasksById = {};
+  for (const task of binding.tasks) {
+    if (!isPlainRecord(task)) fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan task must be a record');
+    assertIdentifier(task.id, 'Semantic Plan task id');
+    if (Object.hasOwn(tasksById, task.id)) fail('mcp_trial_case_snapshot_invalid', `Duplicate semantic Plan task ${task.id}`);
+    tasksById[task.id] = deepFreeze(canonicalClone(task));
+  }
+  const taskOrder = Object.keys(tasksById).sort();
+  if (canonicalJson(taskOrder) !== canonicalJson(binding.tasks.map((task) => task.id))) {
+    fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan task order is not canonical');
+  }
+  const promotionTaskIds = taskOrder.filter((taskId) => tasksById[taskId].kind === 'promotion');
+  if (promotionTaskIds.length !== 1) fail('mcp_trial_case_snapshot_invalid', 'Semantic Plan must contain exactly one Promotion Task');
+  return deepFreeze({
+    revisionId: binding.revisionId,
+    baseDigest: binding.baseDigest,
+    planDigest: binding.planDigest,
+    taskOrder,
+    tasksById: deepFreeze(tasksById),
+    promotionTaskId: promotionTaskIds[0],
+    ...(binding.baseReference === undefined ? {} : { baseReference: binding.baseReference }),
+  });
+}
+
 function taskPlan(snapshot, manifest, caseContract) {
   if (!isPlainRecord(snapshot?.plan)) fail('mcp_trial_case_snapshot_invalid', 'Case snapshot has no Plan binding');
+  if (!hasMaterializedBaseTree(manifest)) return semanticTaskPlan(snapshot, manifest);
   const baseTree = fixedBaseTree(manifest);
   if (snapshot.plan.baseDigest !== manifest.repository.baseDigest || digest(baseTree) !== snapshot.plan.baseDigest) {
     fail('mcp_trial_context_mismatch', 'Case snapshot Plan does not bind the fixed repository base');
@@ -233,8 +270,11 @@ function candidateChanges(view) {
 }
 
 function effectKey(view, taskId) {
-  const engine = new CaseEngine({ caseId: view.snapshot.caseId, plan: view.plan, caseContract: view.caseContract });
-  return engine.effectKey(taskId);
+  return typedDigest('tdev.task-effect.v1', {
+    caseId: view.snapshot.caseId,
+    planDigest: view.plan.planDigest,
+    taskId,
+  });
 }
 
 function promotionResult(view) {
@@ -443,7 +483,7 @@ function routeIdentity(agentOwner) {
 }
 
 export class McpTrialDevelopmentUnitRunner {
-  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now() } = {}) {
+  constructor({ repository, driveOwner, agentOwner, manifest, operationManifest, operationCatalog = null, caseContract = undefined, now = () => Date.now(), allowBindingManifest = false, materializeManifest = null } = {}) {
     if (!repository || typeof repository.create !== 'function' || typeof repository.load !== 'function' || typeof repository.command !== 'function') {
       fail('mcp_trial_owner_unavailable', 'Trial runner requires Case repository create/load/command');
     }
@@ -456,7 +496,13 @@ export class McpTrialDevelopmentUnitRunner {
     this.repository = repository;
     this.driveOwner = driveOwner;
     this.agentOwner = agentOwner;
-    this.manifest = normalizeMcpTrialCompositionManifest(manifest);
+    if (allowBindingManifest && typeof materializeManifest !== 'function') {
+      fail('mcp_trial_runner_invalid', 'A binding-only Trial runner requires a materializeManifest callback');
+    }
+    this.manifest = allowBindingManifest
+      ? normalizeMcpTrialCompositionBinding(manifest)
+      : normalizeMcpTrialCompositionManifest(manifest);
+    this.materializeManifest = materializeManifest;
     this.operationManifest = normalizeDevelopmentOperationManifest(operationManifest);
     if (this.operationManifest.profile !== DEVELOPMENT_OPERATION_PROFILE) fail('mcp_trial_manifest_invalid', 'Trial operation manifest profile is invalid');
     this.operationCatalog = operationCatalog === null ? null : normalizeDevelopmentOperationCatalog(operationCatalog);
@@ -514,6 +560,20 @@ export class McpTrialDevelopmentUnitRunner {
     if (loaded === null) fail('case_not_found', `Case ${caseId} does not exist`);
     const snapshot = snapshotFromOwner(loaded, 'Case owner');
     return caseView(snapshot, this.manifest, this.caseContract);
+  }
+
+  async #materializedView(view) {
+    if (hasMaterializedBaseTree(this.manifest)) return view;
+    if (typeof this.materializeManifest !== 'function') {
+      fail('mcp_trial_materialization_required', 'Trial operation requires the immutable repository tree');
+    }
+    const materialized = normalizeMcpTrialCompositionManifest(await this.materializeManifest());
+    if (materialized.manifestDigest !== this.manifest.manifestDigest ||
+        materialized.repository.baseDigest !== this.manifest.repository.baseDigest ||
+        materialized.repository.commitOid !== this.manifest.repository.commitOid) {
+      fail('mcp_trial_manifest_mismatch', 'Materialized Trial manifest does not match the deployment binding');
+    }
+    return caseView(view.snapshot, materialized, this.caseContract);
   }
 
   async #readAgent() {
@@ -824,7 +884,8 @@ export class McpTrialDevelopmentUnitRunner {
     });
     const attempt = started.result;
     const latest = await this.#load(caseId);
-    const result = promotionResult(latest);
+    const materializedLatest = await this.#materializedView(latest);
+    const result = promotionResult(materializedLatest);
     const promotionEnvelope = {
       caseId,
       planRevisionId: latest.plan.revisionId,

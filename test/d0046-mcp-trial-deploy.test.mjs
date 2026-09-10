@@ -40,12 +40,16 @@ test('D0046 light ingress owns the semantic catalog and delegates development_st
   assert.ok(driveSource.includes("case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;"));
 });
 
-test('D0046 execution DO keeps runner drive off full MCP construction under the 10 ms request budget', async () => {
+test('D0046 execution DO keeps runner drive off full tree construction under the 10 ms request budget', async () => {
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
-  assert.ok(source.includes('export async function createTrialExecutionApplication'));
-  assert.ok(driveSource.includes('createTrialApplication, createTrialExecutionApplication'));
-  assert.ok(driveSource.includes("case 'runner.drive': result = await execution.runner.drive(request.input); break;"));
+  assert.ok(source.includes('export async function createTrialDriveApplication'));
+  assert.ok(source.includes('allowBindingManifest: true'));
+  assert.ok(source.includes('skipCommandReload: true'));
+  assert.ok(source.includes('const materializeManifest = () =>'));
+  assert.ok(driveSource.includes('createTrialApplication, createTrialDriveApplication, createTrialExecutionApplication'));
+  assert.ok(driveSource.includes("request.operation === 'runner.drive'"));
+  assert.ok(driveSource.includes('createTrialDriveApplication(this.env, { driveOwnerOverride: this.host })'));
   assert.ok(driveSource.includes("request.operation === 'developmentUnitStart' || request.operation === 'developmentStart'"));
 });
 

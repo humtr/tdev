@@ -402,8 +402,10 @@ function fixedPlanCheck(plan, manifest) {
  * the same small interfaces used by TdevMcpSurface; durable truth remains in
  * the Case/Drive/Agent owners and is reread on every call.
  */
-export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null } = {}) {
-  const normalized = normalizeMcpTrialCompositionManifest(manifest);
+export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNamespace, agentNamespace, casePlacementDatabase = null, driveRunner = null, driveOwnerOverride = null, allowBindingManifest = false, skipCommandReload = false } = {}) {
+  const normalized = allowBindingManifest
+    ? normalizeMcpTrialCompositionBinding(manifest)
+    : normalizeMcpTrialCompositionManifest(manifest);
   const caseNs = namespaceFor(caseNamespace, normalized.jurisdiction, 'Case');
   const driveNs = driveOwnerOverride === null
     ? namespaceFor(driveNamespace, normalized.jurisdiction, 'Case-Agent drive')
@@ -455,7 +457,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
     async command(caseId, envelope) {
       const result = await caseCall('command', caseId, { envelope });
       return {
-        engine: caseEngineProjection((await caseCall('load', caseId)).snapshot),
+        ...(skipCommandReload ? {} : { engine: caseEngineProjection((await caseCall('load', caseId)).snapshot) }),
         result: publicJsonClone(result.response),
         persisted: result.deduplicated !== true,
       };
