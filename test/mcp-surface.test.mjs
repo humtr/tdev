@@ -353,6 +353,7 @@ test('development_start composes only owner-issued context plus strict semantic 
       baseTree,
       repositoryCommitOid: 'a'.repeat(40),
       objectFormat: 'sha1',
+      baseDigest,
       payload: { source: 'owner' },
     }),
   });

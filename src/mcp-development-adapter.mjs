@@ -4,6 +4,7 @@ import {
   assertRecordShape,
   canonicalClone,
   deepFreeze,
+  digest,
   isPlainRecord,
 } from './canonical.mjs';
 import { defineDevelopmentUnitPlan, defineSemanticDevelopmentUnitPlan } from './development-unit.mjs';
@@ -26,11 +27,20 @@ function normalizeContext(value, contextReference) {
   assertRecordShape(value, ['revisionId', 'baseTree', 'repositoryCommitOid'], [
     'objectFormat', 'contextReferenceId', 'contextCapabilityId', 'modelCapabilityId',
     'validationCapabilityId', 'writePaths', 'caseContract', 'payload', 'contextProfile',
-    'contextScope', 'scopeDigest', 'baseIdentity',
+    'contextScope', 'scopeDigest', 'baseDigest', 'baseIdentity',
     'repositoryBaseIdentity',
   ], 'development context');
   assertIdentifier(value.revisionId, 'development context.revisionId');
   if (!isPlainRecord(value.baseTree)) fail('mcp_context_invalid', 'Context baseTree must be a record');
+  const materializedBaseDigest = digest(value.baseTree);
+  if (value.baseDigest !== undefined) {
+    if (typeof value.baseDigest !== 'string' || !/^sha256:[0-9a-f]{64}$/u.test(value.baseDigest)) {
+      fail('mcp_context_invalid', 'development context.baseDigest is invalid');
+    }
+    if (value.baseDigest !== materializedBaseDigest) {
+      fail('mcp_context_base_mismatch', 'development context baseDigest does not match baseTree');
+    }
+  }
   if (typeof value.repositoryCommitOid !== 'string' || !/^[0-9a-f]{40,64}$/.test(value.repositoryCommitOid)) {
     fail('mcp_context_invalid', 'Context repositoryCommitOid must be a hexadecimal Git object ID');
   }
