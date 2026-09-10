@@ -8,12 +8,13 @@ import { fileURLToPath } from 'node:url';
 import { ContractError, canonicalClone, digest } from '../src/canonical.mjs';
 import { CODEX_ARGUMENTS, parseCodexJsonl } from '../src/index.mjs';
 import { CodexExecRepositoryModelExecutor, LocalDevelopmentOperationRuntime, buildCodexPrompt, caseResultEnvelopeFromDispatch, codexLauncherHome, createLegacyProfileSemanticChangeGenerator } from '../src/development-runtime.mjs';
+import { normalizeDevelopmentOperationCatalog } from '../src/development-operation-catalog.mjs';
 import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const baseDigest = digest({ base: 'runtime-test' });
 const changeset = { kind: 'changeset', baseDigest, writes: [] };
 const operationManifest = JSON.parse(readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'));
-const semanticCatalog = JSON.parse(readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'));
+const semanticCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8')));
 
 function eventStream(...events) {
   return Buffer.from(`${events.map((event) => JSON.stringify(event)).join('\n')}\n`, 'utf8');
@@ -208,7 +209,7 @@ test('D0046 semantic Codex binding preserves the owner-issued lazy scope digest'
   }, [], new AbortController().signal, { operationId: 'semantic-change/1' });
   assert.equal(observed.profile, 'tdev.model.repository.execute.v1');
   assert.equal(observed.input.contextProfile, 'tdev.repository.context.prepare.lazy.v1');
-  assert.deepEqual(observed.input.contextScope, scope);
+  assert.deepEqual({ ...observed.input.contextScope }, scope);
   assert.equal(observed.input.contextScopeDigest, lazyScopeDigest(scope));
 });
 
