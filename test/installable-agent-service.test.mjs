@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
-import { chmod, mkdir, mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises';
+import { writeFileSync } from 'node:fs';
+import { chmod, mkdir, mkdtemp, readFile, rm, stat, symlink, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -169,14 +170,32 @@ test('Termux runit controller waits for runsvdir discovery before issuing servic
   assert.equal(firstUp > thirdSupervisorStatus, true, 'sv up must occur only after runsvdir supervision is positively observed');
 });
 
-test('Termux runit controller reasserts and observes down intent before hard-stopping a positively drained supervisor', async (t) => {
+test('Termux runit controller verifies raw down intent and guarded exact PID before direct hard-stop fallback', async (t) => {
   const root = await mkdtemp(path.join(os.tmpdir(), 'tdev-d0027-force-stop-test-'));
   const prefix = path.join(root, 'prefix');
   const packageRoot = path.join(root, 'release');
   const stateDirectory = path.join(root, 'state');
+  const procRoot = path.join(root, 'proc');
   const nodePath = path.join(prefix, 'bin', 'node');
+  const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
+  const supervisorPid = 123;
+  const runsvPid = 456;
+  const rawStatusPath = path.join(layout.supervisorServicePath, 'supervise', 'status');
   await mkdir(path.join(prefix, 'var', 'service'), { recursive: true });
   await mkdir(path.join(packageRoot, 'src'), { recursive: true });
+  await mkdir(path.join(procRoot, String(supervisorPid)), { recursive: true });
+  await mkdir(path.join(procRoot, String(runsvPid)), { recursive: true });
+  await writeFile(path.join(procRoot, String(supervisorPid), 'status'), `Name:\tnode\nPid:\t${supervisorPid}\nPPid:\t${runsvPid}\n`);
+  await writeFile(path.join(procRoot, String(runsvPid), 'cmdline'), Buffer.from('runsv\0wrong-service\0'));
+  await symlink(layout.supervisorServicePath, path.join(procRoot, String(runsvPid), 'cwd'));
+  let rawWant = 'u';
+  const setRawWant = (want) => {
+    rawWant = want;
+    const bytes = Buffer.alloc(20);
+    bytes[17] = want.charCodeAt(0);
+    try { writeFileSync(rawStatusPath, bytes); }
+    catch (cause) { if (cause?.code !== 'ENOENT') throw cause; }
+  };
   for (const executable of ['sh', 'sv', 'runsv', 'node']) await fakeExecutable(path.join(prefix, 'bin', executable));
   t.after(() => rm(root, { recursive: true, force: true }));
 
@@ -184,12 +203,20 @@ test('Termux runit controller reasserts and observes down intent before hard-sto
   const commands = [];
   let drained = false;
   let supervisorDownRequests = 0;
-  let supervisorWantsDown = false;
+  let directKills = 0;
   const controller = new TermuxInstallableAgentServiceController({
     prefix,
     nodePath,
     platform: 'android',
     arch: 'arm64',
+    procRoot,
+    killProcess(pid, signal) {
+      assert.equal(pid, supervisorPid, 'direct fallback may target only the current runsv child');
+      assert.equal(signal, 'SIGKILL');
+      assert.equal(drained, true, 'direct fallback is forbidden before positive drain');
+      directKills += 1;
+      running.set(layout.supervisorServicePath, false);
+    },
     readyWaitMs: 10,
     pollMs: 1,
     runCommand(executable, args) {
@@ -198,27 +225,24 @@ test('Termux runit controller reasserts and observes down intent before hard-sto
       const isControl = servicePath.endsWith('-control');
       if (command === 'up') {
         running.set(servicePath, true);
-        if (!isControl) supervisorWantsDown = false;
+        if (!isControl) setRawWant('u');
       }
       if (command === 'down' && isControl) running.set(servicePath, false);
       if (command === 'down' && !isControl) {
         assert.equal(drained, true, 'normal supervisor down must occur only after positive drain');
         supervisorDownRequests += 1;
-        if (supervisorDownRequests >= 2) supervisorWantsDown = true;
+        if (supervisorDownRequests >= 2) setRawWant('d');
       }
-      if (command === 'force-stop') {
-        assert.fail('force-stop must not obscure the explicit down-intent fence');
-      }
+      if (command === 'force-stop') assert.fail('force-stop must not obscure the explicit down-intent fence');
       if (command === 'kill') {
-        assert.equal(isControl, false, 'kill fallback is forbidden for the control service');
-        assert.equal(drained, true, 'kill fallback is forbidden before positive supervisor drain');
-        assert.equal(supervisorWantsDown, true, 'kill fallback requires positively observed runsv down intent');
-        running.set(servicePath, false);
+        assert.equal(isControl, false, 'runit kill fallback is forbidden for the control service');
+        assert.equal(drained, true, 'runit kill fallback is forbidden before positive drain');
+        // Reproduce the live defect: runit accepted the signal command but the
+        // old package-owned supervisor child remained running.
       }
       if (command === 'status') {
         if (running.get(servicePath) === true) {
-          const intent = !isControl && supervisorWantsDown ? ', normally down, want down' : !isControl ? ', normally down, want up' : '';
-          return { status: 0, signal: null, stdout: `run: service: (pid 1) 1s${intent}`, stderr: '' };
+          return { status: 0, signal: null, stdout: `run: service: (pid ${isControl ? 999 : supervisorPid}) 1s, normally down`, stderr: '' };
         }
         return { status: 0, signal: null, stdout: 'down: service: 1s, normally up', stderr: '' };
       }
@@ -234,21 +258,33 @@ test('Termux runit controller reasserts and observes down intent before hard-sto
   });
   const manifest = { target: { platform: 'android', arch: 'arm64' } };
   await controller.install({ packageRoot, stateDirectory, manifest });
+  await mkdir(path.dirname(rawStatusPath), { recursive: true });
+  await writeFile(path.join(layout.supervisorServicePath, 'supervise', 'pid'), `${supervisorPid}\n`);
+  setRawWant(rawWant);
   const credentialRef = `androidkeystore://com.termux.api/tdev.a1.${'A'.repeat(43)}`;
   await controller.activateControl({ stateDirectory, controlConfig: { credentialRef, profile: 'fixture' } });
   await assert.rejects(
     controller.activateControl({ stateDirectory, controlConfig: { credentialRef: 'androidkeystore://com.termux.api/not-canonical', profile: 'fixture' } }),
     { code: 'invalid_agent_credential_ref' },
   );
+  await assert.rejects(
+    controller.quiesceAndStop({ stateDirectory, drainRequestId: 'drain-guard-reject-one' }),
+    { code: 'installable_agent_service_stop_unverified' },
+  );
+  assert.equal(directKills, 0, 'direct fallback must fail closed before signaling a mismatched runsv parent');
+  assert.equal(running.get(layout.supervisorServicePath), true);
+  await writeFile(path.join(procRoot, String(runsvPid), 'cmdline'), Buffer.from(`runsv\0${layout.supervisorServiceName}\0`));
+  supervisorDownRequests = 0;
+  setRawWant('u');
   const result = await controller.quiesceAndStop({ stateDirectory, drainRequestId: 'drain-force-stop-one' });
-  const layout = termuxInstallableAgentServiceLayout({ prefix, stateDirectory });
   assert.equal(result.classification, 'quiesced_and_stopped');
   assert.equal(result.positiveQuiescence.liveOperations, 0);
   assert.equal(running.get(layout.controlServicePath), false);
   assert.equal(running.get(layout.supervisorServicePath), false);
-  assert.equal(supervisorDownRequests, 2, 'a timed-out graceful stop must reassert down intent before kill');
+  assert.equal(supervisorDownRequests, 3, 'direct fallback must reassert down after runit kill did not stop the child');
+  assert.equal(directKills, 1);
   assert.equal(commands.filter((entry) => entry.command === 'force-stop').length, 0);
-  assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.supervisorServicePath).length, 1);
+  assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.supervisorServicePath).length, 2);
   assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.controlServicePath).length, 0);
 });
 
