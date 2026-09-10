@@ -10,6 +10,7 @@ import {
   collectWorkerModules,
   createWorkerUploadForm,
   loadCloudflareCredentials,
+  parseCloudflareEnv,
 } from './cloudflare-casedo-api.mjs';
 import { buildMcpTrialBaseTreeModule } from './mcp-trial-base-tree-builder.mjs';
 import {
@@ -40,6 +41,7 @@ import {
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
 import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
+import { createQualificationRpc } from './d0046-agent-preserving-update.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 export const D0046_MCP_TRIAL_SCRIPT = 'tdev-mcp-trial';
@@ -54,6 +56,8 @@ export const D0046_CASE_SCRIPT = 'tdev-d0020-composition-case-r1';
 export const D0046_CASE_NAMESPACE = '3b3d5808028f4e74bcbc1dc22f0757fd';
 export const D0046_AGENT_SCRIPT = 'tdev-d0020-qualification-clean-a';
 export const D0046_AGENT_NAMESPACE = '0dad69baa7154d00949f88c8b8dbf94a';
+export const D0046_AGENT_ID = 'd0039-r12-custody-20260828-3631c5a4';
+export const D0046_AGENT_ROUTE_GENERATION = 1;
 export const D0046_CASE_PLACEMENT_DATABASE = 'ff868f84-4fa3-4d3d-9024-8a1eec7b0c79';
 export const D0046_ACCESS_APP_NAME = 'tdev MCP trial 20260904';
 export const D0046_CASE_PREFIX = 'tdev-trial-';
@@ -209,7 +213,39 @@ function identityManifest() {
   return Object.freeze({ principalId, tenantId });
 }
 
-function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true }) {
+async function readCanonicalAgentRouteBinding(envFile) {
+  const values = parseCloudflareEnv(readFileSync(envFile, 'utf8'));
+  const token = values.TDEV_D0020_QUALIFICATION_TOKEN;
+  assertText(token, 'TDEV_D0020_QUALIFICATION_TOKEN', 4096);
+  const provider = createQualificationRpc({ token });
+  const routeRead = await provider('read');
+  const binding = routeRead?.routeBinding;
+  if (!binding || typeof binding !== 'object' || Array.isArray(binding)) {
+    fail('d0046_agent_route_binding_missing', 'Agent provider read did not expose the canonical route binding');
+  }
+  if (binding.agentId !== D0046_AGENT_ID ||
+      binding.routeGeneration !== D0046_AGENT_ROUTE_GENERATION ||
+      binding.workerScript !== D0046_AGENT_SCRIPT ||
+      binding.deployment !== D0046_AGENT_SCRIPT ||
+      binding.className !== MCP_TRIAL_AGENT_CLASS_NAME ||
+      binding.namespace !== D0046_AGENT_NAMESPACE ||
+      binding.jurisdiction !== 'global' ||
+      typeof binding.durableObjectId !== 'string' || !/^[0-9a-f]{64}$/u.test(binding.durableObjectId)) {
+    fail('d0046_agent_route_binding_mismatch', 'Agent provider route binding does not match the fixed Trial owner');
+  }
+  return Object.freeze({
+    agentId: binding.agentId,
+    routeGeneration: binding.routeGeneration,
+    workerScript: binding.workerScript,
+    deployment: binding.deployment,
+    className: binding.className,
+    namespace: binding.namespace,
+    jurisdiction: binding.jurisdiction,
+    durableObjectId: binding.durableObjectId,
+  });
+}
+
+function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace, identity, includeBaseTree = true, agentRouteBinding = null }) {
   const contextReference = `tdev-context-${sourceSha.slice(0, 12)}`;
   const revisionId = `tdev-mcp-${sourceSha.slice(0, 12)}`;
   const operationDigest = digest(operationManifest);
@@ -274,9 +310,10 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
         namespace: D0046_AGENT_NAMESPACE,
         jurisdiction: 'global',
       },
-      agentId: 'd0039-r12-custody-20260828-3631c5a4',
-      routeGeneration: 1,
-      routeKey: agentRouteHostKey({ agentId: 'd0039-r12-custody-20260828-3631c5a4', routeGeneration: 1 }),
+      agentId: D0046_AGENT_ID,
+      routeGeneration: D0046_AGENT_ROUTE_GENERATION,
+      routeKey: agentRouteHostKey({ agentId: D0046_AGENT_ID, routeGeneration: D0046_AGENT_ROUTE_GENERATION }),
+      ...(agentRouteBinding === null ? {} : { durableObjectId: agentRouteBinding.durableObjectId }),
     },
     repository: {
       commitOid: sourceSha,
@@ -302,12 +339,12 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
   return normalizeMcpTrialCompositionManifest(body);
 }
 
-export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true } = {}) {
+export function buildTrialManifests({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity = null, scope = null, scopeDigest: suppliedScopeDigest = null, operationManifest, driveNamespace = `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`, accessAudience = 'pending-access-audience', identity = identityManifest(), includeBaseTree = true, agentRouteBinding = null } = {}) {
   if (!/^[0-9a-f]{40}$/u.test(sourceSha ?? '')) fail('d0046_source_sha_invalid', 'sourceSha must be a full Git SHA');
   const normalizedOperation = normalizedOperationManifest(operationManifest);
   const operationCatalog = normalizedOperationCatalog();
   const operationCatalogDigest = developmentOperationCatalogDigest(operationCatalog);
-  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree });
+  const composition = trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdentity, scope, scopeDigest: suppliedScopeDigest, operationManifest: normalizedOperation, driveNamespace, identity, includeBaseTree, agentRouteBinding });
   const auth = accessManifest(accessAudience);
   const buildDigest = digest({
     profile: 'tdev.mcp.trial.build.v1',
@@ -740,6 +777,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
   const existing = await workerSettings(client, D0046_MCP_TRIAL_SCRIPT);
   assertOwnerMarker(existing.result, D0046_MCP_TRIAL_SCRIPT);
   const identity = existingTrialIdentity(existing.result);
@@ -765,6 +803,7 @@ export async function resumeMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace,
     accessAudience: accessApp.aud,
+    agentRouteBinding,
   });
   let subdomainEnabled = false;
   try {
@@ -805,6 +844,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
   const credentials = loadCloudflareCredentials(envFile);
   const client = new CloudflareApiClient({ ...credentials, apiOrigin: API_ORIGIN });
   await verifyExistingOwners(client);
+  const agentRouteBinding = await readCanonicalAgentRouteBinding(envFile);
   const absence = await preflightAbsence(client);
   const bootstrap = buildTrialManifests({
     sourceSha,
@@ -818,6 +858,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace: `pending-${D0046_MCP_TRIAL_SCRIPT}-drive`,
     accessAudience: 'pending-access-audience',
+    agentRouteBinding,
   });
   let subdomainEnabled = false;
   let accessApp = null;
@@ -840,6 +881,7 @@ export async function deployMcpTrial({ repositoryPath = repositoryRoot, envFile 
     includeBaseTree: true,
     driveNamespace,
     accessAudience: accessApp.aud,
+    agentRouteBinding,
   });
     await uploadWorker(client, modules, buildWorkerMetadata({ manifests, sourceSha, artifact, driveNamespace, bootstrap: false }));
     await setSubdomain(client, true);
