@@ -61,10 +61,15 @@ function contextResolver(env) {
   const id = namespace.idFromName(`context:${reference}`);
   const stub = namespace.get(id);
   if (!stub || typeof stub.executeMcpTrial !== 'function') fail('mcp_owner_unavailable', 'Context registry RPC is unavailable');
-  return async ({ selector = null } = {}) => publicJsonClone(await stub.executeMcpTrial({
-    operation: 'developmentContextResolve',
-    input: { selector },
-  }));
+  return async ({ selector = null, contextReference = null } = {}) => {
+    if (selector !== null && contextReference !== null && selector !== contextReference) {
+      fail('mcp_trial_context_scope_denied', 'Context resolver selector and contextReference disagree');
+    }
+    return publicJsonClone(await stub.executeMcpTrial({
+      operation: 'developmentContextResolve',
+      input: { selector: contextReference ?? selector },
+    }));
+  };
 }
 
 // D0046's trial-only Durable Object. It exposes only the D0042 intent/cursor

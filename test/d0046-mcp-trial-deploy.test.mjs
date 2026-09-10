@@ -112,6 +112,9 @@ test('D0046 execution DO keeps runner drive off full tree construction under the
   assert.ok(driveSource.includes("request.operation === 'runner.drive'"));
   assert.ok(driveSource.includes('createTrialDriveApplication(this.env, { driveOwnerOverride: this.host, resolveContext: contextResolver(this.env) })'));
   assert.ok(driveSource.includes('developmentContextResolveOverride: contextResolver(this.env)'));
+  assert.ok(driveSource.includes('return async ({ selector = null, contextReference = null } = {}) => {'));
+  assert.ok(driveSource.includes('selector: contextReference ?? selector'));
+  assert.ok(driveSource.includes("fail('mcp_trial_context_scope_denied', 'Context resolver selector and contextReference disagree')"));
   assert.ok(driveSource.includes("request.operation === 'developmentUnitStart' || request.operation === 'developmentStart'"));
 });
 
