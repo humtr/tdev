@@ -41,6 +41,8 @@ test('D0048 trial builder binds the complete manifest while hydrating only the o
     assert.equal(built.manifest.length, 2);
     assert.equal(built.manifest.find((entry) => entry.path === 'assets/native.bin').byteLength, 4);
     assert.equal(built.repositoryBaseIdentity.manifestDigest, built.manifestDigest);
+    assert.match(built.source, /MCP_TRIAL_SELECTED_TREE = Object\.freeze/);
+    assert.doesNotMatch(built.source, /MCP_TRIAL_SELECTED_GZIP_BASE64/);
     assert.match(built.source, /MCP_TRIAL_MANIFEST_GZIP_BASE64/);
   } finally {
     await rm(repositoryPath, { recursive: true, force: true });
