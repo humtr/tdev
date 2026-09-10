@@ -305,11 +305,31 @@ function deliveryForAttempt(agentSnapshot, caseId, attemptId) {
     .sort((left, right) => String(left.deliveryId).localeCompare(String(right.deliveryId)))[0] ?? null;
 }
 
-function reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal }) {
+function reservationsForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal }) {
   return Object.values(agentSnapshot?.reservations ?? {})
     .filter((reservation) => reservation?.caseId === caseId && reservation?.taskId === taskId &&
-      reservation?.predictedAttemptOrdinal === predictedAttemptOrdinal && reservation?.status === 'reserved')
-    .sort((left, right) => String(left.reservationRequestId).localeCompare(String(right.reservationRequestId)))[0] ?? null;
+      reservation?.predictedAttemptOrdinal === predictedAttemptOrdinal)
+    .sort((left, right) => {
+      const leftGeneration = Number.isSafeInteger(left?.slotGeneration) ? left.slotGeneration : -1;
+      const rightGeneration = Number.isSafeInteger(right?.slotGeneration) ? right.slotGeneration : -1;
+      if (leftGeneration !== rightGeneration) return rightGeneration - leftGeneration;
+      return String(right?.reservationRequestId ?? '').localeCompare(String(left?.reservationRequestId ?? ''));
+    });
+}
+
+function reservationForTask(agentSnapshot, identity) {
+  return reservationsForTask(agentSnapshot, identity).find((reservation) => reservation?.status === 'reserved') ?? null;
+}
+
+function terminalReservationPredecessor(agentSnapshot, identity) {
+  const latest = reservationsForTask(agentSnapshot, identity)[0] ?? null;
+  if (latest === null || latest.status === 'reserved') return null;
+  if (typeof latest.reservationRequestId !== 'string' || typeof latest.reservationRequestDigest !== 'string') return null;
+  return {
+    reservationRequestId: latest.reservationRequestId,
+    reservationRequestDigest: latest.reservationRequestDigest,
+    ...(Number.isSafeInteger(latest.slotGeneration) ? { slotGeneration: latest.slotGeneration } : {}),
+  };
 }
 
 /**
@@ -740,7 +760,14 @@ export class McpTrialDevelopmentUnitRunner {
       operationManifest: this.operationManifest,
     });
     const descriptor = preflightDescriptor(body, agentSnapshot, taskId);
-    const reservationRequestId = requestId('reserve', { driveRequestId, taskId, predictedAttemptOrdinal });
+    const reservationIdentity = { caseId, taskId, predictedAttemptOrdinal };
+    const predecessor = terminalReservationPredecessor(agentSnapshot, reservationIdentity);
+    const reservationRequestId = requestId('reserve', {
+      driveRequestId,
+      taskId,
+      predictedAttemptOrdinal,
+      ...(predecessor === null ? {} : { predecessor }),
+    });
     const reservationRequest = {
       agentId: route.agentId,
       routeGeneration: route.routeGeneration,
@@ -759,7 +786,7 @@ export class McpTrialDevelopmentUnitRunner {
       preflightDescriptor: descriptor,
     };
     reservationRequest.reservationRequestDigest = computeAgentReservationRequestDigest(reservationRequest, agentSnapshot.limits);
-    let reservation = reservationForTask(agentSnapshot, { caseId, taskId, predictedAttemptOrdinal });
+    let reservation = reservationForTask(agentSnapshot, reservationIdentity);
     if (reservation === null) {
       const admitted = await this.agentOwner.invoke('reserve', { request: reservationRequest, nowMs: this.now() });
       reservation = admitted?.reservation ?? null;

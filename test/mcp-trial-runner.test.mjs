@@ -601,7 +601,7 @@ test('D0046 candidate projection reads terminal historical bases but rejects act
   assert.equal(materializedReads, 1);
 });
 
-test('D0046 drive expires due Agent reservations before availability gating', async () => {
+test('D0046 drive advances reserve identity after an expired reservation', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
   ));
@@ -613,22 +613,28 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     validationProfile: 'tdev.validation.npm-check.v1',
   });
   const caseId = 'trial-expired-reservation';
+  const driveRequestId = 'drive-expiry';
   const engine = new CaseEngine({ caseId, plan });
   const reservationRequestDigest = digest({ reservation: 'expired' });
+  const originalReservationRequestId = `trial-reserve-${digest({
+    profile: 'tdev.mcp.trial-request.v1',
+    label: 'reserve',
+    input: { driveRequestId, taskId: 'context', predictedAttemptOrdinal: 1 },
+  }).slice('sha256:'.length)}`;
   let expired = false;
   const agentState = () => ({
     routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
     installableAgent: { state: 'CURRENT' },
-    connection: expired ? null : { id: 'connection-1', epoch: 1 },
+    connection: { id: 'connection-1', epoch: 1 },
     executor: { id: 'executor-1', epoch: 1 },
     capacity: { revision: 1, effectiveCapacity: 1 },
     reservationWindowGeneration: 1,
-    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    limits: { maxReservationLifetimeMs: 30000 },
     reservations: {
       stale: {
         reservationWindowGeneration: 1,
         windowGeneration: 1,
-        reservationRequestId: 'reservation-stale',
+        reservationRequestId: originalReservationRequestId,
         reservationRequestDigest,
         caseId,
         taskId: 'context',
@@ -648,9 +654,12 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     agentOwner: {
       async invoke(operation, input) {
         calls.push({ operation, input });
-        assert.equal(operation, 'expire_reservation');
-        expired = true;
-        return { classification: 'accepted' };
+        if (operation === 'expire_reservation') {
+          expired = true;
+          return { classification: 'accepted' };
+        }
+        if (operation === 'reserve') return { reservation: null };
+        throw new Error(`unexpected Agent operation ${operation}`);
       },
       readRoute: async () => agentState(),
       readResultHandoff: async () => null,
@@ -660,20 +669,23 @@ test('D0046 drive expires due Agent reservations before availability gating', as
     operationManifest,
     now: () => 1000,
   });
-  const result = await runner.drive({ caseId, driveRequestId: 'drive-expiry', payload: {} });
+  const result = await runner.drive({ caseId, driveRequestId, payload: {} });
   assert.equal(result.status, 'not_ready');
-  assert.equal(calls.length, 1);
+  assert.equal(calls.length, 2);
   assert.deepEqual(calls[0], {
     operation: 'expire_reservation',
     input: {
       request: {
         reservationWindowGeneration: 1,
-        reservationRequestId: 'reservation-stale',
+        reservationRequestId: originalReservationRequestId,
         reservationRequestDigest,
       },
       nowMs: 1000,
     },
   });
+  assert.equal(calls[1].operation, 'reserve');
+  assert.notEqual(calls[1].input.request.reservationRequestId, originalReservationRequestId);
+  assert.match(calls[1].input.request.reservationRequestId, /^trial-reserve-[0-9a-f]{64}$/);
 });
 
 test('D0047 Trial runner surfaces semantic change capability and binds validation to the accepted candidate digest', () => {
