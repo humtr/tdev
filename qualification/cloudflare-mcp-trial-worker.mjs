@@ -247,6 +247,11 @@ export async function createRuntimeExecutionApplication(env, { driveOwnerOverrid
   return Object.freeze({ composition, operationManifest, operationManifestDigest, operationCatalog, facades, runner });
 }
 
+// Historical Drive worker modules still import this export while the legacy
+// rollback endpoint is retained. Keep the alias until that module is
+// canonicalized or retired after the r4 P0 cutover.
+export { createRuntimeExecutionApplication as createTrialExecutionApplication };
+
 export async function createTrialDriveApplication(env, { driveOwnerOverride = null } = {}) {
   const composition = normalizeMcpRuntimeCompositionBinding(readCompositionBinding(env));
   assertGeneratedBaseBinding(composition);

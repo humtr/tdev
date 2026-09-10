@@ -85,6 +85,13 @@ test('D0047 bounded context tools stay light at ingress and execute through the 
   }
 });
 
+test('D0046 historical Drive worker named import remains compatible during canonical cutover', async () => {
+  const workerSource = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
+  assert.match(workerSource, /export \{ createRuntimeExecutionApplication as createTrialExecutionApplication \};/u);
+  assert.match(driveSource, /import \{[^}]*createTrialExecutionApplication[^}]*\} from '\.\/cloudflare-mcp-trial-worker\.mjs';/u);
+});
+
 test('D0046 execution DO keeps runner drive off full tree construction under the 10 ms request budget', async () => {
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
