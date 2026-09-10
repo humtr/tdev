@@ -391,7 +391,25 @@ async function createTrialLightApplication(env) {
     if (!stub || typeof stub.executeMcpTrial !== 'function') {
       throw configError('mcp_owner_unavailable', 'Trial execution Durable Object RPC is unavailable');
     }
-    const result = await stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    let result;
+    try {
+      result = await stub.executeMcpTrial(publicJsonClone({ operation, input }));
+    } catch (error) {
+      if (typeof console?.log === 'function') {
+        try {
+          console.log(JSON.stringify({
+            profile: 'tdev.mcp.trial.execution-diagnostic.v1',
+            operation,
+            name: typeof error?.name === 'string' ? error.name.slice(0, 128) : null,
+            code: typeof error?.code === 'string' ? error.code.slice(0, 128) : null,
+            message: typeof error?.message === 'string' ? error.message.slice(0, 256) : null,
+          }));
+        } catch {
+          // Diagnostics must never change the RPC response path.
+        }
+      }
+      throw error;
+    }
     // Cloudflare RPC results can carry runtime-owned Symbol metadata. Project
     // only the public JSON payload before the strict MCP canonical boundary.
     return JSON.parse(JSON.stringify(result));
