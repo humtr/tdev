@@ -202,6 +202,10 @@ test('Termux runit controller force-stops only a positively drained supervisor t
       if (command === 'force-stop') {
         assert.equal(isControl, false, 'force-stop fallback is forbidden for the control service');
         assert.equal(drained, true, 'force-stop fallback is forbidden before positive supervisor drain');
+      }
+      if (command === 'kill') {
+        assert.equal(isControl, false, 'kill fallback is forbidden for the control service');
+        assert.equal(drained, true, 'kill fallback is forbidden before positive supervisor drain');
         running.set(servicePath, false);
       }
       if (command === 'status') {
@@ -233,6 +237,8 @@ test('Termux runit controller force-stops only a positively drained supervisor t
   assert.equal(running.get(layout.supervisorServicePath), false);
   assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.supervisorServicePath).length, 1);
   assert.equal(commands.filter((entry) => entry.command === 'force-stop' && entry.servicePath === layout.controlServicePath).length, 0);
+  assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.supervisorServicePath).length, 1);
+  assert.equal(commands.filter((entry) => entry.command === 'kill' && entry.servicePath === layout.controlServicePath).length, 0);
 });
 
 test('Termux runit controller installs a package-owned absolute service definition and rejects substitution', async (t) => {

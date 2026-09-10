@@ -247,7 +247,13 @@ export class TermuxInstallableAgentServiceController {
     } catch (cause) {
       if (cause?.code !== 'installable_agent_service_stop_unverified') throw cause;
       this.#sv('force-stop', servicePath);
-      return this.#waitDown(servicePath);
+      try {
+        return await this.#waitDown(servicePath);
+      } catch (forceCause) {
+        if (forceCause?.code !== 'installable_agent_service_stop_unverified') throw forceCause;
+        this.#sv('kill', servicePath);
+        return this.#waitDown(servicePath);
+      }
     }
   }
 
