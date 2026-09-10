@@ -1,8 +1,9 @@
 # tdev owner directive
 
 - Status: `active`
-- Revision: 1
+- Revision: 2
 - Issued: 2026-09-09
+- Revised: 2026-09-11
 - Scope: current forward development through the first public tdev release
 - Supersession: only a later explicit owner directive may revise or supersede this objective
 
@@ -95,8 +96,63 @@ The proof must establish that:
 
 Only after this no-Codex proof is green may optional Codex interoperability be treated as a secondary completion item.
 
-## 6. Immediate subordinate work
+## 6. Development release model
 
-The first subordinate task is to make this Directive impossible for a fresh development session to miss: update the self-development authority/bootstrap under D0031 so `DIRECTIVE.md` is rebound from the exact published repository snapshot before routing or dependent implementation. Then revise only the technical Designs actually reached by this Directive (expected D0023, D0043, and D0046) and execute the smallest implementation that satisfies them.
+The development path must no longer depend on a human repeatedly rebinding and redeploying the MCP runtime after normal repository progress. Automate the repeated release mechanics without weakening exact-base or durable-state guarantees.
 
-Do not turn the Directive itself into a Design, and do not use Design status as a substitute for owner priority.
+1. **GitHub `development` is the canonical moving development line.** A release controller may observe that line, but an MCP runtime may never use the mutable branch name as its repository base.
+2. **Every runtime revision is immutable and exact-base bound.** For each update, capture one fresh `development` HEAD commit SHA and build/bind the repository context, package, and runtime revision to that exact SHA.
+3. **Advance only after validation and readback.** The normal development release chain is `fresh HEAD -> exact SHA capture -> context/manifest bind -> source/package validation -> preserving deployment -> runtime readback -> health/invariant verification -> current revision switch`. If any required gate fails, keep the previous successful runtime current.
+4. **No-op when already current.** If the deployed exact repository base already equals the selected validated HEAD, do not redeploy merely because the controller ran again.
+5. **Preserve durable state across deployment.** Existing Cases, Plans, Attempt/lease/fence history, Promotions, and any retained unknown-effect evidence must not be cleared or rewritten to make a deployment easier.
+6. **Development and stable/public are separate channels.** The development runtime should automatically follow the latest **validated exact SHA** on `development`. Stable/public must not automatically follow branch HEAD; it advances only through an explicit owner-authorized release/promotion decision using a validated immutable revision.
+7. **Automatic does not mean mutable.** Automation selects, validates, and activates immutable revisions. It must not turn `development_context_get` into a dynamic branch resolver or weaken stale-base rejection.
+8. **M2 is completed recovery evidence, not the current completion criterion.** Do not reopen M2 or recovery qualification work without new regression evidence. Current priority is the automated development release path and the no-Codex current-client proof in Section 5.
+
+## 7. Current execution order
+
+Execute the following sequence before unrelated expansion. Technical Designs and `WORKBOARD.md` must be revised where needed to route this order; stale subordinate routing or historical fixed-base instructions do not override it.
+
+### P0 — restore reliable bounded context reading
+
+Reproduce the currently observed `development_context_list` failure (`mcp_owner_unavailable` / `not_found`) against the current release. If it is still live, identify the owner/binding defect and make the smallest correction required for reliable bounded source listing/reading. Do not redesign immutable context semantics merely to eliminate this symptom. If the failure is no longer reproducible, record that evidence and proceed without speculative repair.
+
+### P1 — implement automated development deployment/rebind
+
+Implement the Section 6 release controller/path so normal progress on GitHub `development` can produce a validated immutable MCP development revision without a human manually selecting and rebinding each base. Reuse existing deployment-preservation mechanisms instead of creating a parallel scheduler, second state owner, or generic remote shell.
+
+The automation must at minimum:
+
+- fresh-read `development` and capture one exact commit SHA;
+- compare it with the current deployed exact base and no-op when equal;
+- build/bind the immutable repository context and release manifest for that SHA;
+- run repository/release-required validation before activation;
+- preserve durable Case/Agent/Attempt/Promotion state and retained unknown-effect evidence;
+- perform preserving deployment;
+- read back the deployed source/revision/context and intended sixteen-tool surface;
+- activate the new revision only when all required checks are green;
+- retain the previous successful revision as current on failure.
+
+### P2 — establish channel policy in the implementation
+
+Make the development runtime automatically follow the latest validated exact `development` SHA using P1. Keep stable/public release selection explicit. Do not conflate a development auto-deploy with public-release Promotion.
+
+### P3 — update the current development runtime through the new path
+
+Fresh-read the then-current GitHub `development` HEAD and use the automated path itself to bind and deploy that exact SHA. Verify that runtime revision identity, `development_context_get` repository commit/context identity, and the public sixteen-tool surface describe the same deployed release. A difference between a mutable GitHub branch after it advances again and an already deployed immutable revision is normal; a difference inside one claimed release is not.
+
+### P4 — execute the no-Codex current-client proof
+
+Only after P0-P3 are green, perform one fresh real non-documentation source change through the Section 5 path with Codex disabled or unavailable. The proof must use bounded context read, operation discovery, a ChatGPT-authored typed ChangeSet, `development_start`, Case/Drive/Agent ownership, an exact-base disposable candidate, owner-required validation, Case-native Promotion, and terminal readback. Do not count the earlier capacity change, M2 proof, documentation-only changes, or deployment automation implementation itself retroactively as this proof.
+
+Canonical/Git publication is not a shortcut for this C2 proof. The proof's semantic completion boundary remains Case-native Promotion and consistent terminal readback; any later Git/public release effect is a separately authorized consequence.
+
+### P5 — converge subordinate authority after proof
+
+When P4 is green, update the reached technical Designs, evidence, and `WORKBOARD.md` so their status and next route accurately reflect the completed automated development-release path and no-Codex proof. Do not preserve stale fixed-base routing merely for historical continuity; preserve it as evidence where appropriate and route from the current Directive.
+
+### P6 — extend release automation only after the development path is proven
+
+After the development auto-deploy path is stable and P4 is green, evaluate bounded automation for stable/public release preparation. Stable/public activation must retain an explicit owner authorization boundary and must never become unconditional branch-following.
+
+Do not turn this Directive into the detailed implementation Design. The Directive owns the priority, release policy, safety boundaries, and completion order above; the reached Designs own the bounded technical contracts and `WORKBOARD.md` owns executable routing.
