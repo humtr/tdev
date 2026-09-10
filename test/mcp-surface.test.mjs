@@ -145,7 +145,7 @@ test('MCP metadata and initialize/tools/list/call use the compatible versioned s
     assert.equal(typeof descriptor.title, 'string');
     assert.deepEqual(descriptor.outputSchema, { type: 'object', additionalProperties: true });
     assert.deepEqual(Object.keys(descriptor.annotations).sort(), ['destructiveHint', 'idempotentHint', 'openWorldHint', 'readOnlyHint']);
-    assert.equal(descriptor.annotations.openWorldHint, false);
+    assert.equal(descriptor.annotations.readOnlyHint, true);\n    assert.equal(descriptor.annotations.openWorldHint, false);
   }
   const operationList = await rpc(surface, callRequest('tools/call', { name: 'operation_list', arguments: {} }, { protocol: '2025-11-25', id: 'operation-list' }));
   assert.equal(operationList.response.status, 200);
