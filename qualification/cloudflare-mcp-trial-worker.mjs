@@ -326,7 +326,7 @@ export async function createTrialApplication(env, { driveOwnerOverride = null, d
   }
   const surfaceManifest = createMcpSurfaceManifest({
     buildDigest: digest({
-      profile: configuredComposition.profile === 'tdev.mcp.runtime-composition.v1' ? 'tdev.mcp.runtime.build.v1' : 'tdev.mcp.trial.build.v1',
+      profile: composition.profile === 'tdev.mcp.runtime-composition.v1' ? 'tdev.mcp.runtime.build.v1' : 'tdev.mcp.trial.build.v1',
       compositionDigest: composition.manifestDigest,
       authProfileDigest: authManifest.profileDigest,
       operationManifestDigest,

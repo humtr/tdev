@@ -63,6 +63,15 @@ test('D0046 light ingress owns the semantic catalog and delegates development_st
   assert.ok(driveSource.includes("case 'developmentStart': result = await worker.surface.owners.developmentStart(request.input); break;"));
 });
 
+test('D0046 full development application binds its build profile from the materialized composition', async () => {
+  const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
+  const start = source.indexOf('export async function createTrialApplication');
+  const end = source.indexOf('/**\n * Construct the MCP surface', start);
+  const applicationSource = source.slice(start, end);
+  assert.ok(applicationSource.includes("profile: composition.profile === 'tdev.mcp.runtime-composition.v1'"));
+  assert.equal(applicationSource.includes('configuredComposition.profile'), false);
+});
+
 test('D0047 bounded context tools stay light at ingress and execute through the fixed heavy-operation DO route', async () => {
   const source = await readFile(new URL('../qualification/cloudflare-mcp-trial-worker.mjs', import.meta.url), 'utf8');
   const driveSource = await readFile(new URL('../qualification/cloudflare-case-agent-drive-worker.mjs', import.meta.url), 'utf8');
