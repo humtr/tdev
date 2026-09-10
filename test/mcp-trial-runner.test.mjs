@@ -764,4 +764,8 @@ test('D0047 Trial runner surfaces semantic change capability and binds validatio
   const semanticCapability = semanticDevelopmentOperationCapabilityId(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
   assert.equal(semanticRunner.capabilities.includes(semanticCapability), true);
   assert.equal(legacyRunner.capabilities.includes(semanticCapability), false);
+  assert.deepEqual(semanticRunner.caseContract.caseGrant, semanticRunner.capabilities);
+  assert.deepEqual(semanticRunner.caseContract.workspacePolicy, semanticRunner.capabilities);
+  assert.equal(semanticRunner.caseContract.caseGrant.includes(semanticCapability), true);
+  assert.notEqual(semanticRunner.caseContract.contractDigest, new CaseEngine({ caseId: 'empty-contract', plan }).caseContract.contractDigest);
 });

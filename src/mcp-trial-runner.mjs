@@ -534,10 +534,12 @@ export class McpTrialDevelopmentUnitRunner {
     }
     if (typeof now !== 'function') fail('mcp_trial_runner_invalid', 'Trial runner clock must be callable');
     this.now = now;
-    this.caseContract = caseContract === undefined
-      ? (isPlainRecord(this.manifest.repository.context.caseContract) ? normalizeCaseContract(this.manifest.repository.context.caseContract) : normalizeCaseContract({}))
-      : normalizeCaseContract(caseContract);
     this.capabilities = executorCapabilities(this.manifest, this.operationManifest, this.operationCatalog);
+    this.caseContract = caseContract === undefined
+      ? (isPlainRecord(this.manifest.repository.context.caseContract)
+          ? normalizeCaseContract(this.manifest.repository.context.caseContract)
+          : normalizeCaseContract({ caseGrant: this.capabilities, workspacePolicy: this.capabilities }))
+      : normalizeCaseContract(caseContract);
     Object.freeze(this);
   }
 
