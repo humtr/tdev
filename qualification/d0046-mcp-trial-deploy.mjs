@@ -38,6 +38,7 @@ import {
   normalizeDevelopmentOperationCatalog,
 } from '../src/development-operation-catalog.mjs';
 import { canonicalClone, canonicalJson, digest } from '../src/canonical.mjs';
+import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 import { scopeDigest as lazyScopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const repositoryRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -275,6 +276,7 @@ function trialComposition({ sourceSha, baseDigest, baseTree, repositoryBaseIdent
       },
       agentId: 'd0039-r12-custody-20260828-3631c5a4',
       routeGeneration: 1,
+      routeKey: agentRouteHostKey({ agentId: 'd0039-r12-custody-20260828-3631c5a4', routeGeneration: 1 }),
     },
     repository: {
       commitOid: sourceSha,

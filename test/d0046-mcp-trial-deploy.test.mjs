@@ -20,6 +20,7 @@ import { mcpDiscoveryResponse } from '../src/mcp-discovery.mjs';
 import { digest } from '../src/canonical.mjs';
 import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
 import { developmentOperationCatalogDigest } from '../src/development-operation-catalog.mjs';
+import { agentRouteHostKey } from '../src/agent-route-election.mjs';
 
 const SOURCE_SHA = 'a'.repeat(40);
 const BASE_TREE = { 'src/example.mjs': 'export const example = 1;\n' };
@@ -79,6 +80,10 @@ test('D0046 deployer composes a digest-bound trial and keeps the large tree out 
   const boundCatalog = JSON.parse(catalogBinding.text);
   assert.equal(developmentOperationCatalogDigest(boundCatalog), manifests.operationCatalogDigest);
   assert.ok(boundCatalog.operations['tdev.operation.repository.change.generate.v1']);
+  assert.equal(
+    boundComposition.agentOwner.routeKey,
+    agentRouteHostKey({ agentId: boundComposition.agentOwner.agentId, routeGeneration: boundComposition.agentOwner.routeGeneration }),
+  );
   assert.equal(metadata.bindings.find((binding) => binding.name === 'TDEV_CASE_AGENT_DRIVE').namespace_id, 'drive-namespace');
   assert.equal(Object.hasOwn(metadata, 'limits'), false);
   assert.equal(metadata.exports.CaseAgentDriveRuntimeDO.storage, 'sqlite');
