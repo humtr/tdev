@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "classification": "native implemented-core and component evidence, not full integration/release/live acceptance",
+  "baseCommit": "88e0bc0ccee0fae3868782a3fc08b0644fe7cf7c",
+  "canonicalCore": {
+    "command": "node tools/validate.mjs --profile core --output .artifacts/correction/core",
+    "status": "passed",
+    "tests": 120,
+    "pass": 120,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "cb8fd1b6a6235aec7a5a96e6f1560226c8df0905c2582d6749b39b1d40010b57",
+    "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+    "execution": {
+      "variantId": "termux-android-arm64-node24-18",
+      "role": "native-control",
+      "node": "24.18.0",
+      "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+      "platform": "android",
+      "arch": "arm64",
+      "sqlite": "3.53.4"
+    }
+  },
+  "componentIntegration": {
+    "command": "node --test --test-reporter=tap test/integration/*.test.mjs",
+    "status": "passed",
+    "tests": 32,
+    "pass": 32,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logSha256": "73a874181c74c8587fb6b3893cb2b078dad148d50e1ca2cea4d7b7bbb1baa85e",
+    "environment": "native Termux Android/arm64 Node24.18.0 Git2.55.0 SQLite3.53.4",
+    "scope": "actual local Git/SQLite/candidate modules; not full joined integration profile"
+  },
+  "canonicalUnimplementedProfiles": {
+    "integration": {
+      "status": "not_run",
+      "exitCode": 2,
+      "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+      "checks": [
+        {
+          "name": "implementation",
+          "status": "not_run",
+          "exitCode": null,
+          "signal": null,
+          "durationMs": 0,
+          "logDigest": null
+        }
+      ]
+    },
+    "release": {
+      "status": "not_run",
+      "exitCode": 2,
+      "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+      "checks": [
+        {
+          "name": "implementation",
+          "status": "not_run",
+          "exitCode": null,
+          "signal": null,
+          "durationMs": 0,
+          "logDigest": null
+        }
+      ]
+    },
+    "live": {
+      "status": "not_run",
+      "exitCode": 2,
+      "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+      "checks": [
+        {
+          "name": "implementation",
+          "status": "not_run",
+          "exitCode": null,
+          "signal": null,
+          "durationMs": 0,
+          "logDigest": null
+        }
+      ]
+    },
+    "benchmark": {
+      "status": "not_run",
+      "exitCode": 2,
+      "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+      "checks": [
+        {
+          "name": "implementation",
+          "status": "not_run",
+          "exitCode": null,
+          "signal": null,
+          "durationMs": 0,
+          "logDigest": null
+        }
+      ]
+    }
+  },
+  "documentation": "7 Designs metadata/ownership/dependencies/INDEX/links/bootstrap passed",
+  "actualChatGPT": "not_run",
+  "hostedSandbox": "not_run",
+  "workersDevInstallation": "not_provisioned",
+  "sameRefPerformance": "not_run",
+  "deviceDozeForceStopReboot": "not_run",
+  "superiority": "not_proven"
+}

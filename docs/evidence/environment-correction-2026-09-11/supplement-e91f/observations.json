@@ -1,0 +1,796 @@
+{
+  "classification": "read-only actual environment observations; not deployment, isolation or performance proof",
+  "termux": {
+    "observedAt": "2026-09-11T12:22:47Z",
+    "machine": "aarch64",
+    "kernel": "6.1.145-android14-11-33419968-abS928NKSS6DZH2",
+    "uid": 10379,
+    "cpuCount": 8,
+    "affinityCount": 4,
+    "termuxVersion": "0.119.0-beta.3",
+    "repositoryInAppPrivateStorage": true,
+    "disk": {
+      "total": 1006106783744,
+      "used": 719803912192,
+      "free": 286168653824
+    },
+    "android": {
+      "ro.build.version.release": {
+        "exit": 0,
+        "stdout": "16",
+        "stderr": ""
+      },
+      "ro.build.version.sdk": {
+        "exit": 0,
+        "stdout": "36",
+        "stderr": ""
+      },
+      "ro.build.version.security_patch": {
+        "exit": 0,
+        "stdout": "2026-08-05",
+        "stderr": ""
+      }
+    },
+    "memory": {
+      "MemTotal": "11350704 kB",
+      "MemAvailable": "2585464 kB",
+      "SwapTotal": "12582908 kB",
+      "SwapFree": "4158020 kB"
+    },
+    "processSecurity": {
+      "CapEff": "0000000000000000",
+      "NoNewPrivs": "0",
+      "Seccomp": "2",
+      "Seccomp_filters": "1"
+    },
+    "tools": {
+      "node": {
+        "exit": 0,
+        "stdout": "v24.18.0",
+        "stderr": ""
+      },
+      "git": {
+        "exit": 0,
+        "stdout": "git version 2.55.0",
+        "stderr": ""
+      },
+      "python": {
+        "exit": 0,
+        "stdout": "Python 3.14.6",
+        "stderr": ""
+      },
+      "npm": {
+        "exit": 0,
+        "stdout": "11.19.0",
+        "stderr": ""
+      },
+      "clang": {
+        "exit": 0,
+        "stdout": "clang version 21.1.8\nTarget: aarch64-unknown-linux-android24\nThread model: posix\nInstalledDir: /data/data/com.termux/files/usr/bin",
+        "stderr": ""
+      },
+      "podman": {
+        "available": false
+      },
+      "docker": {
+        "available": false
+      },
+      "systemctl": {
+        "available": false
+      },
+      "unshare": {
+        "exit": 0,
+        "stdout": "unshare from util-linux 2.42.1",
+        "stderr": ""
+      },
+      "proot": {
+        "exit": 0,
+        "stdout": "_____ _____              ___\n|  __ \\  __ \\_____  _____|   |_\n|   __/     /  _  \\/  _  \\    _|\n|__|  |__|__\\_____/\\_____/\\____| 5.1.107.92\n\nbuilt-in accelerators: process_vm = yes, seccomp_filter = yes\n\nVisit http://proot.me for help, bug reports, suggestions, patchs, ...\nCopyright (C) 2015 STMicroelectronics, licensed under GPL v2 or later.",
+        "stderr": ""
+      },
+      "flock": {
+        "exit": 0,
+        "stdout": "flock from util-linux 2.42.1",
+        "stderr": ""
+      },
+      "sv": {
+        "exit": 100,
+        "stdout": "",
+        "stderr": "usage: sv [-v] [-w sec] command service ..."
+      }
+    },
+    "filesystem": {
+      "exit": 0,
+      "stdout": "f2fs",
+      "stderr": ""
+    },
+    "pythonHasLink": false,
+    "userNamespace": {
+      "exit": 1,
+      "stdout": "",
+      "stderr": "unshare: unshare failed: Invalid argument"
+    },
+    "landlock": {
+      "exit": 0,
+      "stdout": "{\"ABI\": -1, \"errno\": 38}",
+      "stderr": ""
+    },
+    "cgroup": {
+      "controllersReadable": false,
+      "rootWritable": false
+    },
+    "androidLifecycle": {
+      "deviceSleepAndReboot": "not_run: do not disrupt user session",
+      "wakeLockCommand": true,
+      "backgroundSurvival": "not_proven"
+    },
+    "filesystemProbe": {
+      "rename": true,
+      "hardLink": {
+        "exit": 1,
+        "stdout": "",
+        "stderr": "ln: failed to create hard link '<termux-home>/.tmcp/worktrees/dev2-env-e91f-wt_547db29fbf36dd35/.artifacts/environment/tmparefni7s/hard' => '<termux-home>/.tmcp/w"
+      },
+      "oldInodePreserved": false,
+      "symlink": {
+        "exit": 0,
+        "stdout": "",
+        "stderr": ""
+      },
+      "directoryFsync": true
+    },
+    "exclusiveLockRejectsPeer": true,
+    "sqlite": {
+      "version": "3.53.4",
+      "journal": "wal",
+      "reopenRows": 1
+    },
+    "loopbackTCP": true,
+    "unixSocket": {
+      "shortRelativePath": true,
+      "previousProbeFailure": "absolute path exceeded sockaddr_un capacity"
+    },
+    "eightProcesses": {
+      "ready": 8,
+      "allOverlapped": true,
+      "startupMs": 159,
+      "sigtermExitCodes": [
+        -15,
+        -15,
+        -15,
+        -15,
+        -15,
+        -15,
+        -15,
+        -15
+      ]
+    },
+    "nodeSQLite": {
+      "exit": 0,
+      "stdout": "{\"version\":\"3.53.4\"}",
+      "stderr": ""
+    },
+    "network": {
+      "github": {
+        "exit": 0,
+        "stdout": "200 0.625261",
+        "stderr": ""
+      },
+      "cloudflare": {
+        "exit": 0,
+        "stdout": "400 0.279638",
+        "stderr": ""
+      }
+    }
+  },
+  "cloudflare": {
+    "observedAt": "2026-09-11T12:27:18Z",
+    "mode": "GET-only; no deployments, secrets, subscriptions or data mutation",
+    "credentialSource": "project installation credential; values withheld",
+    "credentialStatus": {
+      "http": 401,
+      "success": false,
+      "status": null
+    },
+    "accountList": {
+      "http": 200,
+      "success": true,
+      "accounts": [
+        {
+          "id": "11efca097a2e54ea53b457dcf9f36454",
+          "name": "humtr"
+        }
+      ]
+    },
+    "accountId": "11efca097a2e54ea53b457dcf9f36454",
+    "subdomain": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "subdomain": "humtr"
+      },
+      "result_info": null,
+      "errors": []
+    },
+    "workers": {
+      "http": 200,
+      "success": true,
+      "result": [
+        {
+          "id": "devspace",
+          "created_on": "2026-07-25T05:01:54.358679Z",
+          "modified_on": "2026-07-25T05:24:44.156288Z",
+          "last_deployed_from": "dash",
+          "usage_model": "standard",
+          "compatibility_date": "2026-07-25",
+          "etag": "d6d48500e834e0e5b5cfc0533db13ad0d3fed04d2aa424a413e3b7a63adb3a53"
+        },
+        {
+          "id": "tdev",
+          "created_on": "2026-08-03T21:38:44.233668Z",
+          "modified_on": "2026-09-11T01:28:30.357203Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "cc6b4e6650b36efb9e796f8c74ea1f6eb4190f19cdf5a55ef4b09d47b7388ab9"
+        },
+        {
+          "id": "tdev-d0019-qualification-a",
+          "created_on": "2026-08-15T07:54:33.587681Z",
+          "modified_on": "2026-08-15T14:23:54.22175Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31"
+        },
+        {
+          "id": "tdev-d0019-qualification-b",
+          "created_on": "2026-08-15T08:01:32.627963Z",
+          "modified_on": "2026-08-15T14:23:55.38463Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31"
+        },
+        {
+          "id": "tdev-d0019-qualification-capacity",
+          "created_on": "2026-08-15T08:02:03.245099Z",
+          "modified_on": "2026-08-15T14:23:56.767867Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31"
+        },
+        {
+          "id": "tdev-d0020-composition-case-r1",
+          "created_on": "2026-08-21T01:03:55.103794Z",
+          "modified_on": "2026-09-09T11:46:57.690699Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "8a611def3217fdb9f102647fb0daf872b0210a95d98241d46ee4ab7175156be0"
+        },
+        {
+          "id": "tdev-d0020-qualification",
+          "created_on": "2026-08-20T20:49:55.053628Z",
+          "modified_on": "2026-08-20T21:07:28.815808Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-20",
+          "etag": "bdc397e5974101759f277ec8d1cff90ba6eeb86d631a019a5ddeb1b4002ca2fd"
+        },
+        {
+          "id": "tdev-d0020-qualification-clean-a",
+          "created_on": "2026-08-20T21:09:02.729216Z",
+          "modified_on": "2026-09-11T02:32:57.735819Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-20",
+          "etag": "e85611f801dc3cd43544aeb7ff68dec76b4b1345ac33cbb137f4105794f57de0"
+        },
+        {
+          "id": "tdev-d0044-qualification-20260902",
+          "created_on": "2026-09-02T11:35:51.091519Z",
+          "modified_on": "2026-09-03T03:59:10.070336Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "afccfe849a0efafba565b10022127057f79b65fb3938b011a264928e6751abb9"
+        },
+        {
+          "id": "tdev-mcp-trial",
+          "created_on": "2026-09-04T18:13:44.825662Z",
+          "modified_on": "2026-09-10T19:14:29.69375Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-08-15",
+          "etag": "f49f4ce7de44f9cf8ace46a287fb04a63e71a143f93110fe0b198818a074552e"
+        },
+        {
+          "id": "tmcp",
+          "created_on": "2026-07-07T01:21:58.415653Z",
+          "modified_on": "2026-08-06T00:35:08.870534Z",
+          "last_deployed_from": "api",
+          "usage_model": "standard",
+          "compatibility_date": "2026-07-07",
+          "etag": "011d61cdbbce16aba825a477e8b45e1287390c464067f9341417fda211119d14"
+        }
+      ],
+      "result_info": null,
+      "errors": []
+    },
+    "namespaces": {
+      "success": false,
+      "error": "TypeError"
+    },
+    "d1": {
+      "http": 200,
+      "success": true,
+      "result": [
+        {
+          "uuid": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79",
+          "name": "tdev-d0020-composition-placement-r1",
+          "created_at": "2026-08-21T01:03:52.336Z",
+          "version": "production",
+          "num_tables": 0,
+          "file_size": 77824,
+          "jurisdiction": null
+        },
+        {
+          "uuid": "2c4342ba-402d-4303-90ed-1d9bda48c8d6",
+          "name": "tdev-d0019-placement",
+          "created_at": "2026-08-15T07:54:27.973Z",
+          "version": "production",
+          "num_tables": 0,
+          "file_size": 32768,
+          "jurisdiction": null
+        }
+      ],
+      "result_info": {
+        "count": 2,
+        "page": 1,
+        "per_page": 100,
+        "total_count": 2
+      },
+      "errors": []
+    },
+    "r2": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        {
+          "code": 10042
+        }
+      ]
+    },
+    "subscriptions": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        {
+          "code": 10000
+        }
+      ]
+    },
+    "containers": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        {
+          "code": 10000
+        }
+      ]
+    }
+  },
+  "cloudflareDetails": {
+    "observedAt": "2026-09-11T12:28:17Z",
+    "mode": "GET-only; redacted metadata",
+    "accountTokenVerify": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "status": "active",
+        "not_before": null,
+        "expires_on": null
+      }
+    },
+    "workerAccountSettings": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "default_usage_model": "standard",
+        "green_compute": false
+      }
+    },
+    "namespaces": {
+      "http": 200,
+      "success": true,
+      "result": [
+        {
+          "id": "02cca72d7a2348f3883ae230cf314dd6",
+          "name": "tdev-d0019-qualification-a_CaseRuntimeDO",
+          "script": "tdev-d0019-qualification-a",
+          "class": "CaseRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "4fea340df1ea4976abee83e8cc8f8eb8",
+          "name": "tdev-d0019-qualification-b_CaseRuntimeDO",
+          "script": "tdev-d0019-qualification-b",
+          "class": "CaseRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "3371e174899248a38210442ac4c30ed2",
+          "name": "tdev-d0019-qualification-capacity_CaseRuntimeDO",
+          "script": "tdev-d0019-qualification-capacity",
+          "class": "CaseRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "56568dd511cd4208bc41805122e9648a",
+          "name": "tdev-d0020-qualification_AgentDeliveryRuntimeDO",
+          "script": "tdev-d0020-qualification",
+          "class": "AgentDeliveryRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "0dad69baa7154d00949f88c8b8dbf94a",
+          "name": "tdev-d0020-qualification-clean-a_AgentDeliveryRuntimeDO",
+          "script": "tdev-d0020-qualification-clean-a",
+          "class": "AgentDeliveryRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "3b3d5808028f4e74bcbc1dc22f0757fd",
+          "name": "tdev-d0020-composition-case-r1_CaseRuntimeDO",
+          "script": "tdev-d0020-composition-case-r1",
+          "class": "CaseRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "5f5e1733b60e408ba339ee01981e981f",
+          "name": "tdev-d0044-qualification-20260902_AgentRouteElectionRuntimeDO",
+          "script": "tdev-d0044-qualification-20260902",
+          "class": "AgentRouteElectionRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "7ae2f8f315fc4fcf9ece1509941e96a2",
+          "name": "tdev-d0044-qualification-20260902_AgentDeliveryRuntimeDO",
+          "script": "tdev-d0044-qualification-20260902",
+          "class": "AgentDeliveryRuntimeDO",
+          "use_sqlite": true
+        },
+        {
+          "id": "138b3b6fc20d4d8988b598c572aa39f7",
+          "name": "tdev_CaseAgentDriveRuntimeDO",
+          "script": "tdev",
+          "class": "CaseAgentDriveRuntimeDO",
+          "use_sqlite": true
+        }
+      ]
+    },
+    "tdevSubdomain": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "enabled": true,
+        "previews_enabled": false
+      }
+    },
+    "tmcpSubdomain": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "enabled": true,
+        "previews_enabled": false
+      }
+    },
+    "tdevSettings": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null,
+        "bindings": [
+          {
+            "name": "TDEV_AGENT_DELIVERY",
+            "type": "durable_object_namespace",
+            "class_name": "AgentDeliveryRuntimeDO",
+            "namespace_id": "0dad69baa7154d00949f88c8b8dbf94a"
+          },
+          {
+            "name": "TDEV_CASE_AGENT_DRIVE",
+            "type": "durable_object_namespace",
+            "class_name": "CaseAgentDriveRuntimeDO",
+            "namespace_id": "138b3b6fc20d4d8988b598c572aa39f7"
+          },
+          {
+            "name": "TDEV_CASE_AUTHORITY",
+            "type": "durable_object_namespace",
+            "class_name": "CaseRuntimeDO",
+            "namespace_id": "3b3d5808028f4e74bcbc1dc22f0757fd"
+          },
+          {
+            "name": "TDEV_CASE_PLACEMENT",
+            "type": "d1",
+            "database_id": "ff868f84-4fa3-4d3d-9024-8a1eec7b0c79"
+          },
+          {
+            "name": "TDEV_D0046_ARTIFACT_DIGEST",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_D0046_ARTIFACT_MANIFEST_DIGEST",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_D0046_DEPLOYMENT_EPOCH",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_D0046_INGRESS_KIND",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_D0046_QUALIFICATION_MODE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_DEPLOYMENT",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_ENVIRONMENT",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_AGENT_ID",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_AGENT_NAMESPACE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_AGENT_ROUTE_GENERATION",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_AGENT_RPC_PROFILE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_AUTH_MANIFEST_JSON",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_BASE_DIGEST",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_CANONICAL_WRITER_ENABLED",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_CASE_NAMESPACE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_DEVELOPMENT_OPERATION_CATALOG_JSON",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_DRIVE_NAMESPACE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_OPERATION_MANIFEST_JSON",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_PREVIEW_WRITERS_ENABLED",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_REPOSITORY_COMMIT",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_RESOURCE",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_RUNTIME_MANIFEST_JSON",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_MCP_SURFACE_DIGEST",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_SOURCE_SHA",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_WORKER_SCRIPT",
+            "type": "plain_text"
+          },
+          {
+            "name": "TDEV_WORKER_VERSION",
+            "type": "version_metadata"
+          }
+        ]
+      }
+    },
+    "tmcpSettings": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "compatibility_date": "2026-07-07",
+        "compatibility_flags": [],
+        "usage_model": "standard",
+        "limits": null,
+        "bindings": [
+          {
+            "name": "TMCP_ADMIN_TOKEN",
+            "type": "secret_text"
+          },
+          {
+            "name": "TMCP_KV",
+            "type": "kv_namespace",
+            "namespace_id": "ff48cfd7e9af40978083b871b61250ba"
+          }
+        ]
+      }
+    },
+    "accessOrganization": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        10000
+      ]
+    },
+    "accessApps": {
+      "http": 200,
+      "success": true,
+      "result": [
+        {
+          "id": "3a409320-586b-48cd-8c3b-b6c25bdcd728",
+          "name": "tdev MCP trial 20260904",
+          "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+          "type": "self_hosted",
+          "aud": "846178bbed2f25bea0ad4ecf5081f9a5772c8f6ed857b98c439cce7bc8d01c24"
+        },
+        {
+          "id": "12911bc3-4b69-4a45-a9b3-26a654bf96f8",
+          "name": "tdev ChatGPT MCP OAuth experiment",
+          "domain": "tdev.humtr.workers.dev/mcp",
+          "type": "self_hosted",
+          "aud": "a8d4cadd46d8f8e306feb6eb87c3d0afb65fa5e923327fc33bc13243af2bebc7"
+        }
+      ]
+    },
+    "iamAccountTokenVerify": {
+      "http": 200,
+      "success": true,
+      "result": {
+        "status": "active"
+      }
+    },
+    "subscriptionsViaIAM": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        10000
+      ]
+    },
+    "containersViaIAM": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        10000
+      ]
+    },
+    "r2ViaIAM": {
+      "http": 403,
+      "success": false,
+      "errors": [
+        10000
+      ]
+    },
+    "credentialPermissionMetadata": {
+      "http": 200,
+      "success": true,
+      "result": [
+        {
+          "name": "tdev-observer",
+          "status": "active",
+          "policyPermissions": [
+            [
+              "Access: Audit Logs Read"
+            ],
+            [
+              "Account API Tokens Read"
+            ]
+          ]
+        },
+        {
+          "name": "tdev-worker-deploy",
+          "status": "active",
+          "policyPermissions": [
+            [
+              "Access: Policies Write",
+              "Access: Identity Providers Write",
+              "Access: Apps Write",
+              "D1 Write",
+              "Workers R2 Storage Write",
+              "Workers Scripts Write"
+            ],
+            [
+              "Workers Routes Write"
+            ]
+          ]
+        }
+      ]
+    }
+  },
+  "endpointsAndToolchain": {
+    "observedAt": "2026-09-11T12:34:27Z",
+    "native": {
+      "node": {
+        "binarySha256": "1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+        "version": "v24.18.0"
+      },
+      "git": {
+        "binarySha256": "aba46d67c0c5752c27129d97136055bd8d7f3b3c4378edbf5c7c5a6f8dead5db",
+        "version": "git version 2.55.0"
+      },
+      "python": {
+        "binarySha256": "4f8d78ede7fc26e96e99342dd83ce42d32c9b4d0806bc9a99ff7151396269b25",
+        "version": "Python 3.14.6"
+      }
+    },
+    "endpoints": [
+      {
+        "url": "https://tdev.humtr.workers.dev/mcp",
+        "status": 403,
+        "contentType": "application/json; charset=utf-8",
+        "authenticate": null,
+        "metadata": {}
+      },
+      {
+        "url": "https://tdev.humtr.workers.dev/.well-known/oauth-protected-resource/mcp",
+        "status": 403,
+        "contentType": "application/json; charset=utf-8",
+        "authenticate": null,
+        "metadata": {}
+      },
+      {
+        "url": "https://tmcp.humtr.workers.dev/mcp",
+        "status": 403,
+        "contentType": "application/json; charset=utf-8",
+        "authenticate": null,
+        "metadata": {}
+      },
+      {
+        "url": "https://tmcp.humtr.workers.dev/.well-known/oauth-protected-resource/mcp",
+        "status": 403,
+        "contentType": "application/json; charset=utf-8",
+        "authenticate": null,
+        "metadata": {}
+      }
+    ],
+    "packages": [
+      "git 2.55.0 aarch64",
+      "nodejs  ",
+      "nodejs-lts 24.18.0-1 aarch64",
+      "python 3.14.6-1 aarch64"
+    ]
+  }
+}

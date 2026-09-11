@@ -4,10 +4,10 @@ import { requireThat, Dev2Error } from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{maxPending:number,maxRequestBytes:number,maxResponseBytes:number,maxRetainedBytes:number,deadlineMs:number}} Limits */
 /** Not a work record, receipt, queue, authentication service or public proxy. */
-export class DeliveryUnavailable extends Error {
+export class DeliveryUnavailable extends Dev2Error {
     /** @param {'not_sent'|'unknown'} delivery */
     constructor(delivery) {
-        super('Device delivery unavailable');
+        super('EXECUTION_UNAVAILABLE', 'Device delivery unavailable', { delivery });
         this.name = 'DeliveryUnavailable';
         this.code = 'EXECUTION_UNAVAILABLE';
         this.delivery = delivery;
@@ -134,6 +134,8 @@ export class RequestRendezvous {
         return true;
     }
     snapshot() { return Object.freeze({ connected: this.#connection !== null, pending: this.#pending.size, retainedBytes: this.#retainedBytes }); }
-    dispose() { if (this.#connection)
-        this.disconnect(this.#connection.id); }
+    dispose() {
+        if (this.#connection)
+            this.disconnect(this.#connection.id);
+    }
 }

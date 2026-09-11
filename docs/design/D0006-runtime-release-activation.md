@@ -224,3 +224,18 @@ device connection before public composition. Join existing repository/work modul
 without another ledger. Add managed-session provider effects under current work
 admission, then the sealed helper and paired edge/device activation path. Derive
 actual resource identities from installation readback, not example hostnames.
+
+### Initial managed-session identity adapter
+
+The trusted push entrypoint is `.github/workflows/dev2-executor.yml` at the exact
+approved launch commit/ref. Its enrollment proof binds installation/session,
+immutable repository/owner IDs, `refs/heads/dev2-exec/<sessionId>`, workflow_ref,
+workflow_sha, sha, run_id, run_attempt1, push event and github-hosted environment.
+Fresh authenticated provider readback must independently agree on run/attempt,
+head/ref/workflow/event and active status. The verifier yields an executor role,
+not a user principal or evidence that the sandbox/receipt/result is valid.
+
+The verifier is a deterministic predicate; installing it does not implement a
+launch controller, OIDC endpoint, job lease, hosted sandbox or public gateway.
+Use one selected rendezvous and one explicit application-authentication adapter.
+Neither compute enrollment nor transport correlation creates another work owner.

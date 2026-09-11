@@ -1,0 +1,32 @@
+{
+  "baseline": "88e0bc0ccee0fae3868782a3fc08b0644fe7cf7c",
+  "classification": "actual source-level error projection, not a live MCP request",
+  "before": {
+    "apiVersion": 1,
+    "ok": false,
+    "error": {
+      "code": "INTEGRITY_FAILURE",
+      "message": "INTEGRITY_FAILURE",
+      "retry": {
+        "sameRequest": false,
+        "afterMs": null
+      },
+      "facts": {}
+    }
+  },
+  "after": {
+    "apiVersion": 1,
+    "ok": false,
+    "error": {
+      "code": "EXECUTION_UNAVAILABLE",
+      "message": "EXECUTION_UNAVAILABLE",
+      "retry": {
+        "sameRequest": true,
+        "afterMs": null
+      },
+      "facts": {
+        "delivery": "unknown"
+      }
+    }
+  }
+}

@@ -18,3 +18,8 @@ without buffering arbitrary bodies first, and check closed domain output schemas
 These functions enforce a second decoded-body limit but do not replace streaming
 limits, actual provider hibernation/restart tests, auth or socket backpressure.
 Transport bounds are configuration, not an eight-worker identity space.
+
+The standard failure encoder preserves delivery uncertainty and same-request retry.
+It does not reinterpret a lost transport response as an integrity failure or a
+terminal work outcome. These semantics are regression-tested through the actual
+domain encoder, not only on the transport exception object.

@@ -88,3 +88,40 @@ GitHub reads/CI, tmcp project-local execution and explicit Git publication are n
 only while dev-2 lacks the required canonical capability. Record each transition
 exception. Switch ordinary forward work to dev-2 as capabilities become usable;
 provider calls made internally by installed dev-2 are not a second development system.
+
+## Environment correction convergence: implemented continuation
+
+The native/edge/managed-execution topology and DIRECTIVE r2 remain selected. The
+additional continuation implements `src/execution/github-identity.mjs`: a strict
+hosted-job authentication predicate over the current session and authenticated
+provider readback, not a launch controller or completed managed sandbox.
+
+The existing Access verifier now rechecks expiry after asynchronous key resolution,
+rejects malformed optional not-before values and missing app ceilings. The existing
+rendezvous error now passes through the actual closed MCP error encoder preserving
+`EXECUTION_UNAVAILABLE`, `delivery` and same-request retry. Canonical input inventory
+now includes deployment/workflow, architecture and toolchain-selection bytes. No
+second auth/relay/variant implementation or additional Design owner was retained.
+
+Native canonical core: **120 passed / 0 failed**; focused real Git/SQLite/candidate
+module integration: **32 passed / 0 failed**. Checked JSDoc and the seven-Design
+consistency check passed. See the exact reports and limitations in
+`docs/evidence/environment-correction-2026-09-11/supplement-e91f/README.md`.
+These results do not complete the canonical integration profile, J1/J2, production
+containment, a workers.dev installation, Android Doze/reboot, actual ChatGPT usage
+or predecessor performance comparisons. Their statuses remain NOT RUN / unproven.
+
+Next resume: consume the selected existing native variant/auth/rendezvous modules
+and hosted identity predicate; implement the actual Worker/DO + outbound device
+adapter, bounded trusted managed-session launch/assignment/receipt, remaining
+validation/integration and closed MCP outputs. Follow the lane ownership and join
+sequence above. Verify provider budgets/permissions and actual hosted containment
+before candidate execution, and test the cheap real same-ref and ChatGPT falsifiers
+before expensive repeated benchmark cohorts. No further architecture approval is
+pending, and the relevant bootstrap exception remains in effect until dev-2's own
+canonical development capability actually works.
+
+The isolated `tmcp/dev2-env-e91f` drafting workspace is retained but **not selected**;
+its alternative duplicate modules/Design are not canonical implementation inputs.
+Use the published branch, not a dirty parallel workspace or this note's historical
+identifiers, as the source of current authority. Existing unrelated work is preserved.

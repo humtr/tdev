@@ -146,3 +146,10 @@ No evidence currently justifies lowering the numeric superiority or trial gates.
 They apply at release/performance decisions, not every edit or every resumed chat.
 The early diagnostics reject an unsuitable architecture cheaply; they do not replace
 the eventual comparable cohorts or convert a fixture into actual performance proof.
+
+Canonical source inventory includes checked deployment/workflow files, toolchain
+selection and architecture authority in addition to domain/tests/config. A change
+to those bytes must change the input digest even when a requested unimplemented
+profile correctly returns NOT RUN. Source validation outputs stay outside tracked
+source or in the explicitly ignored .artifacts tree. Provider capability probes
+remain required for release, not a mandatory extra checklist on every core edit.

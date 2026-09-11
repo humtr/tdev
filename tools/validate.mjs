@@ -18,8 +18,8 @@ function files(directory) {
 }
 /** Exact relevant bytes, including uncommitted implementation inputs; no Git required by core. */
 function inputIdentity() {
-  const paths=[...['src','tools','test','config','bench'].flatMap(p=>files(join(root,p))),
-    ...['AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json'].map(p=>join(root,p)),
+  const paths=[...['src','tools','test','config','bench','deploy','.github'].flatMap(p=>files(join(root,p))),
+    ...['AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json','.node-version','docs/ARCHITECTURE.md'].map(p=>join(root,p)),
     ...files(join(root,'docs/design'))].filter(p=>!p.includes('__pycache__')&&!p.endsWith('.pyc'));
   return recordDigest('dev2.validation-inputs.v1',paths.sort().map(p=>({path:relative(root,p),digest:bytesDigest(readFileSync(p))})));
 }
@@ -31,6 +31,8 @@ export function main(argv) {
     if (!args.profile || !args.output) throw new Error('profile and output required');
   } catch { console.error('Usage: node tools/validate.mjs --profile <core|integration|release|live|benchmark> --output <directory>'); return 1; }
   const profile=args.profile, output=resolve(args.output);
+  const outputRelative=relative(root,output);
+  if(!(outputRelative==='..'||outputRelative.startsWith('../')||outputRelative==='.artifacts'||outputRelative.startsWith('.artifacts/'))) {console.error('Output must be outside source or under .artifacts');return 1;}
   /** @type {{schemaVersion:number,profiles:Record<string,{implemented:boolean,testDirectory:string,timeoutMs:number,network:string,requires:string[]}>}} */
   const config=JSON.parse(readFileSync(join(root,'config/validation-profiles.json'),'utf8'));
   if (!Object.hasOwn(config.profiles,profile)) { console.error('Unknown profile'); return 1; }

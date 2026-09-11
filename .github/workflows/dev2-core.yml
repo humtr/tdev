@@ -28,35 +28,6 @@ jobs:
         run: node tools/validate.mjs --profile core --output .artifacts/core
       - name: Native repository and context module integration
         run: node --test --test-reporter=tap test/integration/*.test.mjs
-      - name: Observe Linux release-fixture capabilities without asserting release PASS
-        shell: bash
-        run: |
-          python3 - <<'PYTHON'
-          import json, shutil, subprocess
-          from pathlib import Path
-          result = {"scope": "CI capability observation only", "releaseValidation": "not_run", "productionSeal": False}
-          for name, args in [("git", ["--version"]), ("podman", ["--version"]), ("systemctl", ["--version"])]:
-              exe = shutil.which(name)
-              if not exe:
-                  result[name] = {"available": False}
-                  continue
-              try:
-                  p = subprocess.run([exe, *args], capture_output=True, text=True, timeout=15)
-                  result[name] = {"available": p.returncode == 0, "version": p.stdout.splitlines()[0] if p.returncode == 0 else None}
-              except subprocess.TimeoutExpired:
-                  result[name] = {"available": False, "reason": "timeout"}
-          controllers = Path('/sys/fs/cgroup/cgroup.controllers')
-          result["cgroupControllers"] = controllers.read_text().split() if controllers.exists() else []
-          if result.get("podman", {}).get("available"):
-              try:
-                  p = subprocess.run([shutil.which('podman'), 'info', '--format=json'], capture_output=True, text=True, timeout=15)
-                  info = json.loads(p.stdout) if p.returncode == 0 else {}
-                  host = info.get('host', {})
-                  result['rootlessEngine'] = {"available": p.returncode == 0, "security": host.get('security', {}), "cgroupVersion": host.get('cgroupVersion')}
-              except (subprocess.TimeoutExpired, ValueError):
-                  result['rootlessEngine'] = {"available": False}
-          print(json.dumps(result, sort_keys=True))
-          PYTHON
       - name: Read exact validation result
         if: always()
         run: test ! -f .artifacts/core/result.json || cat .artifacts/core/result.json

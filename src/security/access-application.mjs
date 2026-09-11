@@ -14,6 +14,7 @@ import { workersDevOrigin } from '../runtime/environment.mjs';
  * @param {()=>number} [now]
  */
 export function accessApplicationVerifier(configuration, keyResolver, now = Date.now) {
+    requireThat(configuration !== null && typeof configuration === 'object' && Array.isArray(configuration.applicationCapabilities), 'INVALID_ARGUMENT', 'Explicit application capabilities required');
     const config = { ...configuration, applicationCapabilities: [...configuration.applicationCapabilities] };
     requireThat(config.profile === 'access-application', 'INVALID_ARGUMENT', 'Explicit authentication profile required');
     requireThat(/^https:\/\/[a-z0-9](?:[a-z0-9-]{0,61}[a-z0-9])?\.cloudflareaccess\.com$/.test(config.issuer), 'INVALID_ARGUMENT', 'Exact Access issuer required');
@@ -40,6 +41,10 @@ export function accessApplicationVerifier(configuration, keyResolver, now = Date
             // application profile never accepts a multi-application delegation.
             const audiences = Array.isArray(payload.aud) ? payload.aud : [payload.aud];
             requireThat(audiences.length === 1 && audiences[0] === config.applicationAudience, 'UNAUTHORIZED');
+            if (payload.nbf !== undefined)
+                requireThat(typeof payload.nbf === 'number' && Number.isSafeInteger(payload.nbf) && payload.nbf >= 0 && Number.isSafeInteger(payload.nbf * 1000) && payload.nbf < payload.exp, 'UNAUTHORIZED');
+            const verifiedAt = now();
+            requireThat(Number.isSafeInteger(verifiedAt) && verifiedAt >= timestamp && verifiedAt < payload.exp * 1000, 'UNAUTHORIZED');
             return { subject: recordDigest('dev2.access-subject.v1', { issuer: config.issuer, subject: payload.sub }).slice(7),
                 issuer: config.issuer, audience: config.resourceOrigin, expiresAt: payload.exp * 1000,
                 tokenCapabilities: Object.freeze([...config.applicationCapabilities]) };

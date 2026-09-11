@@ -10,5 +10,6 @@ export function success(data, runtime, observedAt) {
  */
 export function failure(error, sameRequest = false) {
   const code = error instanceof Dev2Error ? error.code : 'INTEGRITY_FAILURE';
+  if(error instanceof Dev2Error&&code==='EXECUTION_UNAVAILABLE'&&error.facts.delivery!==undefined)sameRequest=true;
   return { apiVersion:1, ok:false, error:{code, message:code, retry:{sameRequest,afterMs:null},facts:error instanceof Dev2Error ? {...error.facts} : {}} };
 }

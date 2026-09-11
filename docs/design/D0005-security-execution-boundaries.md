@@ -185,3 +185,22 @@ Keep fixed-command control and provider credentials on Termux. Retain the strict
 JWT-scope verifier, add the explicitly configured Access-application verifier, and
 implement machine/hosted execution adapters without changing domain work identity.
 All production containment claims require real managed-layer negative tests.
+
+### Authentication completion and role routing
+
+Recheck assertion/lease expiry after asynchronous key/provider lookup as well as
+at later capability dispatch. An optionally present Access `nbf` is a nonnegative
+safe integer timestamp; malformed claims are not ignored. A missing configured
+application ceiling is a bounded configuration error, never a default grant.
+
+Managed compute enrollment requires the selected session, the provider's exact
+run attempt and a currently active run. The initial adapter accepts only attempt1
+of the trusted push workflow; a manual rerun requires a new retained session intent,
+not implicit reuse. Result identity is a machine role without human capabilities.
+Do not validate against a launch descriptor supplied by the connecting peer.
+
+The installation's Access application protects the human MCP route. Device and
+executor paths on the same workers.dev origin require their separate machine
+verifiers, not a broad anonymous bypass of the human route. Read back exact path
+coverage and test negative cross-role requests. Missing routing/auth configuration
+blocks deployment; existing predecessor apps and preview routes are not fallbacks.

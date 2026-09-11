@@ -125,3 +125,11 @@ Changes to closed output projection must add these observations under the existi
 runtime result contract, not expose raw provider credentials or a generic proxy.
 Actual ChatGPT registration/usability of the typed union remains a required live
 trial; local schema bytes and synthetic transcripts do not satisfy it.
+
+### Closed transport-error projection
+
+`EXECUTION_UNAVAILABLE` caused by transport delivery preserves `facts.delivery`
+exactly as `not_sent` or `unknown` and sets `retry.sameRequest: true` through the
+ordinary failure encoder. It must not collapse to INTEGRITY_FAILURE or lose replay
+guidance. DeliveryUnavailable is a bounded domain error, never a terminal work
+state. Other unknown fact keys and arbitrary peer exception details remain rejected.
