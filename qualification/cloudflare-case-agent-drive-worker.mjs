@@ -65,10 +65,13 @@ function contextResolver(env) {
     if (selector !== null && contextReference !== null && selector !== contextReference) {
       fail('mcp_trial_context_scope_denied', 'Context resolver selector and contextReference disagree');
     }
-    return publicJsonClone(await stub.executeMcpTrial({
+    const result = await stub.executeMcpTrial({
       operation: 'developmentContextResolve',
       input: { selector: contextReference ?? selector },
-    }));
+    });
+    // Cloudflare RPC values may carry runtime-owned Symbol metadata. Strip
+    // that transport metadata before the strict project JSON boundary.
+    return JSON.parse(JSON.stringify(result));
   };
 }
 
