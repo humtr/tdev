@@ -36,7 +36,7 @@ export interface PreparedResult { resultId:Id; repositoryId:Id; bindingEpoch:Rev
   resultTreeOid:Oid; resultTreeSha256:Digest; policyDigest:Digest;
   metadata:{author:string;committer:string;timestamp:number;message:string}; execution:ExecutionIdentity }
 export interface ProfileOutcome { profileDigest:Digest; status:'passed'|'failed'|'not_run'|'cancelled'; exitCode:number|null }
-export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id; attempt:Attempt;
+export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id; attempt:Attempt; observerEpoch:Revision;
   startedAt:number; endedAt:number; exitCode:number|null; signal:string|null; deadlineExceeded:boolean;
   outcomes:readonly ProfileOutcome[]; inputDigest:Digest; outputDigest:Digest; signature:Digest }
 export interface Effect { effectId:Id; workId:Id; actionId:Id; repositoryId:Id; bindingEpoch:Revision;

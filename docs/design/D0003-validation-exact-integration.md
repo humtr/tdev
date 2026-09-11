@@ -90,3 +90,17 @@ Prove exact C/U/manifest and metadata identity between validation and publicatio
 ## Implementation consequences
 
 Use a pure target-tree/commit preparer, trusted validation evaluator, immutable prepared-result descriptor, persisted exact effect and narrow CAS writer/reconciler. D0001 owns durable action/work transitions, D0002 owns immutable source, D0004 exposes the typed operations and D0007 owns proof. No new durable owner, release lifecycle or recovery subsystem is introduced.
+
+
+### Receipt observation after broker replacement
+
+A validation receipt records both the immutable launch `attempt` and the current
+`observerEpoch` that authenticated its exit, source integrity and completion.
+Adopting a container under a new exclusive broker owner does not rename or mutate
+its launch identity. The receipt authenticator covers the observer epoch; a
+retained old receipt cannot be made current by editing that field. Integration
+eligibility compares the authenticated observer epoch with the current ledger
+owner, while all exact result/profile/environment identities remain unchanged.
+This makes D0001's callback fence representable in the receipt contract; checking
+only the launch epoch incorrectly rejects a valid adopted run. An old receipt
+remains historical evidence, not authorization for a new current integration.

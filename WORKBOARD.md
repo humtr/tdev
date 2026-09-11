@@ -180,3 +180,16 @@ J5: Refresh both predecessor baseline identities; freeze D0007 benchmark manifes
 No missing decision blocks implementation. Live deployment needs an authorized capable Linux host, DNS/origin, OAuth configuration and repository-scoped credentials; none is asserted provisioned. Benchmark distributions are unmeasured. Do not weaken tests to fit the current ChatGPT container. Do not purchase/provision new infrastructure without the applicable authorization.
 
 Stop only the affected lane/effect on lost authority, unexpected remote ancestry, unknown provider effect, missing isolation, integrity failure or resource exhaustion. Preserve durable work and continue genuinely independent authorized work. A changed Directive or material contract conflict requires updating its owning documents, not a hidden implementation workaround. No product implementation was performed in the architecture-documentation session.
+
+
+### Integration lead current functional join
+
+The k47 integration lead recovered into the independently registered checkout
+`dev2-k47-bootstrap`, branch `tmcp/dev2-impl-k47-final`, after the tmcp owner twice
+marked its managed worktrees orphaned. No rejected target was subsequently
+mutated. P3/P4 consume the exact published peer source at `7d76762`; P1/P2 remain
+frozen inputs pending that peer owner's publication. P5-P8 and joined behavior
+continue here; this is not a new product owner or a second development runtime.
+The joined real Git/SQLite development loop and authenticated four-tool HTTP
+loop have focused passing tests. Recovery/release and same-ref 8-way execution
+remain active work, not completed gates. See `docs/evidence/join-k47/README.md`.

@@ -1,0 +1,28 @@
+{
+  "scope": "local-process-and-disposable-Git-fixture",
+  "node": "24.21.0",
+  "platform": "linux",
+  "architecture": "arm64",
+  "logs": {
+    "runtime-tests.log": {
+      "sha256": "578dc9917fa90a02f93dedd749a5586781e7748b79e625be36324189eca9ef15",
+      "bytes": 1379
+    },
+    "http-tests.log": {
+      "sha256": "6448558569050f124e4b84448cb2349a053b8a64910b522968b5b64c4c107b77",
+      "bytes": 1116
+    },
+    "observer-before.tap": {
+      "sha256": "2de615f6d81bd446995fc903a5e6d982f6541d48d34f2923ac7e85fc831128cf",
+      "bytes": 942
+    },
+    "observer-after.tap": {
+      "sha256": "3a4edf3c4b4625f5b572c804e95bffa5c235e940ed6b8047c3718f8f73db762a",
+      "bytes": 1554
+    }
+  },
+  "canonicalInstallation": false,
+  "osSandboxVerified": false,
+  "chatGPTExperiential": "not_run",
+  "comparativeSuperiority": "not_run"
+}
