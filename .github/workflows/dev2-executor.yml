@@ -1,0 +1,28 @@
+name: dev2-executor
+on:
+  push:
+    branches: ['dev2-exec/**']
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  execute:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Prepare approved toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p .bootstrap
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz -o .bootstrap/node.tar.xz
+          echo 'fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6  .bootstrap/node.tar.xz' | sha256sum -c -
+          tar -xJf .bootstrap/node.tar.xz -C .bootstrap
+          echo "$PWD/.bootstrap/node-v24.21.0-linux-x64/bin" >> "$GITHUB_PATH"
+      - name: Install locked trusted controller dependencies
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+      - name: Exercise exact hosted containment before enrollment
+        run: node tools/qualify-hosted.mjs
