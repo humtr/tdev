@@ -1,0 +1,36 @@
+/** Shared data and port signatures. Owners: D0001-D0006. No SQL or protocol dependency.
+ * @typedef {import('./identity.mjs').GitOid} GitOid
+ * @typedef {import('./identity.mjs').Digest} Digest
+ * @typedef {import('./identity.mjs').Revision} Revision
+ * @typedef {import('./canonical.mjs').Json} Json
+ * @typedef {'repository.read'|'work.write'|'profile.run'|'integration.write'|'policy.write'|'runtime.activate'} Capability
+ * @typedef {{subject:string,issuer:string,audience:string,expiresAt:number,grantVersion:string}} Principal
+ * @typedef {{repositoryId:string,provider:string,providerRepositoryId:string,remote:string,ref:string,bindingEpoch:string,policyDigest:Digest}} Binding
+ * @typedef {{path:string,mode:'100644'|'100755'|'120000'|'160000',blobOid:GitOid,contentDigest:Digest,size:number}} Entry
+ * @typedef {{treeOid:GitOid,manifestDigest:Digest,entries:readonly Entry[]}} SourceTree
+ * @typedef {{snapshotId:string,binding:Binding,commitOid:GitOid,source:SourceTree,subject:string,expiresAt:number,observedAt:number,notCurrent:boolean}} Snapshot
+ * @typedef {{workId:string,repositoryId:string,bindingEpoch:string,subject:string,baseHead:GitOid,baseTree:GitOid,candidateTree:GitOid,candidateManifest:Digest,generation:Revision,revision:Revision,disposition:'open'|'integrated'|'cancelled',currentActionId:string|null,blocker:string|null,createdSequence:Revision}} Work
+ * @typedef {{installationId:string,repositoryId:string,workId:string,actionId:string,attemptId:string,ownerEpoch:Revision}} AttemptIdentity
+ * @typedef {{actionId:string,requestId:string,principal:string,bindingEpoch:string,requestDigest:Digest,workId:string|null,op:string,status:'queued'|'running'|'blocked'|'succeeded'|'failed'|'cancelled',step:string,attempt:Revision,ownerEpoch:Revision,deadline:number,cancelRequested:boolean,reservation:boolean,result:Json|null,blocker:string|null,readySequence:Revision}} Action
+ * @typedef {{name:string,email:string,timestamp:number,message:string}} CommitMetadata
+ * @typedef {{resultId:string,repositoryId:string,bindingEpoch:string,workId:string,generation:Revision,originalBaseHead:GitOid,originalBaseTree:GitOid,candidateTree:GitOid,baseHead:GitOid,commitOid:GitOid,resultTreeOid:GitOid,resultTreeSha256:Digest,policyDigest:Digest,metadata:CommitMetadata}} PreparedResult
+ * @typedef {{profileId:string,digest:Digest,executable:string,argv:readonly string[],cwd:string,parameters:Record<string,Json>,timeoutMs:number,memoryBytes:number,cpuMillis:number,pidLimit:number,diskBytes:number,logBytes:number,network:'none'|'fixture',replaySafe:boolean}} Profile
+ * @typedef {{policyDigest:Digest,profileDigests:readonly Digest[],trustedRunnerDigest:Digest,toolchainDigest:Digest,environmentClass:string,dependencyLockDigest:Digest}} ValidationRequirements
+ * @typedef {{validationId:Digest,resultId:string,runId:string,attempt:AttemptIdentity,startedAt:number,finishedAt:number,exitCode:number|null,signal:string|null,timedOut:boolean,profiles:readonly {digest:Digest,status:'passed'|'failed'|'unavailable'|'interrupted'}[],inputManifest:Digest,outputManifest:Digest,signature:string}} ValidationReceipt
+ * @typedef {{effectId:string,result:PreparedResult,ref:string,receiptDigest:Digest,authorizationIdentity:string,senderEnded:boolean,observedHead:GitOid|null}} IntegrationEffect
+ * @typedef {{state:'missing'|'reserved'|'running'|'exited'|'unknown',identity:AttemptIdentity,exitCode:number|null,signal:string|null,artifactDigests:readonly Digest[]}} SandboxObservation
+ * @typedef {{releaseId:Digest,sourceCommit:GitOid,sourceManifest:Digest,artifactDigest:Digest,toolchainDigest:Digest,schemaDigest:Digest,ledgerMinimum:number,ledgerMaximum:number,receiptDigests:readonly Digest[]}} Release
+ * @typedef {{activationId:string,requestDigest:Digest,expectedActiveRelease:Digest,candidateRelease:Digest,originalRelease:Digest,phase:'prepared'|'draining'|'switching'|'checking'|'active'|'rolling_back'|'rolled_back'|'blocked',deadline:number,observedRelease:Digest|null,outcome:string|null}} Activation
+ * @typedef {{now:()=>number,monotonic:()=>number}} ClockPort
+ * @typedef {{authenticate:(token:string)=>Promise<Principal>,require:(principal:Principal,capability:Capability,binding:Binding,paths:readonly string[])=>Promise<void>}} AuthorizationPort
+ * @typedef {{readHead:(binding:Binding)=>Promise<GitOid>,fetch:(binding:Binding,commit:GitOid)=>Promise<void>,readTree:(tree:GitOid)=>Promise<SourceTree>,readBlob:(oid:GitOid)=>Promise<Uint8Array>,commitTree:(commit:GitOid)=>Promise<GitOid>,isAncestor:(base:GitOid,head:GitOid)=>Promise<boolean>}} RepositoryPort
+ * @typedef {{putBlob:(bytes:Uint8Array)=>Promise<{blobOid:GitOid,contentDigest:Digest,size:number}>,putTree:(entries:readonly Entry[])=>Promise<SourceTree>,freezeCommit:(parent:GitOid,tree:GitOid,metadata:CommitMetadata,resultId:string)=>Promise<GitOid>}} ObjectStorePort
+ * @typedef {{getWork:(id:string)=>Work|null,putWork:(expectedRevision:Revision|null,work:Work)=>void,getAction:(id:string)=>Action|null,findRequest:(principal:string,epoch:string,requestId:string)=>Action|null,putAction:(action:Action)=>void,putResult:(result:PreparedResult)=>void,getResult:(id:string)=>PreparedResult|null,putReceipt:(receipt:ValidationReceipt)=>void,getReceipt:(id:Digest)=>ValidationReceipt|null,putEffect:(effect:IntegrationEffect)=>void,getEffect:(id:string)=>IntegrationEffect|null}} LedgerTransaction
+ * @typedef {{transaction:<T>(callback:(tx:LedgerTransaction)=>T)=>T,ready:(limit:number)=>readonly Action[],readWork:(id:string)=>Work|null,readAction:(id:string)=>Action|null,close:()=>void}} LedgerPort
+ * @typedef {{launch:(identity:AttemptIdentity,profile:Profile,sourceDirectory:string)=>Promise<SandboxObservation>,inspect:(identity:AttemptIdentity)=>Promise<SandboxObservation>,cancel:(identity:AttemptIdentity)=>Promise<SandboxObservation>}} SandboxPort
+ * @typedef {{run:(result:PreparedResult,requirements:ValidationRequirements,identity:AttemptIdentity)=>Promise<ValidationReceipt>,verify:(result:PreparedResult,requirements:ValidationRequirements,receipt:ValidationReceipt)=>boolean}} ValidationPort
+ * @typedef {{compareUpdate:(binding:Binding,effect:IntegrationEffect)=>Promise<'accepted'|'stale'|'uncertain'>,readHead:(binding:Binding)=>Promise<GitOid>,isAncestor:(base:GitOid,head:GitOid)=>Promise<boolean>,senderEnded:(effect:IntegrationEffect)=>Promise<boolean>,verifyManagedLineage:(binding:Binding,head:GitOid)=>Promise<boolean>}} RefPort
+ * @typedef {{observe:()=>Promise<Activation|null>,activate:(intent:Activation,release:Release)=>Promise<Activation>}} ReleaseHelperPort
+ */
+export const CONTRACT_VERSION = 1;
+export const PORT_METHODS = Object.freeze(Object.fromEntries(Object.entries({ clock: ['now', 'monotonic'], authorization: ['authenticate', 'require'], repository: ['readHead', 'fetch', 'readTree', 'readBlob', 'commitTree', 'isAncestor'], objects: ['putBlob', 'putTree', 'freezeCommit'], ledger: ['transaction', 'ready', 'readWork', 'readAction', 'close'], sandbox: ['launch', 'inspect', 'cancel'], validation: ['run', 'verify'], refs: ['compareUpdate', 'readHead', 'isAncestor', 'senderEnded', 'verifyManagedLineage'], release: ['observe', 'activate'] }).map(([k, v]) => [k, Object.freeze(v)])));

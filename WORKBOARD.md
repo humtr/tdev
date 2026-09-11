@@ -6,8 +6,8 @@ Execution status and routing only. `DIRECTIVE.md@r1 > RULE.md > Designs`; this f
 
 - Fresh authority foundation: parentless root `9a42b05d403370b7b4a698b4d7440d58aa4a79b5`, tree `caca5a5d3f32c4b63f0dbfaeed290a22f6cd1e1c` verified on 2026-09-11. This is the foundation, not an assertion of the future/current branch HEAD.
 - Architecture: D0001 through D0007 accepted; `docs/ARCHITECTURE.md` maps requirements, `docs/design/INDEX.md` projects the acyclic metadata graph.
-- Product implementation: **NOT STARTED**. No package, runtime, product source or product test entrypoint exists yet.
-- Product validation/live self-development/performance superiority: **NOT RUN / NOT PROVEN**. Document checks do not promote any of these states.
+- Product implementation: **F0 source implemented; canonical toolchain validation pending**. Shared contracts, locked build tools, deterministic fixtures and layered validation dispatch exist. P1-P8 have not started.
+- Verification: 43 focused product contract tests and checked JSDoc passed on the bootstrap host; canonical Node pin verification remains pending. Integration/release/live/superiority are **NOT RUN / NOT PROVEN**. See `docs/evidence/2026-09-11-f0-bootstrap.json`.
 - Baselines: exact current source/runtime observations and uncertainty in `docs/evidence/2026-09-11-architecture-basis.md`; refresh before benchmarking.
 - Current next frontier: F0, followed by eight isolated parallel lanes P1-P8. No architecture approval is missing.
 
@@ -17,7 +17,7 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
-## F0 - shared contract and build seed (next; not started)
+## F0 - shared contract and build seed (implemented; canonical verification pending)
 
 One integration owner creates only the minimum skeleton required by the accepted contracts: package/lock, pinned toolchain/profile descriptors, `src/contracts/` identifiers/envelopes/ports, small deterministic fixtures, and `tools/validate.mjs` dispatch with missing implementations reported as NOT RUN, never success. There is no new architectural decision hidden in this step.
 

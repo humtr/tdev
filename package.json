@@ -1,0 +1,18 @@
+{
+  "name": "@humtr/dev-2",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": "24.21.0"
+  },
+  "scripts": {
+    "check": "node tools/validate.mjs --profile core --output .artifacts/core && node tools/validate.mjs --profile integration --output .artifacts/integration",
+    "test": "node tools/validate.mjs --profile core --output .artifacts/core",
+    "typecheck": "node node_modules/typescript/bin/tsc -p jsconfig.json"
+  },
+  "devDependencies": {
+    "@types/node": "24.13.4",
+    "typescript": "5.9.3"
+  }
+}

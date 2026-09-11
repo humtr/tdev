@@ -1,0 +1,121 @@
+{
+  "schemaVersion": 1,
+  "stage": "F0 source implemented; canonical verification pending",
+  "freshStart": {
+    "head": "a1265adcab2d95b39759f60419fd77d407d1dbdb",
+    "parents": [
+      "fd38a4f72f3cdaf80e35c706f20c7efaf7cbbfe1"
+    ],
+    "tree": "e99145c3609f330d0743dccb92e11a1a705b0420",
+    "onlyRoot": "9a42b05d403370b7b4a698b4d7440d58aa4a79b5"
+  },
+  "bootstrapException": {
+    "tools": [
+      "GitHub read",
+      "tmcp project-local shell",
+      "Git push"
+    ],
+    "reason": "dev-2 has no MCP broker or development execution capability; F0 cannot use an unimplemented product",
+    "scope": "isolated clean-root-descended worktree; no predecessor, provider runtime or paid infrastructure mutation"
+  },
+  "supplemental": {
+    "node": "24.18.0",
+    "platform": "android",
+    "architecture": "arm64",
+    "typescript": "5.9.3",
+    "productTests": {
+      "passed": 43,
+      "failed": 0
+    },
+    "checkedJSDoc": "passed",
+    "documentation": "passed",
+    "testLogSha256": "d86308fbb45fa7cf337d5749937f0d21ece324a1eb33d2db900bbd2ab675d277"
+  },
+  "canonicalLocal": {
+    "core": {
+      "schemaVersion": 1,
+      "profile": "core",
+      "status": "not_run",
+      "exitCode": 2,
+      "assurance": "local-process-validation-report-not-a-trusted-sandbox-receipt",
+      "coverage": "implemented checks only; not product or live acceptance",
+      "sourceInput": {
+        "digest": "sha256:fbbec67d827c5e3710f24333bd86f9e3eb4702baeeae7a1e8d7384f4417d8396",
+        "files": 37
+      },
+      "sourceOutput": {
+        "digest": "sha256:fbbec67d827c5e3710f24333bd86f9e3eb4702baeeae7a1e8d7384f4417d8396",
+        "files": 37
+      },
+      "entrypointDigest": "sha256:ba42be58a9fe145a7689158ddf16934c8fefaf8240e3c026d75a94e84d465a9a",
+      "toolchainDigest": "sha256:8adfdd754aaa15614fdba78d2f845ab9d687a74e0bd50945b51db11125a4a4ae",
+      "profileDescriptorDigest": "sha256:d4d8cb5a909aa2702a42b6c55d350fb5f3d85ca94687ea9299c538310737e675",
+      "environment": {
+        "node": "24.18.0",
+        "platform": "android",
+        "architecture": "arm64",
+        "sqlite": "3.53.4"
+      },
+      "elapsedMs": 171,
+      "checks": [
+        {
+          "name": "node-pin",
+          "status": "not_run",
+          "reason": "Required 24.21.0; observed 24.18.0"
+        }
+      ]
+    },
+    "integration": {
+      "schemaVersion": 1,
+      "profile": "integration",
+      "status": "not_run",
+      "exitCode": 2,
+      "assurance": "local-process-validation-report-not-a-trusted-sandbox-receipt",
+      "coverage": "implemented checks only; not product or live acceptance",
+      "sourceInput": {
+        "digest": "sha256:fbbec67d827c5e3710f24333bd86f9e3eb4702baeeae7a1e8d7384f4417d8396",
+        "files": 37
+      },
+      "sourceOutput": {
+        "digest": "sha256:fbbec67d827c5e3710f24333bd86f9e3eb4702baeeae7a1e8d7384f4417d8396",
+        "files": 37
+      },
+      "entrypointDigest": "sha256:ba42be58a9fe145a7689158ddf16934c8fefaf8240e3c026d75a94e84d465a9a",
+      "toolchainDigest": "sha256:8adfdd754aaa15614fdba78d2f845ab9d687a74e0bd50945b51db11125a4a4ae",
+      "profileDescriptorDigest": "sha256:d4d8cb5a909aa2702a42b6c55d350fb5f3d85ca94687ea9299c538310737e675",
+      "environment": {
+        "node": "24.18.0",
+        "platform": "android",
+        "architecture": "arm64",
+        "sqlite": "3.53.4"
+      },
+      "elapsedMs": 154,
+      "checks": [
+        {
+          "name": "node-pin",
+          "status": "not_run",
+          "reason": "Required 24.21.0; observed 24.18.0"
+        },
+        {
+          "name": "integration-tests",
+          "status": "not_run",
+          "reason": "Required layer is not implemented"
+        }
+      ]
+    }
+  },
+  "canonicalCI": null,
+  "release": {
+    "status": "not_run",
+    "reason": "No authorized Linux Podman/system-manager fixture"
+  },
+  "live": {
+    "status": "not_run",
+    "reason": "No canonical dev-2 installation or ChatGPT tool snapshot"
+  },
+  "benchmarks": {
+    "status": "not_run",
+    "reason": "No joined runtime or frozen comparative baselines"
+  },
+  "designChanges": []
+}

@@ -1,0 +1,76 @@
+{
+  "schemaVersion": 1,
+  "entrypoint": "tools/validate.mjs",
+  "requiredForIntegration": [
+    "core",
+    "integration"
+  ],
+  "profiles": {
+    "core": {
+      "capabilities": [
+        "node-pin",
+        "python-3.12",
+        "locked-dependencies"
+      ],
+      "testDirectory": "test/core",
+      "timeoutMs": 120000,
+      "network": "none",
+      "checks": [
+        "checked-jsdoc",
+        "core-tests",
+        "documentation"
+      ],
+      "coverage": "implemented source contracts; not first-release acceptance"
+    },
+    "integration": {
+      "capabilities": [
+        "node-pin",
+        "git-pin",
+        "disposable-filesystem"
+      ],
+      "testDirectory": "test/integration",
+      "timeoutMs": 180000,
+      "network": "none",
+      "checks": [
+        "integration-tests"
+      ]
+    },
+    "release": {
+      "capabilities": [
+        "sealed-linux-sandbox",
+        "systemd-fixture"
+      ],
+      "testDirectory": "test/release",
+      "timeoutMs": 600000,
+      "network": "none",
+      "checks": [
+        "release-tests"
+      ]
+    },
+    "live": {
+      "capabilities": [
+        "explicit-disposable-provider-fixture",
+        "canonical-mcp",
+        "oauth-client"
+      ],
+      "testDirectory": "test/live",
+      "timeoutMs": 600000,
+      "network": "fixture",
+      "checks": [
+        "live-tests"
+      ]
+    },
+    "benchmark": {
+      "capabilities": [
+        "frozen-comparison-manifest",
+        "both-baselines"
+      ],
+      "testDirectory": "bench",
+      "timeoutMs": 1800000,
+      "network": "fixture",
+      "checks": [
+        "benchmark-trials"
+      ]
+    }
+  }
+}
