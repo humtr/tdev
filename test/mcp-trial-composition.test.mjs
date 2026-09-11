@@ -16,7 +16,7 @@ import {
   normalizeMcpTrialCompositionManifest,
   agentRouteHostKey,
 } from '../src/index.mjs';
-import { createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
+import { createLazyPlanReference, createRepositoryBaseIdentity, scopeDigest } from '../src/lazy-plan-reference.mjs';
 
 const COMMIT = 'a'.repeat(40);
 const BASE_TREE = { 'src/base.mjs': 'export const base = 1;\n' };
@@ -301,6 +301,50 @@ test('D0046 owner facades route only fixed Case/Drive/Agent identities', async (
   assert.ok(calls.some((entry) => entry === 'id:case:trial-case-1'));
   assert.ok(calls.every((entry) => !entry.includes('other-case')));
   assert.equal(MCP_TRIAL_AGENT_RPC_PROFILE, 'tdev.installable-agent-qualification-rpc.v2');
+});
+
+test('D0046 owner facades admit only current exact-repository scoped Plan references', async () => {
+  const calls = [];
+  const input = lazyManifest();
+  const owners = createMcpTrialOwnerFacades({
+    manifest: input,
+    caseNamespace: namespace('case', calls),
+    driveNamespace: namespace('drive', calls),
+    agentNamespace: namespace('agent', calls),
+  });
+  const scopedTree = { 'src/base.mjs': 'export const scoped = 2;\n' };
+  const scopedDigest = digest(scopedTree);
+  const plan = {
+    baseTree: scopedTree,
+    baseDigest: scopedDigest,
+    baseReference: createLazyPlanReference({
+      repositoryBaseIdentity: input.repository.repositoryBaseIdentity,
+      scope: input.repository.scope,
+      semanticBaseDigest: scopedDigest,
+    }),
+  };
+  const created = await owners.repository.create({ caseId: 'trial-scoped-current', plan });
+  assert.equal(created.snapshot().caseId, 'trial-scoped-current');
+
+  const staleRepositoryBaseIdentity = createRepositoryBaseIdentity({
+    objectFormat: 'sha1',
+    commitOid: 'd'.repeat(40),
+    treeOid: input.repository.repositoryBaseIdentity.treeOid,
+    manifestDigest: input.repository.repositoryBaseIdentity.manifestDigest,
+  });
+  const stalePlan = {
+    ...plan,
+    baseReference: createLazyPlanReference({
+      repositoryBaseIdentity: staleRepositoryBaseIdentity,
+      scope: input.repository.scope,
+      semanticBaseDigest: scopedDigest,
+    }),
+  };
+  await assert.rejects(
+    () => owners.repository.create({ caseId: 'trial-scoped-stale', plan: stalePlan }),
+    (error) => error?.code === 'mcp_trial_plan_scope_denied',
+  );
+  assert.equal(calls.some((entry) => entry.includes('trial-scoped-stale')), false);
 });
 
 test('D0046 Agent data-plane calls bind the live deployment identity for old and new provider RPCs', async () => {

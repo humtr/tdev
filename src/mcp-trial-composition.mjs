@@ -20,6 +20,7 @@ import { agentRouteHostKey } from './agent-route-election.mjs';
 import { validateRelativePath } from './policy.mjs';
 import { createMcpSelfContextOwner } from './mcp-self-context.mjs';
 import {
+  normalizeLazyPlanReference,
   normalizeLazyPlanScope,
   normalizeRepositoryBaseIdentity,
   scopeDigest as lazyScopeDigest,
@@ -421,10 +422,32 @@ function makeCasePlacement(manifest, caseId, durableObjectId) {
   return createCasePlacement({ caseId, placementGeneration: 1, ...manifest.caseOwner.placement, durableObjectId });
 }
 
-function fixedPlanCheck(plan, manifest) {
+function planScopeCheck(plan, manifest) {
   if (!isPlainRecord(plan)) fail('mcp_trial_plan_scope_denied', 'Plan must be a record');
-  if (plan.baseDigest !== manifest.repository.baseDigest || !isPlainRecord(plan.baseTree) || digest(plan.baseTree) !== manifest.repository.baseDigest) {
-    fail('mcp_trial_plan_scope_denied', 'Plan does not bind the fixed immutable repository base');
+  if (!isPlainRecord(plan.baseTree) || digest(plan.baseTree) !== plan.baseDigest) {
+    fail('mcp_trial_plan_scope_denied', 'Plan base tree does not match its semantic digest');
+  }
+  if (plan.baseReference === undefined) {
+    if (plan.baseDigest !== manifest.repository.baseDigest) {
+      fail('mcp_trial_plan_scope_denied', 'Plan does not bind the fixed immutable repository base');
+    }
+    return;
+  }
+  const repositoryBaseIdentity = manifest.repository.repositoryBaseIdentity;
+  if (!isPlainRecord(repositoryBaseIdentity)) {
+    fail('mcp_trial_plan_scope_denied', 'Scoped Plan requires the current complete repository identity');
+  }
+  try {
+    normalizeLazyPlanReference(plan.baseReference, {
+      objectFormat: manifest.repository.objectFormat,
+      commitOid: manifest.repository.commitOid,
+      treeOid: repositoryBaseIdentity.treeOid,
+      baseDigest: repositoryBaseIdentity.baseDigest,
+      manifestDigest: repositoryBaseIdentity.manifestDigest,
+      semanticBaseDigest: plan.baseDigest,
+    });
+  } catch (cause) {
+    fail('mcp_trial_plan_scope_denied', 'Scoped Plan does not bind the current exact repository base', {}, { cause });
   }
 }
 
@@ -477,7 +500,7 @@ export function createMcpTrialOwnerFacades({ manifest, caseNamespace, driveNames
   const repository = Object.freeze({
     async create({ caseId, plan, caseContract = {} } = {}) {
       assertCaseId(caseId, normalized.casePrefix);
-      fixedPlanCheck(plan, normalized);
+      planScopeCheck(plan, normalized);
       if (placementAuthority !== null) {
         const routed = caseRoute(caseId);
         await placementAuthority.elect({ placement: routed.placement });
