@@ -1,0 +1,100 @@
+TAP version 13
+# Subtest: paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+ok 1 - paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+  ---
+  duration_ms: 15.170938
+  type: 'test'
+  ...
+# Subtest: canonical paths preserve valid exact identity
+ok 2 - canonical paths preserve valid exact identity
+  ---
+  duration_ms: 3.235625
+  type: 'test'
+  ...
+# Subtest: real JWT signature, issuer, expiry, audience and algorithm checks
+ok 3 - real JWT signature, issuer, expiry, audience and algorithm checks
+  ---
+  duration_ms: 160.945052
+  type: 'test'
+  ...
+# Subtest: revocation and exact binding checked again at effect dispatch
+ok 4 - revocation and exact binding checked again at effect dispatch
+  ---
+  duration_ms: 2.862031
+  type: 'test'
+  ...
+# Subtest: sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+ok 5 - sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+  ---
+  duration_ms: 2.330885
+  type: 'test'
+  ...
+# Subtest: missing production seal fails closed before any engine or host execution
+ok 6 - missing production seal fails closed before any engine or host execution
+  ---
+  duration_ms: 0.690729
+  type: 'test'
+  ...
+# Subtest: inspecting and cancelling never terminate another attempt
+ok 7 - inspecting and cancelling never terminate another attempt
+  ---
+  duration_ms: 2.029479
+  type: 'test'
+  ...
+# Subtest: bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+ok 8 - bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+  ---
+  duration_ms: 482.291302
+  type: 'test'
+  ...
+# Subtest: verified narrow token never inherits broader standing integration grants
+ok 9 - verified narrow token never inherits broader standing integration grants
+  ---
+  duration_ms: 109.56599
+  type: 'test'
+  ...
+# Subtest: container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+ok 10 - container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+  ---
+  duration_ms: 3.804271
+  type: 'test'
+  ...
+# Subtest: one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+ok 11 - one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+  ---
+  duration_ms: 1.297761
+  type: 'test'
+  ...
+# Subtest: missing verified capability metadata does not inherit a standing grant
+ok 12 - missing verified capability metadata does not inherit a standing grant
+  ---
+  duration_ms: 1.603646
+  type: 'test'
+  ...
+# Subtest: non-integral engine timeouts are rejected instead of rounded up
+ok 13 - non-integral engine timeouts are rejected instead of rounded up
+  ---
+  duration_ms: 1.804635
+  type: 'test'
+  ...
+# Subtest: created-only containers and invalid exit data remain uncertain and are never blindly started
+ok 14 - created-only containers and invalid exit data remain uncertain and are never blindly started
+  ---
+  duration_ms: 1.781458
+  type: 'test'
+  ...
+# Subtest: persisted container labels bind profile and exact source before a lost response can be reused
+ok 15 - persisted container labels bind profile and exact source before a lost response can be reused
+  ---
+  duration_ms: 1.424375
+  type: 'test'
+  ...
+1..15
+# tests 15
+# suites 0
+# pass 15
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1162.012864

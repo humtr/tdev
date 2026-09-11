@@ -37,6 +37,25 @@ Capabilities are `repository.read`, `work.write`, `profile.run`, `integration.wr
 
 Bindings are installation-admin-managed records keyed by stable provider repository ID, not caller URLs. Only approved Git HTTPS/SSH endpoints are contacted. Reject redirect-to-unapproved-host, repository identity mismatch, local file remotes, transport helpers supplied by a repository, and private-network fetch targets unless explicitly part of the deployment policy. Git operations use a sanitized environment, disabled hooks and filters, broker-owned configuration, exact refspecs, and no inherited credential helpers from candidate files.
 
+The effective capability set is the intersection of verified token scopes and
+current installation grants, never their union. The JWT `scope` claim must be a
+bounded space-delimited string. Unknown scopes grant no dev-2 capability; absent
+scopes or absent verified token-capability metadata cannot inherit a standing
+grant. Internal Principal records may omit that metadata for abstract port test
+fixtures, but the concrete ScopedAuthorization boundary then denies access.
+
+Container launch is one detached `run` with an immutable deterministic name, no
+replace/restart/auto-remove, and an engine/conmon-owned timeout. The initial
+Podman adapter requires profile timeouts/grace to be positive whole seconds, so
+conversion cannot silently extend the profile deadline. The broker's action
+deadline is independently enforced by cancellation. Image entrypoint, proxy
+forwarding, image volumes, healthchecks and default environment are disabled or
+explicitly replaced by the fixed profile. The persisted launch label binds the
+profile and source manifest. A surviving created-but-never-confirmed-started
+container is quarantined as an uncertain launch: recovery may inspect/cancel it,
+not blindly issue `start` or recreate the same attempt. A fresh attempt is allowed
+only after the owning action proves the old sender and container stopped.
+
 ### Source and mutation
 
 All paths are repository-relative UTF-8, reject NUL, absolute paths, `..`, platform separators and normalization aliases. Preserve case-sensitive Git path identity; reject collisions on a materialization filesystem that cannot represent it. Never dereference a candidate symlink while writing another path. Git metadata, runtime state, credentials and other work roots are outside the exposed namespace. A symlink is a typed blob for inspection; materialization rejects escaping or cyclic links. Submodule and LFS pointers are visible as metadata; execution requiring unresolved content returns `UNSUPPORTED_REPOSITORY_FEATURE`, never success or a silent empty file.

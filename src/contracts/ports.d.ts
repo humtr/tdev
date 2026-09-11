@@ -7,7 +7,7 @@ export type Digest = string;
 export type Oid = string;
 export type Json = null | boolean | number | string | Json[] | { [key:string]: Json };
 export type Capability = 'repository.read'|'work.write'|'profile.run'|'integration.write'|'policy.write'|'runtime.activate';
-export interface Principal { subject:Id; issuer:string; audience:string; expiresAt:number }
+export interface Principal { subject:Id; issuer:string; audience:string; expiresAt:number; tokenCapabilities?:readonly Capability[] }
 export interface Binding { repositoryId:Id; installationId:Id; provider:string; providerRepositoryId:string;
   remote:string; ref:string; bindingEpoch:Revision; policyDigest:Digest }
 export interface RefObservation { head:Oid; observedAt:string; bindingEpoch:Revision }
@@ -21,7 +21,7 @@ export type Edit = {kind:'put';path:string;expectedEntry:ExpectedEntry;mode:stri
   {kind:'move';from:string;to:string;expectedEntry:ExpectedEntry;expectedDestination:'absent'} |
   {kind:'exact_edit';path:string;expectedEntry:ExpectedEntry;oldText:string;newText:string};
 export interface Work { workId:Id; repositoryId:Id; bindingEpoch:Revision; principal:Id; baseCommitOid:Oid;
-  baseTreeOid:Oid; candidate:SourceTree; generation:Revision; revision:Revision;
+  baseTreeOid:Oid; candidate:Pick<SourceTree,'treeOid'|'manifestDigest'>; generation:Revision; revision:Revision;
   disposition:'open'|'integrated'|'cancelled'; currentActionId:Id|null }
 export type ActionStatus = 'queued'|'running'|'blocked'|'succeeded'|'failed'|'cancelled';
 export interface Action { actionId:Id; requestId:Id; principal:Id; bindingEpoch:Revision; intentDigest:Digest;
