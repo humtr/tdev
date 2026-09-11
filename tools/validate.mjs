@@ -30,6 +30,8 @@ export function main(argv) {
     if (!args.profile || !args.output) throw new Error('profile and output required');
   } catch { console.error('Usage: node tools/validate.mjs --profile <core|integration|release|live|benchmark> --output <directory>'); return 1; }
   const profile=args.profile, output=resolve(args.output);
+  const outputRelative=relative(root,output);
+  if(!(outputRelative==='..'||outputRelative.startsWith('../')||outputRelative==='.artifacts'||outputRelative.startsWith('.artifacts/'))) {console.error('Validation output must be outside source or under .artifacts');return 1;}
   /** @type {{schemaVersion:number,profiles:Record<string,{implemented:boolean,testDirectory:string,timeoutMs:number,network:string,requires:string[]}>}} */
   const config=JSON.parse(readFileSync(join(root,'config/validation-profiles.json'),'utf8'));
   if (!Object.hasOwn(config.profiles,profile)) { console.error('Unknown profile'); return 1; }
@@ -63,6 +65,13 @@ export function main(argv) {
   } else if(!descriptor.implemented) {
     checks.push({name:'implementation',status:'not_run',exitCode:null,signal:null,durationMs:0,logDigest:null}); code=2;
   } else {
+    if(profile==='integration') {
+      const git=spawnSync('git',['--version'],{encoding:'utf8',timeout:10000,maxBuffer:4096});
+      if(git.status!==0||git.stdout.trim()!=='git version '+lock.git.version){checks.push({name:'git.pin',status:'not_run',exitCode:git.status,signal:git.signal,durationMs:0,logDigest:null});code=2;}
+      const fixture=spawnSync(process.execPath,['--input-type=module','-e',"import {DatabaseSync} from 'node:sqlite';const db=new DatabaseSync(':memory:');db.prepare('SELECT 1').get();db.close();"],{encoding:'utf8',timeout:10000,maxBuffer:4096});
+      const flock=spawnSync('flock',['--version'],{encoding:'utf8',timeout:10000,maxBuffer:4096});
+      if(fixture.status!==0||flock.status!==0){checks.push({name:'sqlite.flock',status:'not_run',exitCode:null,signal:null,durationMs:0,logDigest:null});code=2;}
+    }
     if (profile==='core') {
       check('python.minimum','python3',['-c','import sys;sys.exit(0 if sys.version_info >= (3,12) else 2)'],10000);
       if(code===0) check('jsdoc',process.execPath,['node_modules/typescript/bin/tsc','--project','jsconfig.json','--noEmit'],60000);

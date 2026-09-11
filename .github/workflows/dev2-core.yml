@@ -22,12 +22,22 @@ jobs:
           echo 'fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6  .bootstrap/node.tar.xz' | sha256sum -c -
           tar -xJf .bootstrap/node.tar.xz -C .bootstrap
           echo "$PWD/.bootstrap/node-v24.21.0-linux-x64/bin" >> "$GITHUB_PATH"
+      - name: Build checksum-pinned Git for the canonical integration profile
+        shell: bash
+        run: |
+          set -euo pipefail
+          curl --fail --location --proto '=https' --tlsv1.2 --max-time 120 https://www.kernel.org/pub/software/scm/git/git-2.55.0.tar.xz -o .bootstrap/git.tar.xz
+          echo '457fdb04dc8728e007d4688695e6912e6f680727920f2a40bf11eacc17505357  .bootstrap/git.tar.xz' | sha256sum -c -
+          tar -xJf .bootstrap/git.tar.xz -C .bootstrap
+          make -C .bootstrap/git-2.55.0 -j2 prefix="$PWD/.bootstrap/git" NO_TCLTK=YesPlease NO_GETTEXT=YesPlease install > .bootstrap/git-build.log 2>&1 || { tail -80 .bootstrap/git-build.log; exit 1; }
+          test "$(.bootstrap/git/bin/git --version)" = 'git version 2.55.0'
+          echo "$PWD/.bootstrap/git/bin" >> "$GITHUB_PATH"
       - name: Install locked development tools
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
       - name: Run canonical core contract
         run: node tools/validate.mjs --profile core --output .artifacts/core
-      - name: Native repository and context module integration
-        run: node --test --test-reporter=tap test/integration/*.test.mjs
+      - name: Run canonical integration contract
+        run: node tools/validate.mjs --profile integration --output .artifacts/integration
       - name: Observe Linux release-fixture capabilities without asserting release PASS
         shell: bash
         run: |
@@ -59,4 +69,6 @@ jobs:
           PYTHON
       - name: Read exact validation result
         if: always()
-        run: test ! -f .artifacts/core/result.json || cat .artifacts/core/result.json
+        run: |
+          test ! -f .artifacts/core/result.json || cat .artifacts/core/result.json
+          test ! -f .artifacts/integration/result.json || cat .artifacts/integration/result.json
