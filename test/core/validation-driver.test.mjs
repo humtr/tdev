@@ -24,3 +24,16 @@ test('a missing required integration fixture emits NOT RUN with exit 2', async (
 finally {
     await rm(root, { recursive: true, force: true });
 } });
+
+test('document scope excludes installed artifacts but includes nested product documentation', async()=>{
+ const r=await command('python3',['-c',`import importlib.util,tempfile,pathlib
+s=importlib.util.spec_from_file_location('checker','docs/design/check.py');m=importlib.util.module_from_spec(s);s.loader.exec_module(m)
+with tempfile.TemporaryDirectory() as d:
+ r=pathlib.Path(d)
+ for p in ['README.md','docs/owned.md','src/contracts/README.md','.bootstrap/node/CHANGELOG.md','node_modules/vendor/README.md','.artifacts/log.md','.git/metadata.md']:
+  f=r/p;f.parent.mkdir(parents=True,exist_ok=True);f.write_text('[broken](not-present.md)')
+ got={p.relative_to(r).as_posix() for p in m.document_paths(r)}
+ assert got=={'README.md','docs/owned.md','src/contracts/README.md'},got
+`],process.cwd(),3000);
+ assert.equal(r.exitCode,0,r.stderr);
+});

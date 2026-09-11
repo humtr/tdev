@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import re
 import sys
 from pathlib import Path
@@ -100,6 +101,16 @@ def index_text(designs: dict[str, dict]) -> str:
     return '\n'.join(lines) + '\n'
 
 
+def document_paths(root: Path):
+    """Repository documents, not installed dependencies or execution artifacts."""
+    excluded = {'.git', 'node_modules', '.bootstrap', '.artifacts', '__pycache__'}
+    for directory, names, files in os.walk(root, followlinks=False):
+        names[:] = sorted(name for name in names if name not in excluded)
+        for name in sorted(files):
+            if name.endswith('.md'):
+                yield Path(directory) / name
+
+
 def check_repository(root: Path, designs: dict[str, dict], architecture_only: bool) -> None:
     for name in ('AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'WORKBOARD.md', 'docs/design/README.md', 'docs/design/TEMPLATE.md'):
         require((root / name).is_file(), 'Missing bootstrap document: ' + name)
@@ -111,9 +122,7 @@ def check_repository(root: Path, designs: dict[str, dict], architecture_only: bo
         if m['Status'] in {'accepted', 'verified'}:
             require(m['Directive'] == active_revision, f'{ident}: Directive reference does not match active revision')
     require((root / 'docs/design/INDEX.md').read_text(encoding='utf-8') == index_text(designs), 'Stale INDEX; regenerate metadata projection')
-    for path in root.rglob('*.md'):
-        if '.git' in path.relative_to(root).parts:
-            continue
+    for path in document_paths(root):
         for target in re.findall(r'\[[^\]\n]*\]\(([^)\n]+)\)', path.read_text(encoding='utf-8')):
             if re.match(r'[a-z]+:', target) or target.startswith('#'):
                 continue

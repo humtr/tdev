@@ -104,7 +104,22 @@
       ]
     }
   },
-  "canonicalCI": null,
+  "canonicalCI": {
+    "runId": 34584030348,
+    "head": "25b7ff9da9913e66485753d9026be2b1eff853c6",
+    "node": "24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "productTests": {
+      "passed": 43,
+      "failed": 0
+    },
+    "checkedJSDoc": "passed",
+    "documentation": "failed",
+    "falsifier": "Document checker traversed downloaded Node distribution CHANGELOG links outside repository documentation",
+    "correction": "Prune documented dependency/artifact directories; retain all root and nested product Markdown; add regression test",
+    "status": "correction-awaiting-rerun"
+  },
   "release": {
     "status": "not_run",
     "reason": "No authorized Linux Podman/system-manager fixture"
