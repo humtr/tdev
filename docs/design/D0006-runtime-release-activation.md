@@ -54,6 +54,22 @@ One installation-level activation record is necessary because the process perfor
 
 Initial transition policy: helper deadline 120 seconds, local readiness deadline 30 seconds per launch, request wait at most 20 seconds, profile execution deadlines separately enforced. Values are deployment policy, not durable identity. Expiration stops new steps but cannot manufacture certainty about an existing effect. Recovery reruns the fixed helper against the same intent; it does not invent another activation.
 
+The helper's OS lock covers the activation intent and active-pointer transition,
+not any repository action. The concrete Linux adapter opens the fixed lock file
+without following a symlink, acquires `flock` on an inherited descriptor, and keeps
+that open-file description alive for the helper lifetime. A bounded child probe
+must prove exclusion and crash release on the deployment filesystem. No stale
+lock timeout or PID-file deletion grants ownership.
+
+The activation record persists `rollbackRequested` before any restore side
+effect. Recovery never infers forward versus rollback direction from the active
+pointer alone. All phase retries inspect exact process/readiness state first.
+An expired forward deadline can stop new forward steps, but cannot prohibit a
+bounded safety rollback or authorize concurrent writers. Preserve request identity
+and terminal records as immutable objects when advancing to the next activation;
+this is retained evidence in the existing object store, not another coordinator.
+Read-only observe never drives a switch, stop, start or retry.
+
 ### State evolution
 
 First release uses schema version 1. Ordinary updates must support the active schema and rolling upgrade/rollback to the previous release. Additive changes are preferred; a schema migration is an explicitly versioned release operation tested both before and after crash. Destructive migrations require a new bounded Design and backup/restore proof; they are not part of the default core. A release that cannot reopen the active ledger is rejected before pointer replacement, not tested on the sole live copy.
