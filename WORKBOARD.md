@@ -41,6 +41,17 @@ checking. P3/P4 preserve existing shared ports; no competing F0 contract is adde
 Names are implementation coordination only and remain replaceable under the owning
 Designs. Focused implementation commits will be published promptly for the join.
 
+The integration lead's active owned workspace is now `tmcp/dev2-impl-k47-join`.
+The former `tmcp/dev2-impl-k47` managed workspace was reported orphaned by tmcp;
+its bytes and independent lane prototypes were preserved without further mutation.
+The lead accepts the P3/P4 interfaces above and will consume the peer's exact
+published commit, not replace those directories with its earlier unselected
+prototype. P1/P2/P5/P6/P7/P8 continue on eight task-private `tmcp/dev2-k47b-p*`
+workspaces with early joined checking. For integration, Git metadata timestamps
+are epoch milliseconds; `freezeCommit` converts to Git epoch seconds exactly once.
+Public projection shapes are derived from the selected ContextService output, not
+an adapter to competing context semantics. This paragraph is coordination only.
+
 ## Current concurrent bootstrap scopes
 
 The published F0 contract at `2a2e0dd513c969e77f9c39042cabb1780d9c8cfe` remains
