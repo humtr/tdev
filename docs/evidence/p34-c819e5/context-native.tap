@@ -1,0 +1,17 @@
+TAP version 13
+# Subtest: 10,000 native Git files support progressive unknown-context discovery and exact isolated change
+ok 1 - 10,000 native Git files support progressive unknown-context discovery and exact isolated change
+  ---
+  duration_ms: 32722.112904
+  type: 'test'
+  ...
+# {"scope":"one native module integration observation; not baseline superiority or ChatGPT evidence","files":10000,"sourceBytes":428895,"contextCalls":3,"returnedBytes":6404,"coldContextMs":27507,"gitCommands":93,"changedTree":"sha1:fab6465f7c4bba50bdfe5d442cf4037789872673","base":"sha1:31cb07b5fad6a5885d12a1a29961871f902894f7"}
+1..1
+# tests 1
+# suites 0
+# pass 1
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 33154.704727

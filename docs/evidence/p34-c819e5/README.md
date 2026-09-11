@@ -65,3 +65,20 @@ The updated remote WORKBOARD at `b43a841a49915a43c5f165aaa519d530ec3ec199`
 was incorporated by verified documentation-only fast-forward before final tests.
 The integration lead's scope and its protected/orphaned earlier workspace were
 preserved. There was no source replacement in another root task's workspace.
+
+## Native context join, medium repository
+
+The additional test `test/integration/context-native.test.mjs` joins the actual
+Git reader, progressive context service and candidate editor over **10,000 files**.
+Three bounded directory/search/file calls return **6,404 bytes**, versus 428,895
+bytes of fixture source; only the exact selected file changes and 9,999 entries
+remain unchanged. The same retained snapshot works after service reconstruction.
+`context-native.tap` records PASS under the official Node pin. Its PRoot timings
+are not production latency or superiority evidence. CI also runs this native
+module suite explicitly; it is not relabelled as complete P5 integration coverage.
+
+The P3/P4 commit `1b717ad1d4c29520de859225413fc3bd4f0b3d10` passed Linux x64
+canonical core in Actions run `34592982335`, with input digest matching the arm64
+report. It was then conditionally published to `dev-2` from parent `b43a841...`.
+CI exposes a real rootless Podman 4.9.3/cgroup-v2 environment; this is a capability
+observation, not the selected Podman 5.x production seal or release validation.

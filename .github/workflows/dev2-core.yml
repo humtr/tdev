@@ -26,6 +26,8 @@ jobs:
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
       - name: Run canonical core contract
         run: node tools/validate.mjs --profile core --output .artifacts/core
+      - name: Native repository and context module integration
+        run: node --test --test-reporter=tap test/integration/repository-candidate.test.mjs test/integration/context-native.test.mjs
       - name: Observe Linux release-fixture capabilities without asserting release PASS
         shell: bash
         run: |
