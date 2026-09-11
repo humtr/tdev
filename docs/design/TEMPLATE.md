@@ -1,4 +1,4 @@
-# Dxxxx — Short descriptive title
+# Dxxxx - Short descriptive title
 
 - Design: `Dxxxx`
 - Title: `Short descriptive title`
@@ -6,53 +6,44 @@
 - Depends-On: `[]`
 - Supersedes: `[]`
 - Directive: `r1`
+- Owns: `one-bounded-decision-label`
 
 ## Problem
 
-State one bounded material decision.
+State one bounded material decision and why existing accepted owners do not already own it.
 
 ## Required outcome
 
-State the observable end state.
+State the observable end state derived from the Directive.
 
 ## Facts / assumptions / unknowns
 
-### Facts
-
-- Observed facts only.
-
-### Assumptions
-
-- Inferences being used.
-
-### Unknowns
-
-- Unresolved facts that could matter.
+Separate observations, selected assumptions and unverified measurements/deployment values. Do not leave a required semantic choice unspecified.
 
 ## Decision
 
-Describe the selected architecture or contract and its ownership/state meaning.
+Select the smallest architecture/contract. Name owned truth, identities, transitions, dependencies, limits and linearization points when relevant. Explain why necessary abstractions cannot be removed without losing an invariant.
 
 ## Concurrency and isolation
 
-Include only when relevant.
+Define independent progress and only the exact conflicting serialization boundaries; capacity policy is not identity.
 
 ## Failure and recovery
 
-Include retry, cancellation, unknown effects, cleanup, or recovery when relevant.
+Define retries, cancellation, restart, response loss, uncertainty, deduplication and bounded cleanup where relevant.
 
 ## Security / external effects
 
-Include only when relevant.
+Define authorization and external-effect boundaries, or explain why none exists.
 
 ## Alternatives
 
-List serious alternatives and why rejected.
+Compare serious alternatives against the requirement, not against predecessor convenience.
 
 ## Acceptance
 
-List cheapest falsifiers and evidence required for acceptance/verification.
+Give cheap falsifiers and required verification layers/evidence. Accepted is not verified.
 
 ## Implementation consequences
 
-List affected areas and constraints. Keep work progress in `WORKBOARD.md`, not here.
+State affected contracts and consequences. Put work assignments, order and status only in WORKBOARD.
