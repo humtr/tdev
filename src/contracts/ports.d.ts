@@ -21,7 +21,7 @@ export type Edit = {kind:'put';path:string;expectedEntry:ExpectedEntry;mode:stri
   {kind:'move';from:string;to:string;expectedEntry:ExpectedEntry;expectedDestination:'absent'} |
   {kind:'exact_edit';path:string;expectedEntry:ExpectedEntry;oldText:string;newText:string};
 export interface Work { workId:Id; repositoryId:Id; bindingEpoch:Revision; principal:Id; baseCommitOid:Oid;
-  baseTreeOid:Oid; candidate:SourceTree; generation:Revision; revision:Revision;
+  baseTreeOid:Oid; candidate:Pick<SourceTree,'treeOid'|'manifestDigest'>; generation:Revision; revision:Revision;
   disposition:'open'|'integrated'|'cancelled'; currentActionId:Id|null }
 export type ActionStatus = 'queued'|'running'|'blocked'|'succeeded'|'failed'|'cancelled';
 export interface Action { actionId:Id; requestId:Id; principal:Id; bindingEpoch:Revision; intentDigest:Digest;

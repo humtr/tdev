@@ -1,0 +1,175 @@
+TAP version 13
+# Subtest: real SQLite WAL FULL single-owner lock, reopen and late-callback fencing
+ok 1 - real SQLite WAL FULL single-owner lock, reopen and late-callback fencing
+  ---
+  duration_ms: 74.384531
+  type: 'test'
+  ...
+# Subtest: dedup precedes mutation preconditions, but never bypasses authorization
+ok 2 - dedup precedes mutation preconditions, but never bypasses authorization
+  ---
+  duration_ms: 10.55625
+  type: 'test'
+  ...
+# Subtest: durable capacity 1 and independent progress after one blocked attempt
+ok 3 - durable capacity 1 and independent progress after one blocked attempt
+  ---
+  duration_ms: 16.412031
+  type: 'test'
+  ...
+# Subtest: durable capacity 8 and independent progress after one blocked attempt
+ok 4 - durable capacity 8 and independent progress after one blocked attempt
+  ---
+  duration_ms: 31.666198
+  type: 'test'
+  ...
+# Subtest: durable capacity 16 and independent progress after one blocked attempt
+ok 5 - durable capacity 16 and independent progress after one blocked attempt
+  ---
+  duration_ms: 43.522187
+  type: 'test'
+  ...
+# Subtest: durable capacity 32 and independent progress after one blocked attempt
+ok 6 - durable capacity 32 and independent progress after one blocked attempt
+  ---
+  duration_ms: 79.633073
+  type: 'test'
+  ...
+# Subtest: fair principal cursor skips blocked and survives reopen
+ok 7 - fair principal cursor skips blocked and survives reopen
+  ---
+  duration_ms: 17.388698
+  type: 'test'
+  ...
+# Subtest: transaction rollback, async/nested/escaped callback rejection and immutable terminals
+ok 8 - transaction rollback, async/nested/escaped callback rejection and immutable terminals
+  ---
+  duration_ms: 12.254375
+  type: 'test'
+  ...
+# Subtest: atomic immutable object publication, eight parallel copies, partial-write orphan and corruption
+not ok 9 - atomic immutable object publication, eight parallel copies, partial-write orphan and corruption
+  ---
+  duration_ms: 45.329479
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:60:1'
+  failureType: 'testCodeFailure'
+  error: "EACCES: permission denied, link '/data/data/com.termux/files/home/.tmcp/state/execution/epochs/epoch_384a3438db9899bf664e/jobs/job_rff_b718a27d5f/tmp/dev2-ledger-sTmCFm/objects/.new-90530702b8256a1a93957885a7e71d82' -> '/data/data/com.termux/files/home/.tmcp/state/execution/epochs/epoch_384a3438db9899bf664e/jobs/job_rff_b718a27d5f/tmp/dev2-ledger-sTmCFm/objects/e38e581aade78b64cc86f7ac9f3555ca78c2dcca747942a7f1d9b3275a834f75'"
+  code: 'EACCES'
+  stack: |-
+    async link (node:internal/fs/promises:1062:10)
+    async ObjectStore.put (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/storage/objects.mjs:30:12)
+    async Promise.all (index 6)
+    async TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:62:19)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: response-loss retry finds the same durable action even after its original deadline expired
+not ok 10 - response-loss retry finds the same durable action even after its original deadline expired
+  ---
+  duration_ms: 12.703385
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:69:1'
+  failureType: 'testCodeFailure'
+  error: 'INVALID_ARGUMENT'
+  code: 'INVALID_ARGUMENT'
+  name: 'Dev2Error'
+  stack: |-
+    requireThat (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/contracts/errors.mjs:30:25)
+    WorkCoordinator.admit (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/work/coordinator.mjs:18:5)
+    async TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:71:17)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: deadline cancellation clears only its work fence and does not stall independent ready actions
+not ok 11 - deadline cancellation clears only its work fence and does not stall independent ready actions
+  ---
+  duration_ms: 24.552187
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:75:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    The expression evaluated to a falsy value:
+
+      assert.ok(dispatch)
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: ~
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:78:38)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: queued explicit cancellation releases its action fence without inventing an execution attempt
+not ok 12 - queued explicit cancellation releases its action fence without inventing an execution attempt
+  ---
+  duration_ms: 9.195156
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:81:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    + actual - expected
+
+    + '420e0eb22a90876eda3d80876e05776a'
+    - null
+
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: ~
+  actual: '420e0eb22a90876eda3d80876e05776a'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:82:147)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: stopped ambiguous effect releases capacity but retains callback identity for later exact reconciliation
+not ok 13 - stopped ambiguous effect releases capacity but retains callback identity for later exact reconciliation
+  ---
+  duration_ms: 11.115104
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:84:1'
+  failureType: 'testCodeFailure'
+  error: 'Old callback'
+  code: 'STALE_REVISION'
+  name: 'Dev2Error'
+  stack: |-
+    requireThat (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/contracts/errors.mjs:30:25)
+    file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/work/coordinator.mjs:59:5
+    Ledger.transact (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/storage/ledger.mjs:59:55)
+    WorkCoordinator.settle (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/src/work/coordinator.mjs:57:65)
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:87:4)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: a callback with a copied attempt ID but a different work identity cannot settle the retained attempt
+not ok 14 - a callback with a copied attempt ID but a different work identity cannot settle the retained attempt
+  ---
+  duration_ms: 11.868542
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:90:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected exception.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'STALE_REVISION'
+  operator: 'throws'
+  stack: |-
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p2-c819e5-wt_5cdb76e0ca00eb3d/test/integration/ledger.test.mjs:91:118)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+1..14
+# tests 14
+# suites 0
+# pass 8
+# fail 6
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 707.464531

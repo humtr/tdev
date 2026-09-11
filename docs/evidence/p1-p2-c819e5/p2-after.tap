@@ -1,0 +1,118 @@
+TAP version 13
+# Subtest: real SQLite WAL FULL single-owner lock, reopen and late-callback fencing
+ok 1 - real SQLite WAL FULL single-owner lock, reopen and late-callback fencing
+  ---
+  duration_ms: 115.467136
+  type: 'test'
+  ...
+# Subtest: dedup precedes mutation preconditions, but never bypasses authorization
+ok 2 - dedup precedes mutation preconditions, but never bypasses authorization
+  ---
+  duration_ms: 15.029896
+  type: 'test'
+  ...
+# Subtest: durable capacity 1 and independent progress after one blocked attempt
+ok 3 - durable capacity 1 and independent progress after one blocked attempt
+  ---
+  duration_ms: 18.422188
+  type: 'test'
+  ...
+# Subtest: durable capacity 8 and independent progress after one blocked attempt
+ok 4 - durable capacity 8 and independent progress after one blocked attempt
+  ---
+  duration_ms: 41.999167
+  type: 'test'
+  ...
+# Subtest: durable capacity 16 and independent progress after one blocked attempt
+ok 5 - durable capacity 16 and independent progress after one blocked attempt
+  ---
+  duration_ms: 78.77625
+  type: 'test'
+  ...
+# Subtest: durable capacity 32 and independent progress after one blocked attempt
+ok 6 - durable capacity 32 and independent progress after one blocked attempt
+  ---
+  duration_ms: 147.230573
+  type: 'test'
+  ...
+# Subtest: fair principal cursor skips blocked and survives reopen
+ok 7 - fair principal cursor skips blocked and survives reopen
+  ---
+  duration_ms: 23.32927
+  type: 'test'
+  ...
+# Subtest: transaction rollback, async/nested/escaped callback rejection and immutable terminals
+ok 8 - transaction rollback, async/nested/escaped callback rejection and immutable terminals
+  ---
+  duration_ms: 18.203854
+  type: 'test'
+  ...
+# Subtest: atomic immutable object publication, eight parallel copies, partial-write orphan and corruption
+ok 9 - atomic immutable object publication, eight parallel copies, partial-write orphan and corruption
+  ---
+  duration_ms: 99.775677
+  type: 'test'
+  ...
+# Subtest: response-loss retry finds the same durable action even after its original deadline expired
+ok 10 - response-loss retry finds the same durable action even after its original deadline expired
+  ---
+  duration_ms: 11.316094
+  type: 'test'
+  ...
+# Subtest: deadline cancellation clears only its work fence and does not stall independent ready actions
+ok 11 - deadline cancellation clears only its work fence and does not stall independent ready actions
+  ---
+  duration_ms: 19.215261
+  type: 'test'
+  ...
+# Subtest: queued explicit cancellation releases its action fence without inventing an execution attempt
+ok 12 - queued explicit cancellation releases its action fence without inventing an execution attempt
+  ---
+  duration_ms: 12.959219
+  type: 'test'
+  ...
+# Subtest: stopped ambiguous effect releases capacity but retains callback identity for later exact reconciliation
+ok 13 - stopped ambiguous effect releases capacity but retains callback identity for later exact reconciliation
+  ---
+  duration_ms: 16.608489
+  type: 'test'
+  ...
+# Subtest: a callback with a copied attempt ID but a different work identity cannot settle the retained attempt
+ok 14 - a callback with a copied attempt ID but a different work identity cannot settle the retained attempt
+  ---
+  duration_ms: 50.951198
+  type: 'test'
+  ...
+# Subtest: ten thousand source entries do not enter the work row or exceed its decode bound
+ok 15 - ten thousand source entries do not enter the work row or exceed its decode bound
+  ---
+  duration_ms: 54.009167
+  type: 'test'
+  ...
+# Subtest: a pending action fences only its work and cannot acquire another pending sibling
+ok 16 - a pending action fences only its work and cannot acquire another pending sibling
+  ---
+  duration_ms: 28.989531
+  type: 'test'
+  ...
+# Subtest: immutable object retry after publish-before-directory-sync revalidates and flushes exact bytes
+ok 17 - immutable object retry after publish-before-directory-sync revalidates and flushes exact bytes
+  ---
+  duration_ms: 43.438229
+  type: 'test'
+  ...
+# Subtest: actual process crash releases exclusive owner lock and rolls back only uncommitted transaction
+ok 18 - actual process crash releases exclusive owner lock and rolls back only uncommitted transaction
+  ---
+  duration_ms: 341.115052
+  type: 'test'
+  ...
+1..18
+# tests 18
+# suites 0
+# pass 18
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1590.539583
