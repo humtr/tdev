@@ -54,7 +54,21 @@ export class DevelopmentEngine {
  requireThat(!item.repository||(item.repository==='self'||item.repository===this.binding.repositoryId),'FORBIDDEN');
  const paths=item.edits?editPaths(item.edits):item.initialEdits?editPaths(item.initialEdits):item.policyPath?[item.policyPath]:[];
  await this.o.authorization.authorize(principal,this.binding,capability(item),paths);
- if(item.workId){const work=this.ledger.transact(tx=>tx.getWork(/** @type {string} */(item.workId)));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');}
+ if(item.workId){
+  const work=this.ledger.transact(tx=>tx.getWork(/** @type {string} */(item.workId)));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');
+  if(['run','validate','integrate'].includes(item.op)){
+   const base=await this.o.repository.readCommit(this.binding,work.baseCommitOid),candidate=await this.candidate(work);
+   requireThat(base.source.treeOid===work.baseTreeOid,'INTEGRITY_FAILURE');
+   const before=new Map(base.source.entries.map(entry=>[entry.path,entry]));
+   const after=new Map(candidate.entries.map(entry=>[entry.path,entry]));
+   const changed=[...new Set([...before.keys(),...after.keys()])].filter(path=>{
+    const a=before.get(path),b=after.get(path);return a?.mode!==b?.mode||a?.contentDigest!==b?.contentDigest||a?.blobOid!==b?.blobOid;
+   });
+   // A retained candidate is not a retained grant. Recheck its entire delta at
+   // admission, dispatch, and immediately before the privileged publication.
+   await this.o.authorization.authorize(principal,this.binding,capability(item),changed);
+  }
+ }
  }
  /** Durable request observation is performed only after current auth, before any
  * stale context lookup or immutable object staging. Same request returns its receipt.
