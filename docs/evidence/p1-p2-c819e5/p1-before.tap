@@ -1,0 +1,124 @@
+TAP version 13
+# Subtest: paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+ok 1 - paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+  ---
+  duration_ms: 4.410469
+  type: 'test'
+  ...
+# Subtest: canonical paths preserve valid exact identity
+ok 2 - canonical paths preserve valid exact identity
+  ---
+  duration_ms: 2.764844
+  type: 'test'
+  ...
+# Subtest: real JWT signature, issuer, expiry, audience and algorithm checks
+ok 3 - real JWT signature, issuer, expiry, audience and algorithm checks
+  ---
+  duration_ms: 256.924948
+  type: 'test'
+  ...
+# Subtest: revocation and exact binding checked again at effect dispatch
+ok 4 - revocation and exact binding checked again at effect dispatch
+  ---
+  duration_ms: 4.313698
+  type: 'test'
+  ...
+# Subtest: sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+ok 5 - sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+  ---
+  duration_ms: 1.990261
+  type: 'test'
+  ...
+# Subtest: missing production seal fails closed before any engine or host execution
+ok 6 - missing production seal fails closed before any engine or host execution
+  ---
+  duration_ms: 0.633021
+  type: 'test'
+  ...
+# Subtest: inspecting and cancelling never terminate another attempt
+ok 7 - inspecting and cancelling never terminate another attempt
+  ---
+  duration_ms: 1.814531
+  type: 'test'
+  ...
+# Subtest: bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+ok 8 - bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+  ---
+  duration_ms: 460.605312
+  type: 'test'
+  ...
+# Subtest: verified narrow token never inherits broader standing integration grants
+not ok 9 - verified narrow token never inherits broader standing integration grants
+  ---
+  duration_ms: 101.161823
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:69:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'FORBIDDEN'
+  operator: 'rejects'
+  stack: |-
+    async TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:76:73)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+not ok 10 - container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+  ---
+  duration_ms: 0.957864
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:78:1'
+  failureType: 'testCodeFailure'
+  error: '--http-proxy=false'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:80:163)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1325:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+    Test.postRun (node:internal/test_runner/test:1465:19)
+    Test.run (node:internal/test_runner/test:1390:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+# Subtest: one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+not ok 11 - one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+  ---
+  duration_ms: 3.427864
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:82:1'
+  failureType: 'testCodeFailure'
+  error: |-
+    Expected values to be strictly equal:
+    
+    'create' !== 'run'
+    
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: 'run'
+  actual: 'create'
+  operator: 'strictEqual'
+  stack: |-
+    TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-p1-c819e5-wt_eb97270497c2df16/test/core/security.test.mjs:83:105)
+    Test.runInAsyncScope (node:async_hooks:227:14)
+    Test.run (node:internal/test_runner/test:1325:25)
+    Test.processPendingSubtests (node:internal/test_runner/test:911:18)
+    Test.postRun (node:internal/test_runner/test:1465:19)
+    Test.run (node:internal/test_runner/test:1390:12)
+    async Test.processPendingSubtests (node:internal/test_runner/test:911:7)
+  ...
+1..11
+# tests 11
+# suites 0
+# pass 8
+# fail 3
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1210.222603

@@ -7,7 +7,7 @@ export type Digest = string;
 export type Oid = string;
 export type Json = null | boolean | number | string | Json[] | { [key:string]: Json };
 export type Capability = 'repository.read'|'work.write'|'profile.run'|'integration.write'|'policy.write'|'runtime.activate';
-export interface Principal { subject:Id; issuer:string; audience:string; expiresAt:number }
+export interface Principal { subject:Id; issuer:string; audience:string; expiresAt:number; tokenCapabilities?:readonly Capability[] }
 export interface Binding { repositoryId:Id; installationId:Id; provider:string; providerRepositoryId:string;
   remote:string; ref:string; bindingEpoch:Revision; policyDigest:Digest }
 export interface RefObservation { head:Oid; observedAt:string; bindingEpoch:Revision }
