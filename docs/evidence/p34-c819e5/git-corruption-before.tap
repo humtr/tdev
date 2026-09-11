@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: nested tree corruption is rejected even if root tree and leaf blob bytes remain intact
+not ok 1 - nested tree corruption is rejected even if root tree and leaf blob bytes remain intact
+  ---
+  duration_ms: 683.473386
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/test/integration/repository-candidate.test.mjs:106:1'
+  failureType: 'testCodeFailure'
+  error: 'Missing expected rejection.'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected:
+    code: 'INTEGRITY_FAILURE'
+  operator: 'rejects'
+  stack: |-
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/test/integration/repository-candidate.test.mjs:111:73)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1024.150052

@@ -1,0 +1,88 @@
+TAP version 13
+# Subtest: real sha1 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref
+ok 1 - real sha1 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref
+  ---
+  duration_ms: 5698.054477
+  type: 'test'
+  ...
+# Subtest: real sha256 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref
+ok 2 - real sha256 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref
+  ---
+  duration_ms: 7237.362602
+  type: 'test'
+  ...
+# Subtest: safe raw filename ordering, executable modes, binary bytes, no index/hooks/filter side effects
+ok 3 - safe raw filename ordering, executable modes, binary bytes, no index/hooks/filter side effects
+  ---
+  duration_ms: 4339.818592
+  type: 'test'
+  ...
+# Subtest: all edits are atomic against one generation; invalid sibling writes no candidate object
+ok 4 - all edits are atomic against one generation; invalid sibling writes no candidate object
+  ---
+  duration_ms: 2921.199061
+  type: 'test'
+  ...
+# Subtest: put, move, delete and unique exact edit preserve exact old entry expectations
+ok 5 - put, move, delete and unique exact edit preserve exact old entry expectations
+  ---
+  duration_ms: 3924.475207
+  type: 'test'
+  ...
+# Subtest: eight independent candidates and private materializations have no shared writable checkout
+ok 6 - eight independent candidates and private materializations have no shared writable checkout
+  ---
+  duration_ms: 5346.290311
+  type: 'test'
+  ...
+# Subtest: disjoint stale recomposition preserves newer entries; touched content/mode and topology conflict
+ok 7 - disjoint stale recomposition preserves newer entries; touched content/mode and topology conflict
+  ---
+  duration_ms: 6288.374946
+  type: 'test'
+  ...
+# Subtest: internal symlinks remain typed; escaping, cyclic, metadata and prefix aliases never materialize
+ok 8 - internal symlinks remain typed; escaping, cyclic, metadata and prefix aliases never materialize
+  ---
+  duration_ms: 9105.970725
+  type: 'test'
+  ...
+# Subtest: gitlink metadata is inspectable without pretending a commit is a blob; unresolved execution fails
+ok 9 - gitlink metadata is inspectable without pretending a commit is a blob; unresolved execution fails
+  ---
+  duration_ms: 6114.601716
+  type: 'test'
+  ...
+# Subtest: pinned object reads survive provider outage, but current resolve and unapproved bindings fail
+ok 10 - pinned object reads survive provider outage, but current resolve and unapproved bindings fail
+  ---
+  duration_ms: 4442.551404
+  type: 'test'
+  ...
+# Subtest: UTF-8 BOM in a Git filename is identity, never decoder metadata
+ok 11 - UTF-8 BOM in a Git filename is identity, never decoder metadata
+  ---
+  duration_ms: 1658.649843
+  type: 'test'
+  ...
+# Subtest: nested tree corruption is rejected even if root tree and leaf blob bytes remain intact
+ok 12 - nested tree corruption is rejected even if root tree and leaf blob bytes remain intact
+  ---
+  duration_ms: 857.239791
+  type: 'test'
+  ...
+# Subtest: two empty candidates cannot replace the same reserved destination; stopped scratch rebuild is exact
+ok 13 - two empty candidates cannot replace the same reserved destination; stopped scratch rebuild is exact
+  ---
+  duration_ms: 555.964688
+  type: 'test'
+  ...
+1..13
+# tests 13
+# suites 0
+# pass 13
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 58666.795655

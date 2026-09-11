@@ -1,0 +1,35 @@
+{
+  "schemaVersion": 1,
+  "base": "b43a841a49915a43c5f165aaa519d530ec3ec199",
+  "scope": "P3/P4 modular implementation, not completed broker/self-development",
+  "core": {
+    "entrypoint": "node tools/validate.mjs --profile core --output .artifacts/core",
+    "status": "passed",
+    "passed": 69,
+    "failed": 0,
+    "inputDigest": "sha256:16de532d596a7acd99cd990441767cba0afd0f56f13338c26fe4279514504d0f"
+  },
+  "nativeGitIntegration": {
+    "command": "node --test --test-reporter=tap test/integration/repository-candidate.test.mjs",
+    "status": "passed",
+    "passed": 13,
+    "failed": 0,
+    "git": "git version 2.55.0",
+    "node": "24.21.0",
+    "logDigest": "sha256:6bf99ca2478aeae03402a8ef879764e5971bd9badca62f84b2b9f477e79dfc9b"
+  },
+  "canonicalIntegrationProfile": {
+    "status": "not_run",
+    "reason": "P5 still owns completion and enabling of the full integration profile; focused actual Git tests above do not substitute for joined SQLite/ref/runner coverage"
+  },
+  "osSandbox": {
+    "status": "not_run"
+  },
+  "liveChatGPT": {
+    "status": "not_run"
+  },
+  "superiority": {
+    "status": "not_proven"
+  },
+  "bootstrapReason": "No usable canonical dev-2 development broker exists; project-local tmcp execution and Git publication are transition only"
+}

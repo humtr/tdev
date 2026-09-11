@@ -1,0 +1,29 @@
+TAP version 13
+# Subtest: independent cache eviction cannot invalidate a bounded in-flight object read
+not ok 1 - independent cache eviction cannot invalidate a bounded in-flight object read
+  ---
+  duration_ms: 14.74
+  type: 'test'
+  location: '/data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/test/core/repository-cache.test.mjs:5:1'
+  failureType: 'testCodeFailure'
+  error: 'Object request exceeds cache budget'
+  code: 'LIMIT_EXCEEDED'
+  name: 'Dev2Error'
+  stack: |-
+    requireThat (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/src/contracts/errors.mjs:30:25)
+    file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/src/repository/git.mjs:183:64
+    Array.map (<anonymous>)
+    GitRepository.readObjects (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/src/repository/git.mjs:183:22)
+    async TestContext.<anonymous> (file:///data/data/com.termux/files/home/.tmcp/worktrees/dev2-impl-c819e5-wt_6d56e8d5c8fd0ad0/test/core/repository-cache.test.mjs:15:16)
+    async Test.run (node:internal/test_runner/test:1332:7)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:385:3)
+  ...
+1..1
+# tests 1
+# suites 0
+# pass 0
+# fail 1
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1299.111614

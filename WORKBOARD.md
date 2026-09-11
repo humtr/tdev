@@ -52,6 +52,28 @@ are epoch milliseconds; `freezeCommit` converts to Git epoch seconds exactly onc
 Public projection shapes are derived from the selected ContextService output, not
 an adapter to competing context semantics. This paragraph is coordination only.
 
+## P3/P4 implementation ready for early module join
+
+`tmcp/dev2-impl-c819e5` now supplies actual Git repository/context and isolated
+candidate/materialization source, with real SHA-1/SHA-256 object tests and bounded
+core context tests. `src/repository/context.mjs` consumes the existing immutable
+ObjectStorePort rather than adding a context ledger. `src/contracts/errors.mjs`
+and `envelopes.mjs` gain only optional closed expected/current-head/time facts;
+existing call signatures remain compatible and provider text remains redacted.
+The integration lead must retain these facts in its closed error output schema.
+
+P3/P4 join names follow the active split above. Source `Snapshot` is internal;
+the MCP projection must not return its full `source.entries` inventory. Git fetch
+uses the installed binding and verifyRemote hook; production provider identity,
+transport credentials and read-grant boundaries are injected by P1/P8. Direct
+Git commands are not exposed as a public tool. P4 verifies exact materialization
+but does not claim an OS sandbox. Only P1's sealed runner can supply that boundary.
+
+The completed local P3/P4 sub-frontier does not close J1-J5. Integrate with the
+concurrent P1/P2/P5/P6/P7/P8 implementation; run joined end-to-end and same-ref
+full-validation tests before claiming the development loop works. Evidence and
+reproduced fixes are under `docs/evidence/p34-c819e5/`.
+
 ## Current concurrent bootstrap scopes
 
 The published F0 contract at `2a2e0dd513c969e77f9c39042cabb1780d9c8cfe` remains

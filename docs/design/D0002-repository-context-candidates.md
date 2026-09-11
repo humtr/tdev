@@ -33,6 +33,15 @@ Installation configuration binds `repoId` to `(provider, stableProviderRepositor
 
 The snapshot token is authenticated and bound to subject/repository/epoch/commit/tree/policy, with a configurable expiration (initially 30 minutes). It is a handle, not permission; authorization is rechecked at use. Refreshing a token for the same immutable snapshot does not change its identity. A work's pinned base is durable and remains readable through its work ID after a token expires, subject to current access.
 
+Snapshot/cursor descriptors are immutable objects in the existing object store,
+addressed by an opaque MAC-authenticated handle. The MAC protects the object digest
+and handle kind; the descriptor binds subject, current installation binding,
+expiration, and for cursors the exact snapshot identity or `(workId,generation)`,
+tree/manifest identity and query. Shared bytes do not make two different work
+generations or snapshots interchangeable cursor targets. Full source manifests
+are broker-internal: public context responses project bounded identity/navigation,
+not every entry or denied metadata. Token persistence is not a second work ledger.
+
 `freshness:current` is default. At the start of a current discovery/read transaction, observe the remote ref and reject with `STALE_CONTEXT` if it differs; include the new head but do not silently mix content. A response is exact at its explicit observation point, not a claim that the remote cannot change one instant later. `freshness:pinned` explicitly reads the named historical snapshot with a visible `notCurrent`/last-observed indicator and is useful during a multi-call exploration or active work. New work creation always rechecks the current ref equals the requested base. A historical snapshot does not authorize silently starting stale work.
 
 ### Bounded discovery
@@ -45,11 +54,20 @@ Every returned file/range identifies path, mode, blob ID, full blob SHA-256/size
 
 ### Candidate representation
 
-A work begins with base commit `B` and generation 0 equal to `tree(B)`. A generation is a broker-owned immutable Git tree plus a SHA-256 manifest over sorted `(path, mode, contentDigest)` entries. Precisely, the manifest payload is `{entries:[{path,mode,contentDigest}]}` with entries sorted by raw UTF-8 path bytes, Git modes as six-character octal strings, and contentDigest the SHA-256 of exact blob bytes. Hash it with D0001 canonical encoding and domain `dev2.source-manifest.v1`; directories are represented by their leaf entries. Unsupported unresolved submodule content is reported, never represented as ordinary validated file bytes. Clients edit through an atomic list of `put`, `delete`, or `move` operations. Each entry carries the expected old mode/blob digest or explicit absence. `put` contains complete bytes or an exact-edit sequence with uniquely matching old text; ambiguous/multiple matches fail. `move` is an explicit source identity and absent destination, not a guessed rename heuristic.
+A work begins with base commit `B` and generation 0 equal to `tree(B)`. A generation is a broker-owned immutable Git tree plus a SHA-256 manifest over sorted `(path, mode, contentDigest)` entries. Precisely, the manifest payload is `{entries:[{path,mode,contentDigest}]}` with entries sorted by raw UTF-8 path bytes, Git modes as six-character octal strings, and contentDigest the SHA-256 of exact blob bytes for regular files and symlinks. A `160000` gitlink instead identifies a commit, not a blob: its `blobOid` field carries that algorithm-tagged commit ID, its descriptor `size` is 0, and its `contentDigest` is `recordDigest("dev2.gitlink.v1", {commitOid})`. This is explicitly typed metadata, never a claim of zero-byte submodule content or executable completeness. Hash it with D0001 canonical encoding and domain `dev2.source-manifest.v1`; directories are represented by their leaf entries. Unsupported unresolved submodule content is reported, never represented as ordinary validated file bytes. Clients edit through an atomic list of `put`, `delete`, or `move` operations. Each entry carries the expected old mode/blob digest or explicit absence. `put` contains complete bytes or an exact-edit sequence with uniquely matching old text; ambiguous/multiple matches fail. `move` is an explicit source identity and absent destination, not a guessed rename heuristic.
 
 Check work revision, limits, authorization and every expected old entry first. Build new objects in a private staging area; fsync, verify and publish by digest; then transactionally advance the work's generation/revision. A crash before row commit leaves only garbage-collectable unreferenced objects; a committed row never refers to an unflushed object. Failed edits leave the prior generation unchanged. Each generation contains the full resulting tree, while physical unchanged blobs are shared immutably. The logical delta against `B` is derived exactly from trees, including mode changes, deletions and file/directory collisions.
 
 There is no permanently writable checkout for a work. Commands get an attempt-private materialization of a sealed generation. Prefer a read-only source view and separate writable build paths; for ordinary tools requiring a writable source directory, copy/reflink immutable bytes to a private scratch directory and verify tracked bytes/modes before and after. Do not hardlink writable candidate files to shared objects. No `.git` directory, external worktree metadata, hooks or provider credential is mounted into untrusted execution.
+
+Materialization reserves a unique attempt destination with an exclusive directory
+creation, never a check-then-rename that can replace another empty destination.
+Populate only the reserved directory, flush its files and every containing directory,
+and return it as launchable only after the full generation manifest matches. A
+partial directory left by a crash is not a candidate pointer or execution receipt.
+Recovery may verify/reuse it, or remove and recreate it only after the owning
+attempt is proven stopped; never overwrite a live or uncertain attempt. This
+reuses D0001 attempt identity and adds no materialization journal or durable owner.
 
 Diagnostic/generation profiles may produce a proposed patch artifact, but their filesystem writes never silently advance a candidate. An authenticated `edit` request can adopt exact artifact bytes with the same expected-old-entry checks. Validation always binds the generation explicitly and rejects unexpected tracked writes. D0003 owns validation/integration identities, not this storage layer.
 
@@ -72,3 +90,18 @@ Compare every returned range to the exact Git blob. Test progressive completion,
 ## Implementation consequences
 
 Implement an immutable repository reader, canonical path/manifest codec, exact edit engine and private materializer. No task-specific source list is baked into a release. Keep provider binding and credential policy in D0005, work pointers in D0001, and canonical source transition in D0003.
+
+## Implementation-bound integrity and disclosure rules
+
+A fresh current read returns its new ref-observation time, not the timestamp at
+snapshot issuance. A stale response may expose only authorized expected/current
+commit OIDs and observation time; arbitrary provider exception fields remain
+redacted. Authorization is rechecked for every disclosed file or directory
+witness immediately before returning an assembled response. Tokens and immutable
+cached bytes do not preserve a revoked grant.
+
+Git-object integrity covers every intermediate tree in the traversed root, not
+only the root tree and leaf blobs. A UTF-8 BOM at the beginning of a valid filename
+is part of that filename and is never stripped during decoding. Git object
+publication requests durable objects, pack metadata and references before a
+ledger record may make the result reachable.
