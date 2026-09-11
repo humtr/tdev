@@ -17,6 +17,31 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
+## Current post-P3/P4 parallel assignments
+
+P3/P4 source is published at `1b717ad1d4c29520de859225413fc3bd4f0b3d10`;
+the native 10,000-file context join and Linux CI coverage are published at
+`7d76744a38708db3f988582e6ae0720e173a29d9`. These commits are the shared source,
+not the earlier prototypes. Canonical core passed 69 tests; actual native
+repository/candidate/context module coverage passed 14 tests on Linux CI.
+
+To continue useful work while the other root task resolves its orphaned workspace
+handles, c819e5 now also owns **retained P1/P2 primitive hardening and publication**
+in fresh task-owned `tmcp/dev2-p1-c819e5` / `tmcp/dev2-p2-c819e5` workspaces. It
+uses only the dev-2 candidate copies already retained in its own authorized
+workspace, not direct access to another root task's protected files. These copies
+are candidate input, not current authority or proof. They must pass current
+Designs and actual checks before joining. Do not duplicate or overwrite them in
+the integration lead's workspace.
+
+The k47 execution remains the **P5/P6/P7/P8 and overall broker integration lead**.
+Consume the exact published P1/P2/P3/P4 contracts, combine complementary changes,
+and fresh-rebind the canonical ref at each integration. Shared contract changes
+are bounded, additive and documented with the owning Design. The earlier split
+below describes the already-completed phase, not a conflicting current assignment.
+No normal dev-2 runtime, live sandbox, ChatGPT experiment or superiority claim is
+implied by module tests or by the existence of task/worktree records.
+
 ## Active implementation split (2026-09-11 current frontier)
 
 Two live bootstrap executions were freshly observed against the same published
