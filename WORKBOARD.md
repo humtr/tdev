@@ -21,8 +21,8 @@ except explicit current Design changes.
 
 Correction implementation: native execution-variant selection, workers.dev binding
 validation, bounded reconnect-safe transport core and explicit Access-application
-authentication are implemented. Native canonical core passes 109 tests, including
-25 new correction tests; focused native Git/SQLite integration passes 32 tests.
+authentication and hosted-job identity verification are implemented. Native canonical
+core passes 120 tests; focused native Git/SQLite/candidate integration passes 32 tests.
 Checked JSDoc and Design/document checks pass. These are source/module checks, not
 a completed installed gateway or production sandbox. Actual results are recorded in
 `docs/evidence/environment-correction-2026-09-11/`. No dev-2 Worker, public origin,

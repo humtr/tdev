@@ -10,8 +10,8 @@
     "fail": 0,
     "cancelled": 0,
     "skipped": 0,
-    "logSha256": "cb8fd1b6a6235aec7a5a96e6f1560226c8df0905c2582d6749b39b1d40010b57",
-    "inputDigest": "sha256:376a9eb328127da2b12ebb78abfe40d6d989df9aeab20da4c1b7a0b4b07eb45f",
+    "logSha256": "d8f42211d56bbc7349ad248387c53516830897c9dd79dbfe2d007ebcf7074121",
+    "inputDigest": "sha256:7a8ce9cdd8cdde985eb084abd3f723e2cea5a64650f6a7312672fa314d40c9dd",
     "execution": {
       "variantId": "termux-android-arm64-node24-18",
       "role": "native-control",
@@ -102,5 +102,6 @@
   "workersDevInstallation": "not_provisioned",
   "sameRefPerformance": "not_run",
   "deviceDozeForceStopReboot": "not_run",
-  "superiority": "not_proven"
+  "superiority": "not_proven",
+  "canonicalUnimplementedProfileObservation": "Recorded before the final Workboard count synchronization; each NOT RUN observation retains its exact input digest."
 }
