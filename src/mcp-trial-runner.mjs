@@ -40,6 +40,7 @@ import {
   normalizeMcpTrialCompositionManifest,
 } from './mcp-trial-composition.mjs';
 import { normalizeCaseContract } from './policy.mjs';
+import { normalizeTaskResult } from './results.mjs';
 
 const MAX_ENVELOPE_BYTES = 5 * 1024 * 1024;
 const AGENT_PROTOCOL_VERSION = 'tdev-agent-v1';
@@ -324,6 +325,23 @@ function acceptedResultEnvelope(handoff) {
   }
   if (!isPlainRecord(handoff.command.envelope)) fail('mcp_trial_result_handoff_invalid', 'Agent result handoff envelope is invalid');
   return handoff.command;
+}
+
+function requiredValidationFailure(view, delivery, command) {
+  const task = view.plan.tasksById[delivery.taskId];
+  if (task?.kind !== 'work' || task.execution?.resultKind !== 'validation' || task.execution.requirePassed !== true) return null;
+  try {
+    normalizeTaskResult(task, command.envelope.result, {
+      baseDigest: view.plan.baseDigest,
+      pathPolicy: view.caseContract.pathPolicy,
+      limits: view.caseContract.limits,
+      effectKey: effectKey(view, delivery.taskId),
+    });
+    return null;
+  } catch (cause) {
+    if (cause?.code !== 'validation_failed') throw cause;
+    return { causeCode: 'validation_failed', certainty: 'not_applied', retryable: false };
+  }
 }
 
 function deliveryForAttempt(agentSnapshot, caseId, attemptId) {
@@ -702,61 +720,8 @@ export class McpTrialDevelopmentUnitRunner {
     return this.driveOwner.advance(input);
   }
 
-  async #bindHandoff(view, agentSnapshot, delivery, handoff) {
-    const command = acceptedResultEnvelope(handoff);
-    let currentView = view;
-    let caseResponse = null;
-    const attempt = currentView.snapshot.attempts?.[delivery.attemptId];
-    const taskState = currentView.snapshot.taskStates?.[delivery.taskId];
-    if (attempt?.state !== 'succeeded' || taskState?.state !== 'succeeded') {
-      const envelope = {
-        requestId: handoff.requestId,
-        expectedCaseRevision: currentView.snapshot.caseRevision,
-        command,
-      };
-      const transaction = await this.repository.command(currentView.snapshot.caseId, envelope);
-      caseResponse = canonicalClone(transaction.result);
-      currentView = await this.#load(currentView.snapshot.caseId);
-    }
-    const refreshedAgent = await this.#readAgent();
-    const refreshedDelivery = deliveryForAttempt(refreshedAgent, currentView.snapshot.caseId, delivery.attemptId) ?? delivery;
-    if (refreshedDelivery.slotHeld === true) {
-      return { view: currentView, agentSnapshot: refreshedAgent, status: 'awaiting_cleanup', caseResponse, command };
-    }
-    const committedRevision = currentView.snapshot.caseRevision;
-    const storedReceipt = currentView.snapshot.receipts?.[handoff.requestId] ?? null;
-    if (caseResponse === null && (!isPlainRecord(storedReceipt) || storedReceipt.requestId !== handoff.requestId)) {
-      // A succeeded Attempt without the exact Case receipt cannot be bound to
-      // the Agent delivery.  Do not synthesize a response: that would create a
-      // second, non-authoritative receipt contract across the two owners.
-      fail('mcp_trial_case_receipt_missing', 'Accepted result has no matching authoritative Case receipt');
-    }
-    const response = caseResponse ?? storedReceipt.response;
-    const caseReceipt = {
-      requestId: handoff.requestId,
-      commandDigest: typedDigest('tdev.case-command.v1', command),
-      response,
-      responseDigest: digest(response),
-      committedRevision,
-    };
-    const bound = await this.agentOwner.invoke('bind_terminal_case_receipt', {
-      request: { deliveryId: delivery.deliveryId, command, caseReceipt },
-      nowMs: this.now(),
-    });
-    return { view: currentView, agentSnapshot: await this.#readAgent(), status: 'result_accepted', caseResponse, command, bound };
-  }
-
-  async #resumeExisting(view, agentSnapshot, attempt, { caseId } = {}) {
-    const delivery = deliveryForAttempt(agentSnapshot, caseId, attempt.id);
-    if (delivery === null) {
-      return { view, agentSnapshot, status: 'awaiting_delivery', taskId: attempt.taskId, attemptId: attempt.id };
-    }
-    const handoff = await this.agentOwner.readResultHandoff(delivery.deliveryId);
-    if (handoff !== null) return this.#bindHandoff(view, agentSnapshot, delivery, handoff);
-    const failure = completionFailure(delivery);
-    if (failure === null) {
-      return { view, agentSnapshot, status: 'awaiting_result', taskId: attempt.taskId, attemptId: attempt.id, deliveryId: delivery.deliveryId };
-    }
+  async #bindFailure(view, delivery, attempt, failure) {
+    const caseId = view.snapshot.caseId;
     const command = {
       type: 'fail_attempt',
       attemptId: attempt.id,
@@ -807,6 +772,66 @@ export class McpTrialDevelopmentUnitRunner {
       failure,
       bound,
     };
+  }
+
+  async #bindHandoff(view, agentSnapshot, delivery, handoff) {
+    const command = acceptedResultEnvelope(handoff);
+    let currentView = view;
+    let caseResponse = null;
+    const attempt = currentView.snapshot.attempts?.[delivery.attemptId];
+    const taskState = currentView.snapshot.taskStates?.[delivery.taskId];
+    if (attempt?.state !== 'succeeded' || taskState?.state !== 'succeeded') {
+      const validationFailure = requiredValidationFailure(currentView, delivery, command);
+      if (validationFailure !== null) return this.#bindFailure(currentView, delivery, attempt, validationFailure);
+      const envelope = {
+        requestId: handoff.requestId,
+        expectedCaseRevision: currentView.snapshot.caseRevision,
+        command,
+      };
+      const transaction = await this.repository.command(currentView.snapshot.caseId, envelope);
+      caseResponse = canonicalClone(transaction.result);
+      currentView = await this.#load(currentView.snapshot.caseId);
+    }
+    const refreshedAgent = await this.#readAgent();
+    const refreshedDelivery = deliveryForAttempt(refreshedAgent, currentView.snapshot.caseId, delivery.attemptId) ?? delivery;
+    if (refreshedDelivery.slotHeld === true) {
+      return { view: currentView, agentSnapshot: refreshedAgent, status: 'awaiting_cleanup', caseResponse, command };
+    }
+    const committedRevision = currentView.snapshot.caseRevision;
+    const storedReceipt = currentView.snapshot.receipts?.[handoff.requestId] ?? null;
+    if (caseResponse === null && (!isPlainRecord(storedReceipt) || storedReceipt.requestId !== handoff.requestId)) {
+      // A succeeded Attempt without the exact Case receipt cannot be bound to
+      // the Agent delivery.  Do not synthesize a response: that would create a
+      // second, non-authoritative receipt contract across the two owners.
+      fail('mcp_trial_case_receipt_missing', 'Accepted result has no matching authoritative Case receipt');
+    }
+    const response = caseResponse ?? storedReceipt.response;
+    const caseReceipt = {
+      requestId: handoff.requestId,
+      commandDigest: typedDigest('tdev.case-command.v1', command),
+      response,
+      responseDigest: digest(response),
+      committedRevision,
+    };
+    const bound = await this.agentOwner.invoke('bind_terminal_case_receipt', {
+      request: { deliveryId: delivery.deliveryId, command, caseReceipt },
+      nowMs: this.now(),
+    });
+    return { view: currentView, agentSnapshot: await this.#readAgent(), status: 'result_accepted', caseResponse, command, bound };
+  }
+
+  async #resumeExisting(view, agentSnapshot, attempt, { caseId } = {}) {
+    const delivery = deliveryForAttempt(agentSnapshot, caseId, attempt.id);
+    if (delivery === null) {
+      return { view, agentSnapshot, status: 'awaiting_delivery', taskId: attempt.taskId, attemptId: attempt.id };
+    }
+    const handoff = await this.agentOwner.readResultHandoff(delivery.deliveryId);
+    if (handoff !== null) return this.#bindHandoff(view, agentSnapshot, delivery, handoff);
+    const failure = completionFailure(delivery);
+    if (failure === null) {
+      return { view, agentSnapshot, status: 'awaiting_result', taskId: attempt.taskId, attemptId: attempt.id, deliveryId: delivery.deliveryId };
+    }
+    return this.#bindFailure(view, delivery, attempt, failure);
   }
 
   async #dispatchWork(view, agentSnapshot, taskId, { caseId, driveRequestId, payload } = {}) {

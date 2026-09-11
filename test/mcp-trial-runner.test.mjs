@@ -469,6 +469,108 @@ test('D0046 runner converts received not-started/no-handle evidence into authori
   assert.equal(terminalBinding.request.command.attemptId, attempt.id);
 });
 
+test('D0046 runner converts failed required-validation handoff into authoritative fail_attempt state', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-failed-validation-handoff-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'produce a candidate that fails required validation',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const caseId = 'trial-failed-validation-handoff';
+  const engine = new CaseEngine({ caseId, plan });
+  const executor = (taskId) => ({
+    id: 'executor-one',
+    epoch: 1,
+    capabilities: plan.tasksById[taskId].requiredCapabilities ?? [],
+  });
+  const contextAttempt = engine.startAttempt('context', executor('context'));
+  engine.completeAttempt(contextAttempt.id, { kind: 'observation', subject: 'repository-context', value: { referenceId: 'ctx-failed-validation' } });
+  const modelAttempt = engine.startAttempt('model', executor('model'));
+  engine.completeAttempt(modelAttempt.id, {
+    kind: 'changeset',
+    baseDigest: digest(BASE_TREE),
+    writes: [{ path: 'src/base.mjs', content: 'export const base = 2;\n' }],
+  });
+  const validationAttempt = engine.startAttempt('validate', executor('validate'));
+  const resultEnvelope = engine.resultEnvelope(validationAttempt.id, {
+    kind: 'validation',
+    passed: false,
+    checks: [{ id: 'tdev.validation.npm-check.v1', passed: false, message: 'fixture validation failed' }],
+  });
+  const deliveryId = digest({ delivery: 'failed-validation-handoff' });
+  let terminalBinding = null;
+  const agentState = {
+    revision: 1,
+    routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
+    installableAgent: { state: 'CURRENT' },
+    connection: { id: 'connection-one', epoch: 1 },
+    executor: { id: 'executor-one', epoch: 1 },
+    capacity: { revision: 1, effectiveCapacity: 1 },
+    reservationWindowGeneration: 1,
+    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    reservations: {},
+    deliveries: {
+      [deliveryId]: {
+        deliveryId,
+        caseId,
+        taskId: 'validate',
+        attemptId: validationAttempt.id,
+        requestedSlots: 1,
+        slotHeld: false,
+        terminalCaseReceipt: null,
+        dispatches: {},
+      },
+    },
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => null,
+      load: async () => engine,
+      command: async (_caseId, envelope) => {
+        const receipt = engine.applyCommand(envelope);
+        return { engine, result: receipt.response, persisted: true };
+      },
+    },
+    driveOwner: {
+      initialize: async () => null,
+      advance: async (input) => ({ classification: 'accepted', input }),
+    },
+    agentOwner: {
+      async invoke(operation, input) {
+        assert.equal(operation, 'bind_terminal_case_receipt');
+        terminalBinding = input;
+        return { classification: 'accepted' };
+      },
+      readRoute: async () => agentState,
+      readResultHandoff: async (requestedDeliveryId) => {
+        assert.equal(requestedDeliveryId, deliveryId);
+        return {
+          requestId: 'handoff-failed-validation',
+          command: { type: 'accept_result', envelope: resultEnvelope },
+        };
+      },
+      routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
+    },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    now: () => 2000,
+  });
+  const result = await runner.drive({ caseId, driveRequestId: 'drive-failed-validation-handoff', payload: {} });
+  assert.equal(result.status, 'attempt_failed');
+  assert.equal(engine.attempts[validationAttempt.id].state, 'failed');
+  assert.equal(engine.attempts[validationAttempt.id].error.code, 'validation_failed');
+  assert.equal(engine.attempts[validationAttempt.id].error.certainty, 'not_applied');
+  assert.equal(engine.taskStates.validate.state, 'failed');
+  assert.equal(engine.taskStates.validate.error.retryable, false);
+  assert.equal(terminalBinding.request.command.type, 'fail_attempt');
+  assert.equal(terminalBinding.request.command.attemptId, validationAttempt.id);
+  assert.equal(terminalBinding.request.caseReceipt.committedRevision, engine.caseRevision);
+});
+
 test('D0046 runner converts cleaned completion failure evidence into authoritative fail_attempt state', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
