@@ -6,6 +6,7 @@ import { createMcpTrialOperationRequest } from '../src/mcp-trial-runner.mjs';
 import { normalizeMcpTrialCompositionManifest } from '../src/mcp-trial-composition.mjs';
 import {
   DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+  DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
   developmentOperationCapabilityId as semanticDevelopmentOperationCapabilityId,
   developmentOperationDescriptor,
   normalizeDevelopmentOperationCatalog,
@@ -895,6 +896,43 @@ test('D0047 current exact-release scoped semantic Case resolves through its owne
   });
   await assert.rejects(staleRunner.candidate('trial-current-dynamic'), { code: 'mcp_trial_context_mismatch' });
   assert.equal(historicalReads, 0);
+});
+
+test('D0046 semantic change request keeps delegated base identity out of builtin compose input', () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const operationCatalog = normalizeDevelopmentOperationCatalog(JSON.parse(
+    readFileSync(new URL('../config/development-operation-catalog.json', import.meta.url), 'utf8'),
+  ));
+  const compose = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGESET_COMPOSE_OPERATION, 1);
+  const delegated = developmentOperationDescriptor(operationCatalog, DEVELOPMENT_CHANGE_GENERATE_OPERATION, 1);
+  const baseIdentity = { objectFormat: 'sha1', commitOid: COMMIT, treeOid: 'b'.repeat(40) };
+  const commonInput = {
+    repositoryCommitOid: COMMIT,
+    baseDigest: digest(BASE_TREE),
+    contextReferenceId: 'ctx-semantic-request-shape',
+    baseIdentity,
+  };
+  const makeView = (operation) => ({
+    plan: { tasksById: { change: { input: { ...commonInput, operation } } } },
+    caseContract: {},
+  });
+  const composeRequest = createMcpTrialOperationRequest(makeView({
+    id: DEVELOPMENT_CHANGESET_COMPOSE_OPERATION,
+    version: 1,
+    contractDigest: compose.contractDigest,
+    input: { baseDigest: digest(BASE_TREE), writes: [] },
+  }), 'change', {}, operationManifest);
+  assert.equal(Object.hasOwn(composeRequest, 'baseIdentity'), false);
+
+  const delegatedRequest = createMcpTrialOperationRequest(makeView({
+    id: DEVELOPMENT_CHANGE_GENERATE_OPERATION,
+    version: 1,
+    contractDigest: delegated.contractDigest,
+    input: { instruction: 'make one bounded source change' },
+  }), 'change', {}, operationManifest);
+  assert.deepEqual(JSON.parse(JSON.stringify(delegatedRequest.baseIdentity)), baseIdentity);
 });
 
 test('D0047 Trial runner surfaces semantic change capability and binds validation to the accepted candidate digest', () => {

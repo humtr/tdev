@@ -388,7 +388,7 @@ export function createMcpTrialOperationRequest(view, taskId, payload, operationM
       ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.objectFormat === undefined ? {} : { objectFormat: task.input.objectFormat }),
       ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.contextScope === undefined ? {} : { contextScope: canonicalClone(task.input.contextScope) }),
       ...(task.input.writePaths === undefined ? {} : { writePaths: canonicalClone(task.input.writePaths) }),
-      ...(task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
+      ...(task.input.operation.id !== DEVELOPMENT_CHANGE_GENERATE_OPERATION || task.input.baseIdentity === undefined ? {} : { baseIdentity: canonicalClone(task.input.baseIdentity) }),
       ...(task.input.repositoryBaseIdentity === undefined ? {} : { repositoryBaseIdentity: canonicalClone(task.input.repositoryBaseIdentity) }),
     };
   }
