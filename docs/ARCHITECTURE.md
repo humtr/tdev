@@ -1,56 +1,83 @@
-# dev-2 architecture map
+# dev-2 architecture
 
-This is a navigation and requirement-coverage projection of accepted Designs, not another authority layer. [DIRECTIVE.md](../DIRECTIVE.md) owns objectives, [RULE.md](../RULE.md) owns stable invariants, each Design owns its bounded decisions. [WORKBOARD.md](../WORKBOARD.md) alone owns execution order. Design numbers do not encode dependency order. `accepted` below means decided, not implemented or verified.
+Navigation only; bounded semantic owners are the accepted Designs. DIRECTIVE r2
+owns product goals and the actual first-release operating constraints. Current
+implementation and execution order are in WORKBOARD, not this overview.
 
-## Product shape
-
-ChatGPT supplies reasoning and exact edits. Four deterministic MCP tools connect it to one persistent Linux broker, per-repository SQLite work state, immutable Git-object candidates and isolated rootless execution containers. The external Git ref owns canonical source. Only an exact direct-child commit frozen before required validation can enter the canonical ref through an expected-old-ref update. An immutable result ID permits receipt/commit reuse across separate validation and integration actions; an unresolved unrelated action does not own the ref. The same MCP can stage and activate its own immutable release at the unchanged endpoint. There is no required second model, Codex, Worker, Agent, Case, Drive or Promotion subsystem.
+## Selected system
 
 ```text
-ChatGPT (requirements, decomposition, edits, interpretation)
-  -> canonical dev-2 MCP: context | read | work | observe
-     -> authorization + bounded deterministic broker
-        -> immutable snapshots/candidate generations
-        -> repository ledger + ready-action dispatch
-        -> isolated execution/required validation (default capacity 8)
-        -> exact-ref Git integration -> authoritative readback
-        -> immutable release -> fixed activation helper -> same MCP endpoint
+ChatGPT (sole required intelligence)
+  -> fixed workers.dev MCP + Access identity
+  -> installation-scoped routing-only connection object
+  <-> device-initiated outbound channel
+Termux / Android
+  -> deterministic control + exact Git repository/candidates
+  -> per-repository SQLite work truth and bounded admission
+  -> isolated native validation on ephemeral GitHub-hosted execution sessions
+  -> exact validated Git result / expected-old-ref integration
+  -> durable terminal observation through the same MCP
 ```
 
-Capacity is positive deployment policy with default 8, required supported baseline at least 8 and no architectural maximum. Stable work/action/attempt identities do not encode slots. Capacity 1 and 16/32 use the same schema and semantics. Independent work/read/validation proceeds concurrently. Only a work revision, short database transaction, one atomic remote ref CAS or actual process-ownership handoff serializes its necessary invariant. Recovery of a different work holds no whole-ref fence unless the binding itself has lost its safety guarantee.
+Termux is the actual control and state runtime, not an optional test host. Public
+ingress is workers.dev, not an invented generic HTTPS server. The device requires
+no inbound reachability, extra VPS, reverse-proxy host, public tunnel or changing
+URL. GitHub-hosted compute is an explicit managed execution dependency within the
+existing foundation, chosen to avoid running hostile candidate code in the same
+Android UID as credentials. It is not a user-maintained Linux server.
 
-## Requirement-to-decision ownership
+One local ledger owns each repository's work and recovery; one external Git ref
+owns canonical source. The routing object owns only live connection routing.
+Execution sessions own physical process observations, not work/admission authority.
+No second model, Case/Drive/Agent/Promotion, copied cloud work ledger, queue service,
+D1 or R2 is introduced. Each component has a concrete removal test: without routing
+an outbound socket cannot receive public requests; without isolated execution an
+untrusted candidate could access device control credentials; without durable local
+identity recovery could duplicate work/effects. Other components are omitted.
 
-| Directive obligation | Bounded owner | Verification location |
-| --- | --- | --- |
-| User authority, clean root, no predecessor inheritance | DIRECTIVE and RULE; no derived override | Publication root/parent and unchanged authority blob checks |
-| ChatGPT-only intelligence; minimum deterministic public path | [D0004](design/D0004-mcp-controller-contract.md) | Actual client transcript; dependency/process audit |
-| Stable work identity, parallel default 8, cancellation/restart/dedup | [D0001](design/D0001-work-state-parallel-recovery.md) | Core state/fault tests, SQLite reopen, C1/8/16/32 |
-| Exact repository, progressive bounds, no deployment scope | [D0002](design/D0002-repository-context-candidates.md) | Real Git snapshots, stale context, unknown-path live task |
-| Isolated immutable candidate generations | [D0002](design/D0002-repository-context-candidates.md) | Entry CAS and eight-way materialization tests |
-| Required validation and exact canonical effect | [D0003](design/D0003-validation-exact-integration.md) | Full-tree identity, provider CAS and lost-response tests |
-| Authorization, sandbox/credential/provider boundary | [D0005](design/D0005-security-execution-boundaries.md) | Negative permissions and real OS escape/isolation tests |
-| Stable runtime and own-source safe update | [D0006](design/D0006-runtime-release-activation.md) | Stage/activate/restart/rollback through same MCP |
-| Local/CI/live equivalence; both-baseline superiority | [D0007](design/D0007-verification-superiority-contract.md) | Canonical entrypoint, paired raw evidence, hard gates |
+Work identity and correctness do not depend on any of these provider resource IDs.
+Default execution capacity is 8; capacity1 serial mode and capacity16/32 use the same
+contracts. Independent edits, reads, validation and nonconflicting effects progress
+concurrently. Only exact work revisions, actual resource bounds and same-ref atomic
+updates fence. Android sleep makes control unavailable, not a second owner or a
+successful no-op. Retry reaches the same ledger identity after reconnection.
 
-D0001 owns state transitions, not validation eligibility. D0002 owns object/snapshot identity, not permissions or canonical writes. D0003 owns canonical-source transition, not release activation. D0004 owns public representation, not a duplicate state machine. D0005 owns trust boundaries. D0006 owns deployment/activation. D0007 owns proof methodology, never product goals. A method that spans modules calls the owning contract; it does not copy its policy into another Design.
+## Exact change and result semantics
 
-## Why each component exists
+Bound current repo/head, progressively read bounded source, create an immutable
+candidate generation, and prepare a frozen direct-child commit/result at current
+head. Required full validation runs against those exact bytes in an identified
+execution environment. Only an authenticated matching receipt makes that result
+eligible. Integrate using expected-old-ref protection; reconcile response loss by
+exact commit and managed-lineage readback. Recomposition changes result identity
+and requires validation again. No throughput optimization may validate one tree
+and publish another or exclude the cost of stale/full-validation repetition.
 
-| Component | Concrete invariant lost if removed | Deliberately absent alternative |
-| --- | --- | --- |
-| Per-repo ledger and unique request keys | Reconnect/restart loses work or duplicates effects | Event-sourced Case/Drive tree, separate durable queue |
-| Ready-row selector and resource reservations | Bounded/fair parallel dispatch cannot be enforced | Standalone scheduler service, fixed eight lanes |
-| Immutable Git objects plus strong manifest | Candidate/source bytes can drift under validation | Shared writable checkout; semantic tree copy per owner |
-| Attempt sandbox/launcher | Repository code reaches credentials or other work | Public arbitrary shell, model subprocess |
-| Validation receipt + frozen ref intent | Tested and published bytes diverge; response loss duplicates commits | Promotion lifecycle; database/Git distributed transaction |
-| Narrow provider/protocol adapters | Protocol formatting or remote credential effects leak into domain code | Generic plugin/compatibility framework |
-| Fixed release helper and one activation record | Broker replacement can lose its own restart/rollback intent | Permanent custom supervisor/qualification coordinator |
+## Owner map
 
-Failure handling is in these same bounded contracts. There is no recovery product, qualification service or migration authority. Predecessor external state remains outside dev-2 and untouched. Removal of any later abstraction must be the default whenever these invariants still hold without it.
+| Question | Owner |
+| --- | --- |
+| Work, IDs, deduplication, admission, restart and callback fencing | D0001 |
+| Binding, bounded context, Git objects, candidate generations | D0002 |
+| Prepared result, required validation, same-ref integration | D0003 |
+| Four MCP tools, typed work variants and observation | D0004 |
+| Human/device/runner authentication, capabilities, sandbox, credentials | D0005 |
+| Termux + workers.dev topology, outbound routing, managed execution, release | D0006 |
+| Native/core/integration/live test purposes, comparisons and gates | D0007 |
 
-## Known architectural risks, not hidden assumptions
+Dependencies are in Design metadata and mechanically projected into INDEX. They
+are not lane execution order. Workboard selects the implementation frontier.
 
-Same-ref parallel integrations can require repeated full validation after head movement. D0007 scores this cost and blocks a superiority claim on failure. SQLite short synchronous operations may limit the control plane under load; measure event-loop and admission latency before adding workers. The chosen Linux sandbox requires a capable host; no such host is claimed provisioned. A brief broker update interruption is accepted, but stable work survives and only one writer can run. Node's SQLite API pin and actual modern MCP client conformance require their own focused tests.
+## Operational cost and falsifiability
 
-[Design index and graph](design/INDEX.md) are generated from metadata. [Evidence basis](evidence/2026-09-11-architecture-basis.md) records fresh observations and predecessor classifications. No historical PASS substitutes for a new acceptance test.
+Warm execution sessions amortize managed runner startup, but cold jobs, request
+routing, object transfer, quota and Android outages may cost more than predecessors.
+This architecture is selected, not proved optimal or faster. Same-ref eight-work
+benchmarking against both actual predecessors remains mandatory; an improvement
+claim cannot be made from component count or source cleanup. Benchmark cohorts
+remain release/performance decision work, not a per-edit gate.
+
+No dev-2 Worker, assigned public origin, native activation helper or production
+sandbox seal is presumed present. Environment evidence and its explicit unknowns
+are in [the correction record](evidence/environment-correction-2026-09-11/README.md).
+The old persistent generic-Linux/systemd topology is no longer an accepted target.

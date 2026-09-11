@@ -1,3 +1,4 @@
+import { selectExecutionVariant } from '../src/runtime/environment.mjs';
 import { readFileSync, readdirSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
 import { resolve, relative, join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -35,7 +36,7 @@ export function main(argv) {
   if (!Object.hasOwn(config.profiles,profile)) { console.error('Unknown profile'); return 1; }
   const descriptor=config.profiles[profile];
   const lockBytes=readFileSync(join(root,'config/toolchain.lock.json'));
-  /** @type {{node:{version:string},git:{version:string}}} */
+  /** @type {{executionVariants:import('../src/runtime/environment.mjs').ExecutionVariant[],node:{version:string},git:{version:string}}} */
   const lock=JSON.parse(lockBytes.toString());
   mkdirSync(output,{recursive:true});
   const started=performance.now(); const startedAt=new Date().toISOString();
@@ -56,7 +57,10 @@ export function main(argv) {
     checks.push({name,status,exitCode:r.status,signal:r.signal,durationMs:Math.ceil(performance.now()-t),logDigest:bytesDigest(log)});
     if (timed) {code=3;interrupted=true;} else if (status==='failed') code=1; else if(missing && code===0) code=2;
   }
-  if(process.versions.node!==lock.node.version) {
+  /** @type {Readonly<import('../src/runtime/environment.mjs').ExecutionVariant>|null} */
+  let variant=null;
+  try {variant=selectExecutionVariant(lock,{node:process.versions.node,platform:process.platform,arch:process.arch,sqlite:process.versions.sqlite??null});} catch(error) {if(!(error&&typeof error==='object'&&'code' in error&&error.code==='EXECUTION_UNAVAILABLE'))throw error;}
+  if(variant===null) {
     checks.push({name:'node.pin',status:'not_run',exitCode:null,signal:null,durationMs:0,logDigest:null}); code=2;
   } else if(profile==='core' && !existsSync(join(root,'node_modules/typescript/bin/tsc'))) {
     checks.push({name:'npm.lock',status:'not_run',exitCode:null,signal:null,durationMs:0,logDigest:null}); code=2;
@@ -79,7 +83,7 @@ export function main(argv) {
     entrypointDigest:bytesDigest(readFileSync(fileURLToPath(import.meta.url))),inputDigest,outputInputDigest,
     profileDigest:recordDigest('dev2.validation-profile.v1',descriptor),toolchainLockDigest:bytesDigest(lockBytes),
     dependencyLockDigest:bytesDigest(readFileSync(join(root,'package-lock.json'))),
-    execution:{node:process.versions.node,nodeBinaryDigest:bytesDigest(readFileSync(process.execPath)),platform:process.platform,arch:process.arch,sqlite:process.versions.sqlite??null},checks};
+    execution:{variantId:variant?.id??null,role:variant?.role??null,node:process.versions.node,nodeBinaryDigest:bytesDigest(readFileSync(process.execPath)),platform:process.platform,arch:process.arch,sqlite:process.versions.sqlite??null},checks};
   writeFileSync(join(output,'result.json'),JSON.stringify(result,null,2)+'\n');
   console.log(JSON.stringify(result)); return code;
 }

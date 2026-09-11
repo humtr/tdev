@@ -5,7 +5,7 @@
 - Status: `draft`
 - Depends-On: `[]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `one-bounded-decision-label`
 
 ## Problem

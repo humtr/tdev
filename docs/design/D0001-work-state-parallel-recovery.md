@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0005]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `work-state, action-deduplication, parallel-admission, execution-recovery, canonical-record-encoding`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -133,3 +133,27 @@ At capacity 1/8/16/32, run the same identities and state-transition tests. At 8,
 ## Implementation consequences
 
 Use pure transition/admission functions plus a narrow SQLite store, a ready selector and sandbox attempt adapter. Keep effect-specific rules in their owning Designs. Export read projections rather than exposing SQL rows or process IDs as the public contract. No durable schema contains a fixed concurrency-length collection.
+
+## Device interruption and managed-attempt reconciliation
+
+The work ledger runs on native Termux as selected by D0006. Its exclusive SQLite
+owner lock, not a gateway connection or an expiring session lease, fences work
+ownership. Connection loss changes availability only. Reconnects carry original
+logical request identities; durable authorization/dedup ordering remains unchanged.
+
+Managed sessions add bounded provider-intent records in the same ledger, not a
+second work owner or queue. Persist immutable session/ref/approved-release/deadline
+before provider creation; CAS-select a single verified provider run. Before a launch,
+persist full attempt identity, session/run binding, source/profile digest and effect
+phase. The physical session controller keeps an atomic attempt-name record until
+terminal host shutdown. Missing channel or unknown inspect is `blocked`/uncertain,
+never implicit completion or a new launch. After restart adopt observer epochs
+without rewriting the original attempt identity; accept callbacks only for the
+selected provider run and current observer authority.
+
+A stopped attempt can release its capacity while retaining unresolved effect data.
+One such failure must not fence independent work on another attempt/session. Provider
+quota and device offline status may delay admission truthfully; neither changes the
+default-eight work semantics nor allocates eight permanent durable lanes. Session
+cleanup occurs only after authoritative terminal run/attempt proof; a timer alone
+never resolves an integration or permits duplicate physical execution.

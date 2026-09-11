@@ -1,0 +1,34 @@
+{
+  "observedDate": "2026-09-11",
+  "classification": "primary-provider documentation, not measured account quota or entitlement",
+  "workers": {
+    "source": "https://developers.cloudflare.com/workers/platform/limits/",
+    "memoryPerIsolateMB": 128,
+    "simultaneousOutgoingPerRequest": 6,
+    "freePlanIfApplicable": {
+      "requestsPerDay": 100000,
+      "cpuMsPerRequest": 10
+    },
+    "actualPlan": "unknown: account subscription GET denied",
+    "paidPlanAssumed": false
+  },
+  "durableObjects": {
+    "source": "https://developers.cloudflare.com/durable-objects/platform/limits/",
+    "receivedWebSocketMessageMiB": 32,
+    "freePlanBackendIfApplicable": "SQLite only",
+    "applicationWorkLedgerStoredHere": false
+  },
+  "githubHosted": {
+    "source": "https://docs.github.com/en/actions/reference/limits",
+    "maxJobExecutionHours": 6,
+    "actualAvailableJobConcurrency": "not verified; do not assume subscription quota",
+    "actualEvidence": "existing exact-source Linux CI job and rootless engine capability observation"
+  },
+  "designConsequences": [
+    "Product byte and in-flight bounds are smaller than platform body/frame limits.",
+    "Do not allocate a full repository or job workspace in a Worker isolate.",
+    "Budget edge assertion verification and decoding against actual CPU entitlement before installation.",
+    "Measure cold session startup, transfer, quota errors and all provider operations; warm sessions do not prove speed superiority.",
+    "No paid-plan upgrade or resource provisioning is implicit."
+  ]
+}

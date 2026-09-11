@@ -5,77 +5,222 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `runtime-topology, release-activation, toolchain-seal`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
 
 
+
+
 ## Problem
 
-A system that can edit itself but needs an external developer to restart or re-scope it is not self-developing. Choose a concrete runtime and a small recoverable release transition without importing a Worker/Agent deployment hierarchy.
+A generic persistent Linux server and unrestricted inbound endpoint are not the
+user's actual first-release environment. Android may suspend or kill control code,
+while ChatGPT needs one stable workers.dev origin and exact durable work recovery.
 
 ## Required outcome
 
-One stable authenticated MCP endpoint serves repository discovery, isolated execution, integration and its own release activation. Repository HEAD and running release are separately observable identities. A normal new work item never changes routing, deploy-time source scope, credentials or service configuration.
+Operate the control plane on the existing Termux device, keep public ingress on
+workers.dev without another server/tunnel, preserve parallel exact development,
+and make partial connectivity/deployment failures observable and recoverable.
 
 ## Facts / assumptions / unknowns
 
-The repository has only documentation at design acceptance. No dev-2 installation, DNS name, OAuth issuer or Linux execution host has been provisioned or verified. These are installation values, not undecided product semantics. A transition operator must provision an authorized host once; absence blocks live verification but not core implementation. Node 24 has a built-in SQLite interface; its documented release-candidate stability is an explicit pinning risk, not a claim of stable API compatibility.
+Actual native and account observations are retained in the environment correction
+evidence. The workers.dev subdomain exists but a dev-2 Worker/origin is not yet
+assigned. Existing GitHub CI runs; production sandbox, managed-session latency,
+account quota and new deployment permissions are not yet proven. No paid capability
+or uninterrupted Android lifetime is assumed.
 
-## Decision
+## 1. Decision: selected first-release topology
 
-The first deployment is a persistent Linux service: one Node.js broker process, per-repository SQLite databases and immutable object/artifact storage on a local persistent filesystem, plus rootless Podman execution containers. HTTPS terminates at a standard reverse proxy with a fixed `/mcp` route to the broker. Use a static configured origin, not a dynamically allocated tunnel as a product dependency. Cloudflare Workers, Durable Objects, D1, a separate Agent, a model subprocess and a remote queue are not required.
+The operational control runtime is a native Termux/Android Node process. It owns
+repository bindings, bounded source discovery, immutable Git candidates, the local
+SQLite work ledger, authorization decisions and canonical Git integration. SQLite
+WAL/FULL and exclusive owner locking are checked on the app-private filesystem;
+there is no mandatory Ubuntu host, VPS, VM, systemd or inbound device port.
 
-The installation record contains `installationId`, public MCP origin, OAuth issuer/audience, broker state directory, approved repository bindings, adopted policy digests, execution capacity and release pointers. The self-repository binding names provider repository `humtr/tdev` and ref `refs/heads/dev-2`; its stable provider repository ID is resolved and verified at installation. Runtime configuration does not contain a task-specific list of source files. New snapshots resolve the bound remote ref through D0002 even when running code predates that HEAD.
+ChatGPT connects to one canonical **workers.dev** MCP origin. A small Worker handles
+public protocol/authentication and routes requests through one Durable Object per
+installation to the device's outbound authenticated WebSocket. The DO exists only
+because arbitrary Worker instances cannot address a particular outbound device
+connection using local memory. It owns connection routing, not work admission,
+scheduling, repository state, validation eligibility or canonical completion.
+There is no D1/R2/Queue or copied cloud work ledger in this release topology.
 
-Implement the broker as JavaScript ESM with checked JSDoc interfaces and the Node built-in test runner. Use Node **24.21.0** as the initial toolchain pin, Git **2.55.0**, Python **3.12 or later** only for documentation tooling, and rootless Podman **5.x** with user namespaces and cgroup v2 for production execution. Exact Podman package version, base-image digests, architecture, SQLite version and all npm dependency integrity hashes must be sealed in `config/toolchain.lock.json` at initial build; a range alone is not a valid execution seal. Resolving an available patched package/image within these chosen families is an implementation artifact selection, not a license to change the architecture. Update pins as a validated Direct change unless behavior/security contracts change.
+Untrusted build/test execution uses bounded, ephemeral GitHub-hosted sessions;
+D0005 owns their trust boundary. Sessions connect outward to the same Worker route.
+They need no public URL or user-maintained server. Termux remains indispensable
+operationally; it is not demoted to an optional test client. Device unavailability
+is exposed honestly rather than papered over by a second control-plane owner.
 
-Use `node:sqlite` behind a private storage module, not in domain interfaces. SQLite extensions are disabled. Prepared queries and short synchronous transactions are bounded; long filesystem scans, Git/network work, hashing large trees and child execution are asynchronous/offloaded. Add a DB worker only if measured event-loop blocking falsifies the latency budget, not as a second durable owner. WAL uses a local filesystem, not NFS. Snapshot backups include the SQLite-consistent backup plus referenced immutable objects; restore never silently replays uncertain Git effects.
+Actual Worker name, account/subdomain, origin, Access application, credential grants
+and deployed versions are installation bindings. No dev-2 resource is presumed to
+exist from a naming convention. Installation seals require provider readback that
+origin is HTTPS, an exact workers.dev hostname, enabled for the selected Worker,
+and protected by the selected dev-2 Access application. Previews remain disabled.
 
-The first deployment supports Linux amd64 and arm64 under the same contracts. A Termux host or the current ChatGPT container may run eligible hermetic tests but is not automatically a production execution target. No absolute HOME, CPU count or predecessor registry location is compiled into product semantics.
+## 2. Bounded transport, disconnects and Android lifetime
 
-### Release identity and installation
+The channel carries only versioned dev-2 envelopes and bounded exact-object chunks,
+not arbitrary TCP, HTTP proxy targets, local file paths or public shell commands.
+It is a product transport over the existing public ingress, not an ngrok/tunnel
+service or a changing endpoint. Each connection has a fresh opaque transport nonce.
+The DO retains only authenticated connection attachment data required for hibernation;
+transient request state may be lost. No work identity depends on a connection, session,
+DO identifier, socket, process ID or one of eight numbered slots.
 
-A release is an immutable directory containing source commit ID, source manifest SHA-256, build artifact SHA-256, toolchain/environment seal, MCP schema digest, supported ledger-format interval and trusted validation receipt references. Its identity is the SHA-256 of that record plus artifact manifest. Build from an exact already integrated commit; do not rebuild different bytes between staging and activation. Package imports never execute from a mutable checkout.
+For each HTTP request the router assigns a fresh correlation ID, records the exact
+connection nonce and a deadline, then forwards the typed body and verified identity
+assertion. Defaults: at most 128 outstanding requests, 8 MiB aggregate retained body
+bytes, 1 MiB request, 256 KiB response, 64 KiB object chunks and 30 s transport deadline.
+These are resource policies, not work/concurrency identity ceilings. Backpressure
+returns a typed capacity error; it does not retain a second queue. Body/frame byte
+limits apply while streaming, before allocation and decoding. Reject wrong-connection,
+late, duplicate, oversized and unknown replies without completing another request.
 
-The standard Linux service manager (initial adapter: systemd) owns process lifetime. A small fixed `dev2-activate` helper has only the authority to inspect the installation's release pointers, switch to an already verified release, and restart the named broker unit. It is invoked as a bounded service-manager job, not as a model process or free-form command. It cannot fetch arbitrary URLs, edit Git or interpret repository instructions. The helper executable is immutable within its active release; the invoking job remains alive independently of the broker being replaced.
+No connection before forwarding means not sent. A timeout/disconnect after forwarding
+means delivery may have occurred: report `EXECUTION_UNAVAILABLE` with same-request
+retry guidance, never assert no mutation or cancel a work. Retrying the same logical
+request reaches D0001 authorization and durable deduplication. Replacing a connection
+fails pending observations as uncertain and fences old transport replies; it never
+steals the SQLite owner lock or creates a replacement work. DO restart/Worker deploy
+may drop in-flight responses; the same rule applies. Idle WS hibernation is an
+optimization, not promised uptime, free active waiting or durable work execution.
 
-One installation-level activation record is necessary because the process performing MCP work is itself being replaced. It is a fsynced, atomically replaced record, not a journal or workflow framework. Fields are `activationId`, request identity/digest, expected active release, candidate release, original release, phase, deadline, observed process/release, and terminal outcome. Its owner is the helper; the repository action row references this record and never competes as activation truth. The helper uses an OS exclusive lock on the activation record. This lock protects only release handoff, not ordinary repository execution.
+When the device is offline, immutable tool descriptors and edge health may be read,
+but current repository discovery, new admission and authoritative work observation
+return unavailable. A cached last-seen timestamp is explicitly stale. No task-specific
+scope or redeployment is necessary on reconnection. Exponential backoff with bounded
+jitter reconnects only while the Android process is alive; no wakeup guarantee is made.
 
-### Activation algorithm
+A Termux runit service is the selected normal launcher, with an explicit foreground
+launch for diagnosis. It is not systemd and cannot override Android suspension,
+force-stop, reboot or power loss. On restart reacquire the actual OS/SQLite lock,
+advance the owner epoch, adopt retained attempts, reconcile provider effects, and
+then admit conflicting mutations. Never use timeout expiry to prove an old writer
+has died. A short relative UNIX socket or loopback connection avoids deep-path socket
+limits; it is neither a public ingress nor an authorization boundary by itself.
 
-1. `release.stage` builds and validates an exact integrated commit in the normal sandbox, seals its artifact, and runs candidate startup/self-check against a disposable copy of state with provider writes disabled. Require the current trusted release policy, MCP contract compatibility and complete D0007 release checks applicable to this transition.
-2. `release.activate` checks `runtime.activate`, expected active release, exact staged artifact, compatible ledger format and absence of another activation. Persist the helper intent before asking systemd to run it. A duplicate invocation reads the same record.
-3. The current broker stops admitting **new mutable actions** for the brief handoff. Reads remain available until restart. Existing sandbox containers continue with durable identities; already-dispatched provider effects are reconciled or the activation remains `blocked`. Do not wait for arbitrary long validation to finish, kill it, or discard another work's state. Drain short ledger transactions and close the broker's ownership lock.
-4. The helper independently verifies old process termination/ownership release, atomically switches the release pointer and restarts the broker. The new broker must acquire the exclusive broker lock, open compatible databases, reconcile recorded attempts/effects, and expose the expected release ID. It must not launch new writes during its readiness probe.
-5. After local authenticated health and exact release readback pass, mark the activation `active`, enable admission and expose terminal evidence through `dev_observe`. The controller then independently reads the same canonical public MCP origin. Local success without public readback is not experiential success.
-6. On bounded startup/readiness failure, stop the failed broker, verify ownership release, restore the original pointer and restart the original release. Record `rolled_back` only after exact old-release readiness. If either termination or restore is uncertain, record `blocked` and serve no conflicting writer. Never label a failed activation as successful merely because source integration succeeded.
+## 3. Managed execution sessions without a permanent server
 
-Initial transition policy: helper deadline 120 seconds, local readiness deadline 30 seconds per launch, request wait at most 20 seconds, profile execution deadlines separately enforced. Values are deployment policy, not durable identity. Expiration stops new steps but cannot manufacture certainty about an existing effect. Recovery reruns the fixed helper against the same intent; it does not invent another activation.
+A session is an elastic execution resource, not a Work/Case/Agent or another model.
+Its durable intent and selected provider run are stored alongside the existing work
+ledger. The existing ready-work admission selects attempts independently; there is
+no session-owned queue. Default execution capacity remains 8 and may be 1/16/32 or
+other positive values subject to measured resources, without schema or identity changes.
 
-### State evolution
+Use the existing GitHub repository and a trusted push-triggered execution workflow
+at an already approved runtime commit. Admission creates a deterministic auxiliary
+ref under an installation-authorized `refs/heads/dev2-exec/` prefix pointing to that
+exact approved commit. No candidate code, workflow edit or new source commit is
+published to start execution. This avoids assuming `workflow_dispatch` exists on
+the repository's unrelated default branch. The GitHub App/provider credential must
+be allowed to trigger workflows; a recursion-suppressed GITHUB_TOKEN is not substituted.
+Provider policy rejection remains an explicit installation/availability blocker.
 
-First release uses schema version 1. Ordinary updates must support the active schema and rolling upgrade/rollback to the previous release. Additive changes are preferred; a schema migration is an explicitly versioned release operation tested both before and after crash. Destructive migrations require a new bounded Design and backup/restore proof; they are not part of the default core. A release that cannot reopen the active ledger is rejected before pointer replacement, not tested on the sole live copy.
+Persist `sessionId`, ref, approved commit/workflow digest, deadline, requested
+resources and provider intent before creating the ref. On response loss inspect
+the exact ref and workflow runs, never create a new session ID blindly. Validate
+OIDC plus GitHub readback as D0005 requires, then CAS-select one run_id/run_attempt.
+Only that run gets assignments. Other duplicate runs exit without candidate work.
+Operational refs are separate from canonical source, included in provider-operation
+metrics and deleted only after the exact selected run is terminal and retained
+session evidence is sufficient. No write or force-update of the default branch.
 
-Retain current and previous healthy releases plus releases referenced by unresolved work. The service manager's restart-on-failure policy and D0001 reconciliation provide ordinary recovery. No separate qualification service, migration coordinator, multi-provider tunnel election or historical epoch translation is introduced.
+One bounded session may run several independently isolated attempts to amortize
+provider startup across a development burst. Defaults: 60 s idle grace, 15 min
+session lifetime, no admission whose declared deadline exceeds remaining lifetime,
+and a provider job timeout slightly longer than the controller's cleanup deadline.
+Capacity accounts for total memory/PIDs/disk/CPU, not merely process count. A profile
+that cannot fit returns explicit capacity unavailable; it never quietly runs eight
+heavy tests on a phone. When capacity increases, use additional bounded sessions
+rather than changing work IDs. Session draining does not hold a repository-wide lock.
 
-## Concurrency and isolation
+Source and results travel as manifest-bound immutable objects through authenticated
+chunk transfer. The helper recomputes their digests; no candidate gets device/provider
+credentials or a writable control checkout. Warm object caches are content-addressed
+and reverified, never shared writable candidate directories. If the device disappears,
+active attempts obey local enforced deadlines; results await reconnect only within
+the session lifetime. A terminal host run without a recovered receipt yields interrupted
+validation, not PASS. Replay requires proof the old run/attempt has ended. Candidate
+commands have no canonical effect, and canonical integration remains on the device.
 
-Stage/build/test releases alongside other work under ordinary resource admission. Serialize only activation because two brokers cannot own the same installation's ledgers and credential dispatcher. This is an actual global process-ownership invariant; it does not justify global serialization for development. Persisted containers survive a broker restart, and a failed work item cannot block activation unless its unresolved canonical effect really conflicts with the writer handoff.
+Managed execution is an explicit dependency and potential latency/quota bottleneck.
+It uses a capability already observed within the user's GitHub foundation; it does
+not assume a new user-owned server. Per-attempt cold CI jobs were rejected as the
+normal burst path because startup would repeat unnecessarily. Warm-session benefit,
+provider quotas, actual 8-way execution and cold performance still require measurement;
+D0007 may reject this placement. No paid plan or higher runner quota is assumed.
 
-## Failure and recovery
+## 4. Toolchain and reproducibility
 
-Process crash before intent dispatch: reconcile existing intent. Crash after pointer replacement: inspect pointer, process identity and readiness; do not infer from action response. A stale activation expectation returns `STALE_RELEASE`. Missing sandbox, disk pressure or incompatible state returns a bounded rejection while current runtime stays active. Disaster restore must first resolve or fence old provider dispatchers; absent reliable effect evidence leaves affected refs blocked. Break-glass tooling may repair a broken installation, but normal staging/activation remains callable through dev-2 MCP.
+A logical validation profile has one meaning across environments; an execution seal
+identifies the actual implementation. `config/toolchain.lock.json` selects exact
+Node/platform/architecture/SQLite variants. Initial native control target is the
+observed Termux nodejs-lts 24.18.0-1, Android arm64, Node 24.18.0 and SQLite 3.53.4;
+Linux CI uses existing checksum-pinned Node 24.21.0. Git is 2.55.0 and Python >=3.12.
+Native binary digests/package versions are recorded, not silently reported as Linux.
+Unknown/mismatched variants fail closed; no universal host path or automatic version
+range fallback. Dependency versions/integrity are locked, lifecycle scripts disabled.
 
-## Alternatives
+Native/CI test results are different execution identities and cannot substitute for
+each other where the required environment differs. An installation seal additionally
+pins device launcher/config, Worker artifact/compatibility date/namespace, auth profile,
+trusted execution workflow/controller, exact sandbox image/engine/enforcement and
+permissions. A source-level toolchain match is not an installation or sandbox seal.
 
-An all-Worker control plane still requires a separate command executor and distributed ownership; rejected for this execution-heavy first product. A plain unsandboxed local shell is smaller but violates isolation/credential boundaries. In-place source replacement cannot bind running bytes and is rejected. A permanent custom supervisor duplicates the service manager; use the fixed handoff helper only for its necessary release identity/rollback logic. Zero-downtime multi-writer blue/green deployment is not required and would add fencing/state compatibility complexity before evidence justifies it.
+## 5. Self-update and partial activation
 
-## Acceptance
+`release.stage` assembles an immutable integrated-source release with device artifact,
+Worker artifact, protocol compatibility, schema/ledger range and required receipt
+identities. It does not switch active code. `release.activate` requires a current
+runtime capability and expected old component identities. One tiny fixed helper,
+installed with dev-2 and outside replaceable broker code, persists an activation
+intent in app-private storage before touching any active pointer or provider effect.
+It invokes only sealed deployment/launcher operations, never a shell supplied by source.
 
-Run exact release staging and activation through MCP, including a real source change; show source HEAD can advance without redeployment for ordinary context. Crash before/after intent, pointer switch and readiness; observe exactly one writer and same work IDs. Keep eight running fixture validations across restart, recover output receipts, and prove no cross-work contamination. Demonstrate rollback to exact prior artifact with no database downgrade corruption. A host that cannot satisfy sandbox probes cannot pass deployment acceptance.
+Order: prepare/stage the Worker version without routing traffic; verify the old/new
+channel compatibility; activate a backward-compatible edge version and read back the
+exact version/traffic routing; drain only affected local work/effects; prove old local
+writer stopped; atomically replace the device release pointer; launch via the existing
+Termux service; health-check fresh MCP and local release identities; persist terminal
+activation. If either side fails, restore the compatible prior edge/device pair and
+read it back. Each provider intent retains exact expected/new IDs across response loss.
+The helper can resume from its journal on the next Android launch; it is not assumed
+to survive app force-stop. Breaking cross-component or destructive ledger migrations
+require an explicitly designed procedure, not an ordinary rollout or hidden fallback.
+
+The edge and device do not share an atomic commit. Report `activating`, `rolled_back`,
+`blocked` or exact `active` component identities; never call a mixed version terminal
+success. `activeRelease` identifies the verified device/edge/controller bundle, while
+repository HEAD and stagedRelease are separate facts. Candidate source may integrate
+without changing the active runtime. No manual task-specific Worker redeployment is
+part of ordinary forward development after this release capability is installed.
+
+## 6. Alternatives, bounds and acceptance evidence
+
+A generic Linux service and public reverse proxy fail DIRECTIVE Section13. A cloud
+work ledger would duplicate local recovery and create a second integration authority.
+Stateless forwarding cannot find an outbound device socket; polling/mailboxes add
+normal latency and retained messages, so a routing-only DO is the smaller choice.
+Cloudflare Containers require an unverified paid entitlement; new APK/VM isolation
+has no current deployment/performance proof. None is selected merely because a
+predecessor or prompt mentioned it.
+
+Release evidence must exercise the native device, actual workers.dev route and managed
+execution separately and together: offline admission/readback, WS reconnect/Worker
+restart, stale connection reply rejection, 8 concurrent isolated attempts, quota failure,
+OIDC replay, exact-object corruption, Android process restart, source-vs-runtime identity,
+partial edge/device activation and rollback. Device sleep/app kill/reboot remain distinct
+experiential tests. No installed dev-2 origin or production execution seal is claimed
+until those relevant provider operations and readbacks actually occur.
 
 ## Implementation consequences
 
-Runtime composition belongs under `src/runtime/`, fixed helper and service-unit templates under `deploy/`, no host-specific absolute paths. Configuration contains no secrets and all required capability probes are reproducible. D0004 only exposes typed release actions; D0007 owns execution commands and evidence gates.
+Implement the native runtime variant, routing-only Worker/DO adapter and outbound
+device connection before public composition. Join existing repository/work modules
+without another ledger. Add managed-session provider effects under current work
+admission, then the sealed helper and paired edge/device activation path. Derive
+actual resource identities from installation readback, not example hostnames.

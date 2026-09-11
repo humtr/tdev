@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `validation-identity, canonical-integration, stale-conflict-semantics`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -90,3 +90,22 @@ Prove exact C/U/manifest and metadata identity between validation and publicatio
 ## Implementation consequences
 
 Use a pure target-tree/commit preparer, trusted validation evaluator, immutable prepared-result descriptor, persisted exact effect and narrow CAS writer/reconciler. D0001 owns durable action/work transitions, D0002 owns immutable source, D0004 exposes the typed operations and D0007 owns proof. No new durable owner, release lifecycle or recovery subsystem is introduced.
+
+## Placement-independent receipt and effect authority
+
+The selected execution environment is D0006's managed ephemeral sandbox, not a
+required container daemon on Termux. Prepared result, full required validation and
+Git CAS semantics are unchanged. Bind every run receipt to the exact selected
+provider session/run/attempt and execution seal; the trusted controller signs it
+outside candidate containment. Transfer/reconnect delivery acknowledgments are not
+validation receipts. Verify result identity, required profiles, environment and
+signature on the device before eligibility; a provider job's overall green check
+or candidate-produced result.json cannot substitute.
+
+Only the device's authorized integration component changes the canonical ref.
+Execution jobs have no canonical writer credential. A missing device channel,
+expired session or lost validation receipt cannot create a new canonical effect.
+After a provider run is proven terminal, an unobserved replay-safe validation may
+be rerun with a new attempt; its overhead is counted. Same-ref stale recomposition
+still invalidates previous result/validation identity, even on a warm executor.
+No batch coalescing or cross-tree receipt reuse is authorized by this placement change.

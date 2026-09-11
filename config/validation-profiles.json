@@ -30,10 +30,10 @@
       "timeoutMs": 300000,
       "network": "fixture",
       "requires": [
-        "production.seal",
-        "podman.rootless",
-        "cgroup.v2",
-        "systemd.fixture"
+        "termux.native",
+        "workers.dev.fixture",
+        "managed-sandbox.seal",
+        "activation.fixture"
       ]
     },
     "live": {

@@ -1,0 +1,142 @@
+{
+  "observedAt": "2026-09-11T12:22:35.680634+00:00",
+  "scope": "actual Termux process and disposable local probes; not a sleep/reboot or hostile isolation proof",
+  "android": {
+    "release": "16",
+    "sdk": "36",
+    "abi": "arm64-v8a",
+    "manufacturer": "samsung"
+  },
+  "termuxVersion": "0.119.0-beta.3",
+  "uid": 10379,
+  "cpuCount": 8,
+  "cpuAffinity": [
+    0,
+    1,
+    5,
+    6
+  ],
+  "memory": {
+    "MemTotal": "11350704 kB",
+    "MemAvailable": "2604420 kB",
+    "SwapTotal": "12582908 kB"
+  },
+  "filesystem": {
+    "exit": 0,
+    "out": "f2fs",
+    "error": ""
+  },
+  "disk": {
+    "total": 1006106783744,
+    "used": 719802683392,
+    "free": 286169882624
+  },
+  "toolchain": {
+    "node": {
+      "exit": 0,
+      "out": "{\"node\":\"24.18.0\",\"sqlite\":\"3.53.4\",\"platform\":\"android\",\"arch\":\"arm64\"}",
+      "error": ""
+    },
+    "git": {
+      "exit": 0,
+      "out": "git version 2.55.0",
+      "error": ""
+    },
+    "python": "3.14.6"
+  },
+  "commands": {
+    "systemctl": false,
+    "docker": false,
+    "podman": false,
+    "unshare": true,
+    "bwrap": false,
+    "proot": true,
+    "qemu-system-aarch64": false,
+    "qemu-system-x86_64": false,
+    "runsv": true,
+    "sv": true,
+    "flock": true,
+    "sqlite3": false,
+    "clang": true,
+    "termux-wake-lock": true,
+    "termux-info": true,
+    "wrangler": false,
+    "curl": true
+  },
+  "processCapabilities": [
+    "CapInh:\t0000000000000000",
+    "CapPrm:\t0000000000000000",
+    "CapEff:\t0000000000000000",
+    "CapBnd:\t0000000000000000",
+    "CapAmb:\t0000000000000000",
+    "NoNewPrivs:\t0",
+    "Seccomp:\t2",
+    "Seccomp_filters:\t1"
+  ],
+  "kvm": {
+    "exists": false,
+    "readWrite": false
+  },
+  "cgroupControllers": "unavailable:PermissionError",
+  "namespaceProbe": {
+    "exit": 1,
+    "out": "",
+    "error": "unshare: unshare failed: Invalid argument"
+  },
+  "termuxInfo": {
+    "status": "not_run",
+    "reason": "Unneeded full environment dump; explicit bounded facts collected instead"
+  },
+  "caseSensitive": true,
+  "symlinks": true,
+  "renameAndFsync": true,
+  "flockConflict": true,
+  "sqlite": {
+    "version": "3.53.4",
+    "journal": "wal",
+    "reopen": true
+  },
+  "unixAbsolutePathProbe": {
+    "status": "failed",
+    "reason": "AF_UNIX path too long in deep managed worktree"
+  },
+  "loopbackTcp": true,
+  "unixSocket": true,
+  "eightChildrenLive": 8,
+  "SIGTERM": true,
+  "SIGKILL": true,
+  "network": {
+    "api.github.com": {
+      "exit": 0,
+      "out": "200",
+      "error": ""
+    },
+    "api.cloudflare.com": {
+      "exit": 0,
+      "out": "301",
+      "error": ""
+    },
+    "registry.npmjs.org": {
+      "exit": 0,
+      "out": "200",
+      "error": ""
+    }
+  },
+  "backgroundLifecycle": {
+    "sleep": "not_run",
+    "forcedAppKill": "not_run",
+    "reboot": "not_run",
+    "reason": "Do not disrupt active tasks or change device settings to manufacture uptime evidence"
+  },
+  "landlock": {
+    "return": -1,
+    "errno": 38,
+    "error": "Function not implemented",
+    "scope": "actual current process Landlock ABI query; no sandbox installed"
+  },
+  "packageVersions": {
+    "nodejs-lts": "24.18.0-1",
+    "git": "2.55.0",
+    "python": "3.14.6-1"
+  }
+}

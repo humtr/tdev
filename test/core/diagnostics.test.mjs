@@ -42,7 +42,7 @@ test('canonical input seal changes when a checked benchmark input changes',async
  const root=await mkdtemp(join(tmpdir(),'dev2-input-seal-'));
  try{
   const copy=join(root,'source');await mkdir(copy);
-  for(const path of ['src/contracts','tools','config','AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json'])await cp(path,join(copy,path),{recursive:true});
+  for(const path of ['src/contracts','src/runtime','tools','config','AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json'])await cp(path,join(copy,path),{recursive:true});
   await mkdir(join(copy,'bench'));await writeFile(join(copy,'bench','observed.mjs'),'export const observed=1;\n');
   async function check(label){const out=join(root,label);const r=spawnSync(process.execPath,[join(copy,'tools/validate.mjs'),'--profile','integration','--output',out],{encoding:'utf8',timeout:5000});assert.equal(r.status,2,r.stderr||r.stdout);return JSON.parse(await readFile(join(out,'result.json'),'utf8'));}
   const before=await check('before');await writeFile(join(copy,'bench','observed.mjs'),'export const observed=2;\n');const after=await check('after');

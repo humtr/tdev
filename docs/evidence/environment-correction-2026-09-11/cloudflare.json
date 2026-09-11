@@ -1,0 +1,787 @@
+{
+  "observedAt": "2026-09-11T12:26:31.731621+00:00",
+  "accountIdentityDigest": "sha256:a81f2bf338aca1a50dfe63ae8e4739614460803fde0603c79971a4a78e8627c9",
+  "credentialSource": "discovered existing operator Cloudflare env file; read only; never copied to dev-2",
+  "requests": {
+    "token": {
+      "http": 401,
+      "success": false,
+      "errorCodes": [
+        1000
+      ]
+    },
+    "subdomain": {
+      "http": 200,
+      "success": true,
+      "errorCodes": []
+    },
+    "workers": {
+      "http": 200,
+      "success": true,
+      "errorCodes": []
+    },
+    "doNamespaces": {
+      "http": 200,
+      "success": true,
+      "errorCodes": []
+    },
+    "d1": {
+      "http": 200,
+      "success": true,
+      "errorCodes": []
+    },
+    "subscriptions": {
+      "http": 403,
+      "success": false,
+      "errorCodes": [
+        10000
+      ]
+    },
+    "accessApps": {
+      "http": 200,
+      "success": true,
+      "errorCodes": []
+    }
+  },
+  "writePermissionVerified": false,
+  "mutationPerformed": false,
+  "tokenStatus": null,
+  "workersSubdomain": "humtr",
+  "workerCount": 11,
+  "workers": [
+    {
+      "id": "devspace",
+      "etag": "d6d48500e834e0e5b5cfc0533db13ad0d3fed04d2aa424a413e3b7a63adb3a53",
+      "modified_on": "2026-07-25T05:24:44.156288Z",
+      "usage_model": "standard",
+      "last_deployed_from": "dash"
+    },
+    {
+      "id": "tdev",
+      "etag": "cc6b4e6650b36efb9e796f8c74ea1f6eb4190f19cdf5a55ef4b09d47b7388ab9",
+      "modified_on": "2026-09-11T01:28:30.357203Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0019-qualification-a",
+      "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31",
+      "modified_on": "2026-08-15T14:23:54.22175Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0019-qualification-b",
+      "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31",
+      "modified_on": "2026-08-15T14:23:55.38463Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0019-qualification-capacity",
+      "etag": "9502781f1a0a7c3bec30e176e55433f43e37053768f79f3b3a6b6cca4fb69d31",
+      "modified_on": "2026-08-15T14:23:56.767867Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0020-composition-case-r1",
+      "etag": "8a611def3217fdb9f102647fb0daf872b0210a95d98241d46ee4ab7175156be0",
+      "modified_on": "2026-09-09T11:46:57.690699Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0020-qualification",
+      "etag": "bdc397e5974101759f277ec8d1cff90ba6eeb86d631a019a5ddeb1b4002ca2fd",
+      "modified_on": "2026-08-20T21:07:28.815808Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0020-qualification-clean-a",
+      "etag": "e85611f801dc3cd43544aeb7ff68dec76b4b1345ac33cbb137f4105794f57de0",
+      "modified_on": "2026-09-11T02:32:57.735819Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-d0044-qualification-20260902",
+      "etag": "afccfe849a0efafba565b10022127057f79b65fb3938b011a264928e6751abb9",
+      "modified_on": "2026-09-03T03:59:10.070336Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tdev-mcp-trial",
+      "etag": "f49f4ce7de44f9cf8ace46a287fb04a63e71a143f93110fe0b198818a074552e",
+      "modified_on": "2026-09-10T19:14:29.69375Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    },
+    {
+      "id": "tmcp",
+      "etag": "011d61cdbbce16aba825a477e8b45e1287390c464067f9341417fda211119d14",
+      "modified_on": "2026-08-06T00:35:08.870534Z",
+      "usage_model": "standard",
+      "last_deployed_from": "api"
+    }
+  ],
+  "durableNamespaces": [
+    {
+      "name": "tdev-d0019-qualification-a_CaseRuntimeDO",
+      "class": "CaseRuntimeDO",
+      "script": "tdev-d0019-qualification-a",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0019-qualification-b_CaseRuntimeDO",
+      "class": "CaseRuntimeDO",
+      "script": "tdev-d0019-qualification-b",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0019-qualification-capacity_CaseRuntimeDO",
+      "class": "CaseRuntimeDO",
+      "script": "tdev-d0019-qualification-capacity",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0020-qualification_AgentDeliveryRuntimeDO",
+      "class": "AgentDeliveryRuntimeDO",
+      "script": "tdev-d0020-qualification",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0020-qualification-clean-a_AgentDeliveryRuntimeDO",
+      "class": "AgentDeliveryRuntimeDO",
+      "script": "tdev-d0020-qualification-clean-a",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0020-composition-case-r1_CaseRuntimeDO",
+      "class": "CaseRuntimeDO",
+      "script": "tdev-d0020-composition-case-r1",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0044-qualification-20260902_AgentRouteElectionRuntimeDO",
+      "class": "AgentRouteElectionRuntimeDO",
+      "script": "tdev-d0044-qualification-20260902",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev-d0044-qualification-20260902_AgentDeliveryRuntimeDO",
+      "class": "AgentDeliveryRuntimeDO",
+      "script": "tdev-d0044-qualification-20260902",
+      "use_sqlite": true
+    },
+    {
+      "name": "tdev_CaseAgentDriveRuntimeDO",
+      "class": "CaseAgentDriveRuntimeDO",
+      "script": "tdev",
+      "use_sqlite": true
+    }
+  ],
+  "d1Databases": [
+    {
+      "name": "tdev-d0020-composition-placement-r1",
+      "version": "production"
+    },
+    {
+      "name": "tdev-d0019-placement",
+      "version": "production"
+    }
+  ],
+  "subscriptions": [],
+  "accessApplications": [
+    {
+      "name": "tdev MCP trial 20260904",
+      "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+      "type": "self_hosted"
+    },
+    {
+      "name": "tdev ChatGPT MCP OAuth experiment",
+      "domain": "tdev.humtr.workers.dev/mcp",
+      "type": "self_hosted"
+    }
+  ],
+  "selectedWorkers": {
+    "tdev": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "bbfce927-0e2b-44c0-b032-79563dfcb1b8",
+          "created_on": "2026-09-11T01:28:30.357203Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "cc433383-308a-43eb-9d0a-add325e34b7e",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "205e40ec-a359-4b9b-ae6f-d133a8c00601",
+          "created_on": "2026-09-11T01:11:02.767279Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "3079fd1f-6922-4ba4-bdd9-7a475514f1cd",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": true,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "class_name": "AgentDeliveryRuntimeDO",
+          "script_name": "tdev-d0020-qualification-clean-a"
+        },
+        {
+          "name": "TDEV_CASE_AGENT_DRIVE",
+          "type": "durable_object_namespace",
+          "class_name": "CaseAgentDriveRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "class_name": "CaseRuntimeDO",
+          "script_name": "tdev-d0020-composition-case-r1"
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "class_name": null,
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0019-qualification-a": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "9d5ca991-777e-4c78-a2cb-51389a7df790",
+          "created_on": "2026-08-15T14:21:36.337215Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "7208db20-f1b7-452d-9405-0d1a6560f87f",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "6ea33b14-9f1d-4779-9fa2-3114c39dc45f",
+          "created_on": "2026-08-15T14:21:35.438037Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "18ce02d6-3cf6-4f2f-8b25-89865b159e28",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": false,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "class_name": "CaseRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "class_name": null,
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0019-qualification-a.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0019-qualification-b": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "e15f1769-706b-474d-af49-24731336727f",
+          "created_on": "2026-08-15T14:23:48.471773Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "6135a078-b27c-47ff-8854-6112257b29db",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "2340de23-db7d-4925-a63d-0e5340d2b173",
+          "created_on": "2026-08-15T14:23:47.705369Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "6af182b9-09d0-4d75-b3dc-fd952963851d",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": false,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "class_name": "CaseRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "class_name": null,
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0019-qualification-b.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0019-qualification-capacity": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "ce2aacb1-1a95-404f-a12c-95c0bd8729a5",
+          "created_on": "2026-08-15T14:21:54.871029Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "01db077d-8394-44a2-9b86-32dfc9482fee",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "12f2ae1d-bb72-4acb-83c8-ca1b99e7c0b9",
+          "created_on": "2026-08-15T14:21:53.907551Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "cc37f53c-58b1-4e41-838d-32f77ee907d1",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": false,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "class_name": "CaseRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "class_name": null,
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0019-qualification-capacity.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0020-composition-case-r1": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "4e21719c-8927-4476-a980-2b80e79dfc58",
+          "created_on": "2026-09-09T11:46:57.284726Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "223f25bd-d6c7-459f-9e20-bf09ee089f04",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "f003d927-9577-447d-b006-37bfa0d38173",
+          "created_on": "2026-09-09T11:46:56.455923Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "c0aded76-f7c9-4484-8a95-5b88707c0ac0",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": false,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_CASE_AUTHORITY",
+          "type": "durable_object_namespace",
+          "class_name": "CaseRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_CASE_PLACEMENT",
+          "type": "d1",
+          "class_name": null,
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0020-composition-case-r1.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0020-qualification": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "8fb1b711-b4a5-4142-a018-a3ea949e37ce",
+          "created_on": "2026-08-20T21:06:55.627271Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "0439a4bb-cc84-45d4-aa7e-102edd15e560",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "251475d3-c3fb-468c-9a36-95a821d52b89",
+          "created_on": "2026-08-20T21:06:54.664265Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "0439a4bb-cc84-45d4-aa7e-102edd15e560",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": false,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-20",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "class_name": "AgentDeliveryRuntimeDO",
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0020-qualification.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0020-qualification-clean-a": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "52143c77-31da-4600-9289-ae47a89edee1",
+          "created_on": "2026-09-11T02:32:57.735819Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "3e7abe65-05e7-42fe-a23a-bc46c5f693aa",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "ef455db4-950b-455a-a5f0-ce63cd431714",
+          "created_on": "2026-09-09T11:43:42.294125Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "d01e03c0-b7b6-4c9e-a31b-95200736e687",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": true,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-20",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "class_name": "AgentDeliveryRuntimeDO",
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0020-qualification-clean-a.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    },
+    "tdev-d0044-qualification-20260902": {
+      "subdomain": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "settings": {
+        "http": 200,
+        "success": true,
+        "errorCodes": []
+      },
+      "deployments": [
+        {
+          "id": "74a2e539-5d4f-414f-bc1c-f2b89dd9eb0d",
+          "created_on": "2026-09-03T04:02:51.872639Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "dfc613a3-554a-438d-9693-1016a6c26f1c",
+              "percentage": 100
+            }
+          ]
+        },
+        {
+          "id": "7478f706-3211-4dec-baaa-1e6f2010e912",
+          "created_on": "2026-09-03T04:02:32.265022Z",
+          "strategy": "percentage",
+          "versions": [
+            {
+              "version_id": "b8f1c24b-45ce-42d3-90a9-9a631589f103",
+              "percentage": 100
+            }
+          ]
+        }
+      ],
+      "workersDev": {
+        "enabled": true,
+        "previews_enabled": false
+      },
+      "runtime": {
+        "compatibility_date": "2026-08-15",
+        "compatibility_flags": [
+          "nodejs_compat"
+        ],
+        "usage_model": "standard",
+        "limits": null
+      },
+      "bindings": [
+        {
+          "name": "TDEV_AGENT_DELIVERY",
+          "type": "durable_object_namespace",
+          "class_name": "AgentDeliveryRuntimeDO",
+          "script_name": null
+        },
+        {
+          "name": "TDEV_AGENT_ROUTE_ELECTION",
+          "type": "durable_object_namespace",
+          "class_name": "AgentRouteElectionRuntimeDO",
+          "script_name": null
+        }
+      ],
+      "origin": "https://tdev-d0044-qualification-20260902.humtr.workers.dev",
+      "unauthenticatedMcpGet": 403
+    }
+  },
+  "dev2WorkerPresent": false,
+  "accountCapabilities": {
+    "accountSettings": {
+      "http": 200,
+      "success": true,
+      "errorCodes": [],
+      "settings": {
+        "default_usage_model": "standard",
+        "green_compute": false
+      }
+    },
+    "accountToken": {
+      "http": 200,
+      "success": true,
+      "errorCodes": [],
+      "status": "active"
+    },
+    "authApps": [
+      {
+        "name": "tdev MCP trial 20260904",
+        "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+        "type": "self_hosted",
+        "session_duration": "24h",
+        "allow_authenticate_via_warp": null,
+        "allow_iframe": null,
+        "enable_binding_cookie": false,
+        "oauthRelatedKeys": [
+          "oauth_configuration"
+        ]
+      },
+      {
+        "name": "tdev ChatGPT MCP OAuth experiment",
+        "domain": "tdev.humtr.workers.dev/mcp",
+        "type": "self_hosted",
+        "session_duration": "24h",
+        "allow_authenticate_via_warp": null,
+        "allow_iframe": null,
+        "enable_binding_cookie": false,
+        "oauthRelatedKeys": [
+          "oauth_configuration"
+        ]
+      }
+    ]
+  },
+  "managedOAuth": [
+    {
+      "name": "tdev MCP trial 20260904",
+      "domain": "tdev-mcp-trial.humtr.workers.dev/mcp",
+      "managedOAuthEnabled": true,
+      "dynamicRegistrationEnabled": true,
+      "accessTokenLifetime": "15m",
+      "grantSessionDuration": "168h"
+    },
+    {
+      "name": "tdev ChatGPT MCP OAuth experiment",
+      "domain": "tdev.humtr.workers.dev/mcp",
+      "managedOAuthEnabled": true,
+      "dynamicRegistrationEnabled": true,
+      "accessTokenLifetime": "15m",
+      "grantSessionDuration": "168h"
+    }
+  ],
+  "plan": "unknown: subscription read denied; standard usage_model is not a paid-plan proof",
+  "originAssignment": "No dev-2 Worker exists. New product origin is unassigned until authorized provisioning/readback."
+}

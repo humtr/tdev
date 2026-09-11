@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0006]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `public-mcp-schema, controller-recipes, observation-contract`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -101,3 +101,27 @@ Generate closed JSON Schemas and test every variant, bad field and limit. Contra
 ## Implementation consequences
 
 `src/mcp/` owns protocol adapters only; domain/storage APIs are internal, not opaque public shell. Publish examples as contract tests. No model SDK, subprocess or token belongs in core dependencies. Truthful annotations and actual client usability are release acceptance requirements.
+
+## workers.dev ingress and intermittent-device observation
+
+The installed public MCP origin is the exact workers.dev binding from D0006.
+The gateway applies D0005's explicitly selected Access-application authentication
+profile; it does not parse an opaque Managed OAuth bearer as a JWT or trust a header
+without signature/audience verification. Device and execution-session endpoints are
+private machine roles on that origin, not additional public MCP tools.
+
+Four tools and all typed operation shapes remain unchanged. The relay has no
+admission authority. When offline before forwarding, return EXECUTION_UNAVAILABLE
+with delivery=not_sent; after possible forwarding, report delivery=unknown and
+same-request retry, never claim a mutation did not occur. Source/current terminal
+truth requires the device owner. Immutable tool discovery and edge health may remain
+available, but last-seen device/release information is explicitly stale. HTTP/WS
+correlation IDs and connection nonces do not replace work/action/request identities.
+
+A runtime observation separates repository source HEAD, edge version, device release,
+managed controller release and pending activation. Only a confirmed compatible bundle
+is activeRelease. Partial rollout stays nonterminal/blocked until readback or rollback.
+Changes to closed output projection must add these observations under the existing
+runtime result contract, not expose raw provider credentials or a generic proxy.
+Actual ChatGPT registration/usability of the typed union remains a required live
+trial; local schema bytes and synthetic transcripts do not satisfy it.

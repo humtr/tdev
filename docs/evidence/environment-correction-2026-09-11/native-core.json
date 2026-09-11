@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "layer": "core",
+  "status": "passed",
+  "exitCode": 0,
+  "scope": "implemented-profile-only",
+  "installationEligibility": false,
+  "startedAt": "2026-09-11T12:50:08.560Z",
+  "finishedAt": "2026-09-11T12:50:18.109Z",
+  "durationMs": 9549,
+  "entrypointDigest": "sha256:a2a8a45c2edae19219af9d9eca57f4898af9c4a1d9d9aec620b46e6dede850b0",
+  "inputDigest": "sha256:abf0a79a11d262ab5a4369fd63471034e3c5896ff14e0dbff4134237b836b303",
+  "outputInputDigest": "sha256:abf0a79a11d262ab5a4369fd63471034e3c5896ff14e0dbff4134237b836b303",
+  "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+  "toolchainLockDigest": "sha256:6e4a4eaaf59d5c2366908f2679a9f8b39ae47b6f9ff8b9c0885d40a8c3a93787",
+  "dependencyLockDigest": "sha256:2ba42801382c820dc1f50e101c93387b9ed6699a290731f06b1b2384cdfa8947",
+  "execution": {
+    "variantId": "termux-android-arm64-node24-18",
+    "role": "native-control",
+    "node": "24.18.0",
+    "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "platform": "android",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "checks": [
+    {
+      "name": "python.minimum",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 48,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jsdoc",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 4684,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "designs",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 106,
+      "logDigest": "sha256:624355dc41380e51ad71bf00ca5554c9d46a019fded6256b4fe1a180301d45b0"
+    },
+    {
+      "name": "tests",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 4672,
+      "logDigest": "sha256:9d3656ca0158709ef93b1ec010493dabef03bfe3ba72196bf7abe3d3547367a0"
+    }
+  ]
+}

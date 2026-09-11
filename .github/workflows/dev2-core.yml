@@ -1,7 +1,7 @@
 name: dev2-core
 on:
   push:
-    branches: [dev-2, 'tmcp/dev2-evidence-*', 'tmcp/dev2-impl-*', 'tmcp/dev2-p7-contract-*']
+    branches: [dev-2, 'tmcp/dev2-env-*', 'tmcp/dev2-evidence-*', 'tmcp/dev2-impl-*', 'tmcp/dev2-p7-contract-*']
   workflow_dispatch:
 permissions:
   contents: read

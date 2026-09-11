@@ -25,9 +25,37 @@
     "sealed": false,
     "podmanPackage": null,
     "imageDigest": null,
-    "reason": "No authorized production sandbox has been provisioned; release validation must return not_run."
+    "reason": "No dev-2 workers.dev deployment, managed containment seal or native activation helper verified; source checks do not grant installation eligibility."
   },
   "npm": {
     "version": "11.19.0"
-  }
+  },
+  "executionVariants": [
+    {
+      "id": "termux-android-arm64-node24-18",
+      "role": "native-control",
+      "platform": "android",
+      "arch": "arm64",
+      "node": "24.18.0",
+      "sqlite": "3.53.4",
+      "package": "nodejs-lts",
+      "packageVersion": "24.18.0-1"
+    },
+    {
+      "id": "linux-x64-node24-21",
+      "role": "ci",
+      "platform": "linux",
+      "arch": "x64",
+      "node": "24.21.0",
+      "sqlite": "3.53.4"
+    },
+    {
+      "id": "linux-arm64-node24-21",
+      "role": "ci",
+      "platform": "linux",
+      "arch": "arm64",
+      "node": "24.21.0",
+      "sqlite": "3.53.4"
+    }
+  ]
 }

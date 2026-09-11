@@ -1,7 +1,7 @@
 # dev-2 owner directive
 
 - Status: active
-- Revision: 1
+- Revision: 2
 - Scope: first public `dev-2` architecture, implementation, and proof
 
 ## 1. Authority
@@ -120,3 +120,50 @@ The first public release is incomplete until current evidence proves:
 Until those proofs are green, prioritize: clean architecture, minimum complete self-development core, dynamic repository context, scalable default-eight concurrency, isolation and safe integration, recovery correctness, real self-development, then comparable predecessor benchmarking.
 
 Do not let optional features, compatibility polish, migration convenience, or proof machinery displace those priorities.
+
+## 13. Non-substitutable first-release operating environment
+
+The user's actual local development and operating environment is **Termux on an
+Android device**. It is a first-release operational target and a material part of
+the system, not merely an optional hermetic-test or transition environment. The
+user's existing foundation is Termux/Android, Cloudflare `workers.dev`, GitHub,
+and ChatGPT. Do not substitute an imagined general-purpose Linux server for it.
+
+The public ChatGPT-facing MCP origin must be served through **Cloudflare
+`workers.dev`**. Generic HTTPS availability is not an equivalent requirement.
+Actual account, subdomain, Worker/resource names, deployed versions, entitlements,
+and credential permissions are mutable observations that must be rebound from
+the provider when used, not invented hostnames or inherited predecessor settings.
+
+Ordinary first-release operation must not assume that the user owns or will
+maintain a separate VPS, dedicated Linux host, cloud VM, reverse-proxy server, or
+other always-on server. An additional service or execution dependency is an
+explicit architectural cost, not part of the assumed environment. Select one only
+after examining whether the existing foundation can satisfy the objective, record
+why it is necessary, and report its operational, permission, resource and cost
+consequences. Convenience or sunk implementation cost is insufficient justification.
+
+A separate public tunnel, temporary URL, manual endpoint rebinding, or repeated
+public-origin creation is not a user requirement and must not be a normal-path
+assumption. How the local and public sides communicate is a Design decision.
+
+Do not assume Android/Termux provides root, systemd, Docker/Podman, usable cgroups,
+user namespaces, unrestricted inbound networking, or uninterrupted daemon
+lifetime. Equally, do not assume Termux is incapable without checking the actual
+authorized environment. Measure architecture-relevant filesystem, toolchain,
+process, storage, network, concurrency and isolation capabilities. Treat sleep,
+background suspension, process termination and restart as ordinary failure modes;
+neither wake locks nor a service launcher may be treated as an uptime guarantee.
+
+The environment correction preserves Sections 2-12: required validation,
+authorization, exact identity, candidate isolation, scoped conflicts, duplicate
+prevention, recoverability, scalable default-eight concurrency, real self-development
+and superiority over both predecessors must not be weakened to fit the environment.
+An unavailable test or capability remains unavailable, not a success or a silent
+fallback. Claims about native Termux behavior require native Termux evidence;
+claims about workers.dev/provider behavior require evidence at that actual layer.
+
+This section specifies operating and product requirements, not a storage product,
+communication protocol, state owner, component count or process topology. Those
+choices remain independently justified Design decisions. Sharing the predecessor's
+environment does not inherit its architecture, workflow, source or authority.

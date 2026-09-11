@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0005]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `repository-snapshots, progressive-context, candidate-generations`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -105,3 +105,20 @@ only the root tree and leaf blobs. A UTF-8 BOM at the beginning of a valid filen
 is part of that filename and is never stripped during decoding. Git object
 publication requests durable objects, pack metadata and references before a
 ledger record may make the result reachable.
+
+## Native control filesystem and managed execution transfer
+
+The first-release object store, ledger and candidate metadata live in Android
+app-private Termux storage. Path roots are resolved from installation configuration,
+not hardcoded HOME values or assumed shared-storage permissions. Require the actual
+case-sensitive, symlink, atomic rename, fsync and locking behavior used by the store;
+shared Android media storage is not silently substituted when it lacks that behavior.
+
+The device may inspect/materialize bytes using trusted code without executing them.
+Untrusted candidate commands run at D0005's managed containment boundary. Transfer
+only bounded immutable manifest/blob chunks under exact source identity; both sender
+and receiver verify size/digest and all existing path/Git-feature rules. Never expose
+a general file server, borrowed local checkout or source-scope deployment allowlist.
+Device disconnection invalidates current reads but does not change pinned object
+identity. Warm caches may avoid retransmitting verified identical blobs, not serve a
+stale current-ref assertion or share writable scratch across candidates.

@@ -5,93 +5,183 @@
 - Status: `accepted`
 - Depends-On: `[]`
 - Supersedes: `[]`
-- Directive: `r1`
+- Directive: `r2`
 - Owns: `authorization, sandbox-boundary, credential-custody`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
 
 
+
+
 ## Problem
 
-Repository files and test commands are executable, potentially hostile input. A convenient shell is not an authorization model. Choose the smallest boundary that permits ChatGPT to write and test code without giving that code canonical Git, service-control, or credential authority.
+Required source isolation and least-authority execution cannot assume a container
+engine or different OS users inside the actual Termux app. Public human OAuth,
+device connectivity and managed executor authentication must not be confused.
 
 ## Required outcome
 
-An authenticated principal can read its authorized repository, edit an isolated candidate, run bounded profiles, integrate validated bytes, and activate an authorized release. Neither a repository instruction, path, output, MCP annotation, nor a child process can grant itself additional authority. Independent executions cannot read or mutate one another.
+Keep secrets and canonical effects outside untrusted candidates, authorize each
+operation from verified identity and current grants, and fail closed when the
+selected environment cannot enforce a required bound.
 
 ## Facts / assumptions / unknowns
 
-The Directive requires authorization, exact identity, isolation and no mandatory second model. Rootless OCI isolation and standard OAuth resource-server behavior are available mechanisms, not evidence that a dev-2 deployment exists. The initial deployment requires an authorized Linux host with user namespaces, cgroup v2 and a rootless Podman installation. Availability of that host, an OAuth issuer, DNS and credentials is unverified until deployment evidence is recorded. A same-UID process on an ordinary checkout does not meet the production sandbox contract.
+The bounded live inventory is in the environment correction evidence. Native
+filesystem/SQLite/process primitives work; user namespaces and Landlock are not
+available to this process. A managed CI engine is observed but its production
+containment seal and new dev-2 Access application are not yet verified. No token
+shape or grant is inferred from an unverified proxy header.
 
-## Decision
+## 1. Decision and trust model
 
-There are three trust domains, not three independent product owners:
+Use capability-separated trusted control on native Termux, a workers.dev ingress,
+and isolated candidate execution on managed ephemeral GitHub runners. Placement
+is D0006's decision; this Design owns authorization, containment and credentials.
+The user operates no extra Linux server. A working directory, cleared environment,
+PRoot, a shell allowlist or Node permissions is not a hostile-source sandbox.
 
-1. **Controller:** the authenticated ChatGPT caller chooses source edits and typed operations. The server still checks authorization and preconditions.
-2. **Broker:** trusted dev-2 code owns ledgers, object ingestion, Git remote credentials, ref updates and release intent. It never evaluates repository JavaScript in its own process.
-3. **Execution sandbox:** a disposable, credential-free rootless OCI container executes repository code with explicit resource and filesystem bounds. It owns no canonical effect.
+The Android app UID contains operator credentials and is a trusted control domain.
+Only installed, explicitly authorized dev-2 release code and fixed broker-owned Git
+commands run there. Do not execute proposed source, npm hooks, project scripts or
+arbitrary profile commands in that UID as a fallback. The threat model trusts the
+operator, installed release and provider isolation, not candidate code, repository
+configuration, logs, inbound headers or a caller's claimed principal. Compromise of
+the operator UID is outside the promised cross-candidate isolation boundary.
 
-Use an existing standards-conformant OAuth authorization server; dev-2 is a resource server, not a new account/consent system. Verify issuer, signature and allowed algorithm, expiration, audience/resource, subject and scoped repository access on every request. Publish protected-resource metadata and the configured authorization-server location. Use PKCE through the issuer for interactive client authorization; do not accept a token merely because an upstream proxy accepted it. The issuer and audience are installation configuration. Tokens and secrets never enter repository context, request hashes, logs or evidence.
+## 2. Human identity and capability delegation
 
-Capabilities are `repository.read`, `work.write`, `profile.run`, `integration.write`, `policy.write`, `runtime.activate`, each scoped to installation/repository/ref as applicable. A principal may hold several capabilities under standing authorization. No mandatory approval round trip is added per ordinary work item. Deployment/bootstrap authority is not inferred from `work.write`. Recheck authorization at effect dispatch; a revoked queued request cannot publish. An already committed effect remains observable as historical fact after revocation, subject to read access.
+The selected first-release authorization service is Cloudflare Access Managed
+OAuth on a newly provisioned dev-2 application, not a predecessor application.
+Its opaque OAuth access token terminates at Access; it is not a JWT bearer. The
+Worker and Termux verifier validate the signed Access assertion with the exact
+installation issuer, application audience, allowed asymmetric algorithm, expiration,
+issued-at/not-before and human subject. Reject service-token identities on human
+MCP routes. Never trust `Cf-Access-Jwt-Assertion` merely because a header exists.
+The device receives the signed assertion through the authenticated typed channel;
+raw OAuth tokens are not logged or forwarded to subprocesses.
 
-Bindings are installation-admin-managed records keyed by stable provider repository ID, not caller URLs. Only approved Git HTTPS/SSH endpoints are contacted. Reject redirect-to-unapproved-host, repository identity mismatch, local file remotes, transport helpers supplied by a repository, and private-network fetch targets unless explicitly part of the deployment policy. Git operations use a sanitized environment, disabled hooks and filters, broker-owned configuration, exact refspecs, and no inherited credential helpers from candidate files.
+Managed OAuth delegates application access, not dev-2's six named capabilities.
+Represent that fact explicitly as an adopted `access-application` auth profile:
+its fixed, nonempty `applicationCapabilities` is a deployment-grant ceiling, not
+an inferred token `scope`. Authorization is the intersection of verified application
+delegation, current principal-specific standing grants, repository/ref/path scope
+and the requested operation. Grant revocation takes effect at each admission/read
+and before integration or activation. Identity token expiry does not silently
+cancel already admitted deterministic execution; any later privileged effect must
+obtain currently valid authorization or block.
 
-The effective capability set is the intersection of verified token scopes and
-current installation grants, never their union. The JWT `scope` claim must be a
-bounded space-delimited string. Unknown scopes grant no dev-2 capability; absent
-scopes or absent verified token-capability metadata cannot inherit a standing
-grant. Internal Principal records may omit that metadata for abstract port test
-fixtures, but the concrete ScopedAuthorization boundary then denies access.
+The existing `oauth-jwt` profile continues to require a verified `scope` claim and
+intersect it with standing grants. Never auto-detect or downgrade between profiles;
+missing scopes on that profile still fail. A caller cannot choose its auth profile,
+application ceiling, audience or issuer. `Principal.tokenCapabilities` remains a
+verified delegation ceiling: the Access adapter derives it only after assertion
+verification from the adopted application profile. Distinct profile IDs and tests
+make this provider-specific semantic change visible rather than an authorization
+bypass. Private/special-purpose OAuth clients needing narrower delegated powers
+require a distinct adopted application/profile, not fabricated per-token scopes.
 
-Container launch is one detached `run` with an immutable deterministic name, no
-replace/restart/auto-remove, and an engine/conmon-owned timeout. The initial
-Podman adapter requires profile timeouts/grace to be positive whole seconds, so
-conversion cannot silently extend the profile deadline. The broker's action
-deadline is independently enforced by cancellation. Image entrypoint, proxy
-forwarding, image volumes, healthchecks and default environment are disabled or
-explicitly replaced by the fixed profile. The persisted launch label binds the
-profile and source manifest. A surviving created-but-never-confirmed-started
-container is quarantined as an uncertain launch: recovery may inspect/cancel it,
-not blindly issue `start` or recreate the same attempt. A fresh attempt is allowed
-only after the owning action proves the old sender and container stopped.
+Capabilities remain `repository.read`, `work.write`, `profile.run`,
+`integration.write`, `policy.write`, `runtime.activate`. A read-only grant cannot
+use work mutations. Runtime activation and policy adoption require explicit standing
+grants separate from source writing. Descriptions, tool annotations, retrieved
+repository prose and a passing test never grant authority.
 
-### Source and mutation
+## 3. Device and hosted execution authentication
 
-All paths are repository-relative UTF-8, reject NUL, absolute paths, `..`, platform separators and normalization aliases. Preserve case-sensitive Git path identity; reject collisions on a materialization filesystem that cannot represent it. Never dereference a candidate symlink while writing another path. Git metadata, runtime state, credentials and other work roots are outside the exposed namespace. A symlink is a typed blob for inspection; materialization rejects escaping or cyclic links. Submodule and LFS pointers are visible as metadata; execution requiring unresolved content returns `UNSUPPORTED_REPOSITORY_FEATURE`, never success or a silent empty file.
+A registered installation device uses an independent random channel credential,
+kept in Android app-private storage and Worker secret storage, with rotation under
+explicit installation authority. HTTPS/WSS and exact workers.dev origin are
+mandatory. Never place it in a URL or accept it on a human MCP route. It authorizes
+only that installation's typed transport, not a new human principal or Git write.
+Deployment forbids public access to an unverified direct/preview Worker route.
 
-Candidate edits use expected entry identities and an expected work revision. Authorization covers the repository and allowed write paths, independent of the context already read. Expansion to another ordinary source path does not require redeployment. Denied paths remain denied even if their blob digest is known. Requests cannot select arbitrary host paths, shell executables, environment names, remotes, service units or credential references.
+Hosted execution connects outward to the same public service using a short-lived
+GitHub Actions OIDC token with the installed audience. Verify the issuer signature,
+expiry, repository_id/owner_id, workflow identity and SHA, event, operational ref,
+run_id and run_attempt against a durable session intent and a fresh GitHub run
+readback. Permit only the approved trusted runtime commit, never candidate workflow
+bytes or a user-supplied image/entrypoint. Select one provider run atomically before
+assigning attempts. A duplicate run gets no candidate execution authority.
 
-### Command execution
+A verified session receives only a per-session secret/capability restricted to its
+assigned attempt identities, exact input objects and authenticated results. No
+canonical Git writer, Cloudflare token, device key, user OAuth token or broker-ledger
+access enters the hosted job. Candidate containers receive none of the session's
+credentials or OIDC environment. Machine authentication never supplies human grants.
 
-Only named profiles in the trusted policy are callable. A profile contains fixed executable/argv construction, relative cwd, allowed typed parameters, timeout, CPU/memory/PID/disk/log limits, network mode and input/output paths. Profile arguments never interpolate into a shell. Repository scripts themselves remain untrusted and run only inside the sandbox. The core has no model invocation capability.
+## 4. Candidate containment and execution seal
 
-The initial production launcher uses rootless Podman, a digest-pinned image, dropped capabilities, no new privileges, a default-deny seccomp policy, read-only image root, private namespaces, a private temporary directory, no host PID/IPC namespace, no device/engine sockets and no broker HOME. Only that attempt's source materialization and private writable build/scratch volumes are mounted. Source files may be made read-only where compatible; otherwise the trusted runner checks the complete tracked tree before and after validation. Any tracked mutation invalidates the result. Read-only shared dependency artifacts are content-addressed and verified; mutable cache directories are per attempt.
+Each attempt executes inside its own rootless OCI container on the hosted runner.
+The trusted outer controller is approved release code, not a checked-out candidate
+workflow. Require an immutable image digest, checked engine binary/version,
+private PID/mount/user namespaces, no capabilities, no-new-privileges, enforcing
+seccomp, resource controllers and bounded writable scratch. Network defaults to
+none; an adopted fixture network has exact destinations and separate scoped fixture
+credentials. No Docker/Podman socket, host home, runner workspace, Git credentials,
+cloud metadata or broker transport socket is mounted inside the container.
 
-Network is disabled for core/hermetic profiles. Dependency resolution is a separate declared preparation step with allowlisted package endpoints and lock/integrity enforcement; it is not a shell with general egress. Integration/live fixtures receive only fixture-scoped capabilities through a brokered service or short-lived fixture token, never the canonical Git writer or runtime activation key. Profile output is untrusted data, not a command or instruction to the broker. Truncation includes byte counts and artifact handles; never silently truncate a source mutation payload.
+Immutable source is materialized by trusted code from D0002 objects and mounted
+read-only. Commands, argument schemas, cwd, image, CPU/memory/PID/disk/log limits,
+deadline, kill grace and replay-safety are adopted profile inputs. No unrestricted
+shell operation is exposed. Tests may execute untrusted code inside this boundary;
+the trusted controller computes input/output integrity and signs the receipt outside
+it. Candidate stdout saying PASS, modifying its tests, printing a fake receipt or
+exiting zero is not the controller's validation result.
 
-### Credential and effect boundary
+A runner image or `podman --version` is not an execution seal. Preflight must exercise
+the exact invocation and reject missing namespace, seccomp, cgroup, log, deadline or
+storage guarantees. Current observed Podman 4.9.3 is evidence, not an assertion that
+all existing adapter flags work. Remove unsupported adapter flags only by replacing
+them with an equivalent tested enforcement, never by silently dropping the bound.
 
-The broker alone can ask the provider to update the bound canonical ref. Use a repository-scoped, short-lived provider credential where supported, with a separately scoped runtime activation capability. Secret material is injected into the broker through the installation's secret store, not checked into Git or sent in MCP arguments. Sanitized receipts record credential identity/version, never values. A source commit does not automatically authorize changing OAuth issuer, scopes, provider account, network allowlists or fixture targets.
+Attempt names/labels hash the full immutable attempt identity. Create is atomic;
+inspect verifies source/profile/identity labels before observing or cancelling.
+Never relaunch a known attempt merely because a response was lost. A session-side
+attempt file is a durable effect observation for that ephemeral host, not a second
+work owner; if it or the host is lost, GitHub terminal run readback proves the old
+host execution has ended before a new replay-safe validation attempt is admitted.
+A missing connection, lease or heartbeat is not proof of termination.
 
-Policy changes are explicit typed actions under `policy.write`, with expected old policy digest and audited new digest. They are not auto-discovered from a candidate. Existing required validation cannot be removed by editing a candidate's manifest. D0003 owns adoption and validation ordering. Release activation is similarly explicit, not a hidden post-commit hook.
+## 5. Credential and effect boundary
 
-## Concurrency and isolation
+Only Termux's trusted integration component receives repository-scoped Git provider
+credentials. Fixed remote/ref and trusted Git configuration disable hooks, filters,
+external diff, credential helpers selected by source, and arbitrary remote URLs.
+The auxiliary execution-ref prefix is separately authorized; it is never canonical
+integration. Candidate results cannot mutate either namespace directly.
 
-Authorization and read checks are concurrent. A sandbox identity is `(installation, repository, work, action, attempt, ownerEpoch)`, never a slot number. Resource quotas apply to that identity. A sandbox has no route to another candidate or ledger even if a client guesses its work ID. Per-principal admission limits prevent one caller exhausting all capacity. A rejected sandbox launch does not reserve a slot indefinitely or serialize other work.
+Only the fixed deployment/activation helper receives provider-update credentials.
+It accepts sealed release identities and expected active identities, not shell
+commands or arbitrary provider requests. Read-only inventory authorization does
+not prove deployment permission. Missing write grants block installation, not cause
+borrowing of predecessor identities. Secrets stay outside source/evidence/logs.
 
-## Failure and recovery
+Executing an integrated release on Android is a deliberate `runtime.activate`
+trust transition by a currently authorized principal after required isolated validation.
+Native compatibility checks run as part of that explicit activation authority on
+disposable device state, before changing the active release pointer. It is not an escape hatch for `run` or `validate` and
+does not claim to sandbox an untrusted release from its operator. A release that
+cannot be safely activated remains inactive even when its source is integrated.
 
-Sandbox capability probes fail closed. Do not silently fall back to an unsandboxed host command. Revocation stops new effects and requests cancellation of affected running profiles; their outputs cannot grant new effects. Timeouts terminate the exact container/process group, then verify it is stopped before a writable materialization is reused. Unconfirmed termination quarantines that attempt, not the repository. Disk/log exhaustion stops that attempt and preserves a bounded receipt. Authentication outages do not convert requests into anonymous access.
+## 6. Acceptance and alternatives
 
-## Alternatives
+Required tests include spoofed/missing assertions, wrong application/issuer, service
+identity on human routes, profile downgrade, expired authorization, revoked grants,
+forged OIDC/run identity, duplicate session selection, sandbox host-secret access,
+namespace escape, network/metadata egress, fork/output/storage abuse, independent
+attempt cancellation and unavailable-host recovery. Native trusted probes and mock
+Podman arguments do not replace these managed-layer tests.
 
-Unrestricted `shell.run` is rejected as the normal public contract: it joins user intent, arbitrary execution and privileged effects. A same-UID worktree is insufficient for untrusted tests. A Worker-only runtime cannot supply the chosen local Git and execution boundary without adding another executor/control protocol. A new credential broker service or OAuth server is unnecessary; keep these as narrow modules and an existing issuer. Full VM-per-work isolation is stronger but is not initially required for the declared threat model; hostile multi-tenant kernel isolation would require a replacement sandbox implementation, not weaker checks.
-
-## Acceptance
-
-Fail tests for path traversal, symlink escape, cross-work reads/writes, malicious Git configuration, output-based instruction injection, forged result files, expired/wrong-audience tokens, token passthrough, role escalation, network egress, writable shared caches, engine-socket access, retained credentials and oversized output. A real sandbox fixture must demonstrate filesystem, network and resource restrictions at capacity 1 and 8. Fakes cannot verify this Design's OS boundary. Revoke a queued integration grant and prove no push occurs. Verify that a legitimate source edit needs no per-task administrator intervention.
+All-local unprivileged execution was rejected because this device's investigated
+isolation primitives do not supply the required hostile-code boundary. A new VPS,
+rooting Android or a new security-helper APK is not an assumed user asset. Existing
+managed execution is selected over inventing an unverified paid provider capability;
+its cost/performance remains subject to D0007, not presumed superior.
 
 ## Implementation consequences
 
-Own the auth/policy module and sandbox adapter boundary. Reuse maintained cryptographic/OAuth and OCI primitives under an exact dependency lock; do not implement JWT cryptography or a container engine. The service account, authorized host and issuer are deployment prerequisites, not a reason to narrow the Directive. See D0006 for installation/activation and D0007 for the environment/evidence contract.
+Keep fixed-command control and provider credentials on Termux. Retain the strict
+JWT-scope verifier, add the explicitly configured Access-application verifier, and
+implement machine/hosted execution adapters without changing domain work identity.
+All production containment claims require real managed-layer negative tests.

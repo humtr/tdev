@@ -1,0 +1,228 @@
+{
+  "schemaVersion": 1,
+  "freshStartHead": "0a7e20d128c932a3f2c4ea6b6a544e3f1d705c42",
+  "directive": "r2",
+  "nativeCore": {
+    "tests": 109,
+    "pass": 109,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logDigest": "sha256:9d3656ca0158709ef93b1ec010493dabef03bfe3ba72196bf7abe3d3547367a0"
+  },
+  "nativeFocusedModuleIntegration": {
+    "tests": 32,
+    "pass": 32,
+    "fail": 0,
+    "cancelled": 0,
+    "skipped": 0,
+    "logDigest": "sha256:372c9a38e236cb7637c07e847ccc29f5f5e2a1223b198d40611d8b565f7fd62d"
+  },
+  "canonicalJoinedIntegration": {
+    "status": "not_run",
+    "exitCode": 2,
+    "reason": "Full joined profile remains explicitly unimplemented; focused module pass is not J1/J2 completion"
+  },
+  "newCorrectionTests": 25,
+  "documentation": "passed; 7 accepted Designs, all r2; acyclic metadata/derived INDEX/links",
+  "checkedJSDoc": "passed",
+  "execution": {
+    "variantId": "termux-android-arm64-node24-18",
+    "role": "native-control",
+    "node": "24.18.0",
+    "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "platform": "android",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "inputDigest": "sha256:abf0a79a11d262ab5a4369fd63471034e3c5896ff14e0dbff4134237b836b303",
+  "productSourceManifest": [
+    {
+      "path": "bench/diagnostics.mjs",
+      "sha256": "e6b9666ff045ce56b36396c064432afe7c91391976bf0f2122e6022194e92b50"
+    },
+    {
+      "path": "config/toolchain.lock.json",
+      "sha256": "6e4a4eaaf59d5c2366908f2679a9f8b39ae47b6f9ff8b9c0885d40a8c3a93787"
+    },
+    {
+      "path": "config/validation-profiles.json",
+      "sha256": "9dcb35a334bafb6bacfa41cabdfc24cffbde73dc2942aec2d2cad571716e1aca"
+    },
+    {
+      "path": "src/candidate/materialize.mjs",
+      "sha256": "a13ebe5e3cbc061c6e89e04af60d35b471adc2d06dc4c16df36796f35f43a198"
+    },
+    {
+      "path": "src/candidate/tree.mjs",
+      "sha256": "2366071a29187d121d413934d7e5ef68f71628f9fbe55da0cbf4563bc33a12f3"
+    },
+    {
+      "path": "src/contracts/canonical.mjs",
+      "sha256": "4560c974489656caed9d06b8f796c1cb667f62e1278bffc5deb40ceac9d0e51d"
+    },
+    {
+      "path": "src/contracts/envelopes.mjs",
+      "sha256": "b431470d50b51d917dabd17789141db683144d5cf541f99b10ba241663536ba1"
+    },
+    {
+      "path": "src/contracts/errors.mjs",
+      "sha256": "82828d4b713617996b624a1a26f6f060ba396fc5ed893f647fe38b126de59f85"
+    },
+    {
+      "path": "src/contracts/identity.mjs",
+      "sha256": "cee78a5edc9f584c3c7d5ac832447059addbc1ffd5199110b83c91eb29cdcbdc"
+    },
+    {
+      "path": "src/contracts/ports.d.ts",
+      "sha256": "c22bdf5f86fbddf42918c46319ed3ddb958572caff0e4d279805e8b6d13d9687"
+    },
+    {
+      "path": "src/execution/command.mjs",
+      "sha256": "a0f7d73305255cdb91bf695dace3efce21057ff5a2d1730f250604ff26d2db8c"
+    },
+    {
+      "path": "src/execution/podman.mjs",
+      "sha256": "8e0108a521f248c60c8950dd3eeca4e625245fb2523ecc535d387862c7f8e0ce"
+    },
+    {
+      "path": "src/mcp/README.md",
+      "sha256": "bedeaa73e8c3085e9fd1de57e57b62798ea3e6d98d0927fe3da30c6cf357ba3b"
+    },
+    {
+      "path": "src/mcp/input-schemas.mjs",
+      "sha256": "5544a41466de130c368d8f5f77334b3709f9b2256f20c0227f8dd940d76898e5"
+    },
+    {
+      "path": "src/mcp/protocol.mjs",
+      "sha256": "de40118fbeb53fca06f2cdadd82c6fda01fe2108fcaf6b5347bbbe12d4c572d5"
+    },
+    {
+      "path": "src/repository/context.mjs",
+      "sha256": "0f2f04287a1434ff069d38625b60406b5b3cb7a98bb71853be60c877e5683947"
+    },
+    {
+      "path": "src/repository/entries.mjs",
+      "sha256": "b320fa6fa9d05a1a3215732369ac5a9fd758fb46c2b778e24e5e70a2acdbf1ea"
+    },
+    {
+      "path": "src/repository/git.mjs",
+      "sha256": "7f1a9a5bb036982cca72b74bb84c3a2cc509e60be3304ed89932a19a9bdf250a"
+    },
+    {
+      "path": "src/runtime/environment.mjs",
+      "sha256": "465cbada52902d571a672359580dc2d1fa122ac724528c7b2a66b7ab8de18554"
+    },
+    {
+      "path": "src/security/access-application.mjs",
+      "sha256": "0e78d5305c81790d05807a6cdaa45d9904e7de26ba410df238befba732b5e954"
+    },
+    {
+      "path": "src/security/authorization.mjs",
+      "sha256": "f82f861293c35d5881c2ccceb095b762cf6c2fbfbfeb7a26fd481a43b2497db4"
+    },
+    {
+      "path": "src/security/paths.mjs",
+      "sha256": "ab6dcdad80b83873c0493e09d882e3132e3570a376b8f545a815859be1b3edf0"
+    },
+    {
+      "path": "src/storage/ledger.mjs",
+      "sha256": "7ac98be4b74b0297edef4e604176d5e1c9e378ca839a7de692a88b552c293ec6"
+    },
+    {
+      "path": "src/storage/objects.mjs",
+      "sha256": "59a954bb016b2881f0d36d0ddb42e58eb34b0ab8167727e24f2f00a9f2113c3a"
+    },
+    {
+      "path": "src/transport/README.md",
+      "sha256": "a0b4b879b985813bc49b4d56e8d61fe9ac5b0ab5985da83b8d007e633f1106cb"
+    },
+    {
+      "path": "src/transport/rendezvous.mjs",
+      "sha256": "67395ddd022f56f2a7910b6f80cae57990f210f908a55a1f76f627715b8e4b47"
+    },
+    {
+      "path": "src/work/coordinator.mjs",
+      "sha256": "e8698703124f428c0fddb7d3a8d702ab343d710ef17e48757ba2b7ae68287ea8"
+    },
+    {
+      "path": "test/core/access-application.test.mjs",
+      "sha256": "058d260b35925f7294f91996e8f08fe9631891ec689eeea48a238f51864a56d6"
+    },
+    {
+      "path": "test/core/context.test.mjs",
+      "sha256": "0fe2dd7bdf146c7e3f4834528403f02c76619667b846bcaf851a507db8a48c00"
+    },
+    {
+      "path": "test/core/contracts.test.mjs",
+      "sha256": "cf1d2265fd02aa03a05a8bd3ff1855a945b5f053844980897b3a11d967515d21"
+    },
+    {
+      "path": "test/core/diagnostics.test.mjs",
+      "sha256": "ea2763f1174adbf21a505bbb166c823a0f38983c1c4b754e38bf79262721e84b"
+    },
+    {
+      "path": "test/core/entrypoint.test.mjs",
+      "sha256": "7a013f25fd7e3a7e26804cf97b098aeff564bc1c114404edf7039ab0877868a4"
+    },
+    {
+      "path": "test/core/environment.test.mjs",
+      "sha256": "9dc9c41c390d6c3f01139d29cb17eb13595f01655b0f09076ab838a5e48e0d89"
+    },
+    {
+      "path": "test/core/mcp-input.test.mjs",
+      "sha256": "2a8b8f5fdd38684e805b3ac16278267061e98389e2dd252e3cade9ed7ebcb218"
+    },
+    {
+      "path": "test/core/mcp-protocol.test.mjs",
+      "sha256": "1b1d1b0979989f55dbb871853c331fb44ca1539a0921f05ee7e88e0fead6f2d2"
+    },
+    {
+      "path": "test/core/rendezvous.test.mjs",
+      "sha256": "e044c8fe68afc178bf6c60666a316317d35db631147c0a5173c4c00dc61ff156"
+    },
+    {
+      "path": "test/core/repository-cache.test.mjs",
+      "sha256": "84baa89dcdd52af709c71d1283fa6f5c7b989b804e99d2f5a3874969d42d54da"
+    },
+    {
+      "path": "test/core/security.test.mjs",
+      "sha256": "7bc718925a15ad3d8b1a9337c27fd5e382d81a683050179005c8faef94bfbbf0"
+    },
+    {
+      "path": "test/fixtures/deterministic.mjs",
+      "sha256": "2c7e80315922b0b4bd31c567551a4160b17a362023ef9b3287382683ab394233"
+    },
+    {
+      "path": "test/fixtures/git-world.mjs",
+      "sha256": "9d1947e3bf5bc036406b584e3fa17d719a27dd1c86134369d5da2e2de039502b"
+    },
+    {
+      "path": "test/integration/context-native.test.mjs",
+      "sha256": "63bbac88f1a53b526ee00d55fc7a26c2f8e215d3569954e2ab6a3282d5a16fba"
+    },
+    {
+      "path": "test/integration/ledger.test.mjs",
+      "sha256": "fd47f0161f2f9e51281dcf22e170e29a5c71d8911ceed00f92a4e6eb35f4ad63"
+    },
+    {
+      "path": "test/integration/repository-candidate.test.mjs",
+      "sha256": "5a64a899ac07c7311cfc0d8350492dfb96aa84df7d79c13ef06dffc6c01848aa"
+    },
+    {
+      "path": "tools/check.mjs",
+      "sha256": "a512980fc466280a5a1aca98c9104937d524f8fbb2f1e50fd2a17b9d1e1ebb49"
+    },
+    {
+      "path": "tools/validate.mjs",
+      "sha256": "a2a8a45c2edae19219af9d9eca57f4898af9c4a1d9d9aec620b46e6dede850b0"
+    }
+  ],
+  "providerMutationPerformed": false,
+  "installedDev2": false,
+  "hostileSandboxSeal": "not_run",
+  "chatGPTUsability": "not_run",
+  "superiority": "not_run",
+  "androidSleepForceStopReboot": "not_run",
+  "bootstrapException": "GitHub reads/CI, tmcp project-local execution and Git publication are required until dev-2 has a usable canonical self-development path."
+}
