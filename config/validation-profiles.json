@@ -1,0 +1,63 @@
+{
+  "schemaVersion": 1,
+  "profiles": {
+    "core": {
+      "implemented": true,
+      "testDirectory": "test/core",
+      "timeoutMs": 300000,
+      "network": "none",
+      "requires": [
+        "node.pin",
+        "python.minimum",
+        "npm.lock"
+      ]
+    },
+    "integration": {
+      "implemented": false,
+      "testDirectory": "test/integration",
+      "timeoutMs": 300000,
+      "network": "none",
+      "requires": [
+        "node.pin",
+        "git.pin",
+        "sqlite",
+        "filesystem"
+      ]
+    },
+    "release": {
+      "implemented": false,
+      "testDirectory": "test/release",
+      "timeoutMs": 300000,
+      "network": "fixture",
+      "requires": [
+        "production.seal",
+        "podman.rootless",
+        "cgroup.v2",
+        "systemd.fixture"
+      ]
+    },
+    "live": {
+      "implemented": false,
+      "testDirectory": "test/live",
+      "timeoutMs": 300000,
+      "network": "fixture",
+      "requires": [
+        "canonical.mcp",
+        "oauth.fixture",
+        "provider.fixture",
+        "chatgpt.transcript"
+      ]
+    },
+    "benchmark": {
+      "implemented": false,
+      "testDirectory": "bench",
+      "timeoutMs": 300000,
+      "network": "fixture",
+      "requires": [
+        "registered.manifest",
+        "matched.baselines",
+        "immutable.trials"
+      ]
+    }
+  }
+}

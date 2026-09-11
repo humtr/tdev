@@ -1,0 +1,21 @@
+{
+  "compilerOptions": {
+    "allowJs": true,
+    "checkJs": true,
+    "strict": true,
+    "noEmit": true,
+    "target": "ES2024",
+    "module": "NodeNext",
+    "moduleResolution": "NodeNext",
+    "types": [
+      "node"
+    ],
+    "skipLibCheck": false
+  },
+  "include": [
+    "src/**/*.mjs",
+    "src/**/*.d.ts",
+    "tools/**/*.mjs",
+    "test/fixtures/**/*.mjs"
+  ]
+}

@@ -1,0 +1,34 @@
+{
+  "schemaVersion": 1,
+  "layer": "integration",
+  "status": "not_run",
+  "exitCode": 2,
+  "scope": "implemented-profile-only",
+  "installationEligibility": false,
+  "startedAt": "2026-09-11T09:24:24.415Z",
+  "finishedAt": "2026-09-11T09:24:24.449Z",
+  "durationMs": 34,
+  "entrypointDigest": "sha256:c44bbf4c61d06d89e3526db7b1d97c59d4138316e30b8132f8bacd63ceb766cc",
+  "inputDigest": "sha256:1c11ac88f84848edda67123388b6bfc3f66096efb7c4f9dd1e3508c55fcc6c26",
+  "outputInputDigest": "sha256:1c11ac88f84848edda67123388b6bfc3f66096efb7c4f9dd1e3508c55fcc6c26",
+  "profileDigest": "sha256:5ce2200351306495cb523099a00a2c589dbfc6a532b907073c18981591899c18",
+  "toolchainLockDigest": "sha256:0747bb003085a857c812f7ed1ca1080667382c2a00a972e1b0197d31b5205c92",
+  "dependencyLockDigest": "sha256:0a2cce612e1b3825e5dd291cbb9fa7828fecd710321758513269f32504206ee1",
+  "execution": {
+    "node": "24.21.0",
+    "nodeBinaryDigest": "sha256:0f8949d1028f6d61506b2d5bc57e7e6fe893d7b1997509b7847294fc9c616584",
+    "platform": "linux",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "checks": [
+    {
+      "name": "implementation",
+      "status": "not_run",
+      "exitCode": null,
+      "signal": null,
+      "durationMs": 0,
+      "logDigest": null
+    }
+  ]
+}
