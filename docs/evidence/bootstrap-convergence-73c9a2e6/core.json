@@ -1,0 +1,58 @@
+{
+  "schemaVersion": 1,
+  "layer": "core",
+  "status": "passed",
+  "exitCode": 0,
+  "scope": "implemented-profile-only",
+  "installationEligibility": false,
+  "startedAt": "2026-09-11T09:41:47.726Z",
+  "finishedAt": "2026-09-11T09:41:56.001Z",
+  "durationMs": 8275,
+  "entrypointDigest": "sha256:795c3ff50c95155514aab05f4fc123c641fa8ecddb54175ecb3d24b34be24b3c",
+  "inputDigest": "sha256:95e255b84fc1883a2b4962a26638f49548bb6ff4cdda981ae4d5d4f11f663f53",
+  "outputInputDigest": "sha256:95e255b84fc1883a2b4962a26638f49548bb6ff4cdda981ae4d5d4f11f663f53",
+  "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+  "toolchainLockDigest": "sha256:0747bb003085a857c812f7ed1ca1080667382c2a00a972e1b0197d31b5205c92",
+  "dependencyLockDigest": "sha256:0a2cce612e1b3825e5dd291cbb9fa7828fecd710321758513269f32504206ee1",
+  "execution": {
+    "node": "24.21.0",
+    "nodeBinaryDigest": "sha256:0f8949d1028f6d61506b2d5bc57e7e6fe893d7b1997509b7847294fc9c616584",
+    "platform": "linux",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "checks": [
+    {
+      "name": "python.minimum",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 174,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jsdoc",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 4947,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "designs",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 547,
+      "logDigest": "sha256:624355dc41380e51ad71bf00ca5554c9d46a019fded6256b4fe1a180301d45b0"
+    },
+    {
+      "name": "tests",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 2529,
+      "logDigest": "sha256:bef7ac493e017cc2ded7be477ec6c2fd0293b8f46ec7ac31c9278b4c6a16539a"
+    }
+  ]
+}

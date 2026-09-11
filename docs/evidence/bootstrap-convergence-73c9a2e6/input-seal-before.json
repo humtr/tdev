@@ -1,0 +1,7 @@
+{
+  "falsifier": "A checked benchmark source input changed but the F0 input digest remained identical",
+  "beforeInput": "sha256:6fe99d0daee5f3185409a7514e064c73bb70a65c0be67115e241488b050fc994",
+  "afterInput": "sha256:6fe99d0daee5f3185409a7514e064c73bb70a65c0be67115e241488b050fc994",
+  "changedInputIncluded": false,
+  "scope": "isolated local report-inventory probe; no product integration or sandbox claim"
+}

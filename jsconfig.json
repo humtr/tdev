@@ -16,6 +16,7 @@
     "src/**/*.mjs",
     "src/**/*.d.ts",
     "tools/**/*.mjs",
-    "test/fixtures/**/*.mjs"
+    "test/fixtures/**/*.mjs",
+    "bench/**/*.mjs"
   ]
 }

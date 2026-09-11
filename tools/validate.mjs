@@ -17,7 +17,7 @@ function files(directory) {
 }
 /** Exact relevant bytes, including uncommitted implementation inputs; no Git required by core. */
 function inputIdentity() {
-  const paths=[...['src','tools','test','config'].flatMap(p=>files(join(root,p))),
+  const paths=[...['src','tools','test','config','bench'].flatMap(p=>files(join(root,p))),
     ...['AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json'].map(p=>join(root,p)),
     ...files(join(root,'docs/design'))].filter(p=>!p.includes('__pycache__')&&!p.endsWith('.pyc'));
   return recordDigest('dev2.validation-inputs.v1',paths.sort().map(p=>({path:relative(root,p),digest:bytesDigest(readFileSync(p))})));

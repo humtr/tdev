@@ -17,6 +17,19 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
+## Current concurrent bootstrap scopes
+
+The published F0 contract at `2a2e0dd513c969e77f9c39042cabb1780d9c8cfe` remains
+canonical. The independent `tmcp/dev2-f0-73c9a2e6` alternative is retained but is
+**not selected for integration**; do not replace the published ports with it.
+P1-P8 implementation workspaces already exist on `tmcp/dev2-p*-20260911` branches;
+preserve their uncommitted work and bind their actual current state before joining.
+The separate `tmcp/dev2-evidence-73c9a2e6` scope supplies pinned Linux core CI,
+`bench/diagnostics.mjs`, its focused tests, and the validation input-inventory fix.
+P5 must preserve coverage of checked benchmark inputs when replacing the F0 driver.
+These diagnostics do not claim actual ChatGPT usability, same-ref performance,
+OS isolation, or superiority; no benchmark trial is added to ordinary validation.
+
 ## F0 - shared contract and build seed (complete)
 
 One integration owner creates only the minimum skeleton required by the accepted contracts: package/lock, pinned toolchain/profile descriptors, `src/contracts/` identifiers/envelopes/ports, small deterministic fixtures, and `tools/validate.mjs` dispatch with missing implementations reported as NOT RUN, never success. There is no new architectural decision hidden in this step.
