@@ -17,6 +17,28 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
+## Current P1/P2 join
+
+P1 authorization/rootless launch intent and P2 SQLite work/attempt/object primitives
+are implemented and joined from separate `tmcp/dev2-p1-c819e5` and
+`tmcp/dev2-p2-c819e5` branches. P1 has 15 focused tests, P2 has 18 focused tests
+including actual process death/reopen, plus the already-published P3/P4 source.
+See `docs/evidence/p1-p2-c819e5/p1.md` and `p2.md` for evidence and limitations.
+This does not establish production container execution, broker integration or live
+MCP-only self-development. Those remain the current join frontier.
+
+Shared contract changes: concrete authorization requires verified tokenCapabilities
+and intersects them with standing grants. Work.candidate is only a tree/manifest
+reference; full entries must be loaded from Git objects and verified. P5/P6/P8 must
+consume these published contracts. Stopped attempts retain identity after capacity
+release, allowing later effect reconciliation without reacquiring a worker slot.
+
+The peer published `tmcp/dev2-impl-k47-final` commit
+`d41235d07dbfa4393ca8889b1c4d9565061af922` contains complementary P5/P6/P7/P8
+and an early join. Reconcile it with these newer P1/P2 corrections; do not replace
+the fixed P1/P2 source with its earlier candidate copies. The current assembly
+continues this join and required tests before claiming completed product lanes.
+
 ## Current post-P3/P4 parallel assignments
 
 P3/P4 source is published at `1b717ad1d4c29520de859225413fc3bd4f0b3d10`;
