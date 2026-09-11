@@ -1,0 +1,46 @@
+TAP version 13
+# Subtest: lost send response reconciles exact integrated commit without duplicate validation or send
+ok 1 - lost send response reconciles exact integrated commit without duplicate validation or send
+  ---
+  duration_ms: 3691.562916
+  type: 'test'
+  ...
+# Subtest: uncertain execution or sender never grants replay even when another work can proceed
+ok 2 - uncertain execution or sender never grants replay even when another work can proceed
+  ---
+  duration_ms: 1796.994114
+  type: 'test'
+  ...
+# Subtest: a reopened ledger resumes the original reserved action under a new observer epoch
+ok 3 - a reopened ledger resumes the original reserved action under a new observer epoch
+  ---
+  duration_ms: 3366.541092
+  type: 'test'
+  ...
+# Subtest: resume requires the original operation capability, not only work.write
+ok 4 - resume requires the original operation capability, not only work.write
+  ---
+  duration_ms: 1524.001614
+  type: 'test'
+  ...
+# Subtest: expired interrupted action is reconciled and cancelled, never given an implicit fresh deadline
+ok 5 - expired interrupted action is reconciled and cancelled, never given an implicit fresh deadline
+  ---
+  duration_ms: 1322.300468
+  type: 'test'
+  ...
+# Subtest: active local execution cannot be resumed concurrently even with an overly broad installation observer
+ok 6 - active local execution cannot be resumed concurrently even with an overly broad installation observer
+  ---
+  duration_ms: 2658.686457
+  type: 'test'
+  ...
+1..6
+# tests 6
+# suites 0
+# pass 6
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 15170.404161

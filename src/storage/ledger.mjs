@@ -93,7 +93,7 @@ export class Transaction {
   insertWork(work){work=compactWork(work);id(work.workId);revision(work.revision);revision(work.generation);requireThat(work.repositoryId===this.ledger.binding.repositoryId&&work.bindingEpoch===this.ledger.binding.bindingEpoch,'FORBIDDEN');
     this.run('INSERT INTO work(work_id,principal,revision,disposition,record) VALUES(?,?,?,?,?)',work.workId,work.principal,work.revision,work.disposition,recordJson(work));}
   /** @param {Action} action @param {unknown} [intent] */
-  insertAction(action,intent=null){id(action.actionId);id(action.requestId);revision(action.attempt);revision(action.ownerEpoch);requireThat(action.bindingEpoch===this.ledger.binding.bindingEpoch,'FORBIDDEN');this.run('INSERT INTO action(action_id,principal,epoch,request_id,work_id,status,record,intent) VALUES(?,?,?,?,?,?,?,?)',action.actionId,action.principal,action.bindingEpoch,action.requestId,action.workId,action.status,recordJson(action),recordJson(intent));}
+  insertAction(action,intent=null){id(action.actionId);id(action.requestId);revision(action.attempt);revision(action.ownerEpoch);requireThat(action.bindingEpoch===this.ledger.binding.bindingEpoch,'FORBIDDEN');this.run('INSERT INTO action(action_id,principal,epoch,request_id,work_id,status,record,intent) VALUES(?,?,?,?,?,?,?,?)',action.actionId,action.principal,action.bindingEpoch,action.requestId,action.workId,action.status,recordJson(action),recordJson(intent));this.run('INSERT INTO meta(key,value) VALUES(?,?)','actionRevision:'+action.actionId,'0');}
   /** @param {string} expected @param {Work} replacement */
   compareWork(expected,replacement){replacement=compactWork(replacement);const old=this.getWork(replacement.workId);if(!old||old.revision!==expected)return false;
     requireThat(old.disposition==='open'&&replacement.revision===nextRevision(expected)&&old.principal===replacement.principal&&old.repositoryId===replacement.repositoryId&&old.bindingEpoch===replacement.bindingEpoch&&old.baseCommitOid===replacement.baseCommitOid&&old.baseTreeOid===replacement.baseTreeOid,'INTEGRITY_FAILURE');
@@ -104,7 +104,7 @@ export class Transaction {
     if(['succeeded','failed','cancelled'].includes(old.status)){requireThat(recordJson(old)===recordJson(action),'INTEGRITY_FAILURE','Terminal receipt is immutable');return;}
     const transitions={queued:['queued','running','cancelled'],running:['running','blocked','succeeded','failed','cancelled'],blocked:['blocked','queued','succeeded','failed','cancelled']};
     requireThat(transitions[/** @type {'queued'|'running'|'blocked'} */(old.status)]?.includes(action.status),'INTEGRITY_FAILURE','Action transition');
-    this.run('UPDATE action SET status=?,record=? WHERE action_id=?',action.status,recordJson(action),action.actionId);}
+    this.run('UPDATE action SET status=?,record=? WHERE action_id=?',action.status,recordJson(action),action.actionId);const rev=String(this.get('SELECT value FROM meta WHERE key=?','actionRevision:'+action.actionId)?.value??'0');this.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value','actionRevision:'+action.actionId,nextRevision(rev));}
   /** @param {Attempt} attempt @param {number} limit */
   reserveAttempt(attempt,limit){
     capacity(limit);id(attempt.attemptId);revision(attempt.attempt);revision(attempt.ownerEpoch);

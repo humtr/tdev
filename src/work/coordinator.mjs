@@ -56,7 +56,7 @@ export class WorkCoordinator {
   });}
   /** Callback fencing is independent of immutable container attempt identity.
    * @param {Attempt} attempt @param {string} observerEpoch @param {'succeeded'|'failed'|'cancelled'|'blocked'} status
-   * @param {{stopped:boolean,effectResolved:boolean,resultId?:string,errorCode?:string}} proof
+   * @param {{stopped:boolean,effectResolved:boolean,resultId?:string,errorCode?:string,disposition?:'integrated'|'cancelled'}} proof
    */
   settle(attempt,observerEpoch,status,proof){return this.ledger.transact(tx=>{
     const reservation=tx.retainedAttempt(attempt.attemptId);
@@ -65,11 +65,11 @@ export class WorkCoordinator {
     const terminal=status!=='blocked';requireThat(!terminal||(proof.stopped&&proof.effectResolved),'EFFECT_UNCERTAIN');
     tx.updateAction({...action,status,step:terminal?'complete':'reconcile',resultId:proof.resultId??null,errorCode:proof.errorCode??null,ownerEpoch:observerEpoch});
     if(proof.stopped)tx.releaseAttempt(attempt.attemptId);
-    if(terminal)this.clearFence(tx,action);
+    if(terminal)this.clearFence(tx,action,proof.disposition);
   });}
-  /** @param {Transaction} tx @param {Action} action */
-  clearFence(tx,action){if(!action.workId)return;const work=tx.getWork(action.workId);requireThat(work,'INTEGRITY_FAILURE');
-    if(work.currentActionId===action.actionId)requireThat(tx.compareWork(work.revision,{...work,currentActionId:null,revision:nextRevision(work.revision)}),'STALE_REVISION');
+  /** @param {Transaction} tx @param {Action} action @param {'integrated'|'cancelled'} [disposition] */
+  clearFence(tx,action,disposition){if(!action.workId)return;const work=tx.getWork(action.workId);requireThat(work,'INTEGRITY_FAILURE');
+    if(work.currentActionId===action.actionId)requireThat(tx.compareWork(work.revision,{...work,currentActionId:null,revision:nextRevision(work.revision),...(disposition?{disposition}:{})}),'STALE_REVISION');
   }
   /** A durable cancellation intent does not pretend the process/effect is already stopped.
    * @param {string} actionId @param {string} principal

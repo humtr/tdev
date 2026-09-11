@@ -17,6 +17,22 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
+## Current executable join
+
+P1-P4 foundations and selected P5/P6/P7/P8 engine/application/HTTP modules are now
+joined, including compact candidate hydration and original-action resume/recovery.
+The actual TCP/JOSE/Git/full-source-profile path passes nine focused tests and six
+recovery tests. This is an executable development loop on a disposable trusted
+fixture, not an installed rootless canonical broker or actual ChatGPT proof.
+See `docs/evidence/join-c819e5/README.md`. The first same-ref eight-way observation
+reproduced 36 full validations for eight changes; D0003 contention reduction is the
+next implementation falsifier, not a reason to weaken validation.
+
+P8 durable activation/systemd boundary is available in the isolated published
+commit `519abb7eb8675211c5dc2189121eda96e1ee8b1d` and is joined next. Canonical
+integration-profile dispatch and exact-toolchain CI are advanced with that join.
+No lane is production-verified solely by a source or fixture PASS.
+
 ## Current P1/P2 join
 
 P1 authorization/rootless launch intent and P2 SQLite work/attempt/object primitives

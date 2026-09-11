@@ -1,0 +1,753 @@
+{
+  "scope": "real-local-same-ref-full-validation",
+  "comparativeSuperiority": false,
+  "actualChatGPT": false,
+  "productionSandbox": false,
+  "elapsedMs": 50224,
+  "works": 8,
+  "rounds": [
+    {
+      "round": 0,
+      "admitted": 8,
+      "succeeded": 1,
+      "elapsedMs": 8828
+    },
+    {
+      "round": 1,
+      "admitted": 7,
+      "succeeded": 1,
+      "elapsedMs": 7044
+    },
+    {
+      "round": 2,
+      "admitted": 6,
+      "succeeded": 1,
+      "elapsedMs": 7438
+    },
+    {
+      "round": 3,
+      "admitted": 5,
+      "succeeded": 1,
+      "elapsedMs": 7307
+    },
+    {
+      "round": 4,
+      "admitted": 4,
+      "succeeded": 1,
+      "elapsedMs": 4991
+    },
+    {
+      "round": 5,
+      "admitted": 3,
+      "succeeded": 1,
+      "elapsedMs": 4501
+    },
+    {
+      "round": 6,
+      "admitted": 2,
+      "succeeded": 1,
+      "elapsedMs": 3356
+    },
+    {
+      "round": 7,
+      "admitted": 1,
+      "succeeded": 1,
+      "elapsedMs": 2819
+    }
+  ],
+  "attempts": [
+    {
+      "workId": "7b26cd315caaa7e506703d8713f32674",
+      "actionId": "5b03d94226d826bdad24c07e03591fe7",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "f63def9336efe7d571622fba07bb7cc4"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "14a117759e067078155db0aec595671c",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "b5e008ca95581835f5d733e15f8813d9"
+    },
+    {
+      "workId": "602696e7e0b502f339bc6dcc62e4733f",
+      "actionId": "7f1f393a125d0c989e4a0dbbc1af17e5",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "5657b474517b609b0ddfd651eb990230"
+    },
+    {
+      "workId": "2da3677e011704a44aaf2206e003f43d",
+      "actionId": "bf046bb758b3c99f8b9a1fe984f35b8d",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "e02229b611be9e40b79d5e4e8cbdaef2"
+    },
+    {
+      "workId": "e984966bb42f46fe4c6e877fc3546a1d",
+      "actionId": "71bfa17f0904c522deb7613ab27fb71d",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "8757916d0b4059e5d95bbfbfa86f6c72"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "8d9e214cd58093041d3d322524742180",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "29526d45e20518d579b138fc3ee3b889"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "3607d188fbcfa3af43b44ea2cf9863cc",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "4c7477b54beb829b1e585e4899067f68"
+    },
+    {
+      "workId": "2c14277afd210e20be21398b174c5753",
+      "actionId": "d96dcde11a3c7cfc8381222560e8f514",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "e39bbbd1a6f1bee2b4907c16cc0bc529"
+    },
+    {
+      "workId": "7b26cd315caaa7e506703d8713f32674",
+      "actionId": "7165af2b8aabc9a7ac804857b8b0fd2d",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "a3dd5c048b1d8573f75c83743708df56"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "300eaeb08ad13e0b774087643d408c03",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "57c6960e5a329bb135d638b9e66b29fd"
+    },
+    {
+      "workId": "602696e7e0b502f339bc6dcc62e4733f",
+      "actionId": "cfa5357df6a2ae7e6b26c997a4104683",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "0532342a50a3a0727b6be4e577266449"
+    },
+    {
+      "workId": "2da3677e011704a44aaf2206e003f43d",
+      "actionId": "bff742c607421a6481220146bd27135b",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "99b7d11098d486f828aa9d92299a1319"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "18afdd7f73258a58cb8eabaf888e46bd",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "4aebb56b05e93e8d0158f275663e014e"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "49540efb3ce1703314b2c7b46ed5e6c8",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "ebe1200cc8b60f681aae7abcd975cc35"
+    },
+    {
+      "workId": "2c14277afd210e20be21398b174c5753",
+      "actionId": "a8568ae3749be489d682b33a9827f176",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "c1b331776adb7b041a87b67a26c1317d"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "eca03b4e0338d7eb2c840819b67d587f",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "fc315b6809bb6c9e13b76c98e3eb0616"
+    },
+    {
+      "workId": "602696e7e0b502f339bc6dcc62e4733f",
+      "actionId": "3fa295ec2a55734716b830e8a0668334",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "fba04f265c29ddb784e1fae9f0ccbd35"
+    },
+    {
+      "workId": "2da3677e011704a44aaf2206e003f43d",
+      "actionId": "89d64c992ae5022da887b80c36521bef",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "847bcfc17f74c9b839f61f96492bb876"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "17c94caf1ade9c5b500c79a58c1b2805",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "605f0b3803042b9a598c59bef50ff67a"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "6dbc1626bcec5718972ee464295ab804",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "b0a8454e8b98c67bf36f3eb11418ee16"
+    },
+    {
+      "workId": "2c14277afd210e20be21398b174c5753",
+      "actionId": "f5309487d58aff34f99d798f5a355d5c",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "858e1f02281ff4f800897d61e5695da1"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "72df11c5e4b11f1342253943b8a69093",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "6af7afc29f79578888b000e2ebd5f2df"
+    },
+    {
+      "workId": "2da3677e011704a44aaf2206e003f43d",
+      "actionId": "349ef0be777dfe31454c5eeb3db822f9",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "b332acbb2689f60db9c41a473ec31dbb"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "941ab0a5d37e42f06b5201bee51e6e4b",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "45df9bf71aa23b3b6c5f98a702599aee"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "68a3c8eef2dc555a5624776816b7a0c2",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "7051dc597d78a0fe52a110bc8d4c5141"
+    },
+    {
+      "workId": "2c14277afd210e20be21398b174c5753",
+      "actionId": "275e260c32ce351a916427e58ae7c61a",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "6a54ae3683b77effd478a19ace12d0ac"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "db592756968a18e5485345f4607bce33",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "0a3d67b338879dd4b73f36456b30c74e"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "4faffd8f7718044dac906df379a13786",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "4f87df6cb1b88ffe7ea79c4ae05b1072"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "9c4aca395930be858f543cd1b11aedba",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "62c0abbb5d8626b95deb64e880e7dd14"
+    },
+    {
+      "workId": "2c14277afd210e20be21398b174c5753",
+      "actionId": "80f172be8726e8930d8e3eca473cd6c6",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "d0dec05c11d143217fd316cdef0d5c9c"
+    },
+    {
+      "workId": "9852079d63e48299c2d73a464ac1d611",
+      "actionId": "7096a28fb87470357d95ea2ae96dfb1b",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "49e9ac12864b10ad56dd229bb4f87e93"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "5d8cbf0cbb38ff9db56a9b725a72d999",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "49f84c3a1851a84450cdd60609d13da8"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "5c8531b46701cbc04b4430f6f05fb4ef",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "36009080e36e776f95d4417822a1f992"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "4bc70bd81c8683b4cfbb0b15ae533131",
+      "status": "failed",
+      "errorCode": "CONTENDED_REF",
+      "resultId": "4b13a8b8146a2f0e34071d2229f6ae1c"
+    },
+    {
+      "workId": "16b72d9bcaf52b0b58a3e16a8a284075",
+      "actionId": "e5c374d99b41a2d1cb1bda9617bd9d09",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "eb4f802e1ed80d65972ac8fea0df18fd"
+    },
+    {
+      "workId": "622aca891368d6fdefb069ed8112d0a4",
+      "actionId": "fe22818980687f7ec46eb2bf64e73779",
+      "status": "succeeded",
+      "errorCode": null,
+      "resultId": "4f0f394930d2e15210176e1f058dc8fd"
+    }
+  ],
+  "validationRuns": 36,
+  "profileProcessRuns": 72,
+  "peakLiveProfileProcesses": 8,
+  "peakReservedExecutions": 8,
+  "refSendAttempts": 19,
+  "validationAmplification": 4.5,
+  "finalHead": "sha1:066601a4cebdbd0e5176060136446a4d5356c0f8",
+  "childSpans": [
+    {
+      "pid": 26481,
+      "startedAt": 1789128908229,
+      "finishedAt": 1789128908997,
+      "exitCode": 0
+    },
+    {
+      "pid": 26505,
+      "startedAt": 1789128908391,
+      "finishedAt": 1789128909194,
+      "exitCode": 0
+    },
+    {
+      "pid": 26496,
+      "startedAt": 1789128908320,
+      "finishedAt": 1789128909475,
+      "exitCode": 0
+    },
+    {
+      "pid": 26494,
+      "startedAt": 1789128908269,
+      "finishedAt": 1789128909498,
+      "exitCode": 0
+    },
+    {
+      "pid": 26518,
+      "startedAt": 1789128908461,
+      "finishedAt": 1789128909680,
+      "exitCode": 0
+    },
+    {
+      "pid": 26538,
+      "startedAt": 1789128908518,
+      "finishedAt": 1789128909751,
+      "exitCode": 0
+    },
+    {
+      "pid": 26541,
+      "startedAt": 1789128908598,
+      "finishedAt": 1789128909798,
+      "exitCode": 0
+    },
+    {
+      "pid": 26551,
+      "startedAt": 1789128908689,
+      "finishedAt": 1789128909881,
+      "exitCode": 0
+    },
+    {
+      "pid": 26674,
+      "startedAt": 1789128909453,
+      "finishedAt": 1789128910143,
+      "exitCode": 0
+    },
+    {
+      "pid": 26633,
+      "startedAt": 1789128909192,
+      "finishedAt": 1789128910200,
+      "exitCode": 0
+    },
+    {
+      "pid": 26746,
+      "startedAt": 1789128910031,
+      "finishedAt": 1789128910457,
+      "exitCode": 0
+    },
+    {
+      "pid": 26808,
+      "startedAt": 1789128910694,
+      "finishedAt": 1789128911336,
+      "exitCode": 0
+    },
+    {
+      "pid": 26917,
+      "startedAt": 1789128911251,
+      "finishedAt": 1789128912071,
+      "exitCode": 0
+    },
+    {
+      "pid": 26874,
+      "startedAt": 1789128911197,
+      "finishedAt": 1789128912071,
+      "exitCode": 0
+    },
+    {
+      "pid": 26948,
+      "startedAt": 1789128911458,
+      "finishedAt": 1789128912288,
+      "exitCode": 0
+    },
+    {
+      "pid": 26926,
+      "startedAt": 1789128911333,
+      "finishedAt": 1789128912432,
+      "exitCode": 0
+    },
+    {
+      "pid": 27331,
+      "startedAt": 1789128916255,
+      "finishedAt": 1789128916687,
+      "exitCode": 0
+    },
+    {
+      "pid": 27327,
+      "startedAt": 1789128916219,
+      "finishedAt": 1789128916904,
+      "exitCode": 0
+    },
+    {
+      "pid": 27346,
+      "startedAt": 1789128916345,
+      "finishedAt": 1789128917039,
+      "exitCode": 0
+    },
+    {
+      "pid": 27349,
+      "startedAt": 1789128916388,
+      "finishedAt": 1789128917073,
+      "exitCode": 0
+    },
+    {
+      "pid": 27376,
+      "startedAt": 1789128916575,
+      "finishedAt": 1789128917505,
+      "exitCode": 0
+    },
+    {
+      "pid": 27384,
+      "startedAt": 1789128916686,
+      "finishedAt": 1789128917554,
+      "exitCode": 0
+    },
+    {
+      "pid": 27359,
+      "startedAt": 1789128916484,
+      "finishedAt": 1789128917554,
+      "exitCode": 0
+    },
+    {
+      "pid": 27403,
+      "startedAt": 1789128916857,
+      "finishedAt": 1789128917555,
+      "exitCode": 0
+    },
+    {
+      "pid": 27461,
+      "startedAt": 1789128917282,
+      "finishedAt": 1789128917661,
+      "exitCode": 0
+    },
+    {
+      "pid": 27507,
+      "startedAt": 1789128917500,
+      "finishedAt": 1789128918002,
+      "exitCode": 0
+    },
+    {
+      "pid": 27473,
+      "startedAt": 1789128917399,
+      "finishedAt": 1789128918079,
+      "exitCode": 0
+    },
+    {
+      "pid": 27673,
+      "startedAt": 1789128919092,
+      "finishedAt": 1789128919600,
+      "exitCode": 0
+    },
+    {
+      "pid": 27725,
+      "startedAt": 1789128919513,
+      "finishedAt": 1789128919917,
+      "exitCode": 0
+    },
+    {
+      "pid": 27747,
+      "startedAt": 1789128919547,
+      "finishedAt": 1789128919953,
+      "exitCode": 0
+    },
+    {
+      "pid": 28161,
+      "startedAt": 1789128923776,
+      "finishedAt": 1789128924171,
+      "exitCode": 0
+    },
+    {
+      "pid": 28170,
+      "startedAt": 1789128923863,
+      "finishedAt": 1789128924611,
+      "exitCode": 0
+    },
+    {
+      "pid": 28176,
+      "startedAt": 1789128923911,
+      "finishedAt": 1789128924621,
+      "exitCode": 0
+    },
+    {
+      "pid": 28195,
+      "startedAt": 1789128924108,
+      "finishedAt": 1789128924817,
+      "exitCode": 0
+    },
+    {
+      "pid": 28162,
+      "startedAt": 1789128923819,
+      "finishedAt": 1789128924826,
+      "exitCode": 0
+    },
+    {
+      "pid": 28187,
+      "startedAt": 1789128923971,
+      "finishedAt": 1789128924911,
+      "exitCode": 0
+    },
+    {
+      "pid": 28289,
+      "startedAt": 1789128924533,
+      "finishedAt": 1789128924948,
+      "exitCode": 0
+    },
+    {
+      "pid": 28328,
+      "startedAt": 1789128925110,
+      "finishedAt": 1789128925801,
+      "exitCode": 0
+    },
+    {
+      "pid": 28464,
+      "startedAt": 1789128925698,
+      "finishedAt": 1789128926464,
+      "exitCode": 0
+    },
+    {
+      "pid": 28329,
+      "startedAt": 1789128925193,
+      "finishedAt": 1789128926633,
+      "exitCode": 0
+    },
+    {
+      "pid": 28478,
+      "startedAt": 1789128925799,
+      "finishedAt": 1789128926727,
+      "exitCode": 0
+    },
+    {
+      "pid": 28378,
+      "startedAt": 1789128925492,
+      "finishedAt": 1789128926782,
+      "exitCode": 0
+    },
+    {
+      "pid": 29120,
+      "startedAt": 1789128931112,
+      "finishedAt": 1789128932120,
+      "exitCode": 0
+    },
+    {
+      "pid": 29132,
+      "startedAt": 1789128931181,
+      "finishedAt": 1789128932282,
+      "exitCode": 0
+    },
+    {
+      "pid": 29137,
+      "startedAt": 1789128931394,
+      "finishedAt": 1789128932674,
+      "exitCode": 0
+    },
+    {
+      "pid": 29149,
+      "startedAt": 1789128931478,
+      "finishedAt": 1789128932691,
+      "exitCode": 0
+    },
+    {
+      "pid": 29163,
+      "startedAt": 1789128931608,
+      "finishedAt": 1789128932822,
+      "exitCode": 0
+    },
+    {
+      "pid": 29225,
+      "startedAt": 1789128932430,
+      "finishedAt": 1789128932991,
+      "exitCode": 0
+    },
+    {
+      "pid": 29254,
+      "startedAt": 1789128932667,
+      "finishedAt": 1789128933425,
+      "exitCode": 0
+    },
+    {
+      "pid": 29302,
+      "startedAt": 1789128933280,
+      "finishedAt": 1789128933923,
+      "exitCode": 0
+    },
+    {
+      "pid": 29308,
+      "startedAt": 1789128933327,
+      "finishedAt": 1789128934210,
+      "exitCode": 0
+    },
+    {
+      "pid": 29339,
+      "startedAt": 1789128933669,
+      "finishedAt": 1789128934550,
+      "exitCode": 0
+    },
+    {
+      "pid": 29738,
+      "startedAt": 1789128937383,
+      "finishedAt": 1789128937868,
+      "exitCode": 0
+    },
+    {
+      "pid": 29735,
+      "startedAt": 1789128937342,
+      "finishedAt": 1789128937897,
+      "exitCode": 0
+    },
+    {
+      "pid": 29756,
+      "startedAt": 1789128937534,
+      "finishedAt": 1789128938045,
+      "exitCode": 0
+    },
+    {
+      "pid": 29769,
+      "startedAt": 1789128937641,
+      "finishedAt": 1789128938046,
+      "exitCode": 0
+    },
+    {
+      "pid": 29814,
+      "startedAt": 1789128938099,
+      "finishedAt": 1789128938500,
+      "exitCode": 0
+    },
+    {
+      "pid": 29820,
+      "startedAt": 1789128938177,
+      "finishedAt": 1789128938525,
+      "exitCode": 0
+    },
+    {
+      "pid": 29832,
+      "startedAt": 1789128938400,
+      "finishedAt": 1789128938943,
+      "exitCode": 0
+    },
+    {
+      "pid": 29851,
+      "startedAt": 1789128938497,
+      "finishedAt": 1789128938989,
+      "exitCode": 0
+    },
+    {
+      "pid": 30238,
+      "startedAt": 1789128942126,
+      "finishedAt": 1789128942549,
+      "exitCode": 0
+    },
+    {
+      "pid": 30241,
+      "startedAt": 1789128942189,
+      "finishedAt": 1789128942580,
+      "exitCode": 0
+    },
+    {
+      "pid": 30227,
+      "startedAt": 1789128942031,
+      "finishedAt": 1789128942636,
+      "exitCode": 0
+    },
+    {
+      "pid": 30292,
+      "startedAt": 1789128942842,
+      "finishedAt": 1789128943233,
+      "exitCode": 0
+    },
+    {
+      "pid": 30304,
+      "startedAt": 1789128942906,
+      "finishedAt": 1789128943453,
+      "exitCode": 0
+    },
+    {
+      "pid": 30324,
+      "startedAt": 1789128943071,
+      "finishedAt": 1789128943687,
+      "exitCode": 0
+    },
+    {
+      "pid": 30776,
+      "startedAt": 1789128946159,
+      "finishedAt": 1789128946580,
+      "exitCode": 0
+    },
+    {
+      "pid": 30791,
+      "startedAt": 1789128946246,
+      "finishedAt": 1789128946606,
+      "exitCode": 0
+    },
+    {
+      "pid": 30865,
+      "startedAt": 1789128946800,
+      "finishedAt": 1789128947270,
+      "exitCode": 0
+    },
+    {
+      "pid": 30873,
+      "startedAt": 1789128946849,
+      "finishedAt": 1789128947300,
+      "exitCode": 0
+    },
+    {
+      "pid": 31203,
+      "startedAt": 1789128949333,
+      "finishedAt": 1789128949788,
+      "exitCode": 0
+    },
+    {
+      "pid": 31234,
+      "startedAt": 1789128949987,
+      "finishedAt": 1789128950326,
+      "exitCode": 0
+    }
+  ]
+}

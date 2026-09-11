@@ -47,7 +47,7 @@ An action is `queued -> running -> succeeded | failed | cancelled`, or `running 
 
 ### Request identity and effect admission
 
-Every mutating request carries a client-chosen request ID and exact relevant preconditions. Canonical JSON hashing excludes credentials and transport wait options but includes operation, repository, work, edits, policy and expected revisions. After authentication and repository-scoped authorization, the admission transaction first looks up the deduplication key. Same digest returns the existing action/result even if its original precondition is now old. A different digest under the same key returns `IDEMPOTENCY_MISMATCH`. Only a new key proceeds to current precondition and capacity checks; authorization is never bypassed by deduplication. No filesystem, subprocess or provider effect begins before a durable action is committed.
+Every mutating request carries a client-chosen request ID and exact relevant preconditions. Canonical JSON hashing excludes credentials and transport wait options but includes operation, repository, work, edits, policy and expected revisions. After authentication and repository-scoped authorization, the admission transaction first looks up the deduplication key. Same digest returns the existing action/result even if its original precondition is now old. A different digest under the same key returns `IDEMPOTENCY_MISMATCH`. Only a new key proceeds to current precondition and capacity checks; authorization is never bypassed by deduplication. No execution sandbox, mutable work state or provider effect begins before a durable action is committed. Bounded immutable Git/object staging for inline create/edit is an explicit exception: after current authorization and an initial dedup lookup, it may publish only verified content-addressed bytes before the final action/work transaction. The final transaction rechecks dedup and all work preconditions, and atomically records both the terminal inline action and candidate pointer. Failed admission leaves unreferenced immutable objects, never a partially created work or candidate. Git object-construction subprocesses use only trusted fixed plumbing, no hooks or repository execution. This exception does not apply to validation, arbitrary commands, ref updates, runtime activation or retained mutable state. It reconciles atomic initial edits with the prohibition on filesystem/network I/O inside SQLite transactions without adding a staging lifecycle or second owner.
 
 Admission rejected before an action exists returns an explicit `accepted:false`; a caller retries the same logical request key. On uncertain transport delivery, the caller observes by request ID or resubmits the identical request, never invents a new work ID. Creating a work and assigning its ID occur in the same transaction. Client connection/session IDs are not work identity. A new ChatGPT session can list authorized open/recent works and recover by work/request ID without conversation history.
 
@@ -109,6 +109,23 @@ bytes; inode identity is not content identity. Existing corrupt bytes are an
 integrity failure, not an implicit repair. Readers open without following a final
 symlink and verify type/size/digest. This does not permit replacing a candidate
 materialization, mutable ledger, or another attempt's workspace.
+
+Concrete broker recovery uses the existing action/attempt rows, not a second
+recovery queue. An authorized `resume` records its own idempotent control request,
+but reconciles/requeues the original action and retains its result/effect identity.
+It first verifies the original operation's current capability, the exact work
+revision, and that no in-process execution still owns the action. The installation
+observer must independently prove both execution termination and effect-sender
+termination; neither a missing broker promise nor an expired lease is proof.
+Observe a retained effect before considering replay. Already integrated results
+settle without another validation, commit or send. Retryable absence may requeue
+only after stopped proof; full validation rerun still requires replay-safe profiles.
+No-effect profile retries likewise require replay-safe execution. An expired action
+is reconciled/cancelled, not silently given a new deadline; a new development action
+can be admitted after the fence is resolved. A startup scan is bounded and invokes
+this same transition; read-only observation never invokes it. Reauthorization can
+use a freshly verified token from the same subject without changing original
+request identity. A narrower token cannot resume a more privileged operation.
 
 ### Retention
 

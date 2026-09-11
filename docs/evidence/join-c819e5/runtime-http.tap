@@ -1,0 +1,64 @@
+TAP version 13
+# Subtest: authenticated real HTTP four-tool loop performs progressive edit, required validation and exact integration
+ok 1 - authenticated real HTTP four-tool loop performs progressive edit, required validation and exact integration
+  ---
+  duration_ms: 3640.58578
+  type: 'test'
+  ...
+# Subtest: authentication, origin, method, body and protocol boundaries fail before effects
+ok 2 - authentication, origin, method, body and protocol boundaries fail before effects
+  ---
+  duration_ms: 453.160677
+  type: 'test'
+  ...
+# Subtest: read-only grants and closed output checks are enforced by actual HTTP composition
+ok 3 - read-only grants and closed output checks are enforced by actual HTTP composition
+  ---
+  duration_ms: 1019.402187
+  type: 'test'
+  ...
+# Subtest: HTTP disconnect aborts waiting, not the admitted durable work or its retry identity
+ok 4 - HTTP disconnect aborts waiting, not the admitted durable work or its retry identity
+  ---
+  duration_ms: 2827.836614
+  type: 'test'
+  ...
+# Subtest: real source create -> full required processes -> exact Git CAS -> terminal readback
+ok 5 - real source create -> full required processes -> exact Git CAS -> terminal readback
+  ---
+  duration_ms: 2986.023436
+  type: 'test'
+  ...
+# Subtest: explicit validate result is reused by integration without duplicate full validation or commit
+ok 6 - explicit validate result is reused by integration without duplicate full validation or commit
+  ---
+  duration_ms: 2834.354999
+  type: 'test'
+  ...
+# Subtest: invalid initial edit is atomic and authorization precedes dedup disclosure
+ok 7 - invalid initial edit is atomic and authorization precedes dedup disclosure
+  ---
+  duration_ms: 1157.020051
+  type: 'test'
+  ...
+# Subtest: failed required profile never sends canonical mutation and keeps work editable
+ok 8 - failed required profile never sends canonical mutation and keeps work editable
+  ---
+  duration_ms: 2256.996509
+  type: 'test'
+  ...
+# Subtest: four tool projections use bounded current context and same work generation without leaking the full source manifest
+ok 9 - four tool projections use bounded current context and same work generation without leaking the full source manifest
+  ---
+  duration_ms: 1233.590624
+  type: 'test'
+  ...
+1..9
+# tests 9
+# suites 0
+# pass 9
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 11452.097756
