@@ -1,0 +1,340 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-11T21:43:43.854Z",
+  "scope": "independent Phase A implementation and installation read-only verification; not final cutover acceptance",
+  "authority": {
+    "head": "6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+    "parent": "ae522036feb03a82dd79df2789cf71df6f48ab32",
+    "tree": "7eeab0d59819bb48a1407430ff15182f075c0c63",
+    "directive": "r3"
+  },
+  "execution": {
+    "variantId": "termux-android-arm64-node24-18",
+    "role": "native-control",
+    "node": "24.18.0",
+    "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "platform": "android",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "dependencyPreparation": "npm ci --ignore-scripts --no-audit --no-fund; locked dependencies; native bootstrap authority only",
+  "tests": {
+    "core": {
+      "status": "passed",
+      "count": 133,
+      "resultDigest": "sha256:501b1f07b3e37533aa39e674263268280c423a8c6efcbdde45c56ca1f98780d3"
+    },
+    "nativeJoinedFixtures": {
+      "status": "PASS",
+      "count": 40,
+      "logDigest": "sha256:5e079f66ba09e9458629c7c4cc7c5313d6f18924c562d062ea5ac76e37607f74"
+    },
+    "newUnsealedPublicContractFixtures": {
+      "status": "PASS",
+      "count": 3,
+      "logDigest": "sha256:9e2e8383d8c99486bb19aab95a668fd1eae8392a826cb608f93d5bb921dbeaa5",
+      "sourceDigest": "sha256:3e1b7bdfaea754c82e6f7e811697157754256931e26b36bfde0669b688454f04"
+    },
+    "typecheck": "PASS",
+    "designChecker": "PASS",
+    "productionIntegrationProfile": "NOT RUN: explicitly incomplete required joined profile",
+    "humanOAuth": "NOT RUN: requires refreshed client",
+    "hostedContainment": "NOT RUN",
+    "physicalAndroidLifecycle": "NOT RUN"
+  },
+  "sourceBuild": {
+    "canonicalEdge": {
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "edgeBundleDigest": "sha256:dfb19669b05183d95b0c62dacb3f4245c723a4ab72ca48007a98962ab93bfc92",
+      "bytes": 1082724,
+      "tools": [
+        {
+          "name": "dev_context",
+          "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false,
+            "idempotentHint": false
+          }
+        },
+        {
+          "name": "dev_read",
+          "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false,
+            "idempotentHint": false
+          }
+        },
+        {
+          "name": "dev_work",
+          "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false,
+            "idempotentHint": false
+          }
+        },
+        {
+          "name": "dev_observe",
+          "annotations": {
+            "readOnlyHint": true,
+            "destructiveHint": false,
+            "openWorldHint": false,
+            "idempotentHint": false
+          }
+        }
+      ],
+      "builder": "esbuild-0.28.2",
+      "aot": true
+    },
+    "device": {
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "bundleDigest": "sha256:f3724b09bd39eb9e5227faab66928db78e76574e8854df035a740522609d1e8f",
+      "bytes": 634330,
+      "builder": "esbuild-0.28.2"
+    },
+    "note": "Canonical build output directory reproduces installed bundles exactly; alternate output directories change edge source comments and therefore digest."
+  },
+  "providerReadback": {
+    "observedAt": "2026-09-11T21:40:40.768464+00:00",
+    "origin": "https://tdev.humtr.workers.dev",
+    "deployment": {
+      "id": "66fee9cb-ba72-48d6-8fc6-e97097da39d9",
+      "source": "api",
+      "strategy": "percentage",
+      "annotations": {
+        "workers/message": "dev-2 Phase A sha1:6832ee5885a8ca5e25655a45e918...",
+        "workers/triggered_by": "upload"
+      },
+      "versions": [
+        {
+          "version_id": "c00d6eb8-e6a0-4ca4-99bc-f6539077feed",
+          "percentage": 100
+        }
+      ],
+      "created_on": "2026-09-11T16:25:50.978241Z"
+    },
+    "route": {
+      "enabled": true,
+      "previews_enabled": false
+    },
+    "access": {
+      "id": "12911bc3-4b69-4a45-a9b3-26a654bf96f8",
+      "domain": "tdev.humtr.workers.dev/mcp",
+      "aud": "a8d4cadd46d8f8e306feb6eb87c3d0afb65fa5e923327fc33bc13243af2bebc7",
+      "issuer": "https://humtr.cloudflareaccess.com",
+      "oauthEnabled": true,
+      "policyIds": [
+        "3bdca3ad-3c45-45f4-82c4-a21850af2057"
+      ]
+    },
+    "bindings": [
+      {
+        "name": "DEV2_CONFIG_JSON",
+        "type": "plain_text",
+        "class_name": null,
+        "script_name": null,
+        "namespace_id": null
+      },
+      {
+        "name": "DEV2_DEVICE_SECRET",
+        "type": "secret_text",
+        "class_name": null,
+        "script_name": null,
+        "namespace_id": null
+      },
+      {
+        "name": "DEV2_ROUTER",
+        "type": "durable_object_namespace",
+        "class_name": "Dev2RendezvousDO",
+        "script_name": null,
+        "namespace_id": "ceab38ce0ca84025bba0e3e645a43d5d"
+      },
+      {
+        "name": "DEV2_VERSION",
+        "type": "version_metadata",
+        "class_name": null,
+        "script_name": null,
+        "namespace_id": null
+      }
+    ],
+    "mutationPerformed": false,
+    "activeConfigurationEquality": "NOT CHECKED by starting provider reader; final joined acceptance must compare provider config to installed config"
+  },
+  "liveReadback": {
+    "observedAt": "2026-09-11T21:41:00.938Z",
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+    "edgeVersionId": "c00d6eb8-e6a0-4ca4-99bc-f6539077feed",
+    "installationId": "71d1e2daa8524c1194889d937be9a14e",
+    "device": {
+      "arch": "arm64",
+      "bundleDigest": "sha256:f3724b09bd39eb9e5227faab66928db78e76574e8854df035a740522609d1e8f",
+      "connectedAt": "2026-09-11T21:40:42.688Z",
+      "lastMessageAt": "2026-09-11T21:40:42.688Z",
+      "nodeVersion": "24.18.0",
+      "ownerEpoch": "3",
+      "platform": "android",
+      "probe": {
+        "authenticationMode": "installation-read-probe",
+        "currentHead": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+        "humanOAuth": false,
+        "observedAt": "2026-09-11T16:26:30.638Z",
+        "ok": true,
+        "repositoryId": "github-1322208918",
+        "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+      },
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "sourceCommitOid": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938"
+    },
+    "probe": {
+      "authenticationMode": "installation-read-probe",
+      "currentHead": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+      "humanOAuth": false,
+      "observedAt": "2026-09-11T21:40:58.639Z",
+      "ok": true,
+      "repositoryId": "github-1322208918",
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+    },
+    "publishedTools": [
+      {
+        "name": "dev_context",
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "dev_read",
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "dev_work",
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        }
+      },
+      {
+        "name": "dev_observe",
+        "annotations": {
+          "destructiveHint": false,
+          "idempotentHint": false,
+          "openWorldHint": false,
+          "readOnlyHint": true
+        }
+      }
+    ],
+    "publishedInputOutputSchemasExact": true,
+    "negativeAuthentication": {
+      "none": {
+        "status": 401,
+        "bytes": 185
+      },
+      "deviceCredential": {
+        "status": 401,
+        "bytes": 185
+      },
+      "forgedAssertion": {
+        "status": 401,
+        "bytes": 185
+      },
+      "installationWithoutCredential": {
+        "status": 401
+      }
+    },
+    "operations": [
+      {
+        "available": true,
+        "op": "create",
+        "reason": null,
+        "state": "implemented"
+      },
+      {
+        "available": true,
+        "op": "edit",
+        "reason": null,
+        "state": "implemented"
+      },
+      {
+        "available": false,
+        "op": "run",
+        "reason": "Installation capability is not implemented",
+        "state": "unavailable"
+      },
+      {
+        "available": false,
+        "op": "validate",
+        "reason": "Exact result preparation and observation are available; hosted execution and publication eligibility are not sealed",
+        "state": "partial"
+      },
+      {
+        "available": false,
+        "op": "integrate",
+        "reason": "Exact result preparation and observation are available; hosted execution and publication eligibility are not sealed",
+        "state": "partial"
+      },
+      {
+        "available": true,
+        "op": "cancel",
+        "reason": null,
+        "state": "implemented"
+      },
+      {
+        "available": false,
+        "op": "resume",
+        "reason": "Interrupted external effects require the Phase B reconciler",
+        "state": "unavailable"
+      },
+      {
+        "available": false,
+        "op": "policy.adopt",
+        "reason": "Installation capability is not implemented",
+        "state": "unavailable"
+      },
+      {
+        "available": false,
+        "op": "release.stage",
+        "reason": "Installation capability is not implemented",
+        "state": "unavailable"
+      },
+      {
+        "available": false,
+        "op": "release.activate",
+        "reason": "Installation capability is not implemented",
+        "state": "unavailable"
+      }
+    ],
+    "sourceObservation": {
+      "commitOid": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+      "observedAt": "2026-09-11T21:40:58.623Z",
+      "state": "current",
+      "treeOid": "sha1:7eeab0d59819bb48a1407430ff15182f075c0c63"
+    }
+  },
+  "bootstrap": {
+    "tools": [
+      "tmcp",
+      "project-local shell",
+      "GitHub exact read"
+    ],
+    "purpose": "fresh authority, independent tests and read-only provider/installation probes while ChatGPT retains old actions",
+    "providerMutations": 0,
+    "nativeServiceMutations": 0,
+    "canonicalGitMutations": 0
+  },
+  "findings": [
+    "Existing installation grant correction must be published and reproduced by installer; no weakening of real authorization.",
+    "Current unsealed public validation/integration prepare exact results but do not execute or publish.",
+    "Prepared-result authorization/fencing hardening remains a prerequisite to enabling full Phase B hosted execution."
+  ]
+}
