@@ -6,7 +6,7 @@ This is navigation only. IDs are identities, not priority or execution sequence.
 | ID | Title | Status | Depends-On | Supersedes |
 | --- | --- | --- | --- | --- |
 | [D0001](D0001-work-state-parallel-recovery.md) | Work state, parallel admission and recovery | accepted | [D0005] | [] |
-| [D0002](D0002-repository-context-candidates.md) | Exact repository context and isolated candidates | accepted | [D0005] | [] |
+| [D0002](D0002-repository-context-candidates.md) | Exact repository context and isolated candidates | accepted | [D0001, D0005] | [] |
 | [D0003](D0003-validation-exact-integration.md) | Required validation and exact canonical integration | accepted | [D0001, D0002] | [] |
 | [D0004](D0004-mcp-controller-contract.md) | MCP controller contract | accepted | [D0001, D0002, D0003, D0006] | [] |
 | [D0005](D0005-security-execution-boundaries.md) | Security and execution boundaries | accepted | [] | [] |
@@ -27,6 +27,7 @@ flowchart LR
   D0006["D0006: Runtime and release activation"]
   D0007["D0007: Verification and superiority contract"]
   D0005 --> D0001
+  D0001 --> D0002
   D0005 --> D0002
   D0001 --> D0003
   D0002 --> D0003
@@ -49,7 +50,7 @@ flowchart LR
 
 | Design | Bounded decisions |
 | --- | --- |
-| D0001 | work-state, action-deduplication, parallel-admission, execution-recovery |
+| D0001 | work-state, action-deduplication, parallel-admission, execution-recovery, canonical-record-encoding |
 | D0002 | repository-snapshots, progressive-context, candidate-generations |
 | D0003 | validation-identity, canonical-integration, stale-conflict-semantics |
 | D0004 | public-mcp-schema, controller-recipes, observation-contract |

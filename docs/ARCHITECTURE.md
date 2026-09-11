@@ -4,7 +4,7 @@ This is a navigation and requirement-coverage projection of accepted Designs, no
 
 ## Product shape
 
-ChatGPT supplies reasoning and exact edits. Four deterministic MCP tools connect it to one persistent Linux broker, per-repository SQLite work state, immutable Git-object candidates and isolated rootless execution containers. The external Git ref owns canonical source. Only a fully validated exact target tree can enter a direct-child commit through an expected-old-ref update. The same MCP can stage and activate its own immutable release at the unchanged endpoint. There is no required second model, Codex, Worker, Agent, Case, Drive or Promotion subsystem.
+ChatGPT supplies reasoning and exact edits. Four deterministic MCP tools connect it to one persistent Linux broker, per-repository SQLite work state, immutable Git-object candidates and isolated rootless execution containers. The external Git ref owns canonical source. Only an exact direct-child commit frozen before required validation can enter the canonical ref through an expected-old-ref update. An immutable result ID permits receipt/commit reuse across separate validation and integration actions; an unresolved unrelated action does not own the ref. The same MCP can stage and activate its own immutable release at the unchanged endpoint. There is no required second model, Codex, Worker, Agent, Case, Drive or Promotion subsystem.
 
 ```text
 ChatGPT (requirements, decomposition, edits, interpretation)
@@ -17,7 +17,7 @@ ChatGPT (requirements, decomposition, edits, interpretation)
         -> immutable release -> fixed activation helper -> same MCP endpoint
 ```
 
-Capacity is positive deployment policy with default 8, required supported baseline at least 8 and no architectural maximum. Stable work/action/attempt identities do not encode slots. Capacity 1 and 16/32 use the same schema and semantics. Independent work/read/validation proceeds concurrently. Only a work revision, short database transaction, one conflicting ref effect or actual process-ownership handoff serializes its necessary invariant.
+Capacity is positive deployment policy with default 8, required supported baseline at least 8 and no architectural maximum. Stable work/action/attempt identities do not encode slots. Capacity 1 and 16/32 use the same schema and semantics. Independent work/read/validation proceeds concurrently. Only a work revision, short database transaction, one atomic remote ref CAS or actual process-ownership handoff serializes its necessary invariant. Recovery of a different work holds no whole-ref fence unless the binding itself has lost its safety guarantee.
 
 ## Requirement-to-decision ownership
 

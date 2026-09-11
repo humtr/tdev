@@ -71,8 +71,18 @@ These explain mechanism constraints, not repository authority. Accessed 2026-09-
 - [MCP 2026-07-28 discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover) and [tools](https://modelcontextprotocol.io/specification/2026-07-28/server/tools): modern discovery/metadata are required transport behavior, not product work state.
 - [MCP authorization](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization) and [Podman run](https://docs.podman.io/en/latest/markdown/podman-run.1.html): authorization and execution boundary inputs; actual deployment conformance still requires tests.
 
+## Publication-time fresh bind
+
+Before publication, the remote advanced to documentation commit `fd38a4f72f3cdaf80e35c706f20c7efaf7cbbfe1`, tree `340d4e16e6224b6ad66bec3de68232e07fdc4794`, sole parent the original clean root. All seven accepted Designs and the authoring/index/board were re-read at that exact commit. A second isolated worktree confirmed those identities and the unchanged AGENTS/DIRECTIVE/RULE blobs. Its independently published Design IDs, ownership boundaries, four-tool surface and predecessor evidence were preserved rather than replaced by a conflicting parallel draft. Publication continues as its direct descendant, never as a merge from development or a forced root reset.
+
+The bounded refinements add deterministic shared identity encoding, exact commit preparation before validation, immutable result reuse across distinct actions, and same-ref independent progress during another work's response-loss recovery. Exclusive normal canonical-write authority is explicit: fast-forward alone does not prove validation. These are accepted design contracts and implementation tests, not observed product behavior. No product source, runtime, benchmark harness or deployment was created in this session.
+
 ## Consistency review scope
 
 The design-session review checked requirement coverage, separate semantic owners, acyclic dependencies, no numeric-order inference, derived-only index, execution-only board and evidence/history isolation. It corrected authorization-before-dedup, launch reservations before active-slot accounting, release truth ownership, protocol discovery support, stale-conflict replacement work, and public error vocabulary. This was a direct consistency review, not an independent reviewer campaign or runtime test.
 
 Known falsifiers remain visible: same-ref repeated validation, SQLite event-loop contention, Node SQLite stability, real modern-client interop, host sandbox availability and release-helper recovery. D0007 makes these measurable release conditions. The benchmark is a completed contract, not a completed experiment. Documentation checker success cannot be promoted to product verification.
+
+## Final documentation verification
+
+The final documentation checker passed on the reconciled tree, including metadata, active Directive references, unique ownership labels, dependency/supersession cycle checks, derived INDEX, local file links and the documentation-only boundary. Its isolated fixture exercise passed 12/12 checks: the valid tree plus rejection of a cycle, unknown reference, inactive prerequisite, duplicate owner, wrong ID, wrong title, duplicate metadata, stale Directive reference, stale INDEX, broken local link and a forbidden product file. `git diff --check` is also required before commit. These are document checks, not core/integration/live/benchmark execution. All dev-2 product verification and measured superiority claims remain unproven.

@@ -6,7 +6,7 @@
 - Depends-On: `[D0005]`
 - Supersedes: `[]`
 - Directive: `r1`
-- Owns: `work-state, action-deduplication, parallel-admission, execution-recovery`
+- Owns: `work-state, action-deduplication, parallel-admission, execution-recovery, canonical-record-encoding`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
 
@@ -50,6 +50,12 @@ An action is `queued -> running -> succeeded | failed | cancelled`, or `running 
 Every mutating request carries a client-chosen request ID and exact relevant preconditions. Canonical JSON hashing excludes credentials and transport wait options but includes operation, repository, work, edits, policy and expected revisions. After authentication and repository-scoped authorization, the admission transaction first looks up the deduplication key. Same digest returns the existing action/result even if its original precondition is now old. A different digest under the same key returns `IDEMPOTENCY_MISMATCH`. Only a new key proceeds to current precondition and capacity checks; authorization is never bypassed by deduplication. No filesystem, subprocess or provider effect begins before a durable action is committed.
 
 Admission rejected before an action exists returns an explicit `accepted:false`; a caller retries the same logical request key. On uncertain transport delivery, the caller observes by request ID or resubmits the identical request, never invents a new work ID. Creating a work and assigning its ID occur in the same transaction. Client connection/session IDs are not work identity. A new ChatGPT session can list authorized open/recent works and recover by work/request ID without conversation history.
+
+### Canonical record encoding
+
+The common identity codec is `dev2.canonical-json.v1`. Its values are null, booleans, safe integers, Unicode scalar strings, dense arrays and plain string-keyed records. Reject duplicate parsed keys, non-integer/unsafe numbers, non-finite values, lone surrogates, cycles and non-JSON values; normalize negative zero to zero. Revisions outside the safe-integer range remain decimal strings as D0004 requires. Sort record keys by unsigned UTF-16 code-unit order, preserve array order and string code points without Unicode normalization, and encode primitive values with JSON.stringify-compatible escaping and number spelling, no whitespace. Encode the resulting string as UTF-8. Each digest is SHA-256 over UTF-8 domain name, one NUL byte and these canonical bytes, returned as `sha256:` plus lowercase hex. Domain names are versioned per record purpose; a request, source manifest, result descriptor and validation identity cannot share a domain. Schemas expand declared defaults before hashing; transport wait options and credentials never enter a mutation-intent digest. A digest supplies integrity, not authorization.
+
+This codec owns only serialization/identity mechanics. D0002 owns source-manifest fields, D0003 owns result/validation fields and D0006 owns release fields. Golden vectors must cover key order, non-ASCII text, integer boundaries, escaping, defaults and rejection cases. A material encoding change versions its domain and cannot reinterpret retained request keys.
 
 ### Dispatch and resource policy
 
