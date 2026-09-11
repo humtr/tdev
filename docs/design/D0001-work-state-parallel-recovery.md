@@ -75,6 +75,41 @@ Before repeating a provider operation, use D0003/D0006 reconciliation of the exa
 
 Cancellation first persists intent, prevents new dispatch/effect admission, and signals the exact sandbox. It becomes terminal only after confirmed termination and resolution of outstanding effects. If integration already crossed its linearization point, report integrated with `cancellationTooLate`; do not undo canonical source. A disconnected MCP call does not cancel work. Default action execution timeout is profile-defined; the broker enforces a hard deadline and a 5-second termination grace. Observation waits are bounded independently and never extend execution deadlines.
 
+An execution reservation's capacity-holding flag is distinct from its retained
+attempt identity. Confirmed termination releases capacity, not the immutable
+attempt tuple needed to reconcile a still-ambiguous effect. Keep that compact
+identity and observer epoch until the action is terminal/retained. Settlement
+compares the entire tuple, not only attempt ID and attempt number. Adoption
+changes only observer authority; a closed epoch cannot submit callbacks.
+
+A queued cancellation or pre-dispatch deadline expiry clears only that action's
+work fence in the same transaction. Expired rows are skipped within a bounded
+ready scan so they do not stall independent work. An already-retained authorized
+request is returned before checking its original execution deadline: expiry does
+not make response-loss recovery invent a new action. A new request still requires
+a future deadline. These rules introduce no new queue or recovery owner.
+
+Work rows store a candidate reference `(treeOid, manifestDigest)`, not a copy of
+all source entries. Load the immutable SourceTree through the repository object
+adapter only when an operation needs it, then verify the manifest. This preserves
+bounded ledger transactions independently of repository file count. The initial
+internal JSON row bound is 2 MiB (distinct from the 1 MiB public request limit);
+source and large artifact bytes belong in immutable object storage, not the row.
+
+The initial SQLite adapter uses connection-lifetime EXCLUSIVE locking mode with
+WAL/FULL, relying on SQLite's OS file lock as the per-ledger ownership lock;
+transactions remain short and never span execution. Opening another owner must
+fail, and close/crash must release the lock. The schema's attempt rows retain a
+`held` flag and immutable identity; released rows do not consume capacity.
+
+Immutable byte publication uses a private same-filesystem file, exact digest
+verification, file fsync, atomic rename and directory fsync. Concurrent publishers
+of the same digest may replace the pathname only with the identical verified
+bytes; inode identity is not content identity. Existing corrupt bytes are an
+integrity failure, not an implicit repair. Readers open without following a final
+symlink and verify type/size/digest. This does not permit replacing a candidate
+materialization, mutable ledger, or another attempt's workspace.
+
 ### Retention
 
 Keep nonterminal work, unresolved effects, referenced objects and current/previous releases. Retain compact request-key tombstones and canonical-effect receipts for the binding epoch, even after verbose logs and scratch are removed. A cleanup cannot permit a late retry to duplicate work. Destructive reset starts a new binding epoch with explicit authorization; old-epoch mutations are rejected. Storage pressure rejects new admissions with measured limits rather than deleting unresolved truth. Logs and unreferenced immutable objects use reference-aware garbage collection; no deletion follows merely from age.

@@ -1,0 +1,6 @@
+{
+  "kind": "real-sqlite-row-read",
+  "entries": 10000,
+  "storedBytes": 1959335,
+  "readError": "LIMIT_EXCEEDED"
+}
