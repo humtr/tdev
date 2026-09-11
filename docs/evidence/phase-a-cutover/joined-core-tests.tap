@@ -1,0 +1,814 @@
+TAP version 13
+# Subtest: signed human Access identity uses an explicitly adopted app ceiling, never invented token scopes
+ok 1 - signed human Access identity uses an explicitly adopted app ceiling, never invented token scopes
+  ---
+  duration_ms: 57.568698
+  type: 'test'
+  ...
+# Subtest: opaque bearer, forged header, wrong signature, application and issuer fail closed
+ok 2 - opaque bearer, forged header, wrong signature, application and issuer fail closed
+  ---
+  duration_ms: 63.313073
+  type: 'test'
+  ...
+# Subtest: service/global identities and missing human fields never gain human capabilities
+ok 3 - service/global identities and missing human fields never gain human capabilities
+  ---
+  duration_ms: 76.477916
+  type: 'test'
+  ...
+# Subtest: expiry, future issue/not-before and malformed time claims are rejected
+ok 4 - expiry, future issue/not-before and malformed time claims are rejected
+  ---
+  duration_ms: 76.009427
+  type: 'test'
+  ...
+# Subtest: scope-based verifier is not relaxed or automatically substituted by Access mode
+ok 5 - scope-based verifier is not relaxed or automatically substituted by Access mode
+  ---
+  duration_ms: 31.612552
+  type: 'test'
+  ...
+# Subtest: standing grants still intersect app delegation and are re-read after revocation
+ok 6 - standing grants still intersect app delegation and are re-read after revocation
+  ---
+  duration_ms: 7.896719
+  type: 'test'
+  ...
+# Subtest: retained snapshot and cursor survive service reconstruction without client conversation or sessions
+ok 7 - retained snapshot and cursor survive service reconstruction without client conversation or sessions
+  ---
+  duration_ms: 36.459532
+  type: 'test'
+  ...
+# Subtest: progressive listing is byte-sorted, bounded and hides denied entries before metadata disclosure
+ok 8 - progressive listing is byte-sorted, bounded and hides denied entries before metadata disclosure
+  ---
+  duration_ms: 390.911459
+  type: 'test'
+  ...
+# Subtest: file ranges preserve BOM and exact binary offsets and never replace split UTF-8
+ok 9 - file ranges preserve BOM and exact binary offsets and never replace split UTF-8
+  ---
+  duration_ms: 4.235834
+  type: 'test'
+  ...
+# Subtest: aggregate response budget and ranges fail explicitly rather than applying silent input truncation
+ok 10 - aggregate response budget and ranges fail explicitly rather than applying silent input truncation
+  ---
+  duration_ms: 4.12849
+  type: 'test'
+  ...
+# Subtest: search continues across scan boundaries without losing a straddling literal or folding non-ASCII
+ok 11 - search continues across scan boundaries without losing a straddling literal or folding non-ASCII
+  ---
+  duration_ms: 5.256094
+  type: 'test'
+  ...
+# Subtest: search file/hit limits return exact continuation including unreturned matching hit
+ok 12 - search file/hit limits return exact continuation including unreturned matching hit
+  ---
+  duration_ms: 55.579792
+  type: 'test'
+  ...
+# Subtest: known handles and cached blob digests do not bypass subject, binding, expiry or current authorization
+ok 13 - known handles and cached blob digests do not bypass subject, binding, expiry or current authorization
+  ---
+  duration_ms: 2.20375
+  type: 'test'
+  ...
+# Subtest: tampered MAC, missing descriptor and corrupt immutable storage cannot produce a successful read
+ok 14 - tampered MAC, missing descriptor and corrupt immutable storage cannot produce a successful read
+  ---
+  duration_ms: 2.132969
+  type: 'test'
+  ...
+# Subtest: cursor is bound to query, snapshot and work generation, not just identical tree bytes
+ok 15 - cursor is bound to query, snapshot and work generation, not just identical tree bytes
+  ---
+  duration_ms: 6.951302
+  type: 'test'
+  ...
+# Subtest: pinned reads remain exact during remote outage; current reads neither guess nor mix generations
+ok 16 - pinned reads remain exact during remote outage; current reads neither guess nor mix generations
+  ---
+  duration_ms: 3.430833
+  type: 'test'
+  ...
+# Subtest: negative list/search distinguish complete absence and do not leak denied metadata
+ok 17 - negative list/search distinguish complete absence and do not leak denied metadata
+  ---
+  duration_ms: 1.991511
+  type: 'test'
+  ...
+# Subtest: diff is exact and authorization-filtered against the requested historical snapshot
+ok 18 - diff is exact and authorization-filtered against the requested historical snapshot
+  ---
+  duration_ms: 35.914062
+  type: 'test'
+  ...
+# Subtest: current snapshot records the fresh observation time and stale errors expose authorized head facts
+ok 19 - current snapshot records the fresh observation time and stale errors expose authorized head facts
+  ---
+  duration_ms: 1.793542
+  type: 'test'
+  ...
+# Subtest: revocation while an authorized listing is assembled prevents delivery of cached rows
+ok 20 - revocation while an authorized listing is assembled prevents delivery of cached rows
+  ---
+  duration_ms: 1.779166
+  type: 'test'
+  ...
+# Subtest: path-specific revocation is rechecked for a returned directory witness without revealing hidden children
+ok 21 - path-specific revocation is rechecked for a returned directory witness without revealing hidden children
+  ---
+  duration_ms: 1.527136
+  type: 'test'
+  ...
+# Subtest: safe domain facts reach failure envelopes without exposing arbitrary properties, getters or messages
+ok 22 - safe domain facts reach failure envelopes without exposing arbitrary properties, getters or messages
+  ---
+  duration_ms: 0.819843
+  type: 'test'
+  ...
+# Subtest: canonical vectors: lexical integer keys, -0 and domain separation
+ok 23 - canonical vectors: lexical integer keys, -0 and domain separation
+  ---
+  duration_ms: 4.784166
+  type: 'test'
+  ...
+# Subtest: canonical scalar strings, no normalization, escaping and integer boundaries
+ok 24 - canonical scalar strings, no normalization, escaping and integer boundaries
+  ---
+  duration_ms: 0.463646
+  type: 'test'
+  ...
+# Subtest: canonical rejects non-JSON, sparse/accessor properties and cycles without evaluating getters
+ok 25 - canonical rejects non-JSON, sparse/accessor properties and cycles without evaluating getters
+  ---
+  duration_ms: 1.232761
+  type: 'test'
+  ...
+# Subtest: strict parser rejects duplicate escaped/nested keys, malformed UTF8 and syntax
+ok 26 - strict parser rejects duplicate escaped/nested keys, malformed UTF8 and syntax
+  ---
+  duration_ms: 2.461563
+  type: 'test'
+  ...
+# Subtest: unsigned revisions are exact across Number precision boundary and overflow fails
+ok 27 - unsigned revisions are exact across Number precision boundary and overflow fails
+  ---
+  duration_ms: 0.649531
+  type: 'test'
+  ...
+# Subtest: tagged object identities and scalable capacity do not encode eight slots
+ok 28 - tagged object identities and scalable capacity do not encode eight slots
+  ---
+  duration_ms: 2.207552
+  type: 'test'
+  ...
+# Subtest: deterministic independent fixtures and CAS test adapter
+ok 29 - deterministic independent fixtures and CAS test adapter
+  ---
+  duration_ms: 0.705209
+  type: 'test'
+  ...
+# Subtest: failure envelope never leaks provider exception text
+ok 30 - failure envelope never leaks provider exception text
+  ---
+  duration_ms: 0.63
+  type: 'test'
+  ...
+# Subtest: wire numbers cannot round fractional or underflowed input into an integer
+ok 31 - wire numbers cannot round fractional or underflowed input into an integer
+  ---
+  duration_ms: 1.169844
+  type: 'test'
+  ...
+# Subtest: delivery uncertainty survives the actual closed MCP error encoder
+ok 32 - delivery uncertainty survives the actual closed MCP error encoder
+  ---
+  duration_ms: 6.982135
+  type: 'test'
+  ...
+# Subtest: missing/malformed application ceiling fails as a bounded configuration error
+ok 33 - missing/malformed application ceiling fails as a bounded configuration error
+  ---
+  duration_ms: 1.042864
+  type: 'test'
+  ...
+# Subtest: Access expiry is rechecked after an asynchronous key lookup
+ok 34 - Access expiry is rechecked after an asynchronous key lookup
+  ---
+  duration_ms: 120.772708
+  type: 'test'
+  ...
+# Subtest: optional Access not-before is checked as an exact integer when present
+ok 35 - optional Access not-before is checked as an exact integer when present
+  ---
+  duration_ms: 90.890104
+  type: 'test'
+  ...
+# Subtest: workflow, deploy, architecture and toolchain input bytes all change the canonical report seal
+ok 36 - workflow, deploy, architecture and toolchain input bytes all change the canonical report seal
+  ---
+  duration_ms: 2266.719947
+  type: 'test'
+  ...
+# Subtest: schema shape reports bytes, union width and open objects without pretending to measure ChatGPT
+ok 37 - schema shape reports bytes, union width and open objects without pretending to measure ChatGPT
+  ---
+  duration_ms: 7.337031
+  type: 'test'
+  ...
+# Subtest: failed attempts and response-observation overhead remain in the measurement window
+ok 38 - failed attempts and response-observation overhead remain in the measurement window
+  ---
+  duration_ms: 1.227969
+  type: 'test'
+  ...
+# Subtest: missing terminals and not-run validations are not converted to success or zero-cost speedups
+ok 39 - missing terminals and not-run validations are not converted to success or zero-cost speedups
+  ---
+  duration_ms: 0.356615
+  type: 'test'
+  ...
+# Subtest: duplicate rows, unknown work, reversed time and empty windows fail explicitly
+ok 40 - duplicate rows, unknown work, reversed time and empty windows fail explicitly
+  ---
+  duration_ms: 0.62375
+  type: 'test'
+  ...
+# Subtest: simultaneous end/start does not inflate overlap; capacity is a configurable policy, not eight identities
+ok 41 - simultaneous end/start does not inflate overlap; capacity is a configurable policy, not eight identities
+  ---
+  duration_ms: 0.509322
+  type: 'test'
+  ...
+# Subtest: eight-way fixture demonstrates how to count 36 full validations without claiming this fixture is measured product performance
+ok 42 - eight-way fixture demonstrates how to count 36 full validations without claiming this fixture is measured product performance
+  ---
+  duration_ms: 0.771615
+  type: 'test'
+  ...
+# Subtest: canonical input seal changes when a checked benchmark input changes
+ok 43 - canonical input seal changes when a checked benchmark input changes
+  ---
+  duration_ms: 1076.58651
+  type: 'test'
+  ...
+# Subtest: routing DO wake rotates nonce without rejecting the old heartbeat that woke it
+ok 44 - routing DO wake rotates nonce without rejecting the old heartbeat that woke it
+  ---
+  duration_ms: 8.525781
+  type: 'test'
+  ...
+# Subtest: retired device credential cannot reclaim a hibernated installation route
+ok 45 - retired device credential cannot reclaim a hibernated installation route
+  ---
+  duration_ms: 0.720833
+  type: 'test'
+  ...
+# Subtest: device authentication is bound to secret digest and exact origin
+ok 46 - device authentication is bound to secret digest and exact origin
+  ---
+  duration_ms: 85.457968
+  type: 'test'
+  ...
+# Subtest: fixed installation readback is authenticated and cannot be converted to arbitrary tool execution
+ok 47 - fixed installation readback is authenticated and cannot be converted to arbitrary tool execution
+  ---
+  duration_ms: 33.008073
+  type: 'test'
+  ...
+# Subtest: unimplemented layers never pass an empty suite
+ok 48 - unimplemented layers never pass an empty suite
+  ---
+  duration_ms: 1404.848646
+  type: 'test'
+  ...
+# Subtest: closed CLI rejects unknown profile or option
+ok 49 - closed CLI rejects unknown profile or option
+  ---
+  duration_ms: 859.344114
+  type: 'test'
+  ...
+# Subtest: native Android and Linux profiles are distinct exact implementations, not a node-only fallback
+ok 50 - native Android and Linux profiles are distinct exact implementations, not a node-only fallback
+  ---
+  duration_ms: 5.775729
+  type: 'test'
+  ...
+# Subtest: execution variant metadata cannot be missing, duplicate or ambiguous
+ok 51 - execution variant metadata cannot be missing, duplicate or ambiguous
+  ---
+  duration_ms: 0.514271
+  type: 'test'
+  ...
+# Subtest: workers.dev is an exact configured public-origin constraint, not generic HTTPS or an existence proof
+ok 52 - workers.dev is an exact configured public-origin constraint, not generic HTTPS or an existence proof
+  ---
+  duration_ms: 1.414062
+  type: 'test'
+  ...
+# Subtest: public origin binding must match enabled Worker name and account subdomain exactly
+ok 53 - public origin binding must match enabled Worker name and account subdomain exactly
+  ---
+  duration_ms: 0.532343
+  type: 'test'
+  ...
+# Subtest: transport chunks round-trip Unicode at <=64 KiB with independent assemblies
+ok 54 - transport chunks round-trip Unicode at <=64 KiB with independent assemblies
+  ---
+  duration_ms: 66.598698
+  type: 'test'
+  ...
+# Subtest: chunks reject oversized, unordered, repeated and noncanonical data and expire
+ok 55 - chunks reject oversized, unordered, repeated and noncanonical data and expire
+  ---
+  duration_ms: 23.562656
+  type: 'test'
+  ...
+# Subtest: portable uint64 revision pattern is exact at every decimal boundary
+ok 56 - portable uint64 revision pattern is exact at every decimal boundary
+  ---
+  duration_ms: 4.65526
+  type: 'test'
+  ...
+# Subtest: verified managed job identity is not a user principal or canonical mutation grant
+ok 57 - verified managed job identity is not a user principal or canonical mutation grant
+  ---
+  duration_ms: 198.999896
+  type: 'test'
+  ...
+# Subtest: every immutable provider claim is compared; reruns, forks and self-hosted jobs cannot enroll
+ok 58 - every immutable provider claim is compared; reruns, forks and self-hosted jobs cannot enroll
+  ---
+  duration_ms: 238.356718
+  type: 'test'
+  ...
+# Subtest: current launch row and authenticated provider readback are both mandatory
+ok 59 - current launch row and authenticated provider readback are both mandatory
+  ---
+  duration_ms: 134.16
+  type: 'test'
+  ...
+# Subtest: bad signature/opaque credential never triggers launch lookup and errors do not expose provider details
+ok 60 - bad signature/opaque credential never triggers launch lookup and errors do not expose provider details
+  ---
+  duration_ms: 181.786094
+  type: 'test'
+  ...
+# Subtest: revoked launch cannot reuse a prior authentication decision
+ok 61 - revoked launch cannot reuse a prior authentication decision
+  ---
+  duration_ms: 131.929218
+  type: 'test'
+  ...
+# Subtest: a token expiring during authenticated provider lookup cannot start a new connection
+ok 62 - a token expiring during authenticated provider lookup cannot start a new connection
+  ---
+  duration_ms: 77.335677
+  type: 'test'
+  ...
+# Subtest: installed owner grant supports exact repository source access without losing installation/path scope
+ok 63 - installed owner grant supports exact repository source access without losing installation/path scope
+  ---
+  duration_ms: 9.09849
+  type: 'test'
+  ...
+# Subtest: closed work variant create
+ok 64 - closed work variant create
+  ---
+  duration_ms: 20.109532
+  type: 'test'
+  ...
+# Subtest: closed work variant edit
+ok 65 - closed work variant edit
+  ---
+  duration_ms: 5.738021
+  type: 'test'
+  ...
+# Subtest: closed work variant run
+ok 66 - closed work variant run
+  ---
+  duration_ms: 3.374479
+  type: 'test'
+  ...
+# Subtest: closed work variant validate
+ok 67 - closed work variant validate
+  ---
+  duration_ms: 1.592917
+  type: 'test'
+  ...
+# Subtest: closed work variant integrate
+ok 68 - closed work variant integrate
+  ---
+  duration_ms: 1.729635
+  type: 'test'
+  ...
+# Subtest: closed work variant cancel
+ok 69 - closed work variant cancel
+  ---
+  duration_ms: 1.460312
+  type: 'test'
+  ...
+# Subtest: closed work variant resume
+ok 70 - closed work variant resume
+  ---
+  duration_ms: 1.579166
+  type: 'test'
+  ...
+# Subtest: closed work variant policy.adopt
+ok 71 - closed work variant policy.adopt
+  ---
+  duration_ms: 1.530625
+  type: 'test'
+  ...
+# Subtest: closed work variant release.stage
+ok 72 - closed work variant release.stage
+  ---
+  duration_ms: 1.597396
+  type: 'test'
+  ...
+# Subtest: closed work variant release.activate
+ok 73 - closed work variant release.activate
+  ---
+  duration_ms: 1.501979
+  type: 'test'
+  ...
+# Subtest: published four-tool schemas are frozen, locally resolvable, and match their truthful annotations
+ok 74 - published four-tool schemas are frozen, locally resolvable, and match their truthful annotations
+  ---
+  duration_ms: 79.95125
+  type: 'test'
+  ...
+# Subtest: uint64 schema exactly matches the authoritative revision codec including boundaries
+ok 75 - uint64 schema exactly matches the authoritative revision codec including boundaries
+  ---
+  duration_ms: 31.94651
+  type: 'test'
+  ...
+# Subtest: context defaults and pinned requirement are deterministic without mutating caller data
+ok 76 - context defaults and pinned requirement are deterministic without mutating caller data
+  ---
+  duration_ms: 2.288802
+  type: 'test'
+  ...
+# Subtest: all five read forms, targets, defaults and scope-mixing rejection
+ok 77 - all five read forms, targets, defaults and scope-mixing rejection
+  ---
+  duration_ms: 6.976354
+  type: 'test'
+  ...
+# Subtest: all observation selectors are exact, bounded and read-only input
+ok 78 - all observation selectors are exact, bounded and read-only input
+  ---
+  duration_ms: 5.150364
+  type: 'test'
+  ...
+# Subtest: no coercion, excess arrays, object fields, body prefix acceptance or eight-slot maximum
+ok 79 - no coercion, excess arrays, object fields, body prefix acceptance or eight-slot maximum
+  ---
+  duration_ms: 28.004948
+  type: 'test'
+  ...
+# Subtest: whole-schema rejection is not used as envelope-wide admission failure
+ok 80 - whole-schema rejection is not used as envelope-wide admission failure
+  ---
+  duration_ms: 3.756146
+  type: 'test'
+  ...
+# Subtest: independent admission callbacks overlap and denial does not block siblings
+ok 81 - independent admission callbacks overlap and denial does not block siblings
+  ---
+  duration_ms: 2.584011
+  type: 'test'
+  ...
+# Subtest: batch adapter owns no dedup cache: domain lookup follows authorization on every retry
+ok 82 - batch adapter owns no dedup cache: domain lookup follows authorization on every retry
+  ---
+  duration_ms: 1.08125
+  type: 'test'
+  ...
+# Subtest: raw or provider exceptions never leak secret text; impossible non-JSON callbacks fail closed
+ok 83 - raw or provider exceptions never leak secret text; impossible non-JSON callbacks fail closed
+  ---
+  duration_ms: 1.018281
+  type: 'test'
+  ...
+# Subtest: modern discovery and tools need no session or initialization
+ok 84 - modern discovery and tools need no session or initialization
+  ---
+  duration_ms: 122.634219
+  type: 'test'
+  ...
+# Subtest: legacy initialize, initialized, subsequent calls and explicit version agree without minting a work identity
+ok 85 - legacy initialize, initialized, subsequent calls and explicit version agree without minting a work identity
+  ---
+  duration_ms: 1.534479
+  type: 'test'
+  ...
+# Subtest: missing modern metadata differs from missing or disagreeing mirrored headers
+ok 86 - missing modern metadata differs from missing or disagreeing mirrored headers
+  ---
+  duration_ms: 1.270834
+  type: 'test'
+  ...
+# Subtest: unknown modern version is a negotiation error, never an implicit legacy downgrade
+ok 87 - unknown modern version is a negotiation error, never an implicit legacy downgrade
+  ---
+  duration_ms: 0.525625
+  type: 'test'
+  ...
+# Subtest: tool-name routing headers match exact decoded UTF-8 and cannot hide a different body
+ok 88 - tool-name routing headers match exact decoded UTF-8 and cannot hide a different body
+  ---
+  duration_ms: 1.685105
+  type: 'test'
+  ...
+# Subtest: unknown methods produce HTTP 404/-32601 rather than success or generic 400
+ok 89 - unknown methods produce HTTP 404/-32601 rather than success or generic 400
+  ---
+  duration_ms: 0.448906
+  type: 'test'
+  ...
+# Subtest: batch JSON-RPC, duplicate fields, malformed UTF-8 and null IDs fail before effects
+ok 90 - batch JSON-RPC, duplicate fields, malformed UTF-8 and null IDs fail before effects
+  ---
+  duration_ms: 3.687187
+  type: 'test'
+  ...
+# Subtest: modern notifications and RPC responses are not silently accepted
+ok 91 - modern notifications and RPC responses are not silently accepted
+  ---
+  duration_ms: 0.513437
+  type: 'test'
+  ...
+# Subtest: legacy cancellation decoding never mutates or fabricates durable work cancellation
+ok 92 - legacy cancellation decoding never mutates or fabricates durable work cancellation
+  ---
+  duration_ms: 5.83125
+  type: 'test'
+  ...
+# Subtest: tool-level failure is a complete tool result in both wire eras, not a JSON-RPC error
+ok 93 - tool-level failure is a complete tool result in both wire eras, not a JSON-RPC error
+  ---
+  duration_ms: 4.59849
+  type: 'test'
+  ...
+# Subtest: endpoint guards reject hostile origin/host and proxy claims independently of method
+ok 94 - endpoint guards reject hostile origin/host and proxy claims independently of method
+  ---
+  duration_ms: 4.103698
+  type: 'test'
+  ...
+# Subtest: unknown error and peer data cannot replace codec-owned discriminators or leak credentials
+ok 95 - unknown error and peer data cannot replace codec-owned discriminators or leak credentials
+  ---
+  duration_ms: 1.811823
+  type: 'test'
+  ...
+# Subtest: malformed parameter and header responses preserve a readable request id without reparsing
+ok 96 - malformed parameter and header responses preserve a readable request id without reparsing
+  ---
+  duration_ms: 2.156146
+  type: 'test'
+  ...
+# Subtest: allowed-origin configuration cannot authorize a null or wildcard origin
+ok 97 - allowed-origin configuration cannot authorize a null or wildcard origin
+  ---
+  duration_ms: 1.363177
+  type: 'test'
+  ...
+# Subtest: offline requests are not sent and create no retained transport work
+ok 98 - offline requests are not sent and create no retained transport work
+  ---
+  duration_ms: 8.913438
+  type: 'test'
+  ...
+# Subtest: independent routing at configurable count 1
+ok 99 - independent routing at configurable count 1
+  ---
+  duration_ms: 3.981302
+  type: 'test'
+  ...
+# Subtest: independent routing at configurable count 8
+ok 100 - independent routing at configurable count 8
+  ---
+  duration_ms: 2.548125
+  type: 'test'
+  ...
+# Subtest: independent routing at configurable count 16
+ok 101 - independent routing at configurable count 16
+  ---
+  duration_ms: 2.854532
+  type: 'test'
+  ...
+# Subtest: independent routing at configurable count 32
+ok 102 - independent routing at configurable count 32
+  ---
+  duration_ms: 17.455729
+  type: 'test'
+  ...
+# Subtest: reconnect rejects uncertain observations and fences both old replies and late socket closes
+ok 103 - reconnect rejects uncertain observations and fences both old replies and late socket closes
+  ---
+  duration_ms: 3.126094
+  type: 'test'
+  ...
+# Subtest: duplicate and foreign correlation replies cannot complete a different live request
+ok 104 - duplicate and foreign correlation replies cannot complete a different live request
+  ---
+  duration_ms: 2.089063
+  type: 'test'
+  ...
+# Subtest: count and aggregate byte limits reject rather than creating another queue
+ok 105 - count and aggregate byte limits reject rather than creating another queue
+  ---
+  duration_ms: 3.741771
+  type: 'test'
+  ...
+# Subtest: oversized request and unsupported proxy operation are rejected before send
+ok 106 - oversized request and unsupported proxy operation are rejected before send
+  ---
+  duration_ms: 1.810834
+  type: 'test'
+  ...
+# Subtest: malformed reply is bounded and cannot change another observation
+ok 107 - malformed reply is bounded and cannot change another observation
+  ---
+  duration_ms: 3.697396
+  type: 'test'
+  ...
+# Subtest: send exceptions are uncertain, redacted and never automatically retried
+ok 108 - send exceptions are uncertain, redacted and never automatically retried
+  ---
+  duration_ms: 1.944948
+  type: 'test'
+  ...
+# Subtest: deadline expiry rejects without cancelling a logical work or retrying it
+ok 109 - deadline expiry rejects without cancelling a logical work or retrying it
+  ---
+  duration_ms: 30.612083
+  type: 'test'
+  ...
+# Subtest: late reply cannot win merely because the event loop delayed a deadline callback
+ok 110 - late reply cannot win merely because the event loop delayed a deadline callback
+  ---
+  duration_ms: 1.000416
+  type: 'test'
+  ...
+# Subtest: synchronous response callback is safe and caller mutation cannot alter a sent intent
+ok 111 - synchronous response callback is safe and caller mutation cannot alter a sent intent
+  ---
+  duration_ms: 1.288177
+  type: 'test'
+  ...
+# Subtest: invalid routing policies do not truncate, round or create an eight-slot semantic limit
+ok 112 - invalid routing policies do not truncate, round or create an eight-slot semantic limit
+  ---
+  duration_ms: 0.49698
+  type: 'test'
+  ...
+# Subtest: independent cache eviction cannot invalidate a bounded in-flight object read
+ok 113 - independent cache eviction cannot invalidate a bounded in-flight object read
+  ---
+  duration_ms: 9.881354
+  type: 'test'
+  ...
+# Subtest: paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+ok 114 - paths deny traversal, normalization aliases and metadata without case-folding ordinary files
+  ---
+  duration_ms: 4.392395
+  type: 'test'
+  ...
+# Subtest: canonical paths preserve valid exact identity
+ok 115 - canonical paths preserve valid exact identity
+  ---
+  duration_ms: 2.932292
+  type: 'test'
+  ...
+# Subtest: real JWT signature, issuer, expiry, audience and algorithm checks
+ok 116 - real JWT signature, issuer, expiry, audience and algorithm checks
+  ---
+  duration_ms: 164.542656
+  type: 'test'
+  ...
+# Subtest: revocation and exact binding checked again at effect dispatch
+ok 117 - revocation and exact binding checked again at effect dispatch
+  ---
+  duration_ms: 3.385104
+  type: 'test'
+  ...
+# Subtest: sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+ok 118 - sandbox arguments are fixed, credential-free, attempt-specific and resource bounded
+  ---
+  duration_ms: 2.264948
+  type: 'test'
+  ...
+# Subtest: missing production seal fails closed before any engine or host execution
+ok 119 - missing production seal fails closed before any engine or host execution
+  ---
+  duration_ms: 0.649896
+  type: 'test'
+  ...
+# Subtest: inspecting and cancelling never terminate another attempt
+ok 120 - inspecting and cancelling never terminate another attempt
+  ---
+  duration_ms: 2.044844
+  type: 'test'
+  ...
+# Subtest: bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+ok 121 - bounded trusted-command primitive does not interpolate argv and terminates overflow/deadline
+  ---
+  duration_ms: 932.192448
+  type: 'test'
+  ...
+# Subtest: verified narrow token never inherits broader standing integration grants
+ok 122 - verified narrow token never inherits broader standing integration grants
+  ---
+  duration_ms: 35.770989
+  type: 'test'
+  ...
+# Subtest: container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+ok 123 - container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults
+  ---
+  duration_ms: 3.688281
+  type: 'test'
+  ...
+# Subtest: one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+ok 124 - one atomic name claim launches each attempt, with no restartable create/start response-loss gap
+  ---
+  duration_ms: 2.414271
+  type: 'test'
+  ...
+# Subtest: missing verified capability metadata does not inherit a standing grant
+ok 125 - missing verified capability metadata does not inherit a standing grant
+  ---
+  duration_ms: 0.571303
+  type: 'test'
+  ...
+# Subtest: non-integral engine timeouts are rejected instead of rounded up
+ok 126 - non-integral engine timeouts are rejected instead of rounded up
+  ---
+  duration_ms: 0.688854
+  type: 'test'
+  ...
+# Subtest: created-only containers and invalid exit data remain uncertain and are never blindly started
+ok 127 - created-only containers and invalid exit data remain uncertain and are never blindly started
+  ---
+  duration_ms: 2.526146
+  type: 'test'
+  ...
+# Subtest: persisted container labels bind profile and exact source before a lost response can be reused
+ok 128 - persisted container labels bind profile and exact source before a lost response can be reused
+  ---
+  duration_ms: 3.929271
+  type: 'test'
+  ...
+# Subtest: all mandatory profiles are required and exact result is reusable across action IDs
+ok 129 - all mandatory profiles are required and exact result is reusable across action IDs
+  ---
+  duration_ms: 12.605
+  type: 'test'
+  ...
+# Subtest: receipt MAC rejects omission, changed exit, reordered/missing profile and copied signature
+ok 130 - receipt MAC rejects omission, changed exit, reordered/missing profile and copied signature
+  ---
+  duration_ms: 2.502968
+  type: 'test'
+  ...
+# Subtest: failed exit, deadline, signal and modified bytes cannot become eligible despite a signed report
+ok 131 - failed exit, deadline, signal and modified bytes cannot become eligible despite a signed report
+  ---
+  duration_ms: 5.436407
+  type: 'test'
+  ...
+# Subtest: empty, missing or reordered required profile configurations fail closed
+ok 132 - empty, missing or reordered required profile configurations fail closed
+  ---
+  duration_ms: 1.447239
+  type: 'test'
+  ...
+# Subtest: adopted profile parameters cannot add shell/environment or silently change a fixed command
+ok 133 - adopted profile parameters cannot add shell/environment or silently change a fixed command
+  ---
+  duration_ms: 87.365782
+  type: 'test'
+  ...
+# Subtest: immutable receipt survives coordinator restart; altered attempt identity still fails authentication
+ok 134 - immutable receipt survives coordinator restart; altered attempt identity still fails authentication
+  ---
+  duration_ms: 1.474167
+  type: 'test'
+  ...
+1..134
+# tests 134
+# suites 0
+# pass 134
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 6745.853539

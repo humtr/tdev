@@ -23,7 +23,7 @@ not architecture constants; current source truth comes from fresh dev_context.
 | --- | --- | --- |
 | A0 Fresh authority/provider/device bind | none | Exact starting remote HEAD/tree/ancestry and selected authority read; current provider/config/service readback |
 | A1 Owner requirements and contract | A0 | Directive r3 already owns same-origin cutover, no old live baseline and all four annotations; full closed schemas unchanged and verified |
-| A2 Usable native backend | A1 | Actual Git/context/object/SQLite/admission/candidate/preparation/observation wiring; 40 joined native/edge fixtures PASS |
+| A2 Usable native backend | A1 | Actual Git/context/object/SQLite/admission/candidate/preparation/observation wiring; 43 joined native/edge fixtures PASS (40 existing plus three public unsealed-frontier regressions) |
 | A3 Edge/device/auth/launcher | A1,A2 | Immutable bundles outside dirty workspaces; Access boundary and authenticated device route; actual runit restart/reconnect PASS |
 | A4 Same-origin deployment/readback | A3 | tdev Worker now dev-2 at 100%; published four descriptors exact, old surface absent, unauthorized/cross-role MCP calls rejected |
 | A5 Publication/resume | A2,A4 | Reviewed pending installer correction and repeatable readback tooling published with this workboard and evidence; remote publication is checked independently |
@@ -85,7 +85,16 @@ bootstrap bridge; never bypass or weaken the dev-2 eligibility checks to hide it
 ## Evidence interpretation
 
 PASS means the named test/layer on the named source/environment only. The canonical
-integration profile remains NOT RUN despite 40 passing focused fixtures. Native
+integration profile remains NOT RUN despite 43 passing focused fixtures. Native
 operator bootstrap tests are not hostile-code containment or production receipts.
 Installation-key discovery/readback is not human OAuth. Mutable IDs/private paths
 and credentials belong to installation state; only redacted observations are in Git.
+
+Final Phase A source join: `docs/evidence/phase-a-cutover/joined-verification.json`
+records core 134/134 and joined native/edge 43/43 PASS after incorporating the
+independent public create/edit/cancel/retry and unsealed prepare/observe tests.
+This changes no runtime bytes, contract or Phase B gate. Existing 40-fixture
+completion evidence remains historical, not silently relabeled. Before enabling
+B2 publication, revalidate prepared-result path authorization, asynchronous owner/
+base fences and reuse against D0002/D0003; do not infer production eligibility
+from the current unsealed preparation fixtures.

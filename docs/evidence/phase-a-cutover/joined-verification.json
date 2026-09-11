@@ -1,0 +1,156 @@
+{
+  "schemaVersion": 1,
+  "observedAt": "2026-09-11T21:51:15.768Z",
+  "scope": "Phase A test-only join following the published installation completion; not Phase B execution or a production release seal",
+  "testedCommit": "17556f349d7e4b68a4e436a43276b5186cd4028f",
+  "testedTree": "0d45c3160407dc6f173c02a3996af34728f13ec6",
+  "publicationBase": "c0cca4c66be92ea7e98ba3bfba0e33dab850b5c7",
+  "core": {
+    "status": "PASS",
+    "tests": 134,
+    "receipt": {
+      "schemaVersion": 1,
+      "layer": "core",
+      "status": "passed",
+      "exitCode": 0,
+      "scope": "implemented-profile-only",
+      "installationEligibility": false,
+      "startedAt": "2026-09-11T21:49:28.600Z",
+      "finishedAt": "2026-09-11T21:49:42.199Z",
+      "durationMs": 13599,
+      "entrypointDigest": "sha256:65be69c0ecfdbed7551a9a754dae2c30b1b070c55c39ae99a79a4a9424277eaa",
+      "inputDigest": "sha256:c82353fd58cab9d8cb9d8c12baeaf7dcc1343b763e622424e13cfeb69d61c52a",
+      "outputInputDigest": "sha256:c82353fd58cab9d8cb9d8c12baeaf7dcc1343b763e622424e13cfeb69d61c52a",
+      "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+      "toolchainLockDigest": "sha256:b5d38cdb1a0783d8e8f9cb19bf831a662fa0d4e7e483f30f534f54f6f79e906d",
+      "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+      "execution": {
+        "variantId": "termux-android-arm64-node24-18",
+        "role": "native-control",
+        "node": "24.18.0",
+        "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+        "platform": "android",
+        "arch": "arm64",
+        "sqlite": "3.53.4"
+      },
+      "checks": [
+        {
+          "name": "python.minimum",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 81,
+          "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "jsdoc",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 5921,
+          "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "designs",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 297,
+          "logDigest": "sha256:624355dc41380e51ad71bf00ca5554c9d46a019fded6256b4fe1a180301d45b0"
+        },
+        {
+          "name": "tests",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 7199,
+          "logDigest": "sha256:dd8f665264c744ced8e6fc1cfd4c3058355470dce6ba08dddd745dc5c3d91b4b"
+        }
+      ]
+    },
+    "log": "joined-core-tests.tap",
+    "logDigest": "sha256:dd8f665264c744ced8e6fc1cfd4c3058355470dce6ba08dddd745dc5c3d91b4b"
+  },
+  "nativeJoinedFixtures": {
+    "status": "PASS",
+    "tests": 43,
+    "originalFixtures": 40,
+    "additionalPublicUnsealedFixtures": 3,
+    "log": "joined-integration-fixtures.tap",
+    "logDigest": "sha256:5ae637a14ac8424fd78dd518f5ab96821714fb301a2f7fd2925b36bc56c77f92"
+  },
+  "typecheck": "PASS",
+  "selectedDesignCheck": "PASS",
+  "firstCallSchemaCheck": {
+    "observedAt": "2026-09-11T21:48:48.550Z",
+    "status": "PASS",
+    "scope": "Phase B documented first calls match frozen input schemas; actual snapshot ID must come from a fresh dev_context response",
+    "humanOAuthInvocation": "NOT RUN",
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+    "calls": [
+      [
+        "dev_context",
+        {
+          "apiVersion": 1,
+          "repository": "self",
+          "freshness": "current"
+        }
+      ],
+      [
+        "dev_read",
+        {
+          "apiVersion": 1,
+          "target": {
+            "snapshotId": "returned-snapshot-id",
+            "freshness": "current"
+          },
+          "queries": [
+            {
+              "kind": "file",
+              "path": "AGENTS.md"
+            },
+            {
+              "kind": "file",
+              "path": "DIRECTIVE.md"
+            },
+            {
+              "kind": "file",
+              "path": "RULE.md"
+            },
+            {
+              "kind": "file",
+              "path": "WORKBOARD.md"
+            },
+            {
+              "kind": "file",
+              "path": "docs/evidence/phase-a-cutover/README.md"
+            }
+          ]
+        }
+      ],
+      [
+        "dev_observe",
+        {
+          "apiVersion": 1,
+          "selector": {
+            "runtime": true
+          }
+        }
+      ],
+      [
+        "dev_observe",
+        {
+          "apiVersion": 1,
+          "selector": {
+            "open": true
+          }
+        }
+      ]
+    ]
+  },
+  "productRuntimeAndSchemaChanges": false,
+  "publicHumanOAuth": "NOT RUN: first refreshed ChatGPT invocation",
+  "canonicalIntegrationProfile": "NOT RUN: mandatory production joins still incomplete",
+  "fullReleaseLiveBenchmark": "NOT RUN",
+  "publicationReadback": "After the enclosing documentation/evidence commit is published, verify live dev_context currentHead against remote HEAD and record the exact joined result through the current private installation selector."
+}

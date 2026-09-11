@@ -106,12 +106,14 @@ bootstrap bridge until those existing operation implementations are completed.
 ## Validation and limits of proof
 
 `validation-summary.json` indexes exact receipts and artifact digests. Core's 134
-tests, JSDoc typecheck and selected-Design checker pass. The 40 joined native/edge
-integration fixtures pass: real native Git/SQLite/source changes, prepared-result
+tests, JSDoc typecheck and selected-Design checker pass. The original completion's 40 joined native/edge
+integration fixtures passed: real native Git/SQLite/source changes, prepared-result
 reuse, local exact CAS, transport reconnect, dedup, authentication rejection and
 explicit unsealed execution outcomes. These are operator-reviewed fixtures, not
 production hosted receipts. The official integration/release/live/benchmark profiles
 remain NOT RUN/unimplemented, not PASS inferred from a focused subset.
+
+The final test-only source join is recorded separately in `joined-verification.json`: core 134/134 and native/edge 43/43 PASS, including three new public-contract fixtures that prove source preparation and request recovery without unsealed execution or publication. The original 40-fixture completion receipts remain unchanged. Four documented Phase B first-call argument shapes also pass the frozen schema validator. No runtime, schema or eligibility semantics changed in this join.
 
 The deployed fixed installation probe successfully binds current context, reads
 AGENTS/WORKBOARD and observes runtime/open work through the actual device route.
