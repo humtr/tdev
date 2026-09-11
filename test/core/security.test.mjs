@@ -77,7 +77,7 @@ test('verified narrow token never inherits broader standing integration grants',
 });
 test('container engine owns the deadline and does not inherit proxy, image entrypoint or volume defaults',()=>{
  const argv=createArguments(attempt,profile,'/attempts/'+attemptName(attempt)+'/source',options);
- for(const required of ['--http-proxy=false','--image-volume=ignore','--health-cmd=none','--restart=no','--timeout=10','--entrypoint=/usr/local/bin/node'])assert.ok(argv.includes(required),required);
+ for(const required of ['--http-proxy=false','--image-volume=ignore','--health-cmd=none','--restart=no','--timeout=10','--entrypoint=/usr/bin/env'])assert.ok(argv.includes(required),required);
 });
 test('one atomic name claim launches each attempt, with no restartable create/start response-loss gap',()=>{
  const argv=createArguments(attempt,profile,'/attempts/'+attemptName(attempt)+'/source',options);assert.equal(argv[0],'run');assert.ok(argv.includes('--detach'));

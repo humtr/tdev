@@ -52,13 +52,15 @@ export function createArguments(attempt,profile,sourceRoot,options,sourceManifes
     ...(sourceManifest?['--label','dev2.source='+digest(sourceManifest)]:[]),
     '--http-proxy=false','--image-volume=ignore','--health-cmd=none','--restart=no','--systemd=false',
     '--unsetenv-all','--timeout='+profile.timeoutMs/1000,'--stop-timeout='+profile.killGraceMs/1000,
-    '--entrypoint='+profile.argv[0],'--pull=never','--read-only','--read-only-tmpfs=false','--cap-drop=ALL','--security-opt=no-new-privileges',
+    '--entrypoint=/usr/bin/env','--pull=never','--read-only','--read-only-tmpfs=false','--cap-drop=ALL','--security-opt=no-new-privileges',
     '--security-opt=seccomp='+options.seccompPath,'--network=none','--pid=private','--ipc=private','--cgroupns=private','--uts=private','--userns=keep-id','--cgroups=enabled',
     '--pids-limit='+profile.pids,'--memory='+profile.memoryBytes,'--memory-swap='+profile.memoryBytes,'--cpus='+(profile.cpuMillis/1000),
     '--tmpfs=/tmp:rw,noexec,nosuid,nodev,size='+tmp,'--tmpfs=/work:rw,nosuid,nodev,size='+work,
     '--mount=type=bind,src='+source+',dst=/source,ro=true','--workdir=/source'+(profile.cwd?'/'+profile.cwd:''),
     '--env=HOME=/work','--env=TMPDIR=/tmp','--env=PATH=/usr/local/bin:/usr/bin:/bin','--log-driver=k8s-file','--log-opt=max-size='+profile.logBytes,
-    image,...profile.argv.slice(1)];
+    // Podman 4.9.3 injects HOSTNAME after --unsetenv-all. A fixed executable
+    // from the sealed image clears all late defaults before candidate startup.
+    image,'-i','--','HOME=/work','TMPDIR=/tmp','PATH=/usr/local/bin:/usr/bin:/bin',...profile.argv];
 }
 
 /** Rootless container adapter. Missing engine/seal never invokes a host fallback.
