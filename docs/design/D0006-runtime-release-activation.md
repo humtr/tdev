@@ -79,3 +79,30 @@ Run exact release staging and activation through MCP, including a real source ch
 ## Implementation consequences
 
 Runtime composition belongs under `src/runtime/`, fixed helper and service-unit templates under `deploy/`, no host-specific absolute paths. Configuration contains no secrets and all required capability probes are reproducible. D0004 only exposes typed release actions; D0007 owns execution commands and evidence gates.
+
+## Fixed-helper storage and control boundary
+
+The activation authority retains one current atomically replaced record plus
+immutable terminal receipts keyed by activation ID. A terminal receipt is durable
+before the current record can be replaced, preserving delayed response retries
+without a workflow journal. Replaying an already admitted intent observes its
+retained outcome even after the original forward deadline. The original deadline
+still gates every new forward step. Bounded rollback safety work may continue
+after it, but cannot invent certainty about process termination.
+
+The Linux helper owns a real `flock` for the complete handoff. Its inherited open
+file description survives the short lock-acquisition utility, and is closed on
+helper exit; a PID file or persistent lock directory is not a substitute.
+The service manager adapter can act only on the configured broker unit and its
+private installation control socket. It never accepts a unit name, executable,
+URL or shell program from an MCP action. The private socket is outside candidate
+mounts and protected by installation-user filesystem permissions. Broker drain
+fences future provider dispatch and waits only for already-admitted ref effects;
+long-running isolated validations may survive broker replacement.
+
+Build artifacts are sealed regular files, copied into an immutable release
+namespace, fsynced and attested with an installation-only key after trusted
+exact-source/build/startup verification. The key is not a validation result from
+candidate code. Every activation and broker startup rechecks artifact hashes and
+ledger compatibility. The first regular-file artifact packaging excludes symlinks
+and hardlinks; it does not reinterpret source-tree Git symlinks.
