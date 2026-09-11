@@ -1,6 +1,7 @@
 import { isAbsolute, resolve, sep } from 'node:path';
 import { readFile, realpath, lstat } from 'node:fs/promises';
-import { recordDigest, bytesDigest, parseRecord } from '../contracts/canonical.mjs';
+import { recordDigest, bytesDigest } from '../contracts/canonical.mjs';
+import { boundedProviderJson as parseRecord } from './provider-json.mjs';
 import { requireThat, Dev2Error } from '../contracts/errors.mjs';
 import { id, revision, digest } from '../contracts/identity.mjs';
 import { repositoryPath } from '../security/paths.mjs';
