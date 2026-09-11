@@ -1,0 +1,10 @@
+import { mkdir,readFile,writeFile } from 'node:fs/promises';
+import { resolve,join,dirname } from 'node:path';
+import { fileURLToPath } from 'node:url';
+import { build } from 'esbuild';
+import { bytesDigest } from '../src/contracts/canonical.mjs';
+import { SCHEMA_DIGEST } from '../src/mcp/outputs.mjs';
+const root=resolve(dirname(fileURLToPath(import.meta.url)),'..'),out=resolve(root,process.argv[2]??'.artifacts/build');await mkdir(out,{recursive:true});
+await build({entryPoints:[join(root,'tools/device-main.mjs')],outfile:join(out,'device.cjs'),bundle:true,platform:'node',format:'cjs',target:'node24',external:['bufferutil','utf-8-validate'],legalComments:'none'});
+const bytes=await readFile(join(out,'device.cjs')),manifest={schemaDigest:SCHEMA_DIGEST,bundleDigest:bytesDigest(bytes),bytes:bytes.length,builder:'esbuild-0.28.2'};
+await writeFile(join(out,'device-manifest.json'),JSON.stringify(manifest,null,2)+'\n');console.log(JSON.stringify(manifest));

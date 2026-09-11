@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003]`
 - Supersedes: `[]`
-- Directive: `r2`
+- Directive: `r3`
 - Owns: `runtime-topology, release-activation, toolchain-seal`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -28,8 +28,8 @@ and make partial connectivity/deployment failures observable and recoverable.
 ## Facts / assumptions / unknowns
 
 Actual native and account observations are retained in the environment correction
-evidence. The workers.dev subdomain exists but a dev-2 Worker/origin is not yet
-assigned. Existing GitHub CI runs; production sandbox, managed-session latency,
+evidence. The workers.dev subdomain exists; its exact dev-2 Worker/origin is selected from fresh
+installation readback, including the authorized existing-origin cutover. Existing GitHub CI runs; production sandbox, managed-session latency,
 account quota and new deployment permissions are not yet proven. No paid capability
 or uninterrupted Android lifetime is assumed.
 
@@ -59,7 +59,7 @@ Actual Worker name, account/subdomain, origin, Access application, credential gr
 and deployed versions are installation bindings. No dev-2 resource is presumed to
 exist from a naming convention. Installation seals require provider readback that
 origin is HTTPS, an exact workers.dev hostname, enabled for the selected Worker,
-and protected by the selected dev-2 Access application. Previews remain disabled.
+and protected by the explicitly adopted dev-2 Access application (D0005). Previews remain disabled.
 
 ## 2. Bounded transport, disconnects and Android lifetime
 
@@ -239,3 +239,34 @@ The verifier is a deterministic predicate; installing it does not implement a
 launch controller, OIDC endpoint, job lease, hosted sandbox or public gateway.
 Use one selected rendezvous and one explicit application-authentication adapter.
 Neither compute enrollment nor transport correlation creates another work owner.
+
+
+## Phase A installation boundary
+
+DIRECTIVE Section 14 permits replacing the current tdev Worker at the same verified
+workers.dev origin. Do not add a live predecessor compatibility/migration layer.
+Remove the old tool dispatch and old product bindings from the active request path;
+unrelated provider resources and predecessor source/history remain untouched.
+An existing human Access registration may be adopted as D0005 specifies; the new
+routing DO and device channel retain no old work/request state.
+
+A bootstrap-installed reviewed bundle may expose the complete frozen public contract
+and real native repository/ledger/candidate/preparation backend before the full
+hosted/activation seal. Its identity, capabilities and unqualified release status
+must be explicit. It is not an active production-sealed release by implication.
+Install immutable source outside a dirty implementation workspace, wire the native
+launcher and durable state, and verify outbound reconnect. Phase B completes missing
+hosted/session/activation capabilities through the existing public vocabulary.
+
+
+### Bounded installation readback
+
+The separately authenticated device-role installation channel may expose fixed
+status/discovery readback and a fixed read-only native self-probe. The probe selects
+no arbitrary tool, path, principal or mutation: it binds current context, reads
+AGENTS/WORKBOARD and observes runtime/open work using a read-only local operator
+capability. It exercises the deployed route before client Refresh without forging
+human OAuth evidence. Device credentials never authenticate /mcp, every normal
+routed tool call still verifies the actual Access assertion natively, and public
+tool names remain exactly the selected four. Evidence must label this installation
+probe separately from the first refreshed ChatGPT human OAuth invocation.

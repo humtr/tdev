@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0004, D0005, D0006]`
 - Supersedes: `[]`
-- Directive: `r2`
+- Directive: `r3`
 - Owns: `test-environments, benchmark-methodology, superiority-gates`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -13,19 +13,19 @@ Accepted is a decision state, not a claim of implementation, live verification, 
 
 ## Problem
 
-A cleaner diagram is not proof that dev-2 is faster, safer or self-developing. Define reproducible validation layers and falsifiable comparisons against both current predecessors without turning benchmark machinery into a second product.
+A cleaner diagram is not proof that dev-2 is faster, safer or self-developing. Define reproducible validation layers and falsifiable comparisons against both predecessors using applicable evidence classes without turning benchmark machinery into a second product.
 
 ## Required outcome
 
-Every claim identifies its exercised layer, exact bytes and environment. Local, CI and runtime validation invoke equivalent contracts. First-release completion requires actual canonical-MCP self-development and convincing measured improvement against both tdev and tmcp, never LOC, tool-count or historical-PASS substitution.
+Every claim identifies its exercised layer, exact bytes and environment. Local, CI and runtime validation invoke equivalent contracts. First-release completion requires actual canonical-MCP self-development and convincing evidence-backed improvement against tdev and tmcp under DIRECTIVE Section 10, never LOC, tool-count or historical-PASS substitution.
 
 ## Facts / assumptions / unknowns
 
 The operating environment is DIRECTIVE Section13. Observations are in
 `docs/evidence/environment-correction-2026-09-11/README.md`. Existing source and
-module tests do not establish a deployed dev-2 runtime. Baseline source/runtime
-identities, resource policies and provider budgets must be rebound at measurement
-registration; earlier archived counts are not current baselines. Superiority is
+module tests do not establish a deployed dev-2 runtime. Live baseline source/runtime identities, resource policies and provider budgets
+must be rebound at measurement registration. Archived measurements remain historical
+evidence, never current live measurements. Old tdev need not have a live baseline. Superiority is
 unproven until the scored cohorts below run in the selected actual topology.
 
 ## Decision: canonical validation contract
@@ -70,7 +70,7 @@ Environment names: `DEV2_STATE_DIR`, `DEV2_PUBLIC_ORIGIN`, `DEV2_OAUTH_ISSUER`, 
 
 Before any timed run, freeze a benchmark manifest: methodology/fixture digest, baseline observed source commits and release digests, dev-2 exact commit/release, protocol/schema, machine CPU/memory/storage, OS/runtime/toolchain/image, region/network, profile requirements, execution capacity, cache state, client/model settings, input source/tree, seed and trial order. Reobserve live versions at end; changed versions invalidate or split the affected block. Keep both default-deployment comparison and resource-matched comparison. Increasing dev-2 CPU, lowering tests, removing predecessor network hops from only one clock or adding more human assistance is not a fair speed win.
 
-Each system receives the same user-level goal, repository fixture, logical patch target and correctness postconditions. Use each predecessor's best documented currently usable normal path, not an artificially slow route. Pin actual deployed code for the live baseline and separately note newer source-only docs. Mandatory internal models, UI approvals, warmup/bootstrap, extra calls and recovery are included in the end-to-end measurement, not hidden. Do not add a second model to dev-2 for matching architecture. Controlled trace replay measures infrastructure overhead separately from real ChatGPT sessions; it cannot satisfy the experiential gate.
+Each system receives the same user-level goal, repository fixture, logical patch target and correctness postconditions. Use each predecessor's best documented currently usable normal path where one exists, not an artificially slow route. Pin actual deployed code only for an available live baseline and separately identify source-only/historical/analytical evidence. Do not reinstall or repair old tdev to create a live benchmark. Mandatory internal models, UI approvals, warmup/bootstrap, extra calls and recovery are included in the end-to-end measurement, not hidden. Do not add a second model to dev-2 for matching architecture. Controlled trace replay measures infrastructure overhead separately from real ChatGPT sessions; it cannot satisfy the experiential gate.
 
 Required workload families:
 
@@ -153,3 +153,24 @@ to those bytes must change the input digest even when a requested unimplemented
 profile correctly returns NOT RUN. Source validation outputs stay outside tracked
 source or in the explicitly ignored .artifacts tree. Provider capability probes
 remain required for release, not a mandatory extra checklist on every core edit.
+
+
+## Phase A cutover acceptance versus Phase B release proof
+
+The owner-authorized cutover uses the same frozen public contract for continued
+implementation. Its acceptance requires fresh origin/deployment/Access readback,
+actual MCP discovery with exactly the four intended tools and owner-selected hints,
+input/output descriptor equality, observed edge/device/schema identity, a connected
+native route, real context/read/work/candidate/observation behavior, honest unavailable
+capabilities, applicable native/edge/join tests, and coherent remote publication.
+This is not the full release/live/benchmark profile and must not be reported as such.
+
+J5 is a Phase B comparison frontier, not a predecessor-runtime continuity requirement.
+For old tdev, preserved branch/source and architecture/operation structure, retained
+historical measurements, currently reproducible bounded measurements and analytical
+comparison satisfy the allowed evidence inputs. Label each claim measured-current,
+measured-historical or analytical and state comparability/coverage limits. Missing
+live results are not zero latency, infinite speedup or a reason to build an old
+runtime. The scored repeated statistics above apply only to genuinely comparable
+measured cohorts; do not fabricate confidence intervals for analytical evidence.
+Current tmcp may be measured within the actually accessible, comparable scope.

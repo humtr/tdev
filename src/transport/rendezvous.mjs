@@ -75,7 +75,15 @@ export class RequestRendezvous {
             requireThat(['dev_context', 'dev_read', 'dev_work', 'dev_observe'].includes(request.tool), 'INVALID_ARGUMENT', 'Unknown routed tool');
             requireThat(request.arguments !== null && typeof request.arguments === 'object' && !Array.isArray(request.arguments) &&
                 typeof request.assertion === 'string' && request.assertion.length > 0 && request.assertion.length <= 16384, 'INVALID_ARGUMENT', 'Bounded arguments and signed identity assertion required');
-            const body = canonicalJson({ tool: request.tool, arguments: request.arguments, assertion: request.assertion });
+            requireThat(Object.keys(request).length===3,'INVALID_ARGUMENT','Closed routed request');
+            return this.#route(canonicalJson({ tool: request.tool, arguments: request.arguments, assertion: request.assertion }));
+        } catch(error) { return Promise.reject(error); }
+    }
+    /** Trusted device-role adapter only: no arbitrary tool, path, subject or mutation. */
+    probe() { return this.#route(canonicalJson({kind:'installation_read_probe'})); }
+    /** @param {string} body @returns {Promise<Json>} */
+    #route(body) {
+        try {
             const bytes = Buffer.byteLength(body);
             requireThat(bytes <= this.#limits.maxRequestBytes, 'LIMIT_EXCEEDED', 'Routing body exceeds limit');
             const connection = this.#connection;

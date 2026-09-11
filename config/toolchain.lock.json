@@ -25,7 +25,7 @@
     "sealed": false,
     "podmanPackage": null,
     "imageDigest": null,
-    "reason": "No dev-2 workers.dev deployment, managed containment seal or native activation helper verified; source checks do not grant installation eligibility."
+    "reason": "Managed containment, attested execution and qualified activation are not sealed. A separately observed bootstrap Worker/device installation does not grant production installation eligibility."
   },
   "npm": {
     "version": "11.19.0"

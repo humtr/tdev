@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[]`
 - Supersedes: `[]`
-- Directive: `r2`
+- Directive: `r3`
 - Owns: `authorization, sandbox-boundary, credential-custody`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -30,7 +30,7 @@ selected environment cannot enforce a required bound.
 The bounded live inventory is in the environment correction evidence. Native
 filesystem/SQLite/process primitives work; user namespaces and Landlock are not
 available to this process. A managed CI engine is observed but its production
-containment seal and new dev-2 Access application are not yet verified. No token
+containment seal and final dev-2 Access installation binding require independent verification. No token
 shape or grant is inferred from an unverified proxy header.
 
 ## 1. Decision and trust model
@@ -52,7 +52,7 @@ the operator UID is outside the promised cross-candidate isolation boundary.
 ## 2. Human identity and capability delegation
 
 The selected first-release authorization service is Cloudflare Access Managed
-OAuth on a newly provisioned dev-2 application, not a predecessor application.
+OAuth on the explicitly adopted dev-2 installation application. For the owner-authorized same-origin cutover, the existing human Access application may be adopted after fresh issuer/audience/domain/policy readback, preserving its ChatGPT OAuth registration without preserving old runtime semantics. A new application is required only when actual binding/security evidence prevents safe adoption, not merely because the backing product changed.
 Its opaque OAuth access token terminates at Access; it is not a JWT bearer. The
 Worker and Termux verifier validate the signed Access assertion with the exact
 installation issuer, application audience, allowed asymmetric algorithm, expiration,
@@ -204,3 +204,30 @@ executor paths on the same workers.dev origin require their separate machine
 verifiers, not a broad anonymous bypass of the human route. Read back exact path
 coverage and test negative cross-role requests. Missing routing/auth configuration
 blocks deployment; existing predecessor apps and preview routes are not fallbacks.
+
+
+## Phase A authorization boundary
+
+Rebinding an existing verified Access application under DIRECTIVE Section 14 is an
+explicit installation decision, not automatic trust in predecessor configuration.
+Keep its human OAuth issuer/audience and registration only after live readback;
+provision a separate dev-2 device credential and explicit principal-specific grants.
+Do not turn off Access, accept arbitrary unsigned headers, add a service-token human
+bypass, broaden account membership or copy old product operation authorization.
+Existing provider state outside the exact changed product binding is preserved.
+Unavailable hosted sealing blocks ordinary candidate execution/integration eligibility;
+reviewed Phase A bootstrap tests are separate operator-authorized evidence, not a
+production validation receipt or permission to execute arbitrary candidate code.
+
+
+### Bounded installation readback
+
+The separately authenticated device-role installation channel may expose fixed
+status/discovery readback and a fixed read-only native self-probe. The probe selects
+no arbitrary tool, path, principal or mutation: it binds current context, reads
+AGENTS/WORKBOARD and observes runtime/open work using a read-only local operator
+capability. It exercises the deployed route before client Refresh without forging
+human OAuth evidence. Device credentials never authenticate /mcp, every normal
+routed tool call still verifies the actual Access assertion natively, and public
+tool names remain exactly the selected four. Evidence must label this installation
+probe separately from the first refreshed ChatGPT human OAuth invocation.

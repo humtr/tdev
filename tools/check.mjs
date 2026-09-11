@@ -1,3 +1,4 @@
+import process from 'node:process';
 import { spawnSync } from 'node:child_process';
 let result=0;
 for(const profile of ['core','integration']) {

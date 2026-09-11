@@ -1,7 +1,7 @@
 # dev-2 owner directive
 
 - Status: active
-- Revision: 2
+- Revision: 3
 - Scope: first public `dev-2` architecture, implementation, and proof
 
 ## 1. Authority
@@ -82,7 +82,7 @@ The target is the smallest clear and safe contract that lets ChatGPT discover re
 
 There is no reason to replace current tdev and tmcp unless `dev-2` is materially better.
 
-`dev-2` must therefore be designed and measured against both current tdev and current tmcp on comparable representative development workloads. Those systems are benchmark baselines, never architectural authorities.
+`dev-2` must be evaluated against both tdev and tmcp on representative development workloads. These predecessors are comparison subjects, never architectural authorities. Old tdev was not a completed working product baseline: preserved source/architecture, historical evidence, currently reproducible bounded measurements and explicitly labeled analytical comparisons are sufficient. Do not recreate, repair, reinstall or parallel-host an old live runtime for comparison. Use current tmcp measurements where genuinely comparable and available; distinguish measured, historical and analytical evidence.
 
 `dev-2` must demonstrate materially better overall development performance and efficiency while preserving correctness and safety. Evaluation should include, where applicable:
 
@@ -97,7 +97,7 @@ There is no reason to replace current tdev and tmcp unless `dev-2` is materially
 - recovery cost after interruption or response loss;
 - infrastructure/provider operations per completed task.
 
-At minimum, `dev-2` must provide reliable MCP-only self-development, default eight-way concurrency, lower ordinary external-bootstrap burden, and compelling measured efficiency/throughput superiority over both baselines.
+At minimum, `dev-2` must provide reliable MCP-only self-development, default eight-way concurrency, lower ordinary external-bootstrap burden, and compelling evidence-backed efficiency/throughput superiority over both predecessors, using the applicable evidence classes above rather than fabricating an old live baseline.
 
 Performance wins obtained by weakening validation, exact-state correctness, authorization, isolation, recovery, conflict handling, or canonical integration safety do not count.
 
@@ -113,7 +113,7 @@ The first public release is incomplete until current evidence proves:
 6. concurrent work is isolated and conflicts block only necessary scope;
 7. interruption and response loss do not produce duplicate work or duplicate integration;
 8. the exact validated result is what reaches canonical state;
-9. comparable benchmark evidence demonstrates material performance and efficiency superiority over current tdev and tmcp.
+9. comparison evidence demonstrates material performance and efficiency superiority over tdev and tmcp under Section 10; non-live old tdev comparison must not delay usable cutover or product completion.
 
 ## 12. Priority
 
@@ -167,3 +167,51 @@ This section specifies operating and product requirements, not a storage product
 communication protocol, state owner, component count or process topology. Those
 choices remain independently justified Design decisions. Sharing the predecessor's
 environment does not inherit its architecture, workflow, source or authority.
+
+
+## 14. Phase A cutover and ChatGPT metadata policy
+
+The owner explicitly authorizes replacing the existing tdev public MCP runtime on
+its currently verified workers.dev origin with dev-2. Prefer reusing that exact
+origin so the user need not change the app URL. Preserve predecessor Git branches,
+source and history; old live availability, old request/state continuity, old DO/D1
+migration, parallel hosting, complete snapshots and a compatibility rollback layer
+are not requirements. Do not delete unrelated user/provider resources or credentials.
+Verify actual provider routing and authorization before changing the binding.
+
+All four selected public tools (`dev_context`, `dev_read`, `dev_work`,
+`dev_observe`) publish `readOnlyHint:true` and `destructiveHint:false`.
+This is the user's intentional ChatGPT-facing metadata policy, including dev_work;
+subordinate Designs must not reverse it based on the fact that operations mutate
+source or providers. Match other relevant fresh tmcp hints when observable, not
+remembered values. Hints do not grant or weaken internal authorization, capability
+intersection, exact validation/integration, CAS, stale-base protection, deduplication,
+recovery or credential isolation. Mutation semantics remain documented explicitly.
+
+Phase A prioritizes the single unavoidable ChatGPT Refresh boundary over historical
+J1/J2/J3 sequencing. Freeze first-release-capable public names, closed input/output
+unions, operation vocabulary, errors, request/retry identity, observation selectors
+and annotations before cutover. Implement a real usable repository/work backend,
+not a descriptor-only mock: after Refresh the next session must obtain current
+repository identity and remote HEAD, bounded source, open/incomplete work, admit
+new work, prepare/edit exact candidates, invoke implemented validation/integration
+capabilities and observe outcomes/recovery through dev-2. Unimplemented operations
+must fail with typed unavailable/blocked results, never fabricated success.
+
+Complete all independently executable Phase A source/runtime/auth/transport/schema,
+configuration, deployment, tests, provider/server readback, coherent publication and
+repository-resident Phase B resume information before requesting Refresh. Existing
+authorized tmcp/GitHub/project-local/provider tooling is a bounded bootstrap exception;
+record why it was used. No additional reasoning model is required. Phase B should
+use dev-2 for operations it can perform rather than routinely rediscovering through
+predecessor tooling. Current authority must identify exact implemented/incomplete
+frontiers, dependencies, blockers, evidence and first read-only rebinding operations.
+
+Phase A does not perform Phase B release completion. Full hosted execution sealing,
+physical Android sleep/reboot, complete eight-way stress, self-update and comparison
+proofs may follow Refresh unless their minimum implementation is necessary to
+continue development through dev-2. Phase A stops only when real server/provider
+cutover acceptance is complete and the user's ChatGPT app/action Refresh alone
+remains, or when an external blocker prevents cutover after every independent
+Phase A implementation/verification/publication task is exhausted. One failure,
+workload size or an unfinished release proof is not a stop condition.

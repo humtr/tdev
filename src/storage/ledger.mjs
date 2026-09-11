@@ -104,7 +104,8 @@ export class Transaction {
     if(['succeeded','failed','cancelled'].includes(old.status)){requireThat(recordJson(old)===recordJson(action),'INTEGRITY_FAILURE','Terminal receipt is immutable');return;}
     const transitions={queued:['queued','running','cancelled'],running:['running','blocked','succeeded','failed','cancelled'],blocked:['blocked','queued','succeeded','failed','cancelled']};
     requireThat(transitions[/** @type {'queued'|'running'|'blocked'} */(old.status)]?.includes(action.status),'INTEGRITY_FAILURE','Action transition');
-    this.run('UPDATE action SET status=?,record=? WHERE action_id=?',action.status,recordJson(action),action.actionId);}
+    this.run('UPDATE action SET status=?,record=? WHERE action_id=?',action.status,recordJson(action),action.actionId);
+    if(recordJson(old)!==recordJson(action)){const key='actionRevision:'+action.actionId;const row=this.get('SELECT value FROM meta WHERE key=?',key);const current=row?String(row.value):'0';requireThat(typeof current==='string','INTEGRITY_FAILURE');this.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',key,nextRevision(current));}}
   /** @param {Attempt} attempt @param {number} limit */
   reserveAttempt(attempt,limit){
     capacity(limit);id(attempt.attemptId);revision(attempt.attempt);revision(attempt.ownerEpoch);

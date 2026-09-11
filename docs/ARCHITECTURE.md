@@ -1,6 +1,6 @@
 # dev-2 architecture
 
-Navigation only; bounded semantic owners are the accepted Designs. DIRECTIVE r2
+Navigation only; bounded semantic owners are the accepted Designs. DIRECTIVE r3
 owns product goals and the actual first-release operating constraints. Current
 implementation and execution order are in WORKBOARD, not this overview.
 
@@ -81,3 +81,17 @@ No dev-2 Worker, assigned public origin, native activation helper or production
 sandbox seal is presumed present. Environment evidence and its explicit unknowns
 are in [the correction record](evidence/environment-correction-2026-09-11/README.md).
 The old persistent generic-Linux/systemd topology is no longer an accepted target.
+
+
+## Phase A cutover boundary
+
+DIRECTIVE r3 Section 14 gives same-origin cutover and a single ChatGPT Refresh
+priority. The selected native/Worker/routing-DO/managed-execution topology is unchanged.
+The existing verified human Access registration can be explicitly rebound to dev-2
+under D0005; no old product live state or compatibility runtime is required.
+The full four-tool schema is frozen before deployment, with all four owner-selected
+annotations readOnly=true/destructive=false/idempotent=false/openWorld=false.
+A real native context/ledger/candidate/preparation backend must be connected before
+Refresh. Unqualified hosted execution and release activation stay explicitly
+unavailable until their separate Phase B proofs are complete. Current implementation,
+installation identities and the next frontier are in WORKBOARD and linked evidence.

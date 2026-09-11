@@ -3,7 +3,7 @@
  * every request. Decoding never admits work, cancels an effect, or proves a session.
  */
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
-import { MAX_REQUEST_BYTES } from './input-schemas.mjs';
+import { MAX_REQUEST_BYTES } from './limits.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
 /** @typedef {{era:'modern'|'legacy',version:string,id:string|number|null,method:string,params:RecordValue,notification:boolean}} Message */

@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0006]`
 - Supersedes: `[]`
-- Directive: `r2`
+- Directive: `r3`
 - Owns: `public-mcp-schema, controller-recipes, observation-contract`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -84,7 +84,13 @@ Return per work exact base/candidate generation, latest revision, disposition, a
 
 Known-file ordinary change: context, bounded file read, create with exact initial edits, integrate, observe. Unknown-context change adds bounded list/search/file expansion; no deployment. Optional validate before integrate returns an immutable preparedResultId. Pass it with the latest work revision and the same generation/expectedHead/policy to reuse the exact validated commit under a different action ID. An ineligible explicit result is rejected, never silently rebuilt; omitting it requests preparation and validation in integrate. Diagnostic run is available for feedback that is not integration eligibility. Fix validation failure by edit with current revision, then new integrate request. For eight independent tasks, submit eight creates, submit eight integrate/run actions, observe all; backend admission permits concurrency even if ChatGPT called one envelope at a time. Handle same-ref stale losers by fresh context/read and a new bounded integration intent, never force overwrite. A true changed-entry conflict needs a replacement work at the new base, not a hidden rebase of the old work. A lost response repeats the same request ID or looks it up. New session starts context then open/request selectors; prior chat history is unnecessary.
 
-Annotations are truthful: context/read/observe are read-only; dev_work is mutating, may have destructive source edits and external provider effects, so it uses conservative `readOnlyHint:false`, `destructiveHint:true`, `openWorldHint:true`, with `idempotentHint:true` only for the documented request-ID-bound effect semantics. Its identity-bound operations are idempotent as documented, not arbitrary replay-safe payloads. UI hints never grant capability or bypass user/tool permission controls.
+Annotations follow DIRECTIVE Section 14's explicit user-selected ChatGPT metadata
+policy: all four tools publish `readOnlyHint:true`, `destructiveHint:false`,
+`idempotentHint:false`, `openWorldHint:false`. The latter two values are the fresh
+tmcp public metadata observed for this cutover, not inferred from operation effects.
+This does not redefine dev_work as internally read-only: its documented mutation,
+provider effects, capability checks and request-ID deduplication remain unchanged.
+UI metadata is not mutation authority and does not bypass any internal guard.
 
 ## Failure and recovery
 
@@ -133,3 +139,21 @@ exactly as `not_sent` or `unknown` and sets `retry.sameRequest: true` through th
 ordinary failure encoder. It must not collapse to INTEGRITY_FAILURE or lose replay
 guidance. DeliveryUnavailable is a bounded domain error, never a terminal work
 state. Other unknown fact keys and arbitrary peer exception details remain rejected.
+
+
+## Frozen contract and usable cutover boundary
+
+Phase A stabilizes the full operation/input vocabulary above, including capabilities
+not yet executable. Output projection includes bounded repository and snapshot
+identity, named profiles and parameter/effect descriptors, operation availability
+with explicit implementation state/reason, per-item admission and request recovery,
+exact candidate/prepared-result/receipt/effect identities, artifacts, and independent
+source/edge/device/managed-execution/activation observations. IDs in installation
+state are observations, not hard-coded source authority. Nullable unavailable fields
+are accompanied by a status/reason; they never imply a completed release seal.
+
+Runtime observation distinguishes bootstrap-installed bundle identity from a fully
+qualified active release. Publishing the frozen schemas is not release completion.
+The edge verifies outputs against the exact same descriptors as the device. Adding
+backend implementation behind an existing operation must not require a schema change.
+A changed schema still requires explicit revision and refreshed client verification.

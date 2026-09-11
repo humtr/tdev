@@ -7,7 +7,8 @@ import { failure } from '../contracts/envelopes.mjs';
  * @typedef {{[key:string]:Json}} Schema
  * @typedef {'dev_context'|'dev_read'|'dev_work'|'dev_observe'} ToolName
  */
-export const MAX_REQUEST_BYTES = 1048576;
+import { MAX_REQUEST_BYTES } from './limits.mjs';
+export { MAX_REQUEST_BYTES };
 const DIALECT = 'https://json-schema.org/draft/2020-12/schema';
 /** @param {string} name @returns {Schema} */
 const ref = name => ({ $ref: '#/$defs/' + name });
@@ -144,7 +145,7 @@ const descriptions = {
 };
 /** Domain outputs and HTTP adapter are intentionally not advertised as implemented here. */
 export const TOOL_INPUT_DESCRIPTORS = immutable(Object.entries(INPUT_SCHEMAS).map(([name, inputSchema]) => ({ name, description: descriptions[name], inputSchema,
-    annotations: { readOnlyHint: name !== 'dev_work', destructiveHint: name === 'dev_work', openWorldHint: true, idempotentHint: true } })));
+    annotations: { readOnlyHint: true, destructiveHint: false, openWorldHint: false, idempotentHint: false } })));
 export const INPUT_SCHEMA_DIGEST = bytesDigest(Buffer.from(canonicalJson(TOOL_INPUT_DESCRIPTORS)));
 /** @param {unknown} value @returns {{[key:string]:Json}} */
 function record(value) { requireThat(value !== null && typeof value === 'object' && !Array.isArray(value), 'INVALID_ARGUMENT'); return /** @type {{[key:string]:Json}} */ (value); }

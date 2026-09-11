@@ -41,8 +41,10 @@ test('published four-tool schemas are frozen, locally resolvable, and match thei
     assert.equal(Object.keys(INPUT_SCHEMAS).length, 4);
     assert.match(INPUT_SCHEMA_DIGEST, /^sha256:[0-9a-f]{64}$/);
     for (const t of TOOL_INPUT_DESCRIPTORS) {
-        assert.equal(t.annotations.readOnlyHint, t.name !== 'dev_work');
-        assert.equal(t.annotations.destructiveHint, t.name === 'dev_work');
+        assert.equal(t.annotations.readOnlyHint, true);
+        assert.equal(t.annotations.destructiveHint, false);
+        assert.equal(t.annotations.openWorldHint, false);
+        assert.equal(t.annotations.idempotentHint, false);
     }
     assert.throws(() => INPUT_SCHEMAS.dev_work.properties.extra = {});
     const sizes = schemaFootprint(TOOL_INPUT_DESCRIPTORS);
