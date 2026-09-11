@@ -190,6 +190,14 @@ function completionFailure(delivery) {
     .sort((left, right) => (right.dispatchOrdinal ?? 0) - (left.dispatchOrdinal ?? 0));
   for (const dispatch of dispatches) {
     const evidence = dispatch.evidence;
+    if (evidence.dispatch === 'sent_observed' && evidence.transportReceipt === 'received' &&
+        evidence.execution === 'not_started' && evidence.cleanup === 'no_handle') {
+      return canonicalClone({
+        causeCode: 'agent_execution_not_started',
+        certainty: 'not_applied',
+        retryable: true,
+      });
+    }
     if (evidence.execution !== 'completion_unknown' || evidence.cleanup !== 'cleanup_complete' || !isPlainRecord(evidence.failure)) continue;
     const failure = evidence.failure;
     if (typeof failure.causeCode !== 'string' || !['not_applied', 'unknown'].includes(failure.certainty) || typeof failure.retryable !== 'boolean') continue;

@@ -377,6 +377,97 @@ test('D0046 runner reconstructs a lazy Plan from a compact semantic-v3 snapshot'
   assert.equal(materializations, 0);
 });
 
+test('D0046 runner converts received not-started/no-handle evidence into authoritative not-applied failure', async () => {
+  const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
+    readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
+  ));
+  const plan = defineDevelopmentUnitPlan({
+    revisionId: 'revision-not-started-1',
+    baseTree: BASE_TREE,
+    repositoryCommitOid: COMMIT,
+    instruction: 'surface a local pre-handle failure',
+    validationProfile: 'tdev.validation.npm-check.v1',
+  });
+  const caseId = 'trial-not-started-no-handle';
+  const engine = new CaseEngine({ caseId, plan });
+  const taskId = plan.taskOrder[0];
+  const attempt = engine.startAttempt(taskId, {
+    id: 'executor-one',
+    epoch: 1,
+    capabilities: plan.tasksById[taskId].requiredCapabilities ?? [],
+  });
+  const deliveryId = digest({ delivery: 'not-started-no-handle' });
+  let terminalBinding = null;
+  const agentState = {
+    revision: 1,
+    routeBinding: { agentId: 'agent-trial', routeGeneration: 1 },
+    installableAgent: { state: 'CURRENT' },
+    connection: { id: 'connection-one', epoch: 1 },
+    executor: { id: 'executor-one', epoch: 1 },
+    capacity: { revision: 1, effectiveCapacity: 1 },
+    reservationWindowGeneration: 1,
+    limits: { maxEnvelopeBytes: 16384, maxReservationLifetimeMs: 30000 },
+    reservations: {},
+    deliveries: {
+      [deliveryId]: {
+        deliveryId,
+        caseId,
+        taskId,
+        attemptId: attempt.id,
+        requestedSlots: 1,
+        slotHeld: false,
+        terminalCaseReceipt: null,
+        dispatches: {
+          '1': {
+            dispatchOrdinal: 1,
+            evidence: {
+              dispatch: 'sent_observed',
+              transportReceipt: 'received',
+              execution: 'not_started',
+              cleanup: 'no_handle',
+            },
+          },
+        },
+      },
+    },
+  };
+  const runner = createMcpTrialDevelopmentUnitRunner({
+    repository: {
+      create: async () => null,
+      load: async () => engine,
+      command: async (_caseId, envelope) => {
+        const receipt = engine.applyCommand(envelope);
+        return { engine, result: receipt.response, persisted: true };
+      },
+    },
+    driveOwner: {
+      initialize: async () => null,
+      advance: async (input) => ({ classification: 'accepted', input }),
+    },
+    agentOwner: {
+      async invoke(operation, input) {
+        assert.equal(operation, 'bind_terminal_case_receipt');
+        terminalBinding = input;
+        return { classification: 'accepted' };
+      },
+      readRoute: async () => agentState,
+      readResultHandoff: async () => null,
+      routeBinding: () => ({ agentId: 'agent-trial', routeGeneration: 1 }),
+    },
+    manifest: buildManifest(operationManifest),
+    operationManifest,
+    now: () => 2000,
+  });
+  const result = await runner.drive({ caseId, driveRequestId: 'drive-not-started-no-handle', payload: {} });
+  assert.equal(result.status, 'attempt_failed');
+  assert.equal(engine.attempts[attempt.id].state, 'failed');
+  assert.equal(engine.attempts[attempt.id].error.code, 'agent_execution_not_started');
+  assert.equal(engine.attempts[attempt.id].error.certainty, 'not_applied');
+  assert.equal(engine.taskStates[taskId].error.retryable, true);
+  assert.equal(terminalBinding.request.command.type, 'fail_attempt');
+  assert.equal(terminalBinding.request.command.attemptId, attempt.id);
+});
+
 test('D0046 runner converts cleaned completion failure evidence into authoritative fail_attempt state', async () => {
   const operationManifest = normalizeDevelopmentOperationManifest(JSON.parse(
     readFileSync(new URL('../config/development-operation-profiles.json', import.meta.url), 'utf8'),
