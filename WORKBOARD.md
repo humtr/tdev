@@ -17,6 +17,30 @@ Read actual remote `dev-2` HEAD/parents/tree, then AGENTS, DIRECTIVE, RULE, this
 
 During initial construction only, authorized tmcp/GitHub/project-local tooling may bootstrap and publish dev-2. Work in independent clean-root-descended branches/workspaces with exact base identities and expected remote updates. Do not copy old source directories or dependency manifests. Once the MCP path exists, move ordinary work to it; record each break-glass exception and its reason.
 
+## Active implementation split (2026-09-11 current frontier)
+
+Two live bootstrap executions were freshly observed against the same published
+base. To avoid duplicate product implementations, `tmcp/dev2-impl-c819e5` owns
+**P3 repository/context and P4 candidate/materialization** (`src/repository/`,
+`src/candidate/`, corresponding tests), then complementary join/fault verification.
+The concurrent `tmcp/dev2-impl-k47` execution is the integration lead for
+**P1/P2/P5/P6/P7/P8 and broker join**. Existing dirty predecessor *dev-2* lane
+workspaces remain untouched. This is temporary execution routing, not durable
+product identity. Rebind these active branches before duplicating their scopes.
+
+P3 will expose `GitRepository` from `src/repository/git.mjs`: existing RepositoryPort
+methods plus `putBlob(bytes) -> SourceEntry-without-path/mode`,
+`writeTree(entries) -> SourceTree`, `readTree(treeOid) -> SourceTree`, and
+`freezeCommit(parent,tree,metadata,resultId) -> Oid`. Bindings are supplied to the
+RepositoryPort methods; the store is installation-selected, not client-selected.
+P4 exports `editTree(repository, source, edits) -> SourceTree`,
+`materialize(repository, source, destination) -> destination`,
+`inspectMaterialization(source, destination) -> manifestDigest`, and
+`composeTrees(base,candidate,head) -> SourceEntry[]` with exact path-level conflict
+checking. P3/P4 preserve existing shared ports; no competing F0 contract is added.
+Names are implementation coordination only and remain replaceable under the owning
+Designs. Focused implementation commits will be published promptly for the join.
+
 ## Current concurrent bootstrap scopes
 
 The published F0 contract at `2a2e0dd513c969e77f9c39042cabb1780d9c8cfe` remains
