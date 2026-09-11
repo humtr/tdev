@@ -1,0 +1,142 @@
+TAP version 13
+# Subtest: real inherited-descriptor flock excludes two helpers and releases after scope exit
+ok 1 - real inherited-descriptor flock excludes two helpers and releases after scope exit
+  ---
+  duration_ms: 233.632968
+  type: 'test'
+  ...
+# Subtest: helper intent and pointer survive re-instantiation; duplicate activation does not restart again
+ok 2 - helper intent and pointer survive re-instantiation; duplicate activation does not restart again
+  ---
+  duration_ms: 310.830104
+  type: 'test'
+  ...
+# Subtest: read-only observation never repairs or switches a prepared intent
+ok 3 - read-only observation never repairs or switches a prepared intent
+  ---
+  duration_ms: 146.291458
+  type: 'test'
+  ...
+# Subtest: a true second activation is rejected while first is unresolved; stale expected pointer fails
+ok 4 - a true second activation is rejected while first is unresolved; stale expected pointer fails
+  ---
+  duration_ms: 186.938437
+  type: 'test'
+  ...
+# Subtest: revoked activation authorization rejects before touching service or pointer
+ok 5 - revoked activation authorization rejects before touching service or pointer
+  ---
+  duration_ms: 114.03276
+  type: 'test'
+  ...
+# Subtest: failed candidate readiness restores exact prior release and retains failed outcome
+ok 6 - failed candidate readiness restores exact prior release and retains failed outcome
+  ---
+  duration_ms: 254.506927
+  type: 'test'
+  ...
+# Subtest: uncertain old process termination never switches pointer or launches new writer
+ok 7 - uncertain old process termination never switches pointer or launches new writer
+  ---
+  duration_ms: 210.67276
+  type: 'test'
+  ...
+# Subtest: resume exact handoff after injected crash at persist:draining
+ok 8 - resume exact handoff after injected crash at persist:draining
+  ---
+  duration_ms: 232.853385
+  type: 'test'
+  ...
+# Subtest: resume exact handoff after injected crash at persist:switching
+ok 9 - resume exact handoff after injected crash at persist:switching
+  ---
+  duration_ms: 315.699688
+  type: 'test'
+  ...
+# Subtest: resume exact handoff after injected crash at pointer:candidate
+ok 10 - resume exact handoff after injected crash at pointer:candidate
+  ---
+  duration_ms: 343.128542
+  type: 'test'
+  ...
+# Subtest: resume exact handoff after injected crash at persist:checking
+ok 11 - resume exact handoff after injected crash at persist:checking
+  ---
+  duration_ms: 224.380885
+  type: 'test'
+  ...
+# Subtest: resume exact handoff after injected crash at persist:active
+ok 12 - resume exact handoff after injected crash at persist:active
+  ---
+  duration_ms: 292.212969
+  type: 'test'
+  ...
+# Subtest: lost start acknowledgement adopts exact running candidate instead of unnecessary rollback
+ok 13 - lost start acknowledgement adopts exact running candidate instead of unnecessary rollback
+  ---
+  duration_ms: 188.798646
+  type: 'test'
+  ...
+# Subtest: rollback direction survives response loss after restored readiness
+ok 14 - rollback direction survives response loss after restored readiness
+  ---
+  duration_ms: 337.732657
+  type: 'test'
+  ...
+# Subtest: real SIGKILL releases helper lock without deleting its file
+ok 15 - real SIGKILL releases helper lock without deleting its file
+  ---
+  duration_ms: 380.712813
+  type: 'test'
+  ...
+# Subtest: symlink lock and malformed state cannot redirect the helper to another owner
+ok 16 - symlink lock and malformed state cannot redirect the helper to another owner
+  ---
+  duration_ms: 56.53875
+  type: 'test'
+  ...
+# Subtest: inactive service with a populated cgroup is not a stopped writer
+ok 17 - inactive service with a populated cgroup is not a stopped writer
+  ---
+  duration_ms: 50.196302
+  type: 'test'
+  ...
+# Subtest: readiness PID and exact service unit configuration are checked before enable
+ok 18 - readiness PID and exact service unit configuration are checked before enable
+  ---
+  duration_ms: 17.162344
+  type: 'test'
+  ...
+# Subtest: only one fixed unit and trusted expected active pointer can be started
+ok 19 - only one fixed unit and trusted expected active pointer can be started
+  ---
+  duration_ms: 7.843489
+  type: 'test'
+  ...
+# Subtest: unavailable system manager never becomes a fabricated stopped or ready state
+ok 20 - unavailable system manager never becomes a fabricated stopped or ready state
+  ---
+  duration_ms: 6.728541
+  type: 'test'
+  ...
+# Subtest: terminal activation identity survives process-local cache loss and detects corruption
+ok 21 - terminal activation identity survives process-local cache loss and detects corruption
+  ---
+  duration_ms: 58.146823
+  type: 'test'
+  ...
+# Subtest: missing cgroup events in an existing group are uncertainty, not proof of absence
+ok 22 - missing cgroup events in an existing group are uncertainty, not proof of absence
+  ---
+  duration_ms: 7.6375
+  type: 'test'
+  ...
+1..22
+# tests 22
+# suites 0
+# pass 22
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 4242.729113
