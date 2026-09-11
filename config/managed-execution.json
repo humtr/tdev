@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "state": "qualification-only",
+  "productionSeal": null,
+  "image": "docker.io/library/node@sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+  "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+  "imageProvenance": "Official library/node 24.21.0-trixie linux/amd64 manifest; registry readback 2026-09-11T23:33Z",
+  "origin": "https://tdev.humtr.workers.dev",
+  "sessionLifetimeMs": 900000,
+  "idleTimeoutMs": 60000,
+  "workflowPath": ".github/workflows/dev2-executor.yml"
+}
