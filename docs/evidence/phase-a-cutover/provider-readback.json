@@ -1,0 +1,77 @@
+{
+  "observedAt": "2026-09-11T21:46:37.629021+00:00",
+  "action": "read",
+  "origin": "https://tdev.humtr.workers.dev",
+  "sourceCommitOid": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+  "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+  "edgeBundleDigest": "sha256:dfb19669b05183d95b0c62dacb3f4245c723a4ab72ca48007a98962ab93bfc92",
+  "route": {
+    "enabled": true,
+    "previews_enabled": false
+  },
+  "deployment": {
+    "id": "66fee9cb-ba72-48d6-8fc6-e97097da39d9",
+    "source": "api",
+    "strategy": "percentage",
+    "annotations": {
+      "workers/message": "dev-2 Phase A sha1:6832ee5885a8ca5e25655a45e918...",
+      "workers/triggered_by": "upload"
+    },
+    "versions": [
+      {
+        "version_id": "c00d6eb8-e6a0-4ca4-99bc-f6539077feed",
+        "percentage": 100
+      }
+    ],
+    "created_on": "2026-09-11T16:25:50.978241Z"
+  },
+  "configurationReadback": {
+    "present": true,
+    "matchesInstalled": true,
+    "sourceCommitOid": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+    "edgeBundleDigest": "sha256:dfb19669b05183d95b0c62dacb3f4245c723a4ab72ca48007a98962ab93bfc92",
+    "installationId": "71d1e2daa8524c1194889d937be9a14e"
+  },
+  "access": {
+    "id": "12911bc3-4b69-4a45-a9b3-26a654bf96f8",
+    "domain": "tdev.humtr.workers.dev/mcp",
+    "aud": "a8d4cadd46d8f8e306feb6eb87c3d0afb65fa5e923327fc33bc13243af2bebc7",
+    "issuer": "https://humtr.cloudflareaccess.com",
+    "oauthEnabled": true,
+    "policyIds": [
+      "3bdca3ad-3c45-45f4-82c4-a21850af2057"
+    ]
+  },
+  "bindings": [
+    {
+      "name": "DEV2_CONFIG_JSON",
+      "type": "plain_text",
+      "class_name": null,
+      "script_name": null,
+      "namespace_id": null
+    },
+    {
+      "name": "DEV2_DEVICE_SECRET",
+      "type": "secret_text",
+      "class_name": null,
+      "script_name": null,
+      "namespace_id": null
+    },
+    {
+      "name": "DEV2_ROUTER",
+      "type": "durable_object_namespace",
+      "class_name": "Dev2RendezvousDO",
+      "script_name": null,
+      "namespace_id": "ceab38ce0ca84025bba0e3e645a43d5d"
+    },
+    {
+      "name": "DEV2_VERSION",
+      "type": "version_metadata",
+      "class_name": null,
+      "script_name": null,
+      "namespace_id": null
+    }
+  ],
+  "exports": null,
+  "mutationPerformed": false
+}

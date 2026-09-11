@@ -1,0 +1,60 @@
+{
+  "schemaVersion": 1,
+  "layer": "core",
+  "status": "passed",
+  "exitCode": 0,
+  "scope": "implemented-profile-only",
+  "installationEligibility": false,
+  "startedAt": "2026-09-11T21:46:14.157Z",
+  "finishedAt": "2026-09-11T21:46:30.611Z",
+  "durationMs": 16455,
+  "entrypointDigest": "sha256:65be69c0ecfdbed7551a9a754dae2c30b1b070c55c39ae99a79a4a9424277eaa",
+  "inputDigest": "sha256:f5decec4716a6d7c195ab7e1934a2485cf65326d9393f48d051940ebc6ea1d59",
+  "outputInputDigest": "sha256:f5decec4716a6d7c195ab7e1934a2485cf65326d9393f48d051940ebc6ea1d59",
+  "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+  "toolchainLockDigest": "sha256:b5d38cdb1a0783d8e8f9cb19bf831a662fa0d4e7e483f30f534f54f6f79e906d",
+  "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+  "execution": {
+    "variantId": "termux-android-arm64-node24-18",
+    "role": "native-control",
+    "node": "24.18.0",
+    "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "platform": "android",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "checks": [
+    {
+      "name": "python.minimum",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 112,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "jsdoc",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 7714,
+      "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "name": "designs",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 323,
+      "logDigest": "sha256:624355dc41380e51ad71bf00ca5554c9d46a019fded6256b4fe1a180301d45b0"
+    },
+    {
+      "name": "tests",
+      "status": "passed",
+      "exitCode": 0,
+      "signal": null,
+      "durationMs": 8188,
+      "logDigest": "sha256:bb0360f0f68a4774f975696897a78da919853a5834c0982fe0cd81f22358207c"
+    }
+  ]
+}

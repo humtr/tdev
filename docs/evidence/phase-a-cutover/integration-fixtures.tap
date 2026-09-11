@@ -1,0 +1,49 @@
+✔ 10,000 native Git files support progressive unknown-context discovery and exact isolated change (11682.434527ms)
+ℹ {"scope":"one native module integration observation; not baseline superiority or ChatGPT evidence","files":10000,"sourceBytes":428895,"contextCalls":3,"returnedBytes":6404,"coldContextMs":8111,"gitCommands":93,"changedTree":"sha1:fab6465f7c4bba50bdfe5d442cf4037789872673","base":"sha1:31cb07b5fad6a5885d12a1a29961871f902894f7"}
+✔ real WebSocket routes context/read/admission/candidate/preparation/observation and survives reconnect (3409.64302ms)
+✔ MCP gateway publishes exact four tools, enforces human authentication and rejects old names (1899.762604ms)
+✔ AOT Worker build is repeatable, publishes exact schemas and imports without runtime eval (4509.145154ms)
+✔ real SQLite WAL FULL single-owner lock, reopen and late-callback fencing (81.539427ms)
+✔ dedup precedes mutation preconditions, but never bypasses authorization (50.447916ms)
+✔ durable capacity 1 and independent progress after one blocked attempt (150.911667ms)
+✔ durable capacity 8 and independent progress after one blocked attempt (74.315677ms)
+✔ durable capacity 16 and independent progress after one blocked attempt (106.425781ms)
+✔ durable capacity 32 and independent progress after one blocked attempt (163.887292ms)
+✔ fair principal cursor skips blocked and survives reopen (18.778906ms)
+✔ transaction rollback, async/nested/escaped callback rejection and immutable terminals (53.288593ms)
+✔ atomic immutable object publication, eight parallel copies, partial-write orphan and corruption (146.701198ms)
+✔ response-loss retry finds the same durable action even after its original deadline expired (39.818333ms)
+✔ deadline cancellation clears only its work fence and does not stall independent ready actions (49.703959ms)
+✔ queued explicit cancellation releases its action fence without inventing an execution attempt (16.701511ms)
+✔ stopped ambiguous effect releases capacity but retains callback identity for later exact reconciliation (25.649115ms)
+✔ a callback with a copied attempt ID but a different work identity cannot settle the retained attempt (37.536302ms)
+✔ ten thousand source entries do not enter the work row or exceed its decode bound (30.475104ms)
+✔ a pending action fences only its work and cannot acquire another pending sibling (32.398437ms)
+✔ immutable object retry after publish-before-directory-sync revalidates and flushes exact bytes (89.397135ms)
+✔ actual process crash releases exclusive owner lock and rolls back only uncommitted transaction (370.582917ms)
+✔ real sha1 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref (1597.047656ms)
+✔ real sha256 bare Git object roundtrip, cache isolation, exact child freeze and fresh ref (1816.175207ms)
+✔ safe raw filename ordering, executable modes, binary bytes, no index/hooks/filter side effects (1106.603229ms)
+✔ all edits are atomic against one generation; invalid sibling writes no candidate object (970.940156ms)
+✔ put, move, delete and unique exact edit preserve exact old entry expectations (1174.46474ms)
+✔ eight independent candidates and private materializations have no shared writable checkout (1425.731249ms)
+✔ disjoint stale recomposition preserves newer entries; touched content/mode and topology conflict (1777.367812ms)
+✔ internal symlinks remain typed; escaping, cyclic, metadata and prefix aliases never materialize (1654.685625ms)
+✔ gitlink metadata is inspectable without pretending a commit is a blob; unresolved execution fails (1140.65375ms)
+✔ pinned object reads survive provider outage, but current resolve and unapproved bindings fail (949.222239ms)
+✔ UTF-8 BOM in a Git filename is identity, never decoder metadata (926.943385ms)
+✔ nested tree corruption is rejected even if root tree and leaf blob bytes remain intact (587.359167ms)
+✔ two empty candidates cannot replace the same reserved destination; stopped scratch rebuild is exact (311.593594ms)
+✔ real source create -> full required processes -> exact Git CAS -> terminal readback (4380.237498ms)
+✔ explicit validate result is reused by integration without duplicate full validation or commit (3836.156405ms)
+✔ invalid initial edit is atomic and authorization precedes dedup disclosure (1315.26578ms)
+✔ failed required profile never sends canonical mutation and keeps work editable (3092.524687ms)
+✔ four tool projections use bounded current context and same work generation without leaking the full source manifest (1324.774323ms)
+ℹ tests 40
+ℹ suites 0
+ℹ pass 40
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 23431.460877

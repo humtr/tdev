@@ -3,72 +3,89 @@
 Execution state and navigation only. Authority: DIRECTIVE r3 -> RULE -> selected
 Designs. Rebind fresh remote HEAD and read AGENTS and those owners before continuing.
 
-## Current objective: Phase A
+## Current boundary: Phase A cutover accepted, awaiting ChatGPT Refresh
 
-Complete usable same-origin public MCP cutover, then stop at the user's ChatGPT
-Refresh boundary. Do not perform Phase B release completion. The old J1 -> J2 ->
-J3 -> J4 order is replaced by the cutover-first dependency graph below; architectural
-ownership and all exact-state/security semantics remain unchanged.
+The same-origin dev-2 installation, frozen four-tool contract, real native backend,
+authenticated installation readback and actual native restart/reconnect are verified.
+Only the user's ChatGPT app/action Refresh remains for this phase. Do not turn this
+boundary into a Phase B implementation session or claim first-release completion.
 
 Selected Designs: D0001 work/ledger; D0002 repository/context/candidate; D0003 exact
 validation/integration; D0004 four-tool contract; D0005 security; D0006 native/edge/
 managed runtime and activation; D0007 verification/comparison. All select r3.
+Detailed provenance, mutable installation observations, tests and the first-call
+recipe are in `docs/evidence/phase-a-cutover/README.md`. IDs there are observations,
+not architecture constants; current source truth comes from fresh dev_context.
 
-## Phase A dependency graph and implementation frontier
+## Completed Phase A dependency graph
 
-| Frontier | Depends on | Current state | Completion evidence |
-| --- | --- | --- | --- |
-| A0 Fresh authority/provider/device bind | none | Initial remote exact HEAD/tree/ancestry and selected authority read; provider origin/Access readback obtained | `docs/evidence/phase-a-cutover/` when published |
-| A1 Owner requirements and public contract | A0 | r3 owner/Design synchronization complete; full closed input/output contract and owner metadata joined | Design checker, schema positives/negatives, exact frozen descriptor digest |
-| A2 Usable native backend | A1 | Real joined native Git/context/candidate/SQLite/admission/preparation/observation backend; hosted execution explicitly unavailable | Real native fixture and repository calls; typed unavailable hosted effects |
-| A3 Edge/device/auth/launcher | A1,A2 | Worker/routing DO/outbound device transport and immutable launcher implemented; local join tests PASS, not yet deployed | Unit/reconnect/auth tests, exact installed bundle identity |
-| A4 Same-origin deployment and readback | A3 | Not performed; primary provider reads succeed; organization API read permission is narrowly unavailable | Actual provider deployment, public MCP discovery, tool/schema/hint equality and native route |
-| A5 Publication and Phase B resume | A2,A4 | In progress | Clean coherent commits, remote readback, exact implementation frontier and first calls |
-| User Refresh | A1-A5 | Not yet requested | User refreshes app/action snapshot; this is the Phase A stop boundary |
+| Frontier | Depends on | State and evidence |
+| --- | --- | --- |
+| A0 Fresh authority/provider/device bind | none | Exact starting remote HEAD/tree/ancestry and selected authority read; current provider/config/service readback |
+| A1 Owner requirements and contract | A0 | Directive r3 already owns same-origin cutover, no old live baseline and all four annotations; full closed schemas unchanged and verified |
+| A2 Usable native backend | A1 | Actual Git/context/object/SQLite/admission/candidate/preparation/observation wiring; 40 joined native/edge fixtures PASS |
+| A3 Edge/device/auth/launcher | A1,A2 | Immutable bundles outside dirty workspaces; Access boundary and authenticated device route; actual runit restart/reconnect PASS |
+| A4 Same-origin deployment/readback | A3 | tdev Worker now dev-2 at 100%; published four descriptors exact, old surface absent, unauthorized/cross-role MCP calls rejected |
+| A5 Publication/resume | A2,A4 | Reviewed pending installer correction and repeatable readback tooling published with this workboard and evidence; remote publication is checked independently |
+| User Refresh | A1-A5 | Sole remaining Phase A user boundary; actual refreshed human OAuth calls are NOT RUN until that happens |
 
-A1 and A2 do not wait for full hosted isolation or release benchmarks. A4 does not
-wait for an old tdev live baseline, old endpoint continuity or old state migration.
-One blocked capability does not halt independent frontiers. Provider permission is
-established by each actual operation/readback, not assumed from available tokens.
+A4 did not require old live Case/state migration, old endpoint continuity, an old
+tdev repair/benchmark service or complete hosted execution. The inherited cutover
+was read back rather than destructively repeated. Current runtime bundles reproduce
+exactly from the final code; installer/readback/docs/test-only changes do not justify
+unnecessary redeployment or a changed runtime identity.
 
-## Existing implementation retained
+## Phase B immediate first actions
 
-F0 canonical codec/envelopes, P1 scoped capabilities and Access/GitHub identity
-verification, P2 durable compact work/candidate references and attempt ownership,
-P3/P4 native exact Git/context/candidate/cache primitives, P7 closed full input
-unions and modern/legacy MCP wire codec, P8 bounded transport rendezvous are retained.
-Historical module test results remain historical until rerun on current bytes.
-Committed earlier dev-2 implementation may be salvaged only after review against
-current r3 Designs; never replace current compact pointers or native/hosted security
-with old large-record/local-sandbox assumptions. Preserve all unrelated dirty work.
+Use the refreshed dev-2 tools: dev_context current -> bounded dev_read of AGENTS,
+DIRECTIVE, RULE, this workboard, selected Designs and cutover evidence -> dev_observe
+runtime -> dev_observe open/request selectors. Use returned IDs/head/revisions, never
+copied snapshot or action IDs. Reconfirm installed versus source identities separately.
+The first calls verify actual ChatGPT human OAuth and typed-union usability; fixed
+installation probes are not substitutes for that client transcript.
 
-## Phase B frontier after Refresh
+Then use dev-2 for context/source reads, create/edit candidates, request recovery,
+cancellation and observation. Native validate/integrate can retain an exact prepared
+result, but return EXECUTION_UNAVAILABLE without executing or publishing while hosted
+validation remains unsealed. Do not retry that implementation frontier as a transport
+failure. Resume external effects, run, policy adoption and release operations remain
+explicitly unavailable; do not declare them complete from public vocabulary alone.
 
-Start using dev_context -> bounded dev_read of authority/WORKBOARD/resume evidence
--> dev_observe (runtime and open/request selectors), binding fresh repository and
-installed identities. Continue incomplete hosted session/containment/receipt wiring,
-exclusive-writer/provider CAS qualification and exact response-loss recovery,
-profile/policy and release stage/activation implementation, complete joined stress
-and physical Android lifetime/self-update proofs, actual MCP non-documentation
-self-development and predecessor comparison. The final Phase A resume evidence
-will replace this provisional list with implemented/blocked and exact next actions.
-Do not infer product completion from descriptor exposure or operator bootstrap tests.
+## Phase B implementation dependencies
+
+| Frontier | Dependencies | Current status and next implementation |
+| --- | --- | --- |
+| B0 Actual refreshed client | User Refresh | NOT RUN; verify the read-only first-call sequence, then exact create/edit and request-loss observation |
+| B1 Managed execution | B0 for ordinary dev-2 workflow | Partial primitives/tests exist; connect durable session intents, approved provider launch/OIDC/run identity, object transfer and trusted outer controller. Independently seal real candidate containment and required profiles |
+| B2 Validation and canonical effects | B1; fresh live exclusive-writer/CAS fixture proof | Frozen preparation/local CAS components exist; join verified receipts and complete mandatory integration profile before enabling canonical publication |
+| B3 Interrupted action/effect recovery | B1/B2 where external effects apply | Request dedup and observation work; native resume handler and full cancellation/response-loss/restart reconciliation remain unavailable |
+| B4 Policy and qualified runtime update | B2, required release validation and current authorization | Implement policy.adopt/release.stage/release.activate and exact recoverable helper handoff; bootstrap-installed bundle is not activeRelease proof |
+| B5 First-release completion | B1-B4 | Full integration/release/live/benchmark gates, complete eight-way stress, physical Android sleep/reboot, self-update, real non-documentation self-development and D0007 predecessor comparison remain NOT RUN |
+
+Hosted/exclusive-writer/release gaps are implementation/proof gates, not a currently
+observed Cloudflare deployment permission failure. No external Phase A blocker is
+outstanding. Historical organization API read denial was not needed for the selected
+application/domain readback or cutover. Do not request broader credentials for it.
 
 ## Bootstrap and collaboration boundaries
 
-Authorized tmcp/GitHub/project-local/provider tooling is used only to establish
-this cutover while dev-2 is not usable. Record each category and reason in Phase A
-evidence. No external model or model SDK is required. Independently user-started
-sessions may offer isolated committed evidence; one owner performs canonical
-publication and provider cutover to prevent races. Their notes are coordination,
-not repository authority. Predecessor development branch/source/history and all
-unrelated provider/user state remain preserved.
+This Phase A used tmcp authorized project-local shell for reviewed installation work,
+tests, exact Git publication and provider/readback tooling; GitHub for fresh authority
+and remote confirmation; Cloudflare APIs for the selected product binding only.
+The prior owner's uncommitted four-file correction was reviewed and published from a
+separate worktree; old worktrees and unrelated dirty source were not reset or reused
+as runtime dependencies. No extra reasoning model or provider product was introduced.
+
+After Refresh, use predecessor tooling only for capabilities genuinely unavailable
+in dev-2, bounded by current authorization and recorded against the exact candidate
+and intended effect. Do not reread/edit all ordinary source through tmcp by habit.
+Until B2/B4 close, unsupported validation/publication/activation may require a scoped
+bootstrap bridge; never bypass or weaken the dev-2 eligibility checks to hide it.
 
 ## Evidence interpretation
 
-PASS means the named test/layer on the named exact source/environment only.
-FAIL, NOT RUN, unimplemented and externally blocked are distinct. Canonical full
-integration/release/live/benchmark profiles do not become green from a subset of
-focused tests. Current mutable resource IDs, private paths and credentials belong
-in installation state; redacted observations and immutable evidence references may
-be linked here, not promoted into stale architecture constants.
+PASS means the named test/layer on the named source/environment only. The canonical
+integration profile remains NOT RUN despite 40 passing focused fixtures. Native
+operator bootstrap tests are not hostile-code containment or production receipts.
+Installation-key discovery/readback is not human OAuth. Mutable IDs/private paths
+and credentials belong to installation state; only redacted observations are in Git.

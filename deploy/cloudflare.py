@@ -123,10 +123,16 @@ def main() -> None:
     policies = provider.call('/access/apps/' + manifest['accessApplicationId'] + '/policies')
     settings = provider.call(root + '/settings')
     deployment = active(provider.call(root + '/deployments'))
+    active_config_text = next((b.get('text') for b in settings.get('bindings', []) if b.get('name') == 'DEV2_CONFIG_JSON'), None)
+    active_config = json.loads(active_config_text) if active_config_text is not None else None
+    configuration_readback = {'present': active_config is not None, 'matchesInstalled': active_config == edge,
+                              'sourceCommitOid': active_config.get('sourceCommitOid') if active_config else None,
+                              'edgeBundleDigest': active_config.get('edgeBundleDigest') if active_config else None,
+                              'installationId': active_config.get('installationId') if active_config else None}
     observation = {'observedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'action': args.action,
                    'origin': manifest['origin'], 'sourceCommitOid': manifest['sourceCommitOid'],
                    'schemaDigest': manifest['schemaDigest'], 'edgeBundleDigest': manifest['edgeBundleDigest'],
-                   'route': route, 'deployment': deployment,
+                   'route': route, 'deployment': deployment, 'configurationReadback': configuration_readback,
                    'access': {'id': app['id'], 'domain': app['domain'], 'aud': app['aud'],
                               'issuer': edge['issuer'], 'oauthEnabled': True, 'policyIds': [p['id'] for p in policies]},
                    'bindings': [{k: b.get(k) for k in ['name', 'type', 'class_name', 'script_name', 'namespace_id']} for b in settings.get('bindings', [])],
@@ -178,6 +184,7 @@ def main() -> None:
         raise RuntimeError('Active configuration readback mismatch')
     observation.update({'completedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'mutationPerformed': True,
                         'beforeDeployment': deployment, 'deployment': after, 'route': route_after,
+                        'configurationReadback': {'present': True, 'matchesInstalled': True, 'sourceCommitOid': edge['sourceCommitOid'], 'edgeBundleDigest': edge['edgeBundleDigest'], 'installationId': edge['installationId']},
                         'upload': {k: result.get(k) for k in ['id', 'etag', 'created_on', 'modified_on', 'startup_time_ms']},
                         'exports': current.get('exports'), 'retiredProductClasses': sorted(local_classes & retired),
                         'bindings': [{k: b.get(k) for k in ['name', 'type', 'class_name', 'script_name', 'namespace_id']} for b in current.get('bindings', [])]})

@@ -1,0 +1,57 @@
+{
+  "observedAt": "2026-09-11T21:47:23.001082+00:00",
+  "status": "PASS",
+  "runtimeCodeBase": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+  "comparison": "Fresh locked-toolchain builds equal the installed immutable bundle digests; installer, verifier, test and evidence changes do not alter these bundles",
+  "edge": {
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+    "edgeBundleDigest": "sha256:dfb19669b05183d95b0c62dacb3f4245c723a4ab72ca48007a98962ab93bfc92",
+    "bytes": 1082724,
+    "tools": [
+      {
+        "name": "dev_context",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "dev_read",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "dev_work",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": false
+        }
+      },
+      {
+        "name": "dev_observe",
+        "annotations": {
+          "readOnlyHint": true,
+          "destructiveHint": false,
+          "openWorldHint": false,
+          "idempotentHint": false
+        }
+      }
+    ],
+    "builder": "esbuild-0.28.2",
+    "aot": true
+  },
+  "device": {
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+    "bundleDigest": "sha256:f3724b09bd39eb9e5227faab66928db78e76574e8854df035a740522609d1e8f",
+    "bytes": 634330,
+    "builder": "esbuild-0.28.2"
+  }
+}

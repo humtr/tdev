@@ -270,3 +270,14 @@ human OAuth evidence. Device credentials never authenticate /mcp, every normal
 routed tool call still verifies the actual Access assertion natively, and public
 tool names remain exactly the selected four. Evidence must label this installation
 probe separately from the first refreshed ChatGPT human OAuth invocation.
+
+
+### Provider-constrained predecessor retirement
+
+A fresh provider rejection may identify another old tdev trial Worker binding to
+the exact predecessor namespace being retired. After verifying that trial's
+source/deployment identity and exact binding, remove only that old-product binding;
+preserve its other bindings, source, Access configuration and unrelated resources.
+This is owner-authorized old runtime retirement, not a migration/compatibility layer.
+Re-read both trial binding state and target deployment before retrying cutover.
+Current resource names/IDs and rejection/readback belong to Phase A evidence.

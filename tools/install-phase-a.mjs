@@ -1,3 +1,4 @@
+import {installationOwnerGrant} from '../src/security/installation-grant.mjs';
 /** Bounded operator bootstrap installer, not a public shell/activation API.
  * Input is private installation state assembled from fresh provider/repository
  * readback. It never enrolls arbitrary callers or claims a production seal.
@@ -55,8 +56,9 @@ async function main(){
  const policy=bootstrapPolicy({toolchainDigest:bytesDigest(toolchainBytes),dependencyLockDigest:bytesDigest(dependencyBytes)}).policy;
  const binding={repositoryId:plan.repositoryId,installationId:plan.installationId,provider:/** @type {const} */('github'),providerRepositoryId:plan.providerRepositoryId,remote:plan.remote,ref:plan.ref,bindingEpoch:'1',policyDigest:policy.digest};
  const capabilities=/** @type {import('../src/contracts/ports.js').Capability[]} */(['repository.read','work.write','profile.run','integration.write','policy.write','runtime.activate']);
+ /** @type {import('../src/edge/types.js').EdgeConfig} */
  const edge={installationId:plan.installationId,deviceId:plan.deviceId,origin:plan.origin,issuer:plan.issuer,applicationAudience:plan.applicationAudience,deviceCredentialDigest:bytesDigest(Buffer.from(deviceKey)),allowedOrigins:['https://chatgpt.com'],binding,
-  grants:[{subject:plan.ownerSubjectDigest,repositoryId:plan.repositoryId,ref:plan.ref,capabilities}],applicationCapabilities:capabilities,sourceCommitOid,edgeBundleDigest:edgeManifest.edgeBundleDigest};
+  grants:[installationOwnerGrant({subject:plan.ownerSubjectDigest,installationId:plan.installationId,repositoryId:plan.repositoryId,ref:plan.ref})],applicationCapabilities:capabilities,sourceCommitOid,edgeBundleDigest:edgeManifest.edgeBundleDigest};
  const runtime={bundleDigest:deviceManifest.bundleDigest,schemaDigest:SCHEMA_DIGEST,sourceCommitOid,sourceTreeOid};
  const config={schemaVersion:1,edge,stateDirectory:installationDirectory,gitExecutable:plan.gitExecutable,githubTokenFile,gitAskpassFile,deviceKeyFile,cursorKeyFile,capacity:plan.capacity,actor:'dev-2 <dev2@users.noreply.github.com>',runtime,toolchain:JSON.parse(toolchainBytes.toString()),policy};
  const configFile=join(releaseDirectory,'native-config.json');await exactFile(configFile,canonicalJson(config)+'\n');

@@ -1,0 +1,48 @@
+{
+  "observedAt": "2026-09-11T16:25:44.510272+00:00",
+  "worker": "tdev-mcp-trial",
+  "reason": "Provider blocked old tdev namespace retirement because this preserved old product trial still bound it",
+  "removedBinding": {
+    "class_name": "CaseAgentDriveRuntimeDO",
+    "name": "TDEV_CASE_AGENT_DRIVE",
+    "namespace_id": "138b3b6fc20d4d8988b598c572aa39f7",
+    "script_name": "tdev",
+    "type": "durable_object_namespace"
+  },
+  "preservedBindingCount": 29,
+  "otherBindingsExact": true,
+  "beforeDeployment": {
+    "id": "7f648cc6-9a8a-4590-8949-d3c713533b6f",
+    "source": "api",
+    "strategy": "percentage",
+    "annotations": {
+      "workers/message": "D0046 isolated MCP trial e5743a4450ee0875beb7c9...",
+      "workers/triggered_by": "upload"
+    },
+    "versions": [
+      {
+        "version_id": "71a10d8f-2d37-4320-899f-d69800656902",
+        "percentage": 100
+      }
+    ],
+    "created_on": "2026-09-10T19:14:29.69375Z"
+  },
+  "afterDeployment": {
+    "id": "238c86c2-8d91-49fc-b462-e4967a3490d3",
+    "source": "api",
+    "strategy": "percentage",
+    "annotations": {
+      "workers/message": "D0046 isolated MCP trial e5743a4450ee0875beb7c9...",
+      "workers/triggered_by": "upload"
+    },
+    "versions": [
+      {
+        "version_id": "0e0eb8c5-a675-422e-95f0-41df5b890f94",
+        "percentage": 100
+      }
+    ],
+    "created_on": "2026-09-11T16:25:43.213263Z"
+  },
+  "sourceCodeChanged": false,
+  "accessOrCredentialsChanged": false
+}

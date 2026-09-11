@@ -45,3 +45,21 @@ Provider API contract used: Cloudflare Workers multipart upload and declarative
 Durable Object exports, read September 12, 2026:
 https://developers.cloudflare.com/api/resources/workers/
 https://developers.cloudflare.com/durable-objects/reference/durable-objects-migrations/
+
+## Repeatable completion readback
+
+`tools/verify-phase-a.mjs` is a fixed, read-only operator check, not a public MCP
+operation or a release gate. First run the provider `read` command with the current
+private installation selector and operator credential locator. Pass that fresh
+redacted output to the verifier using `--provider-readback`, along with the same
+`--installation` and a private `--output` path. It compares actual provider config,
+100% edge version, exact installed artifacts, complete tool descriptors, scoped
+grant construction, current native context/read/observation and negative human/
+device authentication. It never accepts an arbitrary tool/path/principal or mutation.
+Provider readback must be no older than five minutes. Failures do not log credentials
+or raw provider errors. Parsed grant equality uses canonical data, not JS prototypes.
+
+The accepted current installation and Phase B first-call recipe are recorded in
+`docs/evidence/phase-a-cutover/README.md`. Runtime source and current repository HEAD
+are separate identities; installer/evidence-only publication does not require
+redeployment when exact rebuilt Worker/device bytes remain unchanged.

@@ -73,13 +73,18 @@ are not lane execution order. Workboard selects the implementation frontier.
 Warm execution sessions amortize managed runner startup, but cold jobs, request
 routing, object transfer, quota and Android outages may cost more than predecessors.
 This architecture is selected, not proved optimal or faster. Same-ref eight-work
-benchmarking against both actual predecessors remains mandatory; an improvement
-claim cannot be made from component count or source cleanup. Benchmark cohorts
-remain release/performance decision work, not a per-edit gate.
+comparison remains mandatory under D0007, using actual tmcp measurements where
+available and preserved source, historical measurements or analytical evidence for
+the incomplete old tdev baseline. No old live endpoint repair or parallel hosting
+is required. Distinguish those evidence classes; component count alone proves no
+performance improvement. Benchmark cohorts remain release/performance decision
+work, not a per-edit gate.
 
-No dev-2 Worker, assigned public origin, native activation helper or production
-sandbox seal is presumed present. Environment evidence and its explicit unknowns
-are in [the correction record](evidence/environment-correction-2026-09-11/README.md).
+The Phase A installation now has an actual Worker, same-origin public route and
+connected native device, as recorded in [cutover evidence](evidence/phase-a-cutover/README.md).
+That bootstrap installation is not a qualified release activation or production
+sandbox seal. Earlier environment evidence remains in
+[the correction record](evidence/environment-correction-2026-09-11/README.md).
 The old persistent generic-Linux/systemd topology is no longer an accepted target.
 
 

@@ -1,0 +1,107 @@
+{
+  "observedAt": "2026-09-11T21:47:23.002971+00:00",
+  "scope": "Phase A only",
+  "status": "PASS_WITH_EXPLICIT_PHASE_B_NOT_RUN",
+  "sourceBase": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+  "checks": {
+    "core": {
+      "status": "PASS",
+      "tests": 134,
+      "failures": 0,
+      "receipt": "core-result.json",
+      "coverage": [
+        "python.minimum",
+        "jsdoc",
+        "designs",
+        "tests"
+      ]
+    },
+    "integrationFixtures": {
+      "status": "PASS",
+      "tests": 40,
+      "failures": 0,
+      "receipt": "integration-fixtures.tap",
+      "canonicalIntegrationProfile": false
+    },
+    "runtimeBuilds": {
+      "status": "PASS",
+      "receipt": "build-identity.json"
+    },
+    "installedReadback": {
+      "status": "PASS",
+      "receipt": "installation-readback.json",
+      "actualHumanOAuth": false
+    },
+    "nativeRestart": {
+      "status": "PASS",
+      "receipt": "reconnect.json",
+      "physicalAndroidSleepReboot": false
+    },
+    "requiredProfiles": {
+      "integration": {
+        "status": "NOT RUN",
+        "receipt": "integration-gate.json",
+        "reason": null,
+        "installationEligibility": false
+      },
+      "release": {
+        "status": "NOT RUN",
+        "receipt": "release-gate.json",
+        "reason": null,
+        "installationEligibility": false
+      },
+      "live": {
+        "status": "NOT RUN",
+        "receipt": "live-gate.json",
+        "reason": null,
+        "installationEligibility": false
+      },
+      "benchmark": {
+        "status": "NOT RUN",
+        "receipt": "benchmark-gate.json",
+        "reason": null,
+        "installationEligibility": false
+      }
+    },
+    "refreshedHumanOAuth": {
+      "status": "NOT RUN",
+      "reason": "User Refresh boundary; fixed read-only installation probe is a separate credential role"
+    },
+    "resolvedFailures": [
+      {
+        "scope": "Added operator verifier only",
+        "cause": "Null-prototype versus ordinary JS strict equality",
+        "resolution": "Canonical encoded grant equality; no installed grant/auth change"
+      }
+    ]
+  },
+  "artifactDigests": {
+    "core-result.json": "sha256:0b5bb24ab2e9eee2af093b5c312005098c6dae19eede310696b9fa0c8d6756d4",
+    "core-tests.tap": "sha256:bb0360f0f68a4774f975696897a78da919853a5834c0982fe0cd81f22358207c",
+    "integration-fixtures.tap": "sha256:cad639b122b59ab4c1a385f52884b28540d371423e8e102d268854b0691a5121",
+    "provider-readback.json": "sha256:c1419891f3eedb9dba3b66a83695d42d4a348c323f88cbff7e929669262a2959",
+    "installation-readback.json": "sha256:9de18de9292886c0f0fd4494a024f3b578e44b9a8bee03896ca7fbd8ff326bd2",
+    "reconnect.json": "sha256:fdf1a181a8bc59bfc3ce094b905daf89104b5d70089e93072ed978de23066ea5",
+    "provider-cutover.json": "sha256:ce3347b038cc62f1e41d1cbb6acaac944f2d16c1fbd8da9bb8143e1db94fc00c",
+    "prior-trial-detach.json": "sha256:e3e5c3b58f22780d23281a12956094c368f4273073aa0602fc9bbda246725f01",
+    "integration-gate.json": "sha256:684dceb8bef84c688c9ac23759d0fa59d876d76496bfdd98e5991c7cba947ad3",
+    "release-gate.json": "sha256:c496c6bfe37c3bebec97a17f46e17a1530e0794b3d4b7e3c6cc43d72860b92d0",
+    "live-gate.json": "sha256:76c8db386090f74901b83e503f7e29a63d98bff2a8cc53c82336846649250df4",
+    "benchmark-gate.json": "sha256:32dbf14f7c75099495f7d7a17b98b5040d726efae6771e63d2c7618fb724fc6a",
+    "build-identity.json": "sha256:729360f71edec17659128b1ce32cb6d259b82806de4dd5a11d12b45332f7879c"
+  },
+  "freshVsHistorical": {
+    "fresh": [
+      "provider-readback.json",
+      "installation-readback.json",
+      "reconnect.json",
+      "core-result.json",
+      "integration-fixtures.tap",
+      "build-identity.json"
+    ],
+    "historical": [
+      "provider-cutover.json",
+      "prior-trial-detach.json"
+    ]
+  }
+}

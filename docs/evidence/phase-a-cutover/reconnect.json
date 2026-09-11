@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "layer": "actual-native-runit-restart-and-outbound-reconnect",
+  "startedAt": "2026-09-11T21:44:47.523Z",
+  "finishedAt": "2026-09-11T21:44:55.381Z",
+  "beforeOwnerEpoch": "3",
+  "afterOwnerEpoch": "4",
+  "sourceCommitOid": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+  "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+  "deviceBundleDigest": "sha256:f3724b09bd39eb9e5227faab66928db78e76574e8854df035a740522609d1e8f",
+  "edgeVersionId": "c00d6eb8-e6a0-4ca4-99bc-f6539077feed",
+  "routeConnected": true,
+  "readProbe": {
+    "authenticationMode": "installation-read-probe",
+    "currentHead": "sha1:6832ee5885a8ca5e25655a45e918a0a0ce8f0938",
+    "humanOAuth": false,
+    "observedAt": "2026-09-11T21:44:54.862Z",
+    "ok": true,
+    "repositoryId": "github-1322208918",
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+  },
+  "workLedgerPreserved": true,
+  "openWorksBefore": 0,
+  "openWorksAfter": 0,
+  "physicalAndroidSleepReboot": "NOT RUN",
+  "service": "dev2-tdev"
+}

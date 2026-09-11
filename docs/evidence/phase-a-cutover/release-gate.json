@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "layer": "release",
+  "status": "not_run",
+  "exitCode": 2,
+  "scope": "implemented-profile-only",
+  "installationEligibility": false,
+  "startedAt": "2026-09-11T21:46:32.054Z",
+  "finishedAt": "2026-09-11T21:46:32.143Z",
+  "durationMs": 90,
+  "entrypointDigest": "sha256:65be69c0ecfdbed7551a9a754dae2c30b1b070c55c39ae99a79a4a9424277eaa",
+  "inputDigest": "sha256:f5decec4716a6d7c195ab7e1934a2485cf65326d9393f48d051940ebc6ea1d59",
+  "outputInputDigest": "sha256:f5decec4716a6d7c195ab7e1934a2485cf65326d9393f48d051940ebc6ea1d59",
+  "profileDigest": "sha256:b22aad4dfaeaf9224ccdfdee04d8bfa142c5620ee59e68144c9e03b2b9d853d0",
+  "toolchainLockDigest": "sha256:b5d38cdb1a0783d8e8f9cb19bf831a662fa0d4e7e483f30f534f54f6f79e906d",
+  "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+  "execution": {
+    "variantId": "termux-android-arm64-node24-18",
+    "role": "native-control",
+    "node": "24.18.0",
+    "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+    "platform": "android",
+    "arch": "arm64",
+    "sqlite": "3.53.4"
+  },
+  "checks": [
+    {
+      "name": "implementation",
+      "status": "not_run",
+      "exitCode": null,
+      "signal": null,
+      "durationMs": 0,
+      "logDigest": null
+    }
+  ]
+}
