@@ -31,3 +31,15 @@ test('deterministic clock, ref and seed', () => { const a = fixtureIds(), b = fi
     assert.equal(a(), b()); assert.notEqual(fixtureIds('a')(), fixtureIds('b')()); const clock = fakeClock(); clock.advance(9); assert.equal(clock.monotonic(), 9); const ref = fakeRef('H'); assert.equal(ref.compareUpdate('H', 'A'), true); assert.equal(ref.compareUpdate('H', 'B'), false); assert.equal(ref.read(), 'A'); });
 test('prepared-result identity excludes action IDs and rejects stale reuse', () => { const d = bytesDigest('x'), h = 'sha1:' + '1'.repeat(40), c = 'sha1:' + '2'.repeat(40), t = 'sha1:' + '3'.repeat(40); const r = { resultId: 'result-1', repositoryId: 'self', bindingEpoch: 'epoch-1', workId: 'work-1', generation: '1', originalBaseHead: h, originalBaseTree: t, candidateTree: t, baseHead: h, commitOid: c, resultTreeOid: t, resultTreeSha256: d, policyDigest: d, metadata: { name: 'fixture', email: 'fixture@example.invalid', timestamp: 1, message: 'change' } }; const required = { policyDigest: d, profileDigests: [d], trustedRunnerDigest: d, toolchainDigest: d, environmentClass: 'core', dependencyLockDigest: d }; const id = validationIdentity(r, required); assert.equal(id, validationIdentity({ ...r, actionId: 'another' }, required)); assert.notEqual(id, validationIdentity({ ...r, commitOid: h }, required)); assertResultReusable(r, { workId: r.workId, generation: '1', baseHead: h, policyDigest: d }); assert.throws(() => assertResultReusable(r, { workId: r.workId, generation: '2', baseHead: h, policyDigest: d }), { code: 'STALE_RESULT' }); assert.throws(() => validationIdentity(r, { ...required, profileDigests: [] })); });
 test('error envelope does not expose unknown error secrets', () => { assert.equal(JSON.stringify(failure(new Error('secret-token'))).includes('secret-token'), false); assert.equal(failure(new Dev2Error('STALE_BASE', 'Base moved')).error.retry.sameRequest, false); });
+
+test('shared work/action records retain objective and queued input through restart encoding',async()=>{
+ const {work,action}=await import('../fixtures/records.mjs');
+ const a=action({input:{profileId:'core',expectedGeneration:'9007199254740992'}});
+ assert.equal(parseRecord(canonical(a)).input.expectedGeneration,'9007199254740992');
+ assert.equal(parseRecord(canonical(work())).objective,'Fixture change');
+});
+test('success envelope fixes runtime identity without accepting invalid observation times',async()=>{
+ const {success}=await import('../../src/contracts/envelope.mjs');const d=bytesDigest('runtime'),runtime={releaseId:d,schemaDigest:d};
+ assert.deepEqual(success({workId:'work-1'},runtime,1),{apiVersion:1,ok:true,data:{workId:'work-1'},observedAt:1,runtime});
+ assert.throws(()=>success(null,runtime,1.5));
+});

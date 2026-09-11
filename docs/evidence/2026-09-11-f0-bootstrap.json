@@ -1,6 +1,6 @@
 {
   "schemaVersion": 1,
-  "stage": "F0 source implemented; canonical verification pending",
+  "stage": "F0 completed; final shared record fixtures awaiting exact-commit CI",
   "freshStart": {
     "head": "a1265adcab2d95b39759f60419fd77d407d1dbdb",
     "parents": [
@@ -104,7 +104,20 @@
       ]
     }
   },
-  "canonicalCI": {
+  "release": {
+    "status": "not_run",
+    "reason": "No authorized Linux Podman/system-manager fixture"
+  },
+  "live": {
+    "status": "not_run",
+    "reason": "No canonical dev-2 installation or ChatGPT tool snapshot"
+  },
+  "benchmarks": {
+    "status": "not_run",
+    "reason": "No joined runtime or frozen comparative baselines"
+  },
+  "designChanges": [],
+  "initialCIFailure": {
     "runId": 34584030348,
     "head": "25b7ff9da9913e66485753d9026be2b1eff853c6",
     "node": "24.21.0",
@@ -120,17 +133,16 @@
     "correction": "Prune documented dependency/artifact directories; retain all root and nested product Markdown; add regression test",
     "status": "correction-awaiting-rerun"
   },
-  "release": {
-    "status": "not_run",
-    "reason": "No authorized Linux Podman/system-manager fixture"
-  },
-  "live": {
-    "status": "not_run",
-    "reason": "No canonical dev-2 installation or ChatGPT tool snapshot"
-  },
-  "benchmarks": {
-    "status": "not_run",
-    "reason": "No joined runtime or frozen comparative baselines"
-  },
-  "designChanges": []
+  "canonicalCI": {
+    "head": "e4c90c6208c5cc59b566dc0e8a1a511983cc0b1e",
+    "runId": 34584289368,
+    "status": "passed",
+    "node": "24.21.0",
+    "platform": "linux",
+    "architecture": "x64",
+    "checkedJSDoc": "passed",
+    "coreContractTests": "passed",
+    "documentation": "passed",
+    "dependencyInstall": "passed"
+  }
 }
