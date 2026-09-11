@@ -1,0 +1,50 @@
+{
+  "scope": "schema-shape-only",
+  "schemaDigest": "sha256:f223b9bbcd5617698775a2ef6538f980e2274a5fc1bbd82edbcdcccbca8ae51d",
+  "bytes": 14074,
+  "tools": [
+    {
+      "name": "dev_context",
+      "bytes": 541,
+      "nodes": 36,
+      "maximumDepth": 6,
+      "maximumUnionWidth": 0,
+      "propertyDeclarations": 5,
+      "references": 2,
+      "openObjectPaths": []
+    },
+    {
+      "name": "dev_read",
+      "bytes": 3177,
+      "nodes": 189,
+      "maximumDepth": 8,
+      "maximumUnionWidth": 5,
+      "propertyDeclarations": 32,
+      "references": 15,
+      "openObjectPaths": []
+    },
+    {
+      "name": "dev_work",
+      "bytes": 7077,
+      "nodes": 429,
+      "maximumDepth": 8,
+      "maximumUnionWidth": 10,
+      "propertyDeclarations": 88,
+      "references": 67,
+      "openObjectPaths": []
+    },
+    {
+      "name": "dev_observe",
+      "bytes": 1936,
+      "nodes": 98,
+      "maximumDepth": 8,
+      "maximumUnionWidth": 5,
+      "propertyDeclarations": 14,
+      "references": 9,
+      "openObjectPaths": []
+    }
+  ],
+  "actualChatGPTUsability": "not_run",
+  "tokenCount": null,
+  "superiorityEstablished": false
+}

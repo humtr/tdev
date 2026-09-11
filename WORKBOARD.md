@@ -30,6 +30,28 @@ P5 must preserve coverage of checked benchmark inputs when replacing the F0 driv
 These diagnostics do not claim actual ChatGPT usability, same-ref performance,
 OS isolation, or superiority; no benchmark trial is added to ordinary validation.
 
+## P7 current sub-frontier
+
+P7 is **partially implemented, not complete**. The canonical pinned core entrypoint
+passes 52 tests (20 new input + 14 new wire + 18 existing), checked JSDoc and
+document checks; this is not integration/release/live acceptance. `src/mcp/input-schemas.mjs` supplies
+four closed input contracts, ten tagged work variants, advertised defaults and
+per-item independent authorization/admission hooks. `src/mcp/protocol.mjs` supplies
+the stateless modern/legacy wire codec, mirrored-header and origin guards and
+request-ID-preserving errors. Their source and focused core tests were developed
+in the isolated `tmcp/dev2-p7-contract-73c9a2e6` worktree, from the published F0 line.
+No existing P1-P8 workspace was mutated. See `src/mcp/README.md` for composition
+boundaries and `docs/evidence/p7-contract-73c9a2e6/README.md` for actual checks.
+
+The next P7 resume is closed domain output projection plus authenticated HTTP
+composition, bounded waits and real end-to-end transcripts, joined with the
+current P1/P2/P3/P4/P5/P6/P8 ports. Do not deploy the input descriptors or codec
+alone as a completed MCP server. Rebind any concurrent P7 branch before integration;
+combine complementary work instead of replacing the shared contract or dirty work.
+J1-J5 are not complete; actual ChatGPT schema usability and same-ref full-validation
+cost remain live/join questions, not conclusions from core fixtures. D0007 trial
+counts apply to release/performance decisions, not every implementation edit.
+
 ## F0 - shared contract and build seed (complete)
 
 One integration owner creates only the minimum skeleton required by the accepted contracts: package/lock, pinned toolchain/profile descriptors, `src/contracts/` identifiers/envelopes/ports, small deterministic fixtures, and `tools/validate.mjs` dispatch with missing implementations reported as NOT RUN, never success. There is no new architectural decision hidden in this step.
