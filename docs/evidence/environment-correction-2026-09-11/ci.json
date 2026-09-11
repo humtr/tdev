@@ -1,0 +1,27 @@
+{
+  "schemaVersion": 1,
+  "classification": "observed exact-commit GitHub CI result; not production sandbox or live MCP evidence",
+  "sourceCommit": "415911be09b04c9be22474df7cf2971e996ec9ec",
+  "workflowRunId": 34601029212,
+  "jobId": 103268081860,
+  "status": "success",
+  "canonicalCore": "passed",
+  "checkedJSDoc": "passed",
+  "documentation": "passed",
+  "focusedGitSQLiteModuleTests": {
+    "tests": 32,
+    "passed": 32,
+    "failed": 0
+  },
+  "execution": {
+    "variantId": "linux-x64-node24-21",
+    "node": "24.21.0",
+    "sqlite": "3.53.4",
+    "platform": "linux",
+    "arch": "x64"
+  },
+  "inputDigest": "sha256:abf0a79a11d262ab5a4369fd63471034e3c5896ff14e0dbff4134237b836b303",
+  "nativeAndCIInputBytesMatch": true,
+  "productionContainmentSeal": false,
+  "newWorkerDeployed": false
+}

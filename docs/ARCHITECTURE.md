@@ -14,7 +14,7 @@ ChatGPT (sole required intelligence)
 Termux / Android
   -> deterministic control + exact Git repository/candidates
   -> per-repository SQLite work truth and bounded admission
-  -> isolated native validation on ephemeral GitHub-hosted execution sessions
+  -> isolated build/test execution on ephemeral GitHub-hosted sessions
   -> exact validated Git result / expected-old-ref integration
   -> durable terminal observation through the same MCP
 ```
