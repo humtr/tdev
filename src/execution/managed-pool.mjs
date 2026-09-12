@@ -3,6 +3,7 @@ import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs
 import {requireThat,Dev2Error} from '../contracts/errors.mjs';
 import {id,newId} from '../contracts/identity.mjs';
 import {preparePayload,executionIdentity} from './payload.mjs';
+import {SessionReconciler} from './session-reconcile.mjs';
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
 /** @typedef {import('../contracts/ports.js').PreparedResult} Prepared */
 /** @typedef {import('../contracts/ports.js').Profile} Profile */
@@ -21,6 +22,7 @@ export class ManagedPool {
  constructor(options){this.o=options;this.sessions=options.sessions;this.ledger=this.sessions.ledger;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??250;requireThat(Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');
   this.ledger.transact(tx=>{tx.run("CREATE TABLE IF NOT EXISTS managed_dispatch(assignment_id TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,session_id TEXT NOT NULL REFERENCES managed_session(session_id),state TEXT NOT NULL,record TEXT NOT NULL)");tx.run("CREATE UNIQUE INDEX IF NOT EXISTS managed_pending_dispatch ON managed_dispatch(session_id) WHERE state='pending'");});
   /** @type {Map<string,Promise<import('./session-types.js').ExecutionResult>>} */this.running=new Map();
+  this.reconciler=new SessionReconciler({sessions:this.sessions,provider:options.provider,now:this.now});
  }
  /** @param {import('../storage/ledger.mjs').Transaction} tx @param {Attempt} attempt */
  current(tx,attempt){const held=tx.retainedAttempt(attempt.attemptId),action=tx.getAction(attempt.actionId),work=tx.getWork(attempt.workId);requireThat(held?.held&&held.observerEpoch===this.ledger.ownerEpoch&&canonicalJson(held.attempt)===canonicalJson(attempt)&&action&&action.ownerEpoch===this.ledger.ownerEpoch&&action.status==='running'&&work?.disposition==='open'&&work.currentActionId===action.actionId,'STALE_REVISION','Managed work owner changed');return action;}
@@ -58,6 +60,7 @@ export class ManagedPool {
  /** @param {Prepared} result @param {Attempt} attempt @param {Profile} profile @returns {Promise<Dispatch>} */
  async dispatch(result,attempt,profile){const planned=await this.prepare(result,attempt,profile);if(!('needsSession'in planned))return planned;
   const prior=this.retained(planned.assignmentId);if(prior)return prior;
+  await this.reconciler.whenFull();this.ledger.transact(tx=>this.current(tx,attempt));
   const s=this.sessions.reserve(newId());
   try{return this.ledger.transact(tx=>{const old=/** @type {Dispatch|null} */(decode(tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',planned.assignmentId)));requireThat(!old,'IDEMPOTENCY_MISMATCH');const action=this.current(tx,attempt);
    const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:result.resultTreeSha256,payloadDigest:planned.payload.payloadDigest,executionDigest:executionIdentity(result.execution),deadline:Math.min(action.deadline,s.intent.deadline)};

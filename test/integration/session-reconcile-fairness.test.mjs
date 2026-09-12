@@ -1,0 +1,10 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,rm} from 'node:fs/promises';
+import {tmpdir} from 'node:os';
+import {join} from 'node:path';
+import {Ledger} from '../../src/storage/ledger.mjs';
+import {ManagedSessions} from '../../src/execution/sessions.mjs';
+import {SessionReconciler} from '../../src/execution/session-reconcile.mjs';
+const D='sha256:'+'1'.repeat(64),C='1'.repeat(40);
+test('sixteen unknown provider reads cannot starve the next sixteen retained resource observations',async()=>{const root=await mkdtemp(join(tmpdir(),'dev2-reconcile-fairness-')),binding={installationId:'i',repositoryId:'r',providerRepositoryId:'123',bindingEpoch:'1',provider:'github',remote:'https://github.com/fixture/repo.git',ref:'refs/heads/dev-2',policyDigest:D},ledger=new Ledger(join(root,'ledger.sqlite'),binding);let now=1000;try{const sessions=new ManagedSessions({ledger,now:()=>now,config:{repositoryOwnerId:'456',repositoryFullName:'fixture/repo',approvedCommit:C,trustedRunnerDigest:D,sessionTimeoutMs:1000,capacity:32,sealDigest:D}});for(let i=0;i<32;i++){const s=sessions.reserve('session_'+String(i).padStart(2,'0'));sessions.markLaunchSent(s.intent.sessionId);sessions.selectRun(s.intent.sessionId,{repositoryId:'123',repositoryOwnerId:'456',runId:String(i+100),runAttempt:'1',headSha:C,headBranch:s.intent.ref.slice(11),event:'push',workflowPath:'.github/workflows/dev2-executor.yml',status:'in_progress',observedAt:now});}now=3000;const reads=[],reader=new SessionReconciler({sessions,now:()=>now,provider:{refresh:async id=>{reads.push(id);if(Number(id.slice(-2))<16)throw Error('unknown');const s=ledger.transact(tx=>sessions.session(tx,id));return sessions.providerStopped(id,{...s.run,status:'completed',observedAt:now});}}});assert.equal(await reader.whenFull(),0);now=14000;assert.equal(await reader.whenFull(),16);assert.equal(new Set(reads).size,32);assert.equal(sessions.open().length,16);assert.equal(sessions.open().every(s=>s.stoppedAt===null),true);}finally{ledger.close();await rm(root,{recursive:true,force:true});}});
