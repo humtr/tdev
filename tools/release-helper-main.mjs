@@ -1,0 +1,12 @@
+import {readFile} from 'node:fs/promises';
+import {resolve} from 'node:path';
+import {bytesDigest} from '../src/contracts/canonical.mjs';
+import {requireThat} from '../src/contracts/errors.mjs';
+import {readHelperConfig,createFixedHelper} from '../src/release/helper-runtime.mjs';
+requireThat(process.argv.length===4&&process.argv[2]==='--config','INVALID_ARGUMENT','Fixed helper requires one private installation configuration');
+const config=await readHelperConfig(resolve(process.argv[3]));requireThat(bytesDigest(await readFile(resolve(process.argv[1])))===config.helperBundleDigest,'INTEGRITY_FAILURE','Executing helper bytes differ from installed configuration');
+const helper=await createFixedHelper(config,{log:event=>console.log(JSON.stringify({event,at:new Date().toISOString()}))});
+let closing=false;
+const stop=async()=>{if(closing)return;closing=true;const limit=setTimeout(()=>process.exit(2),45000);try{await helper.close();clearTimeout(limit);process.exit(0);}catch{process.exit(1);}};
+process.on('SIGTERM',()=>void stop());process.on('SIGINT',()=>void stop());
+console.log(JSON.stringify({event:'release_helper_ready',installationId:config.installationId,ownerEpoch:helper.journal.ownerEpoch}));
