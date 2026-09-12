@@ -1,0 +1,34 @@
+name: dev-2 bounded containment proof
+on:
+  push:
+    branches: ['dev2-containment/**']
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  qualification:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+          fetch-depth: 1
+      - name: Pinned controller toolchain
+        shell: bash
+        run: |
+          set -euo pipefail
+          archive="$RUNNER_TEMP/dev2-node.tar.xz"
+          curl --fail --location --proto '=https' --tlsv1.2 --retry 2 --max-time 120 https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz -o "$archive"
+          echo "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6  $archive" | sha256sum --check
+          mkdir -p "$RUNNER_TEMP/dev2-node"
+          tar -xJf "$archive" --strip-components=1 -C "$RUNNER_TEMP/dev2-node"
+          echo "$RUNNER_TEMP/dev2-node/bin" >> "$GITHUB_PATH"
+      - name: Install locked controller dependencies without lifecycle scripts
+        run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+      - name: Real hosted containment falsifiers
+        run: node tools/managed-probe.mjs
+      - name: Preserve bounded qualification evidence in provider logs
+        if: always()
+        run: |
+          if test -f .artifacts/managed-probe/report.json; then cat .artifacts/managed-probe/report.json; fi
