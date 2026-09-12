@@ -274,3 +274,60 @@ cancel/partial upload, managed producer separation and native main/public-schema
 composition. D0008, r4 Design metadata/index and routing handoffs are included.
 Use `git diff --name-status cd3d63fd152e54d73641b6dd2dcc8944090404c9 HEAD` for the
 exact inventory. Exact final local validation results are appended before handoff.
+
+### Recorded local validation (2026-09-12 UTC)
+
+Implementation commit: `b9c7db04687d6d2eab8609ca0603e7aaf4bde9e5`.
+The following documentation-only handoff commit does not change validation inputs.
+The implementation is one atomic composition commit because producer, enrollment,
+native startup and their tests depend on each other's contracts.
+
+- `npm run check`: exit 0. Core: 172 passed, zero failed/skipped; integration:
+  198 passed, zero failed, one pre-existing Android-specific skip (199 total).
+- Core finished `2026-09-12T15:54:05.688Z`; integration finished
+  `2026-09-12T15:55:34.226Z`. Both input/output identities match:
+  `sha256:b4810b864bccf313ae4f43c727b371276ed6067ccacca232b05d99f6ac1aa62a`.
+- Core result file digest:
+  `sha256:ce4287b01a9da8105021caef40f89ac5033518785eeea1775a3932db18d22a3f`.
+- Integration result file digest:
+  `sha256:d14b553556e83e35f39b2204a603eba1b8eae07fe10b159d276320b15c8c7828`.
+- Local results/logs are retained under `.artifacts/core/` and
+  `.artifacts/integration/` in the worktree (ignored, not production evidence).
+  Both report `installationEligibility:false`, `controllerMode:local-reviewed`.
+- The skipped test is `hard links never enter a dependency artifact`: native
+  Android forbids creating that fixture. The existing hosted-Linux test MUST run;
+  its containment proof is not covered by this local PASS.
+- `npm run typecheck`: passed. Standard core also passed required JSDoc/static,
+  Python and Design checks; Design checker passed all eight Designs.
+- Focused command below: 38 passed, zero failures/skips. It includes qualification
+  separation, production enrollment and receipt negatives, production runner
+  replay, Builder recovery, managed producer and native public-schema composition.
+
+  ```sh
+  node --test test/core/native-enrollment.test.mjs \
+    test/integration/outer-receipt.test.mjs \
+    test/integration/production-runner.test.mjs \
+    test/integration/production-enrollment.test.mjs \
+    test/integration/managed-release-builder.test.mjs \
+    test/integration/production-commissioning.test.mjs \
+    test/integration/native-main-release.test.mjs \
+    test/integration/native-release-composition.test.mjs
+  ```
+
+- `node --test test/release/*.test.mjs`: 36 passed, zero failures/skips. These are
+  fixture tests, NOT a PASS for the unimplemented release acceptance profile.
+- `node tools/build-device.mjs .artifacts/local-composition-build`: passed;
+  918025 bytes, digest
+  `sha256:42a03fbef1c090962a5053b3d26eb5514d55c20dbc3236bcb0ea77a923c0ed4b`.
+- `node tools/build-release-helper.mjs .artifacts/local-helper-build`: passed;
+  430102 bytes, digest
+  `sha256:633454aed56d24437dc9a9a60776ed8558e599cc1aefbe702a8a52fea3cc12cc`.
+- Frozen schema remains
+  `sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c`.
+- Actual local validation environment: Android arm64, Node 24.18.0, SQLite
+  3.53.4, npm 11.19.0, Git 2.55.0. Approved package lock was installed with
+  `npm ci --ignore-scripts`. No package/toolchain/profile security gate was weakened.
+
+No actual provider execution, installed runtime commissioning, helper deployment,
+Cloudflare mutation, live public stage/activate, paired activation/rollback or
+physical Android/eight-way acceptance was performed. Those remain unknown.
