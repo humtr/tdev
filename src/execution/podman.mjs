@@ -70,7 +70,7 @@ export class PodmanSandbox {
   /** @param {Options} options */
   constructor(options) {this.options=options;this.command=options.command??boundedCommand;}
   /** @param {readonly string[]} args @param {number} [maxBytes] */
-  call(args,maxBytes=1048576) {return this.command(this.options.executable,args,{environment:this.options.environment,timeoutMs:15000,maxBytes});}
+  call(args,maxBytes=1048576) {return this.command(this.options.executable,args,{environment:this.options.environment,timeoutMs:args[0]==='run'?120000:15000,maxBytes});}
   async preflight() {
     requireThat(this.options.productionSeal,'EXECUTION_UNAVAILABLE');
     const seccompBytes=await readFile(this.options.seccompPath);
@@ -122,8 +122,12 @@ export class PodmanSandbox {
     requireThat((await lstat(path)).isDirectory() && await realpath(path)===resolve(path),'FORBIDDEN');
     // No mutable checkout or queue ownership is delegated to the Podman client.
     // Name collision and lost responses are reconciled; never replace or start twice.
-    await this.call(args);
-    return this.inspect(attempt,expected);
+    const launched=await this.call(args);
+    const observed=await this.inspect(attempt,expected);
+    // A control timeout is not absence/stop evidence. Retain the exact attempt
+    // as uncertain even when the provider has not exposed a container yet.
+    if(observed.state==='absent'&&(launched.timedOut||launched.spawnFailed||launched.discardedBytes>0||launched.exitCode!==0))return observation(attempt,'uncertain');
+    return observed;
   }
   /** @param {Attempt} attempt @returns {Promise<Observation>} */
   async cancel(attempt) {

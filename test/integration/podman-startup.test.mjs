@@ -1,0 +1,13 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {mkdtemp,mkdir,writeFile,rm} from 'node:fs/promises';
+import {join} from 'node:path';
+import {tmpdir} from 'node:os';
+import {PodmanSandbox,attemptName} from '../../src/execution/podman.mjs';
+import {bytesDigest} from '../../src/contracts/canonical.mjs';
+const D='sha256:'+'1'.repeat(64),attempt={installationId:'i',repositoryId:'r',workId:'w',actionId:'a',attemptId:'attempt',attempt:'1',ownerEpoch:'1'};
+const profile={profileId:'p',digest:D,imageDigest:D,argv:['/usr/local/bin/node','--version'],cwd:'',parameters:{},timeoutMs:1000,killGraceMs:1000,memoryBytes:67108864,pids:48,cpuMillis:1000,diskBytes:8388608,logBytes:65536,network:'none',replaySafe:true};
+test('cold startup has a separate bounded control deadline; lost launch never returns stopped or replayable absence',async()=>{const root=await mkdtemp(join(tmpdir(),'dev2-podman-start-'));try{const seccomp=Buffer.from('{"defaultAction":"SCMP_ACT_ERRNO"}'),seccompPath=join(root,'seccomp.json');await writeFile(seccompPath,seccomp);const calls=[];let materializations=0;
+ const sandbox=new PodmanSandbox({executable:'/usr/bin/podman',environment:{},attemptRoot:root,seccompPath,seccompDigest:bytesDigest(seccomp),images:{[D]:'fixture@'+D},productionSeal:true,materialize:async()=>{materializations++;const path=join(root,attemptName(attempt),'source');await mkdir(path,{recursive:true});return path;},command:async(_exe,args,options)=>{calls.push({args,timeoutMs:options.timeoutMs});const common={exitCode:0,signal:null,timedOut:false,spawnFailed:false,discardedBytes:0,stdout:Buffer.alloc(0),stderr:Buffer.alloc(0)};if(args[0]==='info')return {...common,stdout:Buffer.from(JSON.stringify({host:{security:{rootless:true,seccompEnabled:true},cgroupVersion:'v2',cgroupControllers:['cpu','memory','pids']}}))};if(args[0]==='run')return {...common,exitCode:null,signal:'SIGKILL',timedOut:true};return {...common,exitCode:1};}});
+ const result=await sandbox.launch(attempt,profile,{manifestDigest:D,treeOid:'sha1:'+'1'.repeat(40),entries:[]});assert.equal(result.state,'uncertain');assert.equal(result.exitCode,null);assert.equal(materializations,1);assert.equal(calls.find(c=>c.args[0]==='run').timeoutMs,120000);assert.equal(calls.find(c=>c.args[0]==='run').args.includes('--timeout=1'),true);assert.equal(calls.filter(c=>c.args[0]!=='run').every(c=>c.timeoutMs===15000),true);
+ }finally{await rm(root,{recursive:true,force:true});}});
