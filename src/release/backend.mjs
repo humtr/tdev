@@ -128,7 +128,13 @@ export class ReleaseBackend {
   const stage=/** @type {Stage|null} */(this.record('release.stage:'+actionId));
   if(stage?.state==='staged'&&stage.target&&stage.build){await this.o.artifacts.verify(stage.target.releaseId,stage.build.manifest,stage.build.refs);return {stopped:true,effectResolved:true,output:this.output(stage.target,'staged',null)};}
   const stopped=await this.o.builder.stopped(actionId);
-  if(stage?.effect){const receipt=this.checkReceipt(stage.effect,await this.o.edge.reconcile(stage.effect));return {stopped:stopped&&receipt.senderStopped,effectResolved:false,output:null};}
+  if(stage?.effect){
+   const receipt=this.checkReceipt(stage.effect,await this.o.edge.reconcile(stage.effect));
+   // A positively resolved upload may re-enter the SAME action after current
+   // authorization/base fences. Observation never builds, sends or declares a
+   // staged result. Sent-but-absent is projected as pending by the provider port.
+   return {stopped:stopped&&receipt.senderStopped,effectResolved:stopped&&receipt.senderStopped&&receipt.kind!=='pending',output:null};
+  }
   return {stopped,effectResolved:stopped,output:null};
  }
  /** @param {Pair} pair @param {'staged'|'active'|'rolled_back'|'blocked'} state @param {string|null} activationId @returns {Json} */
