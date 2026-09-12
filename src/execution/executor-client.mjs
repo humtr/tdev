@@ -21,6 +21,8 @@ export class ExecutorClient {
   requireThat(result.ok===true&&result.data!==undefined,'INTEGRITY_FAILURE','Malformed native executor reply');return result.data;
  }
  async poll(){return /** @type {{session:import('./session-types.js').Session,assignment:Assignment|null,cancelRequested:boolean}} */(/** @type {unknown} */(await this.call({apiVersion:1,sessionId:this.sessionId,op:'poll'})));}
+ /** Retirement is native-ordered with dispatch; an assignment reply keeps this session alive. */
+ async retire(){return /** @type {{session:import('./session-types.js').Session,assignment:Assignment|null,cancelRequested:boolean}} */(/** @type {unknown} */(await this.call({apiVersion:1,sessionId:this.sessionId,op:'retire'})));}
  /** @param {Assignment} a */
  async acknowledge(a){return /** @type {Assignment} */(/** @type {unknown} */(await this.call({apiVersion:1,sessionId:this.sessionId,op:'ack',assignmentId:a.assignmentId,leaseId:a.leaseId})));}
  /** @param {Assignment} a @param {string} objectDigest */

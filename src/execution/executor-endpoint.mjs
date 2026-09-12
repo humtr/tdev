@@ -7,16 +7,19 @@ import {failure} from '../contracts/envelopes.mjs';
  * human operation, command, canonical Git effect, grant or arbitrary object path.
  */
 export class ExecutorEndpoint {
- /** @param {{sessions:import('./sessions.mjs').ManagedSessions,transfer:import('./session-transfer.mjs').AssignmentTransfer,verify:(token:string,sessionId:string)=>Promise<import('./session-types.js').AuthenticatedExecutor>,poll?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,wake?:()=>void}} options */
+ /** @param {{sessions:import('./sessions.mjs').ManagedSessions,transfer:import('./session-transfer.mjs').AssignmentTransfer,verify:(token:string,sessionId:string)=>Promise<import('./session-types.js').AuthenticatedExecutor>,poll?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,retire?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,wake?:()=>void}} options */
  constructor(options){this.o=options;}
  /** @param {unknown} value @param {string} assertion @returns {Promise<Json>} */
  async invoke(value,assertion){try{
   const request=executorRequest(value);requireThat(typeof assertion==='string'&&assertion.length>0&&assertion.length<=32768,'UNAUTHORIZED');
   const identity=await this.o.verify(assertion,request.sessionId);requireThat(identity.sessionId===request.sessionId,'UNAUTHORIZED');
   const sessions=this.o.sessions;
-  if(request.op==='poll'){const current=this.o.poll?this.o.poll(identity):sessions.current(identity);return /** @type {Json} */(/** @type {unknown} */({apiVersion:1,ok:true,data:current}));}
-  const auth={identity,assignmentId:request.assignmentId??'',leaseId:request.leaseId??''};
-  let data;
+  if(request.op==='poll'||request.op==='retire'){let current;
+   if(request.op==='retire'){requireThat(this.o.retire,'EXECUTION_UNAVAILABLE','Native retirement is not installed');current=this.o.retire(identity);}
+   else current=this.o.poll?this.o.poll(identity):sessions.current(identity);
+   return /** @type {Json} */(/** @type {unknown} */({apiVersion:1,ok:true,data:current}));
+  }
+  const auth={identity,assignmentId:request.assignmentId??'',leaseId:request.leaseId??''};let data;
   if(request.op==='ack')data=sessions.acknowledge(identity,auth.assignmentId,auth.leaseId);
   else if(request.op==='object.read')data=await this.o.transfer.read(auth,{digest:request.digest??'',offset:request.offset??-1,maxBytes:request.maxBytes??0});
   else if(request.op==='artifact.write')data=await this.o.transfer.upload(auth,{digest:request.digest??'',size:request.size??-1,offset:request.offset??-1,data:request.data??''});

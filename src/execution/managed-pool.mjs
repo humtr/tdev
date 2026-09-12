@@ -72,6 +72,26 @@ export class ManagedPool {
   const d=this.ledger.transact(tx=>{this.sessions.authenticated(tx,identity);const found=/** @type {Dispatch|null} */(decode(tx.get("SELECT record FROM managed_dispatch WHERE session_id=? AND state='pending'",identity.sessionId)));if(found)this.current(tx,found.input.attempt);return found;});
   if(d)this.sessions.offer(identity,d.input,d.objects);return this.sessions.current(identity);
  }
+ /** Native retirement and dispatch are synchronously ordered on the sole owner.
+  * A concurrent pending dispatch is offered instead of acknowledging retirement.
+  * A lost reply retries this same session, never launches another resource.
+  * @param {Identity} identity */
+ retire(identity){const current=this.poll(identity);if(current.assignment||current.cancelRequested)return current;this.sessions.cancelSession(identity.sessionId);return this.sessions.current(identity);}
+ /** Replace only a positively stopped resource that never received an assignment.
+  * The logical assignment/input/attempt remain immutable, and prior resource IDs
+  * stay in this existing record. No provider effect occurs inside the transaction.
+  * @param {Dispatch} dispatch @param {Attempt} attempt @param {Profile} profile */
+ replaceUnassigned(dispatch,attempt,profile){
+  /** @param {import('../storage/ledger.mjs').Transaction} tx */
+  const eligible=tx=>{const row=tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',dispatch.assignmentId),d=/** @type {Dispatch & {priorSessionIds?:string[]}} */(decode(row));requireThat(row&&d&&d.sessionId===dispatch.sessionId&&canonicalJson(d.input)===canonicalJson(dispatch.input),'STALE_REVISION');
+   const action=this.current(tx,attempt),cancelIntent=tx.get('SELECT value FROM meta WHERE key=?','cancel:'+action.actionId),s=this.sessions.session(tx,d.sessionId);requireThat(d.state!=='cancelled'&&!cancelIntent&&s.state==='closed'&&s.launch==='sent'&&s.stoppedAt!==null&&!tx.get('SELECT assignment_id FROM managed_assignment WHERE assignment_id=?',d.assignmentId),'EXECUTION_UNAVAILABLE','Resource replacement requires stopped, never-assigned, non-cancelled execution');
+   requireThat(this.now()+profile.timeoutMs+profile.killGraceMs+10000<Math.min(action.deadline,d.input.deadline),'EXECUTION_UNAVAILABLE','Insufficient unchanged assignment lifetime');const history=d.priorSessionIds??[];requireThat(Array.isArray(history)&&history.length<64,'CAPACITY_REJECTED','Managed resource replacement history limit');history.forEach(id);return {row,d,history};};
+  this.ledger.transact(eligible);const s=this.sessions.reserve(newId());
+  try{return this.ledger.transact(tx=>{const {row,d,history}=eligible(tx);requireThat(s.intent.deadline>=d.input.deadline,'EXECUTION_UNAVAILABLE','Replacement cannot shorten the immutable deadline');
+   const next={...d,sessionId:s.intent.sessionId,priorSessionIds:[...history,d.sessionId],state:/** @type {const} */('pending')};
+   const updated=tx.run("UPDATE managed_dispatch SET session_id=?,state='pending',record=? WHERE assignment_id=? AND record=?",next.sessionId,canonicalJson(next),d.assignmentId,String(row.record));requireThat(Number(updated.changes)===1,'STALE_REVISION');return next;
+  });}catch(error){this.sessions.closeUnlaunched(s.intent.sessionId);throw error;}
+ }
  /** RequiredValidation run port: only a matching authenticated native-retained
   * outer-controller result is returned. Candidate log content is not interpreted.
   * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */
@@ -79,12 +99,14 @@ export class ManagedPool {
   const operation=this.execute(result,attempt,profile);this.running.set(key,operation);try{return await operation;}finally{this.running.delete(key);}
  }
  /** @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */
- async execute(result,attempt,profile){const d=await this.dispatch(result,attempt,profile);let lastRefresh=0,lastLaunch=0;
+ async execute(result,attempt,profile){let d=await this.dispatch(result,attempt,profile),lastRefresh=0,lastLaunch=0;
   for(;;){const a=this.assignment(d.assignmentId);
    if(a?.state==='complete'){requireThat(a.result&&a.inputIdentity===recordDigest('dev2.managed-assignment-input.v1',d.input)&&a.sealDigest===this.sessions.config.sealDigest&&a.result.trustedRunnerDigest===result.execution.trustedRunnerDigest,'INTEGRITY_FAILURE');this.reconcileLocal();return a.result;}
    if(a?.state==='stopped')throw new Dev2Error('EXECUTION_UNAVAILABLE','Provider stopped without a trusted validation receipt');
-   const s=this.ledger.transact(tx=>this.sessions.session(tx,d.sessionId));if(s.state==='closed')throw new Dev2Error('EXECUTION_UNAVAILABLE','Managed session ended without a validation receipt');
    const now=this.now();if(now>=d.input.deadline){await this.cancel(attempt);throw new Dev2Error('EXECUTION_UNAVAILABLE','Managed assignment deadline');}
+   const s=this.ledger.transact(tx=>this.sessions.session(tx,d.sessionId));if(s.state==='closed'){
+    try{d=this.replaceUnassigned(d,attempt,profile);lastRefresh=0;lastLaunch=0;}catch(error){if(!(error instanceof Dev2Error)||error.code!=='CAPACITY_REJECTED')throw error;await this.sleep(this.pollMs);}continue;
+   }
    if(now-lastLaunch>=5000&&s.state==='reserved'&&!s.cancelRequested){lastLaunch=now;try{await this.o.provider.launch(d.sessionId);}catch(error){if(!(error instanceof Dev2Error)||!['EXECUTION_UNAVAILABLE','EFFECT_UNCERTAIN'].includes(error.code))throw error;}}
    if(now-lastRefresh>=10000){lastRefresh=now;try{await this.o.provider.refresh(d.sessionId);}catch(error){if(!(error instanceof Dev2Error)||!['EXECUTION_UNAVAILABLE','EFFECT_UNCERTAIN'].includes(error.code))throw error;}}
    await this.sleep(this.pollMs);

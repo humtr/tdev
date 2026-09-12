@@ -34,7 +34,7 @@ export async function createManagedControl(options){
  const sessions=new ManagedSessions({ledger:o.ledger,config:{repositoryOwnerId:e.repositoryOwnerId,repositoryFullName:e.repositoryFullName,approvedCommit:e.approvedCommitOid.slice(5),trustedRunnerDigest:definition.identities.trustedRunnerDigest,sessionTimeoutMs:definition.config.sessionLifetimeMs,capacity:o.capacity,sealDigest:enrolled.sealDigest}});
  const provider=new GitHubSessions({sessions,token:async()=>o.token}),pool=new ManagedPool({sessions,provider,repository:o.repository,objects:o.objects}),transfer=new AssignmentTransfer({sessions,objects:o.objects});pool.reconcileLocal();
  const verifier=githubExecutorVerifier({origin:o.origin,installationId:o.binding.installationId},createRemoteJWKSet(new URL('https://token.actions.githubusercontent.com/.well-known/jwks')),sessionId=>provider.authorization(sessionId));
- const endpoint=new ExecutorEndpoint({sessions,transfer,verify:verifier,poll:identity=>pool.poll(identity),wake:o.wake});
+ const endpoint=new ExecutorEndpoint({sessions,transfer,verify:verifier,poll:identity=>pool.poll(identity),retire:identity=>pool.retire(identity),wake:o.wake});
  const key=createHmac('sha256',o.receiptSecret).update('dev2.native-managed-receipt-key.v1\0'+o.binding.installationId+'\0'+o.binding.repositoryId).digest();
  /** @type {Map<string,import('../validation/policy.mjs').AdoptedPolicy>} */const policies=new Map([[enrolled.policy.policy.digest,enrolled.policy]]);
  /** @type {Map<string,RequiredValidation>} */const validators=new Map();

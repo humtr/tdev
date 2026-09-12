@@ -22,14 +22,14 @@ export class HostedSession {
   while(this.now()<this.deadline){
    try{
     if(this.pending){requireThat(this.seal&&this.pending.sealDigest===this.seal,'INTEGRITY_FAILURE');const runner=this.o.createRunner(this.seal);await runner.execute(this.pending);this.pending=null;this.completed++;await this.save();idleSince=this.now();continue;}
-    const current=await this.o.client.poll();this.verify(current.session);if(current.cancelRequested)return {state:'cancelled',completed:this.completed};
+    const retiring=this.now()-idleSince>=this.o.idleTimeoutMs;
+    const current=retiring?await this.o.client.retire():await this.o.client.poll();this.verify(current.session);if(current.cancelRequested)return {state:retiring?'idle':'cancelled',completed:this.completed};
     if(current.assignment){const a=current.assignment;id(a.assignmentId);digest(a.sealDigest);requireThat(a.sessionId===this.o.client.sessionId&&a.runId===this.o.expected.runId&&(this.seal===null||a.sealDigest===this.seal),'UNAUTHORIZED');
-     // Only the enrolled native controller can authorize a seal over this TLS
-     // endpoint. Exact approved runner/policy bytes are independently checked by
-     // the factory; a candidate payload or printed receipt cannot choose either.
+     // A concurrent native dispatch wins retirement and is durably received before
+     // execution. Only a native closing acknowledgement permits an idle exit.
      this.seal=a.sealDigest;this.pending=a;await this.save();continue;
     }
-    if(this.now()-idleSince>=this.o.idleTimeoutMs)return {state:'idle',completed:this.completed};await this.sleep(500);
+    await this.sleep(500);
    }catch(error){
     const transient=error instanceof Dev2Error&&(['EXECUTION_UNAVAILABLE','EFFECT_UNCERTAIN','CAPACITY_REJECTED'].includes(error.code)||!this.intentDigest&&!this.pending&&error.code==='UNAUTHORIZED'&&this.now()-admissionStarted<30000);
     if(!transient)throw error;this.failures++;await this.sleep(1000);

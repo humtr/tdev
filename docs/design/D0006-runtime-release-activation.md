@@ -341,3 +341,29 @@ preserve its other bindings, source, Access configuration and unrelated resource
 This is owner-authorized old runtime retirement, not a migration/compatibility layer.
 Re-read both trial binding state and target deployment before retrying cutover.
 Current resource names/IDs and rejection/readback belong to Phase A evidence.
+
+### Managed idle retirement and never-assigned resource replacement
+
+An idle executor must request retirement from its authenticated native session owner
+before exiting. The private `retire` operation atomically orders against dispatch:
+if a pending assignment exists it is offered and the session continues; otherwise
+the native session enters closing before acknowledging retirement. Closing sessions
+cannot receive new dispatches. Lost retirement responses repeat the same session
+operation; they do not prove termination. The public four-tool schema is unchanged.
+
+A retained dispatch whose selected provider session is positively closed may acquire
+a replacement execution resource only when no assignment was ever offered, its
+original work/attempt is still current, cancellation is absent and its unchanged
+input deadline still accommodates the complete profile. Preserve assignment ID,
+input digest, action, work and attempt, and retain each prior session ID in the same
+dispatch record. A prior offered/running/stopped assignment, unknown provider state,
+expired deadline or stale owner forbids this replacement. This is resource admission
+before any candidate execution, not replay of a possibly executed effect. Session
+intent and each provider launch retain their separate durable identities. A bounded
+64-entry replacement history is storage/retry policy, not a work-concurrency ceiling.
+
+Acceptance races idle retirement with a new dispatch, loses the retirement response,
+and closes a selected provider run before any assignment. The same immutable input
+must complete on one replacement resource, while uncertain/offered assignments never
+launch replacements and unrelated work continues. Insufficient remaining lifetime
+must reject before dispatch, without lowering the required validation profile.
