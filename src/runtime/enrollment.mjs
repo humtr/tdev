@@ -2,6 +2,7 @@ import {canonicalJson,recordDigest,bytesDigest} from '../contracts/canonical.mjs
 import {requireThat,Dev2Error} from '../contracts/errors.mjs';
 import {digest,oid,revision} from '../contracts/identity.mjs';
 import {boundedProviderJson} from '../execution/provider-json.mjs';
+import {releaseRuntimeAdmitted} from '../release/native-control.mjs';
 /** @typedef {Awaited<ReturnType<typeof import('../execution/controller-identity.mjs').managedDefinition>>} Definition */
 /** @typedef {{schemaVersion:1,kind:'dev2-managed-enrollment',installationId:string,repositoryId:string,bindingEpoch:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],qualification:{providerRunJson:string,controllerReportJson:string,containmentReportJson:string},nativeJoin:{sourceCommitOid:string,sourceTreeOid:string,inputDigest:string,coreStatus:'passed',integrationStatus:'passed',productionValidation:false},canonicalRuleset:import('../integration/github-boundary.mjs').RulesetIdentity}} EnrollmentBody */
 /** @typedef {EnrollmentBody&{sealDigest:string}} Enrollment */
@@ -17,20 +18,20 @@ function object(value){requireThat(value!==null&&typeof value==='object'&&!Array
 function closed(value,keys){requireThat(canonicalJson(Object.keys(object(value)).sort())===canonicalJson([...keys].sort()),'INTEGRITY_FAILURE','Unexpected enrollment field');}
 /** @param {unknown} text */
 function report(text){requireThat(typeof text==='string'&&Buffer.byteLength(text)<=1048576,'LIMIT_EXCEEDED','Private evidence report bound');return object(boundedProviderJson(text,1048576));}
-/** @param {Enrollment} enrollment @param {{binding:import('../contracts/ports.js').Binding,definition:Definition,source:import('../contracts/ports.js').SourceTree,runtime:{sourceCommitOid:string,sourceTreeOid:string},origin:string}} expected */
+/** @param {Enrollment} enrollment @param {{binding:import('../contracts/ports.js').Binding,definition:Definition,source:import('../contracts/ports.js').SourceTree,runtime:{sourceCommitOid:string,sourceTreeOid:string},origin:string,releaseAdmission?:{admission:import('../release/native-control.mjs').Admission|null,expected:Parameters<typeof releaseRuntimeAdmitted>[1]}}} expected */
 export function verifyEnrollment(enrollment,expected){
  try{
   closed(enrollment,['schemaVersion','kind','installationId','repositoryId','bindingEpoch','repositoryOwnerId','repositoryFullName','approvedCommitOid','approvedSourceManifestDigest','identities','qualification','nativeJoin','canonicalRuleset','sealDigest']);
   const {sealDigest,...body}=enrollment,b=expected.binding,definition=expected.definition;
-  // The new execution adapter is source-complete but cannot inherit legacy
-  // qualification authority. Remove this closed gate only with the separately
-  // joined exact production qualification/enrollment and native receipt port.
+  // This verifier owns qualification only. Production is permanently a separate
+  // commissioning/enrollment contract, never an upgrade of these reports.
   requireThat(definition.config.executionShape!=='production-outer-v1','EXECUTION_UNAVAILABLE','Production outer execution requires its separate commissioning and native receipt join');
   requireThat(digest(sealDigest)===recordDigest('dev2.managed-enrollment.v1',body)&&body.schemaVersion===1&&body.kind==='dev2-managed-enrollment'&&body.installationId===b.installationId&&body.repositoryId===b.repositoryId&&body.bindingEpoch===b.bindingEpoch,'INTEGRITY_FAILURE','Private enrollment identity mismatch');
   requireThat(revision(body.repositoryOwnerId)!=='0'&&b.remote==='https://github.com/'+body.repositoryFullName+'.git','FORBIDDEN');oid(body.approvedCommitOid);digest(body.approvedSourceManifestDigest);
   requireThat(body.approvedSourceManifestDigest===expected.source.manifestDigest&&canonicalJson(body.identities)===canonicalJson(definition.identities),'INTEGRITY_FAILURE','Private enrollment does not name the exact approved controller');
   closed(body.nativeJoin,['sourceCommitOid','sourceTreeOid','inputDigest','coreStatus','integrationStatus','productionValidation']);
-  requireThat(body.nativeJoin.sourceCommitOid===expected.runtime.sourceCommitOid&&body.nativeJoin.sourceTreeOid===expected.runtime.sourceTreeOid&&body.nativeJoin.coreStatus==='passed'&&body.nativeJoin.integrationStatus==='passed'&&body.nativeJoin.productionValidation===false,'INTEGRITY_FAILURE','Native join has no exact source-validation record');digest(body.nativeJoin.inputDigest);
+  const released=expected.releaseAdmission&&releaseRuntimeAdmitted(expected.releaseAdmission.admission,expected.releaseAdmission.expected);
+  requireThat((body.nativeJoin.sourceCommitOid===expected.runtime.sourceCommitOid&&body.nativeJoin.sourceTreeOid===expected.runtime.sourceTreeOid||released)&&body.nativeJoin.coreStatus==='passed'&&body.nativeJoin.integrationStatus==='passed'&&body.nativeJoin.productionValidation===false,'INTEGRITY_FAILURE','Native join has no exact source-validation record');digest(body.nativeJoin.inputDigest);
   closed(body.canonicalRuleset,['rulesetId','createdAt','updatedAt']);requireThat(Number.isSafeInteger(body.canonicalRuleset.rulesetId)&&body.canonicalRuleset.rulesetId>0&&Number.isFinite(Date.parse(body.canonicalRuleset.createdAt))&&Number.isFinite(Date.parse(body.canonicalRuleset.updatedAt)),'INTEGRITY_FAILURE');
   closed(body.qualification,['providerRunJson','controllerReportJson','containmentReportJson']);
   const run=report(body.qualification.providerRunJson),controller=report(body.qualification.controllerReportJson),containment=report(body.qualification.containmentReportJson),repository=object(run.repository),owner=object(repository.owner),rawCommit=body.approvedCommitOid.slice(5);

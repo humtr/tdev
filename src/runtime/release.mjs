@@ -24,17 +24,17 @@ export class NativeReleaseRuntime {
    this.assert();const stage=/** @type {Stage|null} */(this.backend.record('release.ready:'+intent.target.releaseId));requireThat(stage?.state==='staged'&&stage.build&&canonicalJson(stage.target)===canonicalJson(intent.target)&&canonicalJson(stage.previous)===canonicalJson(intent.previous),'INTEGRITY_FAILURE','Activation has no retained native-verified build');
    return this.control.begin(intent,stage.build);
   }}});
-  this.actual=/** @type {Pair|null} */(null);this.checkedAt=0;this.refreshing=/** @type {Promise<void>|null} */(null);this.initialized=false;
+  this.actual=/** @type {Pair|null} */(null);this.checkedAt=0;this.projectionEpoch=0;this.refreshing=/** @type {Promise<void>|null} */(null);this.initialized=false;
  }
  assert(){requireThat(!this.ledger.closed&&this.ledger.ownerEpoch===this.epoch,'STALE_REVISION','Native release owner changed');}
  async init(){this.assert();await this.artifacts.init();this.assert();this.initialized=true;return this;}
  available(){return this.initialized&&!this.ledger.closed&&this.ledger.ownerEpoch===this.epoch;}
- invalidate(){this.actual=null;this.checkedAt=0;}
+ invalidate(){this.actual=null;this.checkedAt=0;this.projectionEpoch++;}
  /** No cached retained pair is promoted to actual healthy runtime. A failed or
   * interrupted fresh pair observation clears active/sealed projection, without
   * disabling source work or manufacturing a different rollout effect.
   * @returns {Promise<void>} */
- refresh(){if(this.refreshing)return this.refreshing;const pending=(async()=>{this.assert();this.invalidate();try{const projection=await this.control.refresh();this.assert();if(projection.activation)return;const pair=await this.control.activePair();this.assert();requireThat(canonicalJson(pair)===canonicalJson(projection.retainedPair),'EFFECT_UNCERTAIN','Helper pair changed during observation');this.actual=pair;this.checkedAt=this.now();}catch{this.invalidate();}})().finally(()=>{this.refreshing=null;});this.refreshing=pending;return pending;}
+ refresh(){if(this.refreshing)return this.refreshing;const pending=(async()=>{this.assert();this.invalidate();const epoch=this.projectionEpoch;try{const projection=await this.control.refresh();this.assert();if(projection.activation)return;const pair=await this.control.activePair();this.assert();requireThat(epoch===this.projectionEpoch&&canonicalJson(pair)===canonicalJson(projection.retainedPair),'EFFECT_UNCERTAIN','Helper pair changed or observation was invalidated');this.actual=pair;this.checkedAt=this.now();}catch{this.invalidate();}})().finally(()=>{this.refreshing=null;});this.refreshing=pending;return pending;}
  verifiedPair(){return this.actual&&this.now()-this.checkedAt<=5000?this.actual:null;}
  get releaseId(){return this.verifiedPair()?.releaseId??this.bootstrapReleaseId;}
  get deploymentSealed(){return this.available()&&this.verifiedPair()!==null;}
@@ -51,6 +51,6 @@ export class NativeReleaseRuntime {
  projection(){this.assert();const current=this.control.projection?.activation??null,pair=this.verifiedPair();
   const rows=this.ledger.transact(tx=>tx.all("SELECT value FROM meta WHERE key LIKE 'release.ready:%' ORDER BY rowid DESC LIMIT 16"));let staged=/** @type {Stage|null} */(null);
   for(const row of rows){const value=/** @type {Stage} */(parseRecord(String(row.value),2097152));if(value.state==='staged'&&value.target&&(!pair||value.target.releaseId!==pair.releaseId)){staged=value;break;}}
-  const phase=current?current.phase:pair?'active':'unverified';return {phase,activationId:current?.intent.activationId??null,activeReleaseId:pair?.releaseId??null,stagedReleaseId:staged?.target?.releaseId??null,expectedReleaseId:current?.intent.target.releaseId??null,writerStopped:current?.pending?.effect.step==='device.switch'&&current.receipts.at(-1)?.output.writerStopped===true,deadline:current?.intent.deadline??null};
+  const phase=current?current.phase:pair?'active':'idle';return {phase,activationId:current?.intent.activationId??null,activeReleaseId:pair?.releaseId??null,stagedReleaseId:staged?.target?.releaseId??null,expectedReleaseId:current?.intent.target.releaseId??null,writerStopped:current?.pending?.effect.step==='device.switch'&&current.receipts.at(-1)?.output.writerStopped===true,deadline:current?.intent.deadline??null};
  }
 }

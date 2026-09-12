@@ -12,6 +12,7 @@ This is navigation only. IDs are identities, not priority or execution sequence.
 | [D0005](D0005-security-execution-boundaries.md) | Security and execution boundaries | accepted | [] | [] |
 | [D0006](D0006-runtime-release-activation.md) | Runtime and release activation | accepted | [D0001, D0002, D0003] | [] |
 | [D0007](D0007-verification-superiority-contract.md) | Verification and superiority contract | accepted | [D0001, D0002, D0003, D0004, D0005, D0006] | [] |
+| [D0008](D0008-production-enrollment-composition.md) | Production enrollment and native producer composition | accepted | [D0003, D0005, D0006] | [] |
 
 ## Semantic dependency graph
 
@@ -26,6 +27,7 @@ flowchart LR
   D0005["D0005: Security and execution boundaries"]
   D0006["D0006: Runtime and release activation"]
   D0007["D0007: Verification and superiority contract"]
+  D0008["D0008: Production enrollment and native producer composition"]
   D0005 --> D0001
   D0001 --> D0002
   D0005 --> D0002
@@ -44,6 +46,9 @@ flowchart LR
   D0004 --> D0007
   D0005 --> D0007
   D0006 --> D0007
+  D0003 --> D0008
+  D0005 --> D0008
+  D0006 --> D0008
 ```
 
 ## Ownership projection
@@ -57,3 +62,4 @@ flowchart LR
 | D0005 | authorization, sandbox-boundary, credential-custody |
 | D0006 | runtime-topology, release-activation, toolchain-seal |
 | D0007 | test-environments, benchmark-methodology, superiority-gates |
+| D0008 | production-commissioning-join |

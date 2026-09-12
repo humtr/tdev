@@ -25,7 +25,9 @@ export class ManagedPool {
   this.reconciler=new SessionReconciler({sessions:this.sessions,provider:options.provider,now:this.now});
  }
  /** @param {import('../storage/ledger.mjs').Transaction} tx @param {Attempt} attempt */
- current(tx,attempt){const held=tx.retainedAttempt(attempt.attemptId),action=tx.getAction(attempt.actionId),work=tx.getWork(attempt.workId);requireThat(held?.held&&held.observerEpoch===this.ledger.ownerEpoch&&canonicalJson(held.attempt)===canonicalJson(attempt)&&action&&action.ownerEpoch===this.ledger.ownerEpoch&&action.status==='running'&&work?.disposition==='open'&&work.currentActionId===action.actionId,'STALE_REVISION','Managed work owner changed');return action;}
+ current(tx,attempt){const held=tx.retainedAttempt(attempt.attemptId),action=tx.getAction(attempt.actionId),work=tx.getWork(attempt.workId);
+  const release=action?.operation==='release.stage'&&action.workId===null&&attempt.workId===action.actionId&&action.attempt===attempt.attempt&&!tx.get('SELECT value FROM meta WHERE key=?','cancel:'+action.actionId);
+  requireThat(held?.held&&held.observerEpoch===this.ledger.ownerEpoch&&canonicalJson(held.attempt)===canonicalJson(attempt)&&action&&action.ownerEpoch===this.ledger.ownerEpoch&&action.status==='running'&&(release||work?.disposition==='open'&&work.currentActionId===action.actionId),'STALE_REVISION','Managed work owner changed');return action;}
  /** @param {string} assignmentId */
  retained(assignmentId){return this.ledger.transact(tx=>/** @type {Dispatch|null} */(decode(tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',id(assignmentId)))));}
  /** @param {string} assignmentId */

@@ -1,5 +1,8 @@
 # Fixed helper / native runtime join
 
+Local candidate continuation: [production enrollment/Builder/native-main handoff](local-production-release-handoff.md).
+The installed locator join is now implemented on that local branch, not commissioned.
+
 This is the implementation contract for current release continuation
 workd094b54dd6f208cd9ab34a126002218b. It is not a claim that the helper has been
 commissioned, that production execution is enrolled, or that a rollout is active.

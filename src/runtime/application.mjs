@@ -18,7 +18,7 @@ function record(value){requireThat(value!==null&&typeof value==='object'&&!Array
 /** @param {unknown} value @returns {Json} */
 function json(value){return /** @type {Json} */(parseRecord(canonicalJson(value),2097152));}
 export class DevelopmentApplication {
- /** @param {{engine:import('./engine.mjs').DevelopmentEngine,releaseId:string,artifacts:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,pollMs?:number,deploymentSealed?:boolean,runtimeIdentity?:()=>Promise<Json>,sessions?:()=>Json[]}} options */
+ /** @param {{engine:import('./engine.mjs').DevelopmentEngine,releaseId:string,artifacts:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,pollMs?:number,deploymentSealed?:boolean|(()=>boolean),currentReleaseId?:()=>string,runtimeIdentity?:()=>Promise<Json>,sessions?:()=>Json[]}} options */
  constructor(options){digest(options.releaseId);this.o=options;this.engine=options.engine;this.now=options.now??Date.now;this.runtime={releaseId:options.releaseId,schemaDigest:SCHEMA_DIGEST};
  /** @type {Map<string,{subject:string,key:string,after:number,expires:number}>} */this.cursors=new Map();}
  /** @param {Principal} principal @param {string} name @param {unknown} input @param {AbortSignal} [signal] */
@@ -38,7 +38,7 @@ export class DevelopmentApplication {
    else if(name==='dev_read')data=await this.read(principal,value);
    else data=await this.observe(principal,value,signal);
   }
-  return validateOutput(name,success(data,this.runtime,new Date(this.now()).toISOString()));
+  return validateOutput(name,success(data,{...this.runtime,releaseId:this.o.currentReleaseId?.()??this.runtime.releaseId},new Date(this.now()).toISOString()));
  }catch(error){return validateOutput(name,failure(error));}
  }
  /** @param {Principal} principal @param {RecordValue} input */
@@ -118,7 +118,8 @@ export class DevelopmentApplication {
   let validation=null;if(receipt)validation={validationId:receipt.validationId,runId:receipt.runId,startedAt:receipt.startedAt,endedAt:receipt.endedAt,exitCode:receipt.exitCode,signal:receipt.signal,deadlineExceeded:receipt.deadlineExceeded,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest,outcomes:receipt.outcomes,eligible:await this.engine.o.validation().eligible(result,receipt,this.engine.binding.policyDigest,this.engine.ledger.ownerEpoch)};
   results.push({resultId:result.resultId,workId:result.workId,generation:result.generation,baseCommitOid:result.baseCommitOid,baseTreeOid:result.baseTreeOid,candidateTreeOid:result.candidateTreeOid,execution:result.execution,expectedHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,validation,integration:observation});
  }
- const runtime=selector.runtime?{...this.runtime,accepting:this.engine.accepting,capacity:this.engine.coordinator.executionCapacity,reservedAttempts:this.engine.ledger.transact(tx=>tx.reservations().length),executingActions:this.engine.running.size,environmentClass:this.engine.o.policy().policy.execution.environmentClass,deploymentSealed:this.o.deploymentSealed===true,identity:this.o.runtimeIdentity?await this.o.runtimeIdentity():null,operations:this.engine.operationDescriptors(),sessions:this.o.sessions?.()??[]}:null;
+ const identity=selector.runtime&&this.o.runtimeIdentity?await this.o.runtimeIdentity():null;
+ const runtime=selector.runtime?{...this.runtime,releaseId:this.o.currentReleaseId?.()??this.runtime.releaseId,accepting:this.engine.accepting,capacity:this.engine.coordinator.executionCapacity,reservedAttempts:this.engine.ledger.transact(tx=>tx.reservations().length),executingActions:this.engine.running.size,environmentClass:this.engine.o.policy().policy.execution.environmentClass,deploymentSealed:typeof this.o.deploymentSealed==='function'?this.o.deploymentSealed():this.o.deploymentSealed===true,identity,operations:this.engine.operationDescriptors(),sessions:this.o.sessions?.()??[]}:null;
  const effects=actions.map(a=>this.engine.ledger.transact(tx=>tx.getEffect(a.actionId))).filter(e=>e!==null).map(e=>({effectId:e.effectId,actionId:e.actionId,workId:e.workId,ref:e.ref,expectedHead:e.expectedHead,commitOid:e.commitOid,preparedResultId:e.preparedResultId,validationId:e.validationId,policyDigest:e.policyDigest}));
  return {effects,works:works.map(w=>this.projectWork(w)),actions:actions.map(a=>this.projectAction(a)),results,runtime,complete,cursor,missingRequestIds};
  }

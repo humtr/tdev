@@ -76,6 +76,9 @@ export class DevelopmentEngine {
  deadline(item){let duration=300000;
   if(item.op==='run')duration=this.o.policy().profile(String(item.profileId),item.parameters??null).timeoutMs+30000;
   else if(['validate','integrate'].includes(item.op))duration=this.o.policy().required().reduce((sum,profile)=>sum+profile.timeoutMs,60000);
+  // Finite build alone has a five-minute ceiling. Keep bounded room for its
+  // managed launch/transfer and retained staging effect; this is not caller input.
+  else if(item.op==='release.stage')duration=900000;
   requireThat(Number.isSafeInteger(duration)&&duration>0&&duration<=900000,'EXECUTION_UNAVAILABLE','Action budget exceeds managed session bound');return this.now()+duration;
  }
  /** Current authorization and dedup precede stale snapshot lookup or staging.

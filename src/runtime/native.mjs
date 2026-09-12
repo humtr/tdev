@@ -19,12 +19,15 @@ import {GitHubCanonicalBoundary} from '../integration/github-boundary.mjs';
 import {DevelopmentEngine} from './engine.mjs';
 import {DevelopmentApplication} from './application.mjs';
 import {createManagedControl} from './managed.mjs';
+import {NativeReleaseControl} from '../release/native-control.mjs';
+import {NativeReleaseRuntime} from './release.mjs';
+import {privateDirectory} from '../release/private-files.mjs';
 import {DeviceConnection} from '../transport/device.mjs';
 import {SCHEMA_DIGEST} from '../mcp/outputs.mjs';
 import {workersDevOrigin,selectExecutionVariant} from './environment.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
-/** @typedef {{schemaVersion:1,edge:import('../edge/types.js').EdgeConfig,stateDirectory:string,gitExecutable:string,githubTokenFile:string|null,gitAskpassFile:string|null,deviceKeyFile:string,cursorKeyFile:string,capacity:number,actor:string,runtime:{bundleDigest:string,schemaDigest:string,sourceCommitOid:string,sourceTreeOid:string},toolchain:{executionVariants:import('./environment.mjs').ExecutionVariant[]},policy:ConstructorParameters<typeof AdoptedPolicy>[0],managedEnrollmentFile?:string|null,gitSender?:{configurationFile:string,pythonExecutable:string,helperFile:string}}} NativeConfig */
+/** @typedef {{schemaVersion:1,edge:import('../edge/types.js').EdgeConfig,stateDirectory:string,gitExecutable:string,githubTokenFile:string|null,gitAskpassFile:string|null,deviceKeyFile:string,cursorKeyFile:string,capacity:number,actor:string,runtime:{bundleDigest:string,schemaDigest:string,sourceCommitOid:string,sourceTreeOid:string},toolchain:{executionVariants:import('./environment.mjs').ExecutionVariant[]},policy:ConstructorParameters<typeof AdoptedPolicy>[0],managedEnrollmentFile?:string|null,productionEnrollmentFile?:string|null,releaseControl?:import('../release/device-configs.mjs').ReleaseControl,releaseArtifactDirectory?:string,gitSender?:{configurationFile:string,pythonExecutable:string,helperFile:string}}} NativeConfig */
 /** Private installation inputs are outside source/candidates. No alias, mutable
  * symlink, permissive mode or hardlink may act as a credential/enrollment file.
  * @param {string} filename @param {number} [maximum] */
@@ -38,10 +41,16 @@ export async function readNativeConfig(filename){return /** @type {NativeConfig}
 /** Unenrolled installations retain source preparation, never untrusted execution.
  * @type {import('../contracts/ports.js').ValidationPort} */
 const unavailableValidation={async validate(){throw new Dev2Error('EXECUTION_UNAVAILABLE','Managed execution and receipt attestation are not sealed');},async eligible(){return false;}};
-/** @param {NativeConfig} config @param {{log?:(event:string)=>void}} [options] */
+/** @param {NativeConfig} config @param {{log?:(event:string)=>void,commissioningIntent?:import('./production-enrollment.mjs').ProductionIntent}} [options] */
 export async function createNativeInstallation(config,options={}){
  requireThat(config.schemaVersion===1&&config.runtime.schemaDigest===SCHEMA_DIGEST,'INTEGRITY_FAILURE','Installation/schema mismatch');
  const edge=config.edge,binding=edge.binding;workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
+ requireThat(!config.productionEnrollmentFile||config.managedEnrollmentFile,'EXECUTION_UNAVAILABLE','Production enrollment requires historical managed enrollment');
+ requireThat(!!config.releaseControl===!!config.releaseArtifactDirectory,'EXECUTION_UNAVAILABLE','Incomplete installed release configuration');
+ if(config.releaseArtifactDirectory)await privateDirectory(config.releaseArtifactDirectory);
+ const control=config.releaseControl?await new NativeReleaseControl({config:config.releaseControl,...binding,runtime:config.runtime}).init():null;
+ const admission=control?await control.startupAdmission():null;
+ /** @type {NativeReleaseRuntime|null} */let release=null;
  oid(config.runtime.sourceCommitOid);oid(config.runtime.sourceTreeOid);digest(config.runtime.bundleDigest);
  requireThat(edge.installationId===binding.installationId&&binding.provider==='github'&&/^[1-9][0-9]*$/.test(binding.providerRepositoryId),'FORBIDDEN');
  const remote=new URL(binding.remote);requireThat(remote.protocol==='https:'&&remote.hostname==='github.com'&&!remote.username&&!remote.password&&!remote.search&&!remote.hash&&/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.git$/.test(remote.pathname),'FORBIDDEN');
@@ -72,6 +81,8 @@ export async function createNativeInstallation(config,options={}){
  /** @type {DevelopmentEngine|null} */let currentEngine=null;
  /** @type {DurableGitSender|null} */let sender=null;
  /** @type {GitHubCanonicalBoundary|null} */let guard=null;
+ /** @type {Awaited<ReturnType<NativeReleaseControl['serve']>>|null} */let nativeControl=null;
+ try{
  const transport=new GitRefTransport(repository,binding);
  const verifyLineage=(/** @type {string} */ head)=>repository.isAncestor(binding,config.runtime.sourceCommitOid,head);
  const integrationLineage=async(/** @type {string} */ head)=>{requireThat(guard,'EXECUTION_UNAVAILABLE','Canonical monotonic boundary is not enrolled');await guard.verify();return verifyLineage(head);};
@@ -79,6 +90,7 @@ export async function createNativeInstallation(config,options={}){
  if(config.managedEnrollmentFile){
   requireThat(token&&config.gitSender&&config.githubTokenFile&&config.gitAskpassFile,'EXECUTION_UNAVAILABLE','Private managed/native writer configuration is incomplete');
   const enrollment=/** @type {import('./enrollment.mjs').Enrollment} */(parseRecord(await privateFile(config.managedEnrollmentFile,4194304),4194304));
+  const productionEnrollment=config.productionEnrollmentFile?/** @type {import('./production-enrollment.mjs').ProductionEnrollment} */(parseRecord(await privateFile(config.productionEnrollmentFile,1048576),1048576)):undefined;
   const installed=await repository.readCommit(binding,config.runtime.sourceCommitOid);requireThat(installed.source.treeOid===config.runtime.sourceTreeOid,'INTEGRITY_FAILURE','Installed source identity changed');
   const helper=installed.source.entries.find(e=>e.path==='tools/git-sender.py'),helperPath=resolve(config.gitSender.helperFile),helperInfo=await lstat(helperPath);
   requireThat(helper&&helper.mode==='100644'&&helperInfo.isFile()&&!helperInfo.isSymbolicLink()&&await realpath(helperPath)===helperPath&&bytesDigest(await readFile(helperPath))===helper.contentDigest,'INTEGRITY_FAILURE','Canonical sender helper differs from installed source');
@@ -87,7 +99,7 @@ export async function createNativeInstallation(config,options={}){
   requireThat(canonicalJson(senderConfig)===canonicalJson(expectedSender),'INTEGRITY_FAILURE','Canonical sender private scope differs');
   sender=new DurableGitSender({ledger,stateDirectory:senderState,configurationPath:config.gitSender.configurationFile,pythonExecutable:config.gitSender.pythonExecutable,helperPath,environment:gitEnvironment});
   guard=new GitHubCanonicalBoundary({binding,repositoryFullName:repositoryName,repositoryOwnerId:enrollment.repositoryOwnerId,identity:enrollment.canonicalRuleset,token});
-  managed=await createManagedControl({enrollment,runtime:config.runtime,origin:edge.origin,ledger,binding,repository,objects,authorization,initialPolicy,remote:remoteTransport,verifyLineage:integrationLineage,token,receiptSecret:cursorKey,capacity:config.capacity,wake:()=>currentEngine?.pump()});
+managed=await createManagedControl({enrollment,productionEnrollment,commissioningIntent:options.commissioningIntent,admission,installationSealDigest:config.releaseControl?.installationSealDigest,runtime:config.runtime,origin:edge.origin,ledger,binding,repository,objects,authorization,initialPolicy,remote:remoteTransport,verifyLineage:integrationLineage,token,receiptSecret:cursorKey,capacity:config.capacity,wake:()=>currentEngine?.pump()});
  }else requireThat(!ledger.transact(tx=>tx.get("SELECT value FROM meta WHERE key='policy.enrollment'")),'EXECUTION_UNAVAILABLE','Retained managed installation cannot silently fall back to bootstrap');
  const policy=()=>managed?.policyState.current??initialPolicy;
  /** Run tests against the exact existing candidate, not a silently recomposed
@@ -97,20 +109,34 @@ export async function createNativeInstallation(config,options={}){
  const runProfile=async(work,attempt,profile)=>{
   requireThat(managed,'EXECUTION_UNAVAILABLE');const live=await transport.resolve();await transport.fetch(live.head);requireThat(work.baseCommitOid===live.head||await repository.isAncestor(binding,work.baseCommitOid,live.head),'STALE_BASE');
   const preparer=new ResultPreparer({ledger,repository,binding,verifyLineage:async head=>head===work.baseCommitOid,actor:config.actor}),result=await preparer.prepare(work,work.baseCommitOid,policy().policy.execution,binding.policyDigest);
-  currentEngine?.assertAttempt(attempt);const receipt=await managed.pool.run(result,attempt,profile);return {exitCode:receipt.exitCode,signal:receipt.signal,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest};
+  currentEngine?.assertAttempt(attempt);const receipt=await managed.poolFor(result.execution).run(result,attempt,profile);return {exitCode:receipt.exitCode,signal:receipt.signal,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest};
  };
- const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?false:true,integrationLineage,verifyLineage,actor:config.actor,
-  ...(managed?{runProfile,cancelAttempt:(/** @type {import('../contracts/ports.js').Attempt} */ a)=>managed.pool.cancel(a),attemptStopped:(/** @type {import('../contracts/ports.js').Attempt} */ a)=>managed.pool.stopped(a),senderStopped:(/** @type {import('../contracts/ports.js').Effect} */ e)=>{requireThat(sender,'EXECUTION_UNAVAILABLE');return sender.stopped(e);},cancelSender:(/** @type {import('../contracts/ports.js').Effect} */ e)=>{requireThat(sender,'EXECUTION_UNAVAILABLE');return sender.cancel(e);},specialRecovery:async(/** @type {import('../contracts/ports.js').Action} */ action)=>{if(action.operation==='policy.adopt')return managed.policyState.recovery(action);return {stopped:true,effectResolved:true,output:null};},special:async(/** @type {import('../contracts/ports.js').Principal} */ principal,/** @type {import('./engine.mjs').Input} */ input,/** @type {string} */ actionId)=>{requireThat(input.op==='policy.adopt','EXECUTION_UNAVAILABLE','Paired release provider helper is not yet installed');return managed.policyState.adopt(principal,{integratedCommit:input.integratedCommit??'',policyPath:input.policyPath??'',expectedPolicyDigest:input.expectedPolicyDigest??'',newPolicyDigest:input.newPolicyDigest??''},actionId);}}:{})});currentEngine=engine;
+ const activeManaged=managed;
+ const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?release?.available()===true:true,integrationLineage,verifyLineage,actor:config.actor,
+  ...(activeManaged?{runProfile,
+   cancelAttempt:async(/** @type {import('../contracts/ports.js').Attempt} */ a)=>{await activeManaged.production?.builder?.cancel(a.actionId);return activeManaged.attemptPool(a).cancel(a);},
+   attemptStopped:(/** @type {import('../contracts/ports.js').Attempt} */ a)=>activeManaged.attemptPool(a).stopped(a),
+   senderStopped:(/** @type {import('../contracts/ports.js').Effect} */ e)=>{requireThat(sender,'EXECUTION_UNAVAILABLE');return sender.stopped(e);},
+   cancelSender:(/** @type {import('../contracts/ports.js').Effect} */ e)=>{requireThat(sender,'EXECUTION_UNAVAILABLE');return sender.cancel(e);},
+   specialRecovery:async(/** @type {import('../contracts/ports.js').Action} */ action)=>{if(action.operation==='policy.adopt')return activeManaged.policyState.recovery(action);requireThat(release&&release.available(),'EXECUTION_UNAVAILABLE','Release recovery capability is unavailable');return release.recovery(action);},
+   special:async(/** @type {import('../contracts/ports.js').Principal} */ principal,/** @type {import('./engine.mjs').Input} */ input,/** @type {string} */ actionId)=>{if(input.op==='policy.adopt')return activeManaged.policyState.adopt(principal,{integratedCommit:input.integratedCommit??'',policyPath:input.policyPath??'',expectedPolicyDigest:input.expectedPolicyDigest??'',newPolicyDigest:input.newPolicyDigest??''},actionId);requireThat(release&&release.available(),'EXECUTION_UNAVAILABLE','Paired release capability is unavailable');return release.execute(principal,input,actionId);}
+  }:{})});currentEngine=engine;
  /** @type {{connected:boolean,connectionId:string|null,connectedAt:string|null,lastMessageAt:string|null}} */let connection={connected:false,connectionId:null,connectedAt:null,lastMessageAt:null};
  /** @type {import('../edge/types.js').DeviceHello['edge']|null} */let activeEdge=null;
  /** @type {Json|null} */let probeSummary=null;
+ nativeControl=control?await control.serve({engine,connection:()=>({connected:connection.connected,edge:activeEdge})}):null;
+ if(managed?.production?.builder&&control&&config.releaseArtifactDirectory){
+  const p=managed.production;requireThat(p.builder,'EXECUTION_UNAVAILABLE');
+  release=await new NativeReleaseRuntime({ledger,binding,objects,artifactDirectory:config.releaseArtifactDirectory,authority:managed.authority,builder:p.builder,control,authorize:(principal,paths)=>authorization.authorize(principal,binding,'runtime.activate',paths),runtime:config.runtime,enrollmentSealDigest:p.enrolled.sealDigest,trustedRunnerDigest:p.definition.identities.trustedRunnerDigest,workflowDigest:p.definition.identities.workflowDigest}).init();
+ }
  const identity=async()=>{
   /** @type {{state:string,commitOid:string|null,treeOid:string|null,observedAt:string|null}} */let source={state:'unavailable',commitOid:null,treeOid:null,observedAt:null};
   try{const observed=await repository.resolve(binding),commit=await repository.readCommit(binding,observed.head);source={state:'current',commitOid:observed.head,treeOid:commit.source.treeOid,observedAt:observed.observedAt};}catch{}
-  return {installationId:edge.installationId,phase:managed?'qualified':'bootstrap',origin:edge.origin,source,edge:activeEdge??{versionId:null,bundleDigest:null,sourceCommitOid:null,schemaDigest:SCHEMA_DIGEST,observedAt:null},device:{deviceId:edge.deviceId,bundleDigest:config.runtime.bundleDigest,sourceCommitOid:config.runtime.sourceCommitOid,schemaDigest:SCHEMA_DIGEST,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connected:connection.connected,connectionNonce:connection.connectionId,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt},managedExecution:managed?.identity()??{state:'unsealed',sealDigest:null,activeSessions:0,reservedSessions:0,reason:'Private qualified execution enrollment is absent'},activation:{phase:'bootstrap',activationId:null,activeReleaseId:null,stagedReleaseId:null,expectedReleaseId:null,writerStopped:!engine.accepting&&engine.running.size===0,deadline:null}};
+  if(release){if(connection.connected)await release.refresh();else release.invalidate();}
+  return {installationId:edge.installationId,phase:managed?'qualified':'bootstrap',origin:edge.origin,source,edge:activeEdge??{versionId:null,bundleDigest:null,sourceCommitOid:null,schemaDigest:SCHEMA_DIGEST,observedAt:null},device:{deviceId:edge.deviceId,bundleDigest:config.runtime.bundleDigest,sourceCommitOid:config.runtime.sourceCommitOid,schemaDigest:SCHEMA_DIGEST,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connected:connection.connected,connectionNonce:connection.connectionId,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt},managedExecution:managed?.identity()??{state:'unsealed',sealDigest:null,activeSessions:0,reservedSessions:0,reason:'Private qualified execution enrollment is absent'},activation:release?.projection()??{phase:'bootstrap',activationId:null,activeReleaseId:null,stagedReleaseId:null,expectedReleaseId:null,writerStopped:!engine.accepting&&engine.running.size===0,deadline:null}};
  };
  const releaseId=recordDigest('dev2.bootstrap-installed-bundle.v1',{...config.runtime});
- const app=new DevelopmentApplication({engine,releaseId,artifacts:objects,deploymentSealed:false,runtimeIdentity:identity,sessions:()=>managed?.views()??[]});
+ const app=new DevelopmentApplication({engine,releaseId,artifacts:objects,deploymentSealed:()=>release?.deploymentSealed===true,currentReleaseId:()=>release?.releaseId??releaseId,runtimeIdentity:identity,sessions:()=>managed?.views()??[]});
  /** Fixed read-only diagnostics are not human OAuth or self-development proof.
   * @returns {Promise<Json>} */
  const readProbe=async()=>{
@@ -122,6 +148,7 @@ export async function createNativeInstallation(config,options={}){
   const ok=current.ok===true&&read!==null&&typeof read==='object'&&!Array.isArray(read)&&read.ok===true&&observed.ok===true&&open.ok===true;
   probeSummary={ok,observedAt:new Date().toISOString(),authenticationMode:'installation-read-probe',humanOAuth:false,repositoryId:binding.repositoryId,currentHead:current.ok===true?/** @type {RecordValue} */(/** @type {RecordValue} */(current.data).snapshot).commitOid:null,schemaDigest:SCHEMA_DIGEST};return {summary:probeSummary,context:current,read,runtime:observed,open};
  };
- const device=new DeviceConnection({origin:edge.origin,installationId:edge.installationId,secret:deviceKey,invoke:async(tool,args,assertion)=>app.invoke(await verify(assertion),tool,args),executor:async(args,assertion)=>managed?managed.endpoint.invoke(args,assertion):failure(new Dev2Error('EXECUTION_UNAVAILABLE','Managed execution is not enrolled')),probe:readProbe,presence:()=>({schemaDigest:SCHEMA_DIGEST,sourceCommitOid:config.runtime.sourceCommitOid,bundleDigest:config.runtime.bundleDigest,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt,probe:probeSummary}),onHello:hello=>{activeEdge=hello.edge;},onState:value=>{connection=value;},log:options.log});
- engine.pump();return {app,engine,ledger,repository,device,managed,sender,guard,readProbe,identity,releaseId,async close(){engine.drain();device.stop();await Promise.allSettled([...device.inflight.values(),...engine.running.values()]);ledger.close();}};
+const device=new DeviceConnection({origin:edge.origin,installationId:edge.installationId,secret:deviceKey,invoke:async(tool,args,assertion)=>app.invoke(await verify(assertion),tool,args),executor:async(args,assertion)=>managed?managed.endpoint.invoke(args,assertion):failure(new Dev2Error('EXECUTION_UNAVAILABLE','Managed execution is not enrolled')),probe:readProbe,presence:()=>({schemaDigest:SCHEMA_DIGEST,sourceCommitOid:config.runtime.sourceCommitOid,bundleDigest:config.runtime.bundleDigest,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt,probe:probeSummary}),onHello:hello=>{activeEdge=hello.edge;},onState:value=>{connection=value;if(!value.connected)release?.invalidate();},log:options.log});
+ if(options.commissioningIntent)engine.drain();else engine.pump();return {app,engine,ledger,repository,device,managed,sender,guard,control,release,readProbe,identity,releaseId,async close(){engine.drain();release?.invalidate();device.stop();await Promise.allSettled([...device.inflight.values(),...engine.running.values()]);await nativeControl?.close();ledger.close();}};
+ }catch(error){currentEngine?.drain();await nativeControl?.close().catch(()=>{});ledger.close();throw error;}
 }

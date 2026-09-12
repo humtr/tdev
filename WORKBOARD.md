@@ -1,7 +1,23 @@
 # dev-2 workboard
 
-Authority: DIRECTIVE r4 -> RULE -> selected D0001-D0007.
+Authority: DIRECTIVE r4 -> RULE -> selected D0001-D0008.
 This file is current execution status only; mutable facts require fresh observation.
+
+## Local candidate handoff (not canonical or commissioned)
+
+The isolated local branch `codex/prod-enrollment-release-join`, based on freshly
+fetched `dev-2` at `cd3d63fd152e54d73641b6dd2dcc8944090404c9`, implements the
+separate production enrollment/receipt verifier, private exact-source commissioning,
+managed finite release Builder and native main composition under D0008. It retains
+qualification-only authority separately, reuses the existing session/action owners
+and release backend, and gates release availability on the installed verified join.
+
+This is **local candidate complete, not yet canonical, not commissioned, not live
+accepted**. Local verification and the exact next Pro inputs/actions are recorded
+in [the production release handoff](docs/evidence/phase-b-convergence/local-production-release-handoff.md).
+The canonical and runtime observations below are retained pre-candidate facts,
+not fresh live observations from this local session. Do not redo the closed
+generation 5/8 retirement or capacity repairs; neither is a new workstream here.
 
 ## Current implementation state
 
@@ -28,7 +44,11 @@ These source integrations do not establish an installed active release or live r
 
 ## Immediate remaining dependency
 
-The leading incomplete product dependency is the composition from approved production execution evidence into the installed release producer and then into native main. Its sequence is: authoritative production qualification/enrollment, verified finite-release Builder capability, native main composition with the existing native release runtime, bounded commissioning of the missing installed capability, and then live public release staging, activation, readback, and rollback acceptance.
+The canonical branch still needs review/integration of the local candidate above.
+After that, the leading dependency is actual approved production evidence and
+private enrollment commissioning, bounded installation of the missing native/helper
+capability, then public release staging, activation, paired readback and rollback.
+The local implementation does not itself supply any of that live authority.
 
 Relevant retained work:
 
@@ -41,4 +61,5 @@ Relevant retained work:
 
 Still incomplete are installed runtime change through the release path, live paired release and rollback, actual eight independent overlapping works and higher-capacity semantics, safe Android recovery evidence, and predecessor comparison/performance repair.
 
-First release is not complete. Independent implementation remains and an external-only stop condition has not been established.
+First release is not complete. This local candidate closes the selected source
+joins, not all first-release evidence or the broader acceptance workstreams.

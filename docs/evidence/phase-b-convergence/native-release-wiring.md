@@ -1,5 +1,9 @@
 # Native public release composition handoff
 
+Local candidate continuation: [production enrollment/Builder/native-main handoff](local-production-release-handoff.md).
+It implements the source joins described below on a separate local branch; these
+historical live scope IDs do not establish its canonical integration or commissioning.
+
 Current native release composition owner:4e93425c92bfe9779a84f379d2799d0a.
 Fixed helper/runtime admission owner:d094b54dd6f208cd9ab34a126002218b.
 Production enrollment/native builder owner:0a263131c50fa39c7402d7183fe736c2.

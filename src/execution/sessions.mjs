@@ -115,7 +115,11 @@ export class ManagedSessions {
   if(a.state==='complete'){requireThat(encoded(a.result)===encoded(bounded),'IDEMPOTENCY_MISMATCH');return a;}
   requireThat(a.state==='running','STALE_RESULT','Completion requires the retained acknowledged assignment');
   for(const artifact of result.artifacts){const row=tx.get("SELECT state FROM managed_artifact WHERE assignment_id=? AND digest=?",a.assignmentId,artifact);requireThat(row?.state==='ready','INTEGRITY_FAILURE','Uncommitted assignment artifact');}
-  return this.saveAssignment(tx,a,{...a,state:'complete',result:structuredClone(bounded)});
+  const completed=this.saveAssignment(tx,a,{...a,state:'complete',result:structuredClone(bounded)});
+  // Native-only provenance captured after OIDC/lease and ready-object checks.
+  // Later idle retirement must not rewrite the state at execution completion.
+  tx.run('INSERT INTO meta VALUES(?,?)','managed.completion:'+a.assignmentId,encoded({schemaVersion:1,kind:'dev2.authenticated-completion',assignment:completed,session:s,launchIdentity:identity.launchIdentity}));
+  return completed;
  });}
  /** @param {string} assignmentId */
  cancelAssignment(assignmentId){return this.ledger.transact(tx=>{const a=this.assignment(tx,assignmentId);if(['complete','stopped'].includes(a.state)||a.cancelRequested)return a;return this.saveAssignment(tx,a,{...a,cancelRequested:true});});}
