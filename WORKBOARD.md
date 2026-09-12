@@ -126,6 +126,31 @@ comparison remain NOT RUN, not implied by configuration8 or two successful actio
 Old tdev comparison must use preserved history/source/historical/analytical classes,
 never a repaired old live endpoint. Current tmcp comparison may be measured.
 
+## Current release continuation (2026-09-12)
+
+Canonical source progressed through finite build dff65e84, OS writer fence72002ce4,
+selected production outer-receipt contractf0d1dbff and fixed launcher/FIFO1488582e.
+Each of the three release-foundation changes passed actual managed core/integration
+and ordinary dev_work integration with exact canonical remote readback. See
+[fixed helper progress](docs/evidence/phase-b-convergence/fixed-helper-progress.md)
+for immutable work/result/validation/effect identities and evidence classes.
+
+Generation8 retirement repair remains CLOSED. Production receipt collectors remain
+owned by543fce88473719f2d313440c167fcc97 and4444ef993db0b23283f2ada186af3da7.
+The overlapping unintegrated5abe65b7 candidate was preserved/cancelled, not published.
+Release helper/native continuation isae5c9425b8ae276f4ecd86ee0b3f368b.
+Next: finish fixed helper/native wiring and staged-runtime authorization, join exact
+production build/receipt capability, then bounded missing installation commissioning.
+Resume ordinary public stage/activate as soon as available; perform live paired
+readback/rollback and runtime self-development before claiming those capabilities.
+
+Last runtime readback10:50:06Z remains device/edge4429139c, edge590a6f73, owner6,
+connected, qualified execution only, deploymentSealed=false, no staged/active release.
+Actual eight-way, physical recovery and final performance/comparison remain pending.
+No runtime mutation or ordinary predecessor source/publication bypass was performed.
+Independent implementation remains; neither first release nor external-only stop
+condition has been established.
+
 ## Completion
 
 First release is NOT complete. Continue implementation -> live falsifier -> classify
