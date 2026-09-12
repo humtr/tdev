@@ -163,6 +163,37 @@ work owner; if it or the host is lost, GitHub terminal run readback proves the o
 host execution has ended before a new replay-safe validation attempt is admitted.
 A missing connection, lease or heartbeat is not proof of termination.
 
+### Production outer receipt and kernel lifetime
+
+The selected production execution keeps the credential-free container alive with a
+fixed image-resident idle process while the trusted outer controller invokes the
+adopted command through one bounded exec. This permits exact host-side cgroup and
+namespace observations before and after the command, before container teardown.
+Neither child stdout nor a candidate-writable result file supplies kernel evidence.
+The original profile's container deadline, resource bounds, immutable source and
+controller mounts remain enforced. The outer controller stops the entire container
+and verifies stop, including descendant processes, before submitting completion.
+
+The outer journal persists intent before exec. An interrupted exec with no retained
+outcome cannot be rerun in that assignment; reconcile and stop it, then expose an
+interrupted result. Transfer loss after a retained outcome resends identical objects
+and completion without execution. A complete receipt binds native input identity,
+assignment/lease, provider session/run, exact command/profile, before/after kernel
+observations, stopped execution outcome, source digests and bounded output objects.
+Native acceptance joins that receipt to the immutable prepared result, generation,
+policy, full attempt and installation/binding epoch before HMAC signing. Historical
+qualified receipts retain their original evidence class and cannot acquire this
+production proof by adding a field or relabeling a log.
+
+Finite release builds return only device.cjs, worker.mjs and tools.json as bounded
+objects. Collection is a fixed credential-free container operation; the trusted
+outer controller hashes the actual returned bytes. Native code verifies the bound
+object set and frozen descriptor contract, never runs a candidate build/install hook.
+Missing observations, changed cgroup identity, OOM counter increases, incomplete
+stop, output truncation or object disagreement reject production eligibility. The
+new execution shape requires actual managed containment qualification and live
+native receipt acceptance before enrollment; deterministic tests alone do not seal it.
+
 ## 5. Credential and effect boundary
 
 Only Termux's trusted integration component receives repository-scoped Git provider
