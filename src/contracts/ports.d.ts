@@ -38,7 +38,9 @@ export interface PreparedResult { resultId:Id; repositoryId:Id; bindingEpoch:Rev
 export interface ProfileOutcome { profileDigest:Digest; status:'passed'|'failed'|'not_run'|'cancelled'; exitCode:number|null }
 export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id; attempt:Attempt;
   startedAt:number; endedAt:number; exitCode:number|null; signal:string|null; deadlineExceeded:boolean;
-  outcomes:readonly ProfileOutcome[]; inputDigest:Digest; outputDigest:Digest; signature:Digest }
+  outcomes:readonly ProfileOutcome[]; inputDigest:Digest; outputDigest:Digest; signature:Digest;
+  /** Present only after native authenticated production joins; MAC covers the exact canonical record. */
+  productionJson?:string }
 export interface Effect { effectId:Id; workId:Id; actionId:Id; repositoryId:Id; bindingEpoch:Revision;
   ref:string; expectedHead:Oid; commitOid:Oid; preparedResultId:Id; validationId:Digest; policyDigest:Digest }
 export type EffectObservation = {kind:'integrated';observedHead:Oid;observedAt:string} |
