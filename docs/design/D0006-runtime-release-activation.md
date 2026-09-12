@@ -207,6 +207,58 @@ repository HEAD and stagedRelease are separate facts. Candidate source may integ
 without changing the active runtime. No manual task-specific Worker redeployment is
 part of ordinary forward development after this release capability is installed.
 
+### Fixed helper and native control contract
+
+The selected fixed helper has one app-private activation journal and runs outside
+replaceable broker code under the existing Termux launcher. It is not another work
+owner or job queue. Native-to-helper calls are a closed private vocabulary: helper
+status, exact inactive-version upload/reconciliation, activation begin/observation.
+Helper-to-native calls are status and drain for one retained activation. A bounded
+loopback endpoint avoids Android deep-path UNIX-socket limits; it is never exposed
+as public ingress. Private role-specific HMAC keys, fresh server nonce, bounded
+request lifetime, exact request identity, strict canonical records and authenticated
+responses bind each call. Loopback, PID, endpoint filename and annotations are not
+credentials. The endpoint transports only typed records, never a shell, command,
+provider URL, candidate path or arbitrary filesystem operation.
+
+Endpoint/request lifetimes provide transport fencing, not external-effect stop
+proof. A disconnected or timed-out call may have been applied. Every side effect
+still uses the original action/activation/effect identity and the existing journals;
+only exact observation can release uncertainty. Status/observation never create a
+replacement operation. Old instance responses cannot complete a new server's call.
+
+Before switching a device pointer the helper verifies the selected runit service
+has stopped, obtains the real exclusive SQLite writer lock without advancing work
+owner state, and proves every retained canonical Git sender stopped under its own
+OS lock. Broker exit or elapsed time alone is insufficient because a Git child may
+outlive it. Drain waits only on affected running actions/effects, excluding the
+activation action that requested this exact handoff; idle retained works survive.
+An unknown sender fences the rollout, not unrelated source reads or work. A fixed
+launcher reads an atomically replaced, private artifact-bound device pointer. It
+executes only an already validated staged device bundle and fixed native config.
+
+The helper reads back exact edge routing and fresh native component health before
+recording active or rolled_back. Unchanged device bytes do not trigger a restart;
+unchanged edge bytes do not trigger a deployment. A mixed pair is never terminal
+success. The exact previous pair remains retained until rollback is no longer
+needed. Restart reopens the same helper journal and reconciles its fixed effects.
+Native update eligibility is derived from the validated release admission and
+existing approved executor enrollment, not a forged native-test report or repeated
+operator commissioning. Required core/integration receipts remain mandatory.
+
+Managed release artifact construction is a finite credential-free execution of
+fixed build outputs under D0005 containment. Its trusted outer artifact receipt
+binds the exact integrated source, profile, controller, run/attempt and three fixed
+bundle/descriptor objects. It is not the full D0007 release/live aggregate: actual
+paired activation, physical environment and recovery proofs remain separate gates.
+No candidate build or install hook executes in the device/helper credential UID.
+
+Falsifiers include forged/wrong-role or old-instance private calls, response loss
+after durable effect admission, a live inherited Git-sender lock after broker exit,
+changing a staged object, partial routing, unsolicited pointer changes, and restart
+between stop/switch/start. Rejecting these must not relax the ordinary schema,
+create a second work owner or require a task-specific runtime redeployment.
+
 ## 6. Alternatives, bounds and acceptance evidence
 
 A generic Linux service and public reverse proxy fail DIRECTIVE Section13. A cloud
