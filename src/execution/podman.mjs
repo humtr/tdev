@@ -99,6 +99,14 @@ export class PodmanSandbox {
       const state=list[0].State;
       if(state.Running===true)return observation(attempt,'running');
       if(['exited','stopped'].includes(state.Status)&&state.Running===false&&Number.isSafeInteger(state.ExitCode)&&state.ExitCode>=0&&state.ExitCode<=255)return {...observation(attempt,'exited'),exitCode:state.ExitCode};
+      // Real hosted Podman 4.9.3/conmon returns -1 after its enforced timeout.
+      // Terminal state + no live PID + ordered timestamps prove stop, not PASS.
+      // Retain unknown exitCode as null; required validation still rejects it.
+      const terminal=/** @type {typeof state & {Pid?:number,StartedAt?:string,FinishedAt?:string}} */(state);
+      if(state.Status==='exited'&&state.Running===false&&state.ExitCode===-1&&terminal.Pid===0){
+        const started=Date.parse(terminal.StartedAt??''),finished=Date.parse(terminal.FinishedAt??'');
+        if(Number.isFinite(started)&&started>0&&Number.isFinite(finished)&&finished>=started)return observation(attempt,'exited');
+      }
       if(state.Status==='created')return observation(attempt,'uncertain');
       return observation(attempt,'uncertain');
     } catch(error) {if(error instanceof Dev2Error&&error.code==='INTEGRITY_FAILURE')throw error;return observation(attempt,'uncertain');}
