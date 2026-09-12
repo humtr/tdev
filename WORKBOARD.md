@@ -38,7 +38,7 @@ required core and integration run in github-hosted-rootless-oci. Default capacit
 
 | Frontier | Actual completion | Remaining implementation or acceptance |
 | --- | --- | --- |
-| B1 | Immutable approved controller4429139c, exact provider/OIDC/assignment/lease/object transfer; actual native authenticated required-validation receipt PASS | Repair idle-session turnover/never-offered resource loss; carry kernel OOM evidence into production result eligibility; stress/cancel/restart acceptance |
+| B1 | Immutable approved controller4429139c, exact provider/OIDC/assignment/lease/object transfer; actual native authenticated required-validation receipt PASS; idle retirement / never-offered resource replacement repair canonical at 6aee218b00af0d29c07b402c8d936d81403f8681 with required managed core+integration PASS | Carry kernel OOM evidence into production result eligibility; stress/cancel/restart acceptance |
 | B2 | Actual public validate -> eligible receipt -> integrate exact validated result -> Git canonical readback PASS; duplicate request returns same action/effect | Repeated same-ref composition cost, stale conflicts and full interrupted-publication replay |
 | B3 | Request dedup, retained native attempts/receipts, scoped uncertainty; unchanged-runtime stop/start and reconnect preserved identity | Managed interruption/turnover and fixed release helper stop/rollback reconciliation on actual path |
 | B4 | Policy backend, integrated-source authority, immutable artifacts, release backend, fixed-effect controller, Cloudflare adapter/journals and private authenticated control source are published | Finite contained release build + trusted artifact receipt, fixed helper/device ports, native join, real public stage/activate, paired health/rollback |
@@ -64,9 +64,10 @@ See [native self-development](docs/evidence/phase-b-convergence/native-self-deve
    execution logs to existing action.output/artifact reads, without schema changes.
    Its earlier exact generation3 required managed core/integration PASS. Current
    composition also carries this handoff. Install only through qualified release.
-2. Resource work8e484c03be678347b2fe54e40b51e1ff owns bounded managed idle retirement,
-   no-offer resource turnover with retained logical identity, finite release build,
-   outer receipt/production containment join. Implement before scaling stress.
+2. Resource work8e484c03be678347b2fe54e40b51e1ff is integrated at generation8 for bounded
+   managed idle retirement and no-offer resource turnover with retained logical
+   identity. Its remaining Phase B scope is finite release build plus outer
+   receipt/production containment join; do not reopen the retirement blocker.
 3. Release work4091305b308319552f6434435139575b owns fixed helper/device/native join,
    exact writer/sender stop proof, immutable device pointer, paired health and
    rollback. Reuse current backend/CF/private RPC; do not reimplement B4 primitives.
@@ -76,12 +77,26 @@ fixture (invalid digest domain and nonexistent unfenced generic write API). Test
 now seed only an exact private fixture row; domain dev2.fixture-upload.v1. The same
 required managed acceptance passed after repair. No product safety rule was relaxed.
 
-A separate real product defect remains: a ready-looking hosted session can have
-exited idle before a new dispatch is offered. Action544d308eb29023dde1260352a5a597c3
-failed EXECUTION_UNAVAILABLE before a lease/assignment. This is not failed source
-validation or a provider permission denial. Coordinate retirement with dispatch and
-only replace physical resource after exact old provider terminal/no-offer proof;
-preserve original action/attempt/assignment/input/deadline and retained session history.
+The managed idle-retirement blocker is repaired on canonical
+6aee218b00af0d29c07b402c8d936d81403f8681 (parent
+54c0052679630f211efad7c10c79c0ce0afde41e, tree
+02246ea46710f6ccfbaf930a9a85e89743a8fe9d). Generation5 remains retained failure
+evidence: managed integration passed but core failed TS2339 because replacement read
+nonexistent Action.cancelRequested. Current source independently confirms cancellation
+intent is durable meta cancel:<actionId>. The repair gates resource replacement on that
+durable intent, still requires exact old-session terminal/no-offer proof, preserves the
+original action/work/attempt/assignment/input/deadline and prior session history, and
+adds a focused cancellation+terminal+never-offered regression. Generation7 then had
+core PASS and one regression assertion defect (null-prototype versus plain object), not
+a product failure. Generation8 corrected only that assertion; its first validation
+attempt failed pre-dispatch with validation=null/EXECUTION_UNAVAILABLE, then the same
+candidate retried normally and required managed core+integration both passed,
+eligible=true, validation sha256:a0fb83e14eeacc260b4f07068454a76bffcf44a38313f726c1ced62a1ddb5367.
+Validated result3c3b30217adbf14d822c6ebacebc5d8d integrated with stale-head protection
+and fresh canonical readback at6aee218b. Installed device/edge source remains
+4429139cded44451efbce1f45d7bf90b71d59d66; this repair was not deployed or activated.
+Next Pro should continue the already-owned Phase B release/recovery/containment/
+concurrency frontier and must not re-investigate this generation5 blocker.
 
 Earlier repaired build acceptance: readonly /source output placement, locked Ajv
 helper resolution from external scratch, and output-location-dependent esbuild
