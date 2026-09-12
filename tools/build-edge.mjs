@@ -13,19 +13,25 @@ const out=resolve(root,process.argv[2]??'.artifacts/build');await mkdir(out,{rec
 const ajv=new Ajv2020({strict:true,strictRequired:false,code:{source:true,esm:true},coerceTypes:false,removeAdditional:false,useDefaults:false});
 /** @type {Record<string,string>} */const exports={};
 for(const [name,schema] of Object.entries(OUTPUT_SCHEMAS)){const id='urn:dev2:output:'+name;ajv.addSchema(schema,id);exports['v_'+name]=id;}
-await writeFile(join(out,'validators.mjs'),standaloneCode(ajv,exports));
+const validators=standaloneCode(ajv,exports);
 const rel=/** @param {string} path */path=>JSON.stringify(join(root,path));
-const contract=`import * as validators from './validators.mjs';
+const contract=`import * as validators from 'dev2-generated:validators.mjs';
 import {canonicalJson,parseRecord} from ${rel('src/contracts/canonical.mjs')};
 import {requireThat} from ${rel('src/contracts/errors.mjs')};
 export const TOOL_DESCRIPTORS=${canonicalJson(TOOL_DESCRIPTORS)};
 export const SCHEMA_DIGEST=${JSON.stringify(SCHEMA_DIGEST)};
 export function validateOutput(name,value){const checked=parseRecord(canonicalJson(value),2097152);const validator=validators['v_'+name];requireThat(typeof validator==='function'&&validator(checked),'INTEGRITY_FAILURE','Tool output violates its published contract');return checked;}
 `;
-await writeFile(join(out,'contract.mjs'),contract);
-await writeFile(join(out,'buffer.mjs'),"export {Buffer} from 'node:buffer';\n");
-const result=await build({entryPoints:[join(root,'src/edge/worker.mjs')],outfile:join(out,'worker.mjs'),bundle:true,format:'esm',platform:'neutral',target:'es2022',conditions:['workerd','worker','browser'],mainFields:['module','main'],external:['node:*'],inject:[join(out,'buffer.mjs')],metafile:true,legalComments:'none',minify:false,
- plugins:[{name:'frozen-contract-aot',setup(builder){builder.onResolve({filter:/^\.\/contract\.mjs$/},args=>args.importer.startsWith(join(root,'src/edge/'))?{path:join(out,'contract.mjs')}:null);}}]});
+const generated=new Map([['validators.mjs',validators],['contract.mjs',contract],['buffer.mjs',"export {Buffer} from 'node:buffer';\n"]]);
+// Stable virtual module identities prevent output-directory names leaking into
+// esbuild's module initialization keys. Resolution stays anchored to the locked
+// source dependency set; no writable source, runtime compiler or external helper.
+const result=await build({absWorkingDir:root,entryPoints:[join(root,'src/edge/worker.mjs')],outfile:join(out,'worker.mjs'),bundle:true,format:'esm',platform:'neutral',target:'es2022',conditions:['workerd','worker','browser'],mainFields:['module','main'],nodePaths:[join(root,'node_modules')],external:['node:*'],inject:['dev2-generated:buffer.mjs'],metafile:true,legalComments:'none',minifyWhitespace:true,
+ plugins:[{name:'frozen-contract-aot',setup(builder){
+  builder.onResolve({filter:/^\.\/contract\.mjs$/},args=>args.importer.startsWith(join(root,'src/edge/'))?{path:'contract.mjs',namespace:'dev2-generated'}:null);
+  builder.onResolve({filter:/^dev2-generated:/},args=>{const name=args.path.slice('dev2-generated:'.length);if(!generated.has(name))throw Error('Unknown generated build module');return {path:name,namespace:'dev2-generated'};});
+  builder.onLoad({filter:/.*/,namespace:'dev2-generated'},args=>{const contents=generated.get(args.path);if(contents===undefined)throw Error('Unknown generated build module');return {contents,loader:'js',resolveDir:root};});
+ }}]});
 const bytes=await readFile(join(out,'worker.mjs'));
 if(/new Function\(|eval\(/.test(bytes.toString()))throw Error('Dynamic code generation in edge bundle');
 for(const name of Object.keys(result.metafile.inputs))if(/(?:src\/runtime\/application|src\/storage\/ledger|src\/mcp\/input-schemas|node_modules\/ajv\/dist\/compile)/.test(name))throw Error('Forbidden edge input: '+name);
