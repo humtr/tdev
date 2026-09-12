@@ -141,8 +141,10 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--write-index', action='store_true', help='Generate INDEX from validated metadata; does not certify the repository')
     parser.add_argument('--architecture-only', action='store_true', help='Also reject product implementation files in this documentation snapshot')
+    parser.add_argument('--root', type=Path, help='Fixed candidate root selected by the installed validation controller')
     args = parser.parse_args()
-    root = Path(__file__).resolve().parents[2]
+    root = args.root.resolve() if args.root else Path(__file__).resolve().parents[2]
+    require(not (args.root and args.write_index), 'Managed source checking cannot generate or rewrite the candidate index')
     try:
         designs = load_designs(root)
         if args.write_index:

@@ -7,7 +7,7 @@ import { join } from 'node:path';
 test('unimplemented layers never pass an empty suite', () => {
   const dir=mkdtempSync(join(tmpdir(),'dev2-entrypoint-'));
   try {
-    for(const profile of ['integration','release','live','benchmark']) {
+    for(const profile of ['release','live','benchmark']) {
       const out=join(dir,profile);
       const r=spawnSync(process.execPath,['tools/validate.mjs','--profile',profile,'--output',out],{encoding:'utf8',timeout:20000});
       assert.equal(r.status,2,r.stderr);

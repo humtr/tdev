@@ -48,10 +48,12 @@ test('workflow, deploy, architecture and toolchain input bytes all change the ca
     try {
         const source = join(root, 'source');
         await mkdir(source);
-        for (const path of ['src/contracts', 'src/runtime', 'tools', 'config', 'AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'WORKBOARD.md', 'package.json', 'package-lock.json', 'jsconfig.json', '.node-version', 'docs/ARCHITECTURE.md'])
+        for (const path of ['src/contracts', 'src/runtime', 'src/validation', 'tools', 'config', 'AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'WORKBOARD.md', 'package.json', 'package-lock.json', 'jsconfig.json', '.node-version', 'docs/ARCHITECTURE.md'])
             await cp(path, join(source, path), { recursive: true });
         let count = 0;
-        async function report() { const out = join(root, 'report-' + count++); const r = spawnSync(process.execPath, [join(source, 'tools/validate.mjs'), '--profile', 'integration', '--output', out], { encoding: 'utf8', timeout: 5000 }); assert.equal(r.status, 2, r.stderr || r.stdout); return JSON.parse(await readFile(join(out, 'result.json'), 'utf8')).inputDigest; }
+        // Only input hashing is under test; the still-unimplemented release layer
+        // must report NOT RUN, rather than executing a deliberately absent suite.
+        async function report() { const out = join(root, 'report-' + count++); const r = spawnSync(process.execPath, [join(source, 'tools/validate.mjs'), '--profile', 'release', '--output', out], { encoding: 'utf8', timeout: 5000 }); assert.equal(r.status, 2, r.stderr || r.stdout); return JSON.parse(await readFile(join(out, 'result.json'), 'utf8')).inputDigest; }
         let before = await report();
         for (const path of ['deploy/fixture.json', '.github/workflows/fixture.yml', '.node-version', 'docs/ARCHITECTURE.md']) {
             const target = join(source, path);

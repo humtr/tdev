@@ -13,7 +13,7 @@
       ]
     },
     "integration": {
-      "implemented": false,
+      "implemented": true,
       "testDirectory": "test/integration",
       "timeoutMs": 300000,
       "network": "none",
