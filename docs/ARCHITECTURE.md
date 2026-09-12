@@ -52,6 +52,11 @@ eligible. Integrate using expected-old-ref protection; reconcile response loss b
 exact commit and managed-lineage readback. Recomposition changes result identity
 and requires validation again. No throughput optimization may validate one tree
 and publish another or exclude the cost of stale/full-validation repetition.
+D0006 separates the exact native canonical-writer toolchain from the observed
+credential-free managed-image toolchain. Both execute the same mandatory contract;
+the installed controller, not candidate configuration, selects and verifies the
+managed image/Node/Git/Python variant. Qualified containment alone is not production
+enrollment, a trusted validation receipt, or a paired runtime activation.
 
 ## Owner map
 

@@ -1,23 +1,24 @@
 import {canonicalJson,parseRecord,bytesDigest} from '../contracts/canonical.mjs';
 import {id,digest} from '../contracts/identity.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,Dev2Error,ERROR_CODES} from '../contracts/errors.mjs';
 import {executorRequest} from './protocol.mjs';
 import {PAYLOAD_BYTES} from './payload.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {import('./session-types.js').Assignment} Assignment */
-/** A fixed-origin OIDC executor client, never a repository/provider shell proxy.
- * Retries reuse exact ack/upload/result identity; the caller controls bounded
- * retry scheduling and retains its result until acknowledged.
- */
+/** Fixed-origin authenticated client. Response loss retains assignment/lease;
+ * authority and semantic rejection are not relabeled as retryable transport loss. */
 export class ExecutorClient {
  /** @param {{origin:string,sessionId:string,token:()=>Promise<string>,fetcher?:typeof fetch,allowInsecureFixture?:boolean}} options */
  constructor(options){const origin=new URL(options.origin);requireThat(origin.origin===options.origin&&!origin.username&&!origin.password&&(origin.protocol==='https:'&&origin.hostname.endsWith('.workers.dev')||options.allowInsecureFixture===true&&origin.protocol==='http:'&&['127.0.0.1','localhost'].includes(origin.hostname)),'INVALID_ARGUMENT','Executor origin');this.url=origin.origin+'/executor';this.sessionId=id(options.sessionId);this.token=options.token;this.fetcher=options.fetcher??fetch;this.metrics={requests:0,sentBytes:0,receivedBytes:0};}
  /** @param {unknown} value @returns {Promise<Json>} */
  async call(value){const request=executorRequest(value);requireThat(request.sessionId===this.sessionId,'FORBIDDEN');const body=canonicalJson(request),token=await this.token();requireThat(typeof token==='string'&&token.length>0&&token.length<=32768&&!/\s/.test(token),'UNAUTHORIZED');this.metrics.requests++;this.metrics.sentBytes+=Buffer.byteLength(body);
   let response;try{response=await this.fetcher(this.url,{method:'POST',headers:{'content-type':'application/json',authorization:'Bearer '+token},body,redirect:'error',signal:AbortSignal.timeout(20000)});}catch{throw new Dev2Error('EXECUTION_UNAVAILABLE','Executor transport unavailable; retain the exact assignment');}
-  requireThat(response.ok,'EXECUTION_UNAVAILABLE','Executor endpoint HTTP '+response.status);const length=response.headers.get('content-length');requireThat(length===null||/^(0|[1-9][0-9]*)$/.test(length)&&Number(length)<=262144,'LIMIT_EXCEEDED');let size=0;const chunks=[],reader=response.body?.getReader();requireThat(reader,'INTEGRITY_FAILURE');
+  if(!response.ok)throw new Dev2Error(response.status===401?'UNAUTHORIZED':response.status===403?'FORBIDDEN':response.status===429?'CAPACITY_REJECTED':'EXECUTION_UNAVAILABLE');
+  const length=response.headers.get('content-length');requireThat(length===null||/^(0|[1-9][0-9]*)$/.test(length)&&Number(length)<=262144,'LIMIT_EXCEEDED');let size=0;const chunks=[],reader=response.body?.getReader();requireThat(reader,'INTEGRITY_FAILURE');
   try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;requireThat(size<=262144,'LIMIT_EXCEEDED');chunks.push(Buffer.from(part.value));}}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}
-  this.metrics.receivedBytes+=size;const result=/** @type {{apiVersion?:number,ok?:boolean,data?:Json,error?:{code?:string}}} */(parseRecord(Buffer.concat(chunks),262144));requireThat(result.apiVersion===1&&result.ok===true&&result.data!==undefined,'EXECUTION_UNAVAILABLE','Executor request was not accepted');return result.data;
+  this.metrics.receivedBytes+=size;const result=/** @type {{apiVersion?:number,ok?:boolean,data?:Json,error?:{code?:string}}} */(parseRecord(Buffer.concat(chunks),262144));requireThat(result.apiVersion===1,'INTEGRITY_FAILURE');
+  if(result.ok===false){const code=result.error?.code;requireThat(typeof code==='string'&&ERROR_CODES.includes(code),'INTEGRITY_FAILURE','Unknown native rejection');throw new Dev2Error(code);}
+  requireThat(result.ok===true&&result.data!==undefined,'INTEGRITY_FAILURE','Malformed native executor reply');return result.data;
  }
  async poll(){return /** @type {{session:import('./session-types.js').Session,assignment:Assignment|null,cancelRequested:boolean}} */(/** @type {unknown} */(await this.call({apiVersion:1,sessionId:this.sessionId,op:'poll'})));}
  /** @param {Assignment} a */

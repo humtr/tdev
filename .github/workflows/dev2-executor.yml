@@ -24,5 +24,5 @@ jobs:
           echo "$PWD/.bootstrap/node-v24.21.0-linux-x64/bin" >> "$GITHUB_PATH"
       - name: Install locked trusted controller dependencies
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
-      - name: Exercise exact hosted containment before enrollment
-        run: node tools/qualify-hosted.mjs
+      - name: Execute only native-authorized exact managed assignments
+        run: node tools/managed-executor.mjs

@@ -23,6 +23,18 @@ export function selectExecutionVariant(lock, observed) {
     requireThat(matched, 'EXECUTION_UNAVAILABLE', 'No exact supported execution variant');
     return Object.freeze({ ...matched });
 }
+/** The credential-free managed image has an independently observed exact Git
+ * implementation; canonical device writing retains its own exact native pin.
+ * No range fallback or ambient environment variable can select another version.
+ * @param {{git:{version:string},managedImage?:{imageDigest:string,executionVariant:string,gitVersion:string,pythonVersion:string}}} lock
+ * @param {ExecutionVariant} variant @param {string} environment */
+export function executionToolVersions(lock,variant,environment){
+    requireThat(environment==='native'||environment==='managed-image','INVALID_ARGUMENT');
+    if(environment==='native')return {git:lock.git.version,python:null};
+    const image=lock.managedImage;
+    requireThat(image&&/^sha256:[a-f0-9]{64}$/.test(image.imageDigest)&&variant.role==='ci'&&variant.platform==='linux'&&variant.id===image.executionVariant&&/^\d+\.\d+\.\d+$/.test(image.gitVersion)&&/^\d+\.\d+\.\d+$/.test(image.pythonVersion),'EXECUTION_UNAVAILABLE','No exact approved managed-image toolchain');
+    return {git:image.gitVersion,python:image.pythonVersion};
+}
 /** Syntax and binding integrity only. The caller must independently obtain fresh
  * provider ownership, enabled-route and authentication-policy readback.
  * @param {unknown} value @returns {string} */

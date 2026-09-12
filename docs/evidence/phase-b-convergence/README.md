@@ -57,6 +57,41 @@ edits and candidate preparation use dev-2. Each new candidate/effect is verified
 against fresh current state and recorded as the join proceeds. Once native support
 is installed, subsequent ordinary work must use it rather than predecessor tooling.
 
+## First coherent trusted-controller source milestone
+
+Published and read back at 2026-09-12T02:57:53Z:
+`b81ba525c8e9b5e47093db5744fc705d45cf0f82`, tree
+`a6f72d1299c380f3167b0900b915175a8a31f88b`, direct child of the fresh starting a5f74cb7.
+All source creation/edits/preparation used the actual canonical four tools, work
+`e107fe593393dc5749f77be010229efb`, generation4, prepared result
+`19671b2ab1d696e658d872af6480dc8e`. Native unsealed validation correctly refused;
+bootstrap job `job_ryp_7351434fcf` ran the exact exported immutable candidate.
+Core PASS, joined integration 94 PASS / 1 Android hardlink skip / 0 FAIL, canonical
+integration entrypoint PASS. Input/output identity both
+`sha256:73d7626ec67fc93d7a3a2b83c6b19be1ad6badfb381b203d817ada1e6cd82501`.
+No production validation is claimed. Publication job `job_rz6_b360815d1d` used
+fixed effect `9b52079272164affb5be12dfeffe1b48`, expected-old a5f74cb7, exact C/tree,
+and canonical remote readback. Source HEAD advanced; installed device/edge did not.
+
+The new approved controller selects mandatory tests/type-check inputs independently
+of candidate config, preserves known regression names, mounts only immutable
+controller/dependencies plus exact source, and samples actual cgroup memory.events.
+Initial core failures were proven copy-fixture/import and class-cloning defects;
+those fixtures were repaired without reducing acceptance, and controller tamper/
+symlink regressions added before the successful replay. One atomic edit conflict
+and one read-only delivery-unknown context retry are retained usability observations,
+not duplicate mutation or provider failure evidence.
+
+Retained actual hosted containment PASS (not rerun) is provider run34663351658,
+source77ebdb12, report SHA256
+`00ef70f4580494b1ebc6c82d439c42caf4ec930a02b1aec0844bbc7fe02e9abb`.
+It is explicitly productionSeal=false. Kernel oom_kill increased0->1 despite
+Podman OOMKilled=false and outer exit42. Image94da6bd8 contained Node24.21.0,
+Git2.47.3/Python3.13.5. D0006's universal Git2.55 assumption was narrowly corrected
+to an explicit managed-image variant; native canonical Git2.55 remains unchanged.
+The changed product path still requires new exact controller-join and production
+native receipt evidence. A qualification fixture cannot enroll itself.
+
 ## Remaining acceptance
 
 Actual MCP-only full source development; trusted production core/integration receipt;

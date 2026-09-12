@@ -38,7 +38,7 @@ export class ManagedRunner {
   let state=await sandbox.inspect(physical,expected),cancelled=false,deadlineExceeded=false,lastPoll=0;
   if(state.state==='absent'){
    requireThat(journal.phase==='accepted','EFFECT_UNCERTAIN','A retained launch cannot be replayed from container absence');
-   requireThat(this.now()+profile.timeoutMs+profile.killGraceMs<=a.input.deadline,'DEADLINE_EXCEEDED','Insufficient remaining assignment lifetime');
+   requireThat(this.now()+profile.timeoutMs+profile.killGraceMs<=a.input.deadline,'EXECUTION_UNAVAILABLE','Insufficient remaining assignment lifetime');
    journal.phase='launched';journal.startedAt=this.now();await this.write(journal);
    state=await sandbox.launch(physical,profile,source);
   }

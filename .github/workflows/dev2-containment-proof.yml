@@ -28,6 +28,8 @@ jobs:
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
       - name: Real hosted containment falsifiers
         run: node tools/managed-probe.mjs
+      - name: Actual required managed profiles and exact response-loss replay
+        run: node tools/qualify-managed.mjs
       - name: Preserve bounded qualification evidence in provider logs
         if: always()
         run: |

@@ -17,6 +17,13 @@
   "git": {
     "version": "2.55.0"
   },
+  "managedImage": {
+    "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+    "executionVariant": "linux-x64-node24-21",
+    "gitVersion": "2.47.3",
+    "pythonVersion": "3.13.5",
+    "evidenceRunId": "34663351658"
+  },
   "python": {
     "minimumVersion": "3.12"
   },

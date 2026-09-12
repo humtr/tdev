@@ -45,7 +45,7 @@ export class ManagedPool {
   // this sole ledger owner. Provider launch happens only after both are durable.
   return this.ledger.transact(tx=>{
    const prior=/** @type {Dispatch|null} */(decode(tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',assignmentId)));if(prior)return prior;
-   const action=this.current(tx,attempt),minimum=this.now()+profile.timeoutMs+profile.killGraceMs+10000;requireThat(minimum<action.deadline,'DEADLINE_EXCEEDED');
+   const action=this.current(tx,attempt),minimum=this.now()+profile.timeoutMs+profile.killGraceMs+10000;requireThat(minimum<action.deadline,'EXECUTION_UNAVAILABLE','Insufficient remaining action lifetime');
    const candidates=tx.all("SELECT record FROM managed_session WHERE state='active' ORDER BY session_id").map(row=>/** @type {import('./session-types.js').Session} */(decode(row)));
    let session=candidates.find(s=>!s.cancelRequested&&s.intent.deadline>minimum&&s.intent.launchCommit===this.sessions.config.approvedCommit&&s.intent.trustedRunnerDigest===this.sessions.config.trustedRunnerDigest&&!tx.get("SELECT assignment_id FROM managed_dispatch WHERE session_id=? AND state='pending'",s.intent.sessionId)&&!tx.get("SELECT assignment_id FROM managed_assignment WHERE session_id=? AND state IN ('offered','running')",s.intent.sessionId));
    // reserve() normally starts its own transaction. Constructing a new intent is
@@ -84,7 +84,7 @@ export class ManagedPool {
    if(a?.state==='complete'){requireThat(a.result&&a.inputIdentity===recordDigest('dev2.managed-assignment-input.v1',d.input)&&a.sealDigest===this.sessions.config.sealDigest&&a.result.trustedRunnerDigest===result.execution.trustedRunnerDigest,'INTEGRITY_FAILURE');this.reconcileLocal();return a.result;}
    if(a?.state==='stopped')throw new Dev2Error('EXECUTION_UNAVAILABLE','Provider stopped without a trusted validation receipt');
    const s=this.ledger.transact(tx=>this.sessions.session(tx,d.sessionId));if(s.state==='closed')throw new Dev2Error('EXECUTION_UNAVAILABLE','Managed session ended without a validation receipt');
-   const now=this.now();if(now>=d.input.deadline){await this.cancel(attempt);throw new Dev2Error('DEADLINE_EXCEEDED','Managed assignment deadline');}
+   const now=this.now();if(now>=d.input.deadline){await this.cancel(attempt);throw new Dev2Error('EXECUTION_UNAVAILABLE','Managed assignment deadline');}
    if(now-lastLaunch>=5000&&s.state==='reserved'&&!s.cancelRequested){lastLaunch=now;try{await this.o.provider.launch(d.sessionId);}catch(error){if(!(error instanceof Dev2Error)||!['EXECUTION_UNAVAILABLE','EFFECT_UNCERTAIN'].includes(error.code))throw error;}}
    if(now-lastRefresh>=10000){lastRefresh=now;try{await this.o.provider.refresh(d.sessionId);}catch(error){if(!(error instanceof Dev2Error)||!['EXECUTION_UNAVAILABLE','EFFECT_UNCERTAIN'].includes(error.code))throw error;}}
    await this.sleep(this.pollMs);

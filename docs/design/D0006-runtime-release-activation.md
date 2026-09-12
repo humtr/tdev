@@ -160,7 +160,15 @@ A logical validation profile has one meaning across environments; an execution s
 identifies the actual implementation. `config/toolchain.lock.json` selects exact
 Node/platform/architecture/SQLite variants. Initial native control target is the
 observed Termux nodejs-lts 24.18.0-1, Android arm64, Node 24.18.0 and SQLite 3.53.4;
-Linux CI uses existing checksum-pinned Node 24.21.0. Git is 2.55.0 and Python >=3.12.
+Linux CI uses existing checksum-pinned Node 24.21.0. Native canonical Git remains
+2.55.0 and Python >=3.12. The credential-free managed validation image has a
+separate exact implementation: the digest-pinned image observed in provider run
+34663351658 contains Git 2.47.3 and Python 3.13.5. The former universal Git2.55
+assumption was falsified by that real image, not by a fixture. Its linux-x64 Node
+variant, image digest, Git and Python versions are explicitly pinned together in
+`managedImage`; only the fixed installed managed entrypoint selects it. This does
+not change the canonical writer, required tests, identity/state semantics or allow
+automatic version fallback. The full integration suite must run on both variants.
 Native binary digests/package versions are recorded, not silently reported as Linux.
 Unknown/mismatched variants fail closed; no universal host path or automatic version
 range fallback. Dependency versions/integrity are locked, lifecycle scripts disabled.
