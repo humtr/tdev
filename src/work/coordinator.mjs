@@ -21,7 +21,9 @@ export class WorkCoordinator {
       if(duplicate){requireThat(duplicate.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};}
     requireThat(Number.isSafeInteger(request.deadline)&&request.deadline>this.now(),'INVALID_ARGUMENT');
 
-      requireThat(Number(tx.get("SELECT count(*) n FROM action WHERE status IN ('queued','running','blocked')")?.n)<this.maxPending,'CAPACITY_REJECTED');
+      // Inline management must remain available when the execution queue is full;
+      // it adds no pending execution and cancellation may free the held capacity.
+      requireThat(request.inline||Number(tx.get("SELECT count(*) n FROM action WHERE status IN ('queued','running','blocked')")?.n)<this.maxPending,'CAPACITY_REJECTED');
       const actionId=this.ids();const work=request.mutate(tx,actionId);
       /** @type {Action} */
       const action={actionId,requestId:request.requestId,principal:request.principal,bindingEpoch:this.ledger.binding.bindingEpoch,intentDigest,operation:request.operation,
@@ -56,18 +58,23 @@ export class WorkCoordinator {
   });}
   /** Callback fencing is independent of immutable container attempt identity.
    * @param {Attempt} attempt @param {string} observerEpoch @param {'succeeded'|'failed'|'cancelled'|'blocked'} status
-   * @param {{stopped:boolean,effectResolved:boolean,resultId?:string,errorCode?:string,disposition?:'integrated'}} proof
+   * @param {{stopped:boolean,effectResolved:boolean,resultId?:string,errorCode?:string,disposition?:'integrated',step?:string}} proof
    */
-  settle(attempt,observerEpoch,status,proof){return this.ledger.transact(tx=>{
+  settle(attempt,observerEpoch,status,proof){return this.ledger.transact(tx=>this.settleIn(tx,attempt,observerEpoch,status,proof));}
+  /** The same predicate is used when a resume request and recovered outcome must
+   * commit together. No callback or network operation runs in this transaction.
+   * @param {Transaction} tx @param {Attempt} attempt @param {string} observerEpoch @param {'succeeded'|'failed'|'cancelled'|'blocked'} status
+   * @param {{stopped:boolean,effectResolved:boolean,resultId?:string,errorCode?:string,disposition?:'integrated',step?:string}} proof */
+  settleIn(tx,attempt,observerEpoch,status,proof){
     const reservation=tx.retainedAttempt(attempt.attemptId);
     requireThat(reservation&&canonicalJson(reservation.attempt)===canonicalJson(attempt)&&reservation.observerEpoch===observerEpoch&&observerEpoch===this.ledger.ownerEpoch,'STALE_REVISION','Old callback');
-    const action=tx.getAction(attempt.actionId);requireThat(action&&action.attempt===attempt.attempt,'STALE_REVISION');
+    const action=tx.getAction(attempt.actionId);requireThat(action&&action.attempt===attempt.attempt&&['running','blocked'].includes(action.status),'STALE_REVISION');
     const terminal=status!=='blocked';requireThat(!terminal||(proof.stopped&&proof.effectResolved),'EFFECT_UNCERTAIN');
-    tx.updateAction({...action,status,step:terminal?'complete':'reconcile',resultId:proof.resultId??null,errorCode:proof.errorCode??null,ownerEpoch:observerEpoch});
+    tx.updateAction({...action,status,step:proof.step??(terminal?'complete':'reconcile'),resultId:proof.resultId??action.resultId,errorCode:proof.errorCode??null,ownerEpoch:observerEpoch});
     if(proof.stopped)tx.releaseAttempt(attempt.attemptId);
-    if(proof.disposition){requireThat(status==='succeeded'&&action.operation==='integrate'&&proof.stopped&&proof.effectResolved&&proof.resultId,'INTEGRITY_FAILURE');}
+    if(proof.disposition)requireThat(status==='succeeded'&&action.operation==='integrate'&&proof.stopped&&proof.effectResolved&&proof.resultId,'INTEGRITY_FAILURE');
     if(terminal)this.clearFence(tx,action,proof.disposition);
-  });}
+  }
   /** @param {Transaction} tx @param {Action} action @param {'integrated'} [disposition] */
   clearFence(tx,action,disposition){if(!action.workId)return;const work=tx.getWork(action.workId);requireThat(work,'INTEGRITY_FAILURE');
     if(work.currentActionId===action.actionId)requireThat(tx.compareWork(work.revision,{...work,currentActionId:null,revision:nextRevision(work.revision),disposition:disposition??work.disposition}),'STALE_REVISION');
