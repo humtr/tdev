@@ -122,7 +122,27 @@ credentials. No Docker/Podman socket, host home, runner workspace, Git credentia
 cloud metadata or broker transport socket is mounted inside the container.
 
 Immutable source is materialized by trusted code from D0002 objects and mounted
-read-only. Commands, argument schemas, cwd, image, CPU/memory/PID/disk/log limits,
+read-only. Required offline validation may also mount one immutable dependency
+artifact at the profile-reserved `node_modules` path. This is a separate artifact,
+not the runner workspace: trusted approved release code builds it from its exact
+locked dependencies with lifecycle scripts disabled, copies only dependency bytes
+into a private cache outside the checkout, rejects escaping links and special files,
+and records its content digest with the dependency-lock identity. The candidate
+cannot select its host path or substitute its bytes; the mount is read-only and
+contains no credentials, repository metadata, control state or transport sockets.
+Candidate entries colliding with the reserved mount path are rejected. A mismatched
+lock/artifact fails closed rather than downloading or executing candidate-selected
+package installation on the trusted host. A different adopted dependency artifact
+requires its own exact validation and seal; the normal source-edit path reuses the
+matching warm artifact without a provider deployment or new registry service.
+
+This realizes the existing locked-dependency/offline requirement without baking a
+new image for every source edit. Baking the same artifact into a pinned image is
+an equivalent but heavier alternative; mounting a writable cache or the checkout
+is not. Acceptance adds an actual managed read-only dependency mount, absence of
+host/control canaries, lock mismatch rejection and unchanged tracked source hashes.
+
+Commands, argument schemas, cwd, image, CPU/memory/PID/disk/log limits,
 deadline, kill grace and replay-safety are adopted profile inputs. No unrestricted
 shell operation is exposed. Tests may execute untrusted code inside this boundary;
 the trusted controller computes input/output integrity and signs the receipt outside
