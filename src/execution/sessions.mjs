@@ -65,7 +65,15 @@ export class ManagedSessions {
   * @param {string} sessionId @param {ProviderRun} provider */
  selectRun(sessionId,provider){return this.ledger.transact(tx=>{const s=this.session(tx,sessionId);this.matchingRun(s,provider);requireThat(s.launch==='sent'&&s.state!=='closed'&&!s.cancelRequested&&this.now()<s.intent.deadline&&provider.status==='in_progress','UNAUTHORIZED');if(s.run){requireThat(s.run.runId===provider.runId,'UNAUTHORIZED','Duplicate provider run');return this.saveSession(tx,s,{...s,run:structuredClone(provider)});}return this.saveSession(tx,s,{...s,state:'active',run:structuredClone(provider)});});}
  /** @param {Transaction} tx @param {Identity} identity */
- authenticated(tx,identity){const s=this.session(tx,identity.sessionId);const i=s.intent;requireThat(identity.kind==='github-executor'&&s.run&&s.state!=='closed'&&identity.installationId===i.installationId&&identity.repositoryId===i.providerRepositoryId&&identity.runId===s.run.runId&&identity.runAttempt==='1'&&identity.launchCommit===i.launchCommit&&Number.isSafeInteger(identity.expiresAt)&&identity.expiresAt>this.now(),'UNAUTHORIZED');digest(identity.launchIdentity);return s;}
+ authenticated(tx,identity){const s=this.session(tx,identity.sessionId);const i=s.intent;requireThat(identity.kind==='github-executor'&&s.run&&s.state!=='closed'&&identity.installationId===i.installationId&&identity.repositoryId===i.providerRepositoryId&&identity.runId===s.run.runId&&identity.runAttempt==='1'&&identity.launchCommit===i.launchCommit&&Number.isSafeInteger(identity.expiresAt)&&identity.expiresAt>this.now()&&identity.expiresAt<=i.deadline,'UNAUTHORIZED');
+  const expected=recordDigest('dev2.execution-launch.v1',{installationId:i.installationId,sessionId:i.sessionId,repository_id:i.providerRepositoryId,repository_owner_id:i.repositoryOwnerId,ref:i.ref,sha:i.launchCommit,workflow_ref:i.workflowRef,workflow_sha:i.launchCommit,run_id:s.run.runId,run_attempt:'1',runner_environment:'github-hosted',event_name:'push'});
+  requireThat(identity.launchIdentity===expected,'UNAUTHORIZED','Executor launch identity mismatch');return s;
+ }
+ /** A provider job can terminate before its first OIDC handshake. Closing that
+  * sent intent is safe only with a matching authenticated terminal observation
+  * and no selected run or assignment. It never manufactures an execution result.
+  * @param {string} sessionId @param {ProviderRun} provider */
+ stopBeforeAssignment(sessionId,provider){return this.ledger.transact(tx=>{const s=this.session(tx,sessionId);this.matchingRun(s,provider);requireThat(s.launch==='sent'&&!s.run&&provider.status==='completed'&&!tx.get('SELECT assignment_id FROM managed_assignment WHERE session_id=? LIMIT 1',sessionId),'EFFECT_UNCERTAIN');if(s.state==='closed')return s;return this.saveSession(tx,s,{...s,state:'closed',stoppedAt:provider.observedAt});});}
  /** Expiry stops new execution, not observation of an already-started effect.
   * @param {Identity} identity */
  current(identity){return this.ledger.transact(tx=>{const s=this.authenticated(tx,identity);const row=tx.get("SELECT record FROM managed_assignment WHERE session_id=? AND state IN ('offered','running')",s.intent.sessionId);return {session:s,assignment:/** @type {Assignment|null} */(decode(row)),cancelRequested:s.cancelRequested||this.now()>=s.intent.deadline};});}
