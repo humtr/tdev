@@ -57,6 +57,14 @@ export class Dev2RendezvousDO {
     route:this.rendezvous.snapshot(),connectionId:this.socket?this.connectionId:null,device:this.observation,
     discovery:{tools:TOOL_DESCRIPTORS}});
   }
+  // Executor ingress is reachable only through the Worker binding after signed
+  // provider-role authentication. It cannot call a human tool or installation probe.
+  if(path==='/__dev2/executor'){
+   requireThat(request.method==='POST','FORBIDDEN');
+   const body=/** @type {RecordValue} */(parseRecord(await readBody(request,164352),164352));
+   requireThat(Object.keys(body).length===2&&typeof body.assertion==='string'&&body.arguments!==undefined,'INVALID_ARGUMENT');
+   return jsonResponse(await this.rendezvous.executor({arguments:body.arguments,assertion:body.assertion}));
+  }
   // Only the Worker binding can reach this named DO. Public paths never proxy here.
   requireThat(path==='/__dev2/dispatch'&&request.method==='POST','FORBIDDEN');
   const body=/** @type {RecordValue} */(parseRecord(await readBody(request),1048576));

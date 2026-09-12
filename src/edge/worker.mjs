@@ -1,7 +1,10 @@
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
 import { failure } from '../contracts/envelopes.mjs';
 import { Dev2Error } from '../contracts/errors.mjs';
-import { createMcpGateway, jsonResponse } from './gateway.mjs';
+import { createMcpGateway, jsonResponse, readBody } from './gateway.mjs';
+import { executorAuthentication } from './executor-auth.mjs';
+import { executorRequest, EXECUTOR_BODY_BYTES } from '../execution/protocol.mjs';
+/** @type {WeakMap<object,ReturnType<typeof executorAuthentication>>} */const executors=new WeakMap();
 import { edgeConfig, authenticateDevice, humanAuthentication } from './auth.mjs';
 import { SCHEMA_DIGEST } from './contract.mjs';
 export { Dev2RendezvousDO } from './router.mjs';
@@ -20,6 +23,15 @@ export default {
   }
   if(url.pathname==='/__dev2/device'||url.pathname==='/__dev2/status'||url.pathname==='/__dev2/verify'){
    authenticateDevice(request,env,config);return await stub().fetch(request);
+  }
+  if(url.pathname==='/executor'){
+   if(request.method!=='POST')return new Response(null,{status:405});
+   if(request.headers.get('content-type')?.split(';')[0].trim()!=='application/json')throw new Dev2Error('INVALID_ARGUMENT');
+   const input=executorRequest(parseRecord(await readBody(request,EXECUTOR_BODY_BYTES),EXECUTOR_BODY_BYTES));
+   let authenticate=executors.get(env);if(!authenticate){authenticate=executorAuthentication(config);executors.set(env,authenticate);}
+   const assertion=await authenticate(request,input);
+   const response=await stub().fetch(new Request(config.origin+'/__dev2/executor',{method:'POST',headers:{'content-type':'application/json'},body:canonicalJson({arguments:input,assertion})}));
+   return jsonResponse(/** @type {Json} */(parseRecord(await readBody(response,262144),262144)));
   }
   if(url.pathname!=='/mcp')return new Response(null,{status:404});
   let gateway=gateways.get(env);if(!gateway){gateway=createMcpGateway({origin:config.origin,allowedOrigins:config.allowedOrigins,

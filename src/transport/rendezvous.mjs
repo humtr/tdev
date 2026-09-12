@@ -79,6 +79,16 @@ export class RequestRendezvous {
             return this.#route(canonicalJson({ tool: request.tool, arguments: request.arguments, assertion: request.assertion }));
         } catch(error) { return Promise.reject(error); }
     }
+    /** Authenticated provider-role adapter, distinct from human tool dispatch.
+     * The native endpoint independently verifies OIDC and retained launch identity.
+     * @param {{arguments:Json,assertion:string}} request @returns {Promise<Json>} */
+    executor(request) {
+        try {
+            requireThat(Object.keys(request).length===2&&request.arguments!==null&&typeof request.arguments==='object'&&!Array.isArray(request.arguments)&&typeof request.assertion==='string'&&request.assertion.length>0&&request.assertion.length<=32768,'INVALID_ARGUMENT');
+            requireThat(Buffer.byteLength(canonicalJson(request.arguments))<=131072,'LIMIT_EXCEEDED');
+            return this.#route(canonicalJson({kind:'executor',arguments:request.arguments,assertion:request.assertion}));
+        } catch(error) { return Promise.reject(error); }
+    }
     /** Trusted device-role adapter only: no arbitrary tool, path, subject or mutation. */
     probe() { return this.#route(canonicalJson({kind:'installation_read_probe'})); }
     /** @param {string} body @returns {Promise<Json>} */

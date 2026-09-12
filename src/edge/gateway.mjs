@@ -12,7 +12,7 @@ export function jsonResponse(body,status=200,headers={}){
  return new Response(canonicalJson(body),{status,headers:{'content-type':'application/json; charset=utf-8','cache-control':'no-store','x-content-type-options':'nosniff','dev2-schema-digest':SCHEMA_DIGEST,...headers}});
 }
 /** Bounded incremental collection, including bodies without Content-Length.
- * @param {Request} request @param {number} [max] */
+ * @param {Pick<Request,'headers'|'body'>} request @param {number} [max] */
 export async function readBody(request,max=MAX_REQUEST_BYTES){
  const length=request.headers.get('content-length');
  if(length!==null&&(!/^(?:0|[1-9][0-9]*)$/.test(length)||Number(length)>max))throw new ProtocolError(-32600,413,'Request body exceeds limit');
