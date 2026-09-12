@@ -234,8 +234,24 @@ OS lock. Broker exit or elapsed time alone is insufficient because a Git child m
 outlive it. Drain waits only on affected running actions/effects, excluding the
 activation action that requested this exact handoff; idle retained works survive.
 An unknown sender fences the rollout, not unrelated source reads or work. A fixed
-launcher reads an atomically replaced, private artifact-bound device pointer. It
-executes only an already validated staged device bundle and fixed native config.
+launcher acquires the shared OS pointer gate before reading the atomically replaced,
+private artifact-bound device pointer and inherits the gate through exec into Node.
+The writer fence requires the exclusive gate, preventing an old pointer read from
+starting after a switch. The launcher verifies the fixed Node binary, staged bundle,
+private native-config digests and closed environment before execution.
+
+The fixed runit sender addresses only the installed service's documented runsv
+supervise/control FIFO, with nonblocking single-byte u/d writes. It verifies the
+sealed service run file and rejects control/finish customization. It retains intent
+and a sent marker before the write, without a child process that could outlive the
+helper and send a delayed command. A desired wanted-state readback acknowledges the
+same retained FIFO effect; missing readback remains uncertain and is not resent.
+An already desired state emits no redundant command. Inspecting a never-started
+sender fences its delayed launch under the same lock. None of these observations
+substitutes for the exclusive SQLite/all-Git-senders proof before pointer switch.
+These operations implement the documented runsv(8) control interface, not a new
+service manager or force-kill policy. Actual Termux recovery remains a separate
+acceptance requirement from deterministic FIFO/launcher tests.
 
 The helper reads back exact edge routing and fresh native component health before
 recording active or rolled_back. Unchanged device bytes do not trigger a restart;
