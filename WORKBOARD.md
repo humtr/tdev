@@ -1,100 +1,120 @@
 # dev-2 workboard
 
 Execution routing only. Authority: DIRECTIVE r3 -> RULE -> selected D0001-D0007.
-Fresh dev_context/dev_read/dev_observe own mutable source and runtime observations.
+Fresh dev_context/dev_read/dev_observe bind mutable source, runtime and action truth.
 
-## Current boundary: native join published; managed acceptance and release ports
+## Current frontier: native self-development works; release/recovery completion
 
-Phase A cutover and ChatGPT Refresh are complete. Actual ChatGPT uses exactly
-`dev_context`, `dev_read`, `dev_work`, `dev_observe`. Do not repeat Phase A, Refresh,
-old tdev restoration, or the already recovered a5f74cb7 B4 publication.
+Phase A and ChatGPT Refresh are complete. Actual human ChatGPT uses exactly
+`dev_context`, `dev_read`, `dev_work`, `dev_observe`. No second model. Do not repeat
+Phase A, old B4 publication recovery, app Refresh, or old tdev live restoration.
 
-Fresh continuation at 2026-09-12T03:40Z found canonical source
-`6f6681f5fbaba215a547a7f2a7be2d1aa081282b`, not the earlier a5f74cb7 hint.
-After native acceptance repair, canonical readback at 03:51Z confirmed
-`4c5925ca70b5ca62f79fcd32c58ed1fd0b3d33d2`, tree
-`e1fca557976151b9f83cc167fc69bb8a9bdc42c9`, a direct child of 6f6681f5.
-These are dated publication facts, not a runtime activation or production receipt.
+The continuation started from canonical 6f6681f5fbaba215a547a7f2a7be2d1aa081282b,
+not the older a5f74cb7 hint. Current dated readback (2026-09-12T04:28:49Z) confirmed
+21e0c9211ccfd3cde972eb2602d9646cae03d151, tree39c4ce902d3aebb24979b94ae30463711bb79394.
+Its real non-documentation source change was created, edited, validated with actual
+approved hosted execution, integrated and read back through canonical dev-2 only.
+It is a child of58020a5ae28ec91a8fdb6cb82555ff528a603e22. Fresh source may be newer.
 
-Installed device and edge still reported source
-`6832ee5885a8ca5e25655a45e918a0a0ce8f0938`; device owner epoch 4, edge version
-`c00d6eb8-e6a0-4ca4-99bc-f6539077feed`, schema
-`sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c`.
-Capacity is 8; installation is connected but unsealed and activeRelease is null.
-Rebind these identities before any installation/provider effect.
+## Installed runtime is independent
 
-## Source and installed capability are separate
+At04:32:19Z actual device and edge both report source4429139cded44451efbce1f45d7bf90b71d59d66.
+Device owner6, Android arm64 Node24.18.0, connected. Edge version
+590a6f73-fd51-4383-b56b-e2c9f948e3ce at the canonical workers.dev origin.
+Schema remains sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c.
+Device bundle sha256:61d35efc0a9a0c078d4d0ec505b183fd1f912bd1e65489ae5e18aebaace5c586;
+edge bundle sha256:2e13346810499020d2fd1836782e3bd4ea5fd499dd87eb9e55042cb92d3548c9.
+Managed enrollment seal sha256:abc08ae9af7e136b4aba528413aa74690225a92d4e21a6fd973c338ff06561f8.
+These are dated observations, not constants or a claim all source is installed.
+Active release is still null/bootstrap, deploymentSealed=false. The bounded native/
+edge commissioning was NOT public release.stage/activate or production release proof.
 
-| Frontier | Implemented / observed | Next dependency |
+Installed create/edit/run/validate/integrate/cancel/resume/policy.adopt are available.
+Use them instead of predecessor tools. release.stage/activate remain unavailable.
+Live policy is sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309;
+required core and integration run in github-hosted-rootless-oci. Default capacity8.
+
+## Frontier / remaining proof
+
+| Frontier | Actual completion | Remaining implementation or acceptance |
 | --- | --- | --- |
-| B0 | Real refreshed human four-tool context/read/create/edit/prepare/observe | Continue ordinary source through dev-2; no extra model |
-| B1 | Approved immutable controller/dependency artifact, bounded hosted session/pool/OIDC/lease/transfer, native private enrollment and RequiredValidation wiring are published | Replay repaired required managed integration, retain successful provider/controller/containment evidence, commission native join, obtain actual authenticated production receipt |
-| B2 | Exact prepared result, receipt authorization, async owner/base/path fencing, durable Git sender and current GitHub monotonic guard are joined natively | Install qualified native join; exercise actual public validate -> integrate -> canonical readback without bootstrap publication |
-| B3 | Native session/attempt/sender observers, policy special-effect recovery, exact retry/deadline and scoped uncertainty are published | Actual interrupted validation/publication/reconnect; join release helper terminal recovery |
-| B4 | Policy adoption, integrated-source authority, immutable artifacts, release backend, activation/provider journals and fixed-effect controller are published; Cloudflare adapter and adversarial provider fixtures are current source work | Trusted managed release build/artifact receipt, fixed native helper/device ports, public stage/activate wiring, paired live activation/rollback; no primitive reimplementation |
-| B5 | Core/native/release fixtures and default8/higher-capacity semantics exist | Real MCP-only non-doc self-development, actual 8-way overlap, scoped conflicts, safe Android conditions and evidence-classed predecessor comparison |
+| B1 | Immutable approved controller4429139c, exact provider/OIDC/assignment/lease/object transfer; actual native authenticated required-validation receipt PASS | Repair idle-session turnover/never-offered resource loss; carry kernel OOM evidence into production result eligibility; stress/cancel/restart acceptance |
+| B2 | Actual public validate -> eligible receipt -> integrate exact validated result -> Git canonical readback PASS; duplicate request returns same action/effect | Repeated same-ref composition cost, stale conflicts and full interrupted-publication replay |
+| B3 | Request dedup, retained native attempts/receipts, scoped uncertainty; unchanged-runtime stop/start and reconnect preserved identity | Managed interruption/turnover and fixed release helper stop/rollback reconciliation on actual path |
+| B4 | Policy backend, integrated-source authority, immutable artifacts, release backend, fixed-effect controller, Cloudflare adapter/journals and private authenticated control source are published | Finite contained release build + trusted artifact receipt, fixed helper/device ports, native join, real public stage/activate, paired health/rollback |
+| B5 | Useful MCP-only non-doc source development and required managed integration proved | Install changed runtime through release path; actual eight independent overlapping works, >8 policy semantics, safe Android conditions, evidence-classed comparison and performance repair |
 
-## Verified repairs and evidence
+## Exact native self-development evidence
 
-Native prepared result `373982a3d2ebc334bdd6983e50056fce` was tested at exact commit
-4c5925ca: core 167/167 PASS; joined integration 107 PASS, one Android hardlink SKIP,
-zero FAIL; release fixtures 29/29 PASS. Bootstrap validation job
-`job_s3v_f73430e2f9`; exact-old-ref publication/readback `job_s3w_0fc3a0c95c`.
-Both retain `productionValidation:false`. Do not relabel them as managed receipts.
+Work f57b3ac6585d9305699be70e255c252a generation4 repairs permanently blocked
+stage recovery after a positively completed inactive upload. Required validation
+action7041d5d2d9e23b94c4be1aea09d9dabd and prepared3741facdfcc4a6e003d102db9bf10ddf
+bind commit21e0c921 and tree39c4ce90. Core/integration both passed, eligible=true;
+input and output manifest sha256:1ae6880b36f0f36f596e0600c72a0d9572077f4b418451d95f172e5e86458c2b.
+Validation sha256:946c2fea3f076ee6a798f806cb36108c6b82aea10b3d17e694830e8d9aa80714.
+Integration325bce7e86f3b433bf43046015b31a5e reused that receipt without another validation;
+Git effect14f758d7123c53e43766998d9e2d33ee observed canonical21e0c921 at04:28:37Z.
+Same request replay at04:29:22Z returned deduplicated=true, same action and terminal
+work revision12. Source/validation/publication used no tmcp or direct GitHub writes.
+See [native self-development](docs/evidence/phase-b-convergence/native-self-development.md).
 
-Hosted run 34670718884 on exact db1bd4ce completed: actual containment PASS, required
-core PASS, required integration FAIL (101 PASS, one FAIL). Its new bounded diagnostic
-proved that edge-build.test wrote to read-only /source/.artifacts. This is a test
-output-placement defect, not missing containment. The existing managed work now
-puts generated output in per-test bounded scratch; the same isolation remains.
-Required managed acceptance replay is pending, not silently passed.
+## Acceptance repair loop / current owned work
 
-The native recovery tests also exposed a fixture comparison defect: all persisted
-JSON fields were identical, but deepStrictEqual rejected parseRecord's intentional
-null prototype. Canonical-byte equality now checks the full record, including a
-negative changed-policy assertion. Both previously failed recovery tests PASS.
+1. Diagnostic work cb80efebd74435064c22d2950568c47c connects authenticated retained
+   execution logs to existing action.output/artifact reads, without schema changes.
+   Its earlier exact generation3 required managed core/integration PASS. Current
+   composition also carries this handoff. Install only through qualified release.
+2. Resource work8e484c03be678347b2fe54e40b51e1ff owns bounded managed idle retirement,
+   no-offer resource turnover with retained logical identity, finite release build,
+   outer receipt/production containment join. Implement before scaling stress.
+3. Release work4091305b308319552f6434435139575b owns fixed helper/device/native join,
+   exact writer/sender stop proof, immutable device pointer, paired health and
+   rollback. Reuse current backend/CF/private RPC; do not reimplement B4 primitives.
 
-See [acceptance repairs](docs/evidence/phase-b-convergence/acceptance-repairs.md),
-[Phase B evidence](docs/evidence/phase-b-convergence/README.md), and
-[release backend](docs/evidence/phase-b-convergence/release-backend.md).
-Historical [Phase A](docs/evidence/phase-a-cutover/README.md) is provenance only.
+New actual production acceptance classified test defects in the stage-recovery
+fixture (invalid digest domain and nonexistent unfenced generic write API). Tests
+now seed only an exact private fixture row; domain dev2.fixture-upload.v1. The same
+required managed acceptance passed after repair. No product safety rule was relaxed.
 
-## Exact implementation frontier
+A separate real product defect remains: a ready-looking hosted session can have
+exited idle before a new dispatch is offered. Action544d308eb29023dde1260352a5a597c3
+failed EXECUTION_UNAVAILABLE before a lease/assignment. This is not failed source
+validation or a provider permission denial. Coordinate retirement with dispatch and
+only replace physical resource after exact old provider terminal/no-offer proof;
+preserve original action/attempt/assignment/input/deadline and retained session history.
 
-1. Reuse published native join. Validate the Cloudflare adapter's fixed provider
-   effects, then compose the existing hosted scratch-output repair on current HEAD.
-2. Re-run actual required managed profiles at the repaired exact approved source;
-   retain run/attempt/OIDC/controller/containment records without upgrading their class.
-3. Commission/install the reviewed native executor/writer using private exact evidence.
-   As soon as available, use dev_work run/validate/integrate/policy.adopt natively.
-4. Continue independent release helper/build/provider wiring and fail-closed recovery;
-   qualify then perform real stage/paired activation/rollback with fixed effect IDs.
-5. Perform useful real source self-development, 8-way actual progress and safe
-   interruption trials; repair/replay defects; compare only after core is working.
+Earlier repaired build acceptance: readonly /source output placement, locked Ajv
+helper resolution from external scratch, and output-location-dependent esbuild
+module keys. Stable virtual generated modules now reproduce across scratch paths;
+actual hosted run34672172715 core/integration/containment PASS. This qualification
+remains productionValidation=false; the later actual native receipt above is separate.
 
-## Bounded bootstrap and resumption
+## Bootstrap limits and evidence classes
 
-Installed dev-2 still prepares but cannot execute required validation, publish,
-resume external effects or activate releases. `task_rrh_1a1750319c` permits only the
-verified dev2-k47-bootstrap execution workspace and selected installation/provider
-resources. Source creation/edits/preparation stay on dev-2. Reviewed immutable
-candidate export/testing, exact-old-ref publication, provider qualification and
-installation use bootstrap only until the corresponding native capability works.
-No dirty checkout reset, predecessor merge, old live runtime or model subprocess.
+Prior native tests/publications4c5925ca,7513251f,4429139c,58020a5 used scoped bootstrap
+because installed Phase A lacked those capabilities. They remain native/fixture
+validation with productionValidation=false. Commissioning used exact approved run,
+OIDC and containment reports plus native joins; keys stayed private. No ordinary
+source validation/publication may return to that bridge now that native works.
 
-Publication may be proven while the historical public action still projects
-EXECUTION_UNAVAILABLE. Preserve that original evidence; do not replay an already
-applied effect or manufacture a production receipt. Current source work identities
-must be rebound via dev_observe, and each external effect keeps its original ID.
-One blocked scope does not halt unrelated source/tests/provider/readback work.
-Unsafe Android force-stop/Doze/reboot on a device with unrelated work remains
-NOT RUN unless safely isolated. Unknown provider permission is not a denial.
+The installed runtime lacks diagnostic artifact projection until the pending source
+is activated. A bounded read-only failure-log exception used the selected installation
+only. Its exclusive SQLite lock correctly rejected concurrent inspection; a scoped
+unchanged-runtime stop/read/start recovered the specific logs and reconnected owner5->6.
+The diagnostic script had a final summary-read error; its finally block restarted
+successfully and fresh MCP readback confirmed unchanged source and retained works.
+No new work/effect, dirty reset, hidden validation bypass or fabricated receipt.
+
+Unsafe Android app kill, Doze, reboot and unrelated-device effects remain NOT RUN.
+Own-service restart is not those proofs. Eight-way physical progress and predecessor
+comparison remain NOT RUN, not implied by configuration8 or two successful actions.
+Old tdev comparison must use preserved history/source/historical/analytical classes,
+never a repaired old live endpoint. Current tmcp comparison may be measured.
 
 ## Completion
 
-First release remains incomplete. Distinguish unit, native, joined integration,
-managed qualification, production managed receipt, provider publication, active
-runtime and actual ChatGPT proofs. No release/live/benchmark aggregate PASS is
-claimed. Continue acceptance -> defect classification -> repair -> regression ->
-same acceptance replay until Directive completion or only unavoidable external
-requirements remain after every independent implementation/proof is exhausted.
+First release is NOT complete. Continue implementation -> live falsifier -> classify
+-> repair -> targeted/broader validation -> same acceptance replay. No unavoidable
+external blocker has been established; independent release/recovery/containment/
+concurrency/comparison work remains. Rebind exact current source/runtime/action IDs
+before work, and preserve every unresolved effect's original durable identity.

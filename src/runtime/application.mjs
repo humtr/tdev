@@ -6,6 +6,7 @@ import { newId, digest } from '../contracts/identity.mjs';
 import { validateInput, admitWorkBatch } from '../mcp/input-schemas.mjs';
 import { SCHEMA_DIGEST, validateOutput, TOOL_DESCRIPTORS } from '../mcp/outputs.mjs';
 import { workInput } from './engine.mjs';
+import { retainedExecutionView, retainedArtifactDigest } from './execution-view.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
@@ -61,12 +62,13 @@ export class DevelopmentApplication {
   const data=await this.engine.o.context.readSource(principal,this.engine.binding,source,scope,/** @type {import('../repository/context.mjs').ReadQuery[]} */(/** @type {unknown} */(queries)),budget);
   return {notCurrent,...data};
  }
- await this.action(principal,String(target.actionId));const stored=this.engine.metadata('artifact:'+String(target.actionId)+':'+String(target.artifactId));requireThat(typeof stored==='string','FORBIDDEN');
+ const action=await this.action(principal,String(target.actionId));const stored=this.engine.metadata('artifact:'+String(target.actionId)+':'+String(target.artifactId))??retainedArtifactDigest(this.engine.ledger,action,String(target.artifactId));requireThat(typeof stored==='string','FORBIDDEN','Artifact is not attached to this authorized action');
  const bytes=await this.o.artifacts.get(stored);requireThat(bytesDigest(bytes)===stored,'INTEGRITY_FAILURE');let remaining=budget;
  const results=queries.map(query=>{
   const start=Number(query.startByte);let length=Math.min(Number(query.maxBytes),bytes.byteLength-start);requireThat(start<=bytes.byteLength,'LIMIT_EXCEEDED');
   for(;;){const chunk=bytes.subarray(start,start+length),complete=start+length===bytes.byteLength;const row={kind:'artifact',artifactId:String(target.artifactId),contentDigest:stored,startByte:start,bytes:length,encoding:'base64',content:Buffer.from(chunk).toString('base64'),complete,nextByte:complete?null:start+length};const size=Buffer.byteLength(canonicalJson(row));if(size<=remaining){remaining-=size;return row;}requireThat(length>0,'LIMIT_EXCEEDED');length=Math.floor(length/2);}
  });
+ await this.action(principal,String(target.actionId));
  return {treeOid:null,manifestDigest:null,notCurrent:true,results,returnedBytes:budget-remaining,openedFiles:0,scannedBytes:0};
  }
  /** @param {Principal} principal @param {string} actionId */
@@ -74,7 +76,7 @@ export class DevelopmentApplication {
  /** @param {Work} w */
  projectWork(w){return {workId:w.workId,repositoryId:w.repositoryId,bindingEpoch:w.bindingEpoch,baseCommitOid:w.baseCommitOid,baseTreeOid:w.baseTreeOid,candidateTreeOid:w.candidate.treeOid,candidateDigest:w.candidate.manifestDigest,generation:w.generation,revision:w.revision,disposition:w.disposition,currentActionId:w.currentActionId,objective:String(this.engine.metadata('objective:'+w.workId)??'')};}
  /** @param {Action} a */
- projectAction(a){return {actionId:a.actionId,requestId:a.requestId,workId:a.workId,operation:a.operation,status:a.status,step:a.step,attempt:a.attempt,revision:String(this.engine.ledger.transact(tx=>tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+a.actionId)?.value??'0')),deadline:a.deadline,resultId:a.resultId,errorCode:a.errorCode,cancelRequested:this.engine.cancelled(a.actionId),output:this.engine.metadata('action-result:'+a.actionId)??null};}
+ projectAction(a){let output=this.engine.metadata('action-result:'+a.actionId)??null;const managed=retainedExecutionView(this.engine.ledger,a);if(managed){if(output===null)output=managed;else if(typeof output==='object'&&!Array.isArray(output)&&output.kind==='execution')output={...output,artifacts:managed.artifacts};}return {actionId:a.actionId,requestId:a.requestId,workId:a.workId,operation:a.operation,status:a.status,step:a.step,attempt:a.attempt,revision:String(this.engine.ledger.transact(tx=>tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+a.actionId)?.value??'0')),deadline:a.deadline,resultId:a.resultId,errorCode:a.errorCode,cancelRequested:this.engine.cancelled(a.actionId),output};}
  /** @param {Principal} principal @param {string[]} ids @param {number} waitMs @param {AbortSignal} [signal] @param {string} [afterRevision] */
  async wait(principal,ids,waitMs,signal,afterRevision){
  requireThat(Number.isSafeInteger(waitMs)&&waitMs>=0&&waitMs<=20000,'LIMIT_EXCEEDED');const deadline=performance.now()+waitMs;
