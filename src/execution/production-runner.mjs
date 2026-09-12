@@ -1,0 +1,66 @@
+import {mkdir,readFile,open,rename,realpath} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {setTimeout as delay} from 'node:timers/promises';
+import {canonicalJson,parseRecord,recordDigest,bytesDigest} from '../contracts/canonical.mjs';
+import {id,digest,newId} from '../contracts/identity.mjs';
+import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {decodePayload,physicalAttempt} from './payload.mjs';
+import {inspectMaterialization} from '../candidate/materialize.mjs';
+import {attemptName} from './podman.mjs';
+import {decodeOuterReceipt,kernelEligible} from './outer-receipt.mjs';
+import {decodeBuildOutput,BUILD_OUTPUT_BYTES} from '../release/build-output.mjs';
+/** @typedef {import('./session-types.js').Assignment} Assignment */
+/** @typedef {import('./session-types.js').ExecutionResult} Result */
+/** @typedef {import('./outer-receipt.mjs').OuterReceipt} OuterReceipt */
+/** @typedef {import('./outer-receipt.mjs').Kernel} Kernel */
+/** @typedef {import('./outer-receipt.mjs').Isolation} Isolation */
+/** @typedef {{exitCode:number|null,signal:string|null,timedOut:boolean,spawnFailed:boolean,discardedBytes:number,stdout:string,stderr:string}} Command */
+/** @typedef {{schemaVersion:1,assignmentId:string,inputIdentity:string,leaseId:string,phase:'accepted'|'launched'|'executing'|'outcome'|'stopped'|'uploaded'|'complete',startedAt:number,before:Kernel|null,after:Kernel|null,isolation:Isolation|null,command:Command|null,objects:{name:import('./outer-receipt.mjs').Output['name'],data:string}[],outer:OuterReceipt|null,result:Result|null}} Journal */
+/** The trusted local journal observes physical effects; it is not another work
+ * owner. A command with lost outcome is stopped and fails, never re-executed.
+ */
+export class ProductionRunner {
+ /** @param {{client:import('./executor-client.mjs').ExecutorClient,stateDirectory:string,runId:string,sealDigest:string,trustedRunnerDigest:string,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number,createSandbox:(assignment:Assignment,decoded:ReturnType<typeof decodePayload>)=>Promise<{sandbox:import('./production-sandbox.mjs').ProductionSandbox,sourceRoot:string}>}} options */
+ constructor(options){this.o=options;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??500;this.root=resolve(options.stateDirectory);requireThat(options.stateDirectory===this.root&&Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');digest(options.sealDigest);digest(options.trustedRunnerDigest);}
+ /** @param {Assignment} a */
+ verify(a){id(a.assignmentId);id(a.leaseId);requireThat(a.sessionId===this.o.client.sessionId&&a.runId===this.o.runId&&a.sealDigest===this.o.sealDigest&&a.inputIdentity===recordDigest('dev2.managed-assignment-input.v1',a.input)&&a.assignmentId===recordDigest('dev2.managed-assignment.v1',{attempt:a.input.attempt,profileDigest:a.input.profileDigest}).slice(7),'UNAUTHORIZED','Assignment identity');requireThat(Number.isSafeInteger(a.input.deadline)&&a.input.deadline>0,'INTEGRITY_FAILURE');}
+ /** @param {Assignment} a @returns {Promise<Journal|null>} */
+ async read(a){await mkdir(this.root,{recursive:true,mode:0o700});requireThat(await realpath(this.root)===this.root,'FORBIDDEN');let bytes;try{bytes=await readFile(join(this.root,'production-'+a.assignmentId+'.json'));}catch(error){if(error&&typeof error==='object'&&'code'in error&&error.code==='ENOENT')return null;throw error;}const value=/** @type {Journal} */(/** @type {unknown} */(parseRecord(bytes,67108864)));requireThat(value.schemaVersion===1&&value.assignmentId===a.assignmentId&&value.leaseId===a.leaseId&&value.inputIdentity===a.inputIdentity,'INTEGRITY_FAILURE','Retained production assignment changed');return value;}
+ /** @param {Journal} value */
+ async write(value){id(value.assignmentId);const path=join(this.root,'production-'+value.assignmentId+'.json'),temporary=path+'.'+newId(),bytes=canonicalJson(value);requireThat(Buffer.byteLength(bytes)<=67108864,'LIMIT_EXCEEDED');const file=await open(temporary,'wx',0o600);try{await file.writeFile(bytes);await file.sync();}finally{await file.close();}await rename(temporary,path);const directory=await open(this.root,'r');try{await directory.sync();}finally{await directory.close();}}
+ /** @param {Assignment} assignment @returns {Promise<Result>} */
+ async execute(assignment){const a=structuredClone(assignment);this.verify(a);let j=await this.read(a);if(j?.result){if(j.phase!=='complete')await this.deliver(a,j);return j.result;}
+ requireThat(['offered','running'].includes(a.state),'STALE_RESULT');const bytes=await this.o.client.download(a,a.input.payloadDigest),decoded=decodePayload(bytes,a.input),{profile:p,execution,source}=decoded.payload,isBuild=p.profileId==='release-build';requireThat(execution.trustedRunnerDigest===this.o.trustedRunnerDigest&&p.timeoutMs<=300000&&p.memoryBytes<=1073741824&&p.pids<=256&&p.cpuMillis<=2000&&p.diskBytes<=268435456&&p.logBytes<=(isBuild?BUILD_OUTPUT_BYTES:4194304),'EXECUTION_UNAVAILABLE','Approved production resource bound');const {sandbox,sourceRoot}=await this.o.createSandbox(a,decoded),physical=physicalAttempt(a),expected={profileDigest:p.digest,sourceManifest:source.manifestDigest};requireThat(await inspectMaterialization(source,sourceRoot)===source.manifestDigest,'INTEGRITY_FAILURE');
+ if(!j){j={schemaVersion:1,assignmentId:a.assignmentId,inputIdentity:a.inputIdentity,leaseId:a.leaseId,phase:'accepted',startedAt:this.now(),before:null,after:null,isolation:null,command:null,objects:[],outer:null,result:null};await this.write(j);}const acknowledged=await this.o.client.acknowledge(a);requireThat(acknowledged.assignmentId===a.assignmentId&&acknowledged.leaseId===a.leaseId,'INTEGRITY_FAILURE');
+ let state=await sandbox.inspect(physical,expected),cancelled=false,deadlineExceeded=false;const interrupted=j.phase==='executing'&&j.command===null;
+ if(state.state==='absent'){requireThat(j.phase==='accepted','EFFECT_UNCERTAIN','Retained production launch cannot replay from absence');requireThat(this.now()+p.timeoutMs+p.killGraceMs<=a.input.deadline,'EXECUTION_UNAVAILABLE','Insufficient assignment lifetime');j.startedAt=this.now();j.phase='launched';await this.write(j);state=await sandbox.launch(physical,p,source);}
+ const end=Math.min(a.input.deadline,j.startedAt+p.timeoutMs),remaining=()=>Math.max(0,end-this.now());
+ if(interrupted){state=await sandbox.cancel(physical);j.command={exitCode:null,signal:'SIGKILL',timedOut:false,spawnFailed:true,discardedBytes:0,stdout:'',stderr:''};j.phase='outcome';await this.write(j);}
+ if(!j.command){requireThat(state.state==='running'&&j.phase==='launched','EFFECT_UNCERTAIN','Container not in exact pre-exec state');
+  try{j.before=await sandbox.kernelEvidence(physical);requireThat(j.before,'EXECUTION_UNAVAILABLE','Pre-exec kernel proof missing');j.isolation=await sandbox.isolationEvidence(physical,p,j.before);requireThat(Object.values(j.isolation).filter(v=>typeof v==='boolean').every(v=>v===true),'EXECUTION_UNAVAILABLE','Production isolation preflight failed');}
+  catch{state=await sandbox.cancel(physical);j.command={exitCode:null,signal:null,timedOut:false,spawnFailed:true,discardedBytes:0,stdout:'',stderr:Buffer.from('Production isolation preflight failed').toString('base64')};j.phase='outcome';await this.write(j);}
+ }
+ if(!j.command){j.phase='executing';await this.write(j);
+  let done=false,command=/** @type {import('./command.mjs').CommandResult|null} */(null),commandFailure=/** @type {unknown} */(null);const run=Promise.resolve().then(()=>sandbox.executeProfile(physical,p,remaining())).then(r=>{command=r;done=true;},error=>{commandFailure=error;done=true;});let lastPoll=0;
+  while(!done){const now=this.now();deadlineExceeded||=now>=end;if(deadlineExceeded){cancelled=true;await sandbox.cancel(physical);}if(now-lastPoll>=2000){lastPoll=now;try{const current=await this.o.client.poll();requireThat(current.assignment?.assignmentId===a.assignmentId&&current.assignment.leaseId===a.leaseId,'STALE_RESULT');if(current.cancelRequested||current.assignment.cancelRequested){cancelled=true;await sandbox.cancel(physical);}}catch(error){if(!(error instanceof Dev2Error&&error.code==='EXECUTION_UNAVAILABLE')){cancelled=true;await sandbox.cancel(physical);}}}requireThat(now<=a.input.deadline+15000,'EFFECT_UNCERTAIN','Production stop not confirmed before cleanup bound');if(!done)await this.sleep(this.pollMs);}
+  await run;const c=/** @type {import('./command.mjs').CommandResult|null} */(command);j.command=c?{exitCode:c.exitCode,signal:cancelled?'SIGTERM':c.signal,timedOut:c.timedOut||deadlineExceeded,spawnFailed:c.spawnFailed,discardedBytes:c.discardedBytes,stdout:c.stdout.toString('base64'),stderr:c.stderr.toString('base64')}:{exitCode:null,signal:'SIGKILL',timedOut:deadlineExceeded,spawnFailed:true,discardedBytes:0,stdout:'',stderr:''};if(commandFailure)await sandbox.cancel(physical);j.phase='outcome';await this.write(j);
+ }
+ requireThat(j.command,'INTEGRITY_FAILURE');state=await sandbox.inspect(physical,expected);
+ if(state.state==='running'){try{j.after=await sandbox.kernelEvidence(physical);}catch{j.after=null;}await this.write(j);state=await sandbox.cancel(physical);}
+ requireThat(state.state==='exited','EFFECT_UNCERTAIN','Whole production container stop is not proven');const endedAt=this.now();deadlineExceeded||=endedAt>end||j.command.timedOut;let outputDigest;try{outputDigest=await inspectMaterialization(source,sourceRoot);}catch{outputDigest=bytesDigest(Buffer.from('production source integrity failure'));}
+ // The existing finite build protocol is data, not an attestation. Decode only
+ // retained stdout after verified whole-container stop; hash every actual byte.
+ if(isBuild&&j.command.exitCode===0&&!j.command.signal&&!j.command.timedOut&&!j.command.spawnFailed&&!j.command.discardedBytes){try{const built=decodeBuildOutput(Buffer.from(j.command.stdout,'base64'));j.objects=built.artifacts.map(o=>({name:/** @type {'device.cjs'|'worker.mjs'|'tools.json'} */(o.name),data:o.bytes.toString('base64')}));}catch{j.objects=[];}}
+ if(!j.objects.some(o=>o.name==='log')){const stdout=Buffer.from(j.command.stdout,'base64'),stderr=Buffer.from(j.command.stderr,'base64'),log=isBuild?{stdoutDigest:bytesDigest(stdout),stdoutBytes:stdout.length,stderrDigest:bytesDigest(stderr),stderrBytes:stderr.length,stderr:stderr.subarray(0,65536).toString('base64'),discardedBytes:j.command.discardedBytes}:{stdout:j.command.stdout,stderr:j.command.stderr,discardedBytes:j.command.discardedBytes};j.objects.unshift({name:'log',data:Buffer.from(canonicalJson(log)).toString('base64')});}
+ const outputs=j.objects.map(o=>{const bytes=Buffer.from(o.data,'base64');return {name:o.name,digest:bytesDigest(bytes),size:bytes.length};});
+ j.outer={schemaVersion:1,kind:'dev2-production-execution',assignmentId:a.assignmentId,leaseId:a.leaseId,inputIdentity:a.inputIdentity,sessionId:a.sessionId,runId:a.runId,sealDigest:a.sealDigest,trustedRunnerDigest:this.o.trustedRunnerDigest,profileDigest:p.digest,container:attemptName(physical),startedAt:j.startedAt,endedAt,command:{argvDigest:recordDigest('dev2.executed-argv.v1',p.argv),exitCode:j.command.exitCode,signal:j.command.signal,timedOut:j.command.timedOut,spawnFailed:j.command.spawnFailed,discardedBytes:j.command.discardedBytes},before:j.before,after:j.after,isolation:j.isolation,stopped:true,inputDigest:source.manifestDigest,outputDigest,outputs};decodeOuterReceipt(Buffer.from(canonicalJson(j.outer)));
+ const clean=kernelEligible(j.outer,p)&&j.command.exitCode===0&&!j.command.signal&&!j.command.timedOut&&!j.command.spawnFailed&&!j.command.discardedBytes&&!deadlineExceeded&&outputDigest===source.manifestDigest&&(!isBuild||outputs.length===4);
+ j.result={assignmentId:a.assignmentId,leaseId:a.leaseId,inputIdentity:a.inputIdentity,sealDigest:a.sealDigest,trustedRunnerDigest:this.o.trustedRunnerDigest,startedAt:j.startedAt,endedAt,stopped:true,exitCode:clean?0:j.command.exitCode===0?1:j.command.exitCode,signal:j.command.signal,deadlineExceeded,inputDigest:source.manifestDigest,outputDigest,artifacts:[]};j.phase='stopped';await this.write(j);await this.deliver(a,j);return j.result;
+ }
+ /** Retained bytes and the same native lease survive transport loss. There is
+ * deliberately no process launch or candidate-output recomputation in delivery.
+ * @param {Assignment} a @param {Journal} j */
+ async deliver(a,j){requireThat(j.result&&j.outer,'INTEGRITY_FAILURE');if(j.phase==='stopped'&&!j.result.signal&&!j.result.deadlineExceeded){const artifacts=[];for(const o of j.objects){const bytes=Buffer.from(o.data,'base64'),d=await this.o.client.upload(a,bytes);requireThat(d===bytesDigest(bytes),'INTEGRITY_FAILURE');artifacts.push(d);}const bytes=Buffer.from(canonicalJson(j.outer)),outer=await this.o.client.upload(a,bytes);requireThat(outer===bytesDigest(bytes),'INTEGRITY_FAILURE');j.result.artifacts=[...artifacts,outer];}
+ j.phase='uploaded';await this.write(j);const accepted=await this.o.client.complete(j.result);requireThat(accepted.assignmentId===a.assignmentId&&accepted.inputIdentity===a.inputIdentity&&accepted.state==='complete','INTEGRITY_FAILURE');j.phase='complete';await this.write(j);
+ }
+}

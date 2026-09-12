@@ -22,6 +22,10 @@ export function verifyEnrollment(enrollment,expected){
  try{
   closed(enrollment,['schemaVersion','kind','installationId','repositoryId','bindingEpoch','repositoryOwnerId','repositoryFullName','approvedCommitOid','approvedSourceManifestDigest','identities','qualification','nativeJoin','canonicalRuleset','sealDigest']);
   const {sealDigest,...body}=enrollment,b=expected.binding,definition=expected.definition;
+  // The new execution adapter is source-complete but cannot inherit legacy
+  // qualification authority. Remove this closed gate only with the separately
+  // joined exact production qualification/enrollment and native receipt port.
+  requireThat(definition.config.executionShape!=='production-outer-v1','EXECUTION_UNAVAILABLE','Production outer execution requires its separate commissioning and native receipt join');
   requireThat(digest(sealDigest)===recordDigest('dev2.managed-enrollment.v1',body)&&body.schemaVersion===1&&body.kind==='dev2-managed-enrollment'&&body.installationId===b.installationId&&body.repositoryId===b.repositoryId&&body.bindingEpoch===b.bindingEpoch,'INTEGRITY_FAILURE','Private enrollment identity mismatch');
   requireThat(revision(body.repositoryOwnerId)!=='0'&&b.remote==='https://github.com/'+body.repositoryFullName+'.git','FORBIDDEN');oid(body.approvedCommitOid);digest(body.approvedSourceManifestDigest);
   requireThat(body.approvedSourceManifestDigest===expected.source.manifestDigest&&canonicalJson(body.identities)===canonicalJson(definition.identities),'INTEGRITY_FAILURE','Private enrollment does not name the exact approved controller');
