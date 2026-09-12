@@ -1,7 +1,7 @@
 # dev-2 owner directive
 
 - Status: active
-- Revision: 3
+- Revision: 4
 - Scope: first public `dev-2` architecture, implementation, and proof
 
 ## 1. Authority
@@ -22,7 +22,7 @@ The primary completion condition is factual:
 
 > ChatGPT can use the canonical `dev-2` MCP path to discover the current repository, understand relevant source, make real source changes, validate them, integrate them safely, and read back authoritative completion without requiring a predecessor development system for ordinary forward development.
 
-Normal forward development must not repeatedly require tmcp, direct GitHub mutation, manual runtime rebinding, deployment-time source scoping, Codex, another LLM, or another external bootstrap. Such tools may be used only as bounded break-glass recovery when `dev-2` itself is unavailable or not yet capable of the transition being established.
+For the first public release, ordinary product operation through the canonical ChatGPT -> `dev-2` core path must not require tmcp, direct GitHub mutation, manual runtime rebinding, deployment-time source scoping, Codex, another LLM, or another external bootstrap. This is a product-independence and first-release-proof requirement, not a restriction on the tools used to implement, repair, bootstrap, inspect, or review `dev-2` itself. During development of `dev-2`, any authorized development tool, coding agent, model, IDE, shell, repository tool, or provider tool may be used when useful. Such a tool must not be mistaken for proof that the resulting canonical product path works without it, and it must not silently become a required dependency of that path.
 
 ## 3. Clean-sheet requirement
 
@@ -32,9 +32,13 @@ Existing tdev and tmcp code, documents, Designs, workflows, schemas, tools, stat
 
 Prior implementation, verification, qualification, deployment, sunk cost, historical acceptance, or migration convenience is never sufficient reason to retain an abstraction. Large-scale replacement and deletion are allowed before the first public release.
 
-## 4. ChatGPT-native intelligence
+## 4. Core intelligence and optional harnesses
 
-ChatGPT is the only required intelligence for the core development path. The first public core must not require a Codex executable, Codex authentication, a second LLM, a model subprocess, or another model execution service. Optional delegated intelligence may exist later only if core development remains fully usable without it.
+ChatGPT is the only required intelligence for the first-release canonical core development path. That core path must remain fully usable without a Codex executable, Codex authentication, a second LLM, a model subprocess, another model execution service, or any comparable delegated-intelligence harness.
+
+This does not make `dev-2` a permanently ChatGPT-only executor. The architecture may support optional local or remote executors, coding harnesses, agents, models, compilers, build systems, shells, or other specialized capabilities, including Codex-like or Antigravity-like harnesses, when they provide product value. They are optional capabilities unless a later Directive explicitly promotes one into a required product dependency. Their absence must not break the first-release canonical core path, and their integration must preserve the same authorization, exact identity, isolation, validation, recovery, conflict, and canonical-integration invariants as any other executor.
+
+There is no product requirement restricting which tools or models may be used to develop `dev-2` itself. The requirement concerns what the shipped canonical path requires in order to operate and what evidence is necessary to prove that independence.
 
 ## 5. Self-development and repository context
 
@@ -204,8 +208,11 @@ repository-resident Phase B resume information before requesting Refresh. Existi
 authorized tmcp/GitHub/project-local/provider tooling is a bounded bootstrap exception;
 record why it was used. No additional reasoning model is required. Phase B should
 use dev-2 for operations it can perform rather than routinely rediscovering through
-predecessor tooling. Current authority must identify exact implemented/incomplete
-frontiers, dependencies, blockers, evidence and first read-only rebinding operations.
+predecessor tooling when proving the canonical product path. This preference does not
+restrict which authorized tools may be used to implement or repair dev-2 itself;
+product-path proof and product-development tooling are distinct. Current authority
+must identify exact implemented/incomplete frontiers, dependencies, blockers,
+evidence and first read-only rebinding operations.
 
 Phase A does not perform Phase B release completion. Full hosted execution sealing,
 physical Android sleep/reboot, complete eight-way stress, self-update and comparison
