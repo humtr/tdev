@@ -46,20 +46,48 @@ export function qualifiedPolicy(input){
  * binding. No stale runtime config is allowed to reset an adopted policy.
  */
 export class PolicyState {
- /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
- constructor(options){this.o=options;this.now=options.now??Date.now;this.initialDigest=options.initial.policy.digest;this.current=options.initial;}
+ /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,enrollment?:{digest:string,policy:AdoptedPolicy},authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
+ constructor(options){this.o=options;this.now=options.now??Date.now;this.initialDigest=options.initial.policy.digest;this.baseDigest=this.initialDigest;this.current=options.initial;}
  /** @returns {Adoption|null} */
  retained(){return this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.active'");return row?/** @type {Adoption} */(parseRecord(String(row.value))):null;});}
+ /** One-time private commissioning is not policy.adopt or a validation receipt.
+  * It cannot be requested by a work item or inferred from repository config. The
+  * native installer supplies an independently checked immutable enrollment and
+  * its qualified initial controller. The original SQLite binding stays intact.
+  */
+ async commissioning(){
+  const retained=this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'");return row?parseRecord(String(row.value)):null;}),enrollment=this.o.enrollment;
+  if(!enrollment){requireThat(retained===null,'EXECUTION_UNAVAILABLE','Private managed enrollment is missing; refusing bootstrap-policy fallback');return this.o.initial;}
+  digest(enrollment.digest);const policy=qualifiedPolicy({schemaVersion:1,...enrollment.policy.policy});
+  requireThat(await this.o.qualify(policy),'EXECUTION_UNAVAILABLE','Private enrollment exceeds installed managed capability');
+  const value={schemaVersion:1,initialPolicyDigest:this.initialDigest,enrollmentDigest:enrollment.digest,policy:policy.policy},text=canonicalJson(value);
+  this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'");if(row)requireThat(String(row.value)===text,'INTEGRITY_FAILURE','Private enrollment changed');else{requireThat(!tx.get("SELECT value FROM meta WHERE key='policy.active'"),'INTEGRITY_FAILURE','Cannot commission over an already adopted policy');tx.run("INSERT INTO meta VALUES('policy.enrollment',?)",text);}});
+  this.baseDigest=policy.policy.digest;return policy;
+ }
  /** Mandatory before opening admission on restart. Missing capability leaves the
   * installation closed; it does not silently fall back to the bootstrap policy.
   */
  async restore(){
-  const record=this.retained();if(!record){requireThat(this.o.binding.policyDigest===this.initialDigest,'INTEGRITY_FAILURE');this.current=this.o.initial;return this.current;}
+  const commissioned=await this.commissioning(),record=this.retained();
+  if(!record){requireThat([this.initialDigest,this.baseDigest].includes(this.o.binding.policyDigest),'INTEGRITY_FAILURE');this.current=commissioned;this.o.binding.policyDigest=commissioned.policy.digest;this.o.ledger.binding.policyDigest=commissioned.policy.digest;return this.current;}
   requireThat(record.schemaVersion===1&&record.initialPolicyDigest===this.initialDigest,'INTEGRITY_FAILURE','Policy enrollment mismatch');
   const restored=qualifiedPolicy({schemaVersion:1,...record.policy});
   requireThat(await this.o.qualify(restored),'EXECUTION_UNAVAILABLE','Adopted execution policy is not installed');
   const after=this.retained();requireThat(after&&canonicalJson(after)===canonicalJson(record),'STALE_RESULT');
   this.current=restored;this.o.binding.policyDigest=restored.policy.digest;this.o.ledger.binding.policyDigest=restored.policy.digest;return restored;
+ }
+ /** Observation only: SQL commit or absence is authoritative once the previous
+  * continuation has stopped. Never manufacture a second adoption to recover a
+  * missing response. Restoration replays the retained policy, not a new CAS.
+  * @param {import('../contracts/ports.js').Action} action */
+ async recovery(action){
+  requireThat(action.operation==='policy.adopt'&&action.workId===null&&action.bindingEpoch===this.o.binding.bindingEpoch,'FORBIDDEN');
+  const record=this.o.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?','policy.adoption:'+action.actionId);if(!row)return null;
+   const value=/** @type {Adoption} */(parseRecord(String(row.value))),input=/** @type {AdoptionInput} */(/** @type {unknown} */(tx.intent(action.actionId)));
+   requireThat(value.actionId===action.actionId&&value.principal===action.principal&&value.initialPolicyDigest===this.initialDigest&&value.integratedCommit===input.integratedCommit&&value.policyPath===input.policyPath&&value.previousPolicyDigest===input.expectedPolicyDigest&&value.policy.digest===input.newPolicyDigest,'INTEGRITY_FAILURE','Retained adoption differs from the action');return value;
+  });
+  if(record)await this.restore();
+  return {stopped:true,effectResolved:true,output:record?this.output(record):null};
  }
  /** @param {Principal} principal @param {AdoptionInput} input @param {string} actionId */
  async adopt(principal,input,actionId){
@@ -81,7 +109,7 @@ export class PolicyState {
   /** @type {Adoption} */const record={schemaVersion:1,initialPolicyDigest:this.initialDigest,previousPolicyDigest:input.expectedPolicyDigest,integratedCommit:input.integratedCommit,policyPath:input.policyPath,sourceBlobDigest:entry.contentDigest,validationId:integrated.validationId,actionId,principal:principal.subject,adoptedAt:this.now(),policy:next.policy};
   this.o.ledger.transact(tx=>{
    fence.check(tx);const row=tx.get("SELECT value FROM meta WHERE key='policy.active'");
-   const active=row?/** @type {Adoption} */(parseRecord(String(row.value))).policy.digest:this.initialDigest;
+   const active=row?/** @type {Adoption} */(parseRecord(String(row.value))).policy.digest:this.baseDigest;
    requireThat(active===input.expectedPolicyDigest&&this.o.binding.policyDigest===input.expectedPolicyDigest,'STALE_RESULT','Concurrent policy adoption');
    const text=canonicalJson(record);tx.run('INSERT INTO meta(key,value) VALUES(?,?)','policy.adoption:'+actionId,text);tx.run("INSERT INTO meta(key,value) VALUES('policy.active',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",text);
   });

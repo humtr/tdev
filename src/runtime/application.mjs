@@ -102,7 +102,7 @@ export class DevelopmentApplication {
   const result=this.engine.ledger.transact(tx=>tx.all('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,principal.subject));
   for(const row of [...latest,...result])actionIds.push((/** @type {Action} */(parseRecord(String(row.record)))).actionId);
  }
- actionIds=[...new Set(actionIds)];requireThat(actionIds.length<=128,'LIMIT_EXCEEDED');for(const id of actionIds)await this.action(principal,id);
+ actionIds=[...new Set(actionIds)];requireThat(actionIds.length<=128,'LIMIT_EXCEEDED');for(const id of actionIds){await this.action(principal,id);await this.engine.specialRecovery.observe(principal,id,false);}
  if(Number(input.waitMs)>0&&actionIds.length)await this.wait(principal,actionIds,Number(input.waitMs),signal,/** @type {string|undefined} */(selector.afterRevision));
  let actions=await Promise.all(actionIds.map(id=>this.action(principal,id)));
  for(const a of actions)if(a.workId)workIds.push(a.workId);

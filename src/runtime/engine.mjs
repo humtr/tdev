@@ -7,6 +7,7 @@ import {ResultPreparer} from '../integration/prepare.mjs';
 import {ExactIntegrator} from '../integration/effects.mjs';
 import {validateWorkItem} from '../mcp/input-schemas.mjs';
 import {ActionRecovery} from './recovery.mjs';
+import {SpecialRecovery} from './special-recovery.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Work} Work */
@@ -18,7 +19,7 @@ import {ActionRecovery} from './recovery.mjs';
 /** @typedef {import('../contracts/ports.js').ValidationReceipt} Receipt */
 /** @typedef {import('../contracts/ports.js').Capability} Capability */
 /** @typedef {{op:string,requestId:string,workId?:string,snapshotId?:string,expectedHead?:string,objective?:string,initialEdits?:import('../contracts/ports.js').Edit[],edits?:import('../contracts/ports.js').Edit[],expectedRevision?:string,expectedGeneration?:string,generation?:string,profileId?:string,parameters?:Json,policyDigest?:string,preparedResultId?:string,actionId?:string,reason?:string,repository?:string,expectedPolicyDigest?:string,integratedCommit?:string,policyPath?:string,newPolicyDigest?:string,expectedActiveRelease?:string,stagedReleaseId?:string}} Input */
-/** @typedef {{binding:import('../contracts/ports.js').Binding,ledger:import('../storage/ledger.mjs').Ledger,repository:import('../repository/git.mjs').GitRepository,context:import('../repository/context.mjs').ContextService,authorization:import('../contracts/ports.js').AuthorizationPort,remote:ConstructorParameters<typeof ExactIntegrator>[0]['remote'],policy:()=>import('../validation/policy.mjs').AdoptedPolicy,validation:()=>import('../contracts/ports.js').ValidationPort,verifyLineage:(head:string)=>Promise<boolean>,actor:string,capacity?:number,now?:()=>number,executionAvailable?:()=>boolean,runProfile?:(work:Work,attempt:Attempt,profile:import('../contracts/ports.js').Profile,cancelled:()=>boolean)=>Promise<{exitCode:number|null,signal:string|null,inputDigest:string,outputDigest:string}>,cancelAttempt?:(attempt:Attempt)=>Promise<boolean>,attemptStopped?:(attempt:Attempt)=>Promise<boolean>,senderStopped?:(effect:Effect)=>Promise<boolean>,cancelSender?:(effect:Effect)=>Promise<boolean>,special?:(principal:Principal,input:Input,actionId:string)=>Promise<Json>}} Options */
+/** @typedef {{binding:import('../contracts/ports.js').Binding,ledger:import('../storage/ledger.mjs').Ledger,repository:import('../repository/git.mjs').GitRepository,context:import('../repository/context.mjs').ContextService,authorization:import('../contracts/ports.js').AuthorizationPort,remote:ConstructorParameters<typeof ExactIntegrator>[0]['remote'],policy:()=>import('../validation/policy.mjs').AdoptedPolicy,validation:()=>import('../contracts/ports.js').ValidationPort,verifyLineage:(head:string)=>Promise<boolean>,actor:string,capacity?:number,now?:()=>number,executionAvailable?:()=>boolean,operationAvailable?:(op:string)=>boolean,integrationLineage?:(head:string)=>Promise<boolean>,runProfile?:(work:Work,attempt:Attempt,profile:import('../contracts/ports.js').Profile,cancelled:()=>boolean)=>Promise<{exitCode:number|null,signal:string|null,inputDigest:string,outputDigest:string}>,cancelAttempt?:(attempt:Attempt)=>Promise<boolean>,attemptStopped?:(attempt:Attempt)=>Promise<boolean>,senderStopped?:(effect:Effect)=>Promise<boolean>,cancelSender?:(effect:Effect)=>Promise<boolean>,special?:(principal:Principal,input:Input,actionId:string)=>Promise<Json>,specialRecovery?:(action:Action)=>Promise<import('./special-recovery.mjs').SpecialObservation>}} Options */
 /** @param {readonly import('../contracts/ports.js').Edit[]} edits */
 const editPaths=edits=>edits.flatMap(edit=>edit.kind==='move'?[edit.from,edit.to]:[edit.path]);
 /** @param {unknown} value @returns {Input} */
@@ -35,11 +36,12 @@ export class DevelopmentEngine {
   this.coordinator=new WorkCoordinator(options.ledger,{executionCapacity:options.capacity,now:this.now});
   this.preparer=new ResultPreparer({ledger:options.ledger,repository:options.repository,binding:options.binding,verifyLineage:options.verifyLineage,actor:options.actor,now:this.now});
   /** @type {Map<string,Promise<void>>} */this.running=new Map();this.pumping=false;this.accepting=true;
-  this.recovery=new ActionRecovery(this);this.recovery.adopt();
+  this.recovery=new ActionRecovery(this);this.specialRecovery=new SpecialRecovery(this);this.recovery.adopt();
  }
  operationDescriptors(){return ['create','edit','run','validate','integrate','cancel','resume','policy.adopt','release.stage','release.activate'].map(op=>{
   const executable=this.o.executionAvailable?.()!==false;
-  const available=op==='run'?!!this.o.runProfile:op==='validate'||op==='integrate'?executable:op.startsWith('release.')||op==='policy.adopt'?!!this.o.special:true;
+  const implemented=op==='run'?!!this.o.runProfile:op==='validate'||op==='integrate'?executable:op.startsWith('release.')||op==='policy.adopt'?!!this.o.special:true;
+  const available=implemented&&this.o.operationAvailable?.(op)!==false;
   const partial=!available&&(op==='validate'||op==='integrate');
   return {op,available,state:available?'implemented':partial?'partial':'unavailable',reason:available?null:partial?'Exact result preparation and observation are available; hosted execution and publication eligibility are not sealed':'Installation capability is not implemented'};
  });}
@@ -82,7 +84,13 @@ export class DevelopmentEngine {
   const item=workInput(value);await this.authorize(principal,item);
   const prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId));
   const authorize=()=>this.authorize(principal,item);
-  if(prior)return this.admission(await this.coordinator.admit({principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:prior.deadline,mutate:()=>{throw new Dev2Error('INTEGRITY_FAILURE','Dedup row disappeared');}}));
+  if(prior){
+   const exact={principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:prior.deadline,mutate:()=>{throw new Dev2Error('INTEGRITY_FAILURE','Dedup row disappeared');}};
+   // Verify the original payload before any recovery observation or state change.
+   const receipt=await this.coordinator.admit(exact);
+   if(!prior.workId&&prior.status==='blocked'){await this.specialRecovery.observe(principal,prior.actionId,true);return this.admission(await this.coordinator.admit(exact));}
+   return this.admission(receipt);
+  }
   requireThat(this.accepting,'EXECUTION_UNAVAILABLE','Runtime is draining');
   let staged=/** @type {import('../contracts/ports.js').SourceTree|undefined} */(undefined),snapshot=/** @type {import('../contracts/ports.js').Snapshot|undefined} */(undefined);
   let recoveryPlan=/** @type {Awaited<ReturnType<ActionRecovery['plan']>>|null} */(null);
@@ -138,7 +146,7 @@ export class DevelopmentEngine {
  /** @param {Effect} effect */
  async senderStopped(effect){try{return this.o.senderStopped?await this.o.senderStopped(effect):this.binding.provider==='fixture';}catch{return false;}}
  /** @param {Principal} principal @param {Input} item */
- integrator(principal,item){return new ExactIntegrator({binding:this.binding,ledger:this.ledger,repository:this.o.repository,remote:this.o.remote,validation:this.o.validation(),verifyLineage:this.o.verifyLineage,authorize:()=>this.authorize(principal,item),senderStopped:effect=>this.senderStopped(effect),now:this.now});}
+ integrator(principal,item){return new ExactIntegrator({binding:this.binding,ledger:this.ledger,repository:this.o.repository,remote:this.o.remote,validation:this.o.validation(),verifyLineage:this.o.integrationLineage??this.o.verifyLineage,authorize:()=>this.authorize(principal,item),senderStopped:effect=>this.senderStopped(effect),now:this.now});}
  /** Cancellation is retained first. Signalling cannot by itself release a slot or
   * turn an uncertain external effect into a terminal cancellation.
   * @param {string} actionId */
@@ -206,7 +214,16 @@ export class DevelopmentEngine {
    const outcome=await integrator.publish(effect,result,receipt,await this.senderStopped(effect));
    this.settleEffect(attempt,effect,outcome,await this.senderStopped(effect));
   }catch(error){
-   if(!stopped&&this.o.attemptStopped)try{stopped=await this.o.attemptStopped(attempt);}catch{stopped=false;}
+   if(!action.workId&&!stopped){
+    // A managed-container stop says nothing about policy, staging or an external
+    // paired activation. Only that exact backend's retained effect may settle it.
+    effectResolved=false;
+    if(this.o.specialRecovery)try{
+     const proof=await this.o.specialRecovery(action);stopped=proof.stopped;effectResolved=proof.effectResolved;this.assertAttempt(attempt);
+     requireThat(proof.output===null||stopped&&effectResolved,'INTEGRITY_FAILURE','Special output lacks stopped/effect proof');
+     if(proof.output!==null){this.store('action-result:'+action.actionId,proof.output);this.coordinator.settle(attempt,this.ledger.ownerEpoch,'succeeded',{stopped:true,effectResolved:true,step:'complete.recovered'});return;}
+    }catch{stopped=false;effectResolved=false;}
+   }else if(!stopped&&this.o.attemptStopped)try{stopped=await this.o.attemptStopped(attempt);}catch{stopped=false;}
    if(effect){stopped=stopped&&await this.senderStopped(effect);effectResolved=false;}
    this.assertAttempt(attempt);const code=error instanceof Dev2Error?error.code:'INTEGRITY_FAILURE';
    this.coordinator.settle(attempt,this.ledger.ownerEpoch,stopped&&effectResolved?(this.cancelled(action.actionId)?'cancelled':'failed'):'blocked',{stopped,effectResolved,resultId,errorCode:code});
