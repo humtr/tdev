@@ -3,6 +3,10 @@
 Authority: DIRECTIVE r4 -> RULE -> selected D0001-D0008.
 This file is current execution status only; mutable facts require fresh observation.
 
+## Canonical single-owner rollback
+
+By direct owner instruction on 2026-09-13, the four-commit multi-account/OAuth experiment that starts after `fbe04f6356b4cae98890f416935f46e82115b413` is retained on `dev-2-multi-account` at `a304c5627cfe27718aadbbeba55166b31e9c348e`. Canonical `dev-2` was restored to the exact pre-experiment source tree; the canonical product path is again the prior single-owner account procedure. Provider/runtime rollback and live owner readback are separate mutable gates and must be freshly observed before claiming completion.
+
 ## Candidate independently reviewed (source green; live frontier open)
 
 The isolated local branch `codex/prod-enrollment-release-join`, based on freshly
