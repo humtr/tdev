@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0005]`
 - Supersedes: `[]`
-- Directive: `r3`
+- Directive: `r4`
 - Owns: `repository-snapshots, progressive-context, candidate-generations`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.

@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0006]`
 - Supersedes: `[]`
-- Directive: `r3`
+- Directive: `r4`
 - Owns: `public-mcp-schema, controller-recipes, observation-contract`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
