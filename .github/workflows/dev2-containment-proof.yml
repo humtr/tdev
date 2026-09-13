@@ -30,7 +30,10 @@ jobs:
         run: node tools/managed-probe.mjs
       - name: Actual required managed profiles and exact response-loss replay
         run: node tools/qualify-managed.mjs
+      - name: Actual production adapter profiles, finite build, kernel and stop falsifiers
+        run: node tools/qualify-production.mjs
       - name: Preserve bounded qualification evidence in provider logs
         if: always()
         run: |
           if test -f .artifacts/managed-probe/report.json; then cat .artifacts/managed-probe/report.json; fi
+          if test -f .artifacts/production-controller/report.json; then cat .artifacts/production-controller/report.json; fi
