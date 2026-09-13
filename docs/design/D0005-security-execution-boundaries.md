@@ -53,6 +53,18 @@ the operator UID is outside the promised cross-candidate isolation boundary.
 
 The selected first-release authorization service is Cloudflare Access Managed
 OAuth on the explicitly adopted dev-2 installation application. For the owner-authorized same-origin cutover, the existing human Access application may be adopted after fresh issuer/audience/domain/policy readback, preserving its ChatGPT OAuth registration without preserving old runtime semantics. A new application is required only when actual binding/security evidence prevents safe adoption, not merely because the backing product changed.
+
+Managed OAuth dynamic client registration remains narrow and explicit. The adopted
+first-release application admits exactly the legacy ChatGPT per-connector callback
+family `https://chatgpt.com/connector/oauth/*` and the current stable ChatGPT callback
+`https://chatgpt.com/connector_platform_oauth_redirect`; localhost, loopback and a
+broader `chatgpt.com` wildcard remain disabled. A newly observed callback shape is a
+fresh authentication-boundary fact and must be designed/read back before admission,
+not inferred from request timing or an existing client. Redirect admission authorizes
+only the OAuth client transport. It does not identify a dev-2 human principal, confer
+a standing grant, merge ChatGPT accounts, or weaken the signed Access assertion and
+exact `issuer`+`sub` authorization rules below.
+
 Its opaque OAuth access token terminates at Access; it is not a JWT bearer. The
 Worker and Termux verifier validate the signed Access assertion with the exact
 installation issuer, application audience, allowed asymmetric algorithm, expiration,
