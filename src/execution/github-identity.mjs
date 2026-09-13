@@ -12,13 +12,13 @@ import { workersDevOrigin } from '../runtime/environment.mjs';
  */
 /** @param {{origin:string,installationId:string}} config
  * @param {import('jose').JWTVerifyGetKey} keyResolver
- * @param {(sessionId:string)=>Promise<LaunchAuthorization|null>} readLaunch
+ * @param {(sessionId:string,freshProvider:boolean)=>Promise<LaunchAuthorization|null>} readLaunch
  * @param {()=>number} [now] */
 export function githubExecutorVerifier(config, keyResolver, readLaunch, now = Date.now) {
     const audience = workersDevOrigin(config.origin) + '/executor', installationId = id(config.installationId);
     const issuer = 'https://token.actions.githubusercontent.com';
-    /** @param {unknown} assertion @param {string} sessionId @returns {Promise<ExecutorIdentity>} */
-    return async (assertion, sessionId) => {
+    /** @param {unknown} assertion @param {string} sessionId @param {boolean} [freshProvider] @returns {Promise<ExecutorIdentity>} */
+    return async (assertion, sessionId, freshProvider = false) => {
         requireThat(typeof assertion === 'string' && assertion.length <= 32768 && /^[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+$/.test(assertion), 'UNAUTHORIZED');
         try {
             id(sessionId);
@@ -28,7 +28,7 @@ export function githubExecutorVerifier(config, keyResolver, readLaunch, now = Da
             requireThat(typeof p.sub === 'string' && p.sub.length > 0 && p.sub.length <= 2048 && p.aud === audience, 'UNAUTHORIZED');
             requireThat([p.exp, p.iat, p.nbf].every(x => typeof x === 'number' && Number.isSafeInteger(x) && x >= 0 && Number.isSafeInteger(x * 1000)), 'UNAUTHORIZED');
             requireThat(/** @type {number} */ (p.iat) <= milliseconds / 1000 && /** @type {number} */ (p.iat) < /** @type {number} */ (p.exp), 'UNAUTHORIZED');
-            const expected = await readLaunch(sessionId);
+            const expected = await readLaunch(sessionId, freshProvider);
             requireThat(expected && expected.active && expected.sessionId === sessionId && expected.installationId === installationId && Number.isSafeInteger(expected.expiresAt) && expected.expiresAt > milliseconds, 'UNAUTHORIZED');
             for (const s of [expected.repositoryId, expected.repositoryOwnerId, expected.runId])
                 requireThat(revision(s) !== '0', 'UNAUTHORIZED');

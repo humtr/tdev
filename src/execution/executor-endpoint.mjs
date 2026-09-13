@@ -7,12 +7,12 @@ import {failure} from '../contracts/envelopes.mjs';
  * human operation, command, canonical Git effect, grant or arbitrary object path.
  */
 export class ExecutorEndpoint {
- /** @param {{sessions:import('./sessions.mjs').ManagedSessions,transfer:import('./session-transfer.mjs').AssignmentTransfer,verify:(token:string,sessionId:string)=>Promise<import('./session-types.js').AuthenticatedExecutor>,poll?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,retire?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,wake?:()=>void}} options */
+ /** @param {{sessions:import('./sessions.mjs').ManagedSessions,transfer:import('./session-transfer.mjs').AssignmentTransfer,verify:(token:string,sessionId:string,freshProvider:boolean)=>Promise<import('./session-types.js').AuthenticatedExecutor>,poll?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,retire?:(identity:import('./session-types.js').AuthenticatedExecutor)=>ReturnType<import('./sessions.mjs').ManagedSessions['current']>,wake?:()=>void}} options */
  constructor(options){this.o=options;}
  /** @param {unknown} value @param {string} assertion @returns {Promise<Json>} */
  async invoke(value,assertion){try{
   const request=executorRequest(value);requireThat(typeof assertion==='string'&&assertion.length>0&&assertion.length<=32768,'UNAUTHORIZED');
-  const identity=await this.o.verify(assertion,request.sessionId);requireThat(identity.sessionId===request.sessionId,'UNAUTHORIZED');
+  const identity=await this.o.verify(assertion,request.sessionId,request.op==='result.submit');requireThat(identity.sessionId===request.sessionId,'UNAUTHORIZED');
   const sessions=this.o.sessions;
   if(request.op==='poll'||request.op==='retire'){let current;
    if(request.op==='retire'){requireThat(this.o.retire,'EXECUTION_UNAVAILABLE','Native retirement is not installed');current=this.o.retire(identity);}

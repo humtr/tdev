@@ -18,7 +18,7 @@ export async function createProductionControl(o){
  const sessions=new ManagedSessions({ledger:o.ledger,config:{repositoryOwnerId:i.repositoryOwnerId,repositoryFullName:i.repositoryFullName,approvedCommit:i.approvedCommitOid.slice(5),trustedRunnerDigest:definition.identities.trustedRunnerDigest,sessionTimeoutMs:definition.config.sessionLifetimeMs,capacity:o.capacity,sealDigest:o.enrollment.sealDigest}});
  const enrolled=await verifyProductionEnrollment(o.enrollment,{binding:o.binding,definition,source:approved.source,runtime:o.runtime,qualificationSealDigest:o.qualificationSealDigest,sessions,objects:o.objects,admission:o.admission});
  const provider=new GitHubSessions({sessions,token:async()=>o.token}),pool=new ManagedPool({sessions,provider,repository:o.repository,objects:o.objects}),transfer=new AssignmentTransfer({sessions,objects:o.objects});pool.reconcileLocal();
- const verify=githubExecutorVerifier({origin:o.origin,installationId:o.binding.installationId},createRemoteJWKSet(new URL('https://token.actions.githubusercontent.com/.well-known/jwks')),id=>provider.authorization(id));
+ const verify=githubExecutorVerifier({origin:o.origin,installationId:o.binding.installationId},createRemoteJWKSet(new URL('https://token.actions.githubusercontent.com/.well-known/jwks')),(id,freshProvider)=>provider.authorization(id,freshProvider));
  const endpoint=new ExecutorEndpoint({sessions,transfer,verify,poll:i=>pool.poll(i),retire:i=>pool.retire(i),wake:o.wake});
  const builder=o.installationSealDigest?new ManagedReleaseBuilder({production:enrolled,pool,objects:o.objects,installationSealDigest:o.installationSealDigest}):null;
  return {enrolled,definition,sessions,provider,pool,transfer,endpoint,builder};
