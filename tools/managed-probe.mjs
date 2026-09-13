@@ -70,6 +70,9 @@ export async function runManagedProbe(){
  try{
   report.oidc=await oidcEvidence(config.origin);
   const executable=await realpath('/usr/bin/podman'),seccompPath=await realpath('/usr/share/containers/seccomp.json');
+  // Private commissioning must select the observed engine bytes, not guess from
+  // a package/version label. This qualification observation grants no authority.
+  report.engineDigest=bytesDigest(await readFile(executable));
   const seccompDigest=bytesDigest(await readFile(seccompPath));report.seccompDigest=seccompDigest;
   /** @type {Record<string,string>} */const environment={PATH:process.env.PATH??'/usr/bin:/bin',HOME:process.env.HOME??scratch,LANG:'C.UTF-8'};
   for(const key of ['XDG_RUNTIME_DIR','DBUS_SESSION_BUS_ADDRESS'])if(process.env[key])environment[key]=/** @type {string} */(process.env[key]);
