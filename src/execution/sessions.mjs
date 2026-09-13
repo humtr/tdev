@@ -36,6 +36,12 @@ export class ManagedSessions {
  }
  /** @param {Transaction} tx @param {string} sessionId @returns {Session} */
  session(tx,sessionId){const s=/** @type {Session|null} */(decode(tx.get('SELECT record FROM managed_session WHERE session_id=?',id(sessionId))));requireThat(s,'FORBIDDEN','Unknown managed session');return s;}
+ /** A physical hosted session pins its first assignment seal. Derive admission
+  * from immutable retained assignments rather than creating a second seal owner.
+  * @param {Transaction} tx @param {string} sessionId */
+ sealCompatible(tx,sessionId){return this.config.sealDigest!==null&&tx.all('SELECT record FROM managed_assignment WHERE session_id=?',id(sessionId)).every(row=>{
+  const a=/** @type {Assignment|null} */(decode(row));return a?.sealDigest===this.config.sealDigest;
+ });}
  /** @param {Transaction} tx @param {string} assignmentId @returns {Assignment} */
  assignment(tx,assignmentId){const a=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',id(assignmentId))));requireThat(a,'FORBIDDEN','Unknown managed assignment');return a;}
  /** @param {Transaction} tx @param {Session} before @param {Session} after */
@@ -87,6 +93,7 @@ export class ManagedSessions {
    const s=this.authenticated(tx,identity),prior=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',assignmentId)));
    if(prior){requireThat(prior.inputIdentity===inputIdentity&&prior.sessionId===s.intent.sessionId&&prior.runId===identity.runId,'IDEMPOTENCY_MISMATCH');const retained=tx.all('SELECT digest,size FROM managed_object WHERE assignment_id=? ORDER BY digest',assignmentId);requireThat(retained.length===descriptors.size&&retained.every(r=>descriptors.get(String(r.digest))===Number(r.size)),'IDEMPOTENCY_MISMATCH');return prior;}
    requireThat(this.config.sealDigest!==null,'EXECUTION_UNAVAILABLE','Managed containment seal is absent');
+   requireThat(this.sealCompatible(tx,s.intent.sessionId),'EXECUTION_UNAVAILABLE','Hosted session is pinned to another enrollment seal');
    requireThat(s.state==='active'&&!s.cancelRequested&&this.now()<input.deadline&&input.deadline<=s.intent.deadline,'STALE_RESULT');
    requireThat(a.installationId===s.intent.installationId&&a.repositoryId===s.intent.repositoryId,'FORBIDDEN');
    const reservation=tx.retainedAttempt(a.attemptId);requireThat(reservation?.held&&reservation.observerEpoch===this.ledger.ownerEpoch&&encoded(reservation.attempt)===encoded(a),'STALE_REVISION');

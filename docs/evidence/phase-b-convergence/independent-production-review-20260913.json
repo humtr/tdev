@@ -1,0 +1,253 @@
+{
+  "schemaVersion": 1,
+  "kind": "independent-candidate-source-review",
+  "date": "2026-09-13",
+  "reviewer": "ChatGPT, independent of the originating local Codex author; not a blind multi-reviewer ACR certificate",
+  "canonicalStart": "cd3d63fd152e54d73641b6dd2dcc8944090404c9",
+  "candidateStart": "ba7b50688d1c7fd74b5c20db4014069628b4421a",
+  "candidateTree": "d937e0a5e8a404ad042d26adb8d6ad89887141a6",
+  "implementationCommit": "b9c7db04687d6d2eab8609ca0603e7aaf4bde9e5",
+  "reviewedCodeTree": "8084474556acee6f532032f58c3766c4f39dcb5e",
+  "mergeBase": "cd3d63fd152e54d73641b6dd2dcc8944090404c9",
+  "verdict": "green-for-source-integration-after-repairs",
+  "directive": "r4",
+  "designs": [
+    "D0001",
+    "D0002",
+    "D0003",
+    "D0004",
+    "D0005",
+    "D0006",
+    "D0007",
+    "D0008"
+  ],
+  "defects": [
+    {
+      "id": "R1",
+      "kind": "test-race",
+      "path": "test/integration/private-control.test.mjs",
+      "falsifier": "20ms timeout sometimes occurred before authenticated handler delivery; initial npm check had 197 integration passes, 1 failure and 1 skip",
+      "repair": "real loopback handler-entry barrier followed by explicit response abortion; no production timeout increase"
+    },
+    {
+      "id": "R2",
+      "kind": "source-recovery-contract",
+      "path": "src/release/private-rpc.mjs",
+      "falsifier": "handler completed, headers arrived, response body stream failed: raw TypeError escaped instead of retained delivery uncertainty",
+      "repair": "body I/O failure maps to EXECUTION_UNAVAILABLE delivery unknown; cleanup cannot replace the bound result/error; no retry"
+    },
+    {
+      "id": "R3",
+      "kind": "source-production-transition",
+      "paths": [
+        "src/execution/managed-pool.mjs",
+        "src/execution/sessions.mjs"
+      ],
+      "falsifier": "same-source warm commissioning session received a final-production-seal dispatch and direct offer, although HostedSession pins its first seal",
+      "repair": "derive seal compatibility from existing immutable assignments at selection and offer; preserve same-seal reuse and normal retirement/positive-stop semantics; bounded D0008 clarification"
+    }
+  ],
+  "validation": {
+    "environment": {
+      "environment": "native",
+      "variantId": "termux-android-arm64-node24-18",
+      "role": "native-control",
+      "node": "24.18.0",
+      "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+      "platform": "android",
+      "arch": "arm64",
+      "sqlite": "3.53.4"
+    },
+    "inputDigest": "sha256:165f9c22eabc38191b6871f34a4759dceb4a1ffa7c283417706767240a941914",
+    "core": {
+      "passed": 172,
+      "failed": 0,
+      "skipped": 0,
+      "result": {
+        "schemaVersion": 1,
+        "layer": "core",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T01:45:15.626Z",
+        "finishedAt": "2026-09-13T01:45:40.136Z",
+        "durationMs": 24511,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:165f9c22eabc38191b6871f34a4759dceb4a1ffa7c283417706767240a941914",
+        "outputInputDigest": "sha256:165f9c22eabc38191b6871f34a4759dceb4a1ffa7c283417706767240a941914",
+        "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "python.minimum",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 62,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "jsdoc",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 9043,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "designs",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 188,
+            "logDigest": "sha256:11a19449a2dec03ece5536b4227302af799244952933fd3490ff5b56346007a1"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 15099,
+            "logDigest": "sha256:083f5d7bda9b36cc41a11be80d9cbfe67a6bb70bcc3ebc9232b8ea488c5c2d64"
+          }
+        ]
+      }
+    },
+    "integration": {
+      "passed": 206,
+      "failed": 0,
+      "skipped": 1,
+      "result": {
+        "schemaVersion": 1,
+        "layer": "integration",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T01:45:40.526Z",
+        "finishedAt": "2026-09-13T01:47:11.134Z",
+        "durationMs": 90609,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:165f9c22eabc38191b6871f34a4759dceb4a1ffa7c283417706767240a941914",
+        "outputInputDigest": "sha256:165f9c22eabc38191b6871f34a4759dceb4a1ffa7c283417706767240a941914",
+        "profileDigest": "sha256:f06633484762bd2bd48b7852d36b2cbf203a3181202141ebbc6d827c657decfc",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "git.pin",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 40,
+            "logDigest": "sha256:e928567de6f903039a669b7647bf037309d50e4f7916bb5c06f7b05d3bf966fe"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 90479,
+            "logDigest": "sha256:7f8f94612de0c053b54bae710c152132b6b3372470c8d68559c48c0a2ab02bb8"
+          }
+        ]
+      }
+    },
+    "focused": {
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0
+    },
+    "releaseFixtures": {
+      "passed": 36,
+      "failed": 0,
+      "skipped": 0
+    },
+    "deviceBundle": {
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "bundleDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+      "bytes": 918996,
+      "builder": "esbuild-0.28.2"
+    },
+    "helperBundle": {
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "bundleDigest": "sha256:af61d6be2839bf8f767e72fce9de5b3a4c1f9172d547706c2d889b5141d97375",
+      "bytes": 430318,
+      "builder": "esbuild-0.28.2"
+    },
+    "skipReason": "Native Android forbids hard-link creation; the separate hosted Linux check remains required"
+  },
+  "evidence": {
+    "baseline-core-result.json": {
+      "sha256": "147734f5ae84b04dcd302618d49896f078f842b252e433db08f5f5e1c27ad169"
+    },
+    "baseline-integration-result.json": {
+      "sha256": "fdaa7266c8f0ee04ce6464394ce9773d0336f76bfdca668533a133bfa5c8ab05"
+    },
+    "body-loss-before-repair.log": {
+      "sha256": "ea5a27c1424a9cf84790668171b80c6bd27855eab225a6b1eda7a58c47d948b6"
+    },
+    "rpc-body-repaired.log": {
+      "sha256": "184ef1a5ab8b6d9382c7495e20316d86d5122b751fe52e38e87eec6e4b6a5d0a"
+    },
+    "seal-transition-before.log": {
+      "sha256": "28b704c9ea3f981d011c1949ea13049a1da8f12f8cd6fb4154fdd121ae01ac05"
+    },
+    "seal-transition-repaired.log": {
+      "sha256": "b44fc5c64aa1f8a67ad1b41929fc19778db53bca9a97d10129339c8b0c09ac44"
+    },
+    "final-check.log": {
+      "sha256": "2173845ec232386ce9b8ed661c40e02f272ee836a54fb34331b0be9dfc6d7b46"
+    },
+    "final-release.log": {
+      "sha256": "b2411cd1e5b1980af80d36da7ea0726b7e298f1259808ea27d7fc6a4a91e1d1e"
+    },
+    "final-device-build.log": {
+      "sha256": "bcd20cf1fed676f5837aa46097a63b2cb8d1f54a838ffa5786fcadea985fc12a"
+    },
+    "final-helper-build.log": {
+      "sha256": "b05178f4f5f4dd761b4cf8be3c67a7820c12d0065fadd3714646c93d1eddddbc"
+    }
+  },
+  "jobs": {
+    "initialValidation": "job_sb5_88bf4fa050",
+    "bodyLossFalsifier": "job_sc3_68c5d6e8e7",
+    "sealTransitionFalsifier": "job_scc_e7bd34780d",
+    "focusedReplay": "job_scd_2178bccf39",
+    "finalValidation": "job_scg_02cd4a21f2"
+  },
+  "installed": false,
+  "commissioned": false,
+  "liveAccepted": false,
+  "firstReleaseComplete": false
+}

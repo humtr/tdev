@@ -58,6 +58,15 @@ Historical qualification receipts preserve their original verification semantics
 
 ## Concurrency and failure/recovery
 
+A hosted session pins the seal of its first assignment. Warm commissioning sessions
+therefore cannot receive assignments under the later production enrollment seal,
+even when controller/source identities are unchanged. Admission derives seal
+compatibility from the existing immutable assignment records, both when selecting
+an idle session and when offering a new lease. It does not rewrite old assignments,
+completion snapshots or hosted journals. Same-seal warm reuse remains allowed;
+incompatible sessions follow the existing retirement and positive-stop capacity
+path. No additional session owner or enrollment-selected execution fallback exists.
+
 The Builder uses the release action's existing reserved attempt and managed pool.
 Its immutable build input is retained under that action before dispatch, including
 source authority, previous pair and first attempt. A resumed action may read an
