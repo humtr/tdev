@@ -26,6 +26,17 @@ jobs:
           echo "$RUNNER_TEMP/dev2-node/bin" >> "$GITHUB_PATH"
       - name: Install locked controller dependencies without lifecycle scripts
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
+      - name: Operator-only production host pin preflight
+        run: |
+          node --input-type=module - <<'JS'
+          import {readFile,mkdir,realpath} from 'node:fs/promises';
+          import {join} from 'node:path';
+          import {bytesDigest} from './src/contracts/canonical.mjs';
+          import {prepareDependencies} from './src/execution/dependency-artifact.mjs';
+          const root=join(await realpath(process.env.RUNNER_TEMP),'dev2-operator-pin-preflight');await mkdir(root,{mode:0o700});
+          const dependencies=await prepareDependencies({sourceDirectory:join(await realpath(process.env.GITHUB_WORKSPACE),'node_modules'),cacheDirectory:root,lockDigest:bytesDigest(await readFile('package-lock.json'))});
+          console.log(JSON.stringify({kind:'operator-production-pin-preflight',productionAuthority:false,runId:process.env.GITHUB_RUN_ID,runAttempt:process.env.GITHUB_RUN_ATTEMPT,sourceCommit:process.env.GITHUB_SHA,engineDigest:bytesDigest(await readFile('/usr/bin/podman')),dependencyArtifactDigest:dependencies.identity}));
+          JS
       - name: Real hosted containment falsifiers
         run: node tools/managed-probe.mjs
       - name: Actual required managed profiles and exact response-loss replay
