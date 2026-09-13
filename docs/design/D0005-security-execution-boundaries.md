@@ -104,13 +104,22 @@ private atomic file replacement and cannot replace the installation owner.
 
 The Worker remains the Access assertion verifier and ingress boundary, but it does
 not independently own or infer repository standing grants. Every authenticated MCP
-request, including discovery and `tools/list`, performs a fixed native
-`repository.read` authorization preflight over the already authenticated device
-channel before the Worker returns repository-bound MCP metadata. The native endpoint
-independently verifies the same signed assertion against exact issuer, application
-audience and resource origin, then consults the live private standing-grant source.
-If the native authorization authority is unavailable, discovery fails closed. Normal
-tool calls continue to verify and authorize again at capability/path dispatch.
+POST asks the native installation authority for a fixed admission preflight over the
+already authenticated device channel. The native endpoint independently verifies the
+same signed assertion against exact issuer, application audience and resource origin,
+consults the live private standing-grant source, and returns only whether the principal
+currently has the fixed `repository.read` preflight grant. If the native authority is
+unavailable or the assertion is invalid, discovery fails closed.
+
+A cryptographically authenticated principal may complete only fixed protocol setup
+and descriptor methods (`server/discover`, `initialize`, initialization notifications,
+`ping`, and `tools/list`) when that preflight reports no standing grant. Those replies
+contain protocol/server metadata and the frozen four tool descriptors only; they expose
+no repository identity or contents, work/runtime state, artifacts, operation results,
+or mutation surface. Every `tools/call` still requires a positive current
+`repository.read` preflight before dispatch, and normal tool dispatch independently
+re-verifies capability/path authorization. Authentication-only discovery is therefore
+not repository authorization and cannot be used to exercise any dev-2 operation.
 This keeps one grant owner instead of duplicating mutable principal lists in Worker
 and native configuration.
 
@@ -122,15 +131,18 @@ identity binding. Public MCP schemas, `dev_work`, candidate output, profiles and
 release artifacts have no grant-selection or grant-mutation field and cannot create
 or broaden standing authority.
 
-Because an ungranted principal must remain forbidden at discovery, commissioning
-cannot depend on a successful first `tools/list`. After the native verifier has
-cryptographically accepted an Access assertion, but before a missing standing grant
-is returned as `FORBIDDEN`, native code may append installation-private observation
-evidence containing only the verified subject digest, a digest of that exact signed
-assertion, an opaque deterministic observation ID and observation time. It stores no
-raw `sub`, email, token or assertion and confers no capability. Invalid issuer,
-audience, signature or expiry fails before any observation is created. A known
-principal with an insufficient capability is not an enrollment candidate.
+ChatGPT connection setup must not deadlock on the standing grant that commissioning
+is intended to create. After the native verifier has cryptographically accepted an
+Access assertion, an unknown principal may complete only the authentication-only
+protocol discovery described above. Before returning that negative grant status,
+native code appends installation-private observation evidence containing only the
+verified subject digest, a digest of that exact signed assertion, an opaque
+deterministic observation ID and observation time. It stores no raw `sub`, email,
+token or assertion and confers no capability. The same principal remains
+`FORBIDDEN` from every `tools/call` until a trusted operator installs an explicit
+standing grant. Invalid issuer, audience, signature or expiry fails before any
+observation is created. A known principal with an insufficient capability is not an
+enrollment candidate.
 
 Promotion remains a separate trusted operator action. The private operator must
 select an exact observation ID and explicit capabilities/path restrictions; the
