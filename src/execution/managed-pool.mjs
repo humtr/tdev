@@ -62,8 +62,12 @@ export class ManagedPool {
  /** @param {Prepared} result @param {Attempt} attempt @param {Profile} profile @returns {Promise<Dispatch>} */
  async dispatch(result,attempt,profile){const planned=await this.prepare(result,attempt,profile);if(!('needsSession'in planned))return planned;
   const prior=this.retained(planned.assignmentId);if(prior)return prior;
-  await this.reconciler.whenFull();this.ledger.transact(tx=>this.current(tx,attempt));
-  const s=this.sessions.reserve(newId());
+  let s;
+  for(;;){
+   await this.reconciler.whenFull();const action=this.ledger.transact(tx=>this.current(tx,attempt));
+   requireThat(this.now()+profile.timeoutMs+profile.killGraceMs+10000<action.deadline,'EXECUTION_UNAVAILABLE','Insufficient remaining action lifetime');
+   try{s=this.sessions.reserve(newId());break;}catch(error){if(!(error instanceof Dev2Error)||error.code!=='CAPACITY_REJECTED')throw error;await this.sleep(this.pollMs);}
+  }
   try{return this.ledger.transact(tx=>{const old=/** @type {Dispatch|null} */(decode(tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',planned.assignmentId)));requireThat(!old,'IDEMPOTENCY_MISMATCH');const action=this.current(tx,attempt);
    const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:result.resultTreeSha256,payloadDigest:planned.payload.payloadDigest,executionDigest:executionIdentity(result.execution),deadline:Math.min(action.deadline,s.intent.deadline)};
    /** @type {Dispatch} */const d={assignmentId:planned.assignmentId,sessionId:s.intent.sessionId,input,objects:planned.payload.objects,state:'pending'};tx.run('INSERT INTO managed_dispatch VALUES(?,?,?,?,?)',d.assignmentId,attempt.attemptId,d.sessionId,d.state,canonicalJson(d));return d;
