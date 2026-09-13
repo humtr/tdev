@@ -1,5 +1,4 @@
 import {installationOwnerGrant} from '../src/security/installation-grant.mjs';
-import {installationAuthorization} from '../src/security/installation-authorization.mjs';
 /** Bounded operator bootstrap installer, not a public shell/activation API.
  * Input is private installation state assembled from fresh provider/repository
  * readback. It never enrolls arbitrary callers or claims a production seal.
@@ -10,13 +9,13 @@ import {fileURLToPath} from 'node:url';
 import {execFileSync} from 'node:child_process';
 import {randomBytes} from 'node:crypto';
 import {parseArgs} from 'node:util';
-import {bytesDigest,canonicalJson,parseRecord,recordDigest} from '../src/contracts/canonical.mjs';
+import {bytesDigest,canonicalJson,recordDigest} from '../src/contracts/canonical.mjs';
 import {id,oid} from '../src/contracts/identity.mjs';
 import {requireThat} from '../src/contracts/errors.mjs';
 import {privateFile} from '../src/runtime/native.mjs';
 import {bootstrapPolicy} from '../src/validation/bootstrap-policy.mjs';
 import {SCHEMA_DIGEST} from '../src/mcp/outputs.mjs';
-/** @typedef {{schemaVersion:1,installationId:string,deviceId:string,root:string,configurationRoot:string,prefix:string,gitExecutable:string,githubExecutable:string,serviceName:string,origin:string,issuer:string,applicationAudience:string,accessApplicationId:string,workerName:string,expectedVersionId:string,retireClasses:string[],repositoryId:string,providerRepositoryId:string,remote:string,ref:string,ownerSubjectDigest:string,authorizedPrincipals?:{subject:string,capabilities:import('../src/contracts/ports.js').Capability[],paths:string[],deniedPaths:string[]}[],enrollmentEvidence:{kind:string,signatureVerified:boolean,observedAt:string},capacity:number}} Plan */
+/** @typedef {{schemaVersion:1,installationId:string,deviceId:string,root:string,configurationRoot:string,prefix:string,gitExecutable:string,githubExecutable:string,serviceName:string,origin:string,issuer:string,applicationAudience:string,accessApplicationId:string,workerName:string,expectedVersionId:string,retireClasses:string[],repositoryId:string,providerRepositoryId:string,remote:string,ref:string,ownerSubjectDigest:string,enrollmentEvidence:{kind:string,signatureVerified:boolean,observedAt:string},capacity:number}} Plan */
 /** @param {string} path @param {string|Uint8Array} value @param {number} [mode] */
 async function exactFile(path,value,mode=0o600){
  const bytes=Buffer.from(value);try{const existing=await lstat(path);requireThat(existing.isFile()&&!existing.isSymbolicLink()&&Buffer.from(await readFile(path)).equals(bytes),'INTEGRITY_FAILURE','Existing installation file differs');await chmod(path,mode);return;}catch(error){if(!(error&&typeof error==='object'&&'code' in error&&error.code==='ENOENT'))throw error;}
@@ -42,10 +41,7 @@ async function main(){
  for(const directory of [plan.root,plan.configurationRoot,releaseDirectory,installationDirectory,join(installationDirectory,'private'),join(installationDirectory,'home'),join(installationDirectory,'tmp'),join(installationDirectory,'logs')]){await mkdir(directory,{recursive:true,mode:0o700});requireThat(await realpath(directory)===resolve(directory),'FORBIDDEN','Aliased installation path');}
  await exactFile(join(releaseDirectory,'device.cjs'),deviceBytes,0o400);await exactFile(join(releaseDirectory,'worker.mjs'),edgeBytes,0o400);
  await exactFile(join(releaseDirectory,'tools.json'),await readFile(join(build,'tools.json')),0o400);
- const privateDirectory=join(installationDirectory,'private'),deviceKeyFile=join(privateDirectory,'device-key'),cursorKeyFile=join(privateDirectory,'cursor-key'),authorizationFile=join(privateDirectory,'authorization.json');
- const requestedAuthorization=installationAuthorization({schemaVersion:1,ownerSubjectDigest:plan.ownerSubjectDigest,principals:plan.authorizedPrincipals??[]});
- try{const installedAuthorization=installationAuthorization(parseRecord(await privateFile(authorizationFile,262144),262144));requireThat(installedAuthorization.ownerSubjectDigest===plan.ownerSubjectDigest,'FORBIDDEN','Installed authorization belongs to a different owner');if(plan.authorizedPrincipals!==undefined)requireThat(canonicalJson(installedAuthorization)===canonicalJson(requestedAuthorization),'INTEGRITY_FAILURE','Installed authorization differs from explicit private plan');}
- catch(error){if(!(error&&typeof error==='object'&&'code' in error&&error.code==='ENOENT'))throw error;await exactFile(authorizationFile,canonicalJson(requestedAuthorization)+'\n');}
+ const privateDirectory=join(installationDirectory,'private'),deviceKeyFile=join(privateDirectory,'device-key'),cursorKeyFile=join(privateDirectory,'cursor-key');
  for(const [path,bytes] of [[deviceKeyFile,Buffer.from(randomBytes(48).toString('base64url'))],[cursorKeyFile,randomBytes(32)]]){
   try{await privateFile(/** @type {string} */(path));}catch(error){if(!(error&&typeof error==='object'&&'code' in error&&error.code==='ENOENT'))throw error;await exactFile(/** @type {string} */(path),/** @type {Buffer} */(bytes));}
  }

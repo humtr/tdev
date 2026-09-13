@@ -79,16 +79,6 @@ export class RequestRendezvous {
             return this.#route(canonicalJson({ tool: request.tool, arguments: request.arguments, assertion: request.assertion }));
         } catch(error) { return Promise.reject(error); }
     }
-    /** Fixed human authorization preflight for MCP discovery/control methods. The
-     * device independently verifies the same signed Access assertion and current
-     * repository.read standing grant; no tool, path or grant is caller-selected.
-     * @param {{assertion:string}} request @returns {Promise<Json>} */
-    authorize(request) {
-        try {
-            requireThat(Object.keys(request).length===1&&typeof request.assertion==='string'&&request.assertion.length>0&&request.assertion.length<=16384,'INVALID_ARGUMENT');
-            return this.#route(canonicalJson({kind:'authorization',assertion:request.assertion}));
-        } catch(error) { return Promise.reject(error); }
-    }
     /** Authenticated provider-role adapter, distinct from human tool dispatch.
      * The native endpoint independently verifies OIDC and retained launch identity.
      * @param {{arguments:Json,assertion:string}} request @returns {Promise<Json>} */

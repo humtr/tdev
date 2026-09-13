@@ -118,19 +118,7 @@ def main() -> None:
         raise RuntimeError('Actual workers.dev binding differs from installation')
     route = provider.call(root + '/subdomain')
     app = provider.call('/access/apps/' + manifest['accessApplicationId'])
-    oauth = app.get('oauth_configuration') or {}
-    dcr = oauth.get('dynamic_client_registration') or {}
-    expected_chatgpt_redirects = {
-        'https://chatgpt.com/connector/oauth/*',
-        'https://chatgpt.com/connector_platform_oauth_redirect',
-    }
-    if (app.get('domain') != manifest['origin'][8:] + '/mcp'
-            or app.get('aud') != edge['applicationAudience']
-            or oauth.get('enabled') is not True
-            or dcr.get('enabled') is not True
-            or set(dcr.get('allowed_uris') or []) != expected_chatgpt_redirects
-            or dcr.get('allow_any_on_localhost') is not False
-            or dcr.get('allow_any_on_loopback') is not False):
+    if app.get('domain') != manifest['origin'][8:] + '/mcp' or app.get('aud') != edge['applicationAudience'] or not (app.get('oauth_configuration') or {}).get('enabled'):
         raise RuntimeError('Human Access application binding differs')
     policies = provider.call('/access/apps/' + manifest['accessApplicationId'] + '/policies')
     settings = provider.call(root + '/settings')

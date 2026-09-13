@@ -8,8 +8,6 @@ import {capacity,oid,digest,id} from '../contracts/identity.mjs';
 import {GitRepository} from '../repository/git.mjs';
 import {ContextService} from '../repository/context.mjs';
 import {ScopedAuthorization} from '../security/authorization.mjs';
-import {installationAuthorizationPath,installationGrantSource} from '../security/installation-authorization.mjs';
-import {principalObservationPath,recordVerifiedPrincipalObservation} from '../security/principal-observation.mjs';
 import {accessApplicationVerifier} from '../security/access-application.mjs';
 import {Ledger} from '../storage/ledger.mjs';
 import {ObjectStore} from '../storage/objects.mjs';
@@ -76,8 +74,7 @@ export async function createNativeInstallation(config,options={}){
   requireThat(String(metadata.id)===binding.providerRepositoryId&&metadata.full_name===repositoryName,'FORBIDDEN','Repository provider identity changed');providerVerifiedAt=Date.now();
  }});await repository.init();
  const objects=new ObjectStore(join(state,'objects'));await objects.init();
- const grantSource=installationGrantSource({filename:installationAuthorizationPath(state),fallback:edge.grants,scope:{installationId:binding.installationId,repositoryId:binding.repositoryId,ref:binding.ref}});
- const authorization=new ScopedAuthorization({issuer:edge.issuer,audience:edge.origin,bindings:()=>[binding],grants:()=>grantSource.current()});
+ const authorization=new ScopedAuthorization({issuer:edge.issuer,audience:edge.origin,bindings:()=>[binding],grants:()=>edge.grants});
  const verify=accessApplicationVerifier({profile:'access-application',issuer:edge.issuer,applicationAudience:edge.applicationAudience,resourceOrigin:edge.origin,applicationCapabilities:edge.applicationCapabilities},createRemoteJWKSet(new URL(edge.issuer+'/cdn-cgi/access/certs')));
  const ledger=new Ledger(join(state,'work.sqlite'),binding),context=new ContextService({repository,objects,authorization,tokenKey:cursorKey});
  /** @type {Awaited<ReturnType<typeof createManagedControl>>|null} */let managed=null;
@@ -143,7 +140,7 @@ managed=await createManagedControl({enrollment,productionEnrollment,commissionin
  /** Fixed read-only diagnostics are not human OAuth or self-development proof.
   * @returns {Promise<Json>} */
  const readProbe=async()=>{
-  const enrolled=grantSource.current().find(g=>g.repositoryId===binding.repositoryId&&g.capabilities.includes('repository.read'));requireThat(enrolled,'FORBIDDEN');
+  const enrolled=edge.grants.find(g=>g.repositoryId===binding.repositoryId&&g.capabilities.includes('repository.read'));requireThat(enrolled,'FORBIDDEN');
   const principal={subject:enrolled.subject,issuer:edge.issuer,audience:edge.origin,expiresAt:Date.now()+60000,tokenCapabilities:/** @type {const} */(['repository.read'])};
   const current=/** @type {RecordValue} */(await app.invoke(principal,'dev_context',{apiVersion:1,repository:'self'}));
   let read=/** @type {Json} */(null);if(current.ok===true){const data=/** @type {RecordValue} */(current.data),snapshot=/** @type {RecordValue} */(data.snapshot);read=await app.invoke(principal,'dev_read',{apiVersion:1,target:{snapshotId:snapshot.snapshotId,freshness:'current'},queries:[{kind:'file',path:'AGENTS.md'},{kind:'file',path:'WORKBOARD.md'}],maxReturnBytes:65536});}
@@ -151,7 +148,7 @@ managed=await createManagedControl({enrollment,productionEnrollment,commissionin
   const ok=current.ok===true&&read!==null&&typeof read==='object'&&!Array.isArray(read)&&read.ok===true&&observed.ok===true&&open.ok===true;
   probeSummary={ok,observedAt:new Date().toISOString(),authenticationMode:'installation-read-probe',humanOAuth:false,repositoryId:binding.repositoryId,currentHead:current.ok===true?/** @type {RecordValue} */(/** @type {RecordValue} */(current.data).snapshot).commitOid:null,schemaDigest:SCHEMA_DIGEST};return {summary:probeSummary,context:current,read,runtime:observed,open};
  };
-const device=new DeviceConnection({origin:edge.origin,installationId:edge.installationId,secret:deviceKey,authorize:async assertion=>{const principal=await verify(assertion),grants=grantSource.current(),known=grants.some(g=>g.subject===principal.subject&&g.installationId===binding.installationId&&g.repositoryId===binding.repositoryId&&g.ref===binding.ref);if(!known){await recordVerifiedPrincipalObservation({filename:principalObservationPath(state),subject:principal.subject,assertion});return {ok:true,granted:false};}try{await authorization.authorize(principal,binding,'repository.read');return {ok:true,granted:true};}catch(error){if(error instanceof Dev2Error&&error.code==='FORBIDDEN')return {ok:true,granted:false};throw error;}},invoke:async(tool,args,assertion)=>app.invoke(await verify(assertion),tool,args),executor:async(args,assertion)=>managed?managed.endpoint.invoke(args,assertion):failure(new Dev2Error('EXECUTION_UNAVAILABLE','Managed execution is not enrolled')),probe:readProbe,presence:()=>({schemaDigest:SCHEMA_DIGEST,sourceCommitOid:config.runtime.sourceCommitOid,bundleDigest:config.runtime.bundleDigest,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt,probe:probeSummary}),onHello:hello=>{activeEdge=hello.edge;},onState:value=>{connection=value;if(!value.connected)release?.invalidate();},log:options.log});
+const device=new DeviceConnection({origin:edge.origin,installationId:edge.installationId,secret:deviceKey,invoke:async(tool,args,assertion)=>app.invoke(await verify(assertion),tool,args),executor:async(args,assertion)=>managed?managed.endpoint.invoke(args,assertion):failure(new Dev2Error('EXECUTION_UNAVAILABLE','Managed execution is not enrolled')),probe:readProbe,presence:()=>({schemaDigest:SCHEMA_DIGEST,sourceCommitOid:config.runtime.sourceCommitOid,bundleDigest:config.runtime.bundleDigest,ownerEpoch:ledger.ownerEpoch,nodeVersion:process.versions.node,platform:process.platform,arch:process.arch,connectedAt:connection.connectedAt,lastMessageAt:connection.lastMessageAt,probe:probeSummary}),onHello:hello=>{activeEdge=hello.edge;},onState:value=>{connection=value;if(!value.connected)release?.invalidate();},log:options.log});
  if(options.commissioningIntent)engine.drain();else engine.pump();return {app,engine,ledger,repository,device,managed,sender,guard,control,release,readProbe,identity,releaseId,async close(){engine.drain();release?.invalidate();device.stop();await Promise.allSettled([...device.inflight.values(),...engine.running.values()]);await nativeControl?.close();ledger.close();}};
  }catch(error){currentEngine?.drain();await nativeControl?.close().catch(()=>{});ledger.close();throw error;}
 }

@@ -36,8 +36,6 @@ export default {
   if(url.pathname!=='/mcp')return new Response(null,{status:404});
   let gateway=gateways.get(env);if(!gateway){gateway=createMcpGateway({origin:config.origin,allowedOrigins:config.allowedOrigins,
    serverInfo:{name:'dev-2',version:SCHEMA_DIGEST.slice(7,23)},authenticate:humanAuthentication(config),
-   authorize:async assertion=>{const response=await stub().fetch(new Request(config.origin+'/__dev2/authorize',{method:'POST',headers:{'content-type':'application/json'},body:canonicalJson({assertion})}));
-    const value=/** @type {Record<string,Json>} */(parseRecord(await response.text(),8192));if(value.ok!==true){const error=value.error!==null&&typeof value.error==='object'&&!Array.isArray(value.error)?/** @type {Record<string,Json>} */(value.error):{};throw new Dev2Error(error.code==='UNAUTHORIZED'?'UNAUTHORIZED':'FORBIDDEN');}if(typeof value.granted!=='boolean')throw new Dev2Error('INTEGRITY_FAILURE');return value.granted;},
    deliver:async body=>{const response=await stub().fetch(new Request(config.origin+'/__dev2/dispatch',{method:'POST',headers:{'content-type':'application/json'},body:canonicalJson(body)}));
     return /** @type {Json} */(parseRecord(await response.text(),262144));}});gateways.set(env,gateway);}
   return await gateway(request);

@@ -53,18 +53,6 @@ the operator UID is outside the promised cross-candidate isolation boundary.
 
 The selected first-release authorization service is Cloudflare Access Managed
 OAuth on the explicitly adopted dev-2 installation application. For the owner-authorized same-origin cutover, the existing human Access application may be adopted after fresh issuer/audience/domain/policy readback, preserving its ChatGPT OAuth registration without preserving old runtime semantics. A new application is required only when actual binding/security evidence prevents safe adoption, not merely because the backing product changed.
-
-Managed OAuth dynamic client registration remains narrow and explicit. The adopted
-first-release application admits exactly the legacy ChatGPT per-connector callback
-family `https://chatgpt.com/connector/oauth/*` and the current stable ChatGPT callback
-`https://chatgpt.com/connector_platform_oauth_redirect`; localhost, loopback and a
-broader `chatgpt.com` wildcard remain disabled. A newly observed callback shape is a
-fresh authentication-boundary fact and must be designed/read back before admission,
-not inferred from request timing or an existing client. Redirect admission authorizes
-only the OAuth client transport. It does not identify a dev-2 human principal, confer
-a standing grant, merge ChatGPT accounts, or weaken the signed Access assertion and
-exact `issuer`+`sub` authorization rules below.
-
 Its opaque OAuth access token terminates at Access; it is not a JWT bearer. The
 Worker and Termux verifier validate the signed Access assertion with the exact
 installation issuer, application audience, allowed asymmetric algorithm, expiration,
@@ -92,78 +80,6 @@ verification from the adopted application profile. Distinct profile IDs and test
 make this provider-specific semantic change visible rather than an authorization
 bypass. Private/special-purpose OAuth clients needing narrower delegated powers
 require a distinct adopted application/profile, not fabricated per-token scopes.
-
-### Installation owner and additional principals
-
-Installation ownership and repository authorization are separate facts. The original
-`ownerSubjectDigest` remains the bootstrap/install ownership identity and always
-produces the deterministic owner grant. Additional human principals are additive,
-explicit standing grants for exact verified `dev2.access-subject.v1` digests; they
-never become installation owners merely because they receive the same capability
-set. Email, Access membership, domain, IP, browser or recent-request ordering are not
-authorization identities.
-
-One app-private file under the stable installation state directory owns mutable human
-authorization. It contains the owner subject digest plus zero or more additional
-principal entries with explicit capability, allowed-path and denied-path sets. It
-contains no raw Access `sub`, email, token or assertion. Duplicate subjects, including
-an owner repeated as an additional principal, are rejected rather than merged. A
-legacy installation with no private authorization file retains its exact embedded
-single-owner grant behavior until an operator-authorized migration creates the file.
-Once the file exists, it is the sole standing-grant source; deletion of an additional
-entry therefore takes effect on the next native authorization lookup. Updates use a
-private atomic file replacement and cannot replace the installation owner.
-
-The Worker remains the Access assertion verifier and ingress boundary, but it does
-not independently own or infer repository standing grants. Every authenticated MCP
-POST asks the native installation authority for a fixed admission preflight over the
-already authenticated device channel. The native endpoint independently verifies the
-same signed assertion against exact issuer, application audience and resource origin,
-consults the live private standing-grant source, and returns only whether the principal
-currently has the fixed `repository.read` preflight grant. If the native authority is
-unavailable or the assertion is invalid, discovery fails closed.
-
-A cryptographically authenticated principal may complete only fixed protocol setup
-and descriptor methods (`server/discover`, `initialize`, initialization notifications,
-`ping`, and `tools/list`) when that preflight reports no standing grant. Those replies
-contain protocol/server metadata and the frozen four tool descriptors only; they expose
-no repository identity or contents, work/runtime state, artifacts, operation results,
-or mutation surface. Every `tools/call` still requires a positive current
-`repository.read` preflight before dispatch, and normal tool dispatch independently
-re-verifies capability/path authorization. Authentication-only discovery is therefore
-not repository authorization and cannot be used to exercise any dev-2 operation.
-This keeps one grant owner instead of duplicating mutable principal lists in Worker
-and native configuration.
-
-The private grant file is installation state, not repository source or a release
-artifact. Release configuration preserves the stable installation state directory,
-so source upgrades/restarts do not erase authorized principals. A fixed private
-operator utility may replace the desired digest-only grant record after verified
-identity binding. Public MCP schemas, `dev_work`, candidate output, profiles and
-release artifacts have no grant-selection or grant-mutation field and cannot create
-or broaden standing authority.
-
-ChatGPT connection setup must not deadlock on the standing grant that commissioning
-is intended to create. After the native verifier has cryptographically accepted an
-Access assertion, an unknown principal may complete only the authentication-only
-protocol discovery described above. Before returning that negative grant status,
-native code appends installation-private observation evidence containing only the
-verified subject digest, a digest of that exact signed assertion, an opaque
-deterministic observation ID and observation time. It stores no raw `sub`, email,
-token or assertion and confers no capability. The same principal remains
-`FORBIDDEN` from every `tools/call` until a trusted operator installs an explicit
-standing grant. Invalid issuer, audience, signature or expiry fails before any
-observation is created. A known principal with an insufficient capability is not an
-enrollment candidate.
-
-Promotion remains a separate trusted operator action. The private operator must
-select an exact observation ID and explicit capabilities/path restrictions; the
-utility resolves the verified subject from that observation, preserves the original
-owner and all unrelated grants, and atomically updates the sole private grant file.
-Repository source, a candidate, an MCP caller, Access membership, email, request
-ordering or the most recent denial can never promote an observation automatically.
-If multiple observations make the intended user interaction ambiguous, no grant is
-installed until the operator can bind the intended interaction without guessing.
 
 Capabilities remain `repository.read`, `work.write`, `profile.run`,
 `integration.write`, `policy.write`, `runtime.activate`. A read-only grant cannot
