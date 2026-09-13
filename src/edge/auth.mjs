@@ -3,7 +3,6 @@ import { timingSafeEqual } from 'node:crypto';
 import { bytesDigest } from '../contracts/canonical.mjs';
 import { requireThat } from '../contracts/errors.mjs';
 import { accessApplicationVerifier } from '../security/access-application.mjs';
-import { ScopedAuthorization } from '../security/authorization.mjs';
 /** @typedef {import('./types.js').EdgeConfig} Config */
 /** @typedef {import('./types.js').EdgeEnvironment} Env */
 /** @param {Env} env @returns {Config} */
@@ -23,11 +22,12 @@ export function authenticateDevice(request,env,config){
  requireThat(actual.byteLength===expected.byteLength&&timingSafeEqual(actual,expected),'UNAUTHORIZED');
  requireThat(new URL(request.url).origin===config.origin,'FORBIDDEN');
 }
-/** @param {Config} config */
+/** Edge verifies the exact signed Access assertion but does not own repository
+ * standing grants. A fixed native authorization hop performs the current
+ * installation/repository/ref grant decision for discovery and calls.
+ * @param {Config} config */
 export function humanAuthentication(config){
  const verify=accessApplicationVerifier({profile:'access-application',issuer:config.issuer,applicationAudience:config.applicationAudience,resourceOrigin:config.origin,applicationCapabilities:config.applicationCapabilities},createRemoteJWKSet(new URL(config.issuer+'/cdn-cgi/access/certs')));
- const authorization=new ScopedAuthorization({issuer:config.issuer,audience:config.origin,bindings:()=>[config.binding],grants:()=>config.grants});
  /** @param {Request} request */
- return async request=>{const assertion=request.headers.get('cf-access-jwt-assertion');const principal=await verify(assertion);
-  await authorization.authorize(principal,config.binding,'repository.read');return /** @type {string} */(assertion);};
+ return async request=>{const assertion=request.headers.get('cf-access-jwt-assertion');await verify(assertion);return /** @type {string} */(assertion);};
 }

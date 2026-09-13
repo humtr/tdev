@@ -23,10 +23,11 @@ export async function readBody(request,max=MAX_REQUEST_BYTES){
  }}finally{reader.releaseLock();}
  const result=new Uint8Array(bytes);let offset=0;for(const chunk of chunks){result.set(chunk,offset);offset+=chunk.byteLength;}return result;
 }
-/** Every public request authenticates first; transport/device credentials never
- * substitute for a signed human Access assertion here. Cancellation notifications
+/** Every public request authenticates first and then obtains current repository.read
+ * authorization from the native installation authority. Transport/device credentials
+ * never substitute for a signed human Access assertion. Cancellation notifications
  * do not cancel durable work. Stateless HTTP returns complete JSON results.
- * @param {{origin:string,allowedOrigins:readonly string[],serverInfo:{name:string,version:string},authenticate:(request:Request)=>Promise<string>,deliver:(request:{tool:string,arguments:Json,assertion:string})=>Promise<Json>}} options
+ * @param {{origin:string,allowedOrigins:readonly string[],serverInfo:{name:string,version:string},authenticate:(request:Request)=>Promise<string>,authorize:(assertion:string)=>Promise<void>,deliver:(request:{tool:string,arguments:Json,assertion:string})=>Promise<Json>}} options
  */
 export function createMcpGateway(options){
  /** @param {Request} request */
@@ -35,6 +36,7 @@ export function createMcpGateway(options){
   try{
    checkEndpoint(request.url,request.headers,options);
    const assertion=await options.authenticate(request);
+   await options.authorize(assertion);
    if(request.method!=='POST')return new Response(null,{status:405,headers:{Allow:'POST','cache-control':'no-store'}});
    if(!/^application\/json(?:\s*;.*)?$/i.test(request.headers.get('content-type')??''))throw new ProtocolError(-32600,415,'Expected application/json');
    const accept=request.headers.get('accept');if(accept&&!accept.split(',').some(v=>/^\s*(?:application\/json|\*\/\*)(?:\s*;.*)?\s*$/i.test(v)))throw new ProtocolError(-32600,406,'JSON response is required');

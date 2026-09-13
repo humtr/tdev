@@ -24,6 +24,7 @@ async function connection(w){
   });socket.on('close',()=>{assembler.dispose();rendezvous.disconnect(nonce);});
  });
  const device=new DeviceConnection({origin:'http://127.0.0.1:'+server.address().port,installationId:'fixture-installation',secret:key,allowInsecureFixture:true,reconnectMs:10,heartbeatMs:500,
+  authorize:async assertion=>{if(assertion!=='signed-fixture-human')throw new Dev2Error('UNAUTHORIZED');await w.engine.o.authorization.authorize(w.principal,w.binding,'repository.read');return {ok:true};},
   invoke:async(tool,args,assertion)=>{if(assertion!=='signed-fixture-human')throw new Dev2Error('UNAUTHORIZED');return w.app.invoke(w.principal,tool,args);},presence:()=>({schemaDigest:SCHEMA_DIGEST}),probe:async()=>({summary:{ok:true,authenticationMode:'fixture-installation-probe',humanOAuth:false}})});
  device.start();await until(()=>!!device.connectionId);
  return {device,rendezvous,get socket(){return latest;},get connections(){return connections;},async close(){device.stop();for(const socket of server.clients)socket.terminate();await new Promise(resolve=>server.close(resolve));}};
@@ -32,6 +33,8 @@ test('real WebSocket routes context/read/admission/candidate/preparation/observa
  const w=await engineWorld();w.engine.o.executionAvailable=()=>false;const c=await connection(w);
  const call=(tool,args)=>c.rendezvous.request({tool,arguments:args,assertion:'signed-fixture-human'});
  try{
+  const preflight=await c.rendezvous.authorize({assertion:'signed-fixture-human'});assert.equal(preflight.ok,true);
+  const ungranted=await c.rendezvous.authorize({assertion:'device-key-is-not-a-human'});assert.equal(ungranted.ok,false);assert.equal(ungranted.error.code,'UNAUTHORIZED');
   const context=await call('dev_context',{apiVersion:1,repository:'self'});assert.equal(context.ok,true,canonicalJson(context));assert.equal(context.data.snapshot.commitOid,w.baseHead);
   const read=await call('dev_read',{apiVersion:1,target:{snapshotId:context.data.snapshot.snapshotId,freshness:'current'},queries:[{kind:'file',path:'AGENTS.md'}],maxReturnBytes:65536});assert.equal(read.ok,true);assert.match(read.data.results[0].content,/authority/);
   const request={apiVersion:1,items:[{op:'create',requestId:'ws-create',snapshotId:context.data.snapshot.snapshotId,expectedHead:w.baseHead,objective:'Editable after Refresh',initialEdits:[{kind:'put',path:'new.txt',mode:'100644',expectedEntry:'absent',content:'x'.repeat(90000),encoding:'utf8'}]}]};
@@ -46,18 +49,20 @@ test('real WebSocket routes context/read/admission/candidate/preparation/observa
   const probe=await c.rendezvous.probe();assert.equal(probe.summary.humanOAuth,false);
  }finally{await c.close();await w.close();}
 });
-test('MCP gateway publishes exact four tools, enforces human authentication and rejects old names',async()=>{
- const w=await engineWorld();let authenticated=0,delivered=0;
+test('MCP gateway publishes exact four tools and keeps Access authentication distinct from native standing-grant authorization',async()=>{
+ const w=await engineWorld();let authenticated=0,authorized=0,delivered=0;
  const gateway=createMcpGateway({origin:'https://tdev.test.workers.dev',allowedOrigins:['https://chatgpt.com'],serverInfo:{name:'dev-2',version:'fixture'},
-  authenticate:async request=>{authenticated++;if(request.headers.get('cf-access-jwt-assertion')!=='verified-fixture')throw new Dev2Error('UNAUTHORIZED');return 'verified-fixture';},
+  authenticate:async request=>{authenticated++;const assertion=request.headers.get('cf-access-jwt-assertion');if(!['verified-fixture','verified-ungranted'].includes(assertion??''))throw new Dev2Error('UNAUTHORIZED');return /** @type {string} */(assertion);},
+  authorize:async assertion=>{authorized++;if(assertion==='verified-ungranted')throw new Dev2Error('FORBIDDEN');assert.equal(assertion,'verified-fixture');},
   deliver:async body=>{delivered++;return w.app.invoke(w.principal,body.tool,body.arguments);}});
  const request=(method,params={},extra={})=>new Request('https://tdev.test.workers.dev/mcp',{method:'POST',headers:{'content-type':'application/json','mcp-protocol-version':'2025-11-25','cf-access-jwt-assertion':'verified-fixture',...extra},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
  try{
   const list=await gateway(request('tools/list'));assert.equal(list.status,200);assert.deepEqual((await list.json()).result.tools,TOOL_DESCRIPTORS);assert.equal(delivered,0);
+  const ungranted=await gateway(request('tools/list',{}, {'cf-access-jwt-assertion':'verified-ungranted'}));assert.equal(ungranted.status,403);assert.equal(delivered,0);
   const denied=await gateway(request('tools/list',{}, {'cf-access-jwt-assertion':'','authorization':'Bearer device-secret'}));assert.equal(denied.status,401);assert.equal(delivered,0);
   const old=await gateway(request('tools/call',{name:'submit_operation',arguments:{}}));assert.equal(old.status,400);assert.equal(delivered,0);
   const result=await gateway(request('tools/call',{name:'dev_context',arguments:{apiVersion:1}}));assert.equal(result.status,200);const body=await result.json();assert.equal(body.result.structuredContent.ok,true);assert.equal(delivered,1);
   const origin=await gateway(request('tools/list',{}, {origin:'https://attacker.invalid'}));assert.equal(origin.status,403);
-  assert.ok(authenticated>=4);
+  assert.ok(authenticated>=5);assert.ok(authorized>=4);
  }finally{await w.close();}
 });

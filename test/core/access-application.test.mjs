@@ -22,6 +22,15 @@ test('signed human Access identity uses an explicitly adopted app ceiling, never
     mutable.applicationCapabilities.push('integration.write');
     assert.deepEqual((await sealed(await token())).tokenCapabilities, ['repository.read']);
 });
+test('same email with a distinct verified Access sub remains a distinct unauthorized principal', async () => {
+    const verify = accessApplicationVerifier(config, keys, () => now), a = await verify(await token({ sub: 'access-sub-a' })), b = await verify(await token({ sub: 'access-sub-b' }));
+    assert.notEqual(a.subject, b.subject);
+    const binding = { repositoryId: 'repo', installationId: 'i', provider: 'fixture', providerRepositoryId: 'p', remote: 'https://git.example/repo', ref: 'refs/heads/dev-2', bindingEpoch: '1', policyDigest: 'sha256:' + '1'.repeat(64) };
+    const grants = [{ subject: a.subject, installationId: 'i', repositoryId: 'repo', ref: binding.ref, capabilities: ['repository.read'], paths: [''], deniedPaths: [] }];
+    const auth = new ScopedAuthorization({ issuer: a.issuer, audience: a.audience, now: () => now, bindings: () => [binding], grants: () => grants });
+    await auth.authorize(a, binding, 'repository.read');
+    await assert.rejects(() => auth.authorize(b, binding, 'repository.read'), { code: 'FORBIDDEN' });
+});
 test('opaque bearer, forged header, wrong signature, application and issuer fail closed', async () => {
     const verify = accessApplicationVerifier(config, keys, () => now), good = await token();
     for (const bad of ['Bearer opaque-token', good.slice(0, -12) + 'AAAAAAAAAAAA', JSON.stringify({ sub: 'user-id' }), await token({ aud: ['b'.repeat(64)] }), await token({ iss: 'https://other.cloudflareaccess.com' }), await token({ aud: [config.applicationAudience, 'b'.repeat(64)] })])

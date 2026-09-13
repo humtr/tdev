@@ -81,6 +81,47 @@ make this provider-specific semantic change visible rather than an authorization
 bypass. Private/special-purpose OAuth clients needing narrower delegated powers
 require a distinct adopted application/profile, not fabricated per-token scopes.
 
+### Installation owner and additional principals
+
+Installation ownership and repository authorization are separate facts. The original
+`ownerSubjectDigest` remains the bootstrap/install ownership identity and always
+produces the deterministic owner grant. Additional human principals are additive,
+explicit standing grants for exact verified `dev2.access-subject.v1` digests; they
+never become installation owners merely because they receive the same capability
+set. Email, Access membership, domain, IP, browser or recent-request ordering are not
+authorization identities.
+
+One app-private file under the stable installation state directory owns mutable human
+authorization. It contains the owner subject digest plus zero or more additional
+principal entries with explicit capability, allowed-path and denied-path sets. It
+contains no raw Access `sub`, email, token or assertion. Duplicate subjects, including
+an owner repeated as an additional principal, are rejected rather than merged. A
+legacy installation with no private authorization file retains its exact embedded
+single-owner grant behavior until an operator-authorized migration creates the file.
+Once the file exists, it is the sole standing-grant source; deletion of an additional
+entry therefore takes effect on the next native authorization lookup. Updates use a
+private atomic file replacement and cannot replace the installation owner.
+
+The Worker remains the Access assertion verifier and ingress boundary, but it does
+not independently own or infer repository standing grants. Every authenticated MCP
+request, including discovery and `tools/list`, performs a fixed native
+`repository.read` authorization preflight over the already authenticated device
+channel before the Worker returns repository-bound MCP metadata. The native endpoint
+independently verifies the same signed assertion against exact issuer, application
+audience and resource origin, then consults the live private standing-grant source.
+If the native authorization authority is unavailable, discovery fails closed. Normal
+tool calls continue to verify and authorize again at capability/path dispatch.
+This keeps one grant owner instead of duplicating mutable principal lists in Worker
+and native configuration.
+
+The private grant file is installation state, not repository source or a release
+artifact. Release configuration preserves the stable installation state directory,
+so source upgrades/restarts do not erase authorized principals. A fixed private
+operator utility may replace the desired digest-only grant record after verified
+identity binding. Public MCP schemas, `dev_work`, candidate output, profiles and
+release artifacts have no grant-selection or grant-mutation field and cannot create
+or broaden standing authority.
+
 Capabilities remain `repository.read`, `work.write`, `profile.run`,
 `integration.write`, `policy.write`, `runtime.activate`. A read-only grant cannot
 use work mutations. Runtime activation and policy adoption require explicit standing

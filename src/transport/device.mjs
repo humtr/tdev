@@ -12,7 +12,7 @@ import { FrameAssembler, MAX_FRAME_BYTES, sendFrames } from './framing.mjs';
  * independently verified by invoke. No URL tokens, inbound listener or shell API.
  */
 export class DeviceConnection {
- /** @param {{origin:string,installationId:string,secret:string,invoke:(tool:string,args:Json,assertion:string)=>Promise<Json>,presence:()=>Json,probe?:()=>Promise<Json>,executor?:(args:Json,assertion:string)=>Promise<Json>,onHello?:(hello:Hello)=>void,onState?:(state:{connected:boolean,connectionId:string|null,connectedAt:string|null,lastMessageAt:string|null})=>void,log?:(event:string)=>void,allowInsecureFixture?:boolean,reconnectMs?:number,heartbeatMs?:number}} options */
+ /** @param {{origin:string,installationId:string,secret:string,invoke:(tool:string,args:Json,assertion:string)=>Promise<Json>,authorize?:(assertion:string)=>Promise<Json>,presence:()=>Json,probe?:()=>Promise<Json>,executor?:(args:Json,assertion:string)=>Promise<Json>,onHello?:(hello:Hello)=>void,onState?:(state:{connected:boolean,connectionId:string|null,connectedAt:string|null,lastMessageAt:string|null})=>void,log?:(event:string)=>void,allowInsecureFixture?:boolean,reconnectMs?:number,heartbeatMs?:number}} options */
  constructor(options){this.o=options;if(!options.allowInsecureFixture)workersDevOrigin(options.origin);
   requireThat(options.secret.length>=43,'INVALID_ARGUMENT');this.stopped=true;
   /** @type {WebSocket|null} */this.socket=null;
@@ -55,18 +55,19 @@ export class DeviceConnection {
   requireThat(Object.keys(frame).length===4&&typeof frame.correlationId==='string'&&/^[A-Za-z0-9_-]{1,128}$/.test(frame.correlationId),'INVALID_ARGUMENT');
   const body=/** @type {RecordValue} */(frame.body);
   requireThat(body!==null&&typeof body==='object'&&!Array.isArray(body),'INVALID_ARGUMENT');
-  const probe=body.kind==='installation_read_probe'&&Object.keys(body).length===1,executor=body.kind==='executor';
-  requireThat(probe?!!this.o.probe:Object.keys(body).length===3&&typeof body.assertion==='string'&&body.assertion.length<=(executor?32768:16384)&&body.arguments!==undefined&&(executor||typeof body.tool==='string'),'INVALID_ARGUMENT');
+  const probe=body.kind==='installation_read_probe'&&Object.keys(body).length===1,executor=body.kind==='executor',authorization=body.kind==='authorization';
+  requireThat(probe?!!this.o.probe:authorization?!!this.o.authorize&&Object.keys(body).length===2&&typeof body.assertion==='string'&&body.assertion.length>0&&body.assertion.length<=16384:Object.keys(body).length===3&&typeof body.assertion==='string'&&body.assertion.length<=(executor?32768:16384)&&body.arguments!==undefined&&(executor||typeof body.tool==='string'),'INVALID_ARGUMENT');
   const connectionId=this.connectionId,correlationId=frame.correlationId,key=connectionId+':'+correlationId;
   if(this.inflight.has(key))return;
   const operation=(async()=>{
    let result;try{
     requireThat(this.inflight.size<32,'CAPACITY_REJECTED','Native request capacity');
     if(executor){requireThat(this.o.executor,'EXECUTION_UNAVAILABLE','Managed endpoint is not installed');result=await this.o.executor(body.arguments,/** @type {string} */(body.assertion));}
+    else if(authorization){result=await /** @type {(assertion:string)=>Promise<Json>} */(this.o.authorize)(/** @type {string} */(body.assertion));}
     else result=probe?await /** @type {()=>Promise<Json>} */(this.o.probe)():await this.o.invoke(/** @type {string} */(body.tool),body.arguments,/** @type {string} */(body.assertion));
    }
    catch(error){result=failure(error);}
-   try{if(!probe&&!executor)result=validateOutput(/** @type {string} */(body.tool),result);requireThat(Buffer.byteLength(canonicalJson(result))<=262144,'LIMIT_EXCEEDED','Reply bound');}
+   try{if(!probe&&!executor&&!authorization)result=validateOutput(/** @type {string} */(body.tool),result);requireThat(Buffer.byteLength(canonicalJson(result))<=262144,'LIMIT_EXCEEDED','Reply bound');}
    catch(error){result=failure(error);}
    if(socket===this.socket&&socket.readyState===WebSocket.OPEN&&connectionId===this.connectionId){
     try{requireThat(socket.bufferedAmount<=8388608,'CAPACITY_REJECTED');sendFrames(canonicalJson({v:1,connectionId,correlationId,body:result}),chunk=>socket.send(chunk),262656);}

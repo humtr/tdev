@@ -57,6 +57,14 @@ export class Dev2RendezvousDO {
     route:this.rendezvous.snapshot(),connectionId:this.socket?this.connectionId:null,device:this.observation,
     discovery:{tools:TOOL_DESCRIPTORS}});
   }
+  // Fixed human grant preflight is reachable only through the Worker binding after
+  // edge assertion verification. It carries no tool/path/grant selector.
+  if(path==='/__dev2/authorize'){
+   requireThat(request.method==='POST','FORBIDDEN');
+   const body=/** @type {RecordValue} */(parseRecord(await readBody(request,17000),17000));
+   requireThat(Object.keys(body).length===1&&typeof body.assertion==='string','INVALID_ARGUMENT');
+   return jsonResponse(await this.rendezvous.authorize({assertion:body.assertion}));
+  }
   // Executor ingress is reachable only through the Worker binding after signed
   // provider-role authentication. It cannot call a human tool or installation probe.
   if(path==='/__dev2/executor'){
