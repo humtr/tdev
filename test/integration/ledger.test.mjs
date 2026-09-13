@@ -112,6 +112,20 @@ test('immutable object retry after publish-before-directory-sync revalidates and
  const d=await objects.put(Buffer.from('payload'));assert.equal(Buffer.from(await objects.get(d)).toString(),'payload');
  }finally{w.close();}
 });
+test('same ledger grows capacity 8 to 12 across reopen without changing reservation or request identity',async()=>{
+ const w=world();try{const c8=new WorkCoordinator(w.db,{executionCapacity:8,now:()=>0});const admitted=[];for(let i=0;i<13;i++)admitted.push(await admit(c8,i));
+ const firstEight=Array.from({length:8},()=>c8.takeReady());assert.ok(firstEight.every(Boolean));assert.equal(c8.takeReady(),null);assert.equal(w.db.transact(tx=>tx.reservations().length),8);
+ const oldEpoch=w.db.ownerEpoch;w.db.close();const reopened=new Ledger(w.file,binding);try{assert.equal(reopened.transact(tx=>tx.reservations().length),8);const c12=new WorkCoordinator(reopened,{executionCapacity:12,now:()=>0});
+ assert.throws(()=>c12.settle(firstEight[0].attempt,oldEpoch,'succeeded',{stopped:true,effectResolved:true}),{code:'STALE_REVISION'});
+ const nextFour=Array.from({length:4},()=>c12.takeReady());assert.ok(nextFour.every(Boolean));assert.equal(reopened.transact(tx=>tx.reservations().length),12);assert.equal(c12.takeReady(),null);
+ reopened.transact(tx=>tx.adoptAttempt(firstEight[0].attempt.attemptId));c12.settle(firstEight[0].attempt,reopened.ownerEpoch,'blocked',{stopped:false,effectResolved:false});assert.equal(reopened.transact(tx=>tx.reservations().length),12);assert.equal(c12.takeReady(),null);
+ c12.settle(nextFour[0].attempt,reopened.ownerEpoch,'failed',{stopped:true,effectResolved:true,errorCode:'EXECUTION_UNAVAILABLE'});assert.equal(reopened.transact(tx=>tx.reservations().length),11);
+ const last=c12.takeReady();assert.ok(last);assert.equal(last.action.workId,'w12');assert.equal(reopened.transact(tx=>tx.reservations().length),12);
+ const repeated=await c12.admit({principal:'p',requestId:'r0',operation:'run',intent:{work:0},deadline:100000,authorize:async()=>{},mutate:()=>{throw Error('same request must not mutate twice');}});assert.equal(repeated.action.actionId,admitted[0].action.actionId);assert.equal(repeated.deduplicated,true);
+ }finally{reopened.close();}
+ }finally{w.close();}
+});
+
 test('actual process crash releases exclusive owner lock and rolls back only uncommitted transaction',async()=>{
  const {spawn}=await import('node:child_process');const {once}=await import('node:events');
  const root=mkdtempSync(join(tmpdir(),'dev2-owner-crash-')),file=join(root,'ledger.sqlite');
