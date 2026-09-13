@@ -59,22 +59,30 @@ export class GitHubSessions {
   const status=String(r.status);requireThat(['queued','requested','waiting','pending','in_progress','completed'].includes(status),'EXECUTION_UNAVAILABLE');
   return {repositoryId:i.providerRepositoryId,repositoryOwnerId:i.repositoryOwnerId,runId:numericId(r.id),runAttempt:'1',headSha:i.launchCommit,headBranch:i.ref.slice(11),event:'push',workflowPath:'.github/workflows/dev2-executor.yml',status:status==='completed'?'completed':status==='in_progress'?'in_progress':'queued',observedAt:this.now()};
  }
- /** @param {Session} session @returns {Promise<ProviderRun[]>} */
- async fetchRuns(session){await this.repository();const query=new URLSearchParams({branch:session.intent.ref.slice(11),event:'push',head_sha:session.intent.launchCommit,per_page:'100'});
+ /** @param {Session} session @param {boolean} [force] @returns {Promise<ProviderRun[]>} */
+ async fetchRuns(session,force=false){await this.repository(force);const query=new URLSearchParams({branch:session.intent.ref.slice(11),event:'push',head_sha:session.intent.launchCommit,per_page:'100'});
   const r=object((await this.request('GET',this.root+'/actions/runs?'+query)).data);requireThat(Array.isArray(r.workflow_runs)&&typeof r.total_count==='number'&&Number.isSafeInteger(r.total_count)&&r.total_count>=0&&r.total_count<=100&&r.workflow_runs.length===r.total_count,'EXECUTION_UNAVAILABLE','Run observation must be complete');
   return r.workflow_runs.filter(v=>object(v).path==='.github/workflows/dev2-executor.yml').map(v=>this.project(session,v)).sort((a,b)=>BigInt(a.runId)<BigInt(b.runId)?-1:BigInt(a.runId)>BigInt(b.runId)?1:0);
  }
  /** At most a ten-second provider observation is reused, with one in-flight read
   * per session. Cancellation forces a new observation; no cached terminal is forged.
-  * @param {string} sessionId @param {boolean} [force] */
+  * @param {string} sessionId @param {boolean} [force] @returns {Promise<ProviderRun[]>} */
  async runs(sessionId,force=false){const s=this.retained(sessionId),cached=this.cache.get(sessionId);if(!force&&cached&&this.now()>=cached.at&&this.now()-cached.at<this.cacheMs)return cached.runs;
-  const pending=this.inflight.get(sessionId);if(pending)return pending;
-  const operation=this.fetchRuns(s).then(runs=>{this.cache.set(sessionId,{at:this.now(),runs});return runs;});this.inflight.set(sessionId,operation);try{return await operation;}finally{this.inflight.delete(sessionId);}
+  const pending=this.inflight.get(sessionId);if(pending){if(!force)return pending;
+   // A completion observation must start after this request, not reuse bytes
+   // from a provider read that was already in flight before completion arrived.
+   try{await pending;}catch{}return this.runs(sessionId,true);
+  }
+  const operation=this.fetchRuns(s,force).then(runs=>{this.cache.set(sessionId,{at:this.now(),runs});return runs;});this.inflight.set(sessionId,operation);try{return await operation;}finally{this.inflight.delete(sessionId);}
  }
  /** @param {string} sessionId @param {boolean} [force] */
  async refresh(sessionId,force=false){let s=this.retained(sessionId);if(s.state==='closed')return s;const runs=await this.runs(sessionId,force);
+  // Another observer may have selected or retired this session while HTTP was
+  // pending. Rejoin the current native owner before applying these run bytes.
+  s=this.retained(sessionId);if(s.state==='closed')return s;
   if(s.run){const selected=runs.find(p=>p.runId===s.run?.runId);requireThat(selected,'EFFECT_UNCERTAIN','Selected provider run is not in a complete observation');
    if(selected.status==='completed')return this.sessions.providerStopped(sessionId,selected);
+   requireThat(selected.status==='in_progress','EXECUTION_UNAVAILABLE','Selected provider run is not currently executing');
    if(selected.status==='in_progress'&&!s.cancelRequested&&this.now()<s.intent.deadline){if(s.run.observedAt!==selected.observedAt)s=this.sessions.selectRun(sessionId,selected);}return s;
   }
   const ready=runs.find(p=>p.status==='in_progress');if(ready&&!s.cancelRequested&&this.now()<s.intent.deadline)return this.sessions.selectRun(sessionId,ready);
@@ -83,8 +91,9 @@ export class GitHubSessions {
  }
  /** ReadLaunch port for githubExecutorVerifier; the JWT is verified before this
   * is called. Every returned provider run was fetched via the bound provider API.
-  * @param {string} sessionId */
- async authorization(sessionId){await this.refresh(sessionId);return this.sessions.launchAuthorization(sessionId);}
+  * Completion bypasses both the cache and pre-existing in-flight observations.
+  * @param {string} sessionId @param {boolean} [freshProvider] */
+ async authorization(sessionId,freshProvider=false){await this.refresh(sessionId,freshProvider);return this.sessions.launchAuthorization(sessionId);}
  /** Cancellation is durable before any provider call. HTTP 202 is admission,
   * never proof of stop. Only a fresh exact completed run releases session state.
   * @param {string} sessionId */

@@ -9,3 +9,10 @@ test('managed qualification fixture tests actual boundaries and cannot grant an 
  assert.equal(config.productionSeal,null);assert.equal(config.state,'native-authorized-managed-execution');assert.match(config.enrollment,/repository configuration cannot enroll itself/);assert.ok(config.image.endsWith('@'+config.imageDigest));
  const qualifier=await readFile(new URL('../../tools/qualify-managed.mjs',import.meta.url),'utf8');assert.match(qualifier,/productionValidation:false,productionSeal:false,nativeAssignmentVerified:false/);assert.match(qualifier,/factories===1&&launches===1&&deliveries===2/);
 });
+
+test('qualification exposes actual engine bytes for private selection without granting production authority',async()=>{
+ const source=await readFile(new URL('../../tools/managed-probe.mjs',import.meta.url),'utf8');
+ assert.ok(source.includes('report.engineDigest=bytesDigest(await readFile(executable))'));
+ assert.ok(source.includes("realpath('/usr/bin/podman')"));
+ assert.ok(source.includes("kind:'real-hosted-containment-qualification',productionSeal:false"));
+});

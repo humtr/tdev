@@ -42,6 +42,15 @@ it grants no public validation, integration or release capability. Its intent di
 is the probe's assignment seal; successful enrollment has a different final seal.
 This breaks the proof/enrollment cycle without calling a probe production authority.
 
+Completion admission uses a fresh authenticated provider observation started after
+the completion request. Ordinary polling may retain its bounded observation cache,
+but completion cannot reuse that cache or a provider read already in flight. JWT
+verification precedes the fresh read; exact native session/run, lease, expiry and
+owner checks follow it. Provider loss, a terminal run or a non-running observation
+cannot create completion custody. Native state is reread after provider I/O so a
+concurrent selector or retirement cannot be replaced by a pre-request snapshot.
+The existing completion record and action remain the only durable owners.
+
 At authenticated completion, retain the selected session snapshot in the existing
 ledger with the assignment. Later idle retirement does not cancel a previously
 completed execution. Verification still compares immutable current assignment and

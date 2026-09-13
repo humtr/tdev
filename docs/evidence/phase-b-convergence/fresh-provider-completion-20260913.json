@@ -1,0 +1,254 @@
+{
+  "schemaVersion": 1,
+  "recordedAt": "2026-09-13T02:05:25.975380+00:00",
+  "kind": "source-review-falsification-repair",
+  "firstReleaseComplete": false,
+  "startingCanonical": "cd3d63fd152e54d73641b6dd2dcc8944090404c9",
+  "startingCandidate": "ba7b50688d1c7fd74b5c20db4014069628b4421a",
+  "externallyIntegratedCanonical": "fa018a40897c2a22972f3e6564a3d48203b76765",
+  "externalIntegrationByThisController": false,
+  "localMergeParent": "0cacafdeed13c5de5db20c173c57d77e2a09b537",
+  "independentReview": {
+    "provider": "GitHub Codex",
+    "pullRequest": 44,
+    "reviewedCommit": "ba7b50688d1c7fd74b5c20db4014069628b4421a",
+    "reviewId": 5188984492,
+    "commentId": 3998307189,
+    "verdict": "P1 finding; not green",
+    "finding": "Cached in-progress provider authority survives cancellation into retained production completion."
+  },
+  "falsification": {
+    "validRoute": "result.submit",
+    "beforeJob": "job_sdm_b5f5cfbde4",
+    "before": {
+      "existingPass": 8,
+      "newFail": 3
+    },
+    "beforeLogDigest": "sha256:85d0ae7697b7de848404ec5eeba17d017e2444d1685855094abb86ae13a401dc",
+    "afterJob": "job_sdw_d5d3ce16e3",
+    "after": {
+      "pass": 17,
+      "fail": 0,
+      "skip": 0
+    },
+    "afterLogDigest": "sha256:28482849aa56c5cd8c9f3e3645698b52980e276a1290a8b0a386bed3625ca073",
+    "scenarios": [
+      "cached cancelled provider completion",
+      "older in-flight provider observation",
+      "provider read loss after cached success",
+      "fresh positive provider completion",
+      "exact serialized completed-result retry with unchanged retained completion",
+      "selected run no longer running"
+    ],
+    "fixtureNotLive": true,
+    "discardedProbe": "The first probe used an invalid operation name and is not a valid trust-boundary witness. The reported before result is the corrected result.submit probe."
+  },
+  "repair": {
+    "completionFreshness": "Derived from closed executor operation internally, after JWT verification; no candidate/public enablement flag.",
+    "inflight": "Forced completion starts its own provider read after any pre-existing read.",
+    "currentOwner": "Native session state is rejoined after provider I/O; terminal state cannot be resurrected.",
+    "durableOwner": "Existing session/assignment/completion retained objects; no new owner.",
+    "sourceBlobs": {
+      "docs/design/D0008-production-enrollment-composition.md": {
+        "gitBlob": "6f4af52e86e84b5ac7f4d42c069428ca4299a69c",
+        "sha256": "sha256:b00ce581b90e6dbc3a703c50ec7e419a338a46512e9457ac67a44f78116225d7"
+      },
+      "src/execution/executor-endpoint.mjs": {
+        "gitBlob": "2316ca6aaf1effc665e6295596daafdd5a389bfd",
+        "sha256": "sha256:0c05f34da000b63573506bdf75d4e2210f561d9721abf9ef48e686cc448a4e70"
+      },
+      "src/execution/github-identity.mjs": {
+        "gitBlob": "42e7cd1d2b7995e0d340faedd6db836ef80de9ba",
+        "sha256": "sha256:866bae332f4c3c094a333eb3cf9d78eeab0a2ccac4a3fa95f46b5796207bb4d4"
+      },
+      "src/execution/github-sessions.mjs": {
+        "gitBlob": "76be78676f5c82a2a8508dfcec70663d46437039",
+        "sha256": "sha256:b69b0dabaa1809aac71b55223c9fbe840e281b6be1e9c37a8d1d3ec0b15c2060"
+      },
+      "src/runtime/managed.mjs": {
+        "gitBlob": "6047b10c6e285af996b1b9c154c6677a16116770",
+        "sha256": "sha256:87fd1f3a6f549ec0189cd954f15ae1eef6a3ebfc81a0f440ac0a38784dacf281"
+      },
+      "src/runtime/production-commissioning.mjs": {
+        "gitBlob": "7d5de52c360828e7e1cb66d755413625a9438d35",
+        "sha256": "sha256:4aa78be553a53a0a0a8a9a0e9661e31380da7c721edf526d947026b1676a1f6c"
+      },
+      "src/runtime/production.mjs": {
+        "gitBlob": "9f40fd8c9a08a745d641226efe1464b1f00916e2",
+        "sha256": "sha256:76fb7b83905afae22b7bebd93f3ae819e76060fe757a13759d271b9ea6678175"
+      },
+      "test/integration/github-sessions.test.mjs": {
+        "gitBlob": "0b19b78f55f53bee4acbb2b34878ebfed8ba6ed1",
+        "sha256": "sha256:b796f76799011d45102353aacbe3281ec2b9da45488e231b21eb1d2d0136abba"
+      }
+    }
+  },
+  "validation": {
+    "source": {
+      "core": {
+        "schemaVersion": 1,
+        "layer": "core",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T02:02:37.911Z",
+        "finishedAt": "2026-09-13T02:02:55.713Z",
+        "durationMs": 17802,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:17b6edf224541f9bee85c7bc0bffc4d442aef2143956de035b7793e8e267def4",
+        "outputInputDigest": "sha256:17b6edf224541f9bee85c7bc0bffc4d442aef2143956de035b7793e8e267def4",
+        "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "python.minimum",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 68,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "jsdoc",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 7110,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "designs",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 240,
+            "logDigest": "sha256:11a19449a2dec03ece5536b4227302af799244952933fd3490ff5b56346007a1"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 10240,
+            "logDigest": "sha256:1caf8a2e6974bc3f301d0e8411d80621b0b1f9d9f57daa229f862320f85c2513"
+          }
+        ]
+      },
+      "integration": {
+        "schemaVersion": 1,
+        "layer": "integration",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T02:02:56.005Z",
+        "finishedAt": "2026-09-13T02:04:30.353Z",
+        "durationMs": 93986,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:17b6edf224541f9bee85c7bc0bffc4d442aef2143956de035b7793e8e267def4",
+        "outputInputDigest": "sha256:17b6edf224541f9bee85c7bc0bffc4d442aef2143956de035b7793e8e267def4",
+        "profileDigest": "sha256:f06633484762bd2bd48b7852d36b2cbf203a3181202141ebbc6d827c657decfc",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "git.pin",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 38,
+            "logDigest": "sha256:e928567de6f903039a669b7647bf037309d50e4f7916bb5c06f7b05d3bf966fe"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 93798,
+            "logDigest": "sha256:50f6a1587e21bedb60d07a9d92cd6755309e34e6e7ea3fca9c561ac33312ac1b"
+          }
+        ]
+      }
+    },
+    "coreCounts": {
+      "pass": 173,
+      "fail": 0,
+      "skip": 0
+    },
+    "integrationCounts": {
+      "pass": 214,
+      "fail": 0,
+      "skip": 1
+    },
+    "releaseFixtureCounts": {
+      "pass": 36,
+      "fail": 0,
+      "skip": 0
+    },
+    "designTypecheck": "passed",
+    "deviceEdgeHelperBundles": "built; not installed",
+    "androidSkip": "Hard-link creation is denied on this Android filesystem; do not count as PASS."
+  },
+  "qualification": {
+    "originalRun": 34731136608,
+    "originalSource": "ba7b50688d1c7fd74b5c20db4014069628b4421a",
+    "originalStatus": "success; qualification only",
+    "refinementRun": 34731643843,
+    "refinementSource": "94ba12e30b6f51b9326e148789e34404854d4282",
+    "refinementStatus": "failure",
+    "refinementFailure": "Original 20ms response-loss fixture race, fixed by preserved fa018 canonical change. Not rerun as if successful.",
+    "engineBytesObservation": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca"
+  },
+  "proofLayers": {
+    "sourceImplemented": true,
+    "localSourceValidated": true,
+    "thisRepairCanonicalIntegrated": false,
+    "runtimeInstalled": false,
+    "productionCommissioned": false,
+    "publicReleaseAccepted": false,
+    "finalRuntimeSelfDevelopment": false,
+    "fullConcurrencyAcceptance": false,
+    "comparisonSuperiority": false,
+    "androidPrivilegedRecovery": false
+  },
+  "remaining": [
+    "Fresh independent repair review",
+    "Exact published-source hosted qualification",
+    "Safe canonical repair integration/readback",
+    "Missing-capability native/helper installation and actual private production commissioning",
+    "Public paired stage/activate, rollback/recovery and final-runtime real self-development",
+    "Real overlapping work/conflict/retry and capacity semantics",
+    "Android interruption/recovery; privileged deviceidle unavailable to app uid",
+    "D0007 controlled predecessor comparison and final falsification"
+  ]
+}

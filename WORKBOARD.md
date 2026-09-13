@@ -1,3 +1,14 @@
+# Current convergence review update - 2026-09-13
+
+Independent cloud review found a reachable P1 provider-completion freshness defect
+after the separately performed fa018a40 integration. Its bounded source repair and
+falsifier replay are documented in
+[completion review](docs/evidence/phase-b-convergence/fresh-provider-completion-20260913.md).
+Local source checks pass; fresh independent repair review and exact hosted-source
+qualification remain open. No new commissioning or live release acceptance is claimed.
+The prior review record below is retained as historical evidence, not a current
+unqualified green decision.
+
 # dev-2 workboard
 
 Authority: DIRECTIVE r4 -> RULE -> selected D0001-D0008.
