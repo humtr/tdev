@@ -36,7 +36,9 @@ export class FrameAssembler {
  requireThat(p.bytes+data.length<=this.o.maxMessageBytes&&this.bytes+data.length<=this.o.maxRetainedBytes,'LIMIT_EXCEEDED','Assembly bound');
  p.chunks.push(data);p.bytes+=data.length;this.bytes+=data.length;p.next++;
  if(p.next!==p.total)return null;
- this.remove(frame.messageId);return new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(p.chunks));
+ this.remove(frame.messageId);
+ try{return new TextDecoder('utf-8',{fatal:true}).decode(Buffer.concat(p.chunks));}
+ catch{requireThat(false,'INVALID_ARGUMENT','Invalid UTF-8 transport assembly');return '';}
  }
  dispose(){for(const id of this.pending.keys())this.remove(id);}
 }
