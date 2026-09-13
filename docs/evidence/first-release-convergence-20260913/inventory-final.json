@@ -1,0 +1,315 @@
+{
+  "observedAt": "2026-09-13T11:32:16.649397+00:00",
+  "canonicalHead": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "canonicalParents": [
+    "d40359476562a024a949f7af4bc5d11cfa1cee83"
+  ],
+  "canonicalTree": "08f9fce22ba1b7071eb34394f3cde3f89025b992",
+  "states": [
+    {
+      "gate": "A",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "New current-source real hosted production adapter qualification; independently retained native OIDC production commissioning at exact installed approved controller fa018a4. These are two separate proofs.",
+      "evidence": [
+        "current-qualification-result.json",
+        "qualification-recheck.json",
+        "enrollment-recheck.json",
+        "provider-current.json"
+      ],
+      "remaining": "No new native OIDC work was dispatched by Codex. Qualification fixture transport cannot issue native authority."
+    },
+    {
+      "gate": "B",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Private production commissioning reverified from real native completion custody and exact output objects; no recommissioning.",
+      "evidence": [
+        "enrollment-recheck.json",
+        "provider-current.json"
+      ],
+      "remaining": "Provider run 34732066961 eventually ended failure after the three authenticated completions; whole-job success is not asserted."
+    },
+    {
+      "gate": "C",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Current verifier checks exact production enrollment efebf458, baseline/source/provider/assignment/result/outer/object joins.",
+      "evidence": [
+        "enrollment-recheck.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "D",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Actual native/helper service startup and branded non-baseline admission; later SIGKILL restart and fresh health.",
+      "evidence": [
+        "android-recovery.json",
+        "final-runtime.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "E",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Reverified real managed Builder receipt, actual artifact bytes, prepared validation and integrated d403 source.",
+      "evidence": [
+        "builder-recheck.json",
+        "enrollment-recheck.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "F",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Retained native release.stage action 21d907c1 succeeded through managed Builder and exact provider upload; current-source verifier rechecks it.",
+      "evidence": [
+        "release-history-recheck.json",
+        "builder-recheck.json"
+      ],
+      "remaining": "This is server-side public-operation evidence, not a new ChatGPT session/transport trial."
+    },
+    {
+      "gate": "G",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Retained native release.activate bc91728f and fixed-helper c07ae889 six applied effects join current exact active pair.",
+      "evidence": [
+        "release-history-recheck.json",
+        "provider-current.json",
+        "final-runtime.json"
+      ],
+      "remaining": "Current-client OAuth/session behavior remains separate."
+    },
+    {
+      "gate": "H",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Fresh installed-device/edge paired readback, Cloudflare 100% deployment and workers.dev route.",
+      "evidence": [
+        "final-runtime.json",
+        "provider-current.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "I",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Automatic rollback is proven in actual helper journal. Explicit rollback acceptance has no exact exercised evidence.",
+      "evidence": [
+        "release-history-recheck.json"
+      ],
+      "remaining": "Public authorized runtime operations required. Do not use excluded staged multi-account release as a rollback target."
+    },
+    {
+      "gate": "J",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Automatic rollback terminal receipt proves previous paired health; current canonical health independently green.",
+      "evidence": [
+        "release-history-recheck.json",
+        "final-runtime.json"
+      ],
+      "remaining": "Post-explicit-rollback public canonical readback depends on I. Observe retained blocked action d6c07596628e0fc2be45845b4f426c26 using current human principal."
+    },
+    {
+      "gate": "8-way-overlap",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Eight distinct exact-base candidate works, 16 authenticated managed completions, two actual all-eight launch-to-stop overlaps totalling 34.815s, within eight independent provider job intervals.",
+      "evidence": [
+        "eight-way-recheck.json",
+        "provider-current.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Historical execution reverified; cross-host clocks are not independently synchronized. Not all-eight same-ref completion/throughput."
+    },
+    {
+      "gate": "8-way-failure-isolation",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current local SQLite/managed-session fixture suites prove scoped failure/capacity behavior; B real STALE_RESULT and B/C recomposition retained.",
+      "evidence": [
+        "capacity-recovery.json",
+        "local-validation.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "No exact live eight-way failing-witness/conflict/resource-exhaustion schedule. Needs ordinary public MCP work."
+    },
+    {
+      "gate": "capacity>8",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Current implementation on real disposable SQLite at 8 then reopen at 12; prior reservations and owner fencing retained, 13 work identities, blocked sibling plus independent failed/next admission; standard tests at 1/8/16/32.",
+      "evidence": [
+        "capacity-recovery.json",
+        "capacity-recovery.mjs",
+        "local-validation.json"
+      ],
+      "remaining": "No production capacity change or claim of 12 executing provider jobs."
+    },
+    {
+      "gate": "same-request-retry",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "response-loss-after-mutation",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "restart-during-pending-work",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "restart-after-validation-before-response",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "integration-response-loss",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "same-action-duplicate",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "live-conflict",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current core/integration/release fixtures pass. New real production-adapter completion-response-loss replay proves exactly one container execution and two exact deliveries for each fixed profile; public operation delivery is a different layer.",
+      "evidence": [
+        "local-validation.json",
+        "current-qualification-result.json",
+        "source-history-recheck.json"
+      ],
+      "remaining": "Requires current public MCP mutation/fault schedule. Local controller calls and installation probes cannot substitute."
+    },
+    {
+      "gate": "stale-candidate",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Retained native B integration rejected STALE_RESULT after A advanced canonical; B recomposed and integrated. Current verifier authenticates original required receipts.",
+      "evidence": [
+        "source-history-recheck.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "Android-service-restart",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Actual installed native/helper runit down/up, owner 18 to 19, paired health.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "Android-native-process-death",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Actual SIGKILL to native process; runit restarted it, owner 19 to 20, transient not_sent then authenticated reconnect.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": null
+    },
+    {
+      "gate": "Android-process-suspension-read-loss",
+      "status": "PROVEN_CURRENT",
+      "exercisedLayer": "Actual SIGSTOP35s produced forwarded read EXECUTION_UNAVAILABLE delivery=unknown after 30.238s; SIGCONT and same-pair authoritative probe succeeded.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": "Read-only fault; not mutation delivery or Android Doze."
+    },
+    {
+      "gate": "Android-network-disconnect-reconnect",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Native process/service tests completed; physical Android condition not exercised.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": "User Android action required: app-wide/process-host or network changes can terminate this agent and unrelated services. Record before/after fresh public readback and exact pending action identity."
+    },
+    {
+      "gate": "Android-Termux-app-restart",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Native process/service tests completed; physical Android condition not exercised.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": "User Android action required: app-wide/process-host or network changes can terminate this agent and unrelated services. Record before/after fresh public readback and exact pending action identity."
+    },
+    {
+      "gate": "Android-physical-sleep-Doze-reboot",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Native process/service tests completed; physical Android condition not exercised.",
+      "evidence": [
+        "android-recovery.json"
+      ],
+      "remaining": "User Android action required: app-wide/process-host or network changes can terminate this agent and unrelated services. Record before/after fresh public readback and exact pending action identity."
+    },
+    {
+      "gate": "ChatGPT-self-development",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "exercisedLayer": "Preserved canonical ChatGPT narrative corroborated by real native signed validation, exact non-doc source commit21e0c921, one Git effect and current canonical ancestry.",
+      "evidence": [
+        "source-history-recheck.json",
+        "../phase-b-convergence/native-self-development.md"
+      ],
+      "remaining": "Independent original client transcript is unavailable here; no claim that Codex constitutes a new ChatGPT session proof."
+    },
+    {
+      "gate": "current-public-client",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "User states tdev MCP unavailable in this Codex session; no human token is borrowed from device/private credentials.",
+      "evidence": [
+        "final-runtime.json"
+      ],
+      "remaining": "Actual ChatGPT connector login and ordinary four-tool operations."
+    },
+    {
+      "gate": "superiority",
+      "status": "BLOCKED_EXTERNAL",
+      "exercisedLayer": "Current tmcp diagnostic, preserved old-tdev historical microbenchmark and analytical comparison completed; no scored paired development workload.",
+      "evidence": [
+        "benchmark-summary.json",
+        "tmcp-diagnostic.json"
+      ],
+      "remaining": "D0007 matched W1-W11 and actual ChatGPT cohort require public dev-2 access; superiority remains NOT_PROVEN. No old-tdev runtime restoration is needed."
+    }
+  ],
+  "repairedThenProvenProductDefects": [],
+  "stopCondition": "B: tdev public MCP unavailable by user constraint; other independent provider/native/source/evidence work complete. Physical Android app/network actions are also external."
+}

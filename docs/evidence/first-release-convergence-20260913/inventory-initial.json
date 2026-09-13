@@ -1,0 +1,106 @@
+{
+  "observedAt": "2026-09-13T11:03:03.055296+00:00",
+  "canonical": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "states": [
+    {
+      "gate": "A",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Production OIDC commissioning assignments exist; independent containment qualification artifact still being located."
+    },
+    {
+      "gate": "B",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Private prod-fa018a4-native-20260913-a1; three retained exact assignments on provider run 34732066961."
+    },
+    {
+      "gate": "C",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Production enrollment efebf458; fresh digest/native-object verification pending."
+    },
+    {
+      "gate": "D",
+      "status": "PROVEN_CURRENT",
+      "evidenceAndLayer": "Authenticated private native/helper status and successful exact bundle restart at owner 19."
+    },
+    {
+      "gate": "E",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Managed Builder assignments retained for succeeded stage actions; exact artifact/receipt join pending."
+    },
+    {
+      "gate": "F",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Public-shaped stage action 21d907c1b3feb0e224f4643facb4e23e succeeded; transport/client provenance separate."
+    },
+    {
+      "gate": "G",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Action bc91728f9be45e44d9302bff289ea45e and helper c07ae889... exact paired activation; provider deployment matches."
+    },
+    {
+      "gate": "H",
+      "status": "PROVEN_CURRENT",
+      "evidenceAndLayer": "Fresh device-role verify and helper activePair plus independent Cloudflare deployment/route readback."
+    },
+    {
+      "gate": "I",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Helper d6c075... rolled_back journal retained; source single-owner rollback is a distinct forward activation."
+    },
+    {
+      "gate": "J",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Historical rollback health receipt must be joined; current canonical pair independently healthy."
+    },
+    {
+      "gate": "8-way",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Eight isolated exact-base candidates and 16 authenticated managed profile completions retained. Provider/kernel interval checks pending; native aggregate spans alone do not prove overlap."
+    },
+    {
+      "gate": "capacity>8",
+      "status": "NOT_PROVEN",
+      "evidenceAndLayer": "Current core/integration configuration tests pending review; actual installed capacity remains 8."
+    },
+    {
+      "gate": "interruption",
+      "status": "NOT_PROVEN",
+      "evidenceAndLayer": "Historical dedup/exact integration evidence and fixture tests exist; every requested physical/transport fault remains separately inventoried."
+    },
+    {
+      "gate": "Android-service-restart",
+      "status": "PROVEN_CURRENT",
+      "evidenceAndLayer": "Native and helper runit down/up; exact pointer unchanged, owner 18 to 19, accepting/sealed reconnect."
+    },
+    {
+      "gate": "Android-process-death",
+      "status": "NOT_PROVEN",
+      "evidenceAndLayer": "Scoped SIGKILL not yet performed."
+    },
+    {
+      "gate": "Android-network",
+      "status": "NOT_PROVEN",
+      "evidenceAndLayer": "Process reconnect is not independent network outage."
+    },
+    {
+      "gate": "Android-force-stop-sleep-reboot",
+      "status": "BLOCKED_EXTERNAL",
+      "evidenceAndLayer": "Killing the Android Termux app/reboot interrupts this agent and unrelated services; requires physical user execution."
+    },
+    {
+      "gate": "ChatGPT-self-development",
+      "status": "PROVEN_HISTORICAL_BUT_NEEDS_CURRENT_RECHECK",
+      "evidenceAndLayer": "Retained ChatGPT narrative + exact action 325bce... + commit 21e0c921; native/remote identity crosscheck pending. Codex work cannot prove ChatGPT origin."
+    },
+    {
+      "gate": "superiority",
+      "status": "NOT_PROVEN",
+      "evidenceAndLayer": "No current scored paired cohorts or adequate old-tdev analytical comparison inspected yet."
+    },
+    {
+      "gate": "public-client-access",
+      "status": "BLOCKED_EXTERNAL",
+      "evidenceAndLayer": "This Codex connector inventory exposes tmcp only; no dev-2 human MCP tools/token. Device-role read probes cannot authorize public mutations."
+    }
+  ]
+}

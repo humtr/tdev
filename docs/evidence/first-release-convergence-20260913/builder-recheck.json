@@ -1,0 +1,43 @@
+{
+  "status": "PASS",
+  "layer": "exact-retained-managed-Builder-source-receipt-object-revalidation",
+  "newBuild": false,
+  "actionId": "21d907c1b3feb0e224f4643facb4e23e",
+  "sourceCommit": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+  "resultId": "0a3fd64192ae5a5d284ad9da393ff995",
+  "validationId": "sha256:0c24d112cd397b3517c6363789ada25b595c33a54ad297c3896ba40f34d19f41",
+  "releaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+  "buildReceipt": {
+    "actionId": "21d907c1b3feb0e224f4643facb4e23e",
+    "inputDigest": "sha256:8e3025b6bb9dd57c5e9927b8d7981449cf4efcd668ccf93bf6de71c15079ed8b",
+    "kind": "dev2.release-production-build",
+    "proof": {
+      "assignmentId": "c96dca65138f8e391e242767e4d47527c30b4d3de895c309d7b8a773e0f6b581",
+      "contextDigest": "sha256:c7526a861a788bda3b9f605ddb115b99fb249ebb3c25a4a306f5fa558cbd7f0b",
+      "eligible": true,
+      "inputIdentity": "sha256:72b04d9a65f946377139c5f96f8889cca2159fea33998451addaf3f5ecf1e5cd",
+      "outerReceiptDigest": "sha256:49b0cbed00e84c61db941ed6d8405643b604cfe8540e0aae13b522a3ec4c19c7",
+      "profileDigest": "sha256:bf013091287bae02e5eb8ad2963242950a67036ad40a9cd976dce76a5945ff54",
+      "providerRunAttempt": "1",
+      "providerRunId": "34745158913",
+      "schemaVersion": 1,
+      "sealDigest": "sha256:efebf458bc9bc5d90f2f3c98efb10bfc44df5e43380a1fbfc00ccaef6b4d214d",
+      "sessionId": "9283896361ed70d101bbdc6e483436fe"
+    },
+    "schemaVersion": 1
+  },
+  "refs": {
+    "device": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+    "edge": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+    "tools": "sha256:64ca42da2e9214eacc1ad836d2174da0ca7b818fbb2ac432dddbdcf84fd42e00"
+  },
+  "stageReceipt": {
+    "artifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+    "effectId": "d98886c8ab869216c190cba9356d5d2996dd0752af81ce15c4b7d78f29db60ab",
+    "inputDigest": "sha256:8634b662e74684fe3aa2a34600d9120a5e56a368f5aa99d3bd20300b0d991459",
+    "kind": "ready",
+    "observedAt": 1789284355570,
+    "senderStopped": true,
+    "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+  }
+}

@@ -1,0 +1,73 @@
+{
+  "observedAt": "2026-09-13T11:30:32.004Z",
+  "layer": "authenticated-installation-read-probe-through-live-edge-and-native",
+  "humanOAuth": false,
+  "summary": {
+    "authenticationMode": "installation-read-probe",
+    "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+    "humanOAuth": false,
+    "observedAt": "2026-09-13T11:30:32.004Z",
+    "ok": true,
+    "repositoryId": "github-1322208918",
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+  },
+  "runtime": {
+    "accepting": true,
+    "capacity": 8,
+    "executingActions": 0,
+    "reservedAttempts": 0,
+    "deploymentSealed": true
+  },
+  "identity": {
+    "activation": {
+      "activationId": null,
+      "activeReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+      "deadline": null,
+      "expectedReleaseId": null,
+      "phase": "active",
+      "stagedReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+      "writerStopped": false
+    },
+    "device": {
+      "arch": "arm64",
+      "bundleDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+      "connected": true,
+      "connectedAt": "2026-09-13T11:30:27.317Z",
+      "deviceId": "2fe65e84415c44529a55a91095e96d93",
+      "lastMessageAt": "2026-09-13T11:30:30.237Z",
+      "nodeVersion": "24.18.0",
+      "ownerEpoch": "20",
+      "platform": "android",
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+    },
+    "edge": {
+      "bundleDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+      "observedAt": "2026-09-13T11:30:27.324Z",
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+      "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+    },
+    "installationId": "71d1e2daa8524c1194889d937be9a14e",
+    "managedExecution": {
+      "activeSessions": 2,
+      "reason": null,
+      "reservedSessions": 0,
+      "sealDigest": "sha256:672a48a5fa06d80c3ec15829bc4d155aca3457928982e166425c71627c5034e7",
+      "state": "ready"
+    },
+    "origin": "https://tdev.humtr.workers.dev",
+    "phase": "qualified",
+    "source": {
+      "commitOid": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+      "observedAt": "2026-09-13T11:30:31.059Z",
+      "state": "current",
+      "treeOid": "sha1:08f9fce22ba1b7071eb34394f3cde3f89025b992"
+    }
+  },
+  "sourceVsInstalledDiff": [
+    "WORKBOARD.md"
+  ],
+  "managedSessionCaveat": "ready is enrollment/policy readiness. activeSessions=2 is retained session projection; provider records are terminal, not two executing jobs.",
+  "stagedCaveat": "Retained staged release 60a772... is the excluded multi-account lineage. Do not activate it or treat it as the active single-owner release."
+}

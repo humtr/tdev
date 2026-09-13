@@ -1,0 +1,434 @@
+{
+  "layer": "read-only-retained-native-action-and-fixed-helper-ledger",
+  "newPublicOperation": false,
+  "stage": {
+    "action": {
+      "actionId": "21d907c1b3feb0e224f4643facb4e23e",
+      "attempt": "1",
+      "bindingEpoch": "1",
+      "deadline": 1789285171467,
+      "errorCode": null,
+      "intentDigest": "sha256:2a79072f5c98e6b5e8942e2af191c755eae6084e648c4dc7b09a1e35e503b802",
+      "operation": "release.stage",
+      "ownerEpoch": "17",
+      "requestId": "single-owner-rollback-stage-integrated-20260913",
+      "resultId": null,
+      "status": "succeeded",
+      "step": "complete",
+      "workId": null
+    },
+    "sourceCommit": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+    "target": {
+      "deviceArtifactDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+      "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+      "deviceSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+      "edgeArtifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+      "edgeSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+      "edgeVersionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6",
+      "ledger": {
+        "max": 1,
+        "min": 1
+      },
+      "protocol": {
+        "max": 1,
+        "min": 1
+      },
+      "releaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+      "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+    },
+    "receipt": {
+      "artifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+      "effectId": "d98886c8ab869216c190cba9356d5d2996dd0752af81ce15c4b7d78f29db60ab",
+      "inputDigest": "sha256:8634b662e74684fe3aa2a34600d9120a5e56a368f5aa99d3bd20300b0d991459",
+      "kind": "ready",
+      "observedAt": 1789284355570,
+      "senderStopped": true,
+      "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+    }
+  },
+  "activations": [
+    {
+      "helperRecord": {
+        "cursor": 6,
+        "direction": "rollback",
+        "intent": {
+          "actionId": "d6c07596628e0fc2be45845b4f426c26",
+          "activationId": "16224de65578b99bed88f4594350af7ec992ca73ec8d71d564b240a09584a754",
+          "bindingEpoch": "1",
+          "createdAt": 1789266080193,
+          "deadline": 1789266377631,
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "previous": {
+            "deviceArtifactDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+            "deviceReleaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+            "deviceSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+            "edgeArtifactDigest": "sha256:0072e3040fc0fff0df2a2307ebdaf7982bb037547717602d34e2eafb216426c5",
+            "edgeSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+            "edgeVersionId": "51c80ab6-8839-446c-96f2-5efcb103f784",
+            "ledger": {
+              "max": 1,
+              "min": 1
+            },
+            "protocol": {
+              "max": 1,
+              "min": 1
+            },
+            "releaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765"
+          },
+          "repositoryId": "github-1322208918",
+          "target": {
+            "deviceArtifactDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+            "deviceReleaseId": "sha256:e0b996a91a48a1064de72c2d25aa0d5be708dfa9855ea23e4e373617ac3c26d4",
+            "deviceSourceCommitOid": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075",
+            "edgeArtifactDigest": "sha256:0072e3040fc0fff0df2a2307ebdaf7982bb037547717602d34e2eafb216426c5",
+            "edgeSourceCommitOid": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075",
+            "edgeVersionId": "781bb127-9ec5-45fb-84e3-283e463adf72",
+            "ledger": {
+              "max": 1,
+              "min": 1
+            },
+            "protocol": {
+              "max": 1,
+              "min": 1
+            },
+            "releaseId": "sha256:e0b996a91a48a1064de72c2d25aa0d5be708dfa9855ea23e4e373617ac3c26d4",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075"
+          }
+        },
+        "intentDigest": "sha256:85a15283159738fd68443180aa390382537a8a1f84b128cbe1556da985ba8247",
+        "observedPair": {
+          "deviceArtifactDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+          "deviceReleaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+          "deviceSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+          "edgeArtifactDigest": "sha256:0072e3040fc0fff0df2a2307ebdaf7982bb037547717602d34e2eafb216426c5",
+          "edgeSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+          "edgeVersionId": "51c80ab6-8839-446c-96f2-5efcb103f784",
+          "ledger": {
+            "max": 1,
+            "min": 1
+          },
+          "protocol": {
+            "max": 1,
+            "min": 1
+          },
+          "releaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+          "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+          "sourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765"
+        },
+        "pending": null,
+        "phase": "rolled_back",
+        "reason": "external_effect_uncertain",
+        "receipts": [
+          {
+            "effectId": "84c94e46c8b1d0f0df5821ef70cf462e5c7a55fe14caa86aa3020c4d0195a1b3",
+            "inputDigest": "sha256:bba3d1759ebe8466b492d55d72ca9f14634e9575c486388e1c015f99b6cc7577",
+            "kind": "applied",
+            "observedAt": 1789266084006,
+            "output": {
+              "edgeVersionId": "781bb127-9ec5-45fb-84e3-283e463adf72"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "0afc5aa237841630eeabd3b4a6e3b7f5612b72706c53cd3b46014cd65bebefd7",
+            "inputDigest": "sha256:06fa1c372eb76f14a4e9dd562c7dec3f076cec93ceb33ca0d73522114f7252bc",
+            "kind": "failed",
+            "observedAt": 1789266144900,
+            "output": {
+              "reason": "native_drain_not_verified"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "60f601f2678ffd5725d88208f0129c979f8581d42c4f202f1fa43ffe3bb79c5f",
+            "inputDigest": "sha256:b226eed0c67df44fec7e5387b68858bdd926e5f32859f062592efb0be8744818",
+            "kind": "applied",
+            "observedAt": 1789266147230,
+            "output": {
+              "edgeVersionId": "51c80ab6-8839-446c-96f2-5efcb103f784"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "da6ae6c020f277931125eddb76e77a645f4ad99c924fc4b2c0b70b35c4999363",
+            "inputDigest": "sha256:3c847b1a8d561eb64f9a16aa896b705f8bb20b21c742150b39db8e95a4b93ad5",
+            "kind": "applied",
+            "observedAt": 1789266267973,
+            "output": {
+              "drained": true,
+              "ownerEpoch": "12"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "3fc7a8ea2165b17d39d0500e814219a532a1833ef3625fa48f13cf96676a9f02",
+            "inputDigest": "sha256:70f9ad5894dc1f9cf7506c8cd8c7d51c478c541cec2f669f0b823bae7032f4b3",
+            "kind": "applied",
+            "observedAt": 1789266269655,
+            "output": {
+              "ownerEpoch": "12",
+              "senderCount": 15,
+              "writerStopped": true
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "14e17804ccfbe2f5fb83d937548184b7164016c8369c10222025937cb268514d",
+            "inputDigest": "sha256:f3b27dc189ef4af166ed5d18f013d3a8adc8c0e8b9ea61ca2d8dc9a33009ccf8",
+            "kind": "applied",
+            "observedAt": 1789266270017,
+            "output": {
+              "deviceReleaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "4b9910adb9d16a75ffafceccd043304d06725adb1768f587f9ec2c677bd0cbe2",
+            "inputDigest": "sha256:3239df509dcff83b03c9eac4dbde915aadb505ce77602affccd4c9aa9a8af151",
+            "kind": "applied",
+            "observedAt": 1789266276252,
+            "output": {
+              "deviceReleaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+              "ownerEpoch": "13"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "e274e4c313e72a31c4e5736975ce5a959fbb81784072b53584f3f6c03d121741",
+            "inputDigest": "sha256:b1e87800e2ae83158d048c27503d5bb953460c9d46b394ab0bf005b03c17441a",
+            "kind": "applied",
+            "observedAt": 1789266277274,
+            "output": {
+              "healthy": true,
+              "pair": {
+                "deviceArtifactDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+                "deviceReleaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+                "deviceSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+                "edgeArtifactDigest": "sha256:0072e3040fc0fff0df2a2307ebdaf7982bb037547717602d34e2eafb216426c5",
+                "edgeSourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+                "edgeVersionId": "51c80ab6-8839-446c-96f2-5efcb103f784",
+                "ledger": {
+                  "max": 1,
+                  "min": 1
+                },
+                "protocol": {
+                  "max": 1,
+                  "min": 1
+                },
+                "releaseId": "sha256:0bd0d220eca3d0dd5b15ac710d7ce53a310b29e0fdf74892c1bfa7c2a7c22fff",
+                "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+                "sourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765"
+              }
+            },
+            "senderStopped": true
+          }
+        ],
+        "revision": "214"
+      },
+      "nativeAction": {
+        "actionId": "d6c07596628e0fc2be45845b4f426c26",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789266377631,
+        "errorCode": "EFFECT_UNCERTAIN",
+        "intentDigest": "sha256:f85cc7044eca58f35fc1fda63ec0305c8d0d86768275447d99994190ff0b973c",
+        "operation": "release.activate",
+        "ownerEpoch": "18",
+        "requestId": "pb5-prodqual-ce4-activate-20260913-a2",
+        "resultId": null,
+        "status": "blocked",
+        "step": "recovery.required",
+        "workId": null
+      }
+    },
+    {
+      "helperRecord": {
+        "cursor": 6,
+        "direction": "forward",
+        "intent": {
+          "actionId": "bc91728f9be45e44d9302bff289ea45e",
+          "activationId": "c07ae8891357b4d91a3ad5ea3f74a9fde7b42f52404e4c22e1d383ea2d099498",
+          "bindingEpoch": "1",
+          "createdAt": 1789284404106,
+          "deadline": 1789284701699,
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "previous": {
+            "deviceArtifactDigest": "sha256:278530d8a09a475fce459c0c7b55ac73f4c938c12efa3c0f65070f8465aba3e7",
+            "deviceReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "deviceSourceCommitOid": "sha1:73cefca748521af18455e63d82e8be32e4dcb8c9",
+            "edgeArtifactDigest": "sha256:069b6f8e89332f54736cfdb5324b244851aab1f9bcec358ccd86a1bace2be82f",
+            "edgeSourceCommitOid": "sha1:73cefca748521af18455e63d82e8be32e4dcb8c9",
+            "edgeVersionId": "dd0a3803-16c8-40fa-bcc2-c0b092bd1b41",
+            "ledger": {
+              "max": 1,
+              "min": 1
+            },
+            "protocol": {
+              "max": 1,
+              "min": 1
+            },
+            "releaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:73cefca748521af18455e63d82e8be32e4dcb8c9"
+          },
+          "repositoryId": "github-1322208918",
+          "target": {
+            "deviceArtifactDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+            "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "deviceSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "edgeArtifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+            "edgeSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "edgeVersionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6",
+            "ledger": {
+              "max": 1,
+              "min": 1
+            },
+            "protocol": {
+              "max": 1,
+              "min": 1
+            },
+            "releaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+          }
+        },
+        "intentDigest": "sha256:56e9d87c6e6e132783e2a5c69bd75b1ae6ed9174df01b269d843fe0f6275b8d7",
+        "observedPair": {
+          "deviceArtifactDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+          "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+          "deviceSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+          "edgeArtifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+          "edgeSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+          "edgeVersionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6",
+          "ledger": {
+            "max": 1,
+            "min": 1
+          },
+          "protocol": {
+            "max": 1,
+            "min": 1
+          },
+          "releaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+          "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+          "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+        },
+        "pending": null,
+        "phase": "active",
+        "reason": null,
+        "receipts": [
+          {
+            "effectId": "51af48d878d458692da5e5ae22c95f7401a079dfed947d8d4bd4b151b5226269",
+            "inputDigest": "sha256:6783ad6fdf165db5f010493684999e9b014e131c858025250660eac80deeea89",
+            "kind": "applied",
+            "observedAt": 1789284408186,
+            "output": {
+              "edgeVersionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "e07969c5a76df2f9d5473d850cc8716efefb4ea7bc965949127562f5de9bd542",
+            "inputDigest": "sha256:2a588c711e94c0fee45f3d26f88a5ad7fa52b89b606cb487e9a2e2abbea8f2b8",
+            "kind": "applied",
+            "observedAt": 1789284408271,
+            "output": {
+              "drained": true,
+              "ownerEpoch": "17"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "1a254fd9546cafbb00010e61eee9843fe704fb63a9da65a70016a025faffcbbf",
+            "inputDigest": "sha256:1f4638650ce43177cb259225f157209f87e34116167d97ea1eddb37c290b1acd",
+            "kind": "applied",
+            "observedAt": 1789284409086,
+            "output": {
+              "ownerEpoch": "17",
+              "senderCount": 23,
+              "writerStopped": true
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "cf58b4c017ab69ecacdcb435fb0790fe8f613c8353fd4deb46bd6cb1afd2d7b5",
+            "inputDigest": "sha256:760e65879244ad3dfd28224af44c4c8d63ca53c7d9092a3343e9477f34a9c9ac",
+            "kind": "applied",
+            "observedAt": 1789284409326,
+            "output": {
+              "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "6c93b483c9fda80ce9ef67ce3a02b3bf90ac778eb14a9947338f8870f51aac86",
+            "inputDigest": "sha256:e5e401d99730316c54decf378a0a716c9cd7aec6c772e1cf32d755eb806afaf0",
+            "kind": "applied",
+            "observedAt": 1789284412772,
+            "output": {
+              "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+              "ownerEpoch": "18"
+            },
+            "senderStopped": true
+          },
+          {
+            "effectId": "71aa80d8a8c3a9922796ecff6d03d522847d7138356f79f9cb9a949aac849eea",
+            "inputDigest": "sha256:59e3d24e55f3d326d47a4946b6283af5260a5131581d97643d3ec75b3a5c4517",
+            "kind": "applied",
+            "observedAt": 1789284413879,
+            "output": {
+              "healthy": true,
+              "pair": {
+                "deviceArtifactDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+                "deviceReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+                "deviceSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+                "edgeArtifactDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+                "edgeSourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+                "edgeVersionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6",
+                "ledger": {
+                  "max": 1,
+                  "min": 1
+                },
+                "protocol": {
+                  "max": 1,
+                  "min": 1
+                },
+                "releaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+                "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+                "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+              }
+            },
+            "senderStopped": true
+          }
+        ],
+        "revision": "24"
+      },
+      "nativeAction": {
+        "actionId": "bc91728f9be45e44d9302bff289ea45e",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789284701699,
+        "errorCode": null,
+        "intentDigest": "sha256:63759642bfc750e3b8a62229fbd2dfe4cf750f881449e554b1e22c65d0728d57",
+        "operation": "release.activate",
+        "ownerEpoch": "18",
+        "requestId": "single-owner-rollback-activate-20260913",
+        "resultId": null,
+        "status": "succeeded",
+        "step": "complete.recovered",
+        "workId": null
+      }
+    }
+  ],
+  "explicitRollbackAcceptance": false,
+  "automaticRollbackProven": true,
+  "unobservedNativeAction": "d6c07596628e0fc2be45845b4f426c26",
+  "limitations": [
+    "One native action remains blocked although its helper transaction is rolled_back; public authorized dev_observe must reconcile it.",
+    "A forward release of reverted single-owner source is not an explicit runtime rollback trial.",
+    "Retained actions prove native public-operation implementation; fresh ChatGPT HTTP/client provenance requires the client."
+  ]
+}

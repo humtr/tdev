@@ -1,0 +1,10 @@
+{
+  "startedAt": "2026-09-13T11:24:44.745142+00:00",
+  "sourceCommit": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "ref": "refs/heads/dev2-containment/convergence-5a1637f5-20260913",
+  "created": true,
+  "layer": "bounded-development-provider-qualification",
+  "canonicalMutation": false,
+  "productionEnrollmentChanged": false,
+  "maximumJobMinutes": 15
+}

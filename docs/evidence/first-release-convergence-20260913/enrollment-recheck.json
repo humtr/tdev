@@ -1,0 +1,49 @@
+{
+  "observedAt": "2026-09-13T11:12:05.912Z",
+  "status": "PASS",
+  "layer": "current-verifier-on-readonly-native-backup-and-real-retained-objects",
+  "newProviderExecution": false,
+  "baselineRuntime": {
+    "bundleDigest": "sha256:4d6faa2564623dcffaa6fff0add3ae553aeb3d6e36da307717c53c96bbc9c358",
+    "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+    "sourceCommitOid": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+    "sourceTreeOid": "sha1:142ccd6c313d4855a0a9a9cc2fe2d0ca1a264774"
+  },
+  "approvedCommit": "sha1:fa018a40897c2a22972f3e6564a3d48203b76765",
+  "sealDigest": "sha256:efebf458bc9bc5d90f2f3c98efb10bfc44df5e43380a1fbfc00ccaef6b4d214d",
+  "proofs": [
+    {
+      "assignmentId": "8948fa5570a7b71d75ed739506fe0dfa4762296c6709fa9a16f571c52d83db90",
+      "contextDigest": "sha256:d984ae49548fc95b5b16b5a742d003bc72d42e64bd54abe6409be2b69ebeac1a",
+      "leaseId": "ace4b916345e7bffe13ee822f7ffcd1d",
+      "outerReceiptDigest": "sha256:4fd2ebc8968cfa4851ff7b60f759055a11ade9dcb1646df15a8076168798bc24",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "resultId": "751348f811289cb23febe0761dd29a540e04f0c6d54d0444abd059af2565fd87",
+      "runAttempt": "1",
+      "runId": "34732066961",
+      "sessionId": "71cf5e70776b258984b55c1125e36cb2"
+    },
+    {
+      "assignmentId": "a3f14cdf2ab559488e1b125e8b7481d885663279492206f087c5fab41b5ce0e6",
+      "contextDigest": "sha256:da1fe1fa938ee7b5aeb567da19603aefc92a34824ab3015fa8075ae1e7ec8152",
+      "leaseId": "bbb41a99b21d950ebc2320b70704442b",
+      "outerReceiptDigest": "sha256:d90a3e3b1695aff1f3cfe1f400f5e2655d8886b5a8bfcd12c02e6de45910ec98",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "resultId": "ddcd5b4d573a43b0698e07be31fd3083dea6d501ad71ba864a74f81dcf7f6534",
+      "runAttempt": "1",
+      "runId": "34732066961",
+      "sessionId": "71cf5e70776b258984b55c1125e36cb2"
+    },
+    {
+      "assignmentId": "44fb5bdd3225a847da516d402830dd8d2167d8e28d23fea2903a3ed6808dba52",
+      "contextDigest": "sha256:b5360ff3a2582765880eff2ead3cfc5ee04c79acf1f54575eb3ef1a1b4723e0e",
+      "leaseId": "a512f523747d19ba28e86cdbbb49b308",
+      "outerReceiptDigest": "sha256:737f39cede78f0a04d1ed7d475d310894324ebf6d475717fc7a07bc01b06954f",
+      "profileDigest": "sha256:bf013091287bae02e5eb8ad2963242950a67036ad40a9cd976dce76a5945ff54",
+      "resultId": "2559e9ee583337950099bb6fb03f323d213726eda639b746d244128b64f5c714",
+      "runAttempt": "1",
+      "runId": "34732066961",
+      "sessionId": "71cf5e70776b258984b55c1125e36cb2"
+    }
+  ]
+}

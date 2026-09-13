@@ -1,0 +1,28 @@
+{
+  "status": "PASS",
+  "layer": "current-source-disposable-real-SQLite-admission-reopen-recovery",
+  "source": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "startedAt": "2026-09-13T11:22:25.394Z",
+  "finishedAt": "2026-09-13T11:22:25.454Z",
+  "capacities": [
+    8,
+    12
+  ],
+  "workCount": 13,
+  "actionCount": 13,
+  "oldEpoch": "1",
+  "newEpoch": "2",
+  "retainedReservationsAfterReopen": 8,
+  "peakReservations": 12,
+  "oldCallbackRejected": true,
+  "blockedAttemptRetainsCapacity": true,
+  "unrelatedFailureFreesOnlyOwnReservation": true,
+  "queuedIndependentWorkProgressed": true,
+  "sameRequestDeduplicated": true,
+  "productionJobsLaunched": 0,
+  "installedCapacityChanged": false,
+  "limitations": [
+    "Isolated fixture identities and exact-base rows, not candidate execution or public MCP.",
+    "Production deployment remains capacity 8."
+  ]
+}

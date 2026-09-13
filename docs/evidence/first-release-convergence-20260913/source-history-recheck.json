@@ -1,0 +1,289 @@
+{
+  "layer": "retained-native-authenticated-receipts-and-Git-ancestry",
+  "newPublicExecution": false,
+  "currentCanonical": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "chatgptHistoricalCommit": "21e0c9211ccfd3cde972eb2602d9646cae03d151",
+  "ancestorOfCurrent": true,
+  "commitIdentity": "21e0c9211ccfd3cde972eb2602d9646cae03d151 58020a5ae28ec91a8fdb6cb82555ff528a603e22 39c4ce902d3aebb24979b94ae30463711bb79394",
+  "nonDocumentationChanges": [
+    "src/release/backend.mjs",
+    "test/integration/release-stage-recovery.test.mjs",
+    "test/release/backend.test.mjs"
+  ],
+  "validation": {
+    "actionId": "7041d5d2d9e23b94c4be1aea09d9dabd",
+    "requestId": "pb4-selfdev-production-replay-g4-20260912-01",
+    "result": {
+      "baseCommitOid": "sha1:7513251f918f1355cab899737dc9177e57b007ef",
+      "baseTreeOid": "sha1:ee1877e8c618c58eca8d0611eca9335b33599060",
+      "bindingEpoch": "1",
+      "candidateTreeOid": "sha1:bc71dbb395fe16e0efe30a8d840abd9a1d945a8c",
+      "commitOid": "sha1:21e0c9211ccfd3cde972eb2602d9646cae03d151",
+      "execution": {
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "environmentClass": "github-hosted-rootless-oci",
+        "orderedProfileDigests": [
+          "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+          "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71"
+        ],
+        "toolchainDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "trustedRunnerDigest": "sha256:c5b164f305a7bda5e497b9c0574036f705dbebb35583bd6d0077ec873e15392d"
+      },
+      "expectedHead": "sha1:58020a5ae28ec91a8fdb6cb82555ff528a603e22",
+      "generation": "4",
+      "metadata": {
+        "author": "dev-2 <dev2@users.noreply.github.com>",
+        "committer": "dev-2 <dev2@users.noreply.github.com>",
+        "message": "dev-2 source change",
+        "timestamp": 1789187013500
+      },
+      "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+      "repositoryId": "github-1322208918",
+      "resultId": "3741facdfcc4a6e003d102db9bf10ddf",
+      "resultTreeOid": "sha1:39c4ce902d3aebb24979b94ae30463711bb79394",
+      "resultTreeSha256": "sha256:1ae6880b36f0f36f596e0600c72a0d9572077f4b418451d95f172e5e86458c2b",
+      "workId": "f57b3ac6585d9305699be70e255c252a"
+    },
+    "receipt": {
+      "attempt": {
+        "actionId": "7041d5d2d9e23b94c4be1aea09d9dabd",
+        "attempt": "1",
+        "attemptId": "563b981d6f06e66b653d36c6a7985147",
+        "installationId": "71d1e2daa8524c1194889d937be9a14e",
+        "ownerEpoch": "6",
+        "repositoryId": "github-1322208918",
+        "workId": "f57b3ac6585d9305699be70e255c252a"
+      },
+      "deadlineExceeded": false,
+      "endedAt": 1789187127914,
+      "exitCode": 0,
+      "inputDigest": "sha256:1ae6880b36f0f36f596e0600c72a0d9572077f4b418451d95f172e5e86458c2b",
+      "outcomes": [
+        {
+          "exitCode": 0,
+          "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+          "status": "passed"
+        },
+        {
+          "exitCode": 0,
+          "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+          "status": "passed"
+        }
+      ],
+      "outputDigest": "sha256:1ae6880b36f0f36f596e0600c72a0d9572077f4b418451d95f172e5e86458c2b",
+      "resultId": "3741facdfcc4a6e003d102db9bf10ddf",
+      "runId": "a3ae2f13b19bc6d09ee955c49dd7928d",
+      "signal": null,
+      "signature": "sha256:841f7884ce4e1dc2b80bb982311e1d3ebac504d244c31ffcb2eff8e1234eed6c",
+      "startedAt": 1789187013543,
+      "validationId": "sha256:946c2fea3f076ee6a798f806cb36108c6b82aea10b3d17e694830e8d9aa80714"
+    },
+    "eligible": true
+  },
+  "actions": [
+    {
+      "action": {
+        "actionId": "325bce7e86f3b433bf43046015b31a5e",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789187970982,
+        "errorCode": null,
+        "intentDigest": "sha256:41f73dfa0912aa49f20dccf78beca30f90aa4dedfcc857001fdad77f8c3f6ea4",
+        "operation": "integrate",
+        "ownerEpoch": "6",
+        "requestId": "pb4-selfdev-exact-native-integration-20260912-01",
+        "resultId": "3741facdfcc4a6e003d102db9bf10ddf",
+        "status": "succeeded",
+        "step": "complete",
+        "workId": "f57b3ac6585d9305699be70e255c252a"
+      },
+      "intent": {
+        "expectedHead": "sha1:58020a5ae28ec91a8fdb6cb82555ff528a603e22",
+        "expectedRevision": "10",
+        "generation": "4",
+        "op": "integrate",
+        "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+        "preparedResultId": "3741facdfcc4a6e003d102db9bf10ddf",
+        "requestId": "pb4-selfdev-exact-native-integration-20260912-01",
+        "workId": "f57b3ac6585d9305699be70e255c252a"
+      },
+      "effects": [
+        {
+          "actionId": "325bce7e86f3b433bf43046015b31a5e",
+          "bindingEpoch": "1",
+          "commitOid": "sha1:21e0c9211ccfd3cde972eb2602d9646cae03d151",
+          "effectId": "14f758d7123c53e43766998d9e2d33ee",
+          "expectedHead": "sha1:58020a5ae28ec91a8fdb6cb82555ff528a603e22",
+          "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+          "preparedResultId": "3741facdfcc4a6e003d102db9bf10ddf",
+          "ref": "refs/heads/dev-2",
+          "repositoryId": "github-1322208918",
+          "validationId": "sha256:946c2fea3f076ee6a798f806cb36108c6b82aea10b3d17e694830e8d9aa80714",
+          "workId": "f57b3ac6585d9305699be70e255c252a"
+        }
+      ]
+    },
+    {
+      "action": {
+        "actionId": "718fc64dceee50da72586c90b1ba304a",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789267647428,
+        "errorCode": null,
+        "intentDigest": "sha256:e5f2a4b453b397e25b18e859db6c1f89f83d8c8302c3af9b2c278fa04c58206e",
+        "operation": "integrate",
+        "ownerEpoch": "14",
+        "requestId": "release-accept-eight-integrate-A-20260913",
+        "resultId": "b62a2b23ffeb6c6a3317dc74ed2d1ad2",
+        "status": "succeeded",
+        "step": "complete",
+        "workId": "9612a7195c910b6d5a301c8cfdfab49b"
+      },
+      "intent": {
+        "expectedHead": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075",
+        "expectedRevision": "2",
+        "generation": "0",
+        "op": "integrate",
+        "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+        "preparedResultId": "b62a2b23ffeb6c6a3317dc74ed2d1ad2",
+        "requestId": "release-accept-eight-integrate-A-20260913",
+        "workId": "9612a7195c910b6d5a301c8cfdfab49b"
+      },
+      "effects": [
+        {
+          "actionId": "718fc64dceee50da72586c90b1ba304a",
+          "bindingEpoch": "1",
+          "commitOid": "sha1:e1caf9ad7926c84ef585a0cc36a8fad23ee2260f",
+          "effectId": "7c4b1c2112c2937eeb2dae255bb7588a",
+          "expectedHead": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075",
+          "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+          "preparedResultId": "b62a2b23ffeb6c6a3317dc74ed2d1ad2",
+          "ref": "refs/heads/dev-2",
+          "repositoryId": "github-1322208918",
+          "validationId": "sha256:aecf89dc7c06fa7663d325fa25f43cc4f040a44b9326067642c2b140ce7130a4",
+          "workId": "9612a7195c910b6d5a301c8cfdfab49b"
+        }
+      ]
+    },
+    {
+      "action": {
+        "actionId": "993068094e731d0a6c4b20383e646ede",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789267702243,
+        "errorCode": "STALE_RESULT",
+        "intentDigest": "sha256:b921dcc49673f942c3ee0d2fb538447fb226c39a81b59e4e8ccd73cee7be69f9",
+        "operation": "integrate",
+        "ownerEpoch": "14",
+        "requestId": "release-accept-eight-stale-result-B-20260913",
+        "resultId": null,
+        "status": "failed",
+        "step": "complete",
+        "workId": "3daf1f52796aa79adc189cc191eb38d6"
+      },
+      "intent": {
+        "expectedHead": "sha1:e1caf9ad7926c84ef585a0cc36a8fad23ee2260f",
+        "expectedRevision": "2",
+        "generation": "0",
+        "op": "integrate",
+        "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+        "preparedResultId": "1db75bf60c1bbff8fa283bef568c8204",
+        "requestId": "release-accept-eight-stale-result-B-20260913",
+        "workId": "3daf1f52796aa79adc189cc191eb38d6"
+      },
+      "effects": []
+    },
+    {
+      "action": {
+        "actionId": "9d08c25403425d683f160c79d3ac2bc8",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789267800216,
+        "errorCode": null,
+        "intentDigest": "sha256:7dd810cb022ae0d3b6cbb7b8c91d259298ade01ab285fdff9ee321c8534574fc",
+        "operation": "integrate",
+        "ownerEpoch": "14",
+        "requestId": "release-accept-eight-integrate-B-recompose-20260913",
+        "resultId": "399f5579b0ad5a0471e3e5f2db2746d4",
+        "status": "succeeded",
+        "step": "complete",
+        "workId": "3daf1f52796aa79adc189cc191eb38d6"
+      },
+      "intent": {
+        "expectedHead": "sha1:e1caf9ad7926c84ef585a0cc36a8fad23ee2260f",
+        "expectedRevision": "4",
+        "generation": "0",
+        "op": "integrate",
+        "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+        "requestId": "release-accept-eight-integrate-B-recompose-20260913",
+        "workId": "3daf1f52796aa79adc189cc191eb38d6"
+      },
+      "effects": [
+        {
+          "actionId": "9d08c25403425d683f160c79d3ac2bc8",
+          "bindingEpoch": "1",
+          "commitOid": "sha1:8dcc9ef214dc4ecc484bdefb9d9fc38404cd86d5",
+          "effectId": "33af544ca14b8ef89f7331e2a6b0a3ae",
+          "expectedHead": "sha1:e1caf9ad7926c84ef585a0cc36a8fad23ee2260f",
+          "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+          "preparedResultId": "399f5579b0ad5a0471e3e5f2db2746d4",
+          "ref": "refs/heads/dev-2",
+          "repositoryId": "github-1322208918",
+          "validationId": "sha256:2a3145e6d89ec069523e83abd73839a6af58fb9b7504b124398966d2511c6fb4",
+          "workId": "3daf1f52796aa79adc189cc191eb38d6"
+        }
+      ]
+    },
+    {
+      "action": {
+        "actionId": "e7fdb9462bbc656953ff7d464839cc32",
+        "attempt": "1",
+        "bindingEpoch": "1",
+        "deadline": 1789268136464,
+        "errorCode": null,
+        "intentDigest": "sha256:7a9e1728dd5feab914cfe71a9b1069a06a31d8dfb3c90cdacdfeaed74221b1cf",
+        "operation": "integrate",
+        "ownerEpoch": "14",
+        "requestId": "release-accept-eight-integrate-C-recompose-20260913",
+        "resultId": "5590d241ca423de92a98fcfe4ffa9c7e",
+        "status": "succeeded",
+        "step": "complete",
+        "workId": "246f5010fb6ef5d1f9d986db6e2c3b11"
+      },
+      "intent": {
+        "expectedHead": "sha1:8dcc9ef214dc4ecc484bdefb9d9fc38404cd86d5",
+        "expectedRevision": "2",
+        "generation": "0",
+        "op": "integrate",
+        "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+        "requestId": "release-accept-eight-integrate-C-recompose-20260913",
+        "workId": "246f5010fb6ef5d1f9d986db6e2c3b11"
+      },
+      "effects": [
+        {
+          "actionId": "e7fdb9462bbc656953ff7d464839cc32",
+          "bindingEpoch": "1",
+          "commitOid": "sha1:fbe04f6356b4cae98890f416935f46e82115b413",
+          "effectId": "98f19ff0b9f73e3b4294969b6c386795",
+          "expectedHead": "sha1:8dcc9ef214dc4ecc484bdefb9d9fc38404cd86d5",
+          "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+          "preparedResultId": "5590d241ca423de92a98fcfe4ffa9c7e",
+          "ref": "refs/heads/dev-2",
+          "repositoryId": "github-1322208918",
+          "validationId": "sha256:96b92e7a6724b53f92b3ce9ea1ca653218615957036e101e1acb4c5b845e5fe6",
+          "workId": "246f5010fb6ef5d1f9d986db6e2c3b11"
+        }
+      ]
+    }
+  ],
+  "clientProvenance": {
+    "kind": "historical-canonical-narrative",
+    "path": "docs/evidence/phase-b-convergence/native-self-development.md",
+    "independentClientTranscriptAvailable": false
+  },
+  "limitations": [
+    "Git author and native receipts establish exact source/effect, not client application identity.",
+    "Same-request response-loss injection is not established by one durable row; historical narrative reports unchanged-request dedup.",
+    "Eight-way all-eight integration is not established: only A/B/C integrations are selected; B rejected STALE_RESULT then recomposed."
+  ]
+}

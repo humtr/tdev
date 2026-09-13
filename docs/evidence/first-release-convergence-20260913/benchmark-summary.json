@@ -1,0 +1,122 @@
+{
+  "status": "NOT_PROVEN",
+  "layer": "measured-current-diagnostic-plus-historical-and-analytical-comparison",
+  "methodology": "D0007 unchanged; no scored paired W1-W11 workload was run",
+  "reason": "The dev-2 public MCP client is unavailable in this session. Source/fixture or installation-read-probe calls cannot replace ordinary development workload measurements.",
+  "identities": {
+    "dev2Canonical": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+    "dev2Installed": "d40359476562a024a949f7af4bc5d11cfa1cee83",
+    "tmcpInstalled": "972712a49c4f41b26a6bacd899048626d4561077",
+    "tmcpRelease": "release-0b49ad3b5b26cd273f9a1237c4f9a74ed08a3ffaf6c0a462a442ede4d1065f8b",
+    "tmcpInspectedCheckout": "ce3f2a78c98853fba06e4ec1a3b21955283ca4b9",
+    "oldTdevPreservedSource": "afd28533f2ac0edb64639dc637ca8f0600f3ac9e"
+  },
+  "currentTmcp": {
+    "evidenceClass": "measured-current",
+    "jobId": "job_sqp_05536d4593",
+    "taskId": "task_sqp_7820d85bf4",
+    "operation": {
+      "id": "tmcp.info",
+      "version": 1
+    },
+    "status": "succeeded",
+    "createdAt": "2026-09-13T11:03:47.511Z",
+    "startedAt": "2026-09-13T11:03:47.601Z",
+    "finishedAt": "2026-09-13T11:03:47.679Z",
+    "durableAdmissionToTerminalMs": 168.0,
+    "serverExecutionMs": 78.0,
+    "maxConcurrentJobs": 4,
+    "operationCount": 58,
+    "publicControlTools": [
+      "list_operations",
+      "submit_operation",
+      "get_operation_job",
+      "cancel_operation_job",
+      "render_job"
+    ],
+    "readbackDiagnostic": "tmcp-diagnostic.json",
+    "unmeasured": [
+      "Original connector wall-clock latency",
+      "Source development completion latency",
+      "Validation cost",
+      "Model rounds",
+      "Context duplication",
+      "Fault recovery"
+    ],
+    "note": "Default configured capacity 4 is not an architectural ceiling. Current status readback does not prove project source-change equivalence."
+  },
+  "oldTdev": {
+    "evidenceClass": [
+      "historical",
+      "analytical"
+    ],
+    "immutableSources": [
+      {
+        "source": "afd28533f2ac0edb64639dc637ca8f0600f3ac9e",
+        "path": "docs/evidence/mvp-1a-2-control-plane-benchmark-2026-08-07.json",
+        "gitBlob": "9331a3cee0c848f5d5cd8d803240774e8f0b422d",
+        "sha256": "34e9514731f40851124c082a4132ca072f2d59adab9b078be79bfccad7f3a6f7"
+      },
+      {
+        "source": "afd28533f2ac0edb64639dc637ca8f0600f3ac9e",
+        "path": "docs/evidence/group-f-d0046-r8-chatgpt-native-experiential-gate-acceptance-2026-09-09.json",
+        "gitBlob": "bf533a2ccc1687541fa585bcaad60924a5f26452",
+        "sha256": "a04ea4c41cf1aca2e31e493bc3550753549c2784632f554bd3204dc2eeabd3a1"
+      }
+    ],
+    "historicalMicrobenchmark": {
+      "date": "2026-08-07",
+      "environment": "Node22.16.0 Linux x64",
+      "freshProcessRuns": 3,
+      "scope": "local scheduler/claim/persistence/promotion microbenchmarks",
+      "promotionMedianMs": 159.153,
+      "notComparableReasons": [
+        "Different hardware/runtime and source epoch",
+        "No current public-client end-to-end trace",
+        "No matched validation or repository fixture",
+        "Insufficient D0007 sample/cohort size"
+      ]
+    },
+    "analytical": {
+      "preservedDesignPipeline": [
+        "Case",
+        "Drive",
+        "Agent",
+        "required validation",
+        "Promotion"
+      ],
+      "currentClientNoCodexProof": "Explicitly open in preserved D0046 r8 Design acceptance; this is not a runtime PASS.",
+      "dev2ObservedPipeline": [
+        "isolated work generation",
+        "managed required receipt",
+        "prepared exact result",
+        "canonical Git effect",
+        "authoritative readback"
+      ],
+      "scope": "Different control structures and preserved completion state are capability/proof observations, not measured speedup."
+    },
+    "oldRuntimeRebuilt": false
+  },
+  "metrics": {
+    "endToEndDevelopmentLatency": null,
+    "successfulDevelopmentThroughput": null,
+    "concurrencyUtilization": null,
+    "eightWayOverlap": "eight-way-recheck.json: 34.815s retained actual managed intervals; not matched workload throughput",
+    "modelToolRounds": null,
+    "repositoryContextBytes": null,
+    "redundantReads": null,
+    "retryWastedWork": "source-history-recheck.json: B stale result rejected, B/C recomposed; total CPU cost not instrumented",
+    "validationCost": "local-validation.json and source-history-recheck.json; different identities/layers, no fair ratio",
+    "manualIntervention": "Operator service down/up, SIGKILL/SIGSTOP and probe-client protocol repair explicitly counted as development/testing actions; no claim of zero intervention in ordinary product path",
+    "externalBootstrapOperations": "One bounded qualification ref creation and its deletion after successful run; no runtime enrollment/install",
+    "recoveryCost": "android-recovery.json: scoped process/service observations; no paired baseline",
+    "providerOperations": "One new hosted qualification run; read-only API calls were not fully instrumented, total unknown"
+  },
+  "scoredTrials": 0,
+  "superiorityRatio": null,
+  "limitations": [
+    "No p95, confidence interval, throughput ratio or material superiority is established.",
+    "Historical old-tdev non-live evidence is an allowed input; no old runtime restoration is needed.",
+    "A single final ChatGPT source trial would not close the separate D0007 superiority frontier."
+  ]
+}

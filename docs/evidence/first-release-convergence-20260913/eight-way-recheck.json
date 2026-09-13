@@ -1,0 +1,308 @@
+{
+  "status": "PASS",
+  "layer": "retained-native-authenticated-managed-profile-intervals",
+  "newExecution": false,
+  "base": "sha1:ce4bc1e6d0f7f1040e7bdb6b44394d1d2c644075",
+  "capacity": 8,
+  "works": 8,
+  "distinctCandidates": 8,
+  "peakManagedWorkIntervals": 8,
+  "allEightOverlapIntervals": [
+    [
+      1789266821286,
+      1789266838367
+    ],
+    [
+      1789266874398,
+      1789266892132
+    ]
+  ],
+  "allEightOverlapMs": 34815,
+  "assignments": [
+    {
+      "assignmentId": "12a4a331dfa7d7eb9d2dca7f74e3f6be0e1f13621fadef4f1f29ba568c960dcc",
+      "runId": "34733308264",
+      "sessionId": "28d595609a67bcc9ca61653c8f9364a1",
+      "workId": "246f5010fb6ef5d1f9d986db6e2c3b11",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266814465,
+      "end": 1789266838391,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:974fb1c20122168d51679766d0e3bbf8fa0c84c893a0d04081c7f719dd76d5a4"
+    },
+    {
+      "assignmentId": "cfa36f554e4275e95766168d5add1d9b69788ece1b4ed993f8c806c65e74bb2b",
+      "runId": "34733308660",
+      "sessionId": "828117c1472d37be89cae4051cab80d1",
+      "workId": "3daf1f52796aa79adc189cc191eb38d6",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266815545,
+      "end": 1789266838367,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:70d9d42d22bef8c04c92c69d49f696973e9eb7426581601f104075ec438f3401"
+    },
+    {
+      "assignmentId": "d1f44c9a2d8c91d390f02b85162dadccc05d0a2e5fed943c9b21e7192a5c3d0c",
+      "runId": "34733308147",
+      "sessionId": "e8da42d007fe23cbbb7c334e9f7f3e23",
+      "workId": "05982b3b8b32ff7751fe77ed1f25b63d",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266816769,
+      "end": 1789266842240,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:04c9cb20813b2c473500e601f0239628a124f5c61042216adb29f52ea5a70ac0"
+    },
+    {
+      "assignmentId": "0fc3da1f234d88a1cd6e07043507c5ccbe2ba6e4d7c0fb72a5463b628b07bdaf",
+      "runId": "34733308602",
+      "sessionId": "21a8a73fb440acfb10cb2bd9b383a6cf",
+      "workId": "b2c569ef57369dabe86a3ac445e54fe0",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266817353,
+      "end": 1789266842762,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:6091e26c0f31f387c8d5aeae687436e376182fd543764b3cb1547094f8c227ea"
+    },
+    {
+      "assignmentId": "ac1f3a9f0a9ae3dd57d1bf6cc9e9b92cb926a447ac366d7210669b5ea216ae85",
+      "runId": "34733308106",
+      "sessionId": "67be87e3fea791b8aa6c57a41c8892ec",
+      "workId": "eda0e102679c4465a1af8ff960294263",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266821286,
+      "end": 1789266905907,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:df54fa5e14d51cf458f6e3640aa75209afa826ae0126c7fe4ae44d1f7d694dfc"
+    },
+    {
+      "assignmentId": "08e0cf48875f065168b67ebaed38dfc6f5116fb6652a7d2187ccdec358743f44",
+      "runId": "34733308367",
+      "sessionId": "f56fadac83061dfcffb60722bca2c605",
+      "workId": "345ae725b8d9130818125bc0d08ea819",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266817385,
+      "end": 1789266840975,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:11344d5853bd2f77b491e3e4ba361613201cc1dbbf6657cf6d73b50f39079b82"
+    },
+    {
+      "assignmentId": "3feed96eb8c03587d423e19ffab751e983e5e86c3b606167738b63afd494aca5",
+      "runId": "34733309137",
+      "sessionId": "871a5f7836143efd5d840804105f2fab",
+      "workId": "9612a7195c910b6d5a301c8cfdfab49b",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266816886,
+      "end": 1789266840347,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:8622a11a9741070cbbf8af71c57e330d21ac4f129c0c7060aee5b189aadb2c29"
+    },
+    {
+      "assignmentId": "7f994fa967e1b888d4d3a7160647f52f29c22cb9d4765e87bbaf08610496d9a6",
+      "runId": "34733308268",
+      "sessionId": "098f9ca478bd3c9ad7bdd12b8b6b85cd",
+      "workId": "1176ab6eecd382102eb1e9a5ebcca1c9",
+      "profileDigest": "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+      "start": 1789266819633,
+      "end": 1789266842214,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:8a64d6fefea0b2dbb2a1c7291746cf40697bea85c725064961eb593f92778747"
+    },
+    {
+      "assignmentId": "01939a32118635833193dce244da4a47da3d612a5817074925a7d290c45135c1",
+      "runId": "34733308264",
+      "sessionId": "28d595609a67bcc9ca61653c8f9364a1",
+      "workId": "3daf1f52796aa79adc189cc191eb38d6",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266867333,
+      "end": 1789266900808,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:70d9d42d22bef8c04c92c69d49f696973e9eb7426581601f104075ec438f3401"
+    },
+    {
+      "assignmentId": "f27972c040684d0392b47f3934ecb8261cde13212948ca3d3f04cdf72a3554c6",
+      "runId": "34733308660",
+      "sessionId": "828117c1472d37be89cae4051cab80d1",
+      "workId": "246f5010fb6ef5d1f9d986db6e2c3b11",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266867945,
+      "end": 1789266898562,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:974fb1c20122168d51679766d0e3bbf8fa0c84c893a0d04081c7f719dd76d5a4"
+    },
+    {
+      "assignmentId": "738a0e03ac1343e0a4b77740a2d773a93726a8fe5c6f8e8099187374fa275bc8",
+      "runId": "34733309137",
+      "sessionId": "871a5f7836143efd5d840804105f2fab",
+      "workId": "9612a7195c910b6d5a301c8cfdfab49b",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266867633,
+      "end": 1789266900127,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:8622a11a9741070cbbf8af71c57e330d21ac4f129c0c7060aee5b189aadb2c29"
+    },
+    {
+      "assignmentId": "d5539ce4ebf2e4fd0f67e3a2d979812daf445948a5ac5a968c5a18bfb0c9c0f2",
+      "runId": "34733308367",
+      "sessionId": "f56fadac83061dfcffb60722bca2c605",
+      "workId": "345ae725b8d9130818125bc0d08ea819",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266869932,
+      "end": 1789266903844,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:11344d5853bd2f77b491e3e4ba361613201cc1dbbf6657cf6d73b50f39079b82"
+    },
+    {
+      "assignmentId": "bb048f101653ce4754b467f8fa49611d23ce5a3832aca847c5411ff1f1979d0a",
+      "runId": "34733308268",
+      "sessionId": "098f9ca478bd3c9ad7bdd12b8b6b85cd",
+      "workId": "1176ab6eecd382102eb1e9a5ebcca1c9",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266872457,
+      "end": 1789266892132,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:8a64d6fefea0b2dbb2a1c7291746cf40697bea85c725064961eb593f92778747"
+    },
+    {
+      "assignmentId": "1772c22c878974a40feb36aa50225cd6d2927b8bf00f124b2fbef22a11433388",
+      "runId": "34733308147",
+      "sessionId": "e8da42d007fe23cbbb7c334e9f7f3e23",
+      "workId": "05982b3b8b32ff7751fe77ed1f25b63d",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266874083,
+      "end": 1789266899744,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:04c9cb20813b2c473500e601f0239628a124f5c61042216adb29f52ea5a70ac0"
+    },
+    {
+      "assignmentId": "2fac64e508ebdf442155814054270e7a56414e83f6c6cd659aa98b7a6f75f088",
+      "runId": "34733308602",
+      "sessionId": "21a8a73fb440acfb10cb2bd9b383a6cf",
+      "workId": "b2c569ef57369dabe86a3ac445e54fe0",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266874398,
+      "end": 1789266899903,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:6091e26c0f31f387c8d5aeae687436e376182fd543764b3cb1547094f8c227ea"
+    },
+    {
+      "assignmentId": "57bdd8ba46a676ba86a3405a78fe3856264f5ffbdfd5f2d9b142ce5bb738bd2f",
+      "runId": "34733308268",
+      "sessionId": "098f9ca478bd3c9ad7bdd12b8b6b85cd",
+      "workId": "eda0e102679c4465a1af8ff960294263",
+      "profileDigest": "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71",
+      "start": 1789266931463,
+      "end": 1789266951682,
+      "exitCode": 0,
+      "stopped": true,
+      "sourceDigest": "sha256:df54fa5e14d51cf458f6e3640aa75209afa826ae0126c7fe4ae44d1f7d694dfc"
+    }
+  ],
+  "limitations": [
+    "ManagedRunner launch-to-stopped intervals include launch/teardown; native aggregate validation spans include provider queue and are not used as physical overlap.",
+    "Separate hosted wall clocks are not synchronized by this audit; actual overlap gap is 17 seconds, provider log timestamps will be crosschecked.",
+    "One historical batch, not comparative throughput or fault-under-load acceptance."
+  ],
+  "providerReadback": {
+    "evidence": "provider-current.json",
+    "observedAt": "2026-09-13T11:21:24.425425+00:00",
+    "intervalContainment": [
+      {
+        "assignmentId": "12a4a331dfa7d7eb9d2dca7f74e3f6be0e1f13621fadef4f1f29ba568c960dcc",
+        "runId": "34733308264",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "cfa36f554e4275e95766168d5add1d9b69788ece1b4ed993f8c806c65e74bb2b",
+        "runId": "34733308660",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "d1f44c9a2d8c91d390f02b85162dadccc05d0a2e5fed943c9b21e7192a5c3d0c",
+        "runId": "34733308147",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "0fc3da1f234d88a1cd6e07043507c5ccbe2ba6e4d7c0fb72a5463b628b07bdaf",
+        "runId": "34733308602",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "ac1f3a9f0a9ae3dd57d1bf6cc9e9b92cb926a447ac366d7210669b5ea216ae85",
+        "runId": "34733308106",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "08e0cf48875f065168b67ebaed38dfc6f5116fb6652a7d2187ccdec358743f44",
+        "runId": "34733308367",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "3feed96eb8c03587d423e19ffab751e983e5e86c3b606167738b63afd494aca5",
+        "runId": "34733309137",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "7f994fa967e1b888d4d3a7160647f52f29c22cb9d4765e87bbaf08610496d9a6",
+        "runId": "34733308268",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "01939a32118635833193dce244da4a47da3d612a5817074925a7d290c45135c1",
+        "runId": "34733308264",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "f27972c040684d0392b47f3934ecb8261cde13212948ca3d3f04cdf72a3554c6",
+        "runId": "34733308660",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "738a0e03ac1343e0a4b77740a2d773a93726a8fe5c6f8e8099187374fa275bc8",
+        "runId": "34733309137",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "d5539ce4ebf2e4fd0f67e3a2d979812daf445948a5ac5a968c5a18bfb0c9c0f2",
+        "runId": "34733308367",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "bb048f101653ce4754b467f8fa49611d23ce5a3832aca847c5411ff1f1979d0a",
+        "runId": "34733308268",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "1772c22c878974a40feb36aa50225cd6d2927b8bf00f124b2fbef22a11433388",
+        "runId": "34733308147",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "2fac64e508ebdf442155814054270e7a56414e83f6c6cd659aa98b7a6f75f088",
+        "runId": "34733308602",
+        "withinProviderJobInterval": true
+      },
+      {
+        "assignmentId": "57bdd8ba46a676ba86a3405a78fe3856264f5ffbdfd5f2d9b142ce5bb738bd2f",
+        "runId": "34733308268",
+        "withinProviderJobInterval": true
+      }
+    ],
+    "allRunsTerminal": true,
+    "clockLimitation": "Provider job clocks corroborate containment; they do not establish synchronized subsecond container clocks across runners."
+  }
+}

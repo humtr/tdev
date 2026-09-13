@@ -1,0 +1,185 @@
+{
+  "sourceCommit": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "sourceTree": "08f9fce22ba1b7071eb34394f3cde3f89025b992",
+  "npmCi": "PASS, --ignore-scripts --no-audit --no-fund",
+  "requiredLocalProfiles": [
+    {
+      "result": {
+        "schemaVersion": 1,
+        "layer": "core",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T10:58:19.133Z",
+        "finishedAt": "2026-09-13T10:58:37.751Z",
+        "durationMs": 18619,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+        "outputInputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+        "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "python.minimum",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 40,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "jsdoc",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 6968,
+            "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          {
+            "name": "designs",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 142,
+            "logDigest": "sha256:11a19449a2dec03ece5536b4227302af799244952933fd3490ff5b56346007a1"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 11371,
+            "logDigest": "sha256:9c4272a1b1ba5d23ede846daf440af3fff1d12ff46559b4dcbd9c265143b70e3"
+          }
+        ]
+      },
+      "files": [
+        {
+          "path": ".artifacts/core/designs.log",
+          "sha256": "11a19449a2dec03ece5536b4227302af799244952933fd3490ff5b56346007a1",
+          "bytes": 109
+        },
+        {
+          "path": ".artifacts/core/jsdoc.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": ".artifacts/core/python.minimum.log",
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        },
+        {
+          "path": ".artifacts/core/tests.log",
+          "sha256": "9c4272a1b1ba5d23ede846daf440af3fff1d12ff46559b4dcbd9c265143b70e3",
+          "bytes": 40242
+        }
+      ]
+    },
+    {
+      "result": {
+        "schemaVersion": 1,
+        "layer": "integration",
+        "status": "passed",
+        "exitCode": 0,
+        "scope": "implemented-profile-only",
+        "installationEligibility": false,
+        "controllerMode": "local-reviewed",
+        "startedAt": "2026-09-13T10:58:38.041Z",
+        "finishedAt": "2026-09-13T11:00:11.871Z",
+        "durationMs": 93831,
+        "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+        "inputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+        "outputInputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+        "profileDigest": "sha256:f06633484762bd2bd48b7852d36b2cbf203a3181202141ebbc6d827c657decfc",
+        "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+        "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+        "execution": {
+          "environment": "native",
+          "variantId": "termux-android-arm64-node24-18",
+          "role": "native-control",
+          "node": "24.18.0",
+          "nodeBinaryDigest": "sha256:1ee21eebda8ba05919050fe0d2b84b773a5cb2d2d1a42a27bddfb5eaa1ee182e",
+          "platform": "android",
+          "arch": "arm64",
+          "sqlite": "3.53.4"
+        },
+        "kernelBefore": null,
+        "kernelAfter": null,
+        "checks": [
+          {
+            "name": "git.pin",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 36,
+            "logDigest": "sha256:e928567de6f903039a669b7647bf037309d50e4f7916bb5c06f7b05d3bf966fe"
+          },
+          {
+            "name": "tests",
+            "status": "passed",
+            "exitCode": 0,
+            "signal": null,
+            "durationMs": 93724,
+            "logDigest": "sha256:d31b33c538f85874e45dfb20cb279a17a521fe75f09b7a265e981632533ea9e1"
+          }
+        ]
+      },
+      "files": [
+        {
+          "path": ".artifacts/integration/git.pin.log",
+          "sha256": "e928567de6f903039a669b7647bf037309d50e4f7916bb5c06f7b05d3bf966fe",
+          "bytes": 19
+        },
+        {
+          "path": ".artifacts/integration/tests.log",
+          "sha256": "d31b33c538f85874e45dfb20cb279a17a521fe75f09b7a265e981632533ea9e1",
+          "bytes": 54867
+        }
+      ]
+    }
+  ],
+  "counts": {
+    "core": {
+      "pass": 175,
+      "fail": 0,
+      "skip": 0
+    },
+    "integration": {
+      "pass": 212,
+      "fail": 0,
+      "skip": 1,
+      "skipReason": "Native Android forbids hard-link creation; hosted Linux must run this check"
+    }
+  },
+  "focusedReleaseFixtureSuite": {
+    "pass": 36,
+    "fail": 0,
+    "skip": 0,
+    "durationMs": 1354.635781,
+    "sha256": "4b3edf838774f7d477238cc8d4050e23aa926c55ae62aff67b1a1498c0a6c608"
+  },
+  "aggregateProfiles": {
+    "release": "NOT_RUN: config descriptor implemented=false",
+    "live": "NOT_RUN: public MCP unavailable and descriptor implemented=false",
+    "benchmark": "NOT_RUN: no scored paired cohort and descriptor implemented=false"
+  },
+  "installationEligibility": false
+}

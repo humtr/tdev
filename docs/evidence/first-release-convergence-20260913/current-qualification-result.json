@@ -1,0 +1,774 @@
+{
+  "observedAt": "2026-09-13T11:30:02.137Z",
+  "status": "PASS",
+  "layer": "new-real-provider-adapter-qualification-reverified-at-current-canonical-source",
+  "runId": "34754370389",
+  "sourceCommit": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "reportDigest": "sha256:82c33d47a22794cedeac5e832cff5e370ac418bba7e9fccc86d3950a513283f6",
+  "identities": {
+    "controllerDigest": "sha256:75fb5c3f8b59db5f0d2805599e1c2c33ae49480d29697bb17a6d51165c0217e2",
+    "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+    "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+    "seccompDigest": "sha256:cc374cf23846ce1f62f4dc807a8e2b8673c783c6f56cb475467621035d281e6c",
+    "toolchainDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+    "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6",
+    "workflowDigest": "sha256:571c9d64115f61975a3b359059790191e8147aaa84685d1958951cee166889bc"
+  },
+  "engineDigest": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca",
+  "dependencyArtifactDigest": "sha256:db5e5921660804e9bfba404693534ff93b96e2abcf028fbb07f1f744d3b0241a",
+  "profiles": [
+    {
+      "profileId": "core",
+      "outerDigest": "sha256:70f97aadb990afff099502a1d0cb3cbe03fa267210b4d2e055b21aeda4a96554",
+      "exitCode": 0,
+      "responseLossExact": true,
+      "launches": 1,
+      "executes": 1,
+      "deliveries": 2
+    },
+    {
+      "profileId": "integration",
+      "outerDigest": "sha256:34efa34079bc58542811c434a9c19546f8d5133815dde2b625ee104de367dc51",
+      "exitCode": 0,
+      "responseLossExact": true,
+      "launches": 1,
+      "executes": 1,
+      "deliveries": 2
+    },
+    {
+      "profileId": "release-build",
+      "outerDigest": "sha256:9ffb6ffc7d953f5387e63057851507d8c3886b9c6cd1f34d7416bc2bf83b8be3",
+      "exitCode": 0,
+      "responseLossExact": true,
+      "launches": 1,
+      "executes": 1,
+      "deliveries": 2
+    }
+  ],
+  "negative": {
+    "cancellation": {
+      "outer": {
+        "after": null,
+        "assignmentId": "3c053c2a260fa6d0fd66a2fa9170e5015970cd33529e14d1e830be893d3d5850",
+        "before": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-82b0f4955602a814c8406f2e4618e44890acd2de43b8349ec49d59cc34064417.scope/container",
+          "container": "dev2-af936971415dce225dc31b422a24a709d0c2a85d0a5ea6a2f90072328815f66a",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298861606,
+          "pid": 15866
+        },
+        "command": {
+          "argvDigest": "sha256:a071f208d7add738da72e7881674c5e6156519251785ca5a6fdc2ac43b4db8cd",
+          "discardedBytes": 0,
+          "exitCode": 137,
+          "signal": "SIGTERM",
+          "spawnFailed": false,
+          "timedOut": false
+        },
+        "container": "dev2-af936971415dce225dc31b422a24a709d0c2a85d0a5ea6a2f90072328815f66a",
+        "endedAt": 1789298864073,
+        "inputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "inputIdentity": "sha256:95cce4627cae7ffdafd0ecc79b3978f24aa0b10c67d9d4fbe1510ff47d044c42",
+        "isolation": {
+          "cleanEnvironment": true,
+          "controllerDigest": "sha256:75fb5c3f8b59db5f0d2805599e1c2c33ae49480d29697bb17a6d51165c0217e2",
+          "controllerReadOnly": true,
+          "dependenciesReadOnly": true,
+          "dependencyArtifactDigest": "sha256:db5e5921660804e9bfba404693534ff93b96e2abcf028fbb07f1f744d3b0241a",
+          "engineDigest": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca",
+          "finiteStorage": true,
+          "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+          "networkNone": true,
+          "noCapabilities": true,
+          "noNewPrivileges": true,
+          "nonRoot": true,
+          "privateNamespaces": true,
+          "rootReadOnly": true,
+          "seccomp": true,
+          "seccompDigest": "sha256:cc374cf23846ce1f62f4dc807a8e2b8673c783c6f56cb475467621035d281e6c",
+          "sourceReadOnly": true
+        },
+        "kind": "dev2-production-execution",
+        "leaseId": "qualification-lease-production-qualification-cancellation",
+        "outputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "outputs": [
+          {
+            "digest": "sha256:3bbf3c85f7907c933b7e03eaa7f4673ab128007b2d9973f74296f3be79d69d10",
+            "name": "log",
+            "size": 44
+          }
+        ],
+        "profileDigest": "sha256:0797c562ac73f9f8413b2e9efa3bfe4b2b0596e330d9906dd31e607bb5e78c05",
+        "runId": "34754370389",
+        "schemaVersion": 1,
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "sessionId": "convergence-5a1637f5-20260913",
+        "startedAt": 1789298860493,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      },
+      "outerDigest": "sha256:a120529647317b82f506a6d6c50887d6119fd6d5768a9a0f4c11279f82cbf881",
+      "result": {
+        "artifacts": [],
+        "assignmentId": "3c053c2a260fa6d0fd66a2fa9170e5015970cd33529e14d1e830be893d3d5850",
+        "deadlineExceeded": false,
+        "endedAt": 1789298864073,
+        "exitCode": 137,
+        "inputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "inputIdentity": "sha256:95cce4627cae7ffdafd0ecc79b3978f24aa0b10c67d9d4fbe1510ff47d044c42",
+        "leaseId": "qualification-lease-production-qualification-cancellation",
+        "outputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "signal": "SIGTERM",
+        "startedAt": 1789298860493,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      }
+    },
+    "containment": {
+      "checks": {
+        "boundedCpu": true,
+        "boundedDisk": true,
+        "boundedMemory": true,
+        "boundedPids": true,
+        "noCredentials": true,
+        "noHostPath": true,
+        "noNetwork": true,
+        "noNewPrivileges": true,
+        "nonRoot": true,
+        "readonlyRoot": true,
+        "readonlySource": true,
+        "seccomp": true,
+        "zeroCapabilities": true
+      },
+      "outer": {
+        "after": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-d8894e4a1d082772a1826c125bac9ea87ccfabc798c4b408ea2f720b4eb42a3e.scope/container",
+          "container": "dev2-a2f626985dc35fcdbe93a910069b44c5445ecf438beb89d792f63d47d94bedcb",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298854246,
+          "pid": 14817
+        },
+        "assignmentId": "416362961765816007322b8fb40378e7b30daeb2494957a9a1bb784248b641cb",
+        "before": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-d8894e4a1d082772a1826c125bac9ea87ccfabc798c4b408ea2f720b4eb42a3e.scope/container",
+          "container": "dev2-a2f626985dc35fcdbe93a910069b44c5445ecf438beb89d792f63d47d94bedcb",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298853466,
+          "pid": 14817
+        },
+        "command": {
+          "argvDigest": "sha256:a071f208d7add738da72e7881674c5e6156519251785ca5a6fdc2ac43b4db8cd",
+          "discardedBytes": 0,
+          "exitCode": 0,
+          "signal": null,
+          "spawnFailed": false,
+          "timedOut": false
+        },
+        "container": "dev2-a2f626985dc35fcdbe93a910069b44c5445ecf438beb89d792f63d47d94bedcb",
+        "endedAt": 1789298854495,
+        "inputDigest": "sha256:5f1533f66d9469966c539807150f6ef25ebc6b4d89526f46d29b39e9f469b899",
+        "inputIdentity": "sha256:55c52cd518d7eac7814fc700f424679d7f107082e8748731c04d0344038643a7",
+        "isolation": {
+          "cleanEnvironment": true,
+          "controllerDigest": "sha256:75fb5c3f8b59db5f0d2805599e1c2c33ae49480d29697bb17a6d51165c0217e2",
+          "controllerReadOnly": true,
+          "dependenciesReadOnly": true,
+          "dependencyArtifactDigest": "sha256:db5e5921660804e9bfba404693534ff93b96e2abcf028fbb07f1f744d3b0241a",
+          "engineDigest": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca",
+          "finiteStorage": true,
+          "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+          "networkNone": true,
+          "noCapabilities": true,
+          "noNewPrivileges": true,
+          "nonRoot": true,
+          "privateNamespaces": true,
+          "rootReadOnly": true,
+          "seccomp": true,
+          "seccompDigest": "sha256:cc374cf23846ce1f62f4dc807a8e2b8673c783c6f56cb475467621035d281e6c",
+          "sourceReadOnly": true
+        },
+        "kind": "dev2-production-execution",
+        "leaseId": "qualification-lease-production-qualification-containment",
+        "outputDigest": "sha256:5f1533f66d9469966c539807150f6ef25ebc6b4d89526f46d29b39e9f469b899",
+        "outputs": [
+          {
+            "digest": "sha256:bc3d06e06d07dd59d580b3b75fcc86f4d84f96a90f7f9c56fd2fd249b2327906",
+            "name": "log",
+            "size": 604
+          }
+        ],
+        "profileDigest": "sha256:14e19787afaabe28679cf53edd539c3fb9c32da8799068f762704b038409a9e1",
+        "runId": "34754370389",
+        "schemaVersion": 1,
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "sessionId": "convergence-5a1637f5-20260913",
+        "startedAt": 1789298852419,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      },
+      "outerDigest": "sha256:412062c8c9200c0fdb4035b3076d733c035aa28ec28dfc338af320ce2c78796d",
+      "result": {
+        "artifacts": [
+          "sha256:bc3d06e06d07dd59d580b3b75fcc86f4d84f96a90f7f9c56fd2fd249b2327906",
+          "sha256:412062c8c9200c0fdb4035b3076d733c035aa28ec28dfc338af320ce2c78796d"
+        ],
+        "assignmentId": "416362961765816007322b8fb40378e7b30daeb2494957a9a1bb784248b641cb",
+        "deadlineExceeded": false,
+        "endedAt": 1789298854495,
+        "exitCode": 0,
+        "inputDigest": "sha256:5f1533f66d9469966c539807150f6ef25ebc6b4d89526f46d29b39e9f469b899",
+        "inputIdentity": "sha256:55c52cd518d7eac7814fc700f424679d7f107082e8748731c04d0344038643a7",
+        "leaseId": "qualification-lease-production-qualification-containment",
+        "outputDigest": "sha256:5f1533f66d9469966c539807150f6ef25ebc6b4d89526f46d29b39e9f469b899",
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "signal": null,
+        "startedAt": 1789298852419,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      }
+    },
+    "deadline": {
+      "outer": {
+        "after": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-3cad80da11de0ef4dc1fb5c7539b997f09161a3963b8d376d464da7d63649637.scope/container",
+          "container": "dev2-231f6e2fa79f39848419880e4adde29c1e39bb00f19b4ddd54e3e33632c30b4d",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298859990,
+          "pid": 15564
+        },
+        "assignmentId": "c0b00d9195a5822e83aef7f3ebf8bc9026bede1e5f6bc76d9fb99cb0bdc1bf25",
+        "before": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-3cad80da11de0ef4dc1fb5c7539b997f09161a3963b8d376d464da7d63649637.scope/container",
+          "container": "dev2-231f6e2fa79f39848419880e4adde29c1e39bb00f19b4ddd54e3e33632c30b4d",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298858736,
+          "pid": 15564
+        },
+        "command": {
+          "argvDigest": "sha256:a071f208d7add738da72e7881674c5e6156519251785ca5a6fdc2ac43b4db8cd",
+          "discardedBytes": 0,
+          "exitCode": 0,
+          "signal": null,
+          "spawnFailed": false,
+          "timedOut": true
+        },
+        "container": "dev2-231f6e2fa79f39848419880e4adde29c1e39bb00f19b4ddd54e3e33632c30b4d",
+        "endedAt": 1789298860286,
+        "inputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "inputIdentity": "sha256:7cf4adc28f88db046214bd0c2e1caa066ee92f756bd9c6b07ba0132302a21223",
+        "isolation": {
+          "cleanEnvironment": true,
+          "controllerDigest": "sha256:75fb5c3f8b59db5f0d2805599e1c2c33ae49480d29697bb17a6d51165c0217e2",
+          "controllerReadOnly": true,
+          "dependenciesReadOnly": true,
+          "dependencyArtifactDigest": "sha256:db5e5921660804e9bfba404693534ff93b96e2abcf028fbb07f1f744d3b0241a",
+          "engineDigest": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca",
+          "finiteStorage": true,
+          "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+          "networkNone": true,
+          "noCapabilities": true,
+          "noNewPrivileges": true,
+          "nonRoot": true,
+          "privateNamespaces": true,
+          "rootReadOnly": true,
+          "seccomp": true,
+          "seccompDigest": "sha256:cc374cf23846ce1f62f4dc807a8e2b8673c783c6f56cb475467621035d281e6c",
+          "sourceReadOnly": true
+        },
+        "kind": "dev2-production-execution",
+        "leaseId": "qualification-lease-production-qualification-deadline",
+        "outputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "outputs": [
+          {
+            "digest": "sha256:3bbf3c85f7907c933b7e03eaa7f4673ab128007b2d9973f74296f3be79d69d10",
+            "name": "log",
+            "size": 44
+          }
+        ],
+        "profileDigest": "sha256:56f1fb30a65cd3e29099becbfe45353fb0158294063bdfd5cd4d1f8004b899db",
+        "runId": "34754370389",
+        "schemaVersion": 1,
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "sessionId": "convergence-5a1637f5-20260913",
+        "startedAt": 1789298857509,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      },
+      "outerDigest": "sha256:6cc2b46c3fa380a3dc5db2d0fff8d309287d8fc4f1a6598df56e3b1f1b21d7fc",
+      "result": {
+        "artifacts": [],
+        "assignmentId": "c0b00d9195a5822e83aef7f3ebf8bc9026bede1e5f6bc76d9fb99cb0bdc1bf25",
+        "deadlineExceeded": true,
+        "endedAt": 1789298860286,
+        "exitCode": 1,
+        "inputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "inputIdentity": "sha256:7cf4adc28f88db046214bd0c2e1caa066ee92f756bd9c6b07ba0132302a21223",
+        "leaseId": "qualification-lease-production-qualification-deadline",
+        "outputDigest": "sha256:274669264d14fed20f606fc0a6dea1cc6fef22554901ccc4575fd411ca60a1b9",
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "signal": null,
+        "startedAt": 1789298857509,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      }
+    },
+    "oom": {
+      "outer": {
+        "after": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-41762c2a0406eae4a61e501dd0844229c77e39a43b72564945593b0eac7cecb5.scope/container",
+          "container": "dev2-e2b8d2a88d6aa0922b37c7fc6f8087078332805ede6992fb02facf937fc3b0e2",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 1
+          },
+          "observedAt": 1789298856764,
+          "pid": 15214
+        },
+        "assignmentId": "22c5bce20dbe57da5435f47a3c2ade8d7f73b9d6dd248580bd33057c51e8afd5",
+        "before": {
+          "cgroup": "/user.slice/user-1001.slice/user@1001.service/user.slice/libpod-41762c2a0406eae4a61e501dd0844229c77e39a43b72564945593b0eac7cecb5.scope/container",
+          "container": "dev2-e2b8d2a88d6aa0922b37c7fc6f8087078332805ede6992fb02facf937fc3b0e2",
+          "limits": {
+            "cpuPeriod": 100000,
+            "cpuQuota": 100000,
+            "memoryBytes": 268435456,
+            "pids": 48
+          },
+          "memoryEvents": {
+            "high": 0,
+            "low": 0,
+            "max": 0,
+            "oom": 0,
+            "oom_group_kill": 0,
+            "oom_kill": 0
+          },
+          "observedAt": 1789298856005,
+          "pid": 15214
+        },
+        "command": {
+          "argvDigest": "sha256:a071f208d7add738da72e7881674c5e6156519251785ca5a6fdc2ac43b4db8cd",
+          "discardedBytes": 0,
+          "exitCode": 0,
+          "signal": null,
+          "spawnFailed": false,
+          "timedOut": false
+        },
+        "container": "dev2-e2b8d2a88d6aa0922b37c7fc6f8087078332805ede6992fb02facf937fc3b0e2",
+        "endedAt": 1789298857008,
+        "inputDigest": "sha256:f763e75f54c5cb093ca9b9d6247bb65d89304179bcd38a270c5f92d708976271",
+        "inputIdentity": "sha256:01f9ecbf9fcf8a013b0c1e03bd2bc1ebdd3a08219abbdd196a285c2da2e84082",
+        "isolation": {
+          "cleanEnvironment": true,
+          "controllerDigest": "sha256:75fb5c3f8b59db5f0d2805599e1c2c33ae49480d29697bb17a6d51165c0217e2",
+          "controllerReadOnly": true,
+          "dependenciesReadOnly": true,
+          "dependencyArtifactDigest": "sha256:db5e5921660804e9bfba404693534ff93b96e2abcf028fbb07f1f744d3b0241a",
+          "engineDigest": "sha256:859cb7e29723d1ca2f6bec025405b7ed6ea3040709ed129d7fed5f8fca92d2ca",
+          "finiteStorage": true,
+          "imageDigest": "sha256:94da6bd85d11c17760152b9f22bd38c7bf76d89e5439edfc2b61225087987219",
+          "networkNone": true,
+          "noCapabilities": true,
+          "noNewPrivileges": true,
+          "nonRoot": true,
+          "privateNamespaces": true,
+          "rootReadOnly": true,
+          "seccomp": true,
+          "seccompDigest": "sha256:cc374cf23846ce1f62f4dc807a8e2b8673c783c6f56cb475467621035d281e6c",
+          "sourceReadOnly": true
+        },
+        "kind": "dev2-production-execution",
+        "leaseId": "qualification-lease-production-qualification-oom",
+        "outputDigest": "sha256:f763e75f54c5cb093ca9b9d6247bb65d89304179bcd38a270c5f92d708976271",
+        "outputs": [
+          {
+            "digest": "sha256:a373ca40a620a99a94fc526d8c71baefd871e3014b649ad7aa043a58ff48be31",
+            "name": "log",
+            "size": 124
+          }
+        ],
+        "profileDigest": "sha256:9aa7b5c419c13889c0c1823d7039423650fb40a2cf66dc83774ea12fba07eb54",
+        "runId": "34754370389",
+        "schemaVersion": 1,
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "sessionId": "convergence-5a1637f5-20260913",
+        "startedAt": 1789298854838,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      },
+      "outerDigest": "sha256:734b2e0024e99885463f5251d4f68c07b48fa72e6c6028c9fae67cdc824fc0fb",
+      "result": {
+        "artifacts": [
+          "sha256:a373ca40a620a99a94fc526d8c71baefd871e3014b649ad7aa043a58ff48be31",
+          "sha256:734b2e0024e99885463f5251d4f68c07b48fa72e6c6028c9fae67cdc824fc0fb"
+        ],
+        "assignmentId": "22c5bce20dbe57da5435f47a3c2ade8d7f73b9d6dd248580bd33057c51e8afd5",
+        "deadlineExceeded": false,
+        "endedAt": 1789298857008,
+        "exitCode": 1,
+        "inputDigest": "sha256:f763e75f54c5cb093ca9b9d6247bb65d89304179bcd38a270c5f92d708976271",
+        "inputIdentity": "sha256:01f9ecbf9fcf8a013b0c1e03bd2bc1ebdd3a08219abbdd196a285c2da2e84082",
+        "leaseId": "qualification-lease-production-qualification-oom",
+        "outputDigest": "sha256:f763e75f54c5cb093ca9b9d6247bb65d89304179bcd38a270c5f92d708976271",
+        "sealDigest": "sha256:d99027958e94a8ac79697366c592ff6e7d852cb06855841aca3a6c956e5eddba",
+        "signal": null,
+        "startedAt": 1789298854838,
+        "stopped": true,
+        "trustedRunnerDigest": "sha256:2d4bbf1fe1d6904a981b388d32f8246b43ad249be977fb378928d488e24c26b6"
+      }
+    }
+  },
+  "productionSeal": false,
+  "nativeAssignmentVerified": false,
+  "limitation": "This is a real hosted production-adapter/containment trial with fixture completion transport. It has no native OIDC lease or production enrollment authority; native authentication remains independently evidenced by enrollment-recheck.json.",
+  "providerRun": {
+    "observedAt": "2026-09-13T11:28:21.385801+00:00",
+    "attempt": 5,
+    "run": {
+      "id": 34754370389,
+      "head_sha": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+      "head_branch": "dev2-containment/convergence-5a1637f5-20260913",
+      "status": "completed",
+      "conclusion": "success",
+      "html_url": "https://github.com/humtr/tdev/actions/runs/34754370389",
+      "created_at": "2026-09-13T11:24:46Z",
+      "updated_at": "2026-09-13T11:27:46Z"
+    },
+    "jobs": [
+      {
+        "id": 103716143327,
+        "status": "completed",
+        "conclusion": "success",
+        "started_at": "2026-09-13T11:24:49Z",
+        "completed_at": "2026-09-13T11:27:46Z",
+        "steps": [
+          {
+            "name": "Set up job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 1,
+            "started_at": "2026-09-13T11:24:50Z",
+            "completed_at": "2026-09-13T11:24:50Z"
+          },
+          {
+            "name": "Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 2,
+            "started_at": "2026-09-13T11:24:50Z",
+            "completed_at": "2026-09-13T11:24:51Z"
+          },
+          {
+            "name": "Pinned controller toolchain",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 3,
+            "started_at": "2026-09-13T11:24:51Z",
+            "completed_at": "2026-09-13T11:24:54Z"
+          },
+          {
+            "name": "Install locked controller dependencies without lifecycle scripts",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 4,
+            "started_at": "2026-09-13T11:24:54Z",
+            "completed_at": "2026-09-13T11:24:55Z"
+          },
+          {
+            "name": "Real hosted containment falsifiers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 5,
+            "started_at": "2026-09-13T11:24:55Z",
+            "completed_at": "2026-09-13T11:25:54Z"
+          },
+          {
+            "name": "Actual required managed profiles and exact response-loss replay",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 6,
+            "started_at": "2026-09-13T11:25:54Z",
+            "completed_at": "2026-09-13T11:26:40Z"
+          },
+          {
+            "name": "Actual production adapter profiles, finite build, kernel and stop falsifiers",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 7,
+            "started_at": "2026-09-13T11:26:40Z",
+            "completed_at": "2026-09-13T11:27:44Z"
+          },
+          {
+            "name": "Preserve bounded qualification evidence in provider logs",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 8,
+            "started_at": "2026-09-13T11:27:44Z",
+            "completed_at": "2026-09-13T11:27:44Z"
+          },
+          {
+            "name": "Post Run actions/checkout@11d5960a326750d5838078e36cf38b85af677262",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 16,
+            "started_at": "2026-09-13T11:27:44Z",
+            "completed_at": "2026-09-13T11:27:44Z"
+          },
+          {
+            "name": "Complete job",
+            "status": "completed",
+            "conclusion": "success",
+            "number": 17,
+            "started_at": "2026-09-13T11:27:44Z",
+            "completed_at": "2026-09-13T11:27:44Z"
+          }
+        ]
+      }
+    ]
+  },
+  "archiveSha256": "f4c752fdc27d3f4e709d022a5a3fd00d1695ad00737df0465b753f22e09e0ef6",
+  "archiveBytes": 44568,
+  "managedProfileEntrypointResults": {
+    "core": {
+      "schemaVersion": 1,
+      "layer": "core",
+      "status": "passed",
+      "exitCode": 0,
+      "scope": "implemented-profile-only",
+      "installationEligibility": false,
+      "controllerMode": "installed-exact-source",
+      "startedAt": "2026-09-13T11:26:44.470Z",
+      "finishedAt": "2026-09-13T11:26:55.064Z",
+      "durationMs": 10594,
+      "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+      "inputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+      "outputInputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+      "profileDigest": "sha256:283c5134b44fb3ee117c12176ad12d0f8918d8c57e2c94bb6d0021d3ed5693c2",
+      "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+      "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+      "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+      "execution": {
+        "environment": "managed-image",
+        "variantId": "linux-x64-node24-21",
+        "role": "ci",
+        "node": "24.21.0",
+        "nodeBinaryDigest": "sha256:7fde7b8afa198da66257f42ee2001d874c7355631e6d1579a5fb5ef1f246df4c",
+        "platform": "linux",
+        "arch": "x64",
+        "sqlite": "3.53.4"
+      },
+      "kernelBefore": {
+        "events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "memoryBytes": 1073741824,
+        "pids": 256,
+        "cpuQuota": 200000,
+        "cpuPeriod": 100000
+      },
+      "kernelAfter": {
+        "events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "memoryBytes": 1073741824,
+        "pids": 256,
+        "cpuQuota": 200000,
+        "cpuPeriod": 100000
+      },
+      "checks": [
+        {
+          "name": "python.pin",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 3,
+          "logDigest": "sha256:01870de7caca112afeefd77b3c3b4c5e263cf5539a33af3f3411100727fad7d3"
+        },
+        {
+          "name": "jsdoc",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 4828,
+          "logDigest": "sha256:e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "name": "designs",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 40,
+          "logDigest": "sha256:11a19449a2dec03ece5536b4227302af799244952933fd3490ff5b56346007a1"
+        },
+        {
+          "name": "tests",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 5703,
+          "logDigest": "sha256:c2b57637c8dddc3cd39814df9d01c7311553f8828b5bc85f504c6309f418da15"
+        }
+      ]
+    },
+    "integration": {
+      "schemaVersion": 1,
+      "layer": "integration",
+      "status": "passed",
+      "exitCode": 0,
+      "scope": "implemented-profile-only",
+      "installationEligibility": false,
+      "controllerMode": "installed-exact-source",
+      "startedAt": "2026-09-13T11:26:58.723Z",
+      "finishedAt": "2026-09-13T11:27:25.526Z",
+      "durationMs": 26804,
+      "entrypointDigest": "sha256:256168b593ce7d9876ef4959ba2dc69bf2d86d6dd204469d32359a4bfab17ac1",
+      "inputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+      "outputInputDigest": "sha256:dbb98185e20699380054968213adbcf54d1c05dd1a8000a9cb8549de82582599",
+      "profileDigest": "sha256:f06633484762bd2bd48b7852d36b2cbf203a3181202141ebbc6d827c657decfc",
+      "toolchainLockDigest": "sha256:58ba415243aa79fff7be1ece4536bdeef68209a397a16255108ecb6dbb388214",
+      "dependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+      "approvedDependencyLockDigest": "sha256:c3a94ac55a06b8a49b3f7e521bb83b12e168986c97f8166286e461e7d4adc254",
+      "execution": {
+        "environment": "managed-image",
+        "variantId": "linux-x64-node24-21",
+        "role": "ci",
+        "node": "24.21.0",
+        "nodeBinaryDigest": "sha256:7fde7b8afa198da66257f42ee2001d874c7355631e6d1579a5fb5ef1f246df4c",
+        "platform": "linux",
+        "arch": "x64",
+        "sqlite": "3.53.4"
+      },
+      "kernelBefore": {
+        "events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "memoryBytes": 1073741824,
+        "pids": 256,
+        "cpuQuota": 200000,
+        "cpuPeriod": 100000
+      },
+      "kernelAfter": {
+        "events": {
+          "low": 0,
+          "high": 0,
+          "max": 0,
+          "oom": 0,
+          "oom_kill": 0,
+          "oom_group_kill": 0
+        },
+        "memoryBytes": 1073741824,
+        "pids": 256,
+        "cpuQuota": 200000,
+        "cpuPeriod": 100000
+      },
+      "checks": [
+        {
+          "name": "git.pin",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 3,
+          "logDigest": "sha256:677d4fdffca093d9560ed3480cbd75f8069d041bbb34bdae1286f6b0bb476738"
+        },
+        {
+          "name": "tests",
+          "status": "passed",
+          "exitCode": 0,
+          "signal": null,
+          "durationMs": 26782,
+          "logDigest": "sha256:135f04c5e5bf0dfd1f5d788eca0c1142592d39520d9a2f04ce37abebe67bd966"
+        }
+      ]
+    }
+  }
+}

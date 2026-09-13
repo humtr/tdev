@@ -1,0 +1,392 @@
+{
+  "layer": "actual-Android-Termux-scoped-native-control-and-authenticated-installation-read",
+  "serviceRestart": {
+    "startedAt": "2026-09-13T10:59:19.981997+00:00",
+    "kind": "scoped-native-and-helper-service-restart-with-readonly-ledger-backup",
+    "operations": [
+      {
+        "service": "dev2-tdev",
+        "action": "down",
+        "exit": 0,
+        "output": "ok: down: /data/data/com.termux/files/usr/var/service/dev2-tdev: 0s, normally up"
+      },
+      {
+        "service": "dev2-release-helper",
+        "action": "down",
+        "exit": 0,
+        "output": "ok: down: /data/data/com.termux/files/usr/var/service/dev2-release-helper: 0s, normally up"
+      },
+      {
+        "service": "dev2-release-helper",
+        "action": "up",
+        "exit": 0,
+        "output": "ok: run: /data/data/com.termux/files/usr/var/service/dev2-release-helper: (pid 1991) 0s"
+      },
+      {
+        "service": "dev2-tdev",
+        "action": "up",
+        "exit": 0,
+        "output": "ok: run: /data/data/com.termux/files/usr/var/service/dev2-tdev: (pid 1997) 0s"
+      }
+    ],
+    "snapshot": "complete",
+    "finishedAt": "2026-09-13T10:59:21.104267+00:00"
+  },
+  "nativeProcessDeath": {
+    "layer": "actual-native-process-SIGKILL-runit-restart",
+    "before": "run: /data/data/com.termux/files/usr/var/service/dev2-tdev: (pid 1997) 336s; run: log: (pid 16324) 153953s",
+    "startedAt": "2026-09-13T11:04:57.016383+00:00",
+    "newPid": 12302,
+    "after": "run: /data/data/com.termux/files/usr/var/service/dev2-tdev: (pid 12302) 1s; run: log: (pid 16324) 153954s",
+    "finishedAt": "2026-09-13T11:04:58.027532+00:00"
+  },
+  "failedProbe": {
+    "layer": "actual-native-SIGSTOP-suspension-and-inflight-read-loss",
+    "startedAt": "2026-09-13T11:13:48.652104+00:00",
+    "pid": 12302,
+    "physicalAndroidSleep": false,
+    "physicalNetworkDisconnect": false,
+    "during": {
+      "errorType": "HTTPError",
+      "httpStatus": 403,
+      "body": "non-json response"
+    },
+    "requestElapsedSeconds": 1.0526630200329237,
+    "finishedAt": "2026-09-13T11:14:23.653499+00:00"
+  },
+  "suspensionReadLoss": {
+    "layer": "actual-native-suspension-and-forwarded-read-response-loss",
+    "startedAt": "2026-09-13T11:15:11.466Z",
+    "finishedAt": "2026-09-13T11:15:46.479Z",
+    "pid": 12302,
+    "suspendedMs": 35000,
+    "before": {
+      "authenticationMode": "installation-read-probe",
+      "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+      "humanOAuth": false,
+      "observedAt": "2026-09-13T11:15:10.712Z",
+      "ok": true,
+      "repositoryId": "github-1322208918",
+      "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+    },
+    "during": {
+      "httpStatus": 200,
+      "elapsedMs": 30238.055873999998,
+      "body": {
+        "apiVersion": 1,
+        "error": {
+          "code": "EXECUTION_UNAVAILABLE",
+          "facts": {
+            "delivery": "unknown"
+          },
+          "message": "EXECUTION_UNAVAILABLE",
+          "retry": {
+            "afterMs": null,
+            "sameRequest": true
+          }
+        },
+        "ok": false
+      }
+    },
+    "physicalAndroidSleep": false,
+    "physicalNetworkDisconnect": false,
+    "mutationInvoked": false
+  },
+  "freshObservations": [
+    {
+      "artifact": "verify.json",
+      "sha256": "d25c42afc0117589d494760740369cf3907e119304d4f9b6b1af1773262f7a32",
+      "summary": {
+        "authenticationMode": "installation-read-probe",
+        "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+        "humanOAuth": false,
+        "observedAt": "2026-09-13T10:57:50.923Z",
+        "ok": true,
+        "repositoryId": "github-1322208918",
+        "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+      },
+      "runtime": {
+        "accepting": true,
+        "capacity": 8,
+        "executingActions": 0,
+        "reservedAttempts": 0,
+        "deploymentSealed": true,
+        "identity": {
+          "activation": {
+            "activationId": null,
+            "activeReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "deadline": null,
+            "expectedReleaseId": null,
+            "phase": "active",
+            "stagedReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "writerStopped": false
+          },
+          "device": {
+            "arch": "arm64",
+            "bundleDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+            "connected": true,
+            "connectedAt": "2026-09-13T10:57:43.138Z",
+            "deviceId": "2fe65e84415c44529a55a91095e96d93",
+            "lastMessageAt": "2026-09-13T10:57:47.063Z",
+            "nodeVersion": "24.18.0",
+            "ownerEpoch": "18",
+            "platform": "android",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+          },
+          "edge": {
+            "bundleDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+            "observedAt": "2026-09-13T10:57:43.141Z",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+          },
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "managedExecution": {
+            "activeSessions": 2,
+            "reason": null,
+            "reservedSessions": 0,
+            "sealDigest": "sha256:672a48a5fa06d80c3ec15829bc4d155aca3457928982e166425c71627c5034e7",
+            "state": "ready"
+          },
+          "origin": "https://tdev.humtr.workers.dev",
+          "phase": "qualified",
+          "source": {
+            "commitOid": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+            "observedAt": "2026-09-13T10:57:50.227Z",
+            "state": "current",
+            "treeOid": "sha1:08f9fce22ba1b7071eb34394f3cde3f89025b992"
+          }
+        }
+      },
+      "error": null
+    },
+    {
+      "artifact": "after-service-restart.json",
+      "sha256": "968ba959b70a6adba2461e59a2fe0e92e6f3fa4c216211f6dee824a1b33896ad",
+      "summary": {
+        "authenticationMode": "installation-read-probe",
+        "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+        "humanOAuth": false,
+        "observedAt": "2026-09-13T11:00:39.616Z",
+        "ok": true,
+        "repositoryId": "github-1322208918",
+        "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+      },
+      "runtime": {
+        "accepting": true,
+        "capacity": 8,
+        "executingActions": 0,
+        "reservedAttempts": 0,
+        "deploymentSealed": true,
+        "identity": {
+          "activation": {
+            "activationId": null,
+            "activeReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "deadline": null,
+            "expectedReleaseId": null,
+            "phase": "active",
+            "stagedReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "writerStopped": false
+          },
+          "device": {
+            "arch": "arm64",
+            "bundleDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+            "connected": true,
+            "connectedAt": "2026-09-13T11:00:30.846Z",
+            "deviceId": "2fe65e84415c44529a55a91095e96d93",
+            "lastMessageAt": "2026-09-13T11:00:34.800Z",
+            "nodeVersion": "24.18.0",
+            "ownerEpoch": "19",
+            "platform": "android",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+          },
+          "edge": {
+            "bundleDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+            "observedAt": "2026-09-13T11:00:30.841Z",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+          },
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "managedExecution": {
+            "activeSessions": 2,
+            "reason": null,
+            "reservedSessions": 0,
+            "sealDigest": "sha256:672a48a5fa06d80c3ec15829bc4d155aca3457928982e166425c71627c5034e7",
+            "state": "ready"
+          },
+          "origin": "https://tdev.humtr.workers.dev",
+          "phase": "qualified",
+          "source": {
+            "commitOid": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+            "observedAt": "2026-09-13T11:00:38.750Z",
+            "state": "current",
+            "treeOid": "sha1:08f9fce22ba1b7071eb34394f3cde3f89025b992"
+          }
+        }
+      },
+      "error": null
+    },
+    {
+      "artifact": "after-process-death.json",
+      "sha256": "1d081e5febe7998261324e3e7ac8507ef02a5346fdb837e64da152df9e6efda6",
+      "summary": null,
+      "runtime": null,
+      "error": {
+        "code": "EXECUTION_UNAVAILABLE",
+        "facts": {
+          "delivery": "not_sent"
+        },
+        "message": "EXECUTION_UNAVAILABLE",
+        "retry": {
+          "afterMs": null,
+          "sameRequest": true
+        }
+      }
+    },
+    {
+      "artifact": "after-process-death-reconnected.json",
+      "sha256": "36b452c4a9f42b2928bd763d557c54ffdc798475ab8c2a40ec128a99fb523f26",
+      "summary": {
+        "authenticationMode": "installation-read-probe",
+        "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+        "humanOAuth": false,
+        "observedAt": "2026-09-13T11:05:59.026Z",
+        "ok": true,
+        "repositoryId": "github-1322208918",
+        "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+      },
+      "runtime": {
+        "accepting": true,
+        "capacity": 8,
+        "executingActions": 0,
+        "reservedAttempts": 0,
+        "deploymentSealed": true,
+        "identity": {
+          "activation": {
+            "activationId": null,
+            "activeReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "deadline": null,
+            "expectedReleaseId": null,
+            "phase": "active",
+            "stagedReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "writerStopped": false
+          },
+          "device": {
+            "arch": "arm64",
+            "bundleDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+            "connected": true,
+            "connectedAt": "2026-09-13T11:05:56.089Z",
+            "deviceId": "2fe65e84415c44529a55a91095e96d93",
+            "lastMessageAt": "2026-09-13T11:05:56.322Z",
+            "nodeVersion": "24.18.0",
+            "ownerEpoch": "20",
+            "platform": "android",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+          },
+          "edge": {
+            "bundleDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+            "observedAt": "2026-09-13T11:05:56.090Z",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+          },
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "managedExecution": {
+            "activeSessions": 2,
+            "reason": null,
+            "reservedSessions": 0,
+            "sealDigest": "sha256:672a48a5fa06d80c3ec15829bc4d155aca3457928982e166425c71627c5034e7",
+            "state": "ready"
+          },
+          "origin": "https://tdev.humtr.workers.dev",
+          "phase": "qualified",
+          "source": {
+            "commitOid": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+            "observedAt": "2026-09-13T11:05:58.495Z",
+            "state": "current",
+            "treeOid": "sha1:08f9fce22ba1b7071eb34394f3cde3f89025b992"
+          }
+        }
+      },
+      "error": null
+    },
+    {
+      "artifact": "after-node-suspension.json",
+      "sha256": "0858f8bde50c6f6affac18375f3b646e59dcc9af0363b43648eb979269de431b",
+      "summary": {
+        "authenticationMode": "installation-read-probe",
+        "currentHead": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+        "humanOAuth": false,
+        "observedAt": "2026-09-13T11:15:49.633Z",
+        "ok": true,
+        "repositoryId": "github-1322208918",
+        "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c"
+      },
+      "runtime": {
+        "accepting": true,
+        "capacity": 8,
+        "executingActions": 0,
+        "reservedAttempts": 0,
+        "deploymentSealed": true,
+        "identity": {
+          "activation": {
+            "activationId": null,
+            "activeReleaseId": "sha256:3d002c5c417b43502a1d729804a0a988c13aaa716af12bec9a228bd606d7ddce",
+            "deadline": null,
+            "expectedReleaseId": null,
+            "phase": "active",
+            "stagedReleaseId": "sha256:60a772c23552ac7d8039e4700ff2c1eee62d08efdd44e49201270c97d7f258b1",
+            "writerStopped": false
+          },
+          "device": {
+            "arch": "arm64",
+            "bundleDigest": "sha256:a8f2de9cf2803201c7b839497486382218d622acc77806f29944d514dfd30eaf",
+            "connected": true,
+            "connectedAt": "2026-09-13T11:15:03.901Z",
+            "deviceId": "2fe65e84415c44529a55a91095e96d93",
+            "lastMessageAt": "2026-09-13T11:15:47.267Z",
+            "nodeVersion": "24.18.0",
+            "ownerEpoch": "20",
+            "platform": "android",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83"
+          },
+          "edge": {
+            "bundleDigest": "sha256:711728a4fa06a88857cd655839aefe2f140e9a21e3e884ceb498c01847c19d0a",
+            "observedAt": "2026-09-13T11:15:03.909Z",
+            "schemaDigest": "sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c",
+            "sourceCommitOid": "sha1:d40359476562a024a949f7af4bc5d11cfa1cee83",
+            "versionId": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6"
+          },
+          "installationId": "71d1e2daa8524c1194889d937be9a14e",
+          "managedExecution": {
+            "activeSessions": 2,
+            "reason": null,
+            "reservedSessions": 0,
+            "sealDigest": "sha256:672a48a5fa06d80c3ec15829bc4d155aca3457928982e166425c71627c5034e7",
+            "state": "ready"
+          },
+          "origin": "https://tdev.humtr.workers.dev",
+          "phase": "qualified",
+          "source": {
+            "commitOid": "sha1:5a1637f5f37dbf332f019ede54876362e6b9322b",
+            "observedAt": "2026-09-13T11:15:49.335Z",
+            "state": "current",
+            "treeOid": "sha1:08f9fce22ba1b7071eb34394f3cde3f89025b992"
+          }
+        }
+      },
+      "error": null
+    }
+  ],
+  "limitations": [
+    "No public mutation was admitted in these fault trials.",
+    "No restart during pending validation/integration is proved.",
+    "SIGSTOP models process suspension only, not physical Doze, Android network loss or app force-stop.",
+    "Public mutation response-loss and independent witness acceptance remain external."
+  ]
+}

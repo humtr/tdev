@@ -1,0 +1,8 @@
+{
+  "observedAt": "2026-09-13T11:34:38.030718+00:00",
+  "createdRef": "refs/heads/dev2-containment/convergence-5a1637f5-20260913",
+  "expectedCommit": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "deleted": true,
+  "scope": "Only the auxiliary qualification ref created by this audit. Canonical and preserved experiment branches untouched.",
+  "providerRunId": "34754370389"
+}

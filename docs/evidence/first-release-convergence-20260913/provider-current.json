@@ -1,0 +1,459 @@
+{
+  "observedAt": "2026-09-13T11:21:24.425425+00:00",
+  "layer": "authenticated-readonly-provider-APIs",
+  "canonicalHead": "5a1637f5f37dbf332f019ede54876362e6b9322b",
+  "canonicalGuard": {
+    "repositoryId": 1322208918,
+    "ownerId": 272709831,
+    "ruleset": {
+      "id": 23000887,
+      "name": "dev2-canonical-monotonic-v1",
+      "target": "branch",
+      "source_type": "Repository",
+      "source": "humtr/tdev",
+      "enforcement": "active",
+      "conditions": {
+        "ref_name": {
+          "exclude": [],
+          "include": [
+            "refs/heads/dev-2"
+          ]
+        }
+      },
+      "rules": [
+        {
+          "type": "deletion"
+        },
+        {
+          "type": "non_fast_forward"
+        }
+      ],
+      "node_id": "RRS_lACqUmVwb3NpdG9yec5Oz06WzgFe9zc",
+      "created_at": "2026-09-12T12:06:45.363+09:00",
+      "updated_at": "2026-09-12T12:06:45.383+09:00",
+      "bypass_actors": [],
+      "current_user_can_bypass": "never",
+      "_links": {
+        "self": {
+          "href": "https://api.github.com/repos/humtr/tdev/rulesets/23000887"
+        },
+        "html": {
+          "href": "https://github.com/humtr/tdev/rules/23000887"
+        }
+      }
+    },
+    "effective": [
+      {
+        "type": "deletion",
+        "ruleset_source_type": "Repository",
+        "ruleset_source": "humtr/tdev",
+        "ruleset_id": 23000887
+      },
+      {
+        "type": "non_fast_forward",
+        "ruleset_source_type": "Repository",
+        "ruleset_source": "humtr/tdev",
+        "ruleset_id": 23000887
+      }
+    ],
+    "enrolledIdentity": {
+      "createdAt": "2026-09-12T12:06:45.363+09:00",
+      "rulesetId": 23000887,
+      "updatedAt": "2026-09-12T12:06:45.383+09:00"
+    },
+    "status": "PASS",
+    "foreignWriterMutationExercised": false
+  },
+  "access": {
+    "applicationId": "12911bc3-4b69-4a45-a9b3-26a654bf96f8",
+    "domain": "tdev.humtr.workers.dev/mcp",
+    "type": "self_hosted",
+    "audienceMatchesNative": true,
+    "issuerConfigured": "https://humtr.cloudflareaccess.com",
+    "policyCount": 1,
+    "policies": [
+      {
+        "id": "3bdca3ad-3c45-45f4-82c4-a21850af2057",
+        "decision": "allow",
+        "includeRuleKinds": [
+          [
+            "cloudflare_account_member"
+          ]
+        ],
+        "excludeRuleKinds": [],
+        "requireRuleKinds": []
+      }
+    ],
+    "liveHumanLoginExercised": false
+  },
+  "edgeDeployments": {
+    "deployments": [
+      {
+        "id": "ca23abaf-2ed9-4f84-8b05-92d0db1aefc3",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate 51af48d878d458692da5e5ae22c95f7401a079dfed947d8d4bd4b151b5226269 sha256:6783ad6fdf165db5f010493684999e9b014e131c858025250660eac80deeea89",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "c3bb4bae-3ea8-4a5d-975e-1b8372fc9de6",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T07:26:47.264089Z"
+      },
+      {
+        "id": "52c510e3-3b4c-4b33-8ee7-0b92cfef5cb0",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate c7de90c0018e719ca3d8b54182815460205dceabf5ea6fc0f0c37cd9be59fc5f sha256:0a7056b4454d00b753a0f7da6ee8dd6ff6d8e1bb620cf28eae49dbdedd23ea94",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "dd0a3803-16c8-40fa-bcc2-c0b092bd1b41",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T05:16:23.368859Z"
+      },
+      {
+        "id": "019d882b-d9e8-4b04-9c03-25530d09a200",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate c10f21a1dc3171dc63a076a143c694a84a2ea6ab0f3221f1e623829699efb398 sha256:d39c3b91e01a84c39fc3360e1a7d516425e0b41ea23b98688da6b8702208fd2d",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "27ed46c4-1876-4f89-965e-e6f48f33c768",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T04:35:09.031918Z"
+      },
+      {
+        "id": "78117c2a-be33-455c-baf5-5e9ba1c66615",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate f025cba8f23f982b92659656bf567a338576c2fc28945ea205f5bb922555cbde sha256:7f29d2d18a13cf6ca6bb44d59c6003a0e38da3b36b321691d2b023dd39c9ffa5",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "6d1d655d-8bcd-47dd-8a84-f2569c70e686",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T04:08:12.023937Z"
+      },
+      {
+        "id": "9709cc8a-2032-4381-a4bf-2e8ba5a44eb2",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate 5a86115e7912141166e036894a70aa2fd18893564adb152f49b29aca25442772 sha256:54686256e7f93c6f0dd5f12becbe164420678e7ffa642e3a8da699e44dc98ea3",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "781bb127-9ec5-45fb-84e3-283e463adf72",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T02:29:59.369997Z"
+      },
+      {
+        "id": "e3dd7455-e1d4-4190-a0d5-37a78cd266a2",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate 60f601f2678ffd5725d88208f0129c979f8581d42c4f202f1fa43ffe3bb79c5f sha256:b226eed0c67df44fec7e5387b68858bdd926e5f32859f062592efb0be8744818",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "51c80ab6-8839-446c-96f2-5efcb103f784",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T02:22:26.355631Z"
+      },
+      {
+        "id": "1bd63bc5-1be3-4ed0-9753-d9a8f248ed10",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.activate 84c94e46c8b1d0f0df5821ef70cf462e5c7a55fe14caa86aa3020c4d0195a1b3 sha256:bba3d1759ebe8466b492d55d72ca9f14634e9575c486388e1c015f99b6cc7577",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "781bb127-9ec5-45fb-84e3-283e463adf72",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T02:21:23.118061Z"
+      },
+      {
+        "id": "ab10ee05-733f-4541-9c2f-d5cb6980efba",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2.operator-bootstrap.activate sha256:892c1da4dca302a5a72d44b8d37691412e84df16740e0c92574e0b2bccf10d1e 51c80ab6-8839-446c-96f2-5efcb103f784",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "51c80ab6-8839-446c-96f2-5efcb103f784",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-13T02:14:11.982081Z"
+      },
+      {
+        "id": "5858456d-4905-4eb9-85b7-d5072db5f57b",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev2-bootstrap-managed:30a70e8f754b4e86be49e97daf4f8820:activate",
+          "workers/triggered_by": "deployment"
+        },
+        "versions": [
+          {
+            "version_id": "590a6f73-fd51-4383-b56b-e2c9f948e3ce",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-12T04:14:43.930903Z"
+      },
+      {
+        "id": "66fee9cb-ba72-48d6-8fc6-e97097da39d9",
+        "source": "api",
+        "strategy": "percentage",
+        "annotations": {
+          "workers/message": "dev-2 Phase A sha1:6832ee5885a8ca5e25655a45e918...",
+          "workers/triggered_by": "upload"
+        },
+        "versions": [
+          {
+            "version_id": "c00d6eb8-e6a0-4ca4-99bc-f6539077feed",
+            "percentage": 100
+          }
+        ],
+        "created_on": "2026-09-11T16:25:50.978241Z"
+      }
+    ]
+  },
+  "route": {
+    "enabled": true,
+    "previews_enabled": false
+  },
+  "runs": [
+    {
+      "runId": "34733308264",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/28d595609a67bcc9ca61653c8f9364a1",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:37Z",
+      "updatedAt": "2026-09-13T02:36:03Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308264",
+      "jobs": [
+        {
+          "id": 103660020819,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:40Z",
+          "completed_at": "2026-09-13T02:36:03Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308660",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/828117c1472d37be89cae4051cab80d1",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:38Z",
+      "updatedAt": "2026-09-13T02:36:02Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308660",
+      "jobs": [
+        {
+          "id": 103660021718,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:41Z",
+          "completed_at": "2026-09-13T02:36:01Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308147",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/e8da42d007fe23cbbb7c334e9f7f3e23",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:37Z",
+      "updatedAt": "2026-09-13T02:36:04Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308147",
+      "jobs": [
+        {
+          "id": 103660020552,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:40Z",
+          "completed_at": "2026-09-13T02:36:03Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308602",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/21a8a73fb440acfb10cb2bd9b383a6cf",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:38Z",
+      "updatedAt": "2026-09-13T02:36:03Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308602",
+      "jobs": [
+        {
+          "id": 103660021605,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:41Z",
+          "completed_at": "2026-09-13T02:36:03Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308106",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/67be87e3fea791b8aa6c57a41c8892ec",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:37Z",
+      "updatedAt": "2026-09-13T02:36:11Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308106",
+      "jobs": [
+        {
+          "id": 103660020376,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:40Z",
+          "completed_at": "2026-09-13T02:36:11Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308367",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/f56fadac83061dfcffb60722bca2c605",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:37Z",
+      "updatedAt": "2026-09-13T02:36:08Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308367",
+      "jobs": [
+        {
+          "id": 103660021087,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:41Z",
+          "completed_at": "2026-09-13T02:36:08Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733309137",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/871a5f7836143efd5d840804105f2fab",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:38Z",
+      "updatedAt": "2026-09-13T02:36:03Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733309137",
+      "jobs": [
+        {
+          "id": 103660023082,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:41Z",
+          "completed_at": "2026-09-13T02:36:03Z"
+        }
+      ]
+    },
+    {
+      "runId": "34733308268",
+      "headSha": "4429139cded44451efbce1f45d7bf90b71d59d66",
+      "headBranch": "dev2-exec/098f9ca478bd3c9ad7bdd12b8b6b85cd",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:32:37Z",
+      "updatedAt": "2026-09-13T02:36:58Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34733308268",
+      "jobs": [
+        {
+          "id": 103660020895,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:32:40Z",
+          "completed_at": "2026-09-13T02:36:57Z"
+        }
+      ]
+    },
+    {
+      "runId": "34732413725",
+      "headSha": "bd64f76b6b0aa88cc14c4414aa5ce4ac7c07c97f",
+      "headBranch": "dev2-containment/prodqual-20260913-a5",
+      "status": "completed",
+      "conclusion": "success",
+      "createdAt": "2026-09-13T02:11:05Z",
+      "updatedAt": "2026-09-13T02:13:56Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34732413725",
+      "jobs": [
+        {
+          "id": 103657508882,
+          "name": "qualification",
+          "status": "completed",
+          "conclusion": "success",
+          "started_at": "2026-09-13T02:11:08Z",
+          "completed_at": "2026-09-13T02:13:55Z"
+        }
+      ]
+    },
+    {
+      "runId": "34732066961",
+      "headSha": "fa018a40897c2a22972f3e6564a3d48203b76765",
+      "headBranch": "dev2-exec/71cf5e70776b258984b55c1125e36cb2",
+      "status": "completed",
+      "conclusion": "failure",
+      "createdAt": "2026-09-13T02:03:15Z",
+      "updatedAt": "2026-09-13T02:07:31Z",
+      "htmlUrl": "https://github.com/humtr/tdev/actions/runs/34732066961",
+      "jobs": [
+        {
+          "id": 103656563222,
+          "name": "execute",
+          "status": "completed",
+          "conclusion": "failure",
+          "started_at": "2026-09-13T02:03:18Z",
+          "completed_at": "2026-09-13T02:07:30Z"
+        }
+      ]
+    }
+  ]
+}

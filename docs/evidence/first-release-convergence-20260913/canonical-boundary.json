@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "layer": "current-implementation-real-readonly-provider-guard-verification",
+  "observedAt": "2026-09-13T11:28:49.591Z",
+  "result": {
+    "rulesetId": 23000887,
+    "ref": "refs/heads/dev-2",
+    "repositoryId": "1322208918",
+    "createdAt": "2026-09-12T12:06:45.363+09:00",
+    "updatedAt": "2026-09-12T12:06:45.383+09:00"
+  },
+  "foreignWriterMutationExercised": false
+}

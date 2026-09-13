@@ -1,0 +1,16 @@
+{
+  "layer": "current-local-HTTP-read-only-diagnostic",
+  "status": 200,
+  "elapsedMs": 153.92599,
+  "requestBytes": 163,
+  "responseBytes": 7405,
+  "startedAt": "2026-09-13T11:23:59.097Z",
+  "bodySha256": "8990ccf4da60f08f966c72177f29eb04caa2fd92b537fbf10ee99ef28a337b62",
+  "jobId": "job_sqp_05536d4593",
+  "priorClientProbe": {
+    "status": 400,
+    "reason": "audit client selected unsupported protocol",
+    "elapsedMs": 72.043333
+  },
+  "pairedBenchmark": false
+}
