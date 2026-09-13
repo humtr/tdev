@@ -3,7 +3,7 @@
 Authority: DIRECTIVE r4 -> RULE -> selected D0001-D0008.
 This file is current execution status only; mutable facts require fresh observation.
 
-## Local candidate handoff (not canonical or commissioned)
+## Candidate independently reviewed (source green; live frontier open)
 
 The isolated local branch `codex/prod-enrollment-release-join`, based on freshly
 fetched `dev-2` at `cd3d63fd152e54d73641b6dd2dcc8944090404c9`, implements the
@@ -12,12 +12,16 @@ managed finite release Builder and native main composition under D0008. It retai
 qualification-only authority separately, reuses the existing session/action owners
 and release backend, and gates release availability on the installed verified join.
 
-This is **local candidate complete, not yet canonical, not commissioned, not live
-accepted**. Local verification and the exact next Pro inputs/actions are recorded
-in [the production release handoff](docs/evidence/phase-b-convergence/local-production-release-handoff.md).
-The canonical and runtime observations below are retained pre-candidate facts,
-not fresh live observations from this local session. Do not redo the closed
-generation 5/8 retirement or capacity repairs; neither is a new workstream here.
+Independent review found and repaired a response-loss test race, a private RPC
+body-loss uncertainty defect and a warm-session seal-transition admission defect.
+The repaired source passed fresh Termux core/static/type/design (172), integration
+(206 plus one explicit SKIP), focused (41), release fixtures (36), and both bundles.
+See [independent review](docs/evidence/phase-b-convergence/independent-production-review-20260913.md)
+and its exact-tree/results companion. This is source-validation evidence only.
+Fresh canonical integration/readback, installation, production commissioning and
+all live first-release acceptances remain separate gates. The historical runtime
+facts below are not fresh acceptance proof. Closed generation 5/8 retirement was
+not reopened; the new seal-boundary defect is recorded separately.
 
 ## Current implementation state
 
