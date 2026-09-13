@@ -60,6 +60,7 @@ export async function createFixedHelper(config,options={}){
    'stage.reconcile':async input=>{const value=record(input);closed(value,['effect']);return json(await service.reconcileStage(/** @type {import('./backend.mjs').StageEffect} */(/** @type {unknown} */(value.effect))));},
    'stage.upload':async input=>{const value=record(input);closed(value,['effect','build']);return json(await service.stage(/** @type {import('./backend.mjs').StageEffect} */(/** @type {unknown} */(value.effect)),/** @type {import('./backend.mjs').Build} */(/** @type {unknown} */(value.build))));},
    'activation.begin':async input=>{const value=record(input);closed(value,['intent','build']);return json(await service.begin(/** @type {import('./types.js').ActivationIntent} */(/** @type {unknown} */(value.intent)),/** @type {import('./backend.mjs').Build} */(/** @type {unknown} */(value.build))));},
+   'activation.rollback':async input=>{const value=record(input);closed(value,['activationId']);requireThat(typeof value.activationId==='string','INVALID_ARGUMENT');return json(await service.rollback(value.activationId));},
    'activation.observe':async input=>{const value=record(input);closed(value,['activationId']);requireThat(typeof value.activationId==='string','INVALID_ARGUMENT');return json(service.observe(value.activationId));}
   };
   rpc=await servePrivateControl({role:'helper',filename:p.helperEndpointFile,key:helperKey,handlers});

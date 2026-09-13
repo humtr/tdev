@@ -6,12 +6,12 @@ import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
 import {Dev2Error,ERROR_CODES,requireThat} from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {'helper'|'native'} Role */
-/** @typedef {'helper.status'|'stage.reconcile'|'stage.upload'|'activation.begin'|'activation.observe'|'native.status'|'native.drain'} Operation */
+/** @typedef {'helper.status'|'stage.reconcile'|'stage.upload'|'activation.begin'|'activation.rollback'|'activation.observe'|'native.status'|'native.drain'} Operation */
 /** @typedef {{schemaVersion:1,role:Role,host:'127.0.0.1',port:number,nonce:string}} Endpoint */
 /** @typedef {Partial<Record<Operation,(input:Json)=>Promise<Json>>>} Handlers */
 const LIMIT=524288,TTL=20000;
 /** @type {Record<Role,readonly Operation[]>} */
-const OPERATIONS={helper:['helper.status','stage.reconcile','stage.upload','activation.begin','activation.observe'],native:['native.status','native.drain']};
+const OPERATIONS={helper:['helper.status','stage.reconcile','stage.upload','activation.begin','activation.rollback','activation.observe'],native:['native.status','native.drain']};
 /** @param {unknown} value @returns {Record<string,Json>} */
 function object(value){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value),'INVALID_ARGUMENT');return /** @type {Record<string,Json>} */(value);}
 /** @param {unknown} value @param {string[]} fields */

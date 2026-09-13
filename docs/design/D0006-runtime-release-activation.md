@@ -212,8 +212,14 @@ part of ordinary forward development after this release capability is installed.
 The selected fixed helper has one app-private activation journal and runs outside
 replaceable broker code under the existing Termux launcher. It is not another work
 owner or job queue. Native-to-helper calls are a closed private vocabulary: helper
-status, exact inactive-version upload/reconciliation, activation begin/observation.
-Helper-to-native calls are status and drain for one retained activation. A bounded
+status, exact inactive-version upload/reconciliation, activation begin/observation,
+and explicit operator rollback of the latest successful activation. Explicit rollback
+accepts only that activation ID; the helper derives the exact retained previous pair
+and retained admitted artifacts internally, so the caller cannot supply a target,
+build, provider operation or command. Its deterministic reverse activation identity
+makes response-loss retry observational rather than duplicative. This remains a
+private fixed-helper/operator boundary, not a fifth public MCP tool. Helper-to-native
+calls are status and drain for one retained activation. A bounded
 loopback endpoint avoids Android deep-path UNIX-socket limits; it is never exposed
 as public ingress. Private role-specific HMAC keys, fresh server nonce, bounded
 request lifetime, exact request identity, strict canonical records and authenticated
