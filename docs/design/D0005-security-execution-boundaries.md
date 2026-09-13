@@ -122,6 +122,25 @@ identity binding. Public MCP schemas, `dev_work`, candidate output, profiles and
 release artifacts have no grant-selection or grant-mutation field and cannot create
 or broaden standing authority.
 
+Because an ungranted principal must remain forbidden at discovery, commissioning
+cannot depend on a successful first `tools/list`. After the native verifier has
+cryptographically accepted an Access assertion, but before a missing standing grant
+is returned as `FORBIDDEN`, native code may append installation-private observation
+evidence containing only the verified subject digest, a digest of that exact signed
+assertion, an opaque deterministic observation ID and observation time. It stores no
+raw `sub`, email, token or assertion and confers no capability. Invalid issuer,
+audience, signature or expiry fails before any observation is created. A known
+principal with an insufficient capability is not an enrollment candidate.
+
+Promotion remains a separate trusted operator action. The private operator must
+select an exact observation ID and explicit capabilities/path restrictions; the
+utility resolves the verified subject from that observation, preserves the original
+owner and all unrelated grants, and atomically updates the sole private grant file.
+Repository source, a candidate, an MCP caller, Access membership, email, request
+ordering or the most recent denial can never promote an observation automatically.
+If multiple observations make the intended user interaction ambiguous, no grant is
+installed until the operator can bind the intended interaction without guessing.
+
 Capabilities remain `repository.read`, `work.write`, `profile.run`,
 `integration.write`, `policy.write`, `runtime.activate`. A read-only grant cannot
 use work mutations. Runtime activation and policy adoption require explicit standing
