@@ -6,7 +6,7 @@ import {canonicalJson,parseRecord} from '../src/contracts/canonical.mjs';
 import {requireThat} from '../src/contracts/errors.mjs';
 import {GitRepository} from '../src/repository/git.mjs';
 import {GitRefTransport} from '../src/integration/git-ref.mjs';
-import {privateFile,readNativeConfig} from '../src/runtime/native.mjs';
+import {privateBytes} from '../src/release/private-files.mjs';
 /** @typedef {import('../src/contracts/ports.js').Binding} Binding */
 /** @typedef {import('../src/contracts/ports.js').Effect} Effect */
 /** @typedef {Record<string,any>} AnyRecord */
@@ -64,7 +64,7 @@ async function exactDeleteRef(repository,binding,head){
 
 /** @param {string} selectorPath */
 async function loadInstallation(selectorPath){
- const selector=/** @type {AnyRecord} */(parseRecord(await privateFile(selectorPath,1048576),1048576));requireThat(selector.schemaVersion===1&&selector.configFile&&selector.installationId,'INTEGRITY_FAILURE','Installation selector missing config');const config=await readNativeConfig(selector.configFile),binding=config.edge.binding;requireThat(config.edge.installationId===selector.installationId&&config.gitSender?.configurationFile,'INTEGRITY_FAILURE','Installed F4 sender unavailable');const canonical=/** @type {AnyRecord} */(parseRecord(await privateFile(config.gitSender.configurationFile,65536),65536));requireThat(canonical.repositoryId===F4_SCOPE.repositoryId&&canonical.bindingEpoch===binding.bindingEpoch&&canonical.ref===F4_SCOPE.canonicalRef&&canonical.remote===F4_SCOPE.remote,'FORBIDDEN','Installed sender scope mismatch');return {config,binding,canonical};
+ const selector=/** @type {AnyRecord} */(parseRecord(await privateBytes(selectorPath,1048576),1048576));requireThat(selector.schemaVersion===1&&typeof selector.configFile==='string'&&selector.installationId,'INTEGRITY_FAILURE','Installation selector missing config');const config=/** @type {AnyRecord} */(parseRecord(await privateBytes(selector.configFile,1048576),1048576)),binding=/** @type {Binding} */(config.edge?.binding);requireThat(config.edge?.installationId===selector.installationId&&config.gitSender?.configurationFile&&binding,'INTEGRITY_FAILURE','Installed F4 sender unavailable');const canonical=/** @type {AnyRecord} */(parseRecord(await privateBytes(config.gitSender.configurationFile,65536),65536));requireThat(canonical.repositoryId===F4_SCOPE.repositoryId&&canonical.bindingEpoch===binding.bindingEpoch&&canonical.ref===F4_SCOPE.canonicalRef&&canonical.remote===F4_SCOPE.remote,'FORBIDDEN','Installed sender scope mismatch');return {config,binding,canonical};
 }
 
 /** @param {string} fixturePath @param {Binding} binding @param {GitRepository} repository @param {string} currentPolicyDigest */
