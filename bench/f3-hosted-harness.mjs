@@ -26,10 +26,11 @@ export const F3_SCOPE=Object.freeze({
 const rawOid=value=>{requireThat(/^(?:sha1:[0-9a-f]{40}|sha256:[0-9a-f]{64})$/.test(value),'INVALID_ARGUMENT','Exact object ID required');return value.split(':',2)[1];};
 const fixedGitSettings=()=>['-c','core.hooksPath=/dev/null','-c','credential.helper=','-c','protocol.allow=never','-c','protocol.https.allow=always','-c','http.followRedirects=false','-c','http.lowSpeedLimit=1','-c','http.lowSpeedTime=30','-c','core.fsync=objects,pack-metadata,reference','-c','core.fsyncMethod=fsync'];
 
-/** @param {import('../src/contracts/ports.js').Binding} binding */
-export function researchBinding(binding){
+/** @param {import('../src/contracts/ports.js').Binding} binding @param {string} currentPolicyDigest */
+export function researchBinding(binding,currentPolicyDigest){
  requireThat(binding.repositoryId===F3_SCOPE.repositoryId&&binding.providerRepositoryId===F3_SCOPE.providerRepositoryId&&binding.remote===F3_SCOPE.remote&&binding.ref===F3_SCOPE.canonicalRef&&binding.provider==='github','FORBIDDEN','F3 repository binding mismatch');
- return {...binding,ref:F3_SCOPE.ref};
+ requireThat(/^sha256:[0-9a-f]{64}$/.test(currentPolicyDigest),'INVALID_ARGUMENT','Fresh current policy digest required');
+ return {...binding,ref:F3_SCOPE.ref,policyDigest:currentPolicyDigest};
 }
 
 /** @param {Record<string,any>} canonical @param {string} root @param {string} wrapper */
@@ -77,18 +78,18 @@ async function exactDeleteRef(senderConfig,head){await runGit(senderConfig,['pus
 /** @param {any} group */
 function effectFor(group){return {effectId:recordDigest('dev2.research-hosted-effect.v1',{publicationIdentity:group.publicationIdentity,ref:group.ref,expectedHead:group.expectedHead,commitOid:group.commitOid}).slice(7),workId:group.members[0].workId,actionId:group.leaderActionId,repositoryId:group.repositoryId,bindingEpoch:group.bindingEpoch,ref:group.ref,expectedHead:group.expectedHead,commitOid:group.commitOid,preparedResultId:group.composedResultId,validationId:group.composedValidationId,policyDigest:group.policyDigest};}
 
-/** @param {string} configPath */
-async function loadInstallation(configPath){
- const config=await readNativeConfig(configPath),binding=config.edge.binding,research=researchBinding(binding),gitSender=config.gitSender;
+/** @param {string} configPath @param {string} currentPolicyDigest */
+async function loadInstallation(configPath,currentPolicyDigest){
+ const config=await readNativeConfig(configPath),binding=config.edge.binding,research=researchBinding(binding,currentPolicyDigest),gitSender=config.gitSender;
  requireThat(gitSender&&gitSender.configurationFile&&gitSender.pythonExecutable&&gitSender.helperFile,'EXECUTION_UNAVAILABLE','Installed durable sender is required');
  const canonical=/** @type {Record<string,any>} */(parseRecord(await privateFile(gitSender.configurationFile,65536),65536));
  return {config,binding,research,canonical,gitSender};
 }
 
-/** @param {string} path @param {import('../src/contracts/ports.js').Binding} binding @param {GitRepository} repository @returns {Promise<any>} */
-async function loadFixture(path,binding,repository){
+/** @param {string} path @param {import('../src/contracts/ports.js').Binding} binding @param {GitRepository} repository @param {string} currentPolicyDigest @returns {Promise<any>} */
+async function loadFixture(path,binding,repository,currentPolicyDigest){
  const fixture=/** @type {Record<string,any>} */(parseRecord(await privateFile(path,1048576),1048576));
- requireThat(fixture.schemaVersion===1&&fixture.repositoryId===F3_SCOPE.repositoryId&&fixture.bindingEpoch===binding.bindingEpoch&&fixture.policyDigest===binding.policyDigest,'FORBIDDEN','Frozen F3 fixture scope mismatch');
+ requireThat(fixture.schemaVersion===1&&fixture.repositoryId===F3_SCOPE.repositoryId&&fixture.bindingEpoch===binding.bindingEpoch&&fixture.policyDigest===currentPolicyDigest,'FORBIDDEN','Frozen F3 fixture scope mismatch');
  requireThat(typeof fixture.composedResultId==='string'&&/^sha256:[0-9a-f]{64}$/.test(fixture.composedValidationId)&&Array.isArray(fixture.members)&&fixture.members.length>1,'INVALID_ARGUMENT','Frozen F3 fixture identity');
  const commit=await repository.readCommit(binding,fixture.commitOid);requireThat(commit.parents.length===1&&commit.parents[0]===fixture.expectedHead&&commit.source.treeOid===fixture.resultTreeOid&&commit.source.manifestDigest===fixture.resultManifestDigest,'INTEGRITY_FAILURE','Frozen F3 commit/tree mismatch');
  return fixture;
@@ -97,10 +98,10 @@ async function loadFixture(path,binding,repository){
 /** @param {Record<string,any>} canonical @param {import('../src/contracts/ports.js').Binding} binding @param {import('../src/contracts/ports.js').Binding} research */
 async function repositoryFor(canonical,binding,research){const repository=new GitRepository({directory:canonical.repositoryDirectory,executable:canonical.gitExecutable,environment:canonical.environment,bindings:()=>[binding,research],verifyRemote:async()=>{const response=await fetch('https://api.github.com/repos/humtr/tdev',{headers:{accept:'application/vnd.github+json','user-agent':'dev2-f3-research'},redirect:'error',signal:AbortSignal.timeout(15000)});requireThat(response.ok,'EXECUTION_UNAVAILABLE','F3 repository identity unavailable');const metadata=/** @type {{id?:number,full_name?:string,archived?:boolean}} */(await response.json());requireThat(String(metadata.id)===F3_SCOPE.providerRepositoryId&&metadata.full_name==='humtr/tdev'&&metadata.archived===false,'FORBIDDEN','F3 repository identity changed');}});await repository.init();return repository;}
 
-/** @param {string} configPath @param {string} fixturePath */
-async function childDispatch(configPath,fixturePath){
- const {config,binding,research,canonical,gitSender}=await loadInstallation(configPath),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json')));
- const repository=await repositoryFor(canonical,binding,research);await loadFixture(fixturePath,binding,repository);
+/** @param {string} configPath @param {string} fixturePath @param {string} currentPolicyDigest */
+async function childDispatch(configPath,fixturePath,currentPolicyDigest){
+ const {config,binding,research,canonical,gitSender}=await loadInstallation(configPath,currentPolicyDigest),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json')));
+ const repository=await repositoryFor(canonical,binding,research);await loadFixture(fixturePath,binding,repository,currentPolicyDigest);
  const senderConfig=/** @type {Record<string,any>} */(await readJson(join(root,'sender.json'))),ledger=new Ledger(join(root,'sender.sqlite'),research);
  try{const sender=new DurableGitSender({ledger,stateDirectory:senderConfig.stateDirectory,configurationPath:join(root,'sender.json'),pythonExecutable:gitSender.pythonExecutable,helperPath:gitSender.helperFile,environment:senderConfig.environment});const result=await sender.compareUpdate(state.effect);await durableJson(join(root,'controller-result.json'),{kind:result.kind,ownerEpoch:ledger.ownerEpoch,completedAt:new Date().toISOString()});}finally{ledger.close();}
 }
@@ -110,10 +111,10 @@ async function pollHeld(root,timeoutMs=15000){const deadline=Date.now()+timeoutM
 /** @param {string} root */
 async function senderInvocation(root){const entries=await readdir(join(root,'senders'),{withFileTypes:true});const dirs=entries.filter(e=>e.isDirectory()).map(e=>e.name);requireThat(dirs.length===1,'INTEGRITY_FAILURE','Exactly one physical sender invocation required');return dirs[0];}
 
-/** @param {string} configPath @param {string} fixturePath @param {string} label */
-async function inspectRecovery(configPath,fixturePath,label){
- const {config,binding,research,canonical,gitSender}=await loadInstallation(configPath),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json')));
- const repository=await repositoryFor(canonical,binding,research);await loadFixture(fixturePath,binding,repository);const senderConfig=/** @type {Record<string,any>} */(await readJson(join(root,'sender.json'))),ledger=new Ledger(join(root,'sender.sqlite'),research);
+/** @param {string} configPath @param {string} fixturePath @param {string} currentPolicyDigest @param {string} label */
+async function inspectRecovery(configPath,fixturePath,currentPolicyDigest,label){
+ const {config,binding,research,canonical,gitSender}=await loadInstallation(configPath,currentPolicyDigest),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json')));
+ const repository=await repositoryFor(canonical,binding,research);await loadFixture(fixturePath,binding,repository,currentPolicyDigest);const senderConfig=/** @type {Record<string,any>} */(await readJson(join(root,'sender.json'))),ledger=new Ledger(join(root,'sender.sqlite'),research);
  try{const sender=new DurableGitSender({ledger,stateDirectory:senderConfig.stateDirectory,configurationPath:join(root,'sender.json'),pythonExecutable:gitSender.pythonExecutable,helperPath:gitSender.helperFile,environment:senderConfig.environment});const before=sender.current(state.effect),stopped=await sender.stopped(state.effect),retry=await sender.compareUpdate(state.effect),after=sender.current(state.effect);requireThat(canonicalJson(before)===canonicalJson(after),'INTEGRITY_FAILURE','Unknown old sender created a replacement invocation');return {label,ownerEpoch:ledger.ownerEpoch,stopped,retry:retry.kind,invocation:after};}finally{ledger.close();}
 }
 
@@ -122,29 +123,30 @@ async function authoritativeOutcome(repository,research,effect,senderStopped){
  try{const observed=await repository.resolve(research);await repository.fetch(research,observed.head);const commitAncestor=observed.head===effect.commitOid?true:await repository.isAncestor(research,effect.commitOid,observed.head),expectedAncestor=observed.head===effect.expectedHead?true:await repository.isAncestor(research,effect.expectedHead,observed.head);return {observed,...classifyReadback({available:true,head:observed.head,expectedHead:effect.expectedHead,commitOid:effect.commitOid,senderStopped,commitAncestor,expectedAncestor})};}catch{return {observed:null,...classifyReadback({available:false,expectedHead:effect.expectedHead,commitOid:effect.commitOid,senderStopped})};}
 }
 
-/** @param {string} configPath @param {string} fixturePath @param {number} [timeoutMs] */
-async function waitStopped(configPath,fixturePath,timeoutMs=60000){const deadline=Date.now()+timeoutMs;for(;;){const {config,research,gitSender}=await loadInstallation(configPath),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json'))),senderConfig=/** @type {Record<string,any>} */(await readJson(join(root,'sender.json'))),ledger=new Ledger(join(root,'sender.sqlite'),research);try{const sender=new DurableGitSender({ledger,stateDirectory:senderConfig.stateDirectory,configurationPath:join(root,'sender.json'),pythonExecutable:gitSender.pythonExecutable,helperPath:gitSender.helperFile,environment:senderConfig.environment});if(await sender.stopped(state.effect))return true;}finally{ledger.close();}if(Date.now()>deadline)return false;await delay(50);}}
+/** @param {string} configPath @param {string} fixturePath @param {string} currentPolicyDigest @param {number} [timeoutMs] */
+async function waitStopped(configPath,fixturePath,currentPolicyDigest,timeoutMs=60000){const deadline=Date.now()+timeoutMs;for(;;){const {config,research,gitSender}=await loadInstallation(configPath,currentPolicyDigest),root=join(config.stateDirectory,F3_SCOPE.stateName),state=/** @type {any} */(await readJson(join(root,'experiment.json'))),senderConfig=/** @type {Record<string,any>} */(await readJson(join(root,'sender.json'))),ledger=new Ledger(join(root,'sender.sqlite'),research);try{const sender=new DurableGitSender({ledger,stateDirectory:senderConfig.stateDirectory,configurationPath:join(root,'sender.json'),pythonExecutable:gitSender.pythonExecutable,helperPath:gitSender.helperFile,environment:senderConfig.environment});if(await sender.stopped(state.effect))return true;}finally{ledger.close();}if(Date.now()>deadline)return false;await delay(50);}}
 
 /** @param {string[]} args */
 export async function main(args){
  requireThat(process.platform==='android','FORBIDDEN','F3 hosted harness is Termux/Android operator-only');
- const {values}=parseArgs({args,options:{config:{type:'string'},fixture:{type:'string'}},strict:true,allowPositionals:false});requireThat(values.config&&values.fixture,'INVALID_ARGUMENT','F3 harness requires --config and --fixture');
- const configPath=resolve(values.config),fixturePath=resolve(values.fixture),loaded=await loadInstallation(configPath),{config,binding,research,canonical,gitSender}=loaded,root=join(config.stateDirectory,F3_SCOPE.stateName);
+ const {values}=parseArgs({args,options:{config:{type:'string'},fixture:{type:'string'},'authority-head':{type:'string'},'current-policy-digest':{type:'string'}},strict:true,allowPositionals:false});requireThat(values.config&&values.fixture&&values['authority-head']&&values['current-policy-digest'],'INVALID_ARGUMENT','F3 harness requires --config, --fixture, --authority-head and --current-policy-digest');
+ const authorityHead=values['authority-head'],currentPolicyDigest=values['current-policy-digest'];requireThat(/^sha1:[0-9a-f]{40}$/.test(authorityHead)&&/^sha256:[0-9a-f]{64}$/.test(currentPolicyDigest),'INVALID_ARGUMENT','Fresh authority identity required');
+ const configPath=resolve(values.config),fixturePath=resolve(values.fixture),loaded=await loadInstallation(configPath,currentPolicyDigest),{config,binding,research,canonical,gitSender}=loaded,root=join(config.stateDirectory,F3_SCOPE.stateName);
+ const repository=await repositoryFor(canonical,binding,research),authority=await repository.resolve(binding);requireThat(authority.head===authorityHead,'STALE_RESULT','Canonical authority changed before F3');const fixture=await loadFixture(fixturePath,binding,repository,currentPolicyDigest);
  await mkdir(root,{recursive:false,mode:0o700});await mkdir(join(root,'senders'),{mode:0o700});const wrapper=join(root,'git-wrapper.py');await writeWrapper(wrapper,gitSender.pythonExecutable);
  const senderConfig=buildResearchSenderConfig(canonical,root,wrapper);await durableJson(join(root,'sender.json'),senderConfig);
- const repository=await repositoryFor(canonical,binding,research),fixture=await loadFixture(fixturePath,binding,repository);
  await exactCreateRef(senderConfig,fixture.expectedHead);const initial=await repository.resolve(research);requireThat(initial.head===fixture.expectedHead,'INTEGRITY_FAILURE','Disposable ref did not start at exact H');
  const group=freezePublicationGroup({repositoryId:F3_SCOPE.repositoryId,bindingEpoch:binding.bindingEpoch,ref:F3_SCOPE.ref,currentHead:initial.head,expectedHead:fixture.expectedHead,commitOid:fixture.commitOid,composedResultId:fixture.composedResultId,composedValidationId:fixture.composedValidationId,policyDigest:fixture.policyDigest,members:fixture.members});requireThat(group.kind==='frozen','INTEGRITY_FAILURE','F3 group could not freeze');
  const effect=effectFor(group),current=group.members.map(member=>({...member}));await durableJson(join(root,'experiment.json'),{schemaVersion:1,fixtureDigest:recordDigest('dev2.f3-hosted-fixture.v1',fixture),group,effect,current,settlement:null,startedAt:new Date().toISOString()});
- const child=spawn(process.execPath,[fileURLToPath(import.meta.url)],{env:{...process.env,DEV2_F3_INTERNAL:'dispatch',DEV2_F3_CONFIG:configPath,DEV2_F3_FIXTURE:fixturePath},stdio:'ignore'});const held=await pollHeld(root);const invocationBefore=await senderInvocation(root);
+ const child=spawn(process.execPath,[fileURLToPath(import.meta.url)],{env:{...process.env,DEV2_F3_INTERNAL:'dispatch',DEV2_F3_CONFIG:configPath,DEV2_F3_FIXTURE:fixturePath,DEV2_F3_POLICY:currentPolicyDigest},stdio:'ignore'});const held=await pollHeld(root);const invocationBefore=await senderInvocation(root);
  current[1]={...current[1],cancelRequested:true};await durableJson(join(root,'experiment.json'),{schemaVersion:1,fixtureDigest:recordDigest('dev2.f3-hosted-fixture.v1',fixture),group,effect,current,settlement:null,startedAt:new Date().toISOString(),followerCancellation:{actionId:current[1].actionId,requested:true,phase:'remote_possible'}});
- child.kill('SIGKILL');await new Promise(resolveExit=>child.once('exit',resolveExit));const recovery1=await inspectRecovery(configPath,fixturePath,'restart-1'),invocationAfter1=await senderInvocation(root);requireThat(invocationAfter1===invocationBefore,'INTEGRITY_FAILURE','Second sender appeared after controller restart');const recovery2=await inspectRecovery(configPath,fixturePath,'restart-2'),invocationAfter2=await senderInvocation(root);requireThat(invocationAfter2===invocationBefore,'INTEGRITY_FAILURE','Replay created a second sender');
- await writeFile(join(root,'sender-release'),'release\n',{flag:'wx',mode:0o600});await syncDirectory(root);const stopped=await waitStopped(configPath,fixturePath),outcome=await authoritativeOutcome(repository,research,effect,stopped);requireThat(outcome.kind!=='unknown','EXECUTION_UNAVAILABLE','Authoritative provider readback unavailable after sender release');requireThat(outcome.observed,'EXECUTION_UNAVAILABLE','Authoritative provider readback missing');
+ child.kill('SIGKILL');await new Promise(resolveExit=>child.once('exit',resolveExit));const recovery1=await inspectRecovery(configPath,fixturePath,currentPolicyDigest,'restart-1'),invocationAfter1=await senderInvocation(root);requireThat(invocationAfter1===invocationBefore,'INTEGRITY_FAILURE','Second sender appeared after controller restart');const recovery2=await inspectRecovery(configPath,fixturePath,currentPolicyDigest,'restart-2'),invocationAfter2=await senderInvocation(root);requireThat(invocationAfter2===invocationBefore,'INTEGRITY_FAILURE','Replay created a second sender');
+ await writeFile(join(root,'sender-release'),'release\n',{flag:'wx',mode:0o600});await syncDirectory(root);const stopped=await waitStopped(configPath,fixturePath,currentPolicyDigest),outcome=await authoritativeOutcome(repository,research,effect,stopped);requireThat(outcome.kind!=='unknown','EXECUTION_UNAVAILABLE','Authoritative provider readback unavailable after sender release');requireThat(outcome.observed,'EXECUTION_UNAVAILABLE','Authoritative provider readback missing');
  const relation=/** @type {'commit_or_descendant'|'expected_head'|'other_expected_descendant'|'foreign'} */(outcome.relation);requireThat(relation&&['commit_or_descendant','expected_head','other_expected_descendant','foreign'].includes(relation),'INTEGRITY_FAILURE');const reconciled=reconcilePublicationGroup(group,{head:outcome.observed.head,relation,senderStopped:stopped}),settlement=settlePublicationGroup(group,reconciled,current);const beforeTerminal=0,afterTerminal=settlement.filter(x=>['succeeded','failed','cancelled'].includes(x.actionStatus)).length;requireThat(afterTerminal===0||afterTerminal===group.members.length,'INTEGRITY_FAILURE','Partial terminal projection');
  await durableJson(join(root,'experiment.json'),{schemaVersion:1,fixtureDigest:recordDigest('dev2.f3-hosted-fixture.v1',fixture),group,effect,current,settlement,startedAt:new Date().toISOString(),followerCancellation:{actionId:current[1].actionId,requested:true,phase:'remote_possible'},physicalSender:{invocationId:invocationBefore,held},recoveries:[recovery1,recovery2],provider:outcome,atomicObservation:{beforeTerminal,afterTerminal,total:group.members.length},finishedAt:new Date().toISOString()});
  if(stopped&&outcome.observed.head&&outcome.kind!=='binding_fenced')await exactDeleteRef(senderConfig,outcome.observed.head);
  process.stdout.write(canonicalJson({verdict:reconciled.kind==='integrated'?'candidate-survives':'candidate-'+reconciled.kind,ref:F3_SCOPE.ref,effectId:effect.effectId,invocationId:invocationBefore,providerHead:outcome.observed.head,settled:settlement.length,evidence:join(root,'experiment.json')})+'\n');
 }
 
-if(process.env.DEV2_F3_INTERNAL==='dispatch')childDispatch(resolve(process.env.DEV2_F3_CONFIG??''),resolve(process.env.DEV2_F3_FIXTURE??'')).catch(()=>process.exit(1));
+if(process.env.DEV2_F3_INTERNAL==='dispatch')childDispatch(resolve(process.env.DEV2_F3_CONFIG??''),resolve(process.env.DEV2_F3_FIXTURE??''),process.env.DEV2_F3_POLICY??'').catch(()=>process.exit(1));
 else if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(error=>{process.stderr.write(canonicalJson({kind:'f3-hosted-harness-failed',code:typeof error?.code==='string'?error.code:'EXECUTION_UNAVAILABLE',message:String(error?.message??'failed')})+'\n');process.exitCode=1;});
