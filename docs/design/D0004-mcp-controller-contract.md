@@ -157,3 +157,29 @@ qualified active release. Publishing the frozen schemas is not release completio
 The edge verifies outputs against the exact same descriptors as the device. Adding
 backend implementation behind an existing operation must not require a schema change.
 A changed schema still requires explicit revision and refreshed client verification.
+
+## Internal composed-publication projection
+
+D0003's bounded H2 specialization does not change the four tools or their closed
+schemas, independent per-item admission, deduplication or explicit prepared-result
+reuse. An integrate item explicitly naming preparedResultId stays on the ordinary
+exact-result path. Eligible no-explicit-result items may share an internal composed
+publication after their separate admission; clients do not request a batch/group.
+
+Each member Action retains its own workId/requestId and refers to the same resultId.
+The results array carries one truthful leader-anchored prepared descriptor; its
+workId/generation/candidate identify that anchor, not a replacement identity for
+other members. The effects array carries the single logical effect. Observing only
+a follower includes its referenced result/effect after current authorization and
+membership verification. Clients resolve Action.resultId instead of assuming each
+resultId belongs to only one Action. This is a semantic clarification of projections,
+not new publication authority or a new public group handle. Publication predicates
+and shared outcomes are solely D0003-owned.
+
+After asynchronous authorization, collect mutable Work/Action/result/effect
+projections in one ledger snapshot so one response cannot mix partial terminal
+settlement. Distinct responses/pages may straddle a committed transition. A failed
+or cancelled sibling before effect freeze never retroactively rejects another
+item's admission. No public envelope transaction, waiting/coalescing promise or
+cross-item dependency is added. Existing-client and follower-only transcripts are
+required implementation acceptance, not claimed observed behavior in this revision.

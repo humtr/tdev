@@ -19,20 +19,26 @@ The W4 diagnostic previously advanced canonical source through seven test-only m
 
 The bounded one-shot measurements and their comparability limits are retained in [cost-efficiency diagnostic evidence](docs/evidence/cost-efficiency-diagnostic-20260914/README.md).
 
-## Active post-release research boundary
+## D0003 H2 production Design review frontier
 
-Current D0003 contains the accepted **cost-efficient composition research boundary**. It does not change the production integration algorithm. Under the current whole-result validation identity it rejects cross-tree receipt reuse (H1) as unsound without a future smaller dependency identity, and selects a bounded H2 off-path deterministic composition falsifier.
+F3 and F4 survived their bounded research falsifiers; retained evidence remains
+non-normative and does not prove D0007 statistical superiority. D0003's revised
+H2 contract selects same-envelope/same-principal, same-exact-base composition with
+separate full composed validation, one leader-anchored effect and atomic member
+fencing/settlement in the existing SQLite ledger. D0001 and D0004 contain bounded
+ownership/projection cross-references. No production source or runtime changed.
 
-`bench/cost-efficient-composition.mjs` is the current test-only research primitive. It grants no validation or publication authority and performs no provider operation. Structurally, for N=8 it compares the current triangular model of 36 full validations / 28 stale-recomposition validations / 8 publications against the research model of 9 full validations / 0 stale-recomposition validations / 1 publication. Those are protocol-structure counts, not live performance or cost measurements.
+The next boundary is canonical review of the separately published Design branch
+through ChatGPT + authorized tdev workflow. Fresh-bind canonical authority, review
+any movement, prepare/validate the exact document result, integrate through that
+workflow and read back canonical. Local Git publication is not canonical integration.
+See the [review and handoff](docs/evidence/h2-production-design-review-20260914/README.md).
 
-## Post-release frontier
-
-1. **Run the cheap H2 falsifier first.** Establish exact final-tree equality and deterministic composition behavior on the bounded same-base/disjoint fixture. A failing falsifier ends this route without changing production semantics.
-2. **Waste accounting.** Measure validation executions/CPU, stale recompositions, managed sessions/cold starts, CAS/publication attempts, Git/provider operations, Workers/DO requests where available, redundant bytes, wall time and useful versus wasted slot-seconds per completed task. Keep instrumentation smaller than the behavior being measured.
-3. **No H1 shortcut under current policy.** Current D0003 whole-result validation evidence cannot be reused across a changed composed tree merely because paths are disjoint. Any future dependency-sliced validation identity is separate Designed work and must remain evaluable by the old trusted policy.
-4. **Production promotion only after a Design revision.** Any batch/multi-candidate canonical publication, changed stale semantics, incremental required validation or new durable ownership must be explicitly accepted in the D0003-owned boundary before product implementation. Existing per-work full recomposition/full validation remains the correctness-preserving fallback.
-5. **Runtime/provider optimization later.** After structural validation amplification is addressed or falsified, optimize managed-session lifecycle, dependency/object caching, Git operations, MCP polling and Workers/DO traffic where cost accounting shows meaningful residual waste.
-
-## Stop conditions for this research lane
-
-Stop or reject an optimization if it weakens exact validated-result integration, authorization, isolation, stale/conflict detection, response-loss/restart deduplication or canonical source authority; if it requires a new durable owner/queue whose complexity exceeds the measured savings; or if a cheap deterministic falsifier shows the proposed structure cannot preserve exact final-tree and failure/recovery semantics.
+Production H2 implementation is not authorized by this Design-only session.
+A later authorized implementation starts with versioned immutable tuple references
+and real SQLite atomic-selection/freeze/settlement tests, then joins preparation,
+controller observation, authorization, sender and recovery. Keep ordinary per-work
+full recomposition/full validation as fallback and selection disabled until the
+D0003 production acceptance and D0006 compatibility/release gates pass.
+Do not restart F3/F4, 30/100-trial cohorts, physical Android acceptance or benchmark
+side-effect cleanup merely because this execution frontier changed.
