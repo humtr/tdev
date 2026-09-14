@@ -24,9 +24,17 @@ export interface Work { workId:Id; repositoryId:Id; bindingEpoch:Revision; princ
   baseTreeOid:Oid; candidate:Pick<SourceTree,'treeOid'|'manifestDigest'>; generation:Revision; revision:Revision;
   disposition:'open'|'integrated'|'cancelled'; currentActionId:Id|null }
 export type ActionStatus = 'queued'|'running'|'blocked'|'succeeded'|'failed'|'cancelled';
+/** Internal H2 references are not public lifecycle objects. They only point from
+ * existing Action/PreparedResult/Effect rows to one immutable tuple/composition. */
+export interface H2ActionReference { version:1; memberTupleDigest:Digest; compositionIdentity:Digest; leaderActionId:Id;
+  tupleObjectDigest:Digest; deltaObjectDigest:Digest; role:'leader'|'follower'; effectId:Id|null }
+export interface H2ResultReference { version:1; memberTupleDigest:Digest; compositionIdentity:Digest; leaderActionId:Id;
+  tupleObjectDigest:Digest; deltaObjectDigest:Digest; memberCount:number }
+export interface H2EffectReference { version:1; memberTupleDigest:Digest; compositionIdentity:Digest;
+  tupleObjectDigest:Digest; deltaObjectDigest:Digest; memberCount:number }
 export interface Action { actionId:Id; requestId:Id; principal:Id; bindingEpoch:Revision; intentDigest:Digest;
   operation:string; workId:Id|null; status:ActionStatus; step:string; attempt:Revision; ownerEpoch:Revision;
-  deadline:number; resultId:Id|null; errorCode:string|null }
+  deadline:number; resultId:Id|null; errorCode:string|null; h2?:H2ActionReference }
 export interface Attempt { installationId:Id; repositoryId:Id; workId:Id; actionId:Id;
   attemptId:Id; attempt:Revision; ownerEpoch:Revision }
 export interface ExecutionIdentity { orderedProfileDigests:readonly Digest[]; trustedRunnerDigest:Digest;
@@ -34,7 +42,7 @@ export interface ExecutionIdentity { orderedProfileDigests:readonly Digest[]; tr
 export interface PreparedResult { resultId:Id; repositoryId:Id; bindingEpoch:Revision; workId:Id; generation:Revision;
   baseCommitOid:Oid; baseTreeOid:Oid; candidateTreeOid:Oid; expectedHead:Oid; commitOid:Oid;
   resultTreeOid:Oid; resultTreeSha256:Digest; policyDigest:Digest;
-  metadata:{author:string;committer:string;timestamp:number;message:string}; execution:ExecutionIdentity }
+  metadata:{author:string;committer:string;timestamp:number;message:string}; execution:ExecutionIdentity; h2?:H2ResultReference }
 export interface ProfileOutcome { profileDigest:Digest; status:'passed'|'failed'|'not_run'|'cancelled'; exitCode:number|null }
 export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id; attempt:Attempt;
   startedAt:number; endedAt:number; exitCode:number|null; signal:string|null; deadlineExceeded:boolean;
@@ -42,7 +50,7 @@ export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id;
   /** Present only after native authenticated production joins; MAC covers the exact canonical record. */
   productionJson?:string }
 export interface Effect { effectId:Id; workId:Id; actionId:Id; repositoryId:Id; bindingEpoch:Revision;
-  ref:string; expectedHead:Oid; commitOid:Oid; preparedResultId:Id; validationId:Digest; policyDigest:Digest }
+  ref:string; expectedHead:Oid; commitOid:Oid; preparedResultId:Id; validationId:Digest; policyDigest:Digest; h2?:H2EffectReference }
 export type EffectObservation = {kind:'integrated';observedHead:Oid;observedAt:string} |
   {kind:'retryable'} | {kind:'stale';observedHead:Oid} | {kind:'uncertain'} | {kind:'binding_fenced'};
 export interface Profile { profileId:Id; digest:Digest; argv:readonly string[]; cwd:string; parameters:Json;
