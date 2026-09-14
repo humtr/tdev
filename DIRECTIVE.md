@@ -1,7 +1,7 @@
 # dev-2 owner directive
 
 - Status: active
-- Revision: 4
+- Revision: 5
 - Scope: first public `dev-2` architecture, implementation, and proof
 
 ## 1. Authority
@@ -82,48 +82,33 @@ The public MCP surface is a clean-sheet Design decision. No predecessor tool cou
 
 The target is the smallest clear and safe contract that lets ChatGPT discover repository state and context, start and observe development, recover interruption, validate and integrate results, and perform real self-development. Avoid both tool-per-internal-capability proliferation and an unrestricted arbitrary shell/mutation interface.
 
-## 10. Required superiority over predecessors
+## 10. Comparative efficiency after first release
 
-There is no reason to replace current tdev and tmcp unless `dev-2` is materially better.
+There is no reason to keep investing in `dev-2` unless it remains materially better in useful development work than the alternatives available to the owner. Comparative performance and efficiency therefore remain product concerns, but measurement machinery must not become a larger cost than the product decision it informs.
 
-`dev-2` must be evaluated against both tdev and tmcp on representative development workloads. These predecessors are comparison subjects, never architectural authorities. Old tdev was not a completed working product baseline: preserved source/architecture, historical evidence, currently reproducible bounded measurements and explicitly labeled analytical comparisons are sufficient. Do not recreate, repair, reinstall or parallel-host an old live runtime for comparison. Use current tmcp measurements where genuinely comparable and available; distinguish measured, historical and analytical evidence.
+`dev-2` should continue to be evaluated against tdev and tmcp on representative development workloads where evidence is genuinely comparable. Predecessors remain comparison subjects, never architectural authorities. Old tdev must not be recreated, repaired, reinstalled or parallel-hosted merely to manufacture a benchmark. Use measured-current, measured-historical and analytical evidence honestly and keep unsupported cells unknown.
 
-`dev-2` must demonstrate materially better overall development performance and efficiency while preserving correctness and safety. Evaluation should include, where applicable:
+Evaluation should include successful end-to-end completion, latency, throughput, concurrent utilization, model/tool rounds, source/context bytes, redundant reads, repeated validation, stale/wasted work, manual intervention, external bootstrap, recovery cost, managed execution, Git/provider operations and infrastructure requests per completed task.
 
-- successful end-to-end task completion;
-- end-to-end latency;
-- throughput and concurrent-work utilization;
-- tool calls and model/tool round trips;
-- repository/context bytes transferred;
-- redundant reads, retries, repeated validation, and stale/wasted work;
-- manual user intervention and approval burden;
-- external bootstrap operations;
-- recovery cost after interruption or response loss;
-- infrastructure/provider operations per completed task.
+Formal claims of statistical superiority use D0007's preregistered methodology until that Design is revised. A favorable diagnostic or owner release decision is not a substitute for those statistics and must not be reported as D0007 PASS. Conversely, the owner may make a product/release decision from bounded current evidence when the marginal cost of additional measurement is not justified, provided the decision and remaining unknowns are explicit.
 
-At minimum, `dev-2` must provide reliable MCP-only self-development, default eight-way concurrency, lower ordinary external-bootstrap burden, and compelling evidence-backed efficiency/throughput superiority over both predecessors, using the applicable evidence classes above rather than fabricating an old live baseline.
+Performance or cost wins obtained by weakening validation, exact-state correctness, authorization, isolation, recovery, conflict handling or canonical integration safety do not count.
 
-Performance wins obtained by weakening validation, exact-state correctness, authorization, isolation, recovery, conflict handling, or canonical integration safety do not count.
+## 11. First-release owner closure
 
-## 11. First-release proof
+On 2026-09-14 the owner explicitly accepted and closed the first public `dev-2` release from the available current evidence and one-shot comparison diagnostics. This owner decision is the controlling first-release completion decision under this revision.
 
-The first public release is incomplete until current evidence proves:
+The closure does **not** assert that every D0007 repeated statistical cohort, p95 sample requirement or hard superiority threshold ran or passed, and it does not convert unperformed physical Android sleep/Doze/reboot acceptance into PASS. Those cells remain unverified or deferred. Retained evidence may support narrower factual claims only at the layer actually exercised.
 
-1. a real ChatGPT session performs a real non-documentation `dev-2` source change through canonical `dev-2` MCP ordinary operations;
-2. no predecessor development system is required to prepare that ordinary task;
-3. no second model is required for the core path;
-4. default concurrency is eight and eight independent work units can actually progress concurrently;
-5. eight is not encoded as an architectural ceiling and higher configured concurrency does not change core work identity or durable semantics;
-6. concurrent work is isolated and conflicts block only necessary scope;
-7. interruption and response loss do not produce duplicate work or duplicate integration;
-8. the exact validated result is what reaches canonical state;
-9. comparison evidence demonstrates material performance and efficiency superiority over tdev and tmcp under Section 10; non-live old tdev comparison must not delay usable cutover or product completion.
+The owner decision closes the r4 release-blocking requirement to continue costly repeated benchmarking or disruptive physical acceptance before declaring the first release. D0007 remains the formal methodology for any later statistical-superiority claim unless revised. Future regressions, incidents or product decisions may reopen specific acceptance work without retroactively changing what was and was not measured at first-release closure.
 
-## 12. Priority
+The first-release product invariants remain: canonical ChatGPT -> `dev-2` ordinary development must be self-hosting without predecessor or second-model dependency, default concurrency remains eight without being an architectural ceiling, concurrent work remains isolated, interruption/retry remains idempotent, and only exact required-validated results may reach canonical state.
 
-Until those proofs are green, prioritize: clean architecture, minimum complete self-development core, dynamic repository context, scalable default-eight concurrency, isolation and safe integration, recovery correctness, real self-development, then comparable predecessor benchmarking.
+## 12. Post-release priority
 
-Do not let optional features, compatibility polish, migration convenience, or proof machinery displace those priorities.
+Prioritize reducing the real cost of completed development while preserving every correctness and security invariant. The first research frontier is same-ref stale recomposition and repeated full-validation amplification. D0003's accepted cost-efficient composition research boundary is the current owner of that research: it keeps production semantics unchanged, rejects unsafe cross-tree receipt reuse under the current whole-result validation identity, and permits only a pure off-path deterministic composition falsifier before any later production Design revision.
+
+After structural amplification, optimize managed-execution/session, Git/provider and Workers/DO request cost where measurement shows material remaining waste. Prefer eliminating unnecessary work over making repeated unnecessary work marginally faster. Treat validation executions, managed compute, provider operations, infrastructure requests, redundant bytes, wall time and human intervention per completed task as first-class efficiency metrics. Use cheap falsifiers before large cohorts, and do not build a new qualification subsystem merely to prove an optimization.
 
 ## 13. Non-substitutable first-release operating environment
 

@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002]`
 - Supersedes: `[]`
-- Directive: `r4`
+- Directive: `r5`
 - Owns: `validation-identity, canonical-integration, stale-conflict-semantics`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -28,7 +28,7 @@ The initial managed ref must reject deletion and history rewrite, with verified 
 
 The broker's adopted, digest-pinned validation policy defines mandatory profile IDs, trusted controller/runner digest, fixed commands, toolchain/image/environment identities and budgets. It is bound to the repository binding and current policy version. A caller may add diagnostics, never remove mandatory validation. A candidate file, test output or fabricated receipt cannot grant eligibility.
 
-Initial project policy requires the complete core and integration profiles in D0007 for each source result. A release additionally requires release and affected sandbox/security/activation checks. Live experiential and comparative benchmarks are release-completion gates, not a second qualification workflow on every edit. No change-impact skipping is initially trusted.
+Initial project policy requires the complete core and integration profiles in D0007 for each source result. A release additionally requires release and affected sandbox/security/activation checks. Live experiential and comparative benchmarks are D0007 performance-decision evidence, not a second qualification workflow on every edit. Under DIRECTIVE r5, unrun formal benchmark cohorts do not reopen the owner-closed first release. No change-impact skipping is initially trusted.
 
 Policy adoption is an explicit policy.adopt effect under policy.write, referencing an already integrated policy artifact and the expected old digest. Its introducing work must pass the old policy; new validators are tested before adoption. Reductions require an explicit scoped policy-change intent and cannot violate the Directive. A candidate may not self-adopt the weaker policy it needs to pass. Changes to a trusted entrypoint, test selector or toolchain are evaluated by the old trusted controller, not solely by the proposed replacement. Ordinary repository tests remain untrusted sandbox input. Validation proves configured assertions, not absence of all malicious code.
 

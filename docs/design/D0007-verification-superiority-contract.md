@@ -5,10 +5,10 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0004, D0005, D0006]`
 - Supersedes: `[]`
-- Directive: `r4`
+- Directive: `r5`
 - Owns: `test-environments, benchmark-methodology, superiority-gates`
 
-Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
+Accepted is a decision state, not a claim of implementation, live verification, or measured superiority. Under DIRECTIVE r5, this Design remains the formal methodology for future statistical-superiority claims, but unrun cohorts do not reopen the owner's 2026-09-14 first-release closure; unmeasured cells remain unknown.
 
 
 ## Problem
@@ -17,7 +17,7 @@ A cleaner diagram is not proof that dev-2 is faster, safer or self-developing. D
 
 ## Required outcome
 
-Every claim identifies its exercised layer, exact bytes and environment. Local, CI and runtime validation invoke equivalent contracts. First-release completion requires actual canonical-MCP self-development and convincing evidence-backed improvement against tdev and tmcp under DIRECTIVE Section 10, never LOC, tool-count or historical-PASS substitution.
+Every claim identifies its exercised layer, exact bytes and environment. Local, CI and runtime validation invoke equivalent contracts. A formal D0007 superiority claim requires actual canonical-MCP self-development and convincing evidence-backed improvement against tdev and tmcp under DIRECTIVE Section 10, never LOC, tool-count, owner judgment or historical-PASS substitution.
 
 ## Facts / assumptions / unknowns
 
@@ -111,7 +111,7 @@ All must pass; none alters the Directive:
 5. **Efficiency/operations:** normal external bootstrap and manual repair count is zero, required approval turns do not exceed either baseline; aggregate human intervention burden including recovery is at least 25% lower when baseline is nonzero, and remains zero when baseline is zero. Reduce either model/tool rounds or redundant context bytes by at least 25% against each baseline, without a >10% increase in the other. Publish provider operations, retries and repeated validation; apparent latency wins purchased by hidden extra computation/cost must be explained and cannot be called overall efficiency superiority without resource-normalized improvement.
 6. **Recovery and simplicity:** response loss/restart creates no duplicate effect, independent witness work progresses, and recovery overhead is not worse than either baseline's comparable median by >10%. Normal path has no mandatory qualification round trip or legacy controller. Inventory shows one work ledger per repo, one external canonical ref, one temporary activation-record owner, routing-only installation connection state, and bounded managed-session intents in the existing ledger; no independent cloud work owner or hidden durable queue. Count auxiliary Git refs, provider-run selection, reconnect and cleanup effects as operational cost. Recovery logic is exercised by the same state machine, not a parallel recovery product. Review the actual component/effect count; LOC and four tools are not performance proof.
 
-These numeric thresholds operationalize 'materially better' before measurement. Failing them blocks the first-release superiority claim and triggers bounded Design revision, not weakened validation or a retrospective threshold change. Unsupported baselines need additional comparable workloads or an explicit narrower result; the Directive's claim against both remains unproven until evidence suffices.
+These numeric thresholds operationalize a formal D0007 'materially better' claim before measurement. Failing them blocks that formal superiority claim and triggers bounded Design revision, not weakened validation or a retrospective threshold change. Under DIRECTIVE r5 this does not reopen the owner-closed first release. Unsupported baselines need additional comparable workloads or an explicit narrower result; any statistical superiority claim against both remains unproven until evidence suffices.
 
 ## Evidence contract
 
@@ -121,7 +121,7 @@ The benchmark driver is test-only and cannot authorize source integration or bec
 
 ## Alternatives, failure and acceptance
 
-A one-off demo, archived predecessor PASS or microbenchmark alone misses actual round trips and failures. Reject those as release proof. Requiring the entire benchmark for every edit would slow development and make qualification dominate normal work; run it at release/performance-decision boundaries while focused contracts run per change. Accept this Design as methodology now; mark verified only after the named layers and data exist. The first cheap falsifiers are an eight-way overlap trace, same-ref W4 with full validation, and create/push response-loss tests. Include D0003 prepared-result reuse across distinct validate/integrate actions, stale-result rejection, foreign-writer denial, and a lost-response A whose same-ref independent B progresses before A finalizes. Golden identity-codec vectors and UTF-8 range-boundary tests belong to core; real Git CAS/receipt reuse and sender-race schedules belong to integration; provider writer-boundary enforcement belongs to live. Any hidden external bootstrap or changed-byte validation instantly fails regardless of speed.
+A one-off demo, archived predecessor PASS or microbenchmark alone misses actual round trips and failures. Reject those as formal D0007 statistical-superiority proof. Requiring the entire benchmark for every edit would slow development and make qualification dominate normal work; run it at explicit performance-decision boundaries while focused contracts run per change. Accept this Design as methodology now; mark verified only after the named layers and data exist. The first cheap falsifiers are an eight-way overlap trace, same-ref W4 with full validation, and create/push response-loss tests. Include D0003 prepared-result reuse across distinct validate/integrate actions, stale-result rejection, foreign-writer denial, and a lost-response A whose same-ref independent B progresses before A finalizes. Golden identity-codec vectors and UTF-8 range-boundary tests belong to core; real Git CAS/receipt reuse and sender-race schedules belong to integration; provider writer-boundary enforcement belongs to live. Any hidden external bootstrap or changed-byte validation instantly fails regardless of speed.
 
 ## Implementation consequences
 
@@ -129,7 +129,7 @@ Put layer tests under `test/core/`, `test/integration/`, `test/release/`, `test/
 
 ## Environment-specific early falsifiers and workload accounting
 
-Before repeated release cohorts, run one diagnostic same-ref W4 with real complete
+Before repeated D0007 cohorts, run one diagnostic same-ref W4 with real complete
 validation and one actual ChatGPT typed-union transcript. Record runner queue/start,
 idle session amortization, network/object bytes, Worker/DO calls, reconnect, GitHub
 operational refs and all stale revalidation. Never hide a cold session start in an
@@ -142,8 +142,8 @@ receipt, session expiry, wrong OIDC/run, and partial edge/device activation. Run
 potentially disruptive device tests only when authorized isolated execution will
 not kill unrelated user work. Until performed, those specific cases remain NOT RUN.
 
-No evidence currently justifies lowering the numeric superiority or trial gates.
-They apply at release/performance decisions, not every edit or every resumed chat.
+No evidence currently justifies lowering the numeric superiority or trial gates for a formal D0007 claim.
+They apply when that statistical performance claim is being made, not to every edit, every resumed chat, or the owner-closed r5 first release.
 The early diagnostics reject an unsuitable architecture cheaply; they do not replace
 the eventual comparable cohorts or convert a fixture into actual performance proof.
 
