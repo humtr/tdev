@@ -207,3 +207,17 @@ That is not sufficient to satisfy F4's definition of `survives`, because the pro
 **Final verdict: F4 blocked.**
 
 Do not begin production H2 promotion from this result. The next justified research action is only to obtain fixture-scoped access to the existing exact-CAS research sender and close the missing publication/canonical-terminal measurement. D0003-owned production-promotion Design work is **not yet justified**.
+
+## 12. Provider-publication continuation — 2026-09-14
+
+A fresh continuation rebound canonical authority at `70d6c329d404c446df40e490c5cce8737addf41e` (parent `59339e0f7960f4cb1b147d59b8f6ff61077254e8`, tree `305842d17d2e9f9d752e348ffc2707089556b180`) with binding epoch `1` and unchanged policy digest `sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309`.
+
+The retained F3 operator mechanism was recovered and a smaller F4-only operator harness was added at `bench/f4-publication-harness.mjs`. It is Android/Termux-only, hard-binds repository `github-1322208918` / provider repository `1322208918` and `refs/heads/research/f4-live-20260914-a1`, refuses a pre-existing research ref, verifies current binding/policy and all eight exact fixture bytes before mutation, creates the research ref with an absent-ref lease, invokes the existing `GitRefTransport.compareUpdate` exact expected-old lease once, performs authoritative readback/reconciliation, performs exact-leased cleanup with absence confirmation, and checks canonical HEAD/tree non-contamination. It does not add a public MCP/API capability or alter production integration semantics.
+
+The harness required one type-only repair after its first required validation found JSDoc diagnostics. The repaired exact result passed current required `core` and `integration` validation with validation ID `sha256:d99cad8bcd7e2e7d0599d4a3049527f0ff9e9c208ac5707ba455b593166d66e6` and was integrated as `20373679b2dc813b7cfcab00a4ef1ba8049c800d`, tree `a1f83e1989c2f7759963e09894046bb9db8b78cb`, direct child of `70d6c329d404c446df40e490c5cce8737addf41e`.
+
+Authoritative GitHub readback after that integration still returned the fixed F4 research ref as absent. Therefore no F4 provider mutation, publication timing, cleanup operation or provider cost measurement has yet occurred.
+
+The blocker is now narrower than the original record: the exact fixture-scoped native-CAS harness exists and is validated, but the current ChatGPT-connected tool surface has no operation that starts a process in the trusted Android/Termux UID. Current `dev_work` execution profiles are hosted `network:none`; public integration remains canonical-only; the generic GitHub ref mutation surface still does not expose exact expected-old CAS. Substituting any of those would violate the experiment boundary.
+
+Accordingly the verdict remains **F4 blocked**, with one smallest missing capability: one trusted Termux process start of the fixed integrated harness. Publication/provider/readback/cleanup metrics remain `unknown` until that single operator execution occurs. `provider-publication-blocker.json` freezes this continuation state. No production H2 promotion is justified from this blocker.
