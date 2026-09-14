@@ -19,8 +19,11 @@ export function h2Delta(base,candidate){
  const changes=paths.map(path=>({path,before:descriptor(before.get(path)),after:descriptor(after.get(path))}));
  return {changes,changedPathDigest:recordDigest('dev2.h2-delta.v1',{changes})};
 }
-/** Pairwise disjoint includes exact path and file/directory ancestor collisions. @param {readonly ReturnType<typeof h2Delta>[]} deltas */
+/** Pairwise disjoint includes exact path and file/directory ancestor collisions.
+ * Empty member deltas are not H2 work and are rejected before tuple identity.
+ * @param {readonly ReturnType<typeof h2Delta>[]} deltas */
 export function requireH2Disjoint(deltas){
+ requireThat(deltas.length>=2&&deltas.every(delta=>delta.changes.length>0),'INVALID_ARGUMENT','H2 requires non-empty member deltas');
  const changed=deltas.flatMap((delta,member)=>delta.changes.map(change=>({member,path:change.path}))).sort((a,b)=>compareH2Utf8(a.path,b.path));
  for(let i=0;i<changed.length;i++)for(let j=i+1;j<changed.length;j++){
   const a=changed[i],b=changed[j];if(a.member===b.member)continue;
