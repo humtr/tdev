@@ -12,3 +12,5 @@ test('F4 publication reconciliation distinguishes success, no-effect, stale and 
 test('F4 fixed identity cannot be caller-selected',()=>{assert.equal(F4_SCOPE.repositoryId,'github-1322208918');assert.equal(F4_SCOPE.providerRepositoryId,'1322208918');assert.equal(F4_SCOPE.canonicalRef,'refs/heads/dev-2');assert.equal(F4_SCOPE.ref,'refs/heads/research/f4-live-20260914-a1');});
 
 test('F4 operator harness does not require runtime/native or jose bootstrap',()=>{const source=readFileSync(new URL('../../bench/f4-publication-harness.mjs',import.meta.url),'utf8');assert.doesNotMatch(source,/runtime\/native\.mjs/);assert.doesNotMatch(source,/from ['\"]jose['\"]/);assert.match(source,/privateBytes/);});
+
+test('F4 operator separates fresh policy authority from installed transport policy',()=>{const source=readFileSync(new URL('../../bench/f4-publication-harness.mjs',import.meta.url),'utf8');assert.match(source,/authority-policy-digest/);assert.match(source,/authority-binding-epoch/);assert.match(source,/Installed binding epoch differs from current authority/);assert.doesNotMatch(source,/currentPolicyDigest=binding\.policyDigest/);});
