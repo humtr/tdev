@@ -109,3 +109,29 @@ After a provider run is proven terminal, an unobserved replay-safe validation ma
 be rerun with a new attempt; its overhead is counted. Same-ref stale recomposition
 still invalidates previous result/validation identity, even on a warm executor.
 No batch coalescing or cross-tree receipt reuse is authorized by this placement change.
+
+## Cost-efficient composition research boundary
+
+This Design selects one bounded research falsifier for same-base publication amplification. It does not change the production publication algorithm above, authorize a new durable owner, or weaken exact-result validation. Existing D0003 behavior remains the correctness-preserving fallback until a later accepted Design revision explicitly promotes a measured result.
+
+### Current validation dependency model
+
+The current required-validation evidence is whole-result and repository-global. The validation identity binds the exact prepared result tree/commit plus policy and execution identity. The trusted controller's input seal covers repository-wide source, tools, tests, configuration, benchmark/deployment inputs, selected top-level authority files and all Design files; core typechecking spans the selected source/tool/test-fixture/benchmark files, and each core/integration profile runs its complete installed mandatory suite plus candidate additions. Therefore current evidence has no sound path-local dependency slice that permits a receipt for tree U1 to authorize a different composed tree U2.
+
+Consequently H1, cross-tree receipt reuse after a disjoint head change, is rejected under the current policy. A future reuse design must first define a smaller validation dependency identity, prove dependency/test-selection invalidation, and preserve old-policy evaluation of changes to the selector/controller/toolchain. Merely proving changed-path disjointness is insufficient.
+
+### Selected off-path H2 falsifier
+
+A deterministic composition experiment may operate off the publication path only when all of the following hold:
+
+1. Every member names the same repository/binding epoch and exact base commit/tree, and each exact candidate has already passed the normal required validation for that candidate.
+2. The observed canonical head still equals that exact base when the experiment composes the set. Any late head movement makes the set ineligible and falls back to the existing per-work D0003 recomposition/full-validation path.
+3. Candidate changed-path sets relative to the shared base are pairwise disjoint. A shared touched path, file/directory collision, wrong base, missing validation evidence or malformed source makes the set ineligible; there is no ordering-based conflict winner.
+4. Membership is sorted by stable candidate evidence identity. A composition identity binds repository/epoch, exact base, each member identity/validation identity/manifest and changed paths, and the exact composed manifest. Input order cannot change the composed bytes or identity.
+5. Candidate receipts are provenance and precondition evidence only. They never authorize the composed tree. The exact composed tree must become its own prepared result and pass the complete current required validation once before any canonical effect can be created.
+6. The research primitive owns no durable lifecycle and performs no provider operation. A future production promotion must either fit the existing D0001/D0003 durable action/effect ownership and recovery semantics or separately prove why another owner is necessary.
+7. Cancellation, partial failure, policy change, authorization revocation, response loss or an uncertain provider effect are not hidden by composition. The first falsifier freezes only a pure input set before any effect; production membership/effect recovery remains unselected until a later Design revision.
+
+For N same-base disjoint candidates, the deterministic structural fixture compares the current repeated-recomposition model N(N+1)/2 full validations and N canonical publications with N initial candidate validations plus one exact composed-tree validation and one publication. For N=8 this is 36 versus 9 full validations, 28 versus 0 stale-recomposition validations, and 8 versus 1 canonical publication/CAS attempt. These are protocol-structure counts, not a claim about a particular live W4 trace, CPU time, provider traffic or statistical superiority.
+
+Promotion requires exact final-tree equality, zero invalid/lost/silent/wrong-base/unvalidated/duplicate-effect violations, the requested validation/publication reductions, and a separately reviewed production ownership/recovery design. Failure of those gates leaves the existing algorithm unchanged.
