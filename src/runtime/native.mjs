@@ -86,7 +86,12 @@ export async function createNativeInstallation(config,options={}){
  const transport=new GitRefTransport(repository,binding);
  const verifyLineage=(/** @type {string} */ head)=>repository.isAncestor(binding,config.runtime.sourceCommitOid,head);
  const integrationLineage=async(/** @type {string} */ head)=>{requireThat(guard,'EXECUTION_UNAVAILABLE','Canonical monotonic boundary is not enrolled');await guard.verify();return verifyLineage(head);};
- const remoteTransport={resolve:()=>transport.resolve(),fetch:(/** @type {string} */ head)=>transport.fetch(head),compareUpdate:async(/** @type {import('../contracts/ports.js').Effect} */ effect)=>{requireThat(sender&&guard,'EXECUTION_UNAVAILABLE','Native canonical writer is not installed');await guard.verify();return sender.compareUpdate(effect);}};
+ const remoteTransport={
+  resolve:()=>transport.resolve(),fetch:(/** @type {string} */ head)=>transport.fetch(head),
+  compareUpdate:async(/** @type {import('../contracts/ports.js').Effect} */ effect)=>{requireThat(sender&&guard,'EXECUTION_UNAVAILABLE','Native canonical writer is not installed');await guard.verify();return sender.compareUpdate(effect);},
+  prepareCompareUpdate:async(/** @type {import('../contracts/ports.js').Effect} */ effect)=>{requireThat(sender&&guard,'EXECUTION_UNAVAILABLE','Native canonical writer is not installed');await guard.verify();const selected=sender;return (/** @type {(tx:import('../storage/ledger.mjs').Transaction)=>void} */ fence)=>selected.compareUpdate(effect,fence,true);},
+  observeSender:async(/** @type {import('../contracts/ports.js').Effect} */ effect)=>{requireThat(sender,'EXECUTION_UNAVAILABLE','Native canonical writer is not installed');return sender.observe(effect);}
+ };
  if(config.managedEnrollmentFile){
   requireThat(token&&config.gitSender&&config.githubTokenFile&&config.gitAskpassFile,'EXECUTION_UNAVAILABLE','Private managed/native writer configuration is incomplete');
   const enrollment=/** @type {import('./enrollment.mjs').Enrollment} */(parseRecord(await privateFile(config.managedEnrollmentFile,4194304),4194304));
@@ -112,7 +117,8 @@ managed=await createManagedControl({enrollment,productionEnrollment,commissionin
   currentEngine?.assertAttempt(attempt);const receipt=await managed.poolFor(result.execution).run(result,attempt,profile);return {exitCode:receipt.exitCode,signal:receipt.signal,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest};
  };
  const activeManaged=managed;
- const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?release?.available()===true:true,integrationLineage,verifyLineage,actor:config.actor,
+ // H2 code is installed but production selection is explicitly disabled here.
+ const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,objects,h2Enabled:false,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?release?.available()===true:true,integrationLineage,verifyLineage,actor:config.actor,
   ...(activeManaged?{runProfile,
    cancelAttempt:async(/** @type {import('../contracts/ports.js').Attempt} */ a)=>{await activeManaged.production?.builder?.cancel(a.actionId);return activeManaged.attemptPool(a).cancel(a);},
    attemptStopped:(/** @type {import('../contracts/ports.js').Attempt} */ a)=>activeManaged.attemptPool(a).stopped(a),
