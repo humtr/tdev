@@ -1,70 +1,47 @@
 # Cost-efficient composition F4 live-cost falsification evidence — 2026-09-14
 
-Status: **F4 blocked**
+Status: **F4 survives**
 
 This directory is bounded non-normative research evidence. It does not approve production H2, alter D0003/D0004 integration semantics, weaken exact-result validation, change the public MCP schema, activate a release, restart the D0007 formal superiority cohort, or convert deferred Android acceptance into PASS.
 
 ## 1. Verdict
 
-**F4 blocked.**
+**F4 survives.**
 
-The live validation half of the cost hypothesis remains credible: an exact current-base N=8 disjoint fixture completed eight member validations plus one complete validation of the exact composed result with no stale recomposition, and the measured validation-work proxy was materially below the retained live baseline's repeated-recomposition workload.
+The bounded N=8 same-base/disjoint composition path preserved the exact validated result and materially reduced the dominant repeated-validation/publication amplification. Eight member results plus one exact composed result passed the complete current required validation. The exact composed commit then published through the existing native Git sender on one fixed disposable research ref using one exact expected-old CAS, was authoritatively read back as the intended commit/tree, and was removed with an exact leased cleanup. Canonical `dev-2` HEAD/tree remained unchanged throughout the provider experiment.
 
-F4 nevertheless cannot be called `survives`. The current authorized public mutation surface cannot execute the required composition publication against a fixed disposable research ref with exact expected-old CAS. `dev_work.integrate` is bound to canonical `refs/heads/dev-2`; the available generic GitHub ref update does not accept an exact expected-old lease. Using canonical as the destructive research fixture or substituting a non-CAS update would cross the experiment's safety boundary.
+This verdict is limited to the F4 structural/live-cost falsifier. It is not D0007 statistical-superiority evidence, not a production batching Design, and not authority to implement H2 in production. The next production-facing action, if pursued, is a D0003-owned Design revision for publication ownership/recovery semantics.
 
-Consequently live composition publication/CAS cost, provider cleanup/reconciliation cost, canonical terminal throughput and a same-fixture provider-level final-tree comparison remain unknown. Those are required evidence for the F4 survival definition.
+## 2. Authority and exact fixture
 
-The smallest missing capability is fixture-scoped invocation of the already-existing native exact-CAS sender for one fixed disposable research ref, with authoritative provider readback and exact cleanup. No production redesign or public schema change is required to obtain that missing evidence.
+Repository authority for the final provider run was rebound immediately before execution:
 
-## 2. Fresh starting authority
-
-The experiment rebound current repository authority before dependent actions:
-
-- repository: `humtr/tdev`
-- repository ID: `github-1322208918`
+- repository: `humtr/tdev` / `github-1322208918`
 - provider repository ID: `1322208918`
 - canonical ref: `refs/heads/dev-2`
-- starting HEAD: `59339e0f7960f4cb1b147d59b8f6ff61077254e8`
-- parent: `09d47cca3df131f038c5b73efdbef6a50d41121c`
-- starting tree: `93c9652c74d7c398ba29a904093b966122a2df37`
-- starting snapshot manifest: `sha256:1ddb9ba453d8fb7e9192c1ebecf9969f6877005a3527cd1805f97e9ed0a2874e`
+- authority HEAD at experiment start/end: `a4bdf6eba8de16b8d6863231ba49d11116cdac59`
+- authority tree at experiment start/end: `c27c169533ee1460bb481b8caa80e5c89cf63f0b`
 - binding epoch: `1`
 - policy digest: `sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309`
 - required `core`: `sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa`
 - required `integration`: `sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71`
-- configured execution capacity: `8`
 
-At the first runtime observation one attempt was already reserved, so only seven slots were immediately available to the eight-member wave. That queue/admission interference is retained rather than normalized away.
+`fixture.json` freezes the exact research result:
 
-The owner-selected `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, `WORKBOARD.md`, design index, D0001, D0003, D0004, D0005, D0006 and D0007 were fresh-read. D0003's whole-result validation identity remained unchanged: no member receipt was reused as authorization for a different tree.
-
-## 3. Exact F4 fixture
-
-`fixture.json` freezes the machine-readable identity.
-
-All eight works share exact base `59339e0f...` / tree `93c9652c...`. Member `N` adds only:
-
-`bench/f4-live-fixture/member-N.txt`
-
-with content:
-
-`f4-live-20260914 member N\n`
-
-Each path was absent at the base, mode `100644`, and each payload is 26 bytes. The eight paths are pairwise disjoint and deterministic order is 1..8.
-
-The exact composed candidate is:
-
-- tree: `d727643980d6baedab8b511f5827417f8c7d862c`
-- manifest/result digest: `sha256:1be3a2e7c76c796458fd851a89c6011a6cc8326814263a1f28af9c6fd882c928`
-- candidate commit: `c58762df1b1124b79716a00f84ab6dc0a9b6c3f2`
-- result: `366eda7baee02fd3d0a32d104ad6d03f`
+- exact base commit: `59339e0f7960f4cb1b147d59b8f6ff61077254e8`
+- exact base tree: `93c9652c74d7c398ba29a904093b966122a2df37`
+- eight pairwise-disjoint `bench/f4-live-fixture/member-N.txt` additions, each 26 bytes
+- exact composed tree: `d727643980d6baedab8b511f5827417f8c7d862c`
+- manifest: `sha256:1be3a2e7c76c796458fd851a89c6011a6cc8326814263a1f28af9c6fd882c928`
+- composed commit: `c58762df1b1124b79716a00f84ab6dc0a9b6c3f2`
+- composed result ID: `366eda7baee02fd3d0a32d104ad6d03f`
 - exact composed validation: `sha256:919b4ef34f7e9388eb686cc434e969696320e918408d89b4e84436df4d520b2d`
 
-A direct work-tree diff against the frozen base returned exactly eight additions, zero modifications and zero deletions. Direct file readback matched all eight requested payloads. No member was lost, overwritten, based on the wrong tree or admitted without its complete required validation.
+All eight exact member bytes were re-read and verified before provider mutation.
 
-## 4. Live validation measurements
+## 3. Live validation measurements
 
-All eight member results passed both current required profiles. Their exact full-validation spans were:
+All eight member results passed both current required profiles. Exact full-validation spans were:
 
 | member | wall s |
 | --- | ---: |
@@ -77,151 +54,113 @@ All eight member results passed both current required profiles. Their exact full
 | 7 | 178.501 |
 | 8 | 129.450 |
 
-Member aggregate: **1,417.196 slot-seconds**; mean **177.1495 s**; median **172.3245 s**.
+Member aggregate was **1,417.196 slot-seconds**. The exact composed tree then passed the complete current `core` + `integration` validation in **242.451 s**.
 
-Member 8 began only after capacity became available; its admission/start delay was approximately 174 seconds. The eight-member wave took about **303.770 s** from retained validation admission observation to the last member validation completion.
-
-The exact composed tree then received the complete current required validation and passed `core` and `integration`. Its validation span was **242.451 s**.
-
-Therefore the measured constrained validation path was:
+Measured composition validation path:
 
 - full required validations: **9**
 - stale-recomposition validations: **0**
-- discarded validation results in the measured phase: **0**
+- discarded validation results: **0**
 - aggregate validation wall/slot proxy: **1,659.647 s**
-- pre-publication validation phase wall time from first admission through composed completion: **570.498 s**
-- validation-phase equivalent source-set rate: **0.841 task/min**, but this is **not canonical throughput** because no conforming publication was executed.
+- validation-phase wall window: **570.498 s**
 
-The composed validation was about **36.9% slower** than the mean member validation. This was the strongest near-falsifier: composition made the exact-result validation materially more expensive. It did not erase the validation-count/slot-proxy reduction, but future evidence must not assume equal per-validation cost.
+The composed validation was about 36.9% slower than the mean member validation. That near-falsifier is retained; the cost conclusion does not assume equal validation durations.
 
-## 5. Retained live baseline
+## 4. Retained live baseline
 
-The baseline is the already-preserved one-shot live W4 diagnostic in `docs/evidence/cost-efficiency-diagnostic-20260914/README.md`. It used the same workload class—eight independent same-base disjoint-path tasks on one canonical ref—under normal current per-work validation/integration semantics.
+The retained W4 diagnostic in `docs/evidence/cost-efficiency-diagnostic-20260914/README.md` used the same workload class: eight independent same-base disjoint-path tasks on one canonical ref under the normal per-work validation/integration algorithm.
 
 Within its fixed 30-minute window it retained:
 
 - initial validation PASS: 8/8
 - completed full validations: **34**
-- one additional validation still running and later cancelled
-- integration attempts admitted: **34**
+- integration attempts: **34**
 - successful canonical integrations: **6**
 - stale `CONTENDED_REF` outcomes: **27**
 - canonical completion: **6/8**
 - canonical throughput: **0.200 task/min**
-- completed validation mean: about **151.17 s**
-- completed validation median: about **140.78 s**
-- range: about **100.49–216.64 s**
+- completed-validation mean: about **151.17 s**
 
-The retained rounded mean implies approximately 5,139.78 slot-seconds for 34 completed validations, but that is an approximation, not an authoritative exact aggregate.
+The rounded mean implies approximately **5,139.78 slot-seconds** for 34 completed validations. Against that historical workload, 9 versus 34 is a **73.5% full-validation count reduction** and 1,659.647 versus about 5,139.78 seconds is about a **67.7% aggregate proxy reduction**. Against D0003's complete N=8 structural model, 9 versus 36 is a **75% count reduction**.
 
-Against counts, the measured constrained path is 9 versus 34 completed full validations, a **73.5% reduction**. Against the complete structural N=8 model recorded by D0003, it is 9 versus 36, a **75% reduction**. Against the historical rounded-mean aggregate model, 1,659.647 s is about **67.7% lower**.
+The baseline is historical, not a contemporaneous same-fixture paired cohort. Those effects are descriptive and do not satisfy D0007's formal statistical-superiority gates.
 
-These effect sizes are descriptive only. The baseline was historical rather than a contemporaneous same-fixture paired run, and the F4 composition path did not reach canonical publication. They are not D0007 superiority evidence.
+## 5. Provider/publication measurement
 
-## 6. Useful versus wasted work
+The final trusted-UID run used `bench/f4-publication-harness.mjs` against only `refs/heads/research/f4-live-20260914-a1`. `provider-publication-measurement.json` preserves the raw output.
 
-For the narrow live composition validation phase, all nine required validations contributed to the selected research construction: eight admitted members plus one exact composed result. Measured stale/discarded validation work was zero, so the narrow useful validation proxy is 1,659.647 slot-seconds and the narrow wasted proxy is 0.
+Measured provider path:
 
-For the retained baseline, 27 integration attempts ended `CONTENDED_REF`, demonstrating repeated stale work, but the evidence retained here does not bind every validation span to an exact final usefulness classification. Exact useful and wasted baseline slot-seconds therefore remain **unknown**.
+- pre-existing research ref: **absent**
+- exact absent-ref setup to expected-old H: **2,725 ms**
+- exact expected-old CAS attempts: **1**
+- successful CAS effects: **1**
+- stale CAS rejections: **0**
+- uncertain sends: **0**
+- sender wall time: **3,129 ms**
+- authoritative readback/reconciliation: **1**, readback **1,086 ms**
+- publication to confirmed readback: **4,216 ms**
+- exact leased cleanup operations: **1**, **4,404 ms**
+- total harness wall window: **12,975 ms**
+- provider-facing Git operations: **9**
+- total instrumented Git invocations, including local object operations: **32**
+- GitHub repository-identity API operations: **9**
+- GitHub API response body bytes: **42,489**
+- captured Git stdout bytes: **4,589,766**
+- retries: **0**
+- network bytes transferred: **unknown**
 
-Validation CPU time is also **unknown**; wall span is only a slot/execution proxy.
+The publication outcome was `integrated / commit_or_descendant`, with the observed head equal to the intended composed commit. The published tree and manifest were the exact validated values.
 
-## 7. Managed execution and queue observations
+For a deliberately conservative mixed proxy, adding the entire 12.975 s harness wall window to the 1,659.647 s validation proxy yields **1,672.622 s**, still about **67.46% lower** than the historical approximate 5,139.78 s baseline. This mixes slot/wall and publication wall semantics and is therefore descriptive only; it is used only to show that measured publication overhead is far too small to erase the observed structural reduction.
 
-The runtime was configured for capacity 8, but one attempt was already reserved at the start. Seven F4 member validations entered managed execution immediately and the eighth waited for capacity.
+## 6. Correctness, cleanup and non-contamination
 
-Runtime observations showed seven new managed sessions for the initial wave and at least two further session creations during the composed-validation interval. This establishes **at least nine observed new managed-session creations** across the retained observations, but it does not authoritatively classify cold starts or give a complete per-validation session-reuse map.
+Final provider/correctness checks:
 
-Therefore:
+- exact member bytes before publication: PASS
+- composed commit is direct child of exact expected-old: PASS
+- one exact expected-old lease used: PASS
+- intended commit observed after publication: PASS
+- exact intended tree observed: PASS
+- all eight members preserved: PASS
+- lost changes: **0**
+- silent overwrites: **0**
+- wrong-base admission: **0**
+- canonical before/after HEAD identical: PASS
+- canonical before/after tree identical: PASS
+- canonical contamination: **false**
+- exact leased cleanup: PASS
+- residual research ref according to harness: **false**
+- independent GitHub REST readback after the run: **404 / absent**
 
-- exact managed-session count: **unknown**
-- cold-start count: **unknown**
-- session reuse savings: **unknown**
-- queue/admission delay: observed for member 8; exact per-profile queue time otherwise **unknown**
+The raw measurement's `cleanup.confirmationHead` field contains the composed commit despite `succeeded:true` and `residualRef:false`. This is a reporting-only null-coalescing bug: the harness serialized `cleanupConfirmation?.head ?? observed.head`, so a confirmed null cleanup head fell back to the pre-cleanup observed head. The independent 404 readback and the raw `residualRef:false` establish actual absence. The harness source is corrected in the evidence-closing change without altering the measured provider effect.
 
-No favorable session-reuse assumption is used in the verdict.
+A destructive same-fixture replay of eight separate publications against canonical was not performed. Exact final-state equality is established for the composed fixture itself and the D0003 exact-tree/manifest identity; comparison to the baseline remains workload-class/historical rather than a destructive paired canonical replay.
 
-## 8. Publication/provider measurement boundary
+## 7. Remaining unknowns and interpretation
 
-Baseline provider behavior is live and retained: 34 integration attempts in-window, 27 stale outcomes, six canonical successes, with a seventh just after the window.
+Still unknown with reliable experiment attribution:
 
-A conforming F4 composition publication was **not executed**. Current public `dev_work.integrate` is tied to canonical `dev-2`, while the available generic GitHub ref-update operation does not expose exact expected-old CAS. The experiment therefore stopped the provider mutation path rather than weaken D0003 or use canonical as a research fixture.
-
-F3 independently demonstrated that the installed native sender can execute one exact-CAS shared publication effect against a disposable research ref and clean it up safely. F3's retained record, however, is safety/recovery evidence, not a trustworthy F4 cost timing record; its machine record does not retain a usable publication duration.
-
-For F4 composition these remain **unknown**:
-
-- live publication attempts
-- live exact-CAS attempts
-- provider publication wall time
-- provider Git/API operation count
-- provider readback/reconciliation cost
-- provider cleanup cost for a conforming F4 ref
-- canonical end-to-end completion wall time
-- canonical completed tasks/minute
-
-No F4 research ref was created, so F4 itself required no provider ref cleanup.
-
-## 9. Data/control-plane metrics
-
-The fixture contains 208 unique changed source bytes. Across the eight member payloads plus the exact composed payload, the logical changed-file payload sum is 416 bytes.
-
-Those numbers are fixture bytes, not repository transfer accounting. Authoritative checkout/blob/source transfer bytes are **unknown**.
-
-Also **unknown** because current retained evidence does not expose them with reliable experiment attribution:
-
-- MCP runtime request/response count and bytes
-- Workers request count
-- Durable Object operation count
 - validation CPU time
-- complete Git/provider API operation count
+- exact managed session/cold-start/reuse count attributable to publication
+- Workers request count attributable to publication
+- Durable Object operation count attributable to publication
+- MCP request count attributable to publication
+- network bytes transferred
 
-No telemetry subsystem was added merely to obtain these counters.
+No telemetry subsystem was added solely to chase those counters. None of the unknowns changes the observed facts that the exact result passed full validation, one CAS replaced the structural eight-publication path, provider overhead was seconds rather than thousands of validation-proxy seconds, cleanup was exact and confirmed, and canonical state was untouched.
 
-## 10. Correctness and non-contamination
+Therefore the bounded falsifier no longer has a missing provider/publication measurement blocker. **Final verdict: F4 survives.**
 
-Composition-side correctness passed:
+This is enough to justify preparing a D0003-owned production-promotion Design revision. It is not enough to implement production H2 without that revision, and it does not establish D0007 statistical superiority.
 
-- same exact base for all members: PASS
-- pairwise-disjoint paths: PASS
-- deterministic membership: PASS
-- exact union tree materialization: PASS
-- full required validation of exact composed tree: PASS
-- lost changes: 0
-- silent overwrites: 0
-- wrong-base members: 0
-- invalid admitted members: 0
+## 8. Continuation history
 
-Provider-level exact final-tree equality between **this exact F4 fixture** under baseline publication and composition publication is **not measured**, because neither destructive canonical baseline replay nor non-CAS research publication was permitted. This incompleteness is part of the blocking verdict rather than being silently promoted to PASS.
+The provider half initially stopped because the ChatGPT tool surface could not start a process under the trusted Android/Termux UID. A fixed operator-only harness was added rather than exposing arbitrary public ref mutation.
 
-After measurement all nine F4 research Works were explicitly cancelled; all had `currentActionId:null` and disposition `cancelled`. No F4 research ref existed. Fresh canonical readback after fixture cleanup remained exactly the starting HEAD/tree. Thus the fixture did not contaminate canonical state.
+The first trusted-UID attempt failed during Node module linking because a fresh checkout lacked `jose`; no harness `main()` or provider mutation occurred. The harness was repaired to use the built-in-only private file reader.
 
-The only canonical mutation after that proof is the evidence-only integration of this directory.
+The second attempt failed in preflight because the harness incorrectly treated the installed Git sender's historical policy field as current validation-policy authority. Repository authority and `fixture.json` still agreed on binding epoch `1` and policy digest `sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309`. The harness was repaired to take current authority explicitly, require the installed transport epoch to match, and project the fresh policy only onto the fixed transport binding. Again, no provider mutation occurred on that failed attempt.
 
-## 11. Final interpretation
-
-The dominant measured waste mechanism is strongly reduced at the validation layer: 9 live full validations with zero stale recomposition versus a retained live baseline of 34 completed validations and 27 stale integration outcomes. The exact composed validation was substantially slower than a member validation, but not enough to erase that measured validation-work reduction.
-
-That is not sufficient to satisfy F4's definition of `survives`, because the provider/publication half of the live comparison and exact same-fixture terminal comparison could not be obtained through a safe authoritative mutation path.
-
-**Final verdict: F4 blocked.**
-
-Do not begin production H2 promotion from this result. The next justified research action is only to obtain fixture-scoped access to the existing exact-CAS research sender and close the missing publication/canonical-terminal measurement. D0003-owned production-promotion Design work is **not yet justified**.
-
-## 12. Provider-publication continuation — 2026-09-14
-
-A fresh continuation rebound canonical authority at `70d6c329d404c446df40e490c5cce8737addf41e` (parent `59339e0f7960f4cb1b147d59b8f6ff61077254e8`, tree `305842d17d2e9f9d752e348ffc2707089556b180`) with binding epoch `1` and unchanged policy digest `sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309`.
-
-The retained F3 operator mechanism was recovered and a smaller F4-only operator harness was added at `bench/f4-publication-harness.mjs`. It is Android/Termux-only, hard-binds repository `github-1322208918` / provider repository `1322208918` and `refs/heads/research/f4-live-20260914-a1`, refuses a pre-existing research ref, verifies current binding/policy and all eight exact fixture bytes before mutation, creates the research ref with an absent-ref lease, invokes the existing `GitRefTransport.compareUpdate` exact expected-old lease once, performs authoritative readback/reconciliation, performs exact-leased cleanup with absence confirmation, and checks canonical HEAD/tree non-contamination. It does not add a public MCP/API capability or alter production integration semantics.
-
-The harness required one type-only repair after its first required validation found JSDoc diagnostics. The repaired exact result passed current required `core` and `integration` validation with validation ID `sha256:d99cad8bcd7e2e7d0599d4a3049527f0ff9e9c208ac5707ba455b593166d66e6` and was integrated as `20373679b2dc813b7cfcab00a4ef1ba8049c800d`, tree `a1f83e1989c2f7759963e09894046bb9db8b78cb`, direct child of `70d6c329d404c446df40e490c5cce8737addf41e`.
-
-Authoritative GitHub readback after that integration still returned the fixed F4 research ref as absent. Therefore no F4 provider mutation, publication timing, cleanup operation or provider cost measurement has yet occurred.
-
-The blocker is now narrower than the original record: the exact fixture-scoped native-CAS harness exists and is validated, but the current ChatGPT-connected tool surface has no operation that starts a process in the trusted Android/Termux UID. Current `dev_work` execution profiles are hosted `network:none`; public integration remains canonical-only; the generic GitHub ref mutation surface still does not expose exact expected-old CAS. Substituting any of those would violate the experiment boundary.
-
-Accordingly the verdict remains **F4 blocked**, with one smallest missing capability: one trusted Termux process start of the fixed integrated harness. Publication/provider/readback/cleanup metrics remain `unknown` until that single operator execution occurs. `provider-publication-blocker.json` freezes this continuation state. No production H2 promotion is justified from this blocker.
-
-### 2026-09-15 first trusted-UID attempt
-
-The first actual Termux process start failed during Node ESM module resolution before harness `main()` could run: the fresh checkout had no `node_modules`, and the harness imported `src/runtime/native.mjs`, which transitively required the external `jose` package. The observed error was `ERR_MODULE_NOT_FOUND` for `jose`. Because failure occurred during module linking, no fixed research ref creation, CAS send, provider readback, or cleanup operation was attempted. The harness was therefore repaired to read the same private installation/config records through the built-in-only `src/release/private-files.mjs` `privateBytes` helper instead of importing the full native runtime. The research binding, exact fixture identity and publication semantics are unchanged.
+The third attempt completed the intended one-shot provider experiment and exact cleanup. The historical `provider-publication-blocker.json` is retained but marked resolved. `final-verdict.json` is the machine-readable closure.
