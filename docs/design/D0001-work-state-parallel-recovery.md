@@ -158,16 +158,21 @@ default-eight work semantics nor allocates eight permanent durable lanes. Sessio
 cleanup occurs only after authoritative terminal run/attempt proof; a timer alone
 never resolves an integration or permits duplicate physical execution.
 
-## Cost-efficient composition owner research boundary
+## D0003 composition specialization
 
-D0003's bounded composition research may test one exact publication effect that names multiple already-admitted work/action identities without introducing a new mutable group owner. The candidate model is intentionally narrower than a production selection:
+D0003 now selects the bounded H2 production contract using this ledger's existing
+Work/Action/effect ownership. Its immutable member tuple has no independent status,
+retry counter, queue or cancellation lifecycle. Every member retains its own
+principal/request identity, Work generation/revision and Action fence. One existing
+Action is physical leader only, with one real execution reservation; followers do
+not create fictitious attempts or consume slots. D0003 owns exact multi-member
+selection, freeze, publication and all-member settlement predicates.
 
-- every member keeps its original `work` and `action` identity, request dedup key, generation/revision fence and disposition;
-- an ordered immutable member tuple may be evidence embedded in one exact composed prepared result/effect, like other immutable result metadata, but it owns no independent status, retry counter, queue position or cancellation lifecycle;
-- one existing integrate action is a deterministic publication leader solely for the physical validation/publication attempt; followers remain fenced by their own admitted integrate actions and reference the same immutable result/effect evidence;
-- group formation may consider only compatible integrate items successfully admitted in the same `dev_work` envelope before dispatch. There is no coalescing timer, background merge train, path lock or search across unrelated queued work;
-- before publication intent, all member fences and current authorization/policy must still hold atomically or the optimization is abandoned in favor of existing per-work behavior;
-- after one exact publication intent exists, response loss/restart reconciles that one effect. Canonical readback settles every frozen member in one short ledger transaction; it does not synthesize replacement works/actions or a second sender;
-- if implementation needs a mutable group table/lifecycle, synthetic composition Work, independent recovery queue, or follower state that cannot be derived from existing work/action/result/effect records, this research line is rejected as added ownership complexity.
-
-This section authorizes only an off-path state-model falsifier. Existing action/effect schema and production transitions remain authoritative until D0003 explicitly selects a production algorithm.
+Those predicates specialize the existing transaction API, not the general Work
+state vocabulary. Tuple-aware transitions must atomically update all referencing
+records, and any member recovery resolves the same retained leader attempt/effect.
+Ordinary single-member recovery must never process an H2 follower independently.
+D0003's versioned storage-reader gate prevents old single-member code from adopting
+pending H2 state. No synthetic Work, group lifecycle or second recovery owner is
+introduced. This is a Design selection; current production source remains per-work
+until separately authorized implementation and acceptance.
