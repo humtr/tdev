@@ -75,7 +75,7 @@ export class DevelopmentEngine {
   * @param {Input} item */
  deadline(item){let duration=300000;
   if(item.op==='run')duration=this.o.policy().profile(String(item.profileId),item.parameters??null).timeoutMs+300000;
-  else if(['validate','integrate'].includes(item.op))duration=this.o.policy().required().reduce((sum,profile)=>sum+profile.timeoutMs,60000);
+  else if(['validate','integrate'].includes(item.op))duration=this.o.policy().required().reduce((sum,profile)=>sum+profile.timeoutMs,300000);
   // Finite build alone has a five-minute ceiling. Keep bounded room for its
   // managed launch/transfer and retained staging effect; this is not caller input.
   else if(item.op==='release.stage')duration=900000;
