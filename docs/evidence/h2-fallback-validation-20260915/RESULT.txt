@@ -1,0 +1,4 @@
+source_commit=479fdbbb67c9f528dd08d11d44bae1cf6b192b41
+core=failure
+integration=failure
+focused=failure
