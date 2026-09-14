@@ -1,0 +1,59 @@
+name: h2-fallback-validation
+on:
+  push:
+    branches:
+      - tmcp/dev2-impl-h2-20260915
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - id: core
+        continue-on-error: true
+        run: npm run check:core
+      - id: integration
+        continue-on-error: true
+        run: npm run check:integration
+      - id: focused
+        continue-on-error: true
+        run: >-
+          node --test
+          test/core/h2-identity.test.mjs
+          test/integration/h2-storage.test.mjs
+          test/integration/h2-sender.test.mjs
+          test/integration/h2-capacity-one.test.mjs
+          test/integration/h2-production.test.mjs
+          test/integration/h2-release-authority.test.mjs
+      - name: Record bounded validation evidence
+        if: always()
+        env:
+          CORE: ${{ steps.core.outcome }}
+          INTEGRATION: ${{ steps.integration.outcome }}
+          FOCUSED: ${{ steps.focused.outcome }}
+        run: |
+          set -eu
+          dir=docs/evidence/h2-fallback-validation-20260915
+          mkdir -p "$dir"
+          rm -f "$dir"/*.PASS "$dir"/*.FAIL
+          printf 'source_commit=%s\ncore=%s\nintegration=%s\nfocused=%s\n' "$GITHUB_SHA" "$CORE" "$INTEGRATION" "$FOCUSED" > "$dir/RESULT.txt"
+          if [ "$CORE" = success ]; then touch "$dir/CORE.PASS"; else touch "$dir/CORE.FAIL"; fi
+          if [ "$INTEGRATION" = success ]; then touch "$dir/INTEGRATION.PASS"; else touch "$dir/INTEGRATION.FAIL"; fi
+          if [ "$FOCUSED" = success ]; then touch "$dir/FOCUSED.PASS"; else touch "$dir/FOCUSED.FAIL"; fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add "$dir"
+          if ! git diff --cached --quiet; then
+            git commit -m 'test: record H2 fallback validation evidence [skip ci]'
+            git push origin "HEAD:${GITHUB_REF}"
+          fi
+      - name: Require all validation cells
+        if: steps.core.outcome != 'success' || steps.integration.outcome != 'success' || steps.focused.outcome != 'success'
+        run: exit 1
