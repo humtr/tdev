@@ -1,136 +1,56 @@
 # Cost-efficient composition F3 hosted falsification evidence — 2026-09-14
 
-Status: **F3 blocked before experimental ref mutation**
+Status: **F3 survives. F4 ready.**
 
-This is research evidence, not a Design and not production H2 authority. The accepted D0001/D0003/D0004 semantics remain unchanged. No release activation or production batching change was performed.
+This directory is research evidence, not a Design and not production H2 authority. Accepted D0001/D0003/D0004 semantics, public MCP schema, validation requirements and release state remain unchanged.
 
-## 1. Verdict
+## 1. Final verdict
 
-**F3 blocked.**
+**F3 survives.**
 
-The current installation exposes the real canonical expected-old Git CAS sender and its durable old-sender inspection logic, but the authorized interfaces available to this session do not expose that sender against a non-canonical disposable hosted ref, and the directly available GitHub ref-update operation does not accept an exact expected-old ref value. D0003 explicitly does not accept GitHub `force:false` alone as the exact-CAS mechanism.
+A private one-shot Android/Termux harness exercised the installed durable Git sender against fixed disposable ref `refs/heads/research/f3-20260914-a2` with exact expected-old CAS semantics. The experiment held the physical Git sender immediately before provider send, killed its controller, reopened the durable research ledger twice, retried the same logical effect while the old sender remained not stopped, requested cancellation of one follower, released the original sender, reconciled authoritative GitHub readback, settled all frozen members, and performed exact leased cleanup.
 
-The F3 safety stop therefore fired before creation or mutation of a disposable research ref. The canonical `refs/heads/dev-2` was not used as the research fixture.
+No duplicate physical sender, split effect, partial terminal settlement, cancellation escape, canonical mutation or unrelated-work failure was observed.
 
-F4 status: **not ready**.
+F4 status: **ready**.
 
-## 2. Fresh starting authority
+## 2. Evidence files
 
-Observed through current `dev-2` authority and provider readback on 2026-09-14:
+- `A2.md` — historical blocked state before native operator execution became available.
+- `fixture-a2.json` — exact frozen validated member/composed fixture.
+- `experiment-a3.json` — raw bounded device experiment record; operator reported 7950 bytes and SHA-256 `66a1e9bb0cdba2649bc5109b1ba8b119253aeaf30bfcb5c1b8faf7f9717ce19e`.
+- `A3.md` — final hosted execution, isolation evidence and verdict.
 
-- repository: `humtr/tdev`
-- repository ID: `github-1322208918`
-- GitHub provider repository ID: `1322208918`
-- GitHub owner ID: `272709831`
-- binding epoch: `1`
-- canonical ref: `refs/heads/dev-2`
-- starting canonical HEAD: `a5d56f211d6cbaa169c7d7aae61ccdc49e2cc9`
-- starting tree: `d7711e616e340881572714bde9a83e3f4bc9b6f3`
-- starting snapshot manifest: `sha256:cdb31560c7b7f314ffb35fc96d825e1e941549d185174a7dbc6870b44e3ba32a`
+## 3. Exact experiment identity
+
+- canonical launch authority: `sha1:09d47cca3df131f038c5b73efdbef6a50d41121c`
 - policy digest: `sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309`
-- required profile `core`: `sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa`
-- required profile `integration`: `sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71`
-- configured execution capacity: `8`
-- runtime observation: accepting, deployment sealed, environment class `github-hosted-rootless-oci`
-- active runtime release from runtime observation: `sha256:3bcde63d0124f1193ab46eac974dc89e7403c05586093b4d454f538d0981cc17`
-- device: Android arm64, owner epoch `42`, connected at the observation
-- managed execution: ready; four active sessions were reported at the observation; no executing action and no unresolved canonical effect were reported
-- edge version: `3993f1a1-0c0a-4ebe-98ba-df72cb7bbc4c`
-- canonical GitHub ruleset: ID `23000887`, `dev2-canonical-monotonic-v1`, active, scoped only to `refs/heads/dev-2`, rules `deletion` and `non_fast_forward`, no bypass actors
+- H: `sha1:478be4c0aa85ace7d4aea996245ca6736b5695e4`
+- C: `sha1:40403f657d07d6588d407dfcdefd0c8bb03cd877`
+- composed result: `7ed7279f2be55d3a81740b9c579cea73`
+- composed validation: `sha256:9e43090dcdf5b4bad171f0f5b79a9447ad14fa2fa543443b905fb09f81dac22c`
+- publication identity: `sha256:2e08cf55ff2fdb6fb550951688cead43a563ffff091d05a9c2b7dd5845e6cdc3`
+- logical E: `d7994167ce3e2c9307009e18cbf49ea92b1ab4162c31981e516e87ee2fb44abd`
+- physical invocation: `89dab3b495c84234e461c310ec78f19b`
 
-The public provider readback agreed that `refs/heads/dev-2` was exactly `a5d56f211d6cbaa169c7d7aae61ccdc49e2cc9` at the starting check.
+## 4. Hosted falsifier results
 
-## 3. Disposable fixture decision
+The physical sender reached `held-before-provider-send`. After controller death, recovery owner epochs `2` and `3` both observed the same invocation, `stopped:false`, and retry `uncertain`. A replacement invocation was not created.
 
-No disposable F3 ref was created.
+Follower action `5d61613ffc79f3c47dc2fea1b256fa34` was cancelled at phase `remote_possible`. After provider convergence it settled succeeded with `cancellationTooLate:true`, while all three members shared the same publication identity and work disposition `integrated`.
 
-Read-only provider discovery found no existing `refs/heads/research/` ref. The repository does contain many `refs/heads/dev2-exec/` refs, but D0006 owns that prefix as managed execution-session state; those operational refs were not repurposed as a research publication fixture.
+Authoritative research-ref readback observed exact C at `2026-09-14T12:25:06.769Z`. The terminal projection was 0 before settlement and 3/3 after settlement.
 
-The available GitHub connector can create a branch and can move a branch with `{branch_name, sha, force}`, but its ref-update operation has no `expectedOld` / lease precondition argument. That is insufficient for this F3 because the required fixture must support exact expected-old-ref CAS, not merely a non-force update.
+A separate ordinary public-path validation (`651f65a715de9606bc85c00c6b93891d` / `a6470733f6413fe03aecc0cf9ea68edd`) ran from `2026-09-14T12:24:20.653Z` through `2026-09-14T12:26:50.640Z`, covering the F3 held/uncertain/recovery interval, and completed both required profiles successfully. It was never integrated and was subsequently closed.
 
-## 4. Exact-CAS and sender capability actually present
+After F3 completion, independent provider readback found the disposable research ref absent. Fresh canonical readback remained exactly `sha1:09d47cca3df131f038c5b73efdbef6a50d41121c`.
 
-Current source contains the production exact-CAS transport in `src/integration/git-ref.mjs`. It verifies the effect binding and direct-child commit, then runs Git push with:
+## 5. Scope of the conclusion
 
-`--force-with-lease=<full-ref>:<exact-expected-head>`
+This result falsified the selected F3 failure hypotheses for the constrained research fixture: duplicate sender under old-sender uncertainty, loss of convergence across controller restart, follower cancellation escaping a shared effect, partial terminal settlement, provider/readback ambiguity after release, cleanup leakage, and unrelated-work isolation failure.
 
-Current source also contains `DurableGitSender` and `tools/git-sender.py`. The sender persists one invocation identity per effect, holds an OS file lock inherited by the Git child, distinguishes stopped/alive/unknown, and refuses a second sender while the retained invocation may still be live. Local integration tests exercise lost sender stdout, exact direct-child CAS, pre-launch fencing and a contending child.
+It does **not** establish general production H2 safety, does not compare H2 superiority, and does not authorize a production batching/coordinator design. Those remain separate decisions requiring their own evidence and authority.
 
-However, the currently exposed `dev-2` mutation API binds integration to the repository binding's single canonical ref. It does not accept an arbitrary target ref or sender configuration. Exposing such an argument would itself cross a security/integration boundary and was not added for this research.
+## 6. Next stage
 
-The hosted validation profiles are also `network:none`; D0005 intentionally withholds canonical Git writer credentials from candidate/hosted validation containers. Therefore a candidate or normal `run`/`validate` action cannot be used as a hidden provider writer for the research ref.
-
-## 5. Why mutation stopped
-
-The user-specified F3 stop conditions include stopping when expected-old-ref CAS is not guaranteed or when fixture credential/isolation is not established.
-
-Creating a research branch through the connector and then treating connector `update_ref(force=false)` as F3 CAS would weaken the exact-CAS condition that D0003 explicitly preserves. Likewise, granting a disposable workflow a repository-wide write token merely to manufacture a sender would broaden the trust/credential boundary without an established fixture-scoped credential and would not exercise the installed native sender/controller recovery path.
-
-Accordingly no remote research ref mutation, workflow write-token experiment, product release activation, public schema change or production H2 implementation was performed.
-
-## 6. Frozen experiment identity
-
-No F3 experiment identity was frozen because a conforming disposable fixture could not be admitted safely.
-
-The following requested values therefore remain intentionally **not created / unknown**, not fabricated:
-
-- disposable ref
-- expected old fixture head H
-- composed result ID
-- exact composed commit C and tree U
-- result manifest digest
-- composed-result validation ID
-- frozen member tuple and member work/action/request/generation/revision identities
-- logical shared publication effect E
-- physical F3 sender/run/attempt identity
-
-This evidence does not reuse canonical product identities as substitutes for those fixture identities.
-
-## 7. Old-sender survival / response loss / cancellation
-
-Not executed at the hosted provider layer because the conforming exact-CAS disposable sender could not be admitted through an authorized interface.
-
-Consequently these F3 invariants remain unknown at hosted scope:
-
-- one logical E across all frozen members after controller restart
-- no second physical sender while old sender is uncertain
-- follower cancellation cannot escape the shared effect
-- response loss plus restart converges from retained identity
-- all-member terminal settlement remains externally 0/N or N/N
-- replay/same-request retry remains sender-idempotent at the hosted publication boundary
-- unrelated work progresses while the hosted group effect is uncertain
-
-Local F2 evidence is not promoted to hosted PASS for these cells.
-
-## 8. Provider/readback capabilities confirmed
-
-Read-only provider access can independently obtain repository identity, branch/ref HEAD, commits/ancestry, rulesets and workflow-run state. This is sufficient for the authoritative observation side of F3 once a safe sender exists.
-
-The missing capability is on the mutation/fault side: an authorized fixture-scoped invocation of the installed exact-CAS sender against a disposable ref, plus a controlled crash/restart barrier that can leave that sender alive or plausibly live while the controller restarts.
-
-## 9. Smallest authorized execution method
-
-The smallest next method is a **private, one-shot research operator harness on the existing Termux control host**, not a new public MCP operation and not a production H2 implementation.
-
-It should:
-
-1. create one explicit disposable `research/f3-<id>` ref at a recorded H using existing provider authority;
-2. create a research-only sender configuration fixed to exactly that repository/ref and private state directory;
-3. prepare one direct-child C of H whose tree U is the already fully required-validated exact composed result;
-4. invoke the existing `tools/git-sender.py`/`DurableGitSender` semantics, retaining invocation/effect identity;
-5. insert a test-only dispatch barrier around the real Git process so the controller can be killed/restarted while the sender remains alive or may still publish;
-6. cancel one frozen follower after E is durable;
-7. restart the controller/ledger owner and reconcile exclusively from retained identities, sender lock/state and independent GitHub ref/ancestry readback;
-8. repeat observe/resume/same-request retry and verify that no second sender/effect is created;
-9. run an unrelated work while the publication remains uncertain;
-10. delete the disposable research ref only after sender stop and retained evidence are authoritative.
-
-The harness must hard-code the disposable ref and repository identity, expose no arbitrary shell/ref input, and must not reuse `refs/heads/dev-2` or `refs/heads/dev2-exec/*`. If the available credential cannot be constrained or the fixed harness cannot prove it will only write the disposable ref, keep F3 blocked.
-
-## 10. Verdict and next exact falsifier
-
-Verdict: **F3 blocked**.
-
-F4: **not ready**.
-
-Next exact falsifier: run the one-shot private Termux/provider harness above with a frozen validated composed result and the installed exact-CAS sender, then execute the old-sender-survival + response-loss + follower-cancellation + controller-restart sequence. Independent GitHub ref/ancestry and sender stopped/alive/unknown evidence must decide the A-F recovery branch; unavailable evidence must remain unknown.
+F4 may proceed from this evidence as the next research stage. It must fresh-bind current repository/runtime/provider authority and use its own explicit falsifiers, safety boundaries and stop conditions rather than treating F3 survival as production acceptance.
