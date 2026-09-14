@@ -1,0 +1,42 @@
+{
+  "schemaVersion": 1,
+  "kind": "cost-live-f4-bounded-fixture",
+  "date": "2026-09-14",
+  "repositoryId": "github-1322208918",
+  "providerRepositoryId": "1322208918",
+  "canonicalRef": "refs/heads/dev-2",
+  "baseCommitOid": "sha1:59339e0f7960f4cb1b147d59b8f6ff61077254e8",
+  "baseTreeOid": "sha1:93c9652c74d7c398ba29a904093b966122a2df37",
+  "baseManifestDigest": "sha256:1ddb9ba453d8fb7e9192c1ebecf9969f6877005a3527cd1805f97e9ed0a2874e",
+  "bindingEpoch": "1",
+  "policyDigest": "sha256:84bfab71384ae039ff34be77ac1b3e31c054a507062cf77d60560a4a0c749309",
+  "requiredProfileDigests": [
+    "sha256:0f9100a8ec1ac018b37fc302851b2020d75472c900de3d79ad6966f017b5cffa",
+    "sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71"
+  ],
+  "members": [
+    {"ordinal":1,"path":"bench/f4-live-fixture/member-1.txt","mode":"100644","content":"f4-live-20260914 member 1\n","changedBytes":26,"workId":"c32ea46f8caa35dd6ad6a5a802ffe5e0","validationActionId":"4ec04844ee1daec91a7a9abcc94545eb","candidateTreeOid":"sha1:6fffb22fcd40300633d40d36dabe54011e6417d2","candidateManifestDigest":"sha256:3933b15211dc7d0a71c3c9d8557d8d76b941652eec93afac86e37874f2deb340","validationId":"sha256:efad4e38d7d79f2c06319c0d590bac413a592fa1a01371685f0500c011f96845","startedAt":"2026-09-14T13:14:51.609Z","endedAt":"2026-09-14T13:17:40.977Z","wallMs":169368,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":2,"path":"bench/f4-live-fixture/member-2.txt","mode":"100644","content":"f4-live-20260914 member 2\n","changedBytes":26,"workId":"cd674f78e7627a48da9ef29df5af6c1d","validationActionId":"ec11783c0799d38caa5980ee00b86081","candidateTreeOid":"sha1:813b9f3ecff82410ea47902b50e1d998372eb034","candidateManifestDigest":"sha256:0a443f1a4f559f3a36abc422386872343b0b05016e698c89d021a3632cf479f3","validationId":"sha256:357df56a90ab0b29503d8d4fab23bc2c520b353546a6f2d6cb9b281db0723bc0","startedAt":"2026-09-14T13:14:52.226Z","endedAt":"2026-09-14T13:17:42.633Z","wallMs":170407,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":3,"path":"bench/f4-live-fixture/member-3.txt","mode":"100644","content":"f4-live-20260914 member 3\n","changedBytes":26,"workId":"f03a7a8433e30796c413d5d28dd87ef0","validationActionId":"73dace2f7059e426e69fae5cdcd15cb5","candidateTreeOid":"sha1:71b1f733e62b52a4e6eba7d3cbaed0a1808d8bd8","candidateManifestDigest":"sha256:88f56faf5ce56e76f96182c3aff78f7a9d46219775aa4c00aa41adf98a4f322f","validationId":"sha256:1907891025f866da2cb7a8723e671ecf225ba2476d8ca94c34cffa16e29e3a07","startedAt":"2026-09-14T13:14:52.626Z","endedAt":"2026-09-14T13:17:52.388Z","wallMs":179762,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":4,"path":"bench/f4-live-fixture/member-4.txt","mode":"100644","content":"f4-live-20260914 member 4\n","changedBytes":26,"workId":"ea91a57fd31cc0b2d8d88aeba9193655","validationActionId":"6b3074c2268ecd15e0717abe6a868b66","candidateTreeOid":"sha1:19d73066e9f07d32c01ecf40514b131d94753734","candidateManifestDigest":"sha256:27d54b0a5ab547afb7b672a3327ab400ef6094471662fb15296c8e970690f710","validationId":"sha256:c6401ac93d39de596205f193ecdeb5c7e8a42f8332bce5ee99dd7f6c2152c7a8","startedAt":"2026-09-14T13:14:52.747Z","endedAt":"2026-09-14T13:17:46.545Z","wallMs":173798,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":5,"path":"bench/f4-live-fixture/member-5.txt","mode":"100644","content":"f4-live-20260914 member 5\n","changedBytes":26,"workId":"84329deafda8514a21d9055a509a1ea6","validationActionId":"497be99d533584ca4459c0322032ad99","candidateTreeOid":"sha1:93ae115eb7a6ee218816eb174661c374cf2f8166","candidateManifestDigest":"sha256:e5f893cd1b1f4023b70b4f35394de46ad84e36a200a5a81c134a48ffda7aa325","validationId":"sha256:1ac9271a67427e9ccc021dc274f8929de47aa9704580493540afb7fbee7532b6","startedAt":"2026-09-14T13:14:52.398Z","endedAt":"2026-09-14T13:17:43.249Z","wallMs":170851,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":6,"path":"bench/f4-live-fixture/member-6.txt","mode":"100644","content":"f4-live-20260914 member 6\n","changedBytes":26,"workId":"34ac62ac7fd6470982eec58fcf718907","validationActionId":"7da9e891cae8a24a89a30ee8c4756b7c","candidateTreeOid":"sha1:c46a9aa9fd04d0572acb8f5fc83aff386e1c3b00","candidateManifestDigest":"sha256:eea7a67aede709c4becde2a8b707c798ca1ac190db7426abf9306cf536a5a8e6","validationId":"sha256:2356b8ab61a0a16ab4eab740b1a369a56fe905de051463467902e5d0938b337b","startedAt":"2026-09-14T13:14:52.513Z","endedAt":"2026-09-14T13:18:57.572Z","wallMs":245059,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":7,"path":"bench/f4-live-fixture/member-7.txt","mode":"100644","content":"f4-live-20260914 member 7\n","changedBytes":26,"workId":"71785edf58c1927891c168b016ea785a","validationActionId":"697a0020e3779730d7a2227b85bdef42","candidateTreeOid":"sha1:c6fb27b39408334477264e49574128132440b234","candidateManifestDigest":"sha256:75789496cdb3ab8f2d49193a9aefadf0b92045340c4934965bdafae936b7ccab","validationId":"sha256:44d9b390f932e74e54c846f655021073c5a27383e1b3cfa5170aa4746dae2f91","startedAt":"2026-09-14T13:14:51.105Z","endedAt":"2026-09-14T13:17:49.606Z","wallMs":178501,"requiredProfilesPassed":["core","integration"]},
+    {"ordinal":8,"path":"bench/f4-live-fixture/member-8.txt","mode":"100644","content":"f4-live-20260914 member 8\n","changedBytes":26,"workId":"5cd1629f53627220daa49d94499d9c41","validationActionId":"9ed7f9615170eeb980ff3ca09bc9abc6","candidateTreeOid":"sha1:a6838e11b1c5fbc6332dc158c265ced5c9f3249e","candidateManifestDigest":"sha256:912308cd8899e30bca13dd1058026554e1f61aaa1d10ad4a5a5c3a2446bf0d63","validationId":"sha256:a9c6eb2188eca467010f6bb048300eec2ac21490ab07a12d55cd5ec9539353da","startedAt":"2026-09-14T13:17:42.764Z","endedAt":"2026-09-14T13:19:52.214Z","wallMs":129450,"requiredProfilesPassed":["core","integration"]}
+  ],
+  "composed": {
+    "workId": "9c90eb0ba45f38b43b243816e7bdee62",
+    "validationActionId": "93472209123bfe0691fa72759c649872",
+    "resultId": "366eda7baee02fd3d0a32d104ad6d03f",
+    "candidateTreeOid": "sha1:d727643980d6baedab8b511f5827417f8c7d862c",
+    "candidateManifestDigest": "sha256:1be3a2e7c76c796458fd851a89c6011a6cc8326814263a1f28af9c6fd882c928",
+    "candidateCommitOid": "sha1:c58762df1b1124b79716a00f84ab6dc0a9b6c3f2",
+    "validationId": "sha256:919b4ef34f7e9388eb686cc434e969696320e918408d89b4e84436df4d520b2d",
+    "startedAt": "2026-09-14T13:20:16.491Z",
+    "endedAt": "2026-09-14T13:24:18.942Z",
+    "wallMs": 242451,
+    "requiredProfilesPassed": ["core", "integration"],
+    "diffFromBase": {"addedPaths": 8, "modifiedPaths": 0, "deletedPaths": 0, "changedBytes": 208}
+  },
+  "correctness": {"pairwiseDisjointPaths":true,"sameExactBase":true,"deterministicMemberOrder":[1,2,3,4,5,6,7,8],"composedDiffEqualsExactMemberUnion":true,"lostMemberChanges":0,"silentOverwrites":0,"wrongBaseMembers":0,"invalidMembersAdmitted":0}
+}
