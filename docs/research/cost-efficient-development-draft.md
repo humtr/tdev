@@ -1,7 +1,7 @@
 # Cost-efficient development research draft
 
 - Status: **research draft / non-normative**
-- Review state: **open for independent review**
+- Review state: **revised after independent local falsification; still open for further independent review**
 - Production authority: unchanged; current accepted Designs remain controlling
 - Scope: same-ref development cost amplification first, runtime/provider residual cost later
 - Explicit non-decision: this document does **not** authorize production batching, cross-tree validation-receipt reuse, incremental required-validation skipping, a new durable owner/queue, or a public MCP change
@@ -96,6 +96,8 @@ Do not wait for a batch to fill. Do not introduce a timer window, batch queue, o
 
 The same-envelope restriction is intentionally conservative for the first falsifier. A later review may decide that compatible intents across envelopes can be discovered safely, but that is not assumed here.
 
+For the first H2 shape, an `integrate` item that explicitly names `preparedResultId` is excluded from grouping. D0003/D0004 require that explicit result to be reused exactly; substituting a new composed result/commit would violate the caller's exact-result intent. H2 may initially consider only integrate intents that requested preparation/validation without an explicit prepared result.
+
 ### 5.2 Member eligibility before composition
 
 A tentative member must independently satisfy existing authorization and intent requirements and must bind:
@@ -134,7 +136,9 @@ One deterministic member action can act as the physical sender/leader, but leade
 
 Immediately before admitting the external effect, all original member fences must still match their frozen work/action/request/generation/revision/prepared-result/candidate-evidence/policy/head identities. If any fence changed before the effect exists, the group is abandoned and ordinary per-work handling resumes.
 
-This point is the main unresolved feasibility question: the current durable ledger must be able to verify/fence multiple independent actions and later settle them consistently using its existing ownership model. If that cannot be done atomically enough to prevent partial logical completion, H2 production batching fails unless an independently justified Designed ownership change is accepted. This draft does not assume that change.
+Independent local falsification reported that the existing repository ledger can read/fence multiple Works/actions and can settle all members inside one transaction: injected process death and SQL-write failure left either zero or all members integrated when the settlement used one transaction. The same review also reproduced a counterexample when members were settled in separate transactions: a crash after the first commit left partial terminal truth. Therefore the research requirement is narrower and stronger: all-member terminal settlement must be one existing-ledger transaction, not a sequence of per-member commits.
+
+This does **not** prove the production H2 runtime join. The review also reproduced that a leader-only effect lookup lets a queued follower cancel terminally and escape the shared recovery fence. Every frozen member's dispatch, cancellation, observation and recovery path must therefore resolve the same immutable publication effect/member tuple. Whether the current engine/recovery join can do that without a new owner remains the next executable falsifier.
 
 ### 5.6 One exact publication effect and recovery
 
@@ -150,7 +154,7 @@ Response loss/restart reconciles only that frozen expected-head/commit/effect id
 | Ref is another verified managed descendant of expected head | Give every frozen publication member the same explicit stale/contended publication outcome; member works remain open. |
 | Foreign/rewrite/deletion/incomplete trusted ancestry | Fence the affected binding under existing canonical recovery rules. |
 
-A cancellation observed after the effect was frozen cannot edit membership or remove already-published bytes. If publication is proven integrated, that member reports cancellation-too-late. Before effect freeze, cancellation makes the tentative group ineligible and per-work handling resumes.
+Cancellation semantics must distinguish at least three phases: tentative in-memory/member freeze, durable publication-effect intent, and remote acceptance/uncertain dispatch. A tentative freeze alone does not make cancellation too late. Independent local falsification reported that cancellation set after helper freeze but before durable effect storage still passed the current pure fence check, so cancellation/authorization/policy/member fences must be rechecked atomically when the durable effect intent is admitted and again immediately before dispatch as current D0003 requires. Only after the shared effect is durably frozen and remote delivery may have occurred does membership become recovery-immutable; proven integration then yields cancellation-too-late rather than byte removal.
 
 No outcome may produce partial canonical integration because the canonical effect is one whole-tree commit. Equally, local ledger recovery must not report only a subset integrated when the one external effect is proven to include all frozen members.
 
@@ -206,13 +210,11 @@ Freeze eight distinct work/action/request intents into one immutable publication
 
 Replay response-loss outcomes repeatedly and require deterministic all-member projection from the one effect: integrated, retryable, uncertain, stale, or binding-fenced. Replaying the same observation must not create a second publication identity or partial logical completion.
 
-### F2 - existing-ledger atomicity prototype
+### F2 - existing-ledger atomicity and runtime-join falsifier
 
-Before any provider mutation, demonstrate with the real durable state implementation that all frozen member fences can be checked and the eventual all-member terminal projection can be committed consistently using existing D0001 ownership. Inject a crash before group-effect admission, after effect-intent persistence, and during all-member finalization.
+Independent local review reported executable evidence that the existing SQLite ledger can compare multiple member fences and commit all-member settlement in one transaction. Across injected process-death/write-failure points, the atomic form left zero or all members integrated; deliberately splitting settlement into member transactions reproduced partial terminal truth. This supports **ledger feasibility only** and does not establish a production H2 path.
 
-Pass condition: recovery produces one frozen member set and one logical publication effect, with no partially integrated member ledger state visible as terminal truth. Failure here is strong evidence that the no-new-owner H2 shape is not viable.
-
-This step is not yet implemented by the research-only helper and remains open.
+The remaining F2 boundary is the real engine/recovery join. The next test-only join must give every frozen member access to the same immutable effect and prevent follower cancellation/restart from escaping that effect. Inject crash/restart after durable effect storage but before sender start, during unknown sender state, after remote acceptance/readback and before settlement. Pass condition: one member set, at most one sender/effect, no terminal follower escape, retained request/action identities, and one atomic all-member terminal settlement. A leader-only effect lookup or per-member terminal commit falsifies this H2 shape.
 
 ### F3 - disposable exact-CAS/recovery fixture
 
@@ -230,11 +232,11 @@ The first comparison is for structural amplification removal, not D0007 statisti
 
 These are research gates, not accepted production criteria.
 
-For the eight-way same-base disjoint workload, a candidate H2 implementation should show:
+For the eight-way same-base disjoint workload, a candidate H2 implementation should show the following against the **matched measured A-path comparator**, while the 36/28/8 model remains a structural diagnostic rather than the denominator for live performance claims:
 
-- at least 50% fewer full required validation executions than the current sequential/recomposition model;
-- at least 75% fewer stale-recomposition validations;
-- at least 50% fewer Git publication/CAS attempts;
+- at least 50% fewer full required validation executions than the matched measured current path, or else an explicitly justified revision of this draft gate if the matched baseline cannot structurally reach that reduction;
+- at least 75% fewer stale-recomposition validations against that measured comparator;
+- at least 50% fewer Git publication attempts and separately reported CAS attempts;
 - a meaningful managed CPU or wall-time reduction when those quantities are measured;
 - exact final-tree equality;
 - zero invalid integration, lost update, silent conflict, wrong-base publication, unvalidated byte, duplicate canonical effect, request/recovery identity break, or partial terminal settlement;
@@ -260,8 +262,8 @@ The following do not qualify as H2:
 
 ## 10. Open design questions for independent review
 
-1. **Ledger atomicity:** Can the existing D0001 store fence and settle multiple independent actions in one transaction without introducing a second owner or an observable partially terminal state?
-2. **D0004 compatibility:** Is same-envelope discovery a safe internal optimization while preserving independent per-item admission, or does any grouping create an unacceptable implicit envelope semantic?
+1. **Runtime join after ledger feasibility:** Local falsification supports one-transaction multi-member settlement in the existing ledger. Can the real engine/cancellation/recovery path make the same immutable effect discoverable from every frozen member without a leader-only escape, duplicate sender or partial terminal replay?
+2. **D0004 compatibility boundary:** Local falsification supports same-envelope discovery after independent admission when explicit-`preparedResultId` intents are excluded. Does the production-shaped runtime join preserve that result under restart, fairness, deadline and fallback behavior without creating an implicit envelope transaction?
 3. **Group membership identity:** Is binding work/action/request/generation/revision/prepared-result/candidate validation/manifest sufficient, or must additional authorization-capability digests be frozen explicitly?
 4. **Composed-result provenance:** Should the prepared result or commit metadata bind the publication-group identity directly, or is durable ledger linkage sufficient? Adding commit metadata would itself be a D0003 contract change.
 5. **Composed validation failure:** Should fallback begin immediately for all original works, or should the failed combined result be surfaced for ChatGPT inspection first when failure suggests semantic interaction?
@@ -286,10 +288,24 @@ Independent review should not start from implementation convenience. Review in t
 5. only then judge whether the structural savings justify a production Design revision;
 6. only after structural savings survive, inspect session/runtime/provider residual costs.
 
-## 12. Current draft conclusion
+## 12. Independent local falsification revisions
+
+An independent local review supplied by the owner reported `draft survives with required revision`. The review is evidence, not repository authority, and its unmerged local evidence branch has not been treated here as canonical state. This draft incorporates only the constraints that are consistent with the current authoritative Designs and that sharpen falsifiability:
+
+- H1 remains rejected under the current whole-result validation identity.
+- F0 composition survived randomized/permutation and real-Git tree comparison, but the research helper itself is not a trusted evidence verifier: duplicate validation IDs, descriptor/base authenticity and truthy validation flags require trusted-boundary checks, and helper-generated pseudo tree OIDs are not provider Git-object proof.
+- F1's pure projection is not durable recovery proof. Retained terminal replay, unavailable/deleted/unknown ancestry states, immutable frozen descriptors and the cancellation-admission gap require explicit tests/representation.
+- Existing-ledger multi-member atomic settlement appears feasible, but leader-only effect discovery and per-member settlement are demonstrated counterexamples. Production-shaped H2 requires member-aware lookup of one immutable shared effect plus one atomic all-member settlement transaction.
+- Explicit `preparedResultId` intents are outside the first grouping shape because composing them into another result would violate exact-result reuse semantics.
+- Group scheduling must measure and bound reservation occupancy, regrouping, fallback delay and fairness to older standalone/ninth work; no draft statement about bounded wait is a production guarantee until exercised.
+- F3/F4 methodology must count publications separately from CAS attempts and include queue/startup/fetch/object/transfer/billing/reconciliation/polling costs where material. Structural 36/28/8 versus 9/0/1 remains a model, not measured provider/CPU savings.
+
+The next exact falsifier is therefore **not hosted F3 yet**. First build a test-only runtime join around the real engine/recovery path: persist the shared effect, cancel a follower before sender start, kill/restart while sender state is unknown, require all members to rediscover the same effect without terminal escape or second sender, then use authoritative readback/positive-stop evidence to atomically settle all members or prove no-send cancellation when H is unchanged and all senders are stopped.
+
+## 13. Current draft conclusion
 
 The strongest current direction is **not** validation reuse. It is deterministic composition of already validated same-base disjoint candidates, followed by **one new full validation of the exact composed result** and, if ownership/recovery can be proven with existing D0001 state, **one exact canonical publication effect**.
 
-The pure composition model makes the structural savings plausible. The pure multi-work recovery model makes a no-new-owner shape plausible. Neither proves that the real durable ledger can atomically fence/settle multiple works, that live recovery is correct, or that measured wall/managed/provider cost falls by the structural percentage. Those are the next falsifiers.
+The pure composition model makes the structural savings plausible. Independent local falsification provides evidence that the existing ledger can support atomic multi-member fencing/settlement without a new durable owner, but it also exposed that the current helper/runtime shape is unsafe if only the leader resolves the effect, if cancellation is not rechecked at durable effect admission/pre-dispatch, or if settlement is split across transactions. Live recovery correctness and measured wall/managed/provider savings remain unproven. The immediate next falsifier is the member-aware engine/recovery join described above; hosted F3 and live-cost F4 remain later gates.
 
 Until those falsifiers pass and a later D0003 Design revision is independently reviewed and accepted, production integration semantics remain unchanged.
