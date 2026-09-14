@@ -157,3 +157,17 @@ quota and device offline status may delay admission truthfully; neither changes 
 default-eight work semantics nor allocates eight permanent durable lanes. Session
 cleanup occurs only after authoritative terminal run/attempt proof; a timer alone
 never resolves an integration or permits duplicate physical execution.
+
+## Cost-efficient composition owner research boundary
+
+D0003's bounded composition research may test one exact publication effect that names multiple already-admitted work/action identities without introducing a new mutable group owner. The candidate model is intentionally narrower than a production selection:
+
+- every member keeps its original `work` and `action` identity, request dedup key, generation/revision fence and disposition;
+- an ordered immutable member tuple may be evidence embedded in one exact composed prepared result/effect, like other immutable result metadata, but it owns no independent status, retry counter, queue position or cancellation lifecycle;
+- one existing integrate action is a deterministic publication leader solely for the physical validation/publication attempt; followers remain fenced by their own admitted integrate actions and reference the same immutable result/effect evidence;
+- group formation may consider only compatible integrate items successfully admitted in the same `dev_work` envelope before dispatch. There is no coalescing timer, background merge train, path lock or search across unrelated queued work;
+- before publication intent, all member fences and current authorization/policy must still hold atomically or the optimization is abandoned in favor of existing per-work behavior;
+- after one exact publication intent exists, response loss/restart reconciles that one effect. Canonical readback settles every frozen member in one short ledger transaction; it does not synthesize replacement works/actions or a second sender;
+- if implementation needs a mutable group table/lifecycle, synthetic composition Work, independent recovery queue, or follower state that cannot be derived from existing work/action/result/effect records, this research line is rejected as added ownership complexity.
+
+This section authorizes only an off-path state-model falsifier. Existing action/effect schema and production transitions remain authoritative until D0003 explicitly selects a production algorithm.
