@@ -1,4 +1,4 @@
-import {mkdir,open,readFile,realpath,lstat} from 'node:fs/promises';
+import {mkdir,open,realpath,lstat} from 'node:fs/promises';
 import {constants} from 'node:fs';
 import {join,isAbsolute} from 'node:path';
 import {newId} from '../contracts/identity.mjs';
@@ -23,22 +23,31 @@ export class DurableGitSender {
   const observation=/** @type {Observation} */(parseRecord(result.stdout,8192));
   requireThat(observation.invocationId===invocation.invocationId&&typeof observation.stopped==='boolean'&&['sent','unknown','not_sent'].includes(observation.delivery),'INTEGRITY_FAILURE');return observation;
  }
- /** An inspector may fence a reserved-but-not-started invocation, using the same
-  * OS lock as launch. A heartbeat timeout is never used as this proof.
-  * @param {Effect} effect */
- async stopped(effect){const invocation=this.current(effect);return invocation?(await this.invoke('inspect',invocation)).stopped:true;}
+ /** Exact invocation observation. A heartbeat timeout is never stop proof.
+  * @param {Effect} effect @returns {Promise<Observation>} */
+ async observe(effect){const invocation=this.current(effect);return invocation?this.invoke('inspect',invocation):{stopped:true,delivery:'not_sent',state:'absent'};}
+ /** @param {Effect} effect */
+ async stopped(effect){return (await this.observe(effect)).stopped;}
  /** @param {Effect} effect */
  async cancel(effect){const invocation=this.current(effect);return invocation?(await this.invoke('cancel',invocation)).stopped:true;}
- /** @param {Effect} effect */
- async compareUpdate(effect){
+ /** Reservation is the conservative remote-possible boundary. `fence` is a
+  * synchronous current-authority/member check executed in the same SQLite
+  * transaction immediately before a new physical invocation is reserved.
+  * Sequential reinvocation is available only to a caller that has already
+  * established positive stop + unchanged expected head and passes a fresh fence.
+  * @param {Effect} effect
+  * @param {(tx:import('../storage/ledger.mjs').Transaction)=>void} [fence]
+  * @param {boolean} [allowSequentialRetry] */
+ async compareUpdate(effect,fence,allowSequentialRetry=false){
   let invocation=this.current(effect);
-  if(invocation){const seen=await this.invoke('inspect',invocation);if(!seen.stopped)return {kind:/** @type {const} */('uncertain')};if(seen.delivery==='sent')return {kind:/** @type {const} */('sent')};}
+  if(invocation){const seen=await this.invoke('inspect',invocation);if(!seen.stopped)return {kind:/** @type {const} */('uncertain')};if(seen.delivery==='sent'&&!allowSequentialRetry)return {kind:/** @type {const} */('sent')};}
   const previous=invocation,effectDigest=recordDigest('dev2.git-effect.v1',effect);
-  invocation=this.o.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?','sender:'+effect.effectId);requireThat((row?canonicalJson(parseRecord(String(row.value))):null)===(previous?canonicalJson(previous):null),'STALE_REVISION');const value={invocationId:newId(),effectDigest};tx.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value','sender:'+effect.effectId,canonicalJson(value));return value;});
+  invocation=this.o.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?','sender:'+effect.effectId);requireThat((row?canonicalJson(parseRecord(String(row.value))):null)===(previous?canonicalJson(previous):null),'STALE_REVISION');fence?.(tx);const value={invocationId:newId(),effectDigest};tx.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value','sender:'+effect.effectId,canonicalJson(value));return value;});
+  const intent=canonicalJson({invocationId:invocation.invocationId,effect});requireThat(Buffer.byteLength(intent)<=65536,'LIMIT_EXCEEDED','Git sender intent bound');
   await mkdir(this.o.stateDirectory,{recursive:true,mode:0o700});requireThat(await realpath(this.o.stateDirectory)===this.o.stateDirectory,'INTEGRITY_FAILURE');
   const directory=join(this.o.stateDirectory,invocation.invocationId);await mkdir(directory,{recursive:true,mode:0o700});requireThat(await realpath(directory)===directory&&(await lstat(directory)).isDirectory(),'INTEGRITY_FAILURE');
   const file=await open(join(directory,'intent.json'),constants.O_WRONLY|constants.O_CREAT|constants.O_EXCL|constants.O_NOFOLLOW,0o600);
-  try{await file.writeFile(canonicalJson({invocationId:invocation.invocationId,effect}));await file.sync();}finally{await file.close();}
+  try{await file.writeFile(intent);await file.sync();}finally{await file.close();}
   for(const path of [directory,this.o.stateDirectory]){const fd=await open(path,constants.O_RDONLY|constants.O_DIRECTORY);try{await fd.sync();}finally{await fd.close();}}
   const observed=await this.invoke('run',invocation);return {kind:observed.stopped&&observed.delivery==='sent'?/** @type {const} */('sent'):/** @type {const} */('uncertain')};
  }
