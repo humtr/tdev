@@ -40,7 +40,7 @@ export class ManagedReleaseBuilder {
  async buildOnce(actionId,source,previous){const input=this.input(actionId,source,previous),pool=this.o.pool;
   const assignmentId=recordDigest('dev2.managed-assignment.v1',{attempt:input.attempt,profileDigest:this.profile.digest}).slice(7),completed=pool.assignment(assignmentId);
   // A new action attempt may consume the retained completion, never relaunch it.
-  if(completed?.state!=='complete')this.ledger.transact(tx=>pool.current(tx,input.attempt));
+  if(completed?.state!=='complete')pool.current(input.attempt);
   const execution=await pool.run(input.result,input.attempt,this.profile);this.assert();
   return this.output(input,source,execution);
  }

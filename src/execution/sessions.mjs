@@ -1,6 +1,7 @@
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {capacity,id,revision,digest,newId,nextRevision} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
+import {ManagedTargets} from './managed-targets.mjs';
 /** @typedef {import('./session-types.js').Session} Session */
 /** @typedef {import('./session-types.js').SessionIntent} Intent */
 /** @typedef {import('./session-types.js').ProviderRun} ProviderRun */
@@ -20,9 +21,9 @@ function encoded(value){const text=canonicalJson(value);requireThat(Buffer.byteL
  * Every method is synchronous; no transaction spans a provider or object transfer.
  */
 export class ManagedSessions {
- /** @param {{ledger:import('../storage/ledger.mjs').Ledger,config:import('./session-types.js').ManagedConfig,now?:()=>number}} options */
+ /** @param {{ledger:import('../storage/ledger.mjs').Ledger,config:import('./session-types.js').ManagedConfig,targets?:ManagedTargets,now?:()=>number}} options */
  constructor(options){
-  this.ledger=options.ledger;this.config=structuredClone(options.config);this.now=options.now??Date.now;this.limit=capacity(options.config.capacity);
+  this.ledger=options.ledger;this.targets=options.targets??new ManagedTargets(this.ledger.binding,this.ledger);this.config=structuredClone(options.config);this.now=options.now??Date.now;this.limit=capacity(options.config.capacity);
   revision(this.ledger.binding.providerRepositoryId);revision(this.config.repositoryOwnerId);
   requireThat(this.ledger.binding.providerRepositoryId!=='0'&&this.config.repositoryOwnerId!=='0'&&/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(this.config.repositoryFullName)&&/^[0-9a-f]{40}$/.test(this.config.approvedCommit),'INVALID_ARGUMENT');
   digest(this.config.trustedRunnerDigest);if(this.config.sealDigest!==null)digest(this.config.sealDigest);
@@ -82,43 +83,55 @@ export class ManagedSessions {
  stopBeforeAssignment(sessionId,provider){return this.ledger.transact(tx=>{const s=this.session(tx,sessionId);this.matchingRun(s,provider);requireThat(s.launch==='sent'&&!s.run&&provider.status==='completed'&&!tx.get('SELECT assignment_id FROM managed_assignment WHERE session_id=? LIMIT 1',sessionId),'EFFECT_UNCERTAIN');if(s.state==='closed')return s;return this.saveSession(tx,s,{...s,state:'closed',stoppedAt:provider.observedAt});});}
  /** Expiry stops new execution, not observation of an already-started effect.
   * @param {Identity} identity */
- current(identity){return this.ledger.transact(tx=>{const s=this.authenticated(tx,identity);const row=tx.get("SELECT record FROM managed_assignment WHERE session_id=? AND state IN ('offered','running')",s.intent.sessionId);return {session:s,assignment:/** @type {Assignment|null} */(decode(row)),cancelRequested:s.cancelRequested||this.now()>=s.intent.deadline};});}
+ current(identity){const current=this.ledger.transact(tx=>{const s=this.authenticated(tx,identity);const row=tx.get("SELECT record FROM managed_assignment WHERE session_id=? AND state IN ('offered','running')",s.intent.sessionId);return {session:s,assignment:/** @type {Assignment|null} */(decode(row)),cancelRequested:s.cancelRequested||this.now()>=s.intent.deadline};});if(current.assignment)this.targets.checkInput(current.assignment.input);return current;}
  /** @param {Identity} identity @param {AssignedInput} input @param {import('./session-types.js').ObjectDescriptor[]} objects */
  offer(identity,input,objects){
   const a=input.attempt;for(const k of ['installationId','repositoryId','workId','actionId','attemptId'])id(a[/** @type {'workId'} */(k)]);revision(a.attempt);revision(a.ownerEpoch);id(input.resultId);for(const d of [input.profileDigest,input.sourceManifest,input.payloadDigest,input.executionDigest])digest(d);timestamp(input.deadline);
   requireThat(objects.length>0&&objects.length<=16384,'LIMIT_EXCEEDED');let total=0;const descriptors=new Map();
   for(const o of objects){digest(o.digest);requireThat(Number.isSafeInteger(o.size)&&o.size>=0&&o.size<=16777216&&!descriptors.has(o.digest),'INVALID_ARGUMENT');descriptors.set(o.digest,o.size);total+=o.size;}requireThat(total<=268435456&&descriptors.has(input.payloadDigest),'LIMIT_EXCEEDED');
-  const inputIdentity=recordDigest('dev2.managed-assignment-input.v1',input),assignmentId=recordDigest('dev2.managed-assignment.v1',{attempt:a,profileDigest:input.profileDigest}).slice(7);
+  this.targets.checkInput(input);const inputIdentity=recordDigest('dev2.managed-assignment-input.v1',input),assignmentId=recordDigest('dev2.managed-assignment.v1',{attempt:a,profileDigest:input.profileDigest}).slice(7);
   return this.ledger.transact(tx=>{
    const s=this.authenticated(tx,identity),prior=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',assignmentId)));
    if(prior){requireThat(prior.inputIdentity===inputIdentity&&prior.sessionId===s.intent.sessionId&&prior.runId===identity.runId,'IDEMPOTENCY_MISMATCH');const retained=tx.all('SELECT digest,size FROM managed_object WHERE assignment_id=? ORDER BY digest',assignmentId);requireThat(retained.length===descriptors.size&&retained.every(r=>descriptors.get(String(r.digest))===Number(r.size)),'IDEMPOTENCY_MISMATCH');return prior;}
    requireThat(this.config.sealDigest!==null,'EXECUTION_UNAVAILABLE','Managed containment seal is absent');
    requireThat(this.sealCompatible(tx,s.intent.sessionId),'EXECUTION_UNAVAILABLE','Hosted session is pinned to another enrollment seal');
    requireThat(s.state==='active'&&!s.cancelRequested&&this.now()<input.deadline&&input.deadline<=s.intent.deadline,'STALE_RESULT');
-   requireThat(a.installationId===s.intent.installationId&&a.repositoryId===s.intent.repositoryId,'FORBIDDEN');
-   const reservation=tx.retainedAttempt(a.attemptId);requireThat(reservation?.held&&reservation.observerEpoch===this.ledger.ownerEpoch&&encoded(reservation.attempt)===encoded(a),'STALE_REVISION');
+   requireThat(a.installationId===s.intent.installationId,'FORBIDDEN','Managed target installation differs from controller');
    requireThat(!tx.get("SELECT assignment_id FROM managed_assignment WHERE session_id=? AND state IN ('offered','running')",identity.sessionId),'CAPACITY_REJECTED');
    /** @type {Assignment} */const assigned={assignmentId,sessionId:identity.sessionId,runId:identity.runId,leaseId:newId(),input:structuredClone(input),inputIdentity,sealDigest:this.config.sealDigest,revision:'0',state:'offered',cancelRequested:false,result:null};
    tx.run('INSERT INTO managed_assignment VALUES(?,?,?,?)',assignmentId,identity.sessionId,assigned.state,encoded(assigned));
    for(const o of objects)tx.run('INSERT INTO managed_object VALUES(?,?,?)',assignmentId,o.digest,o.size);return assigned;
   });
  }
- /** @param {Transaction} tx @param {Identity} identity @param {string} assignmentId @param {string} leaseId */
+ /** Controller-ledger authorization only. Target ownership is fenced by authorize().
+  * @param {Transaction} tx @param {Identity} identity @param {string} assignmentId @param {string} leaseId */
  authorizeAssignment(tx,identity,assignmentId,leaseId){const s=this.authenticated(tx,identity),a=this.assignment(tx,assignmentId);requireThat(a.sessionId===s.intent.sessionId&&a.runId===identity.runId&&a.leaseId===leaseId,'UNAUTHORIZED');return a;}
+ /** Complete controller authentication first, then independently fence the target
+  * Attempt owner before any caller begins a following synchronous controller use.
+  * @param {Identity} identity @param {string} assignmentId @param {string} leaseId */
+ authorize(identity,assignmentId,leaseId){const a=this.ledger.transact(tx=>this.authorizeAssignment(tx,identity,assignmentId,leaseId));this.targets.checkInput(a.input);return a;}
  /** ACK does not change the launch/lease identity on retry or reconnect.
   * @param {Identity} identity @param {string} assignmentId @param {string} leaseId */
- acknowledge(identity,assignmentId,leaseId){return this.ledger.transact(tx=>{const a=this.authorizeAssignment(tx,identity,assignmentId,leaseId);if(a.state!=='offered')return a;const s=this.session(tx,a.sessionId);requireThat(!a.cancelRequested&&!s.cancelRequested&&this.now()<a.input.deadline,'STALE_RESULT');return this.saveAssignment(tx,a,{...a,state:'running'});});}
- /** Accepted only from the OIDC-authenticated trusted outer controller. Candidate
-  * stdout is never a completion receipt. Input/runner/seal and lease all bind it.
-  * @param {Identity} identity @param {ExecutionResult} result */
- complete(identity,result){return this.ledger.transact(tx=>{
-  const a=this.authorizeAssignment(tx,identity,result.assignmentId,result.leaseId),s=this.session(tx,a.sessionId);
+ acknowledge(identity,assignmentId,leaseId){this.authorize(identity,assignmentId,leaseId);return this.ledger.transact(tx=>{const a=this.authorizeAssignment(tx,identity,assignmentId,leaseId);if(a.state!=='offered')return a;const s=this.session(tx,a.sessionId);requireThat(!a.cancelRequested&&!s.cancelRequested&&this.now()<a.input.deadline,'STALE_RESULT');return this.saveAssignment(tx,a,{...a,state:'running'});});}
+ /** Validate and normalize the immutable executor result. `cancelled` is the
+  * cancellation state retained at first acceptance, or reconstructed from an
+  * already-complete result for an idempotent terminal replay.
+  * @param {Assignment} a @param {Session} s @param {ExecutionResult} result @param {boolean} cancelled */
+ completionResult(a,s,result,cancelled){
   requireThat(result.stopped===true&&result.inputIdentity===a.inputIdentity&&result.sealDigest===a.sealDigest&&result.trustedRunnerDigest===s.intent.trustedRunnerDigest,'INTEGRITY_FAILURE');
   timestamp(result.startedAt);timestamp(result.endedAt);requireThat(result.startedAt>=s.intent.createdAt&&result.endedAt>=result.startedAt&&result.endedAt<=this.now()+5000,'INTEGRITY_FAILURE');
   requireThat(result.exitCode===null||Number.isSafeInteger(result.exitCode)&&result.exitCode>=0&&result.exitCode<=255,'INTEGRITY_FAILURE');requireThat(result.signal===null||typeof result.signal==='string'&&/^SIG[A-Z0-9]{1,16}$/.test(result.signal),'INTEGRITY_FAILURE');requireThat(typeof result.deadlineExceeded==='boolean'&&Array.isArray(result.artifacts)&&result.artifacts.length<=32,'INTEGRITY_FAILURE');for(const d of [result.inputDigest,result.outputDigest,...result.artifacts])digest(d);
-  const bounded={...result,deadlineExceeded:result.deadlineExceeded||result.endedAt>a.input.deadline};
-  // A late or cancelled result remains observable but cannot be successful.
-  if(a.cancelRequested||s.cancelRequested)bounded.signal=bounded.signal??'SIGTERM';
+  const bounded={...result,deadlineExceeded:result.deadlineExceeded||result.endedAt>a.input.deadline};if(cancelled)bounded.signal=bounded.signal??'SIGTERM';return bounded;
+ }
+ /** Accepted only from the OIDC-authenticated trusted outer controller. Candidate
+  * stdout is never a completion receipt. Input/runner/seal and lease all bind it.
+  * An exact retained terminal replay is controller-authenticated but does not need
+  * a target owner that may already have been safely released after first acceptance.
+  * @param {Identity} identity @param {ExecutionResult} result */
+ complete(identity,result){
+  const replay=this.ledger.transact(tx=>{const a=this.authorizeAssignment(tx,identity,result.assignmentId,result.leaseId);if(a.state!=='complete')return null;const s=this.session(tx,a.sessionId),bounded=this.completionResult(a,s,result,a.result?.signal==='SIGTERM'&&result.signal===null);requireThat(encoded(a.result)===encoded(bounded),'IDEMPOTENCY_MISMATCH');return a;});if(replay)return replay;
+  this.authorize(identity,result.assignmentId,result.leaseId);return this.ledger.transact(tx=>{
+  const a=this.authorizeAssignment(tx,identity,result.assignmentId,result.leaseId),s=this.session(tx,a.sessionId),bounded=this.completionResult(a,s,result,a.cancelRequested||s.cancelRequested);
   if(a.state==='complete'){requireThat(encoded(a.result)===encoded(bounded),'IDEMPOTENCY_MISMATCH');return a;}
   requireThat(a.state==='running','STALE_RESULT','Completion requires the retained acknowledged assignment');
   for(const artifact of result.artifacts){const row=tx.get("SELECT state FROM managed_artifact WHERE assignment_id=? AND digest=?",a.assignmentId,artifact);requireThat(row?.state==='ready','INTEGRITY_FAILURE','Uncommitted assignment artifact');}

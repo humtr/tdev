@@ -21,9 +21,15 @@ export interface Session {
   launch:'reserved'|'sent'; state:'reserved'|'active'|'closing'|'closed';
   run:ProviderRun|null; cancelRequested:boolean; stoppedAt:number|null;
 }
+export interface ManagedTargetIdentity {
+  installationId:string; repositoryId:string; bindingEpoch:string; provider:string;
+  providerRepositoryId:string; ref:string; policyDigest:string;
+}
 export interface AssignedInput {
   attempt:Attempt; resultId:string; profileDigest:string; sourceManifest:string;
   payloadDigest:string; executionDigest:string; deadline:number;
+  /** Absent only on retained pre-C2 controller-binding assignments. */
+  target?:ManagedTargetIdentity;
 }
 export interface ObjectDescriptor {digest:string; size:number}
 export interface ExecutionResult {
