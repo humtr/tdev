@@ -26,7 +26,7 @@ This documentation-only Work is expected to advance canonical repository HEAD wh
 
 ## D0003 H2 production state
 
-Production H2 selection is **enabled**. Fresh provider history shows `04bb2a5...` changed the installed native source from `h2Enabled:false` to `h2Enabled:true`. The current canonical/deployed source `3e85665...` is an H2-generated composed source commit: current H2 commit construction requires at least two members, the commit message is the generated `dev-2 composed source change`, and the resulting tree contains the two retained production-acceptance member markers.
+Production H2 selection is **enabled**. Fresh provider history shows `04bb2a5...` changed the installed native source from `h2Enabled:false` to `h2Enabled:true`. The production source `3e85665...`, canonical at convergence bootstrap and still deployed to device/edge after the documentation-only repository update, is an H2-generated composed source commit: current H2 commit construction requires at least two members, the commit message is the generated `dev-2 composed source change`, and the resulting tree contains the two retained production-acceptance member markers.
 
 The production-promotion chain is therefore no longer an implementation or activation frontier: required H2 validation/release gates were completed before the active qualified release, and the actual production-path composed source is what the fresh device and edge execute. This documentation session does not manufacture or replay a validation receipt; the exact required-validation and fault/recovery records remain retained evidence.
 
