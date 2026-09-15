@@ -1,0 +1,2 @@
+D0003 H2 production acceptance member A.
+Purpose: independently validated disjoint same-base production-path composition evidence.
