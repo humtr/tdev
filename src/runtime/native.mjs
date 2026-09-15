@@ -7,6 +7,7 @@ import {failure} from '../contracts/envelopes.mjs';
 import {capacity,oid,digest,id} from '../contracts/identity.mjs';
 import {GitRepository} from '../repository/git.mjs';
 import {ContextService} from '../repository/context.mjs';
+import {installationBindings} from '../repository/bindings.mjs';
 import {ScopedAuthorization} from '../security/authorization.mjs';
 import {accessApplicationVerifier} from '../security/access-application.mjs';
 import {Ledger} from '../storage/ledger.mjs';
@@ -44,7 +45,7 @@ const unavailableValidation={async validate(){throw new Dev2Error('EXECUTION_UNA
 /** @param {NativeConfig} config @param {{log?:(event:string)=>void,commissioningIntent?:import('./production-enrollment.mjs').ProductionIntent}} [options] */
 export async function createNativeInstallation(config,options={}){
  requireThat(config.schemaVersion===1&&config.runtime.schemaDigest===SCHEMA_DIGEST,'INTEGRITY_FAILURE','Installation/schema mismatch');
- const edge=config.edge,binding=edge.binding;workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
+ const edge=config.edge,bindings=installationBindings(edge),binding=edge.binding;workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
  requireThat(!config.productionEnrollmentFile||config.managedEnrollmentFile,'EXECUTION_UNAVAILABLE','Production enrollment requires historical managed enrollment');
  requireThat(!!config.releaseControl===!!config.releaseArtifactDirectory,'EXECUTION_UNAVAILABLE','Incomplete installed release configuration');
  if(config.releaseArtifactDirectory)await privateDirectory(config.releaseArtifactDirectory);
@@ -52,9 +53,9 @@ export async function createNativeInstallation(config,options={}){
  const admission=control?await control.startupAdmission():null;
  /** @type {NativeReleaseRuntime|null} */let release=null;
  oid(config.runtime.sourceCommitOid);oid(config.runtime.sourceTreeOid);digest(config.runtime.bundleDigest);
- requireThat(edge.installationId===binding.installationId&&binding.provider==='github'&&/^[1-9][0-9]*$/.test(binding.providerRepositoryId),'FORBIDDEN');
- const remote=new URL(binding.remote);requireThat(remote.protocol==='https:'&&remote.hostname==='github.com'&&!remote.username&&!remote.password&&!remote.search&&!remote.hash&&/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.git$/.test(remote.pathname),'FORBIDDEN');
- const repositoryName=remote.pathname.slice(1,-4),initialPolicy=new AdoptedPolicy(config.policy);
+ /** @type {Map<string,string>} */const repositoryNames=new Map();
+ for(const installed of bindings){requireThat(installed.provider==='github'&&/^[1-9][0-9]*$/.test(installed.providerRepositoryId),'FORBIDDEN');const remote=new URL(installed.remote);requireThat(remote.protocol==='https:'&&remote.hostname==='github.com'&&!remote.username&&!remote.password&&!remote.search&&!remote.hash&&/^\/[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+\.git$/.test(remote.pathname),'FORBIDDEN');repositoryNames.set(installed.repositoryId,remote.pathname.slice(1,-4));}
+ const repositoryName=/** @type {string} */(repositoryNames.get(binding.repositoryId)),initialPolicy=new AdoptedPolicy(config.policy);
  requireThat(initialPolicy.policy.digest===binding.policyDigest&&initialPolicy.policy.execution.environmentClass==='github-hosted-unsealed','INTEGRITY_FAILURE');
  selectExecutionVariant(config.toolchain,{platform:process.platform,arch:process.arch,node:process.versions.node,sqlite:process.versions.sqlite??null});
  requireThat(isAbsolute(config.stateDirectory)&&isAbsolute(config.gitExecutable),'INVALID_ARGUMENT');
@@ -65,16 +66,16 @@ export async function createNativeInstallation(config,options={}){
  const state=resolve(config.stateDirectory);await mkdir(join(state,'home'),{recursive:true,mode:0o700});await mkdir(join(state,'tmp'),{recursive:true,mode:0o700});
  /** @type {Record<string,string>} */const gitEnvironment={PATH:dirname(config.gitExecutable),HOME:join(state,'home'),TMPDIR:join(state,'tmp'),LANG:'C.UTF-8'};
  if(config.githubTokenFile&&config.gitAskpassFile){await privateFile(config.gitAskpassFile,16384);gitEnvironment.GIT_ASKPASS=config.gitAskpassFile;gitEnvironment.DEV2_GITHUB_TOKEN_FILE=config.githubTokenFile;}
- let providerVerifiedAt=0;
- const repository=new GitRepository({directory:join(state,'repository.git'),executable:config.gitExecutable,environment:gitEnvironment,bindings:()=>[binding],verifyRemote:async()=>{
-  if(Date.now()-providerVerifiedAt<60000)return;
+ /** @type {Map<string,number>} */const providerVerifiedAt=new Map();
+ const repository=new GitRepository({directory:join(state,'repository.git'),executable:config.gitExecutable,environment:gitEnvironment,bindings:()=>bindings,verifyRemote:async selected=>{
+  if(Date.now()-(providerVerifiedAt.get(selected.repositoryId)??0)<60000)return;const selectedName=repositoryNames.get(selected.repositoryId);requireThat(selectedName,'FORBIDDEN');
   /** @type {Record<string,string>} */const headers={accept:'application/vnd.github+json','user-agent':'dev2-native-control'};if(token)headers.authorization='Bearer '+token;
-  let response;try{response=await fetch('https://api.github.com/repos/'+repositoryName,{headers,redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new Dev2Error('EXECUTION_UNAVAILABLE','Repository identity provider unavailable');}
+  let response;try{response=await fetch('https://api.github.com/repos/'+selectedName,{headers,redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new Dev2Error('EXECUTION_UNAVAILABLE','Repository identity provider unavailable');}
   requireThat(response.ok,'EXECUTION_UNAVAILABLE','Repository identity provider unavailable');const metadata=/** @type {{id?:number,full_name?:string}} */(await response.json());
-  requireThat(String(metadata.id)===binding.providerRepositoryId&&metadata.full_name===repositoryName,'FORBIDDEN','Repository provider identity changed');providerVerifiedAt=Date.now();
+  requireThat(String(metadata.id)===selected.providerRepositoryId&&metadata.full_name===selectedName,'FORBIDDEN','Repository provider identity changed');providerVerifiedAt.set(selected.repositoryId,Date.now());
  }});await repository.init();
  const objects=new ObjectStore(join(state,'objects'));await objects.init();
- const authorization=new ScopedAuthorization({issuer:edge.issuer,audience:edge.origin,bindings:()=>[binding],grants:()=>edge.grants});
+ const authorization=new ScopedAuthorization({issuer:edge.issuer,audience:edge.origin,bindings:()=>bindings,grants:()=>edge.grants});
  const verify=accessApplicationVerifier({profile:'access-application',issuer:edge.issuer,applicationAudience:edge.applicationAudience,resourceOrigin:edge.origin,applicationCapabilities:edge.applicationCapabilities},createRemoteJWKSet(new URL(edge.issuer+'/cdn-cgi/access/certs')));
  const ledger=new Ledger(join(state,'work.sqlite'),binding),context=new ContextService({repository,objects,authorization,tokenKey:cursorKey});
  /** @type {Awaited<ReturnType<typeof createManagedControl>>|null} */let managed=null;
