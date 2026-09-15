@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002]`
 - Supersedes: `[]`
-- Directive: `r5`
+- Directive: `r6`
 - Owns: `validation-identity, canonical-integration, stale-conflict-semantics`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.

@@ -1,8 +1,18 @@
 # dev-2 owner directive
 
 - Status: active
-- Revision: 5
-- Scope: first public `dev-2` architecture, implementation, and proof
+- Revision: 6
+- Scope: first public `dev-2` architecture, implementation and proof, followed by final `tdev` product convergence
+
+## 0. Current post-release convergence requirements
+
+The final product identity is `tdev`. `dev-2` is the current development branch and historical development codename, not the intended permanent product, protocol, internal-runtime, provider-visible, or deployment identity. Before final promotion, remove branch-derived `dev-2`/`dev2` naming from current product surfaces and internal identities where it exists only because development occurred on that branch. Historical Git branch names and truthful historical evidence may retain the old name. A rename that changes durable or protocol semantics must preserve correctness through the existing Design owner; the naming correction itself does not justify a new Design.
+
+One canonical `tdev` installation/runtime and public MCP service must be able to work with multiple explicitly authorized repositories and refs without requiring a separate local runtime, installation, Worker, or public endpoint per repository as the normal operating model. Repository/ref selection must preserve exact identity, authorization, isolation, request deduplication, validation, recovery and canonical-integration fencing independently for each selected binding. Resource sharing is allowed only where those boundaries remain intact.
+
+Complete the remaining managed-execution cost/reliability repairs, multi-repository/ref capability, final `tdev` identity convergence and repository-aware transfer optimization on the current development line before final branch promotion. After those changes and their required validation/live acceptance converge, promote the exact validated final product state to `main`, transition canonical self-development to the verified `main` binding, and prove ordinary self-development there. `main` is the final canonical product line, not a second place to continue unfinished substantive development.
+
+These requirements preserve all first-release correctness and security invariants below. They add the post-release convergence target and override earlier uses of `dev-2` only where those uses treated the development codename as the permanent product identity.
 
 ## 1. Authority
 

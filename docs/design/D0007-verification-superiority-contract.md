@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0004, D0005, D0006]`
 - Supersedes: `[]`
-- Directive: `r5`
+- Directive: `r6`
 - Owns: `test-environments, benchmark-methodology, superiority-gates`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority. Under DIRECTIVE r5, this Design remains the formal methodology for future statistical-superiority claims, but unrun cohorts do not reopen the owner's 2026-09-14 first-release closure; unmeasured cells remain unknown.

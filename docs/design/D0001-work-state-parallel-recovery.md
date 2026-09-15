@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0005]`
 - Supersedes: `[]`
-- Directive: `r5`
+- Directive: `r6`
 - Owns: `work-state, action-deduplication, parallel-admission, execution-recovery, canonical-record-encoding`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
