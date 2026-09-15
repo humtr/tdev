@@ -42,7 +42,7 @@ test('canonical input seal changes when a checked benchmark input changes',async
  const root=await mkdtemp(join(tmpdir(),'dev2-input-seal-'));
  try{
   const copy=join(root,'source');await mkdir(copy);
-  for(const path of ['src/contracts','src/runtime','src/validation','tools','config','AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json','.node-version','docs/ARCHITECTURE.md'])await cp(path,join(copy,path),{recursive:true});
+  for(const path of ['src/contracts','src/runtime','src/validation','tools','config','AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json','.node-version'])await cp(path,join(copy,path),{recursive:true});
   await mkdir(join(copy,'bench'));await writeFile(join(copy,'bench','observed.mjs'),'export const observed=1;\n');
   // This fixture isolates input hashing with a required NOT RUN layer, not an
   // integration acceptance substitute or an empty-suite success.

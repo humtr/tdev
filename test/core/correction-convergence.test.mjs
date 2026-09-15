@@ -43,19 +43,19 @@ test('optional Access not-before is checked as an exact integer when present', a
     for (const nbf of [-1, 1.5, now / 1000 + 1, null, '0'])
         await assert.rejects(() => f.token({ nbf }).then(verify), { code: 'UNAUTHORIZED' });
 });
-test('workflow, deploy, architecture and toolchain input bytes all change the canonical report seal', async () => {
+test('workflow, deploy, governance and toolchain input bytes all change the canonical report seal', async () => {
     const root = await mkdtemp(join(tmpdir(), 'dev2-correction-input-'));
     try {
         const source = join(root, 'source');
         await mkdir(source);
-        for (const path of ['src/contracts', 'src/runtime', 'src/validation', 'tools', 'config', 'AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'WORKBOARD.md', 'package.json', 'package-lock.json', 'jsconfig.json', '.node-version', 'docs/ARCHITECTURE.md'])
+        for (const path of ['src/contracts', 'src/runtime', 'src/validation', 'tools', 'config', 'AGENTS.md', 'DIRECTIVE.md', 'RULE.md', 'WORKBOARD.md', 'package.json', 'package-lock.json', 'jsconfig.json', '.node-version'])
             await cp(path, join(source, path), { recursive: true });
         let count = 0;
         // Only input hashing is under test; the still-unimplemented release layer
         // must report NOT RUN, rather than executing a deliberately absent suite.
         async function report() { const out = join(root, 'report-' + count++); const r = spawnSync(process.execPath, [join(source, 'tools/validate.mjs'), '--profile', 'release', '--output', out], { encoding: 'utf8', timeout: 5000 }); assert.equal(r.status, 2, r.stderr || r.stdout); return JSON.parse(await readFile(join(out, 'result.json'), 'utf8')).inputDigest; }
         let before = await report();
-        for (const path of ['deploy/fixture.json', '.github/workflows/fixture.yml', '.node-version', 'docs/ARCHITECTURE.md']) {
+        for (const path of ['deploy/fixture.json', '.github/workflows/fixture.yml', '.node-version', 'DIRECTIVE.md']) {
             const target = join(source, path);
             await mkdir(join(target, '..'), { recursive: true });
             await writeFile(target, 'changed fixture bytes\n');

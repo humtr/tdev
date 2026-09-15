@@ -1,6 +1,6 @@
 # dev-2 workboard
 
-Authority: DIRECTIVE r6 -> RULE -> selected current Designs.
+Authority: DIRECTIVE r7 -> RULE -> selected current Designs.
 
 This file owns current execution routing only. It is intentionally resettable. Mutable repository, runtime, provider, Work and Action facts must be freshly rebound from their actual owners; prior chats, plans, evidence and Git history are never current-state authority.
 

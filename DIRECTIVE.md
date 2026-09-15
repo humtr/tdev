@@ -1,219 +1,128 @@
-# dev-2 owner directive
+# tdev owner directive
 
 - Status: active
-- Revision: 6
-- Scope: first public `dev-2` architecture, implementation and proof, followed by final `tdev` product convergence
+- Revision: 7
+- Scope: current `tdev` product convergence on the development line, retained first-release invariants, and final promotion to `main`
 
-## 0. Current post-release convergence requirements
+## 0. Current state and remaining outcome
 
-The final product identity is `tdev`. `dev-2` is the current development branch and historical development codename, not the intended permanent product, protocol, internal-runtime, provider-visible, or deployment identity. Before final promotion, remove branch-derived `dev-2`/`dev2` naming from current product surfaces and internal identities where it exists only because development occurred on that branch. Historical Git branch names and truthful historical evidence may retain the old name. A rename that changes durable or protocol semantics must preserve correctness through the existing Design owner; the naming correction itself does not justify a new Design.
+The Phase A public cutover is complete. The first public release was explicitly owner-closed on 2026-09-14. Those milestones are retained baseline, not current execution frontiers, and their old step-by-step cutover procedure is not an active requirement.
 
-One canonical `tdev` installation/runtime and public MCP service must be able to work with multiple explicitly authorized repositories and refs without requiring a separate local runtime, installation, Worker, or public endpoint per repository as the normal operating model. Repository/ref selection must preserve exact identity, authorization, isolation, request deduplication, validation, recovery and canonical-integration fencing independently for each selected binding. Resource sharing is allowed only where those boundaries remain intact.
+The current development branch remains `dev-2`; the final product identity is `tdev`. `dev-2` is a development branch and historical codename, not the intended permanent product, protocol, internal-runtime, provider-visible, or deployment identity.
 
-Complete the remaining managed-execution cost/reliability repairs, multi-repository/ref capability, final `tdev` identity convergence and repository-aware transfer optimization on the current development line before final branch promotion. After those changes and their required validation/live acceptance converge, promote the exact validated final product state to `main`, transition canonical self-development to the verified `main` binding, and prove ordinary self-development there. `main` is the final canonical product line, not a second place to continue unfinished substantive development.
+The remaining required outcome is to finish the unresolved product-convergence work on the development line, including managed-execution lifecycle/cost correctness, one-runtime multi-repository/ref support, final `tdev` identity convergence, repository-aware transfer efficiency, and exact-state promotion to `main`. After promotion, canonical self-development must operate on the verified `main` binding and ordinary self-development must succeed there.
 
-These requirements preserve all first-release correctness and security invariants below. They add the post-release convergence target and override earlier uses of `dev-2` only where those uses treated the development codename as the permanent product identity.
+`WORKBOARD.md` owns current execution position. Campaign documents may organize the route, but they do not add product requirements or replace this Directive. This section may be maintained periodically to mark major milestones achieved or deferred without turning the Directive into a work log.
 
-## 1. Authority
+## 1. Authority and maintenance
 
-This Directive is the highest repository authority for the user's explicit objectives, requirements, priorities, and non-substitutable completion conditions.
+This Directive is the highest repository authority for the user's explicit objectives, requirements, priorities, and non-substitutable completion conditions. No Rule, Design, implementation, test, benchmark, historical result, compatibility concern, predecessor decision, campaign, or derived document may override, narrow, or silently reinterpret it.
 
-No Rule, Design, implementation, test, benchmark, historical result, compatibility concern, predecessor decision, or derived document may override, narrow, or silently reinterpret it. When lower-level material conflicts with the Directive, correct the lower-level material.
+Repository governance and subordinate documentation may evolve when that makes the system simpler or more correct. The agent may autonomously correct stale milestone status, remove obsolete procedure, simplify wording, and reconcile this Directive with explicit user instructions. Such maintenance must preserve requirement meaning and must not invent, drop, relax, or materially reinterpret user requirements.
 
-The documentation system itself is mutable. Any repository document, including this Directive and the other top-level governance documents, may be changed without prior user approval when the change is materially justified by the user's objective, new evidence, or a simpler and more correct development system. Apply justified top-level authority/governance changes first, then report them to the user with the reason, effect, major risks, and alternatives considered.
-
-Within those boundaries, the agent may autonomously design, create, revise, merge, or remove all subordinate documentation and implementation structures needed to achieve this Directive, including Designs, architecture, history, evidence, benchmarks, security, deployment, qualification, and operational documentation.
+A material reframing of the user's objectives or completion conditions should be discussed with the owner when the existing instruction does not already authorize the change. Progress reporting and routine cleanup do not require a separate approval round trip.
 
 ## 2. Product objective
 
-Build `dev-2` as a substantially simpler, faster, more efficient, and actually self-developing ChatGPT-native development system.
+Build `tdev` as a substantially simpler, faster, more efficient, and genuinely self-developing ChatGPT-native development system.
 
-The primary completion condition is factual:
+The factual product condition is:
 
-> ChatGPT can use the canonical `dev-2` MCP path to discover the current repository, understand relevant source, make real source changes, validate them, integrate them safely, and read back authoritative completion without requiring a predecessor development system for ordinary forward development.
+> ChatGPT can use the canonical tdev MCP path to discover the current authorized repository/ref, understand relevant source, make real source changes, validate them, integrate them safely, and read back authoritative completion without requiring a predecessor development system for ordinary forward development.
 
-For the first public release, ordinary product operation through the canonical ChatGPT -> `dev-2` core path must not require tmcp, direct GitHub mutation, manual runtime rebinding, deployment-time source scoping, Codex, another LLM, or another external bootstrap. This is a product-independence and first-release-proof requirement, not a restriction on the tools used to implement, repair, bootstrap, inspect, or review `dev-2` itself. During development of `dev-2`, any authorized development tool, coding agent, model, IDE, shell, repository tool, or provider tool may be used when useful. Such a tool must not be mistaken for proof that the resulting canonical product path works without it, and it must not silently become a required dependency of that path.
+ChatGPT is the only required intelligence for the canonical core development path. Optional local or remote executors, coding harnesses, models, compilers, build systems, or other specialized capabilities may exist when they provide product value, but their absence must not break that core path unless a later Directive explicitly promotes one into a required dependency.
 
-## 3. Clean-sheet requirement
+`tmcp`, direct GitHub mutation, manual task-specific runtime rebinding, deployment-time source scoping, Codex, another LLM, or another external bootstrap must not be required for ordinary forward product operation. Authorized development or repair tools may still be used to build or recover tdev; using them is not proof that the canonical product path depends on them.
 
-`dev-2` starts from a parentless Git root and from requirements, not predecessor architecture.
+## 3. Repository and self-development requirements
 
-Existing tdev and tmcp code, documents, Designs, workflows, schemas, tools, state models, and runtime structures are non-authoritative evidence and salvage candidates only. Reuse is allowed only after the new architecture independently requires the same abstraction and reuse is still the simplest, safest, and most efficient realization.
+A normal new development task must be startable from canonical tdev MCP without externally pre-baking source scope or redeploying the runtime merely to expose required files.
 
-Prior implementation, verification, qualification, deployment, sunk cost, historical acceptance, or migration convenience is never sufficient reason to retain an abstraction. Large-scale replacement and deletion are allowed before the first public release.
+The system must bind exact current repository/ref identity, discover relevant paths, progressively obtain bounded source context, isolate candidate state, execute the change, complete configured required validation, integrate the exact eligible result, and observe/recover completion.
 
-## 4. Core intelligence and optional harnesses
+The development line was established as a clean-root authority epoch. Predecessor tdev/tmcp source, documents, workflows, schemas, state models, and historical acceptance remain non-authoritative evidence or salvage material only. Sunk cost or predecessor compatibility is not sufficient reason to retain an abstraction.
 
-ChatGPT is the only required intelligence for the first-release canonical core development path. That core path must remain fully usable without a Codex executable, Codex authentication, a second LLM, a model subprocess, another model execution service, or any comparable delegated-intelligence harness.
+One canonical tdev installation/runtime and public MCP service must support multiple explicitly authorized repositories and refs without requiring a separate local runtime, installation, Worker, or public endpoint per repository as the normal model. Repository/ref selection must preserve exact identity, authorization, isolation, request deduplication, validation, recovery, and canonical-integration fencing independently for each selected binding.
 
-This does not make `dev-2` a permanently ChatGPT-only executor. The architecture may support optional local or remote executors, coding harnesses, agents, models, compilers, build systems, shells, or other specialized capabilities, including Codex-like or Antigravity-like harnesses, when they provide product value. They are optional capabilities unless a later Directive explicitly promotes one into a required product dependency. Their absence must not break the first-release canonical core path, and their integration must preserve the same authorization, exact identity, isolation, validation, recovery, conflict, and canonical-integration invariants as any other executor.
+## 4. Parallelism, isolation, recovery, and integration
 
-There is no product requirement restricting which tools or models may be used to develop `dev-2` itself. The requirement concerns what the shipped canonical path requires in order to operate and what evidence is necessary to prove that independence.
+Parallel development is a first-class product property. Default configured concurrency is **8**, and at least eight independent work units must be able to progress concurrently when dependencies and real resource conflicts permit. Eight is not an architectural maximum or durable identity count.
 
-## 5. Self-development and repository context
+Concurrent mutable work must not depend on one shared writable checkout. Each executable work unit requires isolated exact-base-bound candidate state or an equivalent isolation mechanism.
 
-A normal new development task must be startable from canonical `dev-2` MCP without externally pre-baking source scope or redeploying the runtime merely to expose required files.
+Retries, reconnects, restarts, cancellation, and response loss must not duplicate logical work or canonical effects. Missing, stale, failed, uncertain, or partially observed state never becomes success by default.
 
-ChatGPT must be able to bind exact current repository identity, discover relevant paths, progressively obtain bounded source context, execute the change, validate it, integrate it safely, and observe completion.
+Only exact required-validated results may enter canonical state. Stale or conflicting candidates must not silently overwrite newer state. The exact result authorized by validation must be the result integrated, with recoverable exact effect identity across response loss.
 
-Exact-base identity, authorization, bounded reads, integrity, stale-state rejection, and safe recovery are required.
+Independent work should serialize only for actual dependency/resource/conflict boundaries. One failed or uncertain work unit must not globally stop unrelated work.
 
-## 6. Parallel-first baseline
+## 5. Simplicity and ownership
 
-Parallel development is a first-class product property.
+Use the smallest understandable set of durable owners, state machines, queues, coordinators, adapters, manifests, caches, and recovery mechanisms that correctness and product value require.
 
-The default configured concurrency is **8**. The first public release must actually support at least eight independent development work units progressing concurrently when dependencies and real resource conflicts permit.
+Every durable owner or background mechanism requires a concrete justification. Historical qualification, migration, compatibility, and recovery machinery must not dominate normal development. One durable semantic fact has one authoritative owner; derived documentation must not become a competing copy of current truth.
 
-Eight is not an architectural maximum. The architecture must not encode eight as a permanent semantic ceiling, fixed lane identity count, public API limit, or durable-state limit.
+Designs own bounded architectural and contract decisions. WORKBOARD owns current execution position. Campaign plans organize execution only. Evidence records observations only. Git preserves history.
 
-Configured concurrency above eight must be possible without redesigning core work semantics. A concrete deployment may impose a resource ceiling as runtime policy; that ceiling is not a product architectural maximum.
+## 6. Operating environment and public service
 
-Independent work proceeds concurrently by default. Only genuinely conflicting or dependency-ordered work should serialize or fence. Failure, cancellation, timeout, or unresolved effect in one work unit must not globally stop unrelated work.
+The user's actual local operating environment is Termux on Android. It is a material production target, not an interchangeable generic Linux host. The public ChatGPT-facing MCP origin is the canonical Cloudflare `workers.dev` deployment. The normal product must not require a separate VPS, general-purpose always-on Linux server, reverse-proxy host, or changing public tunnel.
 
-## 7. Isolation, recovery, and integration
+Do not assume Android/Termux provides root, systemd, Docker/Podman, usable cgroups, unrestricted inbound networking, or uninterrupted daemon lifetime. Sleep, background suspension, process termination, reconnect, and restart are ordinary failure modes. Architecture-relevant capabilities must be measured in the actual authorized environment when they matter.
 
-Concurrent work must not depend on one shared writable checkout. Each executable work unit requires isolated exact-base-bound candidate state or an equivalent isolation mechanism.
+Provider account IDs, Worker/resource names, versions, credentials, installation identities, and release IDs are mutable observations and must be rebound from their actual owners rather than copied from documentation.
 
-Retries, reconnects, restarts, and response loss must not create duplicate logical work or duplicate canonical effects.
+## 7. Public MCP contract and metadata
 
-Only validated results may enter canonical state. Stale or conflicting candidates must not silently overwrite newer state. The exact validated result must be the result integrated. Partial or duplicate completion must not leave canonical state ambiguous.
+The selected public MCP surface remains the four-tool contract: `dev_context`, `dev_read`, `dev_work`, and `dev_observe`, with typed bounded operations rather than an unrestricted arbitrary shell or provider proxy.
 
-The concrete integration abstraction is a new Design decision; predecessor Case, Drive, Agent, Promotion, or similar abstractions are not mandatory.
+All four tools publish the owner-selected ChatGPT-facing metadata policy:
 
-## 8. Simplicity
+- `readOnlyHint: true`
+- `destructiveHint: false`
+- `idempotentHint: false`
+- `openWorldHint: false`
 
-Use the smallest understandable set of durable owners, state machines, queues, coordinators, adapters, manifests, and recovery mechanisms that correctness and product value actually require.
+These annotations are UI metadata only. They do not weaken internal authorization, capability intersection, exact validation/integration, stale-base protection, request deduplication, effect recovery, or credential isolation.
 
-Historical qualification, recovery, migration, and compatibility machinery must not dominate the normal core. Preserve necessary external durable state deliberately, but isolate legacy compatibility at an edge rather than designing the new core around it.
+## 8. Achieved first-release baseline and retained invariants
 
-## 9. MCP contract
+The public cutover, ChatGPT Refresh boundary, and first-release owner closure are completed milestones. They are not reasons to keep Phase A/Phase B implementation chronology in current authority or Design prose unless a retained semantic boundary still depends on it.
 
-The public MCP surface is a clean-sheet Design decision. No predecessor tool count or schema is inherited.
+The 2026-09-14 owner closure does **not** assert that every D0007 repeated statistical cohort, p95 sample requirement, or physical Android sleep/Doze/reboot cell ran or passed. Unperformed cells remain unknown/deferred. D0007 remains the formal methodology for any later statistical-superiority claim unless revised.
 
-The target is the smallest clear and safe contract that lets ChatGPT discover repository state and context, start and observe development, recover interruption, validate and integrate results, and perform real self-development. Avoid both tool-per-internal-capability proliferation and an unrestricted arbitrary shell/mutation interface.
+The first-release invariants continue to apply: canonical ordinary development is self-hosting without predecessor or second-model dependency; default concurrency is eight without being an architectural ceiling; concurrent work remains isolated; retry/recovery remains idempotent; authorization and credential boundaries remain explicit; and only exact required-validated results may reach canonical state.
 
-## 10. Comparative efficiency after first release
+## 9. Current convergence requirements
 
-There is no reason to keep investing in `dev-2` unless it remains materially better in useful development work than the alternatives available to the owner. Comparative performance and efficiency therefore remain product concerns, but measurement machinery must not become a larger cost than the product decision it informs.
+Before final promotion, complete all material unresolved convergence work while preserving the retained invariants above.
 
-`dev-2` should continue to be evaluated against tdev and tmcp on representative development workloads where evidence is genuinely comparable. Predecessors remain comparison subjects, never architectural authorities. Old tdev must not be recreated, repaired, reinstalled or parallel-hosted merely to manufacture a benchmark. Use measured-current, measured-historical and analytical evidence honestly and keep unsupported cells unknown.
+1. Managed execution must have truthful bounded lifecycle behavior: provider-terminal/session state, retries/replacements, operational resources, and cleanup must converge without hidden amplification or permanent disposable residue.
+2. One canonical runtime/public service must support multiple authorized repository/ref bindings with exact isolation and recovery rather than per-repository runtime fragmentation.
+3. Branch-derived `dev-2`/`dev2`/`DEV2` naming must be removed from current product, protocol, internal-runtime, provider-visible, and deployment identity where it exists only because development occurred on the branch. Truthful historical evidence and the actual development ref may retain the branch name until promotion. Semantic migrations remain owned by the existing relevant Design; naming alone does not justify a new Design.
+4. Repeated repository/source/context transfer and other material cost amplification should be reduced where current measurement shows real waste, without weakening authorization, validation, exact identity, isolation, or recovery.
+5. Permanent requirements and semantics discovered during convergence must land in Directive/Rule/current Designs/source/types/config/tests rather than remaining dependent on campaign or evidence narratives.
 
-Evaluation should include successful end-to-end completion, latency, throughput, concurrent utilization, model/tool rounds, source/context bytes, redundant reads, repeated validation, stale/wasted work, manual intervention, external bootstrap, recovery cost, managed execution, Git/provider operations and infrastructure requests per completed task.
+The detailed order of these tasks belongs to WORKBOARD and the active campaign route, not this Directive.
 
-Formal claims of statistical superiority use D0007's preregistered methodology until that Design is revised. A favorable diagnostic or owner release decision is not a substitute for those statistics and must not be reported as D0007 PASS. Conversely, the owner may make a product/release decision from bounded current evidence when the marginal cost of additional measurement is not justified, provided the decision and remaining unknowns are explicit.
+## 10. Efficiency and evidence
 
-Performance or cost wins obtained by weakening validation, exact-state correctness, authorization, isolation, recovery, conflict handling or canonical integration safety do not count.
+There is no reason to keep investing in tdev unless it remains materially useful and efficient relative to realistic alternatives. Measure representative work using comparable correctness semantics and include end-to-end completion, latency, throughput, concurrent utilization, source/context bytes, redundant reads, validation executions, stale/wasted work, retries, managed compute/session behavior, Git/provider operations, infrastructure requests, manual intervention, and recovery cost when material.
 
-## 11. First-release owner closure
+Prefer eliminating unnecessary work over making repeated unnecessary work marginally faster. Use bounded falsifiers before expensive cohorts. Do not build a qualification subsystem larger than the product decision it serves.
 
-On 2026-09-14 the owner explicitly accepted and closed the first public `dev-2` release from the available current evidence and one-shot comparison diagnostics. This owner decision is the controlling first-release completion decision under this revision.
+Formal statistical-superiority claims use D0007 until that methodology is revised. A bounded owner/product decision may use narrower evidence when further measurement cost is not justified, provided the scope and remaining unknowns are explicit. Performance wins obtained by weakening correctness or security do not count.
 
-The closure does **not** assert that every D0007 repeated statistical cohort, p95 sample requirement or hard superiority threshold ran or passed, and it does not convert unperformed physical Android sleep/Doze/reboot acceptance into PASS. Those cells remain unverified or deferred. Retained evidence may support narrower factual claims only at the layer actually exercised.
+## 11. Final promotion and completion
 
-The owner decision closes the r4 release-blocking requirement to continue costly repeated benchmarking or disruptive physical acceptance before declaring the first release. D0007 remains the formal methodology for any later statistical-superiority claim unless revised. Future regressions, incidents or product decisions may reopen specific acceptance work without retroactively changing what was and was not measured at first-release closure.
+Substantive unfinished product work remains on the development line. `main` is not a second unfinished development frontier.
 
-The first-release product invariants remain: canonical ChatGPT -> `dev-2` ordinary development must be self-hosting without predecessor or second-model dependency, default concurrency remains eight without being an architectural ceiling, concurrent work remains isolated, interruption/retry remains idempotent, and only exact required-validated results may reach canonical state.
+Final completion requires:
 
-## 12. Post-release priority
-
-Prioritize reducing the real cost of completed development while preserving every correctness and security invariant. The first research frontier is same-ref stale recomposition and repeated full-validation amplification. D0003's accepted cost-efficient composition research boundary is the current owner of that research: it keeps production semantics unchanged, rejects unsafe cross-tree receipt reuse under the current whole-result validation identity, and permits only a pure off-path deterministic composition falsifier before any later production Design revision.
-
-After structural amplification, optimize managed-execution/session, Git/provider and Workers/DO request cost where measurement shows material remaining waste. Prefer eliminating unnecessary work over making repeated unnecessary work marginally faster. Treat validation executions, managed compute, provider operations, infrastructure requests, redundant bytes, wall time and human intervention per completed task as first-class efficiency metrics. Use cheap falsifiers before large cohorts, and do not build a new qualification subsystem merely to prove an optimization.
-
-## 13. Non-substitutable first-release operating environment
-
-The user's actual local development and operating environment is **Termux on an
-Android device**. It is a first-release operational target and a material part of
-the system, not merely an optional hermetic-test or transition environment. The
-user's existing foundation is Termux/Android, Cloudflare `workers.dev`, GitHub,
-and ChatGPT. Do not substitute an imagined general-purpose Linux server for it.
-
-The public ChatGPT-facing MCP origin must be served through **Cloudflare
-`workers.dev`**. Generic HTTPS availability is not an equivalent requirement.
-Actual account, subdomain, Worker/resource names, deployed versions, entitlements,
-and credential permissions are mutable observations that must be rebound from
-the provider when used, not invented hostnames or inherited predecessor settings.
-
-Ordinary first-release operation must not assume that the user owns or will
-maintain a separate VPS, dedicated Linux host, cloud VM, reverse-proxy server, or
-other always-on server. An additional service or execution dependency is an
-explicit architectural cost, not part of the assumed environment. Select one only
-after examining whether the existing foundation can satisfy the objective, record
-why it is necessary, and report its operational, permission, resource and cost
-consequences. Convenience or sunk implementation cost is insufficient justification.
-
-A separate public tunnel, temporary URL, manual endpoint rebinding, or repeated
-public-origin creation is not a user requirement and must not be a normal-path
-assumption. How the local and public sides communicate is a Design decision.
-
-Do not assume Android/Termux provides root, systemd, Docker/Podman, usable cgroups,
-user namespaces, unrestricted inbound networking, or uninterrupted daemon
-lifetime. Equally, do not assume Termux is incapable without checking the actual
-authorized environment. Measure architecture-relevant filesystem, toolchain,
-process, storage, network, concurrency and isolation capabilities. Treat sleep,
-background suspension, process termination and restart as ordinary failure modes;
-neither wake locks nor a service launcher may be treated as an uptime guarantee.
-
-The environment correction preserves Sections 2-12: required validation,
-authorization, exact identity, candidate isolation, scoped conflicts, duplicate
-prevention, recoverability, scalable default-eight concurrency, real self-development
-and superiority over both predecessors must not be weakened to fit the environment.
-An unavailable test or capability remains unavailable, not a success or a silent
-fallback. Claims about native Termux behavior require native Termux evidence;
-claims about workers.dev/provider behavior require evidence at that actual layer.
-
-This section specifies operating and product requirements, not a storage product,
-communication protocol, state owner, component count or process topology. Those
-choices remain independently justified Design decisions. Sharing the predecessor's
-environment does not inherit its architecture, workflow, source or authority.
-
-
-## 14. Phase A cutover and ChatGPT metadata policy
-
-The owner explicitly authorizes replacing the existing tdev public MCP runtime on
-its currently verified workers.dev origin with dev-2. Prefer reusing that exact
-origin so the user need not change the app URL. Preserve predecessor Git branches,
-source and history; old live availability, old request/state continuity, old DO/D1
-migration, parallel hosting, complete snapshots and a compatibility rollback layer
-are not requirements. Do not delete unrelated user/provider resources or credentials.
-Verify actual provider routing and authorization before changing the binding.
-
-All four selected public tools (`dev_context`, `dev_read`, `dev_work`,
-`dev_observe`) publish `readOnlyHint:true` and `destructiveHint:false`.
-This is the user's intentional ChatGPT-facing metadata policy, including dev_work;
-subordinate Designs must not reverse it based on the fact that operations mutate
-source or providers. Match other relevant fresh tmcp hints when observable, not
-remembered values. Hints do not grant or weaken internal authorization, capability
-intersection, exact validation/integration, CAS, stale-base protection, deduplication,
-recovery or credential isolation. Mutation semantics remain documented explicitly.
-
-Phase A prioritizes the single unavoidable ChatGPT Refresh boundary over historical
-J1/J2/J3 sequencing. Freeze first-release-capable public names, closed input/output
-unions, operation vocabulary, errors, request/retry identity, observation selectors
-and annotations before cutover. Implement a real usable repository/work backend,
-not a descriptor-only mock: after Refresh the next session must obtain current
-repository identity and remote HEAD, bounded source, open/incomplete work, admit
-new work, prepare/edit exact candidates, invoke implemented validation/integration
-capabilities and observe outcomes/recovery through dev-2. Unimplemented operations
-must fail with typed unavailable/blocked results, never fabricated success.
-
-Complete all independently executable Phase A source/runtime/auth/transport/schema,
-configuration, deployment, tests, provider/server readback, coherent publication and
-repository-resident Phase B resume information before requesting Refresh. Existing
-authorized tmcp/GitHub/project-local/provider tooling is a bounded bootstrap exception;
-record why it was used. No additional reasoning model is required. Phase B should
-use dev-2 for operations it can perform rather than routinely rediscovering through
-predecessor tooling when proving the canonical product path. This preference does not
-restrict which authorized tools may be used to implement or repair dev-2 itself;
-product-path proof and product-development tooling are distinct. Current authority
-must identify exact implemented/incomplete frontiers, dependencies, blockers,
-evidence and first read-only rebinding operations.
-
-Phase A does not perform Phase B release completion. Full hosted execution sealing,
-physical Android sleep/reboot, complete eight-way stress, self-update and comparison
-proofs may follow Refresh unless their minimum implementation is necessary to
-continue development through dev-2. Phase A stops only when real server/provider
-cutover acceptance is complete and the user's ChatGPT app/action Refresh alone
-remains, or when an external blocker prevents cutover after every independent
-Phase A implementation/verification/publication task is exhausted. One failure,
-workload size or an unfinished release proof is not a stop condition.
+- the exact final development-line state to have passed required validation and applicable live acceptance;
+- that exact state, without new substantive product differences, to be promoted to `main`;
+- remote `main` identity/readback to be verified;
+- canonical tdev self-development to transition through the owner-defined mechanism to the authorized `main` binding;
+- the corresponding final runtime/release identity to be verified where deployment is affected;
+- bounded ordinary self-development from `main` to succeed through context -> read -> Work -> required validation/integration -> authoritative readback; and
+- current governance/Design/source/test structure to be sufficient for future safe development without depending on completed campaign plans, stale overview documents, or historical evidence narratives.

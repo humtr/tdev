@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[]`
 - Supersedes: `[]`
-- Directive: `r6`
+- Directive: `r7`
 - Owns: `authorization, sandbox-boundary, credential-custody`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -257,18 +257,9 @@ coverage and test negative cross-role requests. Missing routing/auth configurati
 blocks deployment; existing predecessor apps and preview routes are not fallbacks.
 
 
-## Phase A authorization boundary
+## Installation authorization boundary
 
-Rebinding an existing verified Access application under DIRECTIVE Section 14 is an
-explicit installation decision, not automatic trust in predecessor configuration.
-Keep its human OAuth issuer/audience and registration only after live readback;
-provision a separate dev-2 device credential and explicit principal-specific grants.
-Do not turn off Access, accept arbitrary unsigned headers, add a service-token human
-bypass, broaden account membership or copy old product operation authorization.
-Existing provider state outside the exact changed product binding is preserved.
-Unavailable hosted sealing blocks ordinary candidate execution/integration eligibility;
-reviewed Phase A bootstrap tests are separate operator-authorized evidence, not a
-production validation receipt or permission to execute arbitrary candidate code.
+Adopting or rebinding an existing verified Access application is an explicit installation decision, not automatic trust in predecessor configuration. Keep its human OAuth issuer/audience and registration only after live readback; provision a separate device credential and explicit principal-specific grants. Do not turn off Access, accept arbitrary unsigned headers, add a service-token human bypass, broaden account membership or copy old product operation authorization. Existing provider state outside the exact changed product binding is preserved. Unavailable hosted sealing blocks ordinary candidate execution/integration eligibility; bootstrap or operator-authorized tests are separate evidence, not a production validation receipt or permission to execute arbitrary candidate code.
 
 
 ### Bounded installation readback

@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0004, D0005, D0006]`
 - Supersedes: `[]`
-- Directive: `r6`
+- Directive: `r7`
 - Owns: `test-environments, benchmark-methodology, superiority-gates`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority. Under DIRECTIVE r5, this Design remains the formal methodology for future statistical-superiority claims, but unrun cohorts do not reopen the owner's 2026-09-14 first-release closure; unmeasured cells remain unknown.
@@ -111,7 +111,7 @@ All must pass; none alters the Directive:
 5. **Efficiency/operations:** normal external bootstrap and manual repair count is zero, required approval turns do not exceed either baseline; aggregate human intervention burden including recovery is at least 25% lower when baseline is nonzero, and remains zero when baseline is zero. Reduce either model/tool rounds or redundant context bytes by at least 25% against each baseline, without a >10% increase in the other. Publish provider operations, retries and repeated validation; apparent latency wins purchased by hidden extra computation/cost must be explained and cannot be called overall efficiency superiority without resource-normalized improvement.
 6. **Recovery and simplicity:** response loss/restart creates no duplicate effect, independent witness work progresses, and recovery overhead is not worse than either baseline's comparable median by >10%. Normal path has no mandatory qualification round trip or legacy controller. Inventory shows one work ledger per repo, one external canonical ref, one temporary activation-record owner, routing-only installation connection state, and bounded managed-session intents in the existing ledger; no independent cloud work owner or hidden durable queue. Count auxiliary Git refs, provider-run selection, reconnect and cleanup effects as operational cost. Recovery logic is exercised by the same state machine, not a parallel recovery product. Review the actual component/effect count; LOC and four tools are not performance proof.
 
-These numeric thresholds operationalize a formal D0007 'materially better' claim before measurement. Failing them blocks that formal superiority claim and triggers bounded Design revision, not weakened validation or a retrospective threshold change. Under DIRECTIVE r5 this does not reopen the owner-closed first release. Unsupported baselines need additional comparable workloads or an explicit narrower result; any statistical superiority claim against both remains unproven until evidence suffices.
+These numeric thresholds operationalize a formal D0007 'materially better' claim before measurement. Failing them blocks that formal superiority claim and triggers bounded Design revision, not weakened validation or a retrospective threshold change. The 2026-09-14 owner-closed first release remains distinct from a later formal statistical-superiority claim. Unsupported baselines need additional comparable workloads or an explicit narrower result; any statistical superiority claim against both remains unproven until evidence suffices.
 
 ## Evidence contract
 
@@ -142,35 +142,12 @@ receipt, session expiry, wrong OIDC/run, and partial edge/device activation. Run
 potentially disruptive device tests only when authorized isolated execution will
 not kill unrelated user work. Until performed, those specific cases remain NOT RUN.
 
-No evidence currently justifies lowering the numeric superiority or trial gates for a formal D0007 claim.
-They apply when that statistical performance claim is being made, not to every edit, every resumed chat, or the owner-closed r5 first release.
-The early diagnostics reject an unsuitable architecture cheaply; they do not replace
-the eventual comparable cohorts or convert a fixture into actual performance proof.
+No evidence currently justifies lowering the numeric superiority or trial gates for a formal D0007 claim. They apply when that statistical performance claim is being made, not to every edit, resumed chat, or the owner-closed first release. Early diagnostics reject an unsuitable architecture cheaply; they do not replace eventual comparable cohorts or convert a fixture into actual performance proof.
 
-Canonical source inventory includes checked deployment/workflow files, toolchain
-selection and architecture authority in addition to domain/tests/config. A change
-to those bytes must change the input digest even when a requested unimplemented
-profile correctly returns NOT RUN. Source validation outputs stay outside tracked
-source or in the explicitly ignored .artifacts tree. Provider capability probes
-remain required for release, not a mandatory extra checklist on every core edit.
+Canonical validation input inventory includes checked deployment/workflow files, toolchain selection, current governance inputs and current Design inputs in addition to domain/tests/config. A change to those tracked inputs must change the input digest even when a requested unimplemented profile correctly returns NOT RUN. Source validation outputs stay outside tracked source or in the explicitly ignored `.artifacts` tree. Provider capability probes remain required where the affected release contract requires them, not as a mandatory extra checklist on every core edit.
 
+## Historical cutover evidence versus release/performance proof
 
-## Phase A cutover acceptance versus Phase B release proof
+The completed owner-authorized cutover evidence demonstrates only the layers it actually exercised: fresh origin/deployment/Access readback, MCP discovery with the intended public contract and owner-selected hints, descriptor equality, observed edge/device/schema identity, connected native routing, real context/read/work/candidate/observation behavior, honest unavailable capabilities, applicable native/edge/join tests and coherent remote publication. That retained evidence is not the full release/live/benchmark profile and must not be reported as such.
 
-The owner-authorized cutover uses the same frozen public contract for continued
-implementation. Its acceptance requires fresh origin/deployment/Access readback,
-actual MCP discovery with exactly the four intended tools and owner-selected hints,
-input/output descriptor equality, observed edge/device/schema identity, a connected
-native route, real context/read/work/candidate/observation behavior, honest unavailable
-capabilities, applicable native/edge/join tests, and coherent remote publication.
-This is not the full release/live/benchmark profile and must not be reported as such.
-
-J5 is a Phase B comparison frontier, not a predecessor-runtime continuity requirement.
-For old tdev, preserved branch/source and architecture/operation structure, retained
-historical measurements, currently reproducible bounded measurements and analytical
-comparison satisfy the allowed evidence inputs. Label each claim measured-current,
-measured-historical or analytical and state comparability/coverage limits. Missing
-live results are not zero latency, infinite speedup or a reason to build an old
-runtime. The scored repeated statistics above apply only to genuinely comparable
-measured cohorts; do not fabricate confidence intervals for analytical evidence.
-Current tmcp may be measured within the actually accessible, comparable scope.
+For predecessor comparison, preserved branch/source and architecture/operation structure, retained historical measurements, currently reproducible bounded measurements and analytical comparison are allowed evidence inputs. Label each claim measured-current, measured-historical or analytical and state comparability/coverage limits. Missing live results are not zero latency, infinite speedup or a reason to rebuild an old runtime. The scored repeated statistics above apply only to genuinely comparable measured cohorts; do not fabricate confidence intervals for analytical evidence. Current tmcp may be measured within the actually accessible comparable scope.

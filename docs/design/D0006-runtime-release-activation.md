@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003]`
 - Supersedes: `[]`
-- Directive: `r6`
+- Directive: `r7`
 - Owns: `runtime-topology, release-activation, toolchain-seal`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -323,23 +323,9 @@ Use one selected rendezvous and one explicit application-authentication adapter.
 Neither compute enrollment nor transport correlation creates another work owner.
 
 
-## Phase A installation boundary
+## Installation and cutover boundary
 
-DIRECTIVE Section 14 permits replacing the current tdev Worker at the same verified
-workers.dev origin. Do not add a live predecessor compatibility/migration layer.
-Remove the old tool dispatch and old product bindings from the active request path;
-unrelated provider resources and predecessor source/history remain untouched.
-An existing human Access registration may be adopted as D0005 specifies; the new
-routing DO and device channel retain no old work/request state.
-
-A bootstrap-installed reviewed bundle may expose the complete frozen public contract
-and real native repository/ledger/candidate/preparation backend before the full
-hosted/activation seal. Its identity, capabilities and unqualified release status
-must be explicit. It is not an active production-sealed release by implication.
-Install immutable source outside a dirty implementation workspace, wire the native
-launcher and durable state, and verify outbound reconnect. Phase B completes missing
-hosted/session/activation capabilities through the existing public vocabulary.
-
+Use the verified canonical workers.dev origin without adding a predecessor compatibility layer to the active product path. Unrelated provider resources and predecessor source/history remain untouched. Any adopted human Access registration follows D0005, while routing/device state remains separate from predecessor work/request state. Installed source and runtime identity must be immutable/readable enough to distinguish current source, staged release, active release, and unavailable capabilities without implying qualification from installation alone.
 
 ### Bounded installation readback
 
@@ -352,17 +338,6 @@ human OAuth evidence. Device credentials never authenticate /mcp, every normal
 routed tool call still verifies the actual Access assertion natively, and public
 tool names remain exactly the selected four. Evidence must label this installation
 probe separately from the first refreshed ChatGPT human OAuth invocation.
-
-
-### Provider-constrained predecessor retirement
-
-A fresh provider rejection may identify another old tdev trial Worker binding to
-the exact predecessor namespace being retired. After verifying that trial's
-source/deployment identity and exact binding, remove only that old-product binding;
-preserve its other bindings, source, Access configuration and unrelated resources.
-This is owner-authorized old runtime retirement, not a migration/compatibility layer.
-Re-read both trial binding state and target deployment before retrying cutover.
-Current resource names/IDs and rejection/readback belong to Phase A evidence.
 
 ### Managed idle retirement and never-assigned resource replacement
 

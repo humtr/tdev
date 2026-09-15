@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0001, D0002, D0003, D0006]`
 - Supersedes: `[]`
-- Directive: `r6`
+- Directive: `r7`
 - Owns: `public-mcp-schema, controller-recipes, observation-contract`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.
@@ -141,10 +141,10 @@ guidance. DeliveryUnavailable is a bounded domain error, never a terminal work
 state. Other unknown fact keys and arbitrary peer exception details remain rejected.
 
 
-## Frozen contract and usable cutover boundary
+## Frozen public contract and implementation boundary
 
-Phase A stabilizes the full operation/input vocabulary above, including capabilities
-not yet executable. Output projection includes bounded repository and snapshot
+The public contract stabilizes the full operation/input vocabulary above, including capabilities
+that may be temporarily unavailable in a particular installed release. Output projection includes bounded repository and snapshot
 identity, named profiles and parameter/effect descriptors, operation availability
 with explicit implementation state/reason, per-item admission and request recovery,
 exact candidate/prepared-result/receipt/effect identities, artifacts, and independent
