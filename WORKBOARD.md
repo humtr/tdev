@@ -11,7 +11,8 @@ The first public release was owner-closed on 2026-09-14. D0007 repeated statisti
 ## Active campaign
 
 - Campaign: `C1` — final `tdev` product convergence and `main` promotion
-- Detailed execution plan: `docs/plans/C1-final-tdev-convergence.md`
+- Campaign route map: `docs/campaign/route-map.md`
+- Detailed execution plan: `docs/campaign/C1-final-tdev-convergence.md`
 - Active checkpoint: `C1-1.1`
 - Campaign status: active
 
@@ -36,7 +37,7 @@ When a detailed checkpoint completes, advance this file to the next incomplete c
 
 A fresh session must:
 
-1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD and the C1 plan;
+1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD, `docs/campaign/route-map.md` and the referenced active C1 plan;
 2. read only the existing Designs selected by the active checkpoint;
 3. freshly observe runtime/provider state and authorized open Work/Action/request state;
 4. reconcile those observations with the active checkpoint, treating this file's mutable observations and all prior chat as hints rather than authority; and

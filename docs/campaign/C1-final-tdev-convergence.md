@@ -28,7 +28,7 @@ Campaign identity is `C1`. Checkpoints use `C1-<n>` and detailed checkpoints use
 For every fresh session:
 
 1. bind current repository authority with `dev_context`;
-2. read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, `WORKBOARD.md`, then this plan;
+2. read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, `WORKBOARD.md`, `docs/campaign/route-map.md`, then this plan;
 3. read only existing Designs relevant to the active checkpoint;
 4. observe current runtime/provider/open Work/Action/request/effect state;
 5. reconcile that durable state with WORKBOARD before admitting new mutations;
@@ -248,7 +248,7 @@ Purpose: reduce repeated full source/context transfer only after repository/bind
 
 ### C1-6.2 Non-authority dependency and documentation pruning
 
-Evaluate ordinary future development while ignoring completed `docs/plans`, historical evidence, research/history and handoffs. `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, current WORKBOARD, selected current Designs and executable source/types/config/tests must be sufficient to understand and safely change the product.
+Evaluate ordinary future development while ignoring completed per-campaign plans under `docs/campaign/`, historical evidence, research/history and handoffs. `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, current WORKBOARD, selected current Designs and executable source/types/config/tests must be sufficient to understand and safely change the product.
 
 Prune obsolete/redundant non-authority material when it has no continuing provenance value. Do not retain files merely to avoid using Git history. Do not delete material required by an explicit legal/audit/user requirement.
 

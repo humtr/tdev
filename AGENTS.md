@@ -9,9 +9,10 @@ For material work, bind the exact current `dev-2` commit and read:
 1. `DIRECTIVE.md` — highest repository authority for the user's explicit objectives, requirements, priorities, and completion conditions.
 2. `RULE.md` — stable engineering and development rules subordinate to the Directive.
 3. `WORKBOARD.md` — current execution state and routing; it owns no product meaning.
-4. Only the Design or derived documents selected by the current work.
+4. When WORKBOARD names an active campaign, read `docs/campaign/route-map.md` and the referenced per-campaign plan before continuing that campaign.
+5. Only the Design or derived documents selected by the current work.
 
-Conflicts resolve upward. `DIRECTIVE.md` wins over every repository document. `RULE.md` cannot narrow or reinterpret the Directive. Designs cannot override the Directive or Rule. `WORKBOARD.md`, indexes, history, evidence, benchmarks, handoffs, tests, code shape, predecessor branches, and prior conversations do not become authority by existence.
+Conflicts resolve upward. `DIRECTIVE.md` wins over every repository document. `RULE.md` cannot narrow or reinterpret the Directive. Designs cannot override the Directive or Rule. `WORKBOARD.md`, campaign maps/plans, indexes, history, evidence, benchmarks, handoffs, tests, code shape, predecessor branches, and prior conversations do not become product authority by existence.
 
 ## Clean-root boundary
 
