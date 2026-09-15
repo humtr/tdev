@@ -8,6 +8,7 @@ import {ExactIntegrator} from '../integration/effects.mjs';
 import {validateWorkItem} from '../mcp/input-schemas.mjs';
 import {ActionRecovery} from './recovery.mjs';
 import {SpecialRecovery} from './special-recovery.mjs';
+import {H2Specialization} from './h2.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Work} Work */
@@ -19,7 +20,7 @@ import {SpecialRecovery} from './special-recovery.mjs';
 /** @typedef {import('../contracts/ports.js').ValidationReceipt} Receipt */
 /** @typedef {import('../contracts/ports.js').Capability} Capability */
 /** @typedef {{op:string,requestId:string,workId?:string,snapshotId?:string,expectedHead?:string,objective?:string,initialEdits?:import('../contracts/ports.js').Edit[],edits?:import('../contracts/ports.js').Edit[],expectedRevision?:string,expectedGeneration?:string,generation?:string,profileId?:string,parameters?:Json,policyDigest?:string,preparedResultId?:string,actionId?:string,reason?:string,repository?:string,expectedPolicyDigest?:string,integratedCommit?:string,policyPath?:string,newPolicyDigest?:string,expectedActiveRelease?:string,stagedReleaseId?:string}} Input */
-/** @typedef {{binding:import('../contracts/ports.js').Binding,ledger:import('../storage/ledger.mjs').Ledger,repository:import('../repository/git.mjs').GitRepository,context:import('../repository/context.mjs').ContextService,authorization:import('../contracts/ports.js').AuthorizationPort,remote:ConstructorParameters<typeof ExactIntegrator>[0]['remote'],policy:()=>import('../validation/policy.mjs').AdoptedPolicy,validation:()=>import('../contracts/ports.js').ValidationPort,verifyLineage:(head:string)=>Promise<boolean>,actor:string,capacity?:number,now?:()=>number,executionAvailable?:()=>boolean,operationAvailable?:(op:string)=>boolean,integrationLineage?:(head:string)=>Promise<boolean>,runProfile?:(work:Work,attempt:Attempt,profile:import('../contracts/ports.js').Profile,cancelled:()=>boolean)=>Promise<{exitCode:number|null,signal:string|null,inputDigest:string,outputDigest:string}>,cancelAttempt?:(attempt:Attempt)=>Promise<boolean>,attemptStopped?:(attempt:Attempt)=>Promise<boolean>,senderStopped?:(effect:Effect)=>Promise<boolean>,cancelSender?:(effect:Effect)=>Promise<boolean>,special?:(principal:Principal,input:Input,actionId:string)=>Promise<Json>,specialRecovery?:(action:Action)=>Promise<import('./special-recovery.mjs').SpecialObservation>}} Options */
+/** @typedef {{binding:import('../contracts/ports.js').Binding,ledger:import('../storage/ledger.mjs').Ledger,repository:import('../repository/git.mjs').GitRepository,context:import('../repository/context.mjs').ContextService,authorization:import('../contracts/ports.js').AuthorizationPort,remote:ConstructorParameters<typeof ExactIntegrator>[0]['remote'],policy:()=>import('../validation/policy.mjs').AdoptedPolicy,validation:()=>import('../contracts/ports.js').ValidationPort,verifyLineage:(head:string)=>Promise<boolean>,actor:string,capacity?:number,now?:()=>number,objects?:import('../contracts/ports.js').ObjectStorePort,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,executionAvailable?:()=>boolean,operationAvailable?:(op:string)=>boolean,integrationLineage?:(head:string)=>Promise<boolean>,runProfile?:(work:Work,attempt:Attempt,profile:import('../contracts/ports.js').Profile,cancelled:()=>boolean)=>Promise<{exitCode:number|null,signal:string|null,inputDigest:string,outputDigest:string}>,cancelAttempt?:(attempt:Attempt)=>Promise<boolean>,attemptStopped?:(attempt:Attempt)=>Promise<boolean>,senderStopped?:(effect:Effect)=>Promise<boolean>,cancelSender?:(effect:Effect)=>Promise<boolean>,special?:(principal:Principal,input:Input,actionId:string)=>Promise<Json>,specialRecovery?:(action:Action)=>Promise<import('./special-recovery.mjs').SpecialObservation>}} Options */
 /** @param {readonly import('../contracts/ports.js').Edit[]} edits */
 const editPaths=edits=>edits.flatMap(edit=>edit.kind==='move'?[edit.from,edit.to]:[edit.path]);
 /** @param {unknown} value @returns {Input} */
@@ -36,6 +37,7 @@ export class DevelopmentEngine {
   this.coordinator=new WorkCoordinator(options.ledger,{executionCapacity:options.capacity,now:this.now});
   this.preparer=new ResultPreparer({ledger:options.ledger,repository:options.repository,binding:options.binding,verifyLineage:options.verifyLineage,actor:options.actor,now:this.now});
   /** @type {Map<string,Promise<void>>} */this.running=new Map();this.pumping=false;this.accepting=true;
+  this.h2=new H2Specialization(this,{objects:options.objects,h2Enabled:options.h2Enabled,h2MaxMembers:options.h2MaxMembers,h2Fault:options.h2Fault});
   this.recovery=new ActionRecovery(this);this.specialRecovery=new SpecialRecovery(this);this.recovery.adopt();
  }
  operationDescriptors(){return ['create','edit','run','validate','integrate','cancel','resume','policy.adopt','release.stage','release.activate'].map(op=>{
@@ -53,6 +55,8 @@ export class DevelopmentEngine {
  store(key,value){this.ledger.transact(tx=>tx.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',key,canonicalJson(value)));}
  /** @param {string} actionId */
  input(actionId){return workInput(this.ledger.transact(tx=>tx.intent(actionId)));}
+ /** Internal selection uses the exact public item parser rather than a second schema. @param {unknown} value */
+ inputFromValue(value){return workInput(value);}
  /** @param {Principal} principal @param {Input} item */
  async authorize(principal,item){
   requireThat(!item.repository||(item.repository==='self'||item.repository===this.binding.repositoryId),'FORBIDDEN');
@@ -96,7 +100,7 @@ export class DevelopmentEngine {
   }
   requireThat(this.accepting,'EXECUTION_UNAVAILABLE','Runtime is draining');
   let staged=/** @type {import('../contracts/ports.js').SourceTree|undefined} */(undefined),snapshot=/** @type {import('../contracts/ports.js').Snapshot|undefined} */(undefined);
-  let recoveryPlan=/** @type {Awaited<ReturnType<ActionRecovery['plan']>>|null} */(null);
+  let recoveryPlan=/** @type {any} */(null);
   if(item.op==='create'){
    snapshot=await this.o.context.snapshot(principal,this.binding,String(item.snapshotId),'current');requireThat(snapshot.commitOid===item.expectedHead,'STALE_CONTEXT');
    staged=item.initialEdits?await editTree(this.o.repository,snapshot.source,item.initialEdits):snapshot.source;
@@ -109,7 +113,7 @@ export class DevelopmentEngine {
    else{const observed=await this.o.remote.resolve();requireThat(observed.head===item.expectedHead,'STALE_BASE','Canonical head differs',{currentHead:observed.head});await this.o.remote.fetch(observed.head);}
   }else if(item.op==='resume'){
    const target=this.ledger.transact(tx=>tx.getAction(String(item.actionId)));requireThat(target&&target.workId===item.workId&&target.principal===principal.subject,'FORBIDDEN');
-   recoveryPlan=await this.recovery.plan(principal,String(item.actionId),String(item.expectedRevision));
+   recoveryPlan=this.h2.selected(String(item.actionId))?await this.h2.recoveryPlan(principal,String(item.actionId),String(item.expectedRevision)):await this.recovery.plan(principal,String(item.actionId),String(item.expectedRevision));
   }else if(item.op.startsWith('release.')||item.op==='policy.adopt')requireThat(this.o.special,'EXECUTION_UNAVAILABLE','No release/policy installation handler');
   if(item.op==='create'){const current=await this.o.remote.resolve();requireThat(current.head===item.expectedHead,'STALE_CONTEXT','Canonical head moved during staging',{currentHead:current.head});}
   const inline=['create','edit','cancel','resume'].includes(item.op);
@@ -123,7 +127,7 @@ export class DevelopmentEngine {
     const work=this.coordinator.fence(tx,String(item.workId),principal.subject,String(item.expectedRevision),String(item.expectedGeneration));requireThat(staged,'INTEGRITY_FAILURE');
     const next={...work,candidate:staged,generation:nextRevision(work.generation),revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;
    }
-   if(item.op==='resume'){requireThat(recoveryPlan,'INTEGRITY_FAILURE');return this.recovery.apply(tx,recoveryPlan,principal);}
+   if(item.op==='resume'){requireThat(recoveryPlan,'INTEGRITY_FAILURE');return recoveryPlan.h2===true?this.h2.applyRecovery(tx,recoveryPlan,principal):this.recovery.apply(tx,recoveryPlan,principal);}
    if(item.op==='cancel'){
     const work=tx.getWork(String(item.workId));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');requireThat(work.revision===item.expectedRevision,'STALE_REVISION');
     if(work.disposition!=='open')return work;
@@ -135,6 +139,7 @@ export class DevelopmentEngine {
    }
    if(item.workId){const work=this.coordinator.fence(tx,item.workId,principal.subject,String(item.expectedRevision),String(item.generation));const next={...work,currentActionId:actionId,revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;}return null;
   }});
+  const h2Plan=/** @type {any} */(recoveryPlan);if(item.op==='resume'&&h2Plan?.h2===true&&h2Plan.startAttempt)queueMicrotask(()=>this.h2.start(h2Plan.selection,h2Plan.startAttempt));
   if(item.op==='cancel'&&result.work?.currentActionId)void this.signalCancellation(result.work.currentActionId);
   return this.admission(result);
  }
@@ -150,10 +155,14 @@ export class DevelopmentEngine {
  async senderStopped(effect){try{return this.o.senderStopped?await this.o.senderStopped(effect):this.binding.provider==='fixture';}catch{return false;}}
  /** @param {Principal} principal @param {Input} item */
  integrator(principal,item){return new ExactIntegrator({binding:this.binding,ledger:this.ledger,repository:this.o.repository,remote:this.o.remote,validation:this.o.validation(),verifyLineage:this.o.integrationLineage??this.o.verifyLineage,authorize:()=>this.authorize(principal,item),senderStopped:effect=>this.senderStopped(effect),now:this.now});}
+ /** Internal H2 reconciliation uses the same ordinary integrator contract. @param {Principal} principal @param {Input} item */
+ integratorFromPrincipal(principal,item){return this.integrator(principal,item);}
  /** Cancellation is retained first. Signalling cannot by itself release a slot or
   * turn an uncertain external effect into a terminal cancellation.
   * @param {string} actionId */
  async signalCancellation(actionId){try{
+  const tuple=this.h2.cancellationFrame(actionId);
+  if(tuple){await Promise.allSettled([...(tuple.attempt&&this.o.cancelAttempt?[this.o.cancelAttempt(tuple.attempt)]:[]),...(tuple.effect&&this.o.cancelSender?[this.o.cancelSender(tuple.effect)]:[])]);return;}
   const frame=this.ledger.transact(tx=>{const action=tx.getAction(actionId);if(!action||!['running','blocked'].includes(action.status))return null;const row=tx.get('SELECT record FROM attempt WHERE action_id=? AND json_extract(record,\'$.attempt\')=?',actionId,action.attempt);return {attempt:row?/** @type {Attempt} */(parseRecord(String(row.record))):null,effect:tx.getEffect(actionId)};});
   if(!frame)return;await Promise.allSettled([...(frame.attempt&&this.o.cancelAttempt?[this.o.cancelAttempt(frame.attempt)]:[]),...(frame.effect&&this.o.cancelSender?[this.o.cancelSender(frame.effect)]:[])]);
  }catch{/* The durable cancellation remains observable for reconciliation. */}}

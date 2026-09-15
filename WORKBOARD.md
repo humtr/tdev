@@ -19,24 +19,24 @@ The W4 diagnostic previously advanced canonical source through seven test-only m
 
 The bounded one-shot measurements and their comparability limits are retained in [cost-efficiency diagnostic evidence](docs/evidence/cost-efficiency-diagnostic-20260914/README.md).
 
-## D0003 H2 production Design review frontier
+## D0003 H2 production implementation frontier
 
-F3 and F4 survived their bounded research falsifiers; retained evidence remains
-non-normative and does not prove D0007 statistical superiority. D0003's revised
-H2 contract selects same-envelope/same-principal, same-exact-base composition with
-separate full composed validation, one leader-anchored effect and atomic member
-fencing/settlement in the existing SQLite ledger. D0001 and D0004 contain bounded
-ownership/projection cross-references. No production source or runtime changed.
+The owner separately authorized production-source implementation of the accepted
+D0003 H2 contract. The current implementation Work is closing the source/test
+lane through required validation and canonical integration; F3/F4 are retained
+research evidence and are not being rerun.
 
-The Design was reviewed against the exact current canonical base and is now being
-canonicalized through the authorized tdev workflow. See the
-[review and handoff](docs/evidence/h2-production-design-review-20260914/README.md).
+The candidate now includes versioned H2 durable references and reader gating,
+deterministic composition identities, same-envelope internal selection, exact
+composed full validation, leader-only publication, final authorization fencing,
+tuple-aware recovery/cancellation, atomic all-member settlement, ordinary fallback,
+follower observation and release-authority all-member checks. Focused core and
+integration suites include H2 identity/storage/fault cases and have reached PASS
+on the current implementation line.
 
-Production H2 implementation is not authorized by this Design-only change.
-A later separately authorized implementation starts with versioned immutable tuple
-references and real SQLite atomic-selection/freeze/settlement tests, then joins
-preparation, controller observation, authorization, sender and recovery. Keep
-ordinary per-work full recomposition/full validation as fallback and selection
-disabled until D0003 production acceptance and D0006 compatibility/release gates
-pass. Do not restart F3/F4, 30/100-trial cohorts, physical Android acceptance or
-benchmark side-effect cleanup merely because this execution frontier changed.
+Production selection remains explicitly disabled in native installation source.
+This lane does not authorize `release.stage`, `release.activate`, public runtime
+deployment, device replacement or default-on H2. After canonical source integration,
+remaining work is bounded production-path acceptance and a separate activation/
+release review under D0003/D0006. D0007 formal superiority cohorts remain outside
+this implementation claim.

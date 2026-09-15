@@ -43,8 +43,9 @@ export function bearerVerifier(config,keyResolver,now=Date.now) {
 export class ScopedAuthorization {
   /** @param {{issuer:string,audience:string,bindings:()=>readonly Binding[],grants:()=>readonly Grant[],now?:()=>number}} options */
   constructor(options) { this.options=options; }
-  /** @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
-  async authorize(principal,binding,capability,paths=[]) {
+  /** Synchronous trusted authority stamp used only after any asynchronous lookup has completed.
+   * @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
+  snapshot(principal,binding,capability,paths=[]) {
     const o=this.options;
     requireThat(principal.issuer===o.issuer && principal.audience===o.audience && principal.expiresAt>(o.now??Date.now)(), 'UNAUTHORIZED');
     requireThat(Array.isArray(principal.tokenCapabilities)&&principal.tokenCapabilities.includes(capability),'FORBIDDEN');
@@ -53,10 +54,17 @@ export class ScopedAuthorization {
     const grants=o.grants().filter(g=>g.subject===principal.subject && g.installationId===binding.installationId &&
       g.repositoryId===binding.repositoryId && g.ref===binding.ref && g.capabilities.includes(capability));
     requireThat(grants.length>0,'FORBIDDEN');
-    for(const path of paths) {
+    const checked=[...paths].sort((a,b)=>Buffer.compare(Buffer.from(a),Buffer.from(b)));
+    for(const path of checked) {
       repositoryPath(path,true);
       requireThat(grants.some(g=>g.paths.some(p=>withinPrefix(repositoryPath(p,true),path)) &&
         !g.deniedPaths.some(p=>withinPrefix(repositoryPath(p,true),path))), 'FORBIDDEN');
     }
+    const normalized=grants.map(g=>({subject:g.subject,installationId:g.installationId,repositoryId:g.repositoryId,ref:g.ref,capabilities:[...g.capabilities].sort(),paths:[...g.paths].sort(),deniedPaths:[...g.deniedPaths].sort()})).sort((a,b)=>Buffer.compare(Buffer.from(JSON.stringify(a)),Buffer.from(JSON.stringify(b))));
+    return {stamp:recordDigest('dev2.authorization-snapshot.v1',{principal:{subject:principal.subject,issuer:principal.issuer,audience:principal.audience,expiresAt:principal.expiresAt,tokenCapabilities:[...(principal.tokenCapabilities??[])].sort()},binding:current,capability,paths:checked,grants:normalized}),expiresAt:principal.expiresAt};
   }
+  /** @param {{stamp:string,expiresAt:number}} retained @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
+  assertSnapshot(retained,principal,binding,capability,paths=[]){const current=this.snapshot(principal,binding,capability,paths);requireThat(current.stamp===retained.stamp&&current.expiresAt===retained.expiresAt,'STALE_REVISION','Authorization authority changed');return current;}
+  /** @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
+  async authorize(principal,binding,capability,paths=[]) { this.snapshot(principal,binding,capability,paths); }
 }

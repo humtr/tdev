@@ -19,7 +19,7 @@ import {Dev2Error} from '../../src/contracts/errors.mjs';
 /** @typedef {import('../../src/contracts/ports.js').Profile} Profile */
 /** @typedef {import('../../src/contracts/ports.js').PreparedResult} Result */
 /** @typedef {import('../../src/contracts/ports.js').Attempt} Attempt */
-/** @typedef {{capacity?:number,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[]}} Options */
+/** @typedef {{capacity?:number,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[]}} Options */
 /** Actual Node child processes on a disposable trusted fixture, not OS isolation.
  * @param {Profile} profile @param {string} cwd */
 function command(profile,cwd){return new Promise(resolve=>{
@@ -36,8 +36,14 @@ export async function engineWorld(options={}){
  const access={allowed:true};
  /** @type {import('../../src/contracts/ports.js').Principal} */
  const principal={subject:'fixture-subject',issuer:'https://issuer.invalid',audience:'https://dev2.invalid/mcp',expiresAt:Date.now()+3600000};
- /** @type {import('../../src/contracts/ports.js').AuthorizationPort} */
- const authorization={authorize:async(p,b,c,paths=[])=>{if(!access.allowed||p.subject!==principal.subject||p.expiresAt<=Date.now()||b.repositoryId!==w.binding.repositoryId||paths.some(path=>path.startsWith('secret')))throw new Dev2Error('FORBIDDEN');}};
+ /** @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
+ function fixtureSnapshot(p,b,c,paths=[]){if(!access.allowed||p.subject!==principal.subject||p.expiresAt<=Date.now()||b.repositoryId!==w.binding.repositoryId||paths.some(path=>path.startsWith('secret')))throw new Dev2Error('FORBIDDEN');return {stamp:recordDigest('dev2.fixture-authorization.v1',{subject:p.subject,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,capability:c,paths:[...paths]}),expiresAt:p.expiresAt};}
+ /** @param {{stamp:string,expiresAt:number}} retained @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
+ function fixtureAssertSnapshot(retained,p,b,c,paths=[]){const current=fixtureSnapshot(p,b,c,paths);if(current.stamp!==retained.stamp||current.expiresAt!==retained.expiresAt)throw new Dev2Error('FORBIDDEN');}
+ /** @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
+ async function fixtureAuthorize(p,b,c,paths=[]){fixtureSnapshot(p,b,c,paths);}
+ /** Fixture authority exposes the same synchronous final-fence shape H2 requires. @type {any} */
+ const authorization={snapshot:fixtureSnapshot,assertSnapshot:fixtureAssertSnapshot,authorize:fixtureAuthorize};
  const context=new ContextService({repository:w.repository,objects,authorization,tokenKey:randomBytes(32)});
  const scanner=fileURLToPath(new URL('./full-scan.mjs',import.meta.url));
  const seal=bytesDigest(Buffer.from('fixture-only-not-production'));
@@ -66,8 +72,8 @@ export async function engineWorld(options={}){
  const validation={eligible:validator.eligible.bind(validator),validate:async(result,attempt)=>{const startedAt=Date.now();const receipt=await validator.validate(result,attempt);validationRuns.push({resultId:result.resultId,workId:result.workId,startedAt,endedAt:Date.now()});return receipt;}};
  const transport=new GitRefTransport(w.repository,w.binding);
  /** @type {import('../../src/contracts/ports.js').Effect[]} */const sends=[];
- const remote={resolve:()=>transport.resolve(),fetch:(/** @type {string} */head)=>transport.fetch(head),compareUpdate:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>{sends.push(effect);const sent=await transport.compareUpdate(effect);await options.afterSend?.();return sent;}};
- const engineOptions={binding:w.binding,ledger,repository:w.repository,context,authorization,remote,policy:()=>policy,validation:()=>validation,verifyLineage:(/** @type {string} */head)=>w.repository.isAncestor(w.binding,w.baseHead,head),actor:'Fixture <fixture@example.invalid>',capacity:options.capacity,attemptStopped:async()=>parallel.active===0};
+ const remote={resolve:()=>transport.resolve(),fetch:(/** @type {string} */head)=>transport.fetch(head),compareUpdate:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>{sends.push(effect);const sent=await transport.compareUpdate(effect);await options.afterSend?.();return sent;},prepareCompareUpdate:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>async(/** @type {(tx:import('../../src/storage/ledger.mjs').Transaction)=>void} */fence)=>{ledger.transact(tx=>fence(tx));sends.push(effect);const sent=await transport.compareUpdate(effect);await options.afterSend?.();return sent;},observeSender:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>({stopped:true,delivery:sends.some(sent=>sent.effectId===effect.effectId)?/** @type {const} */('sent'):/** @type {const} */('not_sent'),state:'fixture'})};
+ const engineOptions={binding:w.binding,ledger,repository:w.repository,context,authorization,objects,h2Enabled:options.h2Enabled,h2MaxMembers:options.h2MaxMembers,h2Fault:options.h2Fault,remote,policy:()=>policy,validation:()=>validation,verifyLineage:(/** @type {string} */head)=>w.repository.isAncestor(w.binding,w.baseHead,head),actor:'Fixture <fixture@example.invalid>',capacity:options.capacity,attemptStopped:async()=>parallel.active===0};
  const engine=new DevelopmentEngine(engineOptions),app=new DevelopmentApplication({engine,releaseId:seal,artifacts:objects,pollMs:10});
  /** @param {string[]} ids */
  async function finish(ids){const deadline=Date.now()+90000;engine.pump();

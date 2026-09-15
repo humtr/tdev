@@ -24,8 +24,10 @@ export class ActionRecovery {
   * immutable. Work without a runtime component continues to be admitted.
   */
  adopt(){let after=0,changed=0;for(;;){const batch=this.ledger.transact(tx=>{
-  const rows=tx.all("SELECT seq,record FROM action WHERE status IN ('running','blocked') AND seq>? ORDER BY seq LIMIT 64",after);
+  const rows=tx.all("SELECT seq,record FROM action WHERE status IN ('running','blocked') AND seq>? ORDER BY seq LIMIT 64",after),adopted=new Set();
   for(const row of rows){const action=/** @type {Action} */(parseRecord(String(row.record)));if(action.ownerEpoch===this.ledger.ownerEpoch)continue;
+   const selected=tx.getH2Selection(action.actionId);
+   if(selected){const digest=selected.selection.memberTupleDigest;if(!adopted.has(digest)){changed+=this.engine.h2.adoptIn(tx,selected.selection);adopted.add(digest);}continue;}
    const reservations=tx.all('SELECT attempt_id FROM attempt WHERE action_id=? AND json_extract(record,\'$.attempt\')=?',action.actionId,action.attempt);
    requireThat(reservations.length<=1,'INTEGRITY_FAILURE','Ambiguous retained attempt');
    for(const reservation of reservations)tx.adoptAttempt(String(reservation.attempt_id));
@@ -49,6 +51,7 @@ export class ActionRecovery {
  /** Observe only; no new attempt or provider effect is created here.
   * @param {Principal} principal @param {string} actionId @param {string} expectedRevision @returns {Promise<Plan>} */
  async plan(principal,actionId,expectedRevision){
+  if(this.engine.h2.selected(actionId))return /** @type {Plan} */(/** @type {unknown} */(await this.engine.h2.recoveryPlan(principal,actionId,expectedRevision)));
   const item=this.engine.input(actionId);await this.engine.authorize(principal,item);
   const frame=this.ledger.transact(tx=>this.snapshot(tx,actionId,principal.subject));
   requireThat(frame.work.revision===expectedRevision,'STALE_REVISION');const stamp=this.stamp(frame);
@@ -82,6 +85,7 @@ export class ActionRecovery {
   * action/effect/result and its deadline are retained, never synthesized again.
   * @param {Transaction} tx @param {Plan} plan @param {Principal} principal @returns {Work} */
  apply(tx,plan,principal){
+  const h2=/** @type {any} */(plan);if(h2.h2===true)return this.engine.h2.applyRecovery(tx,h2,principal);
   const current=this.snapshot(tx,plan.frame.action.actionId,principal.subject);
   requireThat(this.stamp(current)===plan.stamp,'STALE_REVISION','Recovery evidence changed');
   const {action,work,reservation}=current;

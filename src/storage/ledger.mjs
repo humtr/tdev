@@ -16,6 +16,8 @@ import { requireThat,Dev2Error } from '../contracts/errors.mjs';
 function decode(row) {return row&&typeof row==='object'&&'record'in row&&typeof row.record==='string'?parseRecord(row.record,2097152):null;}
 /** @param {unknown} value */
 function recordJson(value){const text=canonicalJson(value);requireThat(Buffer.byteLength(text)<=2097152,'LIMIT_EXCEEDED','Ledger row bound');return text;}
+/** Versioned H2 rows are never interpreted as ordinary unversioned state. @param {unknown} value */
+function h2Record(value){requireThat(value&&typeof value==='object'&&!Array.isArray(value),'INTEGRITY_FAILURE','Malformed H2 record');return /** @type {Record<string,any>} */(value);}
 /** @param {Work} work @returns {Work} */
 function compactWork(work){oid(work.baseCommitOid);oid(work.baseTreeOid);oid(work.candidate.treeOid);digest(work.candidate.manifestDigest);
  return {...work,candidate:{treeOid:work.candidate.treeOid,manifestDigest:work.candidate.manifestDigest}};
@@ -32,13 +34,16 @@ CREATE UNIQUE INDEX attempt_held_action ON attempt(action_id) WHERE held=1;
 CREATE TABLE prepared(result_id TEXT PRIMARY KEY,work_id TEXT NOT NULL REFERENCES work(work_id),record TEXT NOT NULL);
 CREATE TABLE validation(run_id TEXT PRIMARY KEY,result_id TEXT NOT NULL REFERENCES prepared(result_id),validation_id TEXT NOT NULL,record TEXT NOT NULL);
 CREATE TABLE effect(effect_id TEXT PRIMARY KEY,action_id TEXT UNIQUE NOT NULL REFERENCES action(action_id),record TEXT NOT NULL);
-PRAGMA user_version=1;
+CREATE TABLE h2_selection(tuple_digest TEXT PRIMARY KEY,leader_action_id TEXT UNIQUE NOT NULL REFERENCES action(action_id),record TEXT NOT NULL);
+CREATE TABLE h2_member(action_id TEXT PRIMARY KEY REFERENCES action(action_id),tuple_digest TEXT NOT NULL REFERENCES h2_selection(tuple_digest),ordinal INTEGER NOT NULL,work_id TEXT UNIQUE NOT NULL REFERENCES work(work_id),reserved_revision TEXT NOT NULL,UNIQUE(tuple_digest,ordinal));
+CREATE INDEX h2_member_tuple ON h2_member(tuple_digest,ordinal);
+PRAGMA user_version=2;
 `;
 
 /** One OS-locked SQLite connection per repository. No network, materialization or process wait in transactions. */
 export class Ledger {
-  /** @param {string} filename @param {Binding} binding */
-  constructor(filename,binding) {
+  /** @param {string} filename @param {Binding} binding @param {{maxVersion?:1|2}} [options] */
+  constructor(filename,binding,options={}) {
     this.inTransaction=false;this.closed=false;this.maxTransactionMs=0;
     if(filename!==':memory:') {const directory=dirname(resolve(filename));mkdirSync(directory,{recursive:true,mode:0o700});
       requireThat(realpathSync(directory)===directory,'INTEGRITY_FAILURE');
@@ -47,9 +52,10 @@ export class Ledger {
     try {
       this.db.exec('PRAGMA busy_timeout=0; PRAGMA locking_mode=EXCLUSIVE; PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA foreign_keys=ON;');
       this.db.exec('BEGIN EXCLUSIVE');
-      const version=this.db.prepare('PRAGMA user_version').get()?.user_version;
-      requireThat(version===0||version===1,'INTEGRITY_FAILURE','Unsupported ledger version');
-      if(version===0){requireThat(this.db.prepare("SELECT count(*) n FROM sqlite_master WHERE type='table'").get()?.n===0,'INTEGRITY_FAILURE');this.db.exec(SCHEMA);}
+      const version=this.db.prepare('PRAGMA user_version').get()?.user_version,maxVersion=options.maxVersion??2;
+      requireThat((maxVersion===1||maxVersion===2)&&(version===0||version===1||version===2)&&version<=maxVersion,'INTEGRITY_FAILURE','Unsupported ledger version');
+      if(version===0){requireThat(maxVersion===2&&this.db.prepare("SELECT count(*) n FROM sqlite_master WHERE type='table'").get()?.n===0,'INTEGRITY_FAILURE');this.db.exec(SCHEMA);}
+      else if(version===1&&maxVersion===2)this.db.exec(`CREATE TABLE h2_selection(tuple_digest TEXT PRIMARY KEY,leader_action_id TEXT UNIQUE NOT NULL REFERENCES action(action_id),record TEXT NOT NULL);CREATE TABLE h2_member(action_id TEXT PRIMARY KEY REFERENCES action(action_id),tuple_digest TEXT NOT NULL REFERENCES h2_selection(tuple_digest),ordinal INTEGER NOT NULL,work_id TEXT UNIQUE NOT NULL REFERENCES work(work_id),reserved_revision TEXT NOT NULL,UNIQUE(tuple_digest,ordinal));CREATE INDEX h2_member_tuple ON h2_member(tuple_digest,ordinal);PRAGMA user_version=2;`);
       const retained=decode(this.db.prepare('SELECT record FROM binding WHERE singleton=1').get());
       if(retained)requireThat(recordJson(retained)===recordJson(binding),'FORBIDDEN','Binding epoch mismatch');
       else this.db.prepare('INSERT INTO binding VALUES(1,?)').run(recordJson(binding));
@@ -134,11 +140,31 @@ export class Transaction {
   /** @param {ValidationReceipt} receipt */
   putReceipt(receipt){const old=this.get('SELECT record FROM validation WHERE run_id=?',receipt.runId);if(old){requireThat(recordJson(decode(old))===recordJson(receipt),'INTEGRITY_FAILURE');return;}
     this.run('INSERT INTO validation VALUES(?,?,?,?)',receipt.runId,receipt.resultId,receipt.validationId,recordJson(receipt));}
+  /** @param {{version:1,memberTupleDigest:string,leaderActionId:string,tupleObjectDigest:string,deltaObjectDigest:string,compositionIdentity:string,resultId:string,expectedHead:string,resultTreeOid:string,resultTreeSha256:string,policyDigest:string,memberCount:number,metadata:{author:string,committer:string,timestamp:number,message:string}}} selection @param {readonly {actionId:string,workId:string,ordinal:number,reservedWorkRevision:string}[]} members */
+  putH2Selection(selection,members){digest(selection.memberTupleDigest);id(selection.leaderActionId);digest(selection.tupleObjectDigest);digest(selection.deltaObjectDigest);digest(selection.compositionIdentity);id(selection.resultId);oid(selection.expectedHead);oid(selection.resultTreeOid);digest(selection.resultTreeSha256);digest(selection.policyDigest);requireThat(selection.version===1&&members.length===selection.memberCount&&members.length>=2&&members.length<=64,'INTEGRITY_FAILURE');
+    const old=this.getH2SelectionByDigest(selection.memberTupleDigest);if(old){requireThat(recordJson(old)===recordJson(selection),'INTEGRITY_FAILURE');return;}
+    this.run('INSERT INTO h2_selection VALUES(?,?,?)',selection.memberTupleDigest,selection.leaderActionId,recordJson(selection));
+    for(const member of members){id(member.actionId);id(member.workId);revision(member.reservedWorkRevision);requireThat(Number.isSafeInteger(member.ordinal)&&member.ordinal>=0&&member.ordinal<members.length,'INTEGRITY_FAILURE');this.run('INSERT INTO h2_member VALUES(?,?,?,?,?)',member.actionId,selection.memberTupleDigest,member.ordinal,member.workId,member.reservedWorkRevision);}
+  }
+  /** @param {string} tupleDigest */
+  getH2SelectionByDigest(tupleDigest){digest(tupleDigest);return decode(this.get('SELECT record FROM h2_selection WHERE tuple_digest=?',tupleDigest));}
+  /** @param {string} actionId */
+  getH2Selection(actionId){const row=this.get('SELECT s.record,m.ordinal,m.work_id,m.reserved_revision FROM h2_member m JOIN h2_selection s ON s.tuple_digest=m.tuple_digest WHERE m.action_id=?',actionId);if(!row)return null;const selection=h2Record(decode({record:String(row.record)}));requireThat(selection.version===1,'INTEGRITY_FAILURE','Unsupported H2 selection');return {selection,ordinal:Number(row.ordinal),workId:String(row.work_id),reservedWorkRevision:String(row.reserved_revision)};}
+  /** @param {string} tupleDigest */
+  h2Members(tupleDigest){digest(tupleDigest);return this.all('SELECT action_id,work_id,ordinal,reserved_revision FROM h2_member WHERE tuple_digest=? ORDER BY ordinal',tupleDigest).map(row=>({actionId:String(row.action_id),workId:String(row.work_id),ordinal:Number(row.ordinal),reservedWorkRevision:String(row.reserved_revision)}));}
+  /** Retain immutable selection/object references when a pre-effect optimization falls back. @param {string} tupleDigest */
+  retireH2Members(tupleDigest){digest(tupleDigest);this.run('DELETE FROM h2_member WHERE tuple_digest=?',tupleDigest);}
   /** @param {Effect} effect */
   putEffect(effect){const old=decode(this.get('SELECT record FROM effect WHERE effect_id=?',effect.effectId));if(old){requireThat(recordJson(old)===recordJson(effect),'INTEGRITY_FAILURE');return;}
     this.run('INSERT INTO effect VALUES(?,?,?)',effect.effectId,effect.actionId,recordJson(effect));}
   /** @param {string} actionId @returns {Effect|null} */
-  getEffect(actionId){return /** @type {Effect|null} */(decode(this.get('SELECT record FROM effect WHERE action_id=?',actionId)));}
+  getDirectEffect(actionId){return /** @type {Effect|null} */(decode(this.get('SELECT record FROM effect WHERE action_id=?',actionId)));}
+  /** Followers resolve the one leader-anchored effect through immutable membership. @param {string} actionId @returns {Effect|null} */
+  getEffect(actionId){const direct=this.getDirectEffect(actionId);if(direct)return direct;const selected=this.getH2Selection(actionId);return selected?this.getDirectEffect(selected.selection.leaderActionId):null;}
+  /** @param {string} effectId @returns {Effect|null} */
+  getEffectById(effectId){id(effectId);return /** @type {Effect|null} */(decode(this.get('SELECT record FROM effect WHERE effect_id=?',effectId)));}
+  /** @param {string} actionId */
+  effectObservation(actionId){const selected=this.getH2Selection(actionId),owner=selected?selected.selection.leaderActionId:actionId,row=this.get('SELECT value FROM meta WHERE key=?','effect-observation:'+owner);return row?parseRecord(String(row.value),2097152):null;}
   /** @param {string} actionId */
   intent(actionId){const row=this.get('SELECT intent FROM action WHERE action_id=?',actionId);requireThat(typeof row?.intent==='string','INTEGRITY_FAILURE');return parseRecord(row.intent,2097152);}
   /** @param {string} principal @param {number} [after] @param {number} [limit] */

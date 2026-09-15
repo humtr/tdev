@@ -6,7 +6,7 @@ import { newId, digest } from '../contracts/identity.mjs';
 import { validateInput, admitWorkBatch } from '../mcp/input-schemas.mjs';
 import { SCHEMA_DIGEST, validateOutput, TOOL_DESCRIPTORS } from '../mcp/outputs.mjs';
 import { workInput } from './engine.mjs';
-import { retainedExecutionView, retainedArtifactDigest } from './execution-view.mjs';
+import { retainedExecutionView, retainedExecutionViewIn, retainedArtifactDigest } from './execution-view.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
@@ -28,7 +28,7 @@ export class DevelopmentApplication {
   let data;
   if(name==='dev_work'){
    const items=await admitWorkBatch(principal,input,(p,item)=>this.engine.authorize(p,workInput(item)),async(p,item)=>json(await this.engine.admit(p,item)));
-   this.engine.pump();const waitMs=Number(record(input).waitMs??0);
+   await this.engine.h2.selectEnvelope(principal,input,items);this.engine.pump();const waitMs=Number(record(input).waitMs??0);
    if(waitMs>0){const ids=items.filter(i=>i.ok).map(i=>String(record(i.receipt).actionId));await this.wait(principal,ids,waitMs,signal);}
    data={items};
   }else{
@@ -106,21 +106,25 @@ export class DevelopmentApplication {
  }
  actionIds=[...new Set(actionIds)];requireThat(actionIds.length<=128,'LIMIT_EXCEEDED');for(const id of actionIds){await this.action(principal,id);await this.engine.specialRecovery.observe(principal,id,false);}
  if(Number(input.waitMs)>0&&actionIds.length)await this.wait(principal,actionIds,Number(input.waitMs),signal,/** @type {string|undefined} */(selector.afterRevision));
- let actions=await Promise.all(actionIds.map(id=>this.action(principal,id)));
- for(const a of actions)if(a.workId)workIds.push(a.workId);
- let works=await Promise.all([...new Set(workIds)].map(id=>this.engine.work(principal,id)));
- if(selector.afterRevision!==undefined){const after=BigInt(String(selector.afterRevision));works=works.filter(w=>BigInt(w.revision)>after);actions=actions.filter(a=>BigInt(this.projectAction(a).revision)>after);}
- const results=[];
- for(const resultId of new Set(actions.map(a=>a.resultId).filter(Boolean))){
-  const result=this.engine.ledger.transact(tx=>tx.getPrepared(/** @type {string} */(resultId)));if(!result)continue;await this.engine.work(principal,result.workId);
-  const receipt=this.engine.ledger.transact(tx=>{const row=tx.get('SELECT record FROM validation WHERE result_id=? ORDER BY rowid DESC LIMIT 1',result.resultId);return row?/** @type {Receipt} */(parseRecord(String(row.record))):null;});
-  const effectAction=actions.find(a=>a.resultId===result.resultId&&a.operation==='integrate'),observation=effectAction?this.engine.metadata('effect-observation:'+effectAction.actionId):null;
-  let validation=null;if(receipt)validation={validationId:receipt.validationId,runId:receipt.runId,startedAt:receipt.startedAt,endedAt:receipt.endedAt,exitCode:receipt.exitCode,signal:receipt.signal,deadlineExceeded:receipt.deadlineExceeded,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest,outcomes:receipt.outcomes,eligible:await this.engine.o.validation().eligible(result,receipt,this.engine.binding.policyDigest,this.engine.ledger.ownerEpoch)};
-  results.push({resultId:result.resultId,workId:result.workId,generation:result.generation,baseCommitOid:result.baseCommitOid,baseTreeOid:result.baseTreeOid,candidateTreeOid:result.candidateTreeOid,execution:result.execution,expectedHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,validation,integration:observation});
- }
- const identity=selector.runtime&&this.o.runtimeIdentity?await this.o.runtimeIdentity():null;
- const runtime=selector.runtime?{...this.runtime,releaseId:this.o.currentReleaseId?.()??this.runtime.releaseId,accepting:this.engine.accepting,capacity:this.engine.coordinator.executionCapacity,reservedAttempts:this.engine.ledger.transact(tx=>tx.reservations().length),executingActions:this.engine.running.size,environmentClass:this.engine.o.policy().policy.execution.environmentClass,deploymentSealed:typeof this.o.deploymentSealed==='function'?this.o.deploymentSealed():this.o.deploymentSealed===true,identity,operations:this.engine.operationDescriptors(),sessions:this.o.sessions?.()??[]}:null;
- const effects=actions.map(a=>this.engine.ledger.transact(tx=>tx.getEffect(a.actionId))).filter(e=>e!==null).map(e=>({effectId:e.effectId,actionId:e.actionId,workId:e.workId,ref:e.ref,expectedHead:e.expectedHead,commitOid:e.commitOid,preparedResultId:e.preparedResultId,validationId:e.validationId,policyDigest:e.policyDigest}));
- return {effects,works:works.map(w=>this.projectWork(w)),actions:actions.map(a=>this.projectAction(a)),results,runtime,complete,cursor,missingRequestIds};
+ if(selector.runtime){const identity=this.o.runtimeIdentity?await this.o.runtimeIdentity():null,runtime={...this.runtime,releaseId:this.o.currentReleaseId?.()??this.runtime.releaseId,accepting:this.engine.accepting,capacity:this.engine.coordinator.executionCapacity,reservedAttempts:this.engine.ledger.transact(tx=>tx.reservations().length),executingActions:this.engine.running.size,environmentClass:this.engine.o.policy().policy.execution.environmentClass,deploymentSealed:typeof this.o.deploymentSealed==='function'?this.o.deploymentSealed():this.o.deploymentSealed===true,identity,operations:this.engine.operationDescriptors(),sessions:this.o.sessions?.()??[]};return {effects:[],works:[],actions:[],results:[],runtime,complete,cursor,missingRequestIds};}
+ const captured=this.engine.ledger.transact(tx=>{
+  /** @param {string} key @returns {Json|null} */const meta=key=>{const row=tx.get('SELECT value FROM meta WHERE key=?',key);return row?/** @type {Json} */(parseRecord(String(row.value),2097152)):null;};
+  const workSet=new Set(workIds),actionSet=new Set(actionIds);
+  for(const id of [...workSet]){const work=tx.getWork(id);requireThat(work&&work.principal===principal.subject,'FORBIDDEN');if(work.currentActionId)actionSet.add(work.currentActionId);const latest=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? ORDER BY rowid DESC LIMIT 1',id,principal.subject),withResult=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,principal.subject);for(const row of [latest,withResult])if(row){const action=/** @type {Action} */(parseRecord(String(row.record),2097152));actionSet.add(action.actionId);}}
+  requireThat(actionSet.size<=128,'LIMIT_EXCEEDED');
+  /** @type {Action[]} */const actions=[];for(const id of actionSet){const action=tx.getAction(id);requireThat(action&&action.principal===principal.subject,'FORBIDDEN');actions.push(action);if(action.workId)workSet.add(action.workId);}
+  /** @type {Work[]} */const works=[];for(const id of workSet){const work=tx.getWork(id);requireThat(work&&work.principal===principal.subject,'FORBIDDEN');works.push(work);}
+  const after=selector.afterRevision!==undefined?BigInt(String(selector.afterRevision)):null;
+  const selectedActions=after===null?actions:actions.filter(action=>BigInt(String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+action.actionId)?.value??'0'))>after);
+  const selectedWorks=after===null?works:works.filter(work=>BigInt(work.revision)>after);
+  const actionViews=selectedActions.map(action=>{let output=meta('action-result:'+action.actionId),managed=retainedExecutionViewIn(tx,this.engine.ledger,action);if(managed){if(output===null)output=/** @type {Json} */(managed);else if(typeof output==='object'&&!Array.isArray(output)&&output.kind==='execution')output=/** @type {Json} */({...output,artifacts:managed.artifacts});}return {actionId:action.actionId,requestId:action.requestId,workId:action.workId,operation:action.operation,status:action.status,step:action.step,attempt:action.attempt,revision:String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+action.actionId)?.value??'0'),deadline:action.deadline,resultId:action.resultId,errorCode:action.errorCode,cancelRequested:meta('cancel:'+action.actionId)===true,output};});
+  const workViews=selectedWorks.map(work=>({workId:work.workId,repositoryId:work.repositoryId,bindingEpoch:work.bindingEpoch,baseCommitOid:work.baseCommitOid,baseTreeOid:work.baseTreeOid,candidateTreeOid:work.candidate.treeOid,candidateDigest:work.candidate.manifestDigest,generation:work.generation,revision:work.revision,disposition:work.disposition,currentActionId:work.currentActionId,objective:String(meta('objective:'+work.workId)??'')}));
+  /** @type {{result:import('../contracts/ports.js').PreparedResult,receipt:Receipt|null,observation:Json|null}[]} */const resultFrames=[];for(const resultId of new Set(selectedActions.map(action=>action.resultId).filter(Boolean))){const result=tx.getPrepared(/** @type {string} */(resultId));if(!result)continue;const owner=tx.getWork(result.workId);requireThat(owner&&owner.principal===principal.subject,'FORBIDDEN');const row=tx.get('SELECT record FROM validation WHERE result_id=? ORDER BY rowid DESC LIMIT 1',result.resultId),receipt=row?/** @type {Receipt} */(parseRecord(String(row.record),2097152)):null,effectAction=selectedActions.find(action=>action.resultId===result.resultId&&action.operation==='integrate'),observation=effectAction?/** @type {Json|null} */(tx.effectObservation(effectAction.actionId)):null;resultFrames.push({result,receipt,observation});}
+  const effectMap=new Map();for(const action of selectedActions){const effect=tx.getEffect(action.actionId);if(effect)effectMap.set(effect.effectId,effect);}const effects=[...effectMap.values()].map(effect=>({effectId:effect.effectId,actionId:effect.actionId,workId:effect.workId,ref:effect.ref,expectedHead:effect.expectedHead,commitOid:effect.commitOid,preparedResultId:effect.preparedResultId,validationId:effect.validationId,policyDigest:effect.policyDigest}));
+  return {actionViews,workViews,resultFrames,effects};
+ });
+ await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');
+ const results=[];for(const frame of captured.resultFrames){const {result,receipt,observation}=frame;let validation=null;if(receipt)validation={validationId:receipt.validationId,runId:receipt.runId,startedAt:receipt.startedAt,endedAt:receipt.endedAt,exitCode:receipt.exitCode,signal:receipt.signal,deadlineExceeded:receipt.deadlineExceeded,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest,outcomes:receipt.outcomes,eligible:await this.engine.o.validation().eligible(result,receipt,this.engine.binding.policyDigest,this.engine.ledger.ownerEpoch)};results.push({resultId:result.resultId,workId:result.workId,generation:result.generation,baseCommitOid:result.baseCommitOid,baseTreeOid:result.baseTreeOid,candidateTreeOid:result.candidateTreeOid,execution:result.execution,expectedHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,validation,integration:observation});}
+ return {effects:captured.effects,works:captured.workViews,actions:captured.actionViews,results,runtime:null,complete,cursor,missingRequestIds};
  }
 }

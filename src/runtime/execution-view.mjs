@@ -7,9 +7,8 @@ import {requireThat} from '../contracts/errors.mjs';
  * assignment owner. It neither trusts stdout as a receipt nor manufactures an
  * artifact capability from a caller-supplied digest. Authorization of the action
  * itself remains at the public application boundary.
- * @param {import('../storage/ledger.mjs').Ledger} ledger @param {Action} action */
-export function retainedExecutionView(ledger,action){
- return ledger.transact(tx=>{
+ * @param {import('../storage/ledger.mjs').Transaction} tx @param {import('../storage/ledger.mjs').Ledger} ledger @param {Action} action */
+export function retainedExecutionViewIn(tx,ledger,action){
   if(!['run','validate','integrate'].includes(action.operation)||!action.workId)return null;
   if(!tx.get("SELECT name FROM sqlite_master WHERE type='table' AND name='managed_artifact'"))return null;
   const rows=tx.all("SELECT record FROM managed_assignment WHERE state='complete' AND json_extract(record,'$.input.attempt.actionId')=? ORDER BY rowid LIMIT 129",action.actionId);
@@ -29,7 +28,8 @@ export function retainedExecutionView(ledger,action){
   const result=results.find(r=>r.exitCode!==0||r.signal!==null||r.deadlineExceeded)??results[results.length-1];
   const terminal=['succeeded','failed','cancelled'].includes(action.status);
   return {kind:'execution',profileId:action.operation==='run'?'configured-profile':'required-validation',exitCode:terminal?result.exitCode:null,signal:terminal?result.signal:null,inputDigest:result.inputDigest,outputDigest:result.outputDigest,artifacts:[...artifacts.values()]};
- });
 }
+/** @param {import('../storage/ledger.mjs').Ledger} ledger @param {Action} action */
+export function retainedExecutionView(ledger,action){return ledger.transact(tx=>retainedExecutionViewIn(tx,ledger,action));}
 /** @param {import('../storage/ledger.mjs').Ledger} ledger @param {Action} action @param {string} artifactId */
 export function retainedArtifactDigest(ledger,action,artifactId){return retainedExecutionView(ledger,action)?.artifacts.find(a=>a.artifactId===artifactId)?.contentDigest??null;}
