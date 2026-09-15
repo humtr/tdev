@@ -16,6 +16,7 @@ The first public release was owner-closed on 2026-09-14. D0007 repeated statisti
 - Active checkpoint: `C1-1.1`
 - Campaign status: active
 - Post-C1 routing gate: freshly revalidate issued draft `C3` (bounded ad-hoc development execution); if it survives, route `C1 -> C3 -> C2`, otherwise advance directly to `C2`
+- Post-C2 route: after C2 independently completes final `main` promotion/self-development acceptance, activate `C4` for a comprehensive final public tool-contract ergonomics and misuse-resistance audit
 
 Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They are not renumbered or reused when campaign scope or execution order changes. Previously issued `C1-3` through `C1-6` remain traceable in the route map but are no longer active C1 work; their substantive work is carried by new C2 checkpoints.
 

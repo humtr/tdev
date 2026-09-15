@@ -57,4 +57,18 @@ Nominal route:
 - `C2-3` — repository-aware source/context transfer deduplication
 - `C2-4` — final convergence, bounded cost acceptance, exact-state `main` promotion and self-development acceptance
 
+## C4 — public tool-contract ergonomics and misuse-resistance audit
+
+Detailed plan: [C4-tool-contract-ergonomics-audit.md](C4-tool-contract-ergonomics-audit.md)
+
+Status: issued post-C2 campaign, not active before C2 completion.
+
+Purpose: after C2 has converged the product and promoted/accepted canonical `main`, comprehensively audit the actual final four-tool public contract for hidden constraints, identity handoff ambiguity, error actionability, async/retry usability, multi-repository/ref ergonomics, invalid-call cost and misuse resistance. Repair only evidence-backed defects through the then-current owner-authorized development workflow.
+
+Nominal route:
+
+`C4-1` -> `C4-2` -> `C4-3` -> `C4-4` -> `C4-5` -> `C4-6`
+
+C4 is post-convergence quality work. It does not delay C2 completion and must not mutate a verified `main` ad hoc; substantive fixes follow whatever development/promotion workflow is authoritative when C4 runs.
+
 Execution order may be revised when evidence requires it without renumbering issued identities. `WORKBOARD.md` is the owner of the current active campaign/checkpoint and current routing.

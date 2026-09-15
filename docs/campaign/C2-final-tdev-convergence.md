@@ -168,7 +168,7 @@ Measure the smallest comparable workload needed to summarize post-C1/C2 validati
 - Transition canonical tdev self-development to the authorized `main` repository/ref binding through the current owner-defined mechanism.
 - Stage/activate the corresponding final release when required and verify edge/device/runtime identity.
 - From `main`, perform a bounded ordinary context -> read -> Work -> required validation/integration/readback self-development smoke acceptance.
-- Mark C2 complete only after `main` is the verified canonical product/self-development line and WORKBOARD is reset to the next frontier or idle state.
+- Mark C2 complete only after `main` is the verified canonical product/self-development line. Then reset WORKBOARD to `C4-1` for the separately scoped post-convergence public tool-contract ergonomics/misuse-resistance audit; C4 findings do not retroactively make C2 incomplete.
 
 ## 9. Reporting contract
 
