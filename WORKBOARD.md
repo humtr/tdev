@@ -15,7 +15,7 @@ The first public release was owner-closed on 2026-09-14. D0007 repeated statisti
 - Detailed execution plan: `docs/campaign/C1-managed-execution-lifecycle-convergence.md`
 - Active checkpoint: `C1-1.1`
 - Campaign status: active
-- Next campaign after C1: `C2` — remaining final `tdev` convergence and `main` promotion
+- Post-C1 routing gate: freshly revalidate issued draft `C3` (bounded ad-hoc development execution); if it survives, route `C1 -> C3 -> C2`, otherwise advance directly to `C2`
 
 Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They are not renumbered or reused when campaign scope or execution order changes. Previously issued `C1-3` through `C1-6` remain traceable in the route map but are no longer active C1 work; their substantive work is carried by new C2 checkpoints.
 
@@ -28,7 +28,7 @@ Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They 
 
 `C1-1.1` starts by freshly observing current managed sessions, provider workflow runs and the operational execution-ref namespace before mutation. Recent observations of a large retained `refs/heads/dev2-exec/*` population, missing ref deletion in the current provider adapter, provider-terminal sessions remaining logically retained, and a replacement-history bound of 64 are investigation hints, not current authority. Re-establish the relevant current facts and exact active-run state before cleanup or repair.
 
-C1 is intentionally narrow. Do not begin multi-repository/ref support, final `dev-2`/`dev2` -> `tdev` identity migration, source/context transfer deduplication, final broad convergence or `main` promotion inside C1. Those are routed to C2.
+C1 is intentionally narrow. Do not begin multi-repository/ref support, final `dev-2`/`dev2` -> `tdev` identity migration, source/context transfer deduplication, final broad convergence or `main` promotion inside C1. Those are routed to C2. The issued C3 draft is also not active C1 work and must not be implemented before the post-C1 fresh revalidation gate.
 
 When a detailed checkpoint completes, advance this file in the same canonical integration as the substantive change when practical. Do not create separate full-validation publications merely to narrate progress. In-flight details belong to durable Work/Action state; enduring procedure belongs to the C1 plan; enduring product meaning belongs to existing authoritative Designs and executable contracts.
 
@@ -42,4 +42,4 @@ A fresh session must:
 4. reconcile those observations with the active checkpoint, treating this file's mutable observations and all prior chat as hints rather than authority; and
 5. continue from the first incomplete detailed checkpoint until a plan stop condition, genuine external blocker, or full C1 completion is reached.
 
-At C1 completion, reset this file to C2 and its first current checkpoint only after C1 acceptance and non-authority dependency convergence are complete. No completed campaign plan, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.
+At C1 completion, first perform the post-C1 C3 agenda revalidation named above. Update this file to C3-1 only if the fresh go/no-go/scope/order review still justifies activating C3; otherwise route directly to C2 and its first current checkpoint. Do not implement C3 merely because its draft exists. No completed campaign plan, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.

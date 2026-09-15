@@ -2,13 +2,13 @@
 
 Status: pending execution aid
 
-This document is a non-authoritative campaign plan. `DIRECTIVE.md`, `RULE.md`, current accepted Designs, executable product contracts and `WORKBOARD.md` own meaning and current routing. C2 does not become active until WORKBOARD advances from completed C1.
+This document is a non-authoritative campaign plan. `DIRECTIVE.md`, `RULE.md`, current accepted Designs, executable product contracts and `WORKBOARD.md` own meaning and current routing. C2 does not become active until WORKBOARD routes to it after completed C1 and any intervening campaign that the fresh post-C1 routing decision actually activates. The issued C3 draft is currently only a provisional candidate, not a mandatory predecessor.
 
 ## 1. Campaign outcome and dependency
 
 C2 contains the broader product-convergence work removed from the original C1 route so C1 can focus exclusively on managed-execution lifecycle/ref/session-churn correctness.
 
-Entry condition: C1 is complete and managed execution has trustworthy terminal/session/ref lifecycle behavior, no unexplained replacement amplification in the accepted live shape, and no stale operational execution-ref backlog.
+Entry condition: C1 is complete and managed execution has trustworthy terminal/session/ref lifecycle behavior, no unexplained replacement amplification in the accepted live shape, and no stale operational execution-ref backlog. If the post-C1 routing gate activates C3, C3 must also reach its accepted closeout before C2; if C3 is deferred/no-go, this additional condition does not apply.
 
 Required C2 end state:
 
