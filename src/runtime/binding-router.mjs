@@ -1,6 +1,6 @@
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
 import { success, failure } from '../contracts/envelopes.mjs';
-import { requireThat } from '../contracts/errors.mjs';
+import { requireThat,Dev2Error } from '../contracts/errors.mjs';
 import { validateInput, validateWorkItem, admitWorkBatch } from '../mcp/input-schemas.mjs';
 import { validateOutput, TOOL_DESCRIPTORS } from '../mcp/outputs.mjs';
 import { workInput } from './engine.mjs';
@@ -27,11 +27,16 @@ export class BindingRouterApplication {
  application(repository){const selected=repository===undefined||repository==='self'?this.primaryRepositoryId:String(repository);const app=this.apps.get(selected);requireThat(app,'FORBIDDEN','Repository binding is not authorized');return app;}
  /** @param {RecordValue} item @param {import('./application.mjs').DevelopmentApplication} app */
  primaryOnly(item,app){if(item.op==='policy.adopt'||String(item.op).startsWith('release.'))requireThat(app===this.primary,'FORBIDDEN','Operation is primary binding only');}
+ /** Discovery is authorization-filtered installation data, never proof for a later call. @param {Principal} principal */
+ async repositories(principal){const rows=[];for(const app of this.apps.values()){const b=app.engine.binding;try{await app.engine.o.authorization.authorize(principal,b,'repository.read');rows.push({repositoryId:b.repositoryId,provider:b.provider,providerRepositoryId:b.providerRepositoryId,ref:b.ref,bindingEpoch:b.bindingEpoch,policyDigest:b.policyDigest,primary:b.repositoryId===this.primaryRepositoryId});}catch(error){if(error instanceof Dev2Error&&['FORBIDDEN','UNAUTHORIZED'].includes(error.code))continue;throw error;}}return rows.sort((a,b)=>a.primary===b.primary?Buffer.compare(Buffer.from(a.repositoryId),Buffer.from(b.repositoryId)):a.primary?-1:1);}
  /** @param {Principal} principal @param {string} name @param {unknown} input @param {AbortSignal} [signal] */
  async invoke(principal,name,input,signal){
   requireThat(TOOL_DESCRIPTORS.some(tool=>tool.name===name),'INVALID_ARGUMENT','Unknown tool');
   if(name!=='dev_work'){
-   try{const value=validateInput(/** @type {'dev_context'|'dev_read'|'dev_observe'} */(name),input);return await this.application(value.repository).invoke(principal,name,input,signal);}catch(error){return validateOutput(name,failure(error));}
+   try{const value=validateInput(/** @type {'dev_context'|'dev_read'|'dev_observe'} */(name),input),app=this.application(value.repository);let output=await app.invoke(principal,name,input,signal);if(output.ok!==true)return output;
+    if(name==='dev_context'){const data=record(output.data);output={...output,data:{...data,repositories:await this.repositories(principal),primaryRepositoryId:this.primaryRepositoryId}};}
+    else if(name==='dev_observe'&&record(value.selector).runtime===true){const data=record(output.data),runtime=record(data.runtime);output={...output,data:{...data,runtime:{...runtime,reservedAttempts:[...this.apps.values()].reduce((n,a)=>n+a.engine.ledger.transact(tx=>tx.reservations().length),0),executingActions:[...this.apps.values()].reduce((n,a)=>n+a.engine.running.size,0)}}};}
+    return validateOutput(name,output);}catch(error){return validateOutput(name,failure(error));}
   }
   try{
    const source=record(input);const rawItems=/** @type {Json[]} */(source.items);

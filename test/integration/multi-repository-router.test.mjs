@@ -9,8 +9,8 @@ test('one four-tool router selects two binding-scoped engines without cross-bind
  const b=await engineWorld({repositoryId:'repo-b',files:[{path:'only-b.txt',content:'beta-b\n'},{path:'AGENTS.md',content:'B authority\n'}]});
  try{
   const app=new BindingRouterApplication({applications:[a.app,b.app],primaryRepositoryId:'repo-a'}),p=a.principal;
-  const ca=await app.invoke(p,'dev_context',{apiVersion:1});assert.equal(ca.ok,true,canonicalJson(ca));assert.equal(ca.data.repository.repositoryId,'repo-a');
-  const cb=await app.invoke(p,'dev_context',{apiVersion:1,repository:'repo-b'});assert.equal(cb.ok,true,canonicalJson(cb));assert.equal(cb.data.repository.repositoryId,'repo-b');
+  const ca=await app.invoke(p,'dev_context',{apiVersion:1});assert.equal(ca.ok,true,canonicalJson(ca));assert.equal(ca.data.repository.repositoryId,'repo-a');assert.equal(ca.data.primaryRepositoryId,'repo-a');assert.deepEqual(ca.data.repositories.map(r=>[r.repositoryId,r.primary]),[['repo-a',true],['repo-b',false]]);
+  const cb=await app.invoke(p,'dev_context',{apiVersion:1,repository:'repo-b'});assert.equal(cb.ok,true,canonicalJson(cb));assert.equal(cb.data.repository.repositoryId,'repo-b');assert.deepEqual(cb.data.repositories,ca.data.repositories);
   const rb=await app.invoke(p,'dev_read',{apiVersion:1,repository:'repo-b',target:{snapshotId:cb.data.snapshot.snapshotId,freshness:'current'},queries:[{kind:'file',path:'only-b.txt'}]});assert.equal(rb.ok,true,canonicalJson(rb));assert.equal(rb.data.results[0].content,'beta-b\n');
   const work=await app.invoke(p,'dev_work',{apiVersion:1,items:[
    {op:'create',repository:'repo-a',requestId:'same-request',snapshotId:ca.data.snapshot.snapshotId,expectedHead:ca.data.snapshot.commitOid,objective:'A change'},

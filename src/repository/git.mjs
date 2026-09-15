@@ -13,7 +13,7 @@ import { repositoryPath } from '../security/paths.mjs';
 /** @typedef {import('../contracts/ports.js').SourceTree} SourceTree */
 /** @typedef {{type:string,bytes:Buffer}} GitObject */
 /** @typedef {{directory:string,executable:string,environment:Record<string,string>,bindings:()=>readonly Binding[],
- * verifyRemote:(binding:Binding)=>Promise<void>,objectFormat?:'sha1'|'sha256',allowLocalFixture?:boolean,
+ * verifyRemote:(binding:Binding)=>Promise<void>,bindingEnvironment?:(binding:Binding)=>Record<string,string>,objectFormat?:'sha1'|'sha256',allowLocalFixture?:boolean,
  * maxBlobBytes?:number,maxSourceBytes?:number,timeoutMs?:number}} Options */
 /** Trusted Git object/remote adapter. No shared writable checkout/index or candidate code execution.
  * Fixture file transport is explicit construction-time test capability, never a public field.
@@ -40,15 +40,21 @@ export class GitRepository {
         this.commandCount = 0;
         /** @type {Promise<void>|null} */ this.initialization = null;
     }
-    /** @param {readonly string[]} args @param {Uint8Array} [input] @param {number} [maxBytes] */
-    async command(args, input, maxBytes = this.maxSourceBytes) {
+    /** External Git authentication is selected only after an exact installed binding is known. @param {Binding} binding */
+    bindingEnvironment(binding) {
+        const extra=this.options.bindingEnvironment?.(binding)??{};/** @type {Record<string,string>} */const environment={...this.environment,...extra};
+        for(const name of Object.keys(environment))if(/^GIT_(?:DIR|WORK_TREE|INDEX_FILE|OBJECT_DIRECTORY|ALTERNATE_OBJECT_DIRECTORIES|CONFIG_COUNT|CONFIG_PARAMETERS|CONFIG_KEY_|CONFIG_VALUE_|REPLACE_REF_BASE)/.test(name))delete /** @type {Record<string,string>} */(environment)[name];
+        return environment;
+    }
+    /** @param {readonly string[]} args @param {Uint8Array} [input] @param {number} [maxBytes] @param {Record<string,string>} [environment] */
+    async command(args, input, maxBytes = this.maxSourceBytes, environment = this.environment) {
         requireThat(args.every(a => typeof a === 'string' && !a.includes('\0')), 'INVALID_ARGUMENT');
         this.commandCount++;
         const settings = ['-c', 'core.hooksPath=/dev/null', '-c', 'credential.helper=', '-c', 'protocol.allow=never', '-c', 'protocol.https.allow=always', '-c', 'protocol.ssh.allow=always', '-c', 'http.followRedirects=false', '-c', 'fetch.fsckObjects=true', '-c', 'transfer.fsckObjects=true', '-c', 'core.fsync=objects,pack-metadata,reference', '-c', 'core.fsyncMethod=fsync'];
         if (this.options.allowLocalFixture)
             settings.push('-c', 'protocol.file.allow=always');
         return new Promise(/** @param {(value:{code:number|null,stdout:Buffer})=>void} done @param {(reason:unknown)=>void} reject */ (done, reject) => {
-            const child = spawn(this.options.executable, [...settings, '--git-dir=' + this.directory, ...args], { env: this.environment, shell: false, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
+            const child = spawn(this.options.executable, [...settings, '--git-dir=' + this.directory, ...args], { env: environment, shell: false, detached: true, stdio: ['pipe', 'pipe', 'pipe'] });
             /** @type {Buffer[]} */ const chunks = [];
             let size = 0, failed = false, exceeded = false;
             const kill = () => { if (child.pid) {
@@ -134,7 +140,7 @@ export class GitRepository {
     async resolve(binding) {
         await this.checkBinding(binding, true);
         await this.init();
-        const r = await this.command(['ls-remote', '--exit-code', '--refs', '--', binding.remote, binding.ref], undefined, 8192);
+        const r = await this.command(['ls-remote', '--exit-code', '--refs', '--', binding.remote, binding.ref], undefined, 8192, this.bindingEnvironment(binding));
         requireThat(r.code === 0, 'EXECUTION_UNAVAILABLE', 'Authoritative ref unavailable');
         const lines = r.stdout.toString().trim().split('\n');
         requireThat(lines.length === 1, 'INTEGRITY_FAILURE', 'Ambiguous ref');
@@ -143,7 +149,7 @@ export class GitRepository {
         return { head: this.tagged(raw), bindingEpoch: binding.bindingEpoch, observedAt: new Date().toISOString() };
     }
     /** @param {Binding} binding @param {string} commit */
-    async fetch(binding, commit) { await this.checkBinding(binding, true); await this.init(); const r = await this.command(['fetch', '--no-tags', '--no-write-fetch-head', '--no-auto-maintenance', '--', binding.remote, this.raw(commit)], undefined, 8192); requireThat(r.code === 0, 'EXECUTION_UNAVAILABLE', 'Exact object fetch failed'); }
+    async fetch(binding, commit) { await this.checkBinding(binding, true); await this.init(); const r = await this.command(['fetch', '--no-tags', '--no-write-fetch-head', '--no-auto-maintenance', '--', binding.remote, this.raw(commit)], undefined, 8192, this.bindingEnvironment(binding)); requireThat(r.code === 0, 'EXECUTION_UNAVAILABLE', 'Exact object fetch failed'); }
     /** @param {string} type @param {Uint8Array} bytes */
     objectOid(type, bytes) { return this.tagged(createHash(this.format).update(`${type} ${bytes.byteLength}\0`).update(bytes).digest('hex')); }
     /** @param {string} objectOid @param {GitObject} object */

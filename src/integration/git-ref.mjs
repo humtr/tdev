@@ -13,7 +13,7 @@ export class GitRefTransport {
  const b=this.binding,r=this.repository;await r.checkBinding(b,true);
  requireThat(effect.repositoryId===b.repositoryId&&effect.bindingEpoch===b.bindingEpoch&&effect.ref===b.ref,'FORBIDDEN');
  const c=await r.readCommit(b,effect.commitOid);requireThat(c.parents.length===1&&c.parents[0]===effect.expectedHead,'INTEGRITY_FAILURE','Ref CAS requires a direct child');
- const result=await r.command(['push','--porcelain','--force-with-lease='+b.ref+':'+r.raw(effect.expectedHead),'--',b.remote,r.raw(effect.commitOid)+':'+b.ref],undefined,16384);
+ const result=await r.command(['push','--porcelain','--force-with-lease='+b.ref+':'+r.raw(effect.expectedHead),'--',b.remote,r.raw(effect.commitOid)+':'+b.ref],undefined,16384,r.bindingEnvironment(b));
  return {kind:/** @type {'sent'|'uncertain'} */(result.code===0?'sent':'uncertain')};
  }
 }
