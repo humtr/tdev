@@ -19,7 +19,7 @@ import {Dev2Error} from '../../src/contracts/errors.mjs';
 /** @typedef {import('../../src/contracts/ports.js').Profile} Profile */
 /** @typedef {import('../../src/contracts/ports.js').PreparedResult} Result */
 /** @typedef {import('../../src/contracts/ports.js').Attempt} Attempt */
-/** @typedef {{capacity?:number,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[],repositoryId?:string}} Options */
+/** @typedef {{capacity?:number,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[],repositoryId?:string,arbiter?:import('../../src/runtime/execution-arbiter.mjs').InstallationExecutionArbiter}} Options */
 /** Actual Node child processes on a disposable trusted fixture, not OS isolation.
  * @param {Profile} profile @param {string} cwd */
 function command(profile,cwd){return new Promise(resolve=>{
@@ -73,7 +73,7 @@ export async function engineWorld(options={}){
  const transport=new GitRefTransport(w.repository,w.binding);
  /** @type {import('../../src/contracts/ports.js').Effect[]} */const sends=[];
  const remote={resolve:()=>transport.resolve(),fetch:(/** @type {string} */head)=>transport.fetch(head),compareUpdate:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>{sends.push(effect);const sent=await transport.compareUpdate(effect);await options.afterSend?.();return sent;},prepareCompareUpdate:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>async(/** @type {(tx:import('../../src/storage/ledger.mjs').Transaction)=>void} */fence)=>{ledger.transact(tx=>fence(tx));sends.push(effect);const sent=await transport.compareUpdate(effect);await options.afterSend?.();return sent;},observeSender:async(/** @type {import('../../src/contracts/ports.js').Effect} */effect)=>({stopped:true,delivery:sends.some(sent=>sent.effectId===effect.effectId)?/** @type {const} */('sent'):/** @type {const} */('not_sent'),state:'fixture'})};
- const engineOptions={binding:w.binding,ledger,repository:w.repository,context,authorization,objects,h2Enabled:options.h2Enabled,h2MaxMembers:options.h2MaxMembers,h2Fault:options.h2Fault,remote,policy:()=>policy,validation:()=>validation,verifyLineage:(/** @type {string} */head)=>w.repository.isAncestor(w.binding,w.baseHead,head),actor:'Fixture <fixture@example.invalid>',capacity:options.capacity,attemptStopped:async()=>parallel.active===0};
+ const engineOptions={binding:w.binding,ledger,repository:w.repository,context,authorization,objects,h2Enabled:options.h2Enabled,h2MaxMembers:options.h2MaxMembers,h2Fault:options.h2Fault,remote,policy:()=>policy,validation:()=>validation,verifyLineage:(/** @type {string} */head)=>w.repository.isAncestor(w.binding,w.baseHead,head),actor:'Fixture <fixture@example.invalid>',capacity:options.capacity,arbiter:options.arbiter,attemptStopped:async()=>parallel.active===0};
  const engine=new DevelopmentEngine(engineOptions),app=new DevelopmentApplication({engine,releaseId:seal,artifacts:objects,pollMs:10});
  /** @param {string[]} ids */
  async function finish(ids){const deadline=Date.now()+90000;engine.pump();
