@@ -112,7 +112,7 @@ managed=await createManagedControl({enrollment,productionEnrollment,commissionin
   currentEngine?.assertAttempt(attempt);const receipt=await managed.poolFor(result.execution).run(result,attempt,profile);return {exitCode:receipt.exitCode,signal:receipt.signal,inputDigest:receipt.inputDigest,outputDigest:receipt.outputDigest};
  };
  const activeManaged=managed;
- const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,objects,h2Enabled:false,h2MaxMembers:32,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?release?.available()===true:true,integrationLineage,verifyLineage,actor:config.actor,
+ const engine=new DevelopmentEngine({binding,ledger,repository,context,authorization,remote:remoteTransport,validation:()=>managed?.validation()??unavailableValidation,policy,capacity:config.capacity,objects,h2Enabled:true,h2MaxMembers:32,executionAvailable:()=>managed!==null,operationAvailable:op=>op.startsWith('release.')?release?.available()===true:true,integrationLineage,verifyLineage,actor:config.actor,
   ...(activeManaged?{runProfile,
    cancelAttempt:async(/** @type {import('../contracts/ports.js').Attempt} */ a)=>{await activeManaged.production?.builder?.cancel(a.actionId);return activeManaged.attemptPool(a).cancel(a);},
    attemptStopped:(/** @type {import('../contracts/ports.js').Attempt} */ a)=>activeManaged.attemptPool(a).stopped(a),
