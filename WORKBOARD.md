@@ -22,7 +22,7 @@ A fresh release-aware runtime observation at 2026-09-15T03:29:52Z reported:
 - managed execution `ready`, with no reserved managed session in that observation; and
 - one reserved attempt despite zero executing actions. The open ledger also retains historical/falsifier Works; their mere retention is not a current product frontier.
 
-This documentation-only Work is expected to advance canonical repository HEAD while deployed device/edge source remains `3e85665...`. That intentional documentation/source divergence is not a release mismatch. Rebind the exact repository HEAD rather than treating this file as a self-referential commit identity.
+This documentation-only convergence has advanced canonical repository HEAD beyond the H2 production source `3e85665...` while deployed device/edge source remains `3e85665...`. That intentional documentation/source divergence is not a release mismatch. Rebind the exact repository HEAD rather than treating this file as a self-referential commit identity.
 
 ## D0003 H2 production state
 
