@@ -27,13 +27,12 @@ and make partial connectivity/deployment failures observable and recoverable.
 
 ## Facts / assumptions / unknowns
 
-Actual native and account observations are retained in the environment correction
-evidence. The workers.dev subdomain exists; its exact dev-2 Worker/origin is selected from fresh
-installation readback, including the authorized existing-origin cutover. Existing GitHub CI runs; production sandbox, managed-session latency,
-account quota and new deployment permissions are not yet proven. No paid capability
-or uninterrupted Android lifetime is assumed.
+Mutable installation identities, provider permissions, quotas, latency and deployment
+state are observations, not Design facts; rebind them from the installed runtime and
+provider when a decision depends on them. No paid capability or uninterrupted Android
+lifetime is assumed.
 
-## 1. Decision: selected first-release topology
+## 1. Decision: selected runtime topology
 
 The operational control runtime is a native Termux/Android Node process. It owns
 repository bindings, bounded source discovery, immutable Git candidates, the local
@@ -283,7 +282,7 @@ create a second work owner or require a task-specific runtime redeployment.
 
 ## 6. Alternatives, bounds and acceptance evidence
 
-A generic Linux service and public reverse proxy fail DIRECTIVE Section13. A cloud
+A generic Linux service and public reverse proxy fail the operating-environment requirements in DIRECTIVE Section 6. A cloud
 work ledger would duplicate local recovery and create a second integration authority.
 Stateless forwarding cannot find an outbound device socket; polling/mailboxes add
 normal latency and retained messages, so a routing-only DO is the smaller choice.

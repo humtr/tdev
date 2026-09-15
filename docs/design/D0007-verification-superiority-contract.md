@@ -8,7 +8,7 @@
 - Directive: `r7`
 - Owns: `test-environments, benchmark-methodology, superiority-gates`
 
-Accepted is a decision state, not a claim of implementation, live verification, or measured superiority. Under DIRECTIVE r5, this Design remains the formal methodology for future statistical-superiority claims, but unrun cohorts do not reopen the owner's 2026-09-14 first-release closure; unmeasured cells remain unknown.
+Accepted is a decision state, not a claim of implementation, live verification, or measured superiority. This Design remains the formal methodology for future statistical-superiority claims; unrun cohorts do not retroactively change the owner's 2026-09-14 first-release closure, and unmeasured cells remain unknown.
 
 
 ## Problem
@@ -21,12 +21,12 @@ Every claim identifies its exercised layer, exact bytes and environment. Local, 
 
 ## Facts / assumptions / unknowns
 
-The operating environment is DIRECTIVE Section13. Observations are in
-`docs/evidence/environment-correction-2026-09-11/README.md`. Existing source and
-module tests do not establish a deployed dev-2 runtime. Live baseline source/runtime identities, resource policies and provider budgets
-must be rebound at measurement registration. Archived measurements remain historical
-evidence, never current live measurements. Old tdev need not have a live baseline. Superiority is
-unproven until the scored cohorts below run in the selected actual topology.
+The operating environment is governed by DIRECTIVE Section 6. Live baseline
+source/runtime identities, resource policies and provider budgets must be freshly
+rebound at measurement registration. Archived measurements remain historical evidence,
+never current live measurements. A predecessor need not have a live baseline when the
+methodology explicitly permits historical or analytical evidence. Superiority remains
+unproven until the applicable scored cohorts below run in the selected actual topology.
 
 ## Decision: canonical validation contract
 

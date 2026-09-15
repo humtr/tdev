@@ -84,10 +84,10 @@ Return per work exact base/candidate generation, latest revision, disposition, a
 
 Known-file ordinary change: context, bounded file read, create with exact initial edits, integrate, observe. Unknown-context change adds bounded list/search/file expansion; no deployment. Optional validate before integrate returns an immutable preparedResultId. Pass it with the latest work revision and the same generation/expectedHead/policy to reuse the exact validated commit under a different action ID. An ineligible explicit result is rejected, never silently rebuilt; omitting it requests preparation and validation in integrate. Diagnostic run is available for feedback that is not integration eligibility. Fix validation failure by edit with current revision, then new integrate request. For eight independent tasks, submit eight creates, submit eight integrate/run actions, observe all; backend admission permits concurrency even if ChatGPT called one envelope at a time. Handle same-ref stale losers by fresh context/read and a new bounded integration intent, never force overwrite. A true changed-entry conflict needs a replacement work at the new base, not a hidden rebase of the old work. A lost response repeats the same request ID or looks it up. New session starts context then open/request selectors; prior chat history is unnecessary.
 
-Annotations follow DIRECTIVE Section 14's explicit user-selected ChatGPT metadata
+Annotations follow DIRECTIVE Section 7's explicit user-selected ChatGPT metadata
 policy: all four tools publish `readOnlyHint:true`, `destructiveHint:false`,
-`idempotentHint:false`, `openWorldHint:false`. The latter two values are the fresh
-tmcp public metadata observed for this cutover, not inferred from operation effects.
+`idempotentHint:false`, `openWorldHint:false`. These values are owner-selected public
+metadata, not inferred from operation effects.
 This does not redefine dev_work as internally read-only: its documented mutation,
 provider effects, capability checks and request-ID deduplication remain unchanged.
 UI metadata is not mutation authority and does not bypass any internal guard.

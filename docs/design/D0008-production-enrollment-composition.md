@@ -17,10 +17,10 @@ letting source, public input, fixture reports or hashes authorize production.
 
 ## Facts / assumptions / unknowns
 
-The source at cd3d63fd152e54d73641b6dd2dcc8944090404c9 has the production runner,
-native receipt join, finite build, artifact store, helper and release backend.
-Managed enrollment and native main do not yet compose them. Live authenticated
-production qualification, installation and paired activation remain unknown.
+Production authorization is intentionally separate from qualification-only enrollment.
+Exact installed source, enrollment, commissioning, provider-run and paired-activation
+identities are mutable observations and must be read from their retained owners when
+production eligibility or release state is evaluated.
 
 ## Decision
 
