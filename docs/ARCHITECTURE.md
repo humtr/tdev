@@ -1,62 +1,39 @@
 # dev-2 architecture
 
-Navigation only; bounded semantic owners are the accepted Designs. DIRECTIVE r3
-owns product goals and the actual first-release operating constraints. Current
-implementation and execution order are in WORKBOARD, not this overview.
+Navigation only. `DIRECTIVE.md` r5 owns product goals and operating requirements; accepted Designs own bounded semantics; `WORKBOARD.md` owns current execution status and mutable observations.
 
 ## Selected system
 
 ```text
-ChatGPT (sole required intelligence)
-  -> fixed workers.dev MCP + Access identity
-  -> installation-scoped routing-only connection object
+ChatGPT
+  -> fixed workers.dev MCP + human Access identity
+  -> installation-scoped routing-only edge state
   <-> device-initiated outbound channel
 Termux / Android
   -> deterministic control + exact Git repository/candidates
-  -> per-repository SQLite work truth and bounded admission
-  -> isolated build/test execution on ephemeral GitHub-hosted sessions
-  -> exact validated Git result / expected-old-ref integration
-  -> durable terminal observation through the same MCP
+  -> per-repository SQLite work/action/effect truth
+  -> isolated managed build/test execution
+  -> exact validated expected-old-ref integration
+  -> durable observation/recovery through the same MCP
 ```
 
-Termux is the actual control and state runtime, not an optional test host. Public
-ingress is workers.dev, not an invented generic HTTPS server. The device requires
-no inbound reachability, extra VPS, reverse-proxy host, public tunnel or changing
-URL. GitHub-hosted compute is an explicit managed execution dependency within the
-existing foundation, chosen to avoid running hostile candidate code in the same
-Android UID as credentials. It is not a user-maintained Linux server.
+Termux/Android is the actual control and state runtime. Public ingress is the canonical workers.dev deployment; the device requires no inbound listener, VPS, reverse-proxy host, or public tunnel. Candidate execution is isolated from the Android credential boundary in the selected managed environment. One local ledger owns repository Work/action/recovery truth and one external Git ref owns canonical source; routing state does not become a copied work ledger.
 
-One local ledger owns each repository's work and recovery; one external Git ref
-owns canonical source. The routing object owns only live connection routing.
-Execution sessions own physical process observations, not work/admission authority.
-No second model, Case/Drive/Agent/Promotion, copied cloud work ledger, queue service,
-D1 or R2 is introduced. Each component has a concrete removal test: without routing
-an outbound socket cannot receive public requests; without isolated execution an
-untrusted candidate could access device control credentials; without durable local
-identity recovery could duplicate work/effects. Other components are omitted.
+Default execution capacity is 8, but contracts are not semantically capped at eight. Independent reads, candidates, validation, and nonconflicting work may progress concurrently. Exact work revisions, resource capacity, authorization, required validation, and expected-old-ref publication fences remain authoritative.
 
-Work identity and correctness do not depend on any of these provider resource IDs.
-Default execution capacity is 8; capacity1 serial mode and capacity16/32 use the same
-contracts. Independent edits, reads, validation and nonconflicting effects progress
-concurrently. Only exact work revisions, actual resource bounds and same-ref atomic
-updates fence. Android sleep makes control unavailable, not a second owner or a
-successful no-op. Retry reaches the same ledger identity after reconnection.
+## Normal self-development lifecycle
 
-## Exact change and result semantics
+The ordinary canonical path is current context discovery -> bounded read -> Work creation -> isolated edit/candidate -> configured run/required validation -> exact canonical integration -> observation/recovery. `policy.adopt`, `release.stage`, and `release.activate` extend that path when applicable to a policy or deployed product change.
 
-Bound current repo/head, progressively read bounded source, create an immutable
-candidate generation, and prepare a frozen direct-child commit/result at current
-head. Required full validation runs against those exact bytes in an identified
-execution environment. Only an authenticated matching receipt makes that result
-eligible. Integrate using expected-old-ref protection; reconcile response loss by
-exact commit and managed-lineage readback. Recomposition changes result identity
-and requires validation again. No throughput optimization may validate one tree
-and publish another or exclude the cost of stale/full-validation repetition.
-D0006 separates the exact native canonical-writer toolchain from the observed
-credential-free managed-image toolchain. Both execute the same mandatory contract;
-the installed controller, not candidate configuration, selects and verifies the
-managed image/Node/Git/Python variant. Qualified containment alone is not production
-enrollment, a trusted validation receipt, or a paired runtime activation.
+`tmcp`, direct GitHub mutation, Codex, or a second model is not a required ordinary forward-development layer. Bounded bootstrap/repair remains exceptional. D0006 keeps explicit rollback, native writer control, and fixed helper/operator mechanisms private; the public MCP does not gain a generic rollback operation.
+
+D0003 H2 is an internal integration optimization under the existing Work/action/effect owners. Compatible same-base members may produce one exact composed required validation and one canonical publication with atomic member settlement; ordinary per-Work integration remains the fallback. H2 does not authorize cross-tree validation-receipt reuse or a second mutable batch owner.
+
+## Exact change, validation, and release semantics
+
+A candidate generation is immutable and bound to an exact base. A prepared result freezes an exact result tree/commit and current policy/execution identity. Required validation must authorize those exact bytes. Integration uses expected-old-ref protection and reconciles response loss through exact effect identity and trusted lineage. Recomposition changes result identity and requires validation again.
+
+Release staging/activation is a separately authorized lifecycle over integrated source. The installed release path verifies the native/managed production enrollment and paired device/edge identity; a sealed active release is not inferred from a source commit alone. Current release/device/edge IDs belong in `WORKBOARD.md` or fresh observation, not this architecture overview.
 
 ## Owner map
 
@@ -64,44 +41,17 @@ enrollment, a trusted validation receipt, or a paired runtime activation.
 | --- | --- |
 | Work, IDs, deduplication, admission, restart and callback fencing | D0001 |
 | Binding, bounded context, Git objects, candidate generations | D0002 |
-| Prepared result, required validation, same-ref integration | D0003 |
+| Prepared result, required validation, exact/H2 same-ref integration | D0003 |
 | Four MCP tools, typed work variants and observation | D0004 |
 | Human/device/runner authentication, capabilities, sandbox, credentials | D0005 |
-| Termux + workers.dev topology, outbound routing, managed execution, release | D0006 |
-| Native/core/integration/live test purposes, comparisons and gates | D0007 |
+| Termux + workers.dev topology, managed execution, release and private rollback boundary | D0006 |
+| Verification purposes, comparison methodology and statistical claims | D0007 |
+| Production enrollment composition and qualification join | D0008 |
 
-Dependencies are in Design metadata and mechanically projected into INDEX. They
-are not lane execution order. Workboard selects the implementation frontier.
+Design dependency metadata is mechanically projected into `docs/design/INDEX.md`; it is not mutable execution order.
 
-## Operational cost and falsifiability
+## Evidence and empirical limits
 
-Warm execution sessions amortize managed runner startup, but cold jobs, request
-routing, object transfer, quota and Android outages may cost more than predecessors.
-This architecture is selected, not proved optimal or faster. Same-ref eight-work
-comparison remains mandatory under D0007, using actual tmcp measurements where
-available and preserved source, historical measurements or analytical evidence for
-the incomplete old tdev baseline. No old live endpoint repair or parallel hosting
-is required. Distinguish those evidence classes; component count alone proves no
-performance improvement. Benchmark cohorts remain release/performance decision
-work, not a per-edit gate.
+First release is owner-closed under DIRECTIVE r5. That closure does not imply D0007 repeated statistical-superiority cohorts or physical Android sleep/Doze/reboot acceptance were performed. Historical cutover, failure-isolation, recovery, H2, and cost evidence remains under `docs/evidence/` and owns only the observation it records.
 
-The Phase A installation now has an actual Worker, same-origin public route and
-connected native device, as recorded in [cutover evidence](evidence/phase-a-cutover/README.md).
-That bootstrap installation is not a qualified release activation or production
-sandbox seal. Earlier environment evidence remains in
-[the correction record](evidence/environment-correction-2026-09-11/README.md).
-The old persistent generic-Linux/systemd topology is no longer an accepted target.
-
-
-## Phase A cutover boundary
-
-DIRECTIVE r3 Section 14 gives same-origin cutover and a single ChatGPT Refresh
-priority. The selected native/Worker/routing-DO/managed-execution topology is unchanged.
-The existing verified human Access registration can be explicitly rebound to dev-2
-under D0005; no old product live state or compatibility runtime is required.
-The full four-tool schema is frozen before deployment, with all four owner-selected
-annotations readOnly=true/destructive=false/idempotent=false/openWorld=false.
-A real native context/ledger/candidate/preparation backend must be connected before
-Refresh. Unqualified hosted execution and release activation stay explicitly
-unavailable until their separate Phase B proofs are complete. Current implementation,
-installation identities and the next frontier are in WORKBOARD and linked evidence.
+Post-release work begins by measuring completed-development cost and structural amplification. Only measured material residual cost should drive managed execution/session, Git/provider, or Workers/DO optimization. `docs/research/` may supply hypotheses and measurement vocabulary but is not current architectural authority unless an accepted Design adopts a decision.

@@ -1,12 +1,12 @@
 # Cost-efficient development research draft
 
-- Status: **research draft / non-normative**
-- Review state: **revised after independent local falsification; still open for further independent review**
-- Production authority: unchanged; current accepted Designs remain controlling
-- Scope: same-ref development cost amplification first, runtime/provider residual cost later
-- Explicit non-decision: this document does **not** authorize production batching, cross-tree validation-receipt reuse, incremental required-validation skipping, a new durable owner/queue, or a public MCP change
+- Status: **retained research history / non-normative**
+- Current authority: accepted Designs and `WORKBOARD.md`; this file is not a current product-status owner
+- Historical boundary: sections below preserve the pre-promotion H2 hypothesis/falsifier ladder. D0003 has since selected the production H2 contract and current production status must be read from fresh repository/runtime observation, not from historical phrases such as "selected research route" or "next F3/F4" in this draft.
+- Current reuse: measurement vocabulary, structural-amplification model, and cheap-falsifier discipline for post-release cost work
+- Explicit non-decision: this document does **not** authorize cross-tree validation-receipt reuse, incremental required-validation skipping, a new durable owner/queue, a public MCP change, or any new optimization implementation
 
-This note deliberately separates a research hypothesis from an accepted Design decision. It may be revised, rejected, split, or deleted after independent review. Where this draft conflicts with `DIRECTIVE.md`, `RULE.md`, or an accepted Design, the higher authority controls and this draft is wrong.
+This note deliberately preserves research provenance rather than rewriting history into present truth. Where it conflicts with `DIRECTIVE.md`, `RULE.md`, an accepted Design, or `WORKBOARD.md` current status, the higher/current owner controls and this draft is historical.
 
 ## 1. Research question
 
