@@ -23,8 +23,9 @@ const examples = {
 const make = (op, requestId = op.replaceAll('.', '_')) => ({ op, requestId, ...structuredClone(examples[op]) });
 for (const op of Object.keys(examples))
     test('closed work variant ' + op, () => {
-        const input = make(op);
-        assert.equal(canonicalJson(validateWorkItem(input)), canonicalJson(input));
+        const input = make(op), normalized = validateWorkItem(input);
+        assert.equal(canonicalJson(normalized), canonicalJson({ repository: 'self', ...input }));
+        assert.equal(validateWorkItem({ ...input, repository: 'repo-b' }).repository, 'repo-b');
         assert.equal(validateInput('dev_work', { apiVersion: 1, items: [input] }).waitMs, 0);
         for (const extra of [{ shell: 'echo unsafe' }, { environment: { TOKEN: 'secret' } }, { authorization: 'allow' }, { unknown: true }])
             assert.throws(() => validateWorkItem({ ...input, ...extra }), { code: 'INVALID_ARGUMENT' });

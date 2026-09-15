@@ -19,7 +19,7 @@ import {Dev2Error} from '../../src/contracts/errors.mjs';
 /** @typedef {import('../../src/contracts/ports.js').Profile} Profile */
 /** @typedef {import('../../src/contracts/ports.js').PreparedResult} Result */
 /** @typedef {import('../../src/contracts/ports.js').Attempt} Attempt */
-/** @typedef {{capacity?:number,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[]}} Options */
+/** @typedef {{capacity?:number,h2Enabled?:boolean,h2MaxMembers?:number,h2Fault?:(point:string)=>void,beforeRun?:(result:Result,attempt:Attempt,profile:Profile)=>Promise<void>,afterSend?:()=>Promise<void>,files?:import('./git-world.mjs').FixtureEntry[],repositoryId?:string}} Options */
 /** Actual Node child processes on a disposable trusted fixture, not OS isolation.
  * @param {Profile} profile @param {string} cwd */
 function command(profile,cwd){return new Promise(resolve=>{
@@ -31,7 +31,7 @@ function command(profile,cwd){return new Promise(resolve=>{
 /** @param {Options} [options] */
 export async function engineWorld(options={}){
  const w=await gitWorld(options.files??[{path:'a.txt',content:'alpha\n'},{path:'b.txt',content:'beta\n'},{path:'AGENTS.md',content:'Read exact repository authority.\n'}]);
- w.binding.repositoryId='self';const ledger=new Ledger(join(w.root,'ledger.sqlite'),w.binding);
+ w.binding.repositoryId=options.repositoryId??'self';const ledger=new Ledger(join(w.root,'ledger.sqlite'),w.binding);
  const objects=new ObjectStore(join(w.root,'immutable'));await objects.init();
  const access={allowed:true};
  /** @type {import('../../src/contracts/ports.js').Principal} */
