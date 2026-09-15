@@ -2,7 +2,7 @@ import type { Json, Binding, Capability } from '../contracts/ports.js';
 import type { Grant } from '../security/authorization.mjs';
 export interface EdgeConfig {
  installationId:string; deviceId:string; origin:string; issuer:string; applicationAudience:string;
- deviceCredentialDigest:string; allowedOrigins:string[]; binding:Binding; grants:Grant[];
+ deviceCredentialDigest:string; allowedOrigins:string[]; binding:Binding; bindings?:Binding[]; grants:Grant[];
  applicationCapabilities:Capability[]; sourceCommitOid:string; edgeBundleDigest:string;
 }
 export interface EdgeSocket {

@@ -3,13 +3,13 @@ import { timingSafeEqual } from 'node:crypto';
 import { bytesDigest } from '../contracts/canonical.mjs';
 import { requireThat } from '../contracts/errors.mjs';
 import { accessApplicationVerifier } from '../security/access-application.mjs';
-import { ScopedAuthorization } from '../security/authorization.mjs';
+import { installationBindings } from '../repository/bindings.mjs';
 /** @typedef {import('./types.js').EdgeConfig} Config */
 /** @typedef {import('./types.js').EdgeEnvironment} Env */
 /** @param {Env} env @returns {Config} */
 export function edgeConfig(env){
  const config=/** @type {Config} */(JSON.parse(env.DEV2_CONFIG_JSON));
- requireThat(config.installationId===config.binding.installationId&&Array.isArray(config.grants)&&config.grants.length>0,'INTEGRITY_FAILURE');
+ installationBindings(config);requireThat(Array.isArray(config.grants)&&config.grants.length>0,'INTEGRITY_FAILURE');
  requireThat(/^sha256:[a-f0-9]{64}$/.test(config.deviceCredentialDigest),'INTEGRITY_FAILURE');return config;
 }
 /** Device key authenticates only the installation channel and bounded installation
@@ -26,8 +26,9 @@ export function authenticateDevice(request,env,config){
 /** @param {Config} config */
 export function humanAuthentication(config){
  const verify=accessApplicationVerifier({profile:'access-application',issuer:config.issuer,applicationAudience:config.applicationAudience,resourceOrigin:config.origin,applicationCapabilities:config.applicationCapabilities},createRemoteJWKSet(new URL(config.issuer+'/cdn-cgi/access/certs')));
- const authorization=new ScopedAuthorization({issuer:config.issuer,audience:config.origin,bindings:()=>[config.binding],grants:()=>config.grants});
+ /** The edge authenticates the human application assertion only. Repository/ref
+  * authorization is selected and rechecked natively against the requested binding;
+  * pre-authorizing the primary here would make secondary bindings unreachable. */
  /** @param {Request} request */
- return async request=>{const assertion=request.headers.get('cf-access-jwt-assertion');const principal=await verify(assertion);
-  await authorization.authorize(principal,config.binding,'repository.read');return /** @type {string} */(assertion);};
+ return async request=>{const assertion=request.headers.get('cf-access-jwt-assertion');await verify(assertion);return /** @type {string} */(assertion);};
 }
