@@ -363,3 +363,38 @@ and closes a selected provider run before any assignment. The same immutable inp
 must complete on one replacement resource, while uncertain/offered assignments never
 launch replacements and unrelated work continues. Insufficient remaining lifetime
 must reject before dispatch, without lowering the required validation profile.
+
+## One runtime with controller and target bindings
+
+C2-1 keeps one installed device process, one edge service/rendezvous and one managed
+trusted controller while allowing multiple binding-scoped development engines behind
+that installation. The historical enrolled repository/ref remains the
+**controller binding**: it identifies the trusted controller source, workflow/OIDC
+launch authority and operational `dev2-exec/*` refs. Adding a target repository does
+not copy those operational refs into the target canonical namespace and does not
+turn the target repository into controller authority. D0008's retained enrollment
+is not rewritten merely to add a target binding.
+
+Each managed assignment additionally binds the exact target repositoryId,
+bindingEpoch, canonical ref and immutable candidate/result source identity it is
+executing. The controller provider run may originate in the controller repository,
+but its receipt authorizes only that target tuple and selected compatible policy;
+it grants no target canonical writer credential. Validation/integration remains on
+the target binding's D0003 owner. Session reuse across target bindings is permitted
+only when the retained assignment/protocol proves exact target identity separation;
+response-loss, replacement and retirement continue to use the original C1 session,
+assignment, provider-run and operational-ref identities.
+
+One installation-wide execution arbiter enforces the configured capacity across all
+target engines. Binding count cannot multiply managed-session/provider-run capacity.
+The primary/controller binding continues to own `policy.adopt`, release build/stage,
+activation and runtime source migration in C2-1; those operations reject secondary
+target bindings. General multi-repository release orchestration is not introduced.
+
+Live acceptance requires at least two separately authorized repository/ref bindings
+served without Worker/device replacement: current context/read on both; isolated
+create/edit; required validation and exact integration on both; concurrent work with
+total capacity unchanged; wrong-binding negatives; response-loss/retry without a
+second logical action or provider execution; and terminal managed-session and
+operational-ref retirement preserving C1. Normal product use must not require TMCP,
+direct GitHub mutation or manual MCP rebinding between the two targets.

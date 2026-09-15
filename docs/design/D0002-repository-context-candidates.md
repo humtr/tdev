@@ -122,3 +122,27 @@ a general file server, borrowed local checkout or source-scope deployment allowl
 Device disconnection invalidates current reads but does not change pinned object
 identity. Warm caches may avoid retransmitting verified identical blobs, not serve a
 stale current-ref assertion or share writable scratch across candidates.
+
+## Multi-binding repository context
+
+The installation binding registry contains full immutable Binding descriptors for
+each approved repository/ref epoch. `self` is only the installation-designated
+primary binding alias for backwards compatibility; it is never a wildcard or an
+authority to discover an ungranted repository. A current context resolves that
+selector to one exact binding before remote observation. Snapshot/cursor identity,
+currentness, path authorization and Work candidate identity remain bound to the
+selected binding digest and epoch, so handles from repository A cannot read B.
+
+A rebind creates a new epoch for that repository/ref and invalidates current handles
+for only the affected binding. Pinned immutable evidence may remain readable only
+through its retained old binding owner and current disclosure authorization. Mutable
+candidate trees, scratch materializations and Work generations never cross bindings.
+Immutable Git/object bytes may be deduplicated by strong digest in installation
+storage only after the selected binding independently authorizes discovery and the
+bytes pass the same object integrity checks; cache possession is never disclosure
+authority or proof that another binding currently contains those bytes.
+
+Acceptance must use at least two separately authorized repository/ref fixtures with
+overlapping paths and intentionally equal blob digests, then prove exact selector,
+currentness and negative cross-binding read/candidate isolation without adding a
+new public file server or deployment-time source allowlist.

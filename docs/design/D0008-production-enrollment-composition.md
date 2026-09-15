@@ -114,3 +114,16 @@ Run standard local core/integration validation. These prove source and fixture
 behavior only. Actual OIDC/provider production probes, private commissioning,
 Termux helper startup, public stage/activate, paired readback/rollback and physical
 Android/self-development acceptance remain mandatory live evidence.
+
+## C2-1 multi-binding clarification
+
+The historical managed/production enrollment in this Design remains bound to the
+installation's primary/controller repository and is not cloned, widened or rewritten
+when C2-1 adds an ordinary target repository/ref. It continues to authenticate the
+finite controller/production capability selected here. D0006 owns the additional
+target-binding identity carried by managed assignments and receipts. Target binding
+adoption grants no release-build, policy-adoption or activation authority; those
+operations remain primary/controller scoped unless a later Design explicitly
+changes the production enrollment contract. This preserves historical evidence and
+avoids enrollment churn while keeping target source validation and D0003 publication
+exactly binding-scoped.

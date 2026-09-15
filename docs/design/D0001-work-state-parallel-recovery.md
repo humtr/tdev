@@ -176,3 +176,28 @@ D0003's versioned storage-reader gate prevents old single-member code from adopt
 pending H2 state. No synthetic Work, group lifecycle or second recovery owner is
 introduced. This is a Design selection; current production source remains per-work
 until separately authorized implementation and acceptance.
+
+## Multi-binding durable ownership
+
+One installation may serve multiple explicitly authorized repository/ref bindings,
+but mutable development state remains owned by exactly one immutable binding epoch.
+The installation binding registry selects a binding before Work admission and routes
+that Work, every Action/Attempt, prepared result, validation receipt and Effect to
+that binding's ledger/coordinator. A binding-scoped SQLite owner remains the durable
+linearization boundary; there is no cross-repository Work owner, cross-ledger SQL
+transaction, global ref lock or implicit move of retained state to another binding.
+
+Logical request identity is `(principal, repositoryId, bindingEpoch, requestId)`.
+The same requestId on another binding is independent; a retry for an existing Action
+must select its original binding before recovery or dedup disclosure. Binding removal
+or epoch replacement first stops new admission for that binding and retains the old
+owner until every running, blocked or uncertain attempt/effect is reconciled. It
+never deletes unresolved evidence or rebinds an existing Work to a new epoch.
+
+The installation's configured execution capacity remains one shared finite budget
+across all binding-scoped engines. Adding N bindings cannot multiply capacity by N.
+Reservation and release preserve the existing C1 stopped-attempt/session/ref rules;
+a blocked binding neither owns unrelated capacity after positive stop nor permits a
+duplicate physical attempt while state is uncertain. Acceptance must exercise two
+bindings concurrently, response loss on one, and continued independent progress on
+the other with the configured total capacity unchanged.

@@ -183,3 +183,30 @@ or cancelled sibling before effect freeze never retroactively rejects another
 item's admission. No public envelope transaction, waiting/coalescing promise or
 cross-item dependency is added. Existing-client and follower-only transcripts are
 required implementation acceptance, not claimed observed behavior in this revision.
+
+## Multi-binding selection in the four-tool contract
+
+C2-1 keeps exactly the same four public tools. Repository choice is an explicit
+binding selector, not a fifth tool or hidden session state. `dev_context`, `dev_read`
+and `dev_observe` carry a top-level `repository` selector defaulting to `self`.
+Every independently admitted `dev_work` item carries its own optional `repository`
+selector defaulting to `self`, so one envelope may contain items for different
+bindings without envelope atomicity. `self` resolves only to the installation's
+primary binding. Exact repositoryId selects that binding if and only if it is both
+installed and currently authorized for the caller.
+
+Work/action/result IDs do not override repository selection. A read, observe, retry,
+cancel, resume or prepared-result reuse through the wrong binding fails before
+owner lookup disclosure. Request dedup remains binding-scoped. H2 selection is run
+only among same-binding members after independent admission; mixed-binding siblings
+remain independent. `policy.adopt`, `release.stage` and `release.activate` remain
+primary/controller-binding operations during C2-1 and reject a non-primary target.
+
+`dev_context` may return a bounded list of repository descriptors for bindings on
+which the current principal presently has repository.read, with the resolved primary
+alias identified. The list is discovery data only; every later call reauthorizes the
+selected binding and paths. Runtime capacity is installation-wide, not multiplied
+by the number of descriptors. No raw provider credential, enrollment record or
+ungranted repository identity is exposed. Existing single-binding clients that omit
+`repository` remain byte-semantically on `self` except for the intentional schema
+revision required to add these optional selectors/discovery fields.

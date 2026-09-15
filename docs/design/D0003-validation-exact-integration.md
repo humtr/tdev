@@ -553,3 +553,21 @@ Implementation requires separate authorization, then required full validation,
 reviewed durable-format compatibility and D0006 release checks. Default selection
 stays disabled until those gates pass. No deployment, release.stage, release.activate
 or schema migration is authorized or performed by this Design-only session.
+
+## Multi-binding exact publication
+
+C2-1 does not add cross-repository publication. Work, prepared-result and Effect
+identity already names repositoryId and bindingEpoch; the installation router must
+select the corresponding immutable binding owner before any eligibility, lineage or
+provider operation. The target full ref, expected head, commit and CAS all belong to
+that one binding. A Work/result/effect presented through another repository selector
+fails before provider I/O and cannot disclose whether a foreign binding owns the ID.
+
+H2 composition remains binding-local exactly as its compatibility tuple requires;
+never compose members from different repositories, refs, installations or epochs.
+There is no cross-binding atomic commit, merge train or validation receipt reuse.
+Binding-registry removal/rebind fences new publication on the affected epoch while
+retaining its exact uncertain Effects for observation-only reconciliation under the
+old immutable descriptor. No epoch change permits a new sender for an unresolved
+old effect. Independent bindings may continue under their own exact CAS and shared
+installation execution budget.

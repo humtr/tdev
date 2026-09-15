@@ -273,3 +273,30 @@ human OAuth evidence. Device credentials never authenticate /mcp, every normal
 routed tool call still verifies the actual Access assertion natively, and public
 tool names remain exactly the selected four. Evidence must label this installation
 probe separately from the first refreshed ChatGPT human OAuth invocation.
+
+## Multi-binding installation authorization
+
+The binding registry is private installation authority. Repository source, candidate
+bytes, public MCP input and managed executor output can select only an already
+installed repositoryId; none can add, remove, rebind or broaden a Binding, grant or
+provider credential. Binding adoption/rebind requires the existing trusted operator
+installation boundary, exact provider repository/ref identity readback and a fresh
+epoch. Removal drains/fences that binding as D0001/D0003 require before private state
+may be retired. These administrative mutations are not new C2-1 public MCP ops.
+
+Authorization remains the intersection of current human token capability and an
+installation grant naming exact installationId, repositoryId, full ref, capability
+and path. The gateway authenticates the Access application/principal role; it must
+not pre-authorize only the primary repository before forwarding a request. Native
+routing resolves the requested installed binding and performs the capability/path
+check against that exact binding before state lookup or provider I/O. Repository A
+credentials or grants never authorize B, and discovery returns only currently
+repository.read-authorized bindings.
+
+Per-binding provider credentials must be explicitly associated with their binding
+and used only by that binding's repository/CAS adapter. The controller-source
+credential needed to launch managed execution is not thereby target-repository
+canonical-write authority. Negative acceptance covers guessed repository IDs,
+wrong-ref grants, revoked grants after discovery, cross-binding Work IDs, credential
+mix-up and binding removal/rebind during uncertain publication, while preserving
+C1 no-duplicate attempt/session/ref behavior.
