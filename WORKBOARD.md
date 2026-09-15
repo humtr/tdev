@@ -12,12 +12,15 @@ The first public release was owner-closed on 2026-09-14. D0007 repeated statisti
 
 - Completed campaign: `C1` — managed-execution lifecycle and operational-ref convergence
 - C1 route map: `docs/campaign/route-map.md`
-- C1 detailed plan: `docs/campaign/C1-managed-execution-lifecycle-convergence.md`
 - C1 campaign status: complete
-- Active routing decision: fresh go/no-go/scope/order revalidation of issued draft `C3` (bounded ad-hoc development execution)
-- No C2, C3 or C4 implementation is active at this gate.
-- If fresh revalidation still justifies C3, the next separate execution route may activate `C3-1` and later continue to C2. Otherwise the next route may activate `C2-1` directly.
-- Post-C2 route remains C4 only after C2 independently completes final `main` promotion/self-development acceptance.
+- Post-C1 C3 revalidation verdict: **DEFER**
+- Active campaign: `C2` — remaining final tdev convergence and main promotion
+- Active checkpoint: `C2-1` — single-runtime multi-repository/ref capability
+- C2 plan: `docs/campaign/C2-final-tdev-convergence.md`
+- C3 remains an issued deferred campaign identity. It is not active, and no bounded ad-hoc execution implementation is authorized by this routing state.
+- C4 remains post-C2 and is not active.
+
+The C3 defer decision is routing, not a product-semantic rejection. Fresh review found a plausible future convenience gap for bounded candidate-local diagnostics/codemods/tool invocation, but no current C2 dependency: the present typed context/read/edit/validate/integrate path is sufficient to implement C2-1, while adding ad-hoc execution first would expand public/security/recovery surface before the repository/ref binding model is generalized. Re-evaluate C3 only after a later routing decision makes that useful; do not treat the draft as latent implementation authorization.
 
 Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They are not renumbered or reused when campaign scope or execution order changes. Previously issued `C1-3` through `C1-6` remain traceable in the route map but are not C1 work; their substantive successors are C2 checkpoints.
 
@@ -25,23 +28,25 @@ Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They 
 | --- | --- | --- |
 | `C1-1` | Managed-session terminal truth, operational execution-ref retirement and bounded backlog cleanup | complete |
 | `C1-2` | Never-assigned replacement churn and directly coupled managed-session `UNAUTHORIZED`/retry amplification | complete |
+| `C2-1` | Single-runtime multi-repository/ref capability | active |
+| `C2-2` | Final `tdev` identity cleanup and migration | pending |
+| `C2-3` | Repository-aware source/context transfer deduplication | pending |
+| `C2-4` | Final convergence, bounded cost acceptance, exact-state `main` promotion and self-development acceptance | pending |
 
 ## Current routing
 
-C1 is complete. Its lasting managed-execution semantics remain owned by the existing Designs and executable source/tests rather than by this routing file. Historical stopped-session evidence may remain retained by design; mutable current session, provider-run, ref, release and repository identities must still be freshly observed from their actual owners.
+C2-1 is active. Continue from `docs/campaign/C2-final-tdev-convergence.md` Section 5. First perform C2-1.1 fresh contract/binding audit against D0001-D0006 and current implementation, then revise the existing semantic owners required by C2-1.2 before Designed implementation. Do not create a naming-only Design, do not import C3 scope into C2, and do not start C4.
 
-The next action is a **routing decision only**: freshly re-evaluate the issued C3 draft against current authority, current product need, security boundary, scope and ordering. The existence of the draft is not authorization to implement it. If the draft survives that review, update this file to activate `C3-1` before implementation. If it does not, update this file to activate current `C2-1`. Do not start either implementation while this routing gate remains active.
-
-C2 retains multi-repository/ref support, final `dev-2`/`dev2` -> `tdev` identity migration, repository-aware source/context transfer optimization, final broad convergence and `main` promotion. C4 remains post-C2 public tool-contract ergonomics and misuse-resistance audit work.
+C1 lasting managed-execution semantics remain owned by existing Designs and executable source/tests. C2-1 must preserve terminal/session/ref lifecycle behavior while replacing one-binding-per-runtime assumptions with explicit authorized repository/ref binding selection and immutable binding identity across Work/Action/result/effect recovery.
 
 ## Resume contract
 
-A fresh session at this gate must:
+A fresh session on C2-1 must:
 
-1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD and `docs/campaign/route-map.md`;
-2. freshly observe runtime/provider state and authorized open Work/Action/request state rather than treating C1 completion evidence as current mutable truth;
-3. read the issued C3 draft and the existing owners it references only as needed to perform the fresh go/no-go/scope/order routing decision;
-4. decide whether C3 remains justified before C2 in the current state; and
-5. update this file to the selected first checkpoint before any C3 or C2 implementation begins.
+1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD, `docs/campaign/route-map.md` and `docs/campaign/C2-final-tdev-convergence.md`;
+2. freshly observe runtime/provider state and authorized open Work/Action/request state, including managed sessions and operational refs, before mutation;
+3. read only the current Designs/source/tests selected by the active C2-1 substep;
+4. reconcile any retained C2-1 Work/Action/effect before creating replacement work after response loss; and
+5. preserve C1 lifecycle/ref retirement and the no-C4 boundary while advancing C2-1 through Design, implementation, validation, integration and live acceptance.
 
-No completed C1 campaign plan, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.
+No completed C1 campaign plan, C3 draft, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.
