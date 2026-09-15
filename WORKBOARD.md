@@ -44,19 +44,20 @@ Keep `docs/evidence/` as observation/provenance material. In particular, the H2 
 
 The public development ledger contains many retained open historical/falsifier Works and at least one nonzero reserved attempt in the fresh runtime observation. Do not blind-delete or reinterpret these as active H2 work. Any cleanup must be justified by its current owner and positive effect/stop evidence.
 
-## Next bounded frontier: completed-development cost measurement
+## Post-H2 completed-development cost observation
 
-The next session starts at measurement, not architecture archaeology and not H2 redesign. Measure the real cost of completed development after production H2, then use the cheapest falsifier to locate the largest remaining amplification/bottleneck before changing product behavior.
+A bounded production-path `N=3` same-base/disjoint-path falsifier completed on 2026-09-15 after fresh binding at canonical `1fb42cad...`. Three independently admitted candidate Works each passed complete required validation once, then three no-explicit-result integrate intents in one envelope selected production H2. All three exposed one composed result, only one physical leader validation attempt ran for that result, one canonical effect published composed commit `0f9e7f5310903b9a2c942690c5aee695ed0af68a`, and all three Works settled integrated atomically.
 
-Record at least:
+Measured counts were four full required validations (three member plus one composed), zero stale-recomposition validations, one canonical publication effect, zero validation retries and zero `CONTENDED_REF` outcomes. Candidate validations took 150.393 s, 153.318 s and 191.528 s; composed validation took 109.170 s; aggregate validation slot time was 604.409 s. The observed create-receipt-to-integration-readback interval was about 342.046 s.
 
-- required validation executions per completed task;
-- managed execution/session compute;
-- Git/provider operations;
-- Workers/Durable Object/infrastructure requests;
-- redundant source/context bytes;
-- wall time;
-- stale/wasted work; and
-- manual intervention.
+For `N=3`, the retained ordinary structural model is 6 full validations / 3 stale recomposition validations / 3 publications, so the observed H2 run is 4 / 0 / 1. The corresponding 33.3%, 100% and 66.7% reductions are **model-relative structural counts**, not a matched live A/B benchmark or D0007 statistical-superiority claim. Full evidence and limits are retained in `docs/evidence/post-h2-cost-falsifier-20260915/README.md`.
 
-Follow DIRECTIVE r5 ordering: test structural amplification first; only if measured material, narrow managed execution/session cost next, then Git/provider cost, then Workers/DO cost. Prefer a cheap bounded falsifier before any large cohort. Do not claim a benchmark PASS from this documentation-convergence session.
+The release-aware runtime projection moved from `activeSessions: 3` before the run to `activeSessions: 6` afterward while `reservedSessions` remained 0, `reservedAttempts` remained 1 and `executingActions` returned to 0. Three newly visible ready sessions appeared around candidate-validation start, but the projection does not expose reliable action-to-session attribution; CPU, billing, reuse and cleanup eligibility remain unknown. Do not infer that retained sessions are waste or delete them from this observation alone.
+
+## Next bounded frontier: managed execution/session residual cost
+
+The cheap actual H2 falsifier removed stale recomposition in the exercised production shape, so do not redesign H2 or start a large benchmark cohort. Follow DIRECTIVE r5 ordering and measure managed execution/session residual cost next.
+
+Start with the cheapest current-state attribution/lifecycle falsifier: sessions or starts per completed Work, cold versus reused execution where observable, queue/start/fetch/object-transfer overhead, retained ready-session lifetime, and actual compute/billing if available without building a new measurement subsystem. Preserve unknown where the current projection cannot attribute a session to an action.
+
+Retained historical/session residue is not cleanup-authorized by age or appearance. Establish its owner plus positive cleanup/stop evidence before mutation. If managed execution/session cost is not material, continue to Git/provider operation cost and then Workers/Durable Object request cost. Still keep redundant source/context bytes, wall time, stale/wasted work and manual intervention in per-completed-task accounting.
