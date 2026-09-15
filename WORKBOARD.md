@@ -6,41 +6,42 @@ This file owns current execution routing only. It is intentionally resettable. M
 
 ## Release baseline
 
-The first public release was owner-closed on 2026-09-14. D0007 repeated statistical-superiority cohorts and unperformed physical Android sleep/Doze/reboot cells were not converted into PASS by that closure. Production H2 was subsequently enabled and a bounded N=3 production-path observation removed stale recomposition in the exercised shape. Do not reopen H2 architecture or large benchmark cohorts merely because C1 exists.
+The first public release was owner-closed on 2026-09-14. D0007 repeated statistical-superiority cohorts and unperformed physical Android sleep/Doze/reboot cells were not converted into PASS by that closure. Production H2 was subsequently enabled and a bounded N=3 production-path observation removed stale recomposition in the exercised shape. Do not reopen H2 architecture or large benchmark cohorts merely because later routing continues.
 
-## Active campaign
+## Current routing gate
 
-- Campaign: `C1` — managed-execution lifecycle and operational-ref convergence
-- Campaign route map: `docs/campaign/route-map.md`
-- Detailed execution plan: `docs/campaign/C1-managed-execution-lifecycle-convergence.md`
-- Active checkpoint: `C1-1.1`
-- Campaign status: active
-- Post-C1 routing gate: freshly revalidate issued draft `C3` (bounded ad-hoc development execution); if it survives, route `C1 -> C3 -> C2`, otherwise advance directly to `C2`
-- Post-C2 route: after C2 independently completes final `main` promotion/self-development acceptance, activate `C4` for a comprehensive final public tool-contract ergonomics and misuse-resistance audit
+- Completed campaign: `C1` — managed-execution lifecycle and operational-ref convergence
+- C1 route map: `docs/campaign/route-map.md`
+- C1 detailed plan: `docs/campaign/C1-managed-execution-lifecycle-convergence.md`
+- C1 campaign status: complete
+- Active routing decision: fresh go/no-go/scope/order revalidation of issued draft `C3` (bounded ad-hoc development execution)
+- No C2, C3 or C4 implementation is active at this gate.
+- If fresh revalidation still justifies C3, the next separate execution route may activate `C3-1` and later continue to C2. Otherwise the next route may activate `C2-1` directly.
+- Post-C2 route remains C4 only after C2 independently completes final `main` promotion/self-development acceptance.
 
-Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They are not renumbered or reused when campaign scope or execution order changes. Previously issued `C1-3` through `C1-6` remain traceable in the route map but are no longer active C1 work; their substantive work is carried by new C2 checkpoints.
+Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They are not renumbered or reused when campaign scope or execution order changes. Previously issued `C1-3` through `C1-6` remain traceable in the route map but are not C1 work; their substantive successors are C2 checkpoints.
 
 | Checkpoint | Objective | Status |
 | --- | --- | --- |
-| `C1-1` | Managed-session terminal truth, operational execution-ref retirement and bounded backlog cleanup | active |
-| `C1-2` | Never-assigned replacement churn and directly coupled managed-session `UNAUTHORIZED`/retry amplification | pending |
+| `C1-1` | Managed-session terminal truth, operational execution-ref retirement and bounded backlog cleanup | complete |
+| `C1-2` | Never-assigned replacement churn and directly coupled managed-session `UNAUTHORIZED`/retry amplification | complete |
 
 ## Current routing
 
-`C1-1.1` starts by freshly observing current managed sessions, provider workflow runs and the operational execution-ref namespace before mutation. Recent observations of a large retained `refs/heads/dev2-exec/*` population, missing ref deletion in the current provider adapter, provider-terminal sessions remaining logically retained, and a replacement-history bound of 64 are investigation hints, not current authority. Re-establish the relevant current facts and exact active-run state before cleanup or repair.
+C1 is complete. Its lasting managed-execution semantics remain owned by the existing Designs and executable source/tests rather than by this routing file. Historical stopped-session evidence may remain retained by design; mutable current session, provider-run, ref, release and repository identities must still be freshly observed from their actual owners.
 
-C1 is intentionally narrow. Do not begin multi-repository/ref support, final `dev-2`/`dev2` -> `tdev` identity migration, source/context transfer deduplication, final broad convergence or `main` promotion inside C1. Those are routed to C2. The issued C3 draft is also not active C1 work and must not be implemented before the post-C1 fresh revalidation gate.
+The next action is a **routing decision only**: freshly re-evaluate the issued C3 draft against current authority, current product need, security boundary, scope and ordering. The existence of the draft is not authorization to implement it. If the draft survives that review, update this file to activate `C3-1` before implementation. If it does not, update this file to activate current `C2-1`. Do not start either implementation while this routing gate remains active.
 
-When a detailed checkpoint completes, advance this file in the same canonical integration as the substantive change when practical. Do not create separate full-validation publications merely to narrate progress. In-flight details belong to durable Work/Action state; enduring procedure belongs to the C1 plan; enduring product meaning belongs to existing authoritative Designs and executable contracts.
+C2 retains multi-repository/ref support, final `dev-2`/`dev2` -> `tdev` identity migration, repository-aware source/context transfer optimization, final broad convergence and `main` promotion. C4 remains post-C2 public tool-contract ergonomics and misuse-resistance audit work.
 
 ## Resume contract
 
-A fresh session must:
+A fresh session at this gate must:
 
-1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD, `docs/campaign/route-map.md` and the referenced active C1 plan;
-2. read only the existing Designs selected by the active checkpoint, with D0005/D0006 expected to own most C1 semantics;
-3. freshly observe runtime/provider state and authorized open Work/Action/request state;
-4. reconcile those observations with the active checkpoint, treating this file's mutable observations and all prior chat as hints rather than authority; and
-5. continue from the first incomplete detailed checkpoint until a plan stop condition, genuine external blocker, or full C1 completion is reached.
+1. call current repository context and read `AGENTS.md`, `DIRECTIVE.md`, `RULE.md`, this WORKBOARD and `docs/campaign/route-map.md`;
+2. freshly observe runtime/provider state and authorized open Work/Action/request state rather than treating C1 completion evidence as current mutable truth;
+3. read the issued C3 draft and the existing owners it references only as needed to perform the fresh go/no-go/scope/order routing decision;
+4. decide whether C3 remains justified before C2 in the current state; and
+5. update this file to the selected first checkpoint before any C3 or C2 implementation begins.
 
-At C1 completion, first perform the post-C1 C3 agenda revalidation named above. Update this file to C3-1 only if the fresh go/no-go/scope/order review still justifies activating C3; otherwise route directly to C2 and its first current checkpoint. Do not implement C3 merely because its draft exists. No completed campaign plan, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.
+No completed C1 campaign plan, evidence directory or history narrative is allowed to become a hidden prerequisite for later ordinary development.
