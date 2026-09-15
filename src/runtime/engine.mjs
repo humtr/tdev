@@ -116,8 +116,9 @@ export class DevelopmentEngine {
    recoveryPlan=this.h2.selected(String(item.actionId))?await this.h2.recoveryPlan(principal,String(item.actionId),String(item.expectedRevision)):await this.recovery.plan(principal,String(item.actionId),String(item.expectedRevision));
   }else if(item.op.startsWith('release.')||item.op==='policy.adopt')requireThat(this.o.special,'EXECUTION_UNAVAILABLE','No release/policy installation handler');
   if(item.op==='create'){const current=await this.o.remote.resolve();requireThat(current.head===item.expectedHead,'STALE_CONTEXT','Canonical head moved during staging',{currentHead:current.head});}
-  const inline=['create','edit','cancel','resume'].includes(item.op);
-  const result=await this.coordinator.admit({principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,mutate:(tx,actionId)=>{
+  const inline=['create','edit','cancel','resume'].includes(item.op),arbiter=this.arbiter;
+  const beforeMutate=item.op==='resume'&&recoveryPlan?.h2===true&&recoveryPlan.mode==='retry'&&arbiter?()=>{const frame=this.ledger.transact(tx=>this.h2.frameIn(tx,recoveryPlan.selection)),replacing=frame.reservation?.held?frame.reservation.attempt.attemptId:null;requireThat(arbiter.available(replacing),'CAPACITY_REJECTED','Installation execution capacity');}:undefined;
+  const result=await this.coordinator.admit({principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,beforeMutate,mutate:(tx,actionId)=>{
    tx.run('INSERT INTO meta(key,value) VALUES(?,?)','principal:'+actionId,canonicalJson(principal));
    if(item.op==='create'){
     requireThat(staged&&snapshot,'INTEGRITY_FAILURE');const work={workId:newId(),repositoryId:this.binding.repositoryId,bindingEpoch:this.binding.bindingEpoch,principal:principal.subject,baseCommitOid:snapshot.commitOid,baseTreeOid:snapshot.source.treeOid,candidate:staged,generation:'0',revision:'0',disposition:/** @type {const} */('open'),currentActionId:null};

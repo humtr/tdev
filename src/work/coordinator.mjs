@@ -11,11 +11,12 @@ import { requireThat } from '../contracts/errors.mjs';
 export class WorkCoordinator {
   /** @param {Ledger} ledger @param {{executionCapacity?:number,maxPending?:number,now?:()=>number,ids?:()=>string}} [options] */
   constructor(ledger,options={}){this.ledger=ledger;this.executionCapacity=capacity(options.executionCapacity);this.maxPending=options.maxPending??1024;this.now=options.now??Date.now;this.ids=options.ids??newId;requireThat(Number.isSafeInteger(this.maxPending)&&this.maxPending>0&&this.maxPending<=100000,'INVALID_ARGUMENT');}
-  /** Auth is always checked before dedup. Callback must only mutate ledger rows.
-   * @param {{principal:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
+  /** Auth is always checked before dedup. `beforeMutate` is an optional synchronous installation-level fence: retained duplicates bypass it, and no await occurs between it and the durable mutation transaction. The mutate callback may only change ledger rows.
+   * @param {{principal:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,beforeMutate?:()=>void,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
    */
   async admit(request){await request.authorize();id(request.requestId);
     const intentDigest=recordDigest('dev2.mutation-intent.v1',{repositoryId:this.ledger.binding.repositoryId,bindingEpoch:this.ledger.binding.bindingEpoch,operation:request.operation,intent:request.intent});
+    if(request.beforeMutate){const retained=this.ledger.transact(tx=>{const duplicate=tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId);if(!duplicate)return null;requireThat(duplicate.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};});if(retained)return retained;request.beforeMutate();}
     return this.ledger.transact(tx=>{
       const duplicate=tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId);
       if(duplicate){requireThat(duplicate.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};}
