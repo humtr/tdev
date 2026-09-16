@@ -495,6 +495,67 @@ the old helper before other release work. The launcher replacement is inert unti
 later device start. The bootstrap performs no provider deployment and no pointer
 switch.
 
+### One-time bridge-native projection repair after live falsification
+
+The same-schema bridge can still expose one narrower self-hosting catch-22 that is
+not a reason to widen the fixed-file repair above. Production restore may advance
+the retained active policy while a stale in-memory binding clone used by release
+authorization keeps the initial enrollment digest. If an exact `release.stage` for
+a required-validated canonical successor terminates `FORBIDDEN` before any builder,
+provider or helper effect, and the canonical successor contains the required-validated
+correction that projects the retained policy owner into runtime binding views without
+changing repository/ref/epoch identity, then the running bridge cannot use its own
+ordinary release path to install the correction. This falsifies only the assumption
+that every successfully activated bridge can stage the final migration; it does not
+authorize a generic broker patch, alternate activation mechanism or permanent repair
+runtime.
+
+For this exact post-bridge bootstrap failure, an authorized development/repair tool
+may run a one-shot **bridge-native recovery owner** under all of these bounds. It
+materializes an isolated source tree at the exact active bridge commit and applies
+only the exact policy-projection source delta from the current required-validated
+canonical successor. Before use, prove the resulting public `tools.json` is exactly
+the active old schema, repository/ref/epoch semantics are unchanged, the repair tree
+has no unrelated delta, and the original public `release.stage` failure retained no
+build/upload/helper effect. The repair source is execution evidence only: it is not a
+new canonical source commit, release identity, public schema or long-lived installed
+runtime.
+
+After proving no active activation and no unresolved canonical/release effect that
+would conflict with the repair, stop only the replaceable device service. Leave the
+fixed helper, edge deployment, active pointer, release artifacts, ledgers, credentials
+and canonical Git ref unchanged. The one-shot owner must compose the existing native
+runtime classes from that bridge-compatible repair tree with the exact installed
+native configuration, ledgers, grants, production enrollment, managed builder and
+fixed helper admission. It may derive only the currently installed owner subject and
+`runtime.activate` capability already present in the retained trusted grant; no caller
+may choose a subject, capability, path, repository, build command, provider operation
+or helper target. It invokes only the existing typed `release.stage` and
+`release.activate` operations for one exact current required-validated integrated
+canonical commit and the exact retained active release.
+
+All consequential effects still belong to the normal owners: integrated-source
+verification and the managed release builder produce the exact release, staging uses
+the retained provider effect, and activation uses the fixed helper's existing journal,
+writer fence, pointer switch, runit control, health check and rollback. The repair
+owner may not write the active pointer, release artifact store, provider deployment or
+helper journal directly. If staging does not reach an exact retained staged release,
+close the one-shot owner, prove its ledger lock is released and restart the unchanged
+bridge service; no replacement stage/activation is invented. If activation is
+admitted but its response is lost or remains nonterminal while the helper stops the
+broker, close the one-shot owner so the existing helper/writer fence can proceed and
+recover only that same activation identity from the newly started canonical runtime.
+Never start a second activation because the repair process exited.
+
+Successful recovery is complete only when the normal installed runtime reports the
+exact new active pair, the one-shot process is absent, the original bridge remains
+only rollback evidence, and subsequent release/self-development operations no longer
+require the repair tool. The D0004 old-shape live proof still occurs before client
+Refresh, followed by refreshed multi-binding acceptance. Fault acceptance for this
+exception includes pre-effect `FORBIDDEN`, unrelated-delta rejection, wrong old-schema
+rejection, failure before staging, response loss after helper admission, exact
+activation recovery and rollback to the original bridge pair.
+
 After that repair, a retained exact production build for the already validated C2-1
 source may enter `public-contract-v1`; the migration must then pass D0004's old-shape
 live client proof before client Refresh. Once a schema-neutral helper/launcher and a
