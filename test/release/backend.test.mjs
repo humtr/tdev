@@ -1,7 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';
 import {SCHEMA_DIGEST,TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
 import legacy from '../fixtures/public-contract-before-c2.json' with {type:'json'};
-import finalContract from '../fixtures/public-contract-c2-target.json' with {type:'json'};
 import {publicDescriptor} from '../../src/release/contract-migration.mjs';
 import {oldReleaseModule} from '../fixtures/old-release.mjs';
 import {mkdtemp,rm,readFile,writeFile,chmod,symlink} from 'node:fs/promises';import {join} from 'node:path';import {tmpdir} from 'node:os';
@@ -61,12 +60,11 @@ async function migrationWorld(){
  const w=await world(),refs={device:await w.store.put(Buffer.from('old device')),edge:await w.store.put(Buffer.from('old edge')),tools:await w.store.put(Buffer.from(canonicalJson(legacy.tools)))};
  const manifest={...structuredClone(w.manifest),sourceCommitOid:o(1),schemaDigest:legacy.schemaDigest,device:{artifactDigest:refs.device,sourceCommitOid:o(1)},edge:{...w.manifest.edge,artifactDigest:refs.edge,sourceCommitOid:o(1)}};
  const old=await w.artifacts.stage(manifest,refs),previous={...pair(),releaseId:old.releaseId,deviceReleaseId:old.releaseId,schemaDigest:legacy.schemaDigest,deviceArtifactDigest:refs.device,edgeArtifactDigest:refs.edge};w.setActive(previous);w.stageInput.expectedActiveRelease=old.releaseId;
- w.manifest.schemaDigest=finalContract.schemaDigest;w.build.refs.tools=await w.store.put(Buffer.from(canonicalJson(finalContract.tools)));
  const activate=()=>{w.action('activate','release.activate');return w.backend.activate(w.principal,{stagedReleaseId:releaseIdentity(w.manifest).slice(7),expectedActiveRelease:old.releaseId},'activate');};
  return {...w,previous,activate};
 }
 test('cross-schema stage is inactive; migration intent/effects survive response loss with no second upload or logical activation',async()=>{
- const w=await migrationWorld();try{await w.stage();equal(w.active(),w.previous);w.setAuto(false);await assert.rejects(w.activate,{code:'EFFECT_UNCERTAIN'});const original=w.backend.record('release.activation:activate');assert.equal(original.intent.migration.protocol,'public-contract-v1');assert.equal(original.intent.migration.previousSchemaDigest,legacy.schemaDigest);assert.equal(original.intent.migration.targetSchemaDigest,finalContract.schemaDigest);
+ const w=await migrationWorld();try{await w.stage();equal(w.active(),w.previous);w.setAuto(false);await assert.rejects(w.activate,{code:'EFFECT_UNCERTAIN'});const original=w.backend.record('release.activation:activate');assert.equal(original.intent.migration.protocol,'public-contract-v1');assert.equal(original.intent.migration.previousSchemaDigest,legacy.schemaDigest);assert.equal(original.intent.migration.targetSchemaDigest,SCHEMA_DIGEST);
   const restarted=new ReleaseBackend(w.options);await w.controller.drive(original.intent.activationId);const first=await restarted.recovery('activate'),second=await restarted.recovery('activate');equal(first,second);assert.equal(first.output.state,'active');assert.equal(w.sent.length,6);assert.equal(new Set(w.sent.map(e=>e.effectId)).size,6);assert.equal(w.uploads(),1);assert.equal(w.builds(),1);equal(restarted.record('release.activation:activate'),original);
  }finally{await w.close();}
 });

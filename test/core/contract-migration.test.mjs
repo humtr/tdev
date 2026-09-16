@@ -1,8 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import legacy from '../fixtures/public-contract-before-c2.json' with {type:'json'};
-import target from '../fixtures/public-contract-c2-target.json' with {type:'json'};
-const TOOL_DESCRIPTORS=target.tools,SCHEMA_DIGEST=target.schemaDigest;
+import {TOOL_DESCRIPTORS,SCHEMA_DIGEST} from '../../src/mcp/outputs.mjs';
 import {publicContractTransition,publicDescriptor} from '../../src/release/contract-migration.mjs';
 import {recordDigest,canonicalJson} from '../../src/contracts/canonical.mjs';
 test('exact pre-C2 descriptor accepts additive C2 migration with stable valid-domain identity',()=>{

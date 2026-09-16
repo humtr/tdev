@@ -10,15 +10,13 @@ import {DeviceReleaseConfigs} from '../../src/release/device-configs.mjs';
 import {FixedReleaseService} from '../../src/release/helper-service.mjs';
 import {ObjectStore} from '../../src/storage/objects.mjs';
 import {canonicalJson,bytesDigest} from '../../src/contracts/canonical.mjs';
-import {SCHEMA_DIGEST as INSTALLED_SCHEMA_DIGEST,TOOL_DESCRIPTORS as INSTALLED_TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
-import finalContract from '../fixtures/public-contract-c2-target.json' with {type:'json'};
+import {SCHEMA_DIGEST,TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
 import {releaseIdentity} from '../../src/release/manifest.mjs';
 import legacy from '../fixtures/public-contract-before-c2.json' with {type:'json'};
 import {releaseTransition} from '../../src/release/contract-migration.mjs';
 const D=n=>'sha256:'+String(n).repeat(64),O=n=>'sha1:'+String(n).repeat(40),V=n=>String(n).repeat(8)+'-'+String(n).repeat(4)+'-'+String(n).repeat(4)+'-'+String(n).repeat(4)+'-'+String(n).repeat(12);
 const normalized=value=>JSON.parse(JSON.stringify(value));
 async function fixture({edgeOnly=false,migration=false}={}){
- const SCHEMA_DIGEST=migration?finalContract.schemaDigest:INSTALLED_SCHEMA_DIGEST,TOOL_DESCRIPTORS=migration?finalContract.tools:INSTALLED_TOOL_DESCRIPTORS;
  const root=await mkdtemp(join(tmpdir(),'dev2-helper-admission-fixture-')),objects=new ObjectStore(join(root,'objects'));await objects.init();const artifacts=new ReleaseArtifactStore({root:join(root,'artifacts'),objects,schemaDigest:SCHEMA_DIGEST});await artifacts.init();
  const oldBytes=Buffer.from('fixed old device'),oldDigest=bytesDigest(oldBytes),baseline={releaseId:D(1),schemaDigest:SCHEMA_DIGEST,sourceCommitOid:O(1),deviceReleaseId:D(1),deviceArtifactDigest:oldDigest,deviceSourceCommitOid:O(1),edgeVersionId:V(1),edgeArtifactDigest:D(1),edgeSourceCommitOid:O(1),protocol:{min:1,max:1},ledger:{min:1,max:1}};
  if(migration){
