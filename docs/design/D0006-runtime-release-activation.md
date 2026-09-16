@@ -375,6 +375,18 @@ not copy those operational refs into the target canonical namespace and does not
 turn the target repository into controller authority. D0008's retained enrollment
 is not rewritten merely to add a target binding.
 
+Secondary binding administration does not rewrite an immutable release artifact,
+helper-admitted device pointer or release ID. D0005's private binding-registry overlay
+is retained under the installation state directory and re-applied by every native
+release at startup. Adding a binding therefore requires a bounded native quiesce,
+exact atomic registry replacement and restart of the same device service, not another
+Worker/device installation or source-scoped runtime. The workers.dev gateway already
+authenticates the human application and forwards the requested repository selector;
+all repository/ref authorization remains native, so an additive binding does not
+require a Worker deployment. Release drain/writer fencing still covers every engine,
+ledger and sender materialized from the effective registry, and a later release
+continues to read the same private registry before accepting work.
+
 Each managed assignment additionally binds the exact target repositoryId,
 bindingEpoch, canonical ref and immutable candidate/result source identity it is
 executing. The controller provider run may originate in the controller repository,

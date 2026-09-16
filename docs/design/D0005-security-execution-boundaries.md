@@ -284,6 +284,18 @@ installation boundary, exact provider repository/ref identity readback and a fre
 epoch. Removal drains/fences that binding as D0001/D0003 require before private state
 may be retired. These administrative mutations are not new C2-1 public MCP ops.
 
+The mutable secondary registry is an app-private installation overlay at the fixed
+`stateDirectory/binding-registry-v1.json` path. Immutable release configuration keeps
+the controller/primary Binding only; repository source, a release artifact and the
+public Worker cannot populate this overlay. The trusted operator may atomically replace
+it only against the exact previous bytes (or proven absence), after provider/ref
+readback and the required add/rebind/remove fencing. The file names exact secondary
+Bindings, principal grants and per-binding provider-file associations. Native control
+reads it only at startup through the same private-file checks used for credentials.
+Absence means primary-only operation; malformed, foreign-installation or competing
+secondary authority fails closed. A normal public caller can switch among installed
+bindings without any operator action after that restart.
+
 Authorization remains the intersection of current human token capability and an
 installation grant naming exact installationId, repositoryId, full ref, capability
 and path. The gateway authenticates the Access application/principal role; it must

@@ -8,6 +8,7 @@ import {capacity,oid,digest,id,revision} from '../contracts/identity.mjs';
 import {GitRepository} from '../repository/git.mjs';
 import {ContextService} from '../repository/context.mjs';
 import {runtimeBindings} from '../repository/bindings.mjs';
+import {mergeInstallationBindingRegistry} from '../repository/installation-binding-registry.mjs';
 import {ScopedAuthorization} from '../security/authorization.mjs';
 import {accessApplicationVerifier} from '../security/access-application.mjs';
 import {Ledger} from '../storage/ledger.mjs';
@@ -49,6 +50,8 @@ const unavailableValidation={async validate(){throw new Dev2Error('EXECUTION_UNA
 /** @param {NativeConfig} config @param {{log?:(event:string)=>void,commissioningIntent?:import('./production-enrollment.mjs').ProductionIntent}} [options] */
 export async function createNativeInstallation(config,options={}){
  requireThat(config.schemaVersion===1&&config.runtime.schemaDigest===SCHEMA_DIGEST,'INTEGRITY_FAILURE','Installation/schema mismatch');
+ requireThat(isAbsolute(config.stateDirectory),'INVALID_ARGUMENT');const registryFile=join(resolve(config.stateDirectory),'binding-registry-v1.json');
+ try{config=mergeInstallationBindingRegistry(config,parseRecord(await privateFile(registryFile),1048576));}catch(error){if(/** @type {{code?:string}} */(error)?.code!=='ENOENT')throw error;}
  const edge=config.edge,{binding,bindings,projectPolicyDigest}=runtimeBindings(edge);workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
  requireThat(!config.productionEnrollmentFile||config.managedEnrollmentFile,'EXECUTION_UNAVAILABLE','Production enrollment requires historical managed enrollment');
  requireThat(!!config.releaseControl===!!config.releaseArtifactDirectory,'EXECUTION_UNAVAILABLE','Incomplete installed release configuration');
