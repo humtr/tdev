@@ -530,9 +530,21 @@ native configuration, ledgers, grants, production enrollment, managed builder an
 fixed helper admission. It may derive only the currently installed owner subject and
 `runtime.activate` capability already present in the retained trusted grant; no caller
 may choose a subject, capability, path, repository, build command, provider operation
-or helper target. It invokes only the existing typed `release.stage` and
-`release.activate` operations for one exact current required-validated integrated
-canonical commit and the exact retained active release.
+or helper target. The normal recovery path remains `release.stage` and `release.activate` for one
+exact current required-validated integrated canonical commit and the exact retained
+active release. If correcting the projection makes the current adopted policy differ
+from the policy on that commit's retained validation/integration evidence, release
+authority must not waive or reinterpret that mismatch. Before stopping the old bridge,
+the ordinary tdev client may create/edit exactly one open Work whose frozen candidate
+adds or strengthens regression coverage for this observed projection failure and has
+no active Action. The repair tool does not choose, generate or alter those source
+bytes. After the one-shot owner restores the current adopted policy, it may invoke the
+existing typed `validate` and `integrate` operations on only that pre-existing exact
+Work/generation under the restored policy. Only the resulting exact required-validated
+canonical commit may then enter `release.stage` and `release.activate`. Any stale
+revision/base, validation failure, integration conflict or changed candidate aborts
+the bootstrap and restarts the unchanged bridge; it is never a policy waiver or a
+reason to manufacture another candidate while the repair owner is running.
 
 All consequential effects still belong to the normal owners: integrated-source
 verification and the managed release builder produce the exact release, staging uses
