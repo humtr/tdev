@@ -59,25 +59,39 @@ Nominal route:
 
 ## C5 — P0 controller convergence and durable-frontier discipline
 
-Detailed draft: [C5-p0-controller-convergence.md](C5-p0-controller-convergence.md)
+Detailed plan: [C5-p0-controller-convergence.md](C5-p0-controller-convergence.md)
 
-Status: issued post-C2 candidate, not active during C2. C5 must begin with a fresh go/no-go/scope revalidation on the verified post-C2 product; the P0 label records urgency, while `C5` is the permanent RULE-compliant campaign identity.
+Status: issued mandatory post-C2 campaign, not active during C2. Fresh entry revalidation scopes/localizes the problem; it is not a go/no-go gate.
 
-Purpose: determine why the conversational development controller can lose or misclassify an already-retained durable tdev/TMCP frontier across response loss, transient unavailability, long-running work, historical backlog and bounded parallel lanes, then apply only owner-correct repairs needed to make exact rebind/reconcile/join behavior reliable from fresh sessions.
+Purpose: close the observed P0 durable-frontier/control failure class without assuming in advance whether the first-order defect is controller procedure, public observation contract, durable substrate, effect-specific recovery, provider/client behavior or a mixture. C5 has its own hard acceptance and does not depend on an unvalidated C6 method.
 
-Provisional nominal route if activated:
+Nominal route:
 
 `C5-1` -> `C5-2` -> `C5-3` -> `C5-4` -> `C5-5` -> `C5-6`
 
-Provisional placement is after C2 and before C4. At C2 closeout, WORKBOARD freshly revalidates whether C5 remains independently necessary. If no-go/deferred, route directly to C4; if activated, close C5 before auditing the final public contract in C4. Issuance does not make C5 a C2 dependency.
+Placement is after C2. C5 must execute; a no-product-change result is allowed only after the campaign's bounded investigation and acceptance, not by pre-entry defer/no-go.
+
+## C6 — conversational retry/re-entry evaluation methodology
+
+Detailed plan: [C6-conversational-retry-reentry-methodology.md](C6-conversational-retry-reentry-methodology.md)
+
+Status: issued mandatory post-C2 methodology campaign, not active during C2. Its methodology verdict is independent of C5's correctness verdict.
+
+Purpose: test rather than assume the proposed `gate -> benign success -> intentional retry/re-entry -> serial baseline -> actual separate role=user reinjection -> retry/re-entry -> diversified repetition` process; distinguish intentional re-entry from failure recovery/effect retry, validate the test harness with positive/negative controls, and classify its relationship to C5 as causal, diagnostic, auxiliary, unrelated or unknown.
+
+Nominal route:
+
+`C6-1` -> `C6-2` -> `C6-3` -> `C6-4` -> `C6-5` -> `C6-6`
+
+C6 may be interleaved with C5 at bounded pre/post evidence points, but neither campaign substitutes for the other. C5 can repair/close on its own hard evidence; C6 remains mandatory until its own methodology/applicability verdict is recorded.
 
 ## C4 — public tool-contract ergonomics and misuse-resistance audit
 
 Detailed plan: [C4-tool-contract-ergonomics-audit.md](C4-tool-contract-ergonomics-audit.md)
 
-Status: issued post-C2 campaign, not active before C2 completion or any C5 selected by post-C2 routing.
+Status: issued post-C2 campaign, not active before C2 and mandatory C5/C6 closeout.
 
-Purpose: after C2 has converged the product and promoted/accepted canonical `main`, and after C5 if fresh post-C2 routing activates it, comprehensively audit the actual final four-tool public contract for hidden constraints, identity handoff ambiguity, error actionability, async/retry usability, multi-repository/ref ergonomics, invalid-call cost and misuse resistance. Repair only evidence-backed defects through the then-current owner-authorized development workflow.
+Purpose: after C2 has converged/promoted the product and the mandatory C5/C6 campaigns have closed, comprehensively audit the actual final four-tool public contract for hidden constraints, identity handoff ambiguity, error actionability, async/retry usability, multi-repository/ref ergonomics, invalid-call cost and misuse resistance. Repair only evidence-backed defects through the then-current owner-authorized development workflow.
 
 Nominal route:
 

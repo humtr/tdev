@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[D0003, D0005, D0006]`
 - Supersedes: `[]`
-- Directive: `r7`
+- Directive: `r8`
 - Owns: `production-commissioning-join`
 
 ## Problem and required outcome

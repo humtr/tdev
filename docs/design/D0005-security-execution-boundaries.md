@@ -5,7 +5,7 @@
 - Status: `accepted`
 - Depends-On: `[]`
 - Supersedes: `[]`
-- Directive: `r7`
+- Directive: `r8`
 - Owns: `authorization, sandbox-boundary, credential-custody`
 
 Accepted is a decision state, not a claim of implementation, live verification, or measured superiority.

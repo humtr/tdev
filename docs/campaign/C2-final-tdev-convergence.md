@@ -168,7 +168,7 @@ Measure the smallest comparable workload needed to summarize post-C1/C2 validati
 - Transition canonical tdev self-development to the authorized `main` repository/ref binding through the current owner-defined mechanism.
 - Stage/activate the corresponding final release when required and verify edge/device/runtime identity.
 - From `main`, perform a bounded ordinary context -> read -> Work -> required validation/integration/readback self-development smoke acceptance.
-- Mark C2 complete only after `main` is the verified canonical product/self-development line. Then perform a fresh post-C2 routing decision: revalidate issued `C5` (P0 controller convergence/durable-frontier discipline) against the verified final product and actual client. Activate C5 before C4 only if that problem remains independently reproducible/material; otherwise defer/close C5 and route directly to `C4-1`. C5/C4 findings do not retroactively make C2 incomplete unless they actually falsify a C2 acceptance claim.
+- Mark C2 complete only after `main` is the verified canonical product/self-development line. Then route into mandatory post-C2 `C5` (P0 controller convergence/durable-frontier discipline); C5 fresh entry revalidation scopes/localizes the work and is not a go/no-go gate. `C6` separately validates the proposed conversational retry/re-entry evaluation methodology and may be interleaved with C5 at bounded pre/post evidence points under WORKBOARD, but neither campaign substitutes for the other. Route to `C4-1` only after mandatory C5 and C6 closeout. C5/C6/C4 findings do not retroactively make C2 incomplete unless they actually falsify a C2 acceptance claim.
 
 ## 9. Reporting contract
 

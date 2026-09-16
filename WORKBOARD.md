@@ -1,6 +1,6 @@
 # dev-2 workboard
 
-Authority: DIRECTIVE r7 -> RULE -> selected current Designs.
+Authority: DIRECTIVE r8 -> RULE -> selected current Designs.
 
 This file owns current execution routing only. It is intentionally resettable. Mutable repository, runtime, provider, Work and Action facts must be freshly rebound from their actual owners; prior chats, plans, evidence and Git history are never current-state authority.
 
@@ -18,8 +18,9 @@ The first public release was owner-closed on 2026-09-14. D0007 repeated statisti
 - Active checkpoint: `C2-2` — final `tdev` identity cleanup and migration
 - C2 plan: `docs/campaign/C2-final-tdev-convergence.md`
 - C3 remains an issued deferred campaign identity. It is not active, and no bounded ad-hoc execution implementation is authorized by this routing state.
-- C5 is an issued post-C2 candidate for the P0 controller-convergence/durable-frontier problem. It is not active during C2; issuance preserves the agenda only. After C2, fresh WORKBOARD routing must revalidate C5 before C4 and may activate, defer or close it without renumbering.
-- C4 remains post-C2 and is not active. If post-C2 routing activates C5, C4 waits for C5 closeout; if C5 is deferred/no-go, routing may proceed directly to C4.
+- C5 is an issued **mandatory post-C2** P0 controller-convergence/durable-frontier campaign. It is not active during C2. After C2, WORKBOARD must route into C5; fresh entry revalidation scopes/localizes C5 and is not a go/no-go gate.
+- C6 is an issued **mandatory post-C2** conversational retry/re-entry evaluation-methodology campaign. It is independent of C5 correctness, may be interleaved with C5 only at bounded evidence boundaries, and must reach its own methodology/applicability verdict.
+- C4 remains post-C2 and is not active until C2 is complete and mandatory C5/C6 have both reached closeout.
 
 The C3 defer decision is routing, not a product-semantic rejection. Fresh review found a plausible future convenience gap for bounded candidate-local diagnostics/codemods/tool invocation, but no current C2 dependency: the present typed context/read/edit/validate/integrate path is sufficient for C2, while adding ad-hoc execution first would expand public/security/recovery surface before final convergence. Re-evaluate C3 only after a later routing decision makes that useful; do not treat the draft as latent implementation authorization.
 
@@ -38,7 +39,7 @@ Campaign/checkpoint IDs are durable trace identities under RULE Section 8. They 
 
 C2-2 is active. Continue from `docs/campaign/C2-final-tdev-convergence.md` Section 6. C2-1 is complete after required validation/integration and refreshed live acceptance proved one installed runtime serving the primary and secondary exact repository/ref bindings with binding-scoped discovery/read/work/recovery, wrong-binding fail-closed behavior, same-request deduplication, shared installation-wide execution capacity and secondary-only integration without moving the primary ref.
 
-Begin C2-2 with the exhaustive current-tree identity inventory required by C2-2.1. Keep truthful development-branch/ref and historical evidence text distinct from final product/protocol/deployment identity. Direct semantic-preserving naming corrections need no new Design; any retained-state, digest-domain, protocol, durable-record, binding or provider-resource migration must revise only its existing semantic owner before implementation. Do not reopen C2-1, activate C3/C5, or start C4 merely because C2-2 follows it.
+Begin C2-2 with the exhaustive current-tree identity inventory required by C2-2.1. Keep truthful development-branch/ref and historical evidence text distinct from final product/protocol/deployment identity. Direct semantic-preserving naming corrections need no new Design; any retained-state, digest-domain, protocol, durable-record, binding or provider-resource migration must revise only its existing semantic owner before implementation. Do not reopen C2-1, activate C3/C5/C6, or start C4 merely because C2-2 follows it.
 
 C1 managed-execution lifecycle guarantees and C2-1 repository/ref binding isolation remain lasting semantics. C2-2 must preserve terminal/session/ref lifecycle behavior, request/effect fencing, exact validation/integration identity and one-runtime multi-binding behavior while removing branch/codename-derived product identity where it is not truthful.
 
@@ -50,6 +51,6 @@ A fresh session on C2-2 must:
 2. freshly observe repository/runtime/provider state and authorized open Work/Action/request state, including exact installed bindings, managed sessions and operational refs, before mutation;
 3. perform the C2-2.1 exhaustive current-tree identity inventory for `dev-2`, `dev2`, `DEV2` and equivalent branch-derived identifiers, classifying each hit by semantic ownership and truthfulness;
 4. apply direct naming corrections only where semantics are preserved, and revise the existing Design owner before any identity change with retained-state, compatibility, digest, protocol, binding or provider migration consequences; and
-5. preserve C1 lifecycle/ref retirement, C2-1 multi-binding isolation and the no-C3/no-C5/no-C4 boundary while advancing C2-2 through focused migration, required validation/integration, residual scan and applicable live readback.
+5. preserve C1 lifecycle/ref retirement, C2-1 multi-binding isolation and the no-C3/no-C5/no-C6/no-C4 boundary while advancing C2-2 through focused migration, required validation/integration, residual scan and applicable live readback.
 
 No completed C1/C2-1 campaign narrative, historical evidence directory or handoff is allowed to become a hidden prerequisite for later ordinary development.

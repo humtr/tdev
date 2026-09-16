@@ -1,49 +1,52 @@
 # C5 — P0 controller convergence and durable-frontier discipline
 
-Status: issued post-C2 candidate; not active; mandatory fresh entry revalidation
+Status: issued mandatory post-C2 campaign; not active during C2; fresh entry revalidation scopes the work and is not a go/no-go gate
 
 This document is a non-authoritative campaign plan. `DIRECTIVE.md`, `RULE.md`, current accepted Designs, executable product contracts and `WORKBOARD.md` own meaning and current routing. `P0` is the urgency label carried by this campaign, not a new campaign-ID syntax or authority tier; under RULE Section 8 the permanent campaign identity is `C5`.
 
-C5 being issued does not authorize implementation during C2, does not reopen C1/C2-1, and does not by itself change current product semantics. Its purpose is to preserve a repeatedly observed controller-level correctness risk so it cannot disappear with chat history before a fresh post-C2 decision.
+The owner requires C5 to execute after C2. Fresh post-C2 observation may show that no product change is needed, but C5 may not be skipped, deferred at entry, or closed merely because one seed incident no longer reproduces. The campaign must perform the bounded investigation and acceptance needed to explain or falsify the observed failure class on the final product.
+
+C5 does not authorize implementation during C2, does not reopen C1/C2-1, and does not by itself change product semantics. Product or workflow corrections discovered here still belong to their existing authoritative owners.
 
 ## 1. Campaign purpose
 
-C5 investigates and, only if freshly justified, repairs a controller-convergence failure mode in which the underlying durable substrate retains the correct Work/Action/job/effect truth but the conversational development controller loses the active frontier, replans from an incomplete observation, or considers replacement work before joining the already-admitted durable operation.
+C5 investigates and closes a P0 development-control failure class in which the conversational development process can lose, misclassify or advance past an already-admitted durable frontier, or can consider replacement work before the relevant original operation/effect has been reconciled.
 
-The target is not “make ChatGPT remember more.” The target is a development-control discipline and, only where evidence requires it, owner-correct product/tool support that makes the current durable frontier reconstructible and hard to accidentally abandon across response loss, reconnect, long-running operations, multiple tools and fresh chats.
+The root cause is deliberately unknown at entry. It may be controller procedure, public observation/controller contract, durable substrate semantics, effect-specific recovery, provider behavior, client/session state, or a combination. C5 must localize and falsify these alternatives rather than assume that the substrate is correct or that the controller alone is defective.
 
-The provisional controller cycle to falsify is:
+The target is not “make ChatGPT remember more.” The target is a bounded control model in which current authority and durable truth can be reconstructed, relevant admitted lanes are explicitly classified, conflicting replacement is fenced, and safe progress does not depend on hidden conversational memory.
 
-`REBIND -> RECONCILE -> PLAN FRONTIER -> FORK bounded independent lanes -> OBSERVE -> JOIN -> REPLAN -> ADVANCE`
+The provisional control cycle to falsify is:
 
-The campaign must determine which parts belong only in controller recipes/workflow and which, if any, require changes in existing product owners such as D0001 durable work/recovery or D0004 MCP controller/observation contract.
+`REBIND -> RECONCILE -> CLASSIFY FRONTIER SET -> PLAN -> FORK bounded independent lanes -> OBSERVE -> JOIN relevant lanes -> REPLAN -> ADVANCE`
+
+C5 determines which corrections, if any, belong only in controller/development procedure and which require revision of existing product owners such as D0001 durable work/recovery, D0003 canonical effects, D0004 MCP controller/observation contract or D0006 release recovery.
 
 ## 2. Seed observations — evidence hints, not predetermined root cause
 
-The following session observations motivate C5. They are not current-state authority and must be freshly reproduced or falsified after C2:
+The following session observations motivate C5. They are resume/evidence hints, not current-state authority, and must be freshly reproduced, bounded or falsified after C2:
 
-- During a C2-1 release activation, the normal device drain/stop/start interval made public tdev briefly return execution-unavailable delivery status while the already-admitted durable activation continued. The TMCP task retained the real activation frontier and later showed success, but the conversational controller initially branched into a separate outage diagnosis and considered an unrelated recently deleted qualification Worker as a possible cause before rejoining the existing activation.
-- A broad `open:true` observation exposed a large historical backlog. That inventory was not the current C2 frontier, yet it was easy for the controller to lose the exact current Work/Action/request scope when the output was treated as a frontier rather than historical state requiring classification.
-- Across long recovery and release work, response loss or interruption repeatedly created pressure to submit a replacement task, Work, Action or diagnostic path before the original durable identity had been reconciled to terminal/effect truth. Existing tdev/TMCP mechanisms often retained enough identity to avoid duplicate effects, but controller discipline was not reliably enforcing the join before replanning.
-- The same class is visible across both canonical tdev operations and TMCP jobs. Therefore the initial hypothesis is not “tdev durability is broken”; it is that the controller can fail to consume durable truth consistently across substrates.
+- During a C2-1 release activation, the normal device drain/stop/start interval made public tdev briefly return execution-unavailable delivery status while an already-admitted durable activation continued. The retained activation frontier later showed success, while the conversational process temporarily branched into a separate outage diagnosis before rejoining the existing operation.
+- A broad `open:true` observation exposed a large historical backlog. That inventory was not the current C2 frontier, yet it could be mistaken for the exact objective frontier without explicit classification.
+- Across long recovery and release work, response loss or interruption repeatedly created pressure to submit a replacement task, Work, Action or diagnostic path before the original durable identity had been reconciled to terminal/effect truth.
+- Similar symptoms have appeared across canonical tdev operations and authorized TMCP repair jobs. This does not prove a common root cause; C5 must distinguish controller-consumption failures from substrate, contract and provider failures.
 
-These examples may have different immediate causes. C5 must not force them into one implementation merely because they share an observed controller symptom.
+These examples may have different immediate causes. C5 must not force them into one implementation merely because they share a controller-visible symptom.
 
 ## 3. Scope and non-goals
 
-C5 owns an investigation/campaign boundary, not product semantics.
-
 In scope:
 
-- active-frontier reconstruction after response loss, reconnect, fresh chat or tool/runtime interruption;
-- exact reconciliation of already-admitted tdev Work/Action/request/effect identities and TMCP task/job identities before replacement;
+- reconstruction of the exact objective frontier after response loss, reconnect, fresh chat or tool/runtime interruption;
+- exact reconciliation of already-admitted tdev Work/Action/request/result/effect identities before conflicting replacement;
+- authorized TMCP task/job continuity only where TMCP is actually the current repair owner, without making TMCP a product dependency;
 - bounded fork/join discipline for genuinely independent lanes;
-- explicit supersession/cancellation rules so a replaced lane cannot remain semantically live by accident;
-- distinction between historical/open inventory and the exact current objective frontier;
-- multi-repository/ref controller scoping after C2-1;
-- release/activation drain and other intervals where temporary unavailability is expected but durable work may still be running;
-- controller behavior when one tool/backend is unavailable while another durable owner retains the operation; and
-- fresh-session recovery that does not depend on prior conversational memory.
+- explicit supersession/cancellation rules so an abandoned lane cannot remain semantically live by accident;
+- distinction between historical/open inventory and the exact relevant frontier set;
+- multi-repository/ref/binding scoping after C2-1;
+- release/activation drain and other intervals where temporary unavailability may coexist with retained durable work;
+- adequacy of the public observation/retry contract for fresh-session reconstruction; and
+- controller behavior when one tool/backend is unavailable while another authoritative owner retains the operation.
 
 Out of scope by default:
 
@@ -51,134 +54,137 @@ Out of scope by default:
 - changing tdev concurrency capacity merely to avoid controller bookkeeping;
 - implementing C3 bounded ad-hoc execution;
 - treating C4 public tool-contract ergonomics as the same problem;
-- weakening D0001 request/effect deduplication, D0003 exact integration, or D0006 release recovery so replacement work becomes easier; or
+- assuming the separate C6 conversational retry/re-entry evaluation methodology is valid before C6 proves it;
+- weakening D0001 request/effect deduplication, D0003 exact integration or D0006 release recovery so replacement work becomes easier; or
 - making TMCP a normal product dependency.
 
-C4 remains the comprehensive final public-contract ergonomics/misuse-resistance audit. C5 is narrower and more fundamental: can the controller preserve and rejoin the correct durable frontier even when the existing contract is technically sufficient? If C5 discovers that public contract ambiguity is a first-order cause, revise the existing owner as needed and let C4 subsequently audit the final surface comprehensively.
+C4 remains the comprehensive final public-contract ergonomics/misuse-resistance audit. C6 is a separate methodology-validation campaign. C5 may consume a C6 method only after that method has earned the relevant verdict; C5 correctness and completion cannot depend solely on an unvalidated C6 procedure.
 
-## 4. Provisional controller invariants to falsify
+## 4. Provisional control invariants to falsify
 
-Fresh review may revise these, but implementation must not begin by assuming a new coordinator is required.
+1. **Authoritative durable truth beats conversational state.** Repository/runtime/provider truth and retained Work/Action/request/result/effect or authorized repair-task state are re-read before dependent mutation after interruption.
+2. **No conflicting replacement before reconciliation.** Timeout, response loss, transient unavailability or forgotten local reasoning is not evidence that the original logical operation did not run.
+3. **One explicit frontier set per objective.** An objective may have multiple genuinely independent lanes, but every lane relevant to the next transition has explicit repository/ref/binding and durable identity/classification.
+4. **Inventory is not frontier.** Broad historical `open` results, retained jobs and old evidence require classification; visibility does not make them current.
+5. **Forks are bounded and explicit.** Independent lanes have a recorded responsibility and durable identity before their parallel progress is relied upon.
+6. **Join is dependency-scoped and mandatory.** A transition cannot advance past a relevant nonterminal/unclassified lane or effect; unrelated history and genuinely independent future work do not create a global barrier.
+7. **Supersession is durable.** If a relevant lane is abandoned, its owner contract explicitly cancels, closes, supersedes or retains it as a blocker. Conversational intent alone does not retire durable truth.
+8. **Same-request recovery stays same-request.** Lost-response recovery uses the owner-defined stable identity/readback path rather than a cosmetically similar new mutation.
+9. **Temporary unavailability is not terminal evidence.** Delivery uncertainty, device drain or a missing conversational response never proves the durable operation disappeared.
+10. **Uncertainty narrows mutation, not observation.** Read-only reconciliation may broaden as needed, but conflicting effectful progress narrows to the smallest proven-safe frontier until exact state is classified.
+11. **Fresh chats can resume.** Correctness cannot depend on hidden chat memory, handoff prose or a model remembering which operation was probably current.
+12. **Methodology is not correctness.** C5 hard safety acceptance stands on observed durable/effect truth even if C6 later rejects its proposed evaluation process.
 
-1. **Durable truth beats conversational state.** Repository/runtime/provider state and retained Work/Action/request/effect or TMCP task/job state are re-read before dependent mutation after interruption.
-2. **No replacement before reconciliation.** A timeout, lost response, transient unavailable route or forgotten local variable is not evidence that the original logical operation did not run.
-3. **One current frontier per objective.** The controller must be able to name the exact current objective, binding/ref and durable identities that are allowed to advance it.
-4. **Inventory is not frontier.** Broad historical `open` results, old evidence and unrelated retained jobs require classification; they do not become active merely because they are nonterminal or visible.
-5. **Forks are bounded and explicit.** Every independent lane has a recorded responsibility and durable identity before parallel progress is relied upon.
-6. **Join is mandatory before advance.** A phase/checkpoint cannot be declared complete, superseded or replanned while an admitted relevant lane/effect remains unclassified.
-7. **Supersession is durable.** If a lane is abandoned, the old durable state is explicitly cancelled/closed/superseded according to its owner contract or retained as unresolved blocker; conversational intent alone does not retire it.
-8. **Same-request recovery stays same-request.** Retrying a lost tdev effect or TMCP operation uses its owner-defined same logical identity/readback path rather than a cosmetically similar replacement.
-9. **Uncertainty narrows mutation.** When controller convergence is uncertain, default to serial single-frontier work until exact state is rejoined; do not create parallelism to escape uncertainty.
-10. **Fresh chats can resume.** Completion may not depend on hidden chat memory, handoff prose or a model remembering which operation was “probably” current.
+## 5. C5-1 — fresh incident/control corpus and causal falsification
 
-## 5. C5-1 — fresh incident corpus and falsification
+Purpose: establish the final-product baseline and preserve enough pre-repair evidence to localize the P0 class without assuming its owner.
 
-Purpose: determine whether a distinct P0 controller problem still exists on the final post-C2 product.
+- Start from verified canonical `main` and freshly bind repository/ref, runtime, release, provider, installed bindings and authorized open durable state.
+- Reproduce, bound or falsify at least: lost response after durable admission, temporary device/runtime unavailability during a retained operation, authorized long-running repair work across conversation interruption, historical open-work backlog, and a bounded multi-lane/multi-binding workflow.
+- Establish small known-good controls as well as deliberately unsafe/known-bad control states where they can be exercised without destructive canonical effects.
+- Separate substrate loss/duplication, public-contract observability gaps, provider/effect reconciliation defects, client/session-boundary behavior and controller-consumption errors.
+- Record the exact point at which the process can no longer name or prove a relevant active frontier, or the evidence showing that the previously observed symptom no longer exists.
+- Freeze immutable pre-repair evidence sufficient for C5 comparison and optional C6 methodology study; do not delay necessary repair merely to enlarge a methodology cohort.
 
-- Start from verified canonical `main` and freshly bind runtime/provider/tool state.
-- Collect only the smallest retained session evidence needed to define the seed cases; do not treat old transcripts as current truth.
-- Reproduce or falsify at least: lost response after durable admission, temporary device/runtime unavailability during a retained operation, a long-running TMCP job across conversation interruption, historical open-work backlog, and a bounded multi-lane workflow.
-- Separate substrate bugs from controller-consumption bugs. If tdev/TMCP actually loses identity or duplicates effects, route that defect to its existing owner rather than hiding it as a controller issue.
-- Record the exact point at which the controller can no longer name or prove the active frontier.
+Exit: a bounded incident/control corpus and owner hypotheses exist. Non-reproduction of one seed does not skip C5; it changes the hypothesis set and may ultimately support a no-product-change outcome only after later acceptance.
 
-Exit: evidence shows either that C5 is no longer independently necessary, or a bounded controller failure taxonomy exists.
+## 6. C5-2 — frontier state model and owner classification
 
-## 6. C5-2 — controller state model and owner classification
+For each surviving or historically demonstrated failure classify the minimum state that must be reconstructible:
 
-For each surviving failure classify what state must be recoverable:
-
-- objective/campaign/checkpoint identity;
+- objective/campaign/checkpoint identity where relevant to development routing;
 - repository/ref/binding epoch;
 - Work and current generation/revision;
 - Action/request/prepared-result/effect identities;
 - release stage/activation identity where applicable;
-- TMCP task/job/continuity identity for authorized repair work;
-- forked-lane responsibility and join status; and
+- authorized TMCP task/job/continuity identity only for repair work that actually uses it;
+- forked-lane responsibility, dependency and join status; and
 - explicit supersession/blocker state.
 
-Then determine the smallest existing owner for each required correction:
+Then localize the smallest authoritative owner for each correction:
 
-- D0001 for durable request/action/recovery semantics only if the product state machine is insufficient;
-- D0004 for public observation/controller recipes or bounded projections needed by a fresh controller;
-- D0003/D0006 only for exact integration/release effect reconciliation defects actually owned there;
-- RULE/WORKBOARD navigation discipline for repository development-process invariants where no product semantic change is needed; and
-- client/controller procedure only when existing durable/product truth is already sufficient.
+- D0001 only when durable request/action/recovery state is insufficient or incorrect;
+- D0004 when the public controller/observation/retry contract is insufficient to reconstruct existing truth safely;
+- D0003/D0006 when exact canonical/release effect reconciliation is defective;
+- RULE/WORKBOARD navigation discipline when the defect is project control rather than product semantics;
+- client/controller procedure when existing durable/product truth is already sufficient; and
+- provider-specific repair only where fresh evidence proves an external owner defect.
 
 Do not invent a new Design solely because C5 exists. Create no new durable frontier registry until evidence proves the existing owners cannot expose/reconstruct the required truth safely.
 
-## 7. C5-3 — minimal enforcement or implementation
+## 7. C5-3 — minimal owner-correct correction
 
-Implement only the smallest surviving correction set.
+Implement only the smallest surviving correction set. Possible classes, none preselected:
 
-Possible classes, none preselected:
+- strengthen existing controller/development recipes so effectful transitions have explicit rebind/reconcile/classify preconditions;
+- expose a bounded existing-state projection that lets a fresh controller identify the exact relevant operation without treating unrelated historical backlog as frontier;
+- improve same-request/effect observation where durable truth exists but cannot be retrieved by exact identity;
+- repair substrate/effect-specific state when the retained truth itself is wrong or insufficient;
+- add fail-closed admission fencing only if a reproduced conflicting replacement can otherwise create an unsafe logical mutation without destroying legitimate independent concurrency; or
+- select an explicit **no product change** outcome when C5-2 shows existing contracts are sufficient and the remaining correction is controller/development discipline only.
 
-- strengthen D0004 controller recipes so every effectful transition has an explicit rebind/reconcile/join precondition;
-- expose a bounded existing-state projection that lets a fresh controller identify the exact active operation without scanning unrelated historical backlog;
-- improve same-request/effect observation where current product truth exists but is not retrievable by exact identity;
-- add fail-closed admission fencing only if a demonstrable controller error can otherwise create a conflicting logical mutation and the fence does not destroy legitimate independent concurrency;
-- encode repository development workflow rules where the defect is in project control rather than product semantics; or
-- make no product change if disciplined use of existing durable identities fully solves the reproduced failures.
+Do not solve C5 with a second orchestrator, hidden agent memory, unbounded session registry or mandatory TMCP dependency. A no-product-change result does not close the campaign; C5-4/C5-5 still have to falsify the selected explanation on the final state.
 
-Do not solve C5 with a second orchestrator, hidden agent memory, unbounded session registry, or mandatory TMCP dependency.
+## 8. C5-4 — adversarial cross-owner recovery acceptance
 
-## 8. C5-4 — adversarial cross-substrate recovery
-
-Exercise the selected solution against bounded failures including:
+Exercise the selected correction/explanation against bounded cases including:
 
 - response loss immediately before and after tdev create/edit/validate/integrate admission;
-- response loss around a retained release stage/activation, including the normal drain interval;
-- temporary public tdev unavailability while the release/helper or another durable owner continues;
-- long-running TMCP `shell.run`/repair jobs with the conversational response interrupted;
+- response loss around retained release stage/activation, including normal drain intervals;
+- temporary public tdev unavailability while a durable owner continues;
+- authorized long-running repair jobs with conversational interruption when TMCP is actually in scope;
 - stale historical `open` rows mixed with a small current frontier;
-- two repositories/refs with deliberately similar request/objective names;
+- two repositories/refs with deliberately similar objective/request names;
 - bounded independent lanes where one succeeds, one fails and one remains running; and
-- an attempted replacement that must first reconcile or explicitly supersede the original operation.
+- an attempted conflicting replacement that must first reconcile or explicitly supersede the original operation.
 
-Acceptance requires one logical operation/effect per intent, no lost relevant lane, and no advancement past a nonterminal/unclassified relevant frontier.
+Hard acceptance gates are zero observed duplicate logical/canonical/provider effects for one intent, zero wrong-binding adoption, zero lost relevant admitted lane, and zero advancement past a relevant nonterminal/unclassified effect. Extra bounded read-only observations or a corrected read-only hypothesis are quality/cost signals, not hard safety failures by themselves.
 
-## 9. C5-5 — fresh-chat and bounded concurrency acceptance
+Any retry or recovery used here follows the existing owner-defined stable identity. C5 does not import C6's intentional retry/re-entry sequence unless C6 has independently validated it for this use.
+
+## 9. C5-5 — actual fresh-chat and bounded-concurrency acceptance
 
 Run actual controller acceptance from a new chat/session without relying on the campaign's old transcript.
 
 At minimum:
 
-- reconstruct an interrupted tdev operation from current authority and exact durable identities;
-- reconstruct an interrupted TMCP task/job from its durable owner when TMCP is authorized;
-- perform a bounded multi-lane task, track every admitted lane and join all relevant terminal states before advancing;
-- verify a transient runtime drain is not misclassified as proof that the durable operation disappeared;
-- show that unrelated retained/open history does not become the current frontier; and
-- verify multi-binding repository/ref identity remains explicit throughout recovery.
+- reconstruct an interrupted or retained tdev operation from current authority and exact durable identities;
+- reconstruct an authorized interrupted repair task/job from its actual owner when such a repair lane is part of the selected evidence;
+- perform a bounded multi-lane task, track every admitted relevant lane and join the required terminal states before dependent advance;
+- verify transient runtime drain/unavailability is not misclassified as proof that durable work disappeared;
+- show unrelated retained/open history does not become the current frontier;
+- verify multi-binding repository/ref identity remains explicit throughout recovery; and
+- repeat the hard gates from C5-4 against actual client behavior.
 
-Use the smallest lane count that falsifies the controller rule; this campaign is not a throughput benchmark.
+Use the smallest lane count and fault set that falsifies the selected control model; this campaign is not a throughput benchmark. If the fresh client cannot exercise a required boundary, keep that layer unknown rather than replacing it with a synthetic claim.
 
-## 10. C5-6 — closeout and C4 handoff
+## 10. C5-6 — convergence, relation verdicts and handoff
 
-- Absorb every lasting invariant into its proper current owner: Rule, existing Design, executable source/type/schema/config/test, or current WORKBOARD routing.
+- Absorb every lasting invariant/correction into its proper current owner: Rule, existing Design, executable source/type/schema/config/test or current WORKBOARD routing.
 - Remove temporary controller probes and narrative state that would become a hidden dependency.
-- Re-run a fresh-session recovery smoke without reading this campaign plan.
-- Explicitly record which seed observations were reproduced, which were falsified, and which were substrate defects owned elsewhere.
-- If C5 required public contract changes, ensure C4 audits the final changed surface rather than the pre-C5 one.
-- Route to C4 or the then-current frontier only after WORKBOARD freshly records C5 closeout.
+- Re-run a fresh-session recovery smoke without depending on this campaign plan.
+- Explicitly record which seed observations were reproduced, falsified, explained by another owner, or no longer present.
+- Record the root-cause disposition: controller procedure, public contract, substrate/effect owner, provider/client boundary, mixed, or no surviving defect under the bounded evidence.
+- Preserve the minimum pre/post evidence needed for C6 to test its independent methodology hypothesis, but do not make C5 completion depend on C6's verdict.
+- If C5 changed the public contract, C4 must audit the changed final surface rather than the pre-C5 one.
+- Close C5 only after WORKBOARD records the owner-correct outcome and hard acceptance. Routing to C6/C4 then follows current WORKBOARD.
 
 ## 11. Entry and routing policy
 
-C5 is not active during C2. C2 retains its own completion criteria and should proceed using the conservative serial controller discipline already sufficient for current convergence unless a controller defect becomes a genuine C2 blocker.
+C5 is mandatory after C2 and is not active during C2. C2 retains its own completion criteria and should proceed using conservative reconciliation discipline unless a controller/substrate defect becomes a genuine C2 blocker.
 
-After C2 completes, WORKBOARD performs a fresh post-C2 routing decision before C4. Revalidate C5 against the verified `main` product and actual connected client:
+After C2 completes, WORKBOARD routes to `C5-1`; there is no post-C2 C5 go/no-go. Fresh entry revalidation determines current manifestation, root-cause hypotheses and exact scope, not whether C5 runs.
 
-- if the P0 controller failure remains reproducible/material, activate `C5-1` and complete C5 before C4;
-- if final C2 state or client/tool changes have already removed the failure, close/defer C5 with evidence and route directly to C4; and
-- if only a C4 ergonomics problem remains, do not duplicate it in C5.
+C6 is a separate mandatory methodology-validation campaign with an independent verdict. It may use frozen C5 pre/post evidence and may be interleaved at bounded points by WORKBOARD, but C5 repair and hard acceptance cannot be contingent on C6 validating the proposed methodology. If C6 is unrelated to the P0 class, both campaigns still complete independently.
 
-Issued C5 IDs remain durable trace identities regardless of the routing verdict.
+Issued C5 identities remain durable trace identities regardless of whether the final correction is product code, contract, workflow discipline or no product change.
 
 ## 12. Stop conditions
 
 C5 stops only when one of the following is true:
 
-- fresh revalidation shows no independently actionable controller-convergence problem and WORKBOARD records the no-go/defer verdict;
-- reproduced controller failures have owner-correct repairs plus adversarial and fresh-chat acceptance demonstrating reliable durable-frontier rejoin;
-- a genuine external client/provider/permission limitation blocks further safe testing and is recorded without inventing completion; or
-- evidence proves the remaining issue belongs wholly to another current owner/campaign, which then receives the durable fact before C5 closes.
+- the reproduced P0 failure class has owner-correct repairs or controller/process corrections plus C5-4/C5-5 acceptance demonstrating safe durable-frontier convergence;
+- bounded investigation shows no surviving defect on the final product, existing owners are sufficient, and C5-4/C5-5 controls/fresh-chat acceptance support an explicit no-product-change closeout;
+- a genuine external client/provider/permission limitation blocks further safe testing and is recorded as a blocker without inventing completion.
 
-Do not close C5 merely because one lost-response case succeeds, and do not claim success from substrate deduplication alone. The acceptance question is whether the controller reliably finds and joins the original durable truth before replanning.
+If investigation proves a defect belongs to another existing owner, that is a localization result, not automatic C5 completion: the correction/acceptance remains required unless the external limitation above prevents it. Do not close C5 merely because one seed no longer reproduces, one lost-response case succeeds, C6 passes, or substrate deduplication alone looks safe. The acceptance question is whether relevant durable truth is reliably reconstructed and joined before conflicting mutation or dependent advance.

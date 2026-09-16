@@ -1,8 +1,8 @@
 # tdev owner directive
 
 - Status: active
-- Revision: 7
-- Scope: current `tdev` product convergence on the development line, retained first-release invariants, and final promotion to `main`
+- Revision: 8
+- Scope: current `tdev` product convergence through final promotion to `main`, retained first-release invariants, and required post-promotion controller/methodology closure
 
 ## 0. Current state and remaining outcome
 
@@ -10,7 +10,9 @@ The Phase A public cutover is complete. The first public release was explicitly 
 
 The current development branch remains `dev-2`; the final product identity is `tdev`. `dev-2` is a development branch and historical codename, not the intended permanent product, protocol, internal-runtime, provider-visible, or deployment identity.
 
-The remaining required outcome is to finish the unresolved product-convergence work on the development line, including managed-execution lifecycle/cost correctness, one-runtime multi-repository/ref support, final `tdev` identity convergence, repository-aware transfer efficiency, and exact-state promotion to `main`. After promotion, canonical self-development must operate on the verified `main` binding and ordinary self-development must succeed there.
+The remaining product-convergence outcome is to finish unresolved work on the development line, including managed-execution lifecycle/cost correctness, one-runtime multi-repository/ref support, final `tdev` identity convergence, repository-aware transfer efficiency, and exact-state promotion to `main`. After promotion, canonical self-development must operate on the verified `main` binding and ordinary self-development must succeed there.
+
+After that product promotion, two owner-required post-promotion investigations must also run before the current convergence program is considered closed: the P0 durable-frontier/controller-convergence campaign and a separate validation of the proposed conversational retry/re-entry evaluation methodology. The P0 campaign is mandatory rather than a go/no-go candidate. The methodology is a hypothesis to be tested, not an assumed safety standard; its causal/diagnostic/auxiliary/unrelated relationship to the P0 problem must be decided from evidence, and neither campaign's verdict substitutes for the other.
 
 `WORKBOARD.md` owns current execution position. Campaign documents may organize the route, but they do not add product requirements or replace this Directive. This section may be maintained periodically to mark major milestones achieved or deferred without turning the Directive into a work log.
 
@@ -115,7 +117,7 @@ Formal statistical-superiority claims use D0007 until that methodology is revise
 
 ## 11. Final promotion and completion
 
-Substantive unfinished product work remains on the development line. `main` is not a second unfinished development frontier.
+Substantive unfinished product work remains on the development line. `main` is not a second unfinished development frontier. Product promotion completes C2, but the current owner-directed convergence program is not finally closed until the mandatory post-promotion investigations below also reach evidence-backed closeout.
 
 Final completion requires:
 
@@ -124,5 +126,7 @@ Final completion requires:
 - remote `main` identity/readback to be verified;
 - canonical tdev self-development to transition through the owner-defined mechanism to the authorized `main` binding;
 - the corresponding final runtime/release identity to be verified where deployment is affected;
-- bounded ordinary self-development from `main` to succeed through context -> read -> Work -> required validation/integration -> authoritative readback; and
+- bounded ordinary self-development from `main` to succeed through context -> read -> Work -> required validation/integration -> authoritative readback;
+- the mandatory P0 controller/durable-frontier investigation to execute to owner-correct repair/process correction or an evidence-backed no-product-change result, with adversarial and fresh-session acceptance rather than a pre-entry defer/no-go;
+- the separate conversational retry/re-entry evaluation methodology hypothesis to be tested to an evidence-backed methodology verdict, with its causal/diagnostic/auxiliary/unrelated/unknown relationship to P0 explicitly distinguished; and
 - current governance/Design/source/test structure to be sufficient for future safe development without depending on completed campaign plans, stale overview documents, or historical evidence narratives.
