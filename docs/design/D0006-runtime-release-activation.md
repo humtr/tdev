@@ -444,6 +444,14 @@ accepts only a helper-admitted pointer and exact artifact/native-config digests;
 change removes a duplicate schema owner, not an integrity check. The helper's own
 code/config identity and installation seal remain fixed and independently verified.
 
+### Pre-migration native bridge
+
+A fixed-files-only repair is insufficient when the currently executing native broker itself predates this migration procedure: that broker may reject the new schema while decoding the managed build or while forming the staged pair before the repaired helper is ever consulted. The bootstrap therefore begins with one ordinary **same-public-schema bridge release**. Its public `tools.json` and externally observable four-tool behavior are byte-contract-equivalent to the currently active schema, while its private release broker implements the schema-neutral staging and `public-contract-v1` machinery in this section. It is an exact required-validated integrated source release and is staged and activated only by the existing ordinary same-schema path; no repair tool writes the active device pointer or Worker deployment to create the bridge.
+
+The bridge may retain newer internal multi-binding implementation only behind the old contract, but it must not expose the new repository selectors/discovery fields, change old call/output semantics, or introduce a runtime-selectable compatibility flag. Its purpose is solely to move the installed native release owner onto migration-capable code while the public contract remains unchanged. Exact live readback must prove the same old schema and old call shapes after bridge activation. If the ordinary bridge activation fails or rolls back, no fixed-file bootstrap proceeds.
+
+After the bridge is active, perform the fixed helper/launcher repair below. The bridge native owner can then stage the final required-validated new-schema source, compute the exact active-to-target `public-contract-v1` transition and drive the normal retained activation. The final migration removes the need for the bridge contract; it is not a second long-lived public owner or an alternate release path. Future eligible migrations proceed directly through the schema-neutral product path without recreating a bridge unless a separately Designed migration changes the release machinery itself.
+
 ### One-time bootstrap repair of pre-migration fixed files
 
 The installed first-release helper/launcher predates the schema-neutral rule and can
