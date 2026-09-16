@@ -33,7 +33,7 @@ The minimum logical tables are:
 
 | Record | Owned fact and key |
 | --- | --- |
-| `binding` | Provider repository ID, allowed canonical ref, binding epoch, policy digest; one row per binding. |
+| `binding` | Provider repository ID, allowed canonical ref, binding epoch and initial policy enrollment digest; one row per binding. The active adopted policy is a separate retained register projected into runtime binding views. |
 | `work` | Random 128-bit work ID, creator, exact base commit/tree, candidate generation, monotonically increasing revision, disposition, current blocker, creation order. |
 | `action` | Unique `(principal, bindingEpoch, requestId)`, canonical request digest, work ID where applicable, operation, status, durable step, attempts, deadline and result/receipt references. |
 | `validation` | Immutable validation result identity and trusted runner receipt; semantics owned by D0003. |
@@ -194,6 +194,8 @@ that Work, every Action/Attempt, prepared result, validation receipt and Effect 
 that binding's ledger/coordinator. A binding-scoped SQLite owner remains the durable
 linearization boundary; there is no cross-repository Work owner, cross-ledger SQL
 transaction, global ref lock or implicit move of retained state to another binding.
+
+The installed bootstrap policy digest in each durable binding row is enrollment identity, not a second active-policy owner. While the current topology uses one installation-wide managed execution policy, its retained `policy.enrollment` / `policy.active` register owns the active digest. Every in-memory binding view used by authorization, context, validation/integration and release control projects that same live digest while repository/ref/epoch identity remains immutable. Commissioning, restore or adoption must update that shared projection atomically from the policy owner; a stale per-binding clone must never authorize or label work under a different policy from the managed validator actually executing it.
 
 Logical request identity is `(principal, repositoryId, bindingEpoch, requestId)`.
 The same requestId on another binding is independent; a retry for an existing Action

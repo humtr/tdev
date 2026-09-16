@@ -46,7 +46,7 @@ export function qualifiedPolicy(input){
  * binding. No stale runtime config is allowed to reset an adopted policy.
  */
 export class PolicyState {
- /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,enrollment?:{digest:string,policy:AdoptedPolicy},authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
+ /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,enrollment?:{digest:string,policy:AdoptedPolicy},projectPolicyDigest?:(policyDigest:string)=>string,authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
  constructor(options){this.o=options;this.now=options.now??Date.now;this.initialDigest=options.initial.policy.digest;this.baseDigest=this.initialDigest;this.current=options.initial;}
  /** @returns {Adoption|null} */
  retained(){return this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.active'");return row?/** @type {Adoption} */(parseRecord(String(row.value))):null;});}
@@ -69,12 +69,12 @@ export class PolicyState {
   */
  async restore(){
   const commissioned=await this.commissioning(),record=this.retained();
-  if(!record){requireThat([this.initialDigest,this.baseDigest].includes(this.o.binding.policyDigest),'INTEGRITY_FAILURE');this.current=commissioned;this.o.binding.policyDigest=commissioned.policy.digest;this.o.ledger.binding.policyDigest=commissioned.policy.digest;return this.current;}
+  if(!record){requireThat([this.initialDigest,this.baseDigest].includes(this.o.binding.policyDigest),'INTEGRITY_FAILURE');this.current=commissioned;this.o.binding.policyDigest=commissioned.policy.digest;this.o.ledger.binding.policyDigest=commissioned.policy.digest;this.o.projectPolicyDigest?.(commissioned.policy.digest);return this.current;}
   requireThat(record.schemaVersion===1&&record.initialPolicyDigest===this.initialDigest,'INTEGRITY_FAILURE','Policy enrollment mismatch');
   const restored=qualifiedPolicy({schemaVersion:1,...record.policy});
   requireThat(await this.o.qualify(restored),'EXECUTION_UNAVAILABLE','Adopted execution policy is not installed');
   const after=this.retained();requireThat(after&&canonicalJson(after)===canonicalJson(record),'STALE_RESULT');
-  this.current=restored;this.o.binding.policyDigest=restored.policy.digest;this.o.ledger.binding.policyDigest=restored.policy.digest;return restored;
+  this.current=restored;this.o.binding.policyDigest=restored.policy.digest;this.o.ledger.binding.policyDigest=restored.policy.digest;this.o.projectPolicyDigest?.(restored.policy.digest);return restored;
  }
  /** Observation only: SQL commit or absence is authoritative once the previous
   * continuation has stopped. Never manufacture a second adoption to recover a
@@ -114,7 +114,7 @@ export class PolicyState {
    const text=canonicalJson(record);tx.run('INSERT INTO meta(key,value) VALUES(?,?)','policy.adoption:'+actionId,text);tx.run("INSERT INTO meta(key,value) VALUES('policy.active',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",text);
   });
   // Synchronous projection after durable commit. A crash here is repaired by restore().
-  this.current=next;this.o.binding.policyDigest=next.policy.digest;this.o.ledger.binding.policyDigest=next.policy.digest;return this.output(record);
+  this.current=next;this.o.binding.policyDigest=next.policy.digest;this.o.ledger.binding.policyDigest=next.policy.digest;this.o.projectPolicyDigest?.(next.policy.digest);return this.output(record);
  }
  /** @param {Adoption} record */
  output(record){return {kind:/** @type {const} */('policy'),integratedCommit:record.integratedCommit,previousPolicyDigest:record.previousPolicyDigest,policyDigest:record.policy.digest};}

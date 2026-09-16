@@ -7,7 +7,7 @@ import {failure} from '../contracts/envelopes.mjs';
 import {capacity,oid,digest,id,revision} from '../contracts/identity.mjs';
 import {GitRepository} from '../repository/git.mjs';
 import {ContextService} from '../repository/context.mjs';
-import {installationBindings} from '../repository/bindings.mjs';
+import {runtimeBindings} from '../repository/bindings.mjs';
 import {ScopedAuthorization} from '../security/authorization.mjs';
 import {accessApplicationVerifier} from '../security/access-application.mjs';
 import {Ledger} from '../storage/ledger.mjs';
@@ -49,7 +49,7 @@ const unavailableValidation={async validate(){throw new Dev2Error('EXECUTION_UNA
 /** @param {NativeConfig} config @param {{log?:(event:string)=>void,commissioningIntent?:import('./production-enrollment.mjs').ProductionIntent}} [options] */
 export async function createNativeInstallation(config,options={}){
  requireThat(config.schemaVersion===1&&config.runtime.schemaDigest===SCHEMA_DIGEST,'INTEGRITY_FAILURE','Installation/schema mismatch');
- const edge=config.edge,bindings=installationBindings(edge),binding=edge.binding;workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
+ const edge=config.edge,{binding,bindings,projectPolicyDigest}=runtimeBindings(edge);workersDevOrigin(edge.origin);capacity(config.capacity);id(edge.installationId);id(edge.deviceId);
  requireThat(!config.productionEnrollmentFile||config.managedEnrollmentFile,'EXECUTION_UNAVAILABLE','Production enrollment requires historical managed enrollment');
  requireThat(!!config.releaseControl===!!config.releaseArtifactDirectory,'EXECUTION_UNAVAILABLE','Incomplete installed release configuration');
  if(config.releaseArtifactDirectory)await privateDirectory(config.releaseArtifactDirectory);
@@ -124,7 +124,7 @@ export async function createNativeInstallation(config,options={}){
   await installWriter(binding,/** @type {any} */(bindingProviders.get(binding.repositoryId)),enrollment.repositoryOwnerId,enrollment.canonicalRuleset);
   for(const selected of bindings)if(selected.repositoryId!==binding.repositoryId){const provider=/** @type {any} */(bindingProviders.get(selected.repositoryId));if(provider?.gitSender)await installWriter(selected,provider,String(provider.repositoryOwnerId),provider.canonicalRuleset);}
   sender=/** @type {DurableGitSender} */(senders.get(binding.repositoryId));guard=/** @type {GitHubCanonicalBoundary} */(guards.get(binding.repositoryId));
-  managed=await createManagedControl({enrollment,productionEnrollment,commissioningIntent:options.commissioningIntent,admission,installationSealDigest:config.releaseControl?.installationSealDigest,runtime:config.runtime,origin:edge.origin,ledger,binding,targets,repository,objects,authorization,initialPolicy,remote:remoteTransport,verifyLineage:integrationLineage,token,receiptSecret:cursorKey,capacity:config.capacity,wake:()=>arbiter.wake()});
+  managed=await createManagedControl({enrollment,productionEnrollment,commissioningIntent:options.commissioningIntent,admission,installationSealDigest:config.releaseControl?.installationSealDigest,runtime:config.runtime,origin:edge.origin,ledger,binding,targets,repository,objects,authorization,initialPolicy,projectPolicyDigest,remote:remoteTransport,verifyLineage:integrationLineage,token,receiptSecret:cursorKey,capacity:config.capacity,wake:()=>arbiter.wake()});
  }else requireThat(!ledger.transact(tx=>tx.get("SELECT value FROM meta WHERE key='policy.enrollment'")),'EXECUTION_UNAVAILABLE','Retained managed installation cannot silently fall back to bootstrap');
  const policy=()=>managed?.policyState.current??initialPolicy,activeManaged=managed;
  const runProfileFor=(/** @type {import('../contracts/ports.js').Binding} */ selected,/** @type {Ledger} */ ownerLedger)=>async(/** @type {import('../contracts/ports.js').Work} */ work,/** @type {import('../contracts/ports.js').Attempt} */ attempt,/** @type {import('../contracts/ports.js').Profile} */ profile)=>{

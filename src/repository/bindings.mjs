@@ -21,6 +21,21 @@ export function installationBindings(config){
  requireThat(bindings.some(b=>canonicalJson(b)===canonicalJson(config.binding)),'INTEGRITY_FAILURE','Primary binding is absent from registry');
  return Object.freeze(bindings);
 }
+/** Runtime binding views keep repository/ref/epoch identity frozen while the one
+ * installation-wide active policy register remains a live projection. The durable
+ * ledger binding row still retains the initial enrollment identity; PolicyState is
+ * the sole owner that advances this shared runtime policy digest.
+ * @param {RegistryConfig} config */
+export function runtimeBindings(config){
+ const installed=installationBindings(config),bindings=installed.map(source=>{const binding=/** @type {Binding} */(structuredClone(source));
+  for(const key of Object.keys(binding))if(key!=='policyDigest')Object.defineProperty(binding,key,{writable:false,configurable:false});
+  Object.defineProperty(binding,'policyDigest',{writable:true,configurable:false});return Object.seal(binding);});
+ const primary=bindings.find(candidate=>candidate.repositoryId===config.binding.repositoryId);
+ requireThat(primary&&canonicalJson(primary)===canonicalJson(config.binding),'INTEGRITY_FAILURE','Runtime primary binding differs');
+ /** @param {string} value */
+ const projectPolicyDigest=value=>{const next=digest(value);for(const target of bindings)target.policyDigest=next;return next;};
+ return {binding:/** @type {Binding} */(primary),bindings:Object.freeze(bindings),projectPolicyDigest};
+}
 /** @param {readonly Binding[]} bindings @param {Binding} primary @param {unknown} selector */
 export function selectInstalledBinding(bindings,primary,selector){
  const repositoryId=selector===undefined||selector==='self'?primary.repositoryId:String(selector),selected=bindings.find(b=>b.repositoryId===repositoryId);
