@@ -1,6 +1,6 @@
 import {canonicalJson} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
-import {id} from '../contracts/identity.mjs';
+import {digest,id} from '../contracts/identity.mjs';
 /** @typedef {import('../contracts/ports.js').Binding} Binding */
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
 /** @typedef {import('./session-types.js').AssignedInput} AssignedInput */
@@ -17,6 +17,11 @@ export class ManagedTargets {
  constructor(controllerBinding,controllerLedger){this.controllerBinding=structuredClone(controllerBinding);/** @type {Map<string,{binding:Binding,ledger:import('../storage/ledger.mjs').Ledger}>} */this.owners=new Map();this.register(controllerBinding,controllerLedger);}
  /** @param {Binding} binding @param {import('../storage/ledger.mjs').Ledger} ledger */
  register(binding,ledger){requireThat(binding.installationId===this.controllerBinding.installationId&&canonicalJson(ledger.binding)===canonicalJson(binding),'INTEGRITY_FAILURE','Managed target ledger binding differs');const prior=this.owners.get(binding.repositoryId);if(prior){requireThat(prior.ledger===ledger&&canonicalJson(prior.binding)===canonicalJson(binding),'INTEGRITY_FAILURE','Managed target binding changed without a new registry');return this;}this.owners.set(binding.repositoryId,{binding:structuredClone(binding),ledger});return this;}
+ /** Project only the installation-wide active policy register into managed runtime
+  * views. Repository/ref/epoch identity remains the cloned registry identity and
+  * each Ledger's durable binding row remains the original enrollment record.
+  * @param {string} value */
+ projectPolicyDigest(value){const next=digest(value);this.controllerBinding.policyDigest=next;for(const owner of this.owners.values()){owner.binding.policyDigest=next;owner.ledger.binding.policyDigest=next;}return next;}
  /** @param {string} repositoryId */
  owner(repositoryId){id(repositoryId);const owner=this.owners.get(repositoryId);requireThat(owner,'FORBIDDEN','Managed target binding is not installed');return owner;}
  /** @param {AssignedInput} input */

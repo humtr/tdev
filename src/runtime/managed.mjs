@@ -63,7 +63,7 @@ export async function createManagedControl(options){
  // The full per-install seal still binds that exact native join and assignments.
  const {nativeJoin:ignored,sealDigest:ignoredSeal,...controllerEnrollment}=e;
  const commissioningDigest=recordDigest('dev2.controller-commissioning.v1',controllerEnrollment);
- const policyState=new PolicyState({ledger:o.ledger,binding:o.binding,initial:o.initialPolicy,enrollment:{digest:commissioningDigest,policy:enrolled.policy},projectPolicyDigest:o.projectPolicyDigest,authorize:(principal,path)=>o.authorization.authorize(principal,o.binding,'policy.write',[path]),verifyIntegrated:(commit,policy)=>authority.verify(commit,policy),readBlob:blob=>o.repository.blob(blob),qualify:async policy=>capable(policy)});
+ const policyState=new PolicyState({ledger:o.ledger,binding:o.binding,initial:o.initialPolicy,enrollment:{digest:commissioningDigest,policy:enrolled.policy},projectPolicyDigest:value=>{const next=o.projectPolicyDigest?.(value)??value;o.targets?.projectPolicyDigest(next);return next;},authorize:(principal,path)=>o.authorization.authorize(principal,o.binding,'policy.write',[path]),verifyIntegrated:(commit,policy)=>authority.verify(commit,policy),readBlob:blob=>o.repository.blob(blob),qualify:async policy=>capable(policy)});
  await policyState.restore();validator(policyState.current);
  const views=()=>managedSessionViews(sessions);
  const identity=()=>{const rows=views();return {state:'ready',sealDigest:production&&supportsManagedPolicy(policyState.current,production.definition.identities)?production.enrolled.sealDigest:enrolled.sealDigest,activeSessions:rows.filter(s=>s.state==='ready'||s.state==='busy').length,reservedSessions:rows.filter(s=>s.state==='waiting'||s.state==='reserved').length,reason:null};};
