@@ -210,3 +210,39 @@ by the number of descriptors. No raw provider credential, enrollment record or
 ungranted repository identity is exposed. Existing single-binding clients that omit
 `repository` remain byte-semantically on `self` except for the intentional schema
 revision required to add these optional selectors/discovery fields.
+
+## C2-1 additive public-contract transition
+
+The first multi-binding rollout changes the descriptor digest while preserving the
+four public tool identities. This is a public-contract migration and therefore uses
+D0006's separate migration procedure rather than pretending an ordinary same-schema
+activation is sufficient. It does not authorize arbitrary future schema drift.
+
+The bounded `public-contract-v1` transition is eligible only when the old and new
+`tools.json` are both exact immutable release artifacts and all four tool names,
+descriptions and owner-selected annotations are unchanged. For every input schema,
+all previously accepted fields and constraints remain unchanged: new properties may
+be added only as optional fields, an existing required set may shrink, and a default
+may be added only where omission already had the same documented behavior. No input
+property is removed, renamed or narrowed and no old accepted request becomes invalid.
+For outputs, existing fields and their meanings remain unchanged; new properties may
+be added, and a newly added property may be required in the new output. Error and
+request-identity semantics are unchanged. A structural checker over canonical schema
+records produces the retained transition digest; hand-written claims do not.
+
+The C2-1 transition is intentionally narrower than that general predicate: existing
+single-binding calls continue to select `self`; repository selection is added to
+`dev_read` and per-item `dev_work`; primary-only special operations may default their
+repository to `self`; and `dev_context` adds authorized repository discovery. The
+actual active-to-candidate descriptor comparison must satisfy the predicate at the
+migration boundary. Same names or a Design statement alone are not proof.
+
+After paired activation but before client Refresh, the still-connected client must
+successfully exercise the old call shapes for `dev_context`, `dev_read`, `dev_work`
+and `dev_observe` against `self`. Failure triggers the retained D0006 rollback and the
+new schema is not accepted live. Only after that old-shape compatibility proof may
+the client Refresh its descriptors and exercise the new repository selectors. C2-1
+acceptance then requires the refreshed client to discover and use the second binding.
+This bounded rollout rule does not make future breaking input changes backward
+compatible and does not add a fifth public operation or migration flag supplied by
+repository content.

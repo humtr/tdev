@@ -398,3 +398,79 @@ total capacity unchanged; wrong-binding negatives; response-loss/retry without a
 second logical action or provider execution; and terminal managed-session and
 operational-ref retirement preserving C1. Normal product use must not require TMCP,
 direct GitHub mutation or manual MCP rebinding between the two targets.
+
+## Bounded public-contract migration
+
+Ordinary activation remains a same-public-schema operation. `compatiblePair` continues
+to require equal schema digests and may not be weakened merely because a new source
+was validated. D0004 owns whether a specific descriptor transition is backward-input
+compatible. A different schema digest may activate only through the separate
+`public-contract-v1` procedure below; a transition outside that bounded predicate
+requires another Design revision.
+
+`release.stage` is intentionally less restrictive than activation. It may prepare an
+inactive release whose schema differs from the active release after native production
+receipt verification. Schema identity is derived from the exact receipt-bound
+`tools.json`, and every staged artifact store, helper admission, provider upload and
+private device-config preparation verifies that release's manifest/tools identity.
+The currently installed helper or broker schema is not a second authority for the
+candidate release. Staging still preserves the four tool names/annotation policy and
+per-release installation seal, executor, repository, epoch and artifact digests.
+Staging a different schema does not make it activatable.
+
+For a staged target with a different schema, the native owner loads the immutable
+active and target `tools.json`, runs D0004's structural `public-contract-v1` checker,
+and freezes its transition digest before asking the fixed helper to begin. The
+activation intent carries a versioned migration record binding previous/target schema
+digests and the transition digest. The fixed helper independently re-reads both
+retained artifact sets and recomputes the same transition before journaling the
+activation. No caller-supplied boolean, repository prose or candidate output can
+select migration eligibility. Protocol overlap and the current ledger version remain
+mandatory; destructive ledger migration is still outside this procedure.
+
+The migration uses the existing single activation journal and the same exact provider,
+writer-fence, runit, pointer, health and rollback effects. It does not create another
+release owner. Edge activation, device drain/stop, pointer switch, device start and
+paired readback remain recoverable by the retained activation identity. If the
+transition predicate, artifact verification, active-pair precondition or any later
+readback fails, the existing rollback target is the exact previous pair. A response
+loss never creates another migration or provider deployment.
+
+Fixed release infrastructure must be schema-neutral after this revision. The helper,
+release artifact store, Cloudflare staging adapter, private device-config preparer and
+fixed launcher validate the schema named by each immutable release rather than pinning
+all future releases to the schema compiled into the helper itself. The launcher still
+accepts only a helper-admitted pointer and exact artifact/native-config digests; this
+change removes a duplicate schema owner, not an integrity check. The helper's own
+code/config identity and installation seal remain fixed and independently verified.
+
+### One-time bootstrap repair of pre-migration fixed files
+
+The installed first-release helper/launcher predates the schema-neutral rule and can
+therefore deadlock the very migration that replaces the public contract. For this
+specific self-hosting bootstrap defect, an authorized development/repair tool may
+replace only the fixed helper bundle, its bound helper-bundle digest, and the fixed
+device-launcher bytes with required-validated canonical versions implementing this
+section. This is not ordinary release activation and is not evidence that normal tdev
+operation depends on that repair tool.
+
+Before the bootstrap, prove there is no active activation journal/effect, record the
+exact running device/helper identities and retain byte-for-byte backups of every file
+to be replaced. Stop only the helper service; do not change the active device pointer,
+Worker deployment, work ledger or canonical source. Install the new fixed files by
+private same-filesystem atomic replacement, restart the helper, and require fresh
+private status to report the exact same retained active pair while the original device
+process continues unchanged. Any failure restores the old files/config and restarts
+the old helper before other release work. The launcher replacement is inert until a
+later device start. The bootstrap performs no provider deployment and no pointer
+switch.
+
+After that repair, a retained exact production build for the already validated C2-1
+source may enter `public-contract-v1`; the migration must then pass D0004's old-shape
+live client proof before client Refresh. Once a schema-neutral helper/launcher and a
+schema-neutral native release are active, future eligible additive migrations use the
+product release path itself and require no TMCP, direct provider mutation or manual
+MCP rebinding. Acceptance includes bootstrap rollback injection, staging a different
+schema without activation, rejection of a narrowing schema, migration response loss,
+paired rollback, old-shape live client use before Refresh and refreshed two-binding
+use afterwards.
