@@ -57,13 +57,27 @@ Nominal route:
 - `C2-3` — repository-aware source/context transfer deduplication
 - `C2-4` — final convergence, bounded cost acceptance, exact-state `main` promotion and self-development acceptance
 
+## C5 — P0 controller convergence and durable-frontier discipline
+
+Detailed draft: [C5-p0-controller-convergence.md](C5-p0-controller-convergence.md)
+
+Status: issued post-C2 candidate, not active during C2. C5 must begin with a fresh go/no-go/scope revalidation on the verified post-C2 product; the P0 label records urgency, while `C5` is the permanent RULE-compliant campaign identity.
+
+Purpose: determine why the conversational development controller can lose or misclassify an already-retained durable tdev/TMCP frontier across response loss, transient unavailability, long-running work, historical backlog and bounded parallel lanes, then apply only owner-correct repairs needed to make exact rebind/reconcile/join behavior reliable from fresh sessions.
+
+Provisional nominal route if activated:
+
+`C5-1` -> `C5-2` -> `C5-3` -> `C5-4` -> `C5-5` -> `C5-6`
+
+Provisional placement is after C2 and before C4. At C2 closeout, WORKBOARD freshly revalidates whether C5 remains independently necessary. If no-go/deferred, route directly to C4; if activated, close C5 before auditing the final public contract in C4. Issuance does not make C5 a C2 dependency.
+
 ## C4 — public tool-contract ergonomics and misuse-resistance audit
 
 Detailed plan: [C4-tool-contract-ergonomics-audit.md](C4-tool-contract-ergonomics-audit.md)
 
-Status: issued post-C2 campaign, not active before C2 completion.
+Status: issued post-C2 campaign, not active before C2 completion or any C5 selected by post-C2 routing.
 
-Purpose: after C2 has converged the product and promoted/accepted canonical `main`, comprehensively audit the actual final four-tool public contract for hidden constraints, identity handoff ambiguity, error actionability, async/retry usability, multi-repository/ref ergonomics, invalid-call cost and misuse resistance. Repair only evidence-backed defects through the then-current owner-authorized development workflow.
+Purpose: after C2 has converged the product and promoted/accepted canonical `main`, and after C5 if fresh post-C2 routing activates it, comprehensively audit the actual final four-tool public contract for hidden constraints, identity handoff ambiguity, error actionability, async/retry usability, multi-repository/ref ergonomics, invalid-call cost and misuse resistance. Repair only evidence-backed defects through the then-current owner-authorized development workflow.
 
 Nominal route:
 

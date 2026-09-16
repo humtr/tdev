@@ -1,14 +1,14 @@
 # C4 — public tool-contract ergonomics and misuse-resistance audit
 
-Status: issued post-C2 campaign; not active before C2 completion
+Status: issued post-C2 campaign; not active before C2 completion or any C5 selected by post-C2 routing
 
-This document is a non-authoritative campaign plan. `DIRECTIVE.md`, `RULE.md`, current accepted Designs, executable product contracts and `WORKBOARD.md` own meaning and current routing. C4 is deliberately scheduled after C2 so the audit observes the converged product rather than repeatedly optimizing an interface that is still changing.
+This document is a non-authoritative campaign plan. `DIRECTIVE.md`, `RULE.md`, current accepted Designs, executable product contracts and `WORKBOARD.md` own meaning and current routing. C4 is deliberately scheduled after C2 and, if fresh post-C2 routing activates it, C5, so the audit observes the converged product/controller surface rather than repeatedly optimizing an interface or controller workflow that is still changing.
 
 ## 1. Campaign purpose and entry condition
 
 C4 performs a comprehensive audit of the final tdev public development contract as actually used by ChatGPT. Its concern is not adding a new execution capability; it is making the existing typed product difficult to misuse, easy to discover correctly, and cheap to recover when an invalid call is attempted, without weakening exactness, authorization, isolation or explicit-effect semantics.
 
-C4 begins only after C2 has completed exact-state `main` promotion, canonical self-development has moved to the verified `main` binding, and the bounded ordinary self-development acceptance required by C2 has succeeded. If C3 was activated before C2, its accepted public execution surface is included in this audit; if C3 was deferred/no-go, C4 does not revive it merely to create audit scope.
+C4 begins only after C2 has completed exact-state `main` promotion, canonical self-development has moved to the verified `main` binding, and the bounded ordinary self-development acceptance required by C2 has succeeded. At the post-C2 routing gate, if C5 is activated, C4 waits for C5 closeout so it audits the final controller-facing contract; if C5 is deferred/no-go, routing may proceed directly to C4. If C3 was activated before C2, its accepted public execution surface is included in this audit; if C3 was deferred/no-go, C4 does not revive it merely to create audit scope.
 
 At C4 entry, freshly bind the then-current canonical repository/ref, runtime, release, schema and public tool surface. Do not rely on the examples or implementation details in this draft as current truth.
 
