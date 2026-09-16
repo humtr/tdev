@@ -3,7 +3,6 @@ import {requireThat} from '../contracts/errors.mjs';
 import {assertProductionEnrollment} from '../runtime/production-enrollment.mjs';
 import {releaseBuildProfile,releaseBuildExecution} from './build-profile.mjs';
 import {productionBuildOutput} from './production-output.mjs';
-import {SCHEMA_DIGEST} from '../mcp/outputs.mjs';
 import {releaseManifest} from './manifest.mjs';
 import {specialActionFence} from './action.mjs';
 /** @typedef {import('./authority.mjs').IntegratedSource} Source */
@@ -53,7 +52,7 @@ export class ManagedReleaseBuilder {
   const decoded=await productionBuildOutput(outer,this.o.objects);
   this.assert();requireThat(canonicalJson(this.retained(input.actionId))===canonicalJson(input),'STALE_RESULT');
   const receipt={schemaVersion:1,kind:'dev2.release-production-build',actionId:input.actionId,inputDigest,proof};
-  const manifest=releaseManifest({schemaVersion:1,repositoryId:source.repositoryId,bindingEpoch:source.bindingEpoch,sourceCommitOid:source.commitOid,sourceTreeOid:source.source.treeOid,sourceManifestDigest:source.source.manifestDigest,policyDigest:source.policyDigest,schemaDigest:SCHEMA_DIGEST,protocol:{min:1,max:1},ledger:{min:1,max:1},installationSealDigest:this.o.installationSealDigest,requiredValidationId:source.validationId,releaseValidationId:recordDigest('dev2.release-build-receipt.v1',receipt),device:{artifactDigest:decoded.refs.device,sourceCommitOid:source.commitOid},edge:{artifactDigest:decoded.refs.edge,sourceCommitOid:source.commitOid,compatibilityDate:'2026-08-15'},executor:{workflowDigest:i.identities.workflowDigest,controllerDigest:i.identities.trustedRunnerDigest,sealDigest:p.sealDigest}});
+  const manifest=releaseManifest({schemaVersion:1,repositoryId:source.repositoryId,bindingEpoch:source.bindingEpoch,sourceCommitOid:source.commitOid,sourceTreeOid:source.source.treeOid,sourceManifestDigest:source.source.manifestDigest,policyDigest:source.policyDigest,schemaDigest:decoded.schemaDigest,protocol:{min:1,max:1},ledger:{min:1,max:1},installationSealDigest:this.o.installationSealDigest,requiredValidationId:source.validationId,releaseValidationId:recordDigest('dev2.release-build-receipt.v1',receipt),device:{artifactDigest:decoded.refs.device,sourceCommitOid:source.commitOid},edge:{artifactDigest:decoded.refs.edge,sourceCommitOid:source.commitOid,compatibilityDate:'2026-08-15'},executor:{workflowDigest:i.identities.workflowDigest,controllerDigest:i.identities.trustedRunnerDigest,sealDigest:p.sealDigest}});
   return {manifest,refs:decoded.refs,receipt};
  }
  /** Reconstruct from authenticated retained execution and actual bytes; a supplied
