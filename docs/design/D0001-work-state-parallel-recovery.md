@@ -59,6 +59,14 @@ This codec owns only serialization/identity mechanics. D0002 owns source-manifes
 
 ### Dispatch and resource policy
 
+For the additive C2-1 selector migration, retained pre-selector requests keep their
+original immutable intent and digest. After current binding authorization, replay
+may match an old intent lacking `repository` only when the sole normalized change
+is the new `self` or exact selected-binding selector. The ledger's immutable
+repository/epoch still fences the request. Compare every other field exactly and
+submit the original retained bytes to deduplication; never rewrite tombstones or
+reinterpret a changed payload as the old action.
+
 A deterministic ready-row selector inside the broker replaces a separate queue service. It chooses eligible actions round-robin across principals/repositories and in admission order within a work. It skips a fenced/blocked action rather than causing head-of-line blocking. A wakeup on admission/completion and a bounded periodic scan reconstruct scheduling after restart. The scan has a persistent cursor/fairness rule so a busy prefix cannot starve later rows.
 
 `executionCapacity` is a positive integer, default 8, with no product semantic upper bound. Limits on pending requests, bytes, CPU, memory and disks are separately advertised resource policies. A deployment may cap configured execution capacity according to available resources, but neither work IDs nor API batch counts define that cap. Reads and short immutable edits do not consume a long-running execution slot. Validation, diagnostic execution and release build attempts use the same bounded execution budget; cancellation and observation retain reserved control-plane capacity.

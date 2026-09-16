@@ -92,7 +92,13 @@ export class DevelopmentEngine {
   const prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId));
   const authorize=()=>this.authorize(principal,item);
   if(prior){
-   const exact={principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:prior.deadline,mutate:()=>{throw new Dev2Error('INTEGRITY_FAILURE','Dedup row disappeared');}};
+   const retained=this.ledger.transact(tx=>tx.intent(prior.actionId));
+   let intent=/** @type {unknown} */(item);
+   if(retained&&typeof retained==='object'&&!Array.isArray(retained)&&!Object.hasOwn(retained,'repository')&&(item.repository==='self'||item.repository===this.binding.repositoryId)){
+    const withoutSelector={...item};delete withoutSelector.repository;
+    if(canonicalJson(withoutSelector)===canonicalJson(retained))intent=retained;
+   }
+   const exact={principal:principal.subject,requestId:item.requestId,operation:item.op,intent,authorize,deadline:prior.deadline,mutate:()=>{throw new Dev2Error('INTEGRITY_FAILURE','Dedup row disappeared');}};
    // Verify the original payload before any recovery observation or state change.
    const receipt=await this.coordinator.admit(exact);
    if(!prior.workId&&prior.status==='blocked'){await this.specialRecovery.observe(principal,prior.actionId,true);return this.admission(await this.coordinator.admit(exact));}

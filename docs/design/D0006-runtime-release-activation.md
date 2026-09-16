@@ -387,6 +387,14 @@ assignment, provider-run and operational-ref identities.
 
 One installation-wide execution arbiter enforces the configured capacity across all
 target engines. Binding count cannot multiply managed-session/provider-run capacity.
+Release drain covers every installed engine. The fixed writer fence must acquire
+all retained binding SQLite owner locks and all binding-scoped Git sender locks
+before switching the one installation pointer. Secondary ledgers live in the fixed
+`binding-ledgers` sibling of the primary ledger; their filenames bind the complete
+immutable Binding digest. Sender roots use that same Binding under their distinct
+sender-domain digest. Retained removed epochs are included: absence from current
+discovery does not prove an uncertain sender stopped. Unknown files, foreign
+installation identity or any held lock block the switch without stealing ownership.
 The primary/controller binding continues to own `policy.adopt`, release build/stage,
 activation and runtime source migration in C2-1; those operations reject secondary
 target bindings. General multi-repository release orchestration is not introduced.
@@ -436,6 +444,14 @@ transition predicate, artifact verification, active-pair precondition or any lat
 readback fails, the existing rollback target is the exact previous pair. A response
 loss never creates another migration or provider deployment.
 
+An explicit post-activation rollback (including failed old-client acceptance)
+derives only the latest successful activation's exact previous pair. For a schema
+migration the helper independently rechecks the retained **forward** transition,
+then records its digest and `rollbackOf` activation identity in the reverse intent.
+Removal of additive fields is not a newly eligible forward migration. Native
+`begin` rejects caller-supplied rollback records; only the existing helper rollback
+operation derives them. Automatic failure rollback retains the original intent.
+
 Fixed release infrastructure must be schema-neutral after this revision. The helper,
 release artifact store, Cloudflare staging adapter, private device-config preparer and
 fixed launcher validate the schema named by each immutable release rather than pinning
@@ -461,6 +477,12 @@ replace only the fixed helper bundle, its bound helper-bundle digest, and the fi
 device-launcher bytes with required-validated canonical versions implementing this
 section. This is not ordinary release activation and is not evidence that normal tdev
 operation depends on that repair tool.
+
+The same bounded repair also replaces the fixed writer-fence helper and its digest
+in helper configuration when enabling multi-binding: a primary-only fence cannot
+prove installation-wide writer termination. No writer-fence paths, credentials,
+service configuration or ledger contents are changed by this repair. The backup,
+quiescence, atomic replacement and restoration rules below apply to these bytes too.
 
 Before the bootstrap, prove there is no active activation journal/effect, record the
 exact running device/helper identities and retain byte-for-byte backups of every file

@@ -2,6 +2,7 @@ import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs
 import {digest,id} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {releaseIdentity,releaseManifest,runtimePair,activationIntent,compatiblePair} from './manifest.mjs';
+import {releaseTransition} from './contract-migration.mjs';
 /** @typedef {import('./types.js').RuntimePair} Pair */
 /** @typedef {import('./types.js').ActivationIntent} Intent */
 /** @typedef {import('./types.js').ActivationRecord} Activation */
@@ -30,7 +31,7 @@ export class FixedReleaseService {
  }
  /** Authenticated native handoff only; candidate output cannot call this method.
   * @param {Build} build @param {Pair} previous */
- async admitBuild(build,previous){this.assert();const m=releaseManifest(build.manifest);runtimePair(previous);requireThat(m.repositoryId===this.o.repositoryId&&m.bindingEpoch===this.o.bindingEpoch&&m.schemaDigest===previous.schemaDigest&&m.installationSealDigest===this.o.installationSealDigest&&canonicalJson(m.executor)===canonicalJson(this.o.executor)&&build.receipt!==null&&typeof build.receipt==='object'&&!Array.isArray(build.receipt),'FORBIDDEN','Unenrolled native release build');
+ async admitBuild(build,previous){this.assert();const m=releaseManifest(build.manifest);runtimePair(previous);requireThat(m.repositoryId===this.o.repositoryId&&m.bindingEpoch===this.o.bindingEpoch&&m.installationSealDigest===this.o.installationSealDigest&&canonicalJson(m.executor)===canonicalJson(this.o.executor)&&build.receipt!==null&&typeof build.receipt==='object'&&!Array.isArray(build.receipt),'FORBIDDEN','Unenrolled native release build');
   const releaseId=releaseIdentity(m);requireThat(Buffer.byteLength(canonicalJson(build))<=262144,'LIMIT_EXCEEDED');await this.o.artifacts.verify(releaseId,m,build.refs);this.assert();
   this.retain('helper.build:'+releaseId,{build,previous});await this.o.configs.prepare(build,previous);this.assert();return releaseId;
  }
@@ -43,11 +44,14 @@ export class FixedReleaseService {
   * this authenticated handoff and is retained even across that broker's stop.
   * @param {Intent} input @param {Build} build */
  async begin(input,build){const intent=activationIntent(input);this.assert();requireThat(intent.installationId===this.o.installationId&&intent.repositoryId===this.o.repositoryId&&intent.bindingEpoch===this.o.bindingEpoch,'FORBIDDEN');
+  requireThat(!intent.migration?.rollbackOf,'FORBIDDEN','Rollback is derived only by the helper');
   const old=this.journal.read(intent.activationId);if(old){requireThat(canonicalJson(old.intent)===canonicalJson(intent),'IDEMPOTENCY_MISMATCH');return old;}
   requireThat(this.now()<intent.deadline&&intent.createdAt<=this.now()+2000,'EXECUTION_UNAVAILABLE');requireThat(canonicalJson(await this.activePair())===canonicalJson(intent.previous),'STALE_RESULT');
   const releaseId=await this.admitBuild(build,intent.previous),m=build.manifest,t=intent.target,p=intent.previous;
   requireThat(releaseId===t.releaseId&&m.sourceCommitOid===t.sourceCommitOid&&m.schemaDigest===t.schemaDigest&&m.device.artifactDigest===t.deviceArtifactDigest&&m.device.sourceCommitOid===t.deviceSourceCommitOid&&m.edge.artifactDigest===t.edgeArtifactDigest&&m.edge.sourceCommitOid===t.edgeSourceCommitOid&&canonicalJson(m.protocol)===canonicalJson(t.protocol)&&canonicalJson(m.ledger)===canonicalJson(t.ledger),'INTEGRITY_FAILURE','Activation does not name staged bytes');
-  const unchanged=m.device.artifactDigest===p.deviceArtifactDigest&&m.device.sourceCommitOid===p.deviceSourceCommitOid;requireThat(t.deviceReleaseId===(unchanged?p.deviceReleaseId:releaseId),'INTEGRITY_FAILURE');compatiblePair(p,t,1);await this.o.configs.pointerFor(t);
+  const unchanged=m.device.artifactDigest===p.deviceArtifactDigest&&m.device.sourceCommitOid===p.deviceSourceCommitOid;requireThat(t.deviceReleaseId===(unchanged?p.deviceReleaseId:releaseId),'INTEGRITY_FAILURE');
+  if(intent.migration)requireThat(canonicalJson(await releaseTransition(this.o.artifacts,p,t))===canonicalJson(intent.migration),'INTEGRITY_FAILURE','Independent helper transition differs');else compatiblePair(p,t,1);
+  await this.o.configs.pointerFor(t);
   this.o.edge.verifyVersion(await this.o.edge.version(t.edgeVersionId),t.edgeSourceCommitOid,t.edgeArtifactDigest,m.edge.compatibilityDate);this.assert();requireThat(!this.journal.active()&&canonicalJson(await this.activePair())===canonicalJson(p),'STALE_RESULT');
   return this.journal.begin(intent);
  }
@@ -58,11 +62,14 @@ export class FixedReleaseService {
   * @param {string} sourceActivationId */
  async rollback(sourceActivationId){id(sourceActivationId);this.assert();const source=this.journal.read(sourceActivationId);requireThat(source&&source.phase==='active'&&source.observedPair&&canonicalJson(source.observedPair)===canonicalJson(source.intent.target),'STALE_RELEASE','Only a successful retained activation can be rolled back');
   const rollbackActivationId=recordDigest('dev2.explicit-release-rollback.v1',{installationId:this.o.installationId,sourceActivationId,intentDigest:source.intentDigest}).slice(7),existing=this.journal.read(rollbackActivationId);if(existing)return existing;
-  const current=await this.activePair();requireThat(canonicalJson(current)===canonicalJson(source.intent.target),'STALE_RESULT','Rollback source is not the active pair');const target=runtimePair(source.intent.previous);compatiblePair(current,target,1);
+  const current=await this.activePair();requireThat(canonicalJson(current)===canonicalJson(source.intent.target),'STALE_RESULT','Rollback source is not the active pair');const target=runtimePair(source.intent.previous);
+  const forward=source.intent.migration?await releaseTransition(this.o.artifacts,target,current):null;
+  if(forward)requireThat(canonicalJson(forward)===canonicalJson(source.intent.migration),'INTEGRITY_FAILURE','Retained forward transition changed');else compatiblePair(current,target,1);
+  const migration=forward?{...forward,previousSchemaDigest:current.schemaDigest,targetSchemaDigest:target.schemaDigest,rollbackOf:sourceActivationId}:undefined;
   if(target.releaseId===this.o.baseline.releaseId)requireThat(canonicalJson(target)===canonicalJson(runtimePair(this.o.baseline)),'INTEGRITY_FAILURE','Baseline rollback pair changed');
   else{const admitted=/** @type {{build:Build,previous:Pair}|null} */(this.read('helper.build:'+target.releaseId));requireThat(admitted,'EXECUTION_UNAVAILABLE','Previous release build is not retained');const m=releaseManifest(admitted.build.manifest),p=admitted.previous,t=target,unchanged=m.device.artifactDigest===p.deviceArtifactDigest&&m.device.sourceCommitOid===p.deviceSourceCommitOid;requireThat(releaseIdentity(m)===t.releaseId&&m.sourceCommitOid===t.sourceCommitOid&&m.schemaDigest===t.schemaDigest&&m.device.artifactDigest===t.deviceArtifactDigest&&m.device.sourceCommitOid===t.deviceSourceCommitOid&&m.edge.artifactDigest===t.edgeArtifactDigest&&m.edge.sourceCommitOid===t.edgeSourceCommitOid&&t.deviceReleaseId===(unchanged?p.deviceReleaseId:t.releaseId)&&canonicalJson(m.protocol)===canonicalJson(t.protocol)&&canonicalJson(m.ledger)===canonicalJson(t.ledger),'INTEGRITY_FAILURE','Retained previous build does not name rollback pair');await this.o.artifacts.verify(t.releaseId,m,admitted.build.refs);this.o.edge.verifyVersion(await this.o.edge.version(t.edgeVersionId),t.edgeSourceCommitOid,t.edgeArtifactDigest,m.edge.compatibilityDate);}
   await this.o.configs.pointerFor(target);this.assert();requireThat(!this.journal.active()&&canonicalJson(await this.activePair())===canonicalJson(current),'STALE_RESULT');const latestRow=this.journal.db.prepare("SELECT record FROM activation WHERE active=0 ORDER BY rowid DESC LIMIT 1").get(),latest=latestRow?/** @type {Activation} */(parseRecord(String(latestRow.record),1048576)):null;requireThat(latest&&latest.intent.activationId===sourceActivationId&&latest.phase==='active','STALE_RELEASE','Rollback source is no longer the latest successful activation');
-  const createdAt=this.now(),intent=activationIntent({activationId:rollbackActivationId,actionId:rollbackActivationId,installationId:this.o.installationId,repositoryId:this.o.repositoryId,bindingEpoch:this.o.bindingEpoch,principalId:'fixed-helper:explicit-rollback',createdAt,deadline:createdAt+300000,previous:current,target});return this.journal.begin(intent);
+  const createdAt=this.now(),intent=activationIntent({activationId:rollbackActivationId,actionId:rollbackActivationId,installationId:this.o.installationId,repositoryId:this.o.repositoryId,bindingEpoch:this.o.bindingEpoch,principalId:'fixed-helper:explicit-rollback',createdAt,deadline:createdAt+300000,previous:current,target,...(migration?{migration}:{})});return this.journal.begin(intent);
  }
  /** Does not wait for broker stop/restart. The fixed service tick, not the HTTP
   * request lifetime, drives durable active work and survives response loss.

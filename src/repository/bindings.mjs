@@ -14,6 +14,8 @@ export function installationBindings(config){
   const b=structuredClone(raw);id(b.repositoryId);id(b.installationId);revision(b.bindingEpoch);digest(b.policyDigest);
   requireThat(b.installationId===config.installationId&&typeof b.provider==='string'&&b.provider.length>0&&b.provider.length<=64&&typeof b.providerRepositoryId==='string'&&b.providerRepositoryId.length>0&&b.providerRepositoryId.length<=256,'INTEGRITY_FAILURE','Installed binding identity differs');
   requireThat(/^refs\/heads\/(?!.*\.\.)(?!.*@\{)[A-Za-z0-9_./-]+$/.test(b.ref)&&!b.ref.endsWith('/')&&!b.ref.endsWith('.lock'),'INTEGRITY_FAILURE','Installed binding ref is invalid');
+  requireThat(b.ref.split('/').every((/** @type {string} */ part)=>part.length>0&&!part.startsWith('.')&&!part.endsWith('.')&&!part.endsWith('.lock')),'INTEGRITY_FAILURE','Installed binding ref is not canonical');
+  requireThat(b.repositoryId!=='self'||b.repositoryId===config.binding.repositoryId,'INTEGRITY_FAILURE','The self alias is reserved for the primary binding');
   requireThat(!repositories.has(b.repositoryId),'INTEGRITY_FAILURE','Duplicate installed repository binding');repositories.add(b.repositoryId);bindings.push(Object.freeze(b));
  }
  requireThat(bindings.some(b=>canonicalJson(b)===canonicalJson(config.binding)),'INTEGRITY_FAILURE','Primary binding is absent from registry');

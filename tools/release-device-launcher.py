@@ -27,7 +27,9 @@ def main():
     gate = lock(config['launcherLockFile'], shared=True)
     try:
         current = pointer(private_json(config['pointerFile']), config)
-        require(current['schemaDigest'] == config['schemaDigest'])
+        # The admitted pointer/config owns each release schema. The historical
+        # launcher config schema is retained for wire compatibility only.
+        digest(current['schemaDigest'])
         bundle, native = device_files(current, config)
         require(private_json(config['pointerFile']) == current)
         os.set_inheritable(gate, True)

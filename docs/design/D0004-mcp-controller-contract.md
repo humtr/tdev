@@ -225,6 +225,10 @@ all previously accepted fields and constraints remain unchanged: new properties 
 be added only as optional fields, an existing required set may shrink, and a default
 may be added only where omission already had the same documented behavior. No input
 property is removed, renamed or narrowed and no old accepted request becomes invalid.
+A formerly required property may gain a default when made optional: there was no
+old-valid omission whose meaning could change. Adding a default to an existing
+optional property is rejected by the bounded structural checker. Unrecognized
+constraint changes, including unproved widenings, fail closed.
 For outputs, existing fields and their meanings remain unchanged; new properties may
 be added, and a newly added property may be required in the new output. Error and
 request-identity semantics are unchanged. A structural checker over canonical schema

@@ -2,6 +2,7 @@ import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs
 import {id,digest,oid} from '../contracts/identity.mjs';
 import {requireThat,Dev2Error} from '../contracts/errors.mjs';
 import {specialActionFence} from './action.mjs';
+import {releaseTransition} from './contract-migration.mjs';
 import {releaseManifest,releaseIdentity,runtimePair,compatiblePair,releaseIdFromStage,activationIntent} from './manifest.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Json} Json */
@@ -75,7 +76,7 @@ export class ReleaseBackend {
    requireThat(receipt.kind==='ready'&&receipt.versionId,'EFFECT_UNCERTAIN','Exact Worker version upload is unresolved');edgeVersionId=receipt.versionId;
   }
   const target=runtimePair({releaseId:artifact.releaseId,schemaDigest:m.schemaDigest,sourceCommitOid:m.sourceCommitOid,deviceReleaseId:deviceUnchanged?previous.deviceReleaseId:artifact.releaseId,deviceArtifactDigest:m.device.artifactDigest,deviceSourceCommitOid:m.device.sourceCommitOid,edgeVersionId,edgeArtifactDigest:m.edge.artifactDigest,edgeSourceCommitOid:m.edge.sourceCommitOid,protocol:m.protocol,ledger:m.ledger});
-  compatiblePair(previous,target,1);await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
+  await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
   requireThat(this.o.binding.policyDigest===input.policyDigest&&canonicalJson(runtimePair(await this.o.helper.activePair()))===canonicalJson(previous),'STALE_RESULT');fence.assert();
   this.saveStage({...stage,build,target,state:'staged'},fence);return this.output(target,'staged',null);
  }
@@ -103,7 +104,8 @@ export class ReleaseBackend {
   await this.o.artifacts.verify(releaseId,stage.build.manifest,stage.build.refs);fence.assert();
   const previous=runtimePair(await this.o.helper.activePair());fence.assert();requireThat(canonicalJson(previous)===canonicalJson(stage.previous),'STALE_RESULT','Actual runtime pair differs from staged base');
   await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
-  const action=fence.assert(),intent=retained?.intent??activationIntent({activationId:recordDigest('dev2.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target});
+  const migration=previous.schemaDigest===stage.target.schemaDigest?undefined:await releaseTransition(this.o.artifacts,previous,stage.target);
+  const action=fence.assert(),intent=retained?.intent??activationIntent({activationId:recordDigest('dev2.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target,...(migration?{migration}:{})});
   if(retained)requireThat(intent.deadline===action.deadline&&canonicalJson(intent.previous)===canonicalJson(previous)&&canonicalJson(intent.target)===canonicalJson(stage.target),'STALE_RESULT');
   else this.o.ledger.transact(tx=>{fence.check(tx);requireThat(!tx.get('SELECT value FROM meta WHERE key=?','release.activation:'+actionId),'STALE_REVISION');tx.run('INSERT INTO meta VALUES(?,?)','release.activation:'+actionId,canonicalJson({inputDigest,intent}));});
   // Beginning the fixed helper journal is itself idempotent. If its response is

@@ -39,17 +39,24 @@ export function runtimePair(value){
  * ledger ranges does not authorize migrating a control database.
  * @param {Pair} oldPair @param {Pair} newPair @param {number} ledgerVersion */
 export function compatiblePair(oldPair,newPair,ledgerVersion){
- runtimePair(oldPair);runtimePair(newPair);
  requireThat(oldPair.schemaDigest===newPair.schemaDigest,'EXECUTION_UNAVAILABLE','Public contract migration requires a separate procedure');
+ compatibleRuntime(oldPair,newPair,ledgerVersion);
+}
+/** @param {Pair} oldPair @param {Pair} newPair @param {number} ledgerVersion */
+export function compatibleRuntime(oldPair,newPair,ledgerVersion){
+ runtimePair(oldPair);runtimePair(newPair);
  requireThat(Math.max(oldPair.protocol.min,newPair.protocol.min)<=Math.min(oldPair.protocol.max,newPair.protocol.max),'EXECUTION_UNAVAILABLE','No shared channel protocol');
  requireThat(Number.isSafeInteger(ledgerVersion)&&[oldPair,newPair].every(p=>p.ledger.min<=ledgerVersion&&p.ledger.max>=ledgerVersion),'EXECUTION_UNAVAILABLE','Ledger migration is not an ordinary activation');
 }
 /** @param {Intent} value @param {number} [ledgerVersion] @returns {Intent} */
 export function activationIntent(value,ledgerVersion=1){
- closed(value,['activationId','actionId','installationId','repositoryId','bindingEpoch','principalId','createdAt','deadline','previous','target']);
+ closed(value,['activationId','actionId','installationId','repositoryId','bindingEpoch','principalId','createdAt','deadline','previous','target',...(value.migration?['migration']:[])]);
  for(const key of ['activationId','actionId','installationId','repositoryId'])id(value[/** @type {'activationId'} */(key)]);
  requireThat(typeof value.principalId==='string'&&value.principalId.length>0&&value.principalId.length<=4096,'INVALID_ARGUMENT');revision(value.bindingEpoch);
  requireThat(Number.isSafeInteger(value.createdAt)&&value.createdAt>=0&&Number.isSafeInteger(value.deadline)&&value.deadline>value.createdAt,'INVALID_ARGUMENT');
- compatiblePair(value.previous,value.target,ledgerVersion);
+ if(value.migration){
+  const m=value.migration;closed(m,['protocol','previousSchemaDigest','targetSchemaDigest','transitionDigest',...(m.rollbackOf?['rollbackOf']:[])]);if(m.rollbackOf)id(m.rollbackOf);
+  requireThat(m.protocol==='public-contract-v1'&&m.previousSchemaDigest===value.previous.schemaDigest&&m.targetSchemaDigest===value.target.schemaDigest&&m.previousSchemaDigest!==m.targetSchemaDigest,'INTEGRITY_FAILURE','Migration pair binding');digest(m.transitionDigest);compatibleRuntime(value.previous,value.target,ledgerVersion);
+ }else compatiblePair(value.previous,value.target,ledgerVersion);
  requireThat(value.previous.releaseId!==value.target.releaseId,'NO_CHANGE');return structuredClone(value);
 }

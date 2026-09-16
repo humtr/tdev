@@ -59,7 +59,7 @@ defs.queryResult={oneOf:[
 const snapshot=object({snapshotId:ref('id'),commitOid:ref('oid'),treeOid:ref('oid'),manifestDigest:ref('digest'),observedAt:ref('timestamp'),expiresAt:ref('timestamp'),freshness:{enum:['current','pinned']},notCurrent:boolean});
 /** @type {Record<string,Schema>} */
 const data={
- dev_context:object({repository:object({repositoryId:ref('id'),provider:string,providerRepositoryId:string,ref:string,bindingEpoch:ref('id'),policyDigest:ref('digest')}),repositories:array(object({repositoryId:ref('id'),provider:string,providerRepositoryId:string,ref:string,bindingEpoch:ref('id'),policyDigest:ref('digest'),primary:boolean}),64),primaryRepositoryId:ref('id'),snapshot,
+ dev_context:object({repository:object({repositoryId:ref('id'),provider:string,providerRepositoryId:string,ref:string,bindingEpoch:ref('id'),policyDigest:ref('digest')}),snapshot,
   limits:object({directoryEntries:number,files:number,returnBytes:number,blobBytes:number,searchHits:number,scanBytes:number,defaultParallelism:{const:8},executionCapacity:{type:'integer',minimum:1}}),
   profiles:array(object({profileId:string,digest:ref('digest'),required:boolean,parameterSchemaJson:{type:'string',maxLength:16384},replaySafe:boolean,network:{enum:['none','fixture']},timeoutMs:number})),operations:array(ref('operation'),10),recovery:object({requestIdentity:{const:'principal_binding_epoch_request_id'},observeRequestIds:{const:true},sameRequestRetry:{const:true},annotationsAuthorizeEffects:{const:false}}),root:ref('queryResult'),bootstrapPaths:array(string,16)}),
  dev_read:object({treeOid:nullable(ref('oid')),manifestDigest:nullable(ref('digest')),notCurrent:boolean,results:array(ref('queryResult'),32),returnedBytes:number,openedFiles:number,scannedBytes:number}),

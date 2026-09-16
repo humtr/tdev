@@ -132,7 +132,7 @@ def fence(config, request, mode, directory):
     require(re.fullmatch(r'[A-Za-z0-9_-]{1,128}', request['effectId']) and re.fullmatch(r'sha256:[0-9a-f]{64}', request['inputDigest']))
     expected, target = pointer(request['expected'], config), verify_target(request['target'], config)
     locks = []
-    database = None
+    databases = []
     try:
         locks.append(exclusive(Path(directory) / 'effect.lock'))
         prior = private_json(Path(directory) / 'proof.json')
@@ -147,6 +147,7 @@ def fence(config, request, mode, directory):
         ledger = Path(config['ledgerFile'])
         require(ledger.is_file() and str(ledger.resolve()) == str(ledger) and not ledger.is_symlink())
         database = sqlite3.connect(ledger.as_uri() + '?mode=rw', uri=True, timeout=0, isolation_level=None)
+        databases.append(database)
         database.execute('PRAGMA busy_timeout=0')
         database.execute('PRAGMA locking_mode=EXCLUSIVE')
         database.execute('BEGIN EXCLUSIVE')
@@ -157,25 +158,57 @@ def fence(config, request, mode, directory):
         root = Path(config['senderStateDirectory'])
         root.mkdir(mode=0o700, parents=True, exist_ok=True)
         require(str(root.resolve()) == str(root))
-        names = {p.name for p in root.iterdir()}
-        for row in database.execute("SELECT value FROM meta WHERE key LIKE 'sender:%'"):
-            names.add(json.loads(row[0])['invocationId'])
-        require(len(names) <= 16384)
-        for name in sorted(names):
-            require(re.fullmatch(r'[A-Za-z0-9_-]{1,128}', name))
-            sender = root / name
-            sender.mkdir(mode=0o700, exist_ok=True)
-            require(str(sender.resolve()) == str(sender) and sender.is_dir())
-            locks.append(exclusive(sender / 'sender.lock'))
-            state = private_json(sender / 'state.json')
-            require(not state or not group_exists(state.get('processGroup')))
-            if not state or state.get('state') not in ('done', 'fenced'):
-                # Fences delayed not-yet-launched senders under their existing lock.
-                # Preserve completed delivery records and every old invocation ID.
-                durable(sender / 'state.json', {'invocationId': name, 'stopped': True, 'delivery': 'unknown' if state else 'not_sent', 'state': 'fenced'})
+        owners = [(database, root)]
+        secondary_roots = set()
+        secondary = ledger.parent / 'binding-ledgers'
+        if secondary.exists():
+            require(secondary.is_dir() and not secondary.is_symlink() and str(secondary.resolve()) == str(secondary))
+            entries = list(secondary.iterdir())
+            require(len(entries) <= 4096)
+            require(all(re.fullmatch(r'[0-9a-f]{64}\.sqlite(?:-wal|-shm)?', p.name) for p in entries))
+            for path in sorted(p for p in entries if p.name.endswith('.sqlite')):
+                require(path.is_file() and not path.is_symlink() and str(path.resolve()) == str(path))
+                other = sqlite3.connect(path.as_uri() + '?mode=rw', uri=True, timeout=0, isolation_level=None)
+                databases.append(other)
+                other.execute('PRAGMA busy_timeout=0')
+                other.execute('PRAGMA locking_mode=EXCLUSIVE')
+                other.execute('BEGIN EXCLUSIVE')
+                bound = json.loads(other.execute('SELECT record FROM binding WHERE singleton=1').fetchone()[0])
+                require(bound['installationId'] == config['installationId'])
+                name = hashlib.sha256(b'dev2.binding-ledger.v1\0' + canonical(bound)).hexdigest()
+                require(path.name == name + '.sqlite')
+                sender_name = hashlib.sha256(b'dev2.binding-sender.v1\0' + canonical(bound)).hexdigest()
+                secondary_roots.add(sender_name)
+                owners.append((other, root / sender_name))
+        sender_count = 0
+        for owner, sender_root in owners:
+            sender_root.mkdir(mode=0o700, parents=True, exist_ok=True)
+            require(str(sender_root.resolve()) == str(sender_root) and not sender_root.is_symlink())
+            names = {p.name for p in sender_root.iterdir()}
+            if sender_root == root:
+                names -= secondary_roots
+            for row in owner.execute("SELECT value FROM meta WHERE key LIKE 'sender:%'"):
+                name = json.loads(row[0])['invocationId']
+                require(sender_root != root or name not in secondary_roots)
+                names.add(name)
+            require(len(names) <= 16384)
+            for name in sorted(names):
+                require(re.fullmatch(r'[A-Za-z0-9_-]{1,128}', name))
+                sender = sender_root / name
+                sender.mkdir(mode=0o700, exist_ok=True)
+                require(str(sender.resolve()) == str(sender) and sender.is_dir())
+                # A nested binding root without its retained ledger is not a
+                # sender invocation and must never be certified as stopped.
+                require(all(not p.is_dir() and not p.is_symlink() for p in sender.iterdir()))
+                locks.append(exclusive(sender / 'sender.lock'))
+                state = private_json(sender / 'state.json')
+                require(not state or not group_exists(state.get('processGroup')))
+                if not state or state.get('state') not in ('done', 'fenced'):
+                    durable(sender / 'state.json', {'invocationId': name, 'stopped': True, 'delivery': 'unknown' if state else 'not_sent', 'state': 'fenced'})
+            sender_count += len(names)
         stopped_service(config)
         require(pointer(private_json(config['pointerFile']), config) == current)
-        proof = {'effectId': request['effectId'], 'inputDigest': request['inputDigest'], 'state': 'stopped', 'writerStopped': True, 'ownerEpoch': epoch, 'senderCount': len(names), 'pointer': current}
+        proof = {'effectId': request['effectId'], 'inputDigest': request['inputDigest'], 'state': 'stopped', 'writerStopped': True, 'ownerEpoch': epoch, 'senderCount': sender_count, 'pointer': current}
         durable(Path(directory) / 'proof.json', proof)
         if mode == 'switch':
             verify_target(target, config)
@@ -185,7 +218,7 @@ def fence(config, request, mode, directory):
             durable(Path(directory) / 'proof.json', proof)
         return proof
     finally:
-        if database is not None:
+        for database in reversed(databases):
             try:
                 database.execute('ROLLBACK')
             except sqlite3.Error:

@@ -14,7 +14,7 @@ test('executor channel is closed and cannot express human tools, source paths, c
  for(const request of [base,{...assigned,op:'ack'},{...assigned,op:'object.read',digest:D,offset:0,maxBytes:65536},{...assigned,op:'artifact.write',digest:D,size:0,offset:0,data:''},{apiVersion:1,sessionId:'s',op:'result.submit',result:outcome}])assert.equal(canonicalJson(executorRequest(request)),canonicalJson(request));
  for(const extra of [{tool:'dev_work'},{path:'.config/credentials'},{argv:['sh']},{principal:'human'},{authorization:{role:'owner'}}])assert.throws(()=>executorRequest({...base,...extra}));
  for(const request of [{...base,op:'create'},{...assigned,op:'object.read',digest:D,offset:-1,maxBytes:1},{...assigned,op:'object.read',digest:D,offset:0,maxBytes:65537},{apiVersion:1,sessionId:'s',op:'result.submit',result:{...outcome,stopped:false}},{apiVersion:1,sessionId:'s',op:'result.submit',result:{...outcome,sealDigest:'bad'}},{apiVersion:1,sessionId:'s',op:'result.submit',result:{...outcome,arbitrary:'field'}}])assert.throws(()=>executorRequest(request));
- assert.equal(TOOL_DESCRIPTORS.length,4);assert.equal(SCHEMA_DIGEST,'sha256:490089fe450df7fc6c4f57b51b2130a885b72e1038c68aed8278e7ee56f62871');
+ assert.equal(TOOL_DESCRIPTORS.length,4);assert.equal(SCHEMA_DIGEST,'sha256:0de1e538b40c866a3a91acfdc70eba89c09902972daf65fca0688c61ac0de25c');
 });
 test('executor bearer is header-only and cannot be supplied by device/human assertion headers',()=>{
  for(const headers of [{},{'cf-access-jwt-assertion':'human'},{authorization:'Basic token'},{authorization:'Bearer two words'}])assert.throws(()=>executorBearer(new Request(origin+'/executor',{headers})));

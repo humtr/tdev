@@ -20,6 +20,7 @@ export interface ActivationIntent {
  activationId:string;actionId:string;installationId:string;repositoryId:string;
  bindingEpoch:string;principalId:string;createdAt:number;deadline:number;
  previous:RuntimePair;target:RuntimePair;
+ migration?:{protocol:'public-contract-v1';previousSchemaDigest:string;targetSchemaDigest:string;transitionDigest:string;rollbackOf?:string};
 }
 export type ActivationStep='edge.activate'|'device.drain'|'device.stop'|'device.switch'|'device.start'|'pair.check';
 export interface ActivationEffect {

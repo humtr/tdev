@@ -1,6 +1,7 @@
 import {canonicalJson,parseRecord,bytesDigest} from '../contracts/canonical.mjs';
 import {digest} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
+import {publicDescriptor} from './contract-migration.mjs';
 /** Fixed data-only channel. No archive, path, URL, command or source import can
  * cross from the build sandbox to the credential-bearing release broker. */
 export const BUILD_NAMES=Object.freeze(['device.cjs','worker.mjs','tools.json']);
@@ -28,6 +29,7 @@ export function decodeBuildOutput(bytes,expectedSchema){
  requireThat(artifacts.reduce((sum,a)=>sum+a.size,0)<=BUILD_DATA_BYTES,'LIMIT_EXCEEDED');
  const tools=/** @type {{name:string,annotations:{readOnlyHint:boolean,destructiveHint:boolean}}[]} */(/** @type {unknown} */(parseRecord(artifacts[2].bytes,262144)));
  requireThat(Array.isArray(tools)&&tools.length===4&&tools.map(t=>t.name).sort().join(',')==='dev_context,dev_observe,dev_read,dev_work'&&tools.every(t=>t.annotations?.readOnlyHint===true&&t.annotations.destructiveHint===false),'INTEGRITY_FAILURE','Public tool surface/annotation policy differs');
+ requireThat(publicDescriptor(tools).schemaDigest===value.schemaDigest,'INTEGRITY_FAILURE','Descriptor schema digest differs');
  return {schemaDigest:value.schemaDigest,artifacts,refs:{device:artifacts[0].digest,edge:artifacts[1].digest,tools:artifacts[2].digest}};
 }
 /** @param {string} schemaDigest @param {Readonly<Record<string,Uint8Array>>} files */

@@ -4,6 +4,7 @@ import {canonicalJson,parseRecord,bytesDigest} from '../contracts/canonical.mjs'
 import {digest} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {releaseManifest,releaseIdentity} from './manifest.mjs';
+import {publicDescriptor} from './contract-migration.mjs';
 /** @typedef {import('./types.js').ReleaseManifest} Manifest */
 /** @typedef {{device:string,edge:string,tools:string}} ArtifactRefs */
 /** @param {string} directory */
@@ -22,11 +23,12 @@ export class ReleaseArtifactStore {
  directory(releaseId){return join(this.o.root,digest(releaseId).slice(7));}
  /** @param {Manifest} manifest @param {ArtifactRefs} refs */
  async stage(manifest,refs){
-  const checked=releaseManifest(manifest),releaseId=releaseIdentity(checked);requireThat(checked.schemaDigest===this.o.schemaDigest&&refs.device===checked.device.artifactDigest&&refs.edge===checked.edge.artifactDigest,'INTEGRITY_FAILURE');
+  const checked=releaseManifest(manifest),releaseId=releaseIdentity(checked);requireThat(refs.device===checked.device.artifactDigest&&refs.edge===checked.edge.artifactDigest,'INTEGRITY_FAILURE');
   for(const value of Object.values(refs))digest(value);await this.init();
   const files=new Map([['device.cjs',refs.device],['worker.mjs',refs.edge],['tools.json',refs.tools]]),temporary=await mkdtemp(join(this.o.root,'.stage-')),directory=this.directory(releaseId);
   try{
    for(const [name,expected] of files){const bytes=await this.o.objects.get(expected);requireThat(bytes.byteLength>0&&bytes.byteLength<=this.max&&bytesDigest(bytes)===expected,'INTEGRITY_FAILURE','Release object digest or bound differs');
+    if(name==='tools.json')requireThat(publicDescriptor(parseRecord(bytes,262144)).schemaDigest===checked.schemaDigest,'INTEGRITY_FAILURE','Release descriptor identity differs');
     if(name==='tools.json'){requireThat(bytes.byteLength<=262144,'LIMIT_EXCEEDED');const tools=/** @type {{name:string,annotations:{readOnlyHint:boolean,destructiveHint:boolean}}[]} */(/** @type {unknown} */(parseRecord(bytes,262144)));requireThat(Array.isArray(tools)&&tools.length===4&&tools.map(t=>t.name).sort().join(',')==='dev_context,dev_observe,dev_read,dev_work'&&tools.every(t=>t.annotations?.readOnlyHint===true&&t.annotations.destructiveHint===false),'INTEGRITY_FAILURE','Frozen public metadata policy changed');}
     await immutableFile(join(temporary,name),bytes);
    }
@@ -45,9 +47,10 @@ export class ReleaseArtifactStore {
   /** @param {string} name @param {number} limit */
   const file=async(name,limit)=>{const path=join(directory,name),info=await lstat(path);requireThat(info.isFile()&&!info.isSymbolicLink()&&info.nlink===1&&(info.mode&0o077)===0&&info.size<=limit&&await realpath(path)===path,'FORBIDDEN');return readFile(path);};
   const manifest=releaseManifest(/** @type {Manifest} */(parseRecord(await file('manifest.json',262144),262144))),refs=/** @type {ArtifactRefs} */(parseRecord(await file('artifacts.json',4096),4096));
-  requireThat(releaseIdentity(manifest)===releaseId&&manifest.schemaDigest===this.o.schemaDigest&&Object.keys(refs).sort().join(',')==='device,edge,tools'&&refs.device===manifest.device.artifactDigest&&refs.edge===manifest.edge.artifactDigest,'INTEGRITY_FAILURE');
+  requireThat(releaseIdentity(manifest)===releaseId&&Object.keys(refs).sort().join(',')==='device,edge,tools'&&refs.device===manifest.device.artifactDigest&&refs.edge===manifest.edge.artifactDigest,'INTEGRITY_FAILURE');
   if(expectedManifest)requireThat(canonicalJson(expectedManifest)===canonicalJson(manifest),'INTEGRITY_FAILURE');if(expectedRefs)requireThat(canonicalJson(expectedRefs)===canonicalJson(refs),'INTEGRITY_FAILURE');
   for(const [name,expected] of [['device.cjs',refs.device],['worker.mjs',refs.edge],['tools.json',refs.tools]])requireThat(bytesDigest(await file(name,this.max))===digest(expected),'INTEGRITY_FAILURE','Immutable staged bytes changed');
+  requireThat(publicDescriptor(parseRecord(await file('tools.json',262144),262144)).schemaDigest===manifest.schemaDigest,'INTEGRITY_FAILURE','Release descriptor identity differs');
   return {releaseId,directory,manifest,refs};
  }
 }

@@ -60,7 +60,7 @@ const work = { workId: ref('id'), expectedRevision: ref('revision') };
 const candidate = { ...work, generation: ref('revision') };
 const integration = { ...candidate, expectedHead: ref('oid'), policyDigest: ref('digest') };
 /** @param {string} op @param {Record<string,Schema>} fields @param {string[]} [optional] @returns {Schema} */
-const item = (op, fields, optional = []) => object({ op: { const: op }, requestId: ref('id'), repository: def(ref('id'), 'self'), ...fields }, ['op', 'requestId', ...Object.keys(fields).filter(k => !optional.includes(k))]);
+const item = (op, fields, optional = []) => object({ op: { const: op }, requestId: ref('id'), ...fields }, ['op', 'requestId', ...Object.keys(fields).filter(k => !optional.includes(k))]);
 /** @type {Record<string,Schema>} */
 const variants = {
     create: item('create', { snapshotId: ref('id'), expectedHead: ref('oid'), objective: text(4096, 1), initialEdits: ref('edits') }, ['initialEdits']),
@@ -70,9 +70,9 @@ const variants = {
     integrate: item('integrate', { ...integration, preparedResultId: ref('id') }, ['preparedResultId']),
     cancel: item('cancel', { ...work, actionId: ref('id'), reason: text(4096) }, ['actionId', 'reason']),
     resume: item('resume', { ...work, actionId: ref('id') }),
-    'policy.adopt': item('policy.adopt', { expectedPolicyDigest: ref('digest'), integratedCommit: ref('oid'), policyPath: ref('path'), newPolicyDigest: ref('digest') }),
-    'release.stage': item('release.stage', { integratedCommit: ref('oid'), expectedActiveRelease: ref('digest'), policyDigest: ref('digest') }),
-    'release.activate': item('release.activate', { stagedReleaseId: ref('id'), expectedActiveRelease: ref('digest') }),
+    'policy.adopt': item('policy.adopt', { repository: ref('id'), expectedPolicyDigest: ref('digest'), integratedCommit: ref('oid'), policyPath: ref('path'), newPolicyDigest: ref('digest') }),
+    'release.stage': item('release.stage', { repository: ref('id'), integratedCommit: ref('oid'), expectedActiveRelease: ref('digest'), policyDigest: ref('digest') }),
+    'release.activate': item('release.activate', { repository: ref('id'), stagedReleaseId: ref('id'), expectedActiveRelease: ref('digest') }),
 };
 defs.item = { oneOf: Object.values(variants) };
 const cursor = ref('id');
@@ -93,7 +93,7 @@ context.allOf = [{ if: { properties: { freshness: { const: 'pinned' } }, require
 /** @type {Record<ToolName,Schema>} */
 const roots = {
     dev_context: context,
-    dev_read: object({ apiVersion: { const: 1 }, repository: def(ref('id'), 'self'), target: ref('target'), queries: array(ref('query'), 32), maxReturnBytes: def(integer(262144, 1), 262144) }, ['apiVersion', 'target', 'queries']),
+    dev_read: object({ apiVersion: { const: 1 }, target: ref('target'), queries: array(ref('query'), 32), maxReturnBytes: def(integer(262144, 1), 262144) }, ['apiVersion', 'target', 'queries']),
     dev_work: object({ apiVersion: { const: 1 }, items: array(ref('item'), 64), waitMs: def(integer(20000), 0) }, ['apiVersion', 'items']),
     dev_observe: object({ apiVersion: { const: 1 }, repository: def(ref('id'), 'self'), selector: ref('selector'), waitMs: def(integer(20000), 0), cursor, limit: def(integer(128, 1), 32) }, ['apiVersion', 'selector']),
 };
@@ -170,7 +170,7 @@ export function validateInput(name, input) {
     const queries = /** @type {Json[]} */ (value.queries);
     const artifact = Object.hasOwn(target, 'artifactId');
     requireThat(queries.every(q => (record(q).kind === 'artifact') === artifact), 'INVALID_ARGUMENT', 'Artifact and repository query scopes cannot be mixed');
-    return { repository: 'self', maxReturnBytes: 262144, ...value, queries: queries.map(q => { const item = record(q); switch (item.kind) {
+    return { maxReturnBytes: 262144, ...value, queries: queries.map(q => { const item = record(q); switch (item.kind) {
             case 'list': return { limit: 256, ...item };
             case 'search': return { caseSensitive: true, maxHits: 128, ...item };
             case 'file': return { startByte: 0, maxBytes: 65536, encoding: 'utf8', ...item };
@@ -182,7 +182,7 @@ export function validateWorkItem(item) {
     const value = record(detached(item));
     requireThat(typeof value.op === 'string' && Object.hasOwn(itemValidators, value.op), 'INVALID_ARGUMENT', 'Unknown work operation');
     requireThat(itemValidators[value.op](value), 'INVALID_ARGUMENT', 'Work item does not match its schema');
-    return { repository: 'self', ...value };
+    return value;
 }
 /** Preserve valid siblings when one item is malformed. No invalid item reaches
  * authorize/admit. Context is trusted request context, never client-supplied.
