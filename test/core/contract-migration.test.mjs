@@ -6,7 +6,7 @@ import {publicContractTransition,publicDescriptor} from '../../src/release/contr
 import {recordDigest,canonicalJson} from '../../src/contracts/canonical.mjs';
 test('exact pre-C2 descriptor accepts additive C2 migration with stable valid-domain identity',()=>{
  const t=publicContractTransition(legacy.tools,TOOL_DESCRIPTORS);assert.equal(t.compatible,true,canonicalJson(t));assert.equal(t.previousSchemaDigest,legacy.schemaDigest);assert.equal(t.targetSchemaDigest,SCHEMA_DIGEST);
- const {transitionDigest,...record}=t;assert.equal(transitionDigest,recordDigest('dev2.public-contract-transition.v1',record));assert.deepEqual(publicContractTransition(JSON.parse(JSON.stringify(legacy.tools)),TOOL_DESCRIPTORS),t);
+ const {transitionDigest,...record}=t;assert.equal(transitionDigest,recordDigest('tdev.public-contract-transition.v1',record));assert.deepEqual(publicContractTransition(JSON.parse(JSON.stringify(legacy.tools)),TOOL_DESCRIPTORS),t);
  const reverse=publicContractTransition(TOOL_DESCRIPTORS,legacy.tools);assert.equal(reverse.compatible,false);assert.notEqual(reverse.transitionDigest,t.transitionDigest);assert.deepEqual(publicContractTransition(TOOL_DESCRIPTORS,legacy.tools),reverse);
  assert.throws(()=>recordDigest('public-contract-v1',record),{code:'INVALID_ARGUMENT'});
 });

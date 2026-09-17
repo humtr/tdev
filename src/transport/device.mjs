@@ -1,7 +1,7 @@
 import WebSocket from 'ws';
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
 import { failure } from '../contracts/envelopes.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { workersDevOrigin } from '../runtime/environment.mjs';
 import { SCHEMA_DIGEST, validateOutput } from '../mcp/outputs.mjs';
 import { FrameAssembler, MAX_FRAME_BYTES, sendFrames } from './framing.mjs';
@@ -24,7 +24,7 @@ export class DeviceConnection {
  }
  start(){if(!this.stopped)return;this.stopped=false;this.connect();}
  state(){this.o.onState?.({connected:!!this.connectionId,connectionId:this.connectionId||null,connectedAt:this.connectedAt?new Date(this.connectedAt).toISOString():null,lastMessageAt:this.lastMessageAt?new Date(this.lastMessageAt).toISOString():null});}
- connect(){if(this.stopped)return;const url=new URL('/__dev2/device',this.o.origin);url.protocol=url.protocol==='https:'?'wss:':'ws:';
+ connect(){if(this.stopped)return;const url=new URL('/__tdev/device',this.o.origin);url.protocol=url.protocol==='https:'?'wss:':'ws:';
   const socket=new WebSocket(url,{headers:{Authorization:'Bearer '+this.o.secret},handshakeTimeout:10000,maxPayload:MAX_FRAME_BYTES,perMessageDeflate:false,followRedirects:false});
   this.socket=socket;this.connectionId='';this.assembler.dispose();
   socket.on('message',(data,isBinary)=>{if(socket!==this.socket)return;try{

@@ -5,7 +5,7 @@ import { mkdtempSync,readFileSync,rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 test('unimplemented layers never pass an empty suite', () => {
-  const dir=mkdtempSync(join(tmpdir(),'dev2-entrypoint-'));
+  const dir=mkdtempSync(join(tmpdir(),'tdev-entrypoint-'));
   try {
     for(const profile of ['release','live','benchmark']) {
       const out=join(dir,profile);

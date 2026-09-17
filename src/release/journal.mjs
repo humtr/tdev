@@ -3,8 +3,8 @@ import {mkdirSync,lstatSync,realpathSync,chmodSync} from 'node:fs';
 import {dirname,resolve} from 'node:path';
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {nextRevision,id} from '../contracts/identity.mjs';
-import {Dev2Error,requireThat} from '../contracts/errors.mjs';
-import {activationIntent} from './manifest.mjs';
+import {TdevError,requireThat} from '../contracts/errors.mjs';
+import {activationIntent,activationNamespace} from './manifest.mjs';
 /** @typedef {import('./types.js').ActivationIntent} Intent */
 /** @typedef {import('./types.js').ActivationRecord} Record */
 /** Fixed-helper journal is separate from the replaceable broker's exclusive
@@ -30,7 +30,7 @@ export class ActivationJournal {
    if(installed!==undefined)requireThat(installed===installationId,'FORBIDDEN');else this.db.prepare('INSERT INTO meta VALUES(?,?)').run('installation',installationId);
    const epoch=this.db.prepare("SELECT value FROM meta WHERE key='epoch'").get()?.value;this.ownerEpoch=nextRevision(typeof epoch==='string'?epoch:'0');this.db.prepare("INSERT INTO meta VALUES('epoch',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(this.ownerEpoch);
    this.db.exec('COMMIT');
-  }catch(error){try{this.db.exec('ROLLBACK');}catch{}this.db.close();this.closed=true;if(error instanceof Dev2Error)throw error;throw new Dev2Error('EXECUTION_UNAVAILABLE','Activation helper is locked or unavailable');}
+  }catch(error){try{this.db.exec('ROLLBACK');}catch{}this.db.close();this.closed=true;if(error instanceof TdevError)throw error;throw new TdevError('EXECUTION_UNAVAILABLE','Activation helper is locked or unavailable');}
  }
  /** @template T @param {()=>T} fn @returns {T} */
  transact(fn){requireThat(!this.closed&&!this.inTransaction,'INTEGRITY_FAILURE');this.inTransaction=true;try{this.db.exec('BEGIN IMMEDIATE');const result=fn();requireThat(!(result&&typeof result==='object'&&'then'in result),'INVALID_ARGUMENT');this.db.exec('COMMIT');return result;}catch(error){try{this.db.exec('ROLLBACK');}catch{}throw error;}finally{this.inTransaction=false;}}
@@ -39,7 +39,7 @@ export class ActivationJournal {
  /** @returns {Record|null} */
  active(){requireThat(!this.closed,'INTEGRITY_FAILURE');const row=this.db.prepare('SELECT record FROM activation WHERE active=1').get();return row?/** @type {Record} */(parseRecord(String(row.record),262144)):null;}
  /** Intent durability precedes any provider/launcher effect. @param {Intent} input @returns {Record} */
- begin(input){const intent=activationIntent(input);requireThat(intent.installationId===this.installationId,'FORBIDDEN');const intentDigest=recordDigest('dev2.activation-intent.v1',intent);
+ begin(input){const intent=activationIntent(input);requireThat(intent.installationId===this.installationId,'FORBIDDEN');const intentDigest=recordDigest(activationNamespace(intent)+'.activation-intent.v1',intent);
   return this.transact(()=>{const old=this.read(intent.activationId);if(old){requireThat(old.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return old;}
    requireThat(this.active()===null,'CAPACITY_REJECTED','Another activation owns this installation; unrelated source work is not blocked');
    /** @type {Record} */const record={intent,intentDigest,revision:'0',direction:'forward',cursor:0,phase:'prepared',pending:null,receipts:[],reason:null,observedPair:null};

@@ -11,5 +11,5 @@
   "origin": "https://tdev.humtr.workers.dev",
   "sessionLifetimeMs": 900000,
   "idleTimeoutMs": 60000,
-  "workflowPath": ".github/workflows/dev2-executor.yml"
+  "workflowPath": ".github/workflows/tdev-executor.yml"
 }

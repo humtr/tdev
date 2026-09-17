@@ -15,7 +15,7 @@ import {GitRefTransport} from '../../src/integration/git-ref.mjs';
 import {DevelopmentEngine} from '../../src/runtime/engine.mjs';
 import {DevelopmentApplication} from '../../src/runtime/application.mjs';
 import {recordDigest,bytesDigest} from '../../src/contracts/canonical.mjs';
-import {Dev2Error} from '../../src/contracts/errors.mjs';
+import {TdevError} from '../../src/contracts/errors.mjs';
 /** @typedef {import('../../src/contracts/ports.js').Profile} Profile */
 /** @typedef {import('../../src/contracts/ports.js').PreparedResult} Result */
 /** @typedef {import('../../src/contracts/ports.js').Attempt} Attempt */
@@ -35,11 +35,11 @@ export async function engineWorld(options={}){
  const objects=new ObjectStore(join(w.root,'immutable'));await objects.init();
  const access={allowed:true};
  /** @type {import('../../src/contracts/ports.js').Principal} */
- const principal={subject:'fixture-subject',issuer:'https://issuer.invalid',audience:'https://dev2.invalid/mcp',expiresAt:Date.now()+3600000};
+ const principal={subject:'fixture-subject',issuer:'https://issuer.invalid',audience:'https://tdev.invalid/mcp',expiresAt:Date.now()+3600000};
  /** @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
- function fixtureSnapshot(p,b,c,paths=[]){if(!access.allowed||p.subject!==principal.subject||p.expiresAt<=Date.now()||b.repositoryId!==w.binding.repositoryId||paths.some(path=>path.startsWith('secret')))throw new Dev2Error('FORBIDDEN');return {stamp:recordDigest('dev2.fixture-authorization.v1',{subject:p.subject,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,capability:c,paths:[...paths]}),expiresAt:p.expiresAt};}
+ function fixtureSnapshot(p,b,c,paths=[]){if(!access.allowed||p.subject!==principal.subject||p.expiresAt<=Date.now()||b.repositoryId!==w.binding.repositoryId||paths.some(path=>path.startsWith('secret')))throw new TdevError('FORBIDDEN');return {stamp:recordDigest('tdev.fixture-authorization.v1',{subject:p.subject,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,capability:c,paths:[...paths]}),expiresAt:p.expiresAt};}
  /** @param {{stamp:string,expiresAt:number}} retained @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
- function fixtureAssertSnapshot(retained,p,b,c,paths=[]){const current=fixtureSnapshot(p,b,c,paths);if(current.stamp!==retained.stamp||current.expiresAt!==retained.expiresAt)throw new Dev2Error('FORBIDDEN');}
+ function fixtureAssertSnapshot(retained,p,b,c,paths=[]){const current=fixtureSnapshot(p,b,c,paths);if(current.stamp!==retained.stamp||current.expiresAt!==retained.expiresAt)throw new TdevError('FORBIDDEN');}
  /** @param {import('../../src/contracts/ports.js').Principal} p @param {import('../../src/contracts/ports.js').Binding} b @param {import('../../src/contracts/ports.js').Capability} c @param {readonly string[]} [paths] */
  async function fixtureAuthorize(p,b,c,paths=[]){fixtureSnapshot(p,b,c,paths);}
  /** Fixture authority exposes the same synchronous final-fence shape H2 requires. @type {any} */
@@ -48,7 +48,7 @@ export async function engineWorld(options={}){
  const scanner=fileURLToPath(new URL('./full-scan.mjs',import.meta.url));
  const seal=bytesDigest(Buffer.from('fixture-only-not-production'));
  const profiles=['core','integration'].map(profileId=>{
-  const fields={profileId,argv:[process.execPath,scanner,profileId],cwd:'',parameters:{},timeoutMs:30000,killGraceMs:100,memoryBytes:268435456,pids:32,cpuMillis:1000,diskBytes:67108864,logBytes:65536,network:/** @type {const} */('none'),imageDigest:seal,replaySafe:true};return {...fields,digest:recordDigest('dev2.profile.v1',fields)};
+  const fields={profileId,argv:[process.execPath,scanner,profileId],cwd:'',parameters:{},timeoutMs:30000,killGraceMs:100,memoryBytes:268435456,pids:32,cpuMillis:1000,diskBytes:67108864,logBytes:65536,network:/** @type {const} */('none'),imageDigest:seal,replaySafe:true};return {...fields,digest:recordDigest('tdev.profile.v1',fields)};
  });
  const execution={orderedProfileDigests:profiles.map(p=>p.digest),trustedRunnerDigest:seal,toolchainDigest:seal,environmentClass:'trusted-fixture-process-not-os-sandbox',dependencyLockDigest:seal};
  const policy=new AdoptedPolicy({digest:w.binding.policyDigest,profiles:profiles.map(profile=>({profile,parameterSchema:{type:'object',properties:{},additionalProperties:false}})),required:['core','integration'],execution});

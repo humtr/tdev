@@ -32,7 +32,7 @@ export class ExactIntegrator {
   const c=await this.o.repository.readCommit(b,result.commitOid);requireThat(c.parents.length===1&&c.parents[0]===result.expectedHead&&c.source.treeOid===result.resultTreeOid&&c.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE');
   return this.o.ledger.transact(tx=>{const action=this.fence(tx,actionId,result),old=tx.getEffect(actionId);
    if(old){requireThat(old.preparedResultId===result.resultId&&old.validationId===receipt.validationId&&old.policyDigest===b.policyDigest&&old.commitOid===result.commitOid,'IDEMPOTENCY_MISMATCH');return old;}
-   const effect={effectId:newId(),workId:result.workId,actionId,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,ref:b.ref,expectedHead:result.expectedHead,commitOid:result.commitOid,preparedResultId:result.resultId,validationId:receipt.validationId,policyDigest:result.policyDigest};
+   const effect={effectId:newId(),workId:result.workId,actionId,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,identityNamespace:/** @type {const} */('tdev'),ref:b.ref,expectedHead:result.expectedHead,commitOid:result.commitOid,preparedResultId:result.resultId,validationId:receipt.validationId,policyDigest:result.policyDigest};
    tx.putReceipt(receipt);tx.putEffect(effect);tx.updateAction({...action,resultId:result.resultId,step:'publication.intent'});return effect;
   });
  }

@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import {GitRepository} from '../../src/repository/git.mjs';
 // Deterministic command port injection: no filesystem or Git executable required.
 test('independent cache eviction cannot invalidate a bounded in-flight object read',async()=>{
- const repository=new GitRepository({directory:'/virtual/dev2-objects',executable:'/virtual/git',environment:{},bindings:()=>[],verifyRemote:async()=>{},maxBlobBytes:2048,maxSourceBytes:2048});
+ const repository=new GitRepository({directory:'/virtual/tdev-objects',executable:'/virtual/git',environment:{},bindings:()=>[],verifyRemote:async()=>{},maxBlobBytes:2048,maxSourceBytes:2048});
  repository.init=async()=>{};
  const first=Buffer.alloc(512,1),second=Buffer.alloc(512,2),other=Buffer.alloc(1900,3);
  const a=repository.objectOid('blob',first),b=repository.objectOid('blob',second),c=repository.objectOid('blob',other);

@@ -1,6 +1,6 @@
 import {canonicalJson,recordDigest} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
-import {runtimePair} from './manifest.mjs';
+import {runtimePair,activationNamespace} from './manifest.mjs';
 /** @typedef {import('./types.js').ActivationRecord} Record */
 /** @typedef {import('./types.js').ActivationEffect} Effect */
 /** @typedef {import('./types.js').ActivationReceipt} Receipt */
@@ -21,8 +21,8 @@ export function activationSteps(record){
 export function activationEffect(record,selectedStep){
  const step=selectedStep??activationSteps(record)[record.cursor];requireThat(step,'INTEGRITY_FAILURE');
  const fields={activationId:record.intent.activationId,direction:record.direction,step,expected:record.direction==='forward'?record.intent.previous:record.intent.target,target:record.direction==='forward'?record.intent.target:record.intent.previous};
- const inputDigest=recordDigest('dev2.activation-effect-input.v1',fields);
- return {...fields,inputDigest,effectId:recordDigest('dev2.activation-effect.v1',{intentDigest:record.intentDigest,inputDigest}).slice(7)};
+ const namespace=activationNamespace(record.intent),inputDigest=recordDigest(namespace+'.activation-effect-input.v1',fields);
+ return {...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),...fields,inputDigest,effectId:recordDigest(namespace+'.activation-effect.v1',{intentDigest:record.intentDigest,inputDigest}).slice(7)};
 }
 /** @param {Effect} effect @param {Receipt} receipt @param {number} now */
 function validReceipt(effect,receipt,now){

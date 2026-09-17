@@ -1,7 +1,8 @@
 import { jwtVerify } from 'jose';
 import { recordDigest } from '../contracts/canonical.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { repositoryPath, withinPrefix } from './paths.mjs';
+import {attachLegacySubject,principalSubjects} from './principal.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').AuthorizationPort} AuthorizationPort */
 /** @typedef {import('../contracts/ports.js').Binding} Binding */
@@ -31,9 +32,10 @@ export function bearerVerifier(config,keyResolver,now=Date.now) {
       requireThat(typeof payload.scope==='string' && payload.scope.length<=4096 && /^[\x21-\x7e]+(?: [\x21-\x7e]+)*$/.test(payload.scope), 'UNAUTHORIZED');
       const scopes=new Set(payload.scope.split(' '));
       const tokenCapabilities=CAPABILITIES.filter(capability=>scopes.has(capability));
-      return {tokenCapabilities,subject:recordDigest('dev2.oauth-subject.v1',{issuer:config.issuer,subject:payload.sub}).slice(7),
-        issuer:config.issuer,audience:config.audience,expiresAt:payload.exp*1000};
-    } catch { throw new Dev2Error('UNAUTHORIZED'); }
+      const identity={issuer:config.issuer,subject:payload.sub};
+      return attachLegacySubject({tokenCapabilities,subject:recordDigest('tdev.oauth-subject.v1',identity).slice(7),
+        issuer:config.issuer,audience:config.audience,expiresAt:payload.exp*1000},recordDigest('dev2.oauth-subject.v1',identity).slice(7));
+    } catch { throw new TdevError('UNAUTHORIZED'); }
   };
 }
 
@@ -50,21 +52,27 @@ export class ScopedAuthorization {
     requireThat(principal.issuer===o.issuer && principal.audience===o.audience && principal.expiresAt>(o.now??Date.now)(), 'UNAUTHORIZED');
     requireThat(Array.isArray(principal.tokenCapabilities)&&principal.tokenCapabilities.includes(capability),'FORBIDDEN');
     const current=o.bindings().find(b=>b.repositoryId===binding.repositoryId);
-    requireThat(current && recordDigest('dev2.binding.v1',current)===recordDigest('dev2.binding.v1',binding), 'FORBIDDEN');
-    const grants=o.grants().filter(g=>g.subject===principal.subject && g.installationId===binding.installationId &&
-      g.repositoryId===binding.repositoryId && g.ref===binding.ref && g.capabilities.includes(capability));
-    requireThat(grants.length>0,'FORBIDDEN');
+    requireThat(current && recordDigest('tdev.binding.v1',current)===recordDigest('tdev.binding.v1',binding), 'FORBIDDEN');
+    const subjects=principalSubjects(principal),all=o.grants();
+    /** @param {string} subject @returns {Grant[]} */
+    const matches=subject=>all.filter(g=>g.subject===subject&&g.installationId===binding.installationId&&g.repositoryId===binding.repositoryId&&g.ref===binding.ref&&g.capabilities.includes(capability));
+    const grants=subjects.flatMap(matches);requireThat(grants.length>0,'FORBIDDEN');
+    /** @param {readonly Grant[]} list @param {string} path */
+    const allows=(list,path)=>list.some(g=>g.paths.some(p=>withinPrefix(repositoryPath(p,true),path))&&!g.deniedPaths.some(p=>withinPrefix(repositoryPath(p,true),path)));
     const checked=[...paths].sort((a,b)=>Buffer.compare(Buffer.from(a),Buffer.from(b)));
-    for(const path of checked) {
-      repositoryPath(path,true);
-      requireThat(grants.some(g=>g.paths.some(p=>withinPrefix(repositoryPath(p,true),path)) &&
-        !g.deniedPaths.some(p=>withinPrefix(repositoryPath(p,true),path))), 'FORBIDDEN');
-    }
-    const normalized=grants.map(g=>({subject:g.subject,installationId:g.installationId,repositoryId:g.repositoryId,ref:g.ref,capabilities:[...g.capabilities].sort(),paths:[...g.paths].sort(),deniedPaths:[...g.deniedPaths].sort()})).sort((a,b)=>Buffer.compare(Buffer.from(JSON.stringify(a)),Buffer.from(JSON.stringify(b))));
-    return {stamp:recordDigest('dev2.authorization-snapshot.v1',{principal:{subject:principal.subject,issuer:principal.issuer,audience:principal.audience,expiresAt:principal.expiresAt,tokenCapabilities:[...(principal.tokenCapabilities??[])].sort()},binding:current,capability,paths:checked,grants:normalized}),expiresAt:principal.expiresAt};
+    for(const path of checked){repositoryPath(path,true);requireThat(allows(grants,path),'FORBIDDEN');}
+    /** @param {readonly Grant[]} list */
+    const normalize=list=>list.map(g=>({subject:g.subject,installationId:g.installationId,repositoryId:g.repositoryId,ref:g.ref,capabilities:[...g.capabilities].sort(),paths:[...g.paths].sort(),deniedPaths:[...g.deniedPaths].sort()})).sort((a,b)=>Buffer.compare(Buffer.from(JSON.stringify(a)),Buffer.from(JSON.stringify(b))));
+    /** @param {string} subject */
+    const principalRecord=subject=>({subject,issuer:principal.issuer,audience:principal.audience,expiresAt:principal.expiresAt,tokenCapabilities:[...(principal.tokenCapabilities??[])].sort()});
+    /** @param {string} subject @param {readonly Grant[]} list */
+    const record=(subject,list)=>({principal:principalRecord(subject),binding:current,capability,paths:checked,grants:normalize(list)});
+    const result={stamp:recordDigest('tdev.authorization-snapshot.v1',record(principal.subject,grants)),expiresAt:principal.expiresAt};
+    if(principal.legacySubject!==undefined){const legacy=matches(principal.legacySubject);if(legacy.length>0&&checked.every(path=>allows(legacy,path)))Object.defineProperty(result,'__legacyStamp',{value:recordDigest('dev2.authorization-snapshot.v1',record(principal.legacySubject,legacy)),enumerable:false});}
+    return result;
   }
   /** @param {{stamp:string,expiresAt:number}} retained @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
-  assertSnapshot(retained,principal,binding,capability,paths=[]){const current=this.snapshot(principal,binding,capability,paths);requireThat(current.stamp===retained.stamp&&current.expiresAt===retained.expiresAt,'STALE_REVISION','Authorization authority changed');return current;}
+  assertSnapshot(retained,principal,binding,capability,paths=[]){const current=this.snapshot(principal,binding,capability,paths),legacy=/** @type {{__legacyStamp?:string}} */(current).__legacyStamp;requireThat((current.stamp===retained.stamp||legacy===retained.stamp)&&current.expiresAt===retained.expiresAt,'STALE_REVISION','Authorization authority changed');return current;}
   /** @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
   async authorize(principal,binding,capability,paths=[]) { this.snapshot(principal,binding,capability,paths); }
 }

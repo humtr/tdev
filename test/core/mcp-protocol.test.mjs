@@ -2,7 +2,7 @@ import { canonicalJson } from '../../src/contracts/canonical.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { MODERN_VERSION as V, LEGACY_VERSION as L, ProtocolError, decodeMessage, checkEndpoint, decodeNameHeader, completeMessage, discovery, initialization, toolPayload, errorResponse } from '../../src/mcp/protocol.mjs';
-const server = { name: 'dev-2-fixture', version: '0.0.0' };
+const server = { name: 'tdev-fixture', version: '0.0.0' };
 function modern(method = 'tools/list', fields = {}) { return { jsonrpc: '2.0', id: 1, method, params: { ...fields, _meta: { 'io.modelcontextprotocol/protocolVersion': V, 'io.modelcontextprotocol/clientCapabilities': {} } } }; }
 function headers(message) { const h = new Headers({ 'mcp-protocol-version': V, 'mcp-method': message.method }); if (message.method === 'tools/call')
     h.set('mcp-name', message.params.name); return h; }

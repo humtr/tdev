@@ -6,7 +6,7 @@ import {parseRecord,canonicalJson} from '../../src/contracts/canonical.mjs';
 import {managedPolicy} from '../../src/validation/managed-policy.mjs';
 import {AdoptedPolicy} from '../../src/validation/policy.mjs';
 const f=await productionFixture();let providerLaunches=0;const completions=[],executing=new Set();
-const legacySource={...f.source,treeOid:'sha1:'+'9'.repeat(40)},legacyIdentities={...f.definition.identities,trustedRunnerDigest:D(0)},legacyDefinition={...f.definition,identities:legacyIdentities,policy:managedPolicy(legacyIdentities),config:{...f.definition.config,executionShape:undefined}};
+const legacySource={...f.source,treeOid:'sha1:'+'9'.repeat(40)},legacyIdentities={...f.definition.identities,trustedRunnerDigest:D(0)},legacyDefinition={...f.definition,identities:legacyIdentities,policy:managedPolicy(legacyIdentities,'dev2'),config:{...f.definition.config,executionShape:undefined}};
 const pump=setInterval(()=>{for(const row of f.ledger.transact(tx=>tx.all("SELECT session_id FROM managed_dispatch WHERE state='pending'"))){const run=(async()=>{const sid=row.session_id,s=f.ledger.transact(tx=>f.sessions.session(tx,sid));if(!s.run)return;const a=f.pool.poll(f.activate(sid)).assignment;if(!a||executing.has(a.assignmentId))return;executing.add(a.assignmentId);const payload=parseRecord(await f.objects.get(a.input.payloadDigest),16777216);await f.complete(a,payload.profile);})();completions.push(run);run.catch(()=>{});}},10);
 mock.module('../../src/execution/controller-identity.mjs',{namedExports:{managedDefinition:async(repository,source)=>source===legacySource?legacyDefinition:f.definition}});
 mock.module('../../src/execution/github-sessions.mjs',{namedExports:{GitHubSessions:class{

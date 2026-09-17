@@ -1,4 +1,4 @@
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {canonicalJson} from '../contracts/canonical.mjs';
 import {boundedProviderJson} from '../execution/provider-json.mjs';
 /** @typedef {{rulesetId:number,createdAt:string,updatedAt:string}} RulesetIdentity */
@@ -26,7 +26,7 @@ export class GitHubCanonicalBoundary {
  /** @param {{binding:import('../contracts/ports.js').Binding,repositoryFullName:string,repositoryOwnerId:string,identity:RulesetIdentity,token:string,fetcher?:typeof fetch,now?:()=>number}} options */
  constructor(options){this.o=options;this.fetcher=options.fetcher??fetch;this.now=options.now??Date.now;requireThat(/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(options.repositoryFullName)&&options.token.length>0&&!/\s/.test(options.token)&&options.binding.ref.startsWith('refs/heads/'),'INVALID_ARGUMENT');this.pending=/** @type {Promise<ReturnType<typeof verifyCanonicalBoundary>>|null} */(null);}
  /** @param {string} suffix */
- async get(suffix){let response;try{response=await this.fetcher('https://api.github.com/repos/'+this.o.repositoryFullName+suffix,{headers:{accept:'application/vnd.github+json',authorization:'Bearer '+this.o.token,'user-agent':'dev2-canonical-boundary','x-github-api-version':'2026-03-10'},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new Dev2Error('EXECUTION_UNAVAILABLE','Canonical guard provider unavailable');}requireThat(response.ok,'EXECUTION_UNAVAILABLE','Canonical guard could not be observed');
+ async get(suffix){let response;try{response=await this.fetcher('https://api.github.com/repos/'+this.o.repositoryFullName+suffix,{headers:{accept:'application/vnd.github+json',authorization:'Bearer '+this.o.token,'user-agent':'dev2-canonical-boundary','x-github-api-version':'2026-03-10'},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new TdevError('EXECUTION_UNAVAILABLE','Canonical guard provider unavailable');}requireThat(response.ok,'EXECUTION_UNAVAILABLE','Canonical guard could not be observed');
   const reader=response.body?.getReader();requireThat(reader,'INTEGRITY_FAILURE');let total=0;const chunks=[];try{for(;;){const next=await reader.read();if(next.done)break;total+=next.value.length;requireThat(total<=262144,'LIMIT_EXCEEDED');chunks.push(Buffer.from(next.value));}}finally{await reader.cancel().catch(()=>{});reader.releaseLock();}return boundedProviderJson(Buffer.concat(chunks),262144);
  }
  /** Concurrent reads share only an in-flight observation, never stale cached

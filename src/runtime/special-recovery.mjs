@@ -1,5 +1,6 @@
 import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
+import {principalOwns} from '../security/principal.mjs';
 /** @typedef {{stopped:boolean,effectResolved:boolean,output:import('../contracts/ports.js').Json|null}} SpecialObservation */
 /** Recovery is over the retained special action, not a fabricated source work,
  * new provider sender, renewed deadline or replacement activation. Read-only
@@ -13,7 +14,7 @@ export class SpecialRecovery {
  async observe(principal,actionId,retry){
   const e=this.e;if(!e.o.specialRecovery||e.running.has(actionId))return;
   await e.o.authorization.authorize(principal,e.binding,'repository.read');
-  const frame=e.ledger.transact(tx=>{const action=tx.getAction(actionId);requireThat(action&&action.principal===principal.subject,'FORBIDDEN');if(action.workId||action.status!=='blocked')return null;
+  const frame=e.ledger.transact(tx=>{const action=tx.getAction(actionId);requireThat(action&&principalOwns(principal,action.principal),'FORBIDDEN');if(action.workId||action.status!=='blocked')return null;
    const row=tx.get('SELECT record FROM attempt WHERE action_id=? AND json_extract(record,\'$.attempt\')=?',actionId,action.attempt);requireThat(row&&action.ownerEpoch===e.ledger.ownerEpoch,'EFFECT_UNCERTAIN');const attempt=/** @type {import('../contracts/ports.js').Attempt} */(parseRecord(String(row.record))),retained=tx.retainedAttempt(attempt.attemptId);requireThat(retained?.observerEpoch===e.ledger.ownerEpoch,'STALE_REVISION');return {action,attempt,stamp:canonicalJson(action)};
   });if(!frame)return;
   const input=e.input(actionId);if(retry){requireThat(e.accepting,'EXECUTION_UNAVAILABLE','Runtime is draining');await e.authorize(principal,input);}

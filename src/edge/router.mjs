@@ -11,9 +11,8 @@ import { TOOL_DESCRIPTORS, SCHEMA_DIGEST, validateOutput } from './contract.mjs'
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
 /** @typedef {{credentialDigest:string,connectionId:string,observation:Json|null}} Attachment */
-/** Routing-only Durable Object. No SQLite storage, work queue, candidate state,
- * receipt or provider credentials. Hibernation loses only correlations: a resumed
- * socket receives a fresh nonce and the caller recovers through native request IDs.
+/** Routing-only Durable Object. Provider class name is retained as the D0006
+ * Cloudflare compatibility identity; it is not a product/protocol namespace.
  */
 export class Dev2RendezvousDO {
  /** @param {import('./types.js').DurableContext} ctx @param {Env} env */
@@ -37,20 +36,20 @@ export class Dev2RendezvousDO {
  }
  /** @param {Request} request */
  async fetch(request){try{
-  const path=new URL(request.url).pathname;
-  if(path==='/__dev2/device'){
+  const rawPath=new URL(request.url).pathname,path=rawPath.startsWith('/__dev2/')?'/__tdev/'+rawPath.slice('/__dev2/'.length):rawPath;
+  if(path==='/__tdev/device'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='GET'&&request.headers.get('upgrade')?.toLowerCase()==='websocket','INVALID_ARGUMENT');
    const host=/** @type {unknown} */(globalThis);
    const Pair=/** @type {{WebSocketPair:new()=>{0:Socket,1:Socket}}} */(host).WebSocketPair;
    const pair=new Pair();this.ctx.acceptWebSocket(pair[1],['device']);this.attach(pair[1]);
    return new Response(null,/** @type {ResponseInit} */(/** @type {unknown} */({status:101,webSocket:pair[0]})));
   }
-  if(path==='/__dev2/verify'){
+  if(path==='/__tdev/verify'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='POST'&&(await readBody(request,1)).byteLength===0,'INVALID_ARGUMENT');
    const probe=await this.rendezvous.probe();
    return jsonResponse({discovery:{tools:TOOL_DESCRIPTORS},schemaDigest:SCHEMA_DIGEST,edgeVersionId:this.env.DEV2_VERSION?.id??null,probe});
   }
-  if(path==='/__dev2/status'){
+  if(path==='/__tdev/status'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='GET','INVALID_ARGUMENT');
    return jsonResponse({installationId:this.config.installationId,deviceId:this.config.deviceId,sourceCommitOid:this.config.sourceCommitOid,
     edgeVersionId:this.env.DEV2_VERSION?.id??null,edgeBundleDigest:this.config.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST,
@@ -59,14 +58,14 @@ export class Dev2RendezvousDO {
   }
   // Executor ingress is reachable only through the Worker binding after signed
   // provider-role authentication. It cannot call a human tool or installation probe.
-  if(path==='/__dev2/executor'){
+  if(path==='/__tdev/executor'){
    requireThat(request.method==='POST','FORBIDDEN');
    const body=/** @type {RecordValue} */(parseRecord(await readBody(request,164352),164352));
    requireThat(Object.keys(body).length===2&&typeof body.assertion==='string'&&body.arguments!==undefined,'INVALID_ARGUMENT');
    return jsonResponse(await this.rendezvous.executor({arguments:body.arguments,assertion:body.assertion}));
   }
   // Only the Worker binding can reach this named DO. Public paths never proxy here.
-  requireThat(path==='/__dev2/dispatch'&&request.method==='POST','FORBIDDEN');
+  requireThat(path==='/__tdev/dispatch'&&request.method==='POST','FORBIDDEN');
   const body=/** @type {RecordValue} */(parseRecord(await readBody(request),1048576));
   requireThat(Object.keys(body).length===3&&typeof body.tool==='string'&&typeof body.assertion==='string'&&body.arguments!==undefined,'INVALID_ARGUMENT');
   const envelope=await this.rendezvous.request({tool:body.tool,arguments:body.arguments,assertion:body.assertion});
@@ -80,7 +79,7 @@ export class Dev2RendezvousDO {
   const frame=/** @type {RecordValue} */(parseRecord(message,262656));
   if(frame.kind==='presence'){
    requireThat(frame.v===1&&Object.keys(frame).length===4,'INVALID_ARGUMENT');
-   if(frame.connectionId!==this.connectionId)return; // Hibernation wake may be triggered by an old-nonce heartbeat.
+   if(frame.connectionId!==this.connectionId)return;
    const body=/** @type {RecordValue} */(frame.body);
    requireThat(body!==null&&typeof body==='object'&&!Array.isArray(body)&&body.schemaDigest===SCHEMA_DIGEST&&Buffer.byteLength(canonicalJson(body))<=32768,'INTEGRITY_FAILURE');
    this.observation=body;socket.serializeAttachment({credentialDigest:this.config.deviceCredentialDigest,connectionId:this.connectionId,observation:body});

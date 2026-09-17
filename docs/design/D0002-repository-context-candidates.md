@@ -146,3 +146,25 @@ Acceptance must use at least two separately authorized repository/ref fixtures w
 overlapping paths and intentionally equal blob digests, then prove exact selector,
 currentness and negative cross-binding read/candidate isolation without adding a
 new public file server or deployment-time source allowlist.
+
+## C2-2 source identity namespace transition
+
+New gitlink and source-manifest identities use `tdev.gitlink.v1` and
+`tdev.source-manifest.v1`. An immutable snapshot or retained Work generation created
+before this transition may still carry the exact `dev2.*` manifest identity. Readers
+may verify that exact retained value under the legacy domain; they must not relabel
+it, synthesize a current manifest under old bytes, or let legacy verification bypass
+the selected binding and current disclosure authorization.
+
+A mutation of a retained legacy generation produces a new generation with the
+current `tdev.*` manifest. Fresh snapshots and new candidates are current-domain
+only. Snapshot/cursor handles already issued under a legacy domain remain bounded by
+their original expiry and binding; there is no hidden token refresh. Legacy manifest
+verification can retire only after no retained generation/snapshot owner can
+legitimately reference it under D0001 retention and binding-epoch rules.
+
+Fresh context handles bind the current `tdev` principal subject and `tdev` Binding
+digest. A retained pre-C2 handle may instead contain the exact legacy subject and
+legacy Binding digest; it is accepted only when both derive from the same currently
+verified principal/binding and the original handle MAC/expiry still validate. The
+legacy subject is never used to mint a fresh context handle or candidate.

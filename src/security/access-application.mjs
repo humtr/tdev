@@ -1,8 +1,9 @@
 import { jwtVerify } from 'jose';
 import { recordDigest } from '../contracts/canonical.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { CAPABILITIES } from './authorization.mjs';
 import { workersDevOrigin } from '../runtime/environment.mjs';
+import {attachLegacySubject} from './principal.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Capability} Capability */
 /** Explicit application-wide delegation profile. An opaque Managed OAuth bearer
@@ -45,12 +46,13 @@ export function accessApplicationVerifier(configuration, keyResolver, now = Date
                 requireThat(typeof payload.nbf === 'number' && Number.isSafeInteger(payload.nbf) && payload.nbf >= 0 && Number.isSafeInteger(payload.nbf * 1000) && payload.nbf < payload.exp, 'UNAUTHORIZED');
             const verifiedAt = now();
             requireThat(Number.isSafeInteger(verifiedAt) && verifiedAt >= timestamp && verifiedAt < payload.exp * 1000, 'UNAUTHORIZED');
-            return { subject: recordDigest('dev2.access-subject.v1', { issuer: config.issuer, subject: payload.sub }).slice(7),
+            const identity={ issuer: config.issuer, subject: payload.sub };
+            return attachLegacySubject({ subject: recordDigest('tdev.access-subject.v1', identity).slice(7),
                 issuer: config.issuer, audience: config.resourceOrigin, expiresAt: payload.exp * 1000,
-                tokenCapabilities: Object.freeze([...config.applicationCapabilities]) };
+                tokenCapabilities: Object.freeze([...config.applicationCapabilities]) },recordDigest('dev2.access-subject.v1', identity).slice(7));
         }
         catch {
-            throw new Dev2Error('UNAUTHORIZED');
+            throw new TdevError('UNAUTHORIZED');
         }
     };
 }

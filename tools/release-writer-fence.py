@@ -160,6 +160,7 @@ def fence(config, request, mode, directory):
         require(str(root.resolve()) == str(root))
         owners = [(database, root)]
         secondary_roots = set()
+        secondary_bindings = set()
         secondary = ledger.parent / 'binding-ledgers'
         if secondary.exists():
             require(secondary.is_dir() and not secondary.is_symlink() and str(secondary.resolve()) == str(secondary))
@@ -175,9 +176,18 @@ def fence(config, request, mode, directory):
                 other.execute('BEGIN EXCLUSIVE')
                 bound = json.loads(other.execute('SELECT record FROM binding WHERE singleton=1').fetchone()[0])
                 require(bound['installationId'] == config['installationId'])
-                name = hashlib.sha256(b'dev2.binding-ledger.v1\0' + canonical(bound)).hexdigest()
-                require(path.name == name + '.sqlite')
-                sender_name = hashlib.sha256(b'dev2.binding-sender.v1\0' + canonical(bound)).hexdigest()
+                bound_bytes = canonical(bound)
+                require(bound_bytes not in secondary_bindings)
+                secondary_bindings.add(bound_bytes)
+                current_name = hashlib.sha256(b'tdev.binding-ledger.v1\0' + bound_bytes).hexdigest()
+                legacy_name = hashlib.sha256(b'dev2.binding-ledger.v1\0' + bound_bytes).hexdigest()
+                require(path.name in (current_name + '.sqlite', legacy_name + '.sqlite'))
+                current_sender = hashlib.sha256(b'tdev.binding-sender.v1\0' + bound_bytes).hexdigest()
+                legacy_sender = hashlib.sha256(b'dev2.binding-sender.v1\0' + bound_bytes).hexdigest()
+                current_sender_exists = (root / current_sender).exists()
+                legacy_sender_exists = (root / legacy_sender).exists()
+                require(not (current_sender_exists and legacy_sender_exists))
+                sender_name = legacy_sender if legacy_sender_exists else current_sender
                 secondary_roots.add(sender_name)
                 owners.append((other, root / sender_name))
         sender_count = 0

@@ -1,5 +1,5 @@
 import { jwtVerify } from 'jose';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { id, revision } from '../contracts/identity.mjs';
 import { recordDigest } from '../contracts/canonical.mjs';
 import { workersDevOrigin } from '../runtime/environment.mjs';
@@ -32,19 +32,20 @@ export function githubExecutorVerifier(config, keyResolver, readLaunch, now = Da
             requireThat(expected && expected.active && expected.sessionId === sessionId && expected.installationId === installationId && Number.isSafeInteger(expected.expiresAt) && expected.expiresAt > milliseconds, 'UNAUTHORIZED');
             for (const s of [expected.repositoryId, expected.repositoryOwnerId, expected.runId])
                 requireThat(revision(s) !== '0', 'UNAUTHORIZED');
-            const ref = 'refs/heads/dev2-exec/' + sessionId;
-            const workflowPath = '.github/workflows/dev2-executor.yml';
-            requireThat(expected.ref === ref && expected.workflowRef === expected.repositoryFullName + '/' + workflowPath + '@' + ref && /^[0-9a-f]{40}$/.test(expected.launchCommit) && expected.runAttempt === '1', 'UNAUTHORIZED');
+            const currentRef='refs/heads/tdev-exec/'+sessionId,legacyRef='refs/heads/dev2-exec/'+sessionId,current=expected.ref===currentRef;
+            requireThat(current||expected.ref===legacyRef,'UNAUTHORIZED');
+            const ref=expected.ref,workflowPath=current?'.github/workflows/tdev-executor.yml':'.github/workflows/dev2-executor.yml';
+            requireThat(expected.workflowRef === expected.repositoryFullName + '/' + workflowPath + '@' + ref && /^[0-9a-f]{40}$/.test(expected.launchCommit) && expected.runAttempt === '1', 'UNAUTHORIZED');
             const claims = { repository_id: expected.repositoryId, repository_owner_id: expected.repositoryOwnerId, ref, sha: expected.launchCommit, workflow_ref: expected.workflowRef, workflow_sha: expected.launchCommit, run_id: expected.runId, run_attempt: '1', runner_environment: 'github-hosted', event_name: 'push' };
             requireThat(Object.entries(claims).every(([key, value]) => p[key] === value), 'UNAUTHORIZED');
             const observed = expected.provider;
             requireThat(observed.runId === expected.runId && observed.runAttempt === '1' && observed.headSha === expected.launchCommit && observed.headBranch === ref.slice('refs/heads/'.length) && observed.event === 'push' && observed.workflowPath === workflowPath && observed.status === 'in_progress', 'UNAUTHORIZED');
             const observedNow = now();
             requireThat(Number.isSafeInteger(observedNow) && observedNow >= milliseconds && observedNow < expected.expiresAt && observedNow < /** @type {number} */ (p.exp) * 1000, 'UNAUTHORIZED');
-            return { kind: 'github-executor', sessionId, installationId, repositoryId: expected.repositoryId, runId: expected.runId, runAttempt: '1', launchCommit: expected.launchCommit, expiresAt: Math.min(/** @type {number} */ (p.exp) * 1000, expected.expiresAt), launchIdentity: recordDigest('dev2.execution-launch.v1', { installationId, sessionId, ...claims }) };
+            return { kind: 'github-executor', sessionId, installationId, repositoryId: expected.repositoryId, runId: expected.runId, runAttempt: '1', launchCommit: expected.launchCommit, expiresAt: Math.min(/** @type {number} */ (p.exp) * 1000, expected.expiresAt), launchIdentity: recordDigest((current?'tdev':'dev2')+'.execution-launch.v1', { installationId, sessionId, ...claims }) };
         }
         catch {
-            throw new Dev2Error('UNAUTHORIZED');
+            throw new TdevError('UNAUTHORIZED');
         }
     };
 }

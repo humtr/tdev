@@ -1,10 +1,10 @@
 import { randomUUID } from 'node:crypto';
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{maxPending:number,maxRequestBytes:number,maxResponseBytes:number,maxRetainedBytes:number,deadlineMs:number}} Limits */
 /** Not a work record, receipt, queue, authentication service or public proxy. */
-export class DeliveryUnavailable extends Dev2Error {
+export class DeliveryUnavailable extends TdevError {
     /** @param {'not_sent'|'unknown'} delivery */
     constructor(delivery) {
         super('EXECUTION_UNAVAILABLE', 'Device delivery unavailable', { delivery });
@@ -134,7 +134,7 @@ export class RequestRendezvous {
             frame = /** @type {Json} */ (parseRecord(encoded, this.#limits.maxResponseBytes + 512));
         }
         catch {
-            throw new Dev2Error('INVALID_ARGUMENT', 'Invalid routing reply');
+            throw new TdevError('INVALID_ARGUMENT', 'Invalid routing reply');
         }
         requireThat(frame !== null && typeof frame === 'object' && !Array.isArray(frame), 'INVALID_ARGUMENT', 'Invalid routing reply');
         requireThat(Object.keys(frame).length === 4 && frame.v === 1 && frame.connectionId === connectionId &&

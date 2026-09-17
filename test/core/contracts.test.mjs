@@ -3,7 +3,7 @@ import assert from 'node:assert/strict';
 import { canonicalJson, parseRecord, recordDigest } from '../../src/contracts/canonical.mjs';
 import { revision, nextRevision, oid, digest, capacity, newId } from '../../src/contracts/identity.mjs';
 import { failure } from '../../src/contracts/envelopes.mjs';
-import { Dev2Error } from '../../src/contracts/errors.mjs';
+import { TdevError } from '../../src/contracts/errors.mjs';
 import { fixture, fakeRef } from '../fixtures/deterministic.mjs';
 
 test('canonical vectors: lexical integer keys, -0 and domain separation', () => {
@@ -58,7 +58,7 @@ test('deterministic independent fixtures and CAS test adapter', async () => {
 });
 test('failure envelope never leaks provider exception text', () => {
   const f=failure(new Error('secret-token-value')); assert.ok(!JSON.stringify(f).includes('secret-token-value'));
-  assert.equal(failure(new Dev2Error('STALE_BASE')).error.code,'STALE_BASE');
+  assert.equal(failure(new TdevError('STALE_BASE')).error.code,'STALE_BASE');
 });
 
 test('wire numbers cannot round fractional or underflowed input into an integer', () => {

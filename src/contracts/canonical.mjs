@@ -58,8 +58,19 @@ export function bytesDigest(bytes) {
 }
 /** @param {string} domain @param {unknown} value @returns {string} */
 export function recordDigest(domain, value) {
-  requireThat(/^dev2\.[a-z0-9.-]+\.v[1-9][0-9]*$/.test(domain), 'INVALID_ARGUMENT', 'Digest domain');
+  requireThat(/^(?:tdev|dev2)\.[a-z0-9.-]+\.v[1-9][0-9]*$/.test(domain), 'INVALID_ARGUMENT', 'Digest domain');
   return bytesDigest(Buffer.concat([Buffer.from(domain + '\0'), Buffer.from(canonicalJson(value))]));
+}
+/** Exact C2-2 compatibility calculation for a retained pre-transition record.
+ * Never use this helper to mint a new identity or effect.
+ * @param {string} currentDomain @param {unknown} value @returns {string} */
+export function legacyRecordDigest(currentDomain, value) {
+  requireThat(/^tdev\.[a-z0-9.-]+\.v[1-9][0-9]*$/.test(currentDomain), 'INVALID_ARGUMENT', 'Current digest domain');
+  return recordDigest('dev2' + currentDomain.slice(4), value);
+}
+/** @param {string} expected @param {string} currentDomain @param {unknown} value */
+export function recordDigestMatches(expected, currentDomain, value) {
+  return expected === recordDigest(currentDomain, value) || expected === legacyRecordDigest(currentDomain, value);
 }
 
 /** Duplicate-aware parser for untrusted wire and retained records. Validate limits before recursion.

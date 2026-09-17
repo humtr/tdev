@@ -1,7 +1,7 @@
-name: dev-2 bounded containment proof
+name: tdev bounded containment proof
 on:
   push:
-    branches: ['dev2-containment/**']
+    branches: ['tdev-containment/**']
 permissions:
   contents: read
   id-token: write
@@ -18,12 +18,12 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          archive="$RUNNER_TEMP/dev2-node.tar.xz"
+          archive="$RUNNER_TEMP/tdev-node.tar.xz"
           curl --fail --location --proto '=https' --tlsv1.2 --retry 2 --max-time 120 https://nodejs.org/dist/v24.21.0/node-v24.21.0-linux-x64.tar.xz -o "$archive"
           echo "fd8e59d5a511510f6a298afb548f18c7d2b1be404d8b4a27d94fbe49f56cb2d6  $archive" | sha256sum --check
-          mkdir -p "$RUNNER_TEMP/dev2-node"
-          tar -xJf "$archive" --strip-components=1 -C "$RUNNER_TEMP/dev2-node"
-          echo "$RUNNER_TEMP/dev2-node/bin" >> "$GITHUB_PATH"
+          mkdir -p "$RUNNER_TEMP/tdev-node"
+          tar -xJf "$archive" --strip-components=1 -C "$RUNNER_TEMP/tdev-node"
+          echo "$RUNNER_TEMP/tdev-node/bin" >> "$GITHUB_PATH"
       - name: Install locked controller dependencies without lifecycle scripts
         run: npm ci --include=dev --ignore-scripts --no-audit --no-fund
       - name: Real hosted containment falsifiers

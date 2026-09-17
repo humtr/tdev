@@ -1,6 +1,6 @@
 import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
 import { success, failure } from '../contracts/envelopes.mjs';
-import { requireThat,Dev2Error } from '../contracts/errors.mjs';
+import { requireThat,TdevError } from '../contracts/errors.mjs';
 import { validateInput, validateWorkItem, admitWorkBatch } from '../mcp/input-schemas.mjs';
 import { validateOutput, TOOL_DESCRIPTORS } from '../mcp/outputs.mjs';
 import { workInput } from './engine.mjs';
@@ -28,7 +28,7 @@ export class BindingRouterApplication {
  /** @param {RecordValue} item @param {import('./application.mjs').DevelopmentApplication} app */
  primaryOnly(item,app){if(item.op==='policy.adopt'||String(item.op).startsWith('release.'))requireThat(app===this.primary,'FORBIDDEN','Operation is primary binding only');}
  /** Discovery is authorization-filtered installation data, never proof for a later call. @param {Principal} principal */
- async repositories(principal){const rows=[];for(const app of this.apps.values()){const b=app.engine.binding;try{await app.engine.o.authorization.authorize(principal,b,'repository.read');rows.push({repositoryId:b.repositoryId,provider:b.provider,providerRepositoryId:b.providerRepositoryId,ref:b.ref,bindingEpoch:b.bindingEpoch,policyDigest:b.policyDigest,primary:b.repositoryId===this.primaryRepositoryId});}catch(error){if(error instanceof Dev2Error&&['FORBIDDEN','UNAUTHORIZED'].includes(error.code))continue;throw error;}}return rows.sort((a,b)=>a.primary===b.primary?Buffer.compare(Buffer.from(a.repositoryId),Buffer.from(b.repositoryId)):a.primary?-1:1);}
+ async repositories(principal){const rows=[];for(const app of this.apps.values()){const b=app.engine.binding;try{await app.engine.o.authorization.authorize(principal,b,'repository.read');rows.push({repositoryId:b.repositoryId,provider:b.provider,providerRepositoryId:b.providerRepositoryId,ref:b.ref,bindingEpoch:b.bindingEpoch,policyDigest:b.policyDigest,primary:b.repositoryId===this.primaryRepositoryId});}catch(error){if(error instanceof TdevError&&['FORBIDDEN','UNAUTHORIZED'].includes(error.code))continue;throw error;}}return rows.sort((a,b)=>a.primary===b.primary?Buffer.compare(Buffer.from(a.repositoryId),Buffer.from(b.repositoryId)):a.primary?-1:1);}
  /** @param {Principal} principal @param {string} name @param {unknown} input @param {AbortSignal} [signal] */
  async invoke(principal,name,input,signal){
   requireThat(TOOL_DESCRIPTORS.some(tool=>tool.name===name),'INVALID_ARGUMENT','Unknown tool');

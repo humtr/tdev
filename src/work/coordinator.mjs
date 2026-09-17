@@ -12,14 +12,19 @@ export class WorkCoordinator {
   /** @param {Ledger} ledger @param {{executionCapacity?:number,maxPending?:number,now?:()=>number,ids?:()=>string}} [options] */
   constructor(ledger,options={}){this.ledger=ledger;this.executionCapacity=capacity(options.executionCapacity);this.maxPending=options.maxPending??1024;this.now=options.now??Date.now;this.ids=options.ids??newId;requireThat(Number.isSafeInteger(this.maxPending)&&this.maxPending>0&&this.maxPending<=100000,'INVALID_ARGUMENT');}
   /** Auth is always checked before dedup. `beforeMutate` is an optional synchronous installation-level fence: retained duplicates bypass it, and no await occurs between it and the durable mutation transaction. The mutate callback may only change ledger rows.
-   * @param {{principal:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,beforeMutate?:()=>void,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
+   * @param {{principal:string,legacyPrincipal?:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,beforeMutate?:()=>void,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
    */
   async admit(request){await request.authorize();id(request.requestId);
-    const intentDigest=recordDigest('dev2.mutation-intent.v1',{repositoryId:this.ledger.binding.repositoryId,bindingEpoch:this.ledger.binding.bindingEpoch,operation:request.operation,intent:request.intent});
-    if(request.beforeMutate){const retained=this.ledger.transact(tx=>{const duplicate=tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId);if(!duplicate)return null;requireThat(duplicate.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};});if(retained)return retained;request.beforeMutate();}
+    const identity={repositoryId:this.ledger.binding.repositoryId,bindingEpoch:this.ledger.binding.bindingEpoch,operation:request.operation,intent:request.intent};
+    const intentDigest=recordDigest('tdev.mutation-intent.v1',identity),legacyIntentDigest=recordDigest('dev2.mutation-intent.v1',identity);
+    /** @param {Action} duplicate */
+    const sameIntent=duplicate=>duplicate.intentDigest===intentDigest||duplicate.intentDigest===legacyIntentDigest;
+    /** @param {Transaction} tx */
+    const lookup=tx=>tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId)??(request.legacyPrincipal?tx.lookupRequest(request.legacyPrincipal,this.ledger.binding.bindingEpoch,request.requestId):null);
+    if(request.beforeMutate){const retained=this.ledger.transact(tx=>{const duplicate=lookup(tx);if(!duplicate)return null;requireThat(sameIntent(duplicate),'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};});if(retained)return retained;request.beforeMutate();}
     return this.ledger.transact(tx=>{
-      const duplicate=tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId);
-      if(duplicate){requireThat(duplicate.intentDigest===intentDigest,'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};}
+      const duplicate=lookup(tx);
+      if(duplicate){requireThat(sameIntent(duplicate),'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};}
     requireThat(Number.isSafeInteger(request.deadline)&&request.deadline>this.now(),'INVALID_ARGUMENT');
 
       // Inline management must remain available when the execution queue is full;
@@ -27,13 +32,13 @@ export class WorkCoordinator {
       requireThat(request.inline||Number(tx.get("SELECT count(*) n FROM action WHERE status IN ('queued','running','blocked')")?.n)<this.maxPending,'CAPACITY_REJECTED');
       const actionId=this.ids();const work=request.mutate(tx,actionId);
       /** @type {Action} */
-      const action={actionId,requestId:request.requestId,principal:request.principal,bindingEpoch:this.ledger.binding.bindingEpoch,intentDigest,operation:request.operation,
+      const action={actionId,requestId:request.requestId,principal:request.principal,bindingEpoch:this.ledger.binding.bindingEpoch,intentDigest,identityNamespace:/** @type {const} */('tdev'),operation:request.operation,
         workId:work?.workId??null,status:request.inline?'succeeded':'queued',step:request.inline?'complete':'admitted',attempt:'0',ownerEpoch:this.ledger.ownerEpoch,deadline:request.deadline,resultId:null,errorCode:null};
       tx.insertAction(action,request.intent);return {action,work,deduplicated:false};
     });
   }
-  /** @param {Transaction} tx @param {string} workId @param {string} principal @param {string} expectedRevision @param {string} generation @returns {Work} */
-  fence(tx,workId,principal,expectedRevision,generation){const work=tx.getWork(workId);requireThat(work&&work.principal===principal,'FORBIDDEN');
+  /** @param {Transaction} tx @param {string} workId @param {string|readonly string[]} principal @param {string} expectedRevision @param {string} generation @returns {Work} */
+  fence(tx,workId,principal,expectedRevision,generation){const work=tx.getWork(workId),owners=Array.isArray(principal)?principal:[principal];requireThat(work&&owners.includes(work.principal),'FORBIDDEN');
     requireThat(work.revision===expectedRevision,'STALE_REVISION');requireThat(work.generation===generation,'STALE_BASE');
     requireThat(work.disposition==='open'&&!work.currentActionId,'STALE_REVISION','Work is fenced');return work;}
   /** One ready row per principal, then rotate the durable principal cursor; blocked rows are not candidates.
@@ -49,7 +54,7 @@ export class WorkCoordinator {
     if(action.deadline<=this.now()){tx.updateAction({...action,status:'cancelled',step:'deadline.before.dispatch',errorCode:null});this.clearFence(tx,action);continue;}
     /** @type {Attempt} */
     const attempt={installationId:this.ledger.binding.installationId,repositoryId:this.ledger.binding.repositoryId,workId:action.workId??action.actionId,actionId:action.actionId,
-      attemptId:this.ids(),attempt:nextRevision(action.attempt),ownerEpoch:this.ledger.ownerEpoch};
+      ...(action.identityNamespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{}),attemptId:this.ids(),attempt:nextRevision(action.attempt),ownerEpoch:this.ledger.ownerEpoch};
     requireThat(tx.reserveAttempt(attempt,this.executionCapacity),'INTEGRITY_FAILURE');
     const running={...action,status:/** @type {const} */('running'),step:'launch.reserved',attempt:attempt.attempt,ownerEpoch:this.ledger.ownerEpoch};tx.updateAction(running);
     tx.run("INSERT INTO meta(key,value) VALUES('dispatchPrincipal',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",action.principal);

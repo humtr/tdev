@@ -17,7 +17,7 @@ test('provider observations accept fractional metrics without weakening canonica
  assert.throws(()=>boundedProviderJson(Buffer.from([0xff])),{code:'EXECUTION_UNAVAILABLE'});
 });
 test('Podman preflight projects enforcing predicates from real-shaped provider metrics',async()=>{
- const root=await mkdtemp(join(tmpdir(),'dev2-provider-json-'));try{
+ const root=await mkdtemp(join(tmpdir(),'tdev-provider-json-'));try{
   const bytes=Buffer.from('{"defaultAction":"SCMP_ACT_ERRNO"}');const path=join(root,'seccomp.json');await writeFile(path,bytes);
   let rootless=true;const sandbox=new PodmanSandbox({executable:'/usr/bin/podman',environment:{},attemptRoot:root,seccompPath:path,seccompDigest:bytesDigest(bytes),images:{},productionSeal:true,materialize:async()=>'',command:async()=>({exitCode:0,signal:null,stdout:Buffer.from(JSON.stringify({host:{security:{rootless,seccompEnabled:true},cgroupVersion:'v2',cgroupControllers:['cpu','memory','pids'],freeLocks:2048,loadAverage:0.125}})),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false})});
   await sandbox.preflight();rootless=false;await assert.rejects(()=>sandbox.preflight(),{code:'EXECUTION_UNAVAILABLE'});

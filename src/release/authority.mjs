@@ -42,13 +42,13 @@ export class IntegratedSourceAuthority {
    if(await this.o.validation(r).eligible(r,v,policy,ledger.ownerEpoch)){frame=candidate;break;}
   }
   requireThat(frame,'VALIDATION_FAILED','Required receipt is not eligible');
-  const stamp=recordDigest('dev2.integrated-authority.v1',frame),observed=await this.o.remote.resolve();
+  const stamp=recordDigest('tdev.integrated-authority.v1',frame),observed=await this.o.remote.resolve();
   requireThat(observed.bindingEpoch===binding.bindingEpoch&&await this.o.verifyLineage(observed.head),'STALE_CONTEXT');
   await this.o.remote.fetch(observed.head);
   requireThat(commit===observed.head||await repository.isAncestor(binding,commit,observed.head),'STALE_BASE','Release source is not on the authoritative canonical lineage');
   const exact=await repository.readCommit(binding,commit),r=frame.result;
   requireThat(exact.commitOid===commit&&canonicalJson(exact.parents)===canonicalJson([r.expectedHead])&&exact.source.treeOid===r.resultTreeOid&&exact.source.manifestDigest===r.resultTreeSha256,'INTEGRITY_FAILURE','Integrated bytes changed');
-  requireThat(binding.policyDigest===policy&&this.retained(commit,policy).some(current=>recordDigest('dev2.integrated-authority.v1',current)===stamp),'STALE_RESULT','Integration authority changed while reading');
+  requireThat(binding.policyDigest===policy&&this.retained(commit,policy).some(current=>recordDigest('tdev.integrated-authority.v1',current)===stamp),'STALE_RESULT','Integration authority changed while reading');
   return {repositoryId:binding.repositoryId,bindingEpoch:binding.bindingEpoch,commitOid:commit,source:exact.source,policyDigest:policy,validationId:frame.receipt.validationId,result:r,receipt:frame.receipt,effect:frame.effect};
  }
 }

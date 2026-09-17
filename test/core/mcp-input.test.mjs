@@ -4,7 +4,7 @@ import { Ajv2020 } from 'ajv/dist/2020.js';
 import { INPUT_SCHEMAS, TOOL_INPUT_DESCRIPTORS, INPUT_SCHEMA_DIGEST, MAX_REQUEST_BYTES, validateInput, validateWorkItem, admitWorkBatch } from '../../src/mcp/input-schemas.mjs';
 import { canonicalJson } from '../../src/contracts/canonical.mjs';
 import { revision } from '../../src/contracts/identity.mjs';
-import { Dev2Error } from '../../src/contracts/errors.mjs';
+import { TdevError } from '../../src/contracts/errors.mjs';
 import { schemaFootprint } from '../../bench/diagnostics.mjs';
 const digest = 'sha256:' + 'a'.repeat(64), head = 'sha1:' + 'b'.repeat(40), work = { workId: 'w1', expectedRevision: '0' }, candidate = { ...work, generation: '0' }, integration = { ...candidate, expectedHead: head, policyDigest: digest };
 const entry = { blobDigest: digest, mode: '100644' };
@@ -151,7 +151,7 @@ test('independent admission callbacks overlap and denial does not block siblings
     assert.equal((await result).length, 8);
     const calls = [];
     const mixed = await admitWorkBatch({}, { apiVersion: 1, items: [make('create', 'deny'), make('create', 'pass')] }, async (context, item) => { if (item.requestId === 'deny')
-        throw new Dev2Error('FORBIDDEN'); }, async (context, item) => { calls.push(item.requestId); return { workId: 'w1' }; });
+        throw new TdevError('FORBIDDEN'); }, async (context, item) => { calls.push(item.requestId); return { workId: 'w1' }; });
     assert.equal(mixed[0].error.code, 'FORBIDDEN');
     assert.equal(mixed[1].ok, true);
     assert.deepEqual(calls, ['pass']);
@@ -160,7 +160,7 @@ test('batch adapter owns no dedup cache: domain lookup follows authorization on 
     const retained = new Map(), order = [];
     let writes = 0, allowed = true;
     const authorize = async (context, item) => { order.push('authorize'); if (!allowed)
-        throw new Dev2Error('FORBIDDEN'); };
+        throw new TdevError('FORBIDDEN'); };
     const admit = async (context, item) => { order.push('lookup'); if (retained.has(item.requestId))
         return retained.get(item.requestId); writes++; const receipt = { workId: 'w1', actionId: 'a1', revision: '1', state: 'queued' }; retained.set(item.requestId, receipt); return receipt; };
     const request = { apiVersion: 1, items: [make('integrate', 'r1')], waitMs: 0 };

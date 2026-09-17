@@ -7,7 +7,7 @@ import {join,resolve} from 'node:path';
 import {Ledger} from '../../src/storage/ledger.mjs';
 import {canonicalJson,bytesDigest,recordDigest} from '../../src/contracts/canonical.mjs';
 const D='sha256:'+'1'.repeat(64),O='sha1:'+'1'.repeat(40),P='sha256:'+'2'.repeat(64);
-async function fixture(){const root=await mkdtemp(join(tmpdir(),'dev2-writer-handoff-'));const binding={installationId:'i',repositoryId:'r',providerRepositoryId:'1',bindingEpoch:'1',provider:'fixture',remote:root,ref:'refs/heads/dev-2',policyDigest:D};const ledgerFile=join(root,'work.sqlite'),ledger=new Ledger(ledgerFile,binding),epoch=ledger.ownerEpoch;ledger.transact(tx=>tx.run('INSERT INTO meta VALUES(?,?)','sender:effect',canonicalJson({invocationId:'reserved_sender',effectDigest:D})));ledger.close();
+async function fixture(){const root=await mkdtemp(join(tmpdir(),'tdev-writer-handoff-'));const binding={installationId:'i',repositoryId:'r',providerRepositoryId:'1',bindingEpoch:'1',provider:'fixture',remote:root,ref:'refs/heads/dev-2',policyDigest:D};const ledgerFile=join(root,'work.sqlite'),ledger=new Ledger(ledgerFile,binding),epoch=ledger.ownerEpoch;ledger.transact(tx=>tx.run('INSERT INTO meta VALUES(?,?)','sender:effect',canonicalJson({invocationId:'reserved_sender',effectDigest:D})));ledger.close();
  const config={schemaVersion:1,installationId:'i',repositoryId:'r',bindingEpoch:'1',ledgerFile,senderStateDirectory:join(root,'senders'),pointerFile:join(root,'pointer.json'),launcherLockFile:join(root,'launcher.lock'),serviceStatusFile:join(root,'status'),requestDirectory:join(root,'requests'),artifactDirectory:join(root,'artifacts'),nativeConfigDirectory:join(root,'configs')};
  await Promise.all([config.senderStateDirectory,config.requestDirectory,config.artifactDirectory,config.nativeConfigDirectory].map(p=>mkdir(p,{mode:0o700})));const status=Buffer.alloc(20);status[17]=100;await writeFile(config.serviceStatusFile,status);
  const make=async(release,text)=>{const bytes=Buffer.from(text),runtime={bundleDigest:bytesDigest(bytes),schemaDigest:D,sourceCommitOid:O,sourceTreeOid:O},native=Buffer.from(canonicalJson({runtime}));await mkdir(join(config.artifactDirectory,release.slice(7)),{mode:0o700});await writeFile(join(config.artifactDirectory,release.slice(7),'device.cjs'),bytes,{mode:0o600});await writeFile(join(config.nativeConfigDirectory,release.slice(7)+'.json'),native,{mode:0o600});return {schemaVersion:1,installationId:'i',repositoryId:'r',bindingEpoch:'1',deviceReleaseId:release,artifactDigest:runtime.bundleDigest,sourceCommitOid:O,schemaDigest:D,nativeConfigDigest:bytesDigest(native)};};
@@ -30,4 +30,23 @@ test('secondary binding SQLite and inherited sender locks independently fence th
   assert.notEqual(f.run('switch').status,0);assert.deepEqual(JSON.parse(await readFile(f.config.pointerFile)),f.expected);child.kill('SIGKILL');await new Promise(done=>child.once('exit',done));child=null;
   const switched=f.run('switch');assert.equal(switched.status,0);assert.equal(switched.value.senderCount,2);assert.equal(JSON.parse(await readFile(join(root,'state.json'))).state,'fenced');
  }finally{owner?.close();if(child){child.kill('SIGKILL');await new Promise(done=>child.once('exit',done));}await f.close();}
+});
+
+test('current tdev secondary locator is fenced and preserved without a legacy alias',async()=>{
+ const f=await fixture();let owner;try{
+  const binding={installationId:'i',repositoryId:'secondary-current',providerRepositoryId:'3',bindingEpoch:'8',provider:'fixture',remote:f.root,ref:'refs/heads/other-current',policyDigest:D};
+  const ledgerFile=join(f.root,'binding-ledgers',recordDigest('tdev.binding-ledger.v1',binding).slice(7)+'.sqlite');
+  owner=new Ledger(ledgerFile,binding);owner.transact(tx=>tx.run('INSERT INTO meta VALUES(?,?)','sender:secondary',canonicalJson({invocationId:'current_secondary',effectDigest:D})));owner.close();owner=null;
+  const probe=f.run('probe');assert.equal(probe.status,0);assert.equal(probe.value.senderCount,2);
+  const senderRoot=join(f.config.senderStateDirectory,recordDigest('tdev.binding-sender.v1',binding).slice(7));assert.equal(JSON.parse(await readFile(join(senderRoot,'current_secondary/state.json'))).state,'fenced');
+ }finally{owner?.close();await f.close();}
+});
+
+test('simultaneous current and legacy secondary locators fail closed',async()=>{
+ const f=await fixture();let current,legacy;try{
+  const binding={installationId:'i',repositoryId:'ambiguous-secondary',providerRepositoryId:'4',bindingEpoch:'9',provider:'fixture',remote:f.root,ref:'refs/heads/other-ambiguous',policyDigest:D};
+  const directory=join(f.root,'binding-ledgers');current=new Ledger(join(directory,recordDigest('tdev.binding-ledger.v1',binding).slice(7)+'.sqlite'),binding);current.close();current=null;
+  legacy=new Ledger(join(directory,recordDigest('dev2.binding-ledger.v1',binding).slice(7)+'.sqlite'),binding);legacy.close();legacy=null;
+  assert.notEqual(f.run('probe').status,0);
+ }finally{current?.close();legacy?.close();await f.close();}
 });

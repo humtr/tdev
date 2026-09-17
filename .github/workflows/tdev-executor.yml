@@ -1,7 +1,7 @@
-name: dev2-executor
+name: tdev-executor
 on:
   push:
-    branches: ['dev2-exec/**']
+    branches: ['tdev-exec/**']
 permissions:
   contents: read
   id-token: write

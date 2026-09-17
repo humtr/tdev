@@ -4,7 +4,7 @@ import { mkdir, lstat, realpath } from 'node:fs/promises';
 import { resolve, isAbsolute } from 'node:path';
 import { bytesDigest, canonicalJson } from '../contracts/canonical.mjs';
 import { oid, id } from '../contracts/identity.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { canonicalEntries, sourceManifest, gitlinkDigest } from './entries.mjs';
 import { repositoryPath } from '../security/paths.mjs';
 /** @typedef {import('../contracts/ports.js').Binding} Binding */
@@ -78,9 +78,9 @@ export class GitRepository {
             child.stdin.on('error', () => { });
             child.on('error', () => { failed = true; });
             child.once('close', code => { clearTimeout(timer); if (exceeded)
-                reject(new Dev2Error('LIMIT_EXCEEDED', 'Git output bound'));
+                reject(new TdevError('LIMIT_EXCEEDED', 'Git output bound'));
             else if (failed)
-                reject(new Dev2Error('EXECUTION_UNAVAILABLE', 'Git process unavailable'));
+                reject(new TdevError('EXECUTION_UNAVAILABLE', 'Git process unavailable'));
             else
                 done({ code, stdout: Buffer.concat(chunks) }); });
             child.stdin.end(input);
@@ -129,7 +129,7 @@ export class GitRepository {
                 remote = new URL(binding.remote);
             }
             catch {
-                throw new Dev2Error('FORBIDDEN', 'Invalid remote');
+                throw new TdevError('FORBIDDEN', 'Invalid remote');
             }
             requireThat(['https:', 'ssh:'].includes(remote.protocol) && !remote.password && !remote.search && !remote.hash, 'FORBIDDEN', 'Unapproved transport');
         }
@@ -213,7 +213,7 @@ export class GitRepository {
             await this.readObjects([commit]);
         }
         catch (e) {
-            if (e instanceof Dev2Error && e.code === 'INTEGRITY_FAILURE')
+            if (e instanceof TdevError && e.code === 'INTEGRITY_FAILURE')
                 await this.fetch(binding, commit);
             else
                 throw e;
@@ -268,7 +268,7 @@ export class GitRepository {
                 path = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(row.subarray(tab + 1));
             }
             catch {
-                throw new Dev2Error('UNSUPPORTED_REPOSITORY_FEATURE', 'Non UTF-8 path');
+                throw new TdevError('UNSUPPORTED_REPOSITORY_FEATURE', 'Non UTF-8 path');
             }
             repositoryPath(path);
             if (type === 'tree')
@@ -352,9 +352,9 @@ export class GitRepository {
             requireThat(/^[^<>\r\n\0]+ <[^<>\r\n\0]+>$/.test(actor), 'INVALID_ARGUMENT', 'Commit actor');
         const [parentObject, treeObject] = await this.readObjects([parent, treeOid]);
         requireThat(parentObject.type === 'commit' && treeObject.type === 'tree', 'INTEGRITY_FAILURE', 'Commit parent/tree types');
-        requireThat(!/^Dev2-Result:/m.test(metadata.message), 'INVALID_ARGUMENT', 'Result trailer is broker-owned');
+        requireThat(!/^(?:Tdev|Dev2)-Result:/m.test(metadata.message), 'INVALID_ARGUMENT', 'Result trailer is broker-owned');
         const seconds = Math.floor(metadata.timestamp / 1000);
-        const bytes = Buffer.from(`tree ${this.raw(treeOid)}\nparent ${this.raw(parent)}\nauthor ${metadata.author} ${seconds} +0000\ncommitter ${metadata.committer} ${seconds} +0000\n\n${metadata.message.replace(/\n+$/, '')}\n\nDev2-Result: ${resultId}\n`);
+        const bytes = Buffer.from(`tree ${this.raw(treeOid)}\nparent ${this.raw(parent)}\nauthor ${metadata.author} ${seconds} +0000\ncommitter ${metadata.committer} ${seconds} +0000\n\n${metadata.message.replace(/\n+$/, '')}\n\nTdev-Result: ${resultId}\n`);
         return this.putObject('commit', bytes);
     }
 }

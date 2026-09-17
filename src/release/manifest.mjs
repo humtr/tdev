@@ -10,8 +10,8 @@ function closed(value,keys){requireThat(value!==null&&typeof value==='object'&&!
 function range(value){closed(value,['min','max']);requireThat(Number.isSafeInteger(value.min)&&value.min>=1&&Number.isSafeInteger(value.max)&&value.max>=value.min&&value.max<=65535,'INVALID_ARGUMENT','Compatibility range');}
 /** @param {Manifest} value @returns {Manifest} */
 export function releaseManifest(value){
- closed(value,['schemaVersion','repositoryId','bindingEpoch','sourceCommitOid','sourceTreeOid','sourceManifestDigest','policyDigest','schemaDigest','protocol','ledger','installationSealDigest','requiredValidationId','releaseValidationId','device','edge','executor']);
- requireThat(value.schemaVersion===1,'INVALID_ARGUMENT');id(value.repositoryId);revision(value.bindingEpoch);oid(value.sourceCommitOid);oid(value.sourceTreeOid);
+ closed(value,['schemaVersion',...(value.identityNamespace?['identityNamespace']:[]),'repositoryId','bindingEpoch','sourceCommitOid','sourceTreeOid','sourceManifestDigest','policyDigest','schemaDigest','protocol','ledger','installationSealDigest','requiredValidationId','releaseValidationId','device','edge','executor']);
+ requireThat(value.schemaVersion===1&&(value.identityNamespace===undefined||value.identityNamespace==='tdev'),'INVALID_ARGUMENT');id(value.repositoryId);revision(value.bindingEpoch);oid(value.sourceCommitOid);oid(value.sourceTreeOid);
  for(const key of ['sourceManifestDigest','policyDigest','schemaDigest','installationSealDigest','requiredValidationId','releaseValidationId'])digest(value[/** @type {'schemaDigest'} */(key)]);
  range(value.protocol);range(value.ledger);closed(value.device,['artifactDigest','sourceCommitOid']);closed(value.edge,['artifactDigest','sourceCommitOid','compatibilityDate']);closed(value.executor,['workflowDigest','controllerDigest','sealDigest']);
  digest(value.device.artifactDigest);oid(value.device.sourceCommitOid);digest(value.edge.artifactDigest);oid(value.edge.sourceCommitOid);
@@ -23,7 +23,10 @@ export function releaseManifest(value){
 /** Staged public activation input is the 64 hexadecimal characters of releaseId.
  * The frozen public id/digest unions need no new tool or schema variant.
  * @param {Manifest} manifest */
-export function releaseIdentity(manifest){return recordDigest('dev2.release-manifest.v1',releaseManifest(manifest));}
+/** @param {Manifest} manifest @returns {'tdev'|'dev2'} */
+export function releaseNamespace(manifest){return releaseManifest(manifest).identityNamespace==='tdev'?'tdev':'dev2';}
+/** @param {Manifest} manifest */
+export function releaseIdentity(manifest){const checked=releaseManifest(manifest);return recordDigest(releaseNamespace(checked)+'.release-manifest.v1',checked);}
 /** @param {string} releaseId */
 export function stagedReleaseId(releaseId){return digest(releaseId).slice(7);}
 /** @param {string} stageId */
@@ -48,9 +51,12 @@ export function compatibleRuntime(oldPair,newPair,ledgerVersion){
  requireThat(Math.max(oldPair.protocol.min,newPair.protocol.min)<=Math.min(oldPair.protocol.max,newPair.protocol.max),'EXECUTION_UNAVAILABLE','No shared channel protocol');
  requireThat(Number.isSafeInteger(ledgerVersion)&&[oldPair,newPair].every(p=>p.ledger.min<=ledgerVersion&&p.ledger.max>=ledgerVersion),'EXECUTION_UNAVAILABLE','Ledger migration is not an ordinary activation');
 }
+/** @param {Intent} value @returns {'tdev'|'dev2'} */
+export function activationNamespace(value){return value.identityNamespace==='tdev'?'tdev':'dev2';}
 /** @param {Intent} value @param {number} [ledgerVersion] @returns {Intent} */
 export function activationIntent(value,ledgerVersion=1){
- closed(value,['activationId','actionId','installationId','repositoryId','bindingEpoch','principalId','createdAt','deadline','previous','target',...(value.migration?['migration']:[])]);
+ closed(value,[...(value.identityNamespace?['identityNamespace']:[]),'activationId','actionId','installationId','repositoryId','bindingEpoch','principalId','createdAt','deadline','previous','target',...(value.migration?['migration']:[])]);
+ requireThat(value.identityNamespace===undefined||value.identityNamespace==='tdev','INVALID_ARGUMENT');
  for(const key of ['activationId','actionId','installationId','repositoryId'])id(value[/** @type {'activationId'} */(key)]);
  requireThat(typeof value.principalId==='string'&&value.principalId.length>0&&value.principalId.length<=4096,'INVALID_ARGUMENT');revision(value.bindingEpoch);
  requireThat(Number.isSafeInteger(value.createdAt)&&value.createdAt>=0&&Number.isSafeInteger(value.deadline)&&value.deadline>value.createdAt,'INVALID_ARGUMENT');

@@ -165,8 +165,8 @@ def main() -> None:
                              {'name': 'DEV2_VERSION', 'type': 'version_metadata'},
                              {'name': 'DEV2_ROUTER', 'type': 'durable_object_namespace', 'class_name': 'Dev2RendezvousDO'}],
                 'observability': {'enabled': True, 'logs': {'enabled': True, 'invocation_logs': True}},
-                'annotations': {'workers/message': 'dev-2 Phase A ' + manifest['sourceCommitOid']}}
-    boundary = 'dev2-' + uuid.uuid4().hex
+                'annotations': {'workers/message': 'tdev Phase A ' + manifest['sourceCommitOid']}}
+    boundary = 'tdev-' + uuid.uuid4().hex
     parts = []
     for name, media, data in [('metadata', 'application/json', json.dumps(metadata, separators=(',', ':')).encode()), ('worker.mjs', 'application/javascript+module', worker_bytes)]:
         parts.extend([f'--{boundary}\r\nContent-Disposition: form-data; name="{name}"; filename="{name}"\r\nContent-Type: {media}\r\n\r\n'.encode(), data, b'\r\n'])

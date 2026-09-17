@@ -226,6 +226,15 @@ responses bind each call. Loopback, PID, endpoint filename and annotations are n
 credentials. The endpoint transports only typed records, never a shell, command,
 provider URL, candidate path or arbitrary filesystem operation.
 
+C2 identity migration makes `tdev.private-rpc.v1` and `x-tdev-private-mac` the
+current private transport identities. A current server may authenticate the exact
+legacy `dev2.private-rpc.v1` / `x-dev2-private-mac` pair only as a bounded rolling
+upgrade alias and must answer in the same authenticated family. A current client
+tries the current family first and may retry the exact same canonical request under
+the legacy family only after an explicit authentication rejection proves that no
+handler/effect ran. Timeout, disconnect, partial response, or any other unknown
+transport outcome never authorizes family fallback or replacement execution.
+
 Endpoint/request lifetimes provide transport fencing, not external-effect stop
 proof. A disconnected or timed-out call may have been applied. Every side effect
 still uses the original action/activation/effect identity and the existing journals;
@@ -589,3 +598,45 @@ MCP rebinding. Acceptance includes bootstrap rollback injection, staging a diffe
 schema without activation, rejection of a narrowing schema, migration response loss,
 paired rollback, old-shape live client use before Refresh and refreshed two-binding
 use afterwards.
+
+## C2-2 runtime/provider identity transition
+
+New private transport paths are under `/__tdev/` and new source/runtime labels,
+release annotations, helper User-Agent values and identity digests use `tdev`.
+During a paired release transition the edge may retain narrowly scoped `/__dev2/`
+route aliases only to communicate with the immediately previous rollback-compatible
+device/executor. Those aliases dispatch to the same installation/router and create
+no second runtime, ledger or authorization path. New native/executor clients use
+only `/__tdev/`. The aliases can be removed after the previous rollback pair and all
+legacy managed sessions are positively retired.
+
+The installed Cloudflare binding names `DEV2_CONFIG_JSON`, `DEV2_DEVICE_SECRET`,
+`DEV2_VERSION`, `DEV2_ROUTER` and Durable Object class `Dev2RendezvousDO` are actual
+provider resource identities, not ordinary source labels. C2-2 retains them as
+explicit provider-compatibility aliases to the single existing Worker/namespace;
+renaming them by source substitution would create or rebind provider state without a
+designed/read-back migration. New product code must treat these names only at the
+Cloudflare adapter boundary and must not emit them as product/protocol identity.
+They may retire only through a later exact provider-resource migration that preserves
+the same installation/namespace, secrets, rollback and readback guarantees; age or a
+release redeploy is not sufficient.
+
+Operational execution ref/workflow naming is selected by the exact privately
+commissioned controller enrollment. A current enrollment uses `tdev-exec` and
+`tdev-executor.yml`; the presently installed immutable legacy enrollment continues to
+mint its enrolled legacy ref/workflow until a current controller is commissioned and
+activated because its approved commit cannot acquire a new workflow path in place.
+This compatibility producer is fenced by the exact enrollment and is not caller
+selectable. Once a current enrollment is active, legacy production stops immediately
+for new sessions and retained old sessions reconcile through their stored identity
+until terminal retirement. Release staging/activation must preserve a previous
+release's ability to reconcile its own legacy records during rollback and may not
+reinterpret retained release/effect identities under the current namespace.
+
+Binding-scoped local state follows the same exact-retention rule. New secondary
+ledger filenames and sender roots use the `tdev` Binding digest domains. At startup,
+a single existing legacy `dev2` locator for the same complete immutable Binding is
+reused in place so uncertain or retained work is not orphaned; it is not copied,
+renamed or rehashed. If both current and legacy locators exist for one Binding the
+installation fails closed rather than selecting or merging them. A newly added
+Binding with neither retained locator creates only the current `tdev` locator.

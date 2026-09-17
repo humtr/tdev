@@ -11,7 +11,7 @@ const pair=()=>({releaseId:d(1),schemaDigest:SCHEMA_DIGEST,sourceCommitOid:o(1),
 // These provider/builder ports are deterministic fixtures. The test labels do
 // not claim a production managed receipt, live Cloudflare effect or Android stop.
 async function world(){
- const directory=await mkdtemp(join(tmpdir(),'dev2-release-backend-')),binding={repositoryId:'r',installationId:'i',provider:'fixture',providerRepositoryId:'1',remote:'fixture',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:d(4)},ledger=new Ledger(join(directory,'work.sqlite'),binding),journal=new ActivationJournal(join(directory,'helper.sqlite'),'i');
+ const directory=await mkdtemp(join(tmpdir(),'tdev-release-backend-')),binding={repositoryId:'r',installationId:'i',provider:'fixture',providerRepositoryId:'1',remote:'fixture',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:d(4)},ledger=new Ledger(join(directory,'work.sqlite'),binding),journal=new ActivationJournal(join(directory,'helper.sqlite'),'i');
  const principal={subject:'human',issuer:'fixture',audience:'fixture',expiresAt:10000},source={repositoryId:'r',bindingEpoch:'1',commitOid:o(2),source:{treeOid:o(3),manifestDigest:d(2),entries:[]},policyDigest:d(4),validationId:d(5)};
  const objects=new Map(),store={put:async bytes=>{const key=bytesDigest(bytes);objects.set(key,Buffer.from(bytes));return key;},get:async key=>{assert.ok(objects.has(key));return objects.get(key);}};
  const refs={device:await store.put(Buffer.from('fixture device bytes')),edge:await store.put(Buffer.from('fixture edge bytes')),tools:await store.put(Buffer.from(JSON.stringify(TOOL_DESCRIPTORS)))};

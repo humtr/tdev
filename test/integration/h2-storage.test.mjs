@@ -9,7 +9,7 @@ import {canonicalJson} from '../../src/contracts/canonical.mjs';
 const D='sha256:'+'1'.repeat(64),K='sha256:'+'2'.repeat(64),O='sha1:'+'3'.repeat(40);
 const binding={repositoryId:'repo',installationId:'installation',provider:'fixture',providerRepositoryId:'1',remote:'https://fixture.invalid/repo',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:D};
 const candidate={treeOid:O,manifestDigest:D};
-function root(){return mkdtempSync(join(tmpdir(),'dev2-h2-storage-'));}
+function root(){return mkdtempSync(join(tmpdir(),'tdev-h2-storage-'));}
 function rows(db){db.transact(tx=>{for(let i=0;i<2;i++){const work={workId:'w'+i,repositoryId:'repo',bindingEpoch:'1',principal:'p',baseCommitOid:O,baseTreeOid:O,candidate,generation:'0',revision:'0',disposition:'open',currentActionId:'a'+i};tx.insertWork(work);tx.insertAction({actionId:'a'+i,requestId:'r'+i,principal:'p',bindingEpoch:'1',intentDigest:D,operation:'integrate',workId:work.workId,status:'queued',step:'admitted',attempt:'0',ownerEpoch:db.ownerEpoch,deadline:999999,resultId:null,errorCode:null},{op:'integrate'});}});}
 function selection(){return {version:1,memberTupleDigest:D,leaderActionId:'a0',tupleObjectDigest:D,deltaObjectDigest:K,compositionIdentity:K,resultId:'result',expectedHead:O,resultTreeOid:O,resultTreeSha256:D,policyDigest:D,memberCount:2,metadata:{author:'a',committer:'a',timestamp:1,message:'dev-2 composed source change'}};}
 const members=[{actionId:'a0',workId:'w0',ordinal:0,reservedWorkRevision:'1'},{actionId:'a1',workId:'w1',ordinal:1,reservedWorkRevision:'1'}];

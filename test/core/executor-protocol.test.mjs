@@ -5,7 +5,7 @@ import {executorRequest,executorBearer} from '../../src/execution/protocol.mjs';
 import {executorAuthentication} from '../../src/edge/executor-auth.mjs';
 import {canonicalJson} from '../../src/contracts/canonical.mjs';
 import {ExecutorEndpoint} from '../../src/execution/executor-endpoint.mjs';
-import {Dev2Error} from '../../src/contracts/errors.mjs';
+import {TdevError} from '../../src/contracts/errors.mjs';
 import {SCHEMA_DIGEST,TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
 const D='sha256:'+'1'.repeat(64),C='1'.repeat(40),origin='https://tdev.fixture.workers.dev';
 const base={apiVersion:1,sessionId:'s',op:'poll'},assigned={apiVersion:1,sessionId:'s',assignmentId:'a',leaseId:'l'};
@@ -32,7 +32,7 @@ test('edge cryptographically verifies exact provider role, repository, workflow,
  const wrongAudience=await new SignJWT(claims).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer('https://token.actions.githubusercontent.com').setAudience(origin+'/mcp').setSubject('repo:fixture/repo').setIssuedAt(1900).setExpirationTime(2200).sign(privateKey);await assert.rejects(verify(request(wrongAudience),base));
 });
 test('native endpoint authorization precedes all retained state reads and never reflects assertions',async()=>{
- let reads=0;const endpoint=new ExecutorEndpoint({sessions:{current:()=>{reads++;return {session:'fixture'};}},transfer:{},verify:async()=>{throw new Dev2Error('UNAUTHORIZED');}});
+ let reads=0;const endpoint=new ExecutorEndpoint({sessions:{current:()=>{reads++;return {session:'fixture'};}},transfer:{},verify:async()=>{throw new TdevError('UNAUTHORIZED');}});
  const denied=await endpoint.invoke(base,'secret-canary');assert.equal(denied.ok,false);assert.equal(denied.error.code,'UNAUTHORIZED');assert.equal(reads,0);assert.equal(JSON.stringify(denied).includes('secret-canary'),false);
  endpoint.o.verify=async()=>({sessionId:'other'});assert.equal((await endpoint.invoke(base,'secret-canary')).ok,false);assert.equal(reads,0);
  endpoint.o.verify=async()=>({sessionId:'s'});assert.equal((await endpoint.invoke(base,'signed-fixture')).ok,true);assert.equal(reads,1);

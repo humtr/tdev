@@ -127,3 +127,23 @@ operations remain primary/controller scoped unless a later Design explicitly
 changes the production enrollment contract. This preserves historical evidence and
 avoids enrollment churn while keeping target source validation and D0003 publication
 exactly binding-scoped.
+
+## C2-2 production-enrollment compatibility
+
+Existing qualification and production enrollment objects are immutable evidence and
+retain every historical `dev2` kind, digest, workflow and provider-run identity they
+were commissioned with. C2-2 does not rewrite those records or claim that a spelling
+change re-qualifies them. Verifiers accept such a record only through the exact
+legacy identity its retained seal already binds.
+
+Newly commissioned enrollment/evidence uses current `tdev` kind and digest domains
+and current executor workflow identity. A released runtime may continue to rely on a
+legacy enrollment only when the existing D0006 release-admission rule proves that
+exact controller/enrollment/runtime composition. Because that immutable approved
+controller commit contains only its enrolled legacy workflow, sessions launched by
+that exact enrollment also retain the legacy operational ref/workflow identity until
+private current-controller commissioning replaces it. This is an enrollment-scoped
+compatibility producer; no source candidate, public request or alias may select which
+namespace is trusted. Legacy enrollment verification and production may retire only
+when a current enrollment is active, no rollback-eligible runtime depends on the old
+enrollment, and all legacy sessions are positively terminal.

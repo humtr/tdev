@@ -8,6 +8,8 @@ import {boundedCommand} from '../execution/command.mjs';
 /** @typedef {import('../contracts/ports.js').Effect} Effect */
 /** @typedef {{invocationId:string,effectDigest:string}} Invocation */
 /** @typedef {{invocationId?:string,stopped:boolean,delivery:'sent'|'unknown'|'not_sent',state:string}} Observation */
+/** @param {Effect} effect */
+function effectNamespace(effect){requireThat(effect.identityNamespace===undefined||effect.identityNamespace==='tdev','INTEGRITY_FAILURE');return effect.identityNamespace??'dev2';}
 /** File records are external sender observations, not another work owner.
  * SQLite retains the effect and selected invocation before any process spawn.
  */
@@ -15,7 +17,7 @@ export class DurableGitSender {
  /** @param {{ledger:import('../storage/ledger.mjs').Ledger,stateDirectory:string,configurationPath:string,pythonExecutable:string,helperPath:string,environment:Record<string,string>,command?:typeof boundedCommand}} options */
  constructor(options){this.o=options;this.command=options.command??boundedCommand;for(const p of [options.stateDirectory,options.configurationPath,options.pythonExecutable,options.helperPath])requireThat(isAbsolute(p),'INVALID_ARGUMENT');}
  /** @param {Effect} effect @returns {Invocation|null} */
- current(effect){return this.o.ledger.transact(tx=>{const r=tx.get('SELECT value FROM meta WHERE key=?','sender:'+effect.effectId);const value=r?/** @type {Invocation} */(parseRecord(String(r.value))):null;if(value)requireThat(value.effectDigest===recordDigest('dev2.git-effect.v1',effect),'INTEGRITY_FAILURE');return value;});}
+ current(effect){return this.o.ledger.transact(tx=>{const r=tx.get('SELECT value FROM meta WHERE key=?','sender:'+effect.effectId);const value=r?/** @type {Invocation} */(parseRecord(String(r.value))):null;if(value)requireThat(value.effectDigest===recordDigest(effectNamespace(effect)+'.git-effect.v1',effect),'INTEGRITY_FAILURE');return value;});}
  /** @param {'run'|'inspect'|'cancel'} op @param {Invocation} invocation @returns {Promise<Observation>} */
  async invoke(op,invocation){
   const result=await this.command(this.o.pythonExecutable,[this.o.helperPath,op,this.o.configurationPath,invocation.invocationId],{environment:this.o.environment,timeoutMs:op==='run'?135000:15000,maxBytes:8192});
@@ -37,7 +39,7 @@ export class DurableGitSender {
  async compareUpdate(effect,fence){
   let invocation=this.current(effect);
   if(invocation){const seen=await this.invoke('inspect',invocation);if(!seen.stopped)return {kind:/** @type {const} */('uncertain')};if(seen.delivery==='sent')return {kind:/** @type {const} */('sent')};}
-  const previous=invocation,effectDigest=recordDigest('dev2.git-effect.v1',effect);
+  const previous=invocation,effectDigest=recordDigest(effectNamespace(effect)+'.git-effect.v1',effect);
   invocation=this.o.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?','sender:'+effect.effectId);requireThat((row?canonicalJson(parseRecord(String(row.value))):null)===(previous?canonicalJson(previous):null),'STALE_REVISION');fence?.(tx);const value={invocationId:newId(),effectDigest};tx.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value','sender:'+effect.effectId,canonicalJson(value));return value;});
   const intent=canonicalJson({invocationId:invocation.invocationId,effect});requireThat(Buffer.byteLength(intent)<=65536,'LIMIT_EXCEEDED','Git sender intent bound');
   await mkdir(this.o.stateDirectory,{recursive:true,mode:0o700});requireThat(await realpath(this.o.stateDirectory)===this.o.stateDirectory,'INTEGRITY_FAILURE');

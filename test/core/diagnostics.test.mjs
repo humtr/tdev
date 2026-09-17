@@ -39,7 +39,7 @@ test('eight-way fixture demonstrates how to count 36 full validations without cl
 test('canonical input seal changes when a checked benchmark input changes',async()=>{
  const {mkdtemp,cp,mkdir,writeFile,readFile,rm}=await import('node:fs/promises');
  const {tmpdir}=await import('node:os');const {join}=await import('node:path');const {spawnSync}=await import('node:child_process');
- const root=await mkdtemp(join(tmpdir(),'dev2-input-seal-'));
+ const root=await mkdtemp(join(tmpdir(),'tdev-input-seal-'));
  try{
   const copy=join(root,'source');await mkdir(copy);
   for(const path of ['src/contracts','src/runtime','src/validation','tools','config','AGENTS.md','DIRECTIVE.md','RULE.md','WORKBOARD.md','package.json','package-lock.json','jsconfig.json','.node-version'])await cp(path,join(copy,path),{recursive:true});

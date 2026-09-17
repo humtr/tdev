@@ -1,5 +1,6 @@
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
+import {principalSubjects} from '../security/principal.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Action} Action */
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
@@ -35,10 +36,10 @@ export class ActionRecovery {
   }
   return {size:rows.length,last:rows.length?Number(rows[rows.length-1].seq):after};
  });after=batch.last;if(batch.size<64)return changed;}}
- /** @param {Transaction} tx @param {string} actionId @param {string} subject @returns {Frame} */
+ /** @param {Transaction} tx @param {string} actionId @param {string|readonly string[]} subject @returns {Frame} */
  snapshot(tx,actionId,subject){
-  const action=tx.getAction(actionId);requireThat(action&&action.principal===subject&&action.workId,'FORBIDDEN');
-  const work=tx.getWork(action.workId);requireThat(work&&work.principal===subject,'FORBIDDEN');
+  const owners=Array.isArray(subject)?subject:[subject],action=tx.getAction(actionId);requireThat(action&&owners.includes(action.principal)&&action.workId,'FORBIDDEN');
+  const work=tx.getWork(action.workId);requireThat(work&&owners.includes(work.principal),'FORBIDDEN');
   const rows=tx.all('SELECT attempt_id FROM attempt WHERE action_id=? AND json_extract(record,\'$.attempt\')=?',actionId,action.attempt);requireThat(rows.length<=1,'INTEGRITY_FAILURE');
   const reservation=rows.length?tx.retainedAttempt(String(rows[0].attempt_id)):null,effect=tx.getEffect(actionId);
   const resultId=effect?.preparedResultId??action.resultId,result=resultId?tx.getPrepared(resultId):null;
@@ -47,13 +48,13 @@ export class ActionRecovery {
   return {action,work,reservation,effect,result,receipt,cancelled:tx.get('SELECT value FROM meta WHERE key=?','cancel:'+actionId)?.value==='true'};
  }
  /** @param {Frame} frame */
- stamp(frame){return recordDigest('dev2.recovery-frame.v1',frame);}
+ stamp(frame){const namespace=frame.action.identityNamespace??'dev2';requireThat(namespace==='tdev'||namespace==='dev2','INTEGRITY_FAILURE');return recordDigest(namespace+'.recovery-frame.v1',frame);}
  /** Observe only; no new attempt or provider effect is created here.
   * @param {Principal} principal @param {string} actionId @param {string} expectedRevision @returns {Promise<Plan>} */
  async plan(principal,actionId,expectedRevision){
   if(this.engine.h2.selected(actionId))return /** @type {Plan} */(/** @type {unknown} */(await this.engine.h2.recoveryPlan(principal,actionId,expectedRevision)));
   const item=this.engine.input(actionId);await this.engine.authorize(principal,item);
-  const frame=this.ledger.transact(tx=>this.snapshot(tx,actionId,principal.subject));
+  const frame=this.ledger.transact(tx=>this.snapshot(tx,actionId,principalSubjects(principal)));
   requireThat(frame.work.revision===expectedRevision,'STALE_REVISION');const stamp=this.stamp(frame);
   const base={frame,stamp};
   if(['succeeded','failed','cancelled'].includes(frame.action.status))return {...base,mode:'already'};

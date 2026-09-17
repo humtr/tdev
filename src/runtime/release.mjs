@@ -1,4 +1,4 @@
-import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
+import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {digest} from '../contracts/identity.mjs';
 import {SCHEMA_DIGEST} from '../mcp/outputs.mjs';
@@ -19,7 +19,7 @@ export class NativeReleaseRuntime {
  constructor(options){this.o=options;this.ledger=options.ledger;this.epoch=this.ledger.ownerEpoch;this.now=options.now??Date.now;this.control=options.control;
   const a=this.control.admission;requireThat(a&&a.installationId===options.binding.installationId&&a.repositoryId===options.binding.repositoryId&&a.bindingEpoch===options.binding.bindingEpoch&&canonicalJson(a.runtime)===canonicalJson(options.runtime)&&a.executor.sealDigest===options.enrollmentSealDigest&&a.executor.controllerDigest===options.trustedRunnerDigest&&a.executor.workflowDigest===options.workflowDigest,'EXECUTION_UNAVAILABLE','Production producer and installed helper admission differ');
   for(const value of [options.enrollmentSealDigest,options.trustedRunnerDigest,options.workflowDigest])digest(value);
-  this.bootstrapReleaseId=recordDigest('dev2.bootstrap-installed-bundle.v1',options.runtime);this.artifacts=new ReleaseArtifactStore({root:options.artifactDirectory,objects:options.objects,schemaDigest:SCHEMA_DIGEST});
+  this.bootstrapReleaseId=a.pair.releaseId;this.artifacts=new ReleaseArtifactStore({root:options.artifactDirectory,objects:options.objects,schemaDigest:SCHEMA_DIGEST});
   this.backend=new ReleaseBackend({ledger:this.ledger,binding:options.binding,authority:options.authority,artifacts:this.artifacts,builder:options.builder,authorize:options.authorize,now:this.now,edge:{reconcile:effect=>this.control.reconcileStage(effect),execute:(effect,build)=>this.control.upload(effect,build)},helper:{activePair:()=>this.control.activePair(),observe:id=>this.control.observe(id),begin:async intent=>{
    this.assert();const stage=/** @type {Stage|null} */(this.backend.record('release.ready:'+intent.target.releaseId));requireThat(stage?.state==='staged'&&stage.build&&canonicalJson(stage.target)===canonicalJson(intent.target)&&canonicalJson(stage.previous)===canonicalJson(intent.previous),'INTEGRITY_FAILURE','Activation has no retained native-verified build');
    return this.control.begin(intent,stage.build);

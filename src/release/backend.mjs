@@ -1,9 +1,10 @@
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {id,digest,oid} from '../contracts/identity.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {specialActionFence} from './action.mjs';
+import {principalOwns,principalSubjects} from '../security/principal.mjs';
 import {releaseTransition} from './contract-migration.mjs';
-import {releaseManifest,releaseIdentity,runtimePair,compatiblePair,releaseIdFromStage,activationIntent} from './manifest.mjs';
+import {releaseManifest,releaseIdentity,releaseNamespace,runtimePair,compatiblePair,releaseIdFromStage,activationIntent,activationNamespace} from './manifest.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {import('./authority.mjs').IntegratedSource} Source */
@@ -11,9 +12,9 @@ import {releaseManifest,releaseIdentity,runtimePair,compatiblePair,releaseIdFrom
 /** @typedef {import('./types.js').RuntimePair} Pair */
 /** @typedef {import('./types.js').ActivationIntent} Intent */
 /** @typedef {{manifest:Manifest,refs:import('./artifacts.mjs').ArtifactRefs,receipt:Json}} Build */
-/** @typedef {{effectId:string,releaseId:string,inputDigest:string,artifactDigest:string,sourceCommitOid:string,expectedVersionId:string}} StageEffect */
+/** @typedef {{identityNamespace?:'tdev',effectId:string,releaseId:string,inputDigest:string,artifactDigest:string,sourceCommitOid:string,expectedVersionId:string}} StageEffect */
 /** @typedef {{effectId:string,inputDigest:string,kind:'ready'|'absent'|'pending'|'failed',senderStopped:boolean,versionId:string|null,artifactDigest:string|null,observedAt:number}} StageReceipt */
-/** @typedef {{schemaVersion:1,actionId:string,principal:string,inputDigest:string,sourceCommitOid:string,policyDigest:string,expectedActiveRelease:string,previous:Pair,build:Build|null,effect:StageEffect|null,receipt:StageReceipt|null,target:Pair|null,state:'building'|'uploading'|'staged'}} Stage */
+/** @typedef {{schemaVersion:1,identityNamespace?:'tdev',actionId:string,principal:string,inputDigest:string,sourceCommitOid:string,policyDigest:string,expectedActiveRelease:string,previous:Pair,build:Build|null,effect:StageEffect|null,receipt:StageReceipt|null,target:Pair|null,state:'building'|'uploading'|'staged'}} Stage */
 /** @typedef {{build:(actionId:string,source:Source,previous:Pair)=>Promise<Build>,verify:(build:Build,source:Source,previous:Pair)=>Promise<boolean>,stopped:(actionId:string)=>Promise<boolean>,cancel?:(actionId:string)=>Promise<void>}} Builder */
 /** @typedef {{reconcile:(effect:StageEffect)=>Promise<StageReceipt>,execute:(effect:StageEffect,build:Build)=>Promise<StageReceipt>}} EdgeStager */
 /** @typedef {{activePair:()=>Promise<Pair>,begin:(intent:Intent)=>Promise<import('./types.js').ActivationRecord>,observe:(activationId:string)=>Promise<import('./types.js').ActivationRecord|null>}} Helper */
@@ -41,14 +42,14 @@ export class ReleaseBackend {
  /** @param {Principal} principal @param {{integratedCommit:string,policyDigest:string,expectedActiveRelease:string}} input @param {string} actionId @returns {Promise<Json>} */
  async stageOnce(principal,input,actionId){
   oid(input.integratedCommit);digest(input.policyDigest);digest(input.expectedActiveRelease);await this.o.authorize(principal,[]);
-  const fence=specialActionFence(this.o.ledger,actionId,'release.stage',principal.subject,this.now),inputDigest=recordDigest('dev2.release-stage-input.v1',input);
-  let stage=/** @type {Stage|null} */(this.record('release.stage:'+actionId));
-  if(stage)requireThat(stage.inputDigest===inputDigest&&stage.principal===principal.subject,'IDEMPOTENCY_MISMATCH');
+  const fence=specialActionFence(this.o.ledger,actionId,'release.stage',principalSubjects(principal),this.now);let stage=/** @type {Stage|null} */(this.record('release.stage:'+actionId));
+  const namespace=/** @type {'tdev'|'dev2'} */(stage?(stage.identityNamespace==='tdev'?'tdev':'dev2'):'tdev'),inputDigest=recordDigest(namespace+'.release-stage-input.v1',input);
+  if(stage)requireThat(stage.inputDigest===inputDigest&&principalOwns(principal,stage.principal),'IDEMPOTENCY_MISMATCH');
   const source=await this.o.authority.verify(input.integratedCommit,input.policyDigest);fence.assert();
   await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
   const previous=runtimePair(await this.o.helper.activePair());fence.assert();requireThat(previous.releaseId===input.expectedActiveRelease,'STALE_RESULT','Active release changed before staging');
   if(stage)requireThat(canonicalJson(stage.previous)===canonicalJson(previous),'STALE_RESULT');
-  else stage=this.saveStage({schemaVersion:1,actionId,principal:principal.subject,inputDigest,sourceCommitOid:input.integratedCommit,policyDigest:input.policyDigest,expectedActiveRelease:input.expectedActiveRelease,previous,build:null,effect:null,receipt:null,target:null,state:'building'},fence);
+  else stage=this.saveStage({schemaVersion:1,identityNamespace:'tdev',actionId,principal:principal.subject,inputDigest,sourceCommitOid:input.integratedCommit,policyDigest:input.policyDigest,expectedActiveRelease:input.expectedActiveRelease,previous,build:null,effect:null,receipt:null,target:null,state:'building'},fence);
   let build=stage.build;
   if(!build){build=await this.o.builder.build(actionId,source,previous);fence.assert();releaseManifest(build.manifest);
    requireThat(await this.o.builder.verify(build,source,previous),'VALIDATION_FAILED','Release build has no eligible managed receipt');fence.assert();
@@ -62,7 +63,7 @@ export class ReleaseBackend {
   let edgeVersionId=previous.edgeVersionId;
   if(!edgeUnchanged){
    const fields={installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,releaseId:artifact.releaseId,artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
-   const effect={effectId:recordDigest('dev2.release-stage-effect.v1',fields).slice(7),releaseId:artifact.releaseId,inputDigest:recordDigest('dev2.release-stage-effect-input.v1',fields),artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
+   const effect={...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),effectId:recordDigest(namespace+'.release-stage-effect.v1',fields).slice(7),releaseId:artifact.releaseId,inputDigest:recordDigest(namespace+'.release-stage-effect-input.v1',fields),artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
    if(stage.effect)requireThat(canonicalJson(stage.effect)===canonicalJson(effect),'INTEGRITY_FAILURE');
    else stage=this.saveStage({...stage,effect,state:'uploading'},fence);
    let receipt=this.checkReceipt(effect,await this.o.edge.reconcile(effect));fence.assert();
@@ -85,10 +86,10 @@ export class ReleaseBackend {
  /** @param {Principal} principal @param {{stagedReleaseId:string,expectedActiveRelease:string}} input @param {string} actionId @returns {Promise<Json>} */
  async activateOnce(principal,input,actionId){
   const releaseId=releaseIdFromStage(input.stagedReleaseId);digest(input.expectedActiveRelease);await this.o.authorize(principal,[]);
-  const fence=specialActionFence(this.o.ledger,actionId,'release.activate',principal.subject,this.now),inputDigest=recordDigest('dev2.release-activate-input.v1',input);
-  const retained=/** @type {{inputDigest:string,intent:Intent}|null} */(this.record('release.activation:'+actionId));
+  const fence=specialActionFence(this.o.ledger,actionId,'release.activate',principalSubjects(principal),this.now),retained=/** @type {{inputDigest:string,intent:Intent}|null} */(this.record('release.activation:'+actionId));
   if(retained){
-   requireThat(retained.inputDigest===inputDigest&&retained.intent.principalId===principal.subject,'IDEMPOTENCY_MISMATCH');
+   const retainedInputDigest=recordDigest(activationNamespace(retained.intent)+'.release-activate-input.v1',input);
+   requireThat(retained.inputDigest===retainedInputDigest&&principalOwns(principal,retained.intent.principalId),'IDEMPOTENCY_MISMATCH');
    const observed=await this.o.helper.observe(retained.intent.activationId);fence.assert();
    // An admitted fixed-helper transaction owns bounded completion/rollback even
    // while its replaceable broker is stopped. Reading it never launches again.
@@ -98,6 +99,7 @@ export class ReleaseBackend {
    // delivering the same immutable intent, never borrowing an old grant.
   }
   const stage=/** @type {Stage|null} */(this.record('release.ready:'+releaseId));requireThat(stage&&stage.state==='staged'&&stage.build&&stage.target&&stage.target.releaseId===releaseId,'INVALID_ARGUMENT','Unknown immutable staged release');
+  const namespace=retained?activationNamespace(retained.intent):releaseNamespace(stage.build.manifest),inputDigest=recordDigest(namespace+'.release-activate-input.v1',input);
   requireThat(stage.previous.releaseId===input.expectedActiveRelease&&this.o.binding.policyDigest===stage.policyDigest,'STALE_RESULT');
   const source=await this.o.authority.verify(stage.sourceCommitOid,stage.policyDigest);fence.assert();
   requireThat(await this.o.builder.verify(stage.build,source,stage.previous),'VALIDATION_FAILED');fence.assert();
@@ -105,7 +107,7 @@ export class ReleaseBackend {
   const previous=runtimePair(await this.o.helper.activePair());fence.assert();requireThat(canonicalJson(previous)===canonicalJson(stage.previous),'STALE_RESULT','Actual runtime pair differs from staged base');
   await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
   const migration=previous.schemaDigest===stage.target.schemaDigest?undefined:await releaseTransition(this.o.artifacts,previous,stage.target);
-  const action=fence.assert(),intent=retained?.intent??activationIntent({activationId:recordDigest('dev2.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target,...(migration?{migration}:{})});
+  const action=fence.assert(),intent=retained?.intent??activationIntent({...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),activationId:recordDigest(namespace+'.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target,...(migration?{migration}:{})});
   if(retained)requireThat(intent.deadline===action.deadline&&canonicalJson(intent.previous)===canonicalJson(previous)&&canonicalJson(intent.target)===canonicalJson(stage.target),'STALE_RESULT');
   else this.o.ledger.transact(tx=>{fence.check(tx);requireThat(!tx.get('SELECT value FROM meta WHERE key=?','release.activation:'+actionId),'STALE_REVISION');tx.run('INSERT INTO meta VALUES(?,?)','release.activation:'+actionId,canonicalJson({inputDigest,intent}));});
   // Beginning the fixed helper journal is itself idempotent. If its response is
@@ -113,10 +115,10 @@ export class ReleaseBackend {
   return this.finishActivation(intent,await this.o.helper.begin(intent));
  }
  /** @param {Intent} intent @param {import('./types.js').ActivationRecord} record @returns {Json} */
- finishActivation(intent,record){requireThat(canonicalJson(record.intent)===canonicalJson(intent)&&record.intentDigest===recordDigest('dev2.activation-intent.v1',intent),'INTEGRITY_FAILURE');
+ finishActivation(intent,record){requireThat(canonicalJson(record.intent)===canonicalJson(intent)&&record.intentDigest===recordDigest(activationNamespace(intent)+'.activation-intent.v1',intent),'INTEGRITY_FAILURE');
   if(record.phase==='active'){requireThat(record.observedPair&&canonicalJson(record.observedPair)===canonicalJson(intent.target),'INTEGRITY_FAILURE');return this.output(record.observedPair,'active',intent.activationId);}
   if(record.phase==='rolled_back'){requireThat(record.observedPair&&canonicalJson(record.observedPair)===canonicalJson(intent.previous),'INTEGRITY_FAILURE');return this.output(record.observedPair,'rolled_back',intent.activationId);}
-  throw new Dev2Error('EFFECT_UNCERTAIN','Activation retains an unresolved exact helper effect');
+  throw new TdevError('EFFECT_UNCERTAIN','Activation retains an unresolved exact helper effect');
  }
  /** Observation only. This method never starts a missing helper or build effect.
   * Native recovery may settle the existing action from this bound result.

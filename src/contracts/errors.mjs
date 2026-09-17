@@ -9,11 +9,11 @@ export const ERROR_CODES = Object.freeze([
   'ENCODING_BOUNDARY', 'STALE_RESULT'
 ]);
 /** @typedef {{expectedHead?:string,currentHead?:string,observedAt?:string,delivery?:'not_sent'|'unknown'}} DomainFacts */
-export class Dev2Error extends Error {
+export class TdevError extends Error {
   /** @param {string} code @param {string} [message] @param {DomainFacts} [facts] */
   constructor(code, message = code, facts = {}) {
     if (!ERROR_CODES.includes(code)) throw new TypeError('Unknown domain error code');
-    super(message); this.name = 'Dev2Error'; this.code = code;
+    super(message); this.name = 'TdevError'; this.code = code;
     if (!facts || Object.getPrototypeOf(facts)!==Object.prototype || Reflect.ownKeys(facts).some(key=>typeof key!=='string'||!['expectedHead','currentHead','observedAt','delivery'].includes(key))) throw new TypeError('Invalid domain facts');
     for (const key of Reflect.ownKeys(facts)) {
       const property=Object.getOwnPropertyDescriptor(facts,key);
@@ -28,5 +28,5 @@ export class Dev2Error extends Error {
 }
 /** @param {unknown} condition @param {string} code @param {string} [message] @param {DomainFacts} [facts] @returns {asserts condition} */
 export function requireThat(condition, code, message, facts) {
-  if (!condition) throw new Dev2Error(code, message, facts);
+  if (!condition) throw new TdevError(code, message, facts);
 }

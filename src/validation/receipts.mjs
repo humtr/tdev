@@ -1,5 +1,5 @@
 import {createHmac,timingSafeEqual} from 'node:crypto';
-import {canonicalJson,recordDigest} from '../contracts/canonical.mjs';
+import {canonicalJson,recordDigest,legacyRecordDigest} from '../contracts/canonical.mjs';
 import {digest,newId} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {checkProductionProof,productionBinding,productionBindingEligible} from './production-binding.mjs';
@@ -8,12 +8,14 @@ import {checkProductionProof,productionBinding,productionBindingEligible} from '
 /** @typedef {import('../contracts/ports.js').Profile} Profile */
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
 /** @typedef {{startedAt:number,endedAt:number,exitCode:number|null,signal:string|null,deadlineExceeded:boolean,inputDigest:string,outputDigest:string,productionProof?:import('./production-binding.mjs').Proof}} Run */
-/** Stable legacy identity preserves historical source-integration receipts. The
+/** Current validation identity. Exact pre-C2-2 receipts are checked separately. The
  * production binding below additionally MACs the entire immutable prepared result.
  * @param {Result} result */
-export function validationIdentity(result){return recordDigest('dev2.validation-identity.v1',{repositoryId:result.repositoryId,bindingEpoch:result.bindingEpoch,resultId:result.resultId,baseHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,...result.execution});}
-/** @param {Uint8Array} key @param {Omit<Receipt,'signature'>} receipt */
-function signature(key,receipt){return 'sha256:'+createHmac('sha256',key).update('dev2.validation-receipt.v1\0'+canonicalJson(receipt)).digest('hex');}
+export function validationIdentity(result){return recordDigest('tdev.validation-identity.v1',{repositoryId:result.repositoryId,bindingEpoch:result.bindingEpoch,resultId:result.resultId,baseHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,...result.execution});}
+/** @param {Result} result */
+function legacyValidationIdentity(result){return legacyRecordDigest('tdev.validation-identity.v1',{repositoryId:result.repositoryId,bindingEpoch:result.bindingEpoch,resultId:result.resultId,baseHead:result.expectedHead,commitOid:result.commitOid,resultTreeOid:result.resultTreeOid,resultTreeSha256:result.resultTreeSha256,policyDigest:result.policyDigest,...result.execution});}
+/** @param {Uint8Array} key @param {Omit<Receipt,'signature'>} receipt @param {boolean} [legacy] */
+function signature(key,receipt,legacy=false){return 'sha256:'+createHmac('sha256',key).update((legacy?'dev2':'tdev')+'.validation-receipt.v1\0'+canonicalJson(receipt)).digest('hex');}
 /** @param {Receipt} receipt */
 function unsigned(receipt){const {signature:ignored,...record}=receipt;return record;}
 /** A private production enrollment is a required extra gate, not a caller hint.
@@ -42,8 +44,9 @@ export class RequiredValidation {
  * signed original attempt identity does not. Pending callbacks are separately
  * fenced by their native assignment owner before any receipt can be produced.
  * @param {Result} result @param {Receipt} receipt @param {string} currentPolicy @param {string} ownerEpoch */
- async eligible(result,receipt,currentPolicy,ownerEpoch){try{digest(receipt.signature);const expected=Buffer.from(signature(this.key,unsigned(receipt)).slice(7),'hex'),actual=Buffer.from(receipt.signature.slice(7),'hex');if(!timingSafeEqual(expected,actual))return false;
+ async eligible(result,receipt,currentPolicy,ownerEpoch){try{digest(receipt.signature);const body=unsigned(receipt),actual=Buffer.from(receipt.signature.slice(7),'hex'),current=Buffer.from(signature(this.key,body).slice(7),'hex'),legacy=Buffer.from(signature(this.key,body,true).slice(7),'hex');if(!timingSafeEqual(current,actual)&&!timingSafeEqual(legacy,actual))return false;
   if(this.productionEnrollment?!productionBindingEligible(result,receipt.attempt,this.productionEnrollment,receipt.productionJson):receipt.productionJson!==undefined)return false;
-  return result.policyDigest===currentPolicy&&canonicalJson(result.execution)===canonicalJson(this.execution)&&receipt.validationId===validationIdentity(result)&&receipt.resultId===result.resultId&&receipt.attempt.repositoryId===result.repositoryId&&receipt.attempt.workId===result.workId&&receipt.exitCode===0&&receipt.signal===null&&!receipt.deadlineExceeded&&receipt.inputDigest===result.resultTreeSha256&&receipt.outputDigest===result.resultTreeSha256&&Number.isSafeInteger(receipt.startedAt)&&Number.isSafeInteger(receipt.endedAt)&&receipt.endedAt>=receipt.startedAt&&receipt.outcomes.length===this.profiles.length&&receipt.outcomes.every((o,i)=>o.profileDigest===this.profiles[i].digest&&o.status==='passed'&&o.exitCode===0);
+  const exactIdentity=receipt.validationId===validationIdentity(result)||receipt.validationId===legacyValidationIdentity(result);
+  return result.policyDigest===currentPolicy&&canonicalJson(result.execution)===canonicalJson(this.execution)&&exactIdentity&&receipt.resultId===result.resultId&&receipt.attempt.repositoryId===result.repositoryId&&receipt.attempt.workId===result.workId&&receipt.exitCode===0&&receipt.signal===null&&!receipt.deadlineExceeded&&receipt.inputDigest===result.resultTreeSha256&&receipt.outputDigest===result.resultTreeSha256&&Number.isSafeInteger(receipt.startedAt)&&Number.isSafeInteger(receipt.endedAt)&&receipt.endedAt>=receipt.startedAt&&receipt.outcomes.length===this.profiles.length&&receipt.outcomes.every((o,i)=>o.profileDigest===this.profiles[i].digest&&o.status==='passed'&&o.exitCode===0);
  }catch{return false;}}
 }

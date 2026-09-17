@@ -1,6 +1,6 @@
 # MCP boundary
 
-This directory owns the typed public MCP contract and wire projection used by the current dev-2 runtime. It is a module boundary, not a standalone deployment or a second state owner.
+This directory owns the typed public MCP contract and wire projection used by the current tdev runtime. It is a module boundary, not a standalone deployment or a second state owner.
 
 The public surface remains four tools: `dev_context`, `dev_read`, `dev_work`, and `dev_observe`. `input-schemas.mjs` defines their closed input shapes and independent batched work-item admission; `protocol.mjs` owns supported wire revisions and request/result encoding; output/schema modules own the bounded projections. Trusted human identity, authorization, durable Work/action state, repository access, execution, integration, release control, and observation are supplied by their existing runtime owners.
 

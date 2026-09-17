@@ -3,7 +3,7 @@ import {join,resolve} from 'node:path';
 import {setTimeout as delay} from 'node:timers/promises';
 import {canonicalJson,parseRecord,recordDigest,bytesDigest} from '../contracts/canonical.mjs';
 import {id,digest,newId} from '../contracts/identity.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {decodePayload,physicalAttempt} from './payload.mjs';
 import {inspectMaterialization} from '../candidate/materialize.mjs';
 import {attemptName} from './podman.mjs';
@@ -19,7 +19,7 @@ export class ManagedRunner {
  /** @param {{client:import('./executor-client.mjs').ExecutorClient,stateDirectory:string,runId:string,sealDigest:string,trustedRunnerDigest:string,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number,createSandbox:(assignment:Assignment,decoded:ReturnType<typeof decodePayload>)=>Promise<{sandbox:import('./podman.mjs').PodmanSandbox,sourceRoot:string}>}} options */
  constructor(options){this.o=options;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??500;this.root=resolve(options.stateDirectory);requireThat(options.stateDirectory===this.root&&Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');digest(options.sealDigest);digest(options.trustedRunnerDigest);}
  /** @param {Assignment} a */
- verifyAssignment(a){id(a.assignmentId);id(a.leaseId);requireThat(a.sessionId===this.o.client.sessionId&&a.runId===this.o.runId&&a.sealDigest===this.o.sealDigest&&a.inputIdentity===recordDigest('dev2.managed-assignment-input.v1',a.input)&&a.assignmentId===recordDigest('dev2.managed-assignment.v1',{attempt:a.input.attempt,profileDigest:a.input.profileDigest}).slice(7),'UNAUTHORIZED','Assignment identity');requireThat(Number.isSafeInteger(a.input.deadline)&&a.input.deadline>0,'INTEGRITY_FAILURE');}
+ verifyAssignment(a){id(a.assignmentId);id(a.leaseId);const identity={attempt:a.input.attempt,profileDigest:a.input.profileDigest},current=recordDigest('tdev.managed-assignment.v1',identity).slice(7),legacy=recordDigest('dev2.managed-assignment.v1',identity).slice(7),namespace=a.assignmentId===current?'tdev':a.assignmentId===legacy?'dev2':'';requireThat(namespace!==''&&a.sessionId===this.o.client.sessionId&&a.runId===this.o.runId&&a.sealDigest===this.o.sealDigest&&a.inputIdentity===recordDigest(namespace+'.managed-assignment-input.v1',a.input),'UNAUTHORIZED','Assignment identity');requireThat(Number.isSafeInteger(a.input.deadline)&&a.input.deadline>0,'INTEGRITY_FAILURE');}
  /** @param {Assignment} a @returns {Promise<Journal|null>} */
  async read(a){await mkdir(this.root,{recursive:true,mode:0o700});requireThat(await realpath(this.root)===this.root,'FORBIDDEN');let bytes;try{bytes=await readFile(join(this.root,a.assignmentId+'.json'));}catch(error){if(error&&typeof error==='object'&&'code'in error&&error.code==='ENOENT')return null;throw error;}const value=/** @type {Journal} */(/** @type {unknown} */(parseRecord(bytes,16777216)));requireThat(value.assignmentId===a.assignmentId&&value.leaseId===a.leaseId&&value.inputIdentity===a.inputIdentity,'INTEGRITY_FAILURE','Retained assignment changed');return value;}
  /** @param {Journal} value */
@@ -49,7 +49,7 @@ export class ManagedRunner {
    requireThat(state.state!=='absent','EFFECT_UNCERTAIN','Launched container absence is not a completion receipt');
    const now=this.now();deadlineExceeded=deadlineExceeded||now>=Math.min(a.input.deadline,journal.startedAt+profile.timeoutMs);
    if(deadlineExceeded){await sandbox.cancel(physical);cancelled=true;}
-   if(now-lastPoll>=2000){lastPoll=now;try{const current=await this.o.client.poll();if(current.cancelRequested||current.assignment?.cancelRequested){cancelled=true;await sandbox.cancel(physical);}else requireThat(current.assignment?.assignmentId===a.assignmentId&&current.assignment.leaseId===a.leaseId,'STALE_RESULT');}catch(error){if(error instanceof Dev2Error&&error.code!=='EXECUTION_UNAVAILABLE'){await sandbox.cancel(physical);throw error;}}}
+   if(now-lastPoll>=2000){lastPoll=now;try{const current=await this.o.client.poll();if(current.cancelRequested||current.assignment?.cancelRequested){cancelled=true;await sandbox.cancel(physical);}else requireThat(current.assignment?.assignmentId===a.assignmentId&&current.assignment.leaseId===a.leaseId,'STALE_RESULT');}catch(error){if(error instanceof TdevError&&error.code!=='EXECUTION_UNAVAILABLE'){await sandbox.cancel(physical);throw error;}}}
    requireThat(now<=a.input.deadline+15000,'EFFECT_UNCERTAIN','Stop remains unverified after assignment deadline');
    await this.sleep(this.pollMs);state=await sandbox.inspect(physical,expected);
   }

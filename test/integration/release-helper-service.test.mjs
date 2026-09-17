@@ -17,7 +17,7 @@ import {releaseTransition} from '../../src/release/contract-migration.mjs';
 const D=n=>'sha256:'+String(n).repeat(64),O=n=>'sha1:'+String(n).repeat(40),V=n=>String(n).repeat(8)+'-'+String(n).repeat(4)+'-'+String(n).repeat(4)+'-'+String(n).repeat(4)+'-'+String(n).repeat(12);
 const normalized=value=>JSON.parse(JSON.stringify(value));
 async function fixture({edgeOnly=false,migration=false}={}){
- const root=await mkdtemp(join(tmpdir(),'dev2-helper-admission-fixture-')),objects=new ObjectStore(join(root,'objects'));await objects.init();const artifacts=new ReleaseArtifactStore({root:join(root,'artifacts'),objects,schemaDigest:SCHEMA_DIGEST});await artifacts.init();
+ const root=await mkdtemp(join(tmpdir(),'tdev-helper-admission-fixture-')),objects=new ObjectStore(join(root,'objects'));await objects.init();const artifacts=new ReleaseArtifactStore({root:join(root,'artifacts'),objects,schemaDigest:SCHEMA_DIGEST});await artifacts.init();
  const oldBytes=Buffer.from('fixed old device'),oldDigest=bytesDigest(oldBytes),baseline={releaseId:D(1),schemaDigest:SCHEMA_DIGEST,sourceCommitOid:O(1),deviceReleaseId:D(1),deviceArtifactDigest:oldDigest,deviceSourceCommitOid:O(1),edgeVersionId:V(1),edgeArtifactDigest:D(1),edgeSourceCommitOid:O(1),protocol:{min:1,max:1},ledger:{min:1,max:1}};
  if(migration){
   const refs={device:await objects.put(oldBytes),edge:await objects.put(Buffer.from('old edge')),tools:await objects.put(Buffer.from(canonicalJson(legacy.tools)))};

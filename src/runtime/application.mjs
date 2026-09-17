@@ -7,6 +7,7 @@ import { validateInput, admitWorkBatch } from '../mcp/input-schemas.mjs';
 import { SCHEMA_DIGEST, validateOutput, TOOL_DESCRIPTORS } from '../mcp/outputs.mjs';
 import { workInput } from './engine.mjs';
 import { retainedExecutionView, retainedExecutionViewIn, retainedArtifactDigest } from './execution-view.mjs';
+import {principalOwns,principalSubjects} from '../security/principal.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {{[key:string]:Json}} RecordValue */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
@@ -73,7 +74,7 @@ export class DevelopmentApplication {
  return {treeOid:null,manifestDigest:null,notCurrent:true,results,returnedBytes:budget-remaining,openedFiles:0,scannedBytes:0};
  }
  /** @param {Principal} principal @param {string} actionId */
- async action(principal,actionId){await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');const action=this.engine.ledger.transact(tx=>tx.getAction(actionId));requireThat(action&&action.principal===principal.subject,'FORBIDDEN');return action;}
+ async action(principal,actionId){await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');const action=this.engine.ledger.transact(tx=>tx.getAction(actionId));requireThat(action&&principalOwns(principal,action.principal),'FORBIDDEN');return action;}
  /** @param {Work} w */
  projectWork(w){return {workId:w.workId,repositoryId:w.repositoryId,bindingEpoch:w.bindingEpoch,baseCommitOid:w.baseCommitOid,baseTreeOid:w.baseTreeOid,candidateTreeOid:w.candidate.treeOid,candidateDigest:w.candidate.manifestDigest,generation:w.generation,revision:w.revision,disposition:w.disposition,currentActionId:w.currentActionId,objective:String(this.engine.metadata('objective:'+w.workId)??'')};}
  /** @param {Action} a */
@@ -83,26 +84,26 @@ export class DevelopmentApplication {
  requireThat(Number.isSafeInteger(waitMs)&&waitMs>=0&&waitMs<=20000,'LIMIT_EXCEEDED');const deadline=performance.now()+waitMs;
  while(performance.now()<deadline&&!signal?.aborted){
   await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');
-  const done=this.engine.ledger.transact(tx=>ids.every(id=>{const a=tx.getAction(id);if(!a||a.principal!==principal.subject)return true;return afterRevision!==undefined?BigInt(String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+id)?.value??'0'))>BigInt(afterRevision):['succeeded','failed','cancelled','blocked'].includes(a.status);}));
+  const done=this.engine.ledger.transact(tx=>ids.every(id=>{const a=tx.getAction(id);if(!a||!principalOwns(principal,a.principal))return true;return afterRevision!==undefined?BigInt(String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+id)?.value??'0'))>BigInt(afterRevision):['succeeded','failed','cancelled','blocked'].includes(a.status);}));
   if(done)return;await delay(Math.min(this.o.pollMs??25,Math.max(1,deadline-performance.now())),undefined,{signal}).catch(()=>{});
  }
  }
  /** @param {Principal} principal @param {RecordValue} input @param {AbortSignal} [signal] */
  async observe(principal,input,signal){
  await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');
- const selector=record(input.selector);let workIds=[.../** @type {string[]} */(selector.workIds??[])],actionIds=[.../** @type {string[]} */(selector.actionIds??[])];
+ const selector=record(input.selector),owners=principalSubjects(principal);let workIds=[.../** @type {string[]} */(selector.workIds??[])],actionIds=[.../** @type {string[]} */(selector.actionIds??[])];
  /** @type {string[]} */const missingRequestIds=[];
- if(selector.requestIds)for(const id of /** @type {string[]} */(selector.requestIds)){const a=this.engine.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.engine.binding.bindingEpoch,id));if(a)actionIds.push(a.actionId);else missingRequestIds.push(id);}
+ if(selector.requestIds)for(const id of /** @type {string[]} */(selector.requestIds)){const a=this.engine.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.engine.binding.bindingEpoch,id)??(principal.legacySubject?tx.lookupRequest(principal.legacySubject,this.engine.binding.bindingEpoch,id):null));if(a)actionIds.push(a.actionId);else missingRequestIds.push(id);}
  let cursor=/** @type {string|null} */(null),complete=true;
  if(selector.open){
-  const key=recordDigest('dev2.observe-cursor.v1',{subject:principal.subject,bindingEpoch:this.engine.binding.bindingEpoch,selector});let after=0;
+  const key=recordDigest('tdev.observe-cursor.v1',{subject:principal.subject,bindingEpoch:this.engine.binding.bindingEpoch,selector});let after=0;
   if(input.cursor){const c=this.cursors.get(String(input.cursor));requireThat(c&&c.key===key&&c.subject===principal.subject&&c.expires>this.now(),'CONTEXT_EXPIRED');after=c.after;}
-  const limit=Math.min(Number(input.limit),64),rows=this.engine.ledger.transact(tx=>tx.listOpen(principal.subject,after,limit));workIds=rows.map(r=>r.work.workId);
+  const limit=Math.min(Number(input.limit),64),rows=this.engine.ledger.transact(tx=>owners.flatMap(owner=>tx.listOpen(owner,after,limit)).sort((a,b)=>a.sequence-b.sequence).slice(0,limit));workIds=rows.map(r=>r.work.workId);
   if(rows.length===limit){complete=false;cursor=newId();for(const [key,value] of this.cursors)if(value.expires<=this.now())this.cursors.delete(key);requireThat(this.cursors.size<4096,'CAPACITY_REJECTED');this.cursors.set(cursor,{subject:principal.subject,key,after:rows[rows.length-1].sequence,expires:this.now()+1800000});}
  }
  for(const id of workIds){const w=await this.engine.work(principal,id);if(w.currentActionId)actionIds.push(w.currentActionId);
-  const latest=this.engine.ledger.transact(tx=>tx.all('SELECT record FROM action WHERE work_id=? AND principal=? ORDER BY rowid DESC LIMIT 1',id,principal.subject));
-  const result=this.engine.ledger.transact(tx=>tx.all('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,principal.subject));
+  const latest=this.engine.ledger.transact(tx=>tx.all('SELECT record FROM action WHERE work_id=? AND principal=? ORDER BY rowid DESC LIMIT 1',id,w.principal));
+  const result=this.engine.ledger.transact(tx=>tx.all('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,w.principal));
   for(const row of [...latest,...result])actionIds.push((/** @type {Action} */(parseRecord(String(row.record)))).actionId);
  }
  actionIds=[...new Set(actionIds)];requireThat(actionIds.length<=128,'LIMIT_EXCEEDED');for(const id of actionIds){await this.action(principal,id);await this.engine.specialRecovery.observe(principal,id,false);}
@@ -111,16 +112,16 @@ export class DevelopmentApplication {
  const captured=this.engine.ledger.transact(tx=>{
   /** @param {string} key @returns {Json|null} */const meta=key=>{const row=tx.get('SELECT value FROM meta WHERE key=?',key);return row?/** @type {Json} */(parseRecord(String(row.value),2097152)):null;};
   const workSet=new Set(workIds),actionSet=new Set(actionIds);
-  for(const id of [...workSet]){const work=tx.getWork(id);requireThat(work&&work.principal===principal.subject,'FORBIDDEN');if(work.currentActionId)actionSet.add(work.currentActionId);const latest=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? ORDER BY rowid DESC LIMIT 1',id,principal.subject),withResult=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,principal.subject);for(const row of [latest,withResult])if(row){const action=/** @type {Action} */(parseRecord(String(row.record),2097152));actionSet.add(action.actionId);}}
+  for(const id of [...workSet]){const work=tx.getWork(id);requireThat(work&&principalOwns(principal,work.principal),'FORBIDDEN');if(work.currentActionId)actionSet.add(work.currentActionId);const latest=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? ORDER BY rowid DESC LIMIT 1',id,work.principal),withResult=tx.get('SELECT record FROM action WHERE work_id=? AND principal=? AND json_extract(record,\'$.resultId\') IS NOT NULL ORDER BY rowid DESC LIMIT 1',id,work.principal);for(const row of [latest,withResult])if(row){const action=/** @type {Action} */(parseRecord(String(row.record),2097152));actionSet.add(action.actionId);}}
   requireThat(actionSet.size<=128,'LIMIT_EXCEEDED');
-  /** @type {Action[]} */const actions=[];for(const id of actionSet){const action=tx.getAction(id);requireThat(action&&action.principal===principal.subject,'FORBIDDEN');actions.push(action);if(action.workId)workSet.add(action.workId);}
-  /** @type {Work[]} */const works=[];for(const id of workSet){const work=tx.getWork(id);requireThat(work&&work.principal===principal.subject,'FORBIDDEN');works.push(work);}
+  /** @type {Action[]} */const actions=[];for(const id of actionSet){const action=tx.getAction(id);requireThat(action&&principalOwns(principal,action.principal),'FORBIDDEN');actions.push(action);if(action.workId)workSet.add(action.workId);}
+  /** @type {Work[]} */const works=[];for(const id of workSet){const work=tx.getWork(id);requireThat(work&&principalOwns(principal,work.principal),'FORBIDDEN');works.push(work);}
   const after=selector.afterRevision!==undefined?BigInt(String(selector.afterRevision)):null;
   const selectedActions=after===null?actions:actions.filter(action=>BigInt(String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+action.actionId)?.value??'0'))>after);
   const selectedWorks=after===null?works:works.filter(work=>BigInt(work.revision)>after);
   const actionViews=selectedActions.map(action=>{let output=meta('action-result:'+action.actionId),managed=retainedExecutionViewIn(tx,this.engine.ledger,action);if(managed){if(output===null)output=/** @type {Json} */(managed);else if(typeof output==='object'&&!Array.isArray(output)&&output.kind==='execution')output=/** @type {Json} */({...output,artifacts:managed.artifacts});}return {actionId:action.actionId,requestId:action.requestId,workId:action.workId,operation:action.operation,status:action.status,step:action.step,attempt:action.attempt,revision:String(tx.get('SELECT value FROM meta WHERE key=?','actionRevision:'+action.actionId)?.value??'0'),deadline:action.deadline,resultId:action.resultId,errorCode:action.errorCode,cancelRequested:meta('cancel:'+action.actionId)===true,output};});
   const workViews=selectedWorks.map(work=>({workId:work.workId,repositoryId:work.repositoryId,bindingEpoch:work.bindingEpoch,baseCommitOid:work.baseCommitOid,baseTreeOid:work.baseTreeOid,candidateTreeOid:work.candidate.treeOid,candidateDigest:work.candidate.manifestDigest,generation:work.generation,revision:work.revision,disposition:work.disposition,currentActionId:work.currentActionId,objective:String(meta('objective:'+work.workId)??'')}));
-  /** @type {{result:import('../contracts/ports.js').PreparedResult,receipt:Receipt|null,observation:Json|null}[]} */const resultFrames=[];for(const resultId of new Set(selectedActions.map(action=>action.resultId).filter(Boolean))){const result=tx.getPrepared(/** @type {string} */(resultId));if(!result)continue;const owner=tx.getWork(result.workId);requireThat(owner&&owner.principal===principal.subject,'FORBIDDEN');const row=tx.get('SELECT record FROM validation WHERE result_id=? ORDER BY rowid DESC LIMIT 1',result.resultId),receipt=row?/** @type {Receipt} */(parseRecord(String(row.record),2097152)):null,effectAction=selectedActions.find(action=>action.resultId===result.resultId&&action.operation==='integrate'),observation=effectAction?/** @type {Json|null} */(tx.effectObservation(effectAction.actionId)):null;resultFrames.push({result,receipt,observation});}
+  /** @type {{result:import('../contracts/ports.js').PreparedResult,receipt:Receipt|null,observation:Json|null}[]} */const resultFrames=[];for(const resultId of new Set(selectedActions.map(action=>action.resultId).filter(Boolean))){const result=tx.getPrepared(/** @type {string} */(resultId));if(!result)continue;const owner=tx.getWork(result.workId);requireThat(owner&&principalOwns(principal,owner.principal),'FORBIDDEN');const row=tx.get('SELECT record FROM validation WHERE result_id=? ORDER BY rowid DESC LIMIT 1',result.resultId),receipt=row?/** @type {Receipt} */(parseRecord(String(row.record),2097152)):null,effectAction=selectedActions.find(action=>action.resultId===result.resultId&&action.operation==='integrate'),observation=effectAction?/** @type {Json|null} */(tx.effectObservation(effectAction.actionId)):null;resultFrames.push({result,receipt,observation});}
   const effectMap=new Map();for(const action of selectedActions){const effect=tx.getEffect(action.actionId);if(effect)effectMap.set(effect.effectId,effect);}const effects=[...effectMap.values()].map(effect=>({effectId:effect.effectId,actionId:effect.actionId,workId:effect.workId,ref:effect.ref,expectedHead:effect.expectedHead,commitOid:effect.commitOid,preparedResultId:effect.preparedResultId,validationId:effect.validationId,policyDigest:effect.policyDigest}));
   return {actionViews,workViews,resultFrames,effects};
  });

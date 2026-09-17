@@ -1,9 +1,10 @@
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {id,digest,oid} from '../contracts/identity.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {repositoryPath} from '../security/paths.mjs';
 import {AdoptedPolicy} from '../validation/policy.mjs';
 import {specialActionFence} from './action.mjs';
+import {principalOwns,principalSubjects} from '../security/principal.mjs';
 /** @typedef {ConstructorParameters<typeof AdoptedPolicy>[0]} Policy */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Binding} Binding */
@@ -25,7 +26,7 @@ export function qualifiedPolicy(input){
  closed(value.execution,['orderedProfileDigests','trustedRunnerDigest','toolchainDigest','environmentClass','dependencyLockDigest']);
  requireThat(Array.isArray(value.execution.orderedProfileDigests)&&value.execution.environmentClass==='github-hosted-rootless-oci','EXECUTION_UNAVAILABLE','Qualified managed execution required');
  for(const d of [...value.execution.orderedProfileDigests,value.execution.trustedRunnerDigest,value.execution.toolchainDigest,value.execution.dependencyLockDigest])digest(d);
- for(const item of value.profiles){
+ const namespaces=new Set();for(const item of value.profiles){
   closed(item,['profile','parameterSchema']);const p=item.profile;
   closed(p,['profileId','digest','argv','cwd','parameters','timeoutMs','killGraceMs','memoryBytes','pids','cpuMillis','diskBytes','logBytes','network','imageDigest','replaySafe']);
   id(p.profileId);digest(p.digest);digest(p.imageDigest);repositoryPath(p.cwd,true);
@@ -33,13 +34,13 @@ export function qualifiedPolicy(input){
   for(const n of [p.timeoutMs,p.killGraceMs,p.memoryBytes,p.pids,p.cpuMillis,p.diskBytes,p.logBytes])requireThat(Number.isSafeInteger(n)&&n>0,'INVALID_ARGUMENT','Finite resource bounds');
   requireThat(p.timeoutMs%1000===0&&p.killGraceMs%1000===0&&p.memoryBytes>=p.diskBytes&&p.diskBytes>=8192&&['none','fixture'].includes(p.network)&&typeof p.replaySafe==='boolean','INVALID_ARGUMENT');
   requireThat(Buffer.byteLength(canonicalJson(p.parameters))<=65536&&Buffer.byteLength(canonicalJson(item.parameterSchema))<=65536,'LIMIT_EXCEEDED');
-  const {digest:ignored,...definition}=p;requireThat(recordDigest('dev2.profile.v1',definition)===p.digest,'INTEGRITY_FAILURE','Profile digest mismatch');
+  const {digest:ignored,...profileDefinition}=p,current=recordDigest('tdev.profile.v1',profileDefinition),legacy=recordDigest('dev2.profile.v1',profileDefinition),namespace=p.digest===current?'tdev':p.digest===legacy?'dev2':'';requireThat(namespace!=='' ,'INTEGRITY_FAILURE','Profile digest mismatch');namespaces.add(namespace);
   if(value.required.includes(p.profileId))requireThat(p.network==='none','EXECUTION_UNAVAILABLE','Required profile cannot acquire a fixture/network capability');
  }
- requireThat(new Set(value.profiles.map(p=>p.profile.digest)).size===value.profiles.length,'INVALID_ARGUMENT','Profile identity alias');
- const definition={profiles:value.profiles,required:value.required,execution:value.execution};
- requireThat(recordDigest('dev2.execution-policy.v1',definition)===digest(value.digest),'INTEGRITY_FAILURE','Policy digest mismatch');
- try{return new AdoptedPolicy({digest:value.digest,...definition});}catch(error){if(error instanceof Dev2Error)throw error;throw new Dev2Error('INVALID_ARGUMENT','Policy parameter schema is not supported');}
+ requireThat(namespaces.size===1&&new Set(value.profiles.map(p=>p.profile.digest)).size===value.profiles.length,'INVALID_ARGUMENT','Profile identity family or alias');
+ const definition={profiles:value.profiles,required:value.required,execution:value.execution},namespace=[...namespaces][0];
+ requireThat(recordDigest(namespace+'.execution-policy.v1',definition)===digest(value.digest),'INTEGRITY_FAILURE','Policy digest mismatch');
+ try{return new AdoptedPolicy({digest:value.digest,...definition});}catch(error){if(error instanceof TdevError)throw error;throw new TdevError('INVALID_ARGUMENT','Policy parameter schema is not supported');}
 }
 /** Stored initial binding remains the installation enrollment identity. Active
  * policy is an independently durable register, restored after opening that exact
@@ -93,9 +94,9 @@ export class PolicyState {
  async adopt(principal,input,actionId){
   oid(input.integratedCommit);repositoryPath(input.policyPath);digest(input.expectedPolicyDigest);digest(input.newPolicyDigest);id(actionId);
   await this.o.authorize(principal,input.policyPath);
-  const fence=specialActionFence(this.o.ledger,actionId,'policy.adopt',principal.subject,this.now);
+  const fence=specialActionFence(this.o.ledger,actionId,'policy.adopt',principalSubjects(principal),this.now);
   const prior=this.o.ledger.transact(tx=>{fence.check(tx);const row=tx.get('SELECT value FROM meta WHERE key=?','policy.adoption:'+actionId);return row?/** @type {Adoption} */(parseRecord(String(row.value))):null;});
-  if(prior){requireThat(prior.integratedCommit===input.integratedCommit&&prior.policyPath===input.policyPath&&prior.previousPolicyDigest===input.expectedPolicyDigest&&prior.policy.digest===input.newPolicyDigest&&prior.principal===principal.subject,'IDEMPOTENCY_MISMATCH');await this.restore();return this.output(prior);}
+  if(prior){requireThat(prior.integratedCommit===input.integratedCommit&&prior.policyPath===input.policyPath&&prior.previousPolicyDigest===input.expectedPolicyDigest&&prior.policy.digest===input.newPolicyDigest&&principalOwns(principal,prior.principal),'IDEMPOTENCY_MISMATCH');await this.restore();return this.output(prior);}
   requireThat(this.current.policy.digest===input.expectedPolicyDigest&&this.o.binding.policyDigest===input.expectedPolicyDigest,'STALE_RESULT');
   const integrated=await this.o.verifyIntegrated(input.integratedCommit,input.expectedPolicyDigest);fence.assert();
   requireThat(integrated.repositoryId===this.o.binding.repositoryId&&integrated.bindingEpoch===this.o.binding.bindingEpoch&&integrated.commitOid===input.integratedCommit&&integrated.policyDigest===input.expectedPolicyDigest,'STALE_RESULT');digest(integrated.validationId);

@@ -211,3 +211,37 @@ a blocked binding neither owns unrelated capacity after positive stop nor permit
 duplicate physical attempt while state is uncertain. Acceptance must exercise two
 bindings concurrently, response loss on one, and continued independent progress on
 the other with the configured total capacity unchanged.
+
+## C2-2 durable identity namespace transition
+
+Final product identity is `tdev`. New durable identities created by a C2-2-capable
+runtime use versioned `tdev.*` digest domains and `tdev` record-kind labels. Existing
+`dev2.*` domains and `dev2` record-kind labels are immutable legacy identity: never
+rewrite a retained Action, request tombstone, Work generation, Attempt, receipt,
+Effect or meta record merely to change its spelling. A reader may verify an exact
+retained legacy record under its original domain, but legacy verification is not a
+fallback that can mint a new record or external effect.
+
+Request deduplication is the critical transition boundary. New admissions hash their
+normalized intent in the current `tdev.mutation-intent.v1` domain. When an already
+retained request key is found, compare the exact normalized semantic intent against
+the retained digest in its recorded current or legacy domain and return the original
+Action; never replace it with a new request or reinterpret a different payload.
+Binding epoch, principal, repository and authorization ordering remain unchanged.
+
+New managed/session/assignment and ordinary work metadata follow the same
+single-write/current, exact-dual-read rule. Legacy readers may be removed only after
+all binding epochs that can still expose a legacy request/effect/attempt tombstone or
+retained recovery record are explicitly retired under existing retention rules; age
+or a successful release alone is insufficient. C1 stopped-attempt/ref/session
+semantics and C2-1 binding-local ownership are unchanged.
+
+The human-principal digest follows this transition without changing the underlying
+provider identity. A freshly verified principal uses the current `tdev` subject
+domain, while the trusted verifier may retain one exact legacy subject derived from
+the same issuer/provider subject solely to locate pre-C2 grants, request keys, Works,
+Actions and recovery owners. New Work/Action/request rows always store the current
+subject. Deduplication and ownership checks may read the exact legacy subject as a
+second key but must never copy, rewrite or merge a retained row, and a caller cannot
+supply or choose the legacy alias. The alias retires only after no retained durable
+owner or installation grant can name it.

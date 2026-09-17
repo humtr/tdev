@@ -5,7 +5,7 @@ import {ManagedSessions} from '../../src/execution/sessions.mjs';
 import {GitHubSessions} from '../../src/execution/github-sessions.mjs';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
 const D='sha256:'+'1'.repeat(64),C='1'.repeat(40),binding={installationId:'i',repositoryId:'r',providerRepositoryId:'123',bindingEpoch:'1',provider:'github',remote:'https://github.com/fixture/repo.git',ref:'refs/heads/dev-2',policyDigest:D};
-const config={repositoryOwnerId:'456',repositoryFullName:'fixture/repo',approvedCommit:C,trustedRunnerDigest:D,sessionTimeoutMs:900000,sealDigest:D};
+const config={repositoryOwnerId:'456',repositoryFullName:'fixture/repo',approvedCommit:C,trustedRunnerDigest:D,workflowPath:'.github/workflows/dev2-executor.yml',sessionTimeoutMs:900000,sealDigest:D};
 function setup(){let time=10000;const ledger=new Ledger(':memory:',binding),sessions=new ManagedSessions({ledger,config,now:()=>time});const refs=new Map(),runs=[],calls=[];let lose=false,loseDelete=false,override=null;
  const fetcher=async(url,options)=>{url=new URL(url);assert.equal(url.origin,'https://api.github.com');assert.equal(options.redirect,'error');assert.equal(options.headers.authorization,'Bearer '+'fixture-token'.padEnd(32,'x'));assert.equal(options.headers['x-github-api-version'],'2026-03-10');calls.push({method:options.method,path:url.pathname,search:url.search,body:options.body&&JSON.parse(options.body)});if(override){const response=await override(url,options);if(response)return response;}
   const json=(value,status=200)=>new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json'}});

@@ -13,9 +13,9 @@ import {requireThat} from '../src/contracts/errors.mjs';
  */
 async function main(){
  requireThat(process.platform==='linux'&&typeof process.getuid==='function'&&process.getuid()!==0,'EXECUTION_UNAVAILABLE','Rootless Linux required');
- const root=await realpath(await mkdtemp(join(tmpdir(),'dev2-hosted-probe-')));
+ const root=await realpath(await mkdtemp(join(tmpdir(),'tdev-hosted-probe-')));
  const executable=execFileSync('/bin/sh',['-c','command -v podman'],{encoding:'utf8',timeout:5000}).trim();
- const environment={PATH:process.env.PATH??'',HOME:process.env.HOME??'',XDG_RUNTIME_DIR:process.env.XDG_RUNTIME_DIR??'/run/user/'+process.getuid(),DEV2_HOST_CANARY:'must-not-cross-the-container-boundary'};
+ const environment={PATH:process.env.PATH??'',HOME:process.env.HOME??'',XDG_RUNTIME_DIR:process.env.XDG_RUNTIME_DIR??'/run/user/'+process.getuid(),TDEV_HOST_CANARY:'must-not-cross-the-container-boundary'};
  /** @param {string[]} argv @param {number} [timeout] */
  const command=(argv,timeout=30000)=>execFileSync(executable,argv,{encoding:'utf8',env:environment,timeout,maxBuffer:1048576});
  const version=command(['--version']).trim();const info=JSON.parse(command(['info','--format=json']));
@@ -31,7 +31,7 @@ async function main(){
  const sourceRoot=join(root,attemptName(attempt),'source');await mkdir(sourceRoot,{recursive:true,mode:0o700});await writeFile(join(sourceRoot,'immutable'),'fixed source\n');
  const script=`const fs=require('node:fs');const net=require('node:net');(async()=>{const status=fs.readFileSync('/proc/self/status','utf8');const fact={environment:Object.keys(process.env).sort(),status:Object.fromEntries(['CapEff','NoNewPrivs','Seccomp'].map(k=>[k,status.match(new RegExp('^'+k+':\\\\s*(.*)$','m'))?.[1]??null])),namespaces:Object.fromEntries(['pid','mnt','user','net','ipc','uts','cgroup'].map(k=>[k,fs.readlinkSync('/proc/self/ns/'+k)])),limits:Object.fromEntries(['memory.max','pids.max','cpu.max'].map(k=>[k,fs.readFileSync('/sys/fs/cgroup/'+k,'utf8').trim()])),hostCanaryReadable:false,sourceWritable:false,networkReachable:false};try{fs.readFileSync(${JSON.stringify(canary)});fact.hostCanaryReadable=true;}catch{}try{fs.writeFileSync('/source/immutable','changed');fact.sourceWritable=true;}catch{}await new Promise(resolve=>{const socket=net.connect({host:'169.254.169.254',port:80});const end=()=>{socket.destroy();resolve();};socket.setTimeout(500,end);socket.once('error',end);socket.once('connect',()=>{fact.networkReachable=true;end();});});console.log(JSON.stringify(fact));})().catch(()=>process.exit(2));`;
  const fields={profileId:'hosted-boundary',argv:['/usr/local/bin/node','-e',script],cwd:'',parameters:{},timeoutMs:10000,killGraceMs:1000,memoryBytes:268435456,pids:32,cpuMillis:1000,diskBytes:67108864,logBytes:65536,network:/** @type {const} */('none'),imageDigest,replaySafe:true};
- const profile={...fields,digest:recordDigest('dev2.profile.v1',fields)};
+ const profile={...fields,digest:recordDigest('tdev.profile.v1',fields)};
  const options={executable,environment,attemptRoot:root,seccompPath,seccompDigest,images:{[imageDigest]:immutableImage},productionSeal:true,materialize:async()=>sourceRoot};
  const sandbox=new PodmanSandbox(options);const source={treeOid:'sha1:'+'1'.repeat(40),manifestDigest:bytesDigest(Buffer.from('trusted fixed qualification input')),entries:[]};
  const before=Date.now();let observed=await sandbox.launch(attempt,profile,source);

@@ -3,7 +3,7 @@ import {randomBytes,createHmac,timingSafeEqual} from 'node:crypto';
 import {lstat,realpath,open,rename,readFile} from 'node:fs/promises';
 import {dirname,resolve} from 'node:path';
 import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
-import {Dev2Error,ERROR_CODES,requireThat} from '../contracts/errors.mjs';
+import {TdevError,ERROR_CODES,requireThat} from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {'helper'|'native'} Role */
 /** @typedef {'helper.status'|'stage.reconcile'|'stage.upload'|'activation.begin'|'activation.rollback'|'activation.observe'|'native.status'|'native.drain'} Operation */
@@ -16,8 +16,8 @@ const OPERATIONS={helper:['helper.status','stage.reconcile','stage.upload','acti
 function object(value){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value),'INVALID_ARGUMENT');return /** @type {Record<string,Json>} */(value);}
 /** @param {unknown} value @param {string[]} fields */
 function closed(value,fields){const v=object(value);requireThat(Object.keys(v).sort().join(',')===[...fields].sort().join(','),'INVALID_ARGUMENT');return v;}
-/** @param {Uint8Array} key @param {Role} role @param {'request'|'response'} direction @param {string} text */
-function mac(key,role,direction,text){return createHmac('sha256',key).update('dev2.private-rpc.v1\0'+role+'\0'+direction+'\0').update(text).digest('hex');}
+/** @param {Uint8Array} key @param {Role} role @param {'request'|'response'} direction @param {string} text @param {'tdev'|'dev2'} [namespace] */
+function mac(key,role,direction,text,namespace='tdev'){return createHmac('sha256',key).update(namespace+'.private-rpc.v1\0'+role+'\0'+direction+'\0').update(text).digest('hex');}
 /** @param {unknown} actual @param {string} expected */
 function authenticate(actual,expected){requireThat(typeof actual==='string'&&/^[0-9a-f]{64}$/.test(actual)&&timingSafeEqual(Buffer.from(actual,'hex'),Buffer.from(expected,'hex')),'UNAUTHORIZED');}
 /** @param {unknown} value @param {Role} role @returns {Endpoint} */
@@ -38,15 +38,15 @@ export async function servePrivateControl(options){const {role,filename,key,hand
   try{
    requireThat(req.method==='POST'&&req.url==='/'&&req.headers['content-type']==='application/json','UNAUTHORIZED');
    const chunks=[];let size=0;for await(const chunk of req){size+=chunk.length;requireThat(size<=LIMIT,'LIMIT_EXCEEDED');chunks.push(Buffer.from(chunk));}
-   const text=Buffer.concat(chunks).toString('utf8');authenticate(req.headers['x-dev2-private-mac'],mac(key,role,'request',text));
+   const text=Buffer.concat(chunks).toString('utf8'),currentMac=req.headers['x-tdev-private-mac'],legacyMac=req.headers['x-dev2-private-mac'];requireThat((currentMac===undefined)!==(legacyMac===undefined),'UNAUTHORIZED');const namespace=/** @type {'tdev'|'dev2'} */(currentMac!==undefined?'tdev':'dev2');authenticate(currentMac??legacyMac,mac(key,role,'request',text,namespace));
    const q=closed(parseRecord(text,LIMIT),['schemaVersion','role','serverNonce','requestId','issuedAt','expiresAt','operation','input']);
    requireThat(q.schemaVersion===1&&q.role===role&&q.serverNonce===nonce&&typeof q.requestId==='string'&&/^[0-9a-f]{32}$/.test(q.requestId)&&typeof q.issuedAt==='number'&&Number.isSafeInteger(q.issuedAt)&&typeof q.expiresAt==='number'&&Number.isSafeInteger(q.expiresAt)&&q.issuedAt<=now()+2000&&q.expiresAt>now()&&q.expiresAt-q.issuedAt>0&&q.expiresAt-q.issuedAt<=TTL,'UNAUTHORIZED');
    requireThat(typeof q.operation==='string'&&OPERATIONS[role].includes(/** @type {Operation} */(q.operation)),'FORBIDDEN');
    const handler=handlers[/** @type {Operation} */(q.operation)];requireThat(handler,'EXECUTION_UNAVAILABLE');
-   let output=null,errorCode=null;try{output=await handler(q.input);}catch(error){errorCode=error instanceof Dev2Error?error.code:'EXECUTION_UNAVAILABLE';}
+   let output=null,errorCode=null;try{output=await handler(q.input);}catch(error){errorCode=error instanceof TdevError?error.code:'EXECUTION_UNAVAILABLE';}
    const response=canonicalJson({schemaVersion:1,requestId:q.requestId,serverNonce:nonce,ok:errorCode===null,output,errorCode});requireThat(Buffer.byteLength(response)<=LIMIT,'LIMIT_EXCEEDED');
-   res.writeHead(200,{'content-type':'application/json','x-dev2-private-mac':mac(key,role,'response',response)}).end(response);
-  }catch(error){if(!res.headersSent)res.writeHead(error instanceof Dev2Error&&error.code==='LIMIT_EXCEEDED'?413:403,{'content-type':'application/json'});res.end('{"error":"private_control_rejected"}');}finally{active--;}
+   const responseHeader=namespace==='tdev'?'x-tdev-private-mac':'x-dev2-private-mac';res.writeHead(200,{'content-type':'application/json',[responseHeader]:mac(key,role,'response',response,namespace)}).end(response);
+  }catch(error){if(!res.headersSent)res.writeHead(error instanceof TdevError&&error.code==='LIMIT_EXCEEDED'?413:403,{'content-type':'application/json'});res.end('{"error":"private_control_rejected"}');}finally{active--;}
  });
  server.requestTimeout=TTL;server.headersTimeout=5000;server.keepAliveTimeout=1000;
  await new Promise((done,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',()=>done(undefined));});
@@ -59,13 +59,14 @@ export async function servePrivateControl(options){const {role,filename,key,hand
  * @param {{filename:string,role:Role,key:Uint8Array,operation:Operation,input:Json,timeoutMs?:number,now?:()=>number}} options */
 export async function privateControl(options){const {filename,role,key,operation,input}=options,timeoutMs=options.timeoutMs??15000,now=options.now??Date.now;requireThat(key.byteLength===32&&OPERATIONS[role].includes(operation)&&Number.isInteger(timeoutMs)&&timeoutMs>0&&timeoutMs<=TTL,'INVALID_ARGUMENT');
  const e=await readPrivateEndpoint(filename,role),requestId=randomBytes(16).toString('hex'),issuedAt=now(),text=canonicalJson({schemaVersion:1,role,serverNonce:e.nonce,requestId,issuedAt,expiresAt:issuedAt+timeoutMs,operation,input});requireThat(Buffer.byteLength(text)<=LIMIT,'LIMIT_EXCEEDED');
- let response;try{response=await fetch('http://127.0.0.1:'+e.port+'/',{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{'content-type':'application/json','x-dev2-private-mac':mac(key,role,'request',text)},body:text});}catch{throw new Dev2Error('EXECUTION_UNAVAILABLE','Private control response unavailable',{delivery:'unknown'});}
+ /** @param {'tdev'|'dev2'} namespace */const send=async namespace=>{const header=namespace==='tdev'?'x-tdev-private-mac':'x-dev2-private-mac';try{return await fetch('http://127.0.0.1:'+e.port+'/',{method:'POST',redirect:'error',signal:AbortSignal.timeout(timeoutMs),headers:{'content-type':'application/json',[header]:mac(key,role,'request',text,namespace)},body:text});}catch{throw new TdevError('EXECUTION_UNAVAILABLE','Private control response unavailable',{delivery:'unknown'});}};
+ let namespace=/** @type {'tdev'|'dev2'} */('tdev'),response=await send(namespace);if(response.status===403){try{await response.body?.cancel();}catch{}namespace='dev2';response=await send(namespace);}
  requireThat(response.status===200,'UNAUTHORIZED','Private control rejected request');const reader=response.body?.getReader();requireThat(reader,'INTEGRITY_FAILURE');const chunks=[];let size=0;
  // Receiving headers is not receiving the authenticated operation result. Body
  // interruption retains the same delivery uncertainty as pre-header loss.
  try{for(;;){const p=await reader.read();if(p.done)break;size+=p.value.length;requireThat(size<=LIMIT,'LIMIT_EXCEEDED');chunks.push(Buffer.from(p.value));}}
- catch(error){if(error instanceof Dev2Error)throw error;throw new Dev2Error('EXECUTION_UNAVAILABLE','Private control response unavailable',{delivery:'unknown'});}
+ catch(error){if(error instanceof TdevError)throw error;throw new TdevError('EXECUTION_UNAVAILABLE','Private control response unavailable',{delivery:'unknown'});}
  finally{try{await reader.cancel();}catch{ /* Cleanup cannot replace the bound failure or authenticated result. */ }}
- const body=Buffer.concat(chunks).toString('utf8');authenticate(response.headers.get('x-dev2-private-mac'),mac(key,role,'response',body));const r=closed(parseRecord(body,LIMIT),['schemaVersion','requestId','serverNonce','ok','output','errorCode']);requireThat(r.schemaVersion===1&&r.requestId===requestId&&r.serverNonce===e.nonce&&typeof r.ok==='boolean','INTEGRITY_FAILURE');
- if(!r.ok){requireThat(typeof r.errorCode==='string'&&ERROR_CODES.includes(r.errorCode)&&r.output===null,'INTEGRITY_FAILURE');throw new Dev2Error(r.errorCode,'Private operation rejected');}requireThat(r.errorCode===null,'INTEGRITY_FAILURE');return r.output;
+ const body=Buffer.concat(chunks).toString('utf8'),responseHeader=namespace==='tdev'?'x-tdev-private-mac':'x-dev2-private-mac';authenticate(response.headers.get(responseHeader),mac(key,role,'response',body,namespace));const r=closed(parseRecord(body,LIMIT),['schemaVersion','requestId','serverNonce','ok','output','errorCode']);requireThat(r.schemaVersion===1&&r.requestId===requestId&&r.serverNonce===e.nonce&&typeof r.ok==='boolean','INTEGRITY_FAILURE');
+ if(!r.ok){requireThat(typeof r.errorCode==='string'&&ERROR_CODES.includes(r.errorCode)&&r.output===null,'INTEGRITY_FAILURE');throw new TdevError(r.errorCode,'Private operation rejected');}requireThat(r.errorCode===null,'INTEGRITY_FAILURE');return r.output;
 }

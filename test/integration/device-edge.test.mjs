@@ -8,7 +8,7 @@ import {RequestRendezvous} from '../../src/transport/rendezvous.mjs';
 import {FrameAssembler,sendFrames} from '../../src/transport/framing.mjs';
 import {createMcpGateway} from '../../src/edge/gateway.mjs';
 import {SCHEMA_DIGEST,TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
-import {Dev2Error} from '../../src/contracts/errors.mjs';
+import {TdevError} from '../../src/contracts/errors.mjs';
 import {canonicalJson} from '../../src/contracts/canonical.mjs';
 import {engineWorld} from '../fixtures/engine-world.mjs';
 async function until(condition){const end=Date.now()+6000;while(Date.now()<end){if(condition())return;await delay(10);}throw Error('Connection deadline');}
@@ -24,7 +24,7 @@ async function connection(w){
   });socket.on('close',()=>{assembler.dispose();rendezvous.disconnect(nonce);});
  });
  const device=new DeviceConnection({origin:'http://127.0.0.1:'+server.address().port,installationId:'fixture-installation',secret:key,allowInsecureFixture:true,reconnectMs:10,heartbeatMs:500,
-  invoke:async(tool,args,assertion)=>{if(assertion!=='signed-fixture-human')throw new Dev2Error('UNAUTHORIZED');return w.app.invoke(w.principal,tool,args);},presence:()=>({schemaDigest:SCHEMA_DIGEST}),probe:async()=>({summary:{ok:true,authenticationMode:'fixture-installation-probe',humanOAuth:false}})});
+  invoke:async(tool,args,assertion)=>{if(assertion!=='signed-fixture-human')throw new TdevError('UNAUTHORIZED');return w.app.invoke(w.principal,tool,args);},presence:()=>({schemaDigest:SCHEMA_DIGEST}),probe:async()=>({summary:{ok:true,authenticationMode:'fixture-installation-probe',humanOAuth:false}})});
  device.start();await until(()=>!!device.connectionId);
  return {device,rendezvous,get socket(){return latest;},get connections(){return connections;},async close(){device.stop();for(const socket of server.clients)socket.terminate();await new Promise(resolve=>server.close(resolve));}};
 }
@@ -48,8 +48,8 @@ test('real WebSocket routes context/read/admission/candidate/preparation/observa
 });
 test('MCP gateway publishes exact four tools, enforces human authentication and rejects old names',async()=>{
  const w=await engineWorld();let authenticated=0,delivered=0;
- const gateway=createMcpGateway({origin:'https://tdev.test.workers.dev',allowedOrigins:['https://chatgpt.com'],serverInfo:{name:'dev-2',version:'fixture'},
-  authenticate:async request=>{authenticated++;if(request.headers.get('cf-access-jwt-assertion')!=='verified-fixture')throw new Dev2Error('UNAUTHORIZED');return 'verified-fixture';},
+ const gateway=createMcpGateway({origin:'https://tdev.test.workers.dev',allowedOrigins:['https://chatgpt.com'],serverInfo:{name:'tdev',version:'fixture'},
+  authenticate:async request=>{authenticated++;if(request.headers.get('cf-access-jwt-assertion')!=='verified-fixture')throw new TdevError('UNAUTHORIZED');return 'verified-fixture';},
   deliver:async body=>{delivered++;return w.app.invoke(w.principal,body.tool,body.arguments);}});
  const request=(method,params={},extra={})=>new Request('https://tdev.test.workers.dev/mcp',{method:'POST',headers:{'content-type':'application/json','mcp-protocol-version':'2025-11-25','cf-access-jwt-assertion':'verified-fixture',...extra},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params})});
  try{

@@ -10,7 +10,7 @@ import { nextRevision } from '../../src/contracts/identity.mjs';
 const hash='sha256:'+'1'.repeat(64),oid='sha1:'+'2'.repeat(40);
 const binding={repositoryId:'repo',installationId:'installation',provider:'fixture',providerRepositoryId:'p',remote:'https://fixture.example/repo',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:hash};
 const tree={treeOid:oid,manifestDigest:hash,entries:[]};
-function world(){const root=mkdtempSync(join(tmpdir(),'dev2-ledger-'));const file=join(root,'ledger.sqlite');const db=new Ledger(file,binding);return {root,file,db,close:()=>{db.close();rmSync(root,{recursive:true,force:true});}};}
+function world(){const root=mkdtempSync(join(tmpdir(),'tdev-ledger-'));const file=join(root,'ledger.sqlite');const db=new Ledger(file,binding);return {root,file,db,close:()=>{db.close();rmSync(root,{recursive:true,force:true});}};}
 async function admit(c,i,principal='p') {return c.admit({principal,requestId:'r'+i,operation:'run',intent:{work:i},deadline:100000,authorize:async()=>{},mutate:(tx,actionId)=>{
   const work={workId:'w'+i,repositoryId:'repo',bindingEpoch:'1',principal,baseCommitOid:oid,baseTreeOid:oid,candidate:tree,generation:'0',revision:'0',disposition:'open',currentActionId:actionId};tx.insertWork(work);return work;
 }});}
@@ -128,7 +128,7 @@ test('same ledger grows capacity 8 to 12 across reopen without changing reservat
 
 test('actual process crash releases exclusive owner lock and rolls back only uncommitted transaction',async()=>{
  const {spawn}=await import('node:child_process');const {once}=await import('node:events');
- const root=mkdtempSync(join(tmpdir(),'dev2-owner-crash-')),file=join(root,'ledger.sqlite');
+ const root=mkdtempSync(join(tmpdir(),'tdev-owner-crash-')),file=join(root,'ledger.sqlite');
  const script=`import {Ledger} from './src/storage/ledger.mjs';const db=new Ledger(process.argv[1],JSON.parse(process.argv[2]));db.db.exec("INSERT INTO meta VALUES('committed','yes')");db.db.exec("BEGIN IMMEDIATE; INSERT INTO meta VALUES('uncommitted','no')");process.send('ready');setInterval(()=>{},1000);`;
  const child=spawn(process.execPath,['--input-type=module','-e',script,file,JSON.stringify(binding)],{stdio:['ignore','ignore','pipe','ipc']});
  let timer;try{await Promise.race([once(child,'message'),once(child,'exit').then(()=>{throw Error('Child exited before lock');}),new Promise((_,reject)=>{timer=setTimeout(()=>reject(Error('Lock fixture timeout')),5000);})]);

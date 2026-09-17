@@ -11,8 +11,8 @@ test('AOT Worker build is repeatable across private output locations, publishes 
  // Candidate inputs are immutable in required managed execution. Only bounded
  // per-test scratch receives output. Independent paths catch accidental module
  // lookup through output ancestors and temporary paths leaking into artifacts.
- const out=await mkdtemp(join(tmpdir(),'dev2-edge-build-'));
- const other=await mkdtemp(join(tmpdir(),'dev2-edge-build-other-'));
+ const out=await mkdtemp(join(tmpdir(),'tdev-edge-build-'));
+ const other=await mkdtemp(join(tmpdir(),'tdev-edge-build-other-'));
  try{
   const build=directory=>execFileSync(process.execPath,['tools/build-edge.mjs',directory],{encoding:'utf8',timeout:60000});
   build(out);const first=await readFile(join(out,'worker.mjs'));build(out);const second=await readFile(join(out,'worker.mjs'));build(other);const third=await readFile(join(other,'worker.mjs'));

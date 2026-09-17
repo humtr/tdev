@@ -7,7 +7,7 @@ import { join } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { accessApplicationVerifier } from '../../src/security/access-application.mjs';
 import { DeliveryUnavailable } from '../../src/transport/rendezvous.mjs';
-import { Dev2Error } from '../../src/contracts/errors.mjs';
+import { TdevError } from '../../src/contracts/errors.mjs';
 import { failure } from '../../src/contracts/envelopes.mjs';
 const now = 1700000000000, config = { profile: 'access-application', issuer: 'https://fixture.cloudflareaccess.com', applicationAudience: 'a'.repeat(64), resourceOrigin: 'https://fixture.fixture-account.workers.dev', applicationCapabilities: ['repository.read'] };
 async function jwtFixture() { const { privateKey, publicKey } = await generateKeyPair('RS256'), jwk = await exportJWK(publicKey); jwk.kid = 'test'; const keys = createLocalJWKSet({ keys: [jwk] }); const token = async (extra = {}) => new SignJWT({ iss: config.issuer, aud: [config.applicationAudience], sub: 'user', email: 'user@example.invalid', type: 'app', iat: now / 1000, exp: now / 1000 + 60, ...extra }).setProtectedHeader({ alg: 'RS256', kid: 'test' }).sign(privateKey); return { keys, token }; }
@@ -19,10 +19,10 @@ test('delivery uncertainty survives the actual closed MCP error encoder', () => 
         assert.deepEqual(out.error.facts, { delivery });
         assert.equal(transport.sameRequest, true);
     }
-    assert.equal(failure(new Dev2Error('EXECUTION_UNAVAILABLE')).error.retry.sameRequest, false);
+    assert.equal(failure(new TdevError('EXECUTION_UNAVAILABLE')).error.retry.sameRequest, false);
     assert.equal(failure(new Error('secret')).error.code, 'INTEGRITY_FAILURE');
-    assert.throws(() => new Dev2Error('EXECUTION_UNAVAILABLE', 'Unavailable', { delivery: 'success' }));
-    assert.throws(() => new Dev2Error('EXECUTION_UNAVAILABLE', 'Unavailable', { workStatus: 'failed' }));
+    assert.throws(() => new TdevError('EXECUTION_UNAVAILABLE', 'Unavailable', { delivery: 'success' }));
+    assert.throws(() => new TdevError('EXECUTION_UNAVAILABLE', 'Unavailable', { workStatus: 'failed' }));
 });
 test('missing/malformed application ceiling fails as a bounded configuration error', () => {
     const key = async () => { throw Error('not invoked'); };
@@ -44,7 +44,7 @@ test('optional Access not-before is checked as an exact integer when present', a
         await assert.rejects(() => f.token({ nbf }).then(verify), { code: 'UNAUTHORIZED' });
 });
 test('workflow, deploy, governance and toolchain input bytes all change the canonical report seal', async () => {
-    const root = await mkdtemp(join(tmpdir(), 'dev2-correction-input-'));
+    const root = await mkdtemp(join(tmpdir(), 'tdev-correction-input-'));
     try {
         const source = join(root, 'source');
         await mkdir(source);

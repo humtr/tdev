@@ -12,7 +12,7 @@ export async function gitExecutable(){for(const directory of (process.env.PATH??
 /** Real disposable bare repositories; no remote credentials or product canonical state.
  * @param {FixtureEntry[]} [files] @param {'sha1'|'sha256'} [format] */
 export async function gitWorld(files=[{path:'a.txt',content:'alpha\n'},{path:'nested/b.txt',content:'beta\n'}],format='sha1'){
- const root=await realpath(await mkdtemp(join(tmpdir(),'dev2-git-'))),executable=await gitExecutable();
+ const root=await realpath(await mkdtemp(join(tmpdir(),'tdev-git-'))),executable=await gitExecutable();
  /** @type {Binding} */const binding={repositoryId:'fixture',installationId:'fixture-install',provider:'fixture',providerRepositoryId:'fixture-repo',remote:join(root,'remote.git'),ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:bytesDigest(Buffer.from('fixture-policy'))};
  /** @param {string} directory */
  const options=directory=>({directory,executable,environment:{PATH:process.env.PATH??'',HOME:root},bindings:()=>[binding],verifyRemote:async()=>{},objectFormat:format,allowLocalFixture:true});

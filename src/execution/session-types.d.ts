@@ -2,7 +2,7 @@ import type {Attempt, Json} from '../contracts/ports.js';
 import type {ExecutorIdentity} from './github-identity.mjs';
 export interface ManagedConfig {
   repositoryOwnerId:string; repositoryFullName:string; approvedCommit:string;
-  trustedRunnerDigest:string; sessionTimeoutMs:number; capacity?:number;
+  trustedRunnerDigest:string; workflowPath:string; sessionTimeoutMs:number; capacity?:number;
   sealDigest:string|null;
 }
 export interface ProviderRun {

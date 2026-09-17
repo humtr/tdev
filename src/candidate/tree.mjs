@@ -1,13 +1,13 @@
 import { canonicalJson, bytesDigest } from '../contracts/canonical.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { repositoryPath } from '../security/paths.mjs';
-import { canonicalEntries, sourceManifest, sameEntry } from '../repository/entries.mjs';
+import { canonicalEntries, sourceManifestMatches, sameEntry } from '../repository/entries.mjs';
 /** @typedef {import('../contracts/ports.js').SourceEntry} Entry */
 /** @typedef {import('../contracts/ports.js').SourceTree} SourceTree */
 /** @typedef {import('../contracts/ports.js').Edit} Edit */
 /** @typedef {Pick<import('../repository/git.mjs').GitRepository,'putBlob'|'blob'|'writeTree'>} Objects */
 /** @param {SourceTree} source */
-export function verifySource(source) { requireThat(sourceManifest(source.entries) === source.manifestDigest, 'INTEGRITY_FAILURE', 'Source manifest mismatch'); return canonicalEntries(source.entries); }
+export function verifySource(source) { requireThat(sourceManifestMatches(source.entries,source.manifestDigest), 'INTEGRITY_FAILURE', 'Source manifest mismatch'); return canonicalEntries(source.entries); }
 /** @param {Entry|undefined} entry @param {import('../contracts/ports.js').ExpectedEntry} expected */
 function expects(entry, expected) { requireThat(expected === 'absent' ? !entry : Boolean(entry && entry.mode === expected.mode && entry.contentDigest === expected.blobDigest), 'ENTRY_CONFLICT', 'Expected entry changed'); }
 /** @param {string} content @param {'utf8'|'base64'} encoding */
@@ -70,7 +70,7 @@ export async function editTree(repository, source, edits) {
                     text = new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(input);
                 }
                 catch {
-                    throw new Dev2Error('ENCODING_BOUNDARY');
+                    throw new TdevError('ENCODING_BOUNDARY');
                 }
                 const first = text.indexOf(edit.oldText);
                 requireThat(first >= 0 && text.indexOf(edit.oldText, first + 1) < 0, 'ENTRY_CONFLICT', 'Old text must match exactly once');
@@ -107,8 +107,8 @@ export function composeTrees(base, candidate, head) {
         return canonicalEntries([...h.values()]);
     }
     catch (e) {
-        if (e instanceof Dev2Error && e.code === 'ENTRY_CONFLICT')
-            throw new Dev2Error('INTEGRATION_CONFLICT', 'Canonical file/directory collision');
+        if (e instanceof TdevError && e.code === 'ENTRY_CONFLICT')
+            throw new TdevError('INTEGRATION_CONFLICT', 'Canonical file/directory collision');
         throw e;
     }
 }

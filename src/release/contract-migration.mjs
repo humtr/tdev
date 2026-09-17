@@ -1,5 +1,6 @@
 import {canonicalJson,bytesDigest,recordDigest,parseRecord} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
+import {releaseNamespace} from './manifest.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** Validate release-owned descriptors, never a compiled runtime schema.
  * @param {unknown} value */
@@ -46,8 +47,8 @@ function compare(old,next,output,path,errors){
   else if(canonicalJson(a[key])!==canonicalJson(b[key]))errors.push(path+'/'+key);
  }
 }
-/** @param {unknown} previous @param {unknown} target */
-export function publicContractTransition(previous,target){
+/** @param {unknown} previous @param {unknown} target @param {'tdev'|'dev2'} [namespace] */
+export function publicContractTransition(previous,target,namespace='tdev'){requireThat(['tdev','dev2'].includes(namespace),'INVALID_ARGUMENT');
  const a=publicDescriptor(previous),b=publicDescriptor(target),errors=/** @type {string[]} */([]);
  for(const old of a.tools){const next=b.tools.find(t=>t.name===old.name);requireThat(next,'INTEGRITY_FAILURE');
   for(const key of new Set([...Object.keys(old),...Object.keys(next)])){
@@ -56,7 +57,7 @@ export function publicContractTransition(previous,target){
   }
  }
  const record={protocol:'public-contract-v1',previousSchemaDigest:a.schemaDigest,targetSchemaDigest:b.schemaDigest,compatible:errors.length===0,violations:[...new Set(errors)].sort()};
- return {...record,transitionDigest:recordDigest('dev2.public-contract-transition.v1',record)};
+ return {...record,transitionDigest:recordDigest(namespace+'.public-contract-transition.v1',record)};
 }
 /** Independently load and verify exact immutable artifacts at each trust boundary.
  * @param {import('./artifacts.mjs').ReleaseArtifactStore} artifacts
@@ -68,7 +69,7 @@ export async function releaseTransition(artifacts,previous,target){
   requireThat(m.device.artifactDigest===p.deviceArtifactDigest&&m.device.sourceCommitOid===p.deviceSourceCommitOid&&m.edge.artifactDigest===p.edgeArtifactDigest&&m.edge.sourceCommitOid===p.edgeSourceCommitOid&&canonicalJson(m.protocol)===canonicalJson(p.protocol)&&canonicalJson(m.ledger)===canonicalJson(p.ledger),'INTEGRITY_FAILURE','Transition artifact pair differs');
  }
  requireThat(a.manifest.schemaDigest===previous.schemaDigest&&b.manifest.schemaDigest===target.schemaDigest&&a.manifest.sourceCommitOid===previous.sourceCommitOid&&b.manifest.sourceCommitOid===target.sourceCommitOid,'INTEGRITY_FAILURE','Transition release binding');
- const transition=publicContractTransition(parseRecord(await artifacts.o.objects.get(a.refs.tools),262144),parseRecord(await artifacts.o.objects.get(b.refs.tools),262144));
+ const transition=publicContractTransition(parseRecord(await artifacts.o.objects.get(a.refs.tools),262144),parseRecord(await artifacts.o.objects.get(b.refs.tools),262144),releaseNamespace(b.manifest));
  requireThat(transition.compatible&&transition.previousSchemaDigest===previous.schemaDigest&&transition.targetSchemaDigest===target.schemaDigest,'EXECUTION_UNAVAILABLE','Incompatible public contract transition');
  return {protocol:/** @type {const} */('public-contract-v1'),previousSchemaDigest:transition.previousSchemaDigest,targetSchemaDigest:transition.targetSchemaDigest,transitionDigest:transition.transitionDigest};
 }

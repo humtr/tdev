@@ -16,6 +16,11 @@ function decode(row){return row&&typeof row==='object'&&'record' in row&&typeof 
 function timestamp(value){requireThat(Number.isSafeInteger(value)&&value>=0,'INVALID_ARGUMENT','Managed timestamp');return value;}
 /** @param {unknown} value */
 function encoded(value){const text=canonicalJson(value);requireThat(Buffer.byteLength(text)<=2097152,'LIMIT_EXCEEDED');return text;}
+const CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml',LEGACY_WORKFLOW='.github/workflows/dev2-executor.yml';
+/** @param {string} path */
+function workflowShape(path){requireThat(path===CURRENT_WORKFLOW||path===LEGACY_WORKFLOW,'INTEGRITY_FAILURE','Unknown managed workflow identity');return path===CURRENT_WORKFLOW?{path,prefix:'tdev-exec',namespace:'tdev'}:{path,prefix:'dev2-exec',namespace:'dev2'};}
+/** @param {Intent} intent */
+function intentShape(intent){const current='refs/heads/tdev-exec/'+intent.sessionId,legacy='refs/heads/dev2-exec/'+intent.sessionId,path=intent.ref===current?CURRENT_WORKFLOW:intent.ref===legacy?LEGACY_WORKFLOW:'';const shape=workflowShape(path);requireThat(intent.workflowRef===intent.repositoryFullName+'/'+shape.path+'@'+intent.ref,'INTEGRITY_FAILURE','Managed workflow/ref identity mismatch');return shape;}
 /** The existing repository ledger owns these additive tables. Session and
  * assignment records do not admit work, replace an Attempt, or own canonical Git.
  * Every method is synchronous; no transaction spans a provider or object transfer.
@@ -56,9 +61,9 @@ export class ManagedSessions {
   const prior=/** @type {Session|null} */(decode(tx.get('SELECT record FROM managed_session WHERE session_id=?',sessionId)));
   if(prior){requireThat(prior.intent.launchCommit===this.config.approvedCommit&&prior.intent.trustedRunnerDigest===this.config.trustedRunnerDigest,'STALE_RESULT');return prior;}
   requireThat(Number(tx.get("SELECT count(*) AS n FROM managed_session WHERE state<>'closed'")?.n)<this.limit,'CAPACITY_REJECTED');
-  const b=this.ledger.binding,createdAt=timestamp(this.now()),deadline=timestamp(createdAt+this.config.sessionTimeoutMs),ref='refs/heads/dev2-exec/'+sessionId;
-  const intent={sessionId,installationId:b.installationId,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,providerRepositoryId:b.providerRepositoryId,repositoryOwnerId:this.config.repositoryOwnerId,repositoryFullName:this.config.repositoryFullName,ref,workflowRef:this.config.repositoryFullName+'/.github/workflows/dev2-executor.yml@'+ref,launchCommit:this.config.approvedCommit,trustedRunnerDigest:this.config.trustedRunnerDigest,createdAt,deadline};
-  /** @type {Session} */const s={intent,intentDigest:recordDigest('dev2.managed-session.v1',intent),revision:'0',observerEpoch:this.ledger.ownerEpoch,launch:'reserved',state:'reserved',run:null,cancelRequested:false,stoppedAt:null};
+  const b=this.ledger.binding,createdAt=timestamp(this.now()),deadline=timestamp(createdAt+this.config.sessionTimeoutMs),shape=workflowShape(this.config.workflowPath),ref='refs/heads/'+shape.prefix+'/'+sessionId;
+  const intent={sessionId,installationId:b.installationId,repositoryId:b.repositoryId,bindingEpoch:b.bindingEpoch,providerRepositoryId:b.providerRepositoryId,repositoryOwnerId:this.config.repositoryOwnerId,repositoryFullName:this.config.repositoryFullName,ref,workflowRef:this.config.repositoryFullName+'/'+shape.path+'@'+ref,launchCommit:this.config.approvedCommit,trustedRunnerDigest:this.config.trustedRunnerDigest,createdAt,deadline};
+  /** @type {Session} */const s={intent,intentDigest:recordDigest(shape.namespace+'.managed-session.v1',intent),revision:'0',observerEpoch:this.ledger.ownerEpoch,launch:'reserved',state:'reserved',run:null,cancelRequested:false,stoppedAt:null};
   tx.run('INSERT INTO managed_session VALUES(?,?,?)',sessionId,s.state,encoded(s));return s;
  });}
  /** Persist before the only approved-ref provider launch. 'sent' is uncertainty,
@@ -66,14 +71,14 @@ export class ManagedSessions {
   * @param {string} sessionId */
  markLaunchSent(sessionId){return this.ledger.transact(tx=>{const s=this.session(tx,sessionId);if(s.launch==='sent')return s;requireThat(s.state==='reserved'&&!s.cancelRequested&&this.now()<s.intent.deadline,'STALE_RESULT');return this.saveSession(tx,s,{...s,launch:'sent'});});}
  /** @param {Session} s @param {ProviderRun} p */
- matchingRun(s,p){const i=s.intent;revision(p.runId);requireThat(p.runId!=='0'&&p.runAttempt==='1'&&p.repositoryId===i.providerRepositoryId&&p.repositoryOwnerId===i.repositoryOwnerId&&p.headSha===i.launchCommit&&p.headBranch===i.ref.slice(11)&&p.event==='push'&&p.workflowPath==='.github/workflows/dev2-executor.yml','UNAUTHORIZED');const now=timestamp(this.now());requireThat(timestamp(p.observedAt)<=now&&now-p.observedAt<=60000,'UNAUTHORIZED','Stale provider observation');}
+ matchingRun(s,p){const i=s.intent,shape=intentShape(i);revision(p.runId);requireThat(p.runId!=='0'&&p.runAttempt==='1'&&p.repositoryId===i.providerRepositoryId&&p.repositoryOwnerId===i.repositoryOwnerId&&p.headSha===i.launchCommit&&p.headBranch===i.ref.slice(11)&&p.event==='push'&&p.workflowPath===shape.path,'UNAUTHORIZED');const now=timestamp(this.now());requireThat(timestamp(p.observedAt)<=now&&now-p.observedAt<=60000,'UNAUTHORIZED','Stale provider observation');}
  /** Only current authenticated provider observations enter this port. First
   * verified run wins a ledger CAS; duplicate launches never acquire assignments.
   * @param {string} sessionId @param {ProviderRun} provider */
  selectRun(sessionId,provider){return this.ledger.transact(tx=>{const s=this.session(tx,sessionId);this.matchingRun(s,provider);requireThat(s.launch==='sent'&&s.state!=='closed'&&!s.cancelRequested&&this.now()<s.intent.deadline&&provider.status==='in_progress','UNAUTHORIZED');if(s.run){requireThat(s.run.runId===provider.runId,'UNAUTHORIZED','Duplicate provider run');return this.saveSession(tx,s,{...s,run:structuredClone(provider)});}return this.saveSession(tx,s,{...s,state:'active',run:structuredClone(provider)});});}
  /** @param {Transaction} tx @param {Identity} identity */
- authenticated(tx,identity){const s=this.session(tx,identity.sessionId);const i=s.intent;requireThat(identity.kind==='github-executor'&&s.run&&s.state!=='closed'&&identity.installationId===i.installationId&&identity.repositoryId===i.providerRepositoryId&&identity.runId===s.run.runId&&identity.runAttempt==='1'&&identity.launchCommit===i.launchCommit&&Number.isSafeInteger(identity.expiresAt)&&identity.expiresAt>this.now()&&identity.expiresAt<=i.deadline,'UNAUTHORIZED');
-  const expected=recordDigest('dev2.execution-launch.v1',{installationId:i.installationId,sessionId:i.sessionId,repository_id:i.providerRepositoryId,repository_owner_id:i.repositoryOwnerId,ref:i.ref,sha:i.launchCommit,workflow_ref:i.workflowRef,workflow_sha:i.launchCommit,run_id:s.run.runId,run_attempt:'1',runner_environment:'github-hosted',event_name:'push'});
+ authenticated(tx,identity){const s=this.session(tx,identity.sessionId);const i=s.intent,shape=intentShape(i);requireThat(identity.kind==='github-executor'&&s.run&&s.state!=='closed'&&identity.installationId===i.installationId&&identity.repositoryId===i.providerRepositoryId&&identity.runId===s.run.runId&&identity.runAttempt==='1'&&identity.launchCommit===i.launchCommit&&Number.isSafeInteger(identity.expiresAt)&&identity.expiresAt>this.now()&&identity.expiresAt<=i.deadline,'UNAUTHORIZED');
+  const expected=recordDigest(shape.namespace+'.execution-launch.v1',{installationId:i.installationId,sessionId:i.sessionId,repository_id:i.providerRepositoryId,repository_owner_id:i.repositoryOwnerId,ref:i.ref,sha:i.launchCommit,workflow_ref:i.workflowRef,workflow_sha:i.launchCommit,run_id:s.run.runId,run_attempt:'1',runner_environment:'github-hosted',event_name:'push'});
   requireThat(identity.launchIdentity===expected,'UNAUTHORIZED','Executor launch identity mismatch');return s;
  }
  /** A provider job can terminate before its first OIDC handshake. Closing that
@@ -89,9 +94,9 @@ export class ManagedSessions {
   const a=input.attempt;for(const k of ['installationId','repositoryId','workId','actionId','attemptId'])id(a[/** @type {'workId'} */(k)]);revision(a.attempt);revision(a.ownerEpoch);id(input.resultId);for(const d of [input.profileDigest,input.sourceManifest,input.payloadDigest,input.executionDigest])digest(d);timestamp(input.deadline);
   requireThat(objects.length>0&&objects.length<=16384,'LIMIT_EXCEEDED');let total=0;const descriptors=new Map();
   for(const o of objects){digest(o.digest);requireThat(Number.isSafeInteger(o.size)&&o.size>=0&&o.size<=16777216&&!descriptors.has(o.digest),'INVALID_ARGUMENT');descriptors.set(o.digest,o.size);total+=o.size;}requireThat(total<=268435456&&descriptors.has(input.payloadDigest),'LIMIT_EXCEEDED');
-  this.targets.checkInput(input);const inputIdentity=recordDigest('dev2.managed-assignment-input.v1',input),assignmentId=recordDigest('dev2.managed-assignment.v1',{attempt:a,profileDigest:input.profileDigest}).slice(7);
+  this.targets.checkInput(input);
   return this.ledger.transact(tx=>{
-   const s=this.authenticated(tx,identity),prior=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',assignmentId)));
+   const s=this.authenticated(tx,identity),shape=intentShape(s.intent),inputIdentity=recordDigest(shape.namespace+'.managed-assignment-input.v1',input),assignmentId=recordDigest(shape.namespace+'.managed-assignment.v1',{attempt:a,profileDigest:input.profileDigest}).slice(7),prior=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',assignmentId)));
    if(prior){requireThat(prior.inputIdentity===inputIdentity&&prior.sessionId===s.intent.sessionId&&prior.runId===identity.runId,'IDEMPOTENCY_MISMATCH');const retained=tx.all('SELECT digest,size FROM managed_object WHERE assignment_id=? ORDER BY digest',assignmentId);requireThat(retained.length===descriptors.size&&retained.every(r=>descriptors.get(String(r.digest))===Number(r.size)),'IDEMPOTENCY_MISMATCH');return prior;}
    requireThat(this.config.sealDigest!==null,'EXECUTION_UNAVAILABLE','Managed containment seal is absent');
    requireThat(this.sealCompatible(tx,s.intent.sessionId),'EXECUTION_UNAVAILABLE','Hosted session is pinned to another enrollment seal');
@@ -138,7 +143,7 @@ export class ManagedSessions {
   const completed=this.saveAssignment(tx,a,{...a,state:'complete',result:structuredClone(bounded)});
   // Native-only provenance captured after OIDC/lease and ready-object checks.
   // Later idle retirement must not rewrite the state at execution completion.
-  tx.run('INSERT INTO meta VALUES(?,?)','managed.completion:'+a.assignmentId,encoded({schemaVersion:1,kind:'dev2.authenticated-completion',assignment:completed,session:s,launchIdentity:identity.launchIdentity}));
+  tx.run('INSERT INTO meta VALUES(?,?)','managed.completion:'+a.assignmentId,encoded({schemaVersion:1,kind:intentShape(s.intent).namespace+'.authenticated-completion',assignment:completed,session:s,launchIdentity:identity.launchIdentity}));
   return completed;
  });}
  /** @param {string} assignmentId */

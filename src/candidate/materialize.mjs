@@ -2,7 +2,7 @@ import { constants } from 'node:fs';
 import { mkdir, open, lstat, realpath, readlink, symlink, rm } from 'node:fs/promises';
 import { resolve, dirname, join, isAbsolute, sep } from 'node:path';
 import { bytesDigest } from '../contracts/canonical.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { verifySource } from './tree.mjs';
 import { sourceManifest } from '../repository/entries.mjs';
 /** @typedef {import('../contracts/ports.js').SourceTree} SourceTree */
@@ -71,7 +71,7 @@ export async function materialize(repository, source, destination) {
                 links.set(e.path, new TextDecoder('utf-8', { fatal: true, ignoreBOM: true }).decode(bytes));
             }
             catch {
-                throw new Dev2Error('FORBIDDEN', 'Invalid symlink UTF-8');
+                throw new TdevError('FORBIDDEN', 'Invalid symlink UTF-8');
             }
         }
     }
@@ -85,7 +85,7 @@ export async function materialize(repository, source, destination) {
     }
     catch (e) {
         if ( /** @type {NodeJS.ErrnoException} */(e).code === 'EEXIST')
-            throw new Dev2Error('ENTRY_CONFLICT', 'Destination already exists');
+            throw new TdevError('ENTRY_CONFLICT', 'Destination already exists');
         throw e;
     }
     const staging = destination;

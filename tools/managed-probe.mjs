@@ -27,13 +27,13 @@ export function containmentProgram(controlPath,port){return `
 import fs from 'node:fs';import net from 'node:net';import {spawn} from 'node:child_process';
 const checks={};const evidence={node:process.version,uid:process.getuid()};
 const denied=(path)=>{try{fs.readFileSync(path);return false;}catch(e){return ['ENOENT','EACCES','EPERM'].includes(e.code);}};
-checks.hostFiles=[${JSON.stringify(controlPath)},'/home/runner/.gitconfig','/data/data/com.termux/files/home/.config/dev2/installation.json','/run/podman/podman.sock','/var/run/docker.sock'].every(denied);
-checks.credentials=['GITHUB_TOKEN','GH_TOKEN','CLOUDFLARE_API_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN','DEV2_PROBE_CONTROL_CANARY'].every(k=>process.env[k]===undefined);
-checks.procCredentials=!/DEV2_PROBE_CONTROL_CANARY=|ACTIONS_ID_TOKEN_REQUEST_TOKEN=|GITHUB_TOKEN=/.test(fs.readFileSync('/proc/1/environ','utf8'));
+checks.hostFiles=[${JSON.stringify(controlPath)},'/home/runner/.gitconfig','/data/data/com.termux/files/home/.config/tdev/installation.json','/data/data/com.termux/files/home/.config/dev2/installation.json','/run/podman/podman.sock','/var/run/docker.sock'].every(denied);
+checks.credentials=['GITHUB_TOKEN','GH_TOKEN','CLOUDFLARE_API_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN','TDEV_PROBE_CONTROL_CANARY'].every(k=>process.env[k]===undefined);
+checks.procCredentials=!/TDEV_PROBE_CONTROL_CANARY=|ACTIONS_ID_TOKEN_REQUEST_TOKEN=|GITHUB_TOKEN=/.test(fs.readFileSync('/proc/1/environ','utf8'));
 checks.nonRoot=process.getuid()!==0;
 const status=fs.readFileSync('/proc/self/status','utf8');checks.noNewPrivileges=/^NoNewPrivs:\\s+1$/m.test(status);checks.noCapabilities=/^CapEff:\\s+0+$/m.test(status);checks.seccomp=/^Seccomp:\\s+2$/m.test(status);
 try{fs.writeFileSync('/source/immutable.txt','changed');checks.sourceReadOnly=false;}catch(e){checks.sourceReadOnly=['EROFS','EACCES','EPERM'].includes(e.code);}
-try{fs.writeFileSync('/etc/dev2-write-probe','changed');checks.rootReadOnly=false;}catch(e){checks.rootReadOnly=['EROFS','EACCES','EPERM'].includes(e.code);}
+try{fs.writeFileSync('/etc/tdev-write-probe','changed');checks.rootReadOnly=false;}catch(e){checks.rootReadOnly=['EROFS','EACCES','EPERM'].includes(e.code);}
 const limits={memory:fs.readFileSync('/sys/fs/cgroup/memory.max','utf8').trim(),pids:fs.readFileSync('/sys/fs/cgroup/pids.max','utf8').trim(),cpu:fs.readFileSync('/sys/fs/cgroup/cpu.max','utf8').trim()};evidence.limits=limits;
 checks.memoryLimit=Number(limits.memory)>0&&Number(limits.memory)<=268435456;checks.pidLimit=Number(limits.pids)>0&&Number(limits.pids)<=48;const cpu=limits.cpu.split(' ').map(Number);checks.cpuLimit=cpu[0]>0&&cpu[0]/cpu[1]<=1;
 const cannotConnect=(host,port)=>new Promise(resolve=>{const s=net.connect({host,port});let done=false;const end=value=>{if(done)return;done=true;s.destroy();resolve(value);};s.on('connect',()=>end(false));s.on('error',()=>end(true));s.setTimeout(600,()=>end(true));});
@@ -62,7 +62,7 @@ export async function runManagedProbe(){
  const config=/** @type {{image:string,imageDigest:string,origin:string}} */(JSON.parse(await readFile(join(root,'config/managed-execution.json'),'utf8')));
  requireThat(config.image.endsWith('@'+config.imageDigest),'INTEGRITY_FAILURE');
  const output=join(root,'.artifacts/managed-probe');await mkdir(output,{recursive:true});
- const scratch=await mkdtemp(join(process.env.RUNNER_TEMP??tmpdir(),'dev2-containment-'));
+ const scratch=await mkdtemp(join(process.env.RUNNER_TEMP??tmpdir(),'tdev-containment-'));
  /** @type {Record<string,unknown>} */const report={schemaVersion:1,kind:'real-hosted-containment-qualification',productionSeal:false,status:'running',sourceCommit:process.env.GITHUB_SHA,runId:process.env.GITHUB_RUN_ID,runAttempt:process.env.GITHUB_RUN_ATTEMPT,startedAt:new Date().toISOString(),image:config.image};
  /** @type {Attempt[]} */const attempts=[];
  /** @type {PodmanSandbox|undefined} */let sandbox;
@@ -73,7 +73,7 @@ export async function runManagedProbe(){
   const seccompDigest=bytesDigest(await readFile(seccompPath));report.seccompDigest=seccompDigest;
   /** @type {Record<string,string>} */const environment={PATH:process.env.PATH??'/usr/bin:/bin',HOME:process.env.HOME??scratch,LANG:'C.UTF-8'};
   for(const key of ['XDG_RUNTIME_DIR','DBUS_SESSION_BUS_ADDRESS'])if(process.env[key])environment[key]=/** @type {string} */(process.env[key]);
-  const canary=randomBytes(32).toString('hex');for(const key of ['DEV2_PROBE_CONTROL_CANARY','GITHUB_TOKEN','CLOUDFLARE_API_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN'])environment[key]=canary;
+  const canary=randomBytes(32).toString('hex');for(const key of ['TDEV_PROBE_CONTROL_CANARY','GITHUB_TOKEN','CLOUDFLARE_API_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN'])environment[key]=canary;
   const controlPath=join(scratch,'control.sqlite');await writeFile(controlPath,canary,{mode:0o600});
   await new Promise((resolve,reject)=>{server.once('error',reject);server.listen(0,'127.0.0.1',()=>resolve(undefined));});const address=server.address();requireThat(address&&typeof address==='object','INTEGRITY_FAILURE');
   const attemptRoot=join(scratch,'attempts');await mkdir(attemptRoot);
@@ -94,8 +94,8 @@ export async function runManagedProbe(){
   const pull=await boundedCommand(executable,['pull',config.image],{environment,timeoutMs:240000,maxBytes:262144});
   requireThat(pull.exitCode===0&&!pull.timedOut&&!pull.spawnFailed,'EXECUTION_UNAVAILABLE','Pinned image pull failed');
   /** @param {string} name @param {readonly string[]} argv @param {number} timeoutMs @param {number} [memoryBytes] @returns {Profile} */
-  const profile=(name,argv,timeoutMs,memoryBytes=268435456)=>{const p={profileId:name,argv,cwd:'',parameters:{},timeoutMs,killGraceMs:1000,memoryBytes,pids:48,cpuMillis:1000,diskBytes:33554432,logBytes:65536,network:/** @type {const} */('none'),imageDigest:config.imageDigest,replaySafe:true};return {...p,digest:recordDigest('dev2.profile.v1',p)};};
-  const attempt=()=>{const a={installationId:'qualification',repositoryId:'github-'+process.env.GITHUB_REPOSITORY_ID,workId:newId(),actionId:newId(),attemptId:newId(),attempt:'1',ownerEpoch:'1'};attempts.push(a);return a;};
+  const profile=(name,argv,timeoutMs,memoryBytes=268435456)=>{const p={profileId:name,argv,cwd:'',parameters:{},timeoutMs,killGraceMs:1000,memoryBytes,pids:48,cpuMillis:1000,diskBytes:33554432,logBytes:65536,network:/** @type {const} */('none'),imageDigest:config.imageDigest,replaySafe:true};return {...p,digest:recordDigest('tdev.profile.v1',p)};};
+  const attempt=()=>{const a={installationId:'qualification',repositoryId:'github-'+process.env.GITHUB_REPOSITORY_ID,workId:newId(),actionId:newId(),identityNamespace:/** @type {const} */('tdev'),attemptId:newId(),attempt:'1',ownerEpoch:'1'};attempts.push(a);return a;};
   /** Polling an uncertain physical transition is read-only. It is not permission
    * to restart the container or release its attempt. Keep bounded raw state
    * evidence when Podman moves through a state outside running/exited.

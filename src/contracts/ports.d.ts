@@ -7,7 +7,7 @@ export type Digest = string;
 export type Oid = string;
 export type Json = null | boolean | number | string | Json[] | { [key:string]: Json };
 export type Capability = 'repository.read'|'work.write'|'profile.run'|'integration.write'|'policy.write'|'runtime.activate';
-export interface Principal { subject:Id; issuer:string; audience:string; expiresAt:number; tokenCapabilities?:readonly Capability[] }
+export interface Principal { subject:Id; legacySubject?:Id; issuer:string; audience:string; expiresAt:number; tokenCapabilities?:readonly Capability[] }
 export interface Binding { repositoryId:Id; installationId:Id; provider:string; providerRepositoryId:string;
   remote:string; ref:string; bindingEpoch:Revision; policyDigest:Digest }
 export interface RefObservation { head:Oid; observedAt:string; bindingEpoch:Revision }
@@ -31,9 +31,11 @@ export interface H2ResultRef { version:1; memberTupleDigest:Digest; compositionI
 export interface H2EffectRef { version:1; memberTupleDigest:Digest; compositionIdentity:Digest;
   tupleObjectDigest:Digest; deltaObjectDigest:Digest; memberCount:number }
 export interface Action { actionId:Id; requestId:Id; principal:Id; bindingEpoch:Revision; intentDigest:Digest;
+  /** Current C2 writes tdev. Absence is retained pre-C2 legacy evidence. */ identityNamespace?:'tdev';
   operation:string; workId:Id|null; status:ActionStatus; step:string; attempt:Revision; ownerEpoch:Revision;
   deadline:number; resultId:Id|null; errorCode:string|null; h2?:H2ActionRef }
 export interface Attempt { installationId:Id; repositoryId:Id; workId:Id; actionId:Id;
+  /** Current C2 writes tdev. Absence is retained pre-C2 legacy evidence. */ identityNamespace?:'tdev';
   attemptId:Id; attempt:Revision; ownerEpoch:Revision }
 export interface ExecutionIdentity { orderedProfileDigests:readonly Digest[]; trustedRunnerDigest:Digest;
   toolchainDigest:Digest; environmentClass:string; dependencyLockDigest:Digest }
@@ -48,7 +50,8 @@ export interface ValidationReceipt { validationId:Digest; resultId:Id; runId:Id;
   /** Present only after native authenticated production joins; MAC covers the exact canonical record. */
   productionJson?:string }
 export interface Effect { effectId:Id; workId:Id; actionId:Id; repositoryId:Id; bindingEpoch:Revision;
-  ref:string; expectedHead:Oid; commitOid:Oid; preparedResultId:Id; validationId:Digest; policyDigest:Digest; h2?:H2EffectRef }
+  /** Current C2 writes tdev. Absence is retained pre-C2 legacy evidence. */
+  identityNamespace?:'tdev'; ref:string; expectedHead:Oid; commitOid:Oid; preparedResultId:Id; validationId:Digest; policyDigest:Digest; h2?:H2EffectRef }
 export type EffectObservation = {kind:'integrated';observedHead:Oid;observedAt:string} |
   {kind:'retryable'} | {kind:'stale';observedHead:Oid} | {kind:'uncertain'} | {kind:'binding_fenced'};
 export interface Profile { profileId:Id; digest:Digest; argv:readonly string[]; cwd:string; parameters:Json;

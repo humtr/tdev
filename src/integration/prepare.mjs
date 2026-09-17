@@ -2,6 +2,7 @@ import { canonicalJson, parseRecord } from '../contracts/canonical.mjs';
 import { newId } from '../contracts/identity.mjs';
 import { requireThat } from '../contracts/errors.mjs';
 import { composeTrees } from '../candidate/tree.mjs';
+import { sourceManifestMatches } from '../repository/entries.mjs';
 /** @typedef {import('../contracts/ports.js').Work} Work */
 /** @typedef {import('../contracts/ports.js').PreparedResult} Result */
 /** @typedef {import('../contracts/ports.js').ExecutionIdentity} Execution */
@@ -31,8 +32,8 @@ export class ResultPreparer {
   requireThat(base.source.treeOid===work.baseTreeOid,'INTEGRITY_FAILURE');
   requireThat(await this.o.repository.isAncestor(this.o.binding,work.baseCommitOid,head),'INTEGRATION_CONFLICT');
   const current=await this.o.repository.readCommit(this.o.binding,head),candidate=await this.o.repository.readTree(work.candidate.treeOid);
-  requireThat(candidate.manifestDigest===work.candidate.manifestDigest,'INTEGRITY_FAILURE');
-  requireThat(base.source.manifestDigest!==candidate.manifestDigest,'NO_CHANGE');
+  requireThat(sourceManifestMatches(candidate.entries,work.candidate.manifestDigest),'INTEGRITY_FAILURE');
+  requireThat(base.source.treeOid!==candidate.treeOid,'NO_CHANGE');
   const tree=await this.o.repository.writeTree(composeTrees(base.source,candidate,current.source));
   const identity={head,treeOid:tree.treeOid,manifestDigest:tree.manifestDigest,candidate:work.candidate,generation:work.generation,policy,execution};
   const key='prepare:'+actionId;
@@ -45,7 +46,7 @@ export class ResultPreparer {
     // cannot authorize silently freezing a different target after interruption.
     requireThat(value.identity?canonicalJson(value.identity)===canonicalJson(identity):tx.getPrepared(value.resultId)!==null,'STALE_RESULT');return value;
    }
-   const value={resultId:newId(),metadata:{author:this.o.actor,committer:this.o.actor,timestamp:this.now(),message:'dev-2 source change'},identity};
+   const value={resultId:newId(),metadata:{author:this.o.actor,committer:this.o.actor,timestamp:this.now(),message:'tdev source change'},identity};
    tx.run('INSERT INTO meta(key,value) VALUES(?,?)',key,canonicalJson(value));return value;
   });
   const existing=this.o.ledger.transact(tx=>tx.getPrepared(seed.resultId));

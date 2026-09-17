@@ -44,13 +44,13 @@ async function main(){
   let value=/** @type {Row|null} */(null);try{value=JSON.parse(Buffer.concat(chunks).toString());}catch{}
   return {status:response.status,body:value,bytes:size};
  }
- const status=await get('/__dev2/status','GET',auth);assert.equal(status.status,200);assert.ok(status.body);
+ const status=await get('/__tdev/status','GET',auth);assert.equal(status.status,200);assert.ok(status.body);
  const live=status.body;assert.equal(live.installationId,manifest.installationId);
  assert.equal(live.edgeVersionId,provider.deployment.versions[0].version_id);assert.equal(live.schemaDigest,SCHEMA_DIGEST);
  assert.deepEqual(live.discovery.tools,TOOL_DESCRIPTORS);assert.equal(live.route.connected,true);
  assert.equal(live.device.sourceCommitOid,manifest.sourceCommitOid);assert.equal(live.device.bundleDigest,manifest.deviceBundleDigest);
  assert.equal(live.device.schemaDigest,SCHEMA_DIGEST);
- const response=await get('/__dev2/verify','POST',auth);assert.equal(response.status,200);assert.ok(response.body);
+ const response=await get('/__tdev/verify','POST',auth);assert.equal(response.status,200);assert.ok(response.body);
  const probe=response.body.probe;assert.equal(probe.summary.ok,true);assert.equal(probe.summary.humanOAuth,false);
  assert.deepEqual(response.body.discovery.tools,TOOL_DESCRIPTORS);
  for(const [name,tool] of [['context','dev_context'],['read','dev_read'],['runtime','dev_observe'],['open','dev_observe']]){
@@ -61,7 +61,7 @@ async function main(){
   const rejected=await get('/mcp','POST',{'content-type':'application/json',...headers},JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/list',params:{}}));
   assert.ok([401,403].includes(rejected.status));negative[name]={status:rejected.status};
  }
- const denied=await get('/__dev2/status');assert.equal(denied.status,401);negative.installationWithoutCredential={status:denied.status};
+ const denied=await get('/__tdev/status');assert.equal(denied.status,401);negative.installationWithoutCredential={status:denied.status};
  const metadata=await get('/.well-known/oauth-protected-resource/mcp');assert.equal(metadata.status,200);assert.equal(metadata.body?.resource,manifest.origin+'/mcp');
  const evidence={observedAt:new Date().toISOString(),status:'PASS',layer:'phase-a-installation-readback',origin:manifest.origin,
   sourceCommitOid:manifest.sourceCommitOid,schemaDigest:SCHEMA_DIGEST,edgeVersionId:live.edgeVersionId,edgeBundleDigest:manifest.edgeBundleDigest,

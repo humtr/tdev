@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 import { ContextService } from '../../src/repository/context.mjs';
 import { canonicalEntries,sourceManifest } from '../../src/repository/entries.mjs';
 import { bytesDigest,canonicalJson } from '../../src/contracts/canonical.mjs';
-import { Dev2Error } from '../../src/contracts/errors.mjs';
+import { TdevError } from '../../src/contracts/errors.mjs';
 // Core injected providers. Native Git and real files are tested separately.
 function world(files=[['a.txt','alpha'],['nested/b.txt','beta']]){
  const retained=new Map(),blobs=new Map(),trees=new Map();let now=1000,current;
@@ -14,12 +14,12 @@ function world(files=[['a.txt','alpha'],['nested/b.txt','beta']]){
  const policy={enabled:true,denied:new Set(),onPath:null};let remoteCalls=0,blobCalls=0,offline=false;
  function source(input){const entries=canonicalEntries(input.map(([path,content])=>{const b=Buffer.isBuffer(content)?content:Buffer.from(content),blobOid=hash(b.toString('base64'));blobs.set(blobOid,b);return {path,blobOid,contentDigest:bytesDigest(b),mode:'100644',size:b.length};}));const s={treeOid:hash(canonicalJson(entries)),manifestDigest:sourceManifest(entries),entries};trees.set(s.treeOid,s);return s;}
  const start=source(files);current=hash(start.treeOid);const commits=new Map([[current,start]]);
- const repository={async checkBinding(b){if(canonicalJson(b)!==canonicalJson(binding))throw new Dev2Error('FORBIDDEN');},
-  async resolve(b){await this.checkBinding(b);remoteCalls++;if(offline)throw new Dev2Error('EXECUTION_UNAVAILABLE');return {head:current,bindingEpoch:binding.bindingEpoch,observedAt:new Date(now).toISOString()};},
+ const repository={async checkBinding(b){if(canonicalJson(b)!==canonicalJson(binding))throw new TdevError('FORBIDDEN');},
+  async resolve(b){await this.checkBinding(b);remoteCalls++;if(offline)throw new TdevError('EXECUTION_UNAVAILABLE');return {head:current,bindingEpoch:binding.bindingEpoch,observedAt:new Date(now).toISOString()};},
   async readCommit(b,commit){await this.checkBinding(b);return {commitOid:commit,parents:[],source:structuredClone(commits.get(commit))};},
   async readTree(tree){return structuredClone(trees.get(tree));},async blob(oid){blobCalls++;return Buffer.from(blobs.get(oid));}};
  const objects={async put(bytes){const d=bytesDigest(bytes);retained.set(d,Buffer.from(bytes));return d;},async get(d){if(!retained.has(d))throw Object.assign(Error('missing'),{code:'ENOENT'});return Buffer.from(retained.get(d));}};
- const authorization={async authorize(p,b,capability,paths=[]){if(!policy.enabled||paths.some(path=>[...policy.denied].some(prefix=>path===prefix||path.startsWith(prefix+'/'))))throw new Dev2Error('FORBIDDEN');if(paths.length&&policy.onPath)policy.onPath(paths);}};
+ const authorization={async authorize(p,b,capability,paths=[]){if(!policy.enabled||paths.some(path=>[...policy.denied].some(prefix=>path===prefix||path.startsWith(prefix+'/'))))throw new TdevError('FORBIDDEN');if(paths.length&&policy.onPath)policy.onPath(paths);}};
  const options={repository,objects,authorization,tokenKey:Buffer.alloc(32,4),now:()=>now,ttlMs:30000,maxScanBytes:1024};
  return {binding,principal,policy,retained,options,repository,service:new ContextService(options),source,start,
   head:()=>current,remoteCalls:()=>remoteCalls,blobCalls:()=>blobCalls,tick(n=1){now+=n;},offline(value=true){offline=value;},
@@ -96,8 +96,8 @@ test('path-specific revocation is rechecked for a returned directory witness wit
 
 test('safe domain facts reach failure envelopes without exposing arbitrary properties, getters or messages',()=>{
  const facts={expectedHead:'sha1:'+'a'.repeat(40),currentHead:'sha256:'+'b'.repeat(64),observedAt:'2026-09-11T00:00:00.000Z'};
- const error=new Dev2Error('STALE_CONTEXT','secret internal diagnostic',facts),out=failure(error);assert.deepEqual(out.error.facts,facts);assert.equal(out.error.message,'STALE_CONTEXT');
- assert.throws(()=>new Dev2Error('STALE_CONTEXT','x',{...facts,token:'secret'}));assert.throws(()=>new Dev2Error('STALE_CONTEXT','x',{currentHead:'credential'}));assert.throws(()=>{error.facts={token:'secret'};});
- let called=false;assert.throws(()=>new Dev2Error('STALE_CONTEXT','x',{get currentHead(){called=true;return facts.currentHead;}}));assert.equal(called,false);
+ const error=new TdevError('STALE_CONTEXT','secret internal diagnostic',facts),out=failure(error);assert.deepEqual(out.error.facts,facts);assert.equal(out.error.message,'STALE_CONTEXT');
+ assert.throws(()=>new TdevError('STALE_CONTEXT','x',{...facts,token:'secret'}));assert.throws(()=>new TdevError('STALE_CONTEXT','x',{currentHead:'credential'}));assert.throws(()=>{error.facts={token:'secret'};});
+ let called=false;assert.throws(()=>new TdevError('STALE_CONTEXT','x',{get currentHead(){called=true;return facts.currentHead;}}));assert.equal(called,false);
  const unknown=Object.assign(Error('secret'),{facts});assert.deepEqual(failure(unknown).error.facts,{});
 });

@@ -17,7 +17,7 @@ async function main(){process.umask(0o077);
   requireThat(resolve(outputFile)===outputFile,'FORBIDDEN');await privateDirectory(dirname(outputFile));
   const commissioningIntent=/** @type {import('../src/runtime/production-enrollment.mjs').ProductionIntent} */(parseRecord(await privateBytes(intentFile)));
   const installation=await createNativeInstallation(config,{log,commissioningIntent});
-  try{requireThat(installation.managed?.commissioning,'EXECUTION_UNAVAILABLE');installation.device.start();const record=await installation.managed.commissioning.run();await immutablePrivateFile(outputFile,Buffer.from(canonicalJson(record)));process.stdout.write(canonicalJson({kind:'dev2.production-commissioning-retained',sealDigest:record.sealDigest,installationId:commissioningIntent.installationId,commissioningId:commissioningIntent.commissioningId,releaseActivated:false})+'\n');}finally{await installation.close();}
+  try{requireThat(installation.managed?.commissioning,'EXECUTION_UNAVAILABLE');installation.device.start();const record=await installation.managed.commissioning.run();await immutablePrivateFile(outputFile,Buffer.from(canonicalJson(record)));process.stdout.write(canonicalJson({kind:'tdev.production-commissioning-retained',sealDigest:record.sealDigest,installationId:commissioningIntent.installationId,commissioningId:commissioningIntent.commissioningId,releaseActivated:false})+'\n');}finally{await installation.close();}
   return;
  }
  const installation=await createNativeInstallation(config,{log});

@@ -312,3 +312,47 @@ canonical-write authority. Negative acceptance covers guessed repository IDs,
 wrong-ref grants, revoked grants after discovery, cross-binding Work IDs, credential
 mix-up and binding removal/rebind during uncertain publication, while preserving
 C1 no-duplicate attempt/session/ref behavior.
+
+## C2-2 managed-execution identity transition
+
+A controller commissioned under the current identity uses the
+`refs/heads/tdev-exec/` operational prefix and `.github/workflows/tdev-executor.yml`;
+source-visible controller labels and User-Agent values use `tdev`. The installed
+legacy enrollment remains bound to an immutable approved controller commit that only
+contains the legacy workflow. Sessions admitted under that exact enrollment therefore
+continue to use the ref/workflow identity owned by the enrollment until a current
+`tdev` controller is privately commissioned and activated. This is a bounded
+compatibility producer, not a global naming default: authentication derives the exact
+ref/workflow family from the retained enrollment/session identity and never lets a
+caller select it. After current enrollment activation, no new legacy session is
+admitted; already retained legacy sessions keep their exact launch digest and provider
+run until terminal retirement.
+
+Historical qualification/production enrollment records naming old qualification
+workflows, refs or `dev2.*` evidence are immutable evidence and do not become current
+product naming by being retained. They may authorize only the exact controller/source
+shape their existing owner already admits; they are not rewritten or widened by C2-2.
+Credential scopes, OIDC claims, target-binding fences and C1 positive-stop retirement
+remain unchanged.
+
+The approved dependency lock is part of that exact managed-execution identity. While
+the installed legacy controller/dependency artifact remains enrolled, candidate
+`package-lock.json` must remain byte-for-byte equal to the approved lock even though
+its generated package-name field contains the old `dev-2` spelling. This lockfile
+spelling is therefore a bounded execution-compatibility residue, not the final
+product label and not permission to write other new `dev2` identities. It retires
+only when a current `tdev` controller and matching dependency artifact/lock are
+privately qualified, enrolled and activated with exact validation/readback; changing
+the lock for naming alone is forbidden because it would cross the dependency trust
+boundary before qualification.
+
+Human authentication also migrates without revoking the same provider principal by
+spelling alone. Fresh verified Access/OAuth principals use `tdev.*-subject.v1`.
+The trusted verifier may compute one non-public legacy subject from the exact same
+verified issuer/provider `sub`; that alias exists only to match retained pre-C2
+standing grants and durable owners. New grants and new durable owners use the current
+subject. Authorization snapshots write `tdev.authorization-snapshot.v1`; a retained
+legacy snapshot is accepted only when its legacy subject, grant set, Binding,
+capability, paths and expiry still reproduce exactly under current authorization.
+The legacy alias is not caller input, cannot match a different provider subject and
+never broadens token capabilities, repository/ref/path scope or grant authority.

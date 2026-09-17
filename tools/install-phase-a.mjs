@@ -36,7 +36,7 @@ async function main(){
  const build=resolve(args.build),deviceBytes=await readFile(join(build,'device.cjs')),edgeBytes=await readFile(join(build,'worker.mjs'));
  const deviceManifest=JSON.parse(await readFile(join(build,'device-manifest.json'),'utf8')),edgeManifest=JSON.parse(await readFile(join(build,'manifest.json'),'utf8'));
  requireThat(deviceManifest.schemaDigest===SCHEMA_DIGEST&&edgeManifest.schemaDigest===SCHEMA_DIGEST&&deviceManifest.bundleDigest===bytesDigest(deviceBytes)&&edgeManifest.edgeBundleDigest===bytesDigest(edgeBytes),'INTEGRITY_FAILURE','Built artifact digest mismatch');
- const buildId=recordDigest('dev2.bootstrap-build.v1',{sourceCommitOid,sourceTreeOid,device:deviceManifest.bundleDigest,edge:edgeManifest.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST}).slice(7);
+ const buildId=recordDigest('tdev.bootstrap-build.v1',{sourceCommitOid,sourceTreeOid,device:deviceManifest.bundleDigest,edge:edgeManifest.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST}).slice(7);
  const releaseDirectory=join(plan.root,'releases',rawHead+'-'+buildId.slice(0,16)),installationDirectory=join(plan.root,'installations',plan.installationId);
  for(const directory of [plan.root,plan.configurationRoot,releaseDirectory,installationDirectory,join(installationDirectory,'private'),join(installationDirectory,'home'),join(installationDirectory,'tmp'),join(installationDirectory,'logs')]){await mkdir(directory,{recursive:true,mode:0o700});requireThat(await realpath(directory)===resolve(directory),'FORBIDDEN','Aliased installation path');}
  await exactFile(join(releaseDirectory,'device.cjs'),deviceBytes,0o400);await exactFile(join(releaseDirectory,'worker.mjs'),edgeBytes,0o400);
@@ -50,7 +50,7 @@ async function main(){
  try{await privateFile(githubTokenFile);}catch(error){if(!(error&&typeof error==='object'&&'code' in error&&error.code==='ENOENT'))throw error;
   const token=execFileSync(plan.githubExecutable,['auth','token','--hostname','github.com'],{encoding:'utf8',maxBuffer:8192,stdio:['ignore','pipe','pipe']}).trim();requireThat(token.length>20,'UNAUTHORIZED');await exactFile(githubTokenFile,token);
  }
- const askpass='#!'+process.execPath+'\n'+"'use strict';\nconst fs=require('node:fs');const prompt=process.argv[2]||'';if(/username/i.test(prompt)){process.stdout.write('x-access-token\\n');}else if(/password/i.test(prompt)){const file=process.env.DEV2_GITHUB_TOKEN_FILE;const s=fs.lstatSync(file);if(!s.isFile()||s.isSymbolicLink()||(s.mode&63)!==0)process.exit(1);process.stdout.write(fs.readFileSync(file,'utf8').trim()+'\\n');}else process.exit(1);\n";
+ const askpass='#!'+process.execPath+'\n'+"'use strict';\nconst fs=require('node:fs');const prompt=process.argv[2]||'';if(/username/i.test(prompt)){process.stdout.write('x-access-token\\n');}else if(/password/i.test(prompt)){const file=process.env.TDEV_GITHUB_TOKEN_FILE;const s=fs.lstatSync(file);if(!s.isFile()||s.isSymbolicLink()||(s.mode&63)!==0)process.exit(1);process.stdout.write(fs.readFileSync(file,'utf8').trim()+'\\n');}else process.exit(1);\n";
  await exactFile(gitAskpassFile,askpass,0o700);
  const toolchainBytes=await readFile(join(root,'config/toolchain.lock.json')),dependencyBytes=await readFile(join(root,'package-lock.json'));
  const policy=bootstrapPolicy({toolchainDigest:bytesDigest(toolchainBytes),dependencyLockDigest:bytesDigest(dependencyBytes)}).policy;
@@ -60,7 +60,7 @@ async function main(){
  const edge={installationId:plan.installationId,deviceId:plan.deviceId,origin:plan.origin,issuer:plan.issuer,applicationAudience:plan.applicationAudience,deviceCredentialDigest:bytesDigest(Buffer.from(deviceKey)),allowedOrigins:['https://chatgpt.com'],binding,
   grants:[installationOwnerGrant({subject:plan.ownerSubjectDigest,installationId:plan.installationId,repositoryId:plan.repositoryId,ref:plan.ref})],applicationCapabilities:capabilities,sourceCommitOid,edgeBundleDigest:edgeManifest.edgeBundleDigest};
  const runtime={bundleDigest:deviceManifest.bundleDigest,schemaDigest:SCHEMA_DIGEST,sourceCommitOid,sourceTreeOid};
- const config={schemaVersion:1,edge,stateDirectory:installationDirectory,gitExecutable:plan.gitExecutable,githubTokenFile,gitAskpassFile,deviceKeyFile,cursorKeyFile,capacity:plan.capacity,actor:'dev-2 <dev2@users.noreply.github.com>',runtime,toolchain:JSON.parse(toolchainBytes.toString()),policy};
+ const config={schemaVersion:1,edge,stateDirectory:installationDirectory,gitExecutable:plan.gitExecutable,githubTokenFile,gitAskpassFile,deviceKeyFile,cursorKeyFile,capacity:plan.capacity,actor:'tdev <tdev@users.noreply.github.com>',runtime,toolchain:JSON.parse(toolchainBytes.toString()),policy};
  const configFile=join(releaseDirectory,'native-config.json');await exactFile(configFile,canonicalJson(config)+'\n');
  const serviceDirectory=join(plan.prefix,'var/service',plan.serviceName),serviceStage=join(installationDirectory,'service-prepared');
  await mkdir(join(serviceStage,'log'),{recursive:true,mode:0o700});

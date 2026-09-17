@@ -1,14 +1,16 @@
 import {newId,nextRevision} from '../contracts/identity.mjs';
 import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {WorkCoordinator} from '../work/coordinator.mjs';
 import {editTree} from '../candidate/tree.mjs';
+import {sourceManifestMatches} from '../repository/entries.mjs';
 import {ResultPreparer} from '../integration/prepare.mjs';
 import {ExactIntegrator} from '../integration/effects.mjs';
 import {validateWorkItem} from '../mcp/input-schemas.mjs';
 import {ActionRecovery} from './recovery.mjs';
 import {SpecialRecovery} from './special-recovery.mjs';
 import {H2Specialization} from './h2.mjs';
+import {principalOwns,principalSubjects} from '../security/principal.mjs';
 /** @typedef {import('../contracts/ports.js').Json} Json */
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').Work} Work */
@@ -48,7 +50,7 @@ export class DevelopmentEngine {
   return {op,available,state:available?'implemented':partial?'partial':'unavailable',reason:available?null:partial?'Exact result preparation and observation are available; hosted execution and publication eligibility are not sealed':'Installation capability is not implemented'};
  });}
  /** @param {Work} work */
- async candidate(work){const source=await this.o.repository.readTree(work.candidate.treeOid);requireThat(source.manifestDigest===work.candidate.manifestDigest,'INTEGRITY_FAILURE','Candidate manifest mismatch');return source;}
+ async candidate(work){const source=await this.o.repository.readTree(work.candidate.treeOid);requireThat(sourceManifestMatches(source.entries,work.candidate.manifestDigest),'INTEGRITY_FAILURE','Candidate manifest mismatch');return source;}
  /** @param {string} key @returns {Json|null} */
  metadata(key){return this.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?',key);return row?/** @type {Json} */(parseRecord(String(row.value))):null;});}
  /** @param {string} key @param {unknown} value */
@@ -63,7 +65,7 @@ export class DevelopmentEngine {
   const paths=item.edits?editPaths(item.edits):item.initialEdits?editPaths(item.initialEdits):item.policyPath?[item.policyPath]:[];
   await this.o.authorization.authorize(principal,this.binding,capability(item),paths);
   if(item.workId){
-   const work=this.ledger.transact(tx=>tx.getWork(/** @type {string} */(item.workId)));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');
+   const work=this.ledger.transact(tx=>tx.getWork(/** @type {string} */(item.workId)));requireThat(work&&principalOwns(principal,work.principal),'FORBIDDEN');
    if(['run','validate','integrate'].includes(item.op)){
     const base=await this.o.repository.readCommit(this.binding,work.baseCommitOid),candidate=await this.candidate(work);
     requireThat(base.source.treeOid===work.baseTreeOid,'INTEGRITY_FAILURE');
@@ -89,7 +91,7 @@ export class DevelopmentEngine {
   * @param {Principal} principal @param {unknown} value */
  async admit(principal,value){
   const item=workInput(value);await this.authorize(principal,item);
-  const prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId));
+  const owners=principalSubjects(principal),prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId)??(principal.legacySubject?tx.lookupRequest(principal.legacySubject,this.binding.bindingEpoch,item.requestId):null));
   const authorize=()=>this.authorize(principal,item);
   if(prior){
    const retained=this.ledger.transact(tx=>tx.intent(prior.actionId));
@@ -98,7 +100,7 @@ export class DevelopmentEngine {
     const withoutSelector={...item};delete withoutSelector.repository;
     if(canonicalJson(withoutSelector)===canonicalJson(retained))intent=retained;
    }
-   const exact={principal:principal.subject,requestId:item.requestId,operation:item.op,intent,authorize,deadline:prior.deadline,mutate:()=>{throw new Dev2Error('INTEGRITY_FAILURE','Dedup row disappeared');}};
+   const exact={principal:principal.subject,...(principal.legacySubject?{legacyPrincipal:principal.legacySubject}:{}),requestId:item.requestId,operation:item.op,intent,authorize,deadline:prior.deadline,mutate:()=>{throw new TdevError('INTEGRITY_FAILURE','Dedup row disappeared');}};
    // Verify the original payload before any recovery observation or state change.
    const receipt=await this.coordinator.admit(exact);
    if(!prior.workId&&prior.status==='blocked'){await this.specialRecovery.observe(principal,prior.actionId,true);return this.admission(await this.coordinator.admit(exact));}
@@ -111,32 +113,32 @@ export class DevelopmentEngine {
    snapshot=await this.o.context.snapshot(principal,this.binding,String(item.snapshotId),'current');requireThat(snapshot.commitOid===item.expectedHead,'STALE_CONTEXT');
    staged=item.initialEdits?await editTree(this.o.repository,snapshot.source,item.initialEdits):snapshot.source;
   }else if(item.op==='edit'){
-   const work=this.ledger.transact(tx=>this.coordinator.fence(tx,String(item.workId),principal.subject,String(item.expectedRevision),String(item.expectedGeneration)));
+   const work=this.ledger.transact(tx=>this.coordinator.fence(tx,String(item.workId),owners,String(item.expectedRevision),String(item.expectedGeneration)));
    staged=await editTree(this.o.repository,await this.candidate(work),/** @type {import('../contracts/ports.js').Edit[]} */(item.edits));
   }else if(['run','validate','integrate'].includes(item.op)){
    requireThat(item.policyDigest===this.binding.policyDigest,'STALE_RESULT');
    if(item.op==='run'){requireThat(this.o.runProfile,'EXECUTION_UNAVAILABLE');this.o.policy().profile(String(item.profileId),item.parameters??null);}
    else{const observed=await this.o.remote.resolve();requireThat(observed.head===item.expectedHead,'STALE_BASE','Canonical head differs',{currentHead:observed.head});await this.o.remote.fetch(observed.head);}
   }else if(item.op==='resume'){
-   const target=this.ledger.transact(tx=>tx.getAction(String(item.actionId)));requireThat(target&&target.workId===item.workId&&target.principal===principal.subject,'FORBIDDEN');
+   const target=this.ledger.transact(tx=>tx.getAction(String(item.actionId)));requireThat(target&&target.workId===item.workId&&principalOwns(principal,target.principal),'FORBIDDEN');
    recoveryPlan=this.h2.selected(String(item.actionId))?await this.h2.recoveryPlan(principal,String(item.actionId),String(item.expectedRevision)):await this.recovery.plan(principal,String(item.actionId),String(item.expectedRevision));
   }else if(item.op.startsWith('release.')||item.op==='policy.adopt')requireThat(this.o.special,'EXECUTION_UNAVAILABLE','No release/policy installation handler');
   if(item.op==='create'){const current=await this.o.remote.resolve();requireThat(current.head===item.expectedHead,'STALE_CONTEXT','Canonical head moved during staging',{currentHead:current.head});}
   const inline=['create','edit','cancel','resume'].includes(item.op),arbiter=this.arbiter;
   const beforeMutate=item.op==='resume'&&recoveryPlan?.h2===true&&recoveryPlan.mode==='retry'&&arbiter?()=>{const frame=this.ledger.transact(tx=>this.h2.frameIn(tx,recoveryPlan.selection)),replacing=frame.reservation?.held?frame.reservation.attempt.attemptId:null;requireThat(arbiter.available(replacing),'CAPACITY_REJECTED','Installation execution capacity');}:undefined;
-  const result=await this.coordinator.admit({principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,beforeMutate,mutate:(tx,actionId)=>{
+  const result=await this.coordinator.admit({principal:principal.subject,...(principal.legacySubject?{legacyPrincipal:principal.legacySubject}:{}),requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,beforeMutate,mutate:(tx,actionId)=>{
    tx.run('INSERT INTO meta(key,value) VALUES(?,?)','principal:'+actionId,canonicalJson(principal));
    if(item.op==='create'){
     requireThat(staged&&snapshot,'INTEGRITY_FAILURE');const work={workId:newId(),repositoryId:this.binding.repositoryId,bindingEpoch:this.binding.bindingEpoch,principal:principal.subject,baseCommitOid:snapshot.commitOid,baseTreeOid:snapshot.source.treeOid,candidate:staged,generation:'0',revision:'0',disposition:/** @type {const} */('open'),currentActionId:null};
     tx.insertWork(work);tx.run('INSERT INTO meta(key,value) VALUES(?,?)','objective:'+work.workId,canonicalJson(item.objective));return work;
    }
    if(item.op==='edit'){
-    const work=this.coordinator.fence(tx,String(item.workId),principal.subject,String(item.expectedRevision),String(item.expectedGeneration));requireThat(staged,'INTEGRITY_FAILURE');
+    const work=this.coordinator.fence(tx,String(item.workId),owners,String(item.expectedRevision),String(item.expectedGeneration));requireThat(staged,'INTEGRITY_FAILURE');
     const next={...work,candidate:staged,generation:nextRevision(work.generation),revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;
    }
    if(item.op==='resume'){requireThat(recoveryPlan,'INTEGRITY_FAILURE');return recoveryPlan.h2===true?this.h2.applyRecovery(tx,recoveryPlan,principal):this.recovery.apply(tx,recoveryPlan,principal);}
    if(item.op==='cancel'){
-    const work=tx.getWork(String(item.workId));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');requireThat(work.revision===item.expectedRevision,'STALE_REVISION');
+    const work=tx.getWork(String(item.workId));requireThat(work&&principalOwns(principal,work.principal),'FORBIDDEN');requireThat(work.revision===item.expectedRevision,'STALE_REVISION');
     if(work.disposition!=='open')return work;
     if(item.actionId)requireThat(work.currentActionId===item.actionId,'STALE_REVISION');
     if(work.currentActionId){const active=tx.getAction(work.currentActionId);requireThat(active,'INTEGRITY_FAILURE');tx.run('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value','cancel:'+active.actionId,'true');
@@ -144,7 +146,7 @@ export class DevelopmentEngine {
     }
     const next={...work,disposition:/** @type {const} */('cancelled'),revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;
    }
-   if(item.workId){const work=this.coordinator.fence(tx,item.workId,principal.subject,String(item.expectedRevision),String(item.generation));const next={...work,currentActionId:actionId,revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;}return null;
+   if(item.workId){const work=this.coordinator.fence(tx,item.workId,owners,String(item.expectedRevision),String(item.generation));const next={...work,currentActionId:actionId,revision:nextRevision(work.revision)};requireThat(tx.compareWork(work.revision,next),'STALE_REVISION');return next;}return null;
   }});
   const h2Plan=/** @type {any} */(recoveryPlan);if(item.op==='resume'&&h2Plan?.h2===true&&h2Plan.startAttempt)queueMicrotask(()=>this.h2.start(h2Plan.selection,h2Plan.startAttempt));
   if(item.op==='cancel'&&result.work?.currentActionId)void this.signalCancellation(result.work.currentActionId);
@@ -155,7 +157,7 @@ export class DevelopmentEngine {
  /** @param {string} actionId */
  cancelled(actionId){return this.metadata('cancel:'+actionId)===true;}
  /** @param {Principal} principal @param {string} workId */
- async work(principal,workId){await this.o.authorization.authorize(principal,this.binding,'repository.read');const work=this.ledger.transact(tx=>tx.getWork(workId));requireThat(work&&work.principal===principal.subject,'FORBIDDEN');return work;}
+ async work(principal,workId){await this.o.authorization.authorize(principal,this.binding,'repository.read');const work=this.ledger.transact(tx=>tx.getWork(workId));requireThat(work&&principalOwns(principal,work.principal),'FORBIDDEN');return work;}
  /** @param {Attempt} attempt */
  assertAttempt(attempt){return this.ledger.transact(tx=>{const r=tx.retainedAttempt(attempt.attemptId),a=tx.getAction(attempt.actionId);requireThat(r&&canonicalJson(r.attempt)===canonicalJson(attempt)&&r.observerEpoch===this.ledger.ownerEpoch&&a?.ownerEpoch===this.ledger.ownerEpoch&&a.attempt===attempt.attempt&&a.status==='running','STALE_REVISION','Stale execution callback');return a;});}
  /** @param {Effect} effect */
@@ -175,7 +177,7 @@ export class DevelopmentEngine {
  }catch{/* The durable cancellation remains observable for reconciliation. */}}
  pump(){if(this.pumping||!this.accepting||this.ledger.closed)return;this.pumping=true;try{
   while(this.running.size<this.coordinator.executionCapacity&&(!this.arbiter||this.arbiter.available())){const selected=this.coordinator.takeReady();if(!selected)break;this.store('lastAttempt:'+selected.action.actionId,selected.attempt);
-   const promise=this.execute(selected.action,selected.attempt).catch(error=>{if(!this.ledger.closed)try{this.store('callback-rejection:'+selected.action.actionId,{code:error instanceof Dev2Error?error.code:'INTEGRITY_FAILURE'});}catch{}}).finally(()=>{this.running.delete(selected.action.actionId);if(this.arbiter)this.arbiter.wake();else queueMicrotask(()=>this.pump());});
+   const promise=this.execute(selected.action,selected.attempt).catch(error=>{if(!this.ledger.closed)try{this.store('callback-rejection:'+selected.action.actionId,{code:error instanceof TdevError?error.code:'INTEGRITY_FAILURE'});}catch{}}).finally(()=>{this.running.delete(selected.action.actionId);if(this.arbiter)this.arbiter.wake();else queueMicrotask(()=>this.pump());});
    this.running.set(selected.action.actionId,promise);
   }
  }finally{this.pumping=false;}}
@@ -244,7 +246,7 @@ export class DevelopmentEngine {
     }catch{stopped=false;effectResolved=false;}
    }else if(!stopped&&this.o.attemptStopped)try{stopped=await this.o.attemptStopped(attempt);}catch{stopped=false;}
    if(effect){stopped=stopped&&await this.senderStopped(effect);effectResolved=false;}
-   this.assertAttempt(attempt);const code=error instanceof Dev2Error?error.code:'INTEGRITY_FAILURE';
+   this.assertAttempt(attempt);const code=error instanceof TdevError?error.code:'INTEGRITY_FAILURE';
    this.coordinator.settle(attempt,this.ledger.ownerEpoch,stopped&&effectResolved?(this.cancelled(action.actionId)?'cancelled':'failed'):'blocked',{stopped,effectResolved,resultId,errorCode:code});
   }finally{clearTimeout(deadline);}
  }

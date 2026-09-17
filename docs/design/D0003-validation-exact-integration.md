@@ -571,3 +571,24 @@ retaining its exact uncertain Effects for observation-only reconciliation under 
 old immutable descriptor. No epoch change permits a new sender for an unresolved
 old effect. Independent bindings may continue under their own exact CAS and shared
 installation execution budget.
+
+## C2-2 result, receipt and effect identity transition
+
+New prepared-result validation identities, validation-receipt signatures, Git effect
+identities and H2 composition identities use the corresponding versioned `tdev.*`
+domains. New commit metadata uses the final `tdev` product wording and the
+`Tdev-Result` trailer. Already frozen commits, prepared results, receipts and Effects
+remain byte-for-byte immutable: a retained `Dev2-Result` trailer or `dev2.*` digest
+is verified under its original domain and may be reused/reconciled only when every
+existing exact-result predicate still matches. Never regenerate a legacy prepared
+commit solely to rename the trailer or convert a retained Effect into a second send.
+
+Receipt eligibility therefore permits an exact retained legacy validation identity
+and signature as historical evidence while all newly executed validation signs the
+current domain. Effect reconciliation similarly derives the sender digest from the
+retained Effect's identity namespace; any new publication Effect is current-domain.
+H2 tuple/composition/effect records follow the same rule and are never partially
+upgraded. Legacy readers can retire only after no retained prepared result, receipt,
+H2 selection or unresolved Effect remains reachable under D0001 retention. This
+transition does not weaken exact validation, CAS, stop-before-terminal or atomic H2
+settlement.

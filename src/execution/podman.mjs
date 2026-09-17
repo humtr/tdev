@@ -2,7 +2,7 @@ import { isAbsolute, resolve, sep } from 'node:path';
 import { readFile, realpath, lstat } from 'node:fs/promises';
 import { recordDigest, bytesDigest } from '../contracts/canonical.mjs';
 import { boundedProviderJson as parseRecord } from './provider-json.mjs';
-import { requireThat, Dev2Error } from '../contracts/errors.mjs';
+import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { id, revision, digest } from '../contracts/identity.mjs';
 import { repositoryPath } from '../security/paths.mjs';
 import { boundedCommand } from './command.mjs';
@@ -13,10 +13,12 @@ import { boundedCommand } from './command.mjs';
 /** @typedef {import('../contracts/ports.js').SandboxObservation} Observation */
 /** @typedef {import('./command.mjs').CommandResult} CommandResult */
 /** @param {Attempt} attempt */
+function attemptNamespace(attempt){requireThat(attempt.identityNamespace===undefined||attempt.identityNamespace==='tdev','INTEGRITY_FAILURE');return attempt.identityNamespace??'dev2';}
+/** @param {Attempt} attempt */
 export function attemptName(attempt) {
   for(const k of ['installationId','repositoryId','workId','actionId','attemptId']) id(attempt[/** @type {'workId'} */(k)]);
-  revision(attempt.attempt);revision(attempt.ownerEpoch);
-  return 'dev2-'+recordDigest('dev2.sandbox-attempt.v1',attempt).slice(7);
+  revision(attempt.attempt);revision(attempt.ownerEpoch);const namespace=attemptNamespace(attempt);
+  return namespace+'-'+recordDigest(namespace+'.sandbox-attempt.v1',attempt).slice(7);
 }
 /** @param {Attempt} attempt @param {Observation['state']} state @returns {Observation} */
 const observation=(attempt,state)=>({state,attempt,exitCode:null,signal:null,artifacts:[]});
@@ -47,9 +49,9 @@ export function createArguments(attempt,profile,sourceRoot,options,sourceManifes
   requireThat(profile.diskBytes>=8192 && profile.memoryBytes>=profile.diskBytes,'INVALID_ARGUMENT','tmpfs quota');
   requireThat(profile.timeoutMs%1000===0&&profile.killGraceMs%1000===0,'INVALID_ARGUMENT','Whole-second Podman deadline/grace');
   digest(profile.digest);
-  const tmp=Math.floor(profile.diskBytes/2),work=profile.diskBytes-tmp;
-  return ['run','--detach','--name',name,'--label','dev2.attempt='+name,'--label','dev2.profile='+profile.digest,
-    ...(sourceManifest?['--label','dev2.source='+digest(sourceManifest)]:[]),
+  const tmp=Math.floor(profile.diskBytes/2),work=profile.diskBytes-tmp,namespace=attemptNamespace(attempt);
+  return ['run','--detach','--name',name,'--label',namespace+'.attempt='+name,'--label',namespace+'.profile='+profile.digest,
+    ...(sourceManifest?['--label',namespace+'.source='+digest(sourceManifest)]:[]),
     '--http-proxy=false','--image-volume=ignore','--health-cmd=none','--restart=no','--systemd=false',
     '--unsetenv-all','--timeout='+profile.timeoutMs/1000,'--stop-timeout='+profile.killGraceMs/1000,
     '--entrypoint=/usr/bin/env','--pull=never','--read-only','--read-only-tmpfs=false','--cap-drop=ALL','--security-opt=no-new-privileges',
@@ -93,9 +95,9 @@ export class PodmanSandbox {
     const r=await this.call(['inspect','--format=json',name]);
     if(r.exitCode!==0||r.timedOut||r.discardedBytes>0)return observation(attempt,'uncertain');
     try {
-      const list=/** @type {{Config:{Labels:Record<string,string>},State:{Status:string,Running:boolean,ExitCode:number}}[]} */(parseRecord(r.stdout));
-      requireThat(list.length===1&&list[0].Config.Labels['dev2.attempt']===name,'INTEGRITY_FAILURE');
-      if(expected)requireThat(list[0].Config.Labels['dev2.profile']===expected.profileDigest&&list[0].Config.Labels['dev2.source']===expected.sourceManifest,'INTEGRITY_FAILURE','Attempt input identity changed');
+      const list=/** @type {{Config:{Labels:Record<string,string>},State:{Status:string,Running:boolean,ExitCode:number}}[]} */(parseRecord(r.stdout)),namespace=attemptNamespace(attempt);
+      requireThat(list.length===1&&list[0].Config.Labels[namespace+'.attempt']===name,'INTEGRITY_FAILURE');
+      if(expected)requireThat(list[0].Config.Labels[namespace+'.profile']===expected.profileDigest&&list[0].Config.Labels[namespace+'.source']===expected.sourceManifest,'INTEGRITY_FAILURE','Attempt input identity changed');
       const state=list[0].State;
       if(state.Running===true)return observation(attempt,'running');
       if(['exited','stopped'].includes(state.Status)&&state.Running===false&&Number.isSafeInteger(state.ExitCode)&&state.ExitCode>=0&&state.ExitCode<=255)return {...observation(attempt,'exited'),exitCode:state.ExitCode};
@@ -109,7 +111,7 @@ export class PodmanSandbox {
       }
       if(state.Status==='created')return observation(attempt,'uncertain');
       return observation(attempt,'uncertain');
-    } catch(error) {if(error instanceof Dev2Error&&error.code==='INTEGRITY_FAILURE')throw error;return observation(attempt,'uncertain');}
+    } catch(error) {if(error instanceof TdevError&&error.code==='INTEGRITY_FAILURE')throw error;return observation(attempt,'uncertain');}
   }
   /** @param {Attempt} attempt @param {Profile} profile @param {SourceTree} source @returns {Promise<Observation>} */
   async launch(attempt,profile,source) {

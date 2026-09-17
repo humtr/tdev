@@ -3,7 +3,7 @@ import { mkdirSync,realpathSync,lstatSync } from 'node:fs';
 import { dirname,resolve } from 'node:path';
 import { canonicalJson,parseRecord } from '../contracts/canonical.mjs';
 import { nextRevision,capacity,id,revision,oid,digest } from '../contracts/identity.mjs';
-import { requireThat,Dev2Error } from '../contracts/errors.mjs';
+import { requireThat,TdevError } from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').Work} Work */
 /** @typedef {import('../contracts/ports.js').Action} Action */
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
@@ -64,7 +64,7 @@ export class Ledger {
       this.db.prepare("INSERT INTO meta(key,value) VALUES('ownerEpoch',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value").run(this.ownerEpoch);
       this.db.exec('COMMIT');this.binding=structuredClone(binding);
     } catch(e) {try{this.db.exec('ROLLBACK');}catch{}this.db.close();this.closed=true;
-      if(e instanceof Dev2Error)throw e;throw new Dev2Error('EXECUTION_UNAVAILABLE','Ledger is locked or unavailable');}
+      if(e instanceof TdevError)throw e;throw new TdevError('EXECUTION_UNAVAILABLE','Ledger is locked or unavailable');}
   }
   /** @template T @param {(tx:Transaction)=>T} fn @returns {T} */
   transact(fn) {

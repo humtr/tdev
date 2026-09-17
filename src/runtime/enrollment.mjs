@@ -1,17 +1,17 @@
 import {canonicalJson,recordDigest,bytesDigest} from '../contracts/canonical.mjs';
-import {requireThat,Dev2Error} from '../contracts/errors.mjs';
+import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {digest,oid,revision} from '../contracts/identity.mjs';
 import {boundedProviderJson} from '../execution/provider-json.mjs';
 import {releaseRuntimeAdmitted} from '../release/native-control.mjs';
 /** @typedef {Awaited<ReturnType<typeof import('../execution/controller-identity.mjs').managedDefinition>>} Definition */
-/** @typedef {{schemaVersion:1,kind:'dev2-managed-enrollment',installationId:string,repositoryId:string,bindingEpoch:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],qualification:{providerRunJson:string,controllerReportJson:string,containmentReportJson:string},nativeJoin:{sourceCommitOid:string,sourceTreeOid:string,inputDigest:string,coreStatus:'passed',integrationStatus:'passed',productionValidation:false},canonicalRuleset:import('../integration/github-boundary.mjs').RulesetIdentity}} EnrollmentBody */
+/** @typedef {{schemaVersion:1,kind:'tdev-managed-enrollment'|'dev2-managed-enrollment',installationId:string,repositoryId:string,bindingEpoch:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],qualification:{providerRunJson:string,controllerReportJson:string,containmentReportJson:string},nativeJoin:{sourceCommitOid:string,sourceTreeOid:string,inputDigest:string,coreStatus:'passed',integrationStatus:'passed',productionValidation:false},canonicalRuleset:import('../integration/github-boundary.mjs').RulesetIdentity}} EnrollmentBody */
 /** @typedef {EnrollmentBody&{sealDigest:string}} Enrollment */
 /** Private commissioning authorizes a previously tested finite controller. It is
  * neither a native execution result nor a validation receipt. Only the private
  * installer may supply this record; no public operation or repository file can
  * make itself production-eligible. Reports retain their original evidence class.
  * @param {EnrollmentBody} body */
-export function enrollmentRecord(body){canonicalJson(body);return {...body,sealDigest:recordDigest('dev2.managed-enrollment.v1',body)};}
+export function enrollmentRecord(body){canonicalJson(body);const namespace=body.kind==='tdev-managed-enrollment'?'tdev':body.kind==='dev2-managed-enrollment'?'dev2':'';requireThat(namespace,'INTEGRITY_FAILURE','Unknown managed enrollment identity');return {...body,sealDigest:recordDigest(namespace+'.managed-enrollment.v1',body)};}
 /** @param {unknown} value @returns {Record<string,unknown>} */
 function object(value){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value),'INTEGRITY_FAILURE','Malformed enrollment evidence');return /** @type {Record<string,unknown>} */(value);}
 /** @param {unknown} value @param {readonly string[]} keys */
@@ -26,7 +26,8 @@ export function verifyEnrollment(enrollment,expected){
   // This verifier owns qualification only. Production is permanently a separate
   // commissioning/enrollment contract, never an upgrade of these reports.
   requireThat(definition.config.executionShape!=='production-outer-v1','EXECUTION_UNAVAILABLE','Production outer execution requires its separate commissioning and native receipt join');
-  requireThat(digest(sealDigest)===recordDigest('dev2.managed-enrollment.v1',body)&&body.schemaVersion===1&&body.kind==='dev2-managed-enrollment'&&body.installationId===b.installationId&&body.repositoryId===b.repositoryId&&body.bindingEpoch===b.bindingEpoch,'INTEGRITY_FAILURE','Private enrollment identity mismatch');
+  const current=definition.config.workflowPath==='.github/workflows/tdev-executor.yml',namespace=current?'tdev':'dev2',expectedKind=current?'tdev-managed-enrollment':'dev2-managed-enrollment';
+  requireThat(digest(sealDigest)===recordDigest(namespace+'.managed-enrollment.v1',body)&&body.schemaVersion===1&&body.kind===expectedKind&&body.installationId===b.installationId&&body.repositoryId===b.repositoryId&&body.bindingEpoch===b.bindingEpoch,'INTEGRITY_FAILURE','Private enrollment identity mismatch');
   requireThat(revision(body.repositoryOwnerId)!=='0'&&b.remote==='https://github.com/'+body.repositoryFullName+'.git','FORBIDDEN');oid(body.approvedCommitOid);digest(body.approvedSourceManifestDigest);
   requireThat(body.approvedSourceManifestDigest===expected.source.manifestDigest&&canonicalJson(body.identities)===canonicalJson(definition.identities),'INTEGRITY_FAILURE','Private enrollment does not name the exact approved controller');
   closed(body.nativeJoin,['sourceCommitOid','sourceTreeOid','inputDigest','coreStatus','integrationStatus','productionValidation']);
@@ -53,5 +54,5 @@ export function verifyEnrollment(enrollment,expected){
   const memory=object(containment.memory),before=object(memory.beforeEvents),after=object(memory.lastEvents),duplicate=object(containment.duplicateLaunch),deadline=object(containment.deadline),cancel=object(containment.cancellation);
   requireThat(Number.isSafeInteger(before.oom_kill)&&Number.isSafeInteger(after.oom_kill)&&Number(after.oom_kill)>Number(before.oom_kill)&&duplicate.sameContainer===true&&duplicate.materializations===1&&deadline.exitCode!==0&&Number.isSafeInteger(deadline.elapsedMs)&&Number(deadline.elapsedMs)<12000&&cancel.state==='exited'&&cancel.repeatedState==='exited','INTEGRITY_FAILURE','Kernel bounds, launch fencing or stop semantics were not proved');
   return {enrollment,definition,policy:definition.policy,sealDigest,qualificationRunId:runId,evidenceDigests:{provider:bytesDigest(Buffer.from(body.qualification.providerRunJson)),controller:bytesDigest(Buffer.from(body.qualification.controllerReportJson)),containment:bytesDigest(Buffer.from(body.qualification.containmentReportJson))}};
- }catch(error){if(error instanceof Dev2Error)throw error;throw new Dev2Error('INTEGRITY_FAILURE','Malformed private enrollment evidence');}
+ }catch(error){if(error instanceof TdevError)throw error;throw new TdevError('INTEGRITY_FAILURE','Malformed private enrollment evidence');}
 }
