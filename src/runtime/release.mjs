@@ -54,7 +54,7 @@ export class NativeReleaseRuntime {
   */
  projection(){this.assert();const current=this.control.projection?.activation??null,pair=this.verifiedPair();
   const rows=this.ledger.transact(tx=>tx.all("SELECT value FROM meta WHERE key LIKE 'release.ready:%' ORDER BY rowid DESC LIMIT 16"));let staged=/** @type {Stage|null} */(null);
-  for(const row of rows){const value=/** @type {Stage} */(parseRecord(String(row.value),2097152));if(value.state==='staged'&&value.target&&(!pair||value.target.releaseId!==pair.releaseId)){staged=value;break;}}
+  for(const row of rows){const value=/** @type {Stage} */(parseRecord(String(row.value),2097152));if(value.state!=='staged'||!value.target)continue;if(pair&&value.target.releaseId===pair.releaseId)break;staged=value;break;}
   const phase=current?current.phase:pair?'active':'idle';return {phase,activationId:current?.intent.activationId??null,activeReleaseId:pair?.releaseId??null,stagedReleaseId:staged?.target?.releaseId??null,expectedReleaseId:current?.intent.target.releaseId??null,writerStopped:current?.pending?.effect.step==='device.switch'&&current.receipts.at(-1)?.output.writerStopped===true,deadline:current?.intent.deadline??null};
  }
 }

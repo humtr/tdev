@@ -202,9 +202,14 @@ require an explicitly designed procedure, not an ordinary rollout or hidden fall
 The edge and device do not share an atomic commit. Report `activating`, `rolled_back`,
 `blocked` or exact `active` component identities; never call a mixed version terminal
 success. `activeRelease` identifies the verified device/edge/controller bundle, while
-repository HEAD and stagedRelease are separate facts. Candidate source may integrate
-without changing the active runtime. No manual task-specific Worker redeployment is
-part of ordinary forward development after this release capability is installed.
+repository HEAD and stagedRelease are separate facts. `stagedRelease` is only a
+forward-staged candidate newer than the current active release boundary. Immutable
+`release.ready` rows older than the ready row for the verified active pair are
+historical activation/rollback evidence and must never resurface as a staged candidate;
+projection scans newest-to-oldest and stops when it reaches that active ready row.
+Candidate source may integrate without changing the active runtime. No manual
+task-specific Worker redeployment is part of ordinary forward development after this
+release capability is installed.
 
 ### Fixed helper and native control contract
 
