@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import {engineWorld} from '../fixtures/engine-world.mjs';
 import {canonicalJson} from '../../src/contracts/canonical.mjs';
+import {attachLegacySubject} from '../../src/security/principal.mjs';
 const integrate=(work,head,policyDigest,requestId)=>({op:'integrate',requestId,workId:work.workId,expectedRevision:work.revision,generation:work.generation,expectedHead:head,policyDigest});
 test('real source create -> full required processes -> exact Git CAS -> terminal readback',async()=>{
  const w=await engineWorld();try{
@@ -34,6 +35,15 @@ test('invalid initial edit is atomic and authorization precedes dedup disclosure
   const request={op:'create',requestId:'ok',snapshotId:snapshot.snapshotId,expectedHead:w.baseHead,objective:'change'};
   const created=await w.engine.admit(w.principal,request);w.access.allowed=false;
   await assert.rejects(()=>w.engine.admit(w.principal,request),{code:'FORBIDDEN'});assert.ok(created.workId);
+ }finally{await w.close();}
+});
+test('retained legacy principal alias is projected into durable metadata without breaking create',async()=>{
+ const w=await engineWorld();try{
+  attachLegacySubject(w.principal,'fixture-legacy-subject');
+  const created=await w.create('legacy-principal-create','legacy.txt','legacy-safe\n');assert.ok(created.workId);
+  const stored=w.engine.metadata('principal:'+created.actionId);assert.ok(stored&&typeof stored==='object'&&!Array.isArray(stored));
+  assert.equal(stored.legacySubject,'fixture-legacy-subject');assert.equal(stored.subject,w.principal.subject);
+  assert.deepEqual(Object.keys(stored).sort(),['audience','expiresAt','issuer','legacySubject','subject']);
  }finally{await w.close();}
 });
 test('failed required profile never sends canonical mutation and keeps work editable',async()=>{
