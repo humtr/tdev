@@ -281,6 +281,48 @@ Native update eligibility is derived from the validated release admission and
 existing approved executor enrollment, not a forged native-test report or repeated
 operator commissioning. Required core/integration receipts remain mandatory.
 
+### Retained sender identity and startup-unverified rollback
+
+C2 identity migration does not rewrite a retained pre-C2 canonical Git-sender
+configuration. New sender configurations and environments use
+`TDEV_GITHUB_TOKEN_FILE`. When the installed primary sender configuration predates
+C2 and is otherwise byte-for-byte the current expected private scope, the runtime
+may accept exactly one legacy alternative in which that single environment key is
+`DEV2_GITHUB_TOKEN_FILE` at the identical sealed token path. It must reject a mixed
+configuration, both keys at once, any path/value difference, or any other scope
+difference. The validated retained configuration itself is used to instantiate that
+sender; it is never rewritten in place merely to normalize the namespace. Secondary
+new/current sender material remains current-only unless its own retained evidence is
+explicitly owner-designated.
+
+A second bounded C2 failure class exists when forward activation switched the device
+pointer but the new device failed during startup before native private control became
+available. If the exact forward `device.start` receipt is `failed` with
+`native_start_not_verified`, the same activation later rolls back, its exact rollback
+`device.drain` effect has aged past the ordinary native-health timeout, the rollback
+expected pointer still names that failed target, and native status remains
+unavailable, the helper must not deadlock forever waiting for a drain RPC that the
+failed runtime can never serve. For that exact case only, execution of the same
+rollback drain effect may deterministically request the already-derived rollback
+`device.stop` effect, positively read back the service stopped state, and obtain the
+full writer fence: exclusive native work-ledger ownership plus every retained
+canonical Git-sender OS lock. Only that positive stopped-writer proof may substitute
+for the unavailable native drain and produce `drained:true` for the original drain
+effect. No elapsed time, missing PID, disconnect, failed RPC, or startup error alone
+counts as drain proof.
+
+The fallback does not create a replacement activation, change previous/target pairs,
+rewrite a pointer, skip the normal `device.stop`/`device.switch`/`device.start`/
+`pair.check` steps, or invent a new provider effect. The derived stop effect is the
+exact stop effect the same rollback will execute next, so its runit intent and writer
+fence are idempotently reused by that normal step. Response loss reconciles the same
+durable activation/effect IDs. A current native endpoint, a foreign pointer, a missing
+failed-forward-start receipt, a partial stop proof, or any sender/writer fence failure
+keeps the activation blocked. A one-shot operator may run this exact current helper
+controller against the installed fixed configuration while the installed helper is
+stopped, solely to recover an already retained activation; it gains no caller-chosen
+target, command, provider operation, or journal rewrite authority.
+
 Managed release artifact construction is a finite credential-free execution of
 fixed build outputs under D0005 containment. Its trusted outer artifact receipt
 binds the exact integrated source, profile, controller, run/attempt and three fixed

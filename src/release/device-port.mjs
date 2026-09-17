@@ -1,6 +1,7 @@
 import {canonicalJson,parseRecord} from '../contracts/canonical.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {runtimePair} from './manifest.mjs';
+import {activationEffect} from './activation.mjs';
 /** @typedef {import('./types.js').ActivationEffect} Effect */
 /** @typedef {import('./types.js').ActivationReceipt} Receipt */
 /** @typedef {import('./types.js').RuntimePair} Pair */
@@ -58,12 +59,16 @@ export class DeviceActivationPort {
   const p=effect.target,exact=native&&native.connected&&native.accepting&&native.deviceReleaseId===p.deviceReleaseId&&native.sourceCommitOid===p.deviceSourceCommitOid&&native.bundleDigest===p.deviceArtifactDigest&&native.schemaDigest===p.schemaDigest&&edge.versionId===p.edgeVersionId&&native.edge?.versionId===p.edgeVersionId&&native.edge.sourceCommitOid===p.edgeSourceCommitOid&&native.edge.bundleDigest===p.edgeArtifactDigest&&native.edge.schemaDigest===p.schemaDigest;
   return this.receipt(effect,exact?'applied':this.expired(effect)?'failed':'pending',exact?{healthy:true,pair:/** @type {import('../contracts/ports.js').Json} */(/** @type {unknown} */({...runtimePair(p)}))}:{reason:'paired_health_not_verified'});
  }
+ /** @param {Effect} effect */
+ startupUnverifiedRollback(effect){const record=this.assert(effect);if(effect.direction!=='rollback'||effect.step!=='device.drain'||record.direction!=='rollback'||!this.expired(effect))return null;const forward=/** @type {import('./types.js').ActivationRecord} */({...record,direction:'forward'}),start=activationEffect(forward,'device.start'),failed=record.receipts.find(r=>r.effectId===start.effectId&&r.inputDigest===start.inputDigest&&r.kind==='failed'&&r.output?.reason==='native_start_not_verified');return failed?activationEffect(record,'device.stop'):null;}
+ /** @param {Effect} effect @param {Effect} stop @param {boolean} execute @returns {Promise<Receipt>} */
+ async fencedRollbackDrain(effect,stop,execute){const current=await this.o.pointer();this.assert(effect);if(!this.matchesPointer(effect,current,'expected'))return this.receipt(effect,'conflict',{reason:'pointer_changed'});const observed=await this.o.runit.invoke(stop,execute?'run':'inspect');this.assert(effect);if(!observed.senderStopped||observed.delivery==='unknown')return this.receipt(effect,'pending',{},observed.senderStopped);if(observed.state==='fenced')return this.receipt(effect,'failed',{reason:'delayed_sender_fenced'});requireThat(observed.state==='done'&&observed.service,'INTEGRITY_FAILURE');if(!execute&&observed.service.wanted==='u')return this.receipt(effect,'not_applied');if(observed.service.wanted!=='d')return this.receipt(effect,'conflict',{reason:'service_wanted_changed'});if(observed.service.pid!==0||observed.service.state!==0)return this.receipt(effect,'pending',{reason:'service_still_running'});const expected=await this.o.pointerFor(effect.expected),target=await this.o.pointerFor(effect.target);this.assert(effect);const proof=await this.o.writerFence.invoke(stop,expected,target,'probe');this.assert(effect);return this.receipt(effect,proof.writerStopped?'applied':'pending',proof.writerStopped?{drained:true,writerStopped:true,ownerEpoch:proof.ownerEpoch??null,senderCount:proof.senderCount??null,reason:'startup_unverified_writer_fenced'}:{});}
  /** @param {Effect} effect @returns {Promise<Receipt>} */
  async reconcile(effect){this.assert(effect);requireThat(effect.step!=='edge.activate','FORBIDDEN');const retained=this.retained(effect);if(!retained)return this.receipt(effect,'not_applied');
   if(effect.step==='pair.check')return this.pair(effect);
   if(effect.step==='device.stop'||effect.step==='device.start')return this.service(effect,false);
   if(effect.step==='device.switch')return this.switch(effect);
-  const native=await this.readStatus();this.assert(effect);if(native?.drainActivationId===effect.activationId&&native.drained)return this.receipt(effect,'applied',{drained:true,ownerEpoch:native.ownerEpoch});
+  const native=await this.readStatus();this.assert(effect);if(native?.drainActivationId===effect.activationId&&native.drained)return this.receipt(effect,'applied',{drained:true,ownerEpoch:native.ownerEpoch});const stop=native?null:this.startupUnverifiedRollback(effect);if(stop)return this.fencedRollbackDrain(effect,stop,false);
   return this.receipt(effect,this.expired(effect)?'failed':'pending',{reason:'native_drain_not_verified'});
  }
  /** Same retained pointer operation may reconcile after response loss; the OS
@@ -74,6 +79,6 @@ export class DeviceActivationPort {
  }
  /** @param {Effect} effect @returns {Promise<Receipt>} */
  async execute(effect){this.markSent(effect);if(effect.step==='device.stop'||effect.step==='device.start')return this.service(effect,true);if(effect.step==='device.switch')return this.switch(effect);if(effect.step==='pair.check')return this.pair(effect);requireThat(effect.step==='device.drain','FORBIDDEN');
-  const status=this.status(await this.o.native.drain(effect));this.assert(effect);return this.receipt(effect,status.drainActivationId===effect.activationId&&status.drained?'applied':'pending',{drained:status.drainActivationId===effect.activationId&&status.drained,ownerEpoch:status.ownerEpoch});
+  const native=await this.readStatus();this.assert(effect);const stop=native?null:this.startupUnverifiedRollback(effect);if(stop)return this.fencedRollbackDrain(effect,stop,true);const status=this.status(await this.o.native.drain(effect));this.assert(effect);return this.receipt(effect,status.drainActivationId===effect.activationId&&status.drained?'applied':'pending',{drained:status.drainActivationId===effect.activationId&&status.drained,ownerEpoch:status.ownerEpoch});
  }
 }

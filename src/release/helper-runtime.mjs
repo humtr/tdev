@@ -28,7 +28,7 @@ export async function readHelperConfig(filename){return /** @type {HelperConfig}
 /** The helper owns an OS-locked rollout journal and fixed installed actuators;
  * no candidate command, archive, template, environment or credential is accepted
  * by its private RPC. It does not open the native work SQLite owner at all.
- * @param {HelperConfig} config @param {{fetch?:typeof fetch,log?:(event:string)=>void}} [options] */
+ * @param {HelperConfig} config @param {{fetch?:typeof fetch,log?:(event:string)=>void,operatorOnly?:boolean}} [options] */
 export async function createFixedHelper(config,options={}){
  closed(config,['schemaVersion','installationId','repositoryId','bindingEpoch','helperBundleDigest','installationSealDigest','executor','baseline','baselinePointer','baseConfigDigest','paths','fixedFiles','environment','cloudflare']);requireThat(config.schemaVersion===1,'INTEGRITY_FAILURE');id(config.installationId);id(config.repositoryId);revision(config.bindingEpoch);digest(config.helperBundleDigest);digest(config.installationSealDigest);digest(config.baseConfigDigest);
  const p=config.paths;closed(p,['journalFile','artifactDirectory','objectDirectory','pointerFile','nativeConfigDirectory','baseConfigFile','helperEndpointFile','helperKeyFile','nativeEndpointFile','nativeKeyFile','writerFenceConfigFile','runitConfigFile','pythonExecutable','writerFenceHelperFile','runitHelperFile','commonModuleFile','cloudflareTokenFile']);for(const path of Object.values(p))requireThat(typeof path==='string'&&resolve(path)===path,'FORBIDDEN');
@@ -62,8 +62,7 @@ export async function createFixedHelper(config,options={}){
    'activation.rollback':async input=>{const value=record(input);closed(value,['activationId']);requireThat(typeof value.activationId==='string','INVALID_ARGUMENT');return json(await service.rollback(value.activationId));},
    'activation.observe':async input=>{const value=record(input);closed(value,['activationId']);requireThat(typeof value.activationId==='string','INVALID_ARGUMENT');return json(service.observe(value.activationId));}
   };
-  rpc=await servePrivateControl({role:'helper',filename:p.helperEndpointFile,key:helperKey,handlers});
-  let closing=false;timer=setInterval(()=>{if(!closing)void service.tick().catch(()=>options.log?.('release_helper_effect_pending'));},1000);
+  let closing=false;if(!options.operatorOnly){rpc=await servePrivateControl({role:'helper',filename:p.helperEndpointFile,key:helperKey,handlers});timer=setInterval(()=>{if(!closing)void service.tick().catch(()=>options.log?.('release_helper_effect_pending'));},1000);}
   return {journal,service,configs,controller,edge,async close(){closing=true;if(timer)clearInterval(timer);await rpc?.close();await service.running?.catch(()=>{});journal.close();}};
  }catch(error){if(timer)clearInterval(timer);await rpc?.close().catch(()=>{});journal.close();throw error;}
 }
