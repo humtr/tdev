@@ -308,6 +308,17 @@ controller identities still match exactly, and arbitrary or unrelated manifest d
 remain invalid. A current `tdev` production enrollment never gains this alternative,
 and the retained enrollment is not rewritten or re-sealed to normalize the digest.
 
+The immutable pre-C2 managed/private enrollment follows the same bounded source-manifest
+rule across its whole qualification proof, not only its top-level approved digest. For
+the retained `dev2` managed workflow family, the stored `approvedSourceManifestDigest`
+must first be proved by the existing current-or-exact-legacy source-manifest reader over
+the exact approved source entries. The retained controller report and both required
+profile result input/output digests must then equal that same stored approved digest.
+Commit, tree, controller identities, provider/OIDC/containment evidence, canonical
+ruleset and native join remain independently exact. A current `tdev` managed enrollment
+accepts only the current source-manifest digest, all new qualification/enrollment writers
+remain `tdev`-only, and no retained evidence is rewritten or re-sealed during startup.
+
 Fatal device startup telemetry must survive the fixed service logging boundary. The
 retained Termux device service log receives the device process stdout while stderr is
 not a durable diagnostic channel, so a startup failure before native private control
