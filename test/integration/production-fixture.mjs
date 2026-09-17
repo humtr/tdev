@@ -9,7 +9,7 @@ import {AssignmentTransfer} from '../../src/execution/session-transfer.mjs';
 import {ManagedPool} from '../../src/execution/managed-pool.mjs';
 import {ProductionReceipts} from '../../src/execution/outer-receipt.mjs';
 import {canonicalJson,recordDigest,bytesDigest} from '../../src/contracts/canonical.mjs';
-import {sourceManifest} from '../../src/repository/entries.mjs';
+import {sourceManifest,legacySourceManifest} from '../../src/repository/entries.mjs';
 import {managedPolicy} from '../../src/validation/managed-policy.mjs';
 import {releaseBuildProfile,releaseBuildExecution} from '../../src/release/build-profile.mjs';
 import {productionIntentDigest,verifyProductionEnrollment} from '../../src/runtime/production-enrollment.mjs';
@@ -17,10 +17,10 @@ import {executionIdentity,physicalAttempt} from '../../src/execution/payload.mjs
 import {attemptName} from '../../src/execution/podman.mjs';
 import {SCHEMA_DIGEST,TOOL_DESCRIPTORS} from '../../src/mcp/outputs.mjs';
 export const D=n=>'sha256:'+String(n).repeat(64),O=n=>'sha1:'+String(n).repeat(40);
-export async function productionFixture(){
+export async function productionFixture({legacyManifest=false}={}){
  const root=await mkdtemp(join(tmpdir(),'tdev-production-fixture-')),identities={trustedRunnerDigest:D(1),controllerDigest:D(2),toolchainDigest:D(3),dependencyLockDigest:D(4),workflowDigest:D(5),imageDigest:D(6),seccompDigest:D(7)},policy=managedPolicy(identities,'dev2'),binding={installationId:'installation',repositoryId:'repository',provider:'github',providerRepositoryId:'123',remote:'https://github.com/owner/repo.git',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:policy.policy.digest};
  let ledger=new Ledger(join(root,'work.sqlite'),binding);const objects=new ObjectStore(join(root,'objects'));await objects.init();
- const definition={identities,policy,config:{executionShape:'production-outer-v1',origin:'https://tdev.humtr.workers.dev',workflowPath:'.github/workflows/dev2-executor.yml',sessionLifetimeMs:900000},controller:{}},source={treeOid:O(2),manifestDigest:sourceManifest([]),entries:[]},runtime={sourceCommitOid:O(1),sourceTreeOid:O(2),bundleDigest:D(8),schemaDigest:SCHEMA_DIGEST};
+ const definition={identities,policy,config:{executionShape:'production-outer-v1',origin:'https://tdev.humtr.workers.dev',workflowPath:'.github/workflows/dev2-executor.yml',sessionLifetimeMs:900000},controller:{}},source={treeOid:O(2),manifestDigest:legacyManifest?legacySourceManifest([]):sourceManifest([]),entries:[]},runtime={sourceCommitOid:O(1),sourceTreeOid:O(2),bundleDigest:D(8),schemaDigest:SCHEMA_DIGEST};
  const intent={schemaVersion:1,kind:'dev2.production-commissioning',commissioningId:'fixture-commission',installationId:binding.installationId,repositoryId:binding.repositoryId,bindingEpoch:'1',providerRepositoryId:'123',repositoryOwnerId:'456',repositoryFullName:'owner/repo',approvedCommitOid:O(1),approvedSourceTreeOid:source.treeOid,approvedSourceManifestDigest:source.manifestDigest,identities,engineDigest:D(8),dependencyArtifactDigest:D(9),qualificationSealDigest:D(0),runtime};
  ledger.transact(tx=>tx.run('INSERT INTO meta VALUES(?,?)','production.commissioning:'+intent.commissioningId,canonicalJson(intent)));
  const config={repositoryOwnerId:'456',repositoryFullName:'owner/repo',approvedCommit:'1'.repeat(40),trustedRunnerDigest:identities.trustedRunnerDigest,workflowPath:'.github/workflows/dev2-executor.yml',sessionTimeoutMs:900000,capacity:8,sealDigest:productionIntentDigest(intent)};

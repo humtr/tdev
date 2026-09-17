@@ -5,6 +5,7 @@ import {ProductionReceipts} from '../execution/outer-receipt.mjs';
 import {releaseBuildProfile,releaseBuildExecution} from '../release/build-profile.mjs';
 import {releaseRuntimeAdmitted} from '../release/native-control.mjs';
 import {productionBuildOutput} from '../release/production-output.mjs';
+import {sourceManifestMatches} from '../repository/entries.mjs';
 /** @typedef {import('./enrollment.mjs').Definition} Definition */
 /** @typedef {import('./native.mjs').NativeConfig['runtime']} Runtime */
 /** @typedef {{schemaVersion:1,kind:'tdev.production-commissioning'|'dev2.production-commissioning',commissioningId:string,installationId:string,repositoryId:string,bindingEpoch:string,providerRepositoryId:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceTreeOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],engineDigest:string,dependencyArtifactDigest:string,qualificationSealDigest:string,runtime:Runtime}} ProductionIntent */
@@ -25,7 +26,8 @@ export function checkProductionIntent(i,e){
  for(const d of [i.engineDigest,i.dependencyArtifactDigest,i.qualificationSealDigest,i.approvedSourceManifestDigest])digest(d);
  const b=e.binding;
  requireThat(b.provider==='github'&&i.installationId===b.installationId&&i.repositoryId===b.repositoryId&&i.bindingEpoch===b.bindingEpoch&&i.providerRepositoryId===b.providerRepositoryId&&i.repositoryOwnerId!=='0'&&b.remote==='https://github.com/'+i.repositoryFullName+'.git'&&i.qualificationSealDigest===e.qualificationSealDigest,'INTEGRITY_FAILURE','Production installation/provider binding differs');
- requireThat(i.approvedSourceTreeOid===e.source.treeOid&&i.approvedSourceManifestDigest===e.source.manifestDigest&&canonicalJson(i.identities)===canonicalJson(e.definition.identities),'INTEGRITY_FAILURE','Production approved controller differs');
+ const sourceManifestMatchesEnrollment=current?i.approvedSourceManifestDigest===e.source.manifestDigest:sourceManifestMatches(e.source.entries,i.approvedSourceManifestDigest);
+ requireThat(i.approvedSourceTreeOid===e.source.treeOid&&sourceManifestMatchesEnrollment&&canonicalJson(i.identities)===canonicalJson(e.definition.identities),'INTEGRITY_FAILURE','Production approved controller differs');
 }
 /** Only installer-owned native records and OIDC-admitted completions participate.
  * This function neither creates sessions nor submits candidate/public evidence.

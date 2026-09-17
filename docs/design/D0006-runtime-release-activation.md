@@ -297,6 +297,17 @@ any other scope difference, an unknown binding or a missing provider association
 The validated retained configuration itself is used to instantiate that sender; it
 is never rewritten in place merely to normalize the namespace.
 
+The same exact-retention rule applies to the immutable pre-C2 production enrollment's
+approved source manifest. Current repository reads and all new commissioning/enrollment
+writers use the `tdev` source-manifest identity. When, and only when, the selected
+retained production controller is the legacy `dev2` workflow family, verification may
+also accept its stored approved source-manifest digest if the existing repository
+legacy-manifest reconstruction proves that digest over the exact same approved source
+entries. The approved commit and tree still match exactly, the recomputed managed
+controller identities still match exactly, and arbitrary or unrelated manifest digests
+remain invalid. A current `tdev` production enrollment never gains this alternative,
+and the retained enrollment is not rewritten or re-sealed to normalize the digest.
+
 A second bounded C2 failure class exists when forward activation switched the device
 pointer but the new device failed during startup before native private control became
 available. If the exact forward `device.start` receipt is `failed` with
