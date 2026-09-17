@@ -38,6 +38,10 @@ export class NativeReleaseRuntime {
  verifiedPair(){return this.actual&&this.now()-this.checkedAt<=5000?this.actual:null;}
  get releaseId(){return this.verifiedPair()?.releaseId??this.bootstrapReleaseId;}
  get deploymentSealed(){return this.available()&&this.verifiedPair()!==null;}
+ /** Private bootstrap-only inspect/apply path. Not reachable through public MCP.
+  * @param {Principal} principal @param {string} expectedIntegratedCommit @param {string} expectedActiveRelease @param {string|null} [expectedPlanDigest]
+  */
+ async recoverTerminalStage(principal,expectedIntegratedCommit,expectedActiveRelease,expectedPlanDigest=null){this.assert();requireThat(this.available(),'EXECUTION_UNAVAILABLE');return this.backend.recoverTerminalStage(principal,expectedIntegratedCommit,expectedActiveRelease,expectedPlanDigest);}
  /** @param {Principal} principal @param {import('./engine.mjs').Input} input @param {string} actionId @returns {Promise<Json>} */
  async execute(principal,input,actionId){this.assert();requireThat(this.available(),'EXECUTION_UNAVAILABLE');
   if(input.op==='release.stage'){requireThat(typeof input.integratedCommit==='string'&&typeof input.policyDigest==='string'&&typeof input.expectedActiveRelease==='string','INVALID_ARGUMENT');return this.backend.stage(principal,{integratedCommit:input.integratedCommit,policyDigest:input.policyDigest,expectedActiveRelease:input.expectedActiveRelease},actionId);}

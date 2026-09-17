@@ -599,6 +599,56 @@ schema without activation, rejection of a narrowing schema, migration response l
 paired rollback, old-shape live client use before Refresh and refreshed two-binding
 use afterwards.
 
+### One-time post-upload stage terminalization recovery after live falsification
+
+C2-2 live activation exposed one additional self-hosting catch-22 after the ordinary
+release path had already produced an exact managed build, staged immutable artifacts,
+and durably sent a Cloudflare version-upload effect. The pre-C2 native engine could
+observe that builder and provider sender had both stopped and that the retained effect
+was positively resolved, yet it terminalized the public `release.stage` Action as
+`failed/EFFECT_UNCERTAIN` instead of keeping that same Action retryable. Because the
+release manifest binds its production receipt to the original stage `actionId`, making
+a replacement stage Action creates a different release/effect identity and is not an
+acceptable retry.
+
+For this exact post-upload bootstrap defect only, an authorized repair tool may stop
+the replaceable device service and run a one-shot **terminal-stage recovery owner**
+from the exact current required-validated canonical source. It may inspect only
+retained `release.stage:*` records whose matching public Action is terminal
+`failed/EFFECT_UNCERTAIN`, has no held attempt, targets the exact current canonical
+source/policy and exact retained active release, and already contains the immutable
+managed build plus provider effect. It must never reopen or rewrite the terminal
+Action, renew its deadline, invoke the builder, call the provider upload sender, alter
+the provider deployment, active pointer or helper journal, or synthesize a different
+release identity.
+
+The recovery owner re-verifies current authorization and integrated-source authority,
+the retained managed production receipt, immutable artifact bytes, current adopted
+policy and exact helper active pair. It performs read-only reconciliation of every
+matching retained provider effect and requires each sender to be stopped and each
+effect to be terminal. If more than one retained failed stage exists for the same
+canonical source because the old runtime was retried before this defect was localized,
+selection is deterministic from durable creation order. Inspection returns a stable
+plan digest over the exact active pair, ordered candidate action/effect/release
+identities and terminal provider observations. Apply must present that exact plan
+digest and recompute it before any mutation; any changed candidate set, active pair or
+provider result aborts. The owner may promote only the first positively `ready`
+retained effect and leaves every other inactive provider version and stage record
+untouched as historical evidence. A pending, mismatched or unresolved effect aborts
+the repair.
+
+Promotion writes only the normal `release.stage:<actionId>` continuation and
+`release.ready:<releaseId>` index through the release backend after rechecking the
+terminal Action and exact retained Stage in the same transaction. The failed Action
+remains failed historical evidence. After the one-shot owner closes and releases the
+ledger, restart the unchanged installed runtime and use ordinary public
+`release.activate` for that exact staged release. If activation loses its response,
+recover only that activation identity through the fixed helper/new runtime; never
+start a replacement activation. Successful bootstrap is complete only when the normal
+runtime reports the exact canonical active pair and subsequent stage/activate no
+longer needs this exception. This exception is C2-2 bootstrap evidence, not a new
+public operation or permanent release path.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
