@@ -284,16 +284,18 @@ operator commissioning. Required core/integration receipts remain mandatory.
 ### Retained sender identity and startup-unverified rollback
 
 C2 identity migration does not rewrite a retained pre-C2 canonical Git-sender
-configuration. New sender configurations and environments use
-`TDEV_GITHUB_TOKEN_FILE`. When the installed primary sender configuration predates
-C2 and is otherwise byte-for-byte the current expected private scope, the runtime
-may accept exactly one legacy alternative in which that single environment key is
-`DEV2_GITHUB_TOKEN_FILE` at the identical sealed token path. It must reject a mixed
-configuration, both keys at once, any path/value difference, or any other scope
-difference. The validated retained configuration itself is used to instantiate that
-sender; it is never rewritten in place merely to normalize the namespace. Secondary
-new/current sender material remains current-only unless its own retained evidence is
-explicitly owner-designated.
+configuration. New sender configurations and environments for every binding use
+`TDEV_GITHUB_TOKEN_FILE`. When an explicitly installed primary or secondary sender
+configuration predates C2 and is otherwise byte-for-byte the current expected private
+scope for that exact binding, the runtime may accept exactly one legacy alternative
+in which that single environment key is `DEV2_GITHUB_TOKEN_FILE` at the identical
+sealed token path. A secondary legacy alternative is eligible only for the exact
+`bindingProviders[].gitSender` association selected by the retained installation
+binding registry; namespace/path discovery alone cannot authorize it. The runtime
+must reject a mixed configuration, both keys at once, any path/value difference,
+any other scope difference, an unknown binding or a missing provider association.
+The validated retained configuration itself is used to instantiate that sender; it
+is never rewritten in place merely to normalize the namespace.
 
 A second bounded C2 failure class exists when forward activation switched the device
 pointer but the new device failed during startup before native private control became
