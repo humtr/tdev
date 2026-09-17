@@ -755,6 +755,59 @@ runtime reports the exact canonical active pair and subsequent stage/activate no
 longer needs this exception. This exception is C2-2 bootstrap evidence, not a new
 public operation or permanent release path.
 
+### One-time principal-projection mutation-admission recovery after live falsification
+
+C2-2 closeout exposed one final self-hosting catch-22 in the retained human-principal
+migration. The Access adapter intentionally attaches the exact legacy subject as a
+non-enumerable private alias, while the active native engine attempts to persist the
+whole authenticated Principal through canonical JSON at Action admission. The result
+is a pre-durable `INVALID_ARGUMENT` for new mutation Actions, including Work creation
+and release operations. The current canonical successor contains the narrow correction:
+project the authenticated Principal into ordinary canonical durable metadata while
+preserving the exact legacy subject. A break-glass publication of that correction is
+not itself release authority and still requires a later native validated/integrated
+descendant.
+
+For this exact admission failure only, an authorized development/repair tool may stop
+the replaceable device service and run a one-shot **principal-projection recovery
+owner**. Its executable source must equal the exact retained active device source plus
+only the current canonical `src/runtime/engine.mjs` principal-projection delta; tests,
+documentation and unrelated canonical deltas are not execution input. It must reuse
+the exact installed private native configuration, credentials, enrollment, ledgers,
+binding registry and release-control files without rewriting their runtime source,
+artifact or release identities. The retained helper, edge deployment, active device
+pointer, release artifacts, canonical Git ref and provider resources remain unchanged.
+This repair source is execution evidence only and does not become another installed
+runtime, release or identity owner.
+
+Before starting it, prove the retained helper active pair is exact, there is no staged
+release or active activation, no active managed session or running Action, and the
+replaceable device service has stopped and released its ledgers. The one-shot owner
+must connect through the existing device transport and serve the ordinary public tdev
+MCP with the existing authorization and binding semantics; no shell caller may choose
+a principal, capability, repository/ref, candidate, validation result, provider effect
+or release identity. It may admit exactly one recovery Work on the exact current
+canonical head whose bounded durable change strengthens regression/owner evidence for
+this observed admission failure, then use only the normal typed edit/required-validation
+and exact-integration path. Any stale head/revision, failed required profile, changed
+candidate or integration conflict aborts and restarts the unchanged retained device.
+
+Only the exact descendant produced by that native required-validation/integration may
+then enter the normal public `release.stage` and `release.activate` path. Builder,
+artifact, provider, helper, writer-fence, pointer, startup and rollback effects remain
+owned by their existing components; the recovery tool never performs or substitutes
+those effects directly. If activation admission succeeds and the helper requires the
+old writer to quiesce, close the one-shot owner and recover only that same durable
+activation identity from the newly started canonical runtime. Never create a second
+stage or activation because the one-shot process exited or a response was lost.
+
+Success requires the normal installed runtime to report the exact new canonical
+source on both device and edge, `deploymentSealed=true`, no staged release, managed
+execution ready, and a fresh public mutation admission with the retained legacy
+principal succeeding without the recovery owner. Then the exception is exhausted.
+This is bounded C2-2 recovery evidence, not a permanent alternate runtime, public API,
+release authority or ordinary development dependency.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
