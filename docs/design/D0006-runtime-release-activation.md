@@ -302,26 +302,39 @@ available. If the exact forward `device.start` receipt is `failed` with
 `device.drain` effect has aged past the ordinary native-health timeout, the rollback
 expected pointer still names that failed target, and native status remains
 unavailable, the helper must not deadlock forever waiting for a drain RPC that the
-failed runtime can never serve. For that exact case only, execution of the same
-rollback drain effect may deterministically request the already-derived rollback
-`device.stop` effect, positively read back the service stopped state, and obtain the
-full writer fence: exclusive native work-ledger ownership plus every retained
-canonical Git-sender OS lock. Only that positive stopped-writer proof may substitute
-for the unavailable native drain and produce `drained:true` for the original drain
-effect. No elapsed time, missing PID, disconnect, failed RPC, or startup error alone
-counts as drain proof.
+failed runtime can never serve. For that exact case only, the retained rollback
+`device.drain` effect may be projected to the fixed runit stop actuator while preserving
+its exact `activationId`, direction, `effectId`, `inputDigest`, expected pair and target
+pair; only the actuator verb is `device.stop`. This projection is not a replacement
+activation effect and does not mint a recovery effect identity. It positively reads
+back the service stopped state and obtains the full writer fence: exclusive native
+work-ledger ownership plus every retained canonical Git-sender OS lock. Only that
+positive stopped-writer proof may substitute for the unavailable native drain and
+produce `drained:true` for the original drain effect. No elapsed time, missing PID,
+disconnect, failed RPC, or startup error alone counts as drain proof.
 
-The fallback does not create a replacement activation, change previous/target pairs,
-rewrite a pointer, skip the normal `device.stop`/`device.switch`/`device.start`/
-`pair.check` steps, or invent a new provider effect. The derived stop effect is the
-exact stop effect the same rollback will execute next, so its runit intent and writer
-fence are idempotently reused by that normal step. Response loss reconciles the same
-durable activation/effect IDs. A current native endpoint, a foreign pointer, a missing
-failed-forward-start receipt, a partial stop proof, or any sender/writer fence failure
-keeps the activation blocked. A one-shot operator may run this exact current helper
-controller against the installed fixed configuration while the installed helper is
-stopped, solely to recover an already retained activation; it gains no caller-chosen
-target, command, provider operation, or journal rewrite authority.
+Reconciliation must not invoke the fixed runit sender's `inspect` mode for an absent
+projected stop. That mode deliberately fences a never-started sender and therefore
+would make the later bounded stop impossible. When the native endpoint is unavailable
+and the startup-unverified prerequisites hold, an absent projected stop reconciles as
+`not_applied`; execution then uses `run` under the original drain effect identity.
+Response loss re-enters that same projection, whose fixed sender state prevents a
+second physical send.
+
+The fallback does not change previous/target pairs, rewrite a pointer, skip the normal
+`device.stop`/`device.switch`/`device.start`/`pair.check` steps, or invent a provider
+effect. A normal rollback `device.stop` that was previously durably fenced as
+`not_sent` remains truthful evidence and is never deleted or rewritten. If the
+startup-unverified drain projection has meanwhile stopped the same service, that
+normal stop may be satisfied without a send only after fresh runit readback proves
+`wanted=d`, `pid=0`, stopped state and the independent writer/Git-sender fence again
+proves `writerStopped` for the exact pair; otherwise the activation remains blocked.
+A current native endpoint, foreign pointer, missing failed-forward-start receipt,
+partial stop proof, or sender/writer fence failure also remains blocking. A one-shot
+operator may run this exact current helper controller against the installed fixed
+configuration while the installed helper is stopped, solely to recover an already
+retained activation; it gains no caller-chosen target, command, provider operation or
+journal rewrite authority.
 
 Managed release artifact construction is a finite credential-free execution of
 fixed build outputs under D0005 containment. Its trusted outer artifact receipt
