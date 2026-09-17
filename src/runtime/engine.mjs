@@ -247,7 +247,12 @@ export class DevelopmentEngine {
    }else if(!stopped&&this.o.attemptStopped)try{stopped=await this.o.attemptStopped(attempt);}catch{stopped=false;}
    if(effect){stopped=stopped&&await this.senderStopped(effect);effectResolved=false;}
    this.assertAttempt(attempt);const code=error instanceof TdevError?error.code:'INTEGRITY_FAILURE';
-   this.coordinator.settle(attempt,this.ledger.ownerEpoch,stopped&&effectResolved?(this.cancelled(action.actionId)?'cancelled':'failed'):'blocked',{stopped,effectResolved,resultId,errorCode:code});
+   // A special backend may positively reconcile its retained external effect
+   // without yet having terminal output. Keep only transient/uncertain failures
+   // blocked so the exact authenticated request can re-enter the SAME Action;
+   // deterministic errors remain terminal and cannot be retried into a new effect.
+   const retryableSpecial=!action.workId&&stopped&&effectResolved&&['EFFECT_UNCERTAIN','EXECUTION_UNAVAILABLE'].includes(code)&&!this.cancelled(action.actionId)&&action.deadline>this.now();
+   this.coordinator.settle(attempt,this.ledger.ownerEpoch,retryableSpecial?'blocked':stopped&&effectResolved?(this.cancelled(action.actionId)?'cancelled':'failed'):'blocked',{stopped,effectResolved,resultId,errorCode:code,...(retryableSpecial?{step:'special.retryable'}:{})});
   }finally{clearTimeout(deadline);}
  }
  drain(){this.accepting=false;return {running:this.running.size,reservations:this.ledger.transact(tx=>tx.reservations().length)};}
