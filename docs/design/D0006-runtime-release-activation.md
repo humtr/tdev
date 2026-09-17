@@ -509,6 +509,8 @@ candidate release. Staging still preserves the four tool names/annotation policy
 per-release installation seal, executor, repository, epoch and artifact digests.
 Staging a different schema does not make it activatable.
 
+Release authority remains exact-commit native provenance. A commit introduced through a bounded break-glass publication, even when independently validated before publication, is not stage-eligible merely because it is now canonical. It becomes stage-eligible only through a later tdev-native required-validation and integration that produces an exact canonical descendant. A no-change Work cannot manufacture that authority and is rejected as `NO_CHANGE`; the descendant must contain an owner-approved durable change that actually traverses the native validation and integration boundary.
+
 For a staged target with a different schema, the native owner loads the immutable
 active and target `tools.json`, runs D0004's structural `public-contract-v1` checker,
 and freezes its transition digest before asking the fixed helper to begin. The
