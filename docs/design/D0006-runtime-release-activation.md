@@ -308,6 +308,14 @@ controller identities still match exactly, and arbitrary or unrelated manifest d
 remain invalid. A current `tdev` production enrollment never gains this alternative,
 and the retained enrollment is not rewritten or re-sealed to normalize the digest.
 
+Fatal device startup telemetry must survive the fixed service logging boundary. The
+retained Termux device service log receives the device process stdout while stderr is
+not a durable diagnostic channel, so a startup failure before native private control
+is available emits exactly one closed stdout record containing only `event` and the
+typed `code`; it must not include an exception message, stack, path, credential or
+other ambient detail. This diagnostic record does not acknowledge startup, satisfy a
+release effect, or weaken the existing `native_start_not_verified` recovery proof.
+
 A second bounded C2 failure class exists when forward activation switched the device
 pointer but the new device failed during startup before native private control became
 available. If the exact forward `device.start` receipt is `failed` with
