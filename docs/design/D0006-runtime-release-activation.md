@@ -771,14 +771,19 @@ descendant.
 For this exact admission failure only, an authorized development/repair tool may stop
 the replaceable device service and run a one-shot **principal-projection recovery
 owner**. Its executable source must equal the exact retained active device source plus
-only the current canonical `src/runtime/engine.mjs` principal-projection delta; tests,
-documentation and unrelated canonical deltas are not execution input. It must reuse
-the exact installed private native configuration, credentials, enrollment, ledgers,
-binding registry and release-control files without rewriting their runtime source,
-artifact or release identities. The retained helper, edge deployment, active device
-pointer, release artifacts, canonical Git ref and provider resources remain unchanged.
-This repair source is execution evidence only and does not become another installed
-runtime, release or identity owner.
+only (a) the current canonical `src/runtime/engine.mjs` principal-projection delta and,
+after the bounded validation falsification below, (b) the exact canonical
+`src/execution/outer-receipt.mjs` retained legacy-executor join delta. The latter may
+only let a current `tdev` Attempt consume an Assignment whose `tdev` or `dev2`
+identity is independently derived from the exact retained assignment ID, authenticated
+session ref/workflow, completion record and outer receipt; caller-selected namespace
+substitution remains forbidden. Tests, documentation and unrelated canonical deltas
+are not execution input. It must reuse the exact installed private native
+configuration, credentials, enrollment, ledgers, binding registry and release-control
+files without rewriting their runtime source, artifact or release identities. The
+retained helper, edge deployment, active device pointer, release artifacts, canonical
+Git ref and provider resources remain unchanged. This repair source is execution
+evidence only and does not become another installed runtime, release or identity owner.
 
 Before starting it, prove the retained helper active pair is exact, there is no staged
 release or active activation, no active managed session or running Action, and the
@@ -789,7 +794,19 @@ a principal, capability, repository/ref, candidate, validation result, provider 
 or release identity. It may admit exactly one recovery Work on the exact current
 canonical head whose bounded durable change strengthens regression/owner evidence for
 this observed admission failure, then use only the normal typed edit/required-validation
-and exact-integration path. Any stale head/revision, failed required profile, changed
+and exact-integration path.
+
+One bounded replacement is permitted only for the observed C2-2 recovery falsification:
+if that first Work's required-validation Action terminates before integration because
+the exact still-commissioned legacy `dev2-exec` producer creates a legacy Assignment
+for the current `tdev` Attempt and the receipt join rejects that otherwise exact
+identity family, the first Work is exhausted. It must never be integrated, resumed into
+integration or used for release authority. After the exact join delta above is
+independently validated and break-glass published, the recovery owner may admit one
+replacement Work on the then-current canonical head; that replacement becomes the sole
+Work eligible for native required validation and integration. This does not permit a
+second model-selected product change, a changed release target or any additional
+recovery Work. Any other stale head/revision, failed required profile, changed
 candidate or integration conflict aborts and restarts the unchanged retained device.
 
 Only the exact descendant produced by that native required-validation/integration may
