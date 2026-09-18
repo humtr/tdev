@@ -771,19 +771,39 @@ descendant.
 For this exact admission failure only, an authorized development/repair tool may stop
 the replaceable device service and run a one-shot **principal-projection recovery
 owner**. Its executable source must equal the exact retained active device source plus
-only (a) the current canonical `src/runtime/engine.mjs` principal-projection delta and,
-after the bounded validation falsification below, (b) the exact canonical
-`src/execution/outer-receipt.mjs` retained legacy-executor join delta. The latter may
-only let a current `tdev` Attempt consume an Assignment whose `tdev` or `dev2`
-identity is independently derived from the exact retained assignment ID, authenticated
-session ref/workflow, completion record and outer receipt; caller-selected namespace
-substitution remains forbidden. Tests, documentation and unrelated canonical deltas
-are not execution input. It must reuse the exact installed private native
-configuration, credentials, enrollment, ledgers, binding registry and release-control
-files without rewriting their runtime source, artifact or release identities. The
-retained helper, edge deployment, active device pointer, release artifacts, canonical
-Git ref and provider resources remain unchanged. This repair source is execution
-evidence only and does not become another installed runtime, release or identity owner.
+only (a) the current canonical `src/runtime/engine.mjs` principal-projection delta,
+(b) the exact canonical `src/execution/outer-receipt.mjs` retained legacy-executor
+join delta exposed by the first bounded validation falsification, and, after the
+second bounded falsification below, (c) the exact generic managed-validation
+source-manifest bridge in `src/execution/payload.mjs`,
+`src/execution/managed-pool.mjs` and `src/runtime/managed.mjs`. The receipt join
+delta may only let a current `tdev` Attempt consume an Assignment whose `tdev` or
+`dev2` identity is independently derived from the exact retained assignment ID,
+authenticated session ref/workflow, completion record and outer receipt;
+caller-selected namespace substitution remains forbidden.
+
+The source-manifest bridge is narrower still. It applies only to the generic managed
+pool whose exact installed workflow identity is retained `dev2-exec`; it does not
+change production/release pool selection or authorize a legacy digest for a current
+`tdev-exec` controller. Native code must first verify the canonical commit/tree and
+current source manifest, then derive the wire manifest from those exact same canonical
+entries using the already-owned `legacySourceManifest` compatibility function. The
+wire payload, Assignment input and immutable executor result remain bound to that
+derived legacy digest. At the RequiredValidation boundary, native code may normalize
+an input or output digest back to the canonical result-tree digest only when the
+trusted runner returned exactly that deterministic legacy wire digest; a foreign,
+changed or caller-supplied digest remains unchanged and therefore fails validation.
+This projection proves two names for the same verified entry set; it is not permission
+to substitute source bytes, a candidate tree, an execution namespace or a validation
+result.
+
+Tests, documentation and unrelated canonical deltas are not execution input. It must
+reuse the exact installed private native configuration, credentials, enrollment,
+ledgers, binding registry and release-control files without rewriting their runtime
+source, artifact or release identities. The retained helper, edge deployment, active
+device pointer, release artifacts, canonical Git ref and provider resources remain
+unchanged. This repair source is execution evidence only and does not become another
+installed runtime, release or identity owner.
 
 Before starting it, prove the retained helper active pair is exact, there is no staged
 release or active activation, no active managed session or running Action, and the
@@ -796,18 +816,31 @@ canonical head whose bounded durable change strengthens regression/owner evidenc
 this observed admission failure, then use only the normal typed edit/required-validation
 and exact-integration path.
 
-One bounded replacement is permitted only for the observed C2-2 recovery falsification:
-if that first Work's required-validation Action terminates before integration because
-the exact still-commissioned legacy `dev2-exec` producer creates a legacy Assignment
-for the current `tdev` Attempt and the receipt join rejects that otherwise exact
-identity family, the first Work is exhausted. It must never be integrated, resumed into
-integration or used for release authority. After the exact join delta above is
-independently validated and break-glass published, the recovery owner may admit one
-replacement Work on the then-current canonical head; that replacement becomes the sole
-Work eligible for native required validation and integration. This does not permit a
-second model-selected product change, a changed release target or any additional
-recovery Work. Any other stale head/revision, failed required profile, changed
-candidate or integration conflict aborts and restarts the unchanged retained device.
+The first bounded replacement was permitted only because the first recovery Work's
+required-validation Action terminated before integration when an exact retained
+`dev2-exec` identity family could not be joined to the current `tdev` Attempt.
+That first Work is exhausted and must never be integrated, resumed into integration or
+used for release authority.
+
+The replacement Work is likewise exhausted by the separately observed second-order
+falsification: before ACK, the immutable retained `dev2` ManagedRunner rejected the
+current `tdev` source-manifest digest even though the payload entries and Git object
+bytes were exact. Read-only replay of the exact retained payload through the exact
+legacy decoder must reproduce that rejection, and replay after replacing only the
+manifest with `legacySourceManifest` of those same entries must succeed, before the
+bridge above is eligible for use. The failed replacement Work must never be integrated,
+resumed into integration or used for release authority.
+
+After that exact bridge is independently required-validated and break-glass published,
+the recovery owner may admit **one final replacement Work** on the then-current
+canonical head containing the same bounded regression/owner-evidence change. That final
+replacement is the sole Work eligible for native required validation and integration.
+No further replacement Work is authorized by this exception. This does not permit a
+new model-selected product change, a changed release target, a changed candidate after
+validation, or reuse of either failed Work. Any stale head/revision, failed required
+profile, changed candidate or integration conflict on the final replacement aborts and
+restarts the unchanged retained device; further recovery then requires fresh Design
+authority rather than another retry.
 
 Only the exact descendant produced by that native required-validation/integration may
 then enter the normal public `release.stage` and `release.activate` path. Builder,
