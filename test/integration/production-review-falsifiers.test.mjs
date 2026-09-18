@@ -3,6 +3,8 @@ import assert from 'node:assert/strict';
 import {productionFixture} from './production-fixture.mjs';
 import {verifyProductionEnrollment} from '../../src/runtime/production-enrollment.mjs';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
+import {legacySourceManifest} from '../../src/repository/entries.mjs';
+import {releaseBuildProfile} from '../../src/release/build-profile.mjs';
 
 function reseal(e){const {sealDigest,...body}=e;return {...body,sealDigest:recordDigest('dev2.production-enrollment.v1',body)};}
 
@@ -76,6 +78,15 @@ test('review: current tdev attempt joins exact retained legacy executor evidence
   assert.equal(work.attempt.identityNamespace,'tdev');const d=await f.pool.dispatch(work.result,work.attempt,profile),identity=f.activate(d.sessionId),a=f.pool.poll(identity).assignment;assert.ok(a);
   const legacyId=recordDigest('dev2.managed-assignment.v1',{attempt:work.attempt,profileDigest:profile.digest}).slice(7),currentId=recordDigest('tdev.managed-assignment.v1',{attempt:work.attempt,profileDigest:profile.digest}).slice(7);assert.equal(a.assignmentId,legacyId);assert.notEqual(a.assignmentId,currentId);
   const {execution}=await f.complete(a,profile),{proof}=await f.receiptPort().verify(work.result,work.attempt,profile,execution);assert.equal(proof.assignmentId,legacyId);assert.equal(proof.eligible,true);f.ledger.transact(tx=>tx.releaseAttempt(work.attempt.attemptId));
+ }finally{await f.close();}
+});
+
+test('review: retained dev2 production bridge proves exact legacy wire manifest against canonical release source',async()=>{
+ const f=await productionFixture({legacyProjection:true});try{
+  f.useProductionSeal();const profile=releaseBuildProfile(f.definition.identities.imageDigest,'dev2'),work=f.create('retained-production-wire-bridge',profile,true,true),legacy=legacySourceManifest(f.source.entries),canonical=f.source.manifestDigest;
+  assert.notEqual(legacy,canonical);const dispatch=await f.pool.dispatch(work.result,work.attempt,profile);assert.equal(dispatch.input.sourceManifest,legacy);const identity=f.activate(dispatch.sessionId),assignment=f.pool.poll(identity).assignment;assert.ok(assignment);
+  const {execution:raw}=await f.complete(assignment,profile);assert.equal(raw.inputDigest,legacy);assert.equal(raw.outputDigest,legacy);const normalized=await f.pool.run(work.result,work.attempt,profile);assert.equal(normalized.inputDigest,canonical);assert.equal(normalized.outputDigest,canonical);
+  const {proof}=await f.receiptPort().verify(work.result,work.attempt,profile,normalized,f.source);assert.equal(proof.eligible,true);const foreign='sha256:'+'9'.repeat(64);await assert.rejects(f.receiptPort().verify(work.result,work.attempt,profile,{...normalized,inputDigest:foreign},f.source),{code:'INTEGRITY_FAILURE'});await assert.rejects(f.receiptPort().verify(work.result,work.attempt,profile,normalized,{...f.source,manifestDigest:foreign}),{code:'INTEGRITY_FAILURE'});f.ledger.transact(tx=>tx.releaseAttempt(work.attempt.attemptId));
  }finally{await f.close();}
 });
 

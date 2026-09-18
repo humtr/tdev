@@ -47,7 +47,7 @@ export class ManagedReleaseBuilder {
  async output(input,source,execution){
   this.assert();const namespace=/** @type {'tdev'|'dev2'} */(input.identityNamespace==='tdev'?'tdev':'dev2'),{inputDigest,...body}=input;requireThat(inputDigest===recordDigest(namespace+'.release-build-input.v1',body)&&input.sourceDigest===this.sourceDigest(source,namespace),'INTEGRITY_FAILURE');
   const p=this.o.production,i=p.enrollment.intent;
-  const {proof,outer}=await p.receipts.verify(input.result,input.attempt,this.profile,execution);this.assert();
+  const {proof,outer}=await p.receipts.verify(input.result,input.attempt,this.profile,execution,this.o.pool.legacySourceProjection?source.source:undefined);this.assert();
   requireThat(proof.eligible&&proof.sealDigest===p.sealDigest,'VALIDATION_FAILED','Finite build has no eligible production execution');
   const decoded=await productionBuildOutput(outer,this.o.objects);
   this.assert();requireThat(canonicalJson(this.retained(input.actionId))===canonicalJson(input),'STALE_RESULT');
