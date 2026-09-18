@@ -1245,44 +1245,89 @@ invariants hold, and a fresh public mutation admission succeeds. This subsection
 exhausts only the observed stale fixed-helper identity bootstrap; it creates no
 permanent compatibility mode, alternate release identity or additional release path.
 
-## C2-2 runtime/provider identity transition
+## C2-2 runtime/provider identity hard cutover
 
-New private transport paths are under `/__tdev/` and new source/runtime labels,
-release annotations, helper User-Agent values and identity digests use `tdev`.
-During a paired release transition the edge may retain narrowly scoped `/__dev2/`
-route aliases only to communicate with the immediately previous rollback-compatible
-device/executor. Those aliases dispatch to the same installation/router and create
-no second runtime, ledger or authorization path. New native/executor clients use
-only `/__tdev/`. The aliases can be removed after the previous rollback pair and all
-legacy managed sessions are positively retired.
+The owner has explicitly waived compatibility with pre-cutover `dev2` Work,
+Action, managed-session, release/rollback, provider-resource and local-runtime state
+for final C2-2 identity convergence. For this cutover, this section supersedes every
+earlier D0006 allowance whose only purpose is to keep such pre-cutover state usable
+under a legacy `dev2` identity, including rolling private-RPC aliases, retained
+sender/environment aliases, retained legacy source-manifest readers, legacy
+execution-ref/workflow production, legacy binding locators and previous-release
+rollback compatibility. Historical Git/evidence may remain truthful history, but it
+is not runtime compatibility authority.
 
-The installed Cloudflare binding names `DEV2_CONFIG_JSON`, `DEV2_DEVICE_SECRET`,
-`DEV2_VERSION`, `DEV2_ROUTER` and Durable Object class `Dev2RendezvousDO` are actual
-provider resource identities, not ordinary source labels. C2-2 retains them as
-explicit provider-compatibility aliases to the single existing Worker/namespace;
-renaming them by source substitution would create or rebind provider state without a
-designed/read-back migration. New product code must treat these names only at the
-Cloudflare adapter boundary and must not emit them as product/protocol identity.
-They may retire only through a later exact provider-resource migration that preserves
-the same installation/namespace, secrets, rollback and readback guarantees; age or a
-release redeploy is not sufficient.
+The cutover is destructive with respect to those retained runtime identities, not
+with respect to canonical source or security. Before the first irreversible provider
+or local-state mutation, fresh readback must prove a quiescent boundary: no executing
+or reserved Action, no active or reserved managed session, no forward staged release
+or activation in progress, and no provider effect whose outcome is still uncertain.
+Pre-cutover open/terminal Work or session history may be abandoned and need not be
+readable or resumable afterward. If any such state still has a possible external
+effect, it must be reconciled or fenced before the cutover; waiver of compatibility
+does not turn uncertainty into success or cancellation.
 
-Operational execution ref/workflow naming is selected by the exact privately
-commissioned controller enrollment. A current enrollment uses `tdev-exec` and
-`tdev-executor.yml`; the presently installed immutable legacy enrollment continues to
-mint its enrolled legacy ref/workflow until a current controller is commissioned and
-activated because its approved commit cannot acquire a new workflow path in place.
-This compatibility producer is fenced by the exact enrollment and is not caller
-selectable. Once a current enrollment is active, legacy production stops immediately
-for new sessions and retained old sessions reconcile through their stored identity
-until terminal retirement. Release staging/activation must preserve a previous
-release's ability to reconcile its own legacy records during rollback and may not
-reinterpret retained release/effect identities under the current namespace.
+After the boundary, all current runtime/provider identities use only the final
+`tdev` namespace. This includes private route `/__tdev/`, private RPC
+`tdev.private-rpc.v1` / `x-tdev-private-mac`, sender environment
+`TDEV_GITHUB_TOKEN_FILE`, current source-manifest/digest domains,
+`refs/heads/tdev-exec/<sessionId>`, `tdev-executor.yml`, current binding/local
+locator domains, Cloudflare bindings `TDEV_CONFIG_JSON`, `TDEV_DEVICE_SECRET`,
+`TDEV_VERSION`, `TDEV_ROUTER`, and Durable Object class
+`TdevRendezvousDO`. The deployed current Worker/runtime must not retain
+`/__dev2/`, `dev2.private-rpc.v1`, `x-dev2-private-mac`, `DEV2_*`,
+`Dev2RendezvousDO`, legacy execution workflow/ref production, or a legacy local
+locator as an accepted current-path fallback.
 
-Binding-scoped local state follows the same exact-retention rule. New secondary
-ledger filenames and sender roots use the `tdev` Binding digest domains. At startup,
-a single existing legacy `dev2` locator for the same complete immutable Binding is
-reused in place so uncertain or retained work is not orphaned; it is not copied,
-renamed or rehashed. If both current and legacy locators exist for one Binding the
-installation fails closed rather than selecting or merging them. A newly added
-Binding with neither retained locator creates only the current `tdev` locator.
+`TdevRendezvousDO` may use a fresh Durable Object namespace. D0006 assigns the DO
+only connection-routing/hibernation attachment state, not Work admission, canonical
+repository state, validation eligibility or completion; therefore pre-cutover
+`Dev2RendezvousDO` state is intentionally not migrated. The current workers.dev
+origin and authorization boundary remain the single public service. Provider secrets
+may be rebound under the new names through the sealed deployment path, but secret
+values must never be exposed through source, logs or readback. Old bindings/classes,
+routes and provider aliases are removed only after provider readback proves the new
+Worker references the exact new resources and the fresh device has authenticated and
+reconnected through the `tdev` path. This bounded delayed deletion is cutover
+safety, not compatibility support.
+
+Abandoning a legacy local ledger/locator must not silently reuse its durable
+deduplication namespace. If the exact implementation requires a new installation,
+binding epoch, ledger identity or request namespace to fence abandoned retained
+records, use the existing D0001/D0002/D0004 owners for that identity and revise them
+before implementation when their accepted semantics require it. Canonical Git
+commit/tree and authorized repository/ref bindings remain the source baseline; the
+hard cutover does not authorize rewriting canonical history, bypassing required
+validation, weakening authorization, or creating a second long-lived runtime.
+
+The previous `dev2` release pair is not a required rollback target across this hard
+boundary. Before old resources are destroyed, the exact new tdev deployment must be
+read back healthy; after the boundary, ordinary release rollback semantics apply only
+among releases admitted in the new `tdev` identity domain. A failed cutover may be
+repaired with the smallest owner-authorized recovery necessary to reach one healthy
+tdev runtime, but it must not re-establish permanent dev2 aliases merely to recover
+historical Work/session/release state.
+
+C2-2 hard-cutover acceptance requires all of the following from fresh observation:
+
+- canonical source, device source and edge source identify the exact required-validated
+  integrated descendant selected for the cutover;
+- deployment is sealed, the runtime is accepting, no forward staged release remains,
+  and managed execution is ready;
+- primary/secondary repository-binding isolation, authorization and installation-wide
+  execution capacity remain intact for fresh post-cutover work;
+- fresh public mutation admission and cancellation succeed on the normal installed
+  tdev runtime;
+- fresh managed execution, when exercised, uses only `tdev-exec` /
+  `tdev-executor.yml` and terminal operational refs retire normally;
+- provider readback shows only the current `TDEV_*` bindings and
+  `TdevRendezvousDO` on the active Worker/runtime path, with no active
+  `Dev2RendezvousDO` or `DEV2_*` compatibility binding;
+- current product/source/config/deployment/runtime metadata has no `dev2`,
+  `DEV2`, `dev-2` or equivalent branch-codename identity except the truthful
+  development Git branch/ref and explicitly historical evidence; and
+- no current runtime behavior depends on compatibility readers or aliases for
+  pre-cutover dev2 Work, sessions, releases, provider resources or local locators.
+
+Only after those observations may C2-2 again be treated as complete and routing
+advance to C2-3.
