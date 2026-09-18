@@ -1073,6 +1073,103 @@ session/ref invariants preserved, and a fresh public mutation admission succeeds
 This subsection is a one-time compatibility recovery, not a permanent legacy naming
 mode or alternate release mechanism.
 
+### One-time retained-production builder re-verification normalization recovery
+
+The replacement stage authorized by the physical-container recovery above reached a
+complete authenticated retained `dev2` release-build execution after the container
+identity repair. Fresh replay proves that the exact Assignment/session/workflow/run,
+lease and production seal, source entry set and derived legacy wire manifest, physical
+container, profile and argv, kernel/isolation observations, deadline/resource bounds,
+receipt-bound artifacts, and decoded `device.cjs`, `worker.mjs` and `tools.json`
+outputs are all valid. Every finite-build eligibility predicate is true and no release
+artifact, provider effect, staged release or activation was retained. The stage Action
+nevertheless terminated with `VALIDATION_FAILED`.
+
+The falsification is limited to deterministic builder re-verification. The first
+`ManagedReleaseBuilder.output` consumes the execution returned by
+`ManagedPool.run`, which applies the already-authorized exact retained-`dev2`
+wire-manifest normalization: only the deterministic legacy digest derived from the
+verified canonical SourceTree is mapped back to that SourceTree's canonical manifest
+digest, with every other execution field unchanged. The immediate
+`ManagedReleaseBuilder.verify` replay instead reads the same completed Assignment's
+raw retained result and passes it directly to `output`. For a retained legacy
+Assignment those raw input/output digests are still the exact legacy wire digest, so
+the receipt verifier correctly refuses to treat that unnormalized replay as the
+canonical execution. The builder then collapses the replay failure to
+`VALIDATION_FAILED`. This is a verifier-path normalization omission, not a failed
+runner, changed build bytes, second source identity or permission to reinterpret a
+foreign digest.
+
+This recovery is eligible only for that exact shape. Fresh evidence must prove that
+the failed stage is terminal, its retained stage record has no build, effect, receipt
+or target, no release is staged or activating, and no provider/release effect belongs
+to the Action. Its completed Assignment and authenticated completion must remain exact,
+its raw input/output digests must equal the one deterministic retained `dev2` wire
+manifest derived from the exact canonical source entries, and replay must show every
+production receipt eligibility predicate and every receipt-bound release output byte
+valid. Any failed profile, foreign digest, changed artifact, ambiguous provider effect,
+already-staged release, current-controller execution, or mismatch outside the
+re-verification normalization boundary is not this recovery.
+
+The failed stage Action is exhausted historical evidence. It must never be resumed,
+have its deadline renewed, gain a build/effect/target, be promoted by terminal-stage
+recovery, or be used as release authority. Its completed production execution is
+diagnostic evidence only. No recovery path may reinterpret that Action as successful
+or manufacture a staged release from it.
+
+The durable source repair is narrow. During deterministic release-builder
+re-verification only, after the exact retained Assignment identity and source have been
+recovered, native code may pass the retained Assignment result through the same
+`ManagedPool.normalizeValidation(result, attempt, profile, execution)` operation used
+by the original `run` path before calling `output`. That operation remains
+fail-closed: it may normalize only when the authenticated Assignment family is
+`dev2`, the production pool is explicitly in its Design-authorized legacy source
+projection mode, the exact repository commit still has the prepared tree and canonical
+manifest, and the raw digest equals the deterministic legacy manifest for those exact
+entries. A current Assignment or foreign digest remains unchanged and therefore fails
+the existing receipt equality checks when inappropriate. No caller, receipt, Work,
+stage input or recovery tool may provide a replacement digest or choose the
+normalization.
+
+The repair changes no runner, profile, timeout/resource/network identity, source entry
+set, production enrollment, Assignment/session/workflow/run identity, physical
+container naming, artifact bytes, release-manifest semantics, provider selection,
+helper protocol, activation semantics or current-controller behavior. Focused
+regression coverage must prove that a retained legacy completion which produced a
+valid normalized build also verifies deterministically from the retained raw result,
+while a foreign raw digest, wrong Assignment family or changed source still fails
+closed.
+
+Because the installed retained device lacks this repair and ordinary public mutation
+admission still depends on the bounded C2-2 recovery owner, a first one-shot recovery
+owner may start only after this Design-only revision is canonical. It must reuse the
+exact installed private native configuration and retained active pair without changing
+runtime/release/provider identity. Through ordinary public typed tdev it may admit
+exactly one source Work limited to the re-verification normalization call above and its
+focused fail-closed tests. That Work must pass every required validation profile and
+exact integration normally. The recovery owner gains no release authority from
+executing those source bytes and must close after integration.
+
+A second and final one-shot release owner may start only from that exact newly
+integrated descendant after proving the retained active pair is unchanged, no managed
+Action/session from the source Work is active, no staged release or activation exists,
+and the exhausted `VALIDATION_FAILED` stage remains no-effect evidence. It may create
+exactly one new `release.stage` Action against the unchanged retained active release.
+Same-request transport-unknown recovery remains idempotent; a distinct functional
+failure again requires fresh Design authority and does not authorize another stage or
+source Work. If staging succeeds, only the matching ordinary `release.activate` may
+proceed, and activation response loss may recover only that same durable activation
+identity.
+
+Success and exhaustion remain the normal C2-2 criteria: with no recovery owner
+present, device and edge report the exact newly integrated canonical source,
+`deploymentSealed=true`, no staged release remains, managed execution is ready,
+primary/secondary binding isolation and installation-wide capacity are unchanged, C1
+terminal session/ref invariants hold, and a fresh public mutation admission succeeds.
+This subsection is a one-time repair of deterministic retained-result replay; it is not
+a permanent legacy normalization mode, alternate builder, release bypass or additional
+release authority.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
