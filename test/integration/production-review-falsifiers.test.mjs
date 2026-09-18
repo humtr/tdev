@@ -90,6 +90,14 @@ test('review: retained dev2 production bridge proves exact legacy wire manifest 
  }finally{await f.close();}
 });
 
+test('review: retained dev2 release builder re-verifies raw completion through exact canonical normalization',async()=>{
+ const f=await productionFixture({legacyProjection:true});try{
+  f.useProductionSeal();const {ManagedReleaseBuilder}=await import('../../src/release/managed-builder.mjs'),production=await f.enrolled(),builder=new ManagedReleaseBuilder({production,pool:f.pool,objects:f.objects,installationSealDigest:'sha256:'+'8'.repeat(64)}),profile=releaseBuildProfile(f.definition.identities.imageDigest,'dev2'),work=f.create('retained-builder-reverify',profile,true,true),input=builder.input(work.attempt.actionId,f.integrated,f.previous),dispatch=await f.pool.dispatch(input.result,input.attempt,profile),identity=f.activate(dispatch.sessionId),assignment=f.pool.poll(identity).assignment;assert.ok(assignment);
+  const {execution:raw}=await f.complete(assignment,profile),normalized=await f.pool.normalizeValidation(input.result,input.attempt,profile,raw);assert.notEqual(raw.inputDigest,normalized.inputDigest);assert.equal(normalized.inputDigest,f.source.manifestDigest);const build=await builder.output(input,f.integrated,normalized);assert.equal(await builder.verify(build,f.integrated,f.previous),true);
+  const foreign='sha256:'+'9'.repeat(64),unchanged=await f.pool.normalizeValidation(input.result,input.attempt,profile,{...raw,inputDigest:foreign});assert.equal(unchanged.inputDigest,foreign);await assert.rejects(builder.output(input,f.integrated,unchanged),{code:'INTEGRITY_FAILURE'});f.ledger.transact(tx=>tx.releaseAttempt(input.attempt.attemptId));
+ }finally{await f.close();}
+});
+
 test('review: retained dev2 production receipt binds physical container identity to the authenticated assignment family',async()=>{
  const f=await productionFixture({legacyProjection:true});try{
   f.useProductionSeal();const profile=releaseBuildProfile(f.definition.identities.imageDigest,'dev2'),good=f.create('retained-production-container-family-good',profile,true,true);

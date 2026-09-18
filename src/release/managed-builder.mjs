@@ -59,7 +59,7 @@ export class ManagedReleaseBuilder {
   * manifest/receipt, even a plausible hash, cannot verify itself.
   * @param {Build} build @param {Source} source @param {Pair} previous */
  async verify(build,source,previous){try{this.assert();const receipt=/** @type {{actionId:string}} */(build.receipt),input=this.retained(receipt.actionId),namespace=/** @type {'tdev'|'dev2'} */(input?.identityNamespace==='tdev'?'tdev':'dev2');requireThat(input&&input.sourceDigest===this.sourceDigest(source,namespace)&&canonicalJson(input.previous)===canonicalJson(previous),'INTEGRITY_FAILURE');
-  const id=recordDigest(this.executionNamespace+'.managed-assignment.v1',{attempt:input.attempt,profileDigest:this.profile.digest}).slice(7),a=this.o.pool.assignment(id);requireThat(a?.state==='complete'&&a.result,'VALIDATION_FAILED');return canonicalJson(await this.output(input,source,a.result))===canonicalJson(build);
+  const id=recordDigest(this.executionNamespace+'.managed-assignment.v1',{attempt:input.attempt,profileDigest:this.profile.digest}).slice(7),a=this.o.pool.assignment(id);requireThat(a?.state==='complete'&&a.result,'VALIDATION_FAILED');const execution=await this.o.pool.normalizeValidation(input.result,input.attempt,this.profile,a.result);return canonicalJson(await this.output(input,source,execution))===canonicalJson(build);
  }catch{return false;}}
  /** @param {string} actionId */
  async stopped(actionId){const input=this.retained(actionId);return !input||this.o.pool.stopped(input.attempt);}
