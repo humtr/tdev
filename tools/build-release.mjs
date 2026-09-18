@@ -19,7 +19,7 @@ export async function buildRelease(source,output){
   for(const name of ['build-device.mjs','build-edge.mjs']){
    const script=join(source,'tools',name),info=await lstat(script);requireThat(info.isFile()&&!info.isSymbolicLink()&&await realpath(script)===script,'FORBIDDEN');
    const child=spawnSync(process.execPath,[script,directory],{cwd:source,env:{HOME:directory,TMPDIR:directory,PATH:'/usr/local/bin:/usr/bin:/bin'},timeout:90000,killSignal:'SIGKILL',maxBuffer:65536,encoding:'utf8'});
-   requireThat(!child.error&&child.status===0&&!child.signal,'VALIDATION_FAILED','Finite sandbox '+name+' failed');
+   requireThat(!child.error&&child.status===0&&!child.signal,'VALIDATION_FAILED','Finite sandbox '+name+' failed: '+String(child.stderr??'').slice(-4096));
   }
   /** @type {Record<string,Uint8Array>} */const files={};let total=0;
   for(const name of BUILD_NAMES){const path=join(directory,name),before=await lstat(path);requireThat(before.isFile()&&!before.isSymbolicLink()&&before.nlink===1&&before.size>0&&before.size<=BUILD_DATA_BYTES&&await realpath(path)===path,'INTEGRITY_FAILURE','Bounded regular build artifact required');
@@ -33,4 +33,4 @@ export async function buildRelease(source,output){
 }
 /** @param {string[]} argv */
 export async function main(argv){const args=parseArgs({args:argv,options:{source:{type:'string'},output:{type:'string'}},strict:true,allowPositionals:false}).values;requireThat(args.source&&args.output,'INVALID_ARGUMENT');const bytes=await buildRelease(args.source,args.output);await new Promise((done,reject)=>process.stdout.write(bytes,error=>error?reject(error):done(undefined)));}
-if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(()=>{console.error('Finite release build failed');process.exitCode=1;});
+if(process.argv[1]&&resolve(process.argv[1])===fileURLToPath(import.meta.url))main(process.argv.slice(2)).catch(error=>{console.error(error instanceof Error?error.stack??error.message:String(error));process.exitCode=1;});
