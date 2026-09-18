@@ -1,6 +1,7 @@
 import {createHash} from 'node:crypto';
 import {canonicalJson,parseRecord,recordDigest,bytesDigest} from '../contracts/canonical.mjs';
 import {verifySource} from '../candidate/tree.mjs';
+import {legacySourceManifest} from '../repository/entries.mjs';
 import {id,digest,oid} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 /** @typedef {import('../contracts/ports.js').SourceTree} Source */
@@ -12,16 +13,20 @@ export const PAYLOAD_BYTES=16777216;
 export function executionIdentity(execution,namespace='tdev'){requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Managed identity namespace');return recordDigest(namespace+'.managed-execution.v1',execution);}
 /** @param {Profile} profile @param {'tdev'|'dev2'} [namespace] */
 export function profileIdentity(profile,namespace='tdev'){requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Managed identity namespace');const {digest:ignored,...definition}=profile;return recordDigest(namespace+'.profile.v1',definition);}
+/** Exact wire source identity. Retained pre-C2-2 managed controllers may need
+ * the legacy digest for the same already-verified canonical entry set.
+ * @param {Source} source @param {'tdev'|'dev2'} [namespace] @param {boolean} [legacyProjection] */
+export function managedSourceManifest(source,namespace='tdev',legacyProjection=false){requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Managed identity namespace');const entries=verifySource(source);requireThat(!legacyProjection||namespace==='dev2','INVALID_ARGUMENT','Legacy source projection requires retained dev2 identity');return legacyProjection?legacySourceManifest(entries):source.manifestDigest;}
 /** The wire bundle is not a tar archive. Paths and object IDs come from the
  * verified source manifest; there is no extraction command, external URL or file
  * destination supplied by a candidate. Duplicate blobs are sent once.
- * @param {{repository:Pick<import('../repository/git.mjs').GitRepository,'blob'>,objects:import('../contracts/ports.js').ObjectStorePort,source:Source,resultId:string,profile:Profile,execution:Execution,namespace?:'tdev'|'dev2'}} options */
-export async function preparePayload(options){const {source,profile,execution}=options,namespace=options.namespace??'tdev';id(options.resultId);requireThat(profileIdentity(profile,namespace)===profile.digest&&execution.orderedProfileDigests.includes(profile.digest),'INTEGRITY_FAILURE','Profile is not in this execution identity');const entries=verifySource(source);requireThat(entries.length<=16384,'LIMIT_EXCEEDED');
+ * @param {{repository:Pick<import('../repository/git.mjs').GitRepository,'blob'>,objects:import('../contracts/ports.js').ObjectStorePort,source:Source,resultId:string,profile:Profile,execution:Execution,namespace?:'tdev'|'dev2',legacySourceProjection?:boolean}} options */
+export async function preparePayload(options){const {source,profile,execution}=options,namespace=options.namespace??'tdev';id(options.resultId);requireThat(profileIdentity(profile,namespace)===profile.digest&&execution.orderedProfileDigests.includes(profile.digest),'INTEGRITY_FAILURE','Profile is not in this execution identity');const entries=verifySource(source);requireThat(entries.length<=16384,'LIMIT_EXCEEDED');const sourceManifest=managedSourceManifest(source,namespace,options.legacySourceProjection===true),wireSource=sourceManifest===source.manifestDigest?source:{...source,manifestDigest:sourceManifest};
  const unique=[...new Set(entries.map(e=>e.blobOid))].sort(),blobs=[];let total=0;
  for(const objectId of unique){const bytes=await options.repository.blob(objectId);total+=bytes.byteLength;requireThat(total<=12000000,'LIMIT_EXCEEDED','Managed source bundle bound');blobs.push({oid:objectId,data:Buffer.from(bytes).toString('base64')});}
- /** @type {Payload} */const payload={schemaVersion:1,resultId:options.resultId,source,profile,execution,blobs};const bytes=Buffer.from(canonicalJson(payload));requireThat(bytes.length<=PAYLOAD_BYTES,'LIMIT_EXCEEDED');const payloadDigest=bytesDigest(bytes);
- decodePayload(bytes,{resultId:options.resultId,sourceManifest:source.manifestDigest,profileDigest:profile.digest,executionDigest:executionIdentity(execution,namespace),payloadDigest});
- requireThat(await options.objects.put(bytes)===payloadDigest,'INTEGRITY_FAILURE');return {payloadDigest,objects:[{digest:payloadDigest,size:bytes.length}]};
+ /** @type {Payload} */const payload={schemaVersion:1,resultId:options.resultId,source:wireSource,profile,execution,blobs};const bytes=Buffer.from(canonicalJson(payload));requireThat(bytes.length<=PAYLOAD_BYTES,'LIMIT_EXCEEDED');const payloadDigest=bytesDigest(bytes);
+ decodePayload(bytes,{resultId:options.resultId,sourceManifest,profileDigest:profile.digest,executionDigest:executionIdentity(execution,namespace),payloadDigest});
+ requireThat(await options.objects.put(bytes)===payloadDigest,'INTEGRITY_FAILURE');return {payloadDigest,sourceManifest,objects:[{digest:payloadDigest,size:bytes.length}]};
 }
 /** Strict verification happens on the trusted outer host before any filesystem
  * materialization and before the candidate is allowed to execute in a sandbox.

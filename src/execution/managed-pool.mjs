@@ -2,7 +2,7 @@ import {setTimeout as delay} from 'node:timers/promises';
 import {canonicalJson,parseRecord,recordDigest} from '../contracts/canonical.mjs';
 import {requireThat,TdevError} from '../contracts/errors.mjs';
 import {id,newId} from '../contracts/identity.mjs';
-import {preparePayload,executionIdentity} from './payload.mjs';
+import {preparePayload,executionIdentity,managedSourceManifest} from './payload.mjs';
 import {SessionReconciler} from './session-reconcile.mjs';
 import {managedTarget} from './managed-targets.mjs';
 /** @typedef {import('../contracts/ports.js').Attempt} Attempt */
@@ -25,8 +25,8 @@ function assignmentNamespace(assignmentId,attempt,profileDigest){const current=a
  * no second model runs, and no network or filesystem work spans a transaction.
  */
 export class ManagedPool {
- /** @param {{sessions:import('./sessions.mjs').ManagedSessions,provider:import('./github-sessions.mjs').GitHubSessions,repository:import('../repository/git.mjs').GitRepository,objects:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number}} options */
- constructor(options){this.o=options;this.sessions=options.sessions;this.targets=this.sessions.targets;this.ledger=this.sessions.ledger;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??250;requireThat(Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');
+ /** @param {{sessions:import('./sessions.mjs').ManagedSessions,provider:import('./github-sessions.mjs').GitHubSessions,repository:import('../repository/git.mjs').GitRepository,objects:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number,legacySourceProjection?:boolean}} options */
+ constructor(options){this.o=options;this.sessions=options.sessions;this.targets=this.sessions.targets;this.ledger=this.sessions.ledger;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??250;this.legacySourceProjection=options.legacySourceProjection===true;requireThat(Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');requireThat(!this.legacySourceProjection||currentNamespace(this.sessions)==='dev2','INVALID_ARGUMENT','Legacy source projection requires retained dev2 controller');
   this.ledger.transact(tx=>{tx.run("CREATE TABLE IF NOT EXISTS managed_dispatch(assignment_id TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,session_id TEXT NOT NULL REFERENCES managed_session(session_id),state TEXT NOT NULL,record TEXT NOT NULL)");tx.run("CREATE UNIQUE INDEX IF NOT EXISTS managed_pending_dispatch ON managed_dispatch(session_id) WHERE state='pending'");});
   /** @type {Map<string,Promise<import('./session-types.js').ExecutionResult>>} */this.running=new Map();
   this.reconciler=new SessionReconciler({sessions:this.sessions,provider:options.provider,now:this.now});
@@ -46,10 +46,10 @@ export class ManagedPool {
  async prepare(result,attempt,profile){
   const namespace=currentNamespace(this.sessions),currentId=assignmentIdFor(attempt,profile.digest,'tdev'),legacyId=assignmentIdFor(attempt,profile.digest,'dev2'),existing=this.retained(currentId)??this.retained(legacyId),assignmentId=existing?.assignmentId??assignmentIdFor(attempt,profile.digest,namespace),target=this.targets.owner(attempt.repositoryId),targetIdentity=managedTarget(target.binding);
   requireThat(result.repositoryId===target.binding.repositoryId&&result.bindingEpoch===target.binding.bindingEpoch&&result.policyDigest===target.binding.policyDigest,'STALE_RESULT','Prepared result target binding differs');
-  if(existing){const retainedNamespace=assignmentNamespace(existing.assignmentId,attempt,profile.digest),assigned=this.assignment(existing.assignmentId);if(assigned&&['complete','stopped'].includes(assigned.state))this.targets.ownerForInput(existing.input);else this.targets.checkInput(existing.input);requireThat(existing.input.resultId===result.resultId&&existing.input.sourceManifest===result.resultTreeSha256&&existing.input.executionDigest===executionIdentity(result.execution,retainedNamespace),'IDEMPOTENCY_MISMATCH');return existing;}
+  const commit=await this.o.repository.readCommit(target.binding,result.commitOid);requireThat(commit.source.treeOid===result.resultTreeOid&&commit.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE','Prepared result bytes differ');
+  if(existing){const retainedNamespace=assignmentNamespace(existing.assignmentId,attempt,profile.digest),sourceManifest=managedSourceManifest(commit.source,retainedNamespace,this.legacySourceProjection&&retainedNamespace==='dev2'),assigned=this.assignment(existing.assignmentId);if(assigned&&['complete','stopped'].includes(assigned.state))this.targets.ownerForInput(existing.input);else this.targets.checkInput(existing.input);requireThat(existing.input.resultId===result.resultId&&existing.input.sourceManifest===sourceManifest&&existing.input.executionDigest===executionIdentity(result.execution,retainedNamespace),'IDEMPOTENCY_MISMATCH');return existing;}
   requireThat(this.sessions.config.sealDigest!==null,'EXECUTION_UNAVAILABLE','Managed execution is not sealed');
-  this.current(attempt);const commit=await this.o.repository.readCommit(target.binding,result.commitOid);requireThat(commit.source.treeOid===result.resultTreeOid&&commit.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE','Prepared result bytes differ');
-  const payload=await preparePayload({repository:this.o.repository,objects:this.o.objects,source:commit.source,resultId:result.resultId,profile,execution:result.execution,namespace});
+  this.current(attempt);const payload=await preparePayload({repository:this.o.repository,objects:this.o.objects,source:commit.source,resultId:result.resultId,profile,execution:result.execution,namespace,legacySourceProjection:this.legacySourceProjection});
   this.reconcileLocal();const action=this.current(attempt);
   // The target owner fence above completes before this controller-ledger mutation;
   // provider launch happens only after target identity and dispatch are durable.
@@ -61,7 +61,7 @@ export class ManagedPool {
    // reserve() normally starts its own transaction. Constructing a new intent is
    // deferred outside this transaction below rather than nesting a ledger owner.
    if(!session)return {needsSession:true,actionDeadline:action.deadline,payload,assignmentId,targetIdentity,namespace};
-   const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:result.resultTreeSha256,payloadDigest:payload.payloadDigest,executionDigest:executionIdentity(result.execution,namespace),deadline:Math.min(action.deadline,session.intent.deadline),target:targetIdentity};
+   const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:payload.sourceManifest,payloadDigest:payload.payloadDigest,executionDigest:executionIdentity(result.execution,namespace),deadline:Math.min(action.deadline,session.intent.deadline),target:targetIdentity};
    /** @type {Dispatch} */const d={assignmentId,sessionId:session.intent.sessionId,input,objects:payload.objects,state:'pending'};tx.run('INSERT INTO managed_dispatch VALUES(?,?,?,?,?)',assignmentId,attempt.attemptId,d.sessionId,d.state,canonicalJson(d));return d;
   });
  }
@@ -77,7 +77,7 @@ export class ManagedPool {
   const action=this.current(attempt);
   try{return this.ledger.transact(tx=>{const old=/** @type {Dispatch|null} */(decode(tx.get('SELECT record FROM managed_dispatch WHERE assignment_id=?',planned.assignmentId)));requireThat(!old,'IDEMPOTENCY_MISMATCH');
    requireThat(currentNamespace(this.sessions)===planned.namespace,'EXECUTION_UNAVAILABLE','Managed enrollment namespace changed during dispatch');
-   const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:result.resultTreeSha256,payloadDigest:planned.payload.payloadDigest,executionDigest:executionIdentity(result.execution,planned.namespace),deadline:Math.min(action.deadline,s.intent.deadline),target:planned.targetIdentity};
+   const input={attempt,resultId:result.resultId,profileDigest:profile.digest,sourceManifest:planned.payload.sourceManifest,payloadDigest:planned.payload.payloadDigest,executionDigest:executionIdentity(result.execution,planned.namespace),deadline:Math.min(action.deadline,s.intent.deadline),target:planned.targetIdentity};
    /** @type {Dispatch} */const d={assignmentId:planned.assignmentId,sessionId:s.intent.sessionId,input,objects:planned.payload.objects,state:'pending'};tx.run('INSERT INTO managed_dispatch VALUES(?,?,?,?,?)',d.assignmentId,attempt.attemptId,d.sessionId,d.state,canonicalJson(d));return d;
   });}catch(error){this.sessions.closeUnlaunched(s.intent.sessionId);throw error;}
  }
@@ -111,11 +111,15 @@ export class ManagedPool {
    const updated=tx.run("UPDATE managed_dispatch SET session_id=?,state='pending',record=? WHERE assignment_id=? AND record=?",next.sessionId,canonicalJson(next),d.assignmentId,String(row.record));requireThat(Number(updated.changes)===1,'STALE_REVISION');return next;
   });}catch(error){this.sessions.closeUnlaunched(s.intent.sessionId);throw error;}
  }
+ /** Normalize only the exact deterministic legacy digest for the same verified
+  * canonical source bytes. Foreign runner digests remain foreign and fail validation.
+  * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile @param {import('./session-types.js').ExecutionResult} execution */
+ async normalizeValidation(result,attempt,profile,execution){if(!this.legacySourceProjection)return execution;const namespace=assignmentNamespace(execution.assignmentId,attempt,profile.digest);if(namespace!=='dev2')return execution;const target=this.targets.owner(attempt.repositoryId),commit=await this.o.repository.readCommit(target.binding,result.commitOid);requireThat(commit.source.treeOid===result.resultTreeOid&&commit.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE','Prepared result bytes changed during validation normalization');const wire=managedSourceManifest(commit.source,'dev2',true),canonical=result.resultTreeSha256,normalize=(/** @type {string} */ value)=>value===wire?canonical:value;return {...execution,inputDigest:normalize(execution.inputDigest),outputDigest:normalize(execution.outputDigest)};}
  /** RequiredValidation run port: only a matching authenticated native-retained
   * outer-controller result is returned. Candidate log content is not interpreted.
   * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */
  async run(result,attempt,profile){const key=recordDigest('tdev.managed-run-key.v1',{attempt,profileDigest:profile.digest}).slice(7),prior=this.running.get(key);if(prior)return prior;
-  const operation=this.execute(result,attempt,profile);this.running.set(key,operation);try{return await operation;}finally{this.running.delete(key);}
+  const operation=this.execute(result,attempt,profile).then(execution=>this.normalizeValidation(result,attempt,profile,execution));this.running.set(key,operation);try{return await operation;}finally{this.running.delete(key);}
  }
  /** @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */
  async execute(result,attempt,profile){let d=await this.dispatch(result,attempt,profile),lastRefresh=0,lastLaunch=0;
