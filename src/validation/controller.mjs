@@ -8,7 +8,7 @@ import {verifySource} from '../candidate/tree.mjs';
  * only the exact installed controller bytes and finite command surface.
  */
 export const CONTROLLER_FILES=Object.freeze(['tools/validate.mjs','src/validation/selection.mjs','src/contracts/canonical.mjs','src/contracts/errors.mjs','src/contracts/identity.mjs','src/runtime/environment.mjs','config/toolchain.lock.json','config/validation-profiles.json','jsconfig.json','package.json','package-lock.json','docs/design/check.py'].sort());
-export const PRODUCTION_CONTROLLER_FILES=Object.freeze([...CONTROLLER_FILES,'tools/build-release.mjs','src/release/build-output.mjs'].sort());
+export const PRODUCTION_CONTROLLER_FILES=Object.freeze([...CONTROLLER_FILES,'tools/build-release.mjs','src/release/build-output.mjs','src/release/contract-migration.mjs','src/release/manifest.mjs'].sort());
 /** The immutable approved source selects a controller artifact format. Actual
  * execution authorization separately requires the exact private enrollment.
  * @param {import('../contracts/ports.js').SourceTree} source @param {'tdev'} [namespace] */
