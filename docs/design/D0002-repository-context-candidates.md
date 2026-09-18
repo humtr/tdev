@@ -168,3 +168,10 @@ digest. A retained pre-C2 handle may instead contain the exact legacy subject an
 legacy Binding digest; it is accepted only when both derive from the same currently
 verified principal/binding and the original handle MAC/expiry still validate. The
 legacy subject is never used to mint a fresh context handle or candidate.
+
+
+### C2-2 destructive hard-cutover override
+
+For the D0006 hard cutover, abandoning the prior binding ledger is an administrative rebind to the fresh epoch required by D0001. Fresh post-cutover snapshots, cursors and candidates bind only that current epoch, the current principal subject and current tdev.* source/Binding domains. Pre-cutover snapshot/cursor handles and retained generations are intentionally not resumable through the new runtime, so the legacy subject, Binding, gitlink and source-manifest readers above are not installed as current-path fallbacks.
+
+Canonical Git commit/tree history and the authorized repository/ref remain unchanged by this epoch replacement. Cross-binding authorization/currentness/candidate isolation continue to apply exactly as before; the hard cutover changes runtime identity and retained-state reachability, not repository source authority.

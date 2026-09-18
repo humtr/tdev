@@ -147,3 +147,10 @@ compatibility producer; no source candidate, public request or alias may select 
 namespace is trusted. Legacy enrollment verification and production may retire only
 when a current enrollment is active, no rollback-eligible runtime depends on the old
 enrollment, and all legacy sessions are positively terminal.
+
+
+### C2-2 destructive hard-cutover override
+
+For the D0006 hard cutover, the new runtime must be composed from current tdev qualification/production enrollment and current executor identity. The compatibility rule above that permits a released runtime to rely on a legacy dev2 enrollment is superseded once the pre-cutover runtime reaches the required quiescent boundary. Legacy enrollment/evidence remains historical immutable evidence only and is not accepted by the post-cutover runtime verifier or used to launch new sessions.
+
+Production commissioning still requires the same independently verified security/execution inputs and exact native join. The hard cutover does not turn historical evidence into new qualification and does not weaken controller, seal, repository or provider-run binding.

@@ -245,3 +245,10 @@ subject. Deduplication and ownership checks may read the exact legacy subject as
 second key but must never copy, rewrite or merge a retained row, and a caller cannot
 supply or choose the legacy alias. The alias retires only after no retained durable
 owner or installation grant can name it.
+
+
+### C2-2 destructive hard-cutover override
+
+For the owner-authorized C2-2 hard cutover in D0006, the compatibility transition above is superseded for the retired pre-cutover runtime. Before abandoning a binding ledger, every running, blocked or outcome-uncertain attempt/effect on that epoch must be reconciled or positively fenced and new admission must be stopped. Once that quiescent boundary is proven, the old ledger, request tombstones, Work/Action/session history and legacy-domain readers need not remain reachable by the new runtime.
+
+A fresh post-cutover binding uses a new binding epoch whenever its prior ledger is abandoned. This preserves logical request identity: (principal, repositoryId, bindingEpoch, requestId) cannot collide with a discarded request namespace. The new epoch writes only current tdev.* durable identities and does not use legacy principal aliases or legacy digest readers. Historical bytes may remain as evidence outside the current runtime path, but they are not a recovery owner for the new epoch.

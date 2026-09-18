@@ -592,3 +592,10 @@ upgraded. Legacy readers can retire only after no retained prepared result, rece
 H2 selection or unresolved Effect remains reachable under D0001 retention. This
 transition does not weaken exact validation, CAS, stop-before-terminal or atomic H2
 settlement.
+
+
+### C2-2 destructive hard-cutover override
+
+For the D0006 hard cutover, all provider effects with uncertain outcome must be reconciled or fenced before the old binding epoch is abandoned. After that quiescent boundary, the fresh epoch accepts only newly prepared/current tdev.* results, receipts, H2 records and publication effects. Legacy dev2.* result, receipt, commit-trailer and effect readers are not part of the new runtime path, and no retained pre-cutover prepared result or Effect is eligible for reuse there.
+
+This does not relax validation or publication exactness: the cutover descendant must itself pass the complete required validation and every new Git publication still uses the binding-local exact-result/CAS rules. Historical commits and evidence remain truthful immutable history without becoming live integration authority.

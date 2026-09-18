@@ -356,3 +356,10 @@ legacy snapshot is accepted only when its legacy subject, grant set, Binding,
 capability, paths and expiry still reproduce exactly under current authorization.
 The legacy alias is not caller input, cannot match a different provider subject and
 never broadens token capabilities, repository/ref/path scope or grant authority.
+
+
+### C2-2 destructive hard-cutover override
+
+For the D0006 hard cutover, the legacy managed-execution and human-principal compatibility allowances above are superseded after the required quiescent boundary. The post-cutover runtime admits only the current tdev-exec / tdev-executor.yml controller family and current tdev.* principal/authorization identities; it does not compute or accept a legacy principal alias, launch a legacy workflow/ref, or use legacy authorization snapshots as a current-path fallback.
+
+This removal does not widen authority. The same provider principal, Access/OAuth verification, repository/ref/path grants, credential scoping, OIDC binding and sandbox constraints still apply. Any current controller/enrollment and credential rebinding required for the cutover must be independently sealed and verified before old compatibility resources are retired; secrets remain non-readable and no legacy session with possible external effect may be abandoned as though terminal.
