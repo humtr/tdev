@@ -23,11 +23,11 @@ test('executor bearer is header-only and cannot be supplied by device/human asse
 test('edge cryptographically verifies exact provider role, repository, workflow, ref and audience',async()=>{
  const {privateKey,publicKey}=await generateKeyPair('RS256'),jwk=await exportJWK(publicKey);jwk.kid='fixture';const keys=createLocalJWKSet({keys:[jwk]});
  const config={origin,binding:{remote:'https://github.com/fixture/repo.git',providerRepositoryId:'123'}};
- const claims={repository_id:'123',repository_owner_id:'456',ref:'refs/heads/dev2-exec/s',sha:C,workflow_ref:'fixture/repo/.github/workflows/dev2-executor.yml@refs/heads/dev2-exec/s',workflow_sha:C,run_id:'19',run_attempt:'1',runner_environment:'github-hosted',event_name:'push'};
+ const claims={repository_id:'123',repository_owner_id:'456',ref:'refs/heads/tdev-exec/s',sha:C,workflow_ref:'fixture/repo/.github/workflows/tdev-executor.yml@refs/heads/tdev-exec/s',workflow_sha:C,run_id:'19',run_attempt:'1',runner_environment:'github-hosted',event_name:'push'};
  const now=2000000,verify=executorAuthentication(config,keys,()=>now);
- const token=async patch=>new SignJWT({...claims,...patch}).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer('https://token.actions.githubusercontent.com').setAudience(origin+'/executor').setSubject('repo:fixture/repo:ref:refs/heads/dev2-exec/s').setIssuedAt(1900).setExpirationTime(2200).sign(privateKey);
+ const token=async patch=>new SignJWT({...claims,...patch}).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer('https://token.actions.githubusercontent.com').setAudience(origin+'/executor').setSubject('repo:fixture/repo:ref:refs/heads/tdev-exec/s').setIssuedAt(1900).setExpirationTime(2200).sign(privateKey);
  const request=t=>new Request(origin+'/executor',{headers:{authorization:'Bearer '+t}}),good=await token({});assert.equal(await verify(request(good),base),good);
- for(const patch of [{repository_id:'124'},{ref:'refs/heads/dev-2'},{workflow_ref:'fixture/repo/.github/workflows/untrusted.yml@refs/heads/dev2-exec/s'},{workflow_sha:'2'.repeat(40)},{run_attempt:'2'},{runner_environment:'self-hosted'},{event_name:'pull_request'}])await assert.rejects(verify(request(await token(patch)),base));
+ for(const patch of [{repository_id:'124'},{ref:'refs/heads/dev-2'},{workflow_ref:'fixture/repo/.github/workflows/untrusted.yml@refs/heads/tdev-exec/s'},{workflow_sha:'2'.repeat(40)},{run_attempt:'2'},{runner_environment:'self-hosted'},{event_name:'pull_request'}])await assert.rejects(verify(request(await token(patch)),base));
  await assert.rejects(verify(request(good.slice(0,-6)+'wrong!'),base));
  const wrongAudience=await new SignJWT(claims).setProtectedHeader({alg:'RS256',kid:'fixture'}).setIssuer('https://token.actions.githubusercontent.com').setAudience(origin+'/mcp').setSubject('repo:fixture/repo').setIssuedAt(1900).setExpirationTime(2200).sign(privateKey);await assert.rejects(verify(request(wrongAudience),base));
 });

@@ -123,7 +123,7 @@ def main() -> None:
     policies = provider.call('/access/apps/' + manifest['accessApplicationId'] + '/policies')
     settings = provider.call(root + '/settings')
     deployment = active(provider.call(root + '/deployments'))
-    active_config_text = next((b.get('text') for b in settings.get('bindings', []) if b.get('name') == 'DEV2_CONFIG_JSON'), None)
+    active_config_text = next((b.get('text') for b in settings.get('bindings', []) if b.get('name') == 'TDEV_CONFIG_JSON'), None)
     active_config = json.loads(active_config_text) if active_config_text is not None else None
     configuration_readback = {'present': active_config is not None, 'matchesInstalled': active_config == edge,
                               'sourceCommitOid': active_config.get('sourceCommitOid') if active_config else None,
@@ -153,17 +153,17 @@ def main() -> None:
     namespaces = provider.call('/workers/durable_objects/namespaces')
     local_classes = {n.get('class') for n in namespaces if n.get('script') == worker}
     retired = set(manifest.get('retireClasses', []))
-    if local_classes - retired - {'Dev2RendezvousDO'}:
+    if local_classes - retired - {'TdevRendezvousDO'}:
         raise RuntimeError('Unrelated local Durable Object class would be affected')
-    exports = {'Dev2RendezvousDO': {'type': 'durable-object', 'storage': 'sqlite'}}
+    exports = {'TdevRendezvousDO': {'type': 'durable-object', 'storage': 'sqlite'}}
     for name in sorted(local_classes & retired):
         exports[name] = {'type': 'durable-object', 'state': 'deleted'}
     metadata = {'main_module': 'worker.mjs', 'compatibility_date': '2026-08-15', 'compatibility_flags': ['nodejs_compat'],
                 'exports': exports,
-                'bindings': [{'name': 'DEV2_CONFIG_JSON', 'type': 'plain_text', 'text': json.dumps(edge, separators=(',', ':'))},
-                             {'name': 'DEV2_DEVICE_SECRET', 'type': 'secret_text', 'text': secret},
-                             {'name': 'DEV2_VERSION', 'type': 'version_metadata'},
-                             {'name': 'DEV2_ROUTER', 'type': 'durable_object_namespace', 'class_name': 'Dev2RendezvousDO'}],
+                'bindings': [{'name': 'TDEV_CONFIG_JSON', 'type': 'plain_text', 'text': json.dumps(edge, separators=(',', ':'))},
+                             {'name': 'TDEV_DEVICE_SECRET', 'type': 'secret_text', 'text': secret},
+                             {'name': 'TDEV_VERSION', 'type': 'version_metadata'},
+                             {'name': 'TDEV_ROUTER', 'type': 'durable_object_namespace', 'class_name': 'TdevRendezvousDO'}],
                 'observability': {'enabled': True, 'logs': {'enabled': True, 'invocation_logs': True}},
                 'annotations': {'workers/message': 'tdev Phase A ' + manifest['sourceCommitOid']}}
     boundary = 'tdev-' + uuid.uuid4().hex
@@ -179,7 +179,7 @@ def main() -> None:
         provider.call(root + '/subdomain', 'POST', {'enabled': True, 'previews_enabled': False})
         route_after = provider.call(root + '/subdomain')
     current = provider.call(root + '/settings')
-    installed_config = next((b.get('text') for b in current.get('bindings', []) if b.get('name') == 'DEV2_CONFIG_JSON'), None)
+    installed_config = next((b.get('text') for b in current.get('bindings', []) if b.get('name') == 'TDEV_CONFIG_JSON'), None)
     if installed_config is None or json.loads(installed_config) != edge:
         raise RuntimeError('Active configuration readback mismatch')
     observation.update({'completedAt': datetime.datetime.now(datetime.timezone.utc).isoformat(), 'mutationPerformed': True,

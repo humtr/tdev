@@ -3,7 +3,6 @@ import { canonicalJson, recordDigest, bytesDigest, parseRecord } from '../contra
 import { id, revision, oid } from '../contracts/identity.mjs';
 import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { repositoryPath, withinPrefix, comparePaths } from '../security/paths.mjs';
-import {retainedPrincipalSubject} from '../security/principal.mjs';
 import { verifySource } from '../candidate/tree.mjs';
 import { sameEntry, sourceManifestMatches } from './entries.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
@@ -34,18 +33,17 @@ export class ContextService {
     constructor(options) { requireThat(options.tokenKey.byteLength >= 32, 'INVALID_ARGUMENT', 'Context MAC key'); this.options = options; this.key = Buffer.from(options.tokenKey); this.now = options.now ?? Date.now; this.ttlMs = options.ttlMs ?? 1800000; this.maxScanBytes = options.maxScanBytes ?? 8388608; bound(this.ttlMs, 86400000, 1); bound(this.maxScanBytes, 8388608, 1024); }
     /** @param {Principal} principal @param {Binding} binding @param {string[]} [paths] */
     async authorize(principal, binding, paths = []) { await this.options.authorization.authorize(principal, binding, 'repository.read', paths); await this.options.repository.checkBinding(binding); }
-    /** @param {string} prefix @param {string} hash @param {'tdev'|'dev2'} [namespace] */
-    mac(prefix, hash, namespace = 'tdev') { requireThat(namespace === 'tdev' || namespace === 'dev2', 'INVALID_ARGUMENT', 'Context identity namespace'); return createHmac('sha256', this.key).update(namespace + '.context-handle.v1\0' + prefix + '\0' + hash).digest('base64url'); }
+    /** @param {string} prefix @param {string} hash */
+    mac(prefix, hash) { return createHmac('sha256', this.key).update('tdev.context-handle.v1\0' + prefix + '\0' + hash).digest('base64url'); }
     /** @param {'s'|'c'} prefix @param {RecordValue} value */
-    async retain(prefix, value) { const bytes = Buffer.from(canonicalJson(value)); const hash = await this.options.objects.put(bytes); requireThat(hash === bytesDigest(bytes), 'INTEGRITY_FAILURE', 'Context object store digest'); return prefix + '_' + hash.slice(7) + '_' + this.mac(prefix, hash, 'tdev'); }
+    async retain(prefix, value) { const bytes = Buffer.from(canonicalJson(value)); const hash = await this.options.objects.put(bytes); requireThat(hash === bytesDigest(bytes), 'INTEGRITY_FAILURE', 'Context object store digest'); return prefix + '_' + hash.slice(7) + '_' + this.mac(prefix, hash); }
     /** @param {'s'|'c'} prefix @param {string} token @param {Principal} principal @param {Binding} binding */
     async retained(prefix, token, principal, binding) {
         await this.authorize(principal, binding);
         const match = typeof token === 'string' ? /^([sc])_([a-f0-9]{64})_([A-Za-z0-9_-]{43})$/.exec(token) : null;
         requireThat(match && match[1] === prefix, 'FORBIDDEN', 'Invalid context handle');
         const hash = 'sha256:' + match[2], supplied = Buffer.from(match[3]);
-        const current = timingSafeEqual(supplied, Buffer.from(this.mac(prefix, hash, 'tdev'))), legacy = timingSafeEqual(supplied, Buffer.from(this.mac(prefix, hash, 'dev2'))), namespace = current ? 'tdev' : legacy ? 'dev2' : '';
-        requireThat(namespace !== '', 'FORBIDDEN', 'Context handle authentication');
+        requireThat(timingSafeEqual(supplied, Buffer.from(this.mac(prefix, hash))), 'FORBIDDEN', 'Context handle authentication');
         let bytes;
         try {
             bytes = await this.options.objects.get(hash);
@@ -57,9 +55,8 @@ export class ContextService {
         }
         requireThat(bytesDigest(bytes) === hash, 'INTEGRITY_FAILURE', 'Context object integrity');
         const value = record(parseRecord(bytes));
-        const expectedSubject=namespace==='tdev'?principal.subject:retainedPrincipalSubject(principal);requireThat(value.subject === expectedSubject && value.bindingDigest === recordDigest(namespace + '.binding.v1', binding), 'FORBIDDEN', 'Context subject or binding changed');
+        requireThat(value.subject === principal.subject && value.bindingDigest === recordDigest('tdev.binding.v1', binding), 'FORBIDDEN', 'Context subject or binding changed');
         requireThat(typeof value.expiresAt === 'number' && Number.isSafeInteger(value.expiresAt) && value.expiresAt > this.now(), 'CONTEXT_EXPIRED');
-        Object.defineProperty(value, '__identityNamespace', { value: namespace, enumerable: false });
         return value;
     }
     /** @param {Principal} principal @param {Binding} binding @returns {Promise<import('../contracts/ports.js').Snapshot>} */
@@ -132,9 +129,9 @@ export class ContextService {
         const position = async (query) => {
             if (!('cursor' in query) || !query.cursor)
                 return {};
-            const retained = await this.retained('c', query.cursor, principal, binding), descriptor = { ...query }, namespace = Reflect.get(retained, '__identityNamespace');
+            const retained = await this.retained('c', query.cursor, principal, binding), descriptor = { ...query };
             delete /** @type {{cursor?:string}} */ (descriptor).cursor;
-            requireThat((namespace === 'tdev' || namespace === 'dev2') && retained.target === recordDigest(namespace + '.read-target.v1', targetValue) && retained.queryDigest === recordDigest(namespace + '.read-query.v1', descriptor), 'STALE_CONTEXT', 'Cursor target/query changed');
+            requireThat(retained.target === recordDigest('tdev.read-target.v1', targetValue) && retained.queryDigest === recordDigest('tdev.read-query.v1', descriptor), 'STALE_CONTEXT', 'Cursor target/query changed');
             return record(retained.position);
         };
         for (const query of queries) {

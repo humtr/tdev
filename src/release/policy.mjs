@@ -34,7 +34,7 @@ export function qualifiedPolicy(input){
   for(const n of [p.timeoutMs,p.killGraceMs,p.memoryBytes,p.pids,p.cpuMillis,p.diskBytes,p.logBytes])requireThat(Number.isSafeInteger(n)&&n>0,'INVALID_ARGUMENT','Finite resource bounds');
   requireThat(p.timeoutMs%1000===0&&p.killGraceMs%1000===0&&p.memoryBytes>=p.diskBytes&&p.diskBytes>=8192&&['none','fixture'].includes(p.network)&&typeof p.replaySafe==='boolean','INVALID_ARGUMENT');
   requireThat(Buffer.byteLength(canonicalJson(p.parameters))<=65536&&Buffer.byteLength(canonicalJson(item.parameterSchema))<=65536,'LIMIT_EXCEEDED');
-  const {digest:ignored,...profileDefinition}=p,current=recordDigest('tdev.profile.v1',profileDefinition),legacy=recordDigest('dev2.profile.v1',profileDefinition),namespace=p.digest===current?'tdev':p.digest===legacy?'dev2':'';requireThat(namespace!=='' ,'INTEGRITY_FAILURE','Profile digest mismatch');namespaces.add(namespace);
+  const {digest:ignored,...profileDefinition}=p,current=recordDigest('tdev.profile.v1',profileDefinition),legacy=recordDigest('tdev.profile.v1',profileDefinition),namespace=p.digest===current?'tdev':p.digest===legacy?'tdev':'';requireThat(namespace!=='' ,'INTEGRITY_FAILURE','Profile digest mismatch');namespaces.add(namespace);
   if(value.required.includes(p.profileId))requireThat(p.network==='none','EXECUTION_UNAVAILABLE','Required profile cannot acquire a fixture/network capability');
  }
  requireThat(namespaces.size===1&&new Set(value.profiles.map(p=>p.profile.digest)).size===value.profiles.length,'INVALID_ARGUMENT','Profile identity family or alias');

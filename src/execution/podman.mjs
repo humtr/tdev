@@ -13,11 +13,11 @@ import { boundedCommand } from './command.mjs';
 /** @typedef {import('../contracts/ports.js').SandboxObservation} Observation */
 /** @typedef {import('./command.mjs').CommandResult} CommandResult */
 /** @param {Attempt} attempt */
-function attemptNamespace(attempt){requireThat(attempt.identityNamespace===undefined||attempt.identityNamespace==='tdev','INTEGRITY_FAILURE');return attempt.identityNamespace??'dev2';}
-/** @param {Attempt} attempt @param {'tdev'|'dev2'} [identityNamespace] */
+function attemptNamespace(attempt){requireThat(attempt.identityNamespace==='tdev','INTEGRITY_FAILURE');return 'tdev';}
+/** @param {Attempt} attempt @param {'tdev'} [identityNamespace] */
 export function attemptName(attempt,identityNamespace) {
   for(const k of ['installationId','repositoryId','workId','actionId','attemptId']) id(attempt[/** @type {'workId'} */(k)]);
-  revision(attempt.attempt);revision(attempt.ownerEpoch);const namespace=identityNamespace??attemptNamespace(attempt);requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Attempt identity namespace');
+  revision(attempt.attempt);revision(attempt.ownerEpoch);const namespace=identityNamespace??attemptNamespace(attempt);requireThat(namespace==='tdev','INVALID_ARGUMENT','Attempt identity namespace');
   return namespace+'-'+recordDigest(namespace+'.sandbox-attempt.v1',attempt).slice(7);
 }
 /** @param {Attempt} attempt @param {Observation['state']} state @returns {Observation} */

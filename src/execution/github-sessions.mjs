@@ -9,9 +9,9 @@ import {id,revision} from '../contracts/identity.mjs';
 function object(value){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value),'EXECUTION_UNAVAILABLE','Malformed GitHub response');return /** @type {RecordValue} */(value);}
 /** @param {unknown} value */
 function numericId(value){requireThat(typeof value==='number'&&Number.isSafeInteger(value)&&value>0,'EXECUTION_UNAVAILABLE','Invalid provider numeric identity');return String(value);}
-const CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml',LEGACY_WORKFLOW='.github/workflows/dev2-executor.yml';
+const CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml';
 /** @param {Session} session */
-function intentShape(session){const i=session.intent,current='refs/heads/tdev-exec/'+i.sessionId,legacy='refs/heads/dev2-exec/'+i.sessionId,path=i.ref===current?CURRENT_WORKFLOW:i.ref===legacy?LEGACY_WORKFLOW:'';requireThat(path&&i.workflowRef===i.repositoryFullName+'/'+path+'@'+i.ref,'INTEGRITY_FAILURE','Managed workflow/ref identity mismatch');return {workflowPath:path,prefix:path===CURRENT_WORKFLOW?'tdev-exec':'dev2-exec',namespace:path===CURRENT_WORKFLOW?'tdev':'dev2'};}
+function intentShape(session){const i=session.intent,ref='refs/heads/tdev-exec/'+i.sessionId;requireThat(i.ref===ref&&i.workflowRef===i.repositoryFullName+'/'+CURRENT_WORKFLOW+'@'+i.ref,'INTEGRITY_FAILURE','Managed workflow/ref identity mismatch');return {workflowPath:CURRENT_WORKFLOW,prefix:'tdev-exec',namespace:'tdev'};}
 /** Provider observations are projected from authenticated HTTPS, never executor
  * input. No URL from a response is followed and no candidate ref can be launched.
  * Operational deletion is restricted to the exact immutable retained session ref
@@ -87,7 +87,7 @@ export class GitHubSessions {
   const operation=this.fetchRuns(s).then(runs=>{this.cache.set(sessionId,{at:this.now(),runs});return runs;});this.inflight.set(sessionId,operation);try{return await operation;}finally{this.inflight.delete(sessionId);}
  }
  /** Reconcile logical state, provider terminal truth and exact operational ref.
-  * Closed legacy sessions are re-observed until their ref absence is durable.
+  * Closed retained sessions are re-observed until their ref absence is durable.
   * @param {string} sessionId @param {boolean} [force] */
  async refresh(sessionId,force=false){let s=this.retained(sessionId);if(s.launch!=='sent')return s;if(s.state==='closed'&&this.retirement(sessionId))return s;const runs=await this.runs(sessionId,force);
   if(s.state==='closed'){let terminal=null;if(s.run){terminal=runs.find(p=>p.runId===s.run?.runId)??null;requireThat(terminal,'EFFECT_UNCERTAIN','Selected provider run is not in a complete observation');if(terminal.status!=='completed')return s;}else if(runs.length&&runs.every(p=>p.status==='completed'))terminal=runs[0];if(!terminal)return s;await this.retireReference(sessionId,terminal);return this.retained(sessionId);}

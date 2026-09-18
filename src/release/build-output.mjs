@@ -8,7 +8,7 @@ export const BUILD_NAMES=Object.freeze(['device.cjs','worker.mjs','tools.json'])
 export const BUILD_DATA_BYTES=8388608;
 export const BUILD_OUTPUT_BYTES=12582912;
 /** @typedef {{name:string,digest:string,size:number,data:string}} EncodedArtifact */
-/** @typedef {{schemaVersion:1,kind:'tdev.release-build-output'|'dev2.release-build-output',schemaDigest:string,artifacts:EncodedArtifact[]}} BuildOutput */
+/** @typedef {{schemaVersion:1,kind:'tdev.release-build-output'|'tdev.release-build-output',schemaDigest:string,artifacts:EncodedArtifact[]}} BuildOutput */
 /** @param {unknown} value @param {readonly string[]} keys */
 function closed(value,keys){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value)&&Object.keys(value).sort().join(',')===[...keys].sort().join(','),'INTEGRITY_FAILURE','Closed release build output');}
 /** A sandbox output is only bytes. Eligibility comes from its authenticated
@@ -18,7 +18,7 @@ export function decodeBuildOutput(bytes,expectedSchema){
  requireThat(bytes.byteLength>0&&bytes.byteLength<=BUILD_OUTPUT_BYTES,'LIMIT_EXCEEDED');
  const value=/** @type {BuildOutput} */(/** @type {unknown} */(parseRecord(bytes,BUILD_OUTPUT_BYTES)));
  closed(value,['schemaVersion','kind','schemaDigest','artifacts']);
- requireThat(value.schemaVersion===1&&['tdev.release-build-output','dev2.release-build-output'].includes(value.kind),'INTEGRITY_FAILURE');digest(value.schemaDigest);
+ requireThat(value.schemaVersion===1&&['tdev.release-build-output','tdev.release-build-output'].includes(value.kind),'INTEGRITY_FAILURE');digest(value.schemaDigest);
  if(expectedSchema!==undefined)requireThat(value.schemaDigest===digest(expectedSchema),'INTEGRITY_FAILURE','Build changes the frozen public schema');
  requireThat(Array.isArray(value.artifacts)&&value.artifacts.length===BUILD_NAMES.length,'INTEGRITY_FAILURE');
  const artifacts=value.artifacts.map((artifact,index)=>{
@@ -32,9 +32,9 @@ export function decodeBuildOutput(bytes,expectedSchema){
  requireThat(publicDescriptor(tools).schemaDigest===value.schemaDigest,'INTEGRITY_FAILURE','Descriptor schema digest differs');
  return {schemaDigest:value.schemaDigest,artifacts,refs:{device:artifacts[0].digest,edge:artifacts[1].digest,tools:artifacts[2].digest}};
 }
-/** @param {string} schemaDigest @param {Readonly<Record<string,Uint8Array>>} files @param {'tdev'|'dev2'} [namespace] */
+/** @param {string} schemaDigest @param {Readonly<Record<string,Uint8Array>>} files @param {'tdev'} [namespace] */
 export function encodeBuildOutput(schemaDigest,files,namespace='tdev'){
- requireThat(['tdev','dev2'].includes(namespace)&&Object.keys(files).sort().join(',')===[...BUILD_NAMES].sort().join(','),'INTEGRITY_FAILURE');
+ requireThat(namespace==='tdev'&&Object.keys(files).sort().join(',')===[...BUILD_NAMES].sort().join(','),'INTEGRITY_FAILURE');
  const artifacts=BUILD_NAMES.map(name=>{const bytes=files[name];return {name,digest:bytesDigest(bytes),size:bytes.byteLength,data:Buffer.from(bytes).toString('base64')};});
  const bytes=Buffer.from(canonicalJson({schemaVersion:1,kind:namespace+'.release-build-output',schemaDigest,artifacts}));decodeBuildOutput(bytes,schemaDigest);return bytes;
 }

@@ -48,7 +48,7 @@ export class ActionRecovery {
   return {action,work,reservation,effect,result,receipt,cancelled:tx.get('SELECT value FROM meta WHERE key=?','cancel:'+actionId)?.value==='true'};
  }
  /** @param {Frame} frame */
- stamp(frame){const namespace=frame.action.identityNamespace??'dev2';requireThat(namespace==='tdev'||namespace==='dev2','INTEGRITY_FAILURE');return recordDigest(namespace+'.recovery-frame.v1',frame);}
+ stamp(frame){const namespace=frame.action.identityNamespace??'tdev';requireThat(namespace==='tdev'||namespace==='tdev','INTEGRITY_FAILURE');return recordDigest(namespace+'.recovery-frame.v1',frame);}
  /** Observe only; no new attempt or provider effect is created here.
   * @param {Principal} principal @param {string} actionId @param {string} expectedRevision @returns {Promise<Plan>} */
  async plan(principal,actionId,expectedRevision){

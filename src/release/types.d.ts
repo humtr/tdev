@@ -2,7 +2,7 @@ import type {Json} from '../contracts/ports.js';
 /** Private release records. These are not additional public MCP operations. */
 export interface VersionRange {min:number;max:number}
 export interface ReleaseManifest {
- schemaVersion:1;identityNamespace?:'tdev';repositoryId:string;bindingEpoch:string;sourceCommitOid:string;
+ schemaVersion:1;identityNamespace:'tdev';repositoryId:string;bindingEpoch:string;sourceCommitOid:string;
  sourceTreeOid:string;sourceManifestDigest:string;policyDigest:string;schemaDigest:string;
  protocol:VersionRange;ledger:VersionRange;installationSealDigest:string;
  requiredValidationId:string;releaseValidationId:string;
@@ -17,14 +17,14 @@ export interface RuntimePair {
  protocol:VersionRange;ledger:VersionRange;
 }
 export interface ActivationIntent {
- identityNamespace?:'tdev';activationId:string;actionId:string;installationId:string;repositoryId:string;
+ identityNamespace:'tdev';activationId:string;actionId:string;installationId:string;repositoryId:string;
  bindingEpoch:string;principalId:string;createdAt:number;deadline:number;
  previous:RuntimePair;target:RuntimePair;
  migration?:{protocol:'public-contract-v1';previousSchemaDigest:string;targetSchemaDigest:string;transitionDigest:string;rollbackOf?:string};
 }
 export type ActivationStep='edge.activate'|'device.drain'|'device.stop'|'device.switch'|'device.start'|'pair.check';
 export interface ActivationEffect {
- identityNamespace?:'tdev';effectId:string;activationId:string;direction:'forward'|'rollback';step:ActivationStep;
+ identityNamespace:'tdev';effectId:string;activationId:string;direction:'forward'|'rollback';step:ActivationStep;
  inputDigest:string;expected:RuntimePair;target:RuntimePair;
 }
 export interface ActivationReceipt {

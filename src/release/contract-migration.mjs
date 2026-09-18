@@ -47,8 +47,8 @@ function compare(old,next,output,path,errors){
   else if(canonicalJson(a[key])!==canonicalJson(b[key]))errors.push(path+'/'+key);
  }
 }
-/** @param {unknown} previous @param {unknown} target @param {'tdev'|'dev2'} [namespace] */
-export function publicContractTransition(previous,target,namespace='tdev'){requireThat(['tdev','dev2'].includes(namespace),'INVALID_ARGUMENT');
+/** @param {unknown} previous @param {unknown} target @param {'tdev'} [namespace] */
+export function publicContractTransition(previous,target,namespace='tdev'){requireThat(namespace==='tdev','INVALID_ARGUMENT');
  const a=publicDescriptor(previous),b=publicDescriptor(target),errors=/** @type {string[]} */([]);
  for(const old of a.tools){const next=b.tools.find(t=>t.name===old.name);requireThat(next,'INTEGRITY_FAILURE');
   for(const key of new Set([...Object.keys(old),...Object.keys(next)])){

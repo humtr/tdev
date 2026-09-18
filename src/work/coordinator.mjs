@@ -12,15 +12,15 @@ export class WorkCoordinator {
   /** @param {Ledger} ledger @param {{executionCapacity?:number,maxPending?:number,now?:()=>number,ids?:()=>string}} [options] */
   constructor(ledger,options={}){this.ledger=ledger;this.executionCapacity=capacity(options.executionCapacity);this.maxPending=options.maxPending??1024;this.now=options.now??Date.now;this.ids=options.ids??newId;requireThat(Number.isSafeInteger(this.maxPending)&&this.maxPending>0&&this.maxPending<=100000,'INVALID_ARGUMENT');}
   /** Auth is always checked before dedup. `beforeMutate` is an optional synchronous installation-level fence: retained duplicates bypass it, and no await occurs between it and the durable mutation transaction. The mutate callback may only change ledger rows.
-   * @param {{principal:string,legacyPrincipal?:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,beforeMutate?:()=>void,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
+   * @param {{principal:string,requestId:string,operation:string,intent:unknown,authorize:()=>Promise<void>,deadline:number,inline?:boolean,beforeMutate?:()=>void,mutate:(tx:Transaction,actionId:string)=>Work|null}} request
    */
   async admit(request){await request.authorize();id(request.requestId);
     const identity={repositoryId:this.ledger.binding.repositoryId,bindingEpoch:this.ledger.binding.bindingEpoch,operation:request.operation,intent:request.intent};
-    const intentDigest=recordDigest('tdev.mutation-intent.v1',identity),legacyIntentDigest=recordDigest('dev2.mutation-intent.v1',identity);
+    const intentDigest=recordDigest('tdev.mutation-intent.v1',identity);
     /** @param {Action} duplicate */
-    const sameIntent=duplicate=>duplicate.intentDigest===intentDigest||duplicate.intentDigest===legacyIntentDigest;
+    const sameIntent=duplicate=>duplicate.intentDigest===intentDigest;
     /** @param {Transaction} tx */
-    const lookup=tx=>tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId)??(request.legacyPrincipal?tx.lookupRequest(request.legacyPrincipal,this.ledger.binding.bindingEpoch,request.requestId):null);
+    const lookup=tx=>tx.lookupRequest(request.principal,this.ledger.binding.bindingEpoch,request.requestId);
     if(request.beforeMutate){const retained=this.ledger.transact(tx=>{const duplicate=lookup(tx);if(!duplicate)return null;requireThat(sameIntent(duplicate),'IDEMPOTENCY_MISMATCH');return {action:duplicate,work:duplicate.workId?tx.getWork(duplicate.workId):null,deduplicated:true};});if(retained)return retained;request.beforeMutate();}
     return this.ledger.transact(tx=>{
       const duplicate=lookup(tx);
@@ -54,7 +54,7 @@ export class WorkCoordinator {
     if(action.deadline<=this.now()){tx.updateAction({...action,status:'cancelled',step:'deadline.before.dispatch',errorCode:null});this.clearFence(tx,action);continue;}
     /** @type {Attempt} */
     const attempt={installationId:this.ledger.binding.installationId,repositoryId:this.ledger.binding.repositoryId,workId:action.workId??action.actionId,actionId:action.actionId,
-      ...(action.identityNamespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{}),attemptId:this.ids(),attempt:nextRevision(action.attempt),ownerEpoch:this.ledger.ownerEpoch};
+      identityNamespace:/** @type {const} */('tdev'),attemptId:this.ids(),attempt:nextRevision(action.attempt),ownerEpoch:this.ledger.ownerEpoch};
     requireThat(tx.reserveAttempt(attempt,this.executionCapacity),'INTEGRITY_FAILURE');
     const running={...action,status:/** @type {const} */('running'),step:'launch.reserved',attempt:attempt.attempt,ownerEpoch:this.ledger.ownerEpoch};tx.updateAction(running);
     tx.run("INSERT INTO meta(key,value) VALUES('dispatchPrincipal',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",action.principal);

@@ -9,12 +9,12 @@ import { fixture, fakeRef } from '../fixtures/deterministic.mjs';
 test('canonical vectors: lexical integer keys, -0 and domain separation', () => {
   const v = {'2':2,z:'x',a:[true,null,-0],'10':10};
   assert.equal(canonicalJson(v), '{"10":10,"2":2,"a":[true,null,0],"z":"x"}');
-  assert.equal(recordDigest('dev2.fixture.v1',v),'sha256:4416ef94d22e649e6a2b1cda29ddbd9c0925ba2382eea4d344b8448fbe879dd0');
-  assert.notEqual(recordDigest('dev2.request.v1',v),recordDigest('dev2.fixture.v1',v));
+  assert.equal(recordDigest('tdev.fixture.v1',v),'sha256:3fad352e703c9f0073cac5fa11a0b4faacab4862bb90d4035d02faeda291a1fb');
+  assert.notEqual(recordDigest('tdev.request.v1',v),recordDigest('tdev.fixture.v1',v));
 });
 test('canonical scalar strings, no normalization, escaping and integer boundaries', () => {
   const v={c:'\u00e9',b:'e\u0301',a:'\ud55c\uae00'};
-  assert.equal(recordDigest('dev2.fixture.v1',v),'sha256:a05d69110e0e93703f177404a616543422a82946df3289d7c087492e2a239644');
+  assert.equal(recordDigest('tdev.fixture.v1',v),'sha256:0ae3e40b917c9448fca63467f19c097b97a351e87747965cf3e687b64607e42a');
   assert.equal(canonicalJson([Number.MAX_SAFE_INTEGER,-Number.MAX_SAFE_INTEGER,'\n\\"']), '[9007199254740991,-9007199254740991,"\\n\\\\\\\""]');
   assert.equal(canonicalJson({'\ue000':1,'\ud83d\ude00':2}),'{"\ud83d\ude00":2,"\ue000":1}');
 });

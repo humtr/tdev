@@ -2,7 +2,7 @@ import { jwtVerify } from 'jose';
 import { recordDigest } from '../contracts/canonical.mjs';
 import { requireThat, TdevError } from '../contracts/errors.mjs';
 import { repositoryPath, withinPrefix } from './paths.mjs';
-import {attachLegacySubject,principalSubjects} from './principal.mjs';
+import {principalSubjects} from './principal.mjs';
 /** @typedef {import('../contracts/ports.js').Principal} Principal */
 /** @typedef {import('../contracts/ports.js').AuthorizationPort} AuthorizationPort */
 /** @typedef {import('../contracts/ports.js').Binding} Binding */
@@ -33,8 +33,8 @@ export function bearerVerifier(config,keyResolver,now=Date.now) {
       const scopes=new Set(payload.scope.split(' '));
       const tokenCapabilities=CAPABILITIES.filter(capability=>scopes.has(capability));
       const identity={issuer:config.issuer,subject:payload.sub};
-      return attachLegacySubject({tokenCapabilities,subject:recordDigest('tdev.oauth-subject.v1',identity).slice(7),
-        issuer:config.issuer,audience:config.audience,expiresAt:payload.exp*1000},recordDigest('dev2.oauth-subject.v1',identity).slice(7));
+      return {tokenCapabilities,subject:recordDigest('tdev.oauth-subject.v1',identity).slice(7),
+        issuer:config.issuer,audience:config.audience,expiresAt:payload.exp*1000};
     } catch { throw new TdevError('UNAUTHORIZED'); }
   };
 }
@@ -67,12 +67,10 @@ export class ScopedAuthorization {
     const principalRecord=subject=>({subject,issuer:principal.issuer,audience:principal.audience,expiresAt:principal.expiresAt,tokenCapabilities:[...(principal.tokenCapabilities??[])].sort()});
     /** @param {string} subject @param {readonly Grant[]} list */
     const record=(subject,list)=>({principal:principalRecord(subject),binding:current,capability,paths:checked,grants:normalize(list)});
-    const result={stamp:recordDigest('tdev.authorization-snapshot.v1',record(principal.subject,grants)),expiresAt:principal.expiresAt};
-    if(principal.legacySubject!==undefined){const legacy=matches(principal.legacySubject);if(legacy.length>0&&checked.every(path=>allows(legacy,path)))Object.defineProperty(result,'__legacyStamp',{value:recordDigest('dev2.authorization-snapshot.v1',record(principal.legacySubject,legacy)),enumerable:false});}
-    return result;
+    return {stamp:recordDigest('tdev.authorization-snapshot.v1',record(principal.subject,grants)),expiresAt:principal.expiresAt};
   }
   /** @param {{stamp:string,expiresAt:number}} retained @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
-  assertSnapshot(retained,principal,binding,capability,paths=[]){const current=this.snapshot(principal,binding,capability,paths),legacy=/** @type {{__legacyStamp?:string}} */(current).__legacyStamp;requireThat((current.stamp===retained.stamp||legacy===retained.stamp)&&current.expiresAt===retained.expiresAt,'STALE_REVISION','Authorization authority changed');return current;}
+  assertSnapshot(retained,principal,binding,capability,paths=[]){const current=this.snapshot(principal,binding,capability,paths);requireThat(current.stamp===retained.stamp&&current.expiresAt===retained.expiresAt,'STALE_REVISION','Authorization authority changed');return current;}
   /** @param {Principal} principal @param {Binding} binding @param {Capability} capability @param {readonly string[]} [paths] */
   async authorize(principal,binding,capability,paths=[]) { this.snapshot(principal,binding,capability,paths); }
 }

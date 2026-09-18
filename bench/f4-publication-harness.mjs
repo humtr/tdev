@@ -43,7 +43,7 @@ function instrument(repository,metrics){
 /** @param {AnyRecord} canonical @param {Binding} binding @param {Metrics} metrics */
 async function repositoryFor(canonical,binding,metrics){
  const repository=instrument(new GitRepository({directory:canonical.repositoryDirectory,executable:canonical.gitExecutable,environment:canonical.environment,bindings:()=>[binding],verifyRemote:async()=>{
-  metrics.githubApiOperations++;let response;try{response=await fetch('https://api.github.com/repos/humtr/tdev',{headers:{accept:'application/vnd.github+json','user-agent':'dev2-f4-research'},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new Error('F4 repository identity unavailable');}
+  metrics.githubApiOperations++;let response;try{response=await fetch('https://api.github.com/repos/humtr/tdev',{headers:{accept:'application/vnd.github+json','user-agent':'tdev-f4-research'},redirect:'error',signal:AbortSignal.timeout(15000)});}catch{throw new Error('F4 repository identity unavailable');}
   const text=await response.text();metrics.githubApiResponseBytes+=Buffer.byteLength(text);requireThat(response.ok,'EXECUTION_UNAVAILABLE','F4 repository identity unavailable');const metadata=JSON.parse(text);requireThat(String(metadata.id)===F4_SCOPE.providerRepositoryId&&metadata.full_name==='humtr/tdev'&&metadata.archived===false,'FORBIDDEN','F4 repository identity changed');
  }}),metrics);await repository.init();return repository;
 }

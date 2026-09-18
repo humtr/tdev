@@ -14,9 +14,9 @@ export interface DurableContext {
  setWebSocketAutoResponse(pair:{request:string;response:string}):void;
 }
 export interface EdgeEnvironment {
- DEV2_CONFIG_JSON:string; DEV2_DEVICE_SECRET:string;
- DEV2_VERSION?:{id:string;timestamp:string};
- DEV2_ROUTER:{idFromName(name:string):unknown;get(id:unknown):{fetch(request:Request):Promise<Response>}};
+ TDEV_CONFIG_JSON:string; TDEV_DEVICE_SECRET:string;
+ TDEV_VERSION?:{id:string;timestamp:string};
+ TDEV_ROUTER:{idFromName(name:string):unknown;get(id:unknown):{fetch(request:Request):Promise<Response>}};
 }
 export interface DeviceHello { v:1; kind:'hello'; connectionId:string; installationId:string; schemaDigest:string;
  edge:{versionId:string|null;sourceCommitOid:string;bundleDigest:string;schemaDigest:string;observedAt:string} }

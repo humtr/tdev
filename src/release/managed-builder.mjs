@@ -8,22 +8,22 @@ import {specialActionFence} from './action.mjs';
 /** @typedef {import('./authority.mjs').IntegratedSource} Source */
 /** @typedef {import('./types.js').RuntimePair} Pair */
 /** @typedef {import('./backend.mjs').Build} Build */
-/** @typedef {{schemaVersion:1,identityNamespace?:'tdev',actionId:string,inputDigest:string,sourceDigest:string,previous:Pair,result:import('../contracts/ports.js').PreparedResult,attempt:import('../contracts/ports.js').Attempt}} BuildInput */
+/** @typedef {{schemaVersion:1,identityNamespace:'tdev',actionId:string,inputDigest:string,sourceDigest:string,previous:Pair,result:import('../contracts/ports.js').PreparedResult,attempt:import('../contracts/ports.js').Attempt}} BuildInput */
 /** One finite managed assignment per retained release action. All executable
  * bytes stay in the existing production sandbox; native only decodes objects.
  */
 export class ManagedReleaseBuilder {
  /** @param {{production:Awaited<ReturnType<typeof import('../runtime/production-enrollment.mjs').verifyProductionEnrollment>>,pool:import('../execution/managed-pool.mjs').ManagedPool,objects:import('../contracts/ports.js').ObjectStorePort,installationSealDigest:string}} options */
- constructor(options){assertProductionEnrollment(options.production);this.o=options;this.ledger=options.pool.ledger;this.epoch=this.ledger.ownerEpoch;this.executionNamespace=/** @type {'tdev'|'dev2'} */(options.production.enrollment.kind==='tdev.production-enrollment'?'tdev':'dev2');this.profile=releaseBuildProfile(options.production.enrollment.intent.identities.imageDigest,this.executionNamespace);/** @type {Map<string,Promise<Build>>} */this.running=new Map();}
+ constructor(options){assertProductionEnrollment(options.production);this.o=options;this.ledger=options.pool.ledger;this.epoch=this.ledger.ownerEpoch;requireThat(options.production.enrollment.kind==='tdev.production-enrollment','INTEGRITY_FAILURE','Current production enrollment required');this.executionNamespace=/** @type {const} */('tdev');this.profile=releaseBuildProfile(options.production.enrollment.intent.identities.imageDigest,this.executionNamespace);/** @type {Map<string,Promise<Build>>} */this.running=new Map();}
  assert(){assertProductionEnrollment(this.o.production);requireThat(!this.ledger.closed&&this.ledger.ownerEpoch===this.epoch,'STALE_REVISION');}
- /** @param {Source} source @param {'tdev'|'dev2'} [namespace] */
- sourceDigest(source,namespace='tdev'){const r=source.result;requireThat(r.repositoryId===source.repositoryId&&r.bindingEpoch===source.bindingEpoch&&r.commitOid===source.commitOid&&r.resultTreeOid===source.source.treeOid&&r.resultTreeSha256===source.source.manifestDigest&&r.policyDigest===source.policyDigest,'INTEGRITY_FAILURE','Build source differs from integrated result');return recordDigest(namespace+'.release-build-source.v1',source);}
+ /** @param {Source} source @param {'tdev'} [namespace] */
+ sourceDigest(source,namespace='tdev'){requireThat(namespace==='tdev','INTEGRITY_FAILURE','Current release identity required');const r=source.result;requireThat(r.repositoryId===source.repositoryId&&r.bindingEpoch===source.bindingEpoch&&r.commitOid===source.commitOid&&r.resultTreeOid===source.source.treeOid&&r.resultTreeSha256===source.source.manifestDigest&&r.policyDigest===source.policyDigest,'INTEGRITY_FAILURE','Build source differs from integrated result');return recordDigest(namespace+'.release-build-source.v1',source);}
  /** @param {string} actionId @returns {BuildInput|null} */
  retained(actionId){this.assert();return this.ledger.transact(tx=>{const row=tx.get('SELECT value FROM meta WHERE key=?','release.build:'+actionId);return row?/** @type {BuildInput} */(parseRecord(String(row.value),2097152)):null;});}
  /** @param {string} actionId @param {Source} source @param {Pair} previous */
  input(actionId,source,previous){
   this.assert();const action=this.ledger.transact(tx=>tx.getAction(actionId));requireThat(action,'STALE_REVISION');
-  const fence=specialActionFence(this.ledger,actionId,'release.stage',action.principal),old=this.retained(actionId),namespace=/** @type {'tdev'|'dev2'} */(old?(old.identityNamespace==='tdev'?'tdev':'dev2'):'tdev'),sourceDigest=this.sourceDigest(source,namespace);
+  const fence=specialActionFence(this.ledger,actionId,'release.stage',action.principal),old=this.retained(actionId),namespace=/** @type {const} */('tdev'),sourceDigest=this.sourceDigest(source,namespace);if(old)requireThat(old.identityNamespace==='tdev','INTEGRITY_FAILURE','Current release identity required');
   if(old){requireThat(old.sourceDigest===sourceDigest&&canonicalJson(old.previous)===canonicalJson(previous),'IDEMPOTENCY_MISMATCH');return old;}
   const i=this.o.production.enrollment.intent;
   return this.ledger.transact(tx=>{fence.check(tx);const held=tx.reservations().find(r=>r.attempt.actionId===actionId);requireThat(held&&held.attempt.attempt===action.attempt&&held.observerEpoch===this.epoch,'STALE_REVISION');
@@ -45,20 +45,20 @@ export class ManagedReleaseBuilder {
  }
  /** @param {BuildInput} input @param {Source} source @param {import('../execution/session-types.js').ExecutionResult} execution @returns {Promise<Build>} */
  async output(input,source,execution){
-  this.assert();const namespace=/** @type {'tdev'|'dev2'} */(input.identityNamespace==='tdev'?'tdev':'dev2'),{inputDigest,...body}=input;requireThat(inputDigest===recordDigest(namespace+'.release-build-input.v1',body)&&input.sourceDigest===this.sourceDigest(source,namespace),'INTEGRITY_FAILURE');
+  this.assert();requireThat(input.identityNamespace==='tdev','INTEGRITY_FAILURE','Current release identity required');const namespace=/** @type {const} */('tdev'),{inputDigest,...body}=input;requireThat(inputDigest===recordDigest(namespace+'.release-build-input.v1',body)&&input.sourceDigest===this.sourceDigest(source,namespace),'INTEGRITY_FAILURE');
   const p=this.o.production,i=p.enrollment.intent;
-  const {proof,outer}=await p.receipts.verify(input.result,input.attempt,this.profile,execution,this.o.pool.legacySourceProjection?source.source:undefined);this.assert();
+  const {proof,outer}=await p.receipts.verify(input.result,input.attempt,this.profile,execution);this.assert();
   requireThat(proof.eligible&&proof.sealDigest===p.sealDigest,'VALIDATION_FAILED','Finite build has no eligible production execution');
   const decoded=await productionBuildOutput(outer,this.o.objects);
   this.assert();requireThat(canonicalJson(this.retained(input.actionId))===canonicalJson(input),'STALE_RESULT');
   const receipt={schemaVersion:1,kind:namespace+'.release-production-build',actionId:input.actionId,inputDigest,proof};
-  const manifest=releaseManifest({schemaVersion:1,...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),repositoryId:source.repositoryId,bindingEpoch:source.bindingEpoch,sourceCommitOid:source.commitOid,sourceTreeOid:source.source.treeOid,sourceManifestDigest:source.source.manifestDigest,policyDigest:source.policyDigest,schemaDigest:decoded.schemaDigest,protocol:{min:1,max:1},ledger:{min:1,max:1},installationSealDigest:this.o.installationSealDigest,requiredValidationId:source.validationId,releaseValidationId:recordDigest(namespace+'.release-build-receipt.v1',receipt),device:{artifactDigest:decoded.refs.device,sourceCommitOid:source.commitOid},edge:{artifactDigest:decoded.refs.edge,sourceCommitOid:source.commitOid,compatibilityDate:'2026-08-15'},executor:{workflowDigest:i.identities.workflowDigest,controllerDigest:i.identities.trustedRunnerDigest,sealDigest:p.sealDigest}});
+  const manifest=releaseManifest({schemaVersion:1,identityNamespace:/** @type {const} */('tdev'),repositoryId:source.repositoryId,bindingEpoch:source.bindingEpoch,sourceCommitOid:source.commitOid,sourceTreeOid:source.source.treeOid,sourceManifestDigest:source.source.manifestDigest,policyDigest:source.policyDigest,schemaDigest:decoded.schemaDigest,protocol:{min:1,max:1},ledger:{min:1,max:1},installationSealDigest:this.o.installationSealDigest,requiredValidationId:source.validationId,releaseValidationId:recordDigest(namespace+'.release-build-receipt.v1',receipt),device:{artifactDigest:decoded.refs.device,sourceCommitOid:source.commitOid},edge:{artifactDigest:decoded.refs.edge,sourceCommitOid:source.commitOid,compatibilityDate:'2026-08-15'},executor:{workflowDigest:i.identities.workflowDigest,controllerDigest:i.identities.trustedRunnerDigest,sealDigest:p.sealDigest}});
   return {manifest,refs:decoded.refs,receipt};
  }
  /** Reconstruct from authenticated retained execution and actual bytes; a supplied
   * manifest/receipt, even a plausible hash, cannot verify itself.
   * @param {Build} build @param {Source} source @param {Pair} previous */
- async verify(build,source,previous){try{this.assert();const receipt=/** @type {{actionId:string}} */(build.receipt),input=this.retained(receipt.actionId),namespace=/** @type {'tdev'|'dev2'} */(input?.identityNamespace==='tdev'?'tdev':'dev2');requireThat(input&&input.sourceDigest===this.sourceDigest(source,namespace)&&canonicalJson(input.previous)===canonicalJson(previous),'INTEGRITY_FAILURE');
+ async verify(build,source,previous){try{this.assert();const receipt=/** @type {{actionId:string}} */(build.receipt),input=this.retained(receipt.actionId),namespace=/** @type {const} */('tdev');requireThat(input?.identityNamespace==='tdev'&&input.sourceDigest===this.sourceDigest(source,namespace)&&canonicalJson(input.previous)===canonicalJson(previous),'INTEGRITY_FAILURE');
   const id=recordDigest(this.executionNamespace+'.managed-assignment.v1',{attempt:input.attempt,profileDigest:this.profile.digest}).slice(7),a=this.o.pool.assignment(id);requireThat(a?.state==='complete'&&a.result,'VALIDATION_FAILED');const execution=await this.o.pool.normalizeValidation(input.result,input.attempt,this.profile,a.result);return canonicalJson(await this.output(input,source,execution))===canonicalJson(build);
  }catch{return false;}}
  /** @param {string} actionId */

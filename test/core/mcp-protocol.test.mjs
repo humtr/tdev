@@ -105,13 +105,13 @@ test('tool-level failure is a complete tool result in both wire eras, not a JSON
     }
 });
 test('endpoint guards reject hostile origin/host and proxy claims independently of method', () => {
-    const config = { origin: 'https://dev2.example.invalid', allowedOrigins: ['https://chatgpt.com'] };
+    const config = { origin: 'https://tdev.example.invalid', allowedOrigins: ['https://chatgpt.com'] };
     checkEndpoint(config.origin + '/mcp', new Headers(), config);
-    checkEndpoint(config.origin + '/mcp', new Headers({ origin: 'https://chatgpt.com', host: 'dev2.example.invalid' }), config);
+    checkEndpoint(config.origin + '/mcp', new Headers({ origin: 'https://chatgpt.com', host: 'tdev.example.invalid' }), config);
     for (const h of [{ origin: 'null' }, { origin: 'https://attacker.invalid' }, { host: 'attacker.invalid' }, { origin: 'https://chatgpt.com/path' }])
         fails(() => checkEndpoint(config.origin + '/mcp', new Headers(h), config), -32600, 403);
-    for (const url of ['http://dev2.example.invalid/mcp', 'https://dev2.example.invalid/other', 'https://evil@dev2.example.invalid/mcp', 'https://dev2.example.invalid/mcp?redirect=1'])
-        fails(() => checkEndpoint(url, new Headers({ 'x-forwarded-host': 'dev2.example.invalid' }), config), -32600, 403);
+    for (const url of ['http://tdev.example.invalid/mcp', 'https://tdev.example.invalid/other', 'https://evil@tdev.example.invalid/mcp', 'https://tdev.example.invalid/mcp?redirect=1'])
+        fails(() => checkEndpoint(url, new Headers({ 'x-forwarded-host': 'tdev.example.invalid' }), config), -32600, 403);
 });
 test('unknown error and peer data cannot replace codec-owned discriminators or leak credentials', () => {
     const unknown = errorResponse(new Error('token-secret'));
@@ -141,5 +141,5 @@ test('malformed parameter and header responses preserve a readable request id wi
 });
 test('allowed-origin configuration cannot authorize a null or wildcard origin', () => {
     for (const allowedOrigins of [['null'], ['*'], ['https://chatgpt.com/path']])
-        fails(() => checkEndpoint('https://dev2.example.invalid/mcp', new Headers(), { origin: 'https://dev2.example.invalid', allowedOrigins }), -32600, 403);
+        fails(() => checkEndpoint('https://tdev.example.invalid/mcp', new Headers(), { origin: 'https://tdev.example.invalid', allowedOrigins }), -32600, 403);
 });

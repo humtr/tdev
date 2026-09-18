@@ -19,6 +19,6 @@ test('AOT Worker build is repeatable across private output locations, publishes 
   assert.equal(bytesDigest(first),bytesDigest(second));assert.equal(bytesDigest(first),bytesDigest(third));
   const manifest=JSON.parse(await readFile(join(out,'manifest.json'),'utf8'));assert.equal(manifest.edgeBundleDigest,bytesDigest(first));assert.equal(manifest.schemaDigest,SCHEMA_DIGEST);
   assert.deepEqual(JSON.parse(await readFile(join(out,'tools.json'),'utf8')),TOOL_DESCRIPTORS);assert.equal(/new Function\(|eval\(/.test(first.toString()),false);
-  const deployed=await import(pathToFileURL(join(out,'worker.mjs')).href);assert.equal(typeof deployed.default.fetch,'function');assert.equal(typeof deployed.Dev2RendezvousDO,'function');
+  const deployed=await import(pathToFileURL(join(out,'worker.mjs')).href);assert.equal(typeof deployed.default.fetch,'function');assert.equal(typeof deployed.TdevRendezvousDO,'function');
  }finally{await Promise.all([out,other].map(directory=>rm(directory,{recursive:true,force:true})));}
 });

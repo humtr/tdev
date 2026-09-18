@@ -7,7 +7,7 @@ import {AdoptedPolicy} from './policy.mjs';
  * Candidate configuration and output cannot synthesize this adopted identity.
  * @param {{trustedRunnerDigest:string,toolchainDigest:string,dependencyLockDigest:string,imageDigest:string}} identities */
 export function managedPolicy(identities,namespace='tdev'){
- requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Managed policy namespace');for(const value of Object.values(identities))digest(value);
+ requireThat(namespace==='tdev','INVALID_ARGUMENT','Managed policy namespace');for(const value of Object.values(identities))digest(value);
  const required=['core','integration'];
  const profiles=required.map(profileId=>{
   const definition={profileId,argv:['/usr/local/bin/node','/controller/tools/validate.mjs','--source','/source','--environment','managed-image','--profile',profileId,'--output','/work/validation/'+profileId],cwd:'',parameters:{},timeoutMs:300000,killGraceMs:2000,memoryBytes:1073741824,pids:256,cpuMillis:2000,diskBytes:268435456,logBytes:1048576,network:/** @type {const} */('none'),imageDigest:identities.imageDigest,replaySafe:true};
@@ -18,7 +18,7 @@ export function managedPolicy(identities,namespace='tdev'){
 }
 /** This first-release capability is deliberately finite. Policy adoption cannot
  * introduce arbitrary host commands, optional fixture networks or new tools.
- * @param {AdoptedPolicy} candidate @param {Parameters<typeof managedPolicy>[0]} identities @param {'tdev'|'dev2'} [namespace] */
+ * @param {AdoptedPolicy} candidate @param {Parameters<typeof managedPolicy>[0]} identities @param {'tdev'} [namespace] */
 export function supportsManagedPolicy(candidate,identities,namespace='tdev'){try{
  const installed=managedPolicy(identities,namespace),policy=candidate.policy;
  requireThat(canonicalJson(policy.required)===canonicalJson(installed.policy.required)&&policy.profiles.length===2,'FORBIDDEN');
@@ -33,6 +33,6 @@ export function supportsManagedPolicy(candidate,identities,namespace='tdev'){try
 export function approvedManagedProfile(profile,installed){
  const expected=installed.profile(profile.profileId,profile.parameters);
  requireThat(Number.isSafeInteger(profile.timeoutMs)&&profile.timeoutMs>=60000&&profile.timeoutMs<=expected.timeoutMs&&profile.timeoutMs%1000===0,'FORBIDDEN','Deadline exceeds installed capability');
- const {digest:expectedDigest,...base}=expected,current=recordDigest('tdev.profile.v1',base),legacy=recordDigest('dev2.profile.v1',base),namespace=expectedDigest===current?'tdev':expectedDigest===legacy?'dev2':'';requireThat(namespace!=='' ,'INTEGRITY_FAILURE','Unknown installed profile namespace');const definition={...base,timeoutMs:profile.timeoutMs},approved={...definition,digest:recordDigest(namespace+'.profile.v1',definition)};
+ const {digest:expectedDigest,...base}=expected,current=recordDigest('tdev.profile.v1',base);requireThat(expectedDigest===current,'INTEGRITY_FAILURE','Unknown installed profile namespace');const definition={...base,timeoutMs:profile.timeoutMs},approved={...definition,digest:recordDigest('tdev.profile.v1',definition)};
  requireThat(canonicalJson(profile)===canonicalJson(approved),'FORBIDDEN','Profile differs from the installed fixed controller');return approved;
 }

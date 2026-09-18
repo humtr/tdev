@@ -30,7 +30,7 @@ export function freezePublicationGroup(input){
  }
  members.sort((a,b)=>a.actionId.localeCompare(b.actionId));
  const evidence=members.map(({workId,actionId,requestId,generation,revision,preparedResultId,candidateValidationId,candidateTreeOid,candidateManifestDigest})=>({workId,actionId,requestId,generation,revision,preparedResultId,candidateValidationId,candidateTreeOid,candidateManifestDigest}));
- const publicationIdentity=recordDigest('dev2.research-publication-group.v1',{repositoryId:input.repositoryId,bindingEpoch:input.bindingEpoch,ref:input.ref,expectedHead:input.expectedHead,commitOid:input.commitOid,composedResultId:input.composedResultId,composedValidationId:input.composedValidationId,policyDigest:input.policyDigest,members:evidence});
+ const publicationIdentity=recordDigest('tdev.research-publication-group.v1',{repositoryId:input.repositoryId,bindingEpoch:input.bindingEpoch,ref:input.ref,expectedHead:input.expectedHead,commitOid:input.commitOid,composedResultId:input.composedResultId,composedValidationId:input.composedValidationId,policyDigest:input.policyDigest,members:evidence});
  return {kind:'frozen',publicationIdentity,leaderActionId:members[0].actionId,repositoryId:input.repositoryId,bindingEpoch:input.bindingEpoch,ref:input.ref,expectedHead:input.expectedHead,commitOid:input.commitOid,composedResultId:input.composedResultId,composedValidationId:input.composedValidationId,policyDigest:input.policyDigest,members};
 }
 /** Reconcile exactly one frozen publication effect.

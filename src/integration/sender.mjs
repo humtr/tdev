@@ -9,7 +9,7 @@ import {boundedCommand} from '../execution/command.mjs';
 /** @typedef {{invocationId:string,effectDigest:string}} Invocation */
 /** @typedef {{invocationId?:string,stopped:boolean,delivery:'sent'|'unknown'|'not_sent',state:string}} Observation */
 /** @param {Effect} effect */
-function effectNamespace(effect){requireThat(effect.identityNamespace===undefined||effect.identityNamespace==='tdev','INTEGRITY_FAILURE');return effect.identityNamespace??'dev2';}
+function effectNamespace(effect){requireThat(effect.identityNamespace===undefined||effect.identityNamespace==='tdev','INTEGRITY_FAILURE');return effect.identityNamespace??'tdev';}
 /** File records are external sender observations, not another work owner.
  * SQLite retains the effect and selected invocation before any process spawn.
  */

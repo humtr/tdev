@@ -27,7 +27,7 @@ import {principalOwns,principalSubjects} from '../security/principal.mjs';
 const editPaths=edits=>edits.flatMap(edit=>edit.kind==='move'?[edit.from,edit.to]:[edit.path]);
 /** Authentication may carry a non-enumerable retained alias. Durable private
  * execution metadata must preserve it as ordinary canonical JSON. @param {Principal} principal */
-const durablePrincipal=principal=>({...principal,...(principal.legacySubject!==undefined?{legacySubject:principal.legacySubject}:{})});
+const durablePrincipal=principal=>({...principal});
 /** @param {unknown} value @returns {Input} */
 export function workInput(value){return /** @type {Input} */(/** @type {unknown} */(validateWorkItem(value)));}
 /** @param {Input} item @returns {Capability} */
@@ -94,7 +94,7 @@ export class DevelopmentEngine {
   * @param {Principal} principal @param {unknown} value */
  async admit(principal,value){
   const item=workInput(value);await this.authorize(principal,item);
-  const owners=principalSubjects(principal),prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId)??(principal.legacySubject?tx.lookupRequest(principal.legacySubject,this.binding.bindingEpoch,item.requestId):null));
+  const owners=principalSubjects(principal),prior=this.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.binding.bindingEpoch,item.requestId));
   const authorize=()=>this.authorize(principal,item);
   if(prior){
    const retained=this.ledger.transact(tx=>tx.intent(prior.actionId));
@@ -103,7 +103,7 @@ export class DevelopmentEngine {
     const withoutSelector={...item};delete withoutSelector.repository;
     if(canonicalJson(withoutSelector)===canonicalJson(retained))intent=retained;
    }
-   const exact={principal:principal.subject,...(principal.legacySubject?{legacyPrincipal:principal.legacySubject}:{}),requestId:item.requestId,operation:item.op,intent,authorize,deadline:prior.deadline,mutate:()=>{throw new TdevError('INTEGRITY_FAILURE','Dedup row disappeared');}};
+   const exact={principal:principal.subject,requestId:item.requestId,operation:item.op,intent,authorize,deadline:prior.deadline,mutate:()=>{throw new TdevError('INTEGRITY_FAILURE','Dedup row disappeared');}};
    // Verify the original payload before any recovery observation or state change.
    const receipt=await this.coordinator.admit(exact);
    if(!prior.workId&&prior.status==='blocked'){await this.specialRecovery.observe(principal,prior.actionId,true);return this.admission(await this.coordinator.admit(exact));}
@@ -129,7 +129,7 @@ export class DevelopmentEngine {
   if(item.op==='create'){const current=await this.o.remote.resolve();requireThat(current.head===item.expectedHead,'STALE_CONTEXT','Canonical head moved during staging',{currentHead:current.head});}
   const inline=['create','edit','cancel','resume'].includes(item.op),arbiter=this.arbiter;
   const beforeMutate=item.op==='resume'&&recoveryPlan?.h2===true&&recoveryPlan.mode==='retry'&&arbiter?()=>{const frame=this.ledger.transact(tx=>this.h2.frameIn(tx,recoveryPlan.selection)),replacing=frame.reservation?.held?frame.reservation.attempt.attemptId:null;requireThat(arbiter.available(replacing),'CAPACITY_REJECTED','Installation execution capacity');}:undefined;
-  const result=await this.coordinator.admit({principal:principal.subject,...(principal.legacySubject?{legacyPrincipal:principal.legacySubject}:{}),requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,beforeMutate,mutate:(tx,actionId)=>{
+  const result=await this.coordinator.admit({principal:principal.subject,requestId:item.requestId,operation:item.op,intent:item,authorize,deadline:this.deadline(item),inline,beforeMutate,mutate:(tx,actionId)=>{
    tx.run('INSERT INTO meta(key,value) VALUES(?,?)','principal:'+actionId,canonicalJson(durablePrincipal(principal)));
    if(item.op==='create'){
     requireThat(staged&&snapshot,'INTEGRITY_FAILURE');const work={workId:newId(),repositoryId:this.binding.repositoryId,bindingEpoch:this.binding.bindingEpoch,principal:principal.subject,baseCommitOid:snapshot.commitOid,baseTreeOid:snapshot.source.treeOid,candidate:staged,generation:'0',revision:'0',disposition:/** @type {const} */('open'),currentActionId:null};

@@ -2,8 +2,8 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { SignJWT, generateKeyPair, exportJWK, createLocalJWKSet } from 'jose';
 import { githubExecutorVerifier } from '../../src/execution/github-identity.mjs';
-const time = 1700000000000, origin = 'https://fixture.fixture-account.workers.dev', sessionId = 'session_fixture', sha = 'a'.repeat(40), ref = 'refs/heads/dev2-exec/' + sessionId;
-const expected = () => ({ sessionId, installationId: 'install', repositoryId: '100', repositoryOwnerId: '200', repositoryFullName: 'fixture/repo', ref, workflowRef: 'fixture/repo/.github/workflows/dev2-executor.yml@' + ref, launchCommit: sha, runId: '300', runAttempt: '1', active: true, expiresAt: time + 120000, provider: { runId: '300', runAttempt: '1', headSha: sha, headBranch: ref.slice(11), event: 'push', workflowPath: '.github/workflows/dev2-executor.yml', status: 'in_progress' } });
+const time = 1700000000000, origin = 'https://fixture.fixture-account.workers.dev', sessionId = 'session_fixture', sha = 'a'.repeat(40), ref = 'refs/heads/tdev-exec/' + sessionId;
+const expected = () => ({ sessionId, installationId: 'install', repositoryId: '100', repositoryOwnerId: '200', repositoryFullName: 'fixture/repo', ref, workflowRef: 'fixture/repo/.github/workflows/tdev-executor.yml@' + ref, launchCommit: sha, runId: '300', runAttempt: '1', active: true, expiresAt: time + 120000, provider: { runId: '300', runAttempt: '1', headSha: sha, headBranch: ref.slice(11), event: 'push', workflowPath: '.github/workflows/tdev-executor.yml', status: 'in_progress' } });
 async function setup() {
     const { privateKey, publicKey } = await generateKeyPair('RS256'), jwk = await exportJWK(publicKey);
     jwk.kid = 'test';

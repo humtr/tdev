@@ -8,7 +8,7 @@ import { installationBindings } from '../repository/bindings.mjs';
 /** @typedef {import('./types.js').EdgeEnvironment} Env */
 /** @param {Env} env @returns {Config} */
 export function edgeConfig(env){
- const config=/** @type {Config} */(JSON.parse(env.DEV2_CONFIG_JSON));
+ const config=/** @type {Config} */(JSON.parse(env.TDEV_CONFIG_JSON));
  installationBindings(config);requireThat(Array.isArray(config.grants)&&config.grants.length>0,'INTEGRITY_FAILURE');
  requireThat(/^sha256:[a-f0-9]{64}$/.test(config.deviceCredentialDigest),'INTEGRITY_FAILURE');return config;
 }
@@ -17,9 +17,9 @@ export function edgeConfig(env){
  * @param {Request} request @param {Env} env @param {Config} config */
 export function authenticateDevice(request,env,config){
  const header=request.headers.get('authorization');
- requireThat(typeof env.DEV2_DEVICE_SECRET==='string'&&env.DEV2_DEVICE_SECRET.length>=43&&bytesDigest(Buffer.from(env.DEV2_DEVICE_SECRET))===config.deviceCredentialDigest,'UNAUTHORIZED');
+ requireThat(typeof env.TDEV_DEVICE_SECRET==='string'&&env.TDEV_DEVICE_SECRET.length>=43&&bytesDigest(Buffer.from(env.TDEV_DEVICE_SECRET))===config.deviceCredentialDigest,'UNAUTHORIZED');
  requireThat(typeof header==='string'&&header.startsWith('Bearer ')&&header.length<=256,'UNAUTHORIZED');
- const actual=Buffer.from(header.slice(7)),expected=Buffer.from(env.DEV2_DEVICE_SECRET);
+ const actual=Buffer.from(header.slice(7)),expected=Buffer.from(env.TDEV_DEVICE_SECRET);
  requireThat(actual.byteLength===expected.byteLength&&timingSafeEqual(actual,expected),'UNAUTHORIZED');
  requireThat(new URL(request.url).origin===config.origin,'FORBIDDEN');
 }

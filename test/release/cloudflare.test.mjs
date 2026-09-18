@@ -18,13 +18,13 @@ async function world(){
  const config={installationId:'installation',origin:'https://tdev.humtr.workers.dev',binding:{repositoryId:'repository',bindingEpoch:'1'},deviceCredentialDigest:D,sourceCommitOid:C0,edgeBundleDigest:D};
  const state={uploads:0,deployments:0,loseUpload:false,loseActivation:false,hideUpload:false,unappliedUpload:false,corruptBindings:false,requests:[],versions:new Map(),active:[{id:P0,strategy:'percentage',created_on:new Date().toISOString(),versions:[{version_id:V0,percentage:100}],annotations:{}}]};
  let journal=new ActivationJournal(filename,'installation'),port;
- function version(id,commit,digest,annotations={}){return {id,annotations,resources:{script:{etag:'opaque-etag-'+id},script_runtime:{compatibility_date:'2026-09-01',compatibility_flags:['nodejs_compat']},bindings:[{name:'DEV2_CONFIG_JSON',type:'plain_text',text:canonicalJson({...config,sourceCommitOid:commit,edgeBundleDigest:digest})},{name:'DEV2_DEVICE_SECRET',type:'secret_text'},{name:'DEV2_ROUTER',type:'durable_object_namespace',namespace_id:'a'.repeat(32),class_name:'Dev2RendezvousDO'},{name:'DEV2_VERSION',type:'version_metadata'}]}};}
+ function version(id,commit,digest,annotations={}){return {id,annotations,resources:{script:{etag:'opaque-etag-'+id},script_runtime:{compatibility_date:'2026-09-01',compatibility_flags:['nodejs_compat']},bindings:[{name:'TDEV_CONFIG_JSON',type:'plain_text',text:canonicalJson({...config,sourceCommitOid:commit,edgeBundleDigest:digest})},{name:'TDEV_DEVICE_SECRET',type:'secret_text'},{name:'TDEV_ROUTER',type:'durable_object_namespace',namespace_id:'a'.repeat(32),class_name:'TdevRendezvousDO'},{name:'TDEV_VERSION',type:'version_metadata'}]}};}
  state.versions.set(V0,version(V0,C0,D));
  const fetch=async(url,init)=>{
   const u=new URL(url),suffix=u.pathname.split('/scripts/tdev')[1];state.requests.push({method:init.method,suffix});assert.equal(init.redirect,'error');assert.equal(init.headers.authorization,'Bearer '+'s'.repeat(30));
   let result;
   if(init.method==='POST'&&suffix==='/versions'){
-   state.uploads++;assert.equal(u.searchParams.get('bindings_inherit'),'strict');const metadata=JSON.parse(await init.body.get('metadata').text()),uploaded=Buffer.from(await init.body.get('worker.mjs').arrayBuffer());assert.equal(bytesDigest(uploaded),artifact);assert.equal(metadata.bindings.filter(b=>b.type==='inherit').length,3);assert.deepEqual(metadata.exports,{Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}});
+   state.uploads++;assert.equal(u.searchParams.get('bindings_inherit'),'strict');const metadata=JSON.parse(await init.body.get('metadata').text()),uploaded=Buffer.from(await init.body.get('worker.mjs').arrayBuffer());assert.equal(bytesDigest(uploaded),artifact);assert.equal(metadata.bindings.filter(b=>b.type==='inherit').length,3);assert.deepEqual(metadata.exports,{TdevRendezvousDO:{type:'durable-object',storage:'sqlite'}});
    if(!state.unappliedUpload)state.versions.set(V1,version(V1,C1,artifact,metadata.annotations));
    if(state.loseUpload||state.unappliedUpload)throw Error('simulated response loss');result={id:V1};
   }else if(init.method==='POST'&&suffix==='/deployments'){
@@ -37,7 +37,7 @@ async function world(){
   return new Response(JSON.stringify({success:true,result}),{status:200,headers:{'content-type':'application/json'}});
  };
  const setup=()=>new CloudflareReleasePort({accountId:'c'.repeat(32),workerName:'tdev',routerNamespaceId:'a'.repeat(32),edgeConfig:config,installationSealDigest:D,schemaDigest:D,token:async()=>'s'.repeat(30),effects:new ProviderEffects(journal),artifacts:{verify:async()=>({directory:root})},fetch});port=setup();
- const effect={effectId:'stage-effect',releaseId,inputDigest:recordDigest('dev2.release-stage-effect-input.v1',{releaseId}),artifactDigest:artifact,sourceCommitOid:C1,expectedVersionId:V0};
+ const effect={effectId:'stage-effect',releaseId,inputDigest:recordDigest('tdev.release-stage-effect-input.v1',{releaseId}),artifactDigest:artifact,sourceCommitOid:C1,expectedVersionId:V0};
  const activation=()=>activationEffect(journal.begin({activationId:'activation',actionId:'activate',installationId:'installation',repositoryId:'repository',bindingEpoch:'1',principalId:'owner',createdAt:Date.now(),deadline:Date.now()+60000,previous,target}));
  return {state,build,effect,previous,target,activation,get port(){return port;},restart(){const old=port;journal.close();journal=new ActivationJournal(filename,'installation');port=setup();return old;},async close(){journal.close();await rm(root,{recursive:true,force:true});}};
 }

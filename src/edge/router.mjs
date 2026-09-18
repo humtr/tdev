@@ -14,7 +14,7 @@ import { TOOL_DESCRIPTORS, SCHEMA_DIGEST, validateOutput } from './contract.mjs'
 /** Routing-only Durable Object. Provider class name is retained as the D0006
  * Cloudflare compatibility identity; it is not a product/protocol namespace.
  */
-export class Dev2RendezvousDO {
+export class TdevRendezvousDO {
  /** @param {import('./types.js').DurableContext} ctx @param {Env} env */
  constructor(ctx,env){this.ctx=ctx;this.env=env;this.config=edgeConfig(env);this.rendezvous=new RequestRendezvous();this.assembler=new FrameAssembler({maxMessageBytes:262656});
  /** @type {Socket|null} */this.socket=null;this.connectionId='';
@@ -32,11 +32,11 @@ export class Dev2RendezvousDO {
   this.connectionId=this.rendezvous.attach(message=>{requireThat(socket.readyState===1,'EXECUTION_UNAVAILABLE');sendFrames(message,frame=>socket.send(frame),1049600);});
   socket.serializeAttachment({credentialDigest:this.config.deviceCredentialDigest,connectionId:this.connectionId,observation});
   socket.send(canonicalJson({v:1,kind:'hello',connectionId:this.connectionId,installationId:this.config.installationId,schemaDigest:SCHEMA_DIGEST,
-   edge:{versionId:this.env.DEV2_VERSION?.id??null,sourceCommitOid:this.config.sourceCommitOid,bundleDigest:this.config.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST,observedAt:new Date().toISOString()}}));
+   edge:{versionId:this.env.TDEV_VERSION?.id??null,sourceCommitOid:this.config.sourceCommitOid,bundleDigest:this.config.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST,observedAt:new Date().toISOString()}}));
  }
  /** @param {Request} request */
  async fetch(request){try{
-  const rawPath=new URL(request.url).pathname,path=rawPath.startsWith('/__dev2/')?'/__tdev/'+rawPath.slice('/__dev2/'.length):rawPath;
+  const rawPath=new URL(request.url).pathname,path=rawPath.startsWith('/__tdev/')?'/__tdev/'+rawPath.slice('/__tdev/'.length):rawPath;
   if(path==='/__tdev/device'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='GET'&&request.headers.get('upgrade')?.toLowerCase()==='websocket','INVALID_ARGUMENT');
    const host=/** @type {unknown} */(globalThis);
@@ -47,12 +47,12 @@ export class Dev2RendezvousDO {
   if(path==='/__tdev/verify'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='POST'&&(await readBody(request,1)).byteLength===0,'INVALID_ARGUMENT');
    const probe=await this.rendezvous.probe();
-   return jsonResponse({discovery:{tools:TOOL_DESCRIPTORS},schemaDigest:SCHEMA_DIGEST,edgeVersionId:this.env.DEV2_VERSION?.id??null,probe});
+   return jsonResponse({discovery:{tools:TOOL_DESCRIPTORS},schemaDigest:SCHEMA_DIGEST,edgeVersionId:this.env.TDEV_VERSION?.id??null,probe});
   }
   if(path==='/__tdev/status'){
    authenticateDevice(request,this.env,this.config);requireThat(request.method==='GET','INVALID_ARGUMENT');
    return jsonResponse({installationId:this.config.installationId,deviceId:this.config.deviceId,sourceCommitOid:this.config.sourceCommitOid,
-    edgeVersionId:this.env.DEV2_VERSION?.id??null,edgeBundleDigest:this.config.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST,
+    edgeVersionId:this.env.TDEV_VERSION?.id??null,edgeBundleDigest:this.config.edgeBundleDigest,schemaDigest:SCHEMA_DIGEST,
     route:this.rendezvous.snapshot(),connectionId:this.socket?this.connectionId:null,device:this.observation,
     discovery:{tools:TOOL_DESCRIPTORS}});
   }

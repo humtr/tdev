@@ -27,7 +27,7 @@ export function containmentProgram(controlPath,port){return `
 import fs from 'node:fs';import net from 'node:net';import {spawn} from 'node:child_process';
 const checks={};const evidence={node:process.version,uid:process.getuid()};
 const denied=(path)=>{try{fs.readFileSync(path);return false;}catch(e){return ['ENOENT','EACCES','EPERM'].includes(e.code);}};
-checks.hostFiles=[${JSON.stringify(controlPath)},'/home/runner/.gitconfig','/data/data/com.termux/files/home/.config/tdev/installation.json','/data/data/com.termux/files/home/.config/dev2/installation.json','/run/podman/podman.sock','/var/run/docker.sock'].every(denied);
+checks.hostFiles=[${JSON.stringify(controlPath)},'/home/runner/.gitconfig','/data/data/com.termux/files/home/.config/tdev/installation.json','/data/data/com.termux/files/home/.config/tdev/installation.json','/run/podman/podman.sock','/var/run/docker.sock'].every(denied);
 checks.credentials=['GITHUB_TOKEN','GH_TOKEN','CLOUDFLARE_API_TOKEN','ACTIONS_ID_TOKEN_REQUEST_TOKEN','TDEV_PROBE_CONTROL_CANARY'].every(k=>process.env[k]===undefined);
 checks.procCredentials=!/TDEV_PROBE_CONTROL_CANARY=|ACTIONS_ID_TOKEN_REQUEST_TOKEN=|GITHUB_TOKEN=/.test(fs.readFileSync('/proc/1/environ','utf8'));
 checks.nonRoot=process.getuid()!==0;

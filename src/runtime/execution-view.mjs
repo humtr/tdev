@@ -16,7 +16,7 @@ export function retainedExecutionViewIn(tx,ledger,action){
   /** @type {Map<string,{artifactId:string,actionId:string,contentDigest:string,mediaType:string,size:number,kind:'log'}>} */const artifacts=new Map();
   /** @type {import('../execution/session-types.js').ExecutionResult[]} */const results=[];
   for(const row of rows){const a=/** @type {import('../execution/session-types.js').Assignment} */(parseRecord(String(row.record),2097152)),r=a.result;
-   const assignmentShape={attempt:a.input.attempt,profileDigest:a.input.profileDigest},currentId=recordDigest('tdev.managed-assignment.v1',assignmentShape).slice(7),legacyId=recordDigest('dev2.managed-assignment.v1',assignmentShape).slice(7),namespace=a.assignmentId===currentId?'tdev':a.assignmentId===legacyId?'dev2':'';
+   const assignmentShape={attempt:a.input.attempt,profileDigest:a.input.profileDigest},currentId=recordDigest('tdev.managed-assignment.v1',assignmentShape).slice(7),legacyId=recordDigest('tdev.managed-assignment.v1',assignmentShape).slice(7),namespace=a.assignmentId===currentId?'tdev':a.assignmentId===legacyId?'tdev':'';
    requireThat(namespace!==''&&a.state==='complete'&&r&&r.stopped===true&&a.input.attempt.actionId===action.actionId&&a.input.attempt.workId===action.workId&&a.input.attempt.repositoryId===ledger.binding.repositoryId&&a.input.attempt.installationId===ledger.binding.installationId&&r.assignmentId===a.assignmentId&&r.leaseId===a.leaseId&&r.inputIdentity===a.inputIdentity&&a.inputIdentity===recordDigest(namespace+'.managed-assignment-input.v1',a.input)&&r.sealDigest===a.sealDigest,'INTEGRITY_FAILURE','Retained execution diagnostic identity mismatch');
    if(action.resultId!==null&&a.input.resultId!==action.resultId)continue;
    results.push(r);

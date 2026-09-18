@@ -12,9 +12,9 @@ import {releaseManifest,releaseIdentity,releaseNamespace,runtimePair,compatibleP
 /** @typedef {import('./types.js').RuntimePair} Pair */
 /** @typedef {import('./types.js').ActivationIntent} Intent */
 /** @typedef {{manifest:Manifest,refs:import('./artifacts.mjs').ArtifactRefs,receipt:Json}} Build */
-/** @typedef {{identityNamespace?:'tdev',effectId:string,releaseId:string,inputDigest:string,artifactDigest:string,sourceCommitOid:string,expectedVersionId:string}} StageEffect */
+/** @typedef {{identityNamespace:'tdev',effectId:string,releaseId:string,inputDigest:string,artifactDigest:string,sourceCommitOid:string,expectedVersionId:string}} StageEffect */
 /** @typedef {{effectId:string,inputDigest:string,kind:'ready'|'absent'|'pending'|'failed',senderStopped:boolean,versionId:string|null,artifactDigest:string|null,observedAt:number}} StageReceipt */
-/** @typedef {{schemaVersion:1,identityNamespace?:'tdev',actionId:string,principal:string,inputDigest:string,sourceCommitOid:string,policyDigest:string,expectedActiveRelease:string,previous:Pair,build:Build|null,effect:StageEffect|null,receipt:StageReceipt|null,target:Pair|null,state:'building'|'uploading'|'staged'}} Stage */
+/** @typedef {{schemaVersion:1,identityNamespace:'tdev',actionId:string,principal:string,inputDigest:string,sourceCommitOid:string,policyDigest:string,expectedActiveRelease:string,previous:Pair,build:Build|null,effect:StageEffect|null,receipt:StageReceipt|null,target:Pair|null,state:'building'|'uploading'|'staged'}} Stage */
 /** @typedef {{build:(actionId:string,source:Source,previous:Pair)=>Promise<Build>,verify:(build:Build,source:Source,previous:Pair)=>Promise<boolean>,stopped:(actionId:string)=>Promise<boolean>,cancel?:(actionId:string)=>Promise<void>}} Builder */
 /** @typedef {{reconcile:(effect:StageEffect)=>Promise<StageReceipt>,execute:(effect:StageEffect,build:Build)=>Promise<StageReceipt>}} EdgeStager */
 /** @typedef {{activePair:()=>Promise<Pair>,begin:(intent:Intent)=>Promise<import('./types.js').ActivationRecord>,observe:(activationId:string)=>Promise<import('./types.js').ActivationRecord|null>}} Helper */
@@ -43,7 +43,7 @@ export class ReleaseBackend {
  async stageOnce(principal,input,actionId){
   oid(input.integratedCommit);digest(input.policyDigest);digest(input.expectedActiveRelease);await this.o.authorize(principal,[]);
   const fence=specialActionFence(this.o.ledger,actionId,'release.stage',principalSubjects(principal),this.now);let stage=/** @type {Stage|null} */(this.record('release.stage:'+actionId));
-  const namespace=/** @type {'tdev'|'dev2'} */(stage?(stage.identityNamespace==='tdev'?'tdev':'dev2'):'tdev'),inputDigest=recordDigest(namespace+'.release-stage-input.v1',input);
+  if(stage)requireThat(stage.identityNamespace==='tdev','INTEGRITY_FAILURE','Current release stage identity required');const namespace=/** @type {const} */('tdev'),inputDigest=recordDigest('tdev.release-stage-input.v1',input);
   if(stage)requireThat(stage.inputDigest===inputDigest&&principalOwns(principal,stage.principal),'IDEMPOTENCY_MISMATCH');
   const source=await this.o.authority.verify(input.integratedCommit,input.policyDigest);fence.assert();
   await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
@@ -63,7 +63,7 @@ export class ReleaseBackend {
   let edgeVersionId=previous.edgeVersionId;
   if(!edgeUnchanged){
    const fields={installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,releaseId:artifact.releaseId,artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
-   const effect={...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),effectId:recordDigest(namespace+'.release-stage-effect.v1',fields).slice(7),releaseId:artifact.releaseId,inputDigest:recordDigest(namespace+'.release-stage-effect-input.v1',fields),artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
+   const effect={identityNamespace:/** @type {const} */('tdev'),effectId:recordDigest('tdev.release-stage-effect.v1',fields).slice(7),releaseId:artifact.releaseId,inputDigest:recordDigest('tdev.release-stage-effect-input.v1',fields),artifactDigest:m.edge.artifactDigest,sourceCommitOid:m.edge.sourceCommitOid,expectedVersionId:previous.edgeVersionId};
    if(stage.effect)requireThat(canonicalJson(stage.effect)===canonicalJson(effect),'INTEGRITY_FAILURE');
    else stage=this.saveStage({...stage,effect,state:'uploading'},fence);
    let receipt=this.checkReceipt(effect,await this.o.edge.reconcile(effect));fence.assert();
@@ -136,7 +136,7 @@ export class ReleaseBackend {
   const previous=runtimePair(await this.o.helper.activePair());fence.assert();requireThat(canonicalJson(previous)===canonicalJson(stage.previous),'STALE_RESULT','Actual runtime pair differs from staged base');
   await this.o.authorize(principal,source.source.entries.map(entry=>entry.path));fence.assert();
   const migration=previous.schemaDigest===stage.target.schemaDigest?undefined:await releaseTransition(this.o.artifacts,previous,stage.target);
-  const action=fence.assert(),intent=retained?.intent??activationIntent({...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),activationId:recordDigest(namespace+'.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target,...(migration?{migration}:{})});
+  const action=fence.assert(),intent=retained?.intent??activationIntent({identityNamespace:/** @type {const} */('tdev'),activationId:recordDigest('tdev.release-activation.v1',{installationId:this.o.binding.installationId,actionId,inputDigest}).slice(7),actionId,installationId:this.o.binding.installationId,repositoryId:this.o.binding.repositoryId,bindingEpoch:this.o.binding.bindingEpoch,principalId:principal.subject,createdAt:this.now(),deadline:action.deadline,previous,target:stage.target,...(migration?{migration}:{})});
   if(retained)requireThat(intent.deadline===action.deadline&&canonicalJson(intent.previous)===canonicalJson(previous)&&canonicalJson(intent.target)===canonicalJson(stage.target),'STALE_RESULT');
   else this.o.ledger.transact(tx=>{fence.check(tx);requireThat(!tx.get('SELECT value FROM meta WHERE key=?','release.activation:'+actionId),'STALE_REVISION');tx.run('INSERT INTO meta VALUES(?,?)','release.activation:'+actionId,canonicalJson({inputDigest,intent}));});
   // Beginning the fixed helper journal is itself idempotent. If its response is

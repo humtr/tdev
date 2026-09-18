@@ -63,7 +63,7 @@ export function composeValidatedCandidates(input){
  for(const {member,paths} of prepared){const candidateByPath=new Map(verifySource(member.source).map(e=>[e.path,e]));for(const path of paths){requireThat(!sameEntry(baseByPath.get(path),candidateByPath.get(path)),'INTEGRITY_FAILURE');const entry=candidateByPath.get(path);if(entry)after.set(path,{...entry});else after.delete(path);}}
  const composed=sourceTree([...after.values()]);
  const members=prepared.map(({member,paths})=>({candidateId:member.candidateId,validationId:member.validationId,candidateTreeOid:member.source.treeOid,candidateManifestDigest:member.source.manifestDigest,changedPaths:paths}));
- const compositionIdentity=recordDigest('dev2.research-composition.v1',{repositoryId:input.repositoryId,bindingEpoch:input.bindingEpoch,baseCommitOid:input.baseCommitOid,baseTreeOid:input.baseTreeOid,members,composedManifestDigest:composed.manifestDigest});
+ const compositionIdentity=recordDigest('tdev.research-composition.v1',{repositoryId:input.repositoryId,bindingEpoch:input.bindingEpoch,baseCommitOid:input.baseCommitOid,baseTreeOid:input.baseTreeOid,members,composedManifestDigest:composed.manifestDigest});
  return {kind:'composable',compositionIdentity,members,composed};
 }
 

@@ -16,11 +16,11 @@ function decode(row){return row&&typeof row==='object'&&'record' in row&&typeof 
 function timestamp(value){requireThat(Number.isSafeInteger(value)&&value>=0,'INVALID_ARGUMENT','Managed timestamp');return value;}
 /** @param {unknown} value */
 function encoded(value){const text=canonicalJson(value);requireThat(Buffer.byteLength(text)<=2097152,'LIMIT_EXCEEDED');return text;}
-const CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml',LEGACY_WORKFLOW='.github/workflows/dev2-executor.yml';
+const CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml';
 /** @param {string} path */
-function workflowShape(path){requireThat(path===CURRENT_WORKFLOW||path===LEGACY_WORKFLOW,'INTEGRITY_FAILURE','Unknown managed workflow identity');return path===CURRENT_WORKFLOW?{path,prefix:'tdev-exec',namespace:'tdev'}:{path,prefix:'dev2-exec',namespace:'dev2'};}
+function workflowShape(path){requireThat(path===CURRENT_WORKFLOW,'INTEGRITY_FAILURE','Unknown managed workflow identity');return {path,prefix:'tdev-exec',namespace:'tdev'};}
 /** @param {Intent} intent */
-function intentShape(intent){const current='refs/heads/tdev-exec/'+intent.sessionId,legacy='refs/heads/dev2-exec/'+intent.sessionId,path=intent.ref===current?CURRENT_WORKFLOW:intent.ref===legacy?LEGACY_WORKFLOW:'';const shape=workflowShape(path);requireThat(intent.workflowRef===intent.repositoryFullName+'/'+shape.path+'@'+intent.ref,'INTEGRITY_FAILURE','Managed workflow/ref identity mismatch');return shape;}
+function intentShape(intent){const ref='refs/heads/tdev-exec/'+intent.sessionId;requireThat(intent.ref===ref,'INTEGRITY_FAILURE','Managed ref identity mismatch');const shape=workflowShape(CURRENT_WORKFLOW);requireThat(intent.workflowRef===intent.repositoryFullName+'/'+shape.path+'@'+intent.ref,'INTEGRITY_FAILURE','Managed workflow/ref identity mismatch');return shape;}
 /** The existing repository ledger owns these additive tables. Session and
  * assignment records do not admit work, replace an Attempt, or own canonical Git.
  * Every method is synchronous; no transaction spans a provider or object transfer.

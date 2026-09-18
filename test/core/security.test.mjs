@@ -6,7 +6,7 @@ import { repositoryPath,comparePaths } from '../../src/security/paths.mjs';
 import { createArguments,attemptName,PodmanSandbox } from '../../src/execution/podman.mjs';
 import { boundedCommand } from '../../src/execution/command.mjs';
 const hash='sha256:'+'1'.repeat(64);
-const attempt={installationId:'installation',repositoryId:'repo',workId:'work',actionId:'action',attemptId:'attempt',attempt:'1',ownerEpoch:'1'};
+const attempt={identityNamespace:'tdev',installationId:'installation',repositoryId:'repo',workId:'work',actionId:'action',attemptId:'attempt',attempt:'1',ownerEpoch:'1'};
 const profile={profileId:'core',digest:hash,argv:['/usr/local/bin/node','--test'],cwd:'',parameters:{},timeoutMs:10000,killGraceMs:1000,memoryBytes:67108864,pids:64,cpuMillis:1000,diskBytes:16777216,logBytes:1048576,network:'none',imageDigest:hash,replaySafe:true};
 const options={executable:'/usr/bin/podman',environment:{},attemptRoot:'/attempts',seccompPath:'/sealed/seccomp.json',seccompDigest:hash,images:{[hash]:'registry.example/node@'+hash},productionSeal:true,materialize:async()=>''};
 test('paths deny traversal, normalization aliases and metadata without case-folding ordinary files',()=>{
@@ -20,7 +20,7 @@ test('canonical paths preserve valid exact identity',()=>{
 test('real JWT signature, issuer, expiry, audience and algorithm checks',async()=>{
   const {privateKey,publicKey}=await generateKeyPair('RS256');const jwk=await exportJWK(publicKey);jwk.kid='fixture';
   const now=1700000000000;
-  const config={issuer:'https://issuer.example',audience:'https://dev2.example',algorithms:['RS256']};
+  const config={issuer:'https://issuer.example',audience:'https://tdev.example',algorithms:['RS256']};
   const verify=bearerVerifier(config,createLocalJWKSet({keys:[jwk]}),()=>now);
   const token=await new SignJWT({scope:'repository.read'}).setProtectedHeader({alg:'RS256',kid:'fixture'}).setSubject('fixture-subject').setIssuer(config.issuer).setAudience(config.audience).setExpirationTime(now/1000+60).sign(privateKey);
   const p=await verify('Bearer '+token);assert.equal(p.expiresAt,now+60000);assert.equal(p.subject.length,64);
@@ -31,7 +31,7 @@ test('real JWT signature, issuer, expiry, audience and algorithm checks',async()
 });
 test('revocation and exact binding checked again at effect dispatch',async()=>{
   const binding={repositoryId:'repo',installationId:'i',provider:'fixture',providerRepositoryId:'p',remote:'https://git.example/repo',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:hash};
-  const p={subject:'subject',issuer:'https://issuer.example',audience:'https://dev2.example',expiresAt:100,tokenCapabilities:['repository.read','integration.write']};
+  const p={subject:'subject',issuer:'https://issuer.example',audience:'https://tdev.example',expiresAt:100,tokenCapabilities:['repository.read','integration.write']};
   let grants=[{subject:p.subject,installationId:'i',repositoryId:'repo',ref:binding.ref,capabilities:['repository.read','integration.write'],paths:['src'],deniedPaths:['src/secret']}];
   const auth=new ScopedAuthorization({issuer:p.issuer,audience:p.audience,now:()=>1,bindings:()=>[binding],grants:()=>grants});
   await auth.authorize(p,binding,'repository.read',['src/ok']);
@@ -53,7 +53,7 @@ test('missing production seal fails closed before any engine or host execution',
 });
 test('inspecting and cancelling never terminate another attempt',async()=>{
   const calls=[];const sandbox=new PodmanSandbox({...options,command:async(_exe,args)=>{
-    calls.push(args);return {exitCode:0,signal:null,stdout:Buffer.from(args[0]==='inspect'?JSON.stringify([{Config:{Labels:{'dev2.attempt':'foreign'}},State:{Status:'running',Running:true,ExitCode:0}}]):''),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false};
+    calls.push(args);return {exitCode:0,signal:null,stdout:Buffer.from(args[0]==='inspect'?JSON.stringify([{Config:{Labels:{'tdev.attempt':'foreign'}},State:{Status:'running',Running:true,ExitCode:0}}]):''),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false};
   }});
   await assert.rejects(()=>sandbox.cancel(attempt),{code:'INTEGRITY_FAILURE'});assert.equal(calls.some(a=>a[0]==='kill'),false);
 });
@@ -68,7 +68,7 @@ test('bounded trusted-command primitive does not interpolate argv and terminates
 
 test('verified narrow token never inherits broader standing integration grants',async()=>{
  const {privateKey,publicKey}=await generateKeyPair('RS256'),jwk=await exportJWK(publicKey);jwk.kid='scope';
- const config={issuer:'https://issuer.example',audience:'https://dev2.example',algorithms:['RS256']},now=1700000000000;
+ const config={issuer:'https://issuer.example',audience:'https://tdev.example',algorithms:['RS256']},now=1700000000000;
  const token=await new SignJWT({scope:'repository.read'}).setProtectedHeader({alg:'RS256',kid:'scope'}).setIssuer(config.issuer).setAudience(config.audience).setSubject('reader').setExpirationTime(now/1000+60).sign(privateKey);
  const principal=await bearerVerifier(config,createLocalJWKSet({keys:[jwk]}),()=>now)('Bearer '+token);
  const binding={repositoryId:'repo',installationId:'i',provider:'fixture',providerRepositoryId:'p',remote:'https://git.example/repo',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:hash};
@@ -85,7 +85,7 @@ test('one atomic name claim launches each attempt, with no restartable create/st
 
 test('missing verified capability metadata does not inherit a standing grant',async()=>{
  const binding={repositoryId:'repo',installationId:'i',provider:'fixture',providerRepositoryId:'p',remote:'https://git.example/repo',ref:'refs/heads/dev-2',bindingEpoch:'1',policyDigest:hash};
- const p={subject:'subject',issuer:'https://issuer.example',audience:'https://dev2.example',expiresAt:100};
+ const p={subject:'subject',issuer:'https://issuer.example',audience:'https://tdev.example',expiresAt:100};
  const auth=new ScopedAuthorization({issuer:p.issuer,audience:p.audience,now:()=>1,bindings:()=>[binding],grants:()=>[{subject:p.subject,installationId:'i',repositoryId:'repo',ref:binding.ref,capabilities:['repository.read'],paths:[''],deniedPaths:[]}]});
  await assert.rejects(()=>auth.authorize(p,binding,'repository.read'),{code:'FORBIDDEN'});
 });
@@ -94,15 +94,15 @@ test('non-integral engine timeouts are rejected instead of rounded up',()=>{
 });
 test('created-only containers and invalid exit data remain uncertain and are never blindly started',async()=>{
  for(const state of [{Status:'created',Running:false,ExitCode:0},{Status:'exited',Running:false,ExitCode:null}]){
-  const calls=[];const sandbox=new PodmanSandbox({...options,command:async(_exe,args)=>{calls.push(args);return {exitCode:0,signal:null,stdout:Buffer.from(args[0]==='inspect'?JSON.stringify([{Config:{Labels:{'dev2.attempt':attemptName(attempt)}},State:state}]):''),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false};}});
+  const calls=[];const sandbox=new PodmanSandbox({...options,command:async(_exe,args)=>{calls.push(args);return {exitCode:0,signal:null,stdout:Buffer.from(args[0]==='inspect'?JSON.stringify([{Config:{Labels:{'tdev.attempt':attemptName(attempt)}},State:state}]):''),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false};}});
   assert.equal((await sandbox.inspect(attempt)).state,'uncertain');assert.equal(calls.some(a=>['run','start','kill'].includes(a[0])),false);
  }
 });
 
 test('persisted container labels bind profile and exact source before a lost response can be reused',async()=>{
  const args=createArguments(attempt,profile,'/attempts/'+attemptName(attempt)+'/source',options,hash);
- assert.ok(args.includes('dev2.source='+hash));assert.ok(args.includes('--unsetenv-all'));
- const labels={'dev2.attempt':attemptName(attempt),'dev2.profile':profile.digest,'dev2.source':hash};
+ assert.ok(args.includes('tdev.source='+hash));assert.ok(args.includes('--unsetenv-all'));
+ const labels={'tdev.attempt':attemptName(attempt),'tdev.profile':profile.digest,'tdev.source':hash};
  const sandbox=new PodmanSandbox({...options,command:async(_exe,a)=>({exitCode:0,signal:null,stdout:Buffer.from(a[0]==='inspect'?JSON.stringify([{Config:{Labels:labels},State:{Running:false,Status:'exited',ExitCode:0}}]):''),stderr:Buffer.alloc(0),discardedBytes:0,timedOut:false,spawnFailed:false})});
  assert.equal((await sandbox.inspect(attempt,{profileDigest:profile.digest,sourceManifest:hash})).state,'exited');
  await assert.rejects(()=>sandbox.inspect(attempt,{profileDigest:profile.digest,sourceManifest:'sha256:'+'2'.repeat(64)}),{code:'INTEGRITY_FAILURE'});

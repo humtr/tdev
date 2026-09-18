@@ -22,7 +22,7 @@ export function activationEffect(record,selectedStep){
  const step=selectedStep??activationSteps(record)[record.cursor];requireThat(step,'INTEGRITY_FAILURE');
  const fields={activationId:record.intent.activationId,direction:record.direction,step,expected:record.direction==='forward'?record.intent.previous:record.intent.target,target:record.direction==='forward'?record.intent.target:record.intent.previous};
  const namespace=activationNamespace(record.intent),inputDigest=recordDigest(namespace+'.activation-effect-input.v1',fields);
- return {...(namespace==='tdev'?{identityNamespace:/** @type {const} */('tdev')}:{ }),...fields,inputDigest,effectId:recordDigest(namespace+'.activation-effect.v1',{intentDigest:record.intentDigest,inputDigest}).slice(7)};
+ return {identityNamespace:/** @type {const} */('tdev'),...fields,inputDigest,effectId:recordDigest(namespace+'.activation-effect.v1',{intentDigest:record.intentDigest,inputDigest}).slice(7)};
 }
 /** @param {Effect} effect @param {Receipt} receipt @param {number} now */
 function validReceipt(effect,receipt,now){

@@ -14,8 +14,8 @@ import {releaseIdentity,releaseNamespace,runtimePair} from './manifest.mjs';
 /** @typedef {{id:string,strategy:string,created_on:string,annotations?:Record<string,string>,versions:{version_id:string,percentage:number}[]}} Deployment */
 /** @param {unknown} value */
 function uuid(value){requireThat(typeof value==='string'&&/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(value),'INTEGRITY_FAILURE','Invalid provider version/deployment identity');return value;}
-/** @param {{identityNamespace?:'tdev'}} effect @returns {'tdev'|'dev2'} */
-function effectNamespace(effect){return effect.identityNamespace==='tdev'?'tdev':'dev2';}
+/** @param {{identityNamespace:'tdev'}} effect @returns {'tdev'} */
+function effectNamespace(effect){requireThat(effect.identityNamespace==='tdev','INTEGRITY_FAILURE','Current provider effect identity required');return 'tdev';}
 /** Fixed provider client, not a generic HTTP or deployment capability. The token
  * callback, account, canonical Worker and enrolled bindings are private installed
  * configuration. Callers supply only native-authorized exact staged identities.
@@ -66,16 +66,16 @@ export class CloudflareReleasePort {
  /** @param {StageEffect} effect @param {Build} build */
  metadata(effect,build){
   this.stageInput(effect);const manifest=build.manifest,namespace=effectNamespace(effect);requireThat(releaseNamespace(manifest)===namespace&&releaseIdentity(manifest)===effect.releaseId&&manifest.installationSealDigest===this.o.installationSealDigest&&manifest.repositoryId===this.config.binding.repositoryId&&manifest.bindingEpoch===this.config.binding.bindingEpoch&&manifest.edge.artifactDigest===effect.artifactDigest&&manifest.edge.sourceCommitOid===effect.sourceCommitOid,'FORBIDDEN','Unapproved release provider binding');
-  return {main_module:'worker.mjs',compatibility_date:manifest.edge.compatibilityDate,compatibility_flags:['nodejs_compat'],exports:{Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}},bindings:[{name:'DEV2_CONFIG_JSON',type:'plain_text',text:canonicalJson(this.edgeConfig(effect.sourceCommitOid,effect.artifactDigest))},{name:'DEV2_DEVICE_SECRET',type:'inherit'},{name:'DEV2_VERSION',type:'inherit'},{name:'DEV2_ROUTER',type:'inherit'}],annotations:{'workers/tag':effect.effectId,'workers/message':namespace+'.stage '+effect.inputDigest}};
+  return {main_module:'worker.mjs',compatibility_date:manifest.edge.compatibilityDate,compatibility_flags:['nodejs_compat'],exports:{TdevRendezvousDO:{type:'durable-object',storage:'sqlite'}},bindings:[{name:'TDEV_CONFIG_JSON',type:'plain_text',text:canonicalJson(this.edgeConfig(effect.sourceCommitOid,effect.artifactDigest))},{name:'TDEV_DEVICE_SECRET',type:'inherit'},{name:'TDEV_VERSION',type:'inherit'},{name:'TDEV_ROUTER',type:'inherit'}],annotations:{'workers/tag':effect.effectId,'workers/message':namespace+'.stage '+effect.inputDigest}};
  }
  /** Verify the exact provider resource association. ETag is recorded as opaque
   * provider evidence, never claimed to be a locally computed SHA-256 digest.
-  * @param {Version} version @param {string} commit @param {string} artifact @param {string} [compatibilityDate] @param {'tdev'|'dev2'} [namespace] */
+  * @param {Version} version @param {string} commit @param {string} artifact @param {string} [compatibilityDate] @param {'tdev'} [namespace] */
  verifyVersion(version,commit,artifact,compatibilityDate,namespace='tdev'){
-  requireThat(['tdev','dev2'].includes(namespace),'INVALID_ARGUMENT');uuid(version.id);const resources=version.resources,bindings=resources?.bindings;
-  requireThat(Array.isArray(bindings)&&bindings.length===4&&bindings.map(b=>b.name).sort().join(',')==='DEV2_CONFIG_JSON,DEV2_DEVICE_SECRET,DEV2_ROUTER,DEV2_VERSION','INTEGRITY_FAILURE','Version has different enrolled bindings');
-  const config=bindings.find(b=>b.name==='DEV2_CONFIG_JSON'),secret=bindings.find(b=>b.name==='DEV2_DEVICE_SECRET'),router=bindings.find(b=>b.name==='DEV2_ROUTER'),metadata=bindings.find(b=>b.name==='DEV2_VERSION');
-  requireThat(config?.type==='plain_text'&&typeof config.text==='string'&&secret?.type==='secret_text'&&router?.type==='durable_object_namespace'&&router.namespace_id===this.o.routerNamespaceId&&router.class_name==='Dev2RendezvousDO'&&metadata?.type==='version_metadata','INTEGRITY_FAILURE','Version resource identity mismatch');
+  requireThat(namespace==='tdev','INVALID_ARGUMENT');uuid(version.id);const resources=version.resources,bindings=resources?.bindings;
+  requireThat(Array.isArray(bindings)&&bindings.length===4&&bindings.map(b=>b.name).sort().join(',')==='TDEV_CONFIG_JSON,TDEV_DEVICE_SECRET,TDEV_ROUTER,TDEV_VERSION','INTEGRITY_FAILURE','Version has different enrolled bindings');
+  const config=bindings.find(b=>b.name==='TDEV_CONFIG_JSON'),secret=bindings.find(b=>b.name==='TDEV_DEVICE_SECRET'),router=bindings.find(b=>b.name==='TDEV_ROUTER'),metadata=bindings.find(b=>b.name==='TDEV_VERSION');
+  requireThat(config?.type==='plain_text'&&typeof config.text==='string'&&secret?.type==='secret_text'&&router?.type==='durable_object_namespace'&&router.namespace_id===this.o.routerNamespaceId&&router.class_name==='TdevRendezvousDO'&&metadata?.type==='version_metadata','INTEGRITY_FAILURE','Version resource identity mismatch');
   const edge=parseRecord(config.text,262144);requireThat(canonicalJson(edge)===canonicalJson(this.edgeConfig(commit,artifact)),'INTEGRITY_FAILURE','Provider configuration differs from the exact release');
   requireThat(resources?.script_runtime&&canonicalJson(resources.script_runtime.compatibility_flags??[])===canonicalJson(['nodejs_compat'])&&(!compatibilityDate||resources.script_runtime.compatibility_date===compatibilityDate),'INTEGRITY_FAILURE','Worker execution flags changed');
   const etag=resources.script?.etag;requireThat(typeof etag==='string'&&etag.length>0&&etag.length<=256,'INTEGRITY_FAILURE','Version content identity missing');return {versionId:version.id,artifactDigest:artifact,sourceCommitOid:commit,etag,configDigest:recordDigest(namespace+'.edge-release-config.v1',edge)};

@@ -13,20 +13,20 @@ import {managedTarget} from './managed-targets.mjs';
 /** @typedef {{assignmentId:string,sessionId:string,input:import('./session-types.js').AssignedInput,objects:import('./session-types.js').ObjectDescriptor[],state:'pending'|'done'|'cancelled'}} Dispatch */
 /** @template T @param {unknown} row @returns {T|null} */
 function decode(row){return row&&typeof row==='object'&&'record'in row&&typeof row.record==='string'?/** @type {T} */(parseRecord(row.record,2097152)):null;}
-/** @param {import('./sessions.mjs').ManagedSessions} sessions */
-function currentNamespace(sessions){const path=sessions.config.workflowPath;requireThat(path==='.github/workflows/tdev-executor.yml'||path==='.github/workflows/dev2-executor.yml','INTEGRITY_FAILURE','Unknown managed workflow identity');return /** @type {'tdev'|'dev2'} */(path==='.github/workflows/tdev-executor.yml'?'tdev':'dev2');}
-/** @param {Attempt} attempt @param {string} profileDigest @param {'tdev'|'dev2'} namespace */
-function assignmentIdFor(attempt,profileDigest,namespace){return recordDigest(namespace+'.managed-assignment.v1',{attempt,profileDigest}).slice(7);}
-/** @param {string} assignmentId @param {Attempt} attempt @param {string} profileDigest */
-function assignmentNamespace(assignmentId,attempt,profileDigest){const current=assignmentIdFor(attempt,profileDigest,'tdev'),legacy=assignmentIdFor(attempt,profileDigest,'dev2');requireThat(assignmentId===current||assignmentId===legacy,'INTEGRITY_FAILURE','Unknown managed assignment namespace');return /** @type {'tdev'|'dev2'} */(assignmentId===current?'tdev':'dev2');}
+/** @param {import('./sessions.mjs').ManagedSessions} sessions @returns {'tdev'} */
+function currentNamespace(sessions){requireThat(sessions.config.workflowPath==='.github/workflows/tdev-executor.yml','INTEGRITY_FAILURE','Unknown managed workflow identity');return 'tdev';}
+/** @param {Attempt} attempt @param {string} profileDigest */
+function assignmentIdFor(attempt,profileDigest){return recordDigest('tdev.managed-assignment.v1',{attempt,profileDigest}).slice(7);}
+/** @param {string} assignmentId @param {Attempt} attempt @param {string} profileDigest @returns {'tdev'} */
+function assignmentNamespace(assignmentId,attempt,profileDigest){requireThat(assignmentId===assignmentIdFor(attempt,profileDigest),'INTEGRITY_FAILURE','Unknown managed assignment namespace');return 'tdev';}
 /** Bridges existing work attempts to bounded managed sessions. The additive table
  * retains only assignment intent: work/attempt state remains in the same Ledger,
  * session/lease/result state remains in ManagedSessions. No request is re-admitted,
  * no second model runs, and no network or filesystem work spans a transaction.
  */
 export class ManagedPool {
- /** @param {{sessions:import('./sessions.mjs').ManagedSessions,provider:import('./github-sessions.mjs').GitHubSessions,repository:import('../repository/git.mjs').GitRepository,objects:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number,legacySourceProjection?:boolean}} options */
- constructor(options){this.o=options;this.sessions=options.sessions;this.targets=this.sessions.targets;this.ledger=this.sessions.ledger;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??250;this.legacySourceProjection=options.legacySourceProjection===true;requireThat(Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');requireThat(!this.legacySourceProjection||currentNamespace(this.sessions)==='dev2','INVALID_ARGUMENT','Legacy source projection requires retained dev2 controller');
+ /** @param {{sessions:import('./sessions.mjs').ManagedSessions,provider:import('./github-sessions.mjs').GitHubSessions,repository:import('../repository/git.mjs').GitRepository,objects:import('../contracts/ports.js').ObjectStorePort,now?:()=>number,sleep?:(ms:number)=>Promise<void>,pollMs?:number}} options */
+ constructor(options){this.o=options;this.sessions=options.sessions;this.targets=this.sessions.targets;this.ledger=this.sessions.ledger;this.now=options.now??Date.now;this.sleep=options.sleep??delay;this.pollMs=options.pollMs??250;requireThat(Number.isSafeInteger(this.pollMs)&&this.pollMs>=10&&this.pollMs<=2000,'INVALID_ARGUMENT');
   this.ledger.transact(tx=>{tx.run("CREATE TABLE IF NOT EXISTS managed_dispatch(assignment_id TEXT PRIMARY KEY,attempt_id TEXT NOT NULL,session_id TEXT NOT NULL REFERENCES managed_session(session_id),state TEXT NOT NULL,record TEXT NOT NULL)");tx.run("CREATE UNIQUE INDEX IF NOT EXISTS managed_pending_dispatch ON managed_dispatch(session_id) WHERE state='pending'");});
   /** @type {Map<string,Promise<import('./session-types.js').ExecutionResult>>} */this.running=new Map();
   this.reconciler=new SessionReconciler({sessions:this.sessions,provider:options.provider,now:this.now});
@@ -44,12 +44,12 @@ export class ManagedPool {
  reconcileLocal(){this.ledger.transact(tx=>{for(const row of tx.all("SELECT record FROM managed_dispatch WHERE state='pending'")){const d=/** @type {Dispatch} */(decode(row)),a=/** @type {Assignment|null} */(decode(tx.get('SELECT record FROM managed_assignment WHERE assignment_id=?',d.assignmentId))),s=this.sessions.session(tx,d.sessionId);if(a&&['complete','stopped'].includes(a.state)||s.state==='closed'){d.state='done';tx.run("UPDATE managed_dispatch SET state='done',record=? WHERE assignment_id=?",canonicalJson(d),d.assignmentId);}}});}
  /** @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */
  async prepare(result,attempt,profile){
-  const namespace=currentNamespace(this.sessions),currentId=assignmentIdFor(attempt,profile.digest,'tdev'),legacyId=assignmentIdFor(attempt,profile.digest,'dev2'),existing=this.retained(currentId)??this.retained(legacyId),assignmentId=existing?.assignmentId??assignmentIdFor(attempt,profile.digest,namespace),target=this.targets.owner(attempt.repositoryId),targetIdentity=managedTarget(target.binding);
+  const namespace=currentNamespace(this.sessions),currentId=assignmentIdFor(attempt,profile.digest),existing=this.retained(currentId),assignmentId=existing?.assignmentId??currentId,target=this.targets.owner(attempt.repositoryId),targetIdentity=managedTarget(target.binding);
   requireThat(result.repositoryId===target.binding.repositoryId&&result.bindingEpoch===target.binding.bindingEpoch&&result.policyDigest===target.binding.policyDigest,'STALE_RESULT','Prepared result target binding differs');
   const commit=await this.o.repository.readCommit(target.binding,result.commitOid);requireThat(commit.source.treeOid===result.resultTreeOid&&commit.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE','Prepared result bytes differ');
-  if(existing){const retainedNamespace=assignmentNamespace(existing.assignmentId,attempt,profile.digest),sourceManifest=managedSourceManifest(commit.source,retainedNamespace,this.legacySourceProjection&&retainedNamespace==='dev2'),assigned=this.assignment(existing.assignmentId);if(assigned&&['complete','stopped'].includes(assigned.state))this.targets.ownerForInput(existing.input);else this.targets.checkInput(existing.input);requireThat(existing.input.resultId===result.resultId&&existing.input.sourceManifest===sourceManifest&&existing.input.executionDigest===executionIdentity(result.execution,retainedNamespace),'IDEMPOTENCY_MISMATCH');return existing;}
+  if(existing){const retainedNamespace=assignmentNamespace(existing.assignmentId,attempt,profile.digest),sourceManifest=managedSourceManifest(commit.source),assigned=this.assignment(existing.assignmentId);if(assigned&&['complete','stopped'].includes(assigned.state))this.targets.ownerForInput(existing.input);else this.targets.checkInput(existing.input);requireThat(existing.input.resultId===result.resultId&&existing.input.sourceManifest===sourceManifest&&existing.input.executionDigest===executionIdentity(result.execution,retainedNamespace),'IDEMPOTENCY_MISMATCH');return existing;}
   requireThat(this.sessions.config.sealDigest!==null,'EXECUTION_UNAVAILABLE','Managed execution is not sealed');
-  this.current(attempt);const payload=await preparePayload({repository:this.o.repository,objects:this.o.objects,source:commit.source,resultId:result.resultId,profile,execution:result.execution,namespace,legacySourceProjection:this.legacySourceProjection});
+  this.current(attempt);const payload=await preparePayload({repository:this.o.repository,objects:this.o.objects,source:commit.source,resultId:result.resultId,profile,execution:result.execution,namespace,});
   this.reconcileLocal();const action=this.current(attempt);
   // The target owner fence above completes before this controller-ledger mutation;
   // provider launch happens only after target identity and dispatch are durable.
@@ -111,10 +111,10 @@ export class ManagedPool {
    const updated=tx.run("UPDATE managed_dispatch SET session_id=?,state='pending',record=? WHERE assignment_id=? AND record=?",next.sessionId,canonicalJson(next),d.assignmentId,String(row.record));requireThat(Number(updated.changes)===1,'STALE_REVISION');return next;
   });}catch(error){this.sessions.closeUnlaunched(s.intent.sessionId);throw error;}
  }
- /** Normalize only the exact deterministic legacy digest for the same verified
-  * canonical source bytes. Foreign runner digests remain foreign and fail validation.
-  * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile @param {import('./session-types.js').ExecutionResult} execution */
- async normalizeValidation(result,attempt,profile,execution){if(!this.legacySourceProjection)return execution;const namespace=assignmentNamespace(execution.assignmentId,attempt,profile.digest);if(namespace!=='dev2')return execution;const target=this.targets.owner(attempt.repositoryId),commit=await this.o.repository.readCommit(target.binding,result.commitOid);requireThat(commit.source.treeOid===result.resultTreeOid&&commit.source.manifestDigest===result.resultTreeSha256,'INTEGRITY_FAILURE','Prepared result bytes changed during validation normalization');const wire=managedSourceManifest(commit.source,'dev2',true),canonical=result.resultTreeSha256,normalize=(/** @type {string} */ value)=>value===wire?canonical:value;return {...execution,inputDigest:normalize(execution.inputDigest),outputDigest:normalize(execution.outputDigest)};}
+ /** Current validation output already uses the canonical tdev source digest.
+  * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile
+  * @param {import('./session-types.js').ExecutionResult} execution */
+ async normalizeValidation(result,attempt,profile,execution){return execution;}
  /** RequiredValidation run port: only a matching authenticated native-retained
   * outer-controller result is returned. Candidate log content is not interpreted.
   * @param {Prepared} result @param {Attempt} attempt @param {Profile} profile */

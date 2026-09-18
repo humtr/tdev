@@ -22,10 +22,10 @@ test('foreign pointer, corrupted bundle or non-stopped launcher cannot become su
 test('secondary binding SQLite and inherited sender locks independently fence the installation pointer',async()=>{
  const f=await fixture();let owner,child;try{
   const binding={installationId:'i',repositoryId:'secondary',providerRepositoryId:'2',bindingEpoch:'7',provider:'fixture',remote:f.root,ref:'refs/heads/other',policyDigest:D};
-  const ledgerFile=join(f.root,'binding-ledgers',recordDigest('dev2.binding-ledger.v1',binding).slice(7)+'.sqlite');
+  const ledgerFile=join(f.root,'binding-ledgers',recordDigest('tdev.binding-ledger.v1',binding).slice(7)+'.sqlite');
   owner=new Ledger(ledgerFile,binding);owner.transact(tx=>tx.run('INSERT INTO meta VALUES(?,?)','sender:secondary',canonicalJson({invocationId:'held_secondary',effectDigest:D})));
   assert.notEqual(f.run('switch').status,0);assert.deepEqual(JSON.parse(await readFile(f.config.pointerFile)),f.expected);owner.close();owner=null;
-  const root=join(f.config.senderStateDirectory,recordDigest('dev2.binding-sender.v1',binding).slice(7),'held_secondary');await mkdir(root,{recursive:true,mode:0o700});
+  const root=join(f.config.senderStateDirectory,recordDigest('tdev.binding-sender.v1',binding).slice(7),'held_secondary');await mkdir(root,{recursive:true,mode:0o700});
   child=spawn('python3',['-c','import fcntl,os,sys,time; f=os.open(sys.argv[1],os.O_CREAT|os.O_RDWR,0o600); fcntl.flock(f,fcntl.LOCK_EX); print("locked",flush=True); time.sleep(30)',join(root,'sender.lock')],{stdio:['ignore','pipe','pipe']});await new Promise((done,reject)=>{child.stdout.once('data',done);child.once('error',reject);});
   assert.notEqual(f.run('switch').status,0);assert.deepEqual(JSON.parse(await readFile(f.config.pointerFile)),f.expected);child.kill('SIGKILL');await new Promise(done=>child.once('exit',done));child=null;
   const switched=f.run('switch');assert.equal(switched.status,0);assert.equal(switched.value.senderCount,2);assert.equal(JSON.parse(await readFile(join(root,'state.json'))).state,'fenced');
@@ -42,11 +42,3 @@ test('current tdev secondary locator is fenced and preserved without a legacy al
  }finally{owner?.close();await f.close();}
 });
 
-test('simultaneous current and legacy secondary locators fail closed',async()=>{
- const f=await fixture();let current,legacy;try{
-  const binding={installationId:'i',repositoryId:'ambiguous-secondary',providerRepositoryId:'4',bindingEpoch:'9',provider:'fixture',remote:f.root,ref:'refs/heads/other-ambiguous',policyDigest:D};
-  const directory=join(f.root,'binding-ledgers');current=new Ledger(join(directory,recordDigest('tdev.binding-ledger.v1',binding).slice(7)+'.sqlite'),binding);current.close();current=null;
-  legacy=new Ledger(join(directory,recordDigest('dev2.binding-ledger.v1',binding).slice(7)+'.sqlite'),binding);legacy.close();legacy=null;
-  assert.notEqual(f.run('probe').status,0);
- }finally{current?.close();legacy?.close();await f.close();}
-});

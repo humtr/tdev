@@ -8,19 +8,19 @@ import {productionBuildOutput} from '../release/production-output.mjs';
 import {sourceManifestMatches} from '../repository/entries.mjs';
 /** @typedef {import('./enrollment.mjs').Definition} Definition */
 /** @typedef {import('./native.mjs').NativeConfig['runtime']} Runtime */
-/** @typedef {{schemaVersion:1,kind:'tdev.production-commissioning'|'dev2.production-commissioning',commissioningId:string,installationId:string,repositoryId:string,bindingEpoch:string,providerRepositoryId:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceTreeOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],engineDigest:string,dependencyArtifactDigest:string,qualificationSealDigest:string,runtime:Runtime}} ProductionIntent */
+/** @typedef {{schemaVersion:1,kind:'tdev.production-commissioning'|'tdev.production-commissioning',commissioningId:string,installationId:string,repositoryId:string,bindingEpoch:string,providerRepositoryId:string,repositoryOwnerId:string,repositoryFullName:string,approvedCommitOid:string,approvedSourceTreeOid:string,approvedSourceManifestDigest:string,identities:Definition['identities'],engineDigest:string,dependencyArtifactDigest:string,qualificationSealDigest:string,runtime:Runtime}} ProductionIntent */
 /** @typedef {{resultId:string,assignmentId:string,sessionId:string,runId:string,runAttempt:'1',leaseId:string,profileDigest:string,contextDigest:string,outerReceiptDigest:string}} EvidenceRef */
-/** @typedef {{schemaVersion:1,kind:'tdev.production-enrollment'|'dev2.production-enrollment',intent:ProductionIntent,proofs:EvidenceRef[],sealDigest:string}} ProductionEnrollment */
+/** @typedef {{schemaVersion:1,kind:'tdev.production-enrollment'|'tdev.production-enrollment',intent:ProductionIntent,proofs:EvidenceRef[],sealDigest:string}} ProductionEnrollment */
 /** @typedef {{binding:import('../contracts/ports.js').Binding,definition:Definition,source:import('../contracts/ports.js').SourceTree,runtime:Runtime,qualificationSealDigest:string,sessions:import('../execution/sessions.mjs').ManagedSessions,objects:import('../contracts/ports.js').ObjectStorePort,admission?:import('../release/native-control.mjs').Admission|null}} Expected */
 const verified=new WeakSet(),CURRENT_WORKFLOW='.github/workflows/tdev-executor.yml';
 /** @param {unknown} value @param {string[]} keys */
 function closed(value,keys){requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value)&&canonicalJson(Object.keys(value).sort())===canonicalJson(keys.sort()),'INTEGRITY_FAILURE','Closed production enrollment required');}
 /** Integrity identity only; it grants no capability. @param {ProductionIntent} intent */
-export function productionIntentDigest(intent){const namespace=intent.kind==='tdev.production-commissioning'?'tdev':intent.kind==='dev2.production-commissioning'?'dev2':'';requireThat(namespace,'INTEGRITY_FAILURE','Unknown production commissioning identity');return recordDigest(namespace+'.production-commissioning.v1',intent);}
+export function productionIntentDigest(intent){const namespace=intent.kind==='tdev.production-commissioning'?'tdev':intent.kind==='tdev.production-commissioning'?'tdev':'';requireThat(namespace,'INTEGRITY_FAILURE','Unknown production commissioning identity');return recordDigest(namespace+'.production-commissioning.v1',intent);}
 /** @param {ProductionIntent} i @param {Omit<Expected,'sessions'|'objects'|'admission'>} e */
 export function checkProductionIntent(i,e){
  closed(i,['schemaVersion','kind','commissioningId','installationId','repositoryId','bindingEpoch','providerRepositoryId','repositoryOwnerId','repositoryFullName','approvedCommitOid','approvedSourceTreeOid','approvedSourceManifestDigest','identities','engineDigest','dependencyArtifactDigest','qualificationSealDigest','runtime']);
- const current=e.definition.config.workflowPath===CURRENT_WORKFLOW,expectedKind=current?'tdev.production-commissioning':'dev2.production-commissioning';
+ const current=e.definition.config.workflowPath===CURRENT_WORKFLOW,expectedKind=current?'tdev.production-commissioning':'tdev.production-commissioning';
  requireThat(i.schemaVersion===1&&i.kind===expectedKind&&e.definition.config.executionShape==='production-outer-v1','EXECUTION_UNAVAILABLE');
  id(i.commissioningId);oid(i.approvedCommitOid);oid(i.approvedSourceTreeOid);revision(i.repositoryOwnerId);
  for(const d of [i.engineDigest,i.dependencyArtifactDigest,i.qualificationSealDigest,i.approvedSourceManifestDigest])digest(d);
@@ -34,7 +34,7 @@ export function checkProductionIntent(i,e){
  * @param {ProductionEnrollment} value @param {Expected} expected */
 export async function verifyProductionEnrollment(value,expected){
  closed(value,['schemaVersion','kind','intent','proofs','sealDigest']);
- const {sealDigest,...body}=value,i=value.intent,e=expected,ledger=e.sessions.ledger,current=e.definition.config.workflowPath===CURRENT_WORKFLOW,namespace=current?'tdev':'dev2',expectedKind=current?'tdev.production-enrollment':'dev2.production-enrollment';
+ const {sealDigest,...body}=value,i=value.intent,e=expected,ledger=e.sessions.ledger,current=e.definition.config.workflowPath===CURRENT_WORKFLOW,namespace=current?'tdev':'tdev',expectedKind=current?'tdev.production-enrollment':'tdev.production-enrollment';
  requireThat(value.schemaVersion===1&&value.kind===expectedKind&&digest(sealDigest)===recordDigest(namespace+'.production-enrollment.v1',body),'INTEGRITY_FAILURE','Production enrollment digest differs');
  checkProductionIntent(i,e);
  requireThat(canonicalJson(i.runtime)===canonicalJson(e.runtime)||releaseRuntimeAdmitted(e.admission,{...e.binding,runtime:e.runtime,enrollmentSealDigest:sealDigest,trustedRunnerDigest:i.identities.trustedRunnerDigest,workflowDigest:i.identities.workflowDigest}),'INTEGRITY_FAILURE','No exact installed production runtime admission');

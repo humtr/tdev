@@ -352,7 +352,7 @@ export class GitRepository {
             requireThat(/^[^<>\r\n\0]+ <[^<>\r\n\0]+>$/.test(actor), 'INVALID_ARGUMENT', 'Commit actor');
         const [parentObject, treeObject] = await this.readObjects([parent, treeOid]);
         requireThat(parentObject.type === 'commit' && treeObject.type === 'tree', 'INTEGRITY_FAILURE', 'Commit parent/tree types');
-        requireThat(!/^(?:Tdev|Dev2)-Result:/m.test(metadata.message), 'INVALID_ARGUMENT', 'Result trailer is broker-owned');
+        requireThat(!/^(?:Tdev|Tdev)-Result:/m.test(metadata.message), 'INVALID_ARGUMENT', 'Result trailer is broker-owned');
         const seconds = Math.floor(metadata.timestamp / 1000);
         const bytes = Buffer.from(`tree ${this.raw(treeOid)}\nparent ${this.raw(parent)}\nauthor ${metadata.author} ${seconds} +0000\ncommitter ${metadata.committer} ${seconds} +0000\n\n${metadata.message.replace(/\n+$/, '')}\n\nTdev-Result: ${resultId}\n`);
         return this.putObject('commit', bytes);

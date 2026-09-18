@@ -5,9 +5,9 @@ import {digest} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 /** @typedef {{path:string,kind:'file'|'directory'|'symlink',executable?:boolean,digest?:string,target?:string,size?:number}} Entry */
 /** @typedef {{schemaVersion:1,lockDigest:string,contentDigest:string,entries:Entry[]}} DependencyManifest */
-/** @param {'tdev'|'dev2'} namespace */
-function namespaceCheck(namespace){requireThat(namespace==='tdev'||namespace==='dev2','INVALID_ARGUMENT','Dependency artifact namespace');return namespace;}
-/** @param {string} root @param {'tdev'|'dev2'} [namespace] */
+/** @param {'tdev'} namespace */
+function namespaceCheck(namespace){requireThat(namespace==='tdev','INVALID_ARGUMENT','Dependency artifact namespace');return namespace;}
+/** @param {string} root @param {'tdev'} [namespace] */
 export async function inspectDependencies(root,namespace='tdev'){namespaceCheck(namespace);root=resolve(root);requireThat(await realpath(root)===root&&(await lstat(root)).isDirectory(),'FORBIDDEN','Dependency root');const entries=/** @type {Entry[]} */([]);let total=0;
  /** @param {string} path */
  const walk=async path=>{const names=(await readdir(join(root,path))).sort();for(const name of names){requireThat(name!=='.git'&&!/[\0\r\n]/.test(name),'FORBIDDEN','Reserved dependency entry');const relative=path?path+'/'+name:name,absolute=join(root,relative),stat=await lstat(absolute);requireThat(entries.length<32768,'LIMIT_EXCEEDED');
@@ -21,7 +21,7 @@ export async function inspectDependencies(root,namespace='tdev'){namespaceCheck(
  * by the approved executor workflow with lifecycle scripts disabled. This function
  * performs no network access and never executes any dependency or candidate code.
  * The resulting artifact is immutable by digest and mounted read-only by Podman.
- * @param {{sourceDirectory:string,cacheDirectory:string,lockDigest:string,namespace?:'tdev'|'dev2'}} options */
+ * @param {{sourceDirectory:string,cacheDirectory:string,lockDigest:string,namespace?:'tdev'}} options */
 export async function prepareDependencies(options){const namespace=namespaceCheck(options.namespace??'tdev');digest(options.lockDigest);const source=resolve(options.sourceDirectory),cache=resolve(options.cacheDirectory);requireThat(isAbsolute(options.sourceDirectory)&&isAbsolute(options.cacheDirectory)&&source!==cache&&!cache.startsWith(source+sep)&&!source.startsWith(cache+sep),'FORBIDDEN');await mkdir(cache,{recursive:true,mode:0o700});requireThat(await realpath(cache)===cache,'FORBIDDEN');
  const input=await inspectDependencies(source,namespace),identity=recordDigest(namespace+'.locked-dependencies.v1',{lockDigest:options.lockDigest,contentDigest:input.contentDigest}),destination=join(cache,identity.slice(7)),temporary=await mkdtemp(join(cache,'.preparing-'));
  try{
@@ -35,7 +35,7 @@ export async function prepareDependencies(options){const namespace=namespaceChec
   return await verifyDependencies(destination,options.lockDigest,identity,namespace);
  }finally{await rm(temporary,{recursive:true,force:true});}
 }
-/** @param {string} directory @param {string} lockDigest @param {string} [expectedIdentity] @param {'tdev'|'dev2'} [namespace] */
+/** @param {string} directory @param {string} lockDigest @param {string} [expectedIdentity] @param {'tdev'} [namespace] */
 export async function verifyDependencies(directory,lockDigest,expectedIdentity,namespace='tdev'){namespaceCheck(namespace);digest(lockDigest);directory=resolve(directory);requireThat(await realpath(directory)===directory,'FORBIDDEN');const raw=await readFile(join(directory,'manifest.json'));requireThat(raw.length<=8388608,'LIMIT_EXCEEDED');const manifest=/** @type {DependencyManifest} */(/** @type {unknown} */(parseRecord(raw,8388608)));requireThat(manifest.schemaVersion===1&&manifest.lockDigest===lockDigest&&Array.isArray(manifest.entries),'INTEGRITY_FAILURE','Dependency lock differs');
  const actual=await inspectDependencies(join(directory,'node_modules'),namespace);requireThat(canonicalJson(actual.entries)===canonicalJson(manifest.entries)&&actual.contentDigest===manifest.contentDigest,'INTEGRITY_FAILURE','Dependency artifact integrity');const identity=recordDigest(namespace+'.locked-dependencies.v1',{lockDigest,contentDigest:manifest.contentDigest});requireThat(expectedIdentity===undefined||identity===expectedIdentity,'INTEGRITY_FAILURE');
  return {identity,lockDigest,contentDigest:manifest.contentDigest,directory,nodeModules:join(directory,'node_modules'),totalBytes:actual.totalBytes};

@@ -93,7 +93,7 @@ export class DevelopmentApplication {
  await this.engine.o.authorization.authorize(principal,this.engine.binding,'repository.read');
  const selector=record(input.selector),owners=principalSubjects(principal);let workIds=[.../** @type {string[]} */(selector.workIds??[])],actionIds=[.../** @type {string[]} */(selector.actionIds??[])];
  /** @type {string[]} */const missingRequestIds=[];
- if(selector.requestIds)for(const id of /** @type {string[]} */(selector.requestIds)){const a=this.engine.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.engine.binding.bindingEpoch,id)??(principal.legacySubject?tx.lookupRequest(principal.legacySubject,this.engine.binding.bindingEpoch,id):null));if(a)actionIds.push(a.actionId);else missingRequestIds.push(id);}
+ if(selector.requestIds)for(const id of /** @type {string[]} */(selector.requestIds)){const a=this.engine.ledger.transact(tx=>tx.lookupRequest(principal.subject,this.engine.binding.bindingEpoch,id));if(a)actionIds.push(a.actionId);else missingRequestIds.push(id);}
  let cursor=/** @type {string|null} */(null),complete=true;
  if(selector.open){
   const key=recordDigest('tdev.observe-cursor.v1',{subject:principal.subject,bindingEpoch:this.engine.binding.bindingEpoch,selector});let after=0;
