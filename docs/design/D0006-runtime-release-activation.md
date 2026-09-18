@@ -995,6 +995,84 @@ admission succeeding. The prior pre-build stage remains historical failed eviden
 This subsection is a one-time C2-2 self-hosting bridge, not a permanent legacy
 production mode or alternate release path.
 
+### One-time retained-production physical-container identity recovery after post-build join falsification
+
+The single replacement stage authorized above exposed one further retained-controller
+compatibility boundary after its production runner had already authenticated, ACKed and
+completed the exact release-build assignment. For that stage Action, the verified
+canonical source manifest and the independently derived legacy wire manifest matched
+the exact assigned entry set; the retained `dev2` profile, Assignment, session,
+workflow/run, lease, seal, trusted runner and argv identities matched; every assigned
+artifact was ready; and replay of the receipt-bound production build output succeeded.
+The Action nevertheless terminated with `INTEGRITY_FAILURE` before a release build,
+provider effect, staged release or activation was retained.
+
+This case is eligible for the recovery in this subsection only when fresh evidence
+reproduces that exact shape. In particular, replay of the exact retained outer receipt
+must fail the production join only at its physical container-name equality while all
+other outer identity predicates remain exact. The retained container name must also be
+reproduced byte-for-byte by the historical physical naming algorithm for the exact
+Assignment family. For the observed retained assignment, the historical
+`dev2-<digest>` name is exactly reproduced from the same physical Attempt object even
+though that object carries the current logical Attempt namespace marker. A foreign
+container name, a different Assignment family, any changed execution field, a failed
+profile, an incomplete artifact, an ambiguous effect or an already staged release is
+not this recovery.
+
+The failed replacement stage Action is exhausted evidence. It must never be resumed,
+reused, have its deadline renewed, be promoted by terminal-stage recovery or contribute
+release authority. Its completed hosted execution is evidence for the falsified join
+only; it does not authorize a release effect or a second interpretation of the same
+Action.
+
+The durable repair must preserve the existing physical Attempt object and derive the
+expected container namespace only from the exact authenticated Assignment identity.
+Native code may determine whether the Assignment ID is the current or retained legacy
+identity for the exact `{attempt, profileDigest}` value, compute the same
+`physicalAttempt(assignment)`, and then require the container name to equal exactly
+`<assignment-family>-recordDigest(<assignment-family>.sandbox-attempt.v1,
+physicalAttempt)`. The logical Attempt's `identityNamespace` must not override a
+legacy Assignment family at this receipt-verification boundary. A current Assignment
+continues to require the current `tdev` physical name. No caller, Work, receipt,
+retained row or recovery tool may choose the family or supply an alternate name.
+
+This repair changes no source-manifest projection, profile, resource/time limit,
+provider selection, production enrollment, workflow/ref identity, release-manifest
+semantics or sandbox naming used by a current controller. Assignment/session/workflow/
+run, lease/seal, trusted-runner, profile, argv, artifacts, kernel/isolation and raw
+result bindings remain exact. The only additional compatibility rule is exact
+historical recomputation of the physical container name from an already authenticated
+legacy Assignment.
+
+Because the installed retained device still lacks the repaired verifier, the same
+bounded two-owner self-hosting pattern may be used once more after this Design-only
+revision is canonical. A first one-shot recovery owner, using the exact installed
+private configuration without changing runtime/release/provider identity, may expose
+ordinary public typed tdev for exactly one Work limited to implementing the
+assignment-family physical-name derivation above plus focused fail-closed regression
+coverage. That Work must pass every required validation profile and exact integration
+normally. The recovery owner does not gain release authority from executing those
+bytes and must close after integration.
+
+A second and final one-shot owner may start only from that exact newly integrated
+descendant after proving the old active pair remains exact, no managed Action/session
+from the source Work is active, no staged release or activation exists, and the
+exhausted stage above remains without a release/provider effect. Only that exact
+integrated descendant may create one new replacement `release.stage` Action against
+the unchanged retained active release. Transport-unknown recovery of that same request
+remains allowed, but a distinct functional failure does not authorize another stage,
+source Work or reinterpretation. If staging succeeds, only its matching ordinary
+`release.activate` may proceed. Activation response loss recovers only that durable
+activation identity.
+
+Success and exhaustion remain the normal C2-2 criteria: with no recovery owner present,
+the installed runtime reports the exact integrated descendant on both device and edge,
+`deploymentSealed=true`, no staged release, managed execution ready, retained
+primary/secondary bindings and installation-wide capacity unchanged, C1 terminal
+session/ref invariants preserved, and a fresh public mutation admission succeeds.
+This subsection is a one-time compatibility recovery, not a permanent legacy naming
+mode or alternate release mechanism.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
