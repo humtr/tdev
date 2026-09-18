@@ -1170,6 +1170,81 @@ This subsection is a one-time repair of deterministic retained-result replay; it
 a permanent legacy normalization mode, alternate builder, release bypass or additional
 release authority.
 
+### One-time fixed-helper release-identity admission recovery
+
+The replacement stage after builder re-verification reached a valid retained production
+build and entered the normal upload phase, but terminated with `INVALID_ARGUMENT`
+before any provider effect, staged release or activation. The exact failed Action is
+`04c56652b8882d64b472bc7f34b7772d`. Its release build identifies current tdev
+release `sha256:47fd4d235860de14b2960c1b87c09bac9b07ecc5a3e9aea639abef2e350a15a9`
+from native-integrated source `2fcac8d08a5c3691a2956df3dda70d406c8111d2`.
+
+Fresh replay localizes the falsification to the installed immutable fixed helper, not
+the build, production receipt, artifact bytes, device config generator or provider.
+The installed helper bundle digest is
+`sha256:324bcaefba72dcdbf37f19b9ad3089e99085cc0dafdcb12225ecc47a73318db7`.
+Its bundled closed release-manifest schema predates C2-2: it rejects the
+`identityNamespace: "tdev"` field and derives every release identity in the
+`dev2.release-manifest.v1` domain. The current required-validated source accepts only
+the optional exact current marker and derives the release identity from the resulting
+current or retained namespace. Pure replay of the failed build through current
+`FixedReleaseService.admitBuild` succeeds, while the installed helper retained no
+`helper.build:<releaseId>`, no new native config or device pointer, and the work ledger
+retained no provider effect. This is an installed fixed-control bootstrap mismatch,
+not permission to strip the current marker, rehash the release as legacy, reinterpret
+the failed Action or bypass helper admission.
+
+This case may use the already Designed **One-time bootstrap repair of pre-migration
+fixed files** above, with no wider mutation surface. Eligibility requires fresh
+readback that the retained active pair is unchanged, no staged release or activation
+exists, no managed Action is executing, the failed Action remains terminal with no
+provider effect, and the installed helper bytes and bound digest equal the exact stale
+bundle identified above. Before repair retain byte-for-byte backups and prove the
+deterministic canonical fixed-control bytes to be installed come from one exact
+required-validated native-integrated descendant. Stop only the helper service, use the
+existing private same-filesystem atomic replacement and restoration rules, and restart
+the helper. The admissible files remain exactly those already owned by that bootstrap
+procedure: the fixed helper bundle and its bound helper-bundle digest plus the fixed
+device launcher when its canonical bytes differ. The writer-fence helper is not part
+of this falsification and must not change unless the pre-existing multi-binding
+bootstrap clause independently requires its exact canonical repair. No device pointer,
+Worker deployment, work/activation ledger, credential, enrollment, release artifact or
+provider resource may be changed by the fixed-file repair.
+
+Because this Design-only publication is break-glass history rather than release
+authority, one bounded recovery owner may then expose ordinary public typed tdev and
+admit exactly one post-Design Work whose durable change is focused regression coverage
+for current tdev release-manifest admission by the fixed helper contract. Product
+release semantics must not change: the current source implementation already defines
+the required behavior. That Work must pass every required validation profile and exact
+integration normally. Only the resulting exact native-integrated canonical descendant
+is eligible both as the deterministic source of the repaired fixed-control bytes and
+as later release authority.
+
+After the fixed-file repair, fresh private status must report the exact same retained
+active pair while the original installed device remains unchanged, and replay of the
+new helper's release-manifest parser must accept the descendant's exact current tdev
+manifest and compute its current-domain release identity. Any mismatch restores the
+byte-for-byte old fixed files/config and restarts the old helper before further release
+work.
+
+Only after that readback may a second one-shot release owner run the ordinary public
+release path for the exact native-integrated descendant. It may create exactly one new
+`release.stage` against the unchanged retained active release. The exhausted
+`04c56652b8882d64b472bc7f34b7772d` Action remains historical no-effect evidence and
+must never be resumed, promoted or reused. Same-request transport-unknown recovery is
+idempotent; any distinct functional failure again requires fresh Design authority.
+If staging succeeds, only its matching ordinary `release.activate` may proceed, and
+response loss may recover only that same durable activation identity.
+
+Success remains the normal C2-2 criterion: with no recovery owner present, device and
+edge report the exact native-integrated canonical source, `deploymentSealed=true`,
+no staged release remains, managed execution is ready, primary/secondary binding
+isolation and installation-wide capacity are unchanged, C1 terminal session/ref
+invariants hold, and a fresh public mutation admission succeeds. This subsection
+exhausts only the observed stale fixed-helper identity bootstrap; it creates no
+permanent compatibility mode, alternate release identity or additional release path.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
