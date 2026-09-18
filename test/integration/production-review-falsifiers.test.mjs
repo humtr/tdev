@@ -90,6 +90,16 @@ test('review: retained dev2 production bridge proves exact legacy wire manifest 
  }finally{await f.close();}
 });
 
+test('review: retained dev2 production receipt binds physical container identity to the authenticated assignment family',async()=>{
+ const f=await productionFixture({legacyProjection:true});try{
+  f.useProductionSeal();const profile=releaseBuildProfile(f.definition.identities.imageDigest,'dev2'),good=f.create('retained-production-container-family-good',profile,true,true);
+  const goodDispatch=await f.pool.dispatch(good.result,good.attempt,profile),goodIdentity=f.activate(goodDispatch.sessionId),goodAssignment=f.pool.poll(goodIdentity).assignment;assert.ok(goodAssignment);
+  const {execution:goodRaw}=await f.complete(goodAssignment,profile,()=>{},'dev2');assert.equal(goodRaw.inputDigest,legacySourceManifest(f.source.entries));const goodExecution=await f.pool.run(good.result,good.attempt,profile),{proof}=await f.receiptPort().verify(good.result,good.attempt,profile,goodExecution,f.source);assert.equal(proof.eligible,true);f.ledger.transact(tx=>tx.releaseAttempt(good.attempt.attemptId));
+  const bad=f.create('retained-production-container-family-bad',profile,true,true),badDispatch=await f.pool.dispatch(bad.result,bad.attempt,profile),badIdentity=f.activate(badDispatch.sessionId),badAssignment=f.pool.poll(badIdentity).assignment;assert.ok(badAssignment);
+  await f.complete(badAssignment,profile,()=>{},'tdev');const badExecution=await f.pool.run(bad.result,bad.attempt,profile);await assert.rejects(f.receiptPort().verify(bad.result,bad.attempt,profile,badExecution,f.source),{code:'INTEGRITY_FAILURE'});f.ledger.transact(tx=>tx.releaseAttempt(bad.attempt.attemptId));
+ }finally{await f.close();}
+});
+
 test('review: direct authenticated offer cannot change a physical session seal after commissioning',async()=>{
  const f=await productionFixture();try{
   f.useProductionSeal();const profile=f.definition.policy.required()[0],work=f.create('mixed-seal-offer',profile);
