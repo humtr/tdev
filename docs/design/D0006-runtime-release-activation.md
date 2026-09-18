@@ -842,6 +842,45 @@ profile, changed candidate or integration conflict on the final replacement abor
 restarts the unchanged retained device; further recovery then requires fresh Design
 authority rather than another retry.
 
+The final replacement exposed one third-order failure that is distinct from a failed
+required profile and therefore requires this fresh authority before any further
+execution. The retained hosted executor authenticated, received and ACKed the exact
+assignment, but no execution result or authenticated completion was ever retained.
+After the profile deadline the assignment remained nonterminal until the provider
+session deadline, then the provider run stopped, the managed assignment became
+`stopped` with `result=null`, the exact execution ref was positively retired, and
+native recovery terminally cancelled the validation Action. No required-validation
+receipt, integration, canonical effect, release stage or activation exists for that
+Work. A real PASS/FAIL validation receipt is never reclassified by this paragraph.
+
+For this exact **terminal no-receipt hosted-execution** shape only, one last replacement
+Work is permitted after this Design revision advances the canonical head. Before it is
+created, prove the exhausted final Work still has the exact unchanged regression
+candidate, no current Action, no validation receipt and no integration; prove its last
+managed assignment is positively `stopped` with no result or completion record; prove
+the selected provider session and operational ref are terminally retired; and prove the
+normal retained device has been restored with the exact retained active pair, no staged
+release, no activation and no active/reserved managed session. The canonical delta from
+the exhausted Work's base to the new replacement base may contain only this Design
+revision and the already-authorized recovery source/doc ancestry; it may not smuggle a
+new product change into the retry.
+
+The replacement Work must reproduce the same bounded regression/owner-evidence source
+change byte-for-byte against that new canonical base. The one-shot recovery owner may
+then perform exactly one ordinary typed required-validation attempt on that replacement.
+This is a provider-lifecycle retry of an execution that produced no validation result,
+not permission to retry a `VALIDATION_FAILED` result, alter the required profiles,
+change their timeout/resource/network identity, substitute the production controller,
+or reinterpret a legacy/current controller digest. A retained completed validation
+receipt, whether PASS or FAIL, is authoritative.
+
+If that single replacement again ends without a completed required-validation receipt,
+returns any failed required profile, changes candidate/head/revision, or encounters an
+integration conflict, this exception is exhausted: close the one-shot owner, restore
+the unchanged retained device and require a different fresh Design repair rather than
+another Work or execution retry. If required validation succeeds, only that exact
+replacement may integrate and proceed through the existing normal release path.
+
 Only the exact descendant produced by that native required-validation/integration may
 then enter the normal public `release.stage` and `release.activate` path. Builder,
 artifact, provider, helper, writer-fence, pointer, startup and rollback effects remain
