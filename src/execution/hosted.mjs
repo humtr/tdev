@@ -6,7 +6,7 @@ import {canonicalJson,bytesDigest} from '../contracts/canonical.mjs';
 import {oid,id} from '../contracts/identity.mjs';
 import {requireThat} from '../contracts/errors.mjs';
 import {boundedCommand} from './command.mjs';
-import {managedDefinition} from './controller-identity.mjs';
+import {managedDefinition,sourceDependencyLockDigest} from './controller-identity.mjs';
 import {prepareController} from '../validation/controller.mjs';
 import {approvedManagedProfile} from '../validation/managed-policy.mjs';
 import {approvedReleaseBuildProfile} from '../release/build-profile.mjs';
@@ -40,7 +40,7 @@ export async function hostedExecution(options){
   requireThat(!build||production,'FORBIDDEN','Release build requires production outer execution');
   const approvedProfile=build?approvedReleaseBuildProfile(payload.profile,definition.identities.imageDigest,namespace):approvedManagedProfile(payload.profile,definition.policy);
   requireThat((build?ordered.length===1&&ordered[0]===approvedProfile.digest:ordered.length===2&&new Set(ordered).size===2&&ordered[definition.policy.policy.required.indexOf(approvedProfile.profileId)]===approvedProfile.digest)&&canonicalJson(execution)===canonicalJson({...definition.policy.policy.execution,orderedProfileDigests:ordered}),'FORBIDDEN','Candidate selected another installed execution controller');
-  const physical=physicalAttempt(assignment),source=payload.source,sourceRoot=join(options.stateDirectory,'attempts',attemptName(physical),'source');requireThat(!source.entries.some(e=>e.path==='node_modules'||e.path.startsWith('node_modules/'))&&source.entries.find(e=>e.path==='package-lock.json')?.contentDigest===definition.identities.dependencyLockDigest,'FORBIDDEN','Candidate dependency override');
+  const physical=physicalAttempt(assignment),source=payload.source,sourceRoot=join(options.stateDirectory,'attempts',attemptName(physical),'source');requireThat(!source.entries.some(e=>e.path==='node_modules'||e.path.startsWith('node_modules/'))&&await sourceDependencyLockDigest(decoded.repository,source)===definition.identities.dependencyLockDigest,'FORBIDDEN','Candidate dependency override');
   try{await materialize(decoded.repository,source,sourceRoot);}catch(error){if(!error||typeof error!=='object'||!('code'in error)||error.code!=='ENTRY_CONFLICT')throw error;requireThat(await inspectMaterialization(source,sourceRoot)===source.manifestDigest,'INTEGRITY_FAILURE');}
   const Sandbox=production?ProductionSandbox:ManagedSandbox,sandbox=new Sandbox({executable:options.podmanExecutable,environment:options.environment,attemptRoot:join(options.stateDirectory,'attempts'),seccompPath,seccompDigest:definition.identities.seccompDigest,images:{[definition.identities.imageDigest]:definition.config.image},productionSeal:true,controller,dependencies,materialize:async()=>sourceRoot});return {sandbox,sourceRoot};
  }
