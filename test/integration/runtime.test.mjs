@@ -40,6 +40,7 @@ test('invalid initial edit is atomic and authorization precedes dedup disclosure
 test('retained legacy principal alias is projected into durable metadata without breaking create',async()=>{
  const w=await engineWorld();try{
   attachLegacySubject(w.principal,'fixture-legacy-subject');
+  assert.equal(Object.getOwnPropertyDescriptor(w.principal,'legacySubject')?.enumerable,false);
   const created=await w.create('legacy-principal-create','legacy.txt','legacy-safe\n');assert.ok(created.workId);
   const stored=w.engine.metadata('principal:'+created.actionId);assert.ok(stored&&typeof stored==='object'&&!Array.isArray(stored));
   assert.equal(stored.legacySubject,'fixture-legacy-subject');assert.equal(stored.subject,w.principal.subject);
