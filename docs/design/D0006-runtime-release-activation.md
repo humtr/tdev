@@ -897,6 +897,104 @@ principal succeeding without the recovery owner. Then the exception is exhausted
 This is bounded C2-2 recovery evidence, not a permanent alternate runtime, public API,
 release authority or ordinary development dependency.
 
+### One-time retained-production wire-manifest recovery after pre-build stage falsification
+
+The native-validated and integrated descendant produced by the recovery above exposed
+one further compatibility boundary only when ordinary `release.stage` entered the
+installed **production** builder. The retained production enrollment still selects the
+immutable legacy `dev2-exec` workflow, so its Assignment identity is correctly legacy,
+but the production `ManagedPool` did not enable the exact source-manifest projection
+already required by the retained generic managed controller. The immutable legacy
+runner therefore received the current `tdev` source-manifest digest in an otherwise
+legacy Assignment and rejected the payload with `INTEGRITY_FAILURE` before ACK.
+
+This failure is eligible for the recovery in this subsection only when fresh durable
+evidence proves all of the following for that exact stage Action: its retained
+`release.stage:<actionId>` record is still in the pre-build state with
+`build=null`, `effect=null`, `receipt=null` and `target=null`; no
+`release.ready` record exists for the source; no provider effect belongs to the
+Action; its attempt is no longer held; the selected production session is the exact
+retained `dev2-exec` enrollment; and the assignment is terminally stopped with no
+result or authenticated completion. The active helper pair must still be exact, no
+release may be staged or activating, and the normal retained device must be healthy
+again before recovery begins. A post-build, uploaded, pending-provider or ambiguous
+stage is not this case and must use its existing owner or another fresh Design.
+
+The failed pre-build stage Action is exhausted historical evidence. It must never be
+resumed into a build, have its deadline renewed, acquire a provider effect, be promoted
+by terminal-stage recovery, or contribute release authority. A replacement stage is
+permitted only for a later exact canonical descendant containing the durable bridge
+fix below after that descendant has passed ordinary required validation and exact
+integration.
+
+The durable bridge is an identity projection, not a source substitution. It applies
+only when the production definition and verified production enrollment select the
+exact retained legacy `.github/workflows/dev2-executor.yml` controller. A current
+`tdev-executor.yml` production controller remains current-manifest-only. Native code
+must first verify the canonical source commit, tree and current manifest, derive the
+legacy wire manifest from the exact same verified entry set through the existing
+`legacySourceManifest` compatibility function, and bind that derived digest into the
+payload and Assignment consumed by the retained runner. No caller, Work, release input
+or retained row may supply the projected digest.
+
+Production receipt joining must independently prove the same equivalence rather than
+trusting the Assignment. The verifier must receive or recover the exact canonical
+SourceTree owned by the integrated release source, verify its current manifest, and
+derive the one allowed legacy wire digest from those entries. For a retained
+`dev2` production assignment only, the Assignment, raw runner result and outer receipt
+may carry that exact derived wire digest while the release source remains bound to the
+canonical digest. Any normalization at a native boundary is allowed only when the raw
+input/output digest equals that exact derived wire digest and every other execution
+field is unchanged. Assignment/session/workflow/run identity, lease/seal, artifacts,
+kernel/isolation evidence, profile identity and production enrollment remain exact.
+A foreign digest, changed entry set, current production controller or mismatched raw
+result fails closed. New release manifests and source authority continue to record only
+the canonical current source-manifest digest.
+
+Because the installed retained device still cannot perform ordinary mutation admission
+without the principal-projection repair source, an authorized repair tool may perform
+one bounded two-owner handoff. First, after this Design-only revision is canonical, it
+may stop only the replaceable device service and run the existing principal-projection
+recovery owner against the exact installed native configuration. Through ordinary
+public typed tdev it may admit exactly one Work whose product delta is limited to
+wiring the already-defined source-manifest projection into the verified retained
+production control, making the production receipt join prove the exact legacy/current
+source equivalence above, and adding focused regression coverage. It may not change
+profiles, resource/time limits, provider selection, enrollment identities, release
+manifest semantics, the generic managed projection, or any provider/release state.
+That Work must pass every required validation profile and exact integration normally.
+
+The first recovery owner does not gain authority by having integrated those bytes and
+must not hot-swap them into itself. After integration it closes and releases the
+ledger. A second and final one-shot owner may then start from exactly that newly
+integrated canonical source, reusing the same installed private configuration,
+credentials, enrollment, ledgers, binding registry and fixed release control without
+rewriting their identities. Before staging, prove no managed session or Action from the
+source Work remains active, the old failed stage remains pre-build/no-effect evidence,
+the retained active pair is unchanged and exact, and no staged release or activation
+exists. This bounded owner handoff is part of the same recovery campaign and does not
+authorize another source Work.
+
+Only that exact integrated bridge descendant may create one replacement
+`release.stage` Action against the exact retained active release. Ordinary
+same-request recovery still applies to transport-unknown delivery, but a distinct
+functional stage failure does not authorize another stage or source Work. If the
+replacement stage does not produce one exact retained staged release through the normal
+managed builder and provider owners, close the recovery owner, restore the unchanged
+retained device and require fresh Design authority. If it stages successfully, ordinary
+`release.activate` owns helper admission, writer fencing, pointer switching, startup,
+health checking and rollback. If activation admission stops the old writer or loses its
+response, close the recovery owner and recover only that same durable activation
+identity; never create a second activation.
+
+Success and exhaustion require the normal installed runtime, with no recovery owner
+present, to report the exact integrated bridge descendant as canonical device and edge
+source, `deploymentSealed=true`, no staged release, managed execution ready, the
+retained primary/secondary bindings and capacity unchanged, and fresh public mutation
+admission succeeding. The prior pre-build stage remains historical failed evidence.
+This subsection is a one-time C2-2 self-hosting bridge, not a permanent legacy
+production mode or alternate release path.
+
 ## C2-2 runtime/provider identity transition
 
 New private transport paths are under `/__tdev/` and new source/runtime labels,
