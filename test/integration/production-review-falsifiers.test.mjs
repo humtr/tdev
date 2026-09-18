@@ -70,6 +70,15 @@ test('review: production enrollment cannot reuse a still-warm commissioning-seal
  }finally{await f.close();}
 });
 
+test('review: current tdev attempt joins exact retained legacy executor evidence before current controller commissioning',async()=>{
+ const f=await productionFixture();try{
+  f.useProductionSeal();const profile=f.definition.policy.required()[0],work=f.create('current-attempt-legacy-executor',profile,false,true);
+  assert.equal(work.attempt.identityNamespace,'tdev');const d=await f.pool.dispatch(work.result,work.attempt,profile),identity=f.activate(d.sessionId),a=f.pool.poll(identity).assignment;assert.ok(a);
+  const legacyId=recordDigest('dev2.managed-assignment.v1',{attempt:work.attempt,profileDigest:profile.digest}).slice(7),currentId=recordDigest('tdev.managed-assignment.v1',{attempt:work.attempt,profileDigest:profile.digest}).slice(7);assert.equal(a.assignmentId,legacyId);assert.notEqual(a.assignmentId,currentId);
+  const {execution}=await f.complete(a,profile),{proof}=await f.receiptPort().verify(work.result,work.attempt,profile,execution);assert.equal(proof.assignmentId,legacyId);assert.equal(proof.eligible,true);f.ledger.transact(tx=>tx.releaseAttempt(work.attempt.attemptId));
+ }finally{await f.close();}
+});
+
 test('review: direct authenticated offer cannot change a physical session seal after commissioning',async()=>{
  const f=await productionFixture();try{
   f.useProductionSeal();const profile=f.definition.policy.required()[0],work=f.create('mixed-seal-offer',profile);
