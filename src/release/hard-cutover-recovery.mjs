@@ -19,7 +19,8 @@ export const HARD_CUTOVER = Object.freeze({
  activeDeployment:'c8e326bb-ce39-406c-8532-f7a7b789d4f8',
  releaseId:'sha256:4dc5c8ef407af6dd20f78058592b58fcd2fe85db2fbe3c2f745b6815fa040e22',
  workerName:'tdev',
- reason:'hard_cutover_target_version_fenced'
+ reason:'hard_cutover_target_version_fenced',
+ sentinelMessage:'tdev.c2-2 hard-cutover predecessor sentinel 5c8b62c72661e66d3c5a29f5e382899ee0333bef4c0ad90b2910c169eddf51f0'
 });
 
 export const HARD_CUTOVER_RESIDUE=Object.freeze({
@@ -77,13 +78,80 @@ export function validateHardCutoverDeployments(value){
 export function validateLegacyTargetVersion(value){
  const version=object(value,'Target version');
  requireThat(version.id===HARD_CUTOVER.targetVersion,'INTEGRITY_FAILURE','Target version identity changed');
- const bindings=/** @type {any[]} */(version.resources?.bindings);
- requireThat(Array.isArray(bindings),'INTEGRITY_FAILURE','Target version bindings unavailable');
- const names=bindings.map(v=>object(v).name).sort();
- requireThat(names.join(',')==='DEV2_CONFIG_JSON,DEV2_DEVICE_SECRET,DEV2_ROUTER,DEV2_VERSION','INTEGRITY_FAILURE','Abandoned target no longer has exact legacy bindings');
- const router=bindings.find(v=>object(v).name==='DEV2_ROUTER');
- requireThat(router?.type==='durable_object_namespace'&&router.class_name==='Dev2RendezvousDO','INTEGRITY_FAILURE','Abandoned target router identity changed');
+ validateHardCutoverLegacyProviderShape(version,'Abandoned target');
  return version;
+}
+/** @param {any} version @param {string} label */
+function validateHardCutoverLegacyProviderShape(version,label){
+ const bindings=/** @type {any[]} */(version.resources?.bindings);
+ requireThat(Array.isArray(bindings),'INTEGRITY_FAILURE',label+' bindings unavailable');
+ const names=bindings.map(v=>object(v).name).sort();
+ requireThat(names.join(',')==='DEV2_CONFIG_JSON,DEV2_DEVICE_SECRET,DEV2_ROUTER,DEV2_VERSION','INTEGRITY_FAILURE',label+' no longer has exact legacy bindings');
+ const router=bindings.find(v=>object(v).name==='DEV2_ROUTER');
+ requireThat(router?.type==='durable_object_namespace'&&router.class_name==='Dev2RendezvousDO','INTEGRITY_FAILURE',label+' router identity changed');
+ return version;
+}
+/** @param {unknown} value */
+export function validateHardCutoverPredecessorVersion(value){
+ const version=object(value,'Predecessor version');
+ requireThat(version.id===HARD_CUTOVER.previousVersion,'INTEGRITY_FAILURE','Predecessor version identity changed');
+ validateHardCutoverLegacyProviderShape(version,'Predecessor version');
+ const runtime=object(version.resources?.script_runtime,'Predecessor runtime');
+ requireThat(runtime.compatibility_date==='2026-08-15'&&canonicalJson(runtime.compatibility_flags)===canonicalJson(['nodejs_compat']),'INTEGRITY_FAILURE','Predecessor compatibility settings changed');
+ requireThat(canonicalJson(runtime.exports)===canonicalJson({Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}}),'INTEGRITY_FAILURE','Predecessor export identity changed');
+ const script=object(version.resources?.script,'Predecessor script');
+ requireThat(typeof script.etag==='string'&&/^[0-9a-f]{64}$/.test(script.etag),'INTEGRITY_FAILURE','Predecessor script etag unavailable');
+ return version;
+}
+/** @param {unknown} value @param {boolean} targetPresent */
+export function classifyHardCutoverVersionList(value,targetPresent){
+ const versions=Array.isArray(value)?value:[];requireThat(versions.length>=2&&versions.length<=100,'EXECUTION_UNAVAILABLE','Bounded Worker version list required');
+ const previous=versions.find(v=>object(v).id===HARD_CUTOVER.previousVersion);requireThat(previous,'INTEGRITY_FAILURE','Predecessor version disappeared');
+ const sentinels=versions.filter(v=>object(v).annotations?.['workers/message']===HARD_CUTOVER.sentinelMessage);
+ requireThat(sentinels.length<=1,'EFFECT_UNCERTAIN','Multiple hard-cutover sentinels exist');
+ const latest=object(versions[0],'Latest Worker version');
+ if(sentinels.length){
+  const sentinel=object(sentinels[0],'Hard-cutover sentinel');
+  requireThat(latest.id===sentinel.id&&sentinel.id!==HARD_CUTOVER.targetVersion&&sentinel.id!==HARD_CUTOVER.previousVersion&&typeof sentinel.id==='string'&&/^[0-9a-f-]{36}$/.test(sentinel.id),'EFFECT_UNCERTAIN','Hard-cutover sentinel is not the exact latest version');
+  return {state:'sentinel-latest',latestId:String(latest.id),sentinelId:String(sentinel.id)};
+ }
+ requireThat(targetPresent&&latest.id===HARD_CUTOVER.targetVersion,'EFFECT_UNCERTAIN','Unexpected latest Worker version');
+ return {state:'target-latest',latestId:HARD_CUTOVER.targetVersion,sentinelId:null};
+}
+/** @param {unknown} value */
+export function validateHardCutoverExportsReconciliation(value){
+ const reconciliation=object(value,'Sentinel exports reconciliation');
+ for(const key of ['created','deleted','updated','renamed','transferred','transfer_pending']){
+  const values=/** @type {any} */(reconciliation)[key];requireThat(Array.isArray(values)&&values.length===0,'INTEGRITY_FAILURE','Sentinel changed Durable Object exports');
+ }
+ for(const key of ['warnings','info']){
+  const values=/** @type {any} */(reconciliation)[key];requireThat(Array.isArray(values)&&values.length===0,'INTEGRITY_FAILURE','Sentinel export reconciliation was not a no-op');
+ }
+ return reconciliation;
+}
+/** @param {unknown} value @param {any} predecessor */
+export function validateHardCutoverSentinelVersion(value,predecessor){
+ const version=object(value,'Sentinel version');validateHardCutoverPredecessorVersion(predecessor);
+ requireThat(typeof version.id==='string'&&/^[0-9a-f-]{36}$/.test(version.id)&&version.id!==HARD_CUTOVER.targetVersion&&version.id!==HARD_CUTOVER.previousVersion,'INTEGRITY_FAILURE','Sentinel version identity invalid');
+ validateHardCutoverLegacyProviderShape(version,'Sentinel version');
+ const runtime=object(version.resources?.script_runtime,'Sentinel runtime'),oldRuntime=object(predecessor.resources?.script_runtime,'Predecessor runtime');
+ requireThat(runtime.compatibility_date===oldRuntime.compatibility_date&&canonicalJson(runtime.compatibility_flags)===canonicalJson(oldRuntime.compatibility_flags)&&canonicalJson(runtime.exports)===canonicalJson(oldRuntime.exports),'INTEGRITY_FAILURE','Sentinel runtime differs from predecessor');
+ const script=object(version.resources?.script,'Sentinel script'),oldScript=object(predecessor.resources?.script,'Predecessor script');
+ requireThat(script.etag===oldScript.etag,'INTEGRITY_FAILURE','Sentinel code differs from active predecessor');
+ return version;
+}
+/** @param {any} predecessor */
+export function hardCutoverSentinelMetadata(predecessor){
+ validateHardCutoverPredecessorVersion(predecessor);
+ const runtime=object(predecessor.resources.script_runtime);
+ return {
+  main_module:'worker.mjs',
+  compatibility_date:runtime.compatibility_date,
+  compatibility_flags:structuredClone(runtime.compatibility_flags),
+  exports:structuredClone(runtime.exports),
+  bindings:['DEV2_CONFIG_JSON','DEV2_DEVICE_SECRET','DEV2_ROUTER','DEV2_VERSION'].map(name=>({name,type:'inherit',version_id:HARD_CUTOVER.previousVersion})),
+  annotations:{'workers/message':HARD_CUTOVER.sentinelMessage}
+ };
 }
 
 /** @param {string} filename @param {number} [maximum] */
@@ -319,6 +387,27 @@ async function providerRequest(fetcher,method,url,token,allowed){
  requireThat(envelope.success===true,'EXECUTION_UNAVAILABLE','Unsuccessful provider envelope');
  return {status:response.status,result:envelope.result??null};
 }
+/** @param {typeof fetch} fetcher @param {string} script @param {string} token */
+async function activeWorkerModule(fetcher,script,token){
+ let response;try{response=await fetcher(script+'/content/v2',{method:'GET',redirect:'error',signal:AbortSignal.timeout(20000),headers:{authorization:'Bearer '+token,'user-agent':'tdev-c2-2-hard-cutover-recovery'}});}
+ catch{throw new TdevError('EXECUTION_UNAVAILABLE','Active Worker content unavailable');}
+ requireThat(response.status===200,'EXECUTION_UNAVAILABLE','Active Worker content rejected');
+ let form;try{form=await response.formData();}catch{throw new TdevError('EXECUTION_UNAVAILABLE','Active Worker content is not multipart');}
+ const entries=[...form.entries()];requireThat(entries.length===1&&entries[0][0]==='worker.mjs'&&typeof entries[0][1]!=='string','INTEGRITY_FAILURE','Active Worker module shape changed');
+ const file=/** @type {File} */(entries[0][1]),bytes=Buffer.from(await file.arrayBuffer());
+ requireThat(bytes.length>0&&bytes.length<=2097152&&['application/javascript+module','text/javascript+module','application/javascript','text/javascript'].includes(file.type),'INTEGRITY_FAILURE','Active Worker module bytes invalid');
+ return bytes;
+}
+/** @param {typeof fetch} fetcher @param {string} url @param {string} token @param {FormData} form */
+async function uploadSentinelRequest(fetcher,url,token,form){
+ let response;try{response=await fetcher(url,{method:'POST',body:form,redirect:'error',signal:AbortSignal.timeout(30000),headers:{authorization:'Bearer '+token,'user-agent':'tdev-c2-2-hard-cutover-recovery','accept':'application/json'}});}
+ catch{throw new TdevError('EFFECT_UNCERTAIN','Sentinel upload response unavailable');}
+ const reader=response.body?.getReader();requireThat(reader,'EFFECT_UNCERTAIN','Empty sentinel upload response');const parts=[];let size=0;
+ try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;requireThat(size<=2097152,'LIMIT_EXCEEDED');parts.push(Buffer.from(part.value));}}finally{await reader.cancel().catch(()=>{});}
+ let envelope;try{envelope=object(boundedProviderJson(Buffer.concat(parts),2097152),'Sentinel upload envelope');}catch{throw new TdevError('EFFECT_UNCERTAIN','Sentinel upload response unreadable');}
+ requireThat(response.status===200&&envelope.success===true,'EFFECT_UNCERTAIN','Sentinel upload was not confirmed');
+ return object(envelope.result,'Sentinel upload result');
+}
 /** @param {any} helperConfig @param {typeof fetch} [fetcher] */
 async function providerObservation(helperConfig,fetcher=fetch){
  requireThat(helperConfig.cloudflare?.workerName===HARD_CUTOVER.workerName,'FORBIDDEN','Recovery is bound to canonical tdev Worker');
@@ -336,18 +425,51 @@ async function providerObservation(helperConfig,fetcher=fetch){
   requireThat(object(betaTarget.result).id===HARD_CUTOVER.targetVersion,'INTEGRITY_FAILURE','Beta target version changed');
   validateLegacyTargetVersion(scriptTarget.result);
  }
- return {account,token,script,beta,targetPresent:betaTarget.status===200,active};
+ const previousResult=await providerRequest(fetcher,'GET',script+'/versions/'+HARD_CUTOVER.previousVersion,token,[200]);
+ const previous=validateHardCutoverPredecessorVersion(previousResult.result);
+ const listResult=await providerRequest(fetcher,'GET',beta+'/versions?per_page=100',token,[200]);
+ const versionState=classifyHardCutoverVersionList(listResult.result,betaTarget.status===200);
+ let sentinel=null;
+ if(versionState.sentinelId){
+  const sentinelResult=await providerRequest(fetcher,'GET',script+'/versions/'+versionState.sentinelId,token,[200]);
+  sentinel=validateHardCutoverSentinelVersion(sentinelResult.result,previous);
+ }
+ return {account,token,script,beta,targetPresent:betaTarget.status===200,active,previous,versionState,sentinel};
+}
+/** @param {any} helperConfig @param {typeof fetch} [fetcher] */
+async function ensurePredecessorSentinel(helperConfig,fetcher=fetch){
+ let observation=await providerObservation(helperConfig,fetcher);
+ if(!observation.targetPresent||observation.versionState.state==='sentinel-latest')return observation;
+ requireThat(observation.versionState.state==='target-latest','EFFECT_UNCERTAIN','Target is not the exact latest version');
+ const module=await activeWorkerModule(fetcher,observation.script,observation.token);
+ const form=new FormData(),metadata=hardCutoverSentinelMetadata(observation.previous);
+ form.append('metadata',canonicalJson(metadata));
+ form.append('worker.mjs',new Blob([module],{type:'application/javascript+module'}),'worker.mjs');
+ let uploaded=null;
+ try{
+  uploaded=await uploadSentinelRequest(fetcher,observation.script+'/versions?bindings_inherit=strict',observation.token,form);
+  const sentinel=validateHardCutoverSentinelVersion(uploaded,observation.previous);
+  validateHardCutoverExportsReconciliation(uploaded.exports_reconciliation);
+  requireThat(sentinel.id===uploaded.id,'INTEGRITY_FAILURE');
+ }catch(error){
+  if(!(error instanceof TdevError)||error.code!=='EFFECT_UNCERTAIN')throw error;
+ }
+ observation=await providerObservation(helperConfig,fetcher);
+ requireThat(observation.targetPresent&&observation.versionState.state==='sentinel-latest'&&observation.sentinel,'EFFECT_UNCERTAIN','Predecessor sentinel upload remains unconfirmed');
+ if(uploaded)requireThat(observation.sentinel.id===uploaded.id,'EFFECT_UNCERTAIN','Sentinel upload readback changed');
+ return observation;
 }
 /** @param {any} helperConfig @param {typeof fetch} [fetcher] */
 async function deleteTarget(helperConfig,fetcher=fetch){
- let observation=await providerObservation(helperConfig,fetcher);
+ let observation=await ensurePredecessorSentinel(helperConfig,fetcher);
  if(observation.targetPresent){
+  requireThat(observation.versionState.state==='sentinel-latest'&&observation.sentinel,'EFFECT_UNCERTAIN','Target is still latest; deletion is forbidden');
   try{await providerRequest(fetcher,'DELETE',observation.beta+'/versions/'+HARD_CUTOVER.targetVersion,observation.token,[200,204,404]);}catch(error){if(!(error instanceof TdevError)||error.code!=='EFFECT_UNCERTAIN')throw error;}
   const after=await providerRequest(fetcher,'GET',observation.beta+'/versions/'+HARD_CUTOVER.targetVersion,observation.token,[200,404]);
   requireThat(after.status===404,'EFFECT_UNCERTAIN','Target version deletion remains unconfirmed');
  }
  observation=await providerObservation(helperConfig,fetcher);
- requireThat(!observation.targetPresent,'EFFECT_UNCERTAIN','Target version still exists');
+ requireThat(!observation.targetPresent&&observation.versionState.state==='sentinel-latest'&&observation.sentinel,'EFFECT_UNCERTAIN','Target version fence is incomplete');
  return observation;
 }
 
@@ -379,7 +501,7 @@ export async function inspectHardCutover(options){
  const {helper,native}=await configurations(options.helperConfigFile,options.nativeConfigFile);
  const local=await localInspection(native,helper),provider=await providerObservation(helper,options.fetcher);
  const planDigest=hardCutoverPlanDigest({installationId:helper.installationId,repositoryId:helper.repositoryId,bindingEpoch:helper.bindingEpoch,workerName:helper.cloudflare.workerName,backups:local.backups});
- return {kind:'tdev.c2-2-hard-cutover-recovery-plan',planDigest,targetVersionState:provider.targetPresent?'present':'absent',activationPhase:local.helper.phase,readyProjection:local.work.ready?'present':'absent',backupDigests:local.backups};
+ return {kind:'tdev.c2-2-hard-cutover-recovery-plan',planDigest,targetVersionState:provider.targetPresent?'present':'absent',sentinelVersionId:provider.versionState.sentinelId,latestVersionState:provider.versionState.state,activationPhase:local.helper.phase,readyProjection:local.work.ready?'present':'absent',backupDigests:local.backups};
 }
 /** @param {any} helperConfig */
 async function terminalizeHelper(helperConfig){
@@ -567,6 +689,27 @@ export async function applyHardCutover(options){
  await terminalizeHelper(helper);
  await removeReadyProjection(native);
  const after=await inspectHardCutover(options);
- requireThat(after.planDigest===options.expectedPlanDigest&&after.targetVersionState==='absent'&&after.activationPhase==='rolled_back'&&after.readyProjection==='absent','INTEGRITY_FAILURE','Hard-cutover recovery readback failed');
- return {kind:'tdev.c2-2-hard-cutover-recovered',planDigest:after.planDigest,targetVersion:HARD_CUTOVER.targetVersion,activeVersion:HARD_CUTOVER.previousVersion,activationPhase:after.activationPhase,readyProjection:after.readyProjection};
+ requireThat(after.planDigest===options.expectedPlanDigest&&after.targetVersionState==='absent'&&typeof after.sentinelVersionId==='string'&&after.latestVersionState==='sentinel-latest'&&after.activationPhase==='rolled_back'&&after.readyProjection==='absent','INTEGRITY_FAILURE','Hard-cutover recovery readback failed');
+ return {kind:'tdev.c2-2-hard-cutover-recovered',planDigest:after.planDigest,targetVersion:HARD_CUTOVER.targetVersion,sentinelVersionId:after.sentinelVersionId,activeVersion:HARD_CUTOVER.previousVersion,activationPhase:after.activationPhase,readyProjection:after.readyProjection};
+}
+
+/** Delete only the exact inactive predecessor sentinel after a newer tdev version is positively deployed.
+ * @param {{helperConfigFile:string,fetcher?:typeof fetch}} options */
+export async function cleanupHardCutoverSentinel(options){
+ const helper=await readHelperConfig(resolve(options.helperConfigFile));
+ requireThat(helper.schemaVersion===1&&helper.cloudflare?.workerName===HARD_CUTOVER.workerName,'FORBIDDEN','Sentinel cleanup is bound to canonical tdev Worker');
+ const account=helper.cloudflare.accountId;requireThat(typeof account==='string'&&/^[a-f0-9]{32}$/.test(account),'FORBIDDEN','Cloudflare account identity changed');
+ const token=(await secureBytes(helper.paths.cloudflareTokenFile,8192)).toString().trim();requireThat(token.length>=20&&!/[\r\n\0]/.test(token),'FORBIDDEN','Provider credential unavailable');
+ const script='https://api.cloudflare.com/client/v4/accounts/'+account+'/workers/scripts/'+HARD_CUTOVER.workerName,beta='https://api.cloudflare.com/client/v4/accounts/'+account+'/workers/workers/'+HARD_CUTOVER.workerName,fetcher=options.fetcher??fetch;
+ const list=await providerRequest(fetcher,'GET',beta+'/versions?per_page=100',token,[200]),versions=Array.isArray(list.result)?list.result:[];
+ const matches=versions.filter(v=>object(v).annotations?.['workers/message']===HARD_CUTOVER.sentinelMessage);requireThat(matches.length<=1,'EFFECT_UNCERTAIN','Multiple hard-cutover sentinels exist');
+ if(!matches.length)return {kind:'tdev.c2-2-hard-cutover-sentinel-cleanup',state:'already',sentinelVersionId:null};
+ const sentinelId=String(object(matches[0]).id);requireThat(sentinelId!==String(object(versions[0]).id),'EXECUTION_UNAVAILABLE','Sentinel is still the latest version');
+ const previous=validateHardCutoverPredecessorVersion((await providerRequest(fetcher,'GET',script+'/versions/'+HARD_CUTOVER.previousVersion,token,[200])).result);
+ validateHardCutoverSentinelVersion((await providerRequest(fetcher,'GET',script+'/versions/'+sentinelId,token,[200])).result,previous);
+ const deployments=object((await providerRequest(fetcher,'GET',script+'/deployments',token,[200])).result,'Deployment response').deployments;
+ requireThat(Array.isArray(deployments)&&!deployments.some(d=>Array.isArray(object(d).versions)&&/** @type {any[]} */(d.versions).some(v=>object(v).version_id===sentinelId)),'EXECUTION_UNAVAILABLE','Sentinel is referenced by a deployment');
+ try{await providerRequest(fetcher,'DELETE',beta+'/versions/'+sentinelId,token,[200,204,404]);}catch(error){if(!(error instanceof TdevError)||error.code!=='EFFECT_UNCERTAIN')throw error;}
+ const after=await providerRequest(fetcher,'GET',beta+'/versions/'+sentinelId,token,[200,404]);requireThat(after.status===404,'EFFECT_UNCERTAIN','Sentinel deletion remains unconfirmed');
+ return {kind:'tdev.c2-2-hard-cutover-sentinel-cleanup',state:'deleted',sentinelVersionId:sentinelId};
 }

@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
-import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession,validateHardCutoverResidueDispatchState,validateHardCutoverHeldPreparedResult,hardCutoverPendingResidueIds} from '../../src/release/hard-cutover-recovery.mjs';
+import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession,validateHardCutoverResidueDispatchState,validateHardCutoverHeldPreparedResult,hardCutoverPendingResidueIds,validateHardCutoverPredecessorVersion,classifyHardCutoverVersionList,validateHardCutoverExportsReconciliation,validateHardCutoverSentinelVersion,hardCutoverSentinelMetadata} from '../../src/release/hard-cutover-recovery.mjs';
 
 function pair(releaseId,edgeVersionId){
  return {releaseId,schemaDigest:'sha256:'+'1'.repeat(64),sourceCommitOid:'sha1:'+'2'.repeat(40),deviceReleaseId:'sha256:'+'3'.repeat(64),deviceArtifactDigest:'sha256:'+'4'.repeat(64),deviceSourceCommitOid:'sha1:'+'5'.repeat(40),edgeVersionId,edgeArtifactDigest:'sha256:'+'6'.repeat(64),edgeSourceCommitOid:'sha1:'+'7'.repeat(40),protocol:{min:1,max:1},ledger:{min:1,max:2}};
@@ -87,4 +87,41 @@ test('pending residue projection follows exact named dispatch state after ordina
  assert.deepEqual(hardCutoverPendingResidueIds([historical,held]),[]);
  assert.deepEqual(hardCutoverPendingResidueIds([{...historical,state:'pending'},held]),[historical.assignmentId]);
  assert.throws(()=>hardCutoverPendingResidueIds([historical,{...held,state:'running'}]));
+});
+
+function predecessor(){
+ return {id:HARD_CUTOVER.previousVersion,resources:{bindings:[
+  {name:'DEV2_CONFIG_JSON',type:'plain_text'},{name:'DEV2_DEVICE_SECRET',type:'secret_text'},
+  {name:'DEV2_ROUTER',type:'durable_object_namespace',class_name:'Dev2RendezvousDO'},{name:'DEV2_VERSION',type:'version_metadata'}
+ ],script_runtime:{compatibility_date:'2026-08-15',compatibility_flags:['nodejs_compat'],exports:{Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}}},script:{etag:'a'.repeat(64)}}};
+}
+
+test('hard-cutover predecessor sentinel metadata is exact and inheritance-bound',()=>{
+ const previous=predecessor();assert.equal(validateHardCutoverPredecessorVersion(previous).id,HARD_CUTOVER.previousVersion);
+ const metadata=hardCutoverSentinelMetadata(previous);
+ assert.deepEqual(metadata.bindings.map(x=>[x.name,x.type,x.version_id]),[
+  ['DEV2_CONFIG_JSON','inherit',HARD_CUTOVER.previousVersion],['DEV2_DEVICE_SECRET','inherit',HARD_CUTOVER.previousVersion],
+  ['DEV2_ROUTER','inherit',HARD_CUTOVER.previousVersion],['DEV2_VERSION','inherit',HARD_CUTOVER.previousVersion]
+ ]);
+ assert.deepEqual(metadata.exports,{Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}});
+ assert.equal(metadata.annotations['workers/message'],HARD_CUTOVER.sentinelMessage);
+});
+
+test('hard-cutover version list permits only target-latest or one exact sentinel-latest',()=>{
+ const target={id:HARD_CUTOVER.targetVersion,annotations:{}},previous={id:HARD_CUTOVER.previousVersion,annotations:{}};
+ assert.equal(classifyHardCutoverVersionList([target,previous],true).state,'target-latest');
+ const sentinel={id:'11111111-2222-4333-8444-555555555555',annotations:{'workers/message':HARD_CUTOVER.sentinelMessage}};
+ const classified=classifyHardCutoverVersionList([sentinel,target,previous],true);
+ assert.equal(classified.state,'sentinel-latest');assert.equal(classified.sentinelId,sentinel.id);
+ assert.throws(()=>classifyHardCutoverVersionList([{id:'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee',annotations:{}},target,previous],true));
+ assert.throws(()=>classifyHardCutoverVersionList([sentinel,{...sentinel,id:'22222222-3333-4444-8555-666666666666'},previous],true));
+});
+
+test('sentinel must preserve predecessor legacy resources and perform no export reconciliation',()=>{
+ const previous=predecessor(),sentinel=structuredClone(previous);sentinel.id='11111111-2222-4333-8444-555555555555';
+ assert.equal(validateHardCutoverSentinelVersion(sentinel,previous).id,sentinel.id);
+ const noop={created:[],deleted:[],updated:[],renamed:[],transferred:[],transfer_pending:[],warnings:[],info:[]};
+ assert.equal(validateHardCutoverExportsReconciliation(noop),noop);
+ assert.throws(()=>validateHardCutoverExportsReconciliation({...noop,deleted:['Dev2RendezvousDO']}));
+ const changed=structuredClone(sentinel);changed.resources.script.etag='b'.repeat(64);assert.throws(()=>validateHardCutoverSentinelVersion(changed,previous));
 });
