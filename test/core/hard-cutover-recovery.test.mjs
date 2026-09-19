@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
-import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest} from '../../src/release/hard-cutover-recovery.mjs';
+import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession} from '../../src/release/hard-cutover-recovery.mjs';
 
 function pair(releaseId,edgeVersionId){
  return {releaseId,schemaDigest:'sha256:'+'1'.repeat(64),sourceCommitOid:'sha1:'+'2'.repeat(40),deviceReleaseId:'sha256:'+'3'.repeat(64),deviceArtifactDigest:'sha256:'+'4'.repeat(64),deviceSourceCommitOid:'sha1:'+'5'.repeat(40),edgeVersionId,edgeArtifactDigest:'sha256:'+'6'.repeat(64),edgeSourceCommitOid:'sha1:'+'7'.repeat(40),protocol:{min:1,max:1},ledger:{min:1,max:2}};
@@ -53,4 +53,15 @@ test('provider effect residue permits only the exact sent hard-cutover target',(
  assert.equal(validateHardCutoverProviderEffects([confirmed,target]),2);
  assert.throws(()=>validateHardCutoverProviderEffects([{...confirmed,state:'sent'},target]));
  assert.throws(()=>validateHardCutoverProviderEffects([confirmed]));
+});
+
+test('stale-session recovery projection accepts only exact retained dev2-exec identity',()=>{
+ const binding={installationId:'installation',repositoryId:'repository',bindingEpoch:'1',providerRepositoryId:'1322208918'};
+ const sessionId='a'.repeat(32),ref='refs/heads/dev2-exec/'+sessionId,launchCommit='b'.repeat(40);
+ const intent={sessionId,installationId:binding.installationId,repositoryId:binding.repositoryId,bindingEpoch:'1',providerRepositoryId:binding.providerRepositoryId,repositoryOwnerId:'272709831',repositoryFullName:'humtr/tdev',ref,workflowRef:'humtr/tdev/.github/workflows/dev2-executor.yml@'+ref,launchCommit,trustedRunnerDigest:'sha256:'+'c'.repeat(64),createdAt:1,deadline:2};
+ const run={repositoryId:binding.providerRepositoryId,repositoryOwnerId:intent.repositoryOwnerId,runId:'35417842867',runAttempt:'1',headSha:launchCommit,headBranch:'dev2-exec/'+sessionId,event:'push',workflowPath:'.github/workflows/dev2-executor.yml',status:'in_progress',observedAt:1};
+ const session={intent,intentDigest:'sha256:'+'d'.repeat(64),revision:'1',observerEpoch:'1',launch:'sent',state:'active',run,cancelRequested:false,stoppedAt:null};
+ assert.equal(validateHardCutoverStaleSession(session,binding).intent.ref,ref);
+ const current=structuredClone(session);current.intent.ref='refs/heads/tdev-exec/'+sessionId;current.intent.workflowRef='humtr/tdev/.github/workflows/tdev-executor.yml@'+current.intent.ref;
+ assert.throws(()=>validateHardCutoverStaleSession(current,binding));
 });

@@ -395,6 +395,134 @@ function terminalizeHeldDesignIn(db,binding){
  const nextWork={...structuredClone(work),currentActionId:null,revision:nextRevision(work.revision),disposition:work.disposition},workChange=db.prepare('UPDATE work SET revision=?,disposition=?,record=? WHERE work_id=? AND revision=? AND record=?').run(nextWork.revision,nextWork.disposition,canonicalJson(nextWork),HARD_CUTOVER_RESIDUE.heldDesign.workId,work.revision,canonicalJson(work));requireThat(workChange.changes===1,'STALE_REVISION','Held Design Work changed during cleanup');
  const after=heldDesignState(db,binding,'terminal');requireThat(Number(db.prepare('SELECT count(*) n FROM attempt WHERE held=1').get()?.n)===0,'INTEGRITY_FAILURE','Held Design cleanup did not release reservation');return {state:'recovered',work:after.work,action:after.action};
 }
+/** @param {unknown} value */
+function providerNumericId(value){requireThat(typeof value==='number'&&Number.isSafeInteger(value)&&value>0,'EXECUTION_UNAVAILABLE','Invalid provider numeric identity');return String(value);}
+/** Recovery-local exact pre-cutover session projection. This never enters the normal tdev runtime.
+ * @param {any} value @param {any} binding */
+export function validateHardCutoverStaleSession(value,binding){
+ const session=object(value,'Recovery managed session'),intent=object(session.intent,'Recovery managed intent'),run=object(session.run,'Recovery managed run');
+ id(intent.sessionId);revision(session.revision);revision(run.runId);
+ const ref='refs/heads/dev2-exec/'+intent.sessionId,workflow=intent.repositoryFullName+'/.github/workflows/dev2-executor.yml@'+ref;
+ requireThat(session.launch==='sent'&&!session.cancelRequested&&['active','closed'].includes(session.state),'INTEGRITY_FAILURE','Recovery session lifecycle changed');
+ requireThat(intent.installationId===binding.installationId&&intent.repositoryId===binding.repositoryId&&intent.bindingEpoch===binding.bindingEpoch&&intent.providerRepositoryId===binding.providerRepositoryId,'INTEGRITY_FAILURE','Recovery session binding changed');
+ requireThat(binding.bindingEpoch==='1'&&typeof intent.repositoryFullName==='string'&&/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/.test(intent.repositoryFullName),'INTEGRITY_FAILURE','Recovery repository identity changed');
+ requireThat(intent.ref===ref&&intent.workflowRef===workflow&&/^[0-9a-f]{40}$/.test(intent.launchCommit)&&run.runAttempt==='1'&&run.runId!=='0','INTEGRITY_FAILURE','Recovery legacy workflow identity changed');
+ requireThat(run.repositoryId===intent.providerRepositoryId&&run.repositoryOwnerId===intent.repositoryOwnerId&&run.headSha===intent.launchCommit&&run.headBranch===ref.slice(11)&&run.event==='push'&&run.workflowPath==='.github/workflows/dev2-executor.yml','INTEGRITY_FAILURE','Recovery retained provider run changed');
+ if(session.state==='closed')requireThat(run.status==='completed'&&Number.isSafeInteger(session.stoppedAt),'INTEGRITY_FAILURE','Closed recovery session lacks terminal evidence');
+ else requireThat(['in_progress','queued'].includes(run.status),'INTEGRITY_FAILURE','Live recovery session retained unexpected provider state');
+ return session;
+}
+/** @param {DatabaseSync} db @param {any} binding */
+function staleRecoverySession(db,binding){
+ requireThat(Number(db.prepare("SELECT count(*) n FROM action WHERE status IN ('queued','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Executing Action remains during session normalization');
+ requireThat(Number(db.prepare("SELECT count(*) n FROM managed_assignment WHERE state IN ('offered','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Live managed assignment remains during session normalization');
+ const held=db.prepare('SELECT attempt_id FROM attempt WHERE held=1 ORDER BY attempt_id').all().map(row=>String(row.attempt_id));
+ requireThat(canonicalJson(held)===canonicalJson([HARD_CUTOVER_RESIDUE.heldDesign.attemptId]),'EXECUTION_UNAVAILABLE','Unexpected held Attempt remains during session normalization');
+ const openRows=db.prepare("SELECT record FROM managed_session WHERE state<>'closed' ORDER BY session_id").all();
+ requireThat(openRows.length<=1,'EXECUTION_UNAVAILABLE','More than one managed session is nonterminal');
+ let session=openRows.length?validateHardCutoverStaleSession(parseRecord(String(openRows[0].record),2097152),binding):null;
+ if(!session){
+  const rows=db.prepare("SELECT record FROM managed_session WHERE state='closed' ORDER BY rowid DESC LIMIT 128").all();
+  const missing=[];
+  for(const row of rows){
+   const candidate=parseRecord(String(row.record),2097152),intent=/** @type {any} */(candidate).intent;
+   if(typeof intent?.ref!=='string'||!intent.ref.startsWith('refs/heads/dev2-exec/'))continue;
+   const retired=db.prepare('SELECT value FROM meta WHERE key=?').get('managed.ref-retired:'+String(intent.sessionId));
+   if(!retired)missing.push(candidate);
+  }
+  requireThat(missing.length<=1,'INTEGRITY_FAILURE','Multiple closed legacy sessions lack retirement evidence');
+  if(missing.length)session=validateHardCutoverStaleSession(missing[0],binding);
+ }
+ if(!session)return null;
+ const sessionId=session.intent.sessionId;
+ requireThat(Number(db.prepare("SELECT count(*) n FROM managed_dispatch WHERE session_id=? AND state='pending'").get(sessionId)?.n)===0,'EXECUTION_UNAVAILABLE','Recovery session still has pending dispatch');
+ const assignments=db.prepare('SELECT state,record FROM managed_assignment WHERE session_id=? ORDER BY assignment_id').all(sessionId);
+ for(const row of assignments){
+  const assignment=object(parseRecord(String(row.record),2097152),'Recovery assignment'),result=assignment.result===null?null:object(assignment.result,'Recovery assignment result');
+  requireThat(String(row.state)==='complete'&&assignment.state==='complete'&&result&&result.trustedRunnerDigest===session.intent.trustedRunnerDigest,'INTEGRITY_FAILURE','Recovery session has non-complete or untrusted assignment');
+  const attemptId=assignment.input?.attempt?.attemptId;
+  if(typeof attemptId==='string'){const attempt=db.prepare('SELECT held FROM attempt WHERE attempt_id=?').get(attemptId);requireThat(!attempt||Number(attempt.held)===0,'EXECUTION_UNAVAILABLE','Recovery session owns a held Attempt');}
+ }
+ return session;
+}
+/** @param {string} file @param {any} binding */
+function inspectStaleRecoverySession(file,binding){
+ const db=openExclusive(file);try{return staleRecoverySession(db,binding);}finally{releaseDb(db);}
+}
+/** @param {typeof fetch} fetcher @param {'GET'|'DELETE'} method @param {string} root @param {string} suffix @param {string} token @param {number[]} allowed */
+async function recoveryGitHubRequest(fetcher,method,root,suffix,token,allowed){
+ const url=new URL(root+suffix,'https://api.github.com');
+ requireThat(url.origin==='https://api.github.com'&&(url.pathname===root||url.pathname.startsWith(root+'/'))&&!url.username&&!url.password&&!url.hash,'FORBIDDEN','Recovery GitHub URL escaped bound repository');
+ let response;try{response=await fetcher(url,{method,redirect:'error',signal:AbortSignal.timeout(15000),headers:{accept:'application/vnd.github+json',authorization:'Bearer '+token,'x-github-api-version':'2026-03-10','user-agent':'tdev-c2-2-hard-cutover-recovery'}});}
+ catch{throw new TdevError(method==='DELETE'?'EFFECT_UNCERTAIN':'EXECUTION_UNAVAILABLE','Recovery GitHub response unavailable');}
+ requireThat(allowed.includes(response.status),method==='DELETE'?'EFFECT_UNCERTAIN':'EXECUTION_UNAVAILABLE','Recovery GitHub request rejected');
+ if(response.status===204||response.status===404)return {status:response.status,data:null};
+ const reader=response.body?.getReader();requireThat(reader,'EXECUTION_UNAVAILABLE','Empty recovery GitHub response');const parts=[];let size=0;
+ try{for(;;){const part=await reader.read();if(part.done)break;size+=part.value.byteLength;requireThat(size<=2097152,'LIMIT_EXCEEDED');parts.push(Buffer.from(part.value));}}finally{reader.releaseLock();}
+ return {status:response.status,data:parts.length?boundedProviderJson(Buffer.concat(parts),2097152):null};
+}
+/** @param {any} session @param {string} token @param {typeof fetch} fetcher */
+async function observeRecoverySession(session,token,fetcher){
+ const i=session.intent,root='/repos/'+i.repositoryFullName;
+ const repository=object((await recoveryGitHubRequest(fetcher,'GET',root,'',token,[200])).data,'Recovery repository');
+ requireThat(providerNumericId(repository.id)===i.providerRepositoryId&&providerNumericId(object(repository.owner).id)===i.repositoryOwnerId&&repository.full_name===i.repositoryFullName&&repository.archived===false,'FORBIDDEN','Recovery repository binding changed');
+ const query=new URLSearchParams({branch:i.ref.slice(11),event:'push',head_sha:i.launchCommit,per_page:'100'});
+ const envelope=object((await recoveryGitHubRequest(fetcher,'GET',root,'/actions/runs?'+query,token,[200])).data,'Recovery run envelope'),runs=Array.isArray(envelope.workflow_runs)?envelope.workflow_runs:[];
+ requireThat(Number.isSafeInteger(envelope.total_count)&&envelope.total_count===runs.length&&runs.length<=100,'EXECUTION_UNAVAILABLE','Recovery run observation must be complete');
+ const matching=runs.filter(value=>object(value).path==='.github/workflows/dev2-executor.yml');
+ requireThat(matching.length===1,'EFFECT_UNCERTAIN','Recovery session must have exactly one provider run');
+ const raw=object(matching[0],'Recovery provider run'),repo=object(raw.repository),headRepo=object(raw.head_repository);
+ requireThat(providerNumericId(repo.id)===i.providerRepositoryId&&providerNumericId(headRepo.id)===i.providerRepositoryId&&providerNumericId(object(repo.owner).id)===i.repositoryOwnerId,'UNAUTHORIZED','Recovery provider run repository changed');
+ requireThat(providerNumericId(raw.id)===session.run.runId&&raw.run_attempt===1&&raw.head_sha===i.launchCommit&&raw.head_branch===i.ref.slice(11)&&raw.event==='push'&&raw.path==='.github/workflows/dev2-executor.yml'&&raw.status==='completed','EFFECT_UNCERTAIN','Recovery provider run is not exact terminal');
+ return {root,run:{repositoryId:i.providerRepositoryId,repositoryOwnerId:i.repositoryOwnerId,runId:providerNumericId(raw.id),runAttempt:'1',headSha:i.launchCommit,headBranch:i.ref.slice(11),event:'push',workflowPath:'.github/workflows/dev2-executor.yml',status:'completed',observedAt:Date.now()}};
+}
+/** @param {string} file @param {any} binding @param {any} before @param {any} terminal */
+function closeRecoverySession(file,binding,before,terminal){
+ const db=openExclusive(file);try{
+  const current=staleRecoverySession(db,binding);requireThat(current&&canonicalJson(current)===canonicalJson(before),'STALE_REVISION','Recovery session changed before terminalization');
+  if(current.state!=='closed'){
+   const next={...structuredClone(current),revision:nextRevision(current.revision),state:'closed',run:structuredClone(terminal),stoppedAt:terminal.observedAt};
+   const changed=db.prepare('UPDATE managed_session SET state=?,record=? WHERE session_id=? AND state=? AND record=?').run('closed',canonicalJson(next),current.intent.sessionId,current.state,canonicalJson(current));
+   requireThat(changed.changes===1,'STALE_REVISION','Recovery session changed during terminalization');
+  }
+  db.exec('COMMIT');
+ }catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{try{db.close();}catch{}}
+}
+/** @param {string} file @param {any} binding @param {any} session @param {any} terminal */
+function retainRecoveryRetirement(file,binding,session,terminal){
+ const db=openExclusive(file);try{
+  const current=staleRecoverySession(db,binding);requireThat(current&&current.state==='closed'&&current.intent.sessionId===session.intent.sessionId,'STALE_REVISION','Closed recovery session changed before retirement evidence');
+  const key='managed.ref-retired:'+session.intent.sessionId,row=db.prepare('SELECT value FROM meta WHERE key=?').get(key);
+  const record={schemaVersion:1,kind:'dev2.managed-ref-retirement',sessionId:session.intent.sessionId,intentDigest:session.intentDigest,ref:session.intent.ref,launchCommit:session.intent.launchCommit,runId:terminal.runId,runAttempt:terminal.runAttempt,terminalObservedAt:terminal.observedAt,retiredAt:Date.now()};
+  if(row){const retained=object(parseRecord(String(row.value),65536),'Recovery retirement');requireThat(retained.kind===record.kind&&retained.sessionId===record.sessionId&&retained.intentDigest===record.intentDigest&&retained.ref===record.ref&&retained.launchCommit===record.launchCommit&&retained.runId===record.runId,'INTEGRITY_FAILURE','Recovery retirement evidence changed');}
+  else db.prepare('INSERT INTO meta VALUES(?,?)').run(key,canonicalJson(record));
+  db.exec('COMMIT');
+ }catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{try{db.close();}catch{}}
+}
+/** @param {{helperConfigFile:string,nativeConfigFile:string,fetcher?:typeof fetch}} options */
+export async function normalizeHardCutoverStaleSession(options){
+ const {native}=await configurations(options.helperConfigFile,options.nativeConfigFile),file=join(resolve(native.stateDirectory),'work.sqlite');
+ requireThat(typeof native.githubTokenFile==='string','EXECUTION_UNAVAILABLE','Recovery GitHub credential is not installed');await secureBytes(file,134217728);
+ let session=inspectStaleRecoverySession(file,native.edge.binding);
+ if(!session)return {kind:'tdev.c2-2-hard-cutover-stale-session-normalization',state:'already'};
+ const token=(await secureBytes(native.githubTokenFile,8192)).toString().trim();requireThat(token.length>=20&&!/\s/.test(token),'UNAUTHORIZED','Recovery GitHub credential unavailable');
+ const observed=await observeRecoverySession(session,token,options.fetcher??fetch);
+ closeRecoverySession(file,native.edge.binding,session,observed.run);
+ session=inspectStaleRecoverySession(file,native.edge.binding);requireThat(session&&session.state==='closed','INTEGRITY_FAILURE','Recovery session did not close');
+ const suffix='/git/ref/heads/dev2-exec/'+session.intent.sessionId;
+ let reference=await recoveryGitHubRequest(options.fetcher??fetch,'GET',observed.root,suffix,token,[200,404]);
+ if(reference.status===200){
+  const ref=object(reference.data,'Recovery execution ref'),target=object(ref.object,'Recovery execution ref target');
+  requireThat(ref.ref===session.intent.ref&&target.type==='commit'&&target.sha===session.intent.launchCommit,'INTEGRITY_FAILURE','Recovery execution ref changed');
+  try{await recoveryGitHubRequest(options.fetcher??fetch,'DELETE',observed.root,'/git/refs/heads/dev2-exec/'+session.intent.sessionId,token,[204]);}catch(error){if(!(error instanceof TdevError)||error.code!=='EFFECT_UNCERTAIN')throw error;}
+  reference=await recoveryGitHubRequest(options.fetcher??fetch,'GET',observed.root,suffix,token,[200,404]);
+ }
+ requireThat(reference.status===404,'EFFECT_UNCERTAIN','Recovery execution ref retirement remains unconfirmed');
+ retainRecoveryRetirement(file,native.edge.binding,session,observed.run);
+ requireThat(inspectStaleRecoverySession(file,native.edge.binding)===null,'INTEGRITY_FAILURE','Recovery session normalization did not reach terminal boundary');
+ return {kind:'tdev.c2-2-hard-cutover-stale-session-normalization',state:'normalized',sessionId:session.intent.sessionId,runId:observed.run.runId};
+}
+
 /** @param {{helperConfigFile:string,nativeConfigFile:string}} options */
 export async function cleanupHardCutoverHeldDesign(options){
  const {native}=await configurations(options.helperConfigFile,options.nativeConfigFile),file=join(resolve(native.stateDirectory),'work.sqlite');await secureBytes(file,134217728);const db=openExclusive(file);
