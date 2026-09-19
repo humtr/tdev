@@ -17,11 +17,11 @@ export function artifactMountArguments(controller,dependencies,source){
  * node_modules/lock aliasing is refused before a physical attempt can launch.
  */
 export class ManagedSandbox extends PodmanSandbox {
- /** @param {ConstructorParameters<typeof PodmanSandbox>[0]&{controller:{directory:string,digest:string},dependencies:{directory:string,identity:string,lockDigest:string}}} options */
+ /** @param {ConstructorParameters<typeof PodmanSandbox>[0]&{controller:{directory:string,digest:string},dependencies:{directory:string,identity:string,lockDigest:string},verifyDependencyLock?:(source:import('../contracts/ports.js').SourceTree)=>Promise<string>}} options */
  constructor(options){
   super({...options,materialize:async(attempt,source)=>{
    requireThat(!source.entries.some(e=>e.path==='node_modules'||e.path.startsWith('node_modules/')),'FORBIDDEN','Candidate may not shadow the approved dependency mount');
-   const lock=source.entries.find(e=>e.path==='package-lock.json');requireThat(lock?.mode==='100644'&&lock.contentDigest===options.dependencies.lockDigest,'INTEGRITY_FAILURE','Candidate dependency lock was not approved');
+   const lock=source.entries.find(e=>e.path==='package-lock.json'),candidateDigest=options.verifyDependencyLock?await options.verifyDependencyLock(source):lock?.contentDigest;requireThat(lock?.mode==='100644'&&candidateDigest===options.dependencies.lockDigest,'INTEGRITY_FAILURE','Candidate dependency lock was not approved');
    const path=await options.materialize(attempt,source),mount=join(path,'node_modules');
    try{await mkdir(mount,{mode:0o755});}catch(error){if(!error||typeof error!=='object'||!('code'in error)||error.code!=='EEXIST')throw error;}
    requireThat((await lstat(mount)).isDirectory()&&await realpath(mount)===mount&&(await readdir(mount)).length===0,'FORBIDDEN','Dependency mount point is not an empty private directory');
