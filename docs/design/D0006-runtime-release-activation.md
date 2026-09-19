@@ -290,6 +290,23 @@ launcher bytes and launcher-config bytes before Python transfers control to the
 launcher. No source-selected command, credential, provider target or release target is
 accepted.
 
+The original `installationSealDigest` is an immutable base anchor: it is already
+embedded in the baseline native configuration, admitted release manifests and retained
+activation evidence, so launcher commissioning must not re-key or rewrite that digest.
+The operator first verifies the exact stored
+`tdev.operator-installed-release-boundary.v1` record and its installation/repository/
+binding identity. The commissioned boundary then adds exactly one canonical
+`fixed/launcher-commissioning-seal.json` extension whose semantic digest binds that
+base installation seal plus the exact pointer-aware launcher, launcher configuration,
+service run, runit configuration and helper configuration digests. The extension is
+installed last, after exact readback of those bytes, and is the commit marker for this
+one-way bootstrap handoff. An absent extension is admissible only while the unchanged
+base seal still exactly describes the bootstrap service run and runit configuration;
+an existing mismatched extension or a partial composition is an integrity failure.
+Thus the effective installation seal is the immutable base seal plus this exact
+commissioning extension, without rewriting the baseline pointer/native config or any
+release/enrollment evidence.
+
 Commissioning is allowed only at the retained baseline pointer with no active
 activation. Stop only the fixed release-helper service, retain byte-for-byte backups,
 install the launcher/config/service-run/runit/helper-config bytes by private
