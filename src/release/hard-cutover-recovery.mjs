@@ -129,15 +129,16 @@ export function validateHardCutoverExportsReconciliation(value){
  }
  return reconciliation;
 }
-/** @param {unknown} value @param {any} predecessor */
-export function validateHardCutoverSentinelVersion(value,predecessor){
+/** @param {unknown} value @param {any} predecessor @param {{expectedScriptEtags?:string[]}} [options] */
+export function validateHardCutoverSentinelVersion(value,predecessor,options={}){
  const version=object(value,'Sentinel version');validateHardCutoverPredecessorVersion(predecessor);
  requireThat(typeof version.id==='string'&&/^[0-9a-f-]{36}$/.test(version.id)&&version.id!==HARD_CUTOVER.targetVersion&&version.id!==HARD_CUTOVER.previousVersion,'INTEGRITY_FAILURE','Sentinel version identity invalid');
  validateHardCutoverLegacyProviderShape(version,'Sentinel version');
  const runtime=object(version.resources?.script_runtime,'Sentinel runtime'),oldRuntime=object(predecessor.resources?.script_runtime,'Predecessor runtime');
  requireThat(runtime.compatibility_date===oldRuntime.compatibility_date&&canonicalJson(runtime.compatibility_flags)===canonicalJson(oldRuntime.compatibility_flags)&&canonicalJson(runtime.exports)===canonicalJson(oldRuntime.exports),'INTEGRITY_FAILURE','Sentinel runtime differs from predecessor');
  const script=object(version.resources?.script,'Sentinel script'),oldScript=object(predecessor.resources?.script,'Predecessor script');
- requireThat(script.etag===oldScript.etag,'INTEGRITY_FAILURE','Sentinel code differs from active predecessor');
+ const expectedScriptEtags=Array.isArray(options.expectedScriptEtags)?options.expectedScriptEtags:[oldScript.etag];
+ requireThat(expectedScriptEtags.length===0||expectedScriptEtags.includes(script.etag),'INTEGRITY_FAILURE','Sentinel code differs from the fenced predecessor/target');
  return version;
 }
 /** @param {any} predecessor */
@@ -149,7 +150,12 @@ export function hardCutoverSentinelMetadata(predecessor){
   compatibility_date:runtime.compatibility_date,
   compatibility_flags:structuredClone(runtime.compatibility_flags),
   exports:structuredClone(runtime.exports),
-  bindings:['DEV2_CONFIG_JSON','DEV2_DEVICE_SECRET','DEV2_ROUTER','DEV2_VERSION'].map(name=>({name,type:'inherit',version_id:HARD_CUTOVER.previousVersion})),
+  // Cloudflare's version-only upload API accepts only the literal `latest`
+  // selector for inherited bindings.  The caller proves immediately before
+  // upload that the latest version is the exact abandoned target and that
+  // the active deployment remains previous-only; the returned sentinel is
+  // then checked for the exact retained legacy binding family.
+  bindings:['DEV2_CONFIG_JSON','DEV2_DEVICE_SECRET','DEV2_ROUTER','DEV2_VERSION'].map(name=>({name,type:'inherit',version_id:'latest'})),
   annotations:{'workers/message':HARD_CUTOVER.sentinelMessage}
  };
 }
@@ -421,9 +427,10 @@ async function providerObservation(helperConfig,fetcher=fetch){
  const betaTarget=await providerRequest(fetcher,'GET',beta+'/versions/'+HARD_CUTOVER.targetVersion,token,[200,404]);
  const scriptTarget=await providerRequest(fetcher,'GET',script+'/versions/'+HARD_CUTOVER.targetVersion,token,[200,404]);
  requireThat((betaTarget.status===200)===(scriptTarget.status===200),'EFFECT_UNCERTAIN','Provider version surfaces disagree');
+ let target=null;
  if(betaTarget.status===200){
   requireThat(object(betaTarget.result).id===HARD_CUTOVER.targetVersion,'INTEGRITY_FAILURE','Beta target version changed');
-  validateLegacyTargetVersion(scriptTarget.result);
+  target=validateLegacyTargetVersion(scriptTarget.result);
  }
  const previousResult=await providerRequest(fetcher,'GET',script+'/versions/'+HARD_CUTOVER.previousVersion,token,[200]);
  const previous=validateHardCutoverPredecessorVersion(previousResult.result);
@@ -432,9 +439,10 @@ async function providerObservation(helperConfig,fetcher=fetch){
  let sentinel=null;
  if(versionState.sentinelId){
   const sentinelResult=await providerRequest(fetcher,'GET',script+'/versions/'+versionState.sentinelId,token,[200]);
-  sentinel=validateHardCutoverSentinelVersion(sentinelResult.result,previous);
+  const expectedScriptEtags=target?[previous.resources.script.etag,target.resources.script.etag]:[];
+  sentinel=validateHardCutoverSentinelVersion(sentinelResult.result,previous,{expectedScriptEtags});
  }
- return {account,token,script,beta,targetPresent:betaTarget.status===200,active,previous,versionState,sentinel};
+ return {account,token,script,beta,targetPresent:betaTarget.status===200,active,target,previous,versionState,sentinel};
 }
 /** @param {any} helperConfig @param {typeof fetch} [fetcher] */
 async function ensurePredecessorSentinel(helperConfig,fetcher=fetch){
@@ -706,7 +714,7 @@ export async function cleanupHardCutoverSentinel(options){
  if(!matches.length)return {kind:'tdev.c2-2-hard-cutover-sentinel-cleanup',state:'already',sentinelVersionId:null};
  const sentinelId=String(object(matches[0]).id);requireThat(sentinelId!==String(object(versions[0]).id),'EXECUTION_UNAVAILABLE','Sentinel is still the latest version');
  const previous=validateHardCutoverPredecessorVersion((await providerRequest(fetcher,'GET',script+'/versions/'+HARD_CUTOVER.previousVersion,token,[200])).result);
- validateHardCutoverSentinelVersion((await providerRequest(fetcher,'GET',script+'/versions/'+sentinelId,token,[200])).result,previous);
+ validateHardCutoverSentinelVersion((await providerRequest(fetcher,'GET',script+'/versions/'+sentinelId,token,[200])).result,previous,{expectedScriptEtags:[]});
  const deployments=object((await providerRequest(fetcher,'GET',script+'/deployments',token,[200])).result,'Deployment response').deployments;
  requireThat(Array.isArray(deployments)&&!deployments.some(d=>Array.isArray(object(d).versions)&&/** @type {any[]} */(d.versions).some(v=>object(v).version_id===sentinelId)),'EXECUTION_UNAVAILABLE','Sentinel is referenced by a deployment');
  try{await providerRequest(fetcher,'DELETE',beta+'/versions/'+sentinelId,token,[200,204,404]);}catch(error){if(!(error instanceof TdevError)||error.code!=='EFFECT_UNCERTAIN')throw error;}

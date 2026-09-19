@@ -100,8 +100,8 @@ test('hard-cutover predecessor sentinel metadata is exact and inheritance-bound'
  const previous=predecessor();assert.equal(validateHardCutoverPredecessorVersion(previous).id,HARD_CUTOVER.previousVersion);
  const metadata=hardCutoverSentinelMetadata(previous);
  assert.deepEqual(metadata.bindings.map(x=>[x.name,x.type,x.version_id]),[
-  ['DEV2_CONFIG_JSON','inherit',HARD_CUTOVER.previousVersion],['DEV2_DEVICE_SECRET','inherit',HARD_CUTOVER.previousVersion],
-  ['DEV2_ROUTER','inherit',HARD_CUTOVER.previousVersion],['DEV2_VERSION','inherit',HARD_CUTOVER.previousVersion]
+  ['DEV2_CONFIG_JSON','inherit','latest'],['DEV2_DEVICE_SECRET','inherit','latest'],
+  ['DEV2_ROUTER','inherit','latest'],['DEV2_VERSION','inherit','latest']
  ]);
  assert.deepEqual(metadata.exports,{Dev2RendezvousDO:{type:'durable-object',storage:'sqlite'}});
  assert.equal(metadata.annotations['workers/message'],HARD_CUTOVER.sentinelMessage);
@@ -120,6 +120,9 @@ test('hard-cutover version list permits only target-latest or one exact sentinel
 test('sentinel must preserve predecessor legacy resources and perform no export reconciliation',()=>{
  const previous=predecessor(),sentinel=structuredClone(previous);sentinel.id='11111111-2222-4333-8444-555555555555';
  assert.equal(validateHardCutoverSentinelVersion(sentinel,previous).id,sentinel.id);
+ const staged=structuredClone(sentinel);staged.resources.script.etag='b'.repeat(64);
+ assert.equal(validateHardCutoverSentinelVersion(staged,previous,{expectedScriptEtags:[previous.resources.script.etag,staged.resources.script.etag]}).id,staged.id);
+ assert.equal(validateHardCutoverSentinelVersion(staged,previous,{expectedScriptEtags:[]}).id,staged.id);
  const noop={created:[],deleted:[],updated:[],renamed:[],transferred:[],transfer_pending:[],warnings:[],info:[]};
  assert.equal(validateHardCutoverExportsReconciliation(noop),noop);
  assert.throws(()=>validateHardCutoverExportsReconciliation({...noop,deleted:['Dev2RendezvousDO']}));
