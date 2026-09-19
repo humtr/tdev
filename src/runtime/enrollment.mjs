@@ -23,9 +23,10 @@ export function verifyEnrollment(enrollment,expected){
  try{
   closed(enrollment,['schemaVersion','kind','installationId','repositoryId','bindingEpoch','repositoryOwnerId','repositoryFullName','approvedCommitOid','approvedSourceManifestDigest','identities','qualification','nativeJoin','canonicalRuleset','sealDigest']);
   const {sealDigest,...body}=enrollment,b=expected.binding,definition=expected.definition;
-  // This verifier owns qualification only. Production is permanently a separate
-  // commissioning/enrollment contract, never an upgrade of these reports.
-  requireThat(definition.config.executionShape!=='production-outer-v1','EXECUTION_UNAVAILABLE','Production outer execution requires its separate commissioning and native receipt join');
+  // This verifier owns the qualification enrollment that precedes commissioning.
+  // Production remains a separate commissioning/enrollment contract; the current
+  // controller may therefore be the production-shaped controller while its
+  // production capability is still unsealed.
   requireThat(definition.config.workflowPath==='.github/workflows/tdev-executor.yml','INTEGRITY_FAILURE','Current managed controller required');
   requireThat(digest(sealDigest)===recordDigest('tdev.managed-enrollment.v1',body)&&body.schemaVersion===1&&body.kind==='tdev-managed-enrollment'&&body.installationId===b.installationId&&body.repositoryId===b.repositoryId&&body.bindingEpoch===b.bindingEpoch,'INTEGRITY_FAILURE','Private enrollment identity mismatch');
   requireThat(revision(body.repositoryOwnerId)!=='0'&&b.remote==='https://github.com/'+body.repositoryFullName+'.git','FORBIDDEN');oid(body.approvedCommitOid);digest(body.approvedSourceManifestDigest);
