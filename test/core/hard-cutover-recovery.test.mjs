@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
-import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession,validateHardCutoverResidueDispatchState} from '../../src/release/hard-cutover-recovery.mjs';
+import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession,validateHardCutoverResidueDispatchState,validateHardCutoverHeldPreparedResult,hardCutoverPendingResidueIds} from '../../src/release/hard-cutover-recovery.mjs';
 
 function pair(releaseId,edgeVersionId){
  return {releaseId,schemaDigest:'sha256:'+'1'.repeat(64),sourceCommitOid:'sha1:'+'2'.repeat(40),deviceReleaseId:'sha256:'+'3'.repeat(64),deviceArtifactDigest:'sha256:'+'4'.repeat(64),deviceSourceCommitOid:'sha1:'+'5'.repeat(40),edgeVersionId,edgeArtifactDigest:'sha256:'+'6'.repeat(64),edgeSourceCommitOid:'sha1:'+'7'.repeat(40),protocol:{min:1,max:1},ledger:{min:1,max:2}};
@@ -71,4 +71,20 @@ test('hard-cutover named residue accepts only pending or ordinary done dispatch 
  assert.equal(validateHardCutoverResidueDispatchState('done'),'done');
  assert.throws(()=>validateHardCutoverResidueDispatchState('cancelled'));
  assert.throws(()=>validateHardCutoverResidueDispatchState('running'));
+});
+
+test('held Design prepared residue requires the exact retained no-evidence shape',()=>{
+ const expected=HARD_CUTOVER_RESIDUE.heldDesign;
+ const prepared={resultId:expected.resultId,workId:expected.workId,expectedHead:expected.baseCommitOid,generation:'0',candidateTreeOid:expected.candidateTreeOid,resultTreeOid:expected.candidateTreeOid,resultTreeSha256:expected.candidateDigest,commitOid:expected.commitOid};
+ assert.equal(validateHardCutoverHeldPreparedResult(prepared).resultId,expected.resultId);
+ assert.throws(()=>validateHardCutoverHeldPreparedResult({...prepared,validation:null}));
+ assert.throws(()=>validateHardCutoverHeldPreparedResult({...prepared,integration:null}));
+});
+
+test('pending residue projection follows exact named dispatch state after ordinary reconciliation',()=>{
+ const historical={assignmentId:HARD_CUTOVER_RESIDUE.historicalDispatch.assignmentId,state:'done'};
+ const held={assignmentId:HARD_CUTOVER_RESIDUE.heldDesign.dispatchId,state:'done'};
+ assert.deepEqual(hardCutoverPendingResidueIds([historical,held]),[]);
+ assert.deepEqual(hardCutoverPendingResidueIds([{...historical,state:'pending'},held]),[historical.assignmentId]);
+ assert.throws(()=>hardCutoverPendingResidueIds([historical,{...held,state:'running'}]));
 });

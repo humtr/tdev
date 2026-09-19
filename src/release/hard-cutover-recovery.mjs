@@ -220,6 +220,17 @@ function heldDesignDispatch(db){
  requireThat(session.state==='closed'&&session.launch==='sent'&&session.run?.runId===expected.runId&&session.run?.status==='completed'&&session.intent?.ref===expected.ref&&session.intent?.launchCommit===expected.launchCommit&&Number.isSafeInteger(session.stoppedAt),'INTEGRITY_FAILURE','Held Design session changed');
  exactRetirement(db,expected);return dispatch;
 }
+/** @param {unknown} value @param {typeof HARD_CUTOVER_RESIDUE.heldDesign} [expected] */
+export function validateHardCutoverHeldPreparedResult(value,expected=HARD_CUTOVER_RESIDUE.heldDesign){
+ const prepared=object(value,'Held Design prepared result');
+ requireThat(prepared.resultId===expected.resultId&&prepared.workId===expected.workId&&prepared.expectedHead===expected.baseCommitOid&&prepared.generation==='0'&&prepared.candidateTreeOid===expected.candidateTreeOid&&prepared.resultTreeOid===expected.candidateTreeOid&&prepared.resultTreeSha256===expected.candidateDigest&&prepared.commitOid===expected.commitOid&&!Object.hasOwn(prepared,'validation')&&!Object.hasOwn(prepared,'integration'),'INTEGRITY_FAILURE','Held Design prepared result changed');
+ return prepared;
+}
+/** @param {any[]} dispatches */
+export function hardCutoverPendingResidueIds(dispatches){
+ requireThat(Array.isArray(dispatches)&&dispatches.length===2,'INTEGRITY_FAILURE','Exact hard-cutover residue dispatch set changed');
+ return dispatches.filter(dispatch=>validateHardCutoverResidueDispatchState(object(dispatch,'Hard-cutover residue dispatch').state)==='pending').map(dispatch=>String(dispatch.assignmentId)).sort();
+}
 /** @param {DatabaseSync} db @param {any} binding @param {'held'|'terminal'} mode */
 function heldDesignState(db,binding,mode){
  const expected=HARD_CUTOVER_RESIDUE.heldDesign,bindingRow=db.prepare('SELECT record FROM binding WHERE singleton=1').get();requireThat(bindingRow&&canonicalJson(parseRecord(String(bindingRow.record),262144))===canonicalJson(binding),'FORBIDDEN','Old work binding changed');
@@ -231,10 +242,9 @@ function heldDesignState(db,binding,mode){
  requireThat(mode==='held'?action.status==='blocked'&&action.step==='recovery.required'&&action.errorCode==='EFFECT_UNCERTAIN':action.status==='cancelled'&&action.step==='complete.recovered'&&action.errorCode===null,'INTEGRITY_FAILURE','Held Design Action state changed');
  const attemptRow=db.prepare('SELECT observer_epoch,held,record FROM attempt WHERE attempt_id=? AND action_id=?').get(expected.attemptId,expected.actionId);requireThat(attemptRow,'INTEGRITY_FAILURE','Held Design Attempt missing');const attempt=object(parseRecord(String(attemptRow.record),262144),'Held Design Attempt');
  requireThat(attempt.attemptId===expected.attemptId&&attempt.actionId===expected.actionId&&attempt.workId===expected.workId&&attempt.attempt==='1'&&String(attemptRow.observer_epoch)===String(action.ownerEpoch)&&Number(attemptRow.held)===(mode==='held'?1:0),'INTEGRITY_FAILURE','Held Design Attempt changed');
- const preparedRow=db.prepare('SELECT record FROM prepared WHERE result_id=?').get(expected.resultId);requireThat(preparedRow,'INTEGRITY_FAILURE','Held Design prepared result missing');const prepared=object(parseRecord(String(preparedRow.record),2097152),'Held Design prepared result');
- requireThat(prepared.resultId===expected.resultId&&prepared.workId===expected.workId&&prepared.expectedHead===expected.baseCommitOid&&prepared.generation==='0'&&prepared.candidateTreeOid===expected.candidateTreeOid&&prepared.resultTreeOid===expected.candidateTreeOid&&prepared.resultTreeSha256===expected.candidateDigest&&prepared.commitOid===expected.commitOid&&prepared.validation===null&&prepared.integration===null,'INTEGRITY_FAILURE','Held Design prepared result changed');
+ const preparedRow=db.prepare('SELECT record FROM prepared WHERE result_id=?').get(expected.resultId);requireThat(preparedRow,'INTEGRITY_FAILURE','Held Design prepared result missing');validateHardCutoverHeldPreparedResult(parseRecord(String(preparedRow.record),2097152),expected);
  requireThat(Number(db.prepare('SELECT count(*) n FROM validation WHERE result_id=?').get(expected.resultId)?.n)===0&&!db.prepare('SELECT 1 FROM effect WHERE action_id=?').get(expected.actionId),'INTEGRITY_FAILURE','Held Design acquired forbidden result/effect evidence');
- heldDesignDispatch(db);return {work,action,attempt};
+ const dispatch=heldDesignDispatch(db);return {work,action,attempt,dispatch};
 }
 /** @param {DatabaseSync} db */
 function helperState(db){
@@ -263,16 +273,16 @@ function workState(db,binding){
  const blocked=db.prepare("SELECT action_id FROM action WHERE status='blocked' ORDER BY action_id").all().map(row=>String(row.action_id));
  const allowedBlocked=[HARD_CUTOVER.actionId,...HARD_CUTOVER_RESIDUE.historicalBlockedActions.map(x=>x.actionId)].sort();requireThat(canonicalJson(blocked)===canonicalJson(allowedBlocked),'EFFECT_UNCERTAIN','Unexpected blocked Action remains');
  for(const expected of HARD_CUTOVER_RESIDUE.historicalBlockedActions)historicalBlockedAction(db,expected);
- heldDesignState(db,binding,'terminal');
+ const heldDesign=heldDesignState(db,binding,'terminal');
  const actionRow=db.prepare('SELECT record FROM action WHERE action_id=?').get(HARD_CUTOVER.actionId);
  requireThat(actionRow,'INTEGRITY_FAILURE','Blocked activation Action missing');
  const action=object(parseRecord(String(actionRow.record),262144),'Blocked Action');
  requireThat(action.actionId===HARD_CUTOVER.actionId&&action.operation==='release.activate'&&action.status==='blocked'&&action.workId===null,'INTEGRITY_FAILURE','Blocked activation Action changed');
  requireThat(Number(db.prepare("SELECT count(*) n FROM managed_session WHERE state<>'closed'").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old managed session is not terminal');
  requireThat(Number(db.prepare("SELECT count(*) n FROM managed_assignment WHERE state IN ('offered','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old managed assignment is not terminal');
+ const historicalDispatch=historicalPendingDispatch(db);
  const pending=db.prepare("SELECT assignment_id FROM managed_dispatch WHERE state='pending' ORDER BY assignment_id").all().map(row=>String(row.assignment_id));
- const allowedPending=[HARD_CUTOVER_RESIDUE.historicalDispatch.assignmentId,HARD_CUTOVER_RESIDUE.heldDesign.dispatchId].sort();requireThat(canonicalJson(pending)===canonicalJson(allowedPending),'EXECUTION_UNAVAILABLE','Unexpected managed dispatch is pending');
- historicalPendingDispatch(db);heldDesignDispatch(db);
+ const allowedPending=hardCutoverPendingResidueIds([historicalDispatch,heldDesign.dispatch]);requireThat(canonicalJson(pending)===canonicalJson(allowedPending),'EXECUTION_UNAVAILABLE','Unexpected managed dispatch is pending');
  const stageRows=db.prepare("SELECT key,value FROM meta WHERE key LIKE 'release.stage:%' ORDER BY key").all();
  const matching=[];
  for(const row of stageRows){
