@@ -272,6 +272,42 @@ These operations implement the documented runsv(8) control interface, not a new
 service manager or force-kill policy. Actual Termux recovery remains a separate
 acceptance requirement from deterministic FIFO/launcher tests.
 
+### Fresh-install fixed-launcher commissioning
+
+`install-phase-a.mjs` may use one version-specific direct device run file only for
+the pre-release bootstrap. That bootstrap run file is not an admissible normal
+self-update launcher. Before a fresh installation is treated as release-capable, its
+release-control commissioning must replace the canonical `tdev` service run file
+with the fixed pointer-aware `release-device-launcher.py` path and bind that exact
+run-file digest into the fixed runit configuration and helper configuration.
+
+The permanent operator component `tools/commission-release-launcher.mjs` owns this
+handoff. It derives the launcher configuration only from the already sealed helper,
+runit and writer-fence installation inputs; in particular it reuses the exact
+installation/repository/binding identities, pointer, artifact/config roots and the
+writer-fence `launcherLockFile`. The sealed service run pins both the canonical
+launcher bytes and launcher-config bytes before Python transfers control to the
+launcher. No source-selected command, credential, provider target or release target is
+accepted.
+
+Commissioning is allowed only at the retained baseline pointer with no active
+activation. Stop only the fixed release-helper service, retain byte-for-byte backups,
+install the launcher/config/service-run/runit/helper-config bytes by private
+same-filesystem atomic replacement, then restart the helper and require fresh helper
+and native readback to show the same retained baseline pair before release work
+continues. The live baseline device, work ledger, device pointer and Worker deployment
+do not change during this handoff. Failure restores the exact prior files before the
+helper is restarted.
+
+If a fresh installation reaches its first activation with the Phase-A direct run file
+still sealed, that activation must fail/roll back rather than treating runit wanted
+state as native health. After the rollback returns to the exact retained baseline, the
+same bounded commissioning handoff may correct that installation once; the subsequent
+activation is an ordinary retained tdev release operation. A later installation must
+not rely on TMCP or an ad-hoc shell to recreate this handoff: release capability is
+incomplete until the product-owned commissioning component has installed and read back
+the fixed launcher.
+
 The helper reads back exact edge routing and fresh native component health before
 recording active or rolled_back. Unchanged device bytes do not trigger a restart;
 unchanged edge bytes do not trigger a deployment. A mixed pair is never terminal
