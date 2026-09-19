@@ -7,6 +7,17 @@ import {spawnSync} from 'node:child_process';
 import {parseArgs} from 'node:util';
 import {bytesDigest,recordDigest} from '../src/contracts/canonical.mjs';
 const controller=resolve(dirname(fileURLToPath(import.meta.url)),'..');
+/** Validation uses the same dependency identity as managed execution while remaining
+ * self-contained for diagnostic fixture trees that copy this trusted entrypoint.
+ * Only the duplicated root product name is excluded; dependency-bearing fields remain.
+ * @param {string|Uint8Array} bytes */
+export function validationDependencyLockDigest(bytes){
+ const value=JSON.parse(Buffer.from(bytes).toString());
+ if(value===null||typeof value!=='object'||Array.isArray(value)||value.lockfileVersion!==3||typeof value.name!=='string'||value.name.length===0||value.packages===null||typeof value.packages!=='object'||Array.isArray(value.packages))throw Error('Dependency lock shape');
+ const lock=structuredClone(value),root=lock.packages[''];
+ if(root===null||typeof root!=='object'||Array.isArray(root)||typeof root.name!=='string'||root.name!==lock.name)throw Error('Dependency lock root identity');
+ delete lock.name;delete root.name;return recordDigest('tdev.dependency-lock.v1',lock);
+}
 /** @param {string} directory @returns {string[]} */
 function files(directory){if(!existsSync(directory))return [];return readdirSync(directory,{withFileTypes:true}).flatMap(e=>{const p=join(directory,e.name);if(e.isSymbolicLink())throw Error('Symlink in validation inputs');if(!e.isDirectory()&&!e.isFile())throw Error('Special validation input');return e.isDirectory()?files(p):[p];}).sort();}
 /** @param {string} root */
@@ -41,7 +52,7 @@ export function main(argv){
  function absent(name,status){checks.push({name,status,exitCode:status==='failed'?1:null,signal:null,durationMs:0,logDigest:null});code=status==='failed'?1:2;}
  /** @type {Readonly<import('../src/runtime/environment.mjs').ExecutionVariant>|null} */let variant=null;
  try{variant=selectExecutionVariant(lock,{node:process.versions.node,platform:process.platform,arch:process.arch,sqlite:process.versions.sqlite??null});}catch(error){if(!(error&&typeof error==='object'&&'code'in error&&error.code==='EXECUTION_UNAVAILABLE'))throw error;}
- const versions=variant?executionToolVersions(lock,variant,environment):null,approvedLock=bytesDigest(readFileSync(join(controller,'package-lock.json'))),candidateLock=bytesDigest(readFileSync(join(root,'package-lock.json')));
+ const versions=variant?executionToolVersions(lock,variant,environment):null,approvedLock=validationDependencyLockDigest(readFileSync(join(controller,'package-lock.json'))),candidateLock=validationDependencyLockDigest(readFileSync(join(root,'package-lock.json')));
  if(variant===null)absent('node.pin','not_run');
  else if(candidateLock!==approvedLock)absent('npm.approved-lock','failed');
  else if(profile==='core'&&!existsSync(join(controller,'node_modules/typescript/bin/tsc')))absent('npm.lock','not_run');
