@@ -154,3 +154,49 @@ enrollment, and all legacy sessions are positively terminal.
 For the D0006 hard cutover, the new runtime must be composed from current tdev qualification/production enrollment and current executor identity. The compatibility rule above that permits a released runtime to rely on a legacy dev2 enrollment is superseded once the pre-cutover runtime reaches the required quiescent boundary. Legacy enrollment/evidence remains historical immutable evidence only and is not accepted by the post-cutover runtime verifier or used to launch new sessions.
 
 Production commissioning still requires the same independently verified security/execution inputs and exact native join. The hard cutover does not turn historical evidence into new qualification and does not weaken controller, seal, repository or provider-run binding.
+
+### C2-2 current-controller recommissioning handoff
+
+If the fixed release launcher is already current but the installed managed/production
+enrollment still approves a predecessor controller, C2-2 must not normalize that
+historical enrollment in place and must not let an ordinary release silently carry it
+forward. The bounded repair is a two-phase private recommissioning handoff.
+
+First, the exact currently executing canonical device source is qualified by the
+current tdev containment workflow. A product-owned preparation component independently
+joins the selected successful provider run, managed-controller report, containment
+report and production-adapter report to the exact installed source tree and controller
+definition. It emits a new immutable managed enrollment, a production commissioning
+intent and a staging native config that contains the new managed enrollment but no
+production enrollment. Existing production authority is not loaded or replaced in
+that commissioning process. The existing private production commissioner then runs
+the three exact-source production probes and emits a separately verified immutable
+production enrollment.
+
+Second, after the public/runtime ledger, managed sessions and release activation state
+are quiescent, the current active runtime pair becomes the baseline of a fresh
+release-control subroot for the same installation/repository/binding epoch. The old
+release-control root and both old enrollment objects remain byte-for-byte historical
+evidence. The new root reuses only already sealed fixed helper bytes and installation
+credentials, copies the exact active immutable release artifact, creates new private
+RPC locators, and binds the new enrollment seals, current baseline native config,
+pointer, fixed writer/runit configuration, pointer-aware launcher composition and
+helper service run into a controller-recommission extension seal. The base installation
+seal remains the installation authority and is not rewritten.
+
+The handoff stops only the canonical tdev device and fixed release-helper services,
+requires the existing pointer and helper active-pair readback to agree exactly, and
+requires no held Attempt, running/offered managed assignment or nonterminal activation.
+It then installs the fully composed fresh subroot before atomically replacing the two
+global runit run files. On any partial global service-run replacement it restores the
+exact previous run files. It does not mutate the work ledger, provider deployment,
+binding registry, Git refs, historical release-control root or historical enrollment
+objects. Services are restarted only after exact file/digest readback.
+
+Post-handoff startup must verify the new managed and production enrollment against the
+same current native runtime and then expose ordinary tdev validation/release authority.
+No compatibility reader may select the predecessor enrollment in the new subroot. A
+rollback to the historical root is an explicit operator rollback of the whole retained
+root/run-file pair, never a mixed enrollment or partial seal fallback. C2-2 may close
+only after ordinary required validation proves the current controller and the next
+normal release activation succeeds from this recommissioned root.
