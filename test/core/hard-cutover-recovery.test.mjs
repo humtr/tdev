@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
-import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession} from '../../src/release/hard-cutover-recovery.mjs';
+import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest,validateHardCutoverStaleSession,validateHardCutoverResidueDispatchState} from '../../src/release/hard-cutover-recovery.mjs';
 
 function pair(releaseId,edgeVersionId){
  return {releaseId,schemaDigest:'sha256:'+'1'.repeat(64),sourceCommitOid:'sha1:'+'2'.repeat(40),deviceReleaseId:'sha256:'+'3'.repeat(64),deviceArtifactDigest:'sha256:'+'4'.repeat(64),deviceSourceCommitOid:'sha1:'+'5'.repeat(40),edgeVersionId,edgeArtifactDigest:'sha256:'+'6'.repeat(64),edgeSourceCommitOid:'sha1:'+'7'.repeat(40),protocol:{min:1,max:1},ledger:{min:1,max:2}};
@@ -64,4 +64,11 @@ test('stale-session recovery projection accepts only exact retained dev2-exec id
  assert.equal(validateHardCutoverStaleSession(session,binding).intent.ref,ref);
  const current=structuredClone(session);current.intent.ref='refs/heads/tdev-exec/'+sessionId;current.intent.workflowRef='humtr/tdev/.github/workflows/tdev-executor.yml@'+current.intent.ref;
  assert.throws(()=>validateHardCutoverStaleSession(current,binding));
+});
+
+test('hard-cutover named residue accepts only pending or ordinary done dispatch projection',()=>{
+ assert.equal(validateHardCutoverResidueDispatchState('pending'),'pending');
+ assert.equal(validateHardCutoverResidueDispatchState('done'),'done');
+ assert.throws(()=>validateHardCutoverResidueDispatchState('cancelled'));
+ assert.throws(()=>validateHardCutoverResidueDispatchState('running'));
 });

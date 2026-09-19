@@ -192,11 +192,15 @@ function exactRetirement(db,expected){
  requireThat(retired.kind==='dev2.managed-ref-retirement'&&retired.sessionId===expected.sessionId&&retired.ref===expected.ref&&retired.runId===expected.runId&&retired.runAttempt==='1'&&retired.launchCommit===expected.launchCommit,'INTEGRITY_FAILURE','Managed ref retirement changed');
  return retired;
 }
+/** @param {unknown} value */
+export function validateHardCutoverResidueDispatchState(value){
+ requireThat(value==='pending'||value==='done','INTEGRITY_FAILURE','Hard-cutover residue dispatch state changed');return value;
+}
 /** @param {DatabaseSync} db */
 function historicalPendingDispatch(db){
  const expected=HARD_CUTOVER_RESIDUE.historicalDispatch,row=db.prepare('SELECT record FROM managed_dispatch WHERE assignment_id=?').get(expected.assignmentId);requireThat(row,'INTEGRITY_FAILURE','Historical managed dispatch missing');
- const dispatch=object(parseRecord(String(row.record),2097152),'Historical managed dispatch'),input=object(dispatch.input,'Historical managed input'),attempt=object(input.attempt,'Historical managed Attempt');
- requireThat(dispatch.assignmentId===expected.assignmentId&&dispatch.sessionId===expected.sessionId&&dispatch.state==='pending'&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId&&input.profileDigest===expected.profileDigest,'INTEGRITY_FAILURE','Historical managed dispatch changed');
+ const dispatch=object(parseRecord(String(row.record),2097152),'Historical managed dispatch'),input=object(dispatch.input,'Historical managed input'),attempt=object(input.attempt,'Historical managed Attempt');validateHardCutoverResidueDispatchState(dispatch.state);
+ requireThat(dispatch.assignmentId===expected.assignmentId&&dispatch.sessionId===expected.sessionId&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId&&input.profileDigest===expected.profileDigest,'INTEGRITY_FAILURE','Historical managed dispatch changed');
  const actionRow=db.prepare('SELECT record FROM action WHERE action_id=?').get(expected.actionId);requireThat(actionRow,'INTEGRITY_FAILURE','Historical cancelled Action missing');const action=object(parseRecord(String(actionRow.record),262144));
  requireThat(action.status==='cancelled'&&action.step==='complete'&&action.errorCode==='EXECUTION_UNAVAILABLE','INTEGRITY_FAILURE','Historical cancelled Action changed');
  const attemptRow=db.prepare('SELECT held,record FROM attempt WHERE attempt_id=?').get(expected.attemptId);requireThat(attemptRow&&Number(attemptRow.held)===0,'INTEGRITY_FAILURE','Historical cancelled Attempt changed');
@@ -209,8 +213,8 @@ function historicalPendingDispatch(db){
 /** @param {DatabaseSync} db */
 function heldDesignDispatch(db){
  const expected=HARD_CUTOVER_RESIDUE.heldDesign,row=db.prepare('SELECT record FROM managed_dispatch WHERE assignment_id=?').get(expected.dispatchId);requireThat(row,'INTEGRITY_FAILURE','Held Design dispatch missing');
- const dispatch=object(parseRecord(String(row.record),2097152),'Held Design dispatch'),input=object(dispatch.input,'Held Design input'),attempt=object(input.attempt,'Held Design managed Attempt');
- requireThat(dispatch.assignmentId===expected.dispatchId&&dispatch.sessionId===expected.sessionId&&dispatch.state==='pending'&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId,'INTEGRITY_FAILURE','Held Design dispatch changed');
+ const dispatch=object(parseRecord(String(row.record),2097152),'Held Design dispatch'),input=object(dispatch.input,'Held Design input'),attempt=object(input.attempt,'Held Design managed Attempt');validateHardCutoverResidueDispatchState(dispatch.state);
+ requireThat(dispatch.assignmentId===expected.dispatchId&&dispatch.sessionId===expected.sessionId&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId,'INTEGRITY_FAILURE','Held Design dispatch changed');
  requireThat(!db.prepare('SELECT 1 FROM managed_assignment WHERE assignment_id=?').get(expected.dispatchId),'INTEGRITY_FAILURE','Held Design unexpectedly acquired an assignment');
  const sessionRow=db.prepare('SELECT record FROM managed_session WHERE session_id=?').get(expected.sessionId);requireThat(sessionRow,'INTEGRITY_FAILURE','Held Design session missing');const session=object(parseRecord(String(sessionRow.record),2097152));
  requireThat(session.state==='closed'&&session.launch==='sent'&&session.run?.runId===expected.runId&&session.run?.status==='completed'&&session.intent?.ref===expected.ref&&session.intent?.launchCommit===expected.launchCommit&&Number.isSafeInteger(session.stoppedAt),'INTEGRITY_FAILURE','Held Design session changed');
