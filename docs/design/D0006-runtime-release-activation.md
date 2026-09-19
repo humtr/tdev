@@ -1332,6 +1332,65 @@ C2-2 hard-cutover acceptance requires all of the following from fresh observatio
 Only after those observations may C2-2 again be treated as complete and routing
 advance to C2-3.
 
+### One-time post-cutover human OAuth owner-rebind recovery
+
+Fresh post-cutover readback exposed a human-authority bootstrap mismatch that the
+installation self-probe could not prove. The epoch-2 tdev installation was built with
+one historical signed-human owner subject observed on 2026-09-11. Its fixed phase-A
+probe correctly exercised repository/context/runtime readback with a synthetic local
+principal derived from that installed grant and explicitly reported `humanOAuth=false`.
+After the owner refreshed the current single ChatGPT connection, however, a normal
+signed human `dev_context` continued to reach the native runtime and return
+`FORBIDDEN`. The same current repository/binding succeeds through the bounded local
+probe, so repeating OAuth reconnects or substituting the device credential is not an
+acceptable acceptance path.
+
+D0005's one-shot current-human observation is therefore authorized as bounded C2-2
+recovery. The recovery source must be committed on the exact canonical development
+line and pass the available native core/integration checks before use. Because the
+ordinary human tdev path is the failed boundary being repaired, TMCP may integrate
+that exact recovery commit and perform the minimum reversible local runtime handoff
+needed to observe the current signed principal. This break-glass publication is
+recovery evidence, not a substitute for the normal required-validation receipt that
+must be re-established after human authority is restored.
+
+The observation handoff must not mutate the epoch-2 work ledger or activation journal.
+Before handoff, fresh installation readback must prove no executing/reserved Action
+and no active/reserved managed session. The normal `tdev` service is then stopped and
+an isolated temporary device state may connect to the existing current tdev Worker
+using the same installation/device channel identity solely for this observation. Its
+private configuration retains the exact primary repository/ref/policy and current
+human grant, uses a separate empty state directory, omits managed execution, canonical
+writers and release control, and sets the explicit `c2HumanObservationRecovery` flag.
+That flag drains development admission before the device connects. The temporary
+runtime may answer context/read-only protocol paths but must not admit Work, launch
+managed execution, write canonical Git or mutate provider/release state. No Worker
+redeploy or Access-policy widening is authorized for observation.
+
+Immediately after the controlled current-session `dev_context` call, the temporary
+process is stopped and the original epoch-2 `tdev` service is restored unchanged.
+The private observation window is acceptable only if it contains one distinct verified
+subject and the observed request itself still returned `FORBIDDEN`; otherwise recovery
+aborts. If the sole current subject equals the installed owner subject, grant mismatch
+is falsified and no owner rebind occurs.
+
+If the sole current subject differs, the current owner-directed recovery may create a
+fresh tdev-only installation with that exact observed subject as its sole owner grant.
+Because the current epoch-2 installation is then abandoned rather than rewriting its
+immutable grant in place, D0001/D0002 require a new binding epoch. The fresh install
+must preserve the same canonical repository/ref authority, second-binding registry
+semantics, capacity 8, current TDEV-only provider identity and independently generated
+machine credentials. Provider deployment follows the existing same-origin bounded
+path and is read back exactly before the new service starts. The old epoch-2 service
+remains stopped as bounded rollback evidence until the new human `dev_context` succeeds.
+
+Once current human OAuth succeeds, return immediately to the normal tdev path. Fresh
+normal `dev_work` mutation/cancellation and required validation/integration must then
+prove the new owner authority. The temporary observation implementation, temporary
+state and any obsolete recovery source are consumed and must be removed before final
+C2-2 residual acceptance; historical owner credentials are never accepted as the
+new human authority merely because they existed before this recovery.
+
 ### One-time blocked-validation same-Action recovery for C2-2 hard cutover
 
 C2-2 hard-cutover closeout exposed one final pre-cutover recovery incompatibility while validating the bounded bootstrap-installer correction. The exact validation Action `471247fda53cd173fbfa24ee03827373` for Work `584b3107ec4102d4665426359acd42c0`, generation `1`, candidate tree `sha1:bd9667e24fb4a2a1ffc5904edc38c366d2cb670d`, produced a retained PASS for the core required profile but no complete required-validation receipt. Its managed provider session later reached positive stopped state with no active session, while the native reservation remained held and the Action stayed `blocked/recovery.required`. Three ordinary public `resume` admissions, including a short request identity, failed pre-durably with `INVALID_ARGUMENT`; none created a new Action, attempt, result, receipt, provider effect or publication.

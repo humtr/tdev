@@ -274,6 +274,41 @@ routed tool call still verifies the actual Access assertion natively, and public
 tool names remain exactly the selected four. Evidence must label this installation
 probe separately from the first refreshed ChatGPT human OAuth invocation.
 
+### C2-2 one-shot current-human observation recovery
+
+The C2-2 hard cutover may reach a bootstrap deadlock in which the fresh installation
+contains an explicitly enrolled historical owner subject, the current ChatGPT request
+still presents a cryptographically valid Access assertion, but normal `dev_context`
+ends `FORBIDDEN` before any current human mutation can establish acceptance. Device
+credentials, historical OAuth material, synthetic principals and provider machine
+credentials do not resolve that authority question and must not be promoted into
+human proof.
+
+For that exact deadlock only, one temporary current-source recovery mode may retain
+private digest-only evidence after the normal Access verifier has successfully
+verified the signed assertion. It is armed only by explicit private installation
+configuration, keeps the ordinary four public tools unchanged, drains development
+admission, and observes only an exact current `dev_context` request for the primary
+`self` binding that still returns `FORBIDDEN`. The retained record contains only the
+current `tdev.access-subject.v1` subject digest, assertion SHA-256 digest, deterministic
+opaque observation ID and observation time. It never stores raw `sub`, email, OAuth
+token or Access assertion and never grants any capability. At most eight records may
+exist in the temporary private recovery state.
+
+The trusted operator may select a subject for owner rebinding only from a controlled
+observation window created by the current ChatGPT session after recovery mode is
+active. All records in that window must resolve to exactly one distinct verified
+subject; a second distinct subject, an unverifiable assertion, a non-`self` request,
+or any ambiguity aborts without changing a grant. Selection is authorization to
+construct a fresh explicit owner installation grant only when the owner has already
+directed recovery of this current ChatGPT connection. The observation itself is not
+that grant and is not reusable multi-account enrollment authority.
+
+After the current human principal is rebound and ordinary human OAuth admission is
+proved, this observation mode and its source/tests are consumed and must be removed
+before C2-2 closeout. It is not a permanent mutable authorization overlay and does
+not reverse the canonical single-owner decision.
+
 ## Multi-binding installation authorization
 
 The binding registry is private installation authority. Repository source, candidate
