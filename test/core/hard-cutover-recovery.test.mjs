@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {recordDigest} from '../../src/contracts/canonical.mjs';
-import {HARD_CUTOVER,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,hardCutoverPlanDigest} from '../../src/release/hard-cutover-recovery.mjs';
+import {HARD_CUTOVER,HARD_CUTOVER_RESIDUE,classifyHardCutoverActivation,validateHardCutoverDeployments,validateLegacyTargetVersion,validateHardCutoverHistoricalActivation,validateHardCutoverProviderEffects,hardCutoverPlanDigest} from '../../src/release/hard-cutover-recovery.mjs';
 
 function pair(releaseId,edgeVersionId){
  return {releaseId,schemaDigest:'sha256:'+'1'.repeat(64),sourceCommitOid:'sha1:'+'2'.repeat(40),deviceReleaseId:'sha256:'+'3'.repeat(64),deviceArtifactDigest:'sha256:'+'4'.repeat(64),deviceSourceCommitOid:'sha1:'+'5'.repeat(40),edgeVersionId,edgeArtifactDigest:'sha256:'+'6'.repeat(64),edgeSourceCommitOid:'sha1:'+'7'.repeat(40),protocol:{min:1,max:1},ledger:{min:1,max:2}};
@@ -38,4 +38,19 @@ test('recovery plan digest is stable over exact immutable fence and backups',()=
  const first=hardCutoverPlanDigest(input),second=hardCutoverPlanDigest(structuredClone(input));
  assert.equal(first,second);
  assert.notEqual(first,recordDigest('tdev.c2-2-hard-cutover-recovery-plan.v1',{other:true}));
+});
+
+
+test('historical hard-cutover activations are immutable terminal residue',()=>{
+ const expected=HARD_CUTOVER_RESIDUE.historicalBlockedActions[0],value={intent:{activationId:expected.activationId},intentDigest:expected.intentDigest,phase:'active',direction:'forward',pending:null,reason:null,receipts:Array.from({length:6},()=>({kind:'applied'}))};
+ assert.equal(validateHardCutoverHistoricalActivation(value,0,expected).intentDigest,expected.intentDigest);
+ assert.throws(()=>validateHardCutoverHistoricalActivation({...value,pending:{}},0,expected));
+});
+
+test('provider effect residue permits only the exact sent hard-cutover target',()=>{
+ const confirmed={effectId:'a'.repeat(64),inputDigest:'sha256:'+'b'.repeat(64),operation:'version.upload',state:'confirmed',response:{versionId:'x'}};
+ const target={effectId:HARD_CUTOVER.effectId,inputDigest:HARD_CUTOVER.inputDigest,operation:'deployment.activate',state:'sent',response:null};
+ assert.equal(validateHardCutoverProviderEffects([confirmed,target]),2);
+ assert.throws(()=>validateHardCutoverProviderEffects([{...confirmed,state:'sent'},target]));
+ assert.throws(()=>validateHardCutoverProviderEffects([confirmed]));
 });

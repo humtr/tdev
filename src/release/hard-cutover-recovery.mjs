@@ -22,6 +22,15 @@ export const HARD_CUTOVER = Object.freeze({
  reason:'hard_cutover_target_version_fenced'
 });
 
+export const HARD_CUTOVER_RESIDUE=Object.freeze({
+ historicalBlockedActions:[
+  {actionId:'06df336eb824813d7f4e96bcac33b8a4',attemptId:'089f0016a19f5d2b10cf29e9888a19f2',activationId:'e608e6e9be0994ee00ef299d733007367cc2dd794a7963b00449ce8a41a3e8ee',intentDigest:'sha256:f80a6966124b359269f55f1b68a460884cb4f30741fd5c19ab129c1d01ccbd70'},
+  {actionId:'8d383ec0f75fc1384c605794ef11b832',attemptId:'89d1fb0434e5334a031269f17f888273',activationId:'0e0298651de9347bddad236ffdaeda128f19d0675d387d42e13def27dc8b5705',intentDigest:'sha256:8e6cb99bdecc7826dac9f7f656852371648fdbf03c785dd54af3ab66ba9f41a1'}
+ ],
+ historicalDispatch:{assignmentId:'8ef2b4fcc6ef24a7600e84982d8ee94b130ded759c638b23b891380c05fb7d30',actionId:'4ca8ecd1bc43cf17120a61b7b0ad2364',attemptId:'15aeb2285c8156c1f95b5e386b35a3d0',sessionId:'68b0dd097524969c45fca2074c024acc',runId:'35415636223',ref:'refs/heads/dev2-exec/68b0dd097524969c45fca2074c024acc',launchCommit:'4429139cded44451efbce1f45d7bf90b71d59d66',profileDigest:'sha256:228c3c1d07555d6b41b2200c5c2c9475d1566fdbeb0f74f496784a28e4dfdf71'},
+ heldDesign:{workId:'55c9e0cf4c4f21ee5a5a5d617327b485',actionId:'c43d81ac525e42aa96bc36e02a5c8e99',resultId:'9d6c9ebec186a89ed1dce11893f97df7',attemptId:'715653343cab9923b62fe1482393e00f',baseCommitOid:'sha1:c023c66f813e86e1917f93174d0e2d514373ef3f',baseTreeOid:'sha1:4705cea77d72596881d2eb8f18e63609a60f4ac5',candidateTreeOid:'sha1:51352f83b0f8140ce6b0566bd7fa2568594c988e',candidateDigest:'sha256:00c613b4fb641a18fff8fa078aea1adcf3f7772f7f6b3d4a7c529a25489510c5',commitOid:'sha1:6bdac7afc4c8cd7ef347b2c59cfa6bd084002a7e',dispatchId:'bb8a5ec3d80edd2e3c690a01072203a52b40f1bdc2320913f9fd3034383ec0a4',sessionId:'8c26376896992ff539ef914d66a2e60a',runId:'35416307183',ref:'refs/heads/dev2-exec/8c26376896992ff539ef914d66a2e60a',launchCommit:'4429139cded44451efbce1f45d7bf90b71d59d66'}
+});
+
 /** @param {any} value @param {string} [message] @returns {Record<string,any>} */
 function object(value,message='Expected object'){
  requireThat(value!==null&&typeof value==='object'&&!Array.isArray(value),'INTEGRITY_FAILURE',message);
@@ -144,6 +153,85 @@ async function backupLocked(nativeConfig,helperConfig,workDb,journalDb){
  return digests;
 }
 
+/** @param {any} value @param {number} active @param {{activationId:string,intentDigest:string}} expected */
+export function validateHardCutoverHistoricalActivation(value,active,expected){
+ const record=object(value,'Historical activation');
+ requireThat(active===0&&record.intentDigest===expected.intentDigest&&record.intent?.activationId===expected.activationId,'INTEGRITY_FAILURE','Historical activation identity changed');
+ requireThat(record.phase==='active'&&record.direction==='forward'&&record.pending===null&&record.reason===null,'INTEGRITY_FAILURE','Historical activation terminal shape changed');
+ requireThat(Array.isArray(record.receipts)&&record.receipts.length===6&&record.receipts.every(receipt=>object(receipt).kind==='applied'),'INTEGRITY_FAILURE','Historical activation receipts changed');
+ return record;
+}
+/** @param {any[]} records */
+export function validateHardCutoverProviderEffects(records){
+ requireThat(Array.isArray(records)&&records.length>0,'INTEGRITY_FAILURE','Provider effect history missing');
+ let target=0;
+ for(const value of records){
+  const effect=object(value,'Provider effect');
+  if(effect.effectId===HARD_CUTOVER.effectId){
+   target++;
+   requireThat(effect.inputDigest===HARD_CUTOVER.inputDigest&&effect.operation==='deployment.activate'&&effect.state==='sent'&&effect.response===null,'INTEGRITY_FAILURE','Retained target provider effect changed');
+  }else requireThat(effect.state==='confirmed'&&effect.response!==null&&['version.upload','deployment.activate'].includes(effect.operation),'EFFECT_UNCERTAIN','Foreign provider effect is not terminal');
+ }
+ requireThat(target===1,'INTEGRITY_FAILURE','Retained target provider effect cardinality changed');
+ return records.length;
+}
+/** @param {DatabaseSync} db @param {{actionId:string,attemptId:string}} expected */
+function historicalBlockedAction(db,expected){
+ const row=db.prepare('SELECT record FROM action WHERE action_id=?').get(expected.actionId);requireThat(row,'INTEGRITY_FAILURE','Historical blocked Action missing');
+ const action=object(parseRecord(String(row.record),262144),'Historical blocked Action');
+ requireThat(action.actionId===expected.actionId&&action.operation==='release.activate'&&action.status==='blocked'&&action.step==='recovery.required'&&action.errorCode==='EFFECT_UNCERTAIN'&&action.workId===null&&action.attempt==='1','INTEGRITY_FAILURE','Historical blocked Action changed');
+ const attempts=db.prepare('SELECT attempt_id,held,record FROM attempt WHERE action_id=?').all(expected.actionId);requireThat(attempts.length===1,'INTEGRITY_FAILURE','Historical blocked Action attempt changed');
+ const retained=attempts[0],attempt=object(parseRecord(String(retained.record),262144),'Historical Attempt');
+ requireThat(String(retained.attempt_id)===expected.attemptId&&Number(retained.held)===0&&attempt.attemptId===expected.attemptId&&attempt.actionId===expected.actionId&&attempt.attempt==='1','INTEGRITY_FAILURE','Historical blocked Attempt changed');
+ return action;
+}
+/** @param {DatabaseSync} db @param {{sessionId:string,runId:string,ref:string,launchCommit:string}} expected */
+function exactRetirement(db,expected){
+ const row=db.prepare('SELECT value FROM meta WHERE key=?').get('managed.ref-retired:'+expected.sessionId);requireThat(row,'INTEGRITY_FAILURE','Managed ref retirement missing');
+ const retired=object(parseRecord(String(row.value),65536),'Managed ref retirement');
+ requireThat(retired.kind==='dev2.managed-ref-retirement'&&retired.sessionId===expected.sessionId&&retired.ref===expected.ref&&retired.runId===expected.runId&&retired.runAttempt==='1'&&retired.launchCommit===expected.launchCommit,'INTEGRITY_FAILURE','Managed ref retirement changed');
+ return retired;
+}
+/** @param {DatabaseSync} db */
+function historicalPendingDispatch(db){
+ const expected=HARD_CUTOVER_RESIDUE.historicalDispatch,row=db.prepare('SELECT record FROM managed_dispatch WHERE assignment_id=?').get(expected.assignmentId);requireThat(row,'INTEGRITY_FAILURE','Historical managed dispatch missing');
+ const dispatch=object(parseRecord(String(row.record),2097152),'Historical managed dispatch'),input=object(dispatch.input,'Historical managed input'),attempt=object(input.attempt,'Historical managed Attempt');
+ requireThat(dispatch.assignmentId===expected.assignmentId&&dispatch.sessionId===expected.sessionId&&dispatch.state==='pending'&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId&&input.profileDigest===expected.profileDigest,'INTEGRITY_FAILURE','Historical managed dispatch changed');
+ const actionRow=db.prepare('SELECT record FROM action WHERE action_id=?').get(expected.actionId);requireThat(actionRow,'INTEGRITY_FAILURE','Historical cancelled Action missing');const action=object(parseRecord(String(actionRow.record),262144));
+ requireThat(action.status==='cancelled'&&action.step==='complete'&&action.errorCode==='EXECUTION_UNAVAILABLE','INTEGRITY_FAILURE','Historical cancelled Action changed');
+ const attemptRow=db.prepare('SELECT held,record FROM attempt WHERE attempt_id=?').get(expected.attemptId);requireThat(attemptRow&&Number(attemptRow.held)===0,'INTEGRITY_FAILURE','Historical cancelled Attempt changed');
+ const sessionRow=db.prepare('SELECT record FROM managed_session WHERE session_id=?').get(expected.sessionId);requireThat(sessionRow,'INTEGRITY_FAILURE','Historical managed session missing');const session=object(parseRecord(String(sessionRow.record),2097152));
+ requireThat(session.state==='closed'&&session.launch==='sent'&&session.cancelRequested===true&&session.run?.runId===expected.runId&&session.run?.status==='completed'&&session.intent?.ref===expected.ref&&session.intent?.launchCommit===expected.launchCommit&&Number.isSafeInteger(session.stoppedAt),'INTEGRITY_FAILURE','Historical managed session changed');
+ const assignmentRow=db.prepare('SELECT record FROM managed_assignment WHERE assignment_id=?').get(expected.assignmentId);requireThat(assignmentRow,'INTEGRITY_FAILURE','Historical managed assignment missing');const assignment=object(parseRecord(String(assignmentRow.record),2097152));
+ requireThat(assignment.state==='stopped'&&assignment.result===null,'INTEGRITY_FAILURE','Historical managed assignment changed');
+ exactRetirement(db,expected);return dispatch;
+}
+/** @param {DatabaseSync} db */
+function heldDesignDispatch(db){
+ const expected=HARD_CUTOVER_RESIDUE.heldDesign,row=db.prepare('SELECT record FROM managed_dispatch WHERE assignment_id=?').get(expected.dispatchId);requireThat(row,'INTEGRITY_FAILURE','Held Design dispatch missing');
+ const dispatch=object(parseRecord(String(row.record),2097152),'Held Design dispatch'),input=object(dispatch.input,'Held Design input'),attempt=object(input.attempt,'Held Design managed Attempt');
+ requireThat(dispatch.assignmentId===expected.dispatchId&&dispatch.sessionId===expected.sessionId&&dispatch.state==='pending'&&attempt.actionId===expected.actionId&&attempt.attemptId===expected.attemptId,'INTEGRITY_FAILURE','Held Design dispatch changed');
+ requireThat(!db.prepare('SELECT 1 FROM managed_assignment WHERE assignment_id=?').get(expected.dispatchId),'INTEGRITY_FAILURE','Held Design unexpectedly acquired an assignment');
+ const sessionRow=db.prepare('SELECT record FROM managed_session WHERE session_id=?').get(expected.sessionId);requireThat(sessionRow,'INTEGRITY_FAILURE','Held Design session missing');const session=object(parseRecord(String(sessionRow.record),2097152));
+ requireThat(session.state==='closed'&&session.launch==='sent'&&session.run?.runId===expected.runId&&session.run?.status==='completed'&&session.intent?.ref===expected.ref&&session.intent?.launchCommit===expected.launchCommit&&Number.isSafeInteger(session.stoppedAt),'INTEGRITY_FAILURE','Held Design session changed');
+ exactRetirement(db,expected);return dispatch;
+}
+/** @param {DatabaseSync} db @param {any} binding @param {'held'|'terminal'} mode */
+function heldDesignState(db,binding,mode){
+ const expected=HARD_CUTOVER_RESIDUE.heldDesign,bindingRow=db.prepare('SELECT record FROM binding WHERE singleton=1').get();requireThat(bindingRow&&canonicalJson(parseRecord(String(bindingRow.record),262144))===canonicalJson(binding),'FORBIDDEN','Old work binding changed');
+ const workRow=db.prepare('SELECT record FROM work WHERE work_id=?').get(expected.workId);requireThat(workRow,'INTEGRITY_FAILURE','Held Design Work missing');const work=object(parseRecord(String(workRow.record),262144),'Held Design Work');
+ requireThat(work.workId===expected.workId&&work.baseCommitOid===expected.baseCommitOid&&work.baseTreeOid===expected.baseTreeOid&&work.bindingEpoch==='1'&&work.generation==='0'&&work.disposition==='open'&&work.candidate?.treeOid===expected.candidateTreeOid&&work.candidate?.manifestDigest===expected.candidateDigest,'INTEGRITY_FAILURE','Held Design Work changed');
+ requireThat(mode==='held'?work.currentActionId===expected.actionId&&work.revision==='1':work.currentActionId===null&&work.revision==='2','INTEGRITY_FAILURE','Held Design Work fence changed');
+ const actionRow=db.prepare('SELECT record FROM action WHERE action_id=?').get(expected.actionId);requireThat(actionRow,'INTEGRITY_FAILURE','Held Design Action missing');const action=object(parseRecord(String(actionRow.record),262144),'Held Design Action');
+ requireThat(action.operation==='validate'&&action.workId===expected.workId&&action.resultId===expected.resultId&&action.attempt==='1','INTEGRITY_FAILURE','Held Design Action identity changed');
+ requireThat(mode==='held'?action.status==='blocked'&&action.step==='recovery.required'&&action.errorCode==='EFFECT_UNCERTAIN':action.status==='cancelled'&&action.step==='complete.recovered'&&action.errorCode===null,'INTEGRITY_FAILURE','Held Design Action state changed');
+ const attemptRow=db.prepare('SELECT observer_epoch,held,record FROM attempt WHERE attempt_id=? AND action_id=?').get(expected.attemptId,expected.actionId);requireThat(attemptRow,'INTEGRITY_FAILURE','Held Design Attempt missing');const attempt=object(parseRecord(String(attemptRow.record),262144),'Held Design Attempt');
+ requireThat(attempt.attemptId===expected.attemptId&&attempt.actionId===expected.actionId&&attempt.workId===expected.workId&&attempt.attempt==='1'&&String(attemptRow.observer_epoch)===String(action.ownerEpoch)&&Number(attemptRow.held)===(mode==='held'?1:0),'INTEGRITY_FAILURE','Held Design Attempt changed');
+ const preparedRow=db.prepare('SELECT record FROM prepared WHERE result_id=?').get(expected.resultId);requireThat(preparedRow,'INTEGRITY_FAILURE','Held Design prepared result missing');const prepared=object(parseRecord(String(preparedRow.record),2097152),'Held Design prepared result');
+ requireThat(prepared.resultId===expected.resultId&&prepared.workId===expected.workId&&prepared.expectedHead===expected.baseCommitOid&&prepared.generation==='0'&&prepared.candidateTreeOid===expected.candidateTreeOid&&prepared.resultTreeOid===expected.candidateTreeOid&&prepared.resultTreeSha256===expected.candidateDigest&&prepared.commitOid===expected.commitOid&&prepared.validation===null&&prepared.integration===null,'INTEGRITY_FAILURE','Held Design prepared result changed');
+ requireThat(Number(db.prepare('SELECT count(*) n FROM validation WHERE result_id=?').get(expected.resultId)?.n)===0&&!db.prepare('SELECT 1 FROM effect WHERE action_id=?').get(expected.actionId),'INTEGRITY_FAILURE','Held Design acquired forbidden result/effect evidence');
+ heldDesignDispatch(db);return {work,action,attempt};
+}
 /** @param {DatabaseSync} db */
 function helperState(db){
  const row=db.prepare('SELECT active,revision,record FROM activation WHERE id=?').get(HARD_CUTOVER.activationId);
@@ -158,6 +246,8 @@ function helperState(db){
  requireThat(effectRow,'INTEGRITY_FAILURE','Retained provider effect missing');
  const effect=object(parseRecord(String(effectRow.value),262144),'Provider effect');
  requireThat(effect.effectId===HARD_CUTOVER.effectId&&effect.inputDigest===HARD_CUTOVER.inputDigest&&effect.operation==='deployment.activate'&&effect.state==='sent'&&effect.response===null,'INTEGRITY_FAILURE','Retained provider effect changed');
+ for(const expected of HARD_CUTOVER_RESIDUE.historicalBlockedActions){const historical=db.prepare('SELECT active,revision,record FROM activation WHERE id=?').get(expected.activationId);requireThat(historical,'INTEGRITY_FAILURE','Historical helper activation missing');const record=parseRecord(String(historical.record),262144);validateHardCutoverHistoricalActivation(record,Number(historical.active),expected);requireThat(String(historical.revision)===String(object(record).revision),'INTEGRITY_FAILURE','Historical helper activation revision changed');}
+ const effects=db.prepare("SELECT value FROM meta WHERE key LIKE 'provider.effect:%' ORDER BY key").all().map(row=>parseRecord(String(row.value),262144));validateHardCutoverProviderEffects(effects);
  return {phase:classified.phase,record:classified.record};
 }
 /** @param {DatabaseSync} db @param {any} binding */
@@ -166,14 +256,19 @@ function workState(db,binding){
  requireThat(bindingRow&&canonicalJson(parseRecord(String(bindingRow.record),262144))===canonicalJson(binding),'FORBIDDEN','Old work binding changed');
  requireThat(Number(db.prepare('SELECT count(*) n FROM attempt WHERE held=1').get()?.n)===0,'EXECUTION_UNAVAILABLE','Old work ledger still has a held attempt');
  requireThat(Number(db.prepare("SELECT count(*) n FROM action WHERE status IN ('queued','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old work ledger still has executing actions');
- requireThat(Number(db.prepare("SELECT count(*) n FROM action WHERE status='blocked' AND action_id<>?").get(HARD_CUTOVER.actionId)?.n)===0,'EFFECT_UNCERTAIN','Unexpected blocked Action remains');
+ const blocked=db.prepare("SELECT action_id FROM action WHERE status='blocked' ORDER BY action_id").all().map(row=>String(row.action_id));
+ const allowedBlocked=[HARD_CUTOVER.actionId,...HARD_CUTOVER_RESIDUE.historicalBlockedActions.map(x=>x.actionId)].sort();requireThat(canonicalJson(blocked)===canonicalJson(allowedBlocked),'EFFECT_UNCERTAIN','Unexpected blocked Action remains');
+ for(const expected of HARD_CUTOVER_RESIDUE.historicalBlockedActions)historicalBlockedAction(db,expected);
+ heldDesignState(db,binding,'terminal');
  const actionRow=db.prepare('SELECT record FROM action WHERE action_id=?').get(HARD_CUTOVER.actionId);
  requireThat(actionRow,'INTEGRITY_FAILURE','Blocked activation Action missing');
  const action=object(parseRecord(String(actionRow.record),262144),'Blocked Action');
  requireThat(action.actionId===HARD_CUTOVER.actionId&&action.operation==='release.activate'&&action.status==='blocked'&&action.workId===null,'INTEGRITY_FAILURE','Blocked activation Action changed');
  requireThat(Number(db.prepare("SELECT count(*) n FROM managed_session WHERE state<>'closed'").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old managed session is not terminal');
  requireThat(Number(db.prepare("SELECT count(*) n FROM managed_assignment WHERE state IN ('offered','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old managed assignment is not terminal');
- requireThat(Number(db.prepare("SELECT count(*) n FROM managed_dispatch WHERE state='pending'").get()?.n)===0,'EXECUTION_UNAVAILABLE','Old managed dispatch is pending');
+ const pending=db.prepare("SELECT assignment_id FROM managed_dispatch WHERE state='pending' ORDER BY assignment_id").all().map(row=>String(row.assignment_id));
+ const allowedPending=[HARD_CUTOVER_RESIDUE.historicalDispatch.assignmentId,HARD_CUTOVER_RESIDUE.heldDesign.dispatchId].sort();requireThat(canonicalJson(pending)===canonicalJson(allowedPending),'EXECUTION_UNAVAILABLE','Unexpected managed dispatch is pending');
+ historicalPendingDispatch(db);heldDesignDispatch(db);
  const stageRows=db.prepare("SELECT key,value FROM meta WHERE key LIKE 'release.stage:%' ORDER BY key").all();
  const matching=[];
  for(const row of stageRows){
@@ -282,6 +377,29 @@ async function terminalizeHelper(helperConfig){
   requireThat(Number(db.prepare('SELECT changes() n').get()?.n)===1,'STALE_REVISION','Activation changed during terminalization');
   db.exec('COMMIT');
  }catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{try{db.close();}catch{}}
+}
+/** @param {DatabaseSync} db @param {any} binding */
+function terminalizeHeldDesignIn(db,binding){
+ let before;
+ try{before=heldDesignState(db,binding,'terminal');return {state:'already',work:before.work,action:before.action};}catch(error){if(!(error instanceof TdevError)||!['INTEGRITY_FAILURE','EXECUTION_UNAVAILABLE'].includes(error.code))throw error;}
+ before=heldDesignState(db,binding,'held');
+ requireThat(Number(db.prepare('SELECT count(*) n FROM attempt WHERE held=1').get()?.n)===1,'EXECUTION_UNAVAILABLE','Another held Attempt exists');
+ requireThat(Number(db.prepare("SELECT count(*) n FROM action WHERE status IN ('queued','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Another executing Action exists');
+ requireThat(Number(db.prepare("SELECT count(*) n FROM managed_session WHERE state<>'closed'").get()?.n)===0,'EXECUTION_UNAVAILABLE','Another managed session is live');
+ requireThat(Number(db.prepare("SELECT count(*) n FROM managed_assignment WHERE state IN ('offered','running')").get()?.n)===0,'EXECUTION_UNAVAILABLE','Another managed assignment is live');
+ historicalPendingDispatch(db);heldDesignDispatch(db);
+ const action=before.action,attempt=before.attempt,work=before.work,nextAction={...structuredClone(action),status:'cancelled',step:'complete.recovered',errorCode:null};
+ const actionChange=db.prepare('UPDATE action SET status=?,record=? WHERE action_id=? AND status=? AND record=?').run('cancelled',canonicalJson(nextAction),HARD_CUTOVER_RESIDUE.heldDesign.actionId,'blocked',canonicalJson(action));requireThat(actionChange.changes===1,'STALE_REVISION','Held Design Action changed during cleanup');
+ const actionKey='actionRevision:'+HARD_CUTOVER_RESIDUE.heldDesign.actionId,actionRevisionRow=db.prepare('SELECT value FROM meta WHERE key=?').get(actionKey),actionRevision=String(actionRevisionRow?.value??'0');revision(actionRevision);db.prepare('INSERT INTO meta(key,value) VALUES(?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value').run(actionKey,nextRevision(actionRevision));
+ const attemptChange=db.prepare('UPDATE attempt SET held=0 WHERE attempt_id=? AND action_id=? AND held=1').run(HARD_CUTOVER_RESIDUE.heldDesign.attemptId,HARD_CUTOVER_RESIDUE.heldDesign.actionId);requireThat(attemptChange.changes===1,'STALE_REVISION','Held Design Attempt changed during cleanup');
+ const nextWork={...structuredClone(work),currentActionId:null,revision:nextRevision(work.revision),disposition:work.disposition},workChange=db.prepare('UPDATE work SET revision=?,disposition=?,record=? WHERE work_id=? AND revision=? AND record=?').run(nextWork.revision,nextWork.disposition,canonicalJson(nextWork),HARD_CUTOVER_RESIDUE.heldDesign.workId,work.revision,canonicalJson(work));requireThat(workChange.changes===1,'STALE_REVISION','Held Design Work changed during cleanup');
+ const after=heldDesignState(db,binding,'terminal');requireThat(Number(db.prepare('SELECT count(*) n FROM attempt WHERE held=1').get()?.n)===0,'INTEGRITY_FAILURE','Held Design cleanup did not release reservation');return {state:'recovered',work:after.work,action:after.action};
+}
+/** @param {{helperConfigFile:string,nativeConfigFile:string}} options */
+export async function cleanupHardCutoverHeldDesign(options){
+ const {native}=await configurations(options.helperConfigFile,options.nativeConfigFile),file=join(resolve(native.stateDirectory),'work.sqlite');await secureBytes(file,134217728);const db=openExclusive(file);
+ try{const result=terminalizeHeldDesignIn(db,native.edge.binding);db.exec('COMMIT');return {kind:'tdev.c2-2-hard-cutover-held-design-cleanup',state:result.state,actionId:HARD_CUTOVER_RESIDUE.heldDesign.actionId,attemptId:HARD_CUTOVER_RESIDUE.heldDesign.attemptId,workId:HARD_CUTOVER_RESIDUE.heldDesign.workId};}
+ catch(error){try{db.exec('ROLLBACK');}catch{}throw error;}finally{try{db.close();}catch{}}
 }
 /** @param {any} nativeConfig */
 async function removeReadyProjection(nativeConfig){
