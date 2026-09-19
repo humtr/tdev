@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {bytesDigest,recordDigest,canonicalJson} from '../../src/contracts/canonical.mjs';
-import {currentControllerReleaseControlPlan} from '../../src/release/controller-recommissioning.mjs';
+import {currentControllerReleaseControlPlan,retainedControllerRecommissionPair} from '../../src/release/controller-recommissioning.mjs';
 const D=n=>'sha256:'+(n%16).toString(16).repeat(64),C='sha1:'+'a'.repeat(40),T='sha1:'+'b'.repeat(40);
 function fixture(){
  const old='/data/data/com.termux/files/home/.local/share/tdev/release-control-old',root='/data/data/com.termux/files/home/.local/share/tdev/release-control-current',fixed=old+'/fixed',release=D(1),artifact=D(2),schema=D(3),install='installation',repo='repository',epoch='3';
@@ -20,4 +20,11 @@ function fixture(){
 test('current controller recommission rebases release control without rewriting installation identity',()=>{
  const f=fixture(),p=currentControllerReleaseControlPlan({newRoot:f.root,managedEnrollmentFile:'/private/managed-current.json',productionEnrollmentFile:'/private/production-current.json',oldHelper:f.helper,oldRunit:f.runit,oldWriter:f.writer,installationSeal:f.installationSeal,activePair:f.pair,activePointer:f.pointer,activeConfig:f.config,managedEnrollment:f.managed,productionEnrollment:f.production,helperBundleBytes:f.hb,writerFenceHelperBytes:f.wb,runitHelperBytes:f.rb,commonModuleBytes:f.cb,launcherBytes:Buffer.from('launcher'),nodeExecutable:'/data/data/com.termux/files/usr/bin/node',nodeDigest:D(16),helperServiceDirectory:'/data/data/com.termux/files/usr/var/service/tdev-release-helper',previousLauncherCommissioningSealDigest:D(17)});
  assert.equal(p.helper.installationId,f.helper.installationId);assert.equal(p.helper.bindingEpoch,f.helper.bindingEpoch);assert.equal(p.helper.baseline.deviceReleaseId,f.pointer.deviceReleaseId);assert.equal(p.baseConfig.managedEnrollmentFile,'/private/managed-current.json');assert.equal(p.baseConfig.productionEnrollmentFile,'/private/production-current.json');assert.equal(p.baselinePointer.nativeConfigDigest,p.baseConfigDigest);assert.match(p.launcher.serviceRun,/release-device-launcher\.py/);assert.equal(p.helper.executor.sealDigest,f.production.sealDigest);assert.equal(p.recommissionSeal.productionEnrollmentSealDigest,f.production.sealDigest);assert.ok(p.planDigest.startsWith('sha256:'));assert.equal(canonicalJson(f.config.runtime),canonicalJson(p.baseConfig.runtime));
+});
+
+test('stopped recommission accepts only the durable terminal pair',()=>{
+ const f=fixture(),previous={...f.pair,edgeVersionId:'00000000-0000-4000-8000-000000000002'},terminal={phase:'active',intent:{previous,target:f.pair},observedPair:f.pair};
+ assert.deepEqual(retainedControllerRecommissionPair(f.helper.baseline,null),f.pair);
+ assert.deepEqual(retainedControllerRecommissionPair(f.helper.baseline,terminal),f.pair);
+ assert.throws(()=>retainedControllerRecommissionPair(f.helper.baseline,{...terminal,observedPair:previous}),error=>error?.code==='INTEGRITY_FAILURE');
 });

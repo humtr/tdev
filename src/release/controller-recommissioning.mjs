@@ -7,6 +7,7 @@ import {enrollmentRecord,verifyEnrollment} from '../runtime/enrollment.mjs';
 import {productionIntentDigest} from '../runtime/production-enrollment.mjs';
 import {verifyProductionQualification} from '../execution/production-qualification.mjs';
 import {releaseLauncherCommissioning} from './launcher-commissioning.mjs';
+import {runtimePair} from './manifest.mjs';
 
 /** @param {string} value */
 function absolute(value){requireThat(typeof value==='string'&&resolve(value)===value&&value.length<=4096,'INVALID_ARGUMENT','Absolute recommissioning path required');return value;}
@@ -35,6 +36,20 @@ export function prepareCurrentControllerRecommission(input){
  const managedBytes=Buffer.from(canonicalJson(managed)),intentBytes=Buffer.from(canonicalJson(intent)),commissionConfigBytes=Buffer.from(canonicalJson(commissionConfig));
  const planDigest=recordDigest('tdev.current-controller-recommission-preparation.v1',{installationId:binding.installationId,repositoryId:binding.repositoryId,bindingEpoch:binding.bindingEpoch,approvedCommitOid:config.runtime.sourceCommitOid,managedEnrollmentDigest:bytesDigest(managedBytes),productionIntentDigest:productionIntentDigest(/** @type {any} */(intent)),commissionConfigDigest:bytesDigest(commissionConfigBytes),productionEnrollmentFile:input.productionEnrollmentFile});
  return Object.freeze({planDigest,managed,managedBytes,intent,intentBytes,commissionConfig,commissionConfigBytes,productionEnrollmentFile:input.productionEnrollmentFile});
+}
+
+/**
+ * Rebind the exact durable pair after the fixed helper has stopped. Only a
+ * terminal activation record may supersede the sealed helper baseline.
+ * @param {any} baseline
+ * @param {any|null} terminal
+ */
+export function retainedControllerRecommissionPair(baseline,terminal){
+ if(terminal===null)return runtimePair(baseline);
+ requireThat(terminal&&typeof terminal==='object'&&!Array.isArray(terminal)&&['active','rolled_back'].includes(terminal.phase)&&terminal.observedPair,'INTEGRITY_FAILURE','Retained release pair unavailable');
+ const expected=terminal.phase==='active'?terminal.intent?.target:terminal.intent?.previous;
+ requireThat(expected&&canonicalJson(terminal.observedPair)===canonicalJson(expected),'INTEGRITY_FAILURE','Retained release pair differs from terminal activation');
+ return runtimePair(terminal.observedPair);
 }
 
 /**

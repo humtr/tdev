@@ -11,7 +11,7 @@ import {readHelperConfig} from '../src/release/helper-runtime.mjs';
 import {readNativeConfig} from '../src/runtime/native.mjs';
 import {privateBytes,privateDirectory} from '../src/release/private-files.mjs';
 import {privateControl} from '../src/release/private-rpc.mjs';
-import {currentControllerReleaseControlPlan} from '../src/release/controller-recommissioning.mjs';
+import {currentControllerReleaseControlPlan,retainedControllerRecommissionPair} from '../src/release/controller-recommissioning.mjs';
 
 const sourceRoot=resolve(dirname(fileURLToPath(import.meta.url)),'..');
 /** @param {string} filename @param {number} [maximum] */
@@ -24,15 +24,24 @@ async function replaceExact(filename,bytes,mode){const temporary=filename+'.tmp-
 async function stopped(service){const status=await readFile(join(service,'supervise/status'));return status.length===20&&status.readUInt32LE(12)===0&&status[17]===100&&status[19]===0;}
 /** @param {string} root @param {string} path */
 function rel(root,path){requireThat(path===root||path.startsWith(root+'/'),'INTEGRITY_FAILURE','Planned path escaped recommission root');return path.slice(root.length+1);}
-/** @param {string} oldRoot @param {string} newRoot @param {string} managedFile @param {string} productionFile */
-async function snapshot(oldRoot,newRoot,managedFile,productionFile){
+/** @param {any} helper */
+function retainedPair(helper){
+ const db=new DatabaseSync(helper.paths.journalFile,{readOnly:true});try{
+  const active=Number(db.prepare('SELECT count(*) n FROM activation WHERE active=1').get()?.n??-1);requireThat(active===0,'EXECUTION_UNAVAILABLE','Release activation is not quiescent');
+  const row=db.prepare('SELECT record FROM activation WHERE active=0 ORDER BY rowid DESC LIMIT 1').get();
+  return retainedControllerRecommissionPair(helper.baseline,row?parseRecord(String(row.record),1048576):null);
+ }finally{db.close();}
+}
+/** @param {string} oldRoot @param {string} newRoot @param {string} managedFile @param {string} productionFile @param {boolean} livePair */
+async function snapshot(oldRoot,newRoot,managedFile,productionFile,livePair){
  const helperFile=join(oldRoot,'helper-config.json'),helper=await readHelperConfig(helperFile),runit=/** @type {any} */(parseRecord(await privateBytes(helper.paths.runitConfigFile),262144)),writer=/** @type {any} */(parseRecord(await privateBytes(helper.paths.writerFenceConfigFile),262144)),installationSeal=/** @type {any} */(parseRecord(await privateBytes(join(oldRoot,'installation-seal.json')),262144));
- const pointer=/** @type {any} */(parseRecord(await privateBytes(helper.paths.pointerFile),16384)),nativeFile=join(helper.paths.nativeConfigDirectory,digest(pointer.deviceReleaseId).slice(7)+'.json'),activeConfig=await readNativeConfig(nativeFile);
- const key=await privateBytes(helper.paths.helperKeyFile,32),active=/** @type {any} */(await privateControl({filename:helper.paths.helperEndpointFile,role:'helper',key,operation:'helper.status',input:{kind:'active'},timeoutMs:10000})),activePair=active.pair;
+ const pointer=/** @type {any} */(parseRecord(await privateBytes(helper.paths.pointerFile),16384)),nativeFile=join(helper.paths.nativeConfigDirectory,digest(pointer.deviceReleaseId).slice(7)+'.json'),activeConfig=await readNativeConfig(nativeFile),helperServiceDirectory=join(dirname(runit.serviceDirectory),'tdev-release-helper');
+ const key=await privateBytes(helper.paths.helperKeyFile,32);let activePair;
+ if(livePair){requireThat(!await stopped(helperServiceDirectory),'EXECUTION_UNAVAILABLE','Release helper must be running for recommission inspection');const active=/** @type {any} */(await privateControl({filename:helper.paths.helperEndpointFile,role:'helper',key,operation:'helper.status',input:{kind:'active'},timeoutMs:10000}));activePair=active.pair;}
+ else activePair=retainedPair(helper);
  const managedEnrollment=/** @type {any} */(parseRecord(await privateBytes(managedFile,4194304),4194304)),productionEnrollment=/** @type {any} */(parseRecord(await privateBytes(productionFile,4194304),4194304));
  const helperBundleBytes=await secure(join(oldRoot,'helper.mjs'),16777216),writerFenceHelperBytes=await secure(helper.paths.writerFenceHelperFile),runitHelperBytes=await secure(helper.paths.runitHelperFile),commonModuleBytes=await secure(helper.paths.commonModuleFile),launcherBytes=await readFile(join(sourceRoot,'tools/release-device-launcher.py')),nodeBytes=await readFile(process.execPath);
  let previousLauncherCommissioningSealDigest=null;try{const oldSeal=/** @type {any} */(parseRecord(await privateBytes(join(dirname(helper.paths.runitConfigFile),'launcher-commissioning-seal.json')),262144));previousLauncherCommissioningSealDigest=oldSeal.commissioningSealDigest??null;}catch(error){if(!(error&&typeof error==='object'&&'code'in error&&error.code==='ENOENT'))throw error;}
- const helperServiceDirectory=join(dirname(runit.serviceDirectory),'tdev-release-helper');
  const plan=currentControllerReleaseControlPlan({newRoot,managedEnrollmentFile:managedFile,productionEnrollmentFile:productionFile,oldHelper:helper,oldRunit:runit,oldWriter:writer,installationSeal,activePair,activePointer:pointer,activeConfig,managedEnrollment,productionEnrollment,helperBundleBytes,writerFenceHelperBytes,runitHelperBytes,commonModuleBytes,launcherBytes,nodeExecutable:process.execPath,nodeDigest:bytesDigest(nodeBytes),helperServiceDirectory,previousLauncherCommissioningSealDigest});
  return {plan,helper,runit,writer,pointer,activeConfig,helperFile,nativeFile,helperBundleBytes,writerFenceHelperBytes,runitHelperBytes,commonModuleBytes,keyBytes:key,nativeKeyBytes:await privateBytes(helper.paths.nativeKeyFile,32),cloudflareTokenBytes:await privateBytes(helper.paths.cloudflareTokenFile,8192),helperServiceDirectory,oldTdevRun:await secure(join(runit.serviceDirectory,'run'),65536),oldHelperRun:await secure(join(helperServiceDirectory,'run'),65536)};
 }
@@ -50,7 +59,7 @@ async function main(){process.umask(0o077);const a=parseArgs({options:{'old-root
  requireThat(typeof a['old-root']==='string'&&typeof a['new-root']==='string'&&typeof a['managed-enrollment']==='string'&&typeof a['production-enrollment']==='string'&&typeof a.mode==='string'&&typeof a.output==='string','INVALID_ARGUMENT','Missing controller recommission input');
  const oldRootArg=/** @type {string} */(a['old-root']),newRootArg=/** @type {string} */(a['new-root']),managedArg=/** @type {string} */(a['managed-enrollment']),productionArg=/** @type {string} */(a['production-enrollment']),mode=/** @type {string} */(a.mode),outputArg=/** @type {string} */(a.output);
  const oldRoot=resolve(oldRootArg),newRoot=resolve(newRootArg),managedFile=resolve(managedArg),productionFile=resolve(productionArg),output=resolve(outputArg);requireThat(oldRoot===oldRootArg&&newRoot===newRootArg&&managedFile===managedArg&&productionFile===productionArg&&output===outputArg&&oldRoot!==newRoot,'FORBIDDEN','Absolute distinct recommission paths required');requireThat(['inspect','apply'].includes(mode),'INVALID_ARGUMENT');
- const state=await snapshot(oldRoot,newRoot,managedFile,productionFile),p=state.plan,summary={schemaVersion:1,kind:'tdev.current-controller-release-control-recommission',planDigest:p.planDigest,newRoot,installationId:p.helper.installationId,repositoryId:p.helper.repositoryId,bindingEpoch:p.helper.bindingEpoch,baselineReleaseId:p.baselinePointer.deviceReleaseId,baselineSourceCommitOid:p.baselinePointer.sourceCommitOid,managedEnrollmentSealDigest:p.recommissionSeal.managedEnrollmentSealDigest,productionEnrollmentSealDigest:p.recommissionSeal.productionEnrollmentSealDigest,recommissionSealDigest:p.recommissionSealDigest};
+ const state=await snapshot(oldRoot,newRoot,managedFile,productionFile,mode==='inspect'),p=state.plan,summary={schemaVersion:1,kind:'tdev.current-controller-release-control-recommission',planDigest:p.planDigest,newRoot,installationId:p.helper.installationId,repositoryId:p.helper.repositoryId,bindingEpoch:p.helper.bindingEpoch,baselineReleaseId:p.baselinePointer.deviceReleaseId,baselineSourceCommitOid:p.baselinePointer.sourceCommitOid,managedEnrollmentSealDigest:p.recommissionSeal.managedEnrollmentSealDigest,productionEnrollmentSealDigest:p.recommissionSeal.productionEnrollmentSealDigest,recommissionSealDigest:p.recommissionSealDigest};
  if(mode==='inspect'){await replaceExact(output,Buffer.from(canonicalJson(summary)+'\n'),0o600);process.stdout.write(canonicalJson(summary)+'\n');return;}
  const expectedPlan=/** @type {string|undefined} */(a['expected-plan']);requireThat(typeof expectedPlan==='string'&&expectedPlan===p.planDigest,'STALE_REVISION','Recommission plan changed');requireThat(await stopped(state.runit.serviceDirectory)&&await stopped(state.helperServiceDirectory),'EXECUTION_UNAVAILABLE','Device and release helper must be stopped');assertQuiescent(state.activeConfig,state.helper);
  try{await lstat(newRoot);throw Object.assign(new Error('Target root already exists'),{code:'STALE_REVISION'});}catch(error){if(!(error&&typeof error==='object'&&'code'in error&&error.code==='ENOENT'))throw error;}

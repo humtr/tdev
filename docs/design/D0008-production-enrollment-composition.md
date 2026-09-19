@@ -187,6 +187,8 @@ seal remains the installation authority and is not rewritten.
 The handoff stops only the canonical tdev device and fixed release-helper services,
 requires the existing pointer and helper active-pair readback to agree exactly, and
 requires no held Attempt, running/offered managed assignment or nonterminal activation.
+The live inspection must obtain the exact helper active-pair readback before the stop boundary. After both services are stopped, apply must rebind that same pair from the durable terminal activation journal (or the sealed helper baseline when there has never been an activation) and recompute the exact inspected plan digest; it must not require a live helper RPC after the stopped boundary.
+
 It then installs the fully composed fresh subroot before atomically replacing the two
 global runit run files. On any partial global service-run replacement it restores the
 exact previous run files. It does not mutate the work ledger, provider deployment,
