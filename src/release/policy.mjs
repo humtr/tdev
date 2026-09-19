@@ -47,22 +47,50 @@ export function qualifiedPolicy(input){
  * binding. No stale runtime config is allowed to reset an adopted policy.
  */
 export class PolicyState {
- /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,enrollment?:{digest:string,policy:AdoptedPolicy},projectPolicyDigest?:(policyDigest:string)=>string,authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
+ /** @param {{ledger:import('../storage/ledger.mjs').Ledger,binding:Binding,initial:AdoptedPolicy,enrollment?:{digest:string,policy:AdoptedPolicy},allowEnrollmentTransition?:boolean,projectPolicyDigest?:(policyDigest:string)=>string,authorize:(principal:Principal,path:string)=>Promise<void>,verifyIntegrated:(commit:string,oldPolicyDigest:string)=>Promise<IntegratedSource>,readBlob:(blobOid:string)=>Promise<Uint8Array>,qualify:(policy:AdoptedPolicy)=>Promise<boolean>,now?:()=>number}} options */
  constructor(options){this.o=options;this.now=options.now??Date.now;this.initialDigest=options.initial.policy.digest;this.baseDigest=this.initialDigest;this.current=options.initial;}
  /** @returns {Adoption|null} */
  retained(){return this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.active'");return row?/** @type {Adoption} */(parseRecord(String(row.value))):null;});}
+ /** Verify the installer-supplied managed enrollment without selecting it in the
+  * native ledger. Current-controller production probes use this while the old
+  * ordinary enrollment remains active until the sealed handoff is complete. */
+ async qualifiedEnrollment(){
+  const enrollment=this.o.enrollment;if(!enrollment)return null;
+  digest(enrollment.digest);const policy=qualifiedPolicy({schemaVersion:1,...enrollment.policy.policy});
+  requireThat(await this.o.qualify(policy),'EXECUTION_UNAVAILABLE','Private enrollment exceeds installed managed capability');
+  return {policy,text:canonicalJson({schemaVersion:1,initialPolicyDigest:this.initialDigest,enrollmentDigest:enrollment.digest,policy:policy.policy})};
+ }
+ /** Installer-only commissioning may exercise the newly qualified controller but
+  * must not change which enrollment ordinary startup restores. */
+ async commissioningOnly(){
+  const qualified=await this.qualifiedEnrollment();requireThat(qualified,'EXECUTION_UNAVAILABLE','Private managed enrollment is missing');
+  this.baseDigest=qualified.policy.policy.digest;this.current=qualified.policy;return qualified.policy;
+ }
  /** One-time private commissioning is not policy.adopt or a validation receipt.
   * It cannot be requested by a work item or inferred from repository config. The
   * native installer supplies an independently checked immutable enrollment and
   * its qualified initial controller. The original SQLite binding stays intact.
+  * A different retained enrollment may become active only after the caller has
+  * independently verified the paired production capability. The legacy anchor is
+  * never rewritten; later selected values are versioned through an active row and
+  * exact prior values are retained as immutable history.
   */
  async commissioning(){
-  const retained=this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'");return row?parseRecord(String(row.value)):null;}),enrollment=this.o.enrollment;
-  if(!enrollment){requireThat(retained===null,'EXECUTION_UNAVAILABLE','Private managed enrollment is missing; refusing bootstrap-policy fallback');return this.o.initial;}
-  digest(enrollment.digest);const policy=qualifiedPolicy({schemaVersion:1,...enrollment.policy.policy});
-  requireThat(await this.o.qualify(policy),'EXECUTION_UNAVAILABLE','Private enrollment exceeds installed managed capability');
-  const value={schemaVersion:1,initialPolicyDigest:this.initialDigest,enrollmentDigest:enrollment.digest,policy:policy.policy},text=canonicalJson(value);
-  this.o.ledger.transact(tx=>{const row=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'");if(row)requireThat(String(row.value)===text,'INTEGRITY_FAILURE','Private enrollment changed');else{requireThat(!tx.get("SELECT value FROM meta WHERE key='policy.active'"),'INTEGRITY_FAILURE','Cannot commission over an already adopted policy');tx.run("INSERT INTO meta VALUES('policy.enrollment',?)",text);}});
+  const qualified=await this.qualifiedEnrollment(),retained=this.o.ledger.transact(tx=>{const legacy=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'"),active=tx.get("SELECT value FROM meta WHERE key='policy.enrollment.active'");requireThat(!active||legacy,'INTEGRITY_FAILURE','Policy enrollment anchor is missing');return active??legacy;});
+  if(!qualified){requireThat(retained===undefined||retained===null,'EXECUTION_UNAVAILABLE','Private managed enrollment is missing; refusing bootstrap-policy fallback');return this.o.initial;}
+  const {policy,text}=qualified;
+  this.o.ledger.transact(tx=>{
+   const legacy=tx.get("SELECT value FROM meta WHERE key='policy.enrollment'"),active=tx.get("SELECT value FROM meta WHERE key='policy.enrollment.active'");requireThat(!active||legacy,'INTEGRITY_FAILURE','Policy enrollment anchor is missing');
+   const selected=active??legacy;
+   if(selected){
+    const prior=String(selected.value);if(prior!==text){
+     requireThat(this.o.allowEnrollmentTransition===true,'INTEGRITY_FAILURE','Private enrollment changed');
+     const historyKey='policy.enrollment.history:'+recordDigest('tdev.policy-enrollment-history.v1',parseRecord(prior)).slice(7),history=tx.get('SELECT value FROM meta WHERE key=?',historyKey);
+     if(history)requireThat(String(history.value)===prior,'INTEGRITY_FAILURE','Policy enrollment history changed');else tx.run('INSERT INTO meta VALUES(?,?)',historyKey,prior);
+     tx.run("INSERT INTO meta(key,value) VALUES('policy.enrollment.active',?) ON CONFLICT(key) DO UPDATE SET value=excluded.value",text);
+    }
+   }else{requireThat(!tx.get("SELECT value FROM meta WHERE key='policy.active'"),'INTEGRITY_FAILURE','Cannot commission over an already adopted policy');tx.run("INSERT INTO meta VALUES('policy.enrollment',?)",text);}
+  });
   this.baseDigest=policy.policy.digest;return policy;
  }
  /** Mandatory before opening admission on restart. Missing capability leaves the

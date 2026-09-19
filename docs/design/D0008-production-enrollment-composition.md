@@ -197,6 +197,18 @@ objects. Services are restarted only after exact file/digest readback.
 
 Post-handoff startup must verify the new managed and production enrollment against the
 same current native runtime and then expose ordinary tdev validation/release authority.
+The commissioning-only native process may qualify and exercise that new managed
+controller for the fixed production probes without changing the ordinary policy
+enrollment selected in the retained work ledger. After the separately retained
+production enrollment has been fully verified and paired to that exact managed
+qualification, ordinary startup from the fresh recommissioned root may atomically
+select the new policy enrollment. That ledger-owner transition must leave the original
+policy-enrollment anchor byte-for-byte intact, retain any superseded selected value as
+versioned history, preserve policy-adoption history, and reject the same enrollment
+change when the verified paired production capability is absent. This startup-owned
+transition is not an effect of the stopped handoff tool and is not a public/config
+bypass.
+
 No compatibility reader may select the predecessor enrollment in the new subroot. A
 rollback to the historical root is an explicit operator rollback of the whole retained
 root/run-file pair, never a mixed enrollment or partial seal fallback. C2-2 may close
