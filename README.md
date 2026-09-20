@@ -69,17 +69,22 @@ incorrect annotations.
 
 Installed **Local Codex 0.155.1** discovery and disposable native read/edit/exec/process/
 validate/publish, client reconnect/replay and retirement pass through the explicit stdio
-adapter → localhost HTTP path. Direct legacy initialize against core HTTP is incompatible.
+adapter → localhost HTTP path. The installed client proposes 2025-06-18 in direct initialize;
+the explicit adapter replies with supported version 2025-11-25, accepted by this client.
+Neither is direct 2026-07-28 client support; core HTTP remains pinned and rejects legacy initialize.
 This is actual Codex app-server MCP, not an autonomous model turn or Codex-through-Tunnel
 test. The official Tunnel plugin is installed in the tested Codex profiles; plugin runtime
 management and tdev tool registration are separate. CLI extension capture/real-exit and
 forged-authority rejection are tested without adding a public gateway.
 
-Remaining: targeted ChatGPT discovery/approval requalification after the corrected hints
-are deployed to an authorized development runtime, optional interactive Local Codex/Tunnel
+The reviewed code is now loaded by the existing development controller following explicit
+restart approval; authenticated local tools/list matches the current contract exactly.
+Tunnel, credentials, grants and durable operation/workspace rows were preserved.
+Remaining: ChatGPT Connector Refresh and targeted discovery/approval requalification,
+optional interactive Local Codex/Tunnel
 route, intentionally wrong bearer through ChatGPT UI, selected remote backend isolation and
 separately authorized production cutover. Shared credentials do not promise account/session
-isolation. Existing running services were not replaced/restarted during this review. A separate
+isolation. Only the explicitly approved development controller was restarted afterward. A separate
 Linux executor is not a next step or gate. See [evidence](LOCAL_VALIDATION.md) and [operations](OPERATIONS.md).
 
 Run deterministic checks with `sh scripts/check.sh` after

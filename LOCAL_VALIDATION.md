@@ -197,6 +197,10 @@ probe failed with missing required request headers (`-32020`). The correction is
 selected `tdev.codex_bridge` stdio compatibility edge, not a core downgrade. Core requests
 remain 2026-07-28. Adapter initialization reports 2025-11-25 and forwards the same schemas,
 annotations, arguments and durable identity, once; current auth remains at the controller.
+An additional disposable loopback capture, without the adapter, recorded the actual client
+proposal as `initialize` with `protocolVersion: 2025-06-18`. Thus 2025-11-25 is the adapter's
+accepted response/negotiated revision, not the client's original proposed date. The capture
+logged only method/version, no credentials, and made no calls to the development runtime.
 
 The prepared native tunnel-client 0.0.14 installed its bundled Tunnel MCP plugin (0.1.4) into
 the initially active `jgnh` Codex profile. On resume the active profile was `janmori101`;
@@ -245,3 +249,26 @@ requires selecting the intended instance/private bearer; the disposable client p
 passes. Interactive model behaviour, Codex-through-Tunnel, wrong-secret host UI, optional
 remote isolation and production cutover were not executed. Shared credentials still do not
 promise account/session isolation.
+
+### Approved development controller restart
+
+After explicit user approval, source HEAD `00edb5fe88f1737a0d36c9a65fc50da0793b180d`
+was loaded by restarting only the identified development controller. Preflight found no
+running/unknown operations and no busy workspace; SQLite quick_check returned ok.
+PID/start identity and repository cwd/argv were checked before SIGINT. An owner-private
+SQLite online backup and startup log were retained under
+`/data/data/com.termux/files/home/.local/share/tdev/controller-restart-wmfxyqfg/`.
+New detached controller PID 13295 replaced PID 19587 on the same localhost port 8765,
+state and config. Native Tunnel PID 26918/start identity was unchanged; no service manager
+activation, credential/grant change, remote publication or native execution was performed.
+
+Post-restart local checks: health up; authenticated MCP 2026-07-28 tools/list exactly equals
+the current expanded contract (seven tools, only read marked read-only); wrong bearer 401;
+workspace list succeeds, includes nextAfter and reads canonical head `00edb5f`.
+All ten operation rows and both workspace rows were unchanged across restart; config digest
+was unchanged. These are localhost deployment checks, not refreshed ChatGPT acceptance.
+Documentation/contract checks passed (3 tests, 0.610s); `sh scripts/check.sh` passed all
+64 tests in 56.576s after this follow-up, with no source/contract implementation changes.
+Next human action: Refresh the existing ChatGPT connection, then use a new conversation to
+verify changed discovery/approval behaviour. The prior complete coding path need not be
+repeated solely because controller memory was refreshed.
