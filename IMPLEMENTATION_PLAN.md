@@ -39,6 +39,25 @@ effect, perform useful forward work in that same turn. Tests must cover "complet
 but caller did not observe it" for both same-turn polling and fresh resume. Terminal lifecycle
 must also leave a supported inspection/cleanup path for clean owned resources.
 
+Additional observed harness lessons to preserve during tdev implementation:
+
+- Command execution must expose the underlying command result prominently; controller/job
+  admission success must not be mistaken for process/test success.
+- Long-running development processes need a product-owned start/status/log/stop lifecycle;
+  do not force callers into unmanaged detached-shell workarounds.
+- Isolated worktrees/copies need a reproducible dependency/tooling context so clean isolation
+  does not silently remove required ignored caches or environments.
+- Closeout must remain actionable through commit/push/readback/cleanup; terminalization must
+  not strand unfinished closeout work or its owned resources.
+- Registry/descriptive metadata can become stale; mutable repository/runtime facts must be
+  freshness-bound to their current owner rather than trusted from cached labels.
+- Status/readback surfaces need bounded summary/collapse/limits so large untracked trees do
+  not turn a simple progress check into a huge artifact.
+- Git/ref inputs should have consistent, explicit semantics across operations; common symbolic
+  refs such as HEAD must either work consistently or fail clearly by contract.
+- Request identity should be easy to generate safely in long autonomous runs; idempotency
+  conflicts must stay explicit without requiring fragile manual request-id bookkeeping.
+
 First complete path: open → read/edit → exec/process → validate → publish → readback.
 Never weaken exact publication/replay to hide missing native support. Keep native authority
 limitations explicit instead of promising unavailable kernel boundaries. No permission
