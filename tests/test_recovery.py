@@ -106,11 +106,12 @@ class RecoveryTest(Base):
         denied = self.c.call("bob", "tdev_read", {"workspaceId": w["workspaceId"], "checkpoint": w["checkpoint"], "queries": [{"action": "list"}]})
         self.assertFalse(denied["ok"])
 
-    def test_no_executor_cannot_fall_back_to_native_shell(self):
+    def test_no_executor_config_uses_real_native_runner(self):
         w = self.open()
         self.c.executor_override = None
-        op = self.call("exec", {"requestId": "native", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "command": "touch /tmp/should-not-run"})
-        self.assertEqual(op["error"]["code"], "EXECUTOR_REQUIRED")
+        op = self.call("exec", {"requestId": "native", "workspaceId": w["workspaceId"], "expected": w["checkpoint"], "command": "printf native > a.txt"})
+        done = self.wait(op["id"])
+        self.assertEqual(done["status"], "succeeded", done)
         self.assertEqual(self.executor.launches, 0)
 
     def test_git_and_installed_cli_are_normal_commands(self):

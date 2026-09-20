@@ -4,6 +4,7 @@ import signal
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -13,6 +14,58 @@ from tdev.core import Controller
 
 
 class CrashTest(unittest.TestCase):
+    def test_native_inflight_survives_sigkill_and_replays_without_relaunch(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            repo = Repository(root)
+            config = root / "config.json"
+            config.write_text(json.dumps(repo.config))
+            config.chmod(0o600)
+            program = """import json,sys,time
+from tdev.core import Controller
+c=Controller(sys.argv[1],sys.argv[2])
+w=c.call('alice','tdev_workspace',{'action':'open','requestId':'open','repo':'test','ref':'refs/heads/main','expectedHead':sys.argv[3]})['result']['result']
+a={'requestId':'exec','workspaceId':w['workspaceId'],'expected':w['checkpoint'],'command':'read value; printf %s "$value" >> a.txt','timeout':15}
+r=c.call('alice','tdev_exec',a)
+print(json.dumps([a,r]),flush=True)
+time.sleep(60)
+"""
+            proc = subprocess.Popen([sys.executable, "-c", program, str(root / "state"), str(config), repo.head], stdout=subprocess.PIPE)
+            try:
+                args, launched = json.loads(proc.stdout.readline())
+                self.assertTrue(launched["ok"], launched)
+                op = launched["result"]
+                deadline = time.monotonic() + 10
+                while not (root / "state/native" / op["id"] / "dispatch.json").exists():
+                    self.assertLess(time.monotonic(), deadline)
+                    time.sleep(.02)
+                proc.kill()
+                proc.wait(timeout=5)
+                c = Controller(root / "state", str(config))
+                try:
+                    self.assertEqual(c.call("alice", "tdev_exec", args)["result"]["id"], op["id"])
+                    stdin = {"action": "stdin", "requestId": "input", "operationId": op["id"], "sequence": 0, "text": "once\n", "eof": True}
+                    first = c.call("alice", "tdev_process", stdin)
+                    self.assertTrue(first["ok"], first)
+                    self.assertEqual(c.call("alice", "tdev_process", stdin), first)
+                    while True:
+                        result = c.call("alice", "tdev_process", {"action": "status", "operationId": op["id"]})["result"]
+                        if result["status"] not in ("running", "unknown"):
+                            break
+                        self.assertLess(time.monotonic(), deadline)
+                        time.sleep(.02)
+                    self.assertEqual(result["status"], "succeeded", result)
+                    g = c.git("test")
+                    self.assertEqual(g.blob(g.entries(result["result"]["checkpoint"])["a.txt"][1]), b"hello\nonce")
+                    self.assertEqual(len(list((root / "state/native").glob("*/request.json"))), 1)
+                finally:
+                    c.close()
+            finally:
+                if proc.poll() is None:
+                    proc.kill()
+                    proc.wait()
+                proc.stdout.close()
+
     def test_pre_dispatch_crash_has_no_effect_and_no_stale_writer(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)

@@ -1,116 +1,150 @@
-# Local operation and remaining acceptance
+# Termux operation
 
-This runbook describes operator actions; it does not grant production authority.
-Current implementation/acceptance status lives in README.
+Operator actions, not production authorization. Current status lives in README.
 
-## Development and inactive rehearsal
+## On-device prerequisites and inactive install
 
-From the repository root:
+Use Termux Python, Git and the development CLIs required by the enrolled repositories
+(for example Node/npm, Python/pip, rg). GitHub publication also needs owner-configured gh
+authentication. No remote executor enrollment, root, Docker or systemd is needed.
+Install dependencies and rehearse before touching any existing service:
 
 ```sh
 python -m pip install --target .tdev-deps -r requirements.txt
 sh scripts/check.sh
+PYTHONPATH=src:.tdev-deps python scripts/rehearse.py
 sh install.sh --no-start /absolute/private/staging-root
 PYTHONPATH=src:.tdev-deps python -m tdev.admin init --root /absolute/private/staging-root
 PYTHONPATH=src:.tdev-deps python -m tdev.admin point --root /absolute/private/staging-root --bundle RETURNED_BUNDLE_ID
 sh install.sh --check /absolute/private/staging-root
 ```
 
-Stage copies a verified bundle and creates DOWN service templates outside the live
-service directory. It never starts/replaces production services. The generated
-connector.secret is mode 0600; its contents must be entered only through the connector
-credential UI, not a chat/tool argument. Initial config grants no repositories.
-Config shape is checked by contracts/config.schema.json; public wire types remain
-in contracts/tools.schema.json. Do not put credentials in repository config.
+Stage includes the native runner and creates DOWN service templates outside live runsvdir.
+It never starts/replaces production services. Generated connector.secret is mode 0600;
+enter it only in the host credential UI, not chat/tool arguments. Initial config grants
+no repositories. Keep config/credentials outside source.
 
-## Repository and executor enrollment
+## Repository enrollment: native is the default
 
-Operator config identifies repositories by a local label plus immutable identity.
+A repository entry lists immutable identity, exact URL/path/ref and mandatory validation.
 GitHub uses kind=github, name=owner/repository, exact HTTPS .git URL and identity
-github:NUMERIC_REPOSITORY_ID. Query the ID with authenticated gh api; do not infer it
-from the name. The target must have no-delete/no-rewrite protection and the intended
-publication principal must have actual access. Local test repositories use kind=local,
-an absolute bare path and identity local:DEVICE:INODE. Each entry lists exact full refs,
-an adopted mandatory validation command, admitted networks and optional executor config.
-The matching principal's repos map lists the allowed refs. No per-command grants.
+github:NUMERIC_REPOSITORY_ID (query authenticated gh api, never infer from name). The
+publication credential must have actual access; enroll no-rewrite/no-delete refs.
+Local bare fixtures use kind=local, absolute path and identity local:DEVICE:INODE.
+The matching principal's repos map lists exact allowed refs.
 
-The SSH executor requires a separate Linux host with rootless Podman, cgroup v2 CPU,
-memory and PID controllers, seccomp, Python and Git. The pinned image needs /usr/bin/env,
-/bin/sh, python3, git and required development CLIs. It must be pre-pulled by the operator.
-The controller does not pull images, provision infrastructure or install remote keys.
+Omit executor, or set executor to {"kind":"native"}. Omit networks (defaults to ["host"])
+or explicitly list host. Nothing else is needed to run commands. Existing configs listing
+only networks=["none"] must be changed explicitly for native execution: none does NOT mean
+a pretend sandbox. Explicit remote configs keep their existing backend and network policy.
 
-Install src/tdev/executor.py to an operator-owned absolute remote path and record its
-SHA-256 digest. Use immutable versioned script paths so pending operations can still
-observe their adopted executor after an upgrade. Configure target, script, digest, spool (private absolute directory),
-image (name@sha256:digest), identityFile and knownHosts. These are private local files;
-SSH enforces pinned host keys, no agent forwarding, no password prompt and one identity.
-Do not reuse a production service credential merely because it exists on the device.
+Example repository value (replace identity, repo and command; never put secret values here):
 
-Network none works without egress adoption. For internet, the remote spool's private
-network-policy.json must name a dedicated tdev-* Podman network and qualificationDigest
-identifying operator-reviewed evidence that private/admin/metadata destinations are
-blocked. Pin that file's canonical JSON SHA-256 as executor.networkPolicyDigest. The
-controller must also grant internet for the repository. A digest is adoption, not proof
-that firewall rules work: run the actual negative tests before enabling this mode.
+```json
+{
+  "kind": "github",
+  "name": "owner/repository",
+  "remote": "https://github.com/owner/repository.git",
+  "identity": "github:NUMERIC_ID",
+  "refs": ["refs/heads/main"],
+  "validation": "npm ci && npm test"
+}
+```
 
-Production code never falls back to same-UID local execution. Local test executors are
-authored fixtures imported only from tests. CLI adapters are ordinary sandbox programs;
-they cannot access controller config, publish credentials or outer receipt files.
+Native runs with the Android app UID. Only use code/dependencies trusted with that user's
+authority. The runner does not inherit tokens, agents, proxy env or global Git config;
+HOME/TMPDIR/XDG paths are per-job. Existing source/user index is not the command cwd.
+These are credential hygiene, not isolation: malicious same-UID code can access controller
+files or private networks by absolute path. Native host networking is ordinary device
+networking. Hard network isolation, aggregate RAM/PID quotas and hostile-code protection
+are NOT provided. Do not falsely label an env-filtered shell a sandbox.
+
+Validation materializes the frozen candidate with exact Git HEAD. New build artifacts may
+be written; existing source bytes/modes must remain unchanged at completion. Source-changing
+formatters/generators belong in exec, then validate their captured checkpoint. Test outputs
+are never published. This is owner-trusted before/after checking, not a read-only OS mount.
+Each exec/validation gets a fresh source copy and HOME. Ignored dependency/build directories
+from an earlier command are not copied to validation. An adopted validation command must
+prepare needed dependencies (for example npm ci && npm test), or use operator-installed
+Termux tools. Large installs can hit the documented native disk/source limits; this first
+runner does not promise a shared warm dependency cache.
 
 ## Local HTTP and Tunnel
 
-The following starts an explicitly selected development instance, not installed services:
+Start a selected development instance, separate from existing installed services:
 
 ```sh
-PYTHONPATH=src:.tdev-deps python -m tdev.server --state /private/dev-state --config /private/config.json --port 8765
+PYTHONPATH=src:.tdev-deps python -m tdev.server --state /absolute/private/dev-state --config /absolute/private/config.json --port 8765
 ```
 
-The server listens on 127.0.0.1 only. GET /healthz is a credential-free liveness check;
-POST /mcp requires the bearer for initialize, discovery and calls. Incoming
-X-Openai-Subject/Session headers never change authorization.
+Server binds 127.0.0.1 only. GET /healthz is liveness; POST /mcp requires the installation
+bearer before discovery/calls. Subject/session headers never grant authority.
 
-For the installed tunnel-client, use its help/doctor to configure a distinct tdev profile
-pointing at http://127.0.0.1:8765/mcp. It needs an operator-selected tunnel ID and runtime
-API key with Tunnels Read + Use. Tunnel provisioning/admin key is a different boundary.
-Keep those values in a private profile or envdir; service templates expect tunnel-env
-and profile tdev. Installed CLI help was inspected; actual forwarding is not yet proved.
+The endpoint implements **MCP 2026-07-28 only**. Use a client pinned to that revision;
+there is no initialize handshake or session header. Every POST request needs Accept
+application/json and text/event-stream, MCP-Protocol-Version=2026-07-28, Mcp-Method matching
+the JSON-RPC method, and params._meta containing io.modelcontextprotocol/protocolVersion
+and io.modelcontextprotocol/clientCapabilities. tools/call also needs matching Mcp-Name.
+Client identity metadata is never a permission grant. See the contract x-mcp profile.
 
-While the selected tunnel is running, connect/refresh the ChatGPT developer connector.
-Configure its installation secret through the host's credential UI. Acceptance must show
-seven tools, denied discovery with a wrong secret, accepted discovery with the right
-secret, and a repeated mutation request returning the same operation after reconnect.
-If the host cannot forward a distinct bearer, stop authentication acceptance and choose
-a supported per-principal connection/auth route; do not substitute unverified headers.
-No account/session isolation is claimed for shared credentials.
+Reproduce the official SDK compatibility probe (a development-only dependency, not runtime):
 
-## Live executor acceptance
+```sh
+npm install --prefix .tdev-mcp-client --ignore-scripts --no-audit --no-fund @modelcontextprotocol/client@2.0.0
+PYTHONPATH=src:.tdev-deps python scripts/check_mcp.py
+```
 
-Use disposable enrolled refs and credential sentinels, never production candidate code
-before isolation qualification. Verify no controller/SSH/provider secrets or outer
-spool access, cross-workspace and symlink escapes denied, host sockets/metadata/private
-network denied, kernel memory/PID/CPU/disk limits enforced, bounded output with cursors,
-stdin loss has no resend, cancellation stops all descendants, and no duplicate launch
-after SSH loss. Confirm read-only validation source and exact candidate HEAD, forged
-stdout cannot pass validation, lost publication response reconciles without another
-push, and real controller restart recovers the same execution identity.
+This verifies local modern-protocol discovery/tools/calls, not a live ChatGPT host.
+OpenAI's documented HTTP/Tunnel support alone does not prove support for this exact date.
+Do not downgrade silently if a host sends legacy initialize or lacks required headers.
 
-The OCI source filesystem uses bounded tmpfs; a completed command is frozen before
-capture and then stopped. A forced cancellation/host loss can lose uncheckpointed
-bytes. Such terminal failures return captureError and preserve the previous checkpoint.
-There is no claim of recovering bytes after a destroyed remote filesystem.
+Use the installed tunnel-client help/doctor to configure a distinct development profile
+pointing at http://127.0.0.1:8765/mcp. Provide Tunnel runtime credentials privately and
+separately from installation bearer/provider credentials. Existing production profiles
+must not be repurposed automatically. Staged service templates expect profile tdev and
+a private tunnel-env directory.
 
-After a terminal operation has been reconciled into the controller, use tdev_process
-action retire with a new requestId and that operationId to remove the exact stopped
-container and remote source/capture payloads. Intent digest, result and bounded logs
-remain for replay. Retirement of live/unknown executions is rejected.
+Connect/Refresh the ChatGPT connector and enter its bearer through the credential UI.
+Verify 2026-07-28 request metadata/header forwarding, seven tools, wrong-secret discovery denial, full native
+workspace/edit → exec/process → validate → publish, and same-request replay after reconnect.
+If bearer forwarding is unsupported, qualify another supported host auth route; do not
+substitute unverified subject/session headers. Shared credentials share API authority.
+
+## Processes and restart
+
+The native supervisor outlives controller HTTP/restart. Observe the original operation or
+lookupRequestId after lost responses; never create a new request just because no response
+arrived. Stdin delivery is sequenced and durable; queued/committed means pipe delivery,
+not application consumption. Cancellation requests stop supervised descendants before capture.
+Timeout/cancel can retain safely captured edits; capture failure preserves prior checkpoint.
+
+After terminal reconciliation, process action retire with a new requestId removes execution
+copies/payloads, retaining intent digest, result and bounded logs. It also works after the
+creator finished. Unknown/live operations cannot be retired. Runit/Android may kill the whole
+app UID; there is no always-on promise. Supervisor death without a sealed result remains
+uncertain and fences only that workspace; preserve the spool for operator investigation.
+No stale job becomes a global lock or a reason to provision another machine.
+
+## Optional SSH/OCI backend
+
+Only users who choose stronger isolation need a separate Linux host, rootless Podman with
+cgroup v2/seccomp, pinned image and SSH key/host enrollment. Set executor kind=ssh with
+target, script, digest, spool, image, identityFile and knownHosts (legacy omission of kind
+also works). Install the standalone src/tdev/executor.py at an immutable versioned remote
+path and pin its SHA-256; pre-pull the image. None is its default network. Internet requires
+the adopted private network-policy.json and matching networkPolicyDigest, plus live egress
+qualification. See ARCHITECTURE for its distinct security guarantees.
+
+Do not claim optional OCI host isolation/resource/network acceptance from local fixture
+tests. Those tests remain useful but are not a native installation gate. A failing explicit
+remote backend never falls back to a less-isolated native run. Accepted operation intents
+continue using their recorded backend even after configuration changes.
 
 ## Activation and rollback
 
-After real acceptance and explicit production cutover authority, stop the selected
-controller, ensure no outstanding effects, verify the staged bundle and atomically point
-active to it. Only then install the DOWN service templates into the actual runsvdir and
-bring up the controller and tunnel independently. Preserve old service/config state for
-rollback; do not change canonical Git history. The point command refuses an active
-controller, pending/unknown effects or incompatible DB schema. --rollback verifies and
-selects the previous compatible bundle and does not start services. Android may kill
-the entire Termux UID; runit cannot survive that or promise always-on service.
+After host acceptance and explicit cutover authority, stop the selected controller, check
+outstanding effects, verify and select the bundle, then install DOWN templates in runsvdir
+and bring up controller/Tunnel independently. Preserve old service/config state. Point/
+rollback refuses an active controller, unknown/running operations or incompatible schema.
+Rollback selects the previous verified bundle; it does not start services or rewrite Git.
+Same-UID hostile code can tamper with installations: verification is not OS isolation.

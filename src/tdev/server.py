@@ -1,14 +1,14 @@
 import argparse
+import base64
 import json
-import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from urllib.parse import urlparse
 
 from . import __version__
 from .common import Fault, canonical
 from .core import Controller
 
-VERSION = "2025-11-25"
+VERSION = "2026-07-28"
+META = "io.modelcontextprotocol/"
 
 
 def expanded(schema, value):
@@ -28,12 +28,23 @@ def make_server(controller, port=0):
         def log_message(self, *args):
             pass  # Never log auth headers, arguments or candidate output.
 
+        def rpc_error(self, status, ident, code, message, data=None):
+            error = {"code": code, "message": message}
+            if data is not None:
+                error["data"] = data
+            value = {"jsonrpc": "2.0", "error": error}
+            if type(ident) in (str, int):
+                value["id"] = ident
+            self.send(status, value)
+
         def send(self, status, value=None):
             data = canonical(value) if value is not None else b""
             self.send_response(status)
             self.send_header("Content-Type", "application/json")
             self.send_header("Content-Length", str(len(data)))
             self.send_header("Cache-Control", "no-store")
+            if status == 405:
+                self.send_header("Allow", "POST")
             self.send_header("Connection", "close")
             self.end_headers()
             try:
@@ -82,8 +93,8 @@ def make_server(controller, port=0):
             if self.headers.get("Content-Type", "").split(";")[0] != "application/json":
                 self.send(415)
                 return
-            accepted = self.headers.get("Accept", "*/*")
-            if not any(v in accepted for v in ("application/json", "*/*")):
+            accepted = self.headers.get("Accept", "")
+            if not all(v in accepted for v in ("application/json", "text/event-stream")):
                 self.send(406)
                 return
             try:
@@ -93,42 +104,72 @@ def make_server(controller, port=0):
                     return
                 message = json.loads(self.rfile.read(length))
             except (ValueError, TimeoutError):
-                self.send(400)
+                self.rpc_error(400, None, -32700, "Parse error")
                 return
             if not isinstance(message, dict) or message.get("jsonrpc") != "2.0" or not isinstance(message.get("method"), str):
-                self.send(400)
+                self.rpc_error(400, None, -32600, "Invalid request")
                 return
             ident, method = message.get("id"), message["method"]
             if "id" not in message:
-                self.send(202)
-                return
-            version = self.headers.get("MCP-Protocol-Version")
-            if version is not None and version not in (VERSION, "2025-06-18", "2025-03-26"):
+                # No client notification is supported by this HTTP profile.
                 self.send(400)
+                return
+            if type(ident) not in (str, int):
+                self.rpc_error(400, None, -32600, "Invalid request ID")
                 return
             params = message.get("params", {})
             if not isinstance(params, dict):
-                self.send(400)
+                self.rpc_error(400, ident, -32602, "Invalid params")
+                return
+            meta = params.get("_meta", {})
+            version = self.headers.get("MCP-Protocol-Version")
+            if not version or not self.headers.get("Mcp-Method"):
+                self.rpc_error(400, ident, -32020, "Required request headers missing")
+                return
+            if not isinstance(meta, dict) or not isinstance(meta.get(META + "protocolVersion"), str) or not isinstance(meta.get(META + "clientCapabilities"), dict):
+                self.rpc_error(400, ident, -32602, "Required per-request metadata missing or malformed")
+                return
+            expected_headers = {"MCP-Protocol-Version": meta[META + "protocolVersion"], "Mcp-Method": method}
+            if method in ("tools/call", "resources/read", "prompts/get"):
+                expected_headers["Mcp-Name"] = params.get("uri" if method == "resources/read" else "name")
+            try:
+                for key, expected in expected_headers.items():
+                    values = self.headers.get_all(key, [])
+                    if len(values) != 1 or not isinstance(expected, str):
+                        raise ValueError()
+                    actual = values[0]
+                    if any(ord(c) < 32 and c != "\t" or ord(c) > 126 for c in actual):
+                        raise ValueError()
+                    if key == "Mcp-Name" and actual.startswith("=?base64?") and actual.endswith("?="):
+                        actual = base64.b64decode(actual[9:-2], validate=True).decode("utf-8")
+                    if actual != expected:
+                        raise ValueError()
+            except (ValueError, UnicodeError):
+                self.rpc_error(400, ident, -32020, "Request header/body mismatch")
+                return
+            if version != VERSION:
+                self.rpc_error(400, ident, -32022, "Unsupported protocol version", {"supported": [VERSION], "requested": version})
                 return
             error = None
             try:
-                if method == "initialize":
-                    requested = params.get("protocolVersion")
-                    result = {"protocolVersion": requested if requested in (VERSION, "2025-06-18", "2025-03-26") else VERSION,
-                              "capabilities": {"tools": {"listChanged": False}},
-                              "serverInfo": {"name": "tdev", "version": __version__}}
-                elif method == "ping":
-                    result = {}
+                if method == "server/discover":
+                    result = {"supportedVersions": [VERSION], "capabilities": {"tools": {}}, "ttlMs": 0, "cacheScope": "private"}
                 elif method == "tools/list":
-                    result = {"tools": expanded(controller.schema, controller.schema["x-tools"])}
+                    result = {"tools": expanded(controller.schema, controller.schema["x-tools"]), "ttlMs": 0, "cacheScope": "private"}
                 elif method == "tools/call":
+                    if params.get("name") not in {t["name"] for t in controller.schema["x-tools"]} or not isinstance(params.get("arguments", {}), dict):
+                        self.rpc_error(400, ident, -32602, "Unknown tool or invalid arguments")
+                        return
                     value = controller.call(principal, params.get("name", ""), params.get("arguments", {}))
                     result = {"content": [{"type": "text", "text": canonical(value).decode()}],
                               "structuredContent": value, "isError": not value["ok"]}
                 else:
-                    error = {"code": -32601, "message": "Method not found"}
+                    self.rpc_error(404, ident, -32601, "Method not found")
+                    return
             except Exception:
                 error = {"code": -32603, "message": "Internal error; observe retained request identity before retry"}
+            if not error:
+                result.update({"resultType": "complete", "_meta": {META + "serverInfo": {"name": "tdev", "version": __version__}}})
             self.send(200, {"jsonrpc": "2.0", "id": ident, **({"error": error} if error else {"result": result})})
 
     server = ThreadingHTTPServer(("127.0.0.1", port), Handler)

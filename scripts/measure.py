@@ -6,7 +6,7 @@ import time
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests"))
-from support import Repository, TrustedFixtureExecutor
+from support import Repository
 from tdev.common import canonical, load_contract
 from tdev.core import Controller
 from tdev.server import expanded
@@ -18,8 +18,7 @@ def main():
     for trial in range(3):
         with tempfile.TemporaryDirectory() as tmp:
             repo = Repository(tmp)
-            executor = TrustedFixtureExecutor(Path(tmp) / "executor")
-            c = Controller(Path(tmp) / "state", repo.config, executor)
+            c = Controller(Path(tmp) / "state", repo.config)
             calls, polls = 0, 0
             start = time.monotonic()
             def call(tool, args):
@@ -44,12 +43,11 @@ def main():
                 p = call("publish", {"requestId": "publish", "validationId": v["id"], "expectedHead": repo.head})
                 assert p["status"] == "succeeded", p
                 results.append({"trial": trial + 1, "seconds": round(time.monotonic() - start, 3), "calls": calls,
-                                "polls": polls, "validations": 1, "executorStarts": executor.launches,
+                                "polls": polls, "validations": 1, "executorStarts": len(list((Path(tmp) / "state/native").glob("*/request.json"))),
                                 "exactPublication": p["result"]["commit"] == observed["result"]["candidate"]})
             finally:
                 c.close()
-                executor.close()
-    print(json.dumps({"scope": "authored local fixture; no remote/host latency inference", "advertisedSchemaBytes": len(canonical(expanded(s, s["x-tools"]))), "trials": results}, indent=2))
+    print(json.dumps({"scope": "real default native runner, authored local repository; no Tunnel/provider latency inference", "advertisedSchemaBytes": len(canonical(expanded(s, s["x-tools"]))), "trials": results}, indent=2))
 
 
 if __name__ == "__main__":

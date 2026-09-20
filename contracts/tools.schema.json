@@ -552,6 +552,7 @@
         },
         "network": {
           "enum": [
+            "host",
             "none",
             "internet"
           ]
@@ -1720,7 +1721,7 @@
     },
     {
       "name": "tdev_exec",
-      "description": "Run arbitrary commands in the enrolled isolated executor; retained operation handle. Never resubmit with a new request after response loss.",
+      "description": "Run commands on Termux by default (same-UID developer authority, not a sandbox); explicit remote executor is optional. Returns a retained operation handle. Never resubmit with a new request after response loss.",
       "inputSchema": {
         "$ref": "#/$defs/execInput"
       },
@@ -2366,7 +2367,7 @@
       "cwd": ".",
       "env": {},
       "stdin": "",
-      "network": "none",
+      "network": "backend default: host for native; none for SSH/OCI",
       "timeout": 300,
       "capturePaths": [],
       "encoding": "utf8",
@@ -2384,7 +2385,10 @@
       "stdinReceiptsReturned": 16,
       "readSearchScanBytes": 16777216,
       "historyCommits": 20,
-      "sourceMetadata": "Private shallow Git checkpoint; no remote credentials. Validation HEAD is the frozen candidate commit."
+      "sourceMetadata": "Private shallow Git checkpoint; no copied provider credentials. Validation HEAD starts at the frozen candidate commit; native validation rejects changed existing source and never imports test outputs.",
+      "nativeBoundary": "Same app UID, host network. Clean env and separate HOME/cwd are hygiene, not hostile-code isolation. Native code can access other same-UID files; use only code trusted with ordinary Termux user authority.",
+      "nativeLimits": "1 MiB retained output; timeout; per-process CPU, 128 MiB file-size, 256 file-descriptor limits; sampled 128 MiB workspace/home/tmp budget. No hard aggregate memory/PID/disk quota.",
+      "nativeRecovery": "Detached subreaper supervisor survives controller restart. Lost supervisor after dispatch without a sealed result remains uncertain, never automatically relaunched."
     }
   },
   "x-examples": [
@@ -2420,5 +2424,37 @@
         "lookupRequestId": "run-1"
       }
     }
-  ]
+  ],
+  "x-mcp": {
+    "protocolVersion": "2026-07-28",
+    "transport": "Streamable HTTP POST /mcp; application/json responses",
+    "methods": [
+      "server/discover",
+      "tools/list",
+      "tools/call"
+    ],
+    "requestMetadata": {
+      "io.modelcontextprotocol/protocolVersion": "required string; equal to protocolVersion header",
+      "io.modelcontextprotocol/clientCapabilities": "required object; no client feature required by tdev",
+      "io.modelcontextprotocol/clientInfo": "optional self-reported implementation, never authority"
+    },
+    "headers": {
+      "Accept": "application/json, text/event-stream",
+      "MCP-Protocol-Version": "required; mirrors params._meta protocolVersion",
+      "Mcp-Method": "required; mirrors method",
+      "Mcp-Name": "required for tools/call; decoded base64 sentinel mirrors params.name"
+    },
+    "response": {
+      "resultType": "complete",
+      "serverInfo": "every successful result _meta",
+      "cache": "server/discover and tools/list: ttlMs 0, cacheScope private; HTTP no-store"
+    },
+    "errors": {
+      "-32020": "HTTP 400 missing/malformed/mismatching headers",
+      "-32022": "HTTP 400 unsupported version, data supported/requested",
+      "-32602": "HTTP 400 missing required metadata or invalid protocol params",
+      "-32601": "HTTP 404 unknown method"
+    },
+    "legacy": "No initialize/initialized, session IDs, GET/DELETE streams, SSE replay or automatic downgrade. No advertised subscriptions, MRTR input requests or task extension."
+  }
 }

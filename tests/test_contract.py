@@ -4,7 +4,7 @@ from pathlib import Path
 
 from jsonschema import Draft202012Validator
 from tdev.common import load_contract
-from tdev.server import expanded
+from tdev.server import VERSION, expanded
 
 
 class ContractTest(unittest.TestCase):
@@ -30,9 +30,31 @@ class ContractTest(unittest.TestCase):
         config = json.loads((Path(__file__).resolve().parents[1] / "contracts/config.schema.json").read_bytes())
         Draft202012Validator.check_schema(config)
 
+    def test_native_default_and_optional_ssh_config(self):
+        root = Path(__file__).resolve().parents[1]
+        schema = json.loads((root / "contracts/config.schema.json").read_bytes())
+        validator = Draft202012Validator(schema)
+        config = {"version": 1, "principals": {}, "repositories": {"repo": {
+            "kind": "local", "remote": "/fixture", "identity": "fixture",
+            "refs": ["refs/heads/main"], "validation": "true"}}}
+        repo = config["repositories"]["repo"]
+        validator.validate(config)  # no remote enrollment
+        repo["executor"] = {"kind": "native"}
+        repo["networks"] = ["host"]
+        validator.validate(config)
+        repo["executor"] = {"target": "fixture", "script": "/runner", "digest": "a" * 64,
+                            "spool": "/spool", "image": "fixture@sha256:" + "a" * 64,
+                            "knownHosts": "/hosts", "identityFile": "/key"}
+        validator.validate(config)  # previous SSH config remains readable
+        repo["executor"]["kind"] = "ssh"
+        validator.validate(config)
+        repo["executor"]["kind"] = "native"
+        self.assertFalse(validator.is_valid(config))
+
     def test_document_surface_and_sequence(self):
         root = Path(__file__).resolve().parents[1]
         s, _ = load_contract()
+        self.assertEqual(s["x-mcp"]["protocolVersion"], VERSION)
         self.assertEqual([t["name"].removeprefix("tdev_") for t in s["x-tools"]],
                          ["workspace", "read", "edit", "exec", "process", "validate", "publish"])
         architecture = (root / "ARCHITECTURE.md").read_text()

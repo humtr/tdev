@@ -1,30 +1,37 @@
 # tdev
 
-ChatGPT leads repository development. tdev supplies commands and exact source handling
-while enforcing repository/ref identity, unrelated-state preservation, credential/admin
-boundaries, replay/concurrency safety, exact validation/publication and recovery.
+ChatGPT leads repository development; tdev supplies commands and exact source handling,
+mutation replay/recovery and controlled validation/publication. **Android + Termux is the
+default development and operating environment**, not just a controller for another machine.
 
-Chosen design: command-first checkpoint core, seven MCP tools, Git checkpoint OIDs,
-two durable row families (workspace/operation), direct credential-to-scope admission
-and a separate isolated executor. CLI extensions use commands. No per-command permission
-workflow or unverified ChatGPT subject/session authority. First ingress is localhost
-HTTP plus OpenAI Secure MCP Tunnel. Same-UID shell is not a sandbox.
+Seven MCP tools, Git checkpoint OIDs and two SQLite row families (workspace/operation).
+MCP is pinned to **2026-07-28** with per-request metadata and server/discover, not legacy
+initialize. OpenAI host acceptance of this exact version is separate from local conformance.
+Normal exec/tests run natively on Termux in per-operation copies with detached supervisors.
+No SSH host, VPS, OCI, root, systemd or Docker prerequisite. Explicit remote execution
+remains optional; it never silently falls back to native.
+
+Native execution carries ordinary Termux app-UID authority. Clean environment, private
+HOME, source capture, process controls and API grants are useful safeguards, not hostile-code
+sandboxing or same-UID credential isolation. Use native commands/dependencies only when
+trusted with the local user's authority. See [trust boundary](ARCHITECTURE.md#3-native-trust-and-containment).
 
 ## Current work
 
-The redesign is frozen and implemented through the local coding path: Git/SQLite
-workspace/edit/replay, command capture, exact validation/publication, HTTP MCP/auth,
-restart/recovery and inactive install/rollback. The remote SSH/OCI executor is written;
-its protocol and boundary tests run locally, but real Linux isolation is unverified.
-All five implementation deliverables have their locally executable source, tests and
-inactive packaging checks. The deterministic suite passes 42 tests, including actual
-controller SIGKILL/restart; the packaged loopback/auth/restart rehearsal also passes.
-No new production runtime/provider has been activated. Existing untracked files are
-preserved. Next: operator enrollment of a separate Linux executor and private Tunnel
-credentials, then live isolation and ChatGPT connection acceptance. See
-[local evidence](LOCAL_VALIDATION.md) and [operator steps](OPERATIONS.md).
+The remote-only architecture regression is corrected in config, default command/process/
+validation dispatch, source handling and operations. The real native runner and full HTTP
+workspace/edit → exec/process → validate → publish path pass local qualification, including
+restart, stdin replay, cancellation, output/deadline limits and validation-source integrity.
+All four implementation deliverables have locally executable source/tests: 55 deterministic
+tests pass, along with the official SDK 2.0.0 pinned-protocol probe and inactive packaged
+native SIGKILL/recovery/publication rehearsal. No production service/runtime was changed.
+Existing unrelated untracked files are preserved.
 
-Run deterministic local checks with `sh scripts/check.sh` after installing
+The remaining host-dependent acceptance is ChatGPT/Tunnel 2026-07-28 discovery, bearer forwarding and
+reconnect. A separate Linux executor is not a next step or gate for normal use.
+See [local evidence](LOCAL_VALIDATION.md) and [operator steps](OPERATIONS.md).
+
+Run deterministic checks with `sh scripts/check.sh` after
 `python -m pip install --target .tdev-deps -r requirements.txt`.
 
 ## Navigation

@@ -21,7 +21,7 @@ class Controller:
         self.schema, self.validator = load_contract()
         self.store = Store(directory)
         self.gits = {}
-        # Dependency injection is for authored tests. Config cannot enable a local shell.
+        # Tests may inject fixtures; normal installations use the native runner.
         self.executor_override = executor
         self.reconcile_locks = weakref.WeakValueDictionary()
         self.reconcile_locks_guard = threading.Lock()
@@ -111,7 +111,7 @@ class Controller:
             "SELECT * FROM workspace WHERE owner=? AND closed=0", (principal,))
             if r["ref"] in self.config["principals"][principal].get("repos", {}).get(r["repo"], [])]
         return {"repositories": repos, "workspaces": workspaces,
-                "execution": "isolated executor required; no native shell fallback"}
+                "execution": "Termux-native by default: same-UID developer authority, host network, not a sandbox. Explicit SSH/OCI is optional."}
 
     def read(self, principal, args):
         w = self.workspace(principal, args["workspaceId"])
@@ -322,16 +322,27 @@ class Controller:
     def backend(self, intent):
         if self.executor_override is not None:
             return self.executor_override
+        config = intent.get("executor")
+        if config and config.get("kind") == "native":
+            from .native import NativeExecutor
+            return NativeExecutor(self.store.root / "native")
+        # A missing executor on an old accepted intent is not silently reinterpreted.
+        require(config, "EXECUTOR_IDENTITY_MISSING")
         from .remote import SSHExecutor
-        require(intent.get("executor"), "EXECUTOR_REQUIRED", "Enroll a separate isolated Linux executor")
-        return SSHExecutor(intent["executor"])
+        return SSHExecutor(config)
+
+    @staticmethod
+    def executor_config(config):
+        return config.get("executor", {"kind": "native"})
 
     def launch(self, opid, kind, w, args):
         config = self.config["repositories"][w["repo"]]
-        require(config.get("executor") or self.executor_override, "EXECUTOR_REQUIRED")
+        executor = self.executor_config(config)
+        native = executor.get("kind") == "native"
         g = self.git(w["repo"])
-        network = args.get("network", "none")
-        require(network in config.get("networks", ["none"]), "NETWORK_DENIED")
+        network = args.get("network", "host" if native else "none")
+        require(network in config.get("networks", ["host"] if native else ["none"]), "NETWORK_DENIED")
+        require(not native or network == "host", "NATIVE_NETWORK_UNSUPPORTED", "Native execution uses the app UID's host network; no network sandbox is claimed")
         require(all("\0" not in v for v in args.get("env", {}).values()), "ENV")
         candidate = None
         if kind == "validate":
@@ -344,12 +355,12 @@ class Controller:
                    "stdin": args.get("stdin", ""), "network": network,
                    "timeout": args.get("timeout", 300), "readonly": kind == "validate",
                    "capturePaths": args.get("capturePaths", []), "gitPack": g.execution_pack(source_commit),
-                   "networkPolicyDigest": config.get("executor", {}).get("networkPolicyDigest")}
+                   "networkPolicyDigest": executor.get("networkPolicyDigest")}
         require(len(canonical(payload)) <= 48 * 1024 * 1024, "SOURCE_LIMIT")
         # Keep bytes in Git; exact execution input can be reconstructed for auditing.
         execution = {k: v for k, v in payload.items() if k not in ("files", "gitPack")}
         intent = self.save_intent(opid, execution=execution, inputDigest=digest(payload),
-                                  executor=config.get("executor"), policy=digest({"command": config["validation"], "executor": config.get("executor")}), candidate=candidate)
+                                  executor=executor, policy=digest({"command": config["validation"], "executor": executor}), candidate=candidate)
         self.backend(intent).submit(payload)
 
     def publish(self, opid, w, args, validation):
@@ -357,7 +368,7 @@ class Controller:
         vi = json.loads(validation["intent"])
         vr = json.loads(validation["result"])
         c = self.config["repositories"][w["repo"]]
-        require(vi["policy"] == digest({"command": c["validation"], "executor": c.get("executor")}), "POLICY_CHANGED")
+        require(vi["policy"] == digest({"command": c["validation"], "executor": self.executor_config(c)}), "POLICY_CHANGED")
         require(vi["workspace"]["checkpoint"] == w["checkpoint"] and vr["exitCode"] == 0, "VALIDATION_SOURCE_CHANGED")
         require(args["expectedHead"] == w["base"], "STALE_HEAD")
         g = self.git(w["repo"])

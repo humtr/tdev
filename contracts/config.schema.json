@@ -85,61 +85,82 @@
             "uniqueItems": true,
             "items": {
               "enum": [
+                "host",
                 "none",
                 "internet"
               ]
             }
           },
           "executor": {
-            "type": "object",
-            "required": [
-              "target",
-              "script",
-              "digest",
-              "spool",
-              "image",
-              "knownHosts",
-              "identityFile"
-            ],
-            "properties": {
-              "target": {
-                "type": "string",
-                "minLength": 1
+            "description": "Omitted means Termux-native same-UID execution. SSH/OCI is an explicit optional backend, never an installation prerequisite.",
+            "oneOf": [
+              {
+                "type": "object",
+                "properties": {
+                  "kind": {
+                    "const": "native"
+                  }
+                },
+                "required": [
+                  "kind"
+                ],
+                "additionalProperties": false
               },
-              "python": {
-                "type": "string",
-                "minLength": 1
-              },
-              "script": {
-                "type": "string",
-                "minLength": 1
-              },
-              "digest": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
-              },
-              "spool": {
-                "type": "string",
-                "minLength": 1
-              },
-              "image": {
-                "type": "string",
-                "pattern": "^[A-Za-z0-9_./:-]+@sha256:[0-9a-f]{64}$"
-              },
-              "knownHosts": {
-                "type": "string",
-                "minLength": 1
-              },
-              "identityFile": {
-                "type": "string",
-                "minLength": 1
-              },
-              "networkPolicyDigest": {
-                "type": "string",
-                "pattern": "^[0-9a-f]{64}$"
+              {
+                "type": "object",
+                "required": [
+                  "target",
+                  "script",
+                  "digest",
+                  "spool",
+                  "image",
+                  "knownHosts",
+                  "identityFile"
+                ],
+                "properties": {
+                  "kind": {
+                    "const": "ssh"
+                  },
+                  "target": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "python": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "script": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "digest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "spool": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "image": {
+                    "type": "string",
+                    "pattern": "^[A-Za-z0-9_./:-]+@sha256:[0-9a-f]{64}$"
+                  },
+                  "knownHosts": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "identityFile": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "networkPolicyDigest": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  }
+                },
+                "additionalProperties": false
               }
-            },
-            "additionalProperties": false
+            ]
           }
         },
         "additionalProperties": false

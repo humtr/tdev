@@ -1,279 +1,235 @@
 # tdev architecture
 
-## 1. Purpose and authority
+## 1. Product and authority
+
+Android + Termux is both the development and normal operating environment. The complete
+default path is ChatGPT → Tunnel → localhost tdev → workspace/edit → exec/process →
+validate → publish. No Linux host, VPS, SSH, OCI, root, systemd or Docker is required.
 
 ChatGPT chooses strategy, commands, edits, diagnostics, composition and publication.
-tdev supplies execution and enforces identity, unrelated-state preservation,
-authorization, isolation, concurrency, replay and exact publication. It does not plan
-work or classify the meaning of commands.
+tdev owns exact repository/ref/source identity, current MCP admission, immutable checkpoint
+handling, mutation identity, concurrency and validation/publication joins. Git owns source
+and canonical refs; SQLite owns workspace pointers and accepted intents/results; the native
+supervisor owns subprocess lifetime; runit owns service restart; Tunnel owns delivery.
 
-Current user instructions and actual permissions bound work. README owns purpose and
-current status; this file owns design semantics; contracts/tools.schema.json owns wire
-types; IMPLEMENTATION_PLAN owns order. AGENTS is navigation. Old conclusions live in
-Git history. Design freeze means these current documents agree, not host acceptance.
+User instructions and actual permissions bound work. README owns purpose/current status;
+this file owns semantics; contracts/tools.schema.json owns wire types; IMPLEMENTATION_PLAN
+owns execution order. AGENTS is navigation. Superseded designs live in Git history.
 
-## 2. Alternatives and selection
+## 2. Runtime choice and public surface
 
-These are engineering trade-offs, not measured scores. All viable candidates isolate
-candidate code from controller secrets and retain trusted publication.
-
-| Dimension | A: previous ten-tool checkpoint harness | B: working-directory agent | C: command-first checkpoint core (selected) |
+| Execution choice | Benefit | Cost / boundary | Role |
 |---|---|---|---|
-| Public tools | context/read/workspace/patch/exec/process/validate/integrate/observe/capability | discover/read/write/exec/job/publish | workspace/read/edit/exec/process/validate/publish |
-| Trusted components | controller, projector, registry, outer executor, provider | controller, filesystem journal, outer executor, provider | controller, Git, SQLite, outer executor, provider |
-| Durable state | binding/grant/workspace/operation/executor/capability | directory mapping, undo journal, jobs, publish intent | workspace and operation; static authority in operator config |
-| Source | immutable tree plus numeric revision | normal private Git worktree and dirty directory | immutable checkpoint commit OID, temporary command filesystem |
-| Command path | materialize/capture; other effects through registry | persistent isolated directory and direct shell | materialize/capture; CLI is normal extension path |
-| Auth | Connector Secret, subject full/permit, session permit | credential mapped to scope | credential mapped directly to principal/repo/ref scope |
-| Extensions | schema/digest/grant gateway | installed CLI or independent MCP | installed CLI or independent MCP; no public registry |
-| Validation/publication | frozen commit, receipt, integrate | snapshot dirty directory, validate, publish | frozen commit, operation result, publish |
-| Concurrency/recovery | revisions, writer reservations, leases | directory locks, interrupted-edit repair, job journal | checkpoint CAS, per-workspace busy operation, no lease expiry |
-| Termux topology | controller/tunnel plus remote OCI | same ingress plus persistent remote sandbox | controller/tunnel plus remote OCI |
-| Advantage | rich typed vocabulary and privileged adapter mediation | cheap warm commands and normal Git ergonomics | atomic multi-file edit, fewer authority/state concepts |
-| Cost | schema, repeated identities, registry lifecycle, host-dependent auth | dirty snapshot recovery and remote filesystem lifetime | materialization/capture; process observation shares a tool |
-| Failure mode | stale owners, unverified session policy | partial multi-file writes and uncheckpointed byte loss | uncertain remote process holds its workspace |
+| Shell in the user's existing checkout | minimal copying | partial writes, unrelated dirty state and candidate config affect controller operations | rejected as default |
+| Native subprocess in a per-operation copy | installed Termux CLIs, no provisioning/cold remote startup | same UID, no hostile-code filesystem/network isolation; materialization/capture cost | default |
+| SSH + rootless OCI outer runner | OS isolation and enforceable network/resource controls after qualification | external host/image/SSH maintenance, transfer/cold start and more failure points | optional explicit backend |
 
-C removes the gateway, context/observe tools, numeric revision, grant/executor tables,
-Permit and authority projection subsystem. Validation/publication stay distinct:
-candidate stdout cannot create a trusted receipt, and an uncertain publication must
-not silently run validation or regenerate a commit. Seven names are a consequence,
-not a target.
+Retain workspace/read/edit/exec/process/validate/publish. CLI adapters need no additional
+public tools or permission registration. No planner, Task, permission projection,
+registry/gateway or per-command allowlist. CLI extensions gain no MCP admin operation;
+native programs nevertheless have the real app UID's authority (§3).
 
-Known repo/ref/head: open → read → edit → validate → publish is five semantic calls
-plus asynchronous observations. Unknown head adds workspace list. A normally adds
-context before open. B can batch shell edits but still needs snapshot and validation.
-All allow batch read/edit and sequential shell commands. Counts are estimates of a
-specified path, not proof of lower latency; executor cold start may dominate.
+Known repo/ref/head: open → batched read → edit → validate → publish is five semantic calls
+plus observations. Exec can batch shell commands. Tool count is not a goal.
+Omitted executor config means native; explicit SSH never falls back to native on failure.
+Existing SSH configurations without kind remain readable. Each new operation records its
+selected backend; reconnect/config changes never migrate an accepted command or relaunch it.
 
-## 3. Ownership and durable minimum
+## 3. Native trust and containment
 
-Git owns bytes/history/canonical refs. SQLite owns accepted mutation intent/results
-and the current workspace pointer. One operator-owned config owns enrolled repositories,
-exact refs, credential scopes, validation policy and executor identity. Supervisor owns
-service restart; executor engine owns container lifetime; tunnel owns delivery.
+Native execution is ordinary Termux developer authority. Enrolling a repository/principal
+for native commands means trusting its commands/dependencies with this Android app UID,
+as with running a local terminal. The MCP API checks repo/ref scope and exposes no admin
+operations. It cannot restrict a hostile native shell to that scope at the OS level.
+Separate principals are API scopes, not same-UID hostile-code security domains.
 
-| Durable row | Restart requirement | Excluded ownership |
-|---|---|---|
-| workspace | owner, enrolled repo/ref identity, base, checkpoint, busy operation and closed state are not a Git tree | canonical head, human role or provider lifetime |
-| operation | request digest and exact intent/result prevent duplicate effects after response loss | task, conversation, permission or execution plan |
+The runner supplies a clean environment, separate HOME/TMPDIR/XDG directories, no inherited
+SSH agent, provider/tunnel tokens, proxy variables or Git global credential helpers. Source
+contains credential-free shallow Git metadata, never a copied provider configuration.
+Controller/provider/Tunnel configuration stays outside the execution copy. Candidate stdout
+is never parsed as a receipt. These prevent accidental credential propagation and confused
+API authority; they do NOT prevent a malicious same-UID program from reading absolute paths,
+inspecting processes, changing controller state, using host credentials or forging spool data.
+No env-filtering, chmod, cwd or PRoot sandbox claim. Do not use native mode for code that
+must be treated as hostile to the device owner; stronger isolation is an optional backend.
 
-Executor identity, validation receipt and publication intent are operation values.
-No binding/grant/executor/capability tables. Static config is not mirrored as mutable
-DB authority. Object pins/logs/remote spool preserve bytes/evidence, not extra workflow
-owners. Reads need no journal. Each public mutation, including stdin and cancellation,
-uses caller request identity. Short local edits commit with their result; dispatches
-need durable intent first. Retain tombstones for installation lifetime. Logs are bounded;
-open workspaces and unresolved effects do not expire. GC must trace all DB pointers;
-initial implementation does not collect live source objects.
+Native network is explicitly host: the app UID's network access, including localhost and
+private networks. Requests for none/internet isolation are rejected, not silently weakened.
+There is no network-denial prerequisite preventing npm/pip/CLI development. Optional OCI
+defaults to none and can admit externally qualified internet egress.
 
-## 4. Workspace/source model
+Each operation uses its own app-private copy; controller edits never touch the user's
+checkout/index. Initial paths/symlinks are checked before materialization. Cwd resolves inside
+that copy. Capture does not follow symlinks and rejects escaping links, special files,
+unsupported gitlinks and .git control paths. These protect source handling, not against
+arbitrary native commands explicitly accessing other paths.
 
-| Choice | Atomicity/recovery | Command/performance/Termux cost |
-|---|---|---|
-| Git tree pointer | atomic DB pointer; identical bytes can recur (ABA) | efficient but no transition identity |
-| Normal worktree | needs journal/repair for partial multi-file writes | warm commands cheap; mutable index/config/lifecycle |
-| Index/tree plumbing | private index builds immutable tree | Git reuse without shared working index or hard-link requirement |
-| Temporary filesystem + capture | atomic only after complete capture | generic commands simple; copy/capture cost |
-| New content-addressed snapshot | must implement own history/tree/GC | duplicates Git storage and tooling |
+The detached supervisor uses a separate session, Linux subreaping, no-new-privileges,
+nonblocking stdin/output, a wall deadline and child cleanup before capture. It tracks actual
+child relationships and checks PID start identity before signalling; no controller-wide kill
+or UID-wide process limit. Ordinary detached/double-fork children are reaped by the live
+supervisor. A hostile process race is not a kernel containment guarantee.
 
-Choose Git plumbing for edits and temporary isolated filesystems for commands.
-Checkpoint is a commit with previous checkpoint as parent and unique operation marker.
-OID is both source identity and CAS token; no numeric revision. A→B→A bytes have
-different checkpoint OIDs. Canonical base is separately stored; checkpoint history is
-not published. Validation constructs a sole-child candidate of canonical base before
-testing, then publication uses that exact commit.
+Limits: bounded retained output; per-process CPU/file-size/file-descriptor/core-dump limits;
+sampled execution-directory disk budget. Wire values are in the contract. There is no hard
+aggregate memory/PID/disk quota, cgroup guarantee or device-wide fork-bomb protection. Kernel
+subreaper/no-new-privileges failure is reported locally, never routed to mandatory remote
+provisioning. Android can kill the whole app UID, including runit and supervisors.
 
-Use private bare objects, never the user's index or dirty checkout. Synthetic test
-repositories are fixtures, not alternate development checkouts. Configure Git fsync,
-write objects before SQLite pointer commit, and never depend on link(2). Orphan objects
-after failure are harmless. Multi-file edit preflights paths and preconditions then
-publishes once. Symlinks are read as bytes, never followed; execution rejects escaping
-links and unsupported gitlinks. Reject .git aliases, traversal and topology collisions.
-Capture is all-or-nothing: tracked files, nonignored new files under starting ignore
-rules and explicit extra paths. Candidate index/config cannot alter capture authority.
-Nonzero exit still preserves safely captured changes. Limit overflow preserves the last
-checkpoint and reports incomplete capture. Large-source transfer limits are explicit;
-incremental materialization is a later measured optimization.
+## 4. Durable state and source
 
-Commands receive credential-free shallow Git metadata at their exact checkpoint;
-validation receives its frozen candidate as HEAD. History beyond that shallow boundary
-is read through the controller. The remote filesystem is bounded tmpfs: outer executor
-freezes all container processes before capture, then proves termination before importing.
-Forced cancellation/host loss can destroy dirty bytes; report captureError and release
-the writer only after positive stop evidence, keeping the previous checkpoint.
+| Row | Durable ownership |
+|---|---|
+| workspace | owner, enrolled repo/ref identity, canonical base, checkpoint, busy operation, closed state |
+| operation | principal/request digest, exact intent/backend/policy, result and effect certainty |
+
+Operator config owns credentials, repo/ref enrollment, adopted validation and optional
+executor selection. No mirrored grant/binding/executor/capability tables. Runner spool
+stores accepted input, process observation, bounded output, controls and terminal evidence;
+these are execution evidence, not new authority/workflow owners.
+
+Private bare Git stores hold objects; no hard-link correctness dependency. A checkpoint
+commit OID is source identity and CAS token. A→B→A bytes have distinct checkpoint OIDs;
+no numerical revision. Private index/tree plumbing makes multi-file edits atomic.
+Objects are written/pinned before the SQLite pointer/result transaction. Shared FETCH_HEAD
+is not used. Concurrent first opens see a completely initialized object store.
+
+Commands materialize an exact checkpoint with shallow Git HEAD. Capture atomically imports
+tracked files, nonignored new files under STARTING ignore rules and explicit extra paths.
+Candidate index/config cannot change selection. Nonzero exit, timeout or cancellation may
+still capture safely stopped native work. Capture overflow/failure keeps the previous
+checkpoint and reports why. Native copies persist until explicit terminal retirement.
+A command's local git commit/rebase produces file changes for capture; it does not replace
+the controller's canonical source identity.
+
+Normal persistent worktrees save copying but add partial-edit recovery/index lifetime;
+tree-only pointers cannot distinguish ABA; custom content-addressed storage duplicates Git.
+Keep Git plumbing plus temporary command copies. File payload and shallow pack currently
+duplicate transfer/storage; optimize only with measurements.
 
 ## 5. Admission and authentication
 
-A secret maps directly to one configured principal and exact repository/ref scope.
-Check current configuration on every call and replay. Ordinary developer scope includes
-read/edit/exec/validate/publish. Network/executor limits come from enrollment. No Task,
-per-command permission registration or projection abstraction.
+Installation bearer maps directly to a principal and exact repo/ref scope. Check current
+config on every admission and replay. No permission object per command. Bearer identifies
+a credential holder, not a verified ChatGPT account/session. Shared credentials share API
+authority. Subject/session headers never grant access.
 
-A bearer identifies a configured credential holder, not a verified ChatGPT account or
-conversation. Distinct secrets allow distinct principals. Sharing a credential shares
-authority; session isolation is not claimed. Session-specific delegation is outside the
-first release. No One-Time Permit or elicitation fallback. Subject/session headers and
-model-supplied approval text are ignored for authorization.
+Tunnel runtime credentials authorize transport; installation bearer protects MCP ingress;
+provider credentials authorize publication; local config possession is operator authority.
+No One-Time Permit or unverified metadata primitive. Revocation affects subsequent API
+admissions/replays; it cannot revoke an already running native process's app-UID authority.
+Private config stays outside source; MCP has no config/install/release endpoint. Actual
+provider/user permissions remain the upper bound.
 
-| Identity | Meaning |
+## 6. Process, concurrency and recovery
+
+One controller holds a kernel lock released on death; SQLite WAL/FULL transactions do not
+span subprocess/network waits. Per-workspace checkpoint CAS/busy ownership prevents silent
+overwrite; reads use the last committed checkpoint. Different workspaces/ref tasks proceed
+independently. No global stale lock, timeout lease, automatic coordination or planner.
+
+Every mutation uses principal/request identity. Auth precedes replay; dedup precedes stale
+checks. Same identity with changed input conflicts. Local pointer and result commit together.
+Dispatch/stdin/cancel/publication have durable intent before effects. Reads need no journal.
+
+| Certainty | Meaning |
 |---|---|
-| tunnel runtime key | outbound tunnel control-plane access only |
-| installation ingress secret | configured principal and local scope |
-| ChatGPT account | not inferred by this controller |
-| conversation/session | correlation only, not durable authority |
-| human possession | local operator secret/config provisioning |
-| repository grants | exact repo/ref entries in operator config |
+| none | no local pointer/effect committed or proven pre-dispatch rejection |
+| committed | effect/result durably known |
+| unknown | may have executed; observe original identity, never automatically repeat |
 
-Secrets never enter MCP arguments, source, logs or candidate environment. Remote calls
-cannot install adapters, change policy/config, mint grants or activate releases.
-Revocation/rotation affects subsequent admissions and replays. Config must remain outside
-source and only operator writable. Scope never exceeds actual provider/user authority.
+Native dispatch reserves a spool job before launching one detached supervisor. Lost
+controller response/restart reconnects to that job. Launch reservation gaps and supervisor
+death without a sealed result remain uncertain, even if no PID is currently visible.
+Only the affected workspace is fenced. Do not invent successful receipts or recapture
+possibly live bytes. Operator recovery may be needed after supervisor/app-UID loss; it
+is not a prerequisite to ordinary native execution. Process start identity is not a lease.
 
-## 6. Command and extension boundary
+Stdin sequences are reserved before unbuffered writes; partial delivery/unknown acknowledgement
+does not cause resend. Cancellation is a persisted request, not termination proof. Logs have
+byte cursors and discarded-byte counts. After terminal reconciliation, retire removes
+per-job payload/copies while retaining digest, result, controls and bounded logs; creator
+completion does not prevent management. Unknown jobs cannot be retired by timer.
 
-Termux runs controller/Git/SQLite and adopted fixed utilities. Arbitrary commands/tests
-require a separate Linux executor with rootless OCI, private namespaces, seccomp,
-no-new-privileges, dropped capabilities and finite CPU/memory/PID/disk/output limits.
-No Android root/systemd/local Docker. Same UID, env filtering, cwd or PRoot is NOT a
-sandbox. A trusted authored local fixture is test-only, not a production executor.
-No automatic native shell fallback.
+Same-ref work stays independent. Compose applies base→source changes only where target
+is unchanged or already equal, rejecting conflicts. The model decides when to merge/rebase
+or compose, and validates the combined checkpoint.
 
-First remote connection: operator-enrolled SSH host/host key and fixed adopted outer
-executor program, not a generic provider framework. Candidate cannot see SSH credentials
-or outer spool. A managed provider may host that executor. Existing GitHub launch/run
-assignment machinery is useful evidence, not mandatory just to obtain a shell.
+## 7. Validation and publication
 
-Commands specify shell text, source-relative cwd, nonsecret env, initial stdin, deadline
-and admitted network. No executable-name allowlist. Cwd resolves inside source; env starts
-clean. Baseline network is none. Internet requires an enrolled isolated network whose
-private/metadata/admin access is denied externally and live qualified. A network name
-alone is not proof. Private package credentials require a scoped broker, not copied
-controller credentials. Unsupported features, including PTY, return explicit gaps.
+Before validation, construct the exact sole-child candidate of canonical base and record
+its commit/tree, adopted command, backend and policy digest. Mandatory command comes from
+operator config, not a candidate policy file. Native tests run against a disposable copy
+with that exact HEAD. New build outputs may be created, but changes/deletions/mode changes
+to existing source are rejected after all supervised descendants stop. Test artifacts are
+never imported into publication. This is before/after integrity for owner-trusted native
+code, not read-only mounts or adversarial continuous-integrity proof. Temporary malicious
+source mutation/restoration or same-UID supervisor tampering is outside that trust model.
+Optional OCI has read-only source and an OS-separated outer receipt.
 
-Long commands return operation handles. Logs retain byte offsets and discarded counts.
-Stdin sequence is durably reserved before write; delivery to a pipe is not proof of
-consumption. Lost acknowledgements remain unknown without resend. Cancellation targets
-exact container/run identity, never PID alone; whole-container freeze precedes capture,
-and positive termination proof precedes checkpoint import.
+Supervisor records actual exit, not candidate PASS/JSON. Success requires zero exit, no
+cancellation/timeout/capture/source failure and proved supervised termination. Passing tests
+proves their execution under the selected trust model, not universal code correctness.
+Native mode does not claim unforgeable receipts against same-UID attacks.
 
-CLI extensions require no descriptor registry or new MCP tools. Repository CLI code
-remains untrusted. External MCP can be separately connected by the host or adapted by a
-sandbox CLI within granted credentials/network. Privileged adopted local adapters enter
-the controller trust domain only through operator installation. Extensions cannot issue
-grants, validation receipts, canonical publication or release/admin authority.
-Action schemas/digests/gateway should be introduced only for an actual privileged
-mediation requirement; installed executor image/program identity is already pinned.
+Publish rechecks scope/policy, successful validation, unchanged checkpoint and expected
+old head. Publish the frozen commit, never regenerate it. Unique publication per validation
+survives different request IDs. GitHub identity is immutable repository ID plus exact HTTPS
+URL/full ref; local bare fixture identity is device/inode. No guessed targets/wildcard refs.
 
-## 7. Concurrency/stale/recovery
+No force push. Trusted pre-push hook checks actual advertised old/new/ref; ordinary receive-pack
+CASes that old OID. Local bare publication uses explicit old-OID update-ref. Lost response is
+reconciled by exact new head or verified descendant under enrolled no-rewrite/no-delete
+policy. Old head alone cannot prove a prior sender will not publish; retain unknown.
+Admin rewrites require reconciliation. Native programs must not bypass the protocol with
+owner credentials: prevention of malicious same-UID access requires a real OS credential
+boundary, which this default does not claim.
 
-One controller holds an OS lock released on death. SQLite WAL/FULL transactions never
-span network waits. Workspace checkpoint CAS prevents overwrite; a busy operation
-serializes only that workspace. Reads use the last committed checkpoint. No global
-stale lock, TTL lease, task scheduler workflow or automatic same-ref coordination.
+## 8. Optional remote execution and operations
 
-After restart, in-flight external effects are unknown until exact remote identity is
-observed. Never create a replacement command. Retained outer terminal result allows
-capture/unlock; timeout is not death proof. Uncertain jobs do not exhaust all logical
-slots, but actual remote resource quotas still apply. Creator operation is provenance;
-current authorized principal/operator can observe/cancel surviving resources regardless
-of creator lifecycle. Positive termination evidence is needed to release its writer.
-After terminal reconciliation, process retire removes its exact stopped container and
-large source/capture payloads while retaining intent digest, results and bounded logs.
-The terminal creator does not lock resource management. Unknown/running resources cannot
-be retired on a timer.
-Lost host/corruption may require operator recovery; fence only affected resources.
+SSH/OCI is explicit and optional; target/host key/script digest/image/spool are enrolled
+only when selected. Pending SSH operations retain their adopted backend across upgrades.
+No remote failure triggers native execution. Live OCI isolation/network qualification
+is required only for claims about that backend, never for the native coding path.
 
-Same-ref work stays independent. Model can compose exact checkpoints into a fresh
-workspace: base→source changes apply only where target is unchanged or already equals
-desired output. Reject conflicting path/mode/type changes. No leader/member settlement;
-validate combined result once. General merge/rebase can use Git in the isolated command
-filesystem with capture.
+Default topology: Termux Python/Git/SQLite/controller + native supervisors + localhost MCP
++ outbound OpenAI Secure MCP Tunnel. MCP is pinned to **2026-07-28**, not a relabeled
+legacy initialize protocol. Each authenticated POST carries version/capability metadata
+and matching method/version/name headers; header mismatches fail before tool admission.
+server/discover is optional for clients, not a required handshake. Results are complete
+JSON envelopes; discovery/tool lists carry explicit private zero-TTL cache metadata.
+The exact envelope/error profile is in contracts/tools.schema.json x-mcp.
 
-| Effect certainty | Meaning |
-|---|---|
-| none | no committed effect; semantic rejection or proven pre-dispatch failure |
-| committed | effect is durably known; replay returns original result |
-| unknown | dispatch/effect may have occurred; observe, do not automatically repeat |
+No initialize/initialized, transport session, GET/DELETE stream, SSE resume or automatic
+protocol downgrade. Unimplemented client notifications are rejected. The server does not
+advertise subscriptions, sampling, elicitation, tasks or MRTR input requests. GET healthz
+is liveness, not MCP. HTTP request IDs and clientInfo are not durable mutation identity or
+authority. Reconnect never cancels/relaunches an already accepted operation: these calls
+return durable operation handles, not request-scoped SSE jobs. No generic transport framework.
 
-Running status differs from effect certainty. Transport failure is not command failure.
-Dedup follows current authorization and precedes stale checks. Same principal/request
-with different canonical input conflicts. Accepted intent fixes repo/source/policy once.
+OpenAI documents Streamable HTTP and private Secure MCP Tunnel, but that does not establish
+a live ChatGPT host's acceptance of this exact protocol revision or bearer forwarding.
+Local official-SDK interoperability and actual host acceptance are separate evidence.
+If a host only speaks an older protocol, report that mismatch; do not silently downgrade
+the user-selected version or claim a host-supported revision without observation.
 
-## 8. Validation and publication
+Runit services and bounded logging are separate from coding calls. Inactive installation
+stages a verified bundle and DOWN templates; rollback checks schema and outstanding effects.
+Production activation needs explicit authority. Bundle verification is not protection from
+hostile same-UID code. Native runner is included without extra executor enrollment.
 
-Freeze candidate commit/tree/parent, command/policy digest, executor and operation before
-validation. Operator policy supplies mandatory command; candidate policy-file edits do
-not change it. Diagnostics are exec. Outer executor outside candidate authority records
-actual exit and input identity. Candidate PASS/JSON is output only. Passing tests proves
-execution of adopted tests, not correctness of all code. Source is read-only during
-validation and scratch is separate.
+## 9. Evidence and acceptance
 
-Publish checks current scope/policy, successful validation and unchanged checkpoint.
-Publish the frozen commit, never regenerate. Unique publication per validation survives
-different request IDs. Candidate is sole child of expected canonical head. GitHub checks
-immutable repository ID and fixed HTTPS URL/full ref; local fixture checks exact bare
-repository identity. No guessed targets, wildcard refs or symbolic canonical refs.
+Termux-native subprocess tests, HTTP full coding path, restart, cancellation, environment
+hygiene, exact publication and inactive packaged rehearsal are primary local evidence.
+Measured results belong in LOCAL_VALIDATION; completion belongs in README. No fixture result
+is hostile-code sandbox proof. Remaining host acceptance is actual ChatGPT/Tunnel discovery,
+bearer forwarding and reconnect, not Linux machine provisioning.
 
-No force push. A private trusted pre-push hook checks advertised old OID, local new OID
-and single ref against persisted intent; normal receive-pack CASes that advertised old
-OID. Ordinary push without that guard would not prove caller expected head.
-Local bare fixture uses explicit old-OID update-ref CAS. Before either path, verify the
-candidate's sole parent. Persist publication intent before dispatch.
-
-Lost response: new head or verified descendant proves publication under enrolled
-no-rewrite/no-delete policy. Old head alone cannot prove the previous sender will never
-publish; retain unknown unless sender termination is established. Other heads are stale
-only with proof of nonpublication; otherwise unknown. Never automatically resend an
-uncertain push. Admin rewrites violate enrollment assumptions and require reconciliation.
-
-## 9. Transport and Termux operations
-
-ChatGPT → OpenAI Secure MCP Tunnel → localhost HTTP MCP → controller.
-[Official Tunnel documentation](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels)
-describes outbound delivery and runtime credentials, not our proposed subject/session
-security semantics. Bearer forwarding, host availability and discovery require real
-acceptance. Reconnect does not change durable development state.
-
-HTTP implements JSON-RPC initialize/tools/list/tools/call, JSON responses, notification
-202, unsupported GET stream 405, auth before discovery, Origin/Host/version/body checks.
-JSON-RPC/session IDs are not mutation identity. No generic transport framework.
-
-Python/Git/SQLite run on Termux. Independent controller and tunnel runit services use
-bounded logging. Android UID kill may stop supervisor too: no always-on guarantee.
-Install/check/rollback are local operator actions: inactive verified version directory,
-active/previous pointer, schema compatibility and separate config. No release machinery
-in coding calls. Production cutover needs explicit authority and real acceptance.
-Source work/inactive rehearsal does not change installed services.
-
-## 10. Evidence, performance and remaining acceptance
-
-Fresh 2026-09-20 inspection: local/remote starting HEAD
-244c106a8951cba8a329b0f321e0bab29ccb5a31; Python 3.14.6, Git 2.55.0, Node 24.18.0,
-runsv available. Installed tunnel-client reports
-0.0.10+105e17a79a36e4e5c897fd698ed2b8dbf935b144. Previous observations of other
-binaries are not current runtime identity.
-
-Fresh source inspection at dev-2 05e5ae681c846ac77457dc0bbeb15f67f3a29688:
-src/candidate/tree.mjs has preflight/immutable construction; src/integration/git-ref.mjs
-has direct-parent checking and qualified force lease (replaced by non-force advertised
-old guard); src/execution/podman.mjs, managed-sandbox.mjs and outer-receipt.mjs join
-trusted outer identity and reject candidate-produced validation evidence. Recover the
-invariants, not the action/attempt/session graph. tmcp process-runner.ts/store.ts show
-bounded capture, group cancellation and request reservation. Source inspection is not
-live runtime qualification.
-
-Primitive references: [Git CAS](https://git-scm.com/docs/git-update-ref),
-[MCP HTTP](https://modelcontextprotocol.io/specification/2025-11-25/basic/transports),
-[Podman](https://docs.podman.io/en/latest/markdown/podman-run.1.html).
-Container flags alone do not prove deployed isolation.
-
-Measure schema/startup bytes, calls/polls, duplication/transfer, command starts, remote
-cold/warm time, validations, Git/provider requests, stale retries, user interventions
-and maintenance cost. Local fixture timings are not host/remote performance. Use
-one-file, multi-file, search and competing-ref cases with actual counts, not scores.
-No benchmark framework before first complete fixture path.
-
-Host acceptance: discovery/bearer forwarding/reconnect and separate credentials;
-remote OS isolation/egress/resource/capture/receipt/network-loss tests; actual production
-activation. Provisional assumptions remain explicit. Independent local implementation,
-tests and packaging continue while these require human access.
+References: [Git CAS](https://git-scm.com/docs/git-update-ref),
+[Linux subreaper](https://man7.org/linux/man-pages/man2/PR_SET_CHILD_SUBREAPER.2const.html),
+[process start identity](https://man7.org/linux/man-pages/man5/proc_pid_stat.5.html),
+[MCP 2026-07-28 HTTP](https://modelcontextprotocol.io/specification/2026-07-28/basic/transports/streamable-http),
+[MCP discovery](https://modelcontextprotocol.io/specification/2026-07-28/server/discover),
+[OpenAI MCP server](https://developers.openai.com/plugins/build/mcp-server),
+[OpenAI Secure MCP Tunnel](https://developers.openai.com/api/docs/guides/secure-mcp-tunnels).
