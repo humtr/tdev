@@ -219,7 +219,7 @@ account mapping은 local Termux owner-only env config를 사람이 직접 편집
 
 ### One-Time Permit
 
-사용자가 tmcp에서 시험한 OTP/session authorization 방식을 tdev에서는 **One-Time Permit**이라는 제품 용어로 사용한다. literal shared ChatGPT login에서는 OAuth/account subject만으로 사람을 구분할 수 없으므로, local Termux 사용자가 짧은 Permit을 발급하고 원하는 chat/session에서 입력해야 unlock된다.
+사용자가 tmcp에서 시험한 OTP/session authorization 방식을 tdev에서는 **One-Time Permit**이라는 제품 용어로 사용한다. literal shared ChatGPT login에서는 account subject만으로 사람을 구분할 수 없으므로, local Termux 사용자가 짧은 Permit을 발급하고 원하는 chat/session에서 입력해야 unlock된다.
 
 회수할 prototype invariant:
 

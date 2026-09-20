@@ -686,7 +686,7 @@ architecture를 결정하기 위한 별도 대규모 prototype은 만들지 않�
 
 **ENGINEERING INFERENCE:** 가장 큰 잔여 성능 위험은 remote executor cold start와 validation 비용이며, tunnel transport overhead는 Stage 3 최초 완전 경로에서 별도 측정한다. OAI Tunnel을 선택했다는 이유만으로 latency 우위를 주장하지 않는다. 실제 bottleneck evidence 없이 Cloudflare/다른 transport를 병렬 구현하지 않는다.
 
-가장 큰 authorization 위험은 literal shared login에서 human identity와 account subject가 동일하다는 점이다. 이를 숨기지 않고 `permit` account에 local One-Time Permit possession proof를 추가한다. Permit 자체가 OAuth role을 뛰어넘는 privilege escalation이 되지 않도록 account ceiling을 항상 먼저 검사한다. session metadata가 바뀌거나 spoofable하면 grant를 fail closed한다.
+가장 큰 authorization 위험은 literal shared login에서 human identity와 account subject가 동일하다는 점이다. 이를 숨기지 않고 `permit` account에 local One-Time Permit possession proof를 추가한다. Permit 자체가 account access ceiling을 뛰어넘는 privilege escalation이 되지 않도록 ceiling을 항상 먼저 검사한다. session metadata가 바뀌거나 spoofable하면 grant를 fail closed한다.
 
 가장 큰 구현 위험은 generic exec의 source checkpoint 수집과 stdin crash gap이다. 이를 exact last checkpoint, whole-container termination, hash/path verification, unknown delivery, no automatic arbitrary replay로 한정한다. Git/DB 손상은 backup과 수동 복구를 필요로 한다.
 
